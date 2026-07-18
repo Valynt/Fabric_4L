@@ -1,5 +1,7 @@
 # Fabric 4L Tenant Management — Rescoped Implementation Plans
 
+**Status:** Active — audit note added 2026-07-18. The older phase/remediation documents under `docs/archive/2026-05-28/` (`tenant-management-phase-1-rls-hardening.md`, `tenant-management-phase-2-provisioning.md`, `tenant-management-phase-3-control-plane.md`, `tenant-management-remediation-plan.md`, `tenant-management-remediation-verification.md`) and the original plans in `docs/archive/tenant-management-*.md` have been archived as superseded by this document.
+
 Rescope tenant management phases based on actual codebase capabilities: RLS-based isolation is mature (not schema-per-tenant), OIDC is generic (not Keycloak-specific), and tier-aware routing already exists but only 'shared' tier is implemented.
 
 ---
@@ -427,6 +429,8 @@ Upon approval, these documents should be moved to:
 ---
 
 ## Verification Checklist
+
+> **Audit note (2026-07-18):** The checklist below remains unchecked. Several items have been addressed in the current codebase (e.g., `fastapi-tenancy` is not used, generic OIDC is implemented, schema-per-tenant remains a future tier) but the file-path references in this plan still use shorthand (`layer4-agents/src/...`, `shared/...`) rather than canonical `services/` and `packages/shared/` paths. Review and either close these items or convert them into tracked issues.
 
 - [ ] `fastapi-tenancy` removed from all recommendations
 - [ ] Keycloak references removed

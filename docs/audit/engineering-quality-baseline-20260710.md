@@ -1,9 +1,12 @@
 # Value Fabric — Engineering Quality Baseline Assessment
 
 **Date:** 2026-07-10  
+**Status:** Partially stale — audit correction note added 2026-07-18. The Layer 1 type-check failure and `services/layer2-5-signals/` path reference below have been corrected since the baseline was captured.
 **Assessor:** Kimi Code CLI (goal mode)  
 **Repository:** `/home/ubuntu/Fabric_4L` (ValuePact / Value Fabric)  
 **Scope:** Baseline assessment only — no source-code changes were made except installing frontend dependencies (`pnpm install --frozen-lockfile`) so that validation commands could run.
+
+> **Audit correction (2026-07-18):** `make typecheck-layer1` now passes (`Success: no issues found in 15 source files`), and the Layer 2.5 service directory is `services/layer2-5-signal-refinery/`, not `services/layer2-5-signals/`. Treat the type-check finding as resolved; re-run `make typecheck-layer1` before the next baseline update.
 
 ---
 

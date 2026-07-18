@@ -1,5 +1,7 @@
 # Production Readiness Scorecard
 
+> **Audit note (2026-07-18):** This scorecard is a snapshot dated 2026-06-15. The `docs/launch/launch-blocker-register.md` dated 2026-06-16 records owner countersignatures and a "GO WITH ACCEPTED RISKS for Core GA" posture that supersedes the `CONDITIONAL` statuses shown here for Reliability and Tenancy. Reconcile this scorecard with the launch blocker register before using it as a launch authority.
+
 Status values: `PASS`, `CONDITIONAL`, `BLOCKED`, `NOT_STARTED`.
 
 Launch blocker values: `[BLOCKER:P0]`, `[BLOCKER:P1]`, `P2`, or `None`.

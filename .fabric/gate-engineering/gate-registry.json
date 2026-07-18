@@ -86,7 +86,7 @@
         "owner": "value-fabric/architects",
         "target_date": "2026-07-15",
         "target_checkpoint": 6,
-        "description": "Resolve missing evidence or skipped producer before release."
+        "description": "Resolve missing evidence or skipped producer before release. [AUDIT 2026-07-18] Target date 2026-07-15 is past due. Replace TODO-CHECKPOINT-* placeholder with a real ticket reference."
       }
     },
     {
@@ -145,7 +145,7 @@
         "owner": "value-fabric/qa-leads",
         "target_date": "2026-07-15",
         "target_checkpoint": 6,
-        "description": "Resolve missing evidence or skipped producer before release."
+        "description": "Resolve missing evidence or skipped producer before release. [AUDIT 2026-07-18] Target date 2026-07-15 is past due. Replace TODO-CHECKPOINT-* placeholder with a real ticket reference."
       }
     },
     {
@@ -202,7 +202,7 @@
         "owner": "value-fabric/backend-leads",
         "target_date": "2026-07-15",
         "target_checkpoint": 6,
-        "description": "Resolve missing evidence or skipped producer before release."
+        "description": "Resolve missing evidence or skipped producer before release. [AUDIT 2026-07-18] Target date 2026-07-15 is past due. Replace TODO-CHECKPOINT-* placeholder with a real ticket reference."
       }
     },
     {
@@ -259,7 +259,7 @@
         "owner": "value-fabric/security-leads",
         "target_date": "2026-07-15",
         "target_checkpoint": 6,
-        "description": "Resolve missing evidence or skipped producer before release."
+        "description": "Resolve missing evidence or skipped producer before release. [AUDIT 2026-07-18] Target date 2026-07-15 is past due. Replace TODO-CHECKPOINT-* placeholder with a real ticket reference."
       }
     },
     {
@@ -319,7 +319,7 @@
         "owner": "value-fabric/security-leads",
         "target_date": "2026-07-15",
         "target_checkpoint": 7,
-        "description": "Resolve missing evidence or skipped producer before release."
+        "description": "Resolve missing evidence or skipped producer before release. [AUDIT 2026-07-18] Target date 2026-07-15 is past due. Replace TODO-CHECKPOINT-* placeholder with a real ticket reference."
       }
     },
     {
@@ -377,7 +377,7 @@
         "owner": "value-fabric/security-leads",
         "target_date": "2026-07-15",
         "target_checkpoint": 7,
-        "description": "Resolve missing evidence or skipped producer before release."
+        "description": "Resolve missing evidence or skipped producer before release. [AUDIT 2026-07-18] Target date 2026-07-15 is past due. Replace TODO-CHECKPOINT-* placeholder with a real ticket reference."
       }
     },
     {
@@ -437,7 +437,7 @@
         "owner": "value-fabric/data-platform",
         "target_date": "2026-07-15",
         "target_checkpoint": 7,
-        "description": "Resolve missing evidence or skipped producer before release."
+        "description": "Resolve missing evidence or skipped producer before release. [AUDIT 2026-07-18] Target date 2026-07-15 is past due. Replace TODO-CHECKPOINT-* placeholder with a real ticket reference."
       }
     },
     {
@@ -501,7 +501,7 @@
         "owner": "value-fabric/security-leads",
         "target_date": "2026-07-15",
         "target_checkpoint": 7,
-        "description": "Resolve missing evidence or skipped producer before release."
+        "description": "Resolve missing evidence or skipped producer before release. [AUDIT 2026-07-18] Target date 2026-07-15 is past due. Replace TODO-CHECKPOINT-* placeholder with a real ticket reference."
       }
     },
     {
@@ -558,7 +558,7 @@
         "owner": "value-fabric/architects",
         "target_date": "2026-07-15",
         "target_checkpoint": 6,
-        "description": "Resolve missing evidence or skipped producer before release."
+        "description": "Resolve missing evidence or skipped producer before release. [AUDIT 2026-07-18] Target date 2026-07-15 is past due. Replace TODO-CHECKPOINT-* placeholder with a real ticket reference."
       }
     },
     {
@@ -617,7 +617,7 @@
         "owner": "value-fabric/release-engineering",
         "target_date": "2026-07-15",
         "target_checkpoint": 7,
-        "description": "Resolve missing evidence or skipped producer before release."
+        "description": "Resolve missing evidence or skipped producer before release. [AUDIT 2026-07-18] Target date 2026-07-15 is past due. Replace TODO-CHECKPOINT-* placeholder with a real ticket reference."
       }
     },
     {
@@ -675,7 +675,7 @@
         "owner": "value-fabric/release-engineering",
         "target_date": "2026-07-15",
         "target_checkpoint": 7,
-        "description": "Resolve missing evidence or skipped producer before release."
+        "description": "Resolve missing evidence or skipped producer before release. [AUDIT 2026-07-18] Target date 2026-07-15 is past due. Replace TODO-CHECKPOINT-* placeholder with a real ticket reference."
       }
     },
     {
@@ -736,7 +736,7 @@
         "owner": "value-fabric/sre-leads",
         "target_date": "2026-07-15",
         "target_checkpoint": 7,
-        "description": "Resolve missing evidence or skipped producer before release."
+        "description": "Resolve missing evidence or skipped producer before release. [AUDIT 2026-07-18] Target date 2026-07-15 is past due. Replace TODO-CHECKPOINT-* placeholder with a real ticket reference."
       }
     },
     {
@@ -793,7 +793,7 @@
         "owner": "value-fabric/sre-leads",
         "target_date": "2026-07-15",
         "target_checkpoint": 7,
-        "description": "Resolve missing evidence or skipped producer before release."
+        "description": "Resolve missing evidence or skipped producer before release. [AUDIT 2026-07-18] Target date 2026-07-15 is past due. Replace TODO-CHECKPOINT-* placeholder with a real ticket reference."
       }
     },
     {
@@ -851,7 +851,7 @@
         "owner": "value-fabric/sre-leads",
         "target_date": "2026-07-15",
         "target_checkpoint": 7,
-        "description": "Resolve missing evidence or skipped producer before release."
+        "description": "Resolve missing evidence or skipped producer before release. [AUDIT 2026-07-18] Target date 2026-07-15 is past due. Replace TODO-CHECKPOINT-* placeholder with a real ticket reference."
       }
     },
     {
@@ -909,7 +909,7 @@
         "owner": "value-fabric/sre-leads",
         "target_date": "2026-07-15",
         "target_checkpoint": 7,
-        "description": "Resolve missing evidence or skipped producer before release."
+        "description": "Resolve missing evidence or skipped producer before release. [AUDIT 2026-07-18] Target date 2026-07-15 is past due. Replace TODO-CHECKPOINT-* placeholder with a real ticket reference."
       }
     },
     {
@@ -962,7 +962,7 @@
         "owner": "value-fabric/backend-leads",
         "target_date": "2026-07-15",
         "target_checkpoint": 6,
-        "description": "Resolve missing evidence or skipped producer before release."
+        "description": "Resolve missing evidence or skipped producer before release. [AUDIT 2026-07-18] Target date 2026-07-15 is past due. Replace TODO-CHECKPOINT-* placeholder with a real ticket reference."
       }
     },
     {
@@ -1022,7 +1022,7 @@
         "owner": "value-fabric/agent-leads",
         "target_date": "2026-07-15",
         "target_checkpoint": 7,
-        "description": "Resolve missing evidence or skipped producer before release."
+        "description": "Resolve missing evidence or skipped producer before release. [AUDIT 2026-07-18] Target date 2026-07-15 is past due. Replace TODO-CHECKPOINT-* placeholder with a real ticket reference."
       }
     },
     {
@@ -1075,7 +1075,7 @@
         "owner": "value-fabric/security-leads",
         "target_date": "2026-07-15",
         "target_checkpoint": 7,
-        "description": "Resolve missing evidence or skipped producer before release."
+        "description": "Resolve missing evidence or skipped producer before release. [AUDIT 2026-07-18] Target date 2026-07-15 is past due. Replace TODO-CHECKPOINT-* placeholder with a real ticket reference."
       }
     },
     {
@@ -1131,7 +1131,7 @@
         "owner": "value-fabric/sre-leads",
         "target_date": "2026-07-15",
         "target_checkpoint": 6,
-        "description": "Resolve missing evidence or skipped producer before release."
+        "description": "Resolve missing evidence or skipped producer before release. [AUDIT 2026-07-18] Target date 2026-07-15 is past due. Replace TODO-CHECKPOINT-* placeholder with a real ticket reference."
       }
     },
     {
@@ -1190,7 +1190,7 @@
         "owner": "value-fabric/backend-leads",
         "target_date": "2026-07-15",
         "target_checkpoint": 6,
-        "description": "Resolve missing evidence or skipped producer before release."
+        "description": "Resolve missing evidence or skipped producer before release. [AUDIT 2026-07-18] Target date 2026-07-15 is past due. Replace TODO-CHECKPOINT-* placeholder with a real ticket reference."
       }
     },
     {
@@ -1248,7 +1248,7 @@
         "owner": "value-fabric/backend-leads",
         "target_date": "2026-07-15",
         "target_checkpoint": 6,
-        "description": "Resolve missing evidence or skipped producer before release."
+        "description": "Resolve missing evidence or skipped producer before release. [AUDIT 2026-07-18] Target date 2026-07-15 is past due. Replace TODO-CHECKPOINT-* placeholder with a real ticket reference."
       }
     },
     {
@@ -1308,7 +1308,7 @@
         "owner": "value-fabric/frontend-leads",
         "target_date": "2026-07-15",
         "target_checkpoint": 6,
-        "description": "Resolve missing evidence or skipped producer before release."
+        "description": "Resolve missing evidence or skipped producer before release. [AUDIT 2026-07-18] Target date 2026-07-15 is past due. Replace TODO-CHECKPOINT-* placeholder with a real ticket reference."
       }
     },
     {
@@ -1369,7 +1369,7 @@
         "owner": "value-fabric/frontend-leads",
         "target_date": "2026-07-15",
         "target_checkpoint": 6,
-        "description": "Resolve missing evidence or skipped producer before release."
+        "description": "Resolve missing evidence or skipped producer before release. [AUDIT 2026-07-18] Target date 2026-07-15 is past due. Replace TODO-CHECKPOINT-* placeholder with a real ticket reference."
       }
     },
     {
@@ -1433,7 +1433,7 @@
         "owner": "value-fabric/security-leads",
         "target_date": "2026-07-15",
         "target_checkpoint": 6,
-        "description": "Resolve missing evidence or skipped producer before release."
+        "description": "Resolve missing evidence or skipped producer before release. [AUDIT 2026-07-18] Target date 2026-07-15 is past due. Replace TODO-CHECKPOINT-* placeholder with a real ticket reference."
       }
     },
     {
@@ -1492,7 +1492,7 @@
         "owner": "value-fabric/frontend-leads",
         "target_date": "2026-07-15",
         "target_checkpoint": 6,
-        "description": "Resolve missing evidence or skipped producer before release."
+        "description": "Resolve missing evidence or skipped producer before release. [AUDIT 2026-07-18] Target date 2026-07-15 is past due. Replace TODO-CHECKPOINT-* placeholder with a real ticket reference."
       }
     },
     {
@@ -1546,7 +1546,7 @@
         "ticket": "TODO-CHECKPOINT-7",
         "owner": "value-fabric/security-leads",
         "target_date": "2026-07-15",
-        "description": "Create or bind the tenant/account route journey spec if not present.",
+        "description": "Create or bind the tenant/account route journey spec if not present. [AUDIT 2026-07-18] Target date 2026-07-15 is past due. Replace TODO-CHECKPOINT-* placeholder with a real ticket reference.",
         "target_checkpoint": 7
       },
       "related_contracts": [
@@ -1605,7 +1605,7 @@
         "ticket": "TODO-CHECKPOINT-7",
         "owner": "value-fabric/qa-leads",
         "target_date": "2026-07-15",
-        "description": "Create or bind the notes-to-summary journey spec; until then rely on J1 ingestion behavior spec as partial coverage.",
+        "description": "Create or bind the notes-to-summary journey spec; until then rely on J1 ingestion behavior spec as partial coverage. [AUDIT 2026-07-18] Target date 2026-07-15 is past due. Replace TODO-CHECKPOINT-* placeholder with a real ticket reference.",
         "target_checkpoint": 7
       },
       "related_contracts": [
@@ -1663,7 +1663,7 @@
         "ticket": "TODO-CHECKPOINT-7",
         "owner": "value-fabric/security-leads",
         "target_date": "2026-07-15",
-        "description": "Create or bind the unauthorized account denial journey spec; until then use behavior specs as partial coverage.",
+        "description": "Create or bind the unauthorized account denial journey spec; until then use behavior specs as partial coverage. [AUDIT 2026-07-18] Target date 2026-07-15 is past due. Replace TODO-CHECKPOINT-* placeholder with a real ticket reference.",
         "target_checkpoint": 7
       },
       "related_contracts": [

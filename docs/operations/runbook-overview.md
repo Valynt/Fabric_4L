@@ -1,5 +1,7 @@
 # Operations Runbook
 
+> **Audit note (2026-07-18):** This runbook defines a SEV-0..SEV-3 severity model. `docs/operations/severity-escalation-policy.md` defines a different SEV-1..SEV-4 model with distinct response-time criteria. Reconcile these two models; `severity-escalation-policy.md` appears more recent and is referenced by `docs/operations/RUNBOOK.md`.
+
 ## Incident Response
 
 ### Severity Levels
