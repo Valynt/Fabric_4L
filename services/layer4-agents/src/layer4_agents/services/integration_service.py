@@ -20,10 +20,24 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
+from layer4_agents.integrations.core.errors import (
+    AuthError,
+    CRMError,
+    PermissionError_,
+    PermanentError,
+    TransientError,
+    classify_http_status,
+)
+from layer4_agents.integrations.core.state import (
+    ErrorClass,
+    ObservedStatus,
+    apply_observation,
+)
+from layer4_agents.integrations.factory import get_connector
 from ..metrics import get_metrics
 from ..models.account import CRMProvider
 from ..models.crm_sync_job import CRMSyncJob, CRMSyncJobStatus
-from ..models.integration import Integration, IntegrationStatus
+from ..models.integration import Integration
 from .crm_sync_queue import enqueue_crm_sync_job
 from .encryption_service import DEFAULT_KEY_ID, EncryptionService
 
@@ -249,9 +263,12 @@ class IntegrationService:
             existing.updated_by = user_id
             if salesforce_org_id:
                 existing.salesforce_org_id = salesforce_org_id
-            # Reset status on config change
-            if not enabled:
-                existing.sync_status = IntegrationStatus.IDLE
+            # Reset status on config change via the reducer.
+            await apply_observation(
+                self.db,
+                existing,
+                ObservedStatus.IDLE,
+            )
         else:
             # Create new
             existing = Integration(
@@ -264,11 +281,11 @@ class IntegrationService:
                 salesforce_org_id=salesforce_org_id,
                 sync_interval_minutes=sync_interval_minutes,
                 sync_batch_size=sync_batch_size,
-                sync_status=IntegrationStatus.IDLE if not enabled else IntegrationStatus.PENDING,
                 created_by=user_id,
                 updated_by=user_id,
             )
             self.db.add(existing)
+            await apply_observation(self.db, existing, ObservedStatus.IDLE)
 
         await self.db.commit()
         await self.db.refresh(existing)
@@ -347,11 +364,10 @@ class IntegrationService:
             )
             credentials = json.loads(creds_json)
 
-            # Perform actual HTTP connection test
-            test_result = await self._test_crm_connection(
-                provider, credentials, integration.instance_url
-            )
-            return test_result
+            # Perform actual HTTP connection test through the provider connector.
+            connector = get_connector(provider, credentials)
+            test_result = await connector.test_connection()
+            return IntegrationService_test_connectionResult.model_validate(test_result)
 
         except asyncio.CancelledError:
             raise
@@ -587,8 +603,8 @@ class IntegrationService:
         queued_at_dt = datetime.now(UTC)
         queued_at = queued_at_dt.isoformat()
 
-        # Mark as pending until the worker starts
-        integration.sync_status = IntegrationStatus.PENDING
+        # Mark as running/pending until the worker starts
+        await apply_observation(self.db, integration, ObservedStatus.RUNNING)
         job = CRMSyncJob(
             tenant_id=tenant_id,
             provider=provider,
@@ -613,7 +629,12 @@ class IntegrationService:
             job.status = CRMSyncJobStatus.FAILED
             job.finished_at = datetime.now(UTC)
             job.error_summary = f"Failed to enqueue sync: {exc}"
-            integration.sync_status = IntegrationStatus.FAILED
+            await apply_observation(
+                self.db,
+                integration,
+                ObservedStatus.FAILURE,
+                error_class=ErrorClass.TRANSIENT,
+            )
             integration.last_error_message = f"Failed to enqueue sync: {exc}"
             await self.db.commit()
             raise IntegrationValidationError(f"Unable to queue sync: {exc}") from exc
@@ -764,41 +785,37 @@ class IntegrationService:
         client_id = os.getenv("SALESFORCE_CLIENT_ID")
         client_secret = os.getenv("SALESFORCE_CLIENT_SECRET")
 
-        if not client_id or not client_secret:
-            raise IntegrationValidationError(
-                "SALESFORCE_CLIENT_ID and SALESFORCE_CLIENT_SECRET must be configured"
+        from layer4_agents.integrations.providers.salesforce.connector import SalesforceConnector
+
+        try:
+            token_result = await SalesforceConnector.refresh_token(
+                refresh_token=refresh_token,
+                instance_url=instance_url,
+                client_id=client_id,
+                client_secret=client_secret,
             )
-
-        import httpx
-
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.post(
-                token_url,
-                data={
-                    "grant_type": "refresh_token",
-                    "refresh_token": refresh_token,
-                    "client_id": client_id,
-                    "client_secret": client_secret,
-                },
+        except CRMError as e:
+            classified = classify_http_status(getattr(e, "status_code", 0), str(e))
+            logger.warning(
+                "Salesforce token refresh failed for tenant=%s: %s",
+                integration.tenant_id,
+                classified,
             )
-
-        if response.status_code != 200:
-            integration.sync_status = IntegrationStatus.DEGRADED
-            integration.last_error_message = f"Token refresh failed: HTTP {response.status_code}"
+            error_cls = (
+                ErrorClass.AUTH
+                if isinstance(classified, AuthError)
+                else ErrorClass.TRANSIENT
+            )
+            await apply_observation(self.db, integration, ObservedStatus.FAILURE, error_class=error_cls)
+            integration.last_error_message = f"Token refresh failed: {e}"
             await self.db.commit()
             prom = get_metrics()
             if prom:
                 prom.increment_crm_salesforce_token_refresh_failed(integration.tenant_id)
-            raise IntegrationValidationError(
-                f"Token refresh failed: HTTP {response.status_code} - {response.text}"
-            )
+            raise IntegrationValidationError(f"Token refresh failed: {e}") from e
 
-        token_data = response.json()
-        new_access_token = token_data.get("access_token")
-        new_instance_url = token_data.get("instance_url")
-
-        if not new_access_token:
-            raise IntegrationValidationError("Token refresh response missing access_token")
+        new_access_token = token_result["api_key"]
+        new_instance_url = token_result.get("instance_url")
 
         # Update credentials with new access token
         credentials = await self.decrypt_credentials(integration)
@@ -813,13 +830,13 @@ class IntegrationService:
         )
 
         # Update refresh token if rotated
-        new_refresh_token = token_data.get("refresh_token")
+        new_refresh_token = token_result.get("refresh_token")
         if new_refresh_token:
             integration.refresh_token_encrypted = await EncryptionService.encrypt(
                 new_refresh_token, key_id=integration.encryption_key_id
             )
 
-        integration.sync_status = IntegrationStatus.IDLE
+        await apply_observation(self.db, integration, ObservedStatus.SUCCESS)
         integration.last_error_message = None
         await self.db.commit()
 
@@ -945,8 +962,8 @@ class IntegrationService:
             existing.refresh_token_encrypted = encrypted_refresh_token
             existing.encryption_key_id = DEFAULT_KEY_ID
             existing.instance_url = instance_url
-            existing.sync_status = IntegrationStatus.IDLE
             existing.last_error_message = None
+            await apply_observation(self.db, existing, ObservedStatus.SUCCESS)
             existing.updated_by = user_id
             if salesforce_org_id:
                 existing.salesforce_org_id = str(salesforce_org_id)
@@ -963,11 +980,11 @@ class IntegrationService:
                 salesforce_org_id=str(salesforce_org_id) if salesforce_org_id else None,
                 sync_interval_minutes=60,
                 sync_batch_size=100,
-                sync_status=IntegrationStatus.IDLE,
                 created_by=user_id,
                 updated_by=user_id,
             )
             self.db.add(integration)
+            await apply_observation(self.db, integration, ObservedStatus.SUCCESS)
 
         await self.db.commit()
         await self.db.refresh(integration)

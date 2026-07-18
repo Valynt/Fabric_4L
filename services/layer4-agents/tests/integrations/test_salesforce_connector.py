@@ -1,0 +1,134 @@
+from __future__ import annotations
+
+from typing import Any
+from unittest.mock import AsyncMock, patch
+
+import httpx
+import pytest
+
+from layer4_agents.integrations.core.errors import AuthError, PermanentError, TransientError
+from layer4_agents.integrations.core.types import CRMModel
+from layer4_agents.integrations.providers.salesforce.connector import SalesforceConnector
+
+
+def _make_response(status_code: int, json_data: dict | None = None, text: str = "") -> httpx.Response:
+    request = httpx.Request("GET", "https://test.salesforce.com")
+    kwargs: dict[str, Any] = {"request": request}
+    if json_data is not None:
+        kwargs["json"] = json_data
+    else:
+        kwargs["text"] = text
+    return httpx.Response(status_code, **kwargs)
+
+
+class TestSalesforceConnectorTestConnection:
+    @pytest.mark.asyncio
+    async def test_test_connection_success(self) -> None:
+        connector = SalesforceConnector(
+            config={
+                "crm_api_key": "token",
+                "crm_instance_url": "https://test.salesforce.com",
+            }
+        )
+        mock_response = _make_response(200, {"records": [{"Name": "TestOrg"}]})
+        mock_client = AsyncMock()
+        mock_client.request = AsyncMock(return_value=mock_response)
+        connector._client = mock_client
+
+        result = await connector.test_connection()
+
+        assert result["success"] is True
+        assert "TestOrg" in result["message"]
+
+    @pytest.mark.asyncio
+    async def test_test_connection_missing_credentials(self) -> None:
+        connector = SalesforceConnector(config={})
+        result = await connector.test_connection()
+        assert result["success"] is False
+        assert result["error_code"] == "MISSING_CREDENTIALS"
+
+    @pytest.mark.asyncio
+    async def test_test_connection_401(self) -> None:
+        connector = SalesforceConnector(
+            config={
+                "crm_api_key": "token",
+                "crm_instance_url": "https://test.salesforce.com",
+            }
+        )
+        mock_response = _make_response(401, {}, "Unauthorized")
+        mock_client = AsyncMock()
+        mock_client.request = AsyncMock(return_value=mock_response)
+        connector._client = mock_client
+
+        result = await connector.test_connection()
+        assert result["success"] is False
+        assert result["error_code"] == "AUTH_FAILED"
+
+
+class TestSalesforceConnectorRefreshToken:
+    @pytest.mark.asyncio
+    async def test_refresh_token_success(self) -> None:
+        with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
+            mock_post.return_value = _make_response(
+                200,
+                {
+                    "access_token": "new-token",
+                    "instance_url": "https://new.salesforce.com",
+                    "refresh_token": "new-refresh",
+                },
+            )
+            result = await SalesforceConnector.refresh_token(
+                refresh_token="old-refresh",
+                instance_url="https://test.salesforce.com",
+                client_id="client-id",
+                client_secret="client-secret",
+            )
+        assert result["api_key"] == "new-token"
+        assert result["instance_url"] == "https://new.salesforce.com"
+        assert result["refresh_token"] == "new-refresh"
+
+    @pytest.mark.asyncio
+    async def test_refresh_token_401_raises_auth_error(self) -> None:
+        with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
+            mock_post.return_value = _make_response(401, {}, "Unauthorized")
+            with pytest.raises(AuthError):
+                await SalesforceConnector.refresh_token(
+                    refresh_token="old-refresh",
+                    instance_url="https://test.salesforce.com",
+                    client_id="client-id",
+                    client_secret="client-secret",
+                )
+
+
+class TestSalesforceConnectorValidation:
+    def test_validate_sfdc_id_rejects_injection(self) -> None:
+        from layer4_agents.integrations.providers.salesforce.connector import _validate_sfdc_id
+
+        with pytest.raises(ValueError):
+            _validate_sfdc_id("001' OR Name != '")
+
+    def test_validate_sfdc_id_accepts_valid(self) -> None:
+        from layer4_agents.integrations.providers.salesforce.connector import _validate_sfdc_id
+
+        assert _validate_sfdc_id("001XXXXXXXXXXXXXXX") == "001XXXXXXXXXXXXXXX"
+
+
+class TestSalesforceConnectorTimeoutPropagation:
+    @pytest.mark.asyncio
+    async def test_timeout_reaches_httpx(self) -> None:
+        """provider_timeout_s arrives as the timeout kwarg in the httpx call."""
+        connector = SalesforceConnector(
+            config={
+                "crm_api_key": "token",
+                "crm_instance_url": "https://test.salesforce.com",
+            }
+        )
+        mock_response = _make_response(200, {"records": [{"Name": "TestOrg"}]})
+        mock_client = AsyncMock()
+        mock_client.request = AsyncMock(return_value=mock_response)
+        connector._client = mock_client
+
+        await connector.test_connection(timeout=42.0)
+
+        _, kwargs = mock_client.request.call_args
+        assert kwargs.get("timeout") == 42.0
