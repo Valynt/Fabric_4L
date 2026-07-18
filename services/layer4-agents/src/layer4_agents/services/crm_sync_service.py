@@ -22,17 +22,15 @@ from value_fabric.shared.error_handling import sanitize_log_error
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
 from ..integrations.core.connector import CRMConnector
-from ..integrations.core.errors import AuthError, CRMError, TransientError, classify_httpx_exception
+from ..integrations.core.errors import AuthError, CRMError, TransientError
 from ..integrations.core.observations import (
     ErrorClass,
     SyncFailed,
-    SyncObservation,
     SyncPartial,
     SyncStarted,
     SyncSucceeded,
 )
 from ..integrations.core.state import apply_observation
-from ..integrations.core.types import CanonicalRecord, CRMModel
 from ..integrations.factory import get_connector
 from ..metrics import get_metrics
 from ..models.account import (
