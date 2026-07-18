@@ -487,8 +487,9 @@ Each phase includes:
 | 2026-07-18 | Static validation | YAML syntax, profile selector logic (including fail-closed cases), `make check-workflow-references` passed |
 | 2026-07-18 | Hosted validation | PoC workflow ran successfully for `pr-fast`, `release-candidate`, and `production-core` contexts |
 | 2026-07-18 | Submitted for review | Draft PR #1026 opened and linked to this RFC |
+| 2026-07-18 | Decision owner assigned | @bmsull560 recorded as accountable RFC decision owner; GitHub does not allow a PR author to request themselves as a reviewer, so formal disposition will be recorded via an explicit approve/reject/defer comment or RFC update |
 
-**Current disposition:** Engineering work is review-ready. Awaiting assignment of an accountable reviewer and formal approval, rejection, or deferral.
+**Current disposition:** Engineering work is review-ready. Awaiting formal approval, rejection, or deferral from the decision owner.
 
 ---
 
