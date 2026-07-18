@@ -712,7 +712,9 @@ jobs:
       - name: Test image runs as non-root
         run: |
           # Build test images and verify user
-          docker build -t test-frontend apps/web/
+          # apps/web/Dockerfile copies workspace files (package.json, pnpm-workspace.yaml,
+          # packages/*), so the build context must be the repository root.
+          docker build -t test-frontend -f apps/web/Dockerfile .
           docker build \
             --build-arg BASE_IMAGE="${BASE_IMAGE:-}" \
             --build-arg BUILDER_BASE_IMAGE="${BUILDER_BASE_IMAGE:-}" \
