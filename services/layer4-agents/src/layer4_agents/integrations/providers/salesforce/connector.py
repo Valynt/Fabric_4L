@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-import json
 import logging
 import os
 import re
 import urllib.parse
-from datetime import UTC, datetime
+from collections.abc import Awaitable, Callable
+from datetime import datetime
 from typing import Any
 
 import httpx
@@ -19,7 +19,7 @@ from ...core.errors import (
     TransientError,
     classify_httpx_exception,
 )
-from ...core.types import CRMModel, CRMOperationResult, CanonicalRecord, SyncCursor
+from ...core.types import CanonicalRecord, CRMModel, CRMOperationResult, SyncCursor
 
 logger = logging.getLogger(__name__)
 
@@ -32,9 +32,7 @@ _SFDC_ID_PATTERN = re.compile(r"^(?:[a-zA-Z0-9]{15}|[a-zA-Z0-9]{18})$")
 def _validate_sfdc_id(value: str | None, field_name: str = "prospect_id") -> str:
     """Validate Salesforce ID format to prevent SOQL injection."""
     if not value or not _SFDC_ID_PATTERN.match(value):
-        raise ValueError(
-            f"Invalid {field_name} format: must be 15 or 18 alphanumeric characters"
-        )
+        raise ValueError(f"Invalid {field_name} format: must be 15 or 18 alphanumeric characters")
     return value
 
 
@@ -60,14 +58,15 @@ class SalesforceConnector(CRMConnector, CRMWriteConnector):
 
     provider: CRMProvider = CRMProvider.SALESFORCE
 
-    def __init__(
-        self, config: dict[str, Any], client: httpx.AsyncClient | None = None
-    ) -> None:
+    def __init__(self, config: dict[str, Any], client: httpx.AsyncClient | None = None) -> None:
         self.access_token = config.get("crm_api_key") or config.get("api_key")
         self.instance_url = config.get("crm_instance_url") or config.get("instance_url")
         self._refresh_token = config.get("refresh_token")
         self._client_id = config.get("client_id") or os.getenv("SALESFORCE_CLIENT_ID")
         self._client_secret = config.get("client_secret") or os.getenv("SALESFORCE_CLIENT_SECRET")
+        self._on_token_refresh: Callable[[dict[str, Any]], Awaitable[None]] | None = config.get(
+            "on_token_refresh"
+        )
         self._client: httpx.AsyncClient | None = client
 
     def _get_client(self) -> httpx.AsyncClient:
@@ -127,6 +126,8 @@ class SalesforceConnector(CRMConnector, CRMWriteConnector):
             new_refresh = token_result.get("refresh_token")
             if new_refresh:
                 self._refresh_token = new_refresh
+            if self._on_token_refresh:
+                await self._on_token_refresh(token_result)
 
             # Rebuild client with new token
             self._client = None
@@ -197,9 +198,7 @@ class SalesforceConnector(CRMConnector, CRMWriteConnector):
             pages_fetched += 1
 
         if pages_fetched >= max_pages and query_url:
-            logger.warning(
-                "Salesforce SOQL query reached max_pages limit (%s).", max_pages
-            )
+            logger.warning("Salesforce SOQL query reached max_pages limit (%s).", max_pages)
             was_truncated = True
 
         return all_records, was_truncated
@@ -286,7 +285,9 @@ class SalesforceConnector(CRMConnector, CRMWriteConnector):
             "company_size": data.get("NumberOfEmployees"),
             "annual_revenue": data.get("AnnualRevenue"),
             "website": data.get("Website"),
-            "headquarters": f"{data.get('BillingCity', '')}, {data.get('BillingState', '')}".strip(", "),
+            "headquarters": f"{data.get('BillingCity', '')}, {data.get('BillingState', '')}".strip(
+                ", "
+            ),
             "employees": data.get("NumberOfEmployees"),
             "segment": data.get("Type"),
         }
@@ -311,7 +312,9 @@ class SalesforceConnector(CRMConnector, CRMWriteConnector):
             "SELECT Id, Name, StageName, Amount, Probability, CloseDate "
             f"FROM Opportunity WHERE AccountId = '{safe_id}'"
         )
-        records, _ = await self._execute_soql_query(query, timeout=timeout)
+        records, was_truncated = await self._execute_soql_query(query, timeout=timeout)
+        if was_truncated:
+            raise TransientError("Salesforce opportunity query was truncated")
         canonical_records = []
         for rec in records[:limit]:
             canonical = {
@@ -354,7 +357,9 @@ class SalesforceConnector(CRMConnector, CRMWriteConnector):
             f"FROM Task WHERE WhatId = '{safe_id}'{since_clause}{type_filter} "
             f"ORDER BY ActivityDate DESC LIMIT {limit}"
         )
-        records, _ = await self._execute_soql_query(query, timeout=timeout)
+        records, was_truncated = await self._execute_soql_query(query, timeout=timeout)
+        if was_truncated:
+            raise TransientError("Salesforce interaction query was truncated")
         canonical_records = []
         for rec in records:
             canonical = {
@@ -456,9 +461,7 @@ class SalesforceConnector(CRMConnector, CRMWriteConnector):
             )
 
         if response.status_code != 200:
-            raise AuthError(
-                f"Token refresh failed: HTTP {response.status_code} - {response.text}"
-            )
+            raise AuthError(f"Token refresh failed: HTTP {response.status_code} - {response.text}")
 
         token_data = response.json()
         new_access_token = token_data.get("access_token")
