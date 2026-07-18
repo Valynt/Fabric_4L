@@ -7,8 +7,13 @@ Tests validation logic, edge cases, and error handling.
 """
 
 
+import json
+from unittest.mock import AsyncMock
+
 import pytest
 
+from layer4_agents.models.account import CRMProvider
+from layer4_agents.models.integration import Integration
 from layer4_agents.services.encryption_service import DEFAULT_KEY_ID, EncryptionService
 from layer4_agents.services.integration_service import (
     IntegrationService,
@@ -222,6 +227,43 @@ class TestIntegrationValidation:
             batch_size=100,
             instance_url=None,
         )
+
+
+class TestIntegrationConfigUpdates:
+    """Regression coverage for integration update drift."""
+
+    @pytest.mark.asyncio
+    async def test_salesforce_update_preserves_existing_instance_url_column_when_credentials_omit_it(self):
+        """Pre-existing Salesforce rows may keep instance_url outside encrypted credentials."""
+        db = AsyncMock()
+        service = IntegrationService(db)
+        existing = Integration(
+            tenant_id="tenant-1",
+            provider=CRMProvider.SALESFORCE,
+            enabled=True,
+            credentials_encrypted=await EncryptionService.encrypt(
+                json.dumps({"api_key": "old-token"}), key_id=DEFAULT_KEY_ID
+            ),
+            encryption_key_id=DEFAULT_KEY_ID,
+            instance_url="https://tenant.my.salesforce.com",
+            sync_interval_minutes=60,
+            sync_batch_size=100,
+        )
+        service.get_integration = AsyncMock(return_value=existing)
+
+        integration, created = await service.create_or_update_integration(
+            tenant_id="tenant-1",
+            provider=CRMProvider.SALESFORCE,
+            enabled=True,
+            credentials={"api_key": "new-token"},
+            instance_url=None,
+            sync_interval_minutes=60,
+            sync_batch_size=100,
+            user_id="user-1",
+        )
+
+        assert created is False
+        assert integration.instance_url == "https://tenant.my.salesforce.com"
 
 
 class TestEncryptionService:
