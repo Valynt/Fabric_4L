@@ -23,9 +23,6 @@ from value_fabric.shared.models.typed_dict import TypedDictModel
 from layer4_agents.integrations.core.errors import (
     AuthError,
     CRMError,
-    PermissionError_,
-    PermanentError,
-    TransientError,
     classify_http_status,
 )
 from layer4_agents.integrations.core.state import (
@@ -780,7 +777,6 @@ class IntegrationService:
 
         # Salesforce OAuth token endpoint
         instance_url = integration.instance_url or "https://login.salesforce.com"
-        token_url = f"{instance_url}/services/oauth2/token"
 
         client_id = os.getenv("SALESFORCE_CLIENT_ID")
         client_secret = os.getenv("SALESFORCE_CLIENT_SECRET")
