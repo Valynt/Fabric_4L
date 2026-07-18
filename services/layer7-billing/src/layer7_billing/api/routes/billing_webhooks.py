@@ -134,7 +134,8 @@ async def stripe_webhook(
         logger.warning("Idempotency check failed, proceeding with processing", error=str(exc))
 
     # Process webhook
-    # TODO(VF-L7-WEBHOOK-DEBT-001): Implement actual webhook processing logic (e.g., handle payment.created, invoice.paid events)
+    # TODO: Implement actual webhook processing logic (e.g., handle payment.created, invoice.paid events)
+    # Track: https://github.com/bmsull560/Fabric_4L/issues/XXX
     logger.info(
         "Stripe webhook accepted (L7 canonical)",
         event_id=event_id,

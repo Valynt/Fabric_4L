@@ -145,7 +145,7 @@ def _login_oidc(base_url: str | None, tenant: str | None) -> None:
     rich_print(f"[dim]Opening browser for authentication...[/dim]")
     webbrowser.open(full_url)
 
-    # TODO(VF-SDK-AUTH-DEBT-001): Implement local callback server for automated token capture
+    # TODO: Implement local callback server for automated token capture
     # For now, user manually copies token
     rich_print(f"\n[yellow]If browser didn't open, visit:[/yellow]")
     rich_print(f"{full_url}")

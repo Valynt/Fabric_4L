@@ -264,9 +264,8 @@ class TestCrawlDelayApplication:
 
     def test_crawl_delay_respected_in_task(self):
         """Verify that the task layer applies crawl delay via Celery retry."""
-        # DONE(VF-L1-ROBOTS-DEBT-001): crawl-delay Celery retry countdown implemented in
-        # layer1_ingestion/shared/tasks.py:345.
-        pytest.skip("DONE(VF-L1-ROBOTS-DEBT-001): crawl-delay Celery retry implemented; unit test still pending")
+        # TODO(VF-L1-ROBOTS-DEBT-001): implement unit test for Celery retry countdown on crawl_delay.
+        pytest.skip("TODO(VF-L1-ROBOTS-DEBT-001): crawl-delay Celery retry test not yet implemented")
 
 
 class TestStrictRobotsModeMetrics:
@@ -274,14 +273,10 @@ class TestStrictRobotsModeMetrics:
 
     def test_strict_mode_block_emits_metric(self):
         """Strict mode blocks should emit a metric for observability."""
-        # DONE(VF-L1-ROBOTS-DEBT-001): strict_robots_blocks_total metric implemented in
-        # layer1_ingestion/metrics/prometheus_metrics.py:189 and emitted in
-        # layer1_ingestion/compliance/robots_checker.py:190,207.
-        pytest.skip("DONE(VF-L1-ROBOTS-DEBT-001): robots block metric implemented; unit test still pending")
+        # TODO(VF-L1-ROBOTS-DEBT-001): implement strict robots block metrics.
+        pytest.skip("TODO(VF-L1-ROBOTS-DEBT-001): robots block metrics not yet implemented")
 
     def test_permissive_mode_no_block_metric(self):
         """Permissive mode should not emit block metric."""
-        # DONE(VF-L1-ROBOTS-DEBT-001): strict_robots_blocks_total metric implemented in
-        # layer1_ingestion/metrics/prometheus_metrics.py:189 and emitted in
-        # layer1_ingestion/compliance/robots_checker.py:190,207.
-        pytest.skip("DONE(VF-L1-ROBOTS-DEBT-001): robots block metric implemented; unit test still pending")
+        # TODO(VF-L1-ROBOTS-DEBT-001): implement strict robots block metrics.
+        pytest.skip("TODO(VF-L1-ROBOTS-DEBT-001): robots block metrics not yet implemented")

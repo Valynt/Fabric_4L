@@ -146,9 +146,8 @@ class TestIdempotencyKeyBehavior:
         self, client, db, org_id, other_org_id, make_target
     ):
         """Idempotency keys should be scoped per tenant."""
-        # DONE(VF-L1-IDEMPOTENCY-DEBT-001): per-tenant idempotency key scoping implemented in
-        # layer1_ingestion/api/target_handlers.py:545 (key includes org_id).
-        pytest.skip("DONE(VF-L1-IDEMPOTENCY-DEBT-001): idempotency key scoping implemented; unit test still pending")
+        # TODO(VF-L1-IDEMPOTENCY-DEBT-001): implement per-tenant idempotency key scoping.
+        pytest.skip("TODO(VF-L1-IDEMPOTENCY-DEBT-001): idempotency key scoping not yet implemented")
 
 
 class TestIdempotencyKeyExpiration:
@@ -158,17 +157,15 @@ class TestIdempotencyKeyExpiration:
         self, client, db, org_id, make_target
     ):
         """Idempotency keys should expire after TTL (e.g., 24 hours)."""
-        # DONE(VF-L1-IDEMPOTENCY-DEBT-001): idempotency keys stored with 24h TTL via
-        # layer1_ingestion/api/target_handlers.py:696 (setex 86400).
-        pytest.skip("DONE(VF-L1-IDEMPOTENCY-DEBT-001): idempotency key TTL implemented; unit test still pending")
+        # TODO(VF-L1-IDEMPOTENCY-DEBT-001): implement idempotency key TTL and replay semantics.
+        pytest.skip("TODO(VF-L1-IDEMPOTENCY-DEBT-001): idempotency key TTL not yet implemented")
 
     def test_expired_idempotency_key_allows_new_job(
         self, client, db, org_id, make_target
     ):
         """After expiration, same idempotency_key should allow new job creation."""
-        # DONE(VF-L1-IDEMPOTENCY-DEBT-001): expired Redis keys allow new job creation;
-        # TTL enforced in layer1_ingestion/api/target_handlers.py:696.
-        pytest.skip("DONE(VF-L1-IDEMPOTENCY-DEBT-001): idempotency key TTL implemented; unit test still pending")
+        # TODO(VF-L1-IDEMPOTENCY-DEBT-001): implement idempotency key TTL and replay semantics.
+        pytest.skip("TODO(VF-L1-IDEMPOTENCY-DEBT-001): idempotency key TTL not yet implemented")
 
 
 class TestReplayAfterJobCompletion:
@@ -178,17 +175,15 @@ class TestReplayAfterJobCompletion:
         self, client, db, org_id, make_target
     ):
         """Replay after job completion should return completed job status."""
-        # DONE(VF-L1-IDEMPOTENCY-DEBT-001): idempotent replay returns existing job status
-        # from layer1_ingestion/api/target_handlers.py:606-619.
-        pytest.skip("DONE(VF-L1-IDEMPOTENCY-DEBT-001): idempotent replay implemented; unit test still pending")
+        # TODO(VF-L1-IDEMPOTENCY-DEBT-001): implement idempotent replay returning completed status.
+        pytest.skip("TODO(VF-L1-IDEMPOTENCY-DEBT-001): idempotent replay not yet implemented")
 
     def test_replay_after_job_failure_returns_failed_status(
         self, client, db, org_id, make_target
     ):
         """Replay after job failure should return failed job status."""
-        # DONE(VF-L1-IDEMPOTENCY-DEBT-001): idempotent replay returns existing job status
-        # from layer1_ingestion/api/target_handlers.py:606-619.
-        pytest.skip("DONE(VF-L1-IDEMPOTENCY-DEBT-001): idempotent replay implemented; unit test still pending")
+        # TODO(VF-L1-IDEMPOTENCY-DEBT-001): implement idempotent replay returning failed status.
+        pytest.skip("TODO(VF-L1-IDEMPOTENCY-DEBT-001): idempotent replay not yet implemented")
 
 
 class TestIdempotencyKeyValidation:
@@ -198,17 +193,15 @@ class TestIdempotencyKeyValidation:
         self, client, db, org_id, make_target
     ):
         """Invalid idempotency key format should be rejected."""
-        # TODO(VF-L1-IDEMPOTENCY-DEBT-001): implement idempotency key format validation
-        # (no regex/pattern validator currently exists in ExecuteTargetRequest).
-        pytest.skip("TODO(VF-L1-IDEMPOTENCY-DEBT-001): idempotency key format validation not yet implemented")
+        # TODO(VF-L1-IDEMPOTENCY-DEBT-001): implement idempotency key format validation.
+        pytest.skip("TODO(VF-L1-IDEMPOTENCY-DEBT-001): idempotency key validation not yet implemented")
 
     def test_too_long_idempotency_key_rejected(
         self, client, db, org_id, make_target
     ):
         """Too long idempotency key should be rejected."""
-        # DONE(VF-L1-IDEMPOTENCY-DEBT-001): max_length=255 enforced by
-        # layer1_ingestion/api/schemas/target_schemas.py:328.
-        pytest.skip("DONE(VF-L1-IDEMPOTENCY-DEBT-001): idempotency key length validation implemented; unit test still pending")
+        # TODO(VF-L1-IDEMPOTENCY-DEBT-001): implement idempotency key length validation.
+        pytest.skip("TODO(VF-L1-IDEMPOTENCY-DEBT-001): idempotency key validation not yet implemented")
 
 
 class TestIdempotencyKeyMetrics:
@@ -216,14 +209,10 @@ class TestIdempotencyKeyMetrics:
 
     def test_idempotency_key_hit_emits_metric(self, client, db, org_id, make_target):
         """Idempotency key hit should emit metric."""
-        # DONE(VF-L1-IDEMPOTENCY-DEBT-001): idempotency hit/miss metrics implemented in
-        # layer1_ingestion/metrics/prometheus_metrics.py:196 and incremented in
-        # layer1_ingestion/api/target_handlers.py:571-572,612.
-        pytest.skip("DONE(VF-L1-IDEMPOTENCY-DEBT-001): idempotency key metrics implemented; unit test still pending")
+        # TODO(VF-L1-IDEMPOTENCY-DEBT-001): implement idempotency key metrics.
+        pytest.skip("TODO(VF-L1-IDEMPOTENCY-DEBT-001): idempotency key metrics not yet implemented")
 
     def test_idempotency_key_miss_emits_metric(self, client, db, org_id, make_target):
         """Idempotency key miss should emit metric."""
-        # DONE(VF-L1-IDEMPOTENCY-DEBT-001): idempotency hit/miss metrics implemented in
-        # layer1_ingestion/metrics/prometheus_metrics.py:196 and incremented in
-        # layer1_ingestion/api/target_handlers.py:571-572,612.
-        pytest.skip("DONE(VF-L1-IDEMPOTENCY-DEBT-001): idempotency key metrics implemented; unit test still pending")
+        # TODO(VF-L1-IDEMPOTENCY-DEBT-001): implement idempotency key metrics.
+        pytest.skip("TODO(VF-L1-IDEMPOTENCY-DEBT-001): idempotency key metrics not yet implemented")

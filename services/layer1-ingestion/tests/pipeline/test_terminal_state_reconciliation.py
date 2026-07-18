@@ -373,10 +373,8 @@ class TestNoOrphanedRunningStates:
 
     def test_stuck_jobs_metric_reflects_non_terminal_count(self, db, org_id):
         """The stuck_jobs metric should reflect the count of non-terminal jobs."""
-        # TODO(VF-L1-TERMINAL-DEBT-001): stuck-jobs gauge/histogram implemented in
-        # layer1_ingestion/metrics/prometheus_metrics.py:151,166, but refresh_stuck_jobs()
-        # is not yet invoked from a production reconciliation loop.
-        pytest.skip("TODO(VF-L1-TERMINAL-DEBT-001): stuck-jobs reconciliation loop not yet wired to metrics")
+        # TODO(VF-L1-TERMINAL-DEBT-001): implement stuck-jobs reconciliation metrics.
+        pytest.skip("TODO(VF-L1-TERMINAL-DEBT-001): stuck-jobs metrics not yet implemented")
 
 
 class TestRetryMechanismBehavior:
@@ -406,9 +404,8 @@ class TestRetryMechanismBehavior:
 
     def test_retry_countdown_increases(self):
         """Verify that retry countdown increases with each retry."""
-        # DONE(VF-L1-TERMINAL-DEBT-001): exponential-backoff retry countdown implemented in
-        # layer1_ingestion/shared/tasks.py:1665,1783.
-        pytest.skip("DONE(VF-L1-TERMINAL-DEBT-001): exponential-backoff retry countdown implemented; unit test still pending")
+        # TODO(VF-L1-TERMINAL-DEBT-001): implement exponential-backoff retry countdown test.
+        pytest.skip("TODO(VF-L1-TERMINAL-DEBT-001): retry countdown test not yet implemented")
 
 
 # Helper function for tests
