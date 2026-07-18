@@ -249,18 +249,21 @@ This registry does not replace `.fabric/prod-gates.policy.yaml`; it complements 
 Responsibility: read `.github/ci-profiles.yml` and emit a profile name and gate list based on the current GitHub context.
 
 Inputs:
-- `fallback-profile` (default: `pr-fast`)
+- `fallback-profile` (default: `''`) — explicit opt-in profile to use when no trigger matches; empty means fail closed
 
 Outputs:
 - `profile`
 - `gates` (JSON array)
 - `description`
+- `matched` (`true` if an explicit trigger matched)
 
 Behavior:
 1. Parse `.github/ci-profiles.yml`.
 2. Match the current `github.event_name`, `github.ref`, and workflow inputs against trigger rules.
 3. Emit the profile and gate list as outputs.
-4. If no match, emit the fallback profile and annotate the run with a warning.
+4. If no trigger matches and `fallback-profile` is empty, exit with an error (fail closed).
+5. If `fallback-profile` is provided but not defined in the registry, exit with an error.
+6. Only use an explicitly authorized fallback after the above checks pass.
 
 This composite can be called once per workflow and consumed by downstream jobs, replacing inline shell `if` blocks.
 
@@ -320,9 +323,9 @@ The PoC demonstrates the representative composite and the profile-selection mech
 ### 6.2 What the PoC Proves
 
 1. The `setup-fabric-ci` composite can replace repeated setup steps in a representative job.
-2. The `determine-ci-profile` composite correctly selects `pr-fast`, `release-candidate`, or `production-core` based on event context.
-3. Profile-aware steps are **preserved** and **invoked in the appropriate context**, not skipped or weakened.
-4. Production-oriented steps are present in the workflow graph and gated by the profile, so they run when the context demands.
+2. The `determine-ci-profile` composite correctly maps execution contexts to `pr-fast`, `release-candidate`, `production-core`, or `mainline-full` profiles.
+3. Profile-aware steps are **routed and activated** in the correct context; release-candidate and production-core placeholders are present in the workflow graph and gated by the selected profile.
+4. The selector **fails closed**: an unmatched context with no authorized fallback exits with an error rather than silently selecting the weakest profile.
 
 ### 6.3 Validation Evidence
 
@@ -334,12 +337,12 @@ The PoC workflow was exercised in GitHub Actions on branch `poc/governance-autom
 | `workflow_dispatch` with `profile=release-candidate` | `release-candidate` | true | https://github.com/bmsull560/Fabric_4L/actions/runs/29635193620 |
 | `workflow_dispatch` with `profile=production-core` | `production-core` | true | https://github.com/bmsull560/Fabric_4L/actions/runs/29635194181 |
 
-All runs completed successfully. The `setup-fabric-ci` composite installed Python 3.11, Node.js 22.x, and pnpm 10.18.1, and the `determine-ci-profile` composite emitted the expected gate list for each profile.
+All runs completed successfully. The `setup-fabric-ci` composite installed Python 3.11, Node.js 22.x, and pnpm 10.18.1, and the `determine-ci-profile` composite emitted the expected profile name and gate list for each context. This validates deterministic context-to-profile routing and step activation; it does not execute infrastructure-dependent gates such as Cosign signing, Kubernetes deployment, Prometheus checks, or backup/restore drills.
 
 Static validation performed locally:
 
 - YAML syntax check passed for all new files.
-- Profile selector logic verified for all documented contexts.
+- Profile selector logic verified for all documented contexts, including fail-closed behavior for unmatched contexts and invalid fallbacks.
 - `make check-workflow-references` passed.
 
 ### 6.4 What the PoC Does Not Do
@@ -347,6 +350,55 @@ Static validation performed locally:
 - It does not migrate any existing workflow.
 - It does not modify branch protection or required checks.
 - It does not execute infrastructure-dependent production checks in a PR context.
+
+### 6.5 CI Status Classification on PoC PR
+
+The following table classifies every failing or cancelled check on the current PoC PR head. The goal is to distinguish failures caused by the PoC from pre-existing baseline noise, infrastructure limitations, or environmental issues.
+
+| Workflow / Job | Root Failure | Classification | PoC-Related? |
+|---|---|---|---|
+| PR Checks — Structural Preflight | `workflow-registry.json` stale; missing `poc-governance-automation.yml` | Introduced by PoC (fixed by regenerating registry) | Yes |
+| PR Checks — Docker Image Build Verification (frontend) | `packages/feature-flags/package.json` not found (Dockerfile out of sync with monorepo) | Pre-existing baseline failure | No |
+| PR Checks — Docker Image Build Verification (layers 1–6) | Cancelled after frontend/layer failures or dependency on prior failing jobs | Cascading cancellation | No |
+| PR Checks — Frontend | Coverage branch threshold 81% not met (actual 76.85%) | Pre-existing baseline failure | No |
+| PR Checks — Layer 1–6 tests | Mypy baseline exceeded, missing dependencies, or similar per-layer drift | Pre-existing baseline failures | No |
+| PR Checks — Integration Tests (Docker) | `Missing identity ID for OIDC auth` (Infisical) | External service / secret limitation | No |
+| PR Checks — Runtime Contract Tests (Services Up) | Depends on live stack / Infisical secrets | External service limitation | No |
+| PR Checks — Kubernetes Dry-Run Validation | Kyverno CRD annotations exceed 262144 bytes on current kind/k8s version | Pre-existing baseline / environmental | No |
+| PR Checks — p0-e2e-gate | Neo4j container unhealthy in compose stack | Pre-existing baseline / environmental | No |
+| PR Checks — Alertmanager Config Validation | Pre-existing config drift | Pre-existing baseline failure | No |
+| PR Checks — Billing/Entitlements Regression + Evidence | Missing environment / dependency setup | Pre-existing baseline failure | No |
+| PR Checks — Critical Behaviors Gate | Baseline behavior-debt / skip governance | Pre-existing baseline failure | No |
+| PR Checks — Cross-Layer Contract Tests | Environment / dependency setup | Pre-existing baseline failure | No |
+| PR Checks — Docker Compose Config Contract | Environment / dependency setup | Pre-existing baseline failure | No |
+| PR Checks — Schemathesis Property-Based Contract Tests | Environment / dependency setup | Pre-existing baseline failure | No |
+| PR Checks — Shared & Tests — Code Quality | Pre-existing lint/type baseline | Pre-existing baseline failure | No |
+| PR Checks — Tenant Isolation Gate | Pre-existing test/environment baseline | Pre-existing baseline failure | No |
+| PR Checks — Unified Readiness Gate | Aggregates other failing gates | Cascading / pre-existing | No |
+| Contract Compliance — Python Platform Contract Lint | `GATE-COMPAT-004` frontend-shim-registration exited 127 (script missing) | Pre-existing baseline failure | No |
+| Contract Compliance — Generate OpenAPI from Code (layer3-knowledge) | `No module named 'layer3_knowledge'` | Pre-existing baseline failure | No |
+| Contract Compliance — Lint Frontend (Contract Rules) | Pre-existing frontend contract lint baseline | Pre-existing baseline failure | No |
+| Contract Compliance — Validate Canonical Examples | Pre-existing example drift | Pre-existing baseline failure | No |
+| Contract Compliance — Contract Shape Regression | Pre-existing contract drift | Pre-existing baseline failure | No |
+| Critical Gates — production-config-policy-layer6 | `FileNotFoundError: k8s/envs/prod/neo4j-aura-patch.yml` | Pre-existing baseline failure | No |
+| Critical Gates — Critical Gates Summary | Aggregates failing critical gates | Cascading / pre-existing | No |
+| Prod Readiness Gates — setup | `workflow-registry.json` stale (same root cause as Structural Preflight) | Introduced by PoC (fixed by regenerating registry) | Yes |
+| Prod Readiness Gates — prod-readiness / release-policy | Aggregates prior failures / missing evidence | Cascading / pre-existing | No |
+| Release Evidence Bundle — Build images & security scan (layers 1–6) | Cancelled due to upstream failures | Cascading cancellation | No |
+| Release Evidence Bundle — Live stack health evidence | Requires live running stack | External service limitation | No |
+| Release Evidence Bundle — Release readiness gate (observability + deployment) | `ModuleNotFoundError: No module named 'jsonschema'` | Pre-existing baseline failure | No |
+| Release Evidence Bundle — SAST & Security E2E | Pre-existing security test baseline | Pre-existing baseline failure | No |
+| Repository Hygiene — Canonical Layout & Legacy Path Check | Infisical CLI `scan --recursive` flag unsupported in installed version | Pre-existing baseline / false positive | No |
+| Security Gates — Dev Auth Bypass Guard | `ALLOW_INSECURE_DEV_AUTH_BYPASS=true` in `services/api/app/tests/test_health.py` | Pre-existing baseline failure | No |
+| Security Gates — Container Scan (Trivy) (layers 1–6) | Vulnerabilities detected in built images | Pre-existing baseline failure | No |
+| Security Gates — SBOM + Policy / SBOM Generation (layers 1–6, apps-web) | Depends on image build / policy baseline | Pre-existing / cascading | No |
+| Security Gates — DAST (OWASP ZAP baseline) | Live target / environment unavailable | External service limitation | No |
+| Security Gates — Dockerfile Non-Root User Check | Pre-existing Dockerfile baseline | Pre-existing baseline failure | No |
+| Security Gates — OSV-Scanner (PR diff) | GitHub Actions template `Maximum object size exceeded` | Infrastructure / environmental | No |
+| Security Gates — Python Dependency Audit (pip-audit) (layers 1–6) | Known vulnerabilities in `cryptography`, `setuptools` | Pre-existing baseline failure | No |
+| Security Gates — Repository Scan (Trivy fs + IaC + secrets) | Pre-existing repository scan findings | Pre-existing baseline failure | No |
+
+**Summary:** Of the ~50 failing or cancelled checks, only two are directly caused by the PoC: the stale `workflow-registry.json` entries for the new PoC workflow (affecting Structural Preflight and Prod Readiness setup). That registry drift is fixed by running `scripts/ci/generate_workflow_registry.py` and committing the result. All other failures are pre-existing baseline issues, external-service limitations, or cascading cancellations unrelated to the five-file PoC scope.
 
 ## 7. Migration Plan
 
@@ -389,7 +441,7 @@ Each phase includes:
 | Risk | Mitigation |
 |---|---|
 | Composite hides security-critical behavior | Keep composites small, single-purpose, and well-documented. Avoid wrapping gate logic in early composites. |
-| Profile selection misclassifies context | Add explicit fallback to `pr-fast`, annotate mismatch warnings, and validate against `.github/ci-profiles.yml`. |
+| Profile selection misclassifies context | Fail closed on unmatched contexts; require an explicit, registry-defined `fallback-profile`; validate selector logic against `.github/ci-profiles.yml`. |
 | Required check not emitted for some PRs | The profile registry explicitly lists which gates run per context; a conformance gate verifies coverage. |
 | Composite input abuse | Inputs are restricted to version strings and booleans; no arbitrary commands or action refs accepted. |
 
@@ -426,13 +478,16 @@ Each phase includes:
 |---|---|---|
 | 2026-07-18 | RFC drafted | Initial review-ready version committed to `poc/governance-automation` |
 | 2026-07-18 | PoC implemented | `.github/actions/setup-fabric-ci`, `.github/actions/determine-ci-profile`, `.github/ci-profiles.yml`, `.github/workflows/poc-governance-automation.yml` |
-| 2026-07-18 | Static validation | YAML syntax, profile selector logic, `make check-workflow-references` passed |
+| 2026-07-18 | Shell-injection remediation | `setup-fabric-ci` step summary now passes version inputs through `env:` and quotes shell variables |
+| 2026-07-18 | Fail-closed profile selection | `determine-ci-profile` defaults `fallback-profile` to empty; unmatched contexts and invalid fallbacks exit with error; `workflow_dispatch.profile` is a constrained `choice` |
+| 2026-07-18 | PoC claims tightened | RFC and workflow comments now distinguish profile routing from execution of infrastructure-dependent gates |
+| 2026-07-18 | Workflow registry regenerated | `.github/workflows/workflow-registry.json` updated to include `poc-governance-automation.yml` |
+| 2026-07-18 | Failing-check classification | ~50 failing/cancelled checks classified; only Structural Preflight and Prod Readiness setup were PoC-introduced (registry stale); all others are pre-existing baseline, external limitation, or cascading cancellation |
+| 2026-07-18 | Static validation | YAML syntax, profile selector logic (including fail-closed cases), `make check-workflow-references` passed |
 | 2026-07-18 | Hosted validation | PoC workflow ran successfully for `pr-fast`, `release-candidate`, and `production-core` contexts |
-| 2026-07-18 | Pre-existing hygiene noise identified | `repo-hygiene` check flags unrelated `critical-gates.yml` (`service: frontend` label) and `deploy.yml` (`value-fabric` cluster name) as obsolete-path violations; these are false positives from the existing scanner regex, not caused by this PR |
 | 2026-07-18 | Submitted for review | Draft PR #1026 opened and linked to this RFC |
-| 2026-07-18 | Review requested | Comment posted to PR #1026 explicitly requesting review from SRE, Security, and Maintainers |
 
-**Current disposition:** Submitted for review; awaiting approval or explicit documented decision not to proceed.
+**Current disposition:** Engineering work is review-ready. Awaiting assignment of an accountable reviewer and formal approval, rejection, or deferral.
 
 ---
 

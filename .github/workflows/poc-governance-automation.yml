@@ -7,8 +7,9 @@ name: PoC — Governance Automation (Composite + Profile Selection)
 #   2. A reusable composite for environment-aware profile selection
 #      (.github/actions/determine-ci-profile).
 #   3. Explicit, documented selection rules for PR, release-candidate, and
-#      production-oriented validation. Production checks are preserved and
-#      invoked only in the appropriate context.
+#      production-oriented validation. Production-oriented gate steps are
+#      routed to the correct context; infrastructure-dependent implementations
+#      remain unchanged and are not executed by this demonstration workflow.
 
 "on":
   pull_request:
@@ -112,35 +113,35 @@ jobs:
         run: |
           echo "Running mainline-compatible architecture/contract checks"
 
-      # Release-candidate checks: preserve release-only behavior.
+      # Release-candidate checks: routed only in release-candidate context.
       - name: Release-candidate gate — tenant isolation bundle freshness
         if: needs.determine-profile.outputs.profile == 'release-candidate'
         shell: bash
         run: |
-          echo "Running release-candidate tenant-isolation bundle freshness check"
-          echo "(This step is preserved and invoked only in release-candidate context)"
+          echo "Routing release-candidate tenant-isolation bundle freshness gate"
+          echo "(Infrastructure-dependent implementation is preserved but not executed by this PoC)"
 
       - name: Release-candidate gate — manifest signing readiness
         if: needs.determine-profile.outputs.profile == 'release-candidate'
         shell: bash
         run: |
-          echo "Running release-candidate manifest signing readiness check"
-          echo "(This step is preserved and invoked only in release-candidate context)"
+          echo "Routing release-candidate manifest signing readiness gate"
+          echo "(Infrastructure-dependent implementation is preserved but not executed by this PoC)"
 
-      # Production-core checks: preserved and invoked only in production context.
+      # Production-core checks: routed only in production-core context.
       - name: Production-core gate — deployment readiness verification
         if: needs.determine-profile.outputs.profile == 'production-core'
         shell: bash
         run: |
-          echo "Running production-core deployment readiness verification"
-          echo "(This step is preserved and invoked only in production-core context)"
+          echo "Routing production-core deployment readiness verification gate"
+          echo "(Infrastructure-dependent implementation is preserved but not executed by this PoC)"
 
       - name: Production-core gate — backup/restore readiness
         if: needs.determine-profile.outputs.profile == 'production-core'
         shell: bash
         run: |
-          echo "Running production-core backup/restore readiness check"
-          echo "(This step is preserved and invoked only in production-core context)"
+          echo "Routing production-core backup/restore readiness gate"
+          echo "(Infrastructure-dependent implementation is preserved but not executed by this PoC)"
 
   summarize:
     name: PoC Summary
