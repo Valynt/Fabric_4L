@@ -194,7 +194,7 @@ class AuditedGraphMutation:
                 "entity_id": f"{src_id}-{rel_type}->{tgt_id}",
                 "action": action,
                 "agent": "AuditedGraphMutation",
-                "details": details,
+                "details": json.dumps(details),
                 "request_id": self.request_id,
                 "account_id": self.account_id,
                 "operation_source": self.operation_source,
@@ -439,6 +439,7 @@ class AuditedGraphMutation:
         MATCH (src {{id: triple.src_id, tenant_id: $tenant_id}})
         MATCH (tgt {{id: triple.tgt_id, tenant_id: $tenant_id}})
         MERGE (src)-[r:{rel_type}]->(tgt)
+        SET r += coalesce(triple.properties, {{}})
         SET r.updated_at = $now
         RETURN count(r) as merged
         """

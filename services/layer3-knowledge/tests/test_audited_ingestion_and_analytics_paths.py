@@ -6,7 +6,7 @@ import pytest
 
 from src.api.routes.analytics import _create_entity
 from src.db.audited_mutation import AuditedGraphMutation
-from src.ingestion.neo4j_loader import Neo4jLoader, TenantValidationError
+from src.ingestion.neo4j import Neo4jLoader, TenantValidationError
 from src.ingestion.sync_manager import SyncManager
 
 TENANT_ID = "11111111-1111-4111-8111-111111111111"
