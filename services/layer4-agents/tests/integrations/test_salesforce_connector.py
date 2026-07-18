@@ -6,12 +6,13 @@ from unittest.mock import AsyncMock, patch
 import httpx
 import pytest
 
-from layer4_agents.integrations.core.errors import AuthError, PermanentError, TransientError
-from layer4_agents.integrations.core.types import CRMModel
+from layer4_agents.integrations.core.errors import AuthError, TransientError
 from layer4_agents.integrations.providers.salesforce.connector import SalesforceConnector
 
 
-def _make_response(status_code: int, json_data: dict | None = None, text: str = "") -> httpx.Response:
+def _make_response(
+    status_code: int, json_data: dict | None = None, text: str = ""
+) -> httpx.Response:
     request = httpx.Request("GET", "https://test.salesforce.com")
     kwargs: dict[str, Any] = {"request": request}
     if json_data is not None:
@@ -132,3 +133,74 @@ class TestSalesforceConnectorTimeoutPropagation:
 
         _, kwargs = mock_client.request.call_args
         assert kwargs.get("timeout") == 42.0
+
+
+class TestSalesforceConnectorTokenRefreshPersistence:
+    @pytest.mark.asyncio
+    async def test_401_refresh_invokes_persistence_callback_with_rotated_tokens(self) -> None:
+        refreshed_payloads: list[dict[str, str]] = []
+
+        async def persist_refreshed_tokens(payload: dict[str, str]) -> None:
+            refreshed_payloads.append(payload)
+
+        connector = SalesforceConnector(
+            config={
+                "crm_api_key": "old-token",
+                "crm_instance_url": "https://test.salesforce.com",
+                "refresh_token": "old-refresh",
+                "client_id": "client-id",
+                "client_secret": "client-secret",
+                "on_token_refresh": persist_refreshed_tokens,
+            }
+        )
+        first_response = _make_response(401, {}, "Unauthorized")
+        retry_response = _make_response(200, {"records": []})
+        stale_client = AsyncMock()
+        stale_client.request = AsyncMock(return_value=first_response)
+        refreshed_client = AsyncMock()
+        refreshed_client.request = AsyncMock(return_value=retry_response)
+        connector._client = stale_client
+
+        with (
+            patch.object(
+                SalesforceConnector,
+                "refresh_token",
+                new=AsyncMock(
+                    return_value={
+                        "api_key": "new-token",
+                        "instance_url": "https://new.salesforce.com",
+                        "refresh_token": "new-refresh",
+                    }
+                ),
+            ),
+            patch.object(connector, "_get_client", side_effect=[stale_client, refreshed_client]),
+        ):
+            response = await connector._request("GET", "/services/data/v58.0/query/")
+
+        assert response.status_code == 200
+        assert refreshed_payloads == [
+            {
+                "api_key": "new-token",
+                "instance_url": "https://new.salesforce.com",
+                "refresh_token": "new-refresh",
+            }
+        ]
+
+
+class TestSalesforceConnectorOpportunityTruncation:
+    @pytest.mark.asyncio
+    async def test_list_opportunities_raises_when_soql_query_is_truncated(self) -> None:
+        connector = SalesforceConnector(
+            config={
+                "crm_api_key": "token",
+                "crm_instance_url": "https://test.salesforce.com",
+            }
+        )
+
+        with patch.object(
+            connector,
+            "_execute_soql_query",
+            new=AsyncMock(return_value=([{"Id": "006XXXXXXXXXXXX", "Name": "Partial"}], True)),
+        ):
+            with pytest.raises(TransientError, match="truncated"):
+                await connector.list_opportunities("001XXXXXXXXXXXX")

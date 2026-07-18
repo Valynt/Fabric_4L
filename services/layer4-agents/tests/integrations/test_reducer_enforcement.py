@@ -35,9 +35,7 @@ TEXT_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     (
         "setattr(integration, ...)",
         re.compile(
-            r"setattr\s*\(\s*\bintegration\b\s*,\s*['\"]?\b("
-            + "|".join(FIELD_NAMES)
-            + r")\b['\"]?"
+            r"setattr\s*\(\s*\bintegration\b\s*,\s*['\"]?\b(" + "|".join(FIELD_NAMES) + r")\b['\"]?"
         ),
     ),
     # update(Integration).values(sync_status=...)
@@ -125,6 +123,19 @@ class _ReducerWriteVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
 
+def test_integration_maps_reducer_columns() -> None:
+    from layer4_agents.models.integration import Integration
+
+    mapped_columns = set(Integration.__mapper__.columns.keys())
+
+    assert {
+        "operational_status",
+        "observed_sync_status",
+        "error_class",
+        "last_known_good_at",
+    }.issubset(mapped_columns)
+
+
 class TestReducerStatusWritesEnforced:
     """Repo-level guard: Integration reducer/legacy status fields must only be mutated via apply_observation."""
 
@@ -162,9 +173,10 @@ class TestReducerStatusWritesEnforced:
                     if pattern.search(line):
                         violations.append(_Violation(rel, lineno, line, kind))
 
-        assert not violations, (
-            "Direct reducer/legacy status writes found outside allowlist:\n"
-            + "\n".join(str(v) for v in violations)
+        assert (
+            not violations
+        ), "Direct reducer/legacy status writes found outside allowlist:\n" + "\n".join(
+            str(v) for v in violations
         )
 
     def test_apply_observation_is_the_only_writer(self) -> None:
