@@ -2394,7 +2394,7 @@ export interface components {
              * Rules
              * @description List of policy rules
              */
-            rules: components["schemas"]["layer5_ground_truth__api__governance_router__PolicyRuleCreate"][];
+            rules: components["schemas"]["layer5_ground_truth__api__governance_schemas__PolicyRuleCreate"][];
             /**
              * Severity
              * @description high, medium, low
@@ -3668,7 +3668,7 @@ export interface components {
          * AssumptionCreate
          * @description Schema for creating an assumption.
          */
-        layer5_ground_truth__api__governance_router__AssumptionCreate: {
+        layer5_ground_truth__api__governance_schemas__AssumptionCreate: {
             /** Name */
             name: string;
             /** Slug */
@@ -3711,7 +3711,7 @@ export interface components {
          * AssumptionResponse
          * @description Schema for assumption response.
          */
-        layer5_ground_truth__api__governance_router__AssumptionResponse: {
+        layer5_ground_truth__api__governance_schemas__AssumptionResponse: {
             /**
              * Id
              * Format: uuid
@@ -3771,7 +3771,7 @@ export interface components {
          * PolicyRuleCreate
          * @description Schema for creating a policy rule.
          */
-        layer5_ground_truth__api__governance_router__PolicyRuleCreate: {
+        layer5_ground_truth__api__governance_schemas__PolicyRuleCreate: {
             /** Rule Name */
             rule_name: string;
             /**
@@ -5390,7 +5390,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["layer5_ground_truth__api__governance_router__AssumptionCreate"];
+                "application/json": components["schemas"]["layer5_ground_truth__api__governance_schemas__AssumptionCreate"];
             };
         };
         responses: {
@@ -5400,7 +5400,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["layer5_ground_truth__api__governance_router__AssumptionResponse"];
+                    "application/json": components["schemas"]["layer5_ground_truth__api__governance_schemas__AssumptionResponse"];
                 };
             };
             /** @description Validation Error */
@@ -5435,7 +5435,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["layer5_ground_truth__api__governance_router__AssumptionResponse"];
+                    "application/json": components["schemas"]["layer5_ground_truth__api__governance_schemas__AssumptionResponse"];
                 };
             };
             /** @description Validation Error */
@@ -5466,7 +5466,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["layer5_ground_truth__api__governance_router__AssumptionResponse"];
+                    "application/json": components["schemas"]["layer5_ground_truth__api__governance_schemas__AssumptionResponse"];
                 };
             };
             /** @description Validation Error */
