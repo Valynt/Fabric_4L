@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Draft / Under Review |
+| **Status** | Submitted for review / Awaiting reviewer disposition |
 | **Owner** | Platform Governance |
 | **Reviewers** | @value-fabric/sre-leads, @value-fabric/security-leads, @value-fabric/maintainers |
 | **Date** | 2026-07-18 |
@@ -420,6 +420,18 @@ Each phase includes:
 - **Rationale**: Preserves security and release assurance while reducing false failures in the wrong context.
 - **Consequences**: Some PR runs may remain longer because relocated checks still execute elsewhere; the benefit is reduced noise and clearer ownership.
 
+## 11. Disposition Record
+
+| Date | Action | Detail |
+|---|---|---|
+| 2026-07-18 | RFC drafted | Initial review-ready version committed to `poc/governance-automation` |
+| 2026-07-18 | PoC implemented | `.github/actions/setup-fabric-ci`, `.github/actions/determine-ci-profile`, `.github/ci-profiles.yml`, `.github/workflows/poc-governance-automation.yml` |
+| 2026-07-18 | Static validation | YAML syntax, profile selector logic, `make check-workflow-references` passed |
+| 2026-07-18 | Hosted validation | PoC workflow ran successfully for `pr-fast`, `release-candidate`, and `production-core` contexts |
+| 2026-07-18 | Submitted for review | Draft PR #1026 opened and linked to this RFC |
+
+**Current disposition:** Submitted for review; awaiting approval or explicit documented decision not to proceed.
+
 ---
 
-*This RFC is a draft for review. Approval or an explicit documented decision not to proceed is required before production adoption.*
+*This RFC is submitted for review. Approval or an explicit documented decision not to proceed is required before production adoption.*
