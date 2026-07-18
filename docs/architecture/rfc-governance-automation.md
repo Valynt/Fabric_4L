@@ -358,7 +358,7 @@ The following table classifies every failing or cancelled check on the current P
 
 | Workflow / Job | Root Failure | Classification | PoC-Related? |
 |---|---|---|---|
-| PR Checks — Structural Preflight | `workflow-registry.json` stale; missing `poc-governance-automation.yml` | Introduced by PoC (fixed by regenerating registry) | Yes |
+| PR Checks — Structural Preflight | `workflow-registry.json` in sync, but generated `docs/development/CI_GATES.md` is stale (adding the PoC workflow entry). `.github/workflows/README.md` and `.github/workflows/WORKFLOW_REGISTRY.md` are synced. | Introduced by PoC; remaining stale file (`docs/development/CI_GATES.md`) is outside the approved PoC change boundary (docs limited to the RFC) | Yes |
 | PR Checks — Docker Image Build Verification (frontend) | `packages/feature-flags/package.json` not found (Dockerfile out of sync with monorepo) | Pre-existing baseline failure | No |
 | PR Checks — Docker Image Build Verification (layers 1–6) | Cancelled after frontend/layer failures or dependency on prior failing jobs | Cascading cancellation | No |
 | PR Checks — Frontend | Coverage branch threshold 81% not met (actual 76.85%) | Pre-existing baseline failure | No |
@@ -399,7 +399,7 @@ The following table classifies every failing or cancelled check on the current P
 | Security Gates — Python Dependency Audit (pip-audit) (layers 1–6) | Known vulnerabilities in `cryptography`, `setuptools` | Pre-existing baseline failure | No |
 | Security Gates — Repository Scan (Trivy fs + IaC + secrets) | Pre-existing repository scan findings | Pre-existing baseline failure | No |
 
-**Summary:** Of the ~50 failing or cancelled checks, only two are directly caused by the PoC: the stale `workflow-registry.json` entries for the new PoC workflow (affecting Structural Preflight and Prod Readiness setup). That registry drift is fixed by running `scripts/ci/generate_workflow_registry.py` and committing the result. All other failures are pre-existing baseline issues, external-service limitations, or cascading cancellations unrelated to the five-file PoC scope.
+**Summary:** Of the ~50 failing or cancelled checks, only Structural Preflight and Prod Readiness setup are directly caused by adding the PoC workflow. The registry itself is now in sync and the two generated docs under `.github/workflows/` are updated; the remaining Structural Preflight failure is the generated `docs/development/CI_GATES.md`, which is outside the approved PoC change boundary (docs limited to the RFC). Prod Readiness setup uses the same registry check and is resolved by the registry update. All other failures are pre-existing baseline issues, external-service limitations, or cascading cancellations unrelated to the PoC scope.
 
 ## 7. Migration Plan
 
@@ -482,8 +482,8 @@ Each phase includes:
 | 2026-07-18 | Shell-injection remediation | `setup-fabric-ci` step summary now passes version inputs through `env:` and quotes shell variables |
 | 2026-07-18 | Fail-closed profile selection | `determine-ci-profile` defaults `fallback-profile` to empty; unmatched contexts and invalid fallbacks exit with error; `workflow_dispatch.profile` is a constrained `choice` |
 | 2026-07-18 | PoC claims tightened | RFC and workflow comments now distinguish profile routing from execution of infrastructure-dependent gates |
-| 2026-07-18 | Workflow registry regenerated | `.github/workflows/workflow-registry.json` updated to include `poc-governance-automation.yml` |
-| 2026-07-18 | Failing-check classification | ~50 failing/cancelled checks classified; only Structural Preflight and Prod Readiness setup were PoC-introduced (registry stale); all others are pre-existing baseline, external limitation, or cascading cancellation |
+| 2026-07-18 | Workflow registry regenerated | `.github/workflows/workflow-registry.json` updated to include `poc-governance-automation.yml`; `.github/workflows/README.md` and `.github/workflows/WORKFLOW_REGISTRY.md` synced |
+| 2026-07-18 | Failing-check classification | ~50 failing/cancelled checks classified; Structural Preflight and Prod Readiness setup were PoC-introduced by registry/doc drift; remaining Structural Preflight stale doc (`docs/development/CI_GATES.md`) is outside the approved PoC change boundary; all others are pre-existing baseline, external limitation, or cascading cancellation |
 | 2026-07-18 | Static validation | YAML syntax, profile selector logic (including fail-closed cases), `make check-workflow-references` passed |
 | 2026-07-18 | Hosted validation | PoC workflow ran successfully for `pr-fast`, `release-candidate`, and `production-core` contexts |
 | 2026-07-18 | Submitted for review | Draft PR #1026 opened and linked to this RFC |
