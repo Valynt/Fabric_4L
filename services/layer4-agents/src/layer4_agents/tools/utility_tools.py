@@ -3,6 +3,8 @@ from __future__ import annotations
 """Utility tools for validation, formatting, and common operations."""
 
 
+from typing import Any
+
 from ..models.tool_schemas import (
     FormatCurrencyInput,
     FormatCurrencyOutput,
@@ -28,8 +30,22 @@ class ValidateInputTool(BaseTool):
         data = input_data.data
         schema_name = input_data.schema_name
 
-        errors = []
-        normalized = {}
+        errors: list[str] = []
+        normalized = self._normalize_input_data(data, errors, schema_name)
+
+        return ValidateInputOutput(valid=len(errors) == 0, errors=errors, normalized=normalized)
+
+    def _normalize_input_data(
+        self,
+        data: dict[str, Any],
+        errors: list[str],
+        schema_name: str,
+    ) -> dict[str, Any]:
+        """Validate ``data`` against ``schema_name`` and return normalized values.
+
+        Validation problems are appended to the provided ``errors`` list.
+        """
+        normalized: dict[str, Any] = {}
 
         # Mock schema validation for common types with structured error context
         if schema_name == "prospect_id":
@@ -89,7 +105,7 @@ class ValidateInputTool(BaseTool):
             # Generic pass-through
             normalized = data.copy()
 
-        return ValidateInputOutput(valid=len(errors) == 0, errors=errors, normalized=normalized)
+        return normalized
 
 
 class FormatCurrencyTool(BaseTool):
