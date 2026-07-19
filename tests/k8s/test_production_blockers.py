@@ -20,7 +20,7 @@ def _resource_names(path: Path, kind: str) -> set[str]:
 
 
 def test_prod_neo4j_is_aura_only(repo_root: Path) -> None:
-    patch = (repo_root / "k8s/envs/prod/neo4j-aura-patch.yml").read_text()
+    patch = (repo_root / "k8s/envs/prod/neo4j-aura-delete-deployment.yml").read_text()
     secrets = (repo_root / "k8s/external-secrets/neo4j-secrets.yaml").read_text()
 
     assert "$patch: delete" in patch

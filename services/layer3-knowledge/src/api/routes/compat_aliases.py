@@ -22,6 +22,15 @@ from . import query_search
 
 router = APIRouter(prefix="/v1", tags=["compatibility"], dependencies=[Depends(require_authenticated)])
 
+# Deprecation metadata required by the deprecation marker standardization gate
+# (scripts/ci/standardize_deprecation_markers.py --check). Dates: deprecated
+# since 2026-05-13 (eed116d93); removal target per module docstring above.
+_DEPRECATION_OPENAPI_EXTRA = {
+    "x-deprecated-since": "2026-05-13",
+    "x-deprecated-removal-date": "2026-09-30",
+    "x-deprecation-owner": "layer3-knowledge",
+}
+
 
 def _app_client(request: Request) -> str:
     return request.headers.get("x-app-client", "unknown")
@@ -35,7 +44,7 @@ def _record_route_hit(request: Request, route: str, tenant_id: str) -> None:
     record_deprecated_route_hit(route, tenant_id=tenant_id, app_client=_app_client(request))
 
 
-@router.post("/graphrag", response_model=GraphRAGResponse, deprecated=True)
+@router.post("/graphrag", response_model=GraphRAGResponse, deprecated=True, openapi_extra=_DEPRECATION_OPENAPI_EXTRA)
 async def graph_rag_legacy_alias(
     query: GraphRAGQuery,
     request: Request,
@@ -47,7 +56,7 @@ async def graph_rag_legacy_alias(
     return await query_search.graph_rag_query_impl(query, graph_rag, ctx=ctx, request=request)
 
 
-@router.post("/query/graph", response_model=GraphRAGResponse, deprecated=True)
+@router.post("/query/graph", response_model=GraphRAGResponse, deprecated=True, openapi_extra=_DEPRECATION_OPENAPI_EXTRA)
 async def graph_rag_query_aliases(
     query: GraphRAGQuery,
     request: Request,
@@ -60,7 +69,7 @@ async def graph_rag_query_aliases(
     return await query_search.graph_rag_query_impl(query, graph_rag, ctx=ctx, request=request)
 
 
-@router.post("/query/graph/stream", deprecated=True)
+@router.post("/query/graph/stream", deprecated=True, openapi_extra=_DEPRECATION_OPENAPI_EXTRA)
 async def graph_rag_query_stream_alias(
     query: GraphRAGQuery,
     request: Request,
@@ -72,9 +81,9 @@ async def graph_rag_query_stream_alias(
     return await query_search.graph_rag_query_stream_impl(query, graph_rag, ctx=ctx)
 
 
-@router.post("/search/hybrid", response_model=SearchResponse, deprecated=True)
-@router.post("/search", response_model=SearchResponse, deprecated=True)
-@router.post("/query/search", response_model=SearchResponse, deprecated=True)
+@router.post("/search/hybrid", response_model=SearchResponse, deprecated=True, openapi_extra=_DEPRECATION_OPENAPI_EXTRA)
+@router.post("/search", response_model=SearchResponse, deprecated=True, openapi_extra=_DEPRECATION_OPENAPI_EXTRA)
+@router.post("/query/search", response_model=SearchResponse, deprecated=True, openapi_extra=_DEPRECATION_OPENAPI_EXTRA)
 async def hybrid_search_aliases(
     request: SearchRequest,
     http_request: Request,

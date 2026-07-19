@@ -75,8 +75,9 @@ Use these companion governance references during onboarding and before opening a
 
 ## Before You Add A Service Layer
 
-Per **[ADR-027](docs/explanations/adr/ADR-021-layer-3-canonical-runtime-path.md)**, the
-canonical implementation tree for every layer is
+Per [ADR-021](docs/explanations/adr/ADR-021-layer-3-canonical-runtime-path.md) and
+[ADR-027](docs/explanations/adr/ADR-027-shim-removal.md), the canonical implementation tree
+for every layer is
 `services/layer{N}-*/src/`. The legacy root `value_fabric/` package and
 `value_fabric/layer{N}/` shims have been removed — do not restore them.
 Concretely:
