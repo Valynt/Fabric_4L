@@ -151,7 +151,7 @@ Fabric_4L/
 
 | Command | What it does |
 |---------|--------------|
-| `make setup` | Install deps, start dev services, apply migrations |
+| `make setup` | Install Python service development dependencies |
 | `make verify` | Run full validation (tests + lint + typecheck + contracts) |
 | `make test` | Run unit and integration tests |
 | `make contract-tests` | Validate layer-to-layer API contracts |
