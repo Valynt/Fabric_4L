@@ -12,7 +12,7 @@ Test Strategy:
 - Verify context immutability and thread safety
 """
 
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
 import pytest
@@ -26,6 +26,7 @@ from value_fabric.shared.identity.dependencies import (
     require_tenant_context,
 )
 from value_fabric.shared.identity.permissions import Permission
+from value_fabric.shared.tenant_kill_switch import TenantSuspensionStatus
 
 # ═══════════════════════════════════════════════════════════════════════════
 # Test Suite: Context Extraction and Validation
@@ -352,13 +353,23 @@ class TestContextPropagation:
         # Mock JWT token in header
         token = f"Bearer mock_token_for_{tenant_id}"
         
-        with patch("shared.identity.middleware.decode_jwt") as mock_decode:
+        # The tenant kill switch fails closed (503) when Redis is absent
+        # (RB-4, commit 493e63d2a); stub it ACTIVE so the request reaches the route.
+        with (
+            patch("shared.identity.middleware.decode_jwt") as mock_decode,
+            patch(
+                "value_fabric.shared.identity.middleware.TenantKillSwitch"
+            ) as mock_kill_switch,
+        ):
             mock_decode.return_value = {
                 "sub": str(uuid4()),
                 "tenant_id": str(tenant_id),
                 "permissions": ["read"],
             }
-            
+            mock_kill_switch.return_value.check_status = AsyncMock(
+                return_value=TenantSuspensionStatus.ACTIVE
+            )
+
             response = client.get("/test", headers={"Authorization": token})
             
             assert response.status_code == 200

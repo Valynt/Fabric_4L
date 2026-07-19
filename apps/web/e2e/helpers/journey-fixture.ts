@@ -124,8 +124,22 @@ export const journeyTest = base.extend<JourneyFixtures>({
     const fn = async (mocks: MockEndpoint[]) => {
       const audit = unexpectedErrorAudits.get(authedPage);
       for (const mock of mocks) {
-        if ((mock.status ?? 200) >= 500) {
+        const status = mock.status ?? 200;
+        if (status >= 500) {
           audit?.recordExpectedHttp5xxPattern(mock.pattern);
+        }
+        if (status >= 400) {
+          // Deliberate error responses produce two kinds of expected console
+          // noise that must not trip the fail-closed audit:
+          //   1. Chromium's "Failed to load resource: ... status of NNN" network log.
+          //   2. The app's dev-mode telemetry logger ("[Fabric]" prefix), which
+          //      records handled API failures on the error path under test.
+          // Everything else (page errors, other console errors, unhandled
+          // requests, unregistered 5xx) still fails the test.
+          audit?.recordExpectedConsoleErrorPattern(
+            new RegExp(`Failed to load resource: the server responded with a status of ${status}`),
+          );
+          audit?.recordExpectedConsoleErrorPattern(/^\[Fabric\]/);
         }
         await authedPage.route(mock.pattern, async (route) => {
           if (mock.delay) {
@@ -148,6 +162,24 @@ export const journeyTest = base.extend<JourneyFixtures>({
 });
 
 // ── Assertion Helpers ───────────────────────────────────────────────────────
+
+/**
+ * Build a canonical tenant-scoped path for the current auth environment.
+ *
+ * Mock-auth contract mode (VITE_ENABLE_MOCK_AUTH=true) authenticates every
+ * user as the built-in demo tenant (slug "demo" — see MOCK_TENANT_SLUG in
+ * src/contexts/AuthContextCompat.ts). Live backend mode seeds the e2e tenant
+ * (slug "e2e-test" — see normalizeLiveUser in e2e/fixtures/auth-helpers.ts).
+ *
+ * Prefer legacy redirect routes (e.g. /intelligence/:accountId/:tabId,
+ * /governance/*) when they exist; use this for routes that only exist in
+ * canonical /t/:tenantSlug/... form or when you need query params, which the
+ * legacy redirect does not preserve.
+ */
+export function tenantScopedPath(path: string): string {
+  const slug = isLiveMode() ? 'e2e-test' : 'demo';
+  return `/t/${slug}${path}`;
+}
 
 /**
  * Assert that the page navigated to the expected URL pattern.
@@ -192,11 +224,19 @@ export async function expectNoErrors(page: Page): Promise<void> {
 }
 
 /**
- * Wait for the page to finish loading (no pending network requests).
+ * Wait for the page to finish loading.
+ *
+ * NOTE: `networkidle` is deliberately NOT used here. The Vite dev server
+ * keeps a permanent HMR websocket open and several screens poll on
+ * 2–5 s intervals, so `networkidle` never settles and always burns the
+ * full timeout (15 s per navigation), pushing strict behavior tests past
+ * the project timeout. Load-state + the explicit, polling `expect`
+ * assertions in the tests provide the real readiness signal.
  */
 export async function waitForPageReady(page: Page): Promise<void> {
-  await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {
-    // networkidle can be flaky; fall back to domcontentloaded
+  await page.waitForLoadState('load', { timeout: 15000 }).catch(() => {
+    // 'load' can be slow on first Vite transform; the test's own assertions
+    // poll for the actual content they need.
   });
 }
 
