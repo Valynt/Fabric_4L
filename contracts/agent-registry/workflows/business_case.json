@@ -36,7 +36,7 @@
   },
   "id": "workflow-business-case",
   "workflow_type": "business_case",
-  "source_path": "../../../services/layer4-agents/src/workflows/business_case.py",
+  "source_path": "../../../services/layer4-agents/src/layer4_agents/workflows/business_case.py",
   "description": "Generates comprehensive business case documents.",
   "entry_point": "gather_inputs",
   "states": [

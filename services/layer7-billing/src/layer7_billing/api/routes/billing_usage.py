@@ -151,7 +151,7 @@ async def ingest_usage_batch(
             else:
                 duplicates += 1
         except Exception as exc:
-            error_details.append({"event_id": event.event_id, "error": str(exc)})
+            error_details.append({"event_id": event.event_id, "error": type(exc).__name__})
 
     logger.info(
         "ingest_usage_batch",

@@ -587,6 +587,11 @@ async def start_salesforce_oauth(
     "/salesforce/oauth/authorize",
     response_model=SalesforceOAuthAuthorizeResponse,
     deprecated=True,
+    openapi_extra={
+        "x-deprecated-since": "2026-05-29",
+        "x-deprecated-removal-date": "2026-08-01",
+        "x-deprecation-owner": "layer4-agents",
+    },
 )
 async def start_salesforce_oauth_compat(
     request: SalesforceOAuthAuthorizeRequest,

@@ -1,0 +1,3 @@
+[mcp_servers.repowise]
+url = "https://api.repowise.dev/mcp/bmsull560/fabric_4l"
+bearer_token_env_var = "REPOWISE_API_KEY"
