@@ -2,7 +2,7 @@
 
 ## Overview
 
-This directory currently contains **51** GitHub Actions workflow files.
+This directory currently contains **52** GitHub Actions workflow files.
 
 The authoritative ownership, trigger, secret, artifact, runtime, local-command,
 and deprecation inventory lives in:
