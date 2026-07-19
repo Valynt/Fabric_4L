@@ -10,7 +10,7 @@
 # node_modules with Linux binaries.
 # =============================================================================
 
-FROM mcr.microsoft.com/playwright@sha256:9bd26ad900bb5e0f4dee75839e957a89ae89c2b7ab1e76050e559790e946b948
+FROM mcr.microsoft.com/playwright@sha256:02810c978d5396bf382ab6015c25ad6bed9e39f4a41c5b9c829e9fea439274e2
 
 # Playwright v1.60+ images ship Node 22 — no upgrade needed
 
