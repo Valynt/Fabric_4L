@@ -68,6 +68,14 @@ ALLOWLIST = (
     "/tenants/api/routes/oidc.py",
     # Prospect route details are internal logging
     "/api/routes/prospects.py",
+    # Internal structured logging only (logger extra fields, no HTTP response
+    # leakage); matches the existing internal-logging exemptions above.
+    "/layer2_extraction/shared/tasks.py",
+    "/layer5_ground_truth/observability/governance_alerts.py",
+    "/layer4_agents/api/routes/integrations.py",
+    "/layer4_agents/api/routes/workflows.py",
+    # ClerkTokenError.log_detail is internal-only (never serialized to clients)
+    "/app/core/clerk_verifier.py",
 )
 
 
