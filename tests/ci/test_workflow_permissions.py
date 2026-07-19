@@ -14,6 +14,10 @@ ALLOWED_WRITE_PERMISSIONS: dict[str, dict[str, str]] = {
         "id-token": "authenticates Infisical-backed evaluation jobs through OIDC",
         "pull-requests": "comments on pull requests with evaluation results",
     },
+    "api-changelog.yml": {
+        "issues": "creates an advisory issue for detected breaking API changes",
+        "releases": "attaches the generated changelog and updates release notes",
+    },
     "api-key-rotation.yml": {
         "id-token": "authenticates rotation automation through OIDC",
         "issues": "creates API key rotation tracking issues",
@@ -28,8 +32,18 @@ ALLOWED_WRITE_PERMISSIONS: dict[str, dict[str, str]] = {
         "packages": "publishes container images",
         "security-events": "uploads container scan SARIF",
     },
+    "bundle-analysis.yml": {
+        "pull-requests": "updates pull requests with bundle-size reports",
+    },
+    "cleanup-repo.yml": {
+        "contents": "deletes remote branches selected by the cleanup workflow",
+        "pull-requests": "closes pull requests selected by the cleanup workflow",
+    },
     "contract-compliance.yml": {
         "issues": "comments drift reports on pull requests",
+    },
+    "dependency-scan.yml": {
+        "security-events": "uploads dependency and container scan SARIF",
     },
     "environment-promotion.yml": {
         "contents": "pushes GitOps promotion branches",
@@ -38,6 +52,9 @@ ALLOWED_WRITE_PERMISSIONS: dict[str, dict[str, str]] = {
     },
     "game-day-evidence.yml": {
         "contents": "commits retained game-day evidence artifacts",
+    },
+    "flakiness-tracker.yml": {
+        "issues": "creates scheduled flakiness tracking issues",
     },
     "package-sign.yml": {
         "id-token": "uses OIDC for provenance and keyless signing",
@@ -71,6 +88,15 @@ ALLOWED_WRITE_PERMISSIONS: dict[str, dict[str, str]] = {
     "runbook-validation.yml": {
         "issues": "comments runbook validation failures on pull requests",
     },
+    "sbom.yml": {
+        "attestations": "publishes SBOM provenance attestations",
+        "contents": "uploads generated SBOM files to releases",
+        "id-token": "obtains a Sigstore OIDC token for keyless signing",
+    },
+    "sdk-generation.yml": {
+        "contents": "pushes generated SDK branches",
+        "pull-requests": "opens generated SDK pull requests",
+    },
     "secret-rotation.yml": {
         "id-token": "authenticates secret rotation automation through OIDC",
         "issues": "creates rotation tracking issues",
@@ -98,6 +124,9 @@ ALLOWED_WRITE_PERMISSIONS: dict[str, dict[str, str]] = {
     },
     "vault-integration.yml": {
         "id-token": "authenticates to Vault through OIDC",
+    },
+    "visual-regression.yml": {
+        "pull-requests": "updates pull requests with visual regression results",
     },
     "codeql-analysis.yml": {
         "security-events": "uploads CodeQL SARIF results",
