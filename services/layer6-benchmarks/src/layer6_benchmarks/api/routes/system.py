@@ -32,7 +32,17 @@ async def readiness_check():
     return JSONResponse(status_code=503, content=payload)
 
 
-@router.get("/readiness", response_model=None, deprecated=True, include_in_schema=True)
+@router.get(
+    "/readiness",
+    response_model=None,
+    deprecated=True,
+    include_in_schema=True,
+    openapi_extra={
+        "x-deprecated-since": "2026-05-29",
+        "x-deprecated-removal-date": "2026-09-30",
+        "x-deprecation-owner": "layer6-benchmarks",
+    },
+)
 async def readiness_alias():
     """Temporary alias for /ready; prefer /ready (deprecated alias)."""
     return await readiness_check()

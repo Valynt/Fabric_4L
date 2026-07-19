@@ -82,10 +82,15 @@ def is_removal_target_valid(entry: dict[str, Any], now: datetime) -> bool:
     
     # Date strings: check if date is in the future
     try:
-        return datetime.fromisoformat(removal_target) > now
+        target = datetime.fromisoformat(removal_target)
     except ValueError:
         # Invalid date format, treat as invalid
         return False
+    # Naive dates are interpreted as UTC so they can be compared with the
+    # timezone-aware `now` (previously raised TypeError and aborted sync).
+    if target.tzinfo is None:
+        target = target.replace(tzinfo=UTC)
+    return target > now
 
 
 def extract_deprecations_from_spec(spec_path: Path) -> list[dict[str, Any]]:

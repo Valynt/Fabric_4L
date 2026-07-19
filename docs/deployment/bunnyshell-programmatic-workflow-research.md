@@ -1,7 +1,7 @@
 # Bunnyshell Programmatic Workflow Research — Fabric_4L
 
 > **Scope:** Create, configure, deploy, debug, and manage Bunnyshell environments for the Value Fabric platform using only the local CLI, repository artifacts, and verifiable command outputs.  
-> **Primary sources:** `bunnyshell.yaml`, `docker-compose.live.yml`, `.bunny/bns.exe --help`, `.windsurf/skills/bunnyshell/SKILL.md`, `.windsurf/workflows/bunnyshell.md`.  
+> **Primary sources:** `bunnyshell.yaml`, `docker-compose.live.yml`, `.bunny/bns.exe --help`, `.devin/skills/bunnyshell/SKILL.md`, `.devin/workflows/bunnyshell.md`.  
 > **Date:** 2026-05-23  
 > **Author:** Kimi Code CLI (synthesized from local tool outputs)
 
@@ -32,8 +32,8 @@ The Fabric_4L repository contains **two** environment-definition artifacts:
 | CLI README | `.bunny/README.md` | Installation, auth, and shell-completion notes |
 | Bunnyshell manifest | `bunnyshell.yaml` | Canonical cloud environment definition |
 | Live Compose | `docker-compose.live.yml` | Local Docker Compose live-validation stack |
-| Skill definition | `.windsurf/skills/bunnyshell/SKILL.md` | Agent-facing capability schema |
-| Workflow guide | `.windsurf/workflows/bunnyshell.md` | High-level Bunnyshell operational patterns |
+| Skill definition | `.devin/skills/bunnyshell/SKILL.md` | Agent-facing capability schema |
+| Workflow guide | `.devin/workflows/bunnyshell.md` | High-level Bunnyshell operational patterns |
 
 ---
 
