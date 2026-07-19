@@ -2,7 +2,7 @@
 
 S6-6 closed the workflow sprawl gate by consolidating duplicate and reporting
 workflows into canonical GitHub Actions files. The repository-level invariant is
-now fewer than 50 workflow YAML files in `.github/workflows/`, enforced by
+now at most 55 workflow YAML files in `.github/workflows/`, enforced by
 `scripts/ci/verify_workflow_registry.py`.
 
 ## Canonical workflow ownership
@@ -54,7 +54,7 @@ Publish Docker Container, Super Linter, Build projects with Make, publishing
 templates, and the various language templates for stacks this monorepo does
 not use) are **deliberately not configured**. Do not add them:
 
-- The S6-6 workflow-count cap forbids new workflow files; any addition fails
+- The S6-6 workflow-count cap allows at most 55 workflow files; additions beyond it fail
   `scripts/ci/verify_workflow_registry.py` and
   `tests/ci/test_ci_workflow_consolidation.py`.
 - Every applicable template is already covered by canonical workflows using

@@ -9,7 +9,7 @@ import hashlib
 import os
 import time
 from datetime import UTC, datetime, timedelta
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 from uuid import UUID, uuid4
 
@@ -43,7 +43,6 @@ if TYPE_CHECKING:
 from value_fabric.shared.audit import emit_audit_event
 from value_fabric.shared.audit.models import AuditAction, AuditOutcome
 from value_fabric.shared.error_handling import sanitize_log_error
-from value_fabric.shared.models.typed_dict import TypedDictModel
 from value_fabric.shared.redis_ha import get_celery_redis_broker_config
 
 from ..metrics.prometheus_metrics import get_metrics
@@ -71,6 +70,19 @@ from ..shared.models import (
 )
 from ..shared.otel_celery import build_celery_options, start_celery_span
 from ..skills import get_extraction_schema, get_skill
+from .task_contracts import (
+    _execute_browser_pathResult,
+    ai_extraction_stageResult,
+    browser_crawl_stageResult,
+    cleanup_old_contentResult,
+    compliance_check_stageResult,
+    crawl_url_with_routingResult,
+    notification_stageResult,
+    post_processing_stageResult,
+    process_scraping_jobResult,
+    storage_stageResult,
+    validation_stageResult,
+)
 
 # Maximum delivery attempts before an outbox event is dead-lettered.
 MAX_DISPATCH_ATTEMPTS = 5
@@ -87,68 +99,16 @@ def _domain_class(url: str) -> str:
     return "public"
 
 
-class _execute_browser_pathResult(TypedDictModel):
-    blocked_resources: Any
-    config_used: Any
-    content_length: Any
-    duration_ms: Any
-    error: Any
-    final_url: Any
-    scroll_triggered: Any
-    status_code: bool
-    text_length: Any
-    title: Any
 
-class process_scraping_jobResult(TypedDictModel):
-    job_id: Any
-    success: bool
-    task_id: Any
 
-class crawl_url_with_routingResult(TypedDictModel):
-    decision_id: Any
-    duration_ms: Any
-    final_path: Any
-    job_id: Any
-    success: bool
-    url: Any
 
-class cleanup_old_contentResult(TypedDictModel):
-    cutoff_date: Any
-    deleted_count: Any
 
-class compliance_check_stageResult(TypedDictModel):
-    error: str | None = None
-    job_id: Any
-    success: bool
 
-class browser_crawl_stageResult(TypedDictModel):
-    job_id: Any
-    raw_content_id: Any
-    success: bool
 
-class ai_extraction_stageResult(TypedDictModel):
-    entities_extracted: Any | None = None
-    job_id: Any
-    skipped: bool
-    success: bool
-    tokens_consumed: Any | None = None
 
-class post_processing_stageResult(TypedDictModel):
-    job_id: Any
-    success: bool
 
-class validation_stageResult(TypedDictModel):
-    job_id: Any
-    success: bool
 
-class storage_stageResult(TypedDictModel):
-    job_id: Any
-    success: bool
 
-class notification_stageResult(TypedDictModel):
-    error: Any
-    job_id: Any
-    success: bool
 
 logger = structlog.get_logger()
 
