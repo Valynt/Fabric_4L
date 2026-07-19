@@ -14,14 +14,22 @@ def _runtime_bypass_modules() -> list[Path]:
         *ROOT.glob("services/*/src/**/database.py"),
         *ROOT.glob("value_fabric/layer*/**/database*.py"),
     ]
-    return sorted(
-        {
-            path
-            for path in candidates
-            if BYPASS_MARKER in path.read_text(encoding="utf-8")
-            and not path.relative_to(ROOT).parts[0] == "tests"
-        }
-    )
+    marked: set[Path] = set()
+    for path in candidates:
+        if path.relative_to(ROOT).parts[0] == "tests":
+            continue
+        text = path.read_text(encoding="utf-8")
+        if BYPASS_MARKER not in text:
+            continue
+        # Compatibility shims only re-export a canonical module that is itself
+        # scanned directly (e.g. services/layer4-agents/src/database.py ->
+        # layer4_agents/database.py); source-level assertions cannot hold on a
+        # re-export shim. The marker must stay on the shim for
+        # tests/contract/test_runtime_db_postgres_contract.py.
+        if "compatibility shim" in text.lower():
+            continue
+        marked.add(path)
+    return sorted(marked)
 
 
 def _source(path: Path) -> str:

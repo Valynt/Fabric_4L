@@ -579,7 +579,7 @@ Layer 4 uses LangGraph for stateful, checkpointed workflow orchestration:
 
 The Tool Registry provides centralized tool management:
 - Tool definitions in JSON schemas (`contracts/tool-manifests/`)
-- Skill definitions in `.windsurf/skills/`
+- Skill definitions in `.devin/skills/`
 - Runtime invocation with permission checks
 - Cost tracking and budget enforcement
 
