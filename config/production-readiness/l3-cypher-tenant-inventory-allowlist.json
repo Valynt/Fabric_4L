@@ -332,6 +332,56 @@
       "finding_key": "services/layer3-knowledge/src/services/roi_calculator_service.py::list_calculations::680::literal-only::cypher-string",
       "expires_on": "2026-12-31",
       "justification": "Seeded baseline for existing L3 Cypher tenant-inventory findings; must be remediated or re-reviewed before expiry."
+    },
+    {
+      "finding_key": "services/layer3-knowledge/src/migrations/030_neo4j_tenant_id_constraints_and_indexes.py::_execute_step::210::session.run::run-call-unresolved",
+      "expires_on": "2026-12-31",
+      "justification": "Schema-migration operations (constraint/index creation, APOC availability probe) are legitimately cross-tenant; registered during CI-baseline incident repair (PR #1021) to match the seeded migration baseline. Must be re-reviewed before expiry."
+    },
+    {
+      "finding_key": "services/layer3-knowledge/src/migrations/create_composite_tenant_indexes.py::create_index::134::session.run::run-call",
+      "expires_on": "2026-12-31",
+      "justification": "Schema-migration operations (constraint/index creation, APOC availability probe) are legitimately cross-tenant; registered during CI-baseline incident repair (PR #1021) to match the seeded migration baseline. Must be re-reviewed before expiry."
+    },
+    {
+      "finding_key": "services/layer3-knowledge/src/migrations/migrate_tenant_ids.py::check_apoc_available::166::session.run::run-call",
+      "expires_on": "2026-12-31",
+      "justification": "Schema-migration operations (constraint/index creation, APOC availability probe) are legitimately cross-tenant; registered during CI-baseline incident repair (PR #1021) to match the seeded migration baseline. Must be re-reviewed before expiry."
+    },
+    {
+      "finding_key": "services/layer3-knowledge/src/migrations/migrate_tenant_ids.py::create_constraints::362::session.run::run-call-unresolved",
+      "expires_on": "2026-12-31",
+      "justification": "Schema-migration operations (constraint/index creation, APOC availability probe) are legitimately cross-tenant; registered during CI-baseline incident repair (PR #1021) to match the seeded migration baseline. Must be re-reviewed before expiry."
+    },
+    {
+      "finding_key": "services/layer3-knowledge/src/migrations/028_l3_tenant_standardization.py::inventory::228::session.run::run-call",
+      "expires_on": "2026-12-31",
+      "justification": "Schema-migration operations (tenant-id standardization inventory/rename/backfill, edition probe) are legitimately cross-tenant; registered during CI-baseline incident repair (PR #1021) to complete the seeded migration baseline. Must be re-reviewed before expiry."
+    },
+    {
+      "finding_key": "services/layer3-knowledge/src/migrations/028_l3_tenant_standardization.py::run_renames::267::session.run::run-call-unresolved",
+      "expires_on": "2026-12-31",
+      "justification": "Schema-migration operations (tenant-id standardization inventory/rename/backfill, edition probe) are legitimately cross-tenant; registered during CI-baseline incident repair (PR #1021) to complete the seeded migration baseline. Must be re-reviewed before expiry."
+    },
+    {
+      "finding_key": "services/layer3-knowledge/src/migrations/028_l3_tenant_standardization.py::run_renames::282::session.run::run-call-unresolved",
+      "expires_on": "2026-12-31",
+      "justification": "Schema-migration operations (tenant-id standardization inventory/rename/backfill, edition probe) are legitimately cross-tenant; registered during CI-baseline incident repair (PR #1021) to complete the seeded migration baseline. Must be re-reviewed before expiry."
+    },
+    {
+      "finding_key": "services/layer3-knowledge/src/migrations/028_l3_tenant_standardization.py::run_backfills::308::session.run::run-call-unresolved",
+      "expires_on": "2026-12-31",
+      "justification": "Schema-migration operations (tenant-id standardization inventory/rename/backfill, edition probe) are legitimately cross-tenant; registered during CI-baseline incident repair (PR #1021) to complete the seeded migration baseline. Must be re-reviewed before expiry."
+    },
+    {
+      "finding_key": "services/layer3-knowledge/src/migrations/028_l3_tenant_standardization.py::run_backfills::324::session.run::run-call-unresolved",
+      "expires_on": "2026-12-31",
+      "justification": "Schema-migration operations (tenant-id standardization inventory/rename/backfill, edition probe) are legitimately cross-tenant; registered during CI-baseline incident repair (PR #1021) to complete the seeded migration baseline. Must be re-reviewed before expiry."
+    },
+    {
+      "finding_key": "services/layer3-knowledge/src/migrations/030_neo4j_tenant_id_constraints_and_indexes.py::_detect_edition::141::session.run::run-call",
+      "expires_on": "2026-12-31",
+      "justification": "Schema-migration operations (tenant-id standardization inventory/rename/backfill, edition probe) are legitimately cross-tenant; registered during CI-baseline incident repair (PR #1021) to complete the seeded migration baseline. Must be re-reviewed before expiry."
     }
   ]
 }
