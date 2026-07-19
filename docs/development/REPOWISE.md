@@ -12,11 +12,22 @@ Fabric runtime, CI gates, or production services.
 ## Authentication
 
 All clients authenticate with a bearer token supplied via the `REPOWISE_API_KEY`
-environment variable. Set it in your shell (or via `infisical run` / your local
-`.env`, see `.env.example`). **Never commit a real key** — the checked-in
-configs only contain the `${REPOWISE_API_KEY}` placeholder.
+environment variable. Load the token from an approved secret manager (for
+example, Infisical via `infisical run`) or from a local uncommitted env file
+(such as `.env` or `.env.dev`, see `.env.example`). **Never commit a real key**
+— the checked-in configs only contain the `${REPOWISE_API_KEY}` placeholder.
+
+Do not paste Repowise or MCP bearer tokens into prompts, documentation, shell
+history, committed config files, issue trackers, or chat transcripts. If a token
+is exposed, revoke it in the Repowise dashboard or provider control plane before
+creating a replacement with the minimum repository and tool scope required. Store
+the replacement only in the approved secret manager or local uncommitted env file,
+and verify rotation by confirming the revoked token is rejected while the new
+token can access only `bmsull560/fabric_4l` and the intended MCP tools.
 
 ```bash
+# Prefer secret-manager injection for agent clients. For local-only workflows,
+# write this value to an uncommitted env file rather than shell history.
 export REPOWISE_API_KEY=<your key>
 ```
 
@@ -25,10 +36,22 @@ export REPOWISE_API_KEY=<your key>
 | Agent client | Config file | Notes |
 |---|---|---|
 | Claude Code | `.mcp.json` (repo root) | Project-scoped `http` server; expands `${REPOWISE_API_KEY}` from the environment |
+| Codex | `.codex/config.toml` | Project-scoped streamable HTTP server; reads its bearer token from `REPOWISE_API_KEY` |
 | Roo Code | `.roo/mcp.json` | `streamable-http` transport |
 | Gemini CLI | `.gemini/settings.json` | `httpUrl` transport; expands `${REPOWISE_API_KEY}` |
 | VS Code / Copilot | `.vscode/mcp.json` (not committed — `.vscode/` is gitignored) | Create locally; example below |
 | Copilot coding agent | Repository **Settings → Copilot → Coding agent → MCP configuration** | Store the key as the `COPILOT_MCP_REPOWISE_API_KEY` Actions secret |
+
+### Codex configuration
+
+The repository includes `.codex/config.toml`; Codex reads `REPOWISE_API_KEY` at
+runtime and never stores the token in the configuration file.
+
+```toml
+[mcp_servers.repowise]
+url = "https://api.repowise.dev/mcp/bmsull560/fabric_4l"
+bearer_token_env_var = "REPOWISE_API_KEY"
+```
 
 ### Example `.vscode/mcp.json` (create locally, not committed)
 

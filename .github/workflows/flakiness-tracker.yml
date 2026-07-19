@@ -6,6 +6,9 @@
 
 name: flakiness-tracker
 
+permissions:
+  contents: read
+
 on:
   # Weekly: every Sunday at 06:00 UTC
   schedule:
@@ -37,6 +40,9 @@ on:
 jobs:
   flakiness-tracker:
     name: Flakiness Tracker
+    permissions:
+      contents: read
+      issues: write # Creates the scheduled flakiness tracking issue.
     runs-on: ubuntu-latest
     timeout-minutes: 120
 

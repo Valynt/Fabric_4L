@@ -8,6 +8,7 @@ type UnexpectedErrorAuditOptions = {
 
 type UnexpectedErrorAudit = {
   recordExpectedHttp5xxPattern: (pattern: string | RegExp) => void;
+  recordExpectedConsoleErrorPattern: (pattern: string | RegExp) => void;
   recordUnhandledApiRequest: (request: { method: string; url: string }) => void;
   assertClean: () => Promise<void>;
   teardown: () => void;
@@ -34,6 +35,7 @@ export function attachUnexpectedErrorAudit(
   const failedResourceRequests: string[] = [];
   const unhandledApiRequests: string[] = [];
   const expectedHttp5xxPatterns = [...(options.allowHttp5xxPatterns ?? [])];
+  const expectedConsoleErrorPatterns = [...(options.allowConsoleErrorPatterns ?? [])];
 
   const onPageError = (error: Error) => {
     pageErrors.push(error.stack || error.message);
@@ -43,7 +45,7 @@ export function attachUnexpectedErrorAudit(
     if (message.type() !== 'error') return;
     const text = message.text();
     if (IGNORED_CONSOLE_ERRORS.some((pattern) => pattern.test(text))) return;
-    if ((options.allowConsoleErrorPatterns ?? []).some((pattern) => pattern.test(text))) return;
+    if (expectedConsoleErrorPatterns.some((pattern) => pattern.test(text))) return;
     consoleErrors.push(text);
   };
 
@@ -76,6 +78,9 @@ export function attachUnexpectedErrorAudit(
   return {
     recordExpectedHttp5xxPattern: (pattern: string | RegExp) => {
       expectedHttp5xxPatterns.push(toRegExp(pattern));
+    },
+    recordExpectedConsoleErrorPattern: (pattern: string | RegExp) => {
+      expectedConsoleErrorPatterns.push(toRegExp(pattern));
     },
     recordUnhandledApiRequest: ({ method, url }) => {
       if (!options.allowUnhandledApiRequests) {
