@@ -78,6 +78,14 @@ STANDALONE_API_TESTS=(
   services/api/app/tests/test_i03_durable_persistence_and_llm.py
 )
 
+# API-gateway tenant-isolation and invitation-security regression suites.
+# These cover the accept-invite account-takeover fix (single-use invite
+# tokens) and the fail-closed tenant boundary on the standalone API gateway.
+GATEWAY_ISOLATION_API_TESTS=(
+  services/api/app/tests/test_tenant_isolation.py
+  services/api/app/tests/test_invitation_and_tenant_leakage.py
+)
+
 ROOT_SECURITY_TESTS=(
   tests/security/test_auth_boundaries.py
   tests/security/test_auth_source_validation.py
@@ -151,6 +159,7 @@ required_suite_paths() {
   local path
   for path in \
     "${STANDALONE_API_TESTS[@]}" \
+    "${GATEWAY_ISOLATION_API_TESTS[@]}" \
     "${ROOT_SECURITY_TESTS[@]}" \
     "${CROSS_LAYER_TENANT_MATRIX_TESTS[@]}" \
     "${LAYER4_C06_SECURITY_TESTS[@]}" \
@@ -393,6 +402,26 @@ run_step_record "Standalone API production-safety, health, durable persistence, 
   "pytest app/tests/test_auth_enforcement.py test_health.py test_production_safety.py test_i03_durable_persistence_and_llm.py" \
   "Yes" \
   "${ARTIFACT_DIR}/standalone_api_security.xml"
+
+# API-gateway tenant-isolation and invitation-security regression checks.
+# Mandatory (fail-closed like the standalone API step above): covers the
+# accept-invite single-use-token account-takeover fix and the gateway tenant
+# boundary. MOCK_PERSISTENCE=true selects the in-memory repository per
+# services/api conftest; SEED_DEMO_DATA=false keeps tenants hermetic.
+run_step_record "API gateway tenant-isolation and invitation-security regression checks" \
+  bash -c "cd services/api && \
+    TESTING=true ENVIRONMENT=testing DEBUG=false SEED_DEMO_DATA=false MOCK_PERSISTENCE=true \
+    python -m pytest --tb=short -q -n 0 --timeout=60 \
+      --junitxml='${ROOT_DIR}/${ARTIFACT_DIR}/gateway_isolation_security.xml' \
+      app/tests/test_tenant_isolation.py \
+      app/tests/test_invitation_and_tenant_leakage.py && \
+    cd '${ROOT_DIR}' && \
+    python scripts/ci/assert_no_pytest_skips.py '${ARTIFACT_DIR}/gateway_isolation_security.xml'" \
+  -- \
+  "API Gateway Tenant Isolation + Invitation Security" \
+  "pytest app/tests/test_tenant_isolation.py app/tests/test_invitation_and_tenant_leakage.py" \
+  "Yes" \
+  "${ARTIFACT_DIR}/gateway_isolation_security.xml"
 
 run_step_record "Tenant-boundary and auth/security regression checks" \
   run_root_pytest "${ARTIFACT_DIR}/tenant_security.xml" "${ROOT_SECURITY_TESTS[@]}" \
