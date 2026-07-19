@@ -16,22 +16,23 @@ P1-29: OpenTelemetry tracing integration for observability.
 
 import asyncio
 import hashlib
+import importlib
 import json
 import os
 import time
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Awaitable, Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, Protocol, TypeVar, cast
 from uuid import NAMESPACE_URL, uuid4, uuid5
 
 import structlog
 
 # Third-party imports for health check
 try:
-    import psutil  # type: ignore[import-untyped]
+    psutil = importlib.import_module("psutil")
 except ImportError:
-    psutil = None  # type: ignore[assignment]  # Health check will work without system metrics
+    psutil = None  # Health check will work without system metrics
 
 from fastapi import BackgroundTasks, Depends, FastAPI, Query, Request
 from fastapi.responses import Response, StreamingResponse
@@ -293,7 +294,7 @@ app.include_router(signal_lifecycle_router)
 _S2S_INTERNAL_PATHS = s2s_auth.S2S_INTERNAL_PATHS
 
 @app.middleware("http")
-async def _s2s_auth_guard(request: Request, call_next):  # type: ignore[type-arg,untyped-decorator]
+async def _s2s_auth_guard(request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
     """Enforce inbound S2S JWT on internal extraction routes.
 
     In strict environments, the check is mandatory and fails closed.
@@ -354,8 +355,21 @@ class ExtractionArtifacts:
     relationships: list[Relationship]
 
 
+class StampableEntity(Protocol):
+    id: str
+    tenant_id: str | None
+    extraction_job_id: str | None
+    schema_version: str
+    prompt_version_id: str
+    model_version: str
+    deterministic_id: str | None
+
+
+StampableEntityT = TypeVar("StampableEntityT", bound=StampableEntity)
+
+
 def _stamp_entity(
-    entity: Any,
+    entity: StampableEntityT,
     *,
     entity_type: str,
     tenant_id: str,
@@ -363,7 +377,7 @@ def _stamp_entity(
     source_url: str,
     extraction_job_id: str,
     telemetry_context: dict[str, str],
-) -> Any:
+) -> StampableEntityT:
     entity.tenant_id = tenant_id
     entity.extraction_job_id = extraction_job_id
     entity.schema_version = telemetry_context["schema_version"]
@@ -570,9 +584,9 @@ async def _set_pipeline_job(
     if retry_count is not None:
         job.retry_count = retry_count
     if last_error is not _UNSET:
-        job.last_error = last_error  # type: ignore[assignment]
+        job.last_error = cast(str | None, last_error)
     if next_retry_at is not _UNSET:
-        job.next_retry_at = next_retry_at  # type: ignore[assignment]
+        job.next_retry_at = cast(datetime | None, next_retry_at)
     if completed_at is not None:
         job.completed_at = completed_at.isoformat() if completed_at else None
     # Persist to job store
@@ -1018,7 +1032,7 @@ async def run_extraction(
             with open(rdf_path, "w") as f:
                 f.write(rdf_content)
 
-            activity.output_entities = [e.id for e in result.get_all_entities()]  # type: ignore[attr-defined]
+            activity.output_entities = [e.id for e in result.get_all_entities()]
             activity.output_relationships = [r.id for r in all_relationships]
             activity.complete(rdf_output_path=rdf_path)
 
@@ -1204,11 +1218,11 @@ async def run_extraction(
         result = ExtractionResult(
             job_id=job_id,
             source_url=source_url,
-            capabilities=deduplicated.get("capabilities", []),  # type: ignore[arg-type]
-            use_cases=deduplicated.get("use_cases", []),  # type: ignore[arg-type]
-            personas=deduplicated.get("personas", []),  # type: ignore[arg-type]
-            value_drivers=deduplicated.get("value_drivers", []),  # type: ignore[arg-type]
-            features=deduplicated.get("features", []),  # type: ignore[arg-type]
+            capabilities=cast(list[Capability], deduplicated.get("capabilities", [])),
+            use_cases=cast(list[UseCase], deduplicated.get("use_cases", [])),
+            personas=cast(list[Persona], deduplicated.get("personas", [])),
+            value_drivers=cast(list[ValueDriver], deduplicated.get("value_drivers", [])),
+            features=deduplicated.get("features", []),
             chunks_processed=len(chunks),
             tenant_id=telemetry_context["tenant_id"],
             schema_version=telemetry_context["schema_version"],
@@ -1315,7 +1329,7 @@ async def run_extraction(
         activity.add_step(step5)
 
         # Complete activity
-        activity.output_entities = [e.id for e in result.get_all_entities()]  # type: ignore[attr-defined]
+        activity.output_entities = [e.id for e in result.get_all_entities()]
         activity.output_relationships = [r.id for r in all_relationships]
         activity.complete(rdf_output_path=rdf_path)
 
@@ -1962,20 +1976,20 @@ from value_fabric.shared.models.typed_dict import TypedDictModel
 
 
 class health_checkResult(TypedDictModel):
-    dependencies: Any
-    metrics: Any
-    response_time_ms: Any
+    dependencies: dict[str, object]
+    metrics: dict[str, object]
+    response_time_ms: float
     service: str
-    status: Any
-    timestamp: Any
-    uptime_seconds: Any
+    status: str
+    timestamp: str
+    uptime_seconds: float
     version: str
 
 class extract_batchResult(TypedDictModel):
-    batch_job_id: Any
-    job_ids: Any
+    batch_job_id: str
+    job_ids: list[str]
     status: str
-    total_jobs: Any
+    total_jobs: int
 
 
 if __name__ == "__main__":
