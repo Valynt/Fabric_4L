@@ -5642,7 +5642,7 @@
     },
     {
       "kind": "python-any",
-      "line": 21,
+      "line": 22,
       "path": "scripts/ci/check_docker_compose_config.py",
       "text": "from typing import Any"
     },
@@ -5690,67 +5690,61 @@
     },
     {
       "kind": "python-any",
-      "line": 428,
-      "path": "scripts/ci/check_docker_compose_config.py",
-      "text": "service: dict[str, Any],"
-    },
-    {
-      "kind": "python-any",
-      "line": 465,
+      "line": 477,
       "path": "scripts/ci/check_docker_compose_config.py",
       "text": "def iter_environment_entries(service: dict[str, Any]) -> list[tuple[str, str]]:"
     },
     {
       "kind": "python-any",
-      "line": 542,
+      "line": 554,
       "path": "scripts/ci/check_docker_compose_config.py",
       "text": "def service_depends_on(service: dict[str, Any], dependency_name: str) -> bool:"
     },
     {
       "kind": "python-any",
-      "line": 551,
+      "line": 563,
       "path": "scripts/ci/check_docker_compose_config.py",
       "text": "def service_references_redis(service: dict[str, Any]) -> bool:"
     },
     {
       "kind": "python-any",
-      "line": 559,
+      "line": 571,
       "path": "scripts/ci/check_docker_compose_config.py",
       "text": "def service_has_cap_drop_all(service: dict[str, Any]) -> bool:"
     },
     {
       "kind": "python-any",
-      "line": 566,
+      "line": 578,
       "path": "scripts/ci/check_docker_compose_config.py",
       "text": "def service_has_no_new_privileges(service: dict[str, Any]) -> bool:"
     },
     {
       "kind": "python-any",
-      "line": 575,
+      "line": 587,
       "path": "scripts/ci/check_docker_compose_config.py",
       "text": "services: dict[str, Any],"
     },
     {
       "kind": "python-any",
-      "line": 690,
+      "line": 702,
       "path": "scripts/ci/check_docker_compose_config.py",
       "text": "def validate_auth_env_defaults(compose_file: Path, services: dict[str, Any]) -> list[ComposeFailure]:"
     },
     {
       "kind": "python-any",
-      "line": 712,
+      "line": 724,
       "path": "scripts/ci/check_docker_compose_config.py",
       "text": "def validate_env_interpolation_syntax(compose_file: Path, services: dict[str, Any]) -> list[ComposeFailure]:"
     },
     {
       "kind": "python-any",
-      "line": 731,
+      "line": 743,
       "path": "scripts/ci/check_docker_compose_config.py",
       "text": "services: dict[str, Any],"
     },
     {
       "kind": "python-any",
-      "line": 768,
+      "line": 780,
       "path": "scripts/ci/check_docker_compose_config.py",
       "text": "services: dict[str, Any],"
     },
