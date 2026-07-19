@@ -50,12 +50,10 @@ from ...models.agent_state import (
 )
 from ...models.business_case_record import BusinessCaseRecord
 from ...models.saved_scenario import SavedBusinessCaseScenario
-from ...models.workspace_tab_data import WorkspaceTabData
 from ...services.account_service import AccountService
 from ...services.business_case_service import BusinessCaseService
 from ...services.export_provenance import build_export_provenance_manifest
 from ...services.export_storage import generate_download_url, upload_bytes
-from ...services.tenant_cypher import fetch_tenant_validated_records
 from ...tenants.models.api_key import APIKey
 from ...tenants.models.tenant import IsolationTier, Tenant, TenantStatus
 from ...tenants.models.user import User
@@ -82,32 +80,11 @@ from .analysis_schemas import (
     ValidationSessionRequest,
     WhitespaceAnalysisRequest,
     WhitespaceAnalysisResponse,
-    WorkspaceEvidenceItem,
-    WorkspaceEvidenceResponse,
     export_business_caseResult,
 )
+from .analysis_workspace import build_workspace_router
 
 get_db_from_context = get_route_db
-
-
-class export_business_caseResult(TypedDictModel):
-    blocked: bool
-    case_id: str
-    document_url: str | None
-    download_ready: bool
-    export_id: str
-    format: str
-    manifest: dict[str, Any]
-    manifest_url: str | None = None
-    remediation_items: list[dict[str, Any]]
-    truth_references: list[dict[str, Any]]
-    url_expires_at: str | None = None
-
-class generate_workspace_intelligenceResult(TypedDictModel):
-    account_id: str
-    case_id: str
-    generated: bool
-    stats: dict[str, int]
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -1653,225 +1630,9 @@ async def delete_saved_scenario(
         raise NotFoundError(message = "Saved scenario not found")
 
 
-@router.get("/cases/{case_id}/workspace/evidence", response_model=WorkspaceEvidenceResponse)
-async def get_workspace_evidence(
-    case_id: str,
-    db: AsyncSession = Depends(get_route_db),
-    context: RequestContext = Depends(require_authenticated),
-) -> WorkspaceEvidenceResponse:
-    authorize_action("layer4.analysis.read_case", context)
-    tenant_id = str(context.tenant_id)
-    result = await db.execute(
-        select(WorkspaceTabData).where(
-            WorkspaceTabData.case_id == case_id,
-            WorkspaceTabData.tab_key == "evidence",
-            WorkspaceTabData.tenant_id == tenant_id,
-        )
+router.include_router(
+    build_workspace_router(
+        get_executor=get_executor,
+        get_neo4j_driver=_get_neo4j_driver,
     )
-    record = result.scalar_one_or_none()
-    if record is None:
-        return WorkspaceEvidenceResponse(evidence=[])
-    payload = record.data if isinstance(record.data, dict) else {}
-    evidence_items = payload.get("evidence", [])
-    if not isinstance(evidence_items, list):
-        raise ServiceUnavailableError(message="Invalid persisted evidence payload shape")
-    normalized_items: list[dict[str, Any]] = []
-    for item in evidence_items:
-        if not isinstance(item, dict):
-            continue
-        normalized_items.append(
-            {
-                **item,
-                "title": item.get("title") or item.get("claim") or item.get("id") or "Evidence",
-                "type": item.get("type") or "evidence",
-                "verification": item.get("verification") or item.get("validation_status") or "unverified",
-                "linkedSignals": item.get("linkedSignals") or item.get("linked_signals") or [],
-                "excerpt": item.get("excerpt") or item.get("claim") or "",
-            }
-        )
-    return WorkspaceEvidenceResponse(evidence=[WorkspaceEvidenceItem.model_validate(item) for item in normalized_items])
-
-
-
-@router.get("/cases/{case_id}/workspace/{tab_key}")
-async def get_workspace_tab(
-    case_id: str,
-    tab_key: str,
-    db: AsyncSession = Depends(get_route_db),
-    context: RequestContext = Depends(require_authenticated),
-) -> dict[str, Any]:
-    """Get persisted workspace tab data."""
-    authorize_action("layer4.analysis.read_case", context)
-    valid_tabs = {"signals", "drivers", "evidence", "stakeholders", "action-plan", "value-model", "narrative", "intake", "evidence-links"}
-    if tab_key not in valid_tabs:
-        raise ValidationError(message = str(f"Invalid tab_key. Must be one of: {valid_tabs}"))
-
-    tenant_id = str(context.tenant_id)
-    result = await db.execute(
-        select(WorkspaceTabData).where(
-            WorkspaceTabData.case_id == case_id,
-            WorkspaceTabData.tab_key == tab_key,
-            WorkspaceTabData.tenant_id == tenant_id,
-        )
-    )
-    record = result.scalar_one_or_none()
-    if record is None:
-        return {tab_key: []}
-    data = record.data if isinstance(record.data, dict) else {"data": record.data}
-    return data or {tab_key: []}
-
-
-@router.put("/cases/{case_id}/workspace/{tab_key}")
-async def update_workspace_tab(
-    case_id: str,
-    tab_key: str,
-    payload: dict[str, Any],
-    db: AsyncSession = Depends(get_route_db),
-    context: RequestContext = Depends(require_authenticated),
-) -> dict[str, Any]:
-    """Update persisted workspace tab data."""
-    authorize_action("layer4.analysis.write_case", context)
-    valid_tabs = {"signals", "drivers", "evidence", "stakeholders", "action-plan", "value-model", "narrative", "intake", "evidence-links"}
-    if tab_key not in valid_tabs:
-        raise ValidationError(message = str(f"Invalid tab_key. Must be one of: {valid_tabs}"))
-
-    tenant_id = str(context.tenant_id)
-    result = await db.execute(
-        select(WorkspaceTabData).where(
-            WorkspaceTabData.case_id == case_id,
-            WorkspaceTabData.tab_key == tab_key,
-            WorkspaceTabData.tenant_id == tenant_id,
-        )
-    )
-    record = result.scalar_one_or_none()
-    if record is None:
-        record = WorkspaceTabData(case_id=case_id, tab_key=tab_key, tenant_id=tenant_id, data=payload)
-        db.add(record)
-    else:
-        record.data = payload
-
-    return {"case_id": case_id, "tab": tab_key, "updated": True, "data": payload}
-
-
-@router.post("/cases/{case_id}/workspace/generate")
-async def generate_workspace_intelligence(
-    case_id: str,
-    request: Request,
-    executor: WorkflowExecutor = Depends(get_executor),
-    db: AsyncSession = Depends(get_route_db),
-    context: RequestContext = Depends(require_authenticated),
-) -> dict[str, Any]:
-    """Generate workspace intelligence data for a case.
-
-    Lightweight generation that surfaces existing Neo4j data (signals,
-    hypotheses) for the account. No LLM call — just exposes graph data
-    the frontend currently can't see.
-    """
-    from ...models.business_case_record import BusinessCaseRecord
-    from ...models.workspace_tab_data import WorkspaceTabData as WorkspaceTabDataModel
-
-    authorize_action("layer4.analysis.write_case", context)
-    record = await db.get(BusinessCaseRecord, case_id)
-    if not record:
-        raise NotFoundError(message = str(f"Case {case_id} not found"))
-
-    if not context.tenant_id:
-        raise AuthorizationError(message="Tenant context is required for workspace intelligence generation")
-    tenant_id = str(context.tenant_id)
-    account_id = str(record.account_id)
-
-    driver = _get_neo4j_driver(request)
-
-    # Query existing signals for the account
-    signal_query = """
-    MATCH (ps:PainSignal {account_id: $account_id, tenant_id: $tenant_id})
-    RETURN ps {.id, .name, .category, .confidence_score, .impact_value, .trend} AS signal
-    LIMIT 50
-    """
-    signals = []
-    signal_records = await fetch_tenant_validated_records(
-        driver=driver,
-        query=signal_query,
-        params={"account_id": account_id, "tenant_id": tenant_id},
-        tenant_id=tenant_id,
-        operation="analysis.get_account_intelligence.signals",
-    )
-    for record_row in signal_records:
-        s = record_row["signal"]
-        if s:
-            signals.append({
-                "id": s.get("id", ""),
-                "name": s.get("name", ""),
-                "category": s.get("category", "Unknown"),
-                "confidence": int((s.get("confidence_score") or 0.5) * 100),
-                "impact": s.get("impact_value", "medium"),
-                "trend": s.get("trend", "stable"),
-            })
-
-    # Query existing hypotheses for the account
-    hypothesis_query = """
-    MATCH (vh:ValueHypothesis {account_id: $account_id, tenant_id: $tenant_id})
-    RETURN vh {.id, .hypothesis_text, .confidence_score, .value_path_category, .status, .capability_name} AS hypothesis
-    LIMIT 50
-    """
-    hypotheses = []
-    hypothesis_records = await fetch_tenant_validated_records(
-        driver=driver,
-        query=hypothesis_query,
-        params={"account_id": account_id, "tenant_id": tenant_id},
-        tenant_id=tenant_id,
-        operation="analysis.get_account_intelligence.hypotheses",
-    )
-    for record_row in hypothesis_records:
-        h = record_row["hypothesis"]
-        if h:
-            hypotheses.append({
-                "id": h.get("id", ""),
-                "hypothesis_text": h.get("hypothesis_text", ""),
-                "confidence": h.get("confidence_score", 0.5),
-                "value_path_category": h.get("value_path_category"),
-                "status": h.get("status", "draft"),
-                "capability_name": h.get("capability_name", ""),
-            })
-
-    # Store in workspace tab persistence
-    tab_data = {
-        "signals": {"signals": signals},
-        "drivers": {"drivers": hypotheses},
-        "evidence": {"evidence": []},
-        "stakeholders": {"stakeholders": []},
-        "action-plan": {"recommendations": []},
-        "value-model": {"value_models": []},
-        "narrative": {"narratives": []},
-    }
-
-    for tab_key, data in tab_data.items():
-        result = await db.execute(
-            select(WorkspaceTabDataModel).where(
-                WorkspaceTabDataModel.case_id == case_id,
-                WorkspaceTabDataModel.tab_key == tab_key,
-                WorkspaceTabDataModel.tenant_id == tenant_id,
-            )
-        )
-        existing = result.scalar_one_or_none()
-        if existing:
-            existing.data = data
-        else:
-            db.add(WorkspaceTabDataModel(
-                case_id=case_id,
-                tab_key=tab_key,
-                tenant_id=tenant_id,
-                data=data,
-            ))
-
-    return {
-        "case_id": case_id,
-        "account_id": account_id,
-        "generated": True,
-        "stats": {
-            "signals": len(signals),
-            "drivers": len(hypotheses),
-            "evidence": 0,
-            "stakeholders": 0,
-        },
-    }
+)

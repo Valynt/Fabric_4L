@@ -4,6 +4,7 @@
   "excluded_patterns": [
     "apps/web/src/api/generated/**",
     "packages/platform-contract/src/typescript/generated/**",
+    "sdk/python/src/valuefabric/generated/**",
     "**/__pycache__/**",
     "**/.mypy_cache/**",
     "**/node_modules/**",
@@ -6097,13 +6098,13 @@
     },
     {
       "kind": "python-any",
-      "line": 201,
+      "line": 215,
       "path": "scripts/ci/check_test_skip_governance.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 265,
+      "line": 284,
       "path": "scripts/ci/check_test_skip_governance.py",
       "text": "def _write_github_step_summary(path: Path, report: dict[str, Any]) -> None:"
     },
@@ -7879,27 +7880,33 @@
     },
     {
       "kind": "python-any",
-      "line": 91,
+      "line": 96,
       "path": "scripts/ci/sync_deprecation_register.py",
       "text": "def extract_deprecations_from_spec(spec_path: Path) -> list[dict[str, Any]]:"
     },
     {
       "kind": "python-any",
-      "line": 144,
+      "line": 149,
       "path": "scripts/ci/sync_deprecation_register.py",
       "text": "def load_deprecation_register() -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 162,
+      "line": 167,
       "path": "scripts/ci/sync_deprecation_register.py",
       "text": "def save_deprecation_register(register: dict[str, Any]) -> bool:"
     },
     {
       "kind": "python-any",
-      "line": 180,
+      "line": 185,
       "path": "scripts/ci/sync_deprecation_register.py",
       "text": "def sync_deprecation_register(register: dict[str, Any], all_deprecations: list[dict[str, Any]]) -> dict[str, Any]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 105,
+      "path": "scripts/ci/type_escape_ratchet.py",
+      "text": "\"description\": \"Generated baseline for approved Python Any/type: ignore and TypeScript as any occurrences. Generated files are excluded by scripts/ci/type_escape_ratchet.py.\","
     },
     {
       "kind": "python-any",
@@ -9202,882 +9209,6 @@
       "line": 68,
       "path": "sdk/python/src/valuefabric/errors.py",
       "text": "response_body: dict[str, Any] | None = None,"
-    },
-    {
-      "kind": "python-any",
-      "line": 7,
-      "path": "sdk/python/src/valuefabric/generated/l3/__init__.py",
-      "text": "from typing import Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 59,
-      "path": "sdk/python/src/valuefabric/generated/l3/__init__.py",
-      "text": "metadata: dict[str, Any] | None = Field("
-    },
-    {
-      "kind": "python-any",
-      "line": 93,
-      "path": "sdk/python/src/valuefabric/generated/l3/__init__.py",
-      "text": "filters: dict[str, Any] | None = Field("
-    },
-    {
-      "kind": "python-any",
-      "line": 5,
-      "path": "sdk/python/src/valuefabric/generated/l3_client.py",
-      "text": "from typing import Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 50,
-      "path": "sdk/python/src/valuefabric/generated/l3_client.py",
-      "text": "params: dict[str, Any] | None = None,"
-    },
-    {
-      "kind": "python-any",
-      "line": 51,
-      "path": "sdk/python/src/valuefabric/generated/l3_client.py",
-      "text": "json: dict[str, Any] | None = None,"
-    },
-    {
-      "kind": "python-any",
-      "line": 52,
-      "path": "sdk/python/src/valuefabric/generated/l3_client.py",
-      "text": ") -> dict[str, Any]:"
-    },
-    {
-      "kind": "python-any",
-      "line": 62,
-      "path": "sdk/python/src/valuefabric/generated/l3_client.py",
-      "text": "params: dict[str, Any] | None = None,"
-    },
-    {
-      "kind": "python-any",
-      "line": 63,
-      "path": "sdk/python/src/valuefabric/generated/l3_client.py",
-      "text": "json: dict[str, Any] | None = None,"
-    },
-    {
-      "kind": "python-any",
-      "line": 64,
-      "path": "sdk/python/src/valuefabric/generated/l3_client.py",
-      "text": ") -> dict[str, Any]:"
-    },
-    {
-      "kind": "python-any",
-      "line": 69,
-      "path": "sdk/python/src/valuefabric/generated/l3_client.py",
-      "text": "def health(self) -> dict[str, Any]:"
-    },
-    {
-      "kind": "python-any",
-      "line": 73,
-      "path": "sdk/python/src/valuefabric/generated/l3_client.py",
-      "text": "async def ahealth(self) -> dict[str, Any]:"
-    },
-    {
-      "kind": "python-any",
-      "line": 7,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "from typing import Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 115,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "context_envelope: dict[str, Any] | None = Field("
-    },
-    {
-      "kind": "python-any",
-      "line": 118,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "entity_context: dict[str, Any] | None = Field("
-    },
-    {
-      "kind": "python-any",
-      "line": 158,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "workflow_id: Any = Field(..., title='Workflow Id')"
-    },
-    {
-      "kind": "python-any",
-      "line": 172,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "details: dict[str, Any] | None = Field(..., title='Details')"
-    },
-    {
-      "kind": "python-any",
-      "line": 206,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "details: dict[str, Any] = Field(..., title='Details')"
-    },
-    {
-      "kind": "python-any",
-      "line": 266,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "custom_inputs: dict[str, Any] | None = Field("
-    },
-    {
-      "kind": "python-any",
-      "line": 292,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "truth_references: list[dict[str, Any]] | None = Field("
-    },
-    {
-      "kind": "python-any",
-      "line": 295,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "remediation_items: list[dict[str, Any]] | None = Field("
-    },
-    {
-      "kind": "python-any",
-      "line": 298,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "sdes: dict[str, Any] | None = Field(None, title='Sdes')"
-    },
-    {
-      "kind": "python-any",
-      "line": 299,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "case_metadata: dict[str, Any] | None = Field(None, title='Case Metadata')"
-    },
-    {
-      "kind": "python-any",
-      "line": 300,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "revision_history: list[dict[str, Any]] | None = Field("
-    },
-    {
-      "kind": "python-any",
-      "line": 303,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "diff_summary: dict[str, Any] | None = Field(None, title='Diff Summary')"
-    },
-    {
-      "kind": "python-any",
-      "line": 334,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "business_case_data: dict[str, Any] | None = Field(None, title='Business Case Data')"
-    },
-    {
-      "kind": "python-any",
-      "line": 402,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "state_summary: dict[str, Any] | None = Field("
-    },
-    {
-      "kind": "python-any",
-      "line": 459,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "identity: dict[str, Any] | None = Field(None, title='Identity')"
-    },
-    {
-      "kind": "python-any",
-      "line": 460,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "product_catalog: dict[str, Any] | None = Field(None, title='Product Catalog')"
-    },
-    {
-      "kind": "python-any",
-      "line": 461,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "target_customer: dict[str, Any] | None = Field(None, title='Target Customer')"
-    },
-    {
-      "kind": "python-any",
-      "line": 462,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "personas: dict[str, Any] | None = Field(None, title='Personas')"
-    },
-    {
-      "kind": "python-any",
-      "line": 463,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "use_cases: dict[str, Any] | None = Field(None, title='Use Cases')"
-    },
-    {
-      "kind": "python-any",
-      "line": 464,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "value_drivers: dict[str, Any] | None = Field(None, title='Value Drivers')"
-    },
-    {
-      "kind": "python-any",
-      "line": 465,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "proof_points: dict[str, Any] | None = Field(None, title='Proof Points')"
-    },
-    {
-      "kind": "python-any",
-      "line": 466,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "trust_commercial: dict[str, Any] | None = Field(None, title='Trust Commercial')"
-    },
-    {
-      "kind": "python-any",
-      "line": 467,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "review_status: dict[str, Any] | None = Field(None, title='Review Status')"
-    },
-    {
-      "kind": "python-any",
-      "line": 482,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "metadata: dict[str, Any] = Field(..., title='Metadata')"
-    },
-    {
-      "kind": "python-any",
-      "line": 508,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "details: dict[str, Any] | None = Field(None, title='Details')"
-    },
-    {
-      "kind": "python-any",
-      "line": 531,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "value: Any | None = Field(None, title='Value')"
-    },
-    {
-      "kind": "python-any",
-      "line": 710,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "settings: dict[str, Any] = Field(..., title='Settings')"
-    },
-    {
-      "kind": "python-any",
-      "line": 715,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "settings: dict[str, Any] | None = Field(None, title='Settings')"
-    },
-    {
-      "kind": "python-any",
-      "line": 721,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "settings: dict[str, Any] = Field(..., title='Settings')"
-    },
-    {
-      "kind": "python-any",
-      "line": 819,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "errors: list[dict[str, Any]] = Field(..., title='Errors')"
-    },
-    {
-      "kind": "python-any",
-      "line": 848,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "details: list[dict[str, Any]] | None = Field("
-    },
-    {
-      "kind": "python-any",
-      "line": 871,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "provenance: dict[str, Any] | None = Field(None, title='Provenance')"
-    },
-    {
-      "kind": "python-any",
-      "line": 889,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "details: dict[str, Any] = Field(..., title='Details')"
-    },
-    {
-      "kind": "python-any",
-      "line": 903,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "metadata: dict[str, Any] = Field(..., title='Metadata')"
-    },
-    {
-      "kind": "python-any",
-      "line": 917,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "metadata: dict[str, Any] | None = Field(None, title='Metadata')"
-    },
-    {
-      "kind": "python-any",
-      "line": 959,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "details: dict[str, Any] | None = Field("
-    },
-    {
-      "kind": "python-any",
-      "line": 1118,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "config: dict[str, Any] | None = Field(None, title='Config')"
-    },
-    {
-      "kind": "python-any",
-      "line": 1137,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "config: dict[str, Any] = Field(..., title='Config')"
-    },
-    {
-      "kind": "python-any",
-      "line": 1189,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "account_data: dict[str, Any] | None = Field("
-    },
-    {
-      "kind": "python-any",
-      "line": 1194,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "signals_data: list[dict[str, Any]] | None = Field("
-    },
-    {
-      "kind": "python-any",
-      "line": 1199,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "hypotheses_data: list[dict[str, Any]] | None = Field("
-    },
-    {
-      "kind": "python-any",
-      "line": 1204,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "competitive_data: dict[str, Any] | None = Field("
-    },
-    {
-      "kind": "python-any",
-      "line": 1209,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "roi_data: dict[str, Any] | None = Field("
-    },
-    {
-      "kind": "python-any",
-      "line": 1214,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "evidence_data: list[dict[str, Any]] | None = Field("
-    },
-    {
-      "kind": "python-any",
-      "line": 1282,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "output_summary: dict[str, Any] = Field(..., title='Output Summary')"
-    },
-    {
-      "kind": "python-any",
-      "line": 1433,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "confidence_flags: list[dict[str, Any]] | None = Field("
-    },
-    {
-      "kind": "python-any",
-      "line": 1464,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "attachments: list[dict[str, Any]] | None = Field("
-    },
-    {
-      "kind": "python-any",
-      "line": 1531,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "options: dict[str, Any] | None = Field("
-    },
-    {
-      "kind": "python-any",
-      "line": 1546,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "signals: list[dict[str, Any]] | None = Field("
-    },
-    {
-      "kind": "python-any",
-      "line": 1597,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "aggregated_roi: dict[str, Any] = Field(..., title='Aggregated Roi')"
-    },
-    {
-      "kind": "python-any",
-      "line": 1598,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "detailed_results: list[dict[str, Any]] = Field(..., title='Detailed Results')"
-    },
-    {
-      "kind": "python-any",
-      "line": 1599,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "benchmark_comparison: dict[str, Any] | None = Field("
-    },
-    {
-      "kind": "python-any",
-      "line": 1630,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "custom_inputs: dict[str, Any] | None = Field("
-    },
-    {
-      "kind": "python-any",
-      "line": 1665,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "user_id: Any = Field(None, title='User Id')"
-    },
-    {
-      "kind": "python-any",
-      "line": 1672,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "raw: dict[str, Any] | None = Field(None, title='Raw')"
-    },
-    {
-      "kind": "python-any",
-      "line": 1675,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "org_id: Any = Field(None, title='Org Id')"
-    },
-    {
-      "kind": "python-any",
-      "line": 1676,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "workspace_id: Any = Field(None, title='Workspace Id')"
-    },
-    {
-      "kind": "python-any",
-      "line": 1708,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "resume_data: dict[str, Any] | None = Field("
-    },
-    {
-      "kind": "python-any",
-      "line": 1819,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "adjustments: list[dict[str, Any]] | None = Field("
-    },
-    {
-      "kind": "python-any",
-      "line": 1832,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "adjustments: list[dict[str, Any]] = Field(..., title='Adjustments')"
-    },
-    {
-      "kind": "python-any",
-      "line": 1851,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "signals: list[dict[str, Any]] | None = Field("
-    },
-    {
-      "kind": "python-any",
-      "line": 1955,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "modified_fields: list[dict[str, Any]] | None = Field("
-    },
-    {
-      "kind": "python-any",
-      "line": 1975,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "field_snapshots: dict[str, Any] = Field(..., title='Field Snapshots')"
-    },
-    {
-      "kind": "python-any",
-      "line": 2013,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "full_state: dict[str, Any] = Field("
-    },
-    {
-      "kind": "python-any",
-      "line": 2030,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "values: dict[str, Any] = Field("
-    },
-    {
-      "kind": "python-any",
-      "line": 2033,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "value_metadata: dict[str, dict[str, Any]] | None = Field("
-    },
-    {
-      "kind": "python-any",
-      "line": 2159,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "settings: dict[str, Any] | None = Field(None, title='Settings')"
-    },
-    {
-      "kind": "python-any",
-      "line": 2169,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "settings: dict[str, Any] = Field(..., title='Settings')"
-    },
-    {
-      "kind": "python-any",
-      "line": 2189,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "settings: dict[str, Any] = Field(..., title='Settings')"
-    },
-    {
-      "kind": "python-any",
-      "line": 2203,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "settings: dict[str, Any] | None = Field(None, title='Settings')"
-    },
-    {
-      "kind": "python-any",
-      "line": 2226,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "limits: dict[str, Any] = Field(..., title='Limits')"
-    },
-    {
-      "kind": "python-any",
-      "line": 2227,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "features: dict[str, Any] = Field(..., title='Features')"
-    },
-    {
-      "kind": "python-any",
-      "line": 2258,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "input_data: dict[str, Any] | None = Field("
-    },
-    {
-      "kind": "python-any",
-      "line": 2270,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "result: dict[str, Any] | None = Field(None, title='Result')"
-    },
-    {
-      "kind": "python-any",
-      "line": 2291,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "input: dict[str, Any] | None = Field(None, title='Input')"
-    },
-    {
-      "kind": "python-any",
-      "line": 2292,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "output: dict[str, Any] | None = Field(None, title='Output')"
-    },
-    {
-      "kind": "python-any",
-      "line": 2303,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "input_schema: dict[str, Any] | None = Field(None, title='Input Schema')"
-    },
-    {
-      "kind": "python-any",
-      "line": 2304,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "output_schema: dict[str, Any] | None = Field(None, title='Output Schema')"
-    },
-    {
-      "kind": "python-any",
-      "line": 2323,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "period: dict[str, Any] = Field(..., title='Period')"
-    },
-    {
-      "kind": "python-any",
-      "line": 2324,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "api_calls: dict[str, Any] = Field(..., title='Api Calls')"
-    },
-    {
-      "kind": "python-any",
-      "line": 2325,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "agent_executions: dict[str, Any] = Field(..., title='Agent Executions')"
-    },
-    {
-      "kind": "python-any",
-      "line": 2326,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "llm_usage: dict[str, Any] = Field(..., title='Llm Usage')"
-    },
-    {
-      "kind": "python-any",
-      "line": 2399,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "input: Any | None = Field(None, title='Input')"
-    },
-    {
-      "kind": "python-any",
-      "line": 2400,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "ctx: dict[str, Any] | None = Field(None, title='Context')"
-    },
-    {
-      "kind": "python-any",
-      "line": 2422,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "metadata: dict[str, Any] | None = Field(None, title='Metadata')"
-    },
-    {
-      "kind": "python-any",
-      "line": 2449,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "extracted: dict[str, Any] = Field(..., title='Extracted')"
-    },
-    {
-      "kind": "python-any",
-      "line": 2468,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "user_edits: dict[str, Any] | None = Field("
-    },
-    {
-      "kind": "python-any",
-      "line": 2518,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "snapshot: dict[str, Any] | None = Field(None, title='Snapshot')"
-    },
-    {
-      "kind": "python-any",
-      "line": 2582,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "gap_analysis: list[dict[str, Any]] = Field(..., title='Gap Analysis')"
-    },
-    {
-      "kind": "python-any",
-      "line": 2624,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "prospect_metrics: dict[str, Any] | None = Field(None, title='Prospect Metrics')"
-    },
-    {
-      "kind": "python-any",
-      "line": 2625,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "custom_data: dict[str, Any] | None = Field(None, title='Custom Data')"
-    },
-    {
-      "kind": "python-any",
-      "line": 2728,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "resume_data: dict[str, Any] | None = Field("
-    },
-    {
-      "kind": "python-any",
-      "line": 2798,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "results: dict[str, Any] | None = Field(None, title='Results')"
-    },
-    {
-      "kind": "python-any",
-      "line": 2875,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "settings: dict[str, Any] = Field(..., title='Settings')"
-    },
-    {
-      "kind": "python-any",
-      "line": 2884,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "settings: dict[str, Any] | None = Field(None, title='Settings')"
-    },
-    {
-      "kind": "python-any",
-      "line": 2908,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "settings: dict[str, Any] = Field(..., title='Settings')"
-    },
-    {
-      "kind": "python-any",
-      "line": 2919,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "settings: dict[str, Any] | None = Field(None, title='Settings')"
-    },
-    {
-      "kind": "python-any",
-      "line": 2944,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "details: dict[str, Any] | None = Field("
-    },
-    {
-      "kind": "python-any",
-      "line": 2965,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "metadata: dict[str, Any] | None = Field(None, title='Metadata')"
-    },
-    {
-      "kind": "python-any",
-      "line": 3014,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "metadata: dict[str, Any] | None = Field(None, title='Metadata')"
-    },
-    {
-      "kind": "python-any",
-      "line": 3262,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "identity: dict[str, Any] | None = Field(None, title='Identity')"
-    },
-    {
-      "kind": "python-any",
-      "line": 3263,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "product_catalog: dict[str, Any] | None = Field(None, title='Product Catalog')"
-    },
-    {
-      "kind": "python-any",
-      "line": 3264,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "target_customer: dict[str, Any] | None = Field(None, title='Target Customer')"
-    },
-    {
-      "kind": "python-any",
-      "line": 3265,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "personas: dict[str, Any] | None = Field(None, title='Personas')"
-    },
-    {
-      "kind": "python-any",
-      "line": 3266,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "use_cases: dict[str, Any] | None = Field(None, title='Use Cases')"
-    },
-    {
-      "kind": "python-any",
-      "line": 3267,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "value_drivers: dict[str, Any] | None = Field(None, title='Value Drivers')"
-    },
-    {
-      "kind": "python-any",
-      "line": 3268,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "proof_points: dict[str, Any] | None = Field(None, title='Proof Points')"
-    },
-    {
-      "kind": "python-any",
-      "line": 3269,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "trust_commercial: dict[str, Any] | None = Field(None, title='Trust Commercial')"
-    },
-    {
-      "kind": "python-any",
-      "line": 3271,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "review_status: dict[str, Any] | None = Field(None, title='Review Status')"
-    },
-    {
-      "kind": "python-any",
-      "line": 3297,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "buyer_personas: list[dict[str, Any]] | None = Field(None, title='Buyer Personas')"
-    },
-    {
-      "kind": "python-any",
-      "line": 3298,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "user_personas: list[dict[str, Any]] | None = Field(None, title='User Personas')"
-    },
-    {
-      "kind": "python-any",
-      "line": 3307,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "competitive_context: dict[str, Any] | None = Field("
-    },
-    {
-      "kind": "python-any",
-      "line": 3310,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "buying_committee_structure: dict[str, Any] | None = Field("
-    },
-    {
-      "kind": "python-any",
-      "line": 3328,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "buyer_personas: list[dict[str, Any]] = Field(..., title='Buyer Personas')"
-    },
-    {
-      "kind": "python-any",
-      "line": 3329,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "user_personas: list[dict[str, Any]] = Field(..., title='User Personas')"
-    },
-    {
-      "kind": "python-any",
-      "line": 3334,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "competitive_context: dict[str, Any] | None = Field("
-    },
-    {
-      "kind": "python-any",
-      "line": 3337,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "buying_committee_structure: dict[str, Any] | None = Field("
-    },
-    {
-      "kind": "python-any",
-      "line": 3354,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "buyer_personas: list[dict[str, Any]] | None = Field(None, title='Buyer Personas')"
-    },
-    {
-      "kind": "python-any",
-      "line": 3355,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "user_personas: list[dict[str, Any]] | None = Field(None, title='User Personas')"
-    },
-    {
-      "kind": "python-any",
-      "line": 3364,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "competitive_context: dict[str, Any] | None = Field("
-    },
-    {
-      "kind": "python-any",
-      "line": 3367,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "buying_committee_structure: dict[str, Any] | None = Field("
-    },
-    {
-      "kind": "python-any",
-      "line": 3396,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "extra_metadata: dict[str, Any] | None = Field(None, title='Extra Metadata')"
-    },
-    {
-      "kind": "python-any",
-      "line": 3415,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "extra_metadata: dict[str, Any] = Field(..., title='Extra Metadata')"
-    },
-    {
-      "kind": "python-any",
-      "line": 3541,
-      "path": "sdk/python/src/valuefabric/generated/l4/__init__.py",
-      "text": "settings: dict[str, Any] | None = Field("
-    },
-    {
-      "kind": "python-any",
-      "line": 5,
-      "path": "sdk/python/src/valuefabric/generated/l4_client.py",
-      "text": "from typing import Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 48,
-      "path": "sdk/python/src/valuefabric/generated/l4_client.py",
-      "text": "params: dict[str, Any] | None = None,"
-    },
-    {
-      "kind": "python-any",
-      "line": 49,
-      "path": "sdk/python/src/valuefabric/generated/l4_client.py",
-      "text": "json: dict[str, Any] | None = None,"
-    },
-    {
-      "kind": "python-any",
-      "line": 50,
-      "path": "sdk/python/src/valuefabric/generated/l4_client.py",
-      "text": ") -> dict[str, Any]:"
-    },
-    {
-      "kind": "python-any",
-      "line": 60,
-      "path": "sdk/python/src/valuefabric/generated/l4_client.py",
-      "text": "params: dict[str, Any] | None = None,"
-    },
-    {
-      "kind": "python-any",
-      "line": 61,
-      "path": "sdk/python/src/valuefabric/generated/l4_client.py",
-      "text": "json: dict[str, Any] | None = None,"
-    },
-    {
-      "kind": "python-any",
-      "line": 62,
-      "path": "sdk/python/src/valuefabric/generated/l4_client.py",
-      "text": ") -> dict[str, Any]:"
-    },
-    {
-      "kind": "python-any",
-      "line": 67,
-      "path": "sdk/python/src/valuefabric/generated/l4_client.py",
-      "text": "def health(self) -> dict[str, Any]:"
-    },
-    {
-      "kind": "python-any",
-      "line": 71,
-      "path": "sdk/python/src/valuefabric/generated/l4_client.py",
-      "text": "async def ahealth(self) -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
@@ -12883,55 +12014,73 @@
     },
     {
       "kind": "python-any",
-      "line": 36,
+      "line": 37,
       "path": "services/layer1-ingestion/src/layer1_ingestion/compliance/robots_checker.py",
       "text": "parse_error: Any"
     },
     {
       "kind": "python-any",
-      "line": 39,
+      "line": 41,
       "path": "services/layer1-ingestion/src/layer1_ingestion/compliance/robots_checker.py",
       "text": "content: Any"
     },
     {
       "kind": "python-any",
-      "line": 40,
+      "line": 42,
       "path": "services/layer1-ingestion/src/layer1_ingestion/compliance/robots_checker.py",
       "text": "expires_at: Any"
     },
     {
       "kind": "python-any",
-      "line": 41,
+      "line": 43,
       "path": "services/layer1-ingestion/src/layer1_ingestion/compliance/robots_checker.py",
       "text": "fetched_at: Any"
     },
     {
       "kind": "python-any",
-      "line": 42,
+      "line": 44,
       "path": "services/layer1-ingestion/src/layer1_ingestion/compliance/robots_checker.py",
       "text": "rules: Any"
     },
     {
       "kind": "python-any",
-      "line": 214,
+      "line": 116,
+      "path": "services/layer1-ingestion/src/layer1_ingestion/compliance/robots_checker.py",
+      "text": "def _strict_fetch_failure_response(self, domain: str) -> tuple[bool, str, dict[str, Any]]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 128,
+      "path": "services/layer1-ingestion/src/layer1_ingestion/compliance/robots_checker.py",
+      "text": "def _strict_missing_robots_response(self, domain: str) -> tuple[bool, str, dict[str, Any]]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 138,
+      "path": "services/layer1-ingestion/src/layer1_ingestion/compliance/robots_checker.py",
+      "text": "def _parse_failure_response(self) -> tuple[bool, str | None, dict[str, Any]]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 266,
       "path": "services/layer1-ingestion/src/layer1_ingestion/compliance/robots_checker.py",
       "text": ") -> dict[str, Any] | None:"
     },
     {
       "kind": "python-any",
-      "line": 323,
+      "line": 377,
       "path": "services/layer1-ingestion/src/layer1_ingestion/compliance/robots_checker.py",
       "text": "def _get_cached_robots_txt(self, domain: str) -> dict[str, Any] | None:"
     },
     {
       "kind": "python-any",
-      "line": 394,
+      "line": 436,
       "path": "services/layer1-ingestion/src/layer1_ingestion/compliance/robots_checker.py",
       "text": "rules: dict[str, Any],"
     },
     {
       "kind": "python-any",
-      "line": 477,
+      "line": 510,
       "path": "services/layer1-ingestion/src/layer1_ingestion/compliance/robots_checker.py",
       "text": "def _parse_robots_txt(self, content: str) -> dict[str, Any]:"
     },
@@ -13777,189 +12926,189 @@
     },
     {
       "kind": "python-any",
+      "line": 3,
+      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/task_contracts.py",
+      "text": "from typing import Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 9,
+      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/task_contracts.py",
+      "text": "blocked_resources: Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 10,
+      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/task_contracts.py",
+      "text": "config_used: Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 11,
+      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/task_contracts.py",
+      "text": "content_length: Any"
+    },
+    {
+      "kind": "python-any",
       "line": 12,
-      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/tasks.py",
-      "text": "from typing import TYPE_CHECKING, Any"
+      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/task_contracts.py",
+      "text": "duration_ms: Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 13,
+      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/task_contracts.py",
+      "text": "error: Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 14,
+      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/task_contracts.py",
+      "text": "final_url: Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 15,
+      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/task_contracts.py",
+      "text": "scroll_triggered: Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 17,
+      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/task_contracts.py",
+      "text": "text_length: Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 18,
+      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/task_contracts.py",
+      "text": "title: Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 22,
+      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/task_contracts.py",
+      "text": "job_id: Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 24,
+      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/task_contracts.py",
+      "text": "task_id: Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 28,
+      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/task_contracts.py",
+      "text": "decision_id: Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 29,
+      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/task_contracts.py",
+      "text": "duration_ms: Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 30,
+      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/task_contracts.py",
+      "text": "final_path: Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 31,
+      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/task_contracts.py",
+      "text": "job_id: Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 33,
+      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/task_contracts.py",
+      "text": "url: Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 37,
+      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/task_contracts.py",
+      "text": "cutoff_date: Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 38,
+      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/task_contracts.py",
+      "text": "deleted_count: Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 43,
+      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/task_contracts.py",
+      "text": "job_id: Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 48,
+      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/task_contracts.py",
+      "text": "job_id: Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 49,
+      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/task_contracts.py",
+      "text": "raw_content_id: Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 54,
+      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/task_contracts.py",
+      "text": "entities_extracted: Any | None = None"
+    },
+    {
+      "kind": "python-any",
+      "line": 55,
+      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/task_contracts.py",
+      "text": "job_id: Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 58,
+      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/task_contracts.py",
+      "text": "tokens_consumed: Any | None = None"
+    },
+    {
+      "kind": "python-any",
+      "line": 62,
+      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/task_contracts.py",
+      "text": "job_id: Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 67,
+      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/task_contracts.py",
+      "text": "job_id: Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 72,
+      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/task_contracts.py",
+      "text": "job_id: Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 77,
+      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/task_contracts.py",
+      "text": "error: Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 78,
+      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/task_contracts.py",
+      "text": "job_id: Any"
     },
     {
       "kind": "python-type-ignore",
       "line": 25,
       "path": "services/layer1-ingestion/src/layer1_ingestion/shared/tasks.py",
       "text": "encode_service_jwt = None  # type: ignore"
-    },
-    {
-      "kind": "python-any",
-      "line": 91,
-      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/tasks.py",
-      "text": "blocked_resources: Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 92,
-      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/tasks.py",
-      "text": "config_used: Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 93,
-      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/tasks.py",
-      "text": "content_length: Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 94,
-      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/tasks.py",
-      "text": "duration_ms: Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 95,
-      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/tasks.py",
-      "text": "error: Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 96,
-      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/tasks.py",
-      "text": "final_url: Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 97,
-      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/tasks.py",
-      "text": "scroll_triggered: Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 99,
-      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/tasks.py",
-      "text": "text_length: Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 100,
-      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/tasks.py",
-      "text": "title: Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 103,
-      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/tasks.py",
-      "text": "job_id: Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 105,
-      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/tasks.py",
-      "text": "task_id: Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 108,
-      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/tasks.py",
-      "text": "decision_id: Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 109,
-      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/tasks.py",
-      "text": "duration_ms: Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 110,
-      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/tasks.py",
-      "text": "final_path: Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 111,
-      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/tasks.py",
-      "text": "job_id: Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 113,
-      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/tasks.py",
-      "text": "url: Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 116,
-      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/tasks.py",
-      "text": "cutoff_date: Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 117,
-      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/tasks.py",
-      "text": "deleted_count: Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 121,
-      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/tasks.py",
-      "text": "job_id: Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 125,
-      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/tasks.py",
-      "text": "job_id: Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 126,
-      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/tasks.py",
-      "text": "raw_content_id: Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 130,
-      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/tasks.py",
-      "text": "entities_extracted: Any | None = None"
-    },
-    {
-      "kind": "python-any",
-      "line": 131,
-      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/tasks.py",
-      "text": "job_id: Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 134,
-      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/tasks.py",
-      "text": "tokens_consumed: Any | None = None"
-    },
-    {
-      "kind": "python-any",
-      "line": 137,
-      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/tasks.py",
-      "text": "job_id: Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 141,
-      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/tasks.py",
-      "text": "job_id: Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 145,
-      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/tasks.py",
-      "text": "job_id: Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 149,
-      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/tasks.py",
-      "text": "error: Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 150,
-      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/tasks.py",
-      "text": "job_id: Any"
     },
     {
       "kind": "python-any",
@@ -24751,219 +23900,297 @@
     },
     {
       "kind": "python-any",
-      "line": 79,
-      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis.py",
-      "text": "manifest: dict[str, Any]"
-    },
-    {
-      "kind": "python-any",
-      "line": 81,
-      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis.py",
-      "text": "remediation_items: list[dict[str, Any]]"
-    },
-    {
-      "kind": "python-any",
-      "line": 82,
-      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis.py",
-      "text": "truth_references: list[dict[str, Any]]"
-    },
-    {
-      "kind": "python-any",
-      "line": 142,
+      "line": 135,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis.py",
       "text": "def _get_neo4j_driver(request: Request) -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 170,
-      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis.py",
-      "text": "aggregated_roi: dict[str, Any]"
-    },
-    {
-      "kind": "python-any",
-      "line": 171,
-      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis.py",
-      "text": "detailed_results: list[dict[str, Any]]"
-    },
-    {
-      "kind": "python-any",
-      "line": 172,
-      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis.py",
-      "text": "benchmark_comparison: dict[str, Any] | None = None"
-    },
-    {
-      "kind": "python-any",
-      "line": 191,
-      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis.py",
-      "text": "gap_analysis: list[dict[str, Any]]"
-    },
-    {
-      "kind": "python-any",
-      "line": 211,
-      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis.py",
-      "text": "custom_inputs: dict[str, Any] = Field("
-    },
-    {
-      "kind": "python-any",
-      "line": 239,
-      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis.py",
-      "text": "truth_references: list[dict[str, Any]] = Field(default_factory=list)"
-    },
-    {
-      "kind": "python-any",
-      "line": 240,
-      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis.py",
-      "text": "remediation_items: list[dict[str, Any]] = Field(default_factory=list)"
-    },
-    {
-      "kind": "python-any",
-      "line": 241,
-      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis.py",
-      "text": "sdes: dict[str, Any] = Field(default_factory=dict)"
-    },
-    {
-      "kind": "python-any",
-      "line": 242,
-      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis.py",
-      "text": "case_metadata: dict[str, Any] = Field(default_factory=dict)"
-    },
-    {
-      "kind": "python-any",
-      "line": 243,
-      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis.py",
-      "text": "revision_history: list[dict[str, Any]] = Field(default_factory=list)"
-    },
-    {
-      "kind": "python-any",
-      "line": 244,
-      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis.py",
-      "text": "diff_summary: dict[str, Any] = Field(default_factory=dict)"
-    },
-    {
-      "kind": "python-any",
-      "line": 267,
-      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis.py",
-      "text": "metadata: dict[str, Any] = Field(default_factory=dict)"
-    },
-    {
-      "kind": "python-any",
-      "line": 297,
+      "line": 164,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis.py",
       "text": "def _compute_case_diff(previous: dict[str, Any], current: dict[str, Any]) -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 339,
+      "line": 206,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis.py",
       "text": "account: Any,"
     },
     {
       "kind": "python-any",
-      "line": 383,
+      "line": 250,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis.py",
       "text": "account: Any,"
     },
     {
       "kind": "python-any",
-      "line": 441,
+      "line": 308,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis.py",
       "text": "async def _require_tenant_account(db: AsyncSession, account_id: UUID, context: RequestContext) -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 547,
+      "line": 414,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 599,
+      "line": 466,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 662,
+      "line": 529,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 722,
+      "line": 589,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 1154,
+      "line": 1021,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 1185,
+      "line": 1052,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis.py",
       "text": "seeded_cases: list[dict[str, Any]] = []"
     },
     {
       "kind": "python-any",
-      "line": 1281,
+      "line": 1148,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis.py",
       "text": "record: Any,"
     },
     {
       "kind": "python-any",
-      "line": 1283,
+      "line": 1150,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis.py",
       "text": "account: Any,"
     },
     {
       "kind": "python-any",
-      "line": 1313,
+      "line": 1180,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 1626,
-      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis.py",
+      "line": 4,
+      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis_schemas.py",
+      "text": "from typing import Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 30,
+      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis_schemas.py",
+      "text": "case_id: Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 31,
+      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis_schemas.py",
+      "text": "document_url: Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 33,
+      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis_schemas.py",
+      "text": "export_id: Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 34,
+      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis_schemas.py",
+      "text": "format: Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 35,
+      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis_schemas.py",
+      "text": "manifest: dict[str, Any]"
+    },
+    {
+      "kind": "python-any",
+      "line": 36,
+      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis_schemas.py",
+      "text": "manifest_url: Any | None = None"
+    },
+    {
+      "kind": "python-any",
+      "line": 37,
+      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis_schemas.py",
+      "text": "remediation_items: Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 38,
+      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis_schemas.py",
+      "text": "truth_references: Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 39,
+      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis_schemas.py",
+      "text": "url_expires_at: Any | None = None"
+    },
+    {
+      "kind": "python-any",
+      "line": 43,
+      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis_schemas.py",
+      "text": "account_id: Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 44,
+      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis_schemas.py",
+      "text": "case_id: Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 46,
+      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis_schemas.py",
+      "text": "stats: dict[str, Any]"
+    },
+    {
+      "kind": "python-any",
+      "line": 71,
+      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis_schemas.py",
+      "text": "aggregated_roi: dict[str, Any]"
+    },
+    {
+      "kind": "python-any",
+      "line": 72,
+      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis_schemas.py",
+      "text": "detailed_results: list[dict[str, Any]]"
+    },
+    {
+      "kind": "python-any",
+      "line": 73,
+      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis_schemas.py",
+      "text": "benchmark_comparison: dict[str, Any] | None = None"
+    },
+    {
+      "kind": "python-any",
+      "line": 91,
+      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis_schemas.py",
+      "text": "gap_analysis: list[dict[str, Any]]"
+    },
+    {
+      "kind": "python-any",
+      "line": 110,
+      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis_schemas.py",
+      "text": "custom_inputs: dict[str, Any] = Field("
+    },
+    {
+      "kind": "python-any",
+      "line": 139,
+      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis_schemas.py",
+      "text": "truth_references: list[dict[str, Any]] = Field(default_factory=list)"
+    },
+    {
+      "kind": "python-any",
+      "line": 140,
+      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis_schemas.py",
+      "text": "remediation_items: list[dict[str, Any]] = Field(default_factory=list)"
+    },
+    {
+      "kind": "python-any",
+      "line": 141,
+      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis_schemas.py",
+      "text": "sdes: dict[str, Any] = Field(default_factory=dict)"
+    },
+    {
+      "kind": "python-any",
+      "line": 142,
+      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis_schemas.py",
+      "text": "case_metadata: dict[str, Any] = Field(default_factory=dict)"
+    },
+    {
+      "kind": "python-any",
+      "line": 143,
+      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis_schemas.py",
+      "text": "revision_history: list[dict[str, Any]] = Field(default_factory=list)"
+    },
+    {
+      "kind": "python-any",
+      "line": 144,
+      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis_schemas.py",
+      "text": "diff_summary: dict[str, Any] = Field(default_factory=dict)"
+    },
+    {
+      "kind": "python-any",
+      "line": 167,
+      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis_schemas.py",
+      "text": "metadata: dict[str, Any] = Field(default_factory=dict)"
+    },
+    {
+      "kind": "python-any",
+      "line": 236,
+      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis_schemas.py",
       "text": "adjustments: list[dict[str, Any]] = Field(default_factory=list, max_length=100)"
     },
     {
       "kind": "python-any",
-      "line": 1640,
-      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis.py",
+      "line": 250,
+      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis_schemas.py",
       "text": "adjustments: list[dict[str, Any]]"
     },
     {
       "kind": "python-any",
-      "line": 1848,
-      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis.py",
+      "line": 4,
+      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis_workspace.py",
+      "text": "from typing import Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 42,
+      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis_workspace.py",
+      "text": "get_neo4j_driver: Callable[[Request], Any],"
+    },
+    {
+      "kind": "python-any",
+      "line": 68,
+      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis_workspace.py",
       "text": "normalized_items: list[dict[str, Any]] = []"
     },
     {
       "kind": "python-any",
-      "line": 1872,
-      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis.py",
+      "line": 94,
+      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis_workspace.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 1898,
-      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis.py",
+      "line": 120,
+      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis_workspace.py",
       "text": "payload: dict[str, Any],"
     },
     {
       "kind": "python-any",
-      "line": 1901,
-      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis.py",
+      "line": 123,
+      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis_workspace.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 1933,
-      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis.py",
+      "line": 160,
+      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis_workspace.py",
       "text": ") -> dict[str, Any]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 235,
+      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis_workspace.py",
+      "text": "tab_data: dict[str, dict[str, Any]] = {"
     },
     {
       "kind": "python-any",
@@ -37075,247 +36302,259 @@
     },
     {
       "kind": "python-any",
-      "line": 8,
+      "line": 9,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "from typing import Any"
     },
     {
       "kind": "python-any",
-      "line": 21,
+      "line": 22,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "async def _async_return(value: Any) -> Any:"
     },
     {
       "kind": "python-any",
+      "line": 27,
+      "path": "services/layer4-agents/tests/test_analysis_routes.py",
+      "text": "def _async_dependency(value: Any) -> Callable[[], Awaitable[Any]]:"
+    },
+    {
+      "kind": "python-any",
       "line": 30,
+      "path": "services/layer4-agents/tests/test_analysis_routes.py",
+      "text": "async def dependency() -> Any:"
+    },
+    {
+      "kind": "python-any",
+      "line": 40,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "execute_response: Any"
     },
     {
       "kind": "python-any",
-      "line": 31,
+      "line": 41,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "results_by_id: dict[str, dict[str, Any]] = field(default_factory=dict)"
     },
     {
       "kind": "python-any",
-      "line": 32,
+      "line": 42,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "execute_calls: list[dict[str, Any]] = field(default_factory=list)"
     },
     {
       "kind": "python-any",
-      "line": 35,
+      "line": 45,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "async def execute_workflow(self, **kwargs: Any) -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 39,
+      "line": 49,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "async def get_result(self, workflow_id: str) -> dict[str, Any] | None:"
     },
     {
       "kind": "python-any",
-      "line": 45,
+      "line": 55,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "def __init__(self, records: list[Any]) -> None:"
     },
     {
       "kind": "python-any",
-      "line": 48,
+      "line": 58,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "def all(self) -> list[Any]:"
     },
     {
       "kind": "python-any",
-      "line": 53,
+      "line": 63,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "def __init__(self, records: list[Any] | None = None, rowcount: int = 0) -> None:"
     },
     {
       "kind": "python-any",
-      "line": 60,
+      "line": 70,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "def scalar_one_or_none(self) -> Any | None:"
     },
     {
       "kind": "python-any",
-      "line": 65,
+      "line": 75,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "def __init__(self, records: list[Any] | None = None, delete_rowcount: int = 1) -> None:"
     },
     {
       "kind": "python-any",
-      "line": 68,
+      "line": 78,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "self.added: list[Any] = []"
     },
     {
       "kind": "python-any",
-      "line": 70,
+      "line": 80,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "async def execute(self, statement: Any) -> FakeExecuteResult:"
     },
     {
       "kind": "python-any",
-      "line": 76,
+      "line": 86,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "def add(self, record: Any) -> None:"
     },
     {
       "kind": "python-any",
-      "line": 93,
+      "line": 103,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "async def _mock_context() -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 111,
+      "line": 121,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "self.added: list[Any] = []"
     },
     {
       "kind": "python-any",
-      "line": 113,
+      "line": 123,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "async def execute(self, stmt: Any) -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 116,
+      "line": 126,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "def add(self, record: Any) -> None:"
     },
     {
       "kind": "python-any",
-      "line": 157,
+      "line": 167,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "self.added: list[Any] = []"
     },
     {
       "kind": "python-any",
-      "line": 159,
+      "line": 169,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "async def execute(self, stmt: Any) -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 162,
+      "line": 172,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "def add(self, record: Any) -> None:"
     },
     {
       "kind": "python-any",
-      "line": 225,
+      "line": 235,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "async def get(self, model: Any, key: str) -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 268,
+      "line": 278,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "async def get(self, model: Any, key: str) -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 277,
+      "line": 287,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "async def execute(self, stmt: Any) -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 280,
+      "line": 290,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "async def mock_require_authenticated_export() -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 294,
+      "line": 304,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "async def _fake_get_account(account_id: Any, tenant_id: Any = None) -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 301,
+      "line": 311,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "async def _fake_require_approved_case(record: Any, context: Any, account: Any, format: str = \"pdf\") -> None:"
     },
     {
       "kind": "python-any",
-      "line": 339,
+      "line": 349,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "audit_events: list[dict[str, Any]] = []"
     },
     {
       "kind": "python-any",
-      "line": 342,
+      "line": 352,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "async def get(self, model: Any, key: str) -> Any:"
-    },
-    {
-      "kind": "python-any",
-      "line": 351,
-      "path": "services/layer4-agents/tests/test_analysis_routes.py",
-      "text": "async def mock_context() -> Any:"
     },
     {
       "kind": "python-any",
       "line": 361,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
+      "text": "async def mock_context() -> Any:"
+    },
+    {
+      "kind": "python-any",
+      "line": 371,
+      "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "async def fake_get_account(account_id: Any, tenant_id: Any = None) -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 364,
+      "line": 374,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "async def capture_audit(**kwargs: Any) -> None:"
     },
     {
       "kind": "python-any",
-      "line": 367,
+      "line": 377,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "async def fail_upload(**kwargs: Any) -> None:"
     },
     {
       "kind": "python-any",
-      "line": 426,
+      "line": 436,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "uploads: list[dict[str, Any]] = []"
     },
     {
       "kind": "python-any",
-      "line": 427,
+      "line": 437,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "audit_events: list[dict[str, Any]] = []"
     },
     {
       "kind": "python-any",
-      "line": 430,
+      "line": 440,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "async def get(self, model: Any, key: str) -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 439,
+      "line": 449,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "async def mock_context() -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 449,
+      "line": 459,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "async def fake_get_account(account_id: Any, tenant_id: Any = None) -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 452,
+      "line": 462,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "async def capture_upload(**kwargs: Any) -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 459,
+      "line": 469,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "async def capture_audit(**kwargs: Any) -> None:"
     },
@@ -38575,182 +37814,182 @@
     },
     {
       "kind": "python-any",
-      "line": 72,
-      "path": "services/layer5-ground-truth/src/layer5_ground_truth/api/governance_router.py",
+      "line": 4,
+      "path": "services/layer5-ground-truth/src/layer5_ground_truth/api/governance_schemas.py",
       "text": "from typing import Any"
     },
     {
       "kind": "python-any",
-      "line": 158,
-      "path": "services/layer5-ground-truth/src/layer5_ground_truth/api/governance_router.py",
+      "line": 15,
+      "path": "services/layer5-ground-truth/src/layer5_ground_truth/api/governance_schemas.py",
       "text": "details: dict[str, Any] | None = Field(None, description=\"Additional error details\")"
     },
     {
       "kind": "python-any",
-      "line": 164,
-      "path": "services/layer5-ground-truth/src/layer5_ground_truth/api/governance_router.py",
+      "line": 21,
+      "path": "services/layer5-ground-truth/src/layer5_ground_truth/api/governance_schemas.py",
       "text": "items: list[Any]"
     },
     {
       "kind": "python-any",
-      "line": 184,
-      "path": "services/layer5-ground-truth/src/layer5_ground_truth/api/governance_router.py",
+      "line": 36,
+      "path": "services/layer5-ground-truth/src/layer5_ground_truth/api/governance_schemas.py",
       "text": "default_value: Any = None"
     },
     {
       "kind": "python-any",
-      "line": 185,
-      "path": "services/layer5-ground-truth/src/layer5_ground_truth/api/governance_router.py",
+      "line": 37,
+      "path": "services/layer5-ground-truth/src/layer5_ground_truth/api/governance_schemas.py",
       "text": "min_value: Any = None"
     },
     {
       "kind": "python-any",
-      "line": 186,
-      "path": "services/layer5-ground-truth/src/layer5_ground_truth/api/governance_router.py",
+      "line": 38,
+      "path": "services/layer5-ground-truth/src/layer5_ground_truth/api/governance_schemas.py",
       "text": "max_value: Any = None"
     },
     {
       "kind": "python-any",
-      "line": 187,
-      "path": "services/layer5-ground-truth/src/layer5_ground_truth/api/governance_router.py",
+      "line": 39,
+      "path": "services/layer5-ground-truth/src/layer5_ground_truth/api/governance_schemas.py",
       "text": "allowed_values: list[Any] | None = None"
     },
     {
       "kind": "python-any",
-      "line": 199,
-      "path": "services/layer5-ground-truth/src/layer5_ground_truth/api/governance_router.py",
+      "line": 51,
+      "path": "services/layer5-ground-truth/src/layer5_ground_truth/api/governance_schemas.py",
       "text": "input_schema: dict[str, Any] = Field(..., description=\"JSON Schema for input validation\")"
     },
     {
       "kind": "python-any",
-      "line": 200,
-      "path": "services/layer5-ground-truth/src/layer5_ground_truth/api/governance_router.py",
+      "line": 52,
+      "path": "services/layer5-ground-truth/src/layer5_ground_truth/api/governance_schemas.py",
       "text": "output_schema: dict[str, Any] = Field(..., description=\"JSON Schema for output validation\")"
     },
     {
       "kind": "python-any",
-      "line": 215,
-      "path": "services/layer5-ground-truth/src/layer5_ground_truth/api/governance_router.py",
+      "line": 67,
+      "path": "services/layer5-ground-truth/src/layer5_ground_truth/api/governance_schemas.py",
       "text": "input_schema: dict[str, Any]"
     },
     {
       "kind": "python-any",
-      "line": 216,
-      "path": "services/layer5-ground-truth/src/layer5_ground_truth/api/governance_router.py",
+      "line": 68,
+      "path": "services/layer5-ground-truth/src/layer5_ground_truth/api/governance_schemas.py",
       "text": "output_schema: dict[str, Any]"
     },
     {
       "kind": "python-any",
-      "line": 243,
-      "path": "services/layer5-ground-truth/src/layer5_ground_truth/api/governance_router.py",
+      "line": 95,
+      "path": "services/layer5-ground-truth/src/layer5_ground_truth/api/governance_schemas.py",
       "text": "validation_errors: dict[str, Any] | None"
     },
     {
       "kind": "python-any",
-      "line": 244,
-      "path": "services/layer5-ground-truth/src/layer5_ground_truth/api/governance_router.py",
+      "line": 96,
+      "path": "services/layer5-ground-truth/src/layer5_ground_truth/api/governance_schemas.py",
       "text": "test_results: dict[str, Any] | None"
     },
     {
       "kind": "python-any",
-      "line": 816,
-      "path": "services/layer5-ground-truth/src/layer5_ground_truth/api/governance_router.py",
+      "line": 118,
+      "path": "services/layer5-ground-truth/src/layer5_ground_truth/api/governance_schemas.py",
       "text": "margin_of_error: dict[str, Any] | None = None"
     },
     {
       "kind": "python-any",
-      "line": 847,
-      "path": "services/layer5-ground-truth/src/layer5_ground_truth/api/governance_router.py",
+      "line": 149,
+      "path": "services/layer5-ground-truth/src/layer5_ground_truth/api/governance_schemas.py",
       "text": "data: dict[str, Any] = Field(..., description=\"Benchmark data\")"
     },
     {
       "kind": "python-any",
-      "line": 848,
-      "path": "services/layer5-ground-truth/src/layer5_ground_truth/api/governance_router.py",
+      "line": 150,
+      "path": "services/layer5-ground-truth/src/layer5_ground_truth/api/governance_schemas.py",
       "text": "data_schema: dict[str, Any] = Field(..., description=\"JSON Schema for data structure\")"
     },
     {
       "kind": "python-any",
-      "line": 868,
-      "path": "services/layer5-ground-truth/src/layer5_ground_truth/api/governance_router.py",
+      "line": 170,
+      "path": "services/layer5-ground-truth/src/layer5_ground_truth/api/governance_schemas.py",
       "text": "margin_of_error: dict[str, Any] | None = None"
     },
     {
       "kind": "python-any",
-      "line": 871,
-      "path": "services/layer5-ground-truth/src/layer5_ground_truth/api/governance_router.py",
+      "line": 173,
+      "path": "services/layer5-ground-truth/src/layer5_ground_truth/api/governance_schemas.py",
       "text": "data: dict[str, Any] = Field(..., description=\"Benchmark data\")"
     },
     {
       "kind": "python-any",
-      "line": 872,
-      "path": "services/layer5-ground-truth/src/layer5_ground_truth/api/governance_router.py",
+      "line": 174,
+      "path": "services/layer5-ground-truth/src/layer5_ground_truth/api/governance_schemas.py",
       "text": "data_schema: dict[str, Any] = Field(..., description=\"JSON Schema for data structure\")"
     },
     {
       "kind": "python-any",
-      "line": 1090,
-      "path": "services/layer5-ground-truth/src/layer5_ground_truth/api/governance_router.py",
+      "line": 185,
+      "path": "services/layer5-ground-truth/src/layer5_ground_truth/api/governance_schemas.py",
       "text": "condition: dict[str, Any] = Field(..., description=\"Rule condition\")"
     },
     {
       "kind": "python-any",
-      "line": 1105,
-      "path": "services/layer5-ground-truth/src/layer5_ground_truth/api/governance_router.py",
+      "line": 200,
+      "path": "services/layer5-ground-truth/src/layer5_ground_truth/api/governance_schemas.py",
       "text": "scope: dict[str, Any] | None = None"
     },
     {
       "kind": "python-any",
-      "line": 1120,
-      "path": "services/layer5-ground-truth/src/layer5_ground_truth/api/governance_router.py",
+      "line": 215,
+      "path": "services/layer5-ground-truth/src/layer5_ground_truth/api/governance_schemas.py",
       "text": "scope: dict[str, Any] | None"
     },
     {
       "kind": "python-any",
-      "line": 1131,
-      "path": "services/layer5-ground-truth/src/layer5_ground_truth/api/governance_router.py",
+      "line": 226,
+      "path": "services/layer5-ground-truth/src/layer5_ground_truth/api/governance_schemas.py",
       "text": "context: dict[str, Any] = Field(..., description=\"Evaluation context\")"
     },
     {
       "kind": "python-any",
-      "line": 1141,
-      "path": "services/layer5-ground-truth/src/layer5_ground_truth/api/governance_router.py",
+      "line": 236,
+      "path": "services/layer5-ground-truth/src/layer5_ground_truth/api/governance_schemas.py",
       "text": "passed_rules: list[dict[str, Any]]"
     },
     {
       "kind": "python-any",
-      "line": 1142,
-      "path": "services/layer5-ground-truth/src/layer5_ground_truth/api/governance_router.py",
+      "line": 237,
+      "path": "services/layer5-ground-truth/src/layer5_ground_truth/api/governance_schemas.py",
       "text": "failed_rules: list[dict[str, Any]]"
     },
     {
       "kind": "python-any",
-      "line": 1334,
-      "path": "services/layer5-ground-truth/src/layer5_ground_truth/api/governance_router.py",
+      "line": 249,
+      "path": "services/layer5-ground-truth/src/layer5_ground_truth/api/governance_schemas.py",
       "text": "value: dict[str, Any] = Field(..., description=\"Assumption value\")"
     },
     {
       "kind": "python-any",
-      "line": 1351,
-      "path": "services/layer5-ground-truth/src/layer5_ground_truth/api/governance_router.py",
+      "line": 266,
+      "path": "services/layer5-ground-truth/src/layer5_ground_truth/api/governance_schemas.py",
       "text": "value: dict[str, Any]"
     },
     {
       "kind": "python-any",
-      "line": 1354,
-      "path": "services/layer5-ground-truth/src/layer5_ground_truth/api/governance_router.py",
+      "line": 269,
+      "path": "services/layer5-ground-truth/src/layer5_ground_truth/api/governance_schemas.py",
       "text": "sensitivity_analysis: dict[str, Any] | None"
     },
     {
       "kind": "python-any",
-      "line": 1696,
-      "path": "services/layer5-ground-truth/src/layer5_ground_truth/api/governance_router.py",
+      "line": 348,
+      "path": "services/layer5-ground-truth/src/layer5_ground_truth/api/governance_schemas.py",
       "text": "calculation_metadata: dict[str, Any] | None = None"
     },
     {
       "kind": "python-any",
-      "line": 1923,
-      "path": "services/layer5-ground-truth/src/layer5_ground_truth/api/governance_router.py",
+      "line": 363,
+      "path": "services/layer5-ground-truth/src/layer5_ground_truth/api/governance_schemas.py",
       "text": "request_metadata: dict[str, Any] | None"
     },
     {
@@ -40075,19 +39314,31 @@
     },
     {
       "kind": "python-any",
+      "line": 26,
+      "path": "tests/ci/test_type_escape_ratchet.py",
+      "text": "python_file.write_text(\"value: Any = source  # type: ignore[assignment]\\n\", encoding=\"utf-8\")"
+    },
+    {
+      "kind": "python-type-ignore",
+      "line": 26,
+      "path": "tests/ci/test_type_escape_ratchet.py",
+      "text": "python_file.write_text(\"value: Any = source  # type: ignore[assignment]\\n\", encoding=\"utf-8\")"
+    },
+    {
+      "kind": "python-any",
       "line": 4,
       "path": "tests/ci/test_workflow_permissions.py",
       "text": "from typing import Any"
     },
     {
       "kind": "python-any",
-      "line": 138,
+      "line": 167,
       "path": "tests/ci/test_workflow_permissions.py",
       "text": "def _load_workflow(path: Path) -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 145,
+      "line": 174,
       "path": "tests/ci/test_workflow_permissions.py",
       "text": "workflow_name: str, permissions: Any, location: str"
     },

@@ -40,6 +40,13 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Install Python gate dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r tests/requirements-test.txt \
+            langgraph-checkpoint-postgres jinja2 protego markdownify celery playwright \
+            opentelemetry-sdk opentelemetry-instrumentation-fastapi
+
       - name: Setup pnpm
         uses: pnpm/action-setup@v3
         with:
@@ -56,6 +63,9 @@ jobs:
 
       - name: Enforce package manager policy (root + apps/web)
         run: pnpm run check:package-manager-policy
+
+      - name: Enforce type escape ratchet
+        run: make check-type-escape-ratchet
 
       - name: Verify schema index coverage
         run: pnpm test:schema
@@ -641,6 +651,11 @@ jobs:
       - name: Install dependencies (frozen lock)
         run: uv sync --frozen --all-extras
 
+      - name: Install root gate dependencies
+        # Root conftest.py hard-requires the mandatory test deps (jsonschema
+        # et al.), and the coverage step uses --json-report.
+        run: uv pip install -r ../../tests/requirements-test.txt pytest-json-report
+
       - name: Lint with ruff (comprehensive)
         run: |
           uv run ruff check src/
@@ -788,6 +803,11 @@ jobs:
       - name: Install dependencies (frozen lock)
         run: uv sync --frozen --all-extras
 
+      - name: Install root gate dependencies
+        # Root conftest.py hard-requires the mandatory test deps (jsonschema
+        # et al.), and the coverage step uses --json-report.
+        run: uv pip install -r ../../tests/requirements-test.txt pytest-json-report
+
       - name: Lint with ruff (comprehensive)
         run: |
           uv run ruff check src/
@@ -856,6 +876,11 @@ jobs:
 
       - name: Install dependencies (frozen lock)
         run: uv sync --frozen --all-extras
+
+      - name: Install root gate dependencies
+        # Root conftest.py hard-requires the mandatory test deps (jsonschema
+        # et al.), and the coverage step uses --json-report.
+        run: uv pip install -r ../../tests/requirements-test.txt pytest-json-report
 
       - name: Lint with ruff (comprehensive)
         run: |
@@ -965,6 +990,11 @@ jobs:
       - name: Install dependencies (frozen lock)
         run: uv sync --frozen --all-extras
 
+      - name: Install root gate dependencies
+        # Root conftest.py hard-requires the mandatory test deps (jsonschema
+        # et al.), and the coverage step uses --json-report.
+        run: uv pip install -r ../../tests/requirements-test.txt pytest-json-report
+
       - name: Lint with ruff (comprehensive)
         run: |
           uv run ruff check src/
@@ -1028,6 +1058,11 @@ jobs:
 
       - name: Install dependencies (frozen lock)
         run: uv sync --frozen --all-extras
+
+      - name: Install root gate dependencies
+        # Root conftest.py hard-requires the mandatory test deps (jsonschema
+        # et al.), and the coverage step uses --json-report.
+        run: uv pip install -r ../../tests/requirements-test.txt pytest-json-report
 
       - name: Lint with ruff (comprehensive)
         run: |
@@ -1111,6 +1146,11 @@ jobs:
       - name: Install dependencies (frozen lock)
         run: uv sync --frozen --all-extras
 
+      - name: Install root gate dependencies
+        # Root conftest.py hard-requires the mandatory test deps (jsonschema
+        # et al.), and the coverage step uses --json-report.
+        run: uv pip install -r ../../tests/requirements-test.txt pytest-json-report
+
       - name: Enforce Layer 5 tenant isolation matrix coverage
         run: python ../../scripts/ci/check_layer5_tenant_isolation_matrix.py
 
@@ -1147,6 +1187,11 @@ jobs:
 
       - name: Install dependencies (frozen lock)
         run: uv sync --frozen --all-extras
+
+      - name: Install root gate dependencies
+        # Root conftest.py hard-requires the mandatory test deps (jsonschema
+        # et al.), and the coverage step uses --json-report.
+        run: uv pip install -r ../../tests/requirements-test.txt pytest-json-report
 
       - name: Generate and diff Layer 5 OpenAPI contract
         env:
@@ -1202,6 +1247,11 @@ jobs:
 
       - name: Install dependencies (frozen lock)
         run: uv sync --frozen --all-extras
+
+      - name: Install root gate dependencies
+        # Root conftest.py hard-requires the mandatory test deps (jsonschema
+        # et al.), and the coverage step uses --json-report.
+        run: uv pip install -r ../../tests/requirements-test.txt pytest-json-report
 
       - name: Lint with ruff (comprehensive)
         run: |
