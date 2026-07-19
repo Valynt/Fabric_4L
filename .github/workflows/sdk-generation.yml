@@ -16,6 +16,9 @@
 
 name: "SDK Generation"
 
+permissions:
+  contents: read
+
 on:
   push:
     branches: [main]
@@ -324,8 +327,8 @@ jobs:
       && needs.generate-typescript.result == 'success'
 
     permissions:
-      contents: write
-      pull-requests: write
+      contents: write # Pushes the generated SDK branch.
+      pull-requests: write # Opens the generated SDK pull request.
 
     steps:
       - name: Checkout repository

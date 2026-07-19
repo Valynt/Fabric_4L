@@ -12,6 +12,9 @@
 
 name: SBOM Generation & Attestation
 
+permissions:
+  contents: read
+
 on:
   release:
     types: [published]
@@ -37,9 +40,9 @@ jobs:
     name: Generate & Sign SBOMs
     runs-on: ubuntu-latest
     permissions:
-      contents: write      # Upload release assets
-      id-token: write      # Sigstore OIDC token
-      attestations: write  # GitHub attestation store
+      contents: write      # Uploads generated SBOM files to the release.
+      id-token: write      # Obtains the Sigstore OIDC token for keyless signing.
+      attestations: write  # Publishes provenance to the GitHub attestation store.
 
     steps:
       # -----------------------------------------------------------------------
