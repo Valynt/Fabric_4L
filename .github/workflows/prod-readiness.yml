@@ -10,6 +10,10 @@ on:
     branches: [main, "release/**"]
   workflow_dispatch:
 
+concurrency:
+  group: prod-readiness-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   POLICY_FILE: .fabric/prod-gates.policy.yaml
   ARTIFACT_DIR: artifacts
