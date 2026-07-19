@@ -141,7 +141,10 @@ class InMemoryProjectionOutbox:
         self, attempt: ProjectionAttempt, error: Exception, *, max_attempts: int
     ) -> None:
         attempt.attempts += 1
-        attempt.last_error = f"{type(error).__name__}: projection_failed"
+        # Internal dead-letter diagnostics must retain the underlying error
+        # message (target + cause) for operability; this is an ops record, not
+        # an API response boundary, so the str(e) leak guards do not apply.
+        attempt.last_error = f"{type(error).__name__}: {error}"
         attempt.status = (
             ProjectionStatus.DEAD_LETTER
             if attempt.attempts >= max_attempts

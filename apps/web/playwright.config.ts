@@ -101,6 +101,9 @@ export default defineConfig({
       testDir: "./e2e/behaviors",
       // Behavior tests are mocked by default; @backend variants run in backend-integrated
       grep: /^(?!.*@backend)/,
+      // Strict behavior flows chain several navigations and explicit polling
+      // assertions; 30 s is not enough headroom on a dev-server stack.
+      timeout: 90_000,
       use: { ...devices['Desktop Chrome'] },
     },
     // ── Layer 3: Journey Tests (chained workflows, chromium-only in dev) ──
