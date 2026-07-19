@@ -44,7 +44,6 @@ echo "==> Checking SBOM artifact retrieval and digest verification ..."
 
 for required in \
   "Download SBOM and signing artifacts" \
-  "actions/download-artifact@v4" \
   "Verify SBOMs against deploy image digests" \
   "deployed_digest" \
   "cosign verify-attestation" \
@@ -54,6 +53,13 @@ for required in \
     ERRORS=$((ERRORS + 1))
   fi
 done
+
+# Accept both the plain version tag and the SHA-pinned form (with a version
+# comment) for the artifact download action.
+if ! grep -qE "actions/download-artifact@(v4|[0-9a-f]{40}\s*#\s*v4)" "${DEPLOY_WORKFLOW}"; then
+  echo "::error::Deploy workflow missing SBOM verification control: actions/download-artifact@v4"
+  ERRORS=$((ERRORS + 1))
+fi
 
 # -----------------------------------------------------------------------------
 # Check 3: Environment health checks call API and service readiness endpoints.

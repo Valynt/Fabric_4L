@@ -6,11 +6,13 @@ on:
   workflow_dispatch:
 
 permissions:
-  pull-requests: write
-  contents: write
+  contents: read
 
 jobs:
   cleanup:
+    permissions:
+      contents: write # Deletes remote branches selected by the cleanup workflow.
+      pull-requests: write # Closes pull requests selected by the cleanup workflow.
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

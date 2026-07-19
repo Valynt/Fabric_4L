@@ -30,7 +30,7 @@ async def pending_ingestion_probe(pending_ingestion_store: Any) -> ProbeResult:
     try:
         await pending_ingestion_store.get_due(datetime.now(UTC))
     except Exception as exc:
-        return ProbeResult(name="pending_ingestion_store", healthy=False, detail=str(exc))
+        return ProbeResult(name="pending_ingestion_store", healthy=False, detail=type(exc).__name__)
     return ProbeResult(name="pending_ingestion_store", healthy=True)
 
 
@@ -39,7 +39,7 @@ async def quarantine_probe(quarantine_store: Any) -> ProbeResult:
     try:
         await quarantine_store.list(tenant_id="__health_probe__")
     except Exception as exc:
-        return ProbeResult(name="quarantine_store", healthy=False, detail=str(exc))
+        return ProbeResult(name="quarantine_store", healthy=False, detail=type(exc).__name__)
     return ProbeResult(name="quarantine_store", healthy=True)
 
 
