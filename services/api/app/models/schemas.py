@@ -52,6 +52,13 @@ class User(BaseModel):
     password_hash: str | None = None
     status: Literal["invited", "active", "deactivated"] = "active"
     invited_by: str | None = None
+    # Single-use invite token (account-takeover fix). Only the SHA-256 hash of
+    # the plaintext token is persisted; the plaintext is returned exactly once
+    # in the invite response and delivered to the invitee out-of-band (email).
+    # Both fields are cleared when the invitation is accepted so a token can
+    # never be replayed.
+    invite_token_hash: str | None = None
+    invite_token_expires_at: str | None = None  # ISO-8601 UTC timestamp
     # Brute-force protection fields (F-05)
     failed_login_attempts: int = 0
     locked_until: str | None = None  # ISO-8601 UTC timestamp
