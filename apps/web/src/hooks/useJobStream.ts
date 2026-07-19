@@ -111,8 +111,11 @@ export function useJobStream(jobId: string | null) {
   const isMountedRef = useRef<boolean>(true);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // MANDATE 5: Keep ref in sync
-  jobIdRef.current = validatedJobId;
+  // MANDATE 5: Keep ref in sync (assign in an effect, never during render).
+  // Declared before the connection effect below so the ref is updated first.
+  useEffect(() => {
+    jobIdRef.current = validatedJobId;
+  }, [validatedJobId]);
 
   // ============================================================================
   // MANDATE 3: ERROR HANDLING - Polling with comprehensive error handling
@@ -215,7 +218,12 @@ export function useJobStream(jobId: string | null) {
       setState({ progress: 0, status: "created", logs: [], entities: [] });
       setIsConnected(false);
       setError(null);
-      return;
+      // MANDATE 6: Return a cleanup on every effect run so unmount/re-run
+      // always guarantees resource cleanup, even when no connection opened.
+      return () => {
+        isMountedRef.current = false;
+        cleanup();
+      };
     }
 
     // MANDATE 4: Capture validated jobId for this effect instance

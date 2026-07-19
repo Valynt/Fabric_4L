@@ -53,7 +53,11 @@ export * from "./ui/button-group";
 export * from "./ui/calendar";
 export * from "./ui/card";
 export * from "./ui/carousel";
-export * from "./ui/chart";
+// NOTE: "./ui/chart" is intentionally NOT re-exported from this barrel. It
+// imports recharts statically, and this barrel is loaded eagerly by the app
+// shell, which would pull recharts into the main bundle. No consumer imports
+// chart primitives today; when one does, it should import them directly from
+// "@/components/ui/chart" inside a lazy-loaded route.
 export * from "./ui/checkbox";
 export * from "./ui/collapsible";
 export * from "./ui/command";

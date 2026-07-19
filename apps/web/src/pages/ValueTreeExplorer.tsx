@@ -275,7 +275,7 @@ export default function ValueTreeExplorer() {
 
   // Fetch available entities for selection - returns EntityListResponse with results array
   const { data: entitiesResponse, isLoading: entitiesLoading } = useEntities();
-  const entities = entitiesResponse?.results ?? [];
+  const entities = useMemo(() => entitiesResponse?.results ?? [], [entitiesResponse]);
 
   // Build hierarchical tree for rendering
   const tree = useMemo(() => {

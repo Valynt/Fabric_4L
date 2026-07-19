@@ -232,14 +232,14 @@ export default function EntityBrowser() {
                   const isSelected = e.id === selectedEntityId;
                   const statusColor = STATUS_COLORS[e.status];
                   return [
-                    <span className={`font-semibold ${isSelected ? 'text-primary' : 'text-foreground'}`}>{e.name}</span>,
-                    <EntityBadge type={mapEntityType(e.type)}/>,
-                    <span className="text-muted-foreground vf-text-caption font-mono">{e.domain || '—'}</span>,
-                    <span className={`vf-text-body-s ${CONF_COLORS(e.confidence)}`}>{Math.round(e.confidence * 100)}%</span>,
-                    <span className={`vf-text-caption font-semibold ${statusColor}`}>
+                    <span key={`${e.id}-name`} className={`font-semibold ${isSelected ? 'text-primary' : 'text-foreground'}`}>{e.name}</span>,
+                    <EntityBadge key={`${e.id}-type`} type={mapEntityType(e.type)}/>,
+                    <span key={`${e.id}-domain`} className="text-muted-foreground vf-text-caption font-mono">{e.domain || '—'}</span>,
+                    <span key={`${e.id}-confidence`} className={`vf-text-body-s ${CONF_COLORS(e.confidence)}`}>{Math.round(e.confidence * 100)}%</span>,
+                    <span key={`${e.id}-status`} className={`vf-text-caption font-semibold ${statusColor}`}>
                       ● {e.status.charAt(0).toUpperCase() + e.status.slice(1)}
                     </span>,
-                    <div className="flex gap-2">
+                    <div key={`${e.id}-actions`} className="flex gap-2">
                       <button
                         onClick={() => setSelectedEntityId(e.id)}
                         className={`vf-text-caption hover:underline ${isSelected ? 'text-primary font-semibold' : 'text-primary'}`}

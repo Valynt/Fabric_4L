@@ -180,7 +180,7 @@ When sliders change, the system will recalculate metrics via the formula API.`,
         isStreaming: false,
       }));
     }
-  }, [businessCaseId]);
+  }, [businessCaseId, businessCaseData]);
 
   /**
    * Save current scenario to localStorage
