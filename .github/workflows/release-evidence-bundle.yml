@@ -36,8 +36,10 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Install pytest and PyYAML
-        run: python -m pip install --upgrade pip pytest pyyaml
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r tests/requirements-test.txt
       - name: Enforce config bypass policy (including k8s staging/prod manifests)
         run: python scripts/ci/check_config_policy.py
       - name: Enforce Task 46/47 final readiness criteria
@@ -45,6 +47,8 @@ jobs:
           python -m pytest -q tests/release/test_observability_deployment_readiness.py --no-mandatory-dep-check
       - name: Generate release safety artifact
         run: python scripts/ci/generate_release_safety_artifact.py --environment release-candidate --profile release-candidate
+      - name: Verify release safety artifact
+        run: test -s artifacts/release/release-safety.json
       - name: Upload release safety artifact
         uses: actions/upload-artifact@v4
         with:
@@ -200,13 +204,13 @@ jobs:
 
       - name: Bandit SAST
         run: |
-          uv pip install bandit[toml]
+          uv pip install --system bandit[toml]
           bandit -r services/ -f json -o bandit-report.json
           bandit -r services/ -f txt -o bandit-report.txt
 
       - name: Run security regression tests
         run: |
-          uv pip install pytest pytest-asyncio
+          uv pip install --system pytest pytest-asyncio
           pytest tests/security/ -v --tb=short \
             --junitxml=security-tests.xml
 
@@ -271,15 +275,14 @@ jobs:
           path: artifacts
           merge-multiple: false
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Node.js + pnpm
+        uses: ./.github/actions/setup-pnpm
         with:
           node-version: '22.18.0'
 
-      - name: Enable pnpm
-        uses: pnpm/action-setup@v3
-        with:
-          version: "10.18.1"
+      - name: Install Node.js dependencies
+        run: pnpm install --frozen-lockfile
+
       - name: Generate evidence bundle
         run: pnpm evidence:bundle -- --release-sha "${{ github.sha }}"
 

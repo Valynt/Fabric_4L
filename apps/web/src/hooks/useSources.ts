@@ -320,7 +320,7 @@ function normalizeDataSource(api: ApiScrapingTargetDetail): DataSource {
   const status = deriveConnectionStatus(
     api.status,
     api.last_success_at ?? null,
-    api.last_error_at,
+    api.last_error_at ?? null,
     api.error_count
   );
 

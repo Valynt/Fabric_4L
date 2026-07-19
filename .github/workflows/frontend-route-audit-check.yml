@@ -41,7 +41,9 @@ jobs:
           node-version: '22.18.0'
           cache: 'pnpm'
       - name: Run router contract gate
-        run: pnpm test:router
+        run: |
+          mkdir -p artifacts/router-contract
+          pnpm test:router
       - name: Upload route audit artifact
         if: always()
         uses: actions/upload-artifact@v4

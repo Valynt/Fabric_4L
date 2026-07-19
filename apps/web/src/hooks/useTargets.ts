@@ -206,7 +206,7 @@ function normalizeTargetDetail(api: ApiTargetDetail): Target {
     createdAt: api.created_at,
     updatedAt: api.updated_at,
     lastSuccessAt: api.last_success_at ?? null,
-    lastErrorAt: api.last_error_at,
+    lastErrorAt: api.last_error_at ?? null,
     createdBy: api.created_by,
   };
 }

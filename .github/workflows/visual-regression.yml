@@ -10,6 +10,9 @@
 
 name: Visual Regression
 
+permissions:
+  contents: read
+
 on:
   pull_request:
     branches: [main]
@@ -35,7 +38,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  NODE_VERSION: "22.13.0"
+  NODE_VERSION: "22.18.0"
   PNPM_VERSION: "10.18.1"
   PLAYWRIGHT_VERSION: "1.49"
 
@@ -125,6 +128,7 @@ jobs:
       - name: Run visual regression tests
         id: visual_test
         run: |
+          mkdir -p playwright-report test-results
           pnpm exec playwright test e2e/visual/regression.spec.ts \
             --project=${{ matrix.project }} \
             --update-snapshots=${{ inputs.update_snapshots || 'false' }}
@@ -164,6 +168,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: [test]
     if: always() && github.event_name == 'pull_request'
+    permissions:
+      pull-requests: write # Updates the pull request with visual regression results.
     steps:
       - name: Download all test artifacts
         uses: actions/download-artifact@v4

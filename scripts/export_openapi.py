@@ -250,8 +250,100 @@ def _install_email_validator_shim() -> None:
     pydantic_networks.import_email_validator = lambda: None
 
 
+def _install_protego_shim() -> None:
+    """Shim Protego robots.txt parser for Layer 1 schema export."""
+
+    if importlib.util.find_spec("protego") is not None:
+        return
+
+    class _MockProtegoRules:
+        @classmethod
+        def parse(cls, content: str) -> "_MockProtegoRules":
+            # content is intentionally unused; always returns a permissive instance for schema export
+            return cls()
+
+        def can_fetch(self, user_agent: str, path: str) -> bool:
+            return True
+
+        def crawl_delay(self, user_agent: str) -> None:
+            return None
+
+        def request_rate(self, user_agent: str) -> None:
+            return None
+
+    _module_stub("protego", Protego=_MockProtegoRules)
+
+
+def _install_celery_shim() -> None:
+    """Shim Celery task queue for Layer 1 schema export."""
+
+    if importlib.util.find_spec("celery") is not None:
+        return
+
+    class _MockCelery:
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            self.conf = type("Conf", (), {"update": lambda *a, **k: None})()
+
+        def task(self, *args: Any, **kwargs: Any) -> Any:
+            def decorator(func: Any) -> Any:
+                return func
+
+            return decorator if not args else decorator(args[0])
+
+    def _mock_chain(*tasks: Any) -> Any:
+        def runner(*args: Any, **kwargs: Any) -> None:
+            return None
+
+        return runner
+
+    def _mock_crontab(**kwargs: Any) -> dict[str, Any]:
+        return kwargs
+
+    _module_stub("celery", Celery=_MockCelery, chain=_mock_chain)
+    _module_stub("celery.schedules", crontab=_mock_crontab)
+
+
+def _install_playwright_shim() -> None:
+    """Shim Playwright browser automation for Layer 1 schema export."""
+
+    if importlib.util.find_spec("playwright") is not None:
+        return
+
+    class _MockBrowser:
+        pass
+
+    class _MockBrowserContext:
+        pass
+
+    class _MockPage:
+        pass
+
+    class _MockAsyncPlaywright:
+        async def start(self) -> "_MockAsyncPlaywright":
+            return self
+
+        async def __aenter__(self) -> "_MockAsyncPlaywright":
+            return self
+
+        async def __aexit__(self, *args: Any) -> None:
+            return None
+
+    _module_stub("playwright", __package_stub__=True)
+    _module_stub(
+        "playwright.async_api",
+        Browser=_MockBrowser,
+        BrowserContext=_MockBrowserContext,
+        Page=_MockPage,
+        async_playwright=_MockAsyncPlaywright,
+    )
+
+
 def _install_common_openapi_dependency_shims() -> None:
     """Install only the dependency shims required inside export subprocesses."""
+
+    _install_protego_shim()
+    _install_celery_shim()
+    _install_playwright_shim()
 
     if importlib.util.find_spec("psycopg2") is None:
         psycopg2 = _MockPsycopg2()
@@ -297,12 +389,28 @@ def _install_common_openapi_dependency_shims() -> None:
 def _install_layer4_openapi_dependency_shims() -> None:
     """Shim optional Layer 4 runtime integrations for schema-only export."""
 
+    try:
+        langgraph_checkpoint_postgres_aio_spec = importlib.util.find_spec("langgraph.checkpoint.postgres.aio")
+    except ModuleNotFoundError:
+        langgraph_checkpoint_postgres_aio_spec = None
+
+    if langgraph_checkpoint_postgres_aio_spec is None:
+        try:
+            langgraph_checkpoint_spec = importlib.util.find_spec("langgraph.checkpoint")
+        except ModuleNotFoundError:
+            langgraph_checkpoint_spec = None
+        if langgraph_checkpoint_spec is None:
+            _module_stub("langgraph.checkpoint", __package_stub__=True)
+        _module_stub("langgraph.checkpoint.postgres", __package_stub__=True)
+        _module_stub(
+            "langgraph.checkpoint.postgres.aio",
+            AsyncPostgresSaver=_MockLanggraphCheckpoint.AsyncPostgresSaver,
+        )
+
     if importlib.util.find_spec("langgraph") is None:
         _module_stub("langgraph")
         _module_stub("langgraph.checkpoint")
         _module_stub("langgraph.checkpoint.base", BaseCheckpointSaver=_MockLanggraphCheckpoint.BaseCheckpointSaver)
-        _module_stub("langgraph.checkpoint.postgres")
-        _module_stub("langgraph.checkpoint.postgres.aio", AsyncPostgresSaver=_MockLanggraphCheckpoint.AsyncPostgresSaver)
         _module_stub("langgraph.errors", GraphInterrupt=_MockLanggraphInterrupt, NodeInterrupt=_MockLanggraphInterrupt)
         _module_stub("langgraph.graph", StateGraph=_MockStateGraph)
         _module_stub("langgraph.types", Command=_MockLanggraphCommand)

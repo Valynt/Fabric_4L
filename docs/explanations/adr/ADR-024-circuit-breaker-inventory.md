@@ -1,4 +1,4 @@
-# Circuit Breaker Inventory — P1-014
+# ADR-024: Circuit Breaker Inventory
 
 ## Date
 2026-05-27

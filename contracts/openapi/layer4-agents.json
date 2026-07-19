@@ -4808,7 +4808,10 @@
             }
           }
         },
-        "deprecated": true
+        "deprecated": true,
+        "x-deprecated-since": "2026-05-29",
+        "x-deprecated-removal-date": "2026-08-01",
+        "x-deprecation-owner": "layer4-agents"
       }
     },
     "/v1/tenant/context": {
@@ -11421,7 +11424,9 @@
             }
           }
         },
+        "x-deprecated-since": "2026-05-29",
         "x-deprecated-removal-date": "2026-08-01",
+        "x-deprecation-owner": "layer4-agents",
         "x-canonical-path": "/v1/tenants/current/settings"
       },
       "patch": {
@@ -11498,7 +11503,9 @@
             }
           }
         },
+        "x-deprecated-since": "2026-05-29",
         "x-deprecated-removal-date": "2026-08-01",
+        "x-deprecation-owner": "layer4-agents",
         "x-canonical-path": "/v1/tenants/current/settings"
       }
     },
@@ -11577,7 +11584,9 @@
             }
           }
         },
+        "x-deprecated-since": "2026-05-29",
         "x-deprecated-removal-date": "2026-07-01",
+        "x-deprecation-owner": "layer4-agents",
         "x-canonical-path": "/v1/tenants/register"
       }
     },
@@ -20084,6 +20093,7 @@
           "read:schema",
           "read:search",
           "read:graphrag",
+          "read:benchmarks",
           "read:analytics",
           "read:ingestion",
           "read:agents",

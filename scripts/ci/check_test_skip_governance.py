@@ -54,6 +54,12 @@ MARKERS: list[tuple[str, re.Pattern[str]]] = [
 
 VALID_SEVERITIES = {"P0", "P1", "P2"}
 VALID_LAUNCH_GATES = {"mandatory", "optional", "excluded"}
+VALID_CLASSIFICATIONS = {
+    "valid_environment_limitation",
+    "temporary_bug_waiver",
+    "obsolete_test",
+    "unacceptable_coverage_gap",
+}
 ALWAYS_FORBIDDEN_MARKERS = {"test.only", "describe.only", "it.only"}
 
 
@@ -75,6 +81,7 @@ class RegisterEntry:
     expires_on: date
     severity: str
     launch_gate: str
+    classification: str
     reason_pattern: str | None = None
 
     def matches(self, finding: Finding) -> bool:
@@ -114,6 +121,7 @@ def _load_register(path: Path, today: date) -> tuple[list[RegisterEntry], list[s
         "expires_on",
         "severity",
         "launch_gate",
+        "classification",
     }
     for index, entry in enumerate(entries):
         if not isinstance(entry, dict):
@@ -136,6 +144,9 @@ def _load_register(path: Path, today: date) -> tuple[list[RegisterEntry], list[s
         launch_gate = str(entry["launch_gate"])
         if launch_gate not in VALID_LAUNCH_GATES:
             errors.append(f"entry {entry_id} has invalid launch_gate {launch_gate}")
+        classification = str(entry["classification"])
+        if classification not in VALID_CLASSIFICATIONS:
+            errors.append(f"entry {entry_id} has invalid classification {classification}")
         try:
             expires_on = date.fromisoformat(str(entry["expires_on"]))
         except ValueError:
@@ -145,6 +156,8 @@ def _load_register(path: Path, today: date) -> tuple[list[RegisterEntry], list[s
             errors.append(f"entry {entry_id} expired on {expires_on.isoformat()}")
         if not str(entry["owner"]).strip() or not str(entry["reason"]).strip():
             errors.append(f"entry {entry_id} owner and reason must be non-empty")
+        if classification == "temporary_bug_waiver" and (not str(entry["owner"]).strip() or not str(entry["expires_on"]).strip()):
+            errors.append(f"entry {entry_id} temporary bug waiver requires owner and expires_on")
         register.append(
             RegisterEntry(
                 id=entry_id,
@@ -155,6 +168,7 @@ def _load_register(path: Path, today: date) -> tuple[list[RegisterEntry], list[s
                 expires_on=expires_on,
                 severity=severity,
                 launch_gate=launch_gate,
+                classification=classification,
                 reason_pattern=entry.get("reason_pattern"),
             )
         )
@@ -227,6 +241,10 @@ def evaluate(
         for error in register_errors
         if " expired on " in error
     ]
+    classification_counts: dict[str, int] = {classification: 0 for classification in sorted(VALID_CLASSIFICATIONS)}
+    for entry in register:
+        classification_counts[entry.classification] = classification_counts.get(entry.classification, 0) + 1
+
     mandatory_p0_entries = [
         entry
         for entry in register
@@ -240,6 +258,7 @@ def evaluate(
         "forbidden_markers": len(forbidden),
         "matched_register_entries": len(matched_ids),
         "mandatory_p0_register_entries": len(mandatory_p0_entries),
+        "classification_counts": classification_counts,
     }
     return {
         "summary": summary,

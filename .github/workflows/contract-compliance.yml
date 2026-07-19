@@ -17,36 +17,13 @@ permissions:
   actions: read
 
 on:
+  # NOTE: the `contract-compliance` check is REQUIRED by branch protection on
+  # main. A paths-filtered required check is never emitted for PRs that touch
+  # only unlisted paths, which blocks merging those PRs. The pull_request
+  # trigger therefore runs unconditionally; the paths filter is kept only on
+  # push/schedule where it does not gate merges.
   pull_request:
     branches: [main, develop]
-    paths:
-      - 'apps/web/**'
-      - 'examples/canonical/**'
-      - 'packages/eslint-plugin-fabric-contracts/**'
-      - 'packages/shared/**'
-      - 'services/**/src/**'
-      - 'packages/platform-contract/**'
-      - 'contracts/openapi/**'
-      - 'contracts/jsonschema/**'
-      - 'contracts/tool-manifests/**'
-      - 'contracts/frontend/**'
-      - 'contracts/auth/**'
-      - 'contracts/config-policy/**'
-      - 'contracts/observability/**'
-      - 'contracts/schema-index.json'
-      - 'contracts/agent-registry/**'
-      - 'tests/contract/**'
-      - 'scripts/verify-schema-indexes.sh'
-      - 'package.json'
-      - 'tests/test_openapi_breaking_change_gate.py'
-      - 'scripts/ci/platform_contract_lint.py'
-      - 'scripts/ci/check_agent_registry.py'
-      - 'scripts/export_openapi.py'
-      - 'scripts/ci/contract_compliance_gate.py'
-      - 'scripts/ci/openapi_breaking_change_gate.py'
-      - 'docs/governance/openapi-breaking-change-exceptions.json'
-      - 'docs/reference/openapi-breaking-change-gate.md'
-      - '.github/workflows/contract-compliance.yml'
   push:
     branches:
       - main
@@ -106,6 +83,13 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Install Python OpenAPI export dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r tests/requirements-test.txt uvicorn \
+            opentelemetry-api opentelemetry-sdk opentelemetry-exporter-otlp-proto-http \
+            opentelemetry-instrumentation opentelemetry-instrumentation-fastapi
+
       - name: Setup pnpm
         uses: pnpm/action-setup@v3
         with:
@@ -138,6 +122,11 @@ jobs:
           else
             pnpm contract:breaking --base-ref origin/main
           fi
+
+      - name: Verify OpenAPI breaking-change artifacts
+        run: |
+          test -s artifacts/contract-breaking/openapi-breaking-report.json
+          test -s artifacts/contract-breaking/openapi-breaking-report.md
 
       - name: Upload OpenAPI breaking-change report
         uses: actions/upload-artifact@v4
@@ -180,7 +169,7 @@ jobs:
         run: pnpm run build
 
       - name: Run tests
-        run: pnpm test -- --coverage --coverageReporters=text-summary
+        run: pnpm test --coverage --coverageReporters=text-summary
 
       - name: Upload coverage
         uses: codecov/codecov-action@v4
@@ -189,6 +178,7 @@ jobs:
           files: ./coverage/lcov.info
           flags: eslint-plugin
           name: eslint-plugin-coverage
+          fail_ci_if_error: false
 
   # ==========================================================================
   # Validate Dependabot Coverage (H-07 Audit Fix)
@@ -406,6 +396,7 @@ jobs:
       - name: Enforce banned deprecated namespace imports (Ruff)
         run: |
           set -o pipefail
+          python -m pip install ruff
           echo "Checking for banned deprecated value_fabric.layer* imports..."
           # Run Ruff on all services to enforce banned-api rules
           cd services/layer1-ingestion && ruff check src/ || exit 1
@@ -459,7 +450,7 @@ jobs:
       - name: Run tenant boundary security tests
         run: |
           echo "🧪 Running tenant boundary fails-closed tests..."
-          pip install pytest pytest-asyncio
+          pip install pytest pytest-asyncio pydantic
           python -m pytest tests/security/test_tenant_boundary_fails_closed.py -v
         env:
           PYTHONPATH: "packages/shared/src"
@@ -487,10 +478,10 @@ jobs:
         include:
           - layer: layer3-knowledge
             port: 8003
-            module: layer3_knowledge.api.main:app
+            module: layer3_knowledge.api.main
           - layer: layer5-ground-truth
             port: 8005
-            module: layer5_ground_truth.api.main:app
+            module: layer5_ground_truth.api.main
 
     steps:
       - name: Checkout code
@@ -503,12 +494,10 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install fastapi uvicorn pydantic
-          if [ "${{matrix.layer}}" = "layer3-knowledge" ]; then
-            pip install neo4j python-dotenv httpx psutil
-          elif [ "${{matrix.layer}}" = "layer5-ground-truth" ]; then
-            pip install sqlalchemy asyncpg
-          fi
+          python -m pip install --upgrade pip
+          python -m pip install -r tests/requirements-test.txt uvicorn \
+            opentelemetry-api opentelemetry-sdk opentelemetry-exporter-otlp-proto-http \
+            opentelemetry-instrumentation opentelemetry-instrumentation-fastapi
 
       - name: Generate OpenAPI spec from code
         working-directory: ./services/${{matrix.layer}}
@@ -519,6 +508,7 @@ jobs:
           import traceback
 
           sys.path.insert(0, 'src')
+          sys.path.insert(0, '../../packages/shared/src')
 
           try:
               from ${{matrix.module}} import app

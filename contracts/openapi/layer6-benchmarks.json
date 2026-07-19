@@ -82,7 +82,10 @@
             }
           }
         },
-        "deprecated": true
+        "deprecated": true,
+        "x-deprecated-since": "2026-05-29",
+        "x-deprecated-removal-date": "2026-09-30",
+        "x-deprecation-owner": "layer6-benchmarks"
       }
     },
     "/v1/benchmarks/datasets": {
@@ -456,9 +459,6 @@
               }
             ],
             "type": "array",
-            "items": {
-              "type": "string"
-            },
             "maxItems": 2,
             "minItems": 2,
             "title": "Peer Range"
@@ -904,9 +904,6 @@
               }
             ],
             "type": "array",
-            "items": {
-              "type": "string"
-            },
             "maxItems": 2,
             "minItems": 2,
             "title": "Expected Range"

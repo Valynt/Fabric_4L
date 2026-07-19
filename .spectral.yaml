@@ -140,3 +140,7 @@ rules:
   # path-params flags both missing path parameters and structurally equivalent
   # paths; keep it visible but non-blocking while those are remediated.
   path-params: warn
+  # array-items does not understand JSON Schema 2020-12 `prefixItems`, which
+  # Pydantic v2 emits for tuple[...] fields (valid OpenAPI 3.1); the rule
+  # false-positives on every tuple schema.
+  array-items: "off"

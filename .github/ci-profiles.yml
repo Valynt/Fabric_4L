@@ -1,0 +1,87 @@
+version: "1.0"
+description: >
+  Machine-readable CI profile registry for Value Fabric.
+  Maps GitHub Actions execution context to the canonical profile names defined
+  in .fabric/prod-gates.policy.yaml. This file is the source of truth for
+  environment-aware CI profile selection.
+
+profiles:
+  pr-fast:
+    description: "Cheap local or PR feedback — no external deps, < 5 min"
+    triggers:
+      - event: pull_request
+        branches: [main]
+    gates:
+      - policy
+      - lint
+      - arch
+      - security
+      - state
+      - db-consistency
+      - summary
+
+  mainline-full:
+    description: "Main branch verification — full gate except deploy-specific actions"
+    triggers:
+      - event: push
+        branches: [main]
+    gates:
+      - policy
+      - lint
+      - arch
+      - security
+      - chaos
+      - smoke
+      - state
+      - database
+      - agent
+      - obs
+      - release-policy
+      - behavior-readiness
+      - summary
+
+  release-candidate:
+    description: "Final pre-tag or pre-production decision"
+    triggers:
+      - event: push
+        branches: ["release/**"]
+      - event: workflow_dispatch
+        inputs:
+          profile: release-candidate
+    gates:
+      - policy
+      - lint
+      - arch
+      - security
+      - tenant-isolation
+      - chaos
+      - smoke
+      - state
+      - database
+      - agent
+      - obs
+      - release-policy
+      - sign-manifest
+      - behavior-readiness
+      - summary
+
+  production-core:
+    description: "Near-term critical production gates"
+    triggers:
+      - event: workflow_dispatch
+        inputs:
+          profile: production-core
+    gates:
+      - policy
+      - arch
+      - security
+      - tenant-isolation
+      - database-readiness
+      - migration-readiness
+      - api-contracts
+      - auth-readiness
+      - secrets-readiness
+      - deployment-readiness
+      - launch-blockers
+      - behavior-readiness
+      - summary

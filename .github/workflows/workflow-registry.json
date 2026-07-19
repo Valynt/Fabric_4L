@@ -164,9 +164,8 @@
       "blocking": false,
       "required_secrets": [],
       "produced_artifacts": [
+        ".bundle-stats/stats.json",
         "apps/web/dist",
-        "apps/web/dist/stats.html",
-        "apps/web/dist/stats.json",
         "artifacts/bundle-comment.md"
       ],
       "runtime_budget_minutes": 30,
@@ -311,7 +310,7 @@
       "blocking": false,
       "required_secrets": [],
       "produced_artifacts": [
-        "frontend/${{ matrix.frontend }}/pnpm-audit.json",
+        "apps/web/pnpm-audit.json",
         "pip-audit-${{ matrix.service }}.*",
         "sbom-vuln-track.json"
       ],
@@ -634,6 +633,23 @@
       "deprecation_status": "active"
     },
     {
+      "path": ".github/workflows/poc-governance-automation.yml",
+      "name": "PoC \u2014 Governance Automation (Composite + Profile Selection)",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "pull_request",
+        "push",
+        "workflow_dispatch"
+      ],
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
+      "required_secrets": [],
+      "produced_artifacts": [],
+      "runtime_budget_minutes": 10,
+      "local_validation_command": "make check-workflow-references",
+      "deprecation_status": "active"
+    },
+    {
       "path": ".github/workflows/pr-checks.yml",
       "name": "PR Checks",
       "owner": "@value-fabric/sre-leads",
@@ -680,8 +696,6 @@
         "artifacts/release-evidence/billing-entitlements-junit.xml",
         "artifacts/release-evidence/billing-entitlements-summary.json",
         "artifacts/release-evidence/billing-entitlements-summary.md",
-        "artifacts/release/release-readiness-report.json",
-        "artifacts/release/release-readiness-report.md",
         "artifacts/release_smoke/**",
         "artifacts/route-tenant-propagation.json",
         "artifacts/route-tenant-propagation.md",
@@ -741,7 +755,6 @@
         "artifacts/readiness/",
         "artifacts/release/",
         "artifacts/release/gate-*.json",
-        "artifacts/release/junit/",
         "artifacts/release/release-readiness-report.json",
         "artifacts/release/release-readiness-report.md",
         "artifacts/security/",
@@ -977,25 +990,6 @@
         "zap-reports/"
       ],
       "runtime_budget_minutes": 45,
-      "local_validation_command": "make check-workflow-references",
-      "deprecation_status": "active"
-    },
-    {
-      "path": ".github/workflows/smoke-gate.yml",
-      "name": "Smoke Gate",
-      "owner": "@value-fabric/sre-leads",
-      "trigger": [
-        "push",
-        "schedule",
-        "workflow_dispatch"
-      ],
-      "trigger_purpose": "CI/CD",
-      "blocking": false,
-      "required_secrets": [],
-      "produced_artifacts": [
-        "artifacts/smoke/"
-      ],
-      "runtime_budget_minutes": 30,
       "local_validation_command": "make check-workflow-references",
       "deprecation_status": "active"
     },

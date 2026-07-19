@@ -8,9 +8,7 @@
 name: PR Checks
 
 permissions:
-  contents: write
-  pull-requests: write
-  id-token: write # Required for Infisical OIDC authentication
+  contents: read
 
 "on":
   pull_request:
@@ -42,6 +40,13 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Install Python gate dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r tests/requirements-test.txt \
+            langgraph-checkpoint-postgres jinja2 protego markdownify celery playwright \
+            opentelemetry-sdk opentelemetry-instrumentation-fastapi
+
       - name: Setup pnpm
         uses: pnpm/action-setup@v3
         with:
@@ -58,6 +63,9 @@ jobs:
 
       - name: Enforce package manager policy (root + apps/web)
         run: pnpm run check:package-manager-policy
+
+      - name: Enforce type escape ratchet
+        run: make check-type-escape-ratchet
 
       - name: Verify schema index coverage
         run: pnpm test:schema
@@ -374,6 +382,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      pull-requests: read # Required for read-only gh PR/file lookups in check_pr_overlap_guard.py; no PR mutations.
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
@@ -640,13 +651,14 @@ jobs:
       - name: Install dependencies (frozen lock)
         run: uv sync --frozen --all-extras
 
+      - name: Install root gate dependencies
+        # Root conftest.py hard-requires the mandatory test deps (jsonschema
+        # et al.), and the coverage step uses --json-report.
+        run: uv pip install -r ../../tests/requirements-test.txt pytest-json-report
+
       - name: Lint with ruff (comprehensive)
         run: |
-          uv run ruff check --select E,W,F,I,N,D src/  # Errors, warnings, imports, naming, docstrings
-          uv run ruff check --select B src/  # Bugbear (likely bugs)
-          uv run ruff check --select C4 src/  # Comprehensions
-          uv run ruff check --select SIM src/  # Simplifications
-          uv run ruff check --select UP src/  # Pyupgrade
+          uv run ruff check src/
 
       - name: Type check - typed core
         run: |
@@ -791,13 +803,14 @@ jobs:
       - name: Install dependencies (frozen lock)
         run: uv sync --frozen --all-extras
 
+      - name: Install root gate dependencies
+        # Root conftest.py hard-requires the mandatory test deps (jsonschema
+        # et al.), and the coverage step uses --json-report.
+        run: uv pip install -r ../../tests/requirements-test.txt pytest-json-report
+
       - name: Lint with ruff (comprehensive)
         run: |
-          uv run ruff check --select E,W,F,I,N,D src/
-          uv run ruff check --select B src/
-          uv run ruff check --select C4 src/
-          uv run ruff check --select SIM src/
-          uv run ruff check --select UP src/
+          uv run ruff check src/
 
       - name: Type check with mypy
         run: uv run mypy src/ --ignore-missing-imports
@@ -864,13 +877,14 @@ jobs:
       - name: Install dependencies (frozen lock)
         run: uv sync --frozen --all-extras
 
+      - name: Install root gate dependencies
+        # Root conftest.py hard-requires the mandatory test deps (jsonschema
+        # et al.), and the coverage step uses --json-report.
+        run: uv pip install -r ../../tests/requirements-test.txt pytest-json-report
+
       - name: Lint with ruff (comprehensive)
         run: |
-          uv run ruff check --select E,W,F,I,N,D src/
-          uv run ruff check --select B src/
-          uv run ruff check --select C4 src/
-          uv run ruff check --select SIM src/
-          uv run ruff check --select UP src/
+          uv run ruff check src/
 
       - name: Type check with mypy
         run: uv run mypy src/ --ignore-missing-imports
@@ -976,13 +990,14 @@ jobs:
       - name: Install dependencies (frozen lock)
         run: uv sync --frozen --all-extras
 
+      - name: Install root gate dependencies
+        # Root conftest.py hard-requires the mandatory test deps (jsonschema
+        # et al.), and the coverage step uses --json-report.
+        run: uv pip install -r ../../tests/requirements-test.txt pytest-json-report
+
       - name: Lint with ruff (comprehensive)
         run: |
-          uv run ruff check --select E,W,F,I,N,D src/
-          uv run ruff check --select B src/
-          uv run ruff check --select C4 src/
-          uv run ruff check --select SIM src/
-          uv run ruff check --select UP src/
+          uv run ruff check src/
 
       - name: Type check with mypy
         run: uv run mypy src/ --ignore-missing-imports
@@ -1044,13 +1059,14 @@ jobs:
       - name: Install dependencies (frozen lock)
         run: uv sync --frozen --all-extras
 
+      - name: Install root gate dependencies
+        # Root conftest.py hard-requires the mandatory test deps (jsonschema
+        # et al.), and the coverage step uses --json-report.
+        run: uv pip install -r ../../tests/requirements-test.txt pytest-json-report
+
       - name: Lint with ruff (comprehensive)
         run: |
-          uv run ruff check --select E,W,F,I,N,D src/
-          uv run ruff check --select B src/
-          uv run ruff check --select C4 src/
-          uv run ruff check --select SIM src/
-          uv run ruff check --select UP src/
+          uv run ruff check src/
 
       - name: Type check with mypy
         run: uv run mypy src/ --ignore-missing-imports
@@ -1130,6 +1146,11 @@ jobs:
       - name: Install dependencies (frozen lock)
         run: uv sync --frozen --all-extras
 
+      - name: Install root gate dependencies
+        # Root conftest.py hard-requires the mandatory test deps (jsonschema
+        # et al.), and the coverage step uses --json-report.
+        run: uv pip install -r ../../tests/requirements-test.txt pytest-json-report
+
       - name: Enforce Layer 5 tenant isolation matrix coverage
         run: python ../../scripts/ci/check_layer5_tenant_isolation_matrix.py
 
@@ -1166,6 +1187,11 @@ jobs:
 
       - name: Install dependencies (frozen lock)
         run: uv sync --frozen --all-extras
+
+      - name: Install root gate dependencies
+        # Root conftest.py hard-requires the mandatory test deps (jsonschema
+        # et al.), and the coverage step uses --json-report.
+        run: uv pip install -r ../../tests/requirements-test.txt pytest-json-report
 
       - name: Generate and diff Layer 5 OpenAPI contract
         env:
@@ -1222,13 +1248,14 @@ jobs:
       - name: Install dependencies (frozen lock)
         run: uv sync --frozen --all-extras
 
+      - name: Install root gate dependencies
+        # Root conftest.py hard-requires the mandatory test deps (jsonschema
+        # et al.), and the coverage step uses --json-report.
+        run: uv pip install -r ../../tests/requirements-test.txt pytest-json-report
+
       - name: Lint with ruff (comprehensive)
         run: |
-          uv run ruff check --select E,W,F,I,N,D src/
-          uv run ruff check --select B src/
-          uv run ruff check --select C4 src/
-          uv run ruff check --select SIM src/
-          uv run ruff check --select UP src/
+          uv run ruff check src/
 
       - name: Type check with mypy
         run: uv run mypy src/ --ignore-missing-imports
@@ -1295,6 +1322,19 @@ jobs:
     defaults:
       run:
         working-directory: apps/web
+    env:
+      # Canonical public API route prefixes for CI builds. These match
+      # apps/web/.env.example and the gateway routing contract; they contain no
+      # secrets and are embedded in the browser bundle.
+      VITE_API_BASE: /api/v1
+      VITE_L1_PREFIX: /ingest
+      VITE_L2_PREFIX: /extract
+      VITE_L2_5_PREFIX: /signals
+      VITE_L3_PREFIX: /graph
+      VITE_L4_PREFIX: /agents
+      VITE_L5_PREFIX: /truths
+      VITE_L6_PREFIX: /benchmarks
+      VITE_L7_PREFIX: /billing
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
@@ -1573,6 +1613,22 @@ jobs:
           sudo mv kustomize /usr/local/bin/kustomize
           kustomize version
 
+      - name: Create target namespace
+        run: |
+          kubectl create namespace value-fabric --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Install cert-manager CRDs
+        run: |
+          kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.16.1/cert-manager.crds.yaml
+
+      - name: Install External Secrets Operator CRDs
+        run: |
+          kubectl apply -f https://raw.githubusercontent.com/external-secrets/external-secrets/v0.9.15/deploy/crds/bundle.yaml
+
+      - name: Install Kyverno (CRDs only)
+        run: |
+          kubectl apply -f https://github.com/kyverno/kyverno/releases/download/v1.11.0/install.yaml
+
       - name: Create required StorageClasses for dry-run
         run: |
           cat <<EOF | kubectl apply -f -
@@ -1847,6 +1903,9 @@ jobs:
     timeout-minutes: 35
     # Skip on fork PRs (no secrets available)
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    permissions:
+      contents: read
+      id-token: write # Required only for Infisical OIDC secret retrieval in this job; no repository write scopes.
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
@@ -2065,25 +2124,19 @@ jobs:
         include:
           - layer: layer1-ingestion
             context: services/layer1-ingestion
-            dockerfile: ./Dockerfile
           - layer: layer2-extraction
             context: services/layer2-extraction
-            dockerfile: ./Dockerfile
           - layer: layer3-knowledge
             context: services/layer3-knowledge
-            dockerfile: ./Dockerfile
           - layer: layer4-agents
             context: services/layer4-agents
-            dockerfile: ./Dockerfile
           - layer: layer5-ground-truth
             context: services/layer5-ground-truth
-            dockerfile: ./Dockerfile
           - layer: layer6-benchmarks
             context: services/layer6-benchmarks
-            dockerfile: ./Dockerfile
           - layer: frontend
-            context: apps/web
-            dockerfile: ./Dockerfile
+            context: .
+            dockerfile: ./apps/web/Dockerfile
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
@@ -2098,7 +2151,7 @@ jobs:
         uses: docker/build-push-action@3b5e8027fcad23fda98b2e3ac259d8d67585f671 # v5
         with:
           context: ${{ matrix.context }}
-          file: ${{ matrix.dockerfile }}
+          file: ${{ matrix.dockerfile || format('{0}/Dockerfile', matrix.context) }}
           push: false
           load: true
           tags: local/${{ matrix.layer }}:${{ github.sha }}
@@ -2279,7 +2332,7 @@ jobs:
           node-version: "22.18.0"
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v2.4.0
+        uses: pnpm/action-setup@v3
 
       - name: Get pnpm store directory
         id: pnpm-cache
@@ -2386,16 +2439,6 @@ jobs:
       - name: Run gate-engineering tests
         run: |
           pnpm run gate-engineering:test
-
-      - name: Upload gate-engineering artifacts
-        if: always()
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
-        with:
-          name: gate-engineering-results
-          path: |
-            artifacts/release/release-readiness-report.json
-            artifacts/release/release-readiness-report.md
-          retention-days: 14
 
   unified-readiness-gate:
     name: Unified Readiness Gate

@@ -80,7 +80,7 @@ def main() -> int:
             if matches_any(rel, allowlist):
                 continue
 
-            regex = re.compile(rf"{re.escape(flag)}\s*[:=]\s*[\"']?(true|1|yes)[\"']?", re.IGNORECASE)
+            regex = re.compile(rf"\b{re.escape(flag)}\s*[:=]\s*[\"']?(true|1|yes)[\"']?", re.IGNORECASE)
             for m in regex.finditer(text):
                 line_no = text[: m.start()].count("\n") + 1
                 line = text.splitlines()[line_no-1].lstrip()
@@ -94,7 +94,7 @@ def main() -> int:
             flag = scoped["flag"]
             if not matches_any(rel, scoped.get("paths", [])):
                 continue
-            regex = re.compile(rf"{re.escape(flag)}\s*[:=]\s*[\"']?(true|1|yes)[\"']?", re.IGNORECASE)
+            regex = re.compile(rf"\b{re.escape(flag)}\s*[:=]\s*[\"']?(true|1|yes)[\"']?", re.IGNORECASE)
             if regex.search(text) and not any(marker in lower for marker in scoped_markers):
                 violations.append(
                     f"{rel}: `{flag}=true` requires explicit environment scoping marker: {policy['required_scope_markers']}"

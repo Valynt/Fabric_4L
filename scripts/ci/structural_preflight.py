@@ -34,7 +34,7 @@ class PreflightReport:
     exit_code: int = 0
 
 
-def run_command(cmd: list[str], cwd: Path | None = None) -> tuple[int, str, str]:
+def run_command(cmd: list[str], cwd: Path | None = None, env: dict[str, str] | None = None) -> tuple[int, str, str]:
     """Run a command safely, returning (exit_code, stdout, stderr)."""
     try:
         result = subprocess.run(
@@ -45,6 +45,7 @@ def run_command(cmd: list[str], cwd: Path | None = None) -> tuple[int, str, str]
             encoding="utf-8",
             errors="ignore",
             timeout=30,
+            env=env,
         )
         return result.returncode, result.stdout, result.stderr
     except subprocess.TimeoutExpired:
@@ -178,6 +179,28 @@ def check_secret_file_risk(
     return findings
 
 
+def _get_pythonpath(repo_root: Path) -> str:
+    """Return the pythonpath declared in pytest.ini, or the repo root as fallback."""
+    pytest_ini = repo_root / "pytest.ini"
+    if pytest_ini.exists():
+        try:
+            import configparser
+            cfg = configparser.ConfigParser()
+            cfg.read(pytest_ini, encoding="utf-8")
+            if "pytest" in cfg and "pythonpath" in cfg["pytest"]:
+                raw = cfg["pytest"]["pythonpath"].strip()
+                # configparser joins multi-line values with indentation; normalize.
+                paths = " ".join(raw.split())
+                if paths:
+                    return os.pathsep.join(
+                        str((repo_root / p).resolve()) if not Path(p).is_absolute() else p
+                        for p in paths.split()
+                    )
+        except Exception:
+            pass
+    return str(repo_root)
+
+
 def check_import_namespace_mismatch(repo_root: Path) -> list[Finding]:
     """Detect legacy value_fabric root-package drift."""
     findings = []
@@ -194,10 +217,13 @@ def check_import_namespace_mismatch(repo_root: Path) -> list[Finding]:
             recommendation="Delete value_fabric/ and resolve value_fabric.shared from packages/shared/src",
         ))
 
-    # Test actual import
+    # Test actual import using the same pythonpath pytest is configured with.
+    env = os.environ.copy()
+    env["PYTHONPATH"] = _get_pythonpath(repo_root)
     exit_code, _, stderr = run_command(
         [sys.executable, "-c", "import value_fabric.shared; print(value_fabric.shared.__file__)"],
-        cwd=repo_root
+        cwd=repo_root,
+        env=env,
     )
     if exit_code != 0:
         findings.append(Finding(
@@ -205,7 +231,7 @@ def check_import_namespace_mismatch(repo_root: Path) -> list[Finding]:
             severity="critical",
             path="packages/shared/src/value_fabric/shared/",
             finding_type="import_resolution_failure",
-            message="Cannot import value_fabric.shared package",
+            message=f"Cannot import value_fabric.shared package: {stderr.strip()}",
             recommendation="Fix import path in pytest.ini so packages/shared/src exposes the namespace package",
         ))
 
@@ -250,10 +276,13 @@ def check_namespace_shadowing(repo_root: Path) -> list[Finding]:
             recommendation="Restore packages/shared/src/value_fabric/shared/",
         ))
 
-    # Test where 'import value_fabric.shared' resolves
+    # Test where 'import value_fabric.shared' resolves using the pytest pythonpath.
+    env = os.environ.copy()
+    env["PYTHONPATH"] = _get_pythonpath(repo_root)
     exit_code, stdout, stderr = run_command(
         [sys.executable, "-c", "import value_fabric.shared; print(value_fabric.shared.__file__)"],
-        cwd=repo_root
+        cwd=repo_root,
+        env=env,
     )
     if exit_code == 0:
         resolved_path = stdout.strip()

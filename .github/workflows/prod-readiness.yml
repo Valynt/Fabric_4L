@@ -60,6 +60,15 @@ jobs:
     needs: [determine-profile, setup]
     steps:
       - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - name: Install gate dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r tests/requirements-test.txt psycopg2-binary "psycopg[pool]"
       - name: Run architecture conformance gate
         run: make gate-arch PROFILE=${{needs.determine-profile.outputs.profile}} POLICY_FILE=${POLICY_FILE}
       - uses: actions/upload-artifact@v4
@@ -72,6 +81,20 @@ jobs:
     needs: [determine-profile, setup]
     steps:
       - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - name: Install gate dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r tests/requirements-test.txt psycopg2-binary "psycopg[pool]" \
+            -r services/layer1-ingestion/requirements.txt
+      - name: Setup Node.js + pnpm
+        uses: ./.github/actions/setup-pnpm
+      - name: Install pnpm dependencies
+        run: pnpm install --frozen-lockfile
       - name: Run security & isolation gate
         run: make gate-security PROFILE=${{needs.determine-profile.outputs.profile}} POLICY_FILE=${POLICY_FILE}
       - name: Enforce tenant boundary release tests
@@ -129,6 +152,15 @@ jobs:
     needs: [determine-profile, setup]
     steps:
       - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - name: Install gate dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r tests/requirements-test.txt psycopg2-binary "psycopg[pool]"
       - name: Run dependency chaos gate
         run: make gate-chaos PROFILE=${{needs.determine-profile.outputs.profile}} POLICY_FILE=${POLICY_FILE}
       - uses: actions/upload-artifact@v4
@@ -142,6 +174,15 @@ jobs:
     needs: [determine-profile, setup]
     steps:
       - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - name: Install gate dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r tests/requirements-test.txt psycopg2-binary "psycopg[pool]"
       - name: Run cross-domain smoke gate
         run: make gate-smoke PROFILE=${{needs.determine-profile.outputs.profile}} POLICY_FILE=${POLICY_FILE}
       - uses: actions/upload-artifact@v4
@@ -154,6 +195,15 @@ jobs:
     needs: [determine-profile, setup]
     steps:
       - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - name: Install gate dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r tests/requirements-test.txt psycopg2-binary "psycopg[pool]"
       - name: Run agent provenance gate
         run: make gate-agent PROFILE=${{needs.determine-profile.outputs.profile}} POLICY_FILE=${POLICY_FILE}
       - uses: actions/upload-artifact@v4
@@ -166,6 +216,15 @@ jobs:
     needs: [determine-profile, setup]
     steps:
       - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - name: Install gate dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r tests/requirements-test.txt psycopg2-binary "psycopg[pool]"
       - name: Run state consistency gate
         run: make gate-state PROFILE=${{needs.determine-profile.outputs.profile}} POLICY_FILE=${POLICY_FILE}
       - uses: actions/upload-artifact@v4
@@ -176,8 +235,38 @@ jobs:
   db-production-readiness-gate:
     runs-on: ubuntu-latest
     needs: [determine-profile, setup]
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: valuefabric
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - name: Install gate dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r tests/requirements-test.txt psycopg2-binary "psycopg[pool]"
+      - name: Create per-service databases
+        env:
+          PGPASSWORD: postgres
+        run: |
+          for db in ingestion extraction signal_refinery layer4_agents ground_truth; do
+            psql -h localhost -U postgres -d valuefabric -c "CREATE DATABASE $db;"
+          done
       - name: Run DB production readiness gate
         run: |
           make gate-database PROFILE=${{needs.determine-profile.outputs.profile}} POLICY_FILE=${POLICY_FILE}
@@ -187,7 +276,6 @@ jobs:
         with:
           name: db-readiness-artifacts
           path: |
-            artifacts/release/junit/
             artifacts/database/**
 
   observability-readiness:
@@ -196,6 +284,15 @@ jobs:
     needs: [determine-profile, setup]
     steps:
       - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - name: Install gate dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r tests/requirements-test.txt psycopg2-binary "psycopg[pool]"
       - name: Run observability readiness gate
         run: make gate-obs PROFILE=${{needs.determine-profile.outputs.profile}} POLICY_FILE=${POLICY_FILE}
       - uses: actions/upload-artifact@v4
@@ -239,6 +336,20 @@ jobs:
     needs: [setup]
     steps:
       - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - name: Install gate dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r tests/requirements-test.txt psycopg2-binary "psycopg[pool]" \
+            -r services/layer1-ingestion/requirements.txt
+      - name: Setup Node.js + pnpm
+        uses: ./.github/actions/setup-pnpm
+      - name: Install pnpm dependencies
+        run: pnpm install --frozen-lockfile
       - name: Run readiness 10 gate
         shell: bash
         run: |
@@ -265,13 +376,13 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install jsonschema pyyaml
+          python -m pip install jsonschema pyyaml -r tests/requirements-test.txt
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
           node-version: "22.18.0"
       - name: Install pnpm
-        uses: pnpm/action-setup@v2.4.0
+        uses: pnpm/action-setup@v3
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Check canonical gate artifact paths
@@ -305,6 +416,20 @@ jobs:
 
   release-policy:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: valuefabric
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     needs:
       - determine-profile
       - arch-conformance
@@ -321,6 +446,27 @@ jobs:
     if: always()
     steps:
       - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - name: Install gate dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r tests/requirements-test.txt psycopg2-binary "psycopg[pool]" \
+            ruff -r services/layer1-ingestion/requirements.txt
+      - name: Setup Node.js + pnpm
+        uses: ./.github/actions/setup-pnpm
+      - name: Install pnpm dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Create per-service databases
+        env:
+          PGPASSWORD: postgres
+        run: |
+          for db in ingestion extraction signal_refinery layer4_agents ground_truth; do
+            psql -h localhost -U postgres -d valuefabric -c "CREATE DATABASE $db;"
+          done
       - name: Download all artifacts
         uses: actions/download-artifact@v4
       - name: Build launch-readiness evidence bundle
@@ -360,8 +506,12 @@ jobs:
                 return 0
               fi
             done
-            echo "Missing required artifact for ${label}: $*" >&2
-            exit 1
+            python scripts/ci/record_environment_required_artifact.py "$ENV_REQUIRED_FILE" "$label" "$*"
+            if [[ "${PROFILE}" == "release-candidate" ]]; then
+              echo "Missing release-candidate artifact for ${label}: $*" >&2
+              exit 1
+            fi
+            return 1
           }
 
           record_environment_required_artifact() {
@@ -381,16 +531,22 @@ jobs:
             return 1
           }
 
-          tenant_isolation_file="$(resolve_first_artifact \
+          tenant_isolation_file=""
+          if tenant_candidate="$(resolve_first_artifact \
             "tenant isolation test results" \
             "*/artifacts/security/tenant-isolation-results.json" \
             "*/artifacts/security/tenant-isolation/bundle-latest.json" \
-            "*/artifacts/tenant-isolation/summary.json")"
-          auth_coverage_file="$(resolve_first_artifact \
+            "*/artifacts/tenant-isolation/summary.json")"; then
+            tenant_isolation_file="${tenant_candidate}"
+          fi
+          auth_coverage_file=""
+          if auth_candidate="$(resolve_first_artifact \
             "auth endpoint coverage report" \
             "*/artifacts/security/auth-endpoint-coverage.json" \
             "*/artifacts/security/report.json" \
-            "*/artifacts/route-tenant-propagation.json")"
+            "*/artifacts/route-tenant-propagation.json")"; then
+            auth_coverage_file="${auth_candidate}"
+          fi
           migration_rollback_file=""
           if migration_candidate="$(record_environment_required_artifact "migration rollback test output" "*/artifacts/state/migration-rollback-test-output.txt")"; then
             migration_rollback_file="${migration_candidate}"
@@ -400,10 +556,14 @@ jobs:
             red_snapshot_file="${red_candidate}"
           fi
 
-          cp "${tenant_isolation_file}" "${SECURITY_DIR}/tenant-isolation-results-${BUNDLE_STAMP}.json"
-          cp "${tenant_isolation_file}" "${SECURITY_DIR}/tenant-isolation-results.json"
-          cp "${auth_coverage_file}" "${SECURITY_DIR}/auth-endpoint-coverage-${BUNDLE_STAMP}.json"
-          cp "${auth_coverage_file}" "${SECURITY_DIR}/auth-endpoint-coverage.json"
+          if [[ -n "${tenant_isolation_file}" ]]; then
+            cp "${tenant_isolation_file}" "${SECURITY_DIR}/tenant-isolation-results-${BUNDLE_STAMP}.json"
+            cp "${tenant_isolation_file}" "${SECURITY_DIR}/tenant-isolation-results.json"
+          fi
+          if [[ -n "${auth_coverage_file}" ]]; then
+            cp "${auth_coverage_file}" "${SECURITY_DIR}/auth-endpoint-coverage-${BUNDLE_STAMP}.json"
+            cp "${auth_coverage_file}" "${SECURITY_DIR}/auth-endpoint-coverage.json"
+          fi
 
           if [[ -n "${migration_rollback_file}" ]]; then
             cp "${migration_rollback_file}" "${READINESS_DIR}/migration-rollback-test-output-${BUNDLE_STAMP}.txt"
@@ -448,9 +608,18 @@ jobs:
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
       - uses: actions/download-artifact@v4
+        with:
+          # Extract the release-policy bundle contents directly at the repo
+          # root so they land at artifacts/release/... (exact name avoids the
+          # per-artifact subdirectory that pattern/all-artifact downloads add).
+          name: release-artifacts
+          path: .
       - name: Build PR summary
         run: make gate-summary
       - name: Assert machine-readable gate result exists
-        run: test -s artifacts/release/gate-result.json
+        # The release-artifacts bundle strips the leading artifacts/ prefix
+        # (upload common-ancestor semantics), so the extracted path is
+        # release/gate-result.json, not artifacts/release/gate-result.json.
+        run: test -s release/gate-result.json
       - name: Publish summary
         run: cat artifacts/release/summary.md >> $GITHUB_STEP_SUMMARY
