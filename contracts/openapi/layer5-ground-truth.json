@@ -2372,7 +2372,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/layer5_ground_truth__api__governance_router__AssumptionCreate"
+                "$ref": "#/components/schemas/layer5_ground_truth__api__governance_schemas__AssumptionCreate"
               }
             }
           }
@@ -2383,7 +2383,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/layer5_ground_truth__api__governance_router__AssumptionResponse"
+                  "$ref": "#/components/schemas/layer5_ground_truth__api__governance_schemas__AssumptionResponse"
                 }
               }
             }
@@ -2540,7 +2540,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/layer5_ground_truth__api__governance_router__AssumptionResponse"
+                  "$ref": "#/components/schemas/layer5_ground_truth__api__governance_schemas__AssumptionResponse"
                 }
               }
             }
@@ -2584,7 +2584,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/layer5_ground_truth__api__governance_router__AssumptionResponse"
+                  "$ref": "#/components/schemas/layer5_ground_truth__api__governance_schemas__AssumptionResponse"
                 }
               }
             }
@@ -6443,7 +6443,7 @@
           },
           "rules": {
             "items": {
-              "$ref": "#/components/schemas/layer5_ground_truth__api__governance_router__PolicyRuleCreate"
+              "$ref": "#/components/schemas/layer5_ground_truth__api__governance_schemas__PolicyRuleCreate"
             },
             "type": "array",
             "title": "Rules",
@@ -9457,7 +9457,7 @@
         ],
         "title": "PolicyRuleCreate"
       },
-      "layer5_ground_truth__api__governance_router__AssumptionCreate": {
+      "layer5_ground_truth__api__governance_schemas__AssumptionCreate": {
         "properties": {
           "name": {
             "type": "string",
@@ -9545,7 +9545,7 @@
         "title": "AssumptionCreate",
         "description": "Schema for creating an assumption."
       },
-      "layer5_ground_truth__api__governance_router__AssumptionResponse": {
+      "layer5_ground_truth__api__governance_schemas__AssumptionResponse": {
         "properties": {
           "id": {
             "type": "string",
@@ -9693,7 +9693,7 @@
         "title": "AssumptionResponse",
         "description": "Schema for assumption response."
       },
-      "layer5_ground_truth__api__governance_router__PolicyRuleCreate": {
+      "layer5_ground_truth__api__governance_schemas__PolicyRuleCreate": {
         "properties": {
           "rule_name": {
             "type": "string",

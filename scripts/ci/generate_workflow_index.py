@@ -6,7 +6,6 @@ import argparse
 import re
 import sys
 from collections import defaultdict
-from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -113,11 +112,8 @@ def build_index(workflows_dir: Path) -> str:
     lines.append("")
 
     # Maintenance footer
-    now = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     total = len(workflows)
     lines.append("## Workflow Maintenance")
-    lines.append("")
-    lines.append(f"**Last Updated:** {now}")
     lines.append("")
     lines.append(f"**Total Workflows:** {total}")
     lines.append("")
