@@ -1,5 +1,8 @@
 # Rule Review: `.windsurf/rules/` vs. Actual Codebase
 
+> **Note (path update):** This review predates the `.windsurf/` → `.devin/` rename (commit
+> `342c3249d`). All `.windsurf/` paths below now live under `.devin/`.
+
 **Date:** 2026-04-28 (Updated: 2026-05-22)
 **Scope:** `hard-constraints.yaml`, `dependency-rules.yaml`, `safety-rules.yaml`, `style-rules.yaml`
 **Method:** Automated code search + manual validation across 4,188+ test files, 406 frontend tests, 34 CI workflows, and all layer source trees.
