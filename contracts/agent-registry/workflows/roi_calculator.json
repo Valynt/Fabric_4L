@@ -36,7 +36,7 @@
   },
   "id": "workflow-roi-calculator",
   "workflow_type": "roi_calculator",
-  "source_path": "../../../services/layer4-agents/src/workflows/roi_calculator.py",
+  "source_path": "../../../services/layer4-agents/src/layer4_agents/workflows/roi_calculator.py",
   "description": "Calculates ROI from value-driver formulas with prospect data.",
   "entry_point": "load_prospect",
   "states": [

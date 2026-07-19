@@ -36,7 +36,7 @@
   },
   "id": "workflow-whitespace-analysis",
   "workflow_type": "whitespace_analysis",
-  "source_path": "../../../services/layer4-agents/src/workflows/whitespace.py",
+  "source_path": "../../../services/layer4-agents/src/layer4_agents/workflows/whitespace.py",
   "description": "Identifies gaps between prospect needs and solution capabilities.",
   "entry_point": "analyze_prospect",
   "states": [

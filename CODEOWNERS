@@ -1,0 +1,42 @@
+# Root CODEOWNERS index for repository discoverability.
+# Keep detailed ownership policy aligned with .github/CODEOWNERS when changing review gates.
+
+# Global fallback
+* @value-fabric/maintainers
+
+# Backend services
+/services/api/ @value-fabric/backend-leads @value-fabric/security-leads
+/services/layer1-ingestion/ @value-fabric/backend-leads @value-fabric/data-engineering
+/services/layer2-extraction/ @value-fabric/backend-leads @value-fabric/ai-ml-leads
+/services/layer3-knowledge/ @value-fabric/backend-leads @value-fabric/graph-specialists
+/services/layer4-agents/ @value-fabric/backend-leads @value-fabric/agent-team
+/services/layer5-ground-truth/ @value-fabric/backend-leads @value-fabric/data-engineering
+/services/layer6-benchmarks/ @value-fabric/backend-leads @value-fabric/qa-leads
+/packages/shared/ @value-fabric/backend-leads @value-fabric/architects
+
+# Frontend
+/apps/web/ @value-fabric/frontend-leads @value-fabric/ux-designers
+
+# Contracts and schemas
+/contracts/ @value-fabric/architects @value-fabric/backend-leads
+/contracts/openapi/ @value-fabric/architects @value-fabric/backend-leads
+/contracts/jsonschema/ @value-fabric/architects @value-fabric/backend-leads
+/packages/platform-contract/ @value-fabric/architects @value-fabric/backend-leads
+
+# Infrastructure and operations
+/infra/ @value-fabric/sre-leads @value-fabric/infrastructure-leads
+/k8s/ @value-fabric/sre-leads @value-fabric/infrastructure-leads
+/monitoring/ @value-fabric/sre-leads @value-fabric/backend-leads
+/ops/ @value-fabric/sre-leads @value-fabric/security-leads
+/.github/workflows/ @value-fabric/sre-leads @value-fabric/maintainers
+
+# Security gates and sensitive controls
+/SECURITY.md @value-fabric/security-leads @value-fabric/ciso
+/THREAT_MODEL.md @value-fabric/security-leads @value-fabric/ciso
+/docs/security/ @value-fabric/security-leads @value-fabric/ciso
+/tests/security/ @value-fabric/security-leads @value-fabric/qa-leads
+/.github/workflows/security-gates.yml @value-fabric/security-leads @value-fabric/sre-leads
+/.github/workflows/critical-gates.yml @value-fabric/security-leads @value-fabric/sre-leads
+/scripts/ci/check_*security* @value-fabric/security-leads @value-fabric/sre-leads
+/scripts/ci/*readiness* @value-fabric/security-leads @value-fabric/sre-leads
+/config/ci/ @value-fabric/security-leads @value-fabric/qa-leads
