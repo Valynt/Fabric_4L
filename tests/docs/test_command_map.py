@@ -328,6 +328,13 @@ def test_root_docs_link_to_command_map() -> None:
         assert not missing, f"{relative_path} is missing command-map links: {missing}"
 
 
+def test_readme_describes_make_setup_as_dependency_install_only() -> None:
+    readme = _read(REPO_ROOT / "README.md")
+
+    assert "| `make setup` | Install Python service development dependencies |" in readme
+    assert "| `make setup` | Install deps, start dev services, apply migrations |" not in readme
+
+
 def test_docs_quick_navigation_routes_major_work_surfaces() -> None:
     rows = _quick_navigation_rows()
     intents = {intent for intent, _ in rows}
