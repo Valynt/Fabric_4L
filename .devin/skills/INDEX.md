@@ -1,6 +1,6 @@
 # Skills Index
 
-This index catalogs all available skills in the `.windsurf/skills/` directory. Skills are reusable capability modules that agents can invoke programmatically.
+This index catalogs all available skills in the `.devin/skills/` directory. Skills are reusable capability modules that agents can invoke programmatically.
 
 For skill authoring specifications, see [SKILL_SCHEMA.md](./SKILL_SCHEMA.md).
 

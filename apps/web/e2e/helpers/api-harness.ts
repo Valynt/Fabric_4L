@@ -112,6 +112,13 @@ function emptyWorkspaceTab(tabName: string): Record<string, unknown[]> {
 }
 
 const DEFAULT_MOCKS: MockEndpoint[] = [
+  // Web-vitals telemetry beacon — fired by src/lib/web-vitals.ts on every
+  // page; the strict fail-closed harness must not treat it as unhandled.
+  {
+    pattern: /.*\/api\/v1\/telemetry\/web-vitals.*/,
+    method: "POST",
+    body: { accepted: true },
+  },
   // Account list — GET /api/v1/agents/accounts?...
   {
     pattern: /.*\/api\/v1\/agents\/accounts\?.*/,
@@ -293,15 +300,18 @@ const DEFAULT_MOCKS: MockEndpoint[] = [
     pattern: "**/api/v1/agents/health/**",
     body: { status: "healthy", components: {} },
   },
-  // Ingestion jobs — backend returns a paginated envelope.
+  // Ingestion jobs — backend returns the JobListResponse envelope
+  // ({ data, pagination, aggregation }) per contracts/openapi/layer1-ingestion.json.
   {
     pattern: "**/api/v1/ingest/jobs**",
     body: {
-      items: [],
-      total: 0,
-      page: 1,
-      page_size: 100,
-      has_more: false,
+      data: [],
+      pagination: { page: 1, limit: 100, total: 0, totalPages: 0 },
+      aggregation: {
+        by_status: {},
+        total_execution_time_ms: 0,
+        total_records_extracted: 0,
+      },
     },
   },
   // Settings
@@ -331,13 +341,24 @@ const DEFAULT_MOCKS: MockEndpoint[] = [
     pattern: "**/api/v1/agents/workflows/types",
     body: [],
   },
-  // Graph / Knowledge
+  // Graph / Knowledge (L3 layer prefix is /graph — see LAYER_PREFIXES in
+  // src/api/client.ts)
   {
-    pattern: "**/api/v1/entities**",
-    body: { entities: [], total: 0 },
+    // EntityListResponse per src/lib/validation/schemas.ts (EntityListResponseSchema)
+    pattern: "**/api/v1/graph/entities**",
+    body: {
+      results: [],
+      total_count: 0,
+      filtered_count: 0,
+      limit: 50,
+      offset: 0,
+      has_more: false,
+      available_domains: [],
+      available_sources: [],
+    },
   },
   {
-    pattern: "**/api/v1/value-trees**",
+    pattern: "**/api/v1/graph/value-trees**",
     body: { trees: [], total: 0 },
   },
   {
@@ -534,13 +555,19 @@ export function mockAccountData(
   for (const [key, tabName] of Object.entries(tabMap)) {
     const tabData = data[key as keyof typeof data];
     if (tabData && typeof tabData === "object") {
-      // Canonical backend path is `/agents/cases/{case_id}/workspace/{tab}`.
-      // Tests do not know the generated case id, so match any case id; the
-      // account-specific endpoint above is the stable fixture anchor.
+      // The frontend reads workspace tabs via
+      // GET /api/v1/agents/analysis/cases/{case_id}/workspace/{tab}
+      // (see useWorkspaceTabQuery in src/hooks/useWorkspaceCase.ts). Register
+      // the legacy /agents/cases/* variant too for older call sites.
+      // Match backend tab shape: `{ <tab>: [...] }`.
+      const body = { [tabName]: tabData, generated_at: new Date().toISOString() };
+      mocks.push({
+        pattern: `**/api/v1/agents/analysis/cases/*/workspace/${tabName}`,
+        body,
+      });
       mocks.push({
         pattern: `**/api/v1/agents/cases/*/workspace/${tabName}`,
-        // Match backend tab shape: `{ <tab>: [...] }`.
-        body: { [tabName]: tabData, generated_at: new Date().toISOString() },
+        body,
       });
     }
   }
@@ -550,6 +577,11 @@ export function mockAccountData(
 
 /**
  * Create mock endpoint definitions for ingestion jobs.
+ *
+ * Emits the canonical L1 JobListResponse envelope
+ * (contracts/openapi/layer1-ingestion.json → JobListResponse/JobSummary):
+ * `{ data: JobSummary[], pagination, aggregation }`. The frontend reads
+ * `response.data.data` and maps `configuration.url` + uppercase `status`.
  */
 export function mockIngestionJobs(
   jobs: Array<{
@@ -557,17 +589,36 @@ export function mockIngestionJobs(
     domain: string;
     status: "pending" | "processing" | "completed" | "failed";
     progress: number;
+    created_at?: string;
+    pages_processed?: number;
   }>
 ): MockEndpoint[] {
+  const fallbackCreatedAt = new Date().toISOString();
   const mocks: MockEndpoint[] = [
     {
-      pattern: "**/api/v1/ingest/jobs",
+      // Matches `/ingest/jobs` and `/ingest/jobs?...` but not `/ingest/jobs/{id}`.
+      pattern: /.*\/api\/v1\/ingest\/jobs(\?.*)?$/,
       body: {
-        items: jobs,
-        total: jobs.length,
-        page: 1,
-        page_size: 100,
-        has_more: false,
+        data: jobs.map(job => ({
+          id: job.id,
+          target_id: `target-${job.id}`,
+          status: job.status.toUpperCase(),
+          priority: 5,
+          progress_percent_complete: job.progress,
+          progress_processed_pages: job.pages_processed ?? 0,
+          created_at: job.created_at ?? fallbackCreatedAt,
+          configuration: { url: job.domain },
+        })),
+        pagination: { page: 1, limit: 100, total: jobs.length, totalPages: 1 },
+        aggregation: {
+          by_status: jobs.reduce<Record<string, number>>((acc, job) => {
+            const key = job.status.toUpperCase();
+            acc[key] = (acc[key] ?? 0) + 1;
+            return acc;
+          }, {}),
+          total_execution_time_ms: 0,
+          total_records_extracted: 0,
+        },
       },
     },
   ];
@@ -588,12 +639,23 @@ export function mockIngestionJobs(
 
 /**
  * Create mock endpoint for the agent stream chat.
+ *
+ * The app (src/agui/AgentEventClient.ts) first POSTs to the SSE endpoint
+ * `/agent-stream/chat/stream` and falls back to the legacy JSON endpoint
+ * `/agent-stream/chat` on a 404. Mocking the SSE endpoint with a 404 drives
+ * the app down the supported legacy path, which returns `response` as-is.
  */
 export function mockAgentStream(response: {
   content: string;
   metadata?: Record<string, string>;
 }): MockEndpoint[] {
   return [
+    {
+      pattern: "**/agent-stream/chat/stream",
+      method: "POST",
+      status: 404,
+      body: { detail: "SSE streaming is not available in contract mode" },
+    },
     {
       pattern: "**/agent-stream/chat",
       method: "POST",

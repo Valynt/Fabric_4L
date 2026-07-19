@@ -16,6 +16,9 @@
 
 name: "API Changelog"
 
+permissions:
+  contents: read
+
 on:
   release:
     types: [published]
@@ -50,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      releases: write
+      releases: write # Attaches the generated changelog and updates release notes.
 
     outputs:
       has_breaking: ${{ steps.changelog.outputs.has_breaking }}
@@ -195,7 +198,7 @@ jobs:
     if: needs.generate.outputs.has_breaking == 'true'
     runs-on: ubuntu-latest
     permissions:
-      issues: write
+      issues: write # Creates an advisory issue when breaking API changes are detected.
 
     steps:
       - name: Create breaking change advisory issue
