@@ -12,6 +12,9 @@
 
 name: Bundle Analysis
 
+permissions:
+  contents: read
+
 on:
   pull_request:
     branches: [main]
@@ -141,7 +144,8 @@ jobs:
     needs: [analyze]
     if: github.event_name == 'pull_request'
     permissions:
-      pull-requests: write
+      contents: read
+      pull-requests: write # Updates the pull request with the bundle-size report.
     steps:
       - name: Checkout PR
         uses: actions/checkout@v4

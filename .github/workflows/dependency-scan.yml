@@ -13,6 +13,9 @@
 
 name: Dependency Vulnerability Scan
 
+permissions:
+  contents: read
+
 on:
   pull_request:
     paths:
@@ -62,7 +65,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      security-events: write # Upload SARIF
+      security-events: write # Uploads dependency scan SARIF to code scanning.
 
     strategy:
       fail-fast: false
@@ -209,7 +212,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      security-events: write
+      security-events: write # Uploads dependency scan SARIF to code scanning.
 
     strategy:
       fail-fast: false
@@ -286,7 +289,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      security-events: write
+      security-events: write # Uploads container scan SARIF to code scanning.
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
 
     steps:
