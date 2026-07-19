@@ -215,7 +215,9 @@ class TestAcceptInviteTokenEnforcement:
             "password": "AttackerPass123!",
             "name": "Attacker",
         })
-        assert response.status_code in (400, 401, 422)
+        # Missing `token` field is a schema-level rejection (422), which is
+        # information-free: it reveals nothing about the email's existence.
+        assert response.status_code == 422
         assert "access_token" not in response.json()
 
         invited = _find_user_by_email(TENANT_ALPHA, "notoken@alpha.com")
@@ -338,7 +340,7 @@ class TestAcceptInviteTokenEnforcement:
             "password": "AttackerPass123!",
             "name": "Victim",
         })
-        assert old_shape.status_code in (400, 401, 422)
+        assert old_shape.status_code == 422  # missing `token` = schema-level rejection
 
         # Guessed token for the same victim.
         guessed = client.post("/v1/auth/accept-invite", json={
