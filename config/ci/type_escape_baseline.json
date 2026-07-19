@@ -7880,25 +7880,25 @@
     },
     {
       "kind": "python-any",
-      "line": 91,
+      "line": 96,
       "path": "scripts/ci/sync_deprecation_register.py",
       "text": "def extract_deprecations_from_spec(spec_path: Path) -> list[dict[str, Any]]:"
     },
     {
       "kind": "python-any",
-      "line": 144,
+      "line": 149,
       "path": "scripts/ci/sync_deprecation_register.py",
       "text": "def load_deprecation_register() -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 162,
+      "line": 167,
       "path": "scripts/ci/sync_deprecation_register.py",
       "text": "def save_deprecation_register(register: dict[str, Any]) -> bool:"
     },
     {
       "kind": "python-any",
-      "line": 180,
+      "line": 185,
       "path": "scripts/ci/sync_deprecation_register.py",
       "text": "def sync_deprecation_register(register: dict[str, Any], all_deprecations: list[dict[str, Any]]) -> dict[str, Any]:"
     },
@@ -23900,133 +23900,85 @@
     },
     {
       "kind": "python-any",
-      "line": 100,
-      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis.py",
-      "text": "manifest: dict[str, Any]"
-    },
-    {
-      "kind": "python-any",
-      "line": 102,
-      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis.py",
-      "text": "remediation_items: list[dict[str, Any]]"
-    },
-    {
-      "kind": "python-any",
-      "line": 103,
-      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis.py",
-      "text": "truth_references: list[dict[str, Any]]"
-    },
-    {
-      "kind": "python-any",
-      "line": 158,
+      "line": 135,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis.py",
       "text": "def _get_neo4j_driver(request: Request) -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 187,
+      "line": 164,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis.py",
       "text": "def _compute_case_diff(previous: dict[str, Any], current: dict[str, Any]) -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 229,
+      "line": 206,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis.py",
       "text": "account: Any,"
     },
     {
       "kind": "python-any",
-      "line": 273,
+      "line": 250,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis.py",
       "text": "account: Any,"
     },
     {
       "kind": "python-any",
-      "line": 331,
+      "line": 308,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis.py",
       "text": "async def _require_tenant_account(db: AsyncSession, account_id: UUID, context: RequestContext) -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 437,
+      "line": 414,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 489,
+      "line": 466,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 552,
+      "line": 529,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 612,
+      "line": 589,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 1044,
+      "line": 1021,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 1075,
+      "line": 1052,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis.py",
       "text": "seeded_cases: list[dict[str, Any]] = []"
     },
     {
       "kind": "python-any",
-      "line": 1171,
+      "line": 1148,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis.py",
       "text": "record: Any,"
     },
     {
       "kind": "python-any",
-      "line": 1173,
+      "line": 1150,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis.py",
       "text": "account: Any,"
     },
     {
       "kind": "python-any",
-      "line": 1203,
-      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis.py",
-      "text": ") -> dict[str, Any]:"
-    },
-    {
-      "kind": "python-any",
-      "line": 1678,
-      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis.py",
-      "text": "normalized_items: list[dict[str, Any]] = []"
-    },
-    {
-      "kind": "python-any",
-      "line": 1702,
-      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis.py",
-      "text": ") -> dict[str, Any]:"
-    },
-    {
-      "kind": "python-any",
-      "line": 1728,
-      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis.py",
-      "text": "payload: dict[str, Any],"
-    },
-    {
-      "kind": "python-any",
-      "line": 1731,
-      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis.py",
-      "text": ") -> dict[str, Any]:"
-    },
-    {
-      "kind": "python-any",
-      "line": 1763,
+      "line": 1180,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis.py",
       "text": ") -> dict[str, Any]:"
     },
@@ -24191,6 +24143,54 @@
       "line": 250,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis_schemas.py",
       "text": "adjustments: list[dict[str, Any]]"
+    },
+    {
+      "kind": "python-any",
+      "line": 4,
+      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis_workspace.py",
+      "text": "from typing import Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 42,
+      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis_workspace.py",
+      "text": "get_neo4j_driver: Callable[[Request], Any],"
+    },
+    {
+      "kind": "python-any",
+      "line": 68,
+      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis_workspace.py",
+      "text": "normalized_items: list[dict[str, Any]] = []"
+    },
+    {
+      "kind": "python-any",
+      "line": 94,
+      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis_workspace.py",
+      "text": ") -> dict[str, Any]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 120,
+      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis_workspace.py",
+      "text": "payload: dict[str, Any],"
+    },
+    {
+      "kind": "python-any",
+      "line": 123,
+      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis_workspace.py",
+      "text": ") -> dict[str, Any]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 160,
+      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis_workspace.py",
+      "text": ") -> dict[str, Any]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 235,
+      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis_workspace.py",
+      "text": "tab_data: dict[str, dict[str, Any]] = {"
     },
     {
       "kind": "python-any",
@@ -36302,247 +36302,259 @@
     },
     {
       "kind": "python-any",
-      "line": 8,
+      "line": 9,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "from typing import Any"
     },
     {
       "kind": "python-any",
-      "line": 21,
+      "line": 22,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "async def _async_return(value: Any) -> Any:"
     },
     {
       "kind": "python-any",
+      "line": 27,
+      "path": "services/layer4-agents/tests/test_analysis_routes.py",
+      "text": "def _async_dependency(value: Any) -> Callable[[], Awaitable[Any]]:"
+    },
+    {
+      "kind": "python-any",
       "line": 30,
+      "path": "services/layer4-agents/tests/test_analysis_routes.py",
+      "text": "async def dependency() -> Any:"
+    },
+    {
+      "kind": "python-any",
+      "line": 40,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "execute_response: Any"
     },
     {
       "kind": "python-any",
-      "line": 31,
+      "line": 41,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "results_by_id: dict[str, dict[str, Any]] = field(default_factory=dict)"
     },
     {
       "kind": "python-any",
-      "line": 32,
+      "line": 42,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "execute_calls: list[dict[str, Any]] = field(default_factory=list)"
     },
     {
       "kind": "python-any",
-      "line": 35,
+      "line": 45,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "async def execute_workflow(self, **kwargs: Any) -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 39,
+      "line": 49,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "async def get_result(self, workflow_id: str) -> dict[str, Any] | None:"
     },
     {
       "kind": "python-any",
-      "line": 45,
+      "line": 55,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "def __init__(self, records: list[Any]) -> None:"
     },
     {
       "kind": "python-any",
-      "line": 48,
+      "line": 58,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "def all(self) -> list[Any]:"
     },
     {
       "kind": "python-any",
-      "line": 53,
+      "line": 63,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "def __init__(self, records: list[Any] | None = None, rowcount: int = 0) -> None:"
     },
     {
       "kind": "python-any",
-      "line": 60,
+      "line": 70,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "def scalar_one_or_none(self) -> Any | None:"
     },
     {
       "kind": "python-any",
-      "line": 65,
+      "line": 75,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "def __init__(self, records: list[Any] | None = None, delete_rowcount: int = 1) -> None:"
     },
     {
       "kind": "python-any",
-      "line": 68,
+      "line": 78,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "self.added: list[Any] = []"
     },
     {
       "kind": "python-any",
-      "line": 70,
+      "line": 80,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "async def execute(self, statement: Any) -> FakeExecuteResult:"
     },
     {
       "kind": "python-any",
-      "line": 76,
+      "line": 86,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "def add(self, record: Any) -> None:"
     },
     {
       "kind": "python-any",
-      "line": 93,
+      "line": 103,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "async def _mock_context() -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 111,
+      "line": 121,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "self.added: list[Any] = []"
     },
     {
       "kind": "python-any",
-      "line": 113,
+      "line": 123,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "async def execute(self, stmt: Any) -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 116,
+      "line": 126,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "def add(self, record: Any) -> None:"
     },
     {
       "kind": "python-any",
-      "line": 157,
+      "line": 167,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "self.added: list[Any] = []"
     },
     {
       "kind": "python-any",
-      "line": 159,
+      "line": 169,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "async def execute(self, stmt: Any) -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 162,
+      "line": 172,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "def add(self, record: Any) -> None:"
     },
     {
       "kind": "python-any",
-      "line": 225,
+      "line": 235,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "async def get(self, model: Any, key: str) -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 268,
+      "line": 278,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "async def get(self, model: Any, key: str) -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 277,
+      "line": 287,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "async def execute(self, stmt: Any) -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 280,
+      "line": 290,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "async def mock_require_authenticated_export() -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 294,
+      "line": 304,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "async def _fake_get_account(account_id: Any, tenant_id: Any = None) -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 301,
+      "line": 311,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "async def _fake_require_approved_case(record: Any, context: Any, account: Any, format: str = \"pdf\") -> None:"
     },
     {
       "kind": "python-any",
-      "line": 339,
+      "line": 349,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "audit_events: list[dict[str, Any]] = []"
     },
     {
       "kind": "python-any",
-      "line": 342,
+      "line": 352,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "async def get(self, model: Any, key: str) -> Any:"
-    },
-    {
-      "kind": "python-any",
-      "line": 351,
-      "path": "services/layer4-agents/tests/test_analysis_routes.py",
-      "text": "async def mock_context() -> Any:"
     },
     {
       "kind": "python-any",
       "line": 361,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
+      "text": "async def mock_context() -> Any:"
+    },
+    {
+      "kind": "python-any",
+      "line": 371,
+      "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "async def fake_get_account(account_id: Any, tenant_id: Any = None) -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 364,
+      "line": 374,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "async def capture_audit(**kwargs: Any) -> None:"
     },
     {
       "kind": "python-any",
-      "line": 367,
+      "line": 377,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "async def fail_upload(**kwargs: Any) -> None:"
     },
     {
       "kind": "python-any",
-      "line": 426,
+      "line": 436,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "uploads: list[dict[str, Any]] = []"
     },
     {
       "kind": "python-any",
-      "line": 427,
+      "line": 437,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "audit_events: list[dict[str, Any]] = []"
     },
     {
       "kind": "python-any",
-      "line": 430,
+      "line": 440,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "async def get(self, model: Any, key: str) -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 439,
+      "line": 449,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "async def mock_context() -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 449,
+      "line": 459,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "async def fake_get_account(account_id: Any, tenant_id: Any = None) -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 452,
+      "line": 462,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "async def capture_upload(**kwargs: Any) -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 459,
+      "line": 469,
       "path": "services/layer4-agents/tests/test_analysis_routes.py",
       "text": "async def capture_audit(**kwargs: Any) -> None:"
     },
@@ -39302,19 +39314,31 @@
     },
     {
       "kind": "python-any",
+      "line": 26,
+      "path": "tests/ci/test_type_escape_ratchet.py",
+      "text": "python_file.write_text(\"value: Any = source  # type: ignore[assignment]\\n\", encoding=\"utf-8\")"
+    },
+    {
+      "kind": "python-type-ignore",
+      "line": 26,
+      "path": "tests/ci/test_type_escape_ratchet.py",
+      "text": "python_file.write_text(\"value: Any = source  # type: ignore[assignment]\\n\", encoding=\"utf-8\")"
+    },
+    {
+      "kind": "python-any",
       "line": 4,
       "path": "tests/ci/test_workflow_permissions.py",
       "text": "from typing import Any"
     },
     {
       "kind": "python-any",
-      "line": 138,
+      "line": 167,
       "path": "tests/ci/test_workflow_permissions.py",
       "text": "def _load_workflow(path: Path) -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 145,
+      "line": 174,
       "path": "tests/ci/test_workflow_permissions.py",
       "text": "workflow_name: str, permissions: Any, location: str"
     },
