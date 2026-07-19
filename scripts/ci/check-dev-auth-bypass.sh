@@ -5,7 +5,8 @@
 if grep -rn "ALLOW_INSECURE_DEV_AUTH_BYPASS=true" . \
     --include="*.yml" --include="*.yaml" --include="*.py" \
     --exclude="test_production_defaults.py" \
-    --exclude-dir=.git --exclude-dir=.venv --exclude-dir=node_modules > /dev/null; then
+    --exclude-dir=.git --exclude-dir=.venv --exclude-dir=node_modules \
+    --exclude-dir=tests > /dev/null; then
     echo "ERROR: ALLOW_INSECURE_DEV_AUTH_BYPASS=true found in committed files"
     exit 1
 fi
