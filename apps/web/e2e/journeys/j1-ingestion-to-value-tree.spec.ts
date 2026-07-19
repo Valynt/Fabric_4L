@@ -114,7 +114,7 @@ journeyTest.describe('Journey 1: Domain Ingestion → Value Tree Exploration', (
     await domainInput.first().fill(TEST_DOMAIN);
 
     // Click the synthesize/submit button
-    const submitButton = authedPage.getByRole('button', { name: /synthesize/i })
+    const submitButton = authedPage.getByRole('button', { name: /synthesis|synthesize/i })
       .or(authedPage.getByRole('button', { name: /submit/i }));
     await expect(submitButton.first()).toBeEnabled();
     await submitButton.first().click();
