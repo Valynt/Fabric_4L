@@ -173,7 +173,14 @@ export interface paths {
         put?: never;
         /**
          * Accept Invite
-         * @description Accept an invitation by setting a password and activating the account.
+         * @description Accept an invitation with the single-use invite token.
+         *
+         *     The presented token is SHA-256 hashed and matched against the stored hash
+         *     on the invited user's record — never by email. Every failure mode (unknown
+         *     token, expired token, already-consumed token, non-invited account) returns
+         *     the same uniform 401 so the endpoint cannot be used as a cross-tenant
+         *     email census or invitation-state oracle. On success the token is consumed
+         *     (cleared) so it can never be replayed.
          */
         post: operations["accept_invite_v1_auth_accept_invite_post"];
         delete?: never;
@@ -1812,11 +1819,8 @@ export interface components {
         };
         /** AcceptInviteRequest */
         AcceptInviteRequest: {
-            /**
-             * Email
-             * Format: email
-             */
-            email: string;
+            /** Token */
+            token: string;
             /** Password */
             password: string;
             /** Name */
@@ -2520,6 +2524,32 @@ export interface components {
              * @enum {string}
              */
             role: "tenant_admin" | "content_admin" | "analyst" | "read_only";
+        };
+        /**
+         * InviteResponse
+         * @description Response returned once when an invitation is created.
+         *
+         *     ``invite_token`` is the plaintext single-use invite secret. It is returned
+         *     exactly once in this response; only its SHA-256 hash (plus expiry) is
+         *     persisted on the invited user's record. Production delivery of the token
+         *     to the invitee is via email (out of scope for this service); returning it
+         *     here is the development/test delivery channel.
+         */
+        InviteResponse: {
+            /** Id */
+            id: string;
+            /** Email */
+            email: string;
+            /** Name */
+            name: string;
+            /** Role */
+            role: string;
+            /** Tenant Id */
+            tenant_id: string;
+            /** Status */
+            status: string;
+            /** Invite Token */
+            invite_token: string;
         };
         /** LoginRequest */
         LoginRequest: {
@@ -3906,7 +3936,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["UserResponse"];
+                    "application/json": components["schemas"]["InviteResponse"];
                 };
             };
             /** @description Validation Error */

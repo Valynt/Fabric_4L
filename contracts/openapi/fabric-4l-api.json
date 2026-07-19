@@ -616,7 +616,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UserResponse"
+                  "$ref": "#/components/schemas/InviteResponse"
                 }
               }
             }
@@ -640,7 +640,7 @@
           "Authentication"
         ],
         "summary": "Accept Invite",
-        "description": "Accept an invitation by setting a password and activating the account.",
+        "description": "Accept an invitation with the single-use invite token.\n\nThe presented token is SHA-256 hashed and matched against the stored hash\non the invited user's record \u2014 never by email. Every failure mode (unknown\ntoken, expired token, already-consumed token, non-invited account) returns\nthe same uniform 401 so the endpoint cannot be used as a cross-tenant\nemail census or invitation-state oracle. On success the token is consumed\n(cleared) so it can never be replayed.",
         "operationId": "accept_invite_v1_auth_accept_invite_post",
         "requestBody": {
           "content": {
@@ -7059,10 +7059,9 @@
       },
       "AcceptInviteRequest": {
         "properties": {
-          "email": {
+          "token": {
             "type": "string",
-            "format": "email",
-            "title": "Email"
+            "title": "Token"
           },
           "password": {
             "type": "string",
@@ -7075,7 +7074,7 @@
         },
         "type": "object",
         "required": [
-          "email",
+          "token",
           "password",
           "name"
         ],
@@ -8920,6 +8919,50 @@
           "name"
         ],
         "title": "InviteRequest"
+      },
+      "InviteResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "role": {
+            "type": "string",
+            "title": "Role"
+          },
+          "tenant_id": {
+            "type": "string",
+            "title": "Tenant Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "invite_token": {
+            "type": "string",
+            "title": "Invite Token"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "email",
+          "name",
+          "role",
+          "tenant_id",
+          "status",
+          "invite_token"
+        ],
+        "title": "InviteResponse",
+        "description": "Response returned once when an invitation is created.\n\n``invite_token`` is the plaintext single-use invite secret. It is returned\nexactly once in this response; only its SHA-256 hash (plus expiry) is\npersisted on the invited user's record. Production delivery of the token\nto the invitee is via email (out of scope for this service); returning it\nhere is the development/test delivery channel."
       },
       "LoginRequest": {
         "properties": {
