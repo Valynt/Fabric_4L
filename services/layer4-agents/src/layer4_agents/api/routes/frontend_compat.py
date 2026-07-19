@@ -122,7 +122,7 @@ async def get_auth_session_frontend_alias(
     )
 
 
-@router.get("/tenant/settings", response_model=TenantSettingsResponse, deprecated=True, openapi_extra={"x-deprecated-removal-date": "2026-08-01", "x-canonical-path": "/v1/tenants/current/settings"})
+@router.get("/tenant/settings", response_model=TenantSettingsResponse, deprecated=True, openapi_extra={"x-deprecated-since": "2026-05-29", "x-deprecated-removal-date": "2026-08-01", "x-deprecation-owner": "layer4-agents", "x-canonical-path": "/v1/tenants/current/settings"})
 async def get_current_tenant_settings(
     db: AsyncSession = Depends(get_db_from_context),
     ctx: RequestContext = Depends(require_authenticated),
@@ -146,7 +146,7 @@ async def get_current_tenant_settings(
     )
 
 
-@router.patch("/tenant/settings", response_model=TenantSettingsUpdateResponse, deprecated=True, openapi_extra={"x-deprecated-removal-date": "2026-08-01", "x-canonical-path": "/v1/tenants/current/settings"})
+@router.patch("/tenant/settings", response_model=TenantSettingsUpdateResponse, deprecated=True, openapi_extra={"x-deprecated-since": "2026-05-29", "x-deprecated-removal-date": "2026-08-01", "x-deprecation-owner": "layer4-agents", "x-canonical-path": "/v1/tenants/current/settings"})
 async def update_current_tenant_settings(
     update: TenantSettingsUpdate,
     db: AsyncSession = Depends(get_db_from_context),
@@ -192,7 +192,7 @@ async def update_current_tenant_settings(
     )
 
 
-@router.post("/auth/register", status_code=202, response_model=RegisterTenantResponse, deprecated=True, openapi_extra={"x-deprecated-removal-date": "2026-07-01", "x-canonical-path": "/v1/tenants/register"})
+@router.post("/auth/register", status_code=202, response_model=RegisterTenantResponse, deprecated=True, openapi_extra={"x-deprecated-since": "2026-05-29", "x-deprecated-removal-date": "2026-07-01", "x-deprecation-owner": "layer4-agents", "x-canonical-path": "/v1/tenants/register"})
 async def register_tenant_frontend_alias(
     request: RegisterTenantRequest,
     db: AsyncSession = Depends(get_db_from_context),

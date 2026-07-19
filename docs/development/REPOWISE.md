@@ -36,10 +36,22 @@ export REPOWISE_API_KEY=<your key>
 | Agent client | Config file | Notes |
 |---|---|---|
 | Claude Code | `.mcp.json` (repo root) | Project-scoped `http` server; expands `${REPOWISE_API_KEY}` from the environment |
+| Codex | `.codex/config.toml` | Project-scoped streamable HTTP server; reads its bearer token from `REPOWISE_API_KEY` |
 | Roo Code | `.roo/mcp.json` | `streamable-http` transport |
 | Gemini CLI | `.gemini/settings.json` | `httpUrl` transport; expands `${REPOWISE_API_KEY}` |
 | VS Code / Copilot | `.vscode/mcp.json` (not committed — `.vscode/` is gitignored) | Create locally; example below |
 | Copilot coding agent | Repository **Settings → Copilot → Coding agent → MCP configuration** | Store the key as the `COPILOT_MCP_REPOWISE_API_KEY` Actions secret |
+
+### Codex configuration
+
+The repository includes `.codex/config.toml`; Codex reads `REPOWISE_API_KEY` at
+runtime and never stores the token in the configuration file.
+
+```toml
+[mcp_servers.repowise]
+url = "https://api.repowise.dev/mcp/bmsull560/fabric_4l"
+bearer_token_env_var = "REPOWISE_API_KEY"
+```
 
 ### Example `.vscode/mcp.json` (create locally, not committed)
 

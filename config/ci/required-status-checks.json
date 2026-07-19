@@ -7,7 +7,7 @@
   "required_status_checks": [
     "mandatory-security-regression",
     "contract-compliance",
-    "structural-preflight",
+    "Structural Preflight",
     "prod-readiness",
     "behavior-tests",
     "Layer 5 - Source Contract",
