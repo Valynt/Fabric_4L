@@ -137,6 +137,10 @@ class ContentExtractor:
 
     def _extract_metadata(self, soup: BeautifulSoup, url: str) -> dict[str, Any]:
         """Extract metadata from HTML head and structured data."""
+        return self._build_metadata(soup, url)
+
+    def _build_metadata(self, soup: BeautifulSoup, url: str) -> dict[str, Any]:
+        """Build metadata from HTML head and structured data."""
         metadata = {
             "url": url,
             "domain": urlparse(url).netloc,
