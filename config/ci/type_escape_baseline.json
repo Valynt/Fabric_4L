@@ -10256,103 +10256,103 @@
     },
     {
       "kind": "python-any",
-      "line": 289,
+      "line": 282,
       "path": "services/api/app/models/schemas.py",
       "text": "assumptions: dict[str, Any] = Field(default_factory=dict)"
     },
     {
       "kind": "python-any",
-      "line": 290,
+      "line": 283,
       "path": "services/api/app/models/schemas.py",
       "text": "roi_summary: dict[str, Any] | None = None"
     },
     {
       "kind": "python-any",
-      "line": 337,
+      "line": 330,
       "path": "services/api/app/models/schemas.py",
       "text": "export_payload: dict[str, Any] = Field(default_factory=dict)"
     },
     {
       "kind": "python-any",
-      "line": 356,
+      "line": 349,
       "path": "services/api/app/models/schemas.py",
       "text": "calculation_trace: list[dict[str, Any]] = Field(default_factory=list)"
     },
     {
       "kind": "python-any",
-      "line": 373,
+      "line": 366,
       "path": "services/api/app/models/schemas.py",
       "text": "calculation_trace: list[dict[str, Any]] = Field(default_factory=list)"
     },
     {
       "kind": "python-any",
-      "line": 387,
+      "line": 380,
       "path": "services/api/app/models/schemas.py",
       "text": "calculation_trace: list[dict[str, Any]] | None = None"
     },
     {
       "kind": "python-any",
-      "line": 414,
+      "line": 407,
       "path": "services/api/app/models/schemas.py",
       "text": "inputs: dict[str, Any] = Field(default_factory=dict)"
     },
     {
       "kind": "python-any",
-      "line": 421,
+      "line": 414,
       "path": "services/api/app/models/schemas.py",
       "text": "roi_snapshot: dict[str, Any] | None = None"
     },
     {
       "kind": "python-any",
-      "line": 478,
+      "line": 471,
       "path": "services/api/app/models/schemas.py",
       "text": "payload: dict[str, Any] | None = None"
     },
     {
       "kind": "python-any",
-      "line": 554,
+      "line": 547,
       "path": "services/api/app/models/schemas.py",
       "text": "output: dict[str, Any] | None = None"
     },
     {
       "kind": "python-any",
-      "line": 568,
+      "line": 561,
       "path": "services/api/app/models/schemas.py",
       "text": "input: dict[str, Any] | None = None"
     },
     {
       "kind": "python-any",
-      "line": 569,
+      "line": 562,
       "path": "services/api/app/models/schemas.py",
       "text": "output: dict[str, Any] | None = None"
     },
     {
       "kind": "python-any",
-      "line": 591,
+      "line": 584,
       "path": "services/api/app/models/schemas.py",
       "text": "result: dict[str, Any] | None = None"
     },
     {
       "kind": "python-any",
-      "line": 592,
+      "line": 585,
       "path": "services/api/app/models/schemas.py",
       "text": "input: dict[str, Any] | None = None"
     },
     {
       "kind": "python-any",
-      "line": 661,
+      "line": 654,
       "path": "services/api/app/models/schemas.py",
       "text": "from_value: Any = Field(alias=\"from\")"
     },
     {
       "kind": "python-any",
-      "line": 662,
+      "line": 655,
       "path": "services/api/app/models/schemas.py",
       "text": "to_value: Any = Field(alias=\"to\")"
     },
     {
       "kind": "python-any",
-      "line": 675,
+      "line": 668,
       "path": "services/api/app/models/schemas.py",
       "text": "ontology: dict[str, Any] = Field(default_factory=dict)"
     },
@@ -33308,43 +33308,43 @@
     },
     {
       "kind": "python-any",
-      "line": 342,
+      "line": 339,
       "path": "services/layer4-agents/src/layer4_agents/services/integration_service.py",
       "text": "async def test_connection(self, tenant_id: str, provider: CRMProvider) -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 399,
+      "line": 396,
       "path": "services/layer4-agents/src/layer4_agents/services/integration_service.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 429,
+      "line": 426,
       "path": "services/layer4-agents/src/layer4_agents/services/integration_service.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 526,
+      "line": 523,
       "path": "services/layer4-agents/src/layer4_agents/services/integration_service.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 608,
+      "line": 605,
       "path": "services/layer4-agents/src/layer4_agents/services/integration_service.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 882,
+      "line": 879,
       "path": "services/layer4-agents/src/layer4_agents/services/integration_service.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 939,
+      "line": 936,
       "path": "services/layer4-agents/src/layer4_agents/services/integration_service.py",
       "text": "token_data: dict[str, Any],"
     },
