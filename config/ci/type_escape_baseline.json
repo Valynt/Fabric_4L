@@ -33308,43 +33308,43 @@
     },
     {
       "kind": "python-any",
-      "line": 339,
+      "line": 342,
       "path": "services/layer4-agents/src/layer4_agents/services/integration_service.py",
       "text": "async def test_connection(self, tenant_id: str, provider: CRMProvider) -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 396,
+      "line": 399,
       "path": "services/layer4-agents/src/layer4_agents/services/integration_service.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 426,
+      "line": 429,
       "path": "services/layer4-agents/src/layer4_agents/services/integration_service.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 523,
+      "line": 526,
       "path": "services/layer4-agents/src/layer4_agents/services/integration_service.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 605,
+      "line": 608,
       "path": "services/layer4-agents/src/layer4_agents/services/integration_service.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 879,
+      "line": 882,
       "path": "services/layer4-agents/src/layer4_agents/services/integration_service.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 936,
+      "line": 939,
       "path": "services/layer4-agents/src/layer4_agents/services/integration_service.py",
       "text": "token_data: dict[str, Any],"
     },
