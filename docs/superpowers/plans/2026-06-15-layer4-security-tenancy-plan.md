@@ -1,5 +1,7 @@
 # Layer 4 Security & Tenancy Hardening Plan
 
+**Status:** Active sub-plan — audit note added 2026-07-18. This plan is a child of `docs/superpowers/specs/2026-06-15-launch-critical-security-tenancy-remediation.md`; start with the parent spec for cross-layer context and verify each task against current code before execution.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Remove hardcoded secrets, eliminate dynamic SQL/Cypher injection surfaces, enforce tenant-scoped S3 keys, and route all Layer 4 graph queries through a tenant-validating seam.

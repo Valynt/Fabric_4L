@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiGet, apiPost } from '@/api/typedClient';
 import type { l3, l4 } from '@/api/generated';
 import { QK } from './queryKeys';
@@ -139,6 +139,7 @@ export function useBusinessCase(businessCaseId: string | null) {
 }
 
 export function useRegenerateBusinessCase() {
+  const queryClient = useQueryClient();
   return useMutation<BusinessCase, DocumentApiError, { caseId: string; accountId: string; valueCaseVersion?: string; valueCaseHash?: string }>({
     mutationFn: async ({ caseId, accountId, valueCaseVersion, valueCaseHash }) => {
       const response = await apiPost<l4.components['schemas']['BusinessCaseResponse']>(
@@ -154,6 +155,10 @@ export function useRegenerateBusinessCase() {
         }
       );
       return normalizeBusinessCase(response.data);
+    },
+    onSuccess: (_data, { caseId }) => {
+      // Regeneration changes case content — refetch the cached detail view
+      queryClient.invalidateQueries({ queryKey: QK.documents.businessCase(caseId) });
     },
     onError: (error) => {
       log.error('RegenerateBusinessCase failed', { error: error instanceof Error ? error.message : String(error) });

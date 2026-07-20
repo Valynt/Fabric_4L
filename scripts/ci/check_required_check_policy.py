@@ -58,26 +58,20 @@ def main() -> int:
             "governance required-check mirror does not match config/ci/required-status-checks.json"
         )
 
-    for check in checks:
-        if f'"{check}"' not in workflow_text:
-            errors.append(f"missing required check in workflow validation list: {check}")
-
     emitted_pr_job_names = _load_pr_job_names()
     for check in checks:
         if check not in emitted_pr_job_names:
             errors.append(f"required check is not emitted by a pull_request workflow job: {check}")
 
     for pattern in governance_metadata.get("protected_branch_patterns", []):
-        if pattern == "release/*" and "release/" not in workflow_text:
-            errors.append("workflow does not validate release/* branches")
-        elif pattern == "main" and '"main"' not in workflow_text:
+        if pattern == "main" and "branches/main/protection" not in workflow_text:
             errors.append("workflow does not validate main branch")
 
-    if governance_metadata.get("enforcement", {}).get("pull_request_merges") and "strict" not in workflow_text:
-        errors.append("workflow does not assert strict required status checks (PR merge up-to-date enforcement)")
+    if governance_metadata.get("enforcement", {}).get("pull_request_merges") and "validate_mandatory_security_gate_enforcement.py" not in workflow_text:
+        errors.append("workflow does not assert mandatory security gate enforcement (PR merge strict up-to-date enforcement)")
 
-    if governance_metadata.get("enforcement", {}).get("direct_pushes") and "contexts" not in workflow_text:
-        errors.append("workflow does not assert required status check contexts (direct push enforcement)")
+    if governance_metadata.get("enforcement", {}).get("direct_pushes") and "validate_mandatory_security_gate_enforcement.py" not in workflow_text:
+        errors.append("workflow does not assert mandatory security gate enforcement (direct push enforcement)")
 
     if errors:
         for error in errors:

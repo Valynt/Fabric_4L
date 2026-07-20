@@ -1,4 +1,5 @@
 import { RouterProvider } from "react-router-dom";
+import { MotionConfig } from "framer-motion";
 import { ErrorBoundary } from "@/components";
 import { OfflineBanner } from "@/components/OfflineBanner";
 import { Toaster } from "@/components/ui/sonner";
@@ -11,17 +12,19 @@ import { router } from "./shell/router";
 export default function App() {
   return (
     <ErrorBoundary>
-      <ThemeProvider defaultTheme="light" switchable>
-        <AuthProvider>
-          <TooltipProvider>
-            <OfflineBanner />
-            <ClerkAuthBridge>
-              <Toaster />
-              <RouterProvider router={router} />
-            </ClerkAuthBridge>
-          </TooltipProvider>
-        </AuthProvider>
-      </ThemeProvider>
+      <MotionConfig reducedMotion="user">
+        <ThemeProvider defaultTheme="light" switchable>
+          <AuthProvider>
+            <TooltipProvider>
+              <OfflineBanner />
+              <ClerkAuthBridge>
+                <Toaster />
+                <RouterProvider router={router} />
+              </ClerkAuthBridge>
+            </TooltipProvider>
+          </AuthProvider>
+        </ThemeProvider>
+      </MotionConfig>
     </ErrorBoundary>
   );
 }

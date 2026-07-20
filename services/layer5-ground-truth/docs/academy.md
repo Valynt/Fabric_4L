@@ -1,5 +1,7 @@
 # Academy Module (Layer 5 Ground Truth)
 
+> **Audit note (2026-07-18):** The implementation plan `docs/superpowers/plans/2026-06-07-academy-module.md` has been archived because the module described here is implemented (`services/layer5-ground-truth/src/layer5_ground_truth/models/academy.py`, `api/academy_router.py`, `services/academy_service.py`). Refer to this doc and the service code for current behavior.
+
 The Academy module delivers the Value Operating System (VOS) training program through structured pillars, quizzes, progress tracking, certifications, and maturity assessments.
 
 ## Overview

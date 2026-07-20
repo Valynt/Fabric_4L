@@ -304,6 +304,36 @@ describe('useGenerateWorkspaceIntelligence', () => {
       {}
     );
   });
+
+  it('invalidates cached workspace tab queries after generation', async () => {
+    (apiClient.get as Mock).mockResolvedValue({ data: sampleSignalsResponse });
+    (apiClient.post as Mock).mockResolvedValueOnce({
+      data: {
+        case_id: 'case-123',
+        account_id: 'acc-123',
+        generated: true,
+        stats: { signals: 3, drivers: 3, evidence: 2, stakeholders: 3 },
+      },
+    });
+
+    const wrapper = createWrapper();
+    const { result } = renderHook(
+      () => ({
+        tab: useWorkspaceTabQuery<{ signals: typeof sampleSignalsResponse.signals }>('case-123', 'signals'),
+        generate: useGenerateWorkspaceIntelligence(),
+      }),
+      { wrapper }
+    );
+
+    await waitFor(() => expect(result.current.tab.isSuccess).toBe(true));
+    expect(apiClient.get).toHaveBeenCalledTimes(1);
+
+    result.current.generate.mutate('case-123');
+    await waitFor(() => expect(result.current.generate.isSuccess).toBe(true));
+
+    // The workspace tab query must be refetched to pick up generated data.
+    await waitFor(() => expect(apiClient.get).toHaveBeenCalledTimes(2));
+  });
 });
 
 describe('usePersistWorkspaceTab', () => {
@@ -342,5 +372,55 @@ describe('usePersistWorkspaceTab', () => {
     result.current.mutate({ caseId: 'case-123', payload: { signals: [] } });
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(result.current.persistState).toBe('failed');
+  });
+
+  it('invalidates the workspace tab query after a successful persist', async () => {
+    (apiClient.get as Mock).mockResolvedValue({ data: sampleSignalsResponse });
+    (apiClient.put as Mock).mockResolvedValueOnce({
+      data: { case_id: 'case-123', tab: 'signals', updated: true },
+    });
+
+    const wrapper = createWrapper();
+    const { result } = renderHook(
+      () => ({
+        tab: useWorkspaceTabQuery<{ signals: typeof sampleSignalsResponse.signals }>('case-123', 'signals'),
+        persist: usePersistWorkspaceTab('signals'),
+      }),
+      { wrapper }
+    );
+
+    await waitFor(() => expect(result.current.tab.isSuccess).toBe(true));
+    expect(apiClient.get).toHaveBeenCalledTimes(1);
+
+    result.current.persist.mutate({ caseId: 'case-123', payload: sampleSignalsResponse });
+    await waitFor(() => expect(result.current.persist.isSuccess).toBe(true));
+
+    // The persisted tab query must be refetched from the server.
+    await waitFor(() => expect(apiClient.get).toHaveBeenCalledTimes(2));
+  });
+
+  it('does not invalidate the tab query when persistence is not implemented (501)', async () => {
+    (apiClient.get as Mock).mockResolvedValue({ data: sampleSignalsResponse });
+    (apiClient.put as Mock).mockRejectedValueOnce({ statusCode: 501, message: 'Not implemented' });
+
+    const wrapper = createWrapper();
+    const { result } = renderHook(
+      () => ({
+        tab: useWorkspaceTabQuery<{ signals: typeof sampleSignalsResponse.signals }>('case-123', 'signals'),
+        persist: usePersistWorkspaceTab('signals'),
+      }),
+      { wrapper }
+    );
+
+    await waitFor(() => expect(result.current.tab.isSuccess).toBe(true));
+    expect(apiClient.get).toHaveBeenCalledTimes(1);
+
+    result.current.persist.mutate({ caseId: 'case-123', payload: sampleSignalsResponse });
+    await waitFor(() => expect(result.current.persist.isSuccess).toBe(true));
+
+    // Nothing was persisted, so the tab query must not be refetched — a
+    // refetch would return the empty 501 fallback and clobber local state.
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(apiClient.get).toHaveBeenCalledTimes(1);
   });
 });

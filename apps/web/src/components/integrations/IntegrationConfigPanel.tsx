@@ -70,6 +70,9 @@ export function IntegrationConfigPanel({
     syncBatchSize: integration?.sync_batch_size || 100,
   });
 
+  // Sync the edit form from server state whenever the integration object changes.
+  // `integration` comes from a TanStack Query cache with structural sharing, so its
+  // identity is stable across renders and only changes when the data actually changes.
   useEffect(() => {
     if (integration) {
       setEditConfig(prev => ({
@@ -80,7 +83,7 @@ export function IntegrationConfigPanel({
         syncBatchSize: integration.sync_batch_size,
       }));
     }
-  }, [integration?.id]);
+  }, [integration]);
 
   const handleSave = () => {
     const requestData: IntegrationCreateRequest = {

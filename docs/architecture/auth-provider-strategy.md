@@ -1,5 +1,7 @@
 # Auth Provider Strategy
 
+> **Audit note (2026-07-18):** The JWT validation description in this file incorrectly locates Clerk-specific RS256/JWKS logic in `packages/shared/src/value_fabric/shared/identity/middleware.py`. That module implements a provider-agnostic `GovernanceMiddleware`; Clerk JWKS/RS256 handling is in `packages/shared/src/value_fabric/shared/identity/jwt.py` and `providers.py`.
+
 ## Overview
 
 Fabric_4L uses an external managed IdP for production and Keycloak for local/dev/integration testing.

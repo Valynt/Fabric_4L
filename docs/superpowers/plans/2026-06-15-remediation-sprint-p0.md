@@ -1,5 +1,7 @@
 # Remediation Sprint P0 Implementation Plan
 
+**Status:** Active — supersedes `docs/superpowers/plans/2026-06-14-remediation-sprint-plan.md` (archived 2026-07-18).
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` (recommended) or `superpowers:executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Close the repository-owned P0 Core GA blockers from `docs/superpowers/specs/2026-06-14-remediation-sprint-design.md` so the candidate can be re-tested: fix the legacy-auth Clerk hook boundary, make the E2E `case-meridian-e2e-001` seed deterministic, refresh rollback runbook/evidence, and wire a local Keycloak SSO/OIDC surrogate in `docker-compose.live.yml`.

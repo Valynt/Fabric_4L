@@ -35,7 +35,7 @@ class TestL5GroundTruthContracts:
          .with_request("GET", "/v1/ground-truth/items", query={"limit": "10"})
          .will_respond_with(200, body=expected))
         with pact:
-            # TODO: replace interim requests call with real consumer client
+            # TODO(VF-SDK-PACT-DEBT-001): replace interim requests call with real consumer client
             result = requests.get(
                 f"{pact.uri}/v1/ground-truth/items",
                 params={"limit": "10"},
@@ -52,7 +52,7 @@ class TestL5GroundTruthContracts:
          .with_request("POST", "/v1/ground-truth/validations", body=request_body)
          .will_respond_with(201, body=expected))
         with pact:
-            # TODO: replace interim requests call with real consumer client
+            # TODO(VF-SDK-PACT-DEBT-001): replace interim requests call with real consumer client
             result = requests.post(
                 f"{pact.uri}/v1/ground-truth/validations",
                 json=request_body,
@@ -79,7 +79,7 @@ class TestL6BenchmarksContracts:
          .with_request("POST", "/v1/benchmarks/run", body=request_body)
          .will_respond_with(202, body=expected))
         with pact:
-            # TODO: replace interim requests call with real consumer client
+            # TODO(VF-SDK-PACT-DEBT-001): replace interim requests call with real consumer client
             result = requests.post(
                 f"{pact.uri}/v1/benchmarks/run",
                 json=request_body,
@@ -96,7 +96,7 @@ class TestL6BenchmarksContracts:
          .with_request("GET", "/v1/benchmarks/results/run_001")
          .will_respond_with(200, body=expected))
         with pact:
-            # TODO: replace interim requests call with real consumer client
+            # TODO(VF-SDK-PACT-DEBT-001): replace interim requests call with real consumer client
             result = requests.get(
                 f"{pact.uri}/v1/benchmarks/results/run_001",
                 timeout=5,
@@ -122,7 +122,7 @@ class TestL7BillingContracts:
          .with_request("GET", "/v1/billing/subscription")
          .will_respond_with(200, body=expected))
         with pact:
-            # TODO: replace interim requests call with real consumer client
+            # TODO(VF-SDK-PACT-DEBT-001): replace interim requests call with real consumer client
             result = requests.get(
                 f"{pact.uri}/v1/billing/subscription",
                 timeout=5,
@@ -138,7 +138,7 @@ class TestL7BillingContracts:
          .with_request("POST", "/v1/billing/usage", body=request_body)
          .will_respond_with(202, body=expected))
         with pact:
-            # TODO: replace interim requests call with real consumer client
+            # TODO(VF-SDK-PACT-DEBT-001): replace interim requests call with real consumer client
             result = requests.post(
                 f"{pact.uri}/v1/billing/usage",
                 json=request_body,

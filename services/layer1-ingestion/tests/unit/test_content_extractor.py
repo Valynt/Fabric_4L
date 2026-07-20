@@ -142,6 +142,16 @@ class TestExtractMetadata:
         from bs4 import BeautifulSoup
         return BeautifulSoup(html, "html.parser")
 
+    def test_metadata_builder_matches_metadata_extraction(self):
+        soup = self._soup(
+            '<html><head><title>Title</title><meta name="robots" '
+            'content="noindex"></head></html>'
+        )
+
+        assert self.extractor._build_metadata(soup, "https://example.com/") == (
+            self.extractor._extract_metadata(soup, "https://example.com/")
+        )
+
     def test_title_extracted(self):
         soup = self._soup("<html><head><title>My Title</title></head></html>")
         meta = self.extractor._extract_metadata(soup, "https://example.com/")

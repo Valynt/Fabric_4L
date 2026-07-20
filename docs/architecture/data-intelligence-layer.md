@@ -1,5 +1,7 @@
 <!-- Migrated from docs/data-intelligence-layer.md during legacy path cleanup. -->
 
+> **Audit note (2026-07-18):** The API endpoint inventory below is stale. Examples: product portfolio paths have moved to `/api/v1/products/matching/signals` and `/api/v1/products/analytics/*`, competitive-intel paths are under `/api/v1/competitive/*`, evidence library paths are under `/api/v1/evidence/*`, and value-hypothesis routes use the `/v1/hypotheses` prefix. Cross-check against the current Layer 3/4 route files before relying on this document.
+
 # Data Intelligence Layer (DIL) — Architecture & API Reference
 
 The Data Intelligence Layer extends the Value Fabric with structured intelligence services that transform raw signals and account data into actionable sales intelligence. It spans Layer 3 (Knowledge Graph) and Layer 4 (Agent Services), providing a unified pipeline from data ingestion through narrative delivery.

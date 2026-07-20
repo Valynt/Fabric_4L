@@ -1,5 +1,7 @@
 # Production Readiness Checklist
 
+> **Audit note (2026-07-18):** This checklist was last updated 2026-05-17 and overlaps in intent with `production-readiness/launch_checklist.md` and `production-readiness/README.md`. Treat it as deployment pass/fail criteria; for the current launch sign-off state see `docs/launch/launch-blocker-register.md` (2026-06-16) and `production-readiness/scorecard.md`.
+
 > **Purpose:** Pass/fail criteria for production deployments.  
 > **Owner:** Platform Engineering  
 > **Last Updated:** 2026-05-17  

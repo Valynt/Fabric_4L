@@ -26,7 +26,7 @@ function AcademyQuiz() {
   const [submitted, setSubmitted] = useState(false);
   const [result, setResult] = useState<Awaited<ReturnType<typeof submitQuiz.mutateAsync>> | null>(null);
 
-  const questions = quizData?.items ?? [];
+  const questions = useMemo(() => quizData?.items ?? [], [quizData]);
 
   const handleSelect = useCallback((questionId: string, answer: string) => {
     setAnswers((prev) => ({ ...prev, [questionId]: answer }));

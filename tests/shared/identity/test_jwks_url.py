@@ -281,7 +281,7 @@ def test_resolve_external_key_keycloak_auto_url(mock_jwks_server):
     _JWKS_URL_CACHE_EXPIRY.pop(url, None)
 
     header = {"kid": "test-key-1", "alg": "RS256"}
-    with patch("value_fabric.shared.identity.jwt._build_keycloak_jwks_url", return_value=url):
+    with patch("value_fabric.shared.identity.jwt_external._build_keycloak_jwks_url", return_value=url):
         with patch.dict("os.environ", {"OIDC_JWKS_URL": "", "OIDC_JWKS_JSON": ""}):
             key = _resolve_external_key(header, "https://keycloak.example.com")
 

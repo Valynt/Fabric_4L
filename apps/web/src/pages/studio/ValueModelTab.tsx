@@ -4,7 +4,7 @@
  * Primary data: workspace case value lines (existing)
  * DIL enrichment: ROI calculator for financial modeling + industry benchmarks
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Settings2, Calculator, TrendingUp, BarChart3 } from "lucide-react";
 import { useAccount } from "@/hooks/useAccounts";
 import { AccountRequiredGuard } from "@/components/AccountRequiredGuard";
@@ -145,9 +145,9 @@ export default function ValueModelTab({ accountId }: StudioTabProps) {
 
   useEffect(() => {
     if (caseId && data) persistTab.mutate({ caseId, payload: data });
-  }, [caseId, data]);
+  }, [caseId, data, persistTab.mutate]);
 
-  const lines = data?.valueLines ?? [];
+  const lines = useMemo(() => data?.valueLines ?? [], [data]);
   const acceptedEvidence = (evidenceData?.evidence ?? []).filter((item) => item.decision_status === "accepted");
   const visibleLines = useMemo(
     () => (showStrategic ? lines : lines.filter((l) => l.category === "hard")),
@@ -158,16 +158,26 @@ export default function ValueModelTab({ accountId }: StudioTabProps) {
 
   const generateMutation = useGenerateWorkspaceIntelligence();
 
+  // `generateMutation.isPending` is intentionally read through a ref: putting it in
+  // the dependency array would re-run this effect when a failed generation settles
+  // and cause an endless auto-retry loop while the tab still has no value lines.
+  // The ref is synced in an effect (never during render); it is declared before the
+  // consuming effect so commit-order guarantees the consumer reads the latest value.
+  const generateIsPendingRef = useRef(generateMutation.isPending);
+  useEffect(() => {
+    generateIsPendingRef.current = generateMutation.isPending;
+  }, [generateMutation.isPending]);
+
   useEffect(() => {
     if (
       caseId &&
       lines.length === 0 &&
       !isLoading &&
-      !generateMutation.isPending
+      !generateIsPendingRef.current
     ) {
       generateMutation.mutate(caseId);
     }
-  }, [caseId, lines.length, isLoading]);
+  }, [caseId, lines.length, isLoading, generateMutation.mutate]);
 
   // Auto-calculate ROI when value lines are available
   const handleCalculateROI = () => {

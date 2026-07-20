@@ -9,11 +9,12 @@ export function walkFiles(root, options = {}) {
   } = options;
 
   const acceptedExtensions = extensions ? new Set(extensions) : null;
+  const skippedDirectories = new Set(skipDirectories);
   const files = [];
 
   function walk(dir) {
     for (const entry of readdirSync(dir)) {
-      if (skipDirectories.includes(entry)) {
+      if (skippedDirectories.has(entry)) {
         continue;
       }
       if (skipDotDirectories && entry.startsWith(".")) {

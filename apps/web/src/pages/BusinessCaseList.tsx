@@ -233,15 +233,15 @@ function BusinessCaseListContent() {
   };
 
   // Initialize state from URL search params with validation
-  const [search, setSearch] = useState(searchParams.get('search') || "");
+  const [search, setSearch] = useState(() => searchParams.get('search') || "");
   const [statusFilter, setStatusFilter] = useState<BusinessCaseFilters['status']>(
-    validateStatus(searchParams.get('status'))
+    () => validateStatus(searchParams.get('status'))
   );
   const [sortField, setSortField] = useState<SortField>(
-    validateSortField(searchParams.get('sort'))
+    () => validateSortField(searchParams.get('sort'))
   );
   const [sortDirection, setSortDirection] = useState<SortDirection>(
-    validateSortDirection(searchParams.get('dir'))
+    () => validateSortDirection(searchParams.get('dir'))
   );
   const [showNewCaseModal, setShowNewCaseModal] = useState(false);
   const [newCaseName, setNewCaseName] = useState("");

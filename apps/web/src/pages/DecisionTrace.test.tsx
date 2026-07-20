@@ -85,14 +85,22 @@ describe('DecisionTrace trace-specific behavior', () => {
     registerTraceHandlers();
     render(<DecisionTrace />, { wrapper: createWrapper('/governance/traces') });
 
-    await waitFor(() => {
-      expect(screen.getByText('business_case')).toBeInTheDocument();
-    });
+    // Explicit timeout: the default 1s waitFor window is too tight for the
+    // msw round-trip + query settle under parallel CPU contention.
+    await waitFor(
+      () => {
+        expect(screen.getByText('business_case')).toBeInTheDocument();
+      },
+      { timeout: 5000 }
+    );
 
     await userEvent.click(await screen.findByRole('button', { name: /view/i }));
 
-    await waitFor(() => {
-      expect(screen.getAllByText('Provenance Timeline').length).toBeGreaterThan(0);
-    });
+    await waitFor(
+      () => {
+        expect(screen.getAllByText('Provenance Timeline').length).toBeGreaterThan(0);
+      },
+      { timeout: 5000 }
+    );
   });
 });

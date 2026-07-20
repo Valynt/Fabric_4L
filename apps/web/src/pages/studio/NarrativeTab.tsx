@@ -4,7 +4,7 @@
  * Primary data: workspace case narratives (existing)
  * DIL enrichment: DIL Narrative Builder for tone/audience-specific generation
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import {
   Users,
@@ -153,9 +153,9 @@ export default function NarrativeTab({ accountId }: StudioTabProps) {
 
   useEffect(() => {
     if (caseId && data) persistTab.mutate({ caseId, payload: data });
-  }, [caseId, data]);
+  }, [caseId, data, persistTab.mutate]);
 
-  const narratives = data?.narratives ?? [];
+  const narratives = useMemo(() => data?.narratives ?? [], [data]);
   const dilListResponse = dilNarratives as NarrativeListResponse | undefined;
   const dilList = dilListResponse?.narratives ?? [];
 
@@ -165,6 +165,27 @@ export default function NarrativeTab({ accountId }: StudioTabProps) {
   }, [narratives, selectedNarrative, selectedDIL]);
 
   const generateMutation = useGenerateWorkspaceIntelligence();
+
+  // `generateMutation.isPending` is intentionally read through a ref: putting it in
+  // the dependency array would re-run this effect when a failed generation settles
+  // and cause an endless auto-retry loop while the tab still has no narratives.
+  // The ref is synced in an effect (never during render); it is declared before the
+  // consuming effect so commit-order guarantees the consumer reads the latest value.
+  const generateIsPendingRef = useRef(generateMutation.isPending);
+  useEffect(() => {
+    generateIsPendingRef.current = generateMutation.isPending;
+  }, [generateMutation.isPending]);
+
+  useEffect(() => {
+    if (
+      caseId &&
+      narratives.length === 0 &&
+      !isLoading &&
+      !generateIsPendingRef.current
+    ) {
+      generateMutation.mutate(caseId);
+    }
+  }, [caseId, narratives.length, isLoading, generateMutation.mutate]);
 
   const detailNode = useMemo<ReactNode>(() => {
     if (selectedNarrative) {
@@ -202,17 +223,6 @@ export default function NarrativeTab({ accountId }: StudioTabProps) {
     return null;
   }, [selectedNarrative, selectedDIL]);
   useStudioDetailRail(detailNode);
-
-  useEffect(() => {
-    if (
-      caseId &&
-      narratives.length === 0 &&
-      !isLoading &&
-      !generateMutation.isPending
-    ) {
-      generateMutation.mutate(caseId);
-    }
-  }, [caseId, narratives.length, isLoading]);
 
   const handleGenerateDIL = () => {
     if (!accountId) return;

@@ -1,5 +1,7 @@
 # Frequently Asked Questions & Troubleshooting
 
+> **Audit note (2026-07-18):** Several answers below reference legacy paths and commands (`npm install`, `cd frontend && npm run dev`, `backend/`, `frontend/`). The production frontend is at `apps/web/`, backend services are under `services/`, and the package manager is `pnpm`. Update setup and build instructions accordingly.
+
 Quick answers to common questions about Fabric 4L. For detailed guides, see [Tutorials](/tutorials/getting-started) and [How-To Guides](/how-to/).
 
 ---

@@ -23,7 +23,10 @@ vi.mock("react-router-dom", () => ({
   useMatches: () => mockUseMatches(),
 }));
 vi.mock("@clerk/react", () => ({ useAuth: () => mockClerkAuth }));
-vi.mock("@/hooks/useTenantMembership", () => ({ useTenantMembership: () => ({ isMemberOfTenant: true, isLoading: false }) }));
+vi.mock("@/hooks/useTenantMembership", () => ({
+  useTenantMembershipClerk: () => ({ isMemberOfTenant: true, isLoading: false }),
+  useTenantMembershipLegacy: () => ({ isMemberOfTenant: true, isLoading: false }),
+}));
 vi.mock("@/hooks/useAccountAccess", () => ({ useAccountAccess: () => ({ hasAccountAccess: false, isLoading: false, isError: false }) }));
 vi.mock("@/hooks/useUserPermissions", () => ({ useUserPermissions: () => ({ hasPermissions: true, isLoading: false }) }));
 vi.mock("@/hooks/useFeatureFlags", () => ({ useFeatureFlags: () => ({ flagsEnabled: true, isLoading: false }) }));

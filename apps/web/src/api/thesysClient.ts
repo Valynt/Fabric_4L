@@ -225,7 +225,8 @@ export function compareScenarios(
   scenarioIds: string[]
 ): ScenarioComparison[] {
   const allScenarios = getScenarios(caseId);
-  return allScenarios.filter(s => scenarioIds.includes(s.id));
+  const wantedIds = new Set(scenarioIds);
+  return allScenarios.filter(s => wantedIds.has(s.id));
 }
 
 export { ENABLE_C1 };

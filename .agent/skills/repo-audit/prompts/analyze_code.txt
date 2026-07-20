@@ -1,0 +1,9 @@
+Perform static code analysis across the repository. Focus on:
+
+- Relative imports and cross-layer import topology violations.
+- Bare except clauses and disabled type-checking rules.
+- TODO/FIXME density and async pattern adoption.
+- Frontend package.json health (dependency count, build/test config).
+- Shared package size and service boundary violations.
+
+Return structured findings mapped to the appropriate audit areas (Code Quality B, Correctness C, Testing D, Security E, CI/CD F, Reliability G). Include file paths, evidence, severity, confidence, effort, and owner.

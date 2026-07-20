@@ -1,5 +1,7 @@
 # Value Fabric — Architecture
 
+> **Audit note (2026-07-18):** Several references in this file are stale and need human review: the Platform Contract link should point to `docs/contract.md` (not `packages/platform-contract/CONTRACT.md`), the ADR table numbering/labels mismatch the actual ADR files, Layer 1 content endpoints do not match the current route tree, and the project-structure section references the legacy `frontend/client/` layout. See `docs/architecture/contract-ratification-memo.md` for the contract relocation intent.
+
 ## Overview
 
 Value Fabric is an AI-powered value selling platform built on a **6-layer pipeline architecture** plus a React frontend that transforms raw, unstructured data into actionable business intelligence. Each layer is an independently deployable microservice with its own Docker Compose configuration, API surface, and test suite.

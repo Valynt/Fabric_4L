@@ -549,11 +549,11 @@ function ValuePacksContent() {
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Initialize state from URL search params
-  const [industry, setIndustry] = useState(searchParams.get('industry') || "All");
-  const [status, setStatus] = useState<"all" | PackStatus>((searchParams.get('status') as "all" | PackStatus) || "all");
-  const [category, setCategory] = useState(searchParams.get('category') || "All");
-  const [search, setSearch] = useState(searchParams.get('search') || "");
-  const [selectedPackId, setSelectedPackId] = useState<string | null>(searchParams.get('pack') || null);
+  const [industry, setIndustry] = useState(() => searchParams.get('industry') || "All");
+  const [status, setStatus] = useState<"all" | PackStatus>(() => (searchParams.get('status') as "all" | PackStatus) || "all");
+  const [category, setCategory] = useState(() => searchParams.get('category') || "All");
+  const [search, setSearch] = useState(() => searchParams.get('search') || "");
+  const [selectedPackId, setSelectedPackId] = useState<string | null>(() => searchParams.get('pack') || null);
   const [deployError, setDeployError] = useState<string | null>(null);
 
   // Sync filter state to URL
@@ -580,7 +580,7 @@ function ValuePacksContent() {
 
   // Derive unique categories from data
   const categories = useMemo(() => {
-    const cats = Array.from(new Set(packs.map(p => p.category).filter(Boolean))) as string[];
+    const cats = Array.from(new Set(packs.flatMap(p => (p.category ? [p.category] : []))));
     return ["All", ...cats];
   }, [packs]);
 
