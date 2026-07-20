@@ -10,6 +10,10 @@ on:
     branches: [main, "release/**"]
   workflow_dispatch:
 
+concurrency:
+  group: prod-readiness-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   POLICY_FILE: .fabric/prod-gates.policy.yaml
   ARTIFACT_DIR: artifacts
@@ -301,8 +305,9 @@ jobs:
           path: artifacts/obs/
 
   repo-maturity-scorecard:
+    if: needs.determine-profile.outputs.profile != 'pr-fast'
     runs-on: ubuntu-latest
-    needs: [setup]
+    needs: [determine-profile, setup]
     steps:
       - uses: actions/checkout@v4
       - name: Generate repo maturity scorecard
@@ -332,8 +337,9 @@ jobs:
         run: exit ${{steps.scorecard.outputs.exit_code}}
 
   readiness-10:
+    if: needs.determine-profile.outputs.profile != 'pr-fast'
     runs-on: ubuntu-latest
-    needs: [setup]
+    needs: [determine-profile, setup]
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
@@ -365,8 +371,9 @@ jobs:
           path: artifacts/readiness-10/**
 
   gate-engineering:
+    if: needs.determine-profile.outputs.profile != 'pr-fast'
     runs-on: ubuntu-latest
-    needs: [setup]
+    needs: [determine-profile, setup]
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
@@ -443,7 +450,7 @@ jobs:
       - repo-maturity-scorecard
       - readiness-10
       - gate-engineering
-    if: always()
+    if: always() && needs.determine-profile.outputs.profile != 'pr-fast'
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
@@ -604,10 +611,17 @@ jobs:
     name: prod-readiness
     runs-on: ubuntu-latest
     if: always()
-    needs: [release-policy, repo-maturity-scorecard, readiness-10, gate-engineering]
+    needs: [determine-profile, release-policy, repo-maturity-scorecard, readiness-10, gate-engineering]
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
-      - uses: actions/download-artifact@v4
+      - name: PR-fast summary
+        if: needs.determine-profile.outputs.profile == 'pr-fast'
+        run: |
+          echo "## Prod Readiness (pr-fast)" >> $GITHUB_STEP_SUMMARY
+          echo "Release-readiness gates skipped for PR profile." >> $GITHUB_STEP_SUMMARY
+      - name: Download release artifacts
+        if: needs.determine-profile.outputs.profile != 'pr-fast'
+        uses: actions/download-artifact@v4
         with:
           # Extract the release-policy bundle contents directly at the repo
           # root so they land at artifacts/release/... (exact name avoids the
@@ -615,11 +629,14 @@ jobs:
           name: release-artifacts
           path: .
       - name: Build PR summary
+        if: needs.determine-profile.outputs.profile != 'pr-fast'
         run: make gate-summary
       - name: Assert machine-readable gate result exists
+        if: needs.determine-profile.outputs.profile != 'pr-fast'
         # The release-artifacts bundle strips the leading artifacts/ prefix
         # (upload common-ancestor semantics), so the extracted path is
         # release/gate-result.json, not artifacts/release/gate-result.json.
         run: test -s release/gate-result.json
       - name: Publish summary
+        if: needs.determine-profile.outputs.profile != 'pr-fast'
         run: cat artifacts/release/summary.md >> $GITHUB_STEP_SUMMARY
