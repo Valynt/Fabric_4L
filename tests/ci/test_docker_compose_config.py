@@ -129,6 +129,232 @@ services:
     assert "has no compose healthcheck" in failures[0].message
 
 
+def test_long_running_service_with_backup_in_name_requires_healthcheck():
+    module = load_module()
+    tmp_path = repo_tmp_path("long-running-backup")
+    compose = write_file(
+        tmp_path / "docker-compose.test.yml",
+        """
+services:
+  wal-g-backup:
+    image: alpine:3.20
+    restart: unless-stopped
+""",
+    )
+
+    failures = module.validate_compose_contract(compose, tmp_path)
+
+    assert len(failures) == 1
+    assert failures[0].service == "wal-g-backup"
+    assert "has no compose healthcheck" in failures[0].message
+
+
+def test_backup_profile_with_disabled_restart_is_one_shot():
+    module = load_module()
+    tmp_path = repo_tmp_path("backup-profile-one-shot")
+    compose = write_file(
+        tmp_path / "docker-compose.test.yml",
+        """
+services:
+  archive-wal:
+    image: alpine:3.20
+    profiles: [backup]
+    restart: "no"
+""",
+    )
+
+    assert module.validate_compose_contract(compose, tmp_path) == []
+    for restart in ("no", "none", "false"):
+        assert module.is_one_shot_service(
+            "archive-wal",
+            {"profiles": ["backup"], "restart": restart},
+        )
+
+
+def test_disabled_restart_without_backup_profile_is_not_one_shot():
+    module = load_module()
+
+    assert not module.is_one_shot_service("archive-wal", {"restart": "no"})
+
+
+def test_extends_inherits_healthcheck_from_one_level_base():
+    module = load_module()
+    tmp_path = repo_tmp_path("extends-one-level")
+    write_file(
+        tmp_path / "base.yml",
+        """
+services:
+  healthy-base:
+    image: alpine:3.20
+    healthcheck:
+      test: ["CMD", "true"]
+""",
+    )
+    compose = write_file(
+        tmp_path / "docker-compose.test.yml",
+        """
+services:
+  api:
+    extends:
+      file: ./base.yml
+      service: healthy-base
+""",
+    )
+
+    assert module.validate_compose_contract(compose, tmp_path) == []
+
+
+def test_extends_inherits_healthcheck_through_chain():
+    module = load_module()
+    tmp_path = repo_tmp_path("extends-chain")
+    write_file(
+        tmp_path / "base.yml",
+        """
+services:
+  healthy-base:
+    image: alpine:3.20
+    healthcheck:
+      test: ["CMD", "true"]
+""",
+    )
+    write_file(
+        tmp_path / "middle.yml",
+        """
+services:
+  middle:
+    extends:
+      file: ./base.yml
+      service: healthy-base
+""",
+    )
+    compose = write_file(
+        tmp_path / "docker-compose.test.yml",
+        """
+services:
+  api:
+    extends:
+      file: ./middle.yml
+      service: middle
+""",
+    )
+
+    assert module.validate_compose_contract(compose, tmp_path) == []
+
+
+def test_extends_healthcheck_lookup_fails_closed_for_missing_file():
+    module = load_module()
+    tmp_path = repo_tmp_path("extends-missing-file")
+    compose = write_file(
+        tmp_path / "docker-compose.test.yml",
+        """
+services:
+  api:
+    extends:
+      file: ./missing.yml
+      service: healthy-base
+""",
+    )
+
+    failures = module.validate_compose_contract(compose, tmp_path)
+
+    assert any(
+        failure.service == "api" and "has no compose healthcheck" in failure.message
+        for failure in failures
+    )
+
+
+def test_extends_healthcheck_lookup_fails_closed_for_missing_service():
+    module = load_module()
+    tmp_path = repo_tmp_path("extends-missing-service")
+    write_file(tmp_path / "base.yml", "services: {}\n")
+    compose = write_file(
+        tmp_path / "docker-compose.test.yml",
+        """
+services:
+  api:
+    extends:
+      file: ./base.yml
+      service: missing
+""",
+    )
+
+    failures = module.validate_compose_contract(compose, tmp_path)
+
+    assert any(
+        failure.service == "api" and "has no compose healthcheck" in failure.message
+        for failure in failures
+    )
+
+
+def test_extends_healthcheck_lookup_fails_closed_for_malformed_yaml():
+    module = load_module()
+    tmp_path = repo_tmp_path("extends-malformed-yaml")
+    write_file(tmp_path / "base.yml", "services: [\n")
+    compose = write_file(
+        tmp_path / "docker-compose.test.yml",
+        """
+services:
+  api:
+    extends:
+      file: ./base.yml
+      service: healthy-base
+""",
+    )
+
+    failures = module.validate_compose_contract(compose, tmp_path)
+
+    assert any(
+        failure.service == "api" and "has no compose healthcheck" in failure.message
+        for failure in failures
+    )
+
+
+def test_extends_healthcheck_lookup_fails_closed_for_cycle():
+    module = load_module()
+    tmp_path = repo_tmp_path("extends-cycle")
+    write_file(
+        tmp_path / "first.yml",
+        """
+services:
+  first:
+    extends:
+      file: ./second.yml
+      service: second
+""",
+    )
+    write_file(
+        tmp_path / "second.yml",
+        """
+services:
+  second:
+    extends:
+      file: ./first.yml
+      service: first
+""",
+    )
+    compose = write_file(
+        tmp_path / "docker-compose.test.yml",
+        """
+services:
+  api:
+    extends:
+      file: ./first.yml
+      service: first
+""",
+    )
+
+    failures = module.validate_compose_contract(compose, tmp_path)
+
+    assert any(
+        failure.service == "api" and "has no compose healthcheck" in failure.message
+        for failure in failures
+    )
+
+
+def test_canonical_raw_content_bind_target_exists():
+    assert (REPO_ROOT / "raw-content").is_dir()
+
+
 def test_dockerfile_healthcheck_satisfies_long_running_service():
     module = load_module()
     tmp_path = repo_tmp_path("dockerfile-healthcheck")

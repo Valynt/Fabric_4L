@@ -1,0 +1,59 @@
+# Default configuration for the repo-audit skill.
+# Overrides are loaded from environment variables (AUDIT__*) and merged with
+# the Pydantic defaults in layer4_agents.agents.audit_orchestrator.models.AuditConfig.
+
+# Repository
+repo_url: "https://github.com/bmsull560/Fabric_4L"
+repo_name: "bmsull560/Fabric_4L"
+branch: "main"
+clone_depth: 1
+
+# Analysis scope
+areas_enabled:
+  - "A: Architecture and Code Structure"
+  - "B: Code Quality and Maintainability"
+  - "C: Correctness, Data Integrity, Contracts"
+  - "D: Testing and Verification"
+  - "E: Security and Supply Chain"
+  - "F: CI/CD and Quality Gates"
+  - "G: Reliability, Observability, Operations"
+  - "H: Documentation, Decisions, Knowledge"
+  - "I: AI-Agent Readiness, Rules, Skills"
+  - "J: Developer Experience and Velocity"
+severity_threshold: "low"
+max_file_size_lines: 1500
+
+# Incremental audit
+incremental: true
+cache_dir: ".audit_cache"
+
+# Scoring weights (must sum to 1.0)
+area_weights:
+  "A: Architecture and Code Structure": 0.12
+  "B: Code Quality and Maintainability": 0.12
+  "C: Correctness, Data Integrity, Contracts": 0.14
+  "D: Testing and Verification": 0.14
+  "E: Security and Supply Chain": 0.16
+  "F: CI/CD and Quality Gates": 0.10
+  "G: Reliability, Observability, Operations": 0.08
+  "H: Documentation, Decisions, Knowledge": 0.06
+  "I: AI-Agent Readiness, Rules, Skills": 0.05
+  "J: Developer Experience and Velocity": 0.03
+
+# Sprint planning
+sprints_enabled: true
+sprint_length_weeks: 2
+team_size: 3
+team_capacity_percent: 0.60
+
+# Persistence
+postgres_dsn: null
+neo4j_uri: null
+neo4j_user: null
+neo4j_password: null
+output_dir: "audit_reports"
+
+# Scheduling
+cron_schedule: "0 2 * * 0"  # Weekly Sunday 2AM
+trigger_on_push: true
+trigger_on_release: true

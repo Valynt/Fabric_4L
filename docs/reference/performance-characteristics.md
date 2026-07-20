@@ -1,5 +1,7 @@
 # Performance Optimization Report
 
+> **Audit note (2026-07-18):** This report references frontend hooks under `frontend/client/src/hooks/`. The production frontend lives in `apps/web/src/hooks/` (`useGraphData.ts` and `useGraphCanvas.ts` exist there). Update path references when using this report.
+
 **Project:** Fabric_4L Full Stack Performance Optimization
 **Date:** 2026-04-21
 **Target:** Sub-100ms response times

@@ -1,6 +1,8 @@
 # Layer 4 Import Resolution & Canonicalization Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+**Status:** Active — audit note added 2026-07-18. `config/ci/layer4_source_tree_baseline.json` still explicitly allows 36 top-level entries outside `layer4_agents/`; treat that baseline as the current contract and update it incrementally as canonicalization proceeds.
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Permanently resolve Layer 4 static import cycles, collapse the dual-package shadow tree into the canonical `layer4_agents/` namespace, and enable strict type-checking on the unified namespace.
 

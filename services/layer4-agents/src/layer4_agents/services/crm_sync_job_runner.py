@@ -14,9 +14,15 @@ from value_fabric.shared.audit import AuditAction, AuditOutcome, emit_audit_even
 from value_fabric.shared.identity.context import RequestContext
 
 from ..database import db_session_for_context, get_session_factory
+from ..integrations.core.observations import (
+    SyncInterrupted,
+    SyncPartial,
+    SyncStarted,
+    SyncSucceeded,
+)
+from ..integrations.core.state import apply_observation
 from ..models.account import CRMProvider
 from ..models.crm_sync_job import CRMSyncJob, CRMSyncJobStatus
-from ..models.integration import IntegrationStatus
 from .crm_sync_queue import CRM_SYNC_QUEUE_KEY, enqueue_crm_sync_job
 
 logger = logging.getLogger(__name__)
@@ -116,7 +122,7 @@ class CRMSyncJobRunner:
 
             job.status = CRMSyncJobStatus.RUNNING
             job.started_at = datetime.now(UTC)
-            integration.sync_status = IntegrationStatus.RUNNING
+            await apply_observation(db, integration, SyncStarted())
 
             try:
                 stats = await sync_service.sync_provider(provider, tenant_id=tenant_id)
@@ -127,12 +133,12 @@ class CRMSyncJobRunner:
                 if stats["failed"] > 0:
                     job.status = CRMSyncJobStatus.FAILED
                     job.error_summary = "; ".join(stats["errors"][:3]) or "Sync failed"
-                    integration.sync_status = IntegrationStatus.FAILED
+                    await apply_observation(db, integration, SyncPartial())
                     integration.last_error_message = job.error_summary
                 else:
                     job.status = CRMSyncJobStatus.SUCCEEDED
                     job.error_summary = None
-                    integration.sync_status = IntegrationStatus.IDLE
+                    await apply_observation(db, integration, SyncSucceeded())
                     integration.last_error_message = None
                     integration.last_successful_sync_at = datetime.now(UTC)
                 integration.records_synced = job.records_synced + job.records_updated
@@ -161,7 +167,7 @@ class CRMSyncJobRunner:
                 job.finished_at = datetime.now(UTC)
                 sanitized = f"{type(exc).__name__}: sync_job_failed"
                 job.error_summary = sanitized
-                integration.sync_status = IntegrationStatus.FAILED
+                await apply_observation(db, integration, SyncInterrupted(message=sanitized))
                 integration.last_sync_at = datetime.now(UTC)
                 integration.last_error_message = sanitized
                 try:

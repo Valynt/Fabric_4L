@@ -1,5 +1,7 @@
 # Type Alignment Sprint 10 Stabilization and Enforcement Evidence
 
+> **Audit note (2026-07-18):** This evidence file claims `apps/web/src/lib/quality/trustBoundaryGuard.ts` and its test were added and that `pnpm run test:trust-boundaries` passed. Those source files are not present in the current tree, although `apps/web/package.json` still defines the command. Either the files were removed after merge without updating the gate, or the evidence is inaccurate. The trust-boundary gate is currently non-runnable as documented.
+
 Author: **Manus AI**
 Date: 2026-05-05
 Repository: `bmsull560/Fabric_4L`

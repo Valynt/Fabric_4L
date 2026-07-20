@@ -78,15 +78,15 @@ The `Security Gates` workflow now includes:
      - `DAST (OWASP ZAP baseline)`
      - all matrix runs in `SBOM + Policy (...)`
      - `Route Auth Dependency Gate`
-     - `Mandatory Security Regression Gate`
+     - `mandatory-security-regression`
 
 ## Configure branch protection (required status check)
 
-To prevent merges without DAST, SBOM, route-auth, and mandatory regression success, set branch protection on `main` to require these checks:
-
-- **`Security Gates Required`**
-- **`Route Auth Dependency Gate`**
-- **`Mandatory Security Regression Gate`**
+The canonical required context for the mandatory regression control is
+**`mandatory-security-regression`**. Branch protection must restrict this
+context to the GitHub Actions app and enforce it for administrators. See
+`docs/governance/mandatory-security-regression-merge-policy.md` for the
+governed contract and emergency exception process.
 
 Recommended:
 - Keep `Security Gates` workflow required for pull requests.

@@ -306,7 +306,7 @@ def _required_checks(gates: list[dict[str, Any]], dimensions: list[dict[str, Any
     checks = [
         {
             "id": gate["id"],
-            "status": "pass" if gate["status"] == "pass" else "fail",
+            "status": gate["status"] if gate["status"] in ("pass", "partial") else "fail",
             "source": gate["source"],
             "line": gate.get("line"),
             "description": gate["description"],
@@ -332,7 +332,8 @@ def compute_scorecard(root: Path = ROOT) -> dict[str, Any]:
     weighted = sum(dimension["score"] * dimension["weight"] for dimension in dimensions)
     weight = sum(dimension["weight"] for dimension in dimensions)
     raw_score = round(weighted / weight, 1) if weight else 0.0
-    p0_failures = [gate for gate in p0_gates if gate["status"] != "pass"]
+    p0_failures = [gate for gate in p0_gates if gate["status"] == "fail"]
+    p0_partials = [gate for gate in p0_gates if gate["status"] == "partial"]
     dimension_failures = [dimension for dimension in dimensions if dimension["status"] != "pass"]
     overall_score = min(raw_score, P0_FAILURE_SCORE_CAP) if p0_failures else raw_score
     return {

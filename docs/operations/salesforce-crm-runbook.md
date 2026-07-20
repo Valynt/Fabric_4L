@@ -1,5 +1,7 @@
 # Salesforce CRM Integration — Operator Runbook
 
+> **Audit note (2026-07-18):** This runbook references Prometheus metrics with the prefix `layer4_crm_salesforce_*`. The actual metrics registered in `services/layer4-agents/src/layer4_agents/metrics/prometheus_metrics.py` use the prefix `crm_salesforce_*`. There is also a duplicate/updated runbook at `docs/operations/salesforce-crm/runbook.md` that should be considered canonical for metric names.
+
 **Version:** 1.0  
 **Date:** 2026-05-01  
 **Scope:** Production operations for the Salesforce CRM integration in Fabric_4L Layer 4.

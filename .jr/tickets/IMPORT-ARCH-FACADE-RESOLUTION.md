@@ -159,6 +159,10 @@ print("layer6 canonical imports ok")
 PY
 ```
 
+## Audit Note
+
+- [2026-07-18] cleanup-agent: Ticket status is "Done - complete". L6 package restructuring was completed (`services/layer6-benchmarks/src/layer6_benchmarks/` exists). L1 and L4 restructure tickets also claim completion, but L4 retains residual flat source files alongside the nested package (see L4-PACKAGE-RESTRUCTURE-PLAN audit note). Facade deprecation gate should be re-verified against current import-topology scans.
+
 ## Related Tickets
 
 - `L6-PACKAGE-RESTRUCTURE` - Restructure L6 to match pyproject.toml package declaration

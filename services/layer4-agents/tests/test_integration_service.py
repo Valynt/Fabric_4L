@@ -25,6 +25,7 @@ from layer4_agents.services.integration_service import (
 def clear_encryption_cache(monkeypatch):
     """Clear encryption cache between tests to prevent pollution."""
     from collections import OrderedDict
+
     # Set a deterministic 32-byte Fernet key (43 chars url-safe base64) and
     # allow ephemeral fallback so the invalid key in pytest.ini is overridden.
     monkeypatch.setenv("CREDENTIALS_MASTER_KEY", "vhN2bTnQwWeI5p6A2o61XSxF_3lZ7U4WY6_unrOSwEA")
@@ -41,7 +42,7 @@ class TestIntegrationValidation:
     def test_validate_config_valid(self):
         """Test valid configuration passes validation."""
         service = IntegrationService(None)  # db not needed for validation
-        
+
         # Should not raise
         service._validate_config(
             enabled=True,
@@ -54,7 +55,7 @@ class TestIntegrationValidation:
     def test_validate_config_missing_api_key_when_enabled(self):
         """Test that enabled=True requires api_key."""
         service = IntegrationService(None)
-        
+
         with pytest.raises(IntegrationValidationError) as exc:
             service._validate_config(
                 enabled=True,
@@ -62,13 +63,13 @@ class TestIntegrationValidation:
                 sync_interval=60,
                 batch_size=100,
             )
-        
+
         assert "api_key is required" in str(exc.value)
 
     def test_validate_config_disabled_no_api_key(self):
         """Test that disabled integration doesn't require api_key."""
         service = IntegrationService(None)
-        
+
         # Should not raise - disabled integrations don't need credentials
         service._validate_config(
             enabled=False,
@@ -80,7 +81,7 @@ class TestIntegrationValidation:
     def test_validate_config_invalid_sync_interval(self):
         """Test sync_interval bounds validation."""
         service = IntegrationService(None)
-        
+
         # Too low
         with pytest.raises(IntegrationValidationError) as exc:
             service._validate_config(
@@ -90,7 +91,7 @@ class TestIntegrationValidation:
                 batch_size=100,
             )
         assert "between 5 and 1440" in str(exc.value)
-        
+
         # Too high
         with pytest.raises(IntegrationValidationError) as exc:
             service._validate_config(
@@ -104,7 +105,7 @@ class TestIntegrationValidation:
     def test_validate_config_invalid_batch_size(self):
         """Test batch_size bounds validation."""
         service = IntegrationService(None)
-        
+
         # Too low
         with pytest.raises(IntegrationValidationError) as exc:
             service._validate_config(
@@ -114,7 +115,7 @@ class TestIntegrationValidation:
                 batch_size=9,  # Below minimum of 10
             )
         assert "between 10 and 500" in str(exc.value)
-        
+
         # Too high
         with pytest.raises(IntegrationValidationError) as exc:
             service._validate_config(
@@ -128,7 +129,7 @@ class TestIntegrationValidation:
     def test_validate_config_invalid_instance_url(self):
         """Test instance_url format validation."""
         service = IntegrationService(None)
-        
+
         # Invalid URL
         with pytest.raises(IntegrationValidationError) as exc:
             service._validate_config(
@@ -139,7 +140,7 @@ class TestIntegrationValidation:
                 instance_url="not-a-valid-url",
             )
         assert "valid HTTP/HTTPS URL" in str(exc.value)
-        
+
         # FTP is not allowed
         with pytest.raises(IntegrationValidationError) as exc:
             service._validate_config(
@@ -154,14 +155,14 @@ class TestIntegrationValidation:
     def test_validate_config_valid_instance_urls(self):
         """Test that valid HTTPS instance URLs pass."""
         service = IntegrationService(None)
-        
+
         valid_urls = [
             "https://instance.salesforce.com",
             "https://api.hubspot.com",
             "https://my-org.my.salesforce.com",
             "https://10.0.0.1:443",
         ]
-        
+
         for url in valid_urls:
             # Should not raise
             service._validate_config(
@@ -175,7 +176,7 @@ class TestIntegrationValidation:
     def test_validate_config_http_localhost_allowed(self):
         """Test that HTTP is allowed only for localhost."""
         service = IntegrationService(None)
-        
+
         # HTTP on localhost should be allowed
         service._validate_config(
             enabled=False,
@@ -188,7 +189,7 @@ class TestIntegrationValidation:
     def test_validate_config_http_production_rejected(self):
         """Test that HTTP is rejected for production URLs."""
         service = IntegrationService(None)
-        
+
         # HTTP on production domains should fail
         with pytest.raises(IntegrationValidationError) as exc:
             service._validate_config(
@@ -203,7 +204,7 @@ class TestIntegrationValidation:
     def test_validate_config_http_localhost_subdomain_rejected(self):
         """Test that HTTP is rejected for localhost subdomains (not actual localhost)."""
         service = IntegrationService(None)
-        
+
         # HTTP on localhost.something.com should fail (not real localhost)
         with pytest.raises(IntegrationValidationError) as exc:
             service._validate_config(
@@ -218,7 +219,7 @@ class TestIntegrationValidation:
     def test_validate_config_none_instance_url(self):
         """Test that None instance_url is allowed."""
         service = IntegrationService(None)
-        
+
         # Should not raise
         service._validate_config(
             enabled=False,
@@ -273,11 +274,11 @@ class TestEncryptionService:
     async def test_encryption_roundtrip(self):
         """Test that encrypt/decrypt preserves data."""
         test_data = '{"api_key": "secret123", "api_secret": "supersecret"}'
-        
+
         encrypted = await EncryptionService.encrypt(test_data, key_id=DEFAULT_KEY_ID)
         assert encrypted != test_data.encode()
         assert isinstance(encrypted, bytes)
-        
+
         decrypted = await EncryptionService.decrypt(encrypted, key_id=DEFAULT_KEY_ID)
         assert decrypted == test_data
 
@@ -292,13 +293,13 @@ class TestEncryptionService:
     async def test_encryption_different_keys(self):
         """Test that different key_ids produce different ciphertexts."""
         test_data = "sensitive data"
-        
+
         encrypted_v1 = await EncryptionService.encrypt(test_data, key_id=DEFAULT_KEY_ID)
         encrypted_v2 = await EncryptionService.encrypt(test_data, key_id="v2")
-        
+
         # Same plaintext, different ciphertexts
         assert encrypted_v1 != encrypted_v2
-        
+
         # But both decrypt correctly with their keys
         assert await EncryptionService.decrypt(encrypted_v1, key_id=DEFAULT_KEY_ID) == test_data
         assert await EncryptionService.decrypt(encrypted_v2, key_id="v2") == test_data
@@ -308,9 +309,25 @@ class TestEncryptionService:
         """Test that decrypting with wrong key fails appropriately."""
         test_data = "sensitive data"
         encrypted = await EncryptionService.encrypt(test_data, key_id=DEFAULT_KEY_ID)
-        
+
         # Decrypting with wrong key should fail
         with pytest.raises(ValueError) as exc:
             await EncryptionService.decrypt(encrypted, key_id="wrong_key")
-        
+
         assert "Failed to decrypt" in str(exc.value)
+
+
+def test_connection_result_allows_success_without_error_code() -> None:
+    from layer4_agents.services.integration_service import IntegrationService_test_connectionResult
+
+    result = IntegrationService_test_connectionResult.model_validate(
+        {
+            "success": True,
+            "message": "Connected",
+            "details": {"organization": "Acme"},
+        }
+    )
+
+    assert result.success is True
+    assert result.message == "Connected"
+    assert result.error_code is None

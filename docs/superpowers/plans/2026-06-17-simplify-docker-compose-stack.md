@@ -1,10 +1,12 @@
 # Sub-plan F: Simplify Docker Compose Stack (#8)
 
+**Status:** Active — audit note added 2026-07-18. The compose files have already been relocated from the repo root to `infra/compose/`; update this plan to target that directory rather than the root paths listed below.
+
 **Goal:** Replace 17 standalone compose files and multiple env variants with a base compose plus small environment-specific overlays.
 
 **Canonical structure**
-- `docker-compose.base.yml` — shared services: postgres, redis, neo4j, minio, keycloak.
-- `docker-compose.override.<env>.yml` — environment-specific layer services and hardening.
+- `infra/compose/docker-compose.base.yml` — shared services: postgres, redis, neo4j, minio, keycloak.
+- `infra/compose/docker-compose.<env>.yml` — environment-specific layer services and hardening.
 - `.env.example` remains the committed reference; `.env.generated` flow is documented or removed if Infisical is canonical.
 
 **Files to inspect / modify**

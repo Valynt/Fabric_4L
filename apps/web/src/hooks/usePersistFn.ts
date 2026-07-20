@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useLayoutEffect, useRef } from "react";
 
 type PersistableFunction = (...args: never[]) => unknown;
 
@@ -14,7 +14,13 @@ type PersistableFunction = (...args: never[]) => unknown;
  */
 export function usePersistFn<T extends PersistableFunction>(fn: T): T {
   const fnRef = useRef<T>(fn);
-  fnRef.current = fn;
+
+  // useEffectEvent-style pattern: sync the ref in a layout effect (never
+  // during render) so the persisted function always calls the latest fn
+  // while keeping a stable call identity.
+  useLayoutEffect(() => {
+    fnRef.current = fn;
+  });
 
   const persistFn = useRef<T>(
     ((...args: Parameters<T>): ReturnType<T> =>

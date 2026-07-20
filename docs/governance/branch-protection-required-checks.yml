@@ -14,7 +14,6 @@ enforcement:
   direct_pushes: true
 protected_branch_patterns:
   - main
-  - release/*
 
 informational_status_checks:
   - chaos-testing

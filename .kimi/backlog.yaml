@@ -9,20 +9,20 @@ p0:
   - id: P0-001
     title: "Fix Layer 1 ruff lint failures (UP037 in source_routes.py)"
     area: "Layer 1 Ingestion"
-    status: "unblocked"
-    evidence: "reports/audit-2026-06-18/make-lint.txt"
+    status: "completed"
+    evidence: "reports/audit-2026-06-18/make-lint.txt; journal 2026-06-18 EXECUTE+VERIFY"
     command: "make lint"
     owner: "L1"
-    summary: "Two forward-referenced type annotations need unquoting for ruff UP037."
+    summary: "Two forward-referenced type annotations need unquoting for ruff UP037. [AUDIT 2026-07-18] marked completed per .kimi/journal.md."
 
   - id: P0-002
     title: "Triage and remediate 3 high-severity pnpm audit advisories"
     area: "Supply Chain / Frontend"
-    status: "unblocked"
-    evidence: "reports/audit-2026-06-18/pnpm-audit.json"
+    status: "completed"
+    evidence: "reports/audit-2026-06-18/pnpm-audit.json; journal 2026-06-18 EXECUTE+VERIFY"
     command: "pnpm audit"
     owner: "Security"
-    summary: "High-severity: react-router, tmp, form-data. Need upgrade or pnpm override."
+    summary: "High-severity: react-router, tmp, form-data. Need upgrade or pnpm override. [AUDIT 2026-07-18] marked completed per .kimi/journal.md."
 
   - id: P0-003
     title: "Triage 411 Semgrep SAST findings"
@@ -45,11 +45,11 @@ p0:
   - id: P0-005
     title: "Create docs/slo.md with SLOs and alerting rules"
     area: "Reliability"
-    status: "unblocked"
-    evidence: "Exit criteria"
+    status: "completed"
+    evidence: "docs/slo.md exists; journal 2026-06-18 EXECUTE+VERIFY"
     command: "n/a"
     owner: "SRE"
-    summary: "Required exit criteria file is missing. Define SLIs/SLOs and link to monitoring/alerting rules."
+    summary: "Required exit criteria file is missing. Define SLIs/SLOs and link to monitoring/alerting rules. [AUDIT 2026-07-18] marked completed per .kimi/journal.md and verified docs/slo.md exists."
 
   - id: P0-006
     title: "Document and validate DR RPO/RTO ≤ 15m/1h"

@@ -26,6 +26,8 @@ import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from neo4j import AsyncGraphDatabase
+from value_fabric.shared.identity import RequestContext
+from value_fabric.shared.identity.middleware import GovernanceMiddleware
 
 # Guard: skip entire module if testcontainers is not installed
 try:
@@ -35,13 +37,16 @@ except ImportError:
     HAS_TESTCONTAINERS = False
 
 from src.api.dependencies import (
+    get_graph_rag,
+    get_hybrid_search,
     get_schema_initializer,
     get_sync_manager,
 )
 from src.api.main import app
 from src.config import Settings
-from src.ingestion.neo4j_loader import Neo4jLoader
+from src.ingestion.neo4j import Neo4jLoader
 from src.ingestion.sync_manager import SyncManager
+from src.retrieval.graph_rag import GraphRAGEngine
 from src.retrieval.hybrid_search import HybridSearch
 from src.retrieval.vector_store import VectorStore
 from src.schema.initializer import SchemaInitializer
@@ -55,6 +60,27 @@ pytestmark = [
     pytest.mark.integration,
     pytest.mark.vector,
 ]
+
+
+
+
+
+def _patch_app_for_test_auth(application) -> None:
+    """Bypass GovernanceMiddleware auth/tenant checks for live E2E fixtures."""
+    from value_fabric.shared.identity import require_authenticated
+
+    async def _handle_authentication(self, request):
+        return RequestContext(tenant_id=TEST_TENANT_ID, user_id="test-user")
+
+    async def _enforce_tenant_status(self, ctx):
+        return None
+
+    GovernanceMiddleware._handle_authentication = _handle_authentication
+    GovernanceMiddleware._enforce_tenant_status = _enforce_tenant_status
+    application.dependency_overrides[require_authenticated] = lambda: RequestContext(
+        tenant_id=TEST_TENANT_ID, user_id="test-user"
+    )
+    application.middleware_stack = None
 
 
 # Test configuration
@@ -72,8 +98,9 @@ TEST_TENANT_ID = "12345678-1234-1234-1234-123456789abc"
 @pytest_asyncio.fixture(scope="function")
 async def neo4j_container() -> AsyncGenerator[Neo4jContainer, None]:
     """Provide a Neo4j test container."""
-    container = Neo4jContainer("neo4j:5-community")
-    container.with_env("NEO4J_AUTH", f"neo4j/{TEST_NEO4J_PASSWORD}")
+    container = Neo4jContainer(
+        "neo4j:5-community", password=TEST_NEO4J_PASSWORD
+    )
     container.with_env("NEO4J_dbms_memory_heap_max__size", "512M")
     container.start()
     
@@ -165,11 +192,25 @@ async def api_client_with_neo4j(
     VectorStore(driver=neo4j_driver, settings=settings)
     
     # Override dependencies
+    vector_store = VectorStore(driver=neo4j_driver, settings=settings)
+    hybrid_search = HybridSearch(
+        driver=neo4j_driver,
+        vector_store=vector_store,
+        settings=settings,
+    )
+    graph_rag = GraphRAGEngine(
+        driver=neo4j_driver,
+        vector_store=vector_store,
+        settings=settings,
+    )
     app.dependency_overrides[get_sync_manager] = lambda: sync_manager
     app.dependency_overrides[get_schema_initializer] = lambda: SchemaInitializer(
         driver=neo4j_driver, settings=settings
     )
-    
+    app.dependency_overrides[get_hybrid_search] = lambda: hybrid_search
+    app.dependency_overrides[get_graph_rag] = lambda: graph_rag
+
+    _patch_app_for_test_auth(app)
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         yield client
@@ -359,18 +400,24 @@ class TestHybridSearch:
             query="data analytics and machine learning",
             entity_types=["Capability"],
             limit=10,
+            tenant_id=TEST_TENANT_ID,
         )
         
         # Verify results
         assert results is not None, "Hybrid search returned None"
         assert len(results) > 0, "Hybrid search returned no results"
-        
+
         # Verify ranking - analytics entity should rank higher
-        entity_names = [r.get("name", "") for r in results]
+        def _result_name(result):
+            if hasattr(result, "name"):
+                return result.name
+            return result.get("name", "")
+
+        entity_names = [_result_name(r) for r in results]
         assert "Advanced Data Analytics" in entity_names, (
             f"Expected 'Advanced Data Analytics' in results, got: {entity_names}"
         )
-        
+
         # The analytics entity should be ranked higher than UI design
         analytics_rank = entity_names.index("Advanced Data Analytics")
         try:
@@ -397,15 +444,17 @@ class TestVectorE2EComplete:
         test_data = {
             "rdf_data": '''
             @prefix vf: <http://valuefabric.io/ontology/> .
+            @prefix ex: <http://valuefabric.io/entity/> .
             @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
-            
-            vf:cap/pipeline-test a vf:Capability ;
+
+            ex:pipeline-test a vf:Capability ;
                 vf:id "pipeline-test" ;
                 vf:name "AI-Powered Decision Support" ;
                 vf:description "Machine learning models for business decision optimization" ;
                 vf:confidence "0.92"^^xsd:float .
             ''',
             "source_id": "vector-e2e-test",
+            "extraction_job_id": "vector-e2e-job",
             "tenant_id": TEST_TENANT_ID,
         }
         

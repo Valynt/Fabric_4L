@@ -1,5 +1,7 @@
 # Component Interaction Map
 
+> **Audit note (2026-07-18):** This document contains route references that could not be verified in the current codebase, including `/api/v1/workspace/cases/:caseId/*` paths and `/api/v1/value-hypotheses/account/:id`. The actual value-hypothesis router uses `/v1/hypotheses/account/{account_id}`. Verify whether workspace/case endpoints belong to a removed feature or an unmerged branch before relying on the interaction map.
+
 This document maps the relationships between frontend components, backend services, data stores, and API endpoints in the Value Fabric platform, focusing on the core user workflow from prospect input to value model building.
 
 ## Overview

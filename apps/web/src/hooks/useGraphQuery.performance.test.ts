@@ -104,14 +104,28 @@ describe('useSubgraph Performance [L4-Performance]', () => {
       )
     );
 
-    const result = await benchmark(async () => {
+    const loadSmallGraph = async () => {
       const wrapper = createWrapper();
       const { result } = renderHook(
         () => useSubgraph({ query: 'small' }),
         { wrapper }
       );
-      await waitFor(() => expect(result.current.isSuccess).toBe(true), { timeout: 5000 });
-    }, 20); // Reduced iterations for faster test completion
+      // Poll at 10ms granularity: waitFor's default 50ms interval quantizes
+      // resolution timing, which inflates variance on a ~50ms measurement.
+      await waitFor(() => expect(result.current.isSuccess).toBe(true), {
+        timeout: 5000,
+        interval: 10,
+      });
+    };
+
+    // Warm-up iterations (not measured) remove cold-start outliers (msw
+    // handler init, first-render module costs) that otherwise dominate the
+    // stdDev of a short benchmark.
+    for (let i = 0; i < 3; i++) {
+      await loadSmallGraph();
+    }
+
+    const result = await benchmark(loadSmallGraph, 20); // Reduced iterations for faster test completion
 
     // Assert mean < 200ms (relaxed for test environment) and low variance
     expect(result.mean).toBeLessThan(200);

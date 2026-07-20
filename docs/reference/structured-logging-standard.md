@@ -1,5 +1,7 @@
 # Structured Logging Standard — Fabric_4L v1.2.0
 
+> **Audit note (2026-07-18):** The implementation examples reference `fabric4l.observability.logging_config` and a service name pattern (`fabric4l.layer1.ingestion`) that do not match the current shared package layout. The canonical logging module is under `packages/shared/src/value_fabric/shared/observability/`. Update examples before relying on this standard for new services.
+
 **Author:** SRE Team (Staff+)  
 **Status:** Production-Ready  
 **Enforcement:** Required for all 6 backend layers + frontend  

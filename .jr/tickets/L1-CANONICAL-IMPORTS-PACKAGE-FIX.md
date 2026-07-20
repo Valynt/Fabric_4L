@@ -163,6 +163,10 @@ PY
 4. Migrate L1 test imports
 5. Add deprecation warnings to L1 facade
 
+## Audit Note
+
+- [2026-07-18] cleanup-agent: Status verified as completed. Canonical nested package `services/layer1-ingestion/src/layer1_ingestion/` exists and is importable; `services/layer1-ingestion/src/layer1_ingestion/shared/tasks.py` uses the `_*_stage_async` naming convention (journal 2026-06-18). Residual flat directories (`src/adapters`, `src/api`, etc.) remain alongside the nested package and should be removed in a follow-up cleanup PR.
+
 ## References
 
 - L6-PACKAGE-RESTRUCTURE-PLAN.md

@@ -1631,7 +1631,9 @@ jobs:
 
       - name: Install Kyverno (CRDs only)
         run: |
-          kubectl apply -f https://github.com/kyverno/kyverno/releases/download/v1.11.0/install.yaml
+          # Server-side apply avoids the 262144-byte last-applied-configuration
+          # annotation limit that hits CRDs such as clusterpolicies.kyverno.io.
+          kubectl apply --server-side=true -f https://github.com/kyverno/kyverno/releases/download/v1.11.0/install.yaml
 
       - name: Create required StorageClasses for dry-run
         run: |
@@ -2216,6 +2218,16 @@ jobs:
         run: |
           chmod +x scripts/ci/validate-alertmanager-config.sh
           ./scripts/ci/validate-alertmanager-config.sh
+
+      - name: Install kubectl
+        run: |
+          set -e
+          KUBECTL_VERSION="v1.30.0"
+          curl -LO "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl"
+          chmod +x kubectl
+          mkdir -p "$HOME/.local/bin"
+          mv kubectl "$HOME/.local/bin/"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
       - name: Check kustomize build for monitoring manifests
         run: |
