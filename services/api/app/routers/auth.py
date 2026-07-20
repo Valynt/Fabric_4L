@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import hashlib
+import hmac
+import secrets
 import uuid
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Literal
 
 import structlog
@@ -71,7 +73,11 @@ class InviteRequest(BaseModel):
 
 
 class AcceptInviteRequest(BaseModel):
-    email: EmailStr
+    # The single-use invite token issued by POST /v1/auth/invite. The email is
+    # deliberately NOT part of this schema: binding acceptance to possession of
+    # the token (not knowledge of the email) closes the unauthenticated
+    # cross-tenant account-takeover vector.
+    token: str
     password: str
     name: str
 
@@ -83,6 +89,19 @@ class UserResponse(BaseModel):
     role: str
     tenant_id: str
     status: str
+
+
+class InviteResponse(UserResponse):
+    """Response returned once when an invitation is created.
+
+    ``invite_token`` is the plaintext single-use invite secret. It is returned
+    exactly once in this response; only its SHA-256 hash (plus expiry) is
+    persisted on the invited user's record. Production delivery of the token
+    to the invitee is via email (out of scope for this service); returning it
+    here is the development/test delivery channel.
+    """
+
+    invite_token: str
 
 
 class ImpersonationStartRequest(BaseModel):
@@ -97,6 +116,31 @@ class ImpersonationStartResponse(BaseModel):
     token_type: str = "bearer"
     expires_in: int
     impersonation_session_id: str
+
+
+# ---------------------------------------------------------------------------
+# Invite token helpers
+# ---------------------------------------------------------------------------
+
+
+def _hash_invite_token(token: str) -> str:
+    """Return the SHA-256 hex digest of a plaintext invite token.
+
+    Only this digest is ever persisted; the plaintext token is returned once
+    at invite creation time and delivered to the invitee out-of-band.
+    """
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+# Uniform rejection for every accept-invite failure mode (unknown token,
+# expired token, already-consumed token, account not in "invited" status).
+# Returning a single indistinguishable 401 prevents the endpoint from being
+# used as a cross-tenant email census or invitation-state oracle.
+_INVALID_INVITE = HTTPException(
+    status_code=status.HTTP_401_UNAUTHORIZED,
+    detail="Invalid or expired invitation token",
+    headers={"WWW-Authenticate": "Bearer"},
+)
 
 
 # ---------------------------------------------------------------------------
@@ -218,11 +262,11 @@ def get_impersonation_repo() -> ImpersonationSessionRepository:
     return ImpersonationSessionRepository(get_distributed_store())
 
 
-@router.post("/invite", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/invite", response_model=InviteResponse, status_code=status.HTTP_201_CREATED)
 async def invite_user(
     payload: InviteRequest,
     current_user: User = Depends(get_current_user),
-) -> UserResponse:
+) -> InviteResponse:
     """Invite a new user to the current tenant.
 
     An inviter may only grant roles with a rank strictly lower than their own
@@ -241,6 +285,14 @@ async def invite_user(
     if existing:
         raise ConflictError(message="User with this email already exists")
 
+    # Issue a cryptographically random, single-use invite token. Only its
+    # SHA-256 hash and expiry are persisted; the plaintext is returned once
+    # below (production delivery to the invitee is via email — out of scope).
+    invite_token = secrets.token_urlsafe(32)
+    invite_expires_at = datetime.now(UTC) + timedelta(
+        hours=get_settings().invite_token_expire_hours
+    )
+
     user_id = str(uuid.uuid4())
     user = User(
         id=user_id,
@@ -250,41 +302,83 @@ async def invite_user(
         role=payload.role,
         status="invited",
         invited_by=current_user.id,
+        invite_token_hash=_hash_invite_token(invite_token),
+        invite_token_expires_at=invite_expires_at.isoformat(),
     )
     db.users.insert(user.id, user)
 
-    return UserResponse(
+    return InviteResponse(
         id=user.id,
         email=user.email,
         name=user.name,
         role=user.role,
         tenant_id=user.tenant_id,
         status=user.status,
+        invite_token=invite_token,
     )
 
 
 @router.post("/accept-invite", response_model=TokenResponse)
 async def accept_invite(payload: AcceptInviteRequest) -> TokenResponse:
-    """Accept an invitation by setting a password and activating the account."""
+    """Accept an invitation with the single-use invite token.
+
+    The presented token is SHA-256 hashed and matched against the stored hash
+    on the invited user's record — never by email. Every failure mode (unknown
+    token, expired token, already-consumed token, non-invited account) returns
+    the same uniform 401 so the endpoint cannot be used as a cross-tenant
+    email census or invitation-state oracle. On success the token is consumed
+    (cleared) so it can never be replayed.
+    """
+    # Reject unusable tokens before any other work. A missing/empty token can
+    # never match a stored hash, and rejecting it here keeps the failure
+    # indistinguishable from any other invalid-token rejection.
+    if not payload.token:
+        raise _INVALID_INVITE
+
+    token_hash = _hash_invite_token(payload.token)
+    # Cross-tenant lookup keyed ONLY by the token hash (constant-time
+    # compare). Knowing a victim's email is useless without the token, which
+    # closes the unauthenticated account-takeover vector.
+    users = db.users.list(
+        tenant_id=SYSTEM_TENANT_ID,
+        filter_fn=lambda u: (
+            u.invite_token_hash is not None
+            and hmac.compare_digest(u.invite_token_hash, token_hash)
+        ),
+        allow_system_scope=True,
+    )
+    if not users:
+        raise _INVALID_INVITE
+
+    user = users[0]
+    if user.status != "invited":
+        raise _INVALID_INVITE
+
+    if not user.invite_token_expires_at:
+        raise _INVALID_INVITE
+    try:
+        expires_at = datetime.fromisoformat(user.invite_token_expires_at)
+    except ValueError:
+        raise _INVALID_INVITE from None
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=UTC)
+    if datetime.now(UTC) >= expires_at:
+        raise _INVALID_INVITE
+
     try:
         validate_password_strength(payload.password)
     except ValueError as exc:
         logger.warning("Password strength validation failed", error=str(exc))
         raise ValidationError(message="Password does not meet strength requirements") from exc
 
-    users = db.users.list(tenant_id=SYSTEM_TENANT_ID, filter_fn=lambda u: u.email == payload.email, allow_system_scope=True)
-    if not users:
-        raise NotFoundError(message="Invitation not found")
-
-    user = users[0]
-    if user.status != "invited":
-        raise ConflictError(message="Invitation already accepted or account deactivated")
-
-    # Update user to active with password
+    # Activate the account and consume the token (single-use): clearing the
+    # hash and expiry makes any replay of the same token fail as unknown.
     updated = user.model_copy(update={
         "status": "active",
         "password_hash": hash_password(payload.password),
         "name": payload.name,
+        "invite_token_hash": None,
+        "invite_token_expires_at": None,
     })
     db.users.insert(updated.id, updated)
 

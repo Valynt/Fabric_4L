@@ -10256,103 +10256,103 @@
     },
     {
       "kind": "python-any",
-      "line": 282,
+      "line": 289,
       "path": "services/api/app/models/schemas.py",
       "text": "assumptions: dict[str, Any] = Field(default_factory=dict)"
     },
     {
       "kind": "python-any",
-      "line": 283,
+      "line": 290,
       "path": "services/api/app/models/schemas.py",
       "text": "roi_summary: dict[str, Any] | None = None"
     },
     {
       "kind": "python-any",
-      "line": 330,
+      "line": 337,
       "path": "services/api/app/models/schemas.py",
       "text": "export_payload: dict[str, Any] = Field(default_factory=dict)"
     },
     {
       "kind": "python-any",
-      "line": 349,
+      "line": 356,
       "path": "services/api/app/models/schemas.py",
       "text": "calculation_trace: list[dict[str, Any]] = Field(default_factory=list)"
     },
     {
       "kind": "python-any",
-      "line": 366,
+      "line": 373,
       "path": "services/api/app/models/schemas.py",
       "text": "calculation_trace: list[dict[str, Any]] = Field(default_factory=list)"
     },
     {
       "kind": "python-any",
-      "line": 380,
+      "line": 387,
       "path": "services/api/app/models/schemas.py",
       "text": "calculation_trace: list[dict[str, Any]] | None = None"
     },
     {
       "kind": "python-any",
-      "line": 407,
+      "line": 414,
       "path": "services/api/app/models/schemas.py",
       "text": "inputs: dict[str, Any] = Field(default_factory=dict)"
     },
     {
       "kind": "python-any",
-      "line": 414,
+      "line": 421,
       "path": "services/api/app/models/schemas.py",
       "text": "roi_snapshot: dict[str, Any] | None = None"
     },
     {
       "kind": "python-any",
-      "line": 471,
+      "line": 478,
       "path": "services/api/app/models/schemas.py",
       "text": "payload: dict[str, Any] | None = None"
     },
     {
       "kind": "python-any",
-      "line": 547,
+      "line": 554,
       "path": "services/api/app/models/schemas.py",
       "text": "output: dict[str, Any] | None = None"
     },
     {
       "kind": "python-any",
-      "line": 561,
+      "line": 568,
       "path": "services/api/app/models/schemas.py",
       "text": "input: dict[str, Any] | None = None"
     },
     {
       "kind": "python-any",
-      "line": 562,
+      "line": 569,
       "path": "services/api/app/models/schemas.py",
       "text": "output: dict[str, Any] | None = None"
     },
     {
       "kind": "python-any",
-      "line": 584,
+      "line": 591,
       "path": "services/api/app/models/schemas.py",
       "text": "result: dict[str, Any] | None = None"
     },
     {
       "kind": "python-any",
-      "line": 585,
+      "line": 592,
       "path": "services/api/app/models/schemas.py",
       "text": "input: dict[str, Any] | None = None"
     },
     {
       "kind": "python-any",
-      "line": 654,
+      "line": 661,
       "path": "services/api/app/models/schemas.py",
       "text": "from_value: Any = Field(alias=\"from\")"
     },
     {
       "kind": "python-any",
-      "line": 655,
+      "line": 662,
       "path": "services/api/app/models/schemas.py",
       "text": "to_value: Any = Field(alias=\"to\")"
     },
     {
       "kind": "python-any",
-      "line": 668,
+      "line": 675,
       "path": "services/api/app/models/schemas.py",
       "text": "ontology: dict[str, Any] = Field(default_factory=dict)"
     },

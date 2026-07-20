@@ -35,7 +35,7 @@ allowlist:
     reason: "Credential login — unauthenticated by design"
   - method: "POST"
     path: "/v1/accept-invite"
-    reason: "Invitation acceptance — unauthenticated by design"
+    reason: "Invitation acceptance — unauthenticated by design; requires the single-use invite token (email-only acceptance removed: account-takeover fix)"
   - method: "POST"
     path: "/formulas/evaluate"
     reason: "Formula preview/evaluation endpoint"

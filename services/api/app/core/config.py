@@ -95,6 +95,10 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices("JWT_AUDIENCE"),
     )
     access_token_expire_minutes: int = 60
+    # Lifetime of single-use invite tokens issued by POST /v1/auth/invite.
+    # Only the SHA-256 hash of a token is stored; after this many hours the
+    # token is rejected even if never consumed. Default: 7 days.
+    invite_token_expire_hours: int = 24 * 7
     mock_persistence: bool = False
     database_url: str | None = None
     redis_url: str | None = None
