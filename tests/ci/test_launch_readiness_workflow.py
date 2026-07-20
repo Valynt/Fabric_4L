@@ -25,7 +25,7 @@ def test_launch_readiness_workflow_is_stage_gated() -> None:
     assert "release-policy" in jobs
     assert "prod-readiness-summary" in jobs
     assert jobs["setup"]["needs"] == ["determine-profile"]
-    assert jobs["readiness-10"]["needs"] == ["setup"]
+    assert jobs["readiness-10"]["needs"] == ["determine-profile", "setup"]
     assert "readiness-10" in jobs["release-policy"]["needs"]
     assert "release-policy" in jobs["prod-readiness-summary"]["needs"]
 
@@ -48,7 +48,7 @@ def test_launch_readiness_workflow_runs_blocking_readiness_10_gate() -> None:
     workflow = _workflow()
     job = workflow["jobs"]["readiness-10"]
 
-    assert job["needs"] == ["setup"]
+    assert job["needs"] == ["determine-profile", "setup"]
     assert "pnpm readiness:10" in content
     assert "pnpm readiness:10 || true" not in content
     assert "artifacts/readiness-10/**" in content
