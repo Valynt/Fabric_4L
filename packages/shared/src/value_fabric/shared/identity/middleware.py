@@ -83,7 +83,10 @@ from value_fabric.shared.rate_limiting.http_middleware import (
 from value_fabric.shared.tenant_context_metrics import (
     record_inconsistent_tenant_context_access,
 )
-from value_fabric.shared.tenant_kill_switch import TenantKillSwitch, TenantSuspensionStatus
+from value_fabric.shared.tenant_kill_switch import (
+    TenantKillSwitch,
+    TenantSuspensionStatus,
+)
 
 logger = logging.getLogger(__name__)
 _LEGACY_TEST_TENANT_ID_RE = re.compile(r"^tenant-[a-z0-9]+(?:-[a-z0-9]+)*$")
@@ -190,6 +193,7 @@ EXTERNAL_AUTH_BOOTSTRAP_ALLOWLIST: frozenset[str] = frozenset(
         "/openapi.json",
         "/redoc",
         "/v1/billing/webhook",
+        "/v1/repo-audit/webhook/github",
         "/internal/webhooks/clerk",
         "/v1/auth/login",
         "/v1/auth/signup",
