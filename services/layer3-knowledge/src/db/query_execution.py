@@ -31,14 +31,13 @@ from typing import Any
 
 from value_fabric.shared.identity.isolation import QueryScope, ScopedQuery
 
-from src.utils.cypher_security import TENANT_OWNED_LABELS
-
-from ..graph.query_guards import (
+from src.graph.query_guards import (
     DEFAULT_MAX_QUERY_DEPTH,
     DEFAULT_QUERY_TIMEOUT_SECONDS,
     sanitize_query_depth,
     sanitize_query_timeout_seconds,
 )
+from src.utils.cypher_security import TENANT_OWNED_LABELS
 
 try:
     from metrics.prometheus_metrics import get_metrics

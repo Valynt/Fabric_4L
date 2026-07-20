@@ -6,7 +6,7 @@ import pytest
 from rdflib import RDF, Graph, Literal, Namespace, URIRef
 
 from src.ingestion import Neo4jLoader, RDFLoadError
-from src.ingestion.neo4j_loader import (
+from src.ingestion.neo4j import (
     TenantValidationError,
     validate_ingestion_tenant_id,
 )
