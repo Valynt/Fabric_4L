@@ -12,6 +12,8 @@ related: ["api-overview", "layer4-agents-api", "../core-concepts/evaluation-fram
 > **Base URL:** `http://localhost:8005` (local) / `https://l5.valuefabric.io` (production)  
 > **Base Path:** `/api/v1`  
 > **Service:** Ground-truth store and evaluation API for validating agent outputs
+>
+> **Audit note (2026-07-18):** The current Layer 5 router (`services/layer5-ground-truth/src/layer5_ground_truth/api/router.py`) exposes `/api/v1/truths/*` and `/api/v1/maturity-ladder/*` only. The `/api/v1/evaluations` and `/api/v1/benchmarks` endpoints described below are not implemented in L5; benchmarking lives in `services/layer6-benchmarks/` and evaluation workflows are proxied through Layer 4.
 
 ---
 

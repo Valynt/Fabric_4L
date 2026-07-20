@@ -1,6 +1,8 @@
 # API Key Hardening & Auditability — Design
 
 > **Implementation status:** Implemented. Backend routes, service logic, middleware resolver, audit events, frontend UI, backend integration tests, and frontend tests are in place. See `docs/auth/api-keys.md` for the operator-facing lifecycle guide.
+>
+> **Audit note (2026-07-18):** The canonical runtime implementation moved to `services/api/app/routers/api_keys.py` (prefix `/auth/api-keys`) with `services/api/app/core/api_key_hash.py`, `repositories/api_key_repository.py`, and tests under `services/api/app/tests/`. The Layer 4 tenant-scoped routes (`services/layer4-agents/src/layer4_agents/tenants/api/routes/api_keys.py`) still exist but should be treated as a compatibility shim unless a separate canonical review determines otherwise. Update any new work to target the `services/api` implementation.
 
 ## Problem statement
 

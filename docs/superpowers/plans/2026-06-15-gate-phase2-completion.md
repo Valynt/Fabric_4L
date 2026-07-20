@@ -1,5 +1,7 @@
 # GATE Framework Phase 2 Completion — Implementation Plan
 
+**Status:** Active — audit note added 2026-07-18. The Rego policy bundle `k8s/policy/agent-runtime-policies.rego` referenced below does not exist; create it or remove the dependency from this plan before execution.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Complete the GATE Phase 2 control layer by wiring the existing ABOM loader, ToolGateway, and policy engine into the Layer 4 agent runtime and API routes, then prove it with tests.

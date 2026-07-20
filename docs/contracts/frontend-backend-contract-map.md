@@ -1,5 +1,7 @@
 # Frontend-Backend Contract Map
 
+> **Audit note (2026-07-18):** This map is partially stale. Formula Create/Update/Delete are implemented in `services/layer3-knowledge/src/api/routes/formulas.py` and consumed via `apps/web/src/hooks/useFormulas.ts`. Layer 5 canonical paths are routed through the Layer 4 ground-truth proxy (`/v1/ground-truth/truths/*`, `/v1/ground-truth/maturity-ladder/*`) rather than direct `/api/v1/truths` calls. The `MISSING_ROUTES_IMPLEMENTATION_PLAN.md` referenced for formula gaps has been archived as the routes are now implemented.
+
 > **Status:** Draft — alignment package for Fabric_4L  
 > **Scope:** Map every frontend query domain to its canonical backend endpoint.  
 > **Principle:** Backend layers = capabilities. Frontend modules = product workflows. This document makes the translation explicit.

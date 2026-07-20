@@ -39,6 +39,8 @@ wave. The detailed per-item status and validation evidence remain canonical in
 
 ## Completion Checklist
 
+> **Audit note (2026-07-18):** This completion checklist remains unchecked. The sprint register still lists S5-2/S5-3/S5-4 as `requires implementation`, which conflicts with the 2026-06-16 launch-blocker register posture of "GO WITH ACCEPTED RISKS for Core GA." Reconcile or close this checklist once the authoritative launch posture is confirmed.
+
 - [ ] Every item in the sprint register is either `verified closed` or has an
       explicit blocker with owner and next validation.
 - [ ] P0-security and P0-contract items are closed before release readiness.

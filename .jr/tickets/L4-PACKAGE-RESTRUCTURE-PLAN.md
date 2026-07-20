@@ -1,6 +1,6 @@
 # L4 Package Restructure Plan
 
-**Status:** Done - complete
+**Status:** Done - complete — PARTIAL/CLEANUP PENDING (see Audit Note)
 
 **Created:** 2026-05-29
 
@@ -236,6 +236,10 @@ python -m compileall services/layer4-agents/src
 3. **Engine/state manager tests** - core orchestration
 4. **API/router tests** - FastAPI endpoints
 5. **Remaining tests** - integration, security, workflows
+
+## Audit Note
+
+- [2026-07-18] cleanup-agent: Status flagged as partial cleanup. While a nested `services/layer4-agents/src/layer4_agents/` package exists, the original flat source modules (`src/__init__.py`, `src/database.py`, `src/main.py`, `src/api/`, `src/agents/`, etc.) still remain in `services/layer4-agents/src/`. This contradicts the file-move map in this plan and risks module shadowing. A follow-up PR must remove the residual flat modules and confirm `layer4_agents.*` canonical imports still work.
 
 ## References
 

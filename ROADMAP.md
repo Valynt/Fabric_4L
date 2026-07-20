@@ -1,5 +1,7 @@
 # Value Fabric Roadmap
 
+> **Audit note (2026-07-18):** The duplicate redirect at `docs/roadmap.md` was archived to `archive/planning-audit-2026-07-18/docs/roadmap.md` because it only pointed back to this file.
+
 This root roadmap is the canonical product roadmap for the platform.
 
 - Canonical launch readiness: [docs/readiness/current.md](docs/readiness/current.md)

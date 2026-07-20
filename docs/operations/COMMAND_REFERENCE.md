@@ -1,5 +1,7 @@
 # Reliable Command Reference — Fabric_4L Environment
 
+> **Audit note (2026-07-18):** This reference uses legacy commands (`docker-compose`, `npm install`, `npm run dev`) and directory paths (`frontend/`, `shared/`, `layer*/src/`) that do not match the current monorepo conventions. Use `docker compose`, `pnpm install --frozen-lockfile`, and `pnpm --dir apps/web run …` instead, and refer to `services/layer*-*/` and `packages/shared/` for canonical paths. See `AGENTS.md` and `docs/development/BUILD_SYSTEM.md` for the current command map.
+
 Copy-Pasteable Commands for Build, Deploy, Test, and Operations
 
 **Context:** Vite/React frontend, Python FastAPI/Flask backend, PostgreSQL, Redis, Neo4j, Docker, Kubernetes

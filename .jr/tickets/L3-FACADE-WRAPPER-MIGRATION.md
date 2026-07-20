@@ -426,6 +426,7 @@ Recommended sequence:
 ## Notes
 
 - [2026-05-29] coder: Updated to reflect current facade-removal state. Layer shims are neutralized; L3 service wrappers are intentionally retained; removal target remains 2026-09-30.
+- [2026-07-18] cleanup-agent: Ticket remains active (status: POST-NEUTRALIZATION TRACKING). Target removal date 2026-09-30 is still future. Unresolved acceptance criteria remain unchecked. `TODO-CHECKPOINT-6/7` placeholder references elsewhere in the repo should not block this ticket; replace them with real ticket refs when the wrapper-removal plan is approved.
 
 ## References
 

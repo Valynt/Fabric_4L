@@ -1,5 +1,7 @@
 # Production Signoff Tracking Issue (Single Source of Truth)
 
+> **Audit note (2026-07-18):** The linked authority doc `PRODUCTION_SIGNOFF.md` does not exist at the expected location (`docs/launch/PRODUCTION_SIGNOFF.md`). An archived copy exists at `archive/signoff-evidence/signoff-evidence/PRODUCTION_SIGNOFF.md`; update this link once the canonical location is confirmed.
+
 - **Issue title:** `Production Signoff Runway — Full Monorepo`
 - **Owner:** Release Manager (assign explicitly)
 - **Status:** Open
