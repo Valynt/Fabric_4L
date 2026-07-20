@@ -37,7 +37,7 @@ export default function SignalsTab() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const types = useMemo(
-    () => Array.from(new Set(signals.map((s) => s.type).filter(Boolean))) as string[],
+    () => Array.from(new Set(signals.flatMap((s) => (s.type ? [s.type] : [])))),
     [signals]
   );
 

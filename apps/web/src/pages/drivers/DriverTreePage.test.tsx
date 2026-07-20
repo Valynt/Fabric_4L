@@ -37,6 +37,52 @@ vi.mock("@/pages/evidence/SolutionCostTab", () => ({
   default: () => <div data-testid="solution-cost-content">Solution Cost</div>,
 }));
 
+describe("DriverTreePage trees tab behavior", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    server.use(
+      http.get("/api/v1/agents/hypotheses/account/:accountId", () =>
+        HttpResponse.json({
+          hypotheses: [
+            {
+              id: "hyp-1",
+              account_id: "acc-123",
+              product_id: "prod-1",
+              signal_id: "sig-1",
+              hypothesis_text: "Reduce churn via onboarding improvements",
+              value_path_category: "revenue_uplift",
+              confidence: 0.8,
+              status: "draft",
+              evidence_ids: [],
+              created_at: "2026-01-01T00:00:00Z",
+              updated_at: "2026-01-01T00:00:00Z",
+            },
+          ],
+          total: 1,
+        })
+      )
+    );
+  });
+
+  it("renders suggested driver trees and reveals Model Impact after selecting one", async () => {
+    mockUseAccount.mockReturnValue({
+      data: { id: "acc-123", name: "Acme Corp" },
+      isLoading: false,
+    });
+
+    const wrapper = createWrapperWithRouterPath("/t/acme/accounts/acc-123/studio/driver-tree");
+    render(<DriverTreePage accountId="acc-123" />, { wrapper });
+
+    const suggestion = await screen.findByText("Reduce churn via onboarding improvements");
+    expect(suggestion).toBeInTheDocument();
+    expect(screen.queryByText(/Model Impact/)).not.toBeInTheDocument();
+
+    await userEvent.click(suggestion);
+
+    expect(screen.getByText(/Model Impact/)).toBeInTheDocument();
+  });
+});
+
 describe("DriverTreePage account/loading guards", () => {
   beforeEach(() => {
     vi.clearAllMocks();

@@ -7,11 +7,13 @@ import {
   useDocumentExport,
   useBusinessCaseExport,
   useBusinessCase,
+  useRegenerateBusinessCase,
   downloadExport,
   type DocumentExportRequest,
   type DocumentExportResponse,
   type BusinessCase,
 } from './useDocuments';
+import { QK } from './queryKeys';
 
 // Mock the apiClient
 vi.mock('@/api/client', () => ({
@@ -216,6 +218,51 @@ describe('useDocuments', () => {
       });
 
       await waitFor(() => expect(result.current.isError).toBe(true));
+    });
+  });
+
+  describe('useRegenerateBusinessCase hook', () => {
+    it('should invalidate the cached business case detail after successful regeneration', async () => {
+      (apiClient.post as Mock).mockResolvedValueOnce(
+        createMockResponse(sampleBusinessCase)
+      );
+
+      const queryClient = new QueryClient({
+        defaultOptions: {
+          queries: {
+            retry: false,
+          },
+        },
+      });
+      queryClient.setQueryData(QK.documents.businessCase('bc-001'), sampleBusinessCase);
+
+      function Wrapper({ children }: { children: React.ReactNode }) {
+        return (
+          <QueryClientProvider client={queryClient}>
+            {children}
+          </QueryClientProvider>
+        );
+      }
+
+      const { result } = renderHook(() => useRegenerateBusinessCase(), {
+        wrapper: Wrapper,
+      });
+
+      result.current.mutate({ caseId: 'bc-001', accountId: 'acc-001' });
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+      expect(apiClient.post).toHaveBeenCalledWith(
+        'l4',
+        '/cases/bc-001/regenerate',
+        expect.objectContaining({
+          previous_case_id: 'bc-001',
+          account_id: 'acc-001',
+        })
+      );
+      expect(
+        queryClient.getQueryState(QK.documents.businessCase('bc-001'))?.isInvalidated
+      ).toBe(true);
     });
   });
 

@@ -67,11 +67,19 @@ interface ClerkAuthBridgeProps {
 export function ClerkAuthBridge({
   children = null,
 }: ClerkAuthBridgeProps = {}): ReactElement | null {
-  // Legacy auth path: do not call Clerk hooks because <ClerkProvider> is not mounted.
+  // Legacy auth path: do not call Clerk hooks because <ClerkProvider> is not
+  // mounted. The Clerk-enabled bridge lives in a separate component selected
+  // by this flag so hook calls inside it stay unconditional (rules-of-hooks).
   if (!isClerkAuthEnabled()) {
     return <>{children}</>;
   }
 
+  return <ClerkAuthBridgeClerk>{children}</ClerkAuthBridgeClerk>;
+}
+
+function ClerkAuthBridgeClerk({
+  children = null,
+}: ClerkAuthBridgeProps): ReactElement | null {
   const { isLoaded: authLoaded, isSignedIn, getToken } = useAuth();
   const syncTenant = useAccountContextStore(s => s.syncTenant);
 
@@ -80,7 +88,13 @@ export function ClerkAuthBridge({
   // on `getToken` does NOT cause us to unregister/re-register and never
   // leaves a null-getter race window.
   const getTokenRef = useRef(getToken);
-  getTokenRef.current = getToken;
+  // Keep the ref current from an effect (never mutate a ref during render).
+  // Declared before the registration effect below so it runs first on every
+  // commit; the registered getter only reads the ref at call time, so stale
+  // closures are impossible and no null-getter race window opens.
+  useEffect(() => {
+    getTokenRef.current = getToken;
+  });
 
   // 1) Register the token getter on first authenticated mount; clear on
   //    sign-out and on unmount. We intentionally depend only on the

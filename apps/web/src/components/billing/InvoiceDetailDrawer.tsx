@@ -18,12 +18,16 @@ interface InvoiceDetailDrawerProps {
   onClose: () => void;
 }
 
+// Currency formatter is built once at module scope; constructing
+// Intl.NumberFormat is expensive, so don't redo it on every call.
+const CURRENCY_FORMATTER = new Intl.NumberFormat('en-US', {
+  style: 'currency',
+  currency: 'USD',
+});
+
 // Format currency helper
 const formatCurrency = (dollars: number): string => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(dollars);
+  return CURRENCY_FORMATTER.format(dollars);
 };
 
 // Format date helper

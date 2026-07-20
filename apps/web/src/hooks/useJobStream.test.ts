@@ -217,4 +217,30 @@ describe('useJobStream', () => {
     // Unmount should clean up connections without throwing
     expect(() => unmount()).not.toThrow();
   });
+
+  it('closes the EventSource and resets state when jobId becomes null', async () => {
+    const wrapper = createWrapper();
+    const { result, rerender } = renderHook(
+      ({ jobId }: { jobId: string | null }) => useJobStream(jobId),
+      { wrapper, initialProps: { jobId: 'job-123' as string | null } }
+    );
+
+    await waitFor(() => expect(result.current.isConnected).toBe(true), { timeout: 1000 });
+    const es = await getEventSourceOrThrow();
+
+    act(() => {
+      es._simulateProgress(40);
+    });
+    await waitFor(() => expect(result.current.progress).toBe(40));
+
+    rerender({ jobId: null });
+
+    // State resets and the previous EventSource is closed on effect re-run
+    await waitFor(() => {
+      expect(result.current.isConnected).toBe(false);
+      expect(result.current.progress).toBe(0);
+      expect(result.current.status).toBe('created');
+    });
+    expect(es.readyState).toBe(2);
+  });
 });

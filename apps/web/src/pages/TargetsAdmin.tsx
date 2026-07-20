@@ -2,7 +2,7 @@
  * TargetsAdmin — Context Engine / Targets
  * Route: /context/targets  (requiredTier: admin)
  */
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import {
   Plus, RefreshCw, Play, Pause, Archive, Trash2,
   Search, Filter, CheckCircle2, XCircle, AlertTriangle,
@@ -508,9 +508,6 @@ export default function TargetsAdmin() {
   const executeTarget = useExecuteTarget();
   const batchOp = useBatchTargetOperation();
   const [runningId, setRunningId] = useState<string | null>(null);
-
-  // Derived: scheduled tab filters
-  const scheduledFilters = useMemo(() => ({ ...filters, page: 1, sortBy: 'updated_at' as const }), [filters.search, filters.status]);
 
   // Row actions
   const handleRun = useCallback(async (id: string) => {

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * AppShell — Refined Enterprise SaaS layout
  * Three-mode navigation per gap analysis spec:
  *   Standard  — task-oriented for business users
@@ -21,7 +21,7 @@ import { useAuthContext } from "@/contexts/AuthContext";
 import { Search, Bell, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/i18n";
-import { GlobalSearchDialog } from "./search";
+import { GlobalSearchDialog } from "./search/GlobalSearchDialog";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
