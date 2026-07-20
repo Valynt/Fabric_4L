@@ -30,6 +30,7 @@ from layer4_agents.models.account import (
     CRMProvider,
     SyncStatus,
 )
+from layer4_agents.integrations.core.types import CanonicalRecord, CRMModel, SyncCursor
 from layer4_agents.services.crm_sync_service import CRMSyncService
 
 AUTH_HEADERS = {
@@ -146,26 +147,25 @@ def sample_hubspot_company_data():
     })
 
 
-class MockProspectDataTool:
-    """Mock GetProspectDataTool for testing."""
-    
+class MockCRMConnector:
+    """Mock CRMConnector for testing."""
+
     def __init__(self, config=None):
         self.config = config or {}
-        self._mock_profile = None
+        self._mock_account = None
         self._mock_opportunities = []
-        self._mock_interactions = []
-    
-    def set_mock_data(self, profile=None, opportunities=None, interactions=None):
-        self._mock_profile = profile
+
+    def set_mock_data(self, account=None, opportunities=None):
+        self._mock_account = account
         self._mock_opportunities = opportunities or []
-        self._mock_interactions = interactions or []
-    
-    async def execute(self, input_data):
-        from layer4_agents.models.tool_schemas import GetProspectDataOutput
-        
-        return GetProspectDataOutput(
-            profile=self._mock_profile or {
-                "id": "test-id",
+
+    async def get_account(self, remote_id, *, include=None, timeout=None):
+        if self._mock_account is not None:
+            return self._mock_account
+        return CanonicalRecord(
+            model=CRMModel.ACCOUNT,
+            remote_id=remote_id,
+            canonical={
                 "name": "Test Company",
                 "industry": "Technology",
                 "company_size": 100,
@@ -175,10 +175,19 @@ class MockProspectDataTool:
                 "domain": "test.com",
                 "employees": 100,
             },
-            opportunities=self._mock_opportunities,
-            interactions=self._mock_interactions,
-            custom_fields={},
         )
+
+    async def list_opportunities(self, account_remote_id, *, cursor=None, limit=100, timeout=None):
+        return self._mock_opportunities, SyncCursor()
+
+    async def list_interactions(self, account_remote_id, *, since_date=None, cursor=None, limit=100, timeout=None):
+        return [], SyncCursor()
+
+    async def test_connection(self, *, timeout=None):
+        return {"success": True, "message": "Mock connection"}
+
+    async def list_accounts(self, *, cursor=None, modified_since=None, limit=100, timeout=None):
+        return [], SyncCursor()
 
 
 # =============================================================================
@@ -202,8 +211,8 @@ class TestCRMSyncService:
         # Mock the CRM config
         with patch.object(sync_service, '_get_crm_config', AsyncMock(return_value=mock_crm_config)):
             with patch(
-                'layer4_agents.services.crm_sync_service.GetProspectDataTool',
-                MockProspectDataTool
+                'layer4_agents.services.crm_sync_service.get_connector',
+                return_value=MockCRMConnector()
             ):
                 # Act
                 stats = await sync_service.sync_provider(
@@ -241,8 +250,8 @@ class TestCRMSyncService:
         # Mock the CRM config
         with patch.object(sync_service, '_get_crm_config', AsyncMock(return_value=mock_crm_config)):
             with patch(
-                'layer4_agents.services.crm_sync_service.GetProspectDataTool',
-                MockProspectDataTool
+                'layer4_agents.services.crm_sync_service.get_connector',
+                return_value=MockCRMConnector()
             ):
                 # Act
                 stats = await sync_service.sync_provider(
@@ -295,8 +304,8 @@ class TestCRMSyncService:
         
         with patch.object(sync_service, '_get_crm_config', AsyncMock(return_value=hubspot_config)):
             with patch(
-                'layer4_agents.services.crm_sync_service.GetProspectDataTool',
-                MockProspectDataTool
+                'layer4_agents.services.crm_sync_service.get_connector',
+                return_value=MockCRMConnector()
             ):
                 # Act
                 stats = await sync_service.sync_provider(
@@ -320,17 +329,20 @@ class TestCRMSyncService:
         mock_result.scalar_one_or_none.return_value = None
         mock_db.execute.return_value = mock_result
         
-        class FailingTool:
+        class FailingConnector:
             def __init__(self, config=None):
                 pass
             
-            async def execute(self, input_data):
+            async def get_account(self, remote_id, *, include=None, timeout=None):
                 raise Exception("API Error: Rate limit exceeded")
-        
+            
+            async def list_opportunities(self, account_remote_id, *, cursor=None, limit=100, timeout=None):
+                return [], SyncCursor()
+
         with patch.object(sync_service, '_get_crm_config', AsyncMock(return_value=mock_crm_config)):
             with patch(
-                'layer4_agents.services.crm_sync_service.GetProspectDataTool',
-                FailingTool
+                'layer4_agents.services.crm_sync_service.get_connector',
+                return_value=FailingConnector()
             ):
                 # Act
                 stats = await sync_service.sync_provider(
@@ -364,8 +376,8 @@ class TestCRMSyncService:
         
         with patch.object(sync_service, '_get_crm_config', AsyncMock(return_value=mock_crm_config)):
             with patch(
-                'layer4_agents.services.crm_sync_service.GetProspectDataTool',
-                MockProspectDataTool
+                'layer4_agents.services.crm_sync_service.get_connector',
+                return_value=MockCRMConnector()
             ):
                 # Act
                 result = await sync_service.refresh_single_account(account_id, tenant_id="tenant-a")
@@ -658,8 +670,8 @@ class TestSyncFlow:
         
         with patch.object(sync_service, '_get_crm_config', AsyncMock(return_value=mock_crm_config)):
             with patch(
-                'layer4_agents.services.crm_sync_service.GetProspectDataTool',
-                MockProspectDataTool
+                'layer4_agents.services.crm_sync_service.get_connector',
+                return_value=MockCRMConnector()
             ):
                 # Act
                 await sync_service.sync_provider(
@@ -669,7 +681,7 @@ class TestSyncFlow:
                     account_ids=["001TEST123"]
                 )
                 
-                # Assert - sync status should be updated via _update_sync_status
+                # Assert - sync status should be updated via _update_account_sync_status
                 # which commits the transaction
                 assert mock_db.commit.called
 

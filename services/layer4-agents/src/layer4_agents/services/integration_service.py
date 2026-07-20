@@ -20,10 +20,22 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
+from layer4_agents.integrations.core.errors import (
+    AuthError,
+    CRMError,
+    classify_http_status,
+)
+from layer4_agents.integrations.core.state import (
+    ErrorClass,
+    ObservedStatus,
+    apply_observation,
+)
+from layer4_agents.integrations.factory import get_connector
+
 from ..metrics import get_metrics
 from ..models.account import CRMProvider
 from ..models.crm_sync_job import CRMSyncJob, CRMSyncJobStatus
-from ..models.integration import Integration, IntegrationStatus
+from ..models.integration import Integration
 from .crm_sync_queue import enqueue_crm_sync_job
 from .encryption_service import DEFAULT_KEY_ID, EncryptionService
 
@@ -35,10 +47,12 @@ class IntegrationService_trigger_syncResult(TypedDictModel):
     status: str
     sync_id: Any
 
+
 class IntegrationService_test_connectionResult(TypedDictModel):
-    error_code: str
+    error_code: str | None = None
     message: str
     success: bool
+
 
 class IntegrationService__test_salesforce_connectionResult(TypedDictModel):
     details: dict[str, Any] | None = None
@@ -46,16 +60,19 @@ class IntegrationService__test_salesforce_connectionResult(TypedDictModel):
     message: str
     success: bool
 
+
 class IntegrationService__test_hubspot_connectionResult(TypedDictModel):
     details: dict[str, Any] | None = None
     error_code: str | None = None
     message: str
     success: bool
 
+
 class IntegrationService__test_crm_connectionResult(TypedDictModel):
     error_code: str
     message: str
     success: bool
+
 
 # CRM API endpoint constants
 SALESFORCE_API_VERSION = "v58.0"
@@ -65,12 +82,14 @@ logger = logging.getLogger(__name__)
 
 # URL validation pattern for instance URLs
 _INSTANCE_URL_PATTERN = re.compile(
-    r'^https?://'  # http:// or https://
-    r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+[A-Z]{2,6}\.?|'  # domain
-    r'localhost|'  # localhost
-    r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'  # or ip
-    r'(?::\d+)?'  # optional port
-    r'(?:/?|[/?]\S+)$', re.IGNORECASE)
+    r"^https?://"  # http:// or https://
+    r"(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+[A-Z]{2,6}\.?|"  # domain
+    r"localhost|"  # localhost
+    r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})"  # or ip
+    r"(?::\d+)?"  # optional port
+    r"(?:/?|[/?]\S+)$",
+    re.IGNORECASE,
+)
 
 
 class IntegrationValidationError(ValueError):
@@ -132,9 +151,7 @@ class IntegrationService:
         result = await self.db.execute(query)
         return list(result.scalars().all())
 
-    async def get_integration(
-        self, tenant_id: str, provider: CRMProvider
-    ) -> Integration | None:
+    async def get_integration(self, tenant_id: str, provider: CRMProvider) -> Integration | None:
         """Get integration by tenant and provider.
 
         Args:
@@ -201,7 +218,11 @@ class IntegrationService:
                 )
 
         merged_credentials = dict(credentials)
-        if provider == CRMProvider.SALESFORCE and is_update and not merged_credentials.get("api_key"):
+        if (
+            provider == CRMProvider.SALESFORCE
+            and is_update
+            and not merged_credentials.get("api_key")
+        ):
             try:
                 existing_credentials = await self.decrypt_credentials(existing)
             except asyncio.CancelledError:
@@ -249,9 +270,12 @@ class IntegrationService:
             existing.updated_by = user_id
             if salesforce_org_id:
                 existing.salesforce_org_id = salesforce_org_id
-            # Reset status on config change
-            if not enabled:
-                existing.sync_status = IntegrationStatus.IDLE
+            # Reset status on config change via the reducer.
+            await apply_observation(
+                self.db,
+                existing,
+                ObservedStatus.IDLE,
+            )
         else:
             # Create new
             existing = Integration(
@@ -264,11 +288,11 @@ class IntegrationService:
                 salesforce_org_id=salesforce_org_id,
                 sync_interval_minutes=sync_interval_minutes,
                 sync_batch_size=sync_batch_size,
-                sync_status=IntegrationStatus.IDLE if not enabled else IntegrationStatus.PENDING,
                 created_by=user_id,
                 updated_by=user_id,
             )
             self.db.add(existing)
+            await apply_observation(self.db, existing, ObservedStatus.IDLE)
 
         await self.db.commit()
         await self.db.refresh(existing)
@@ -312,9 +336,7 @@ class IntegrationService:
 
         return True
 
-    async def test_connection(
-        self, tenant_id: str, provider: CRMProvider
-    ) -> dict[str, Any]:
+    async def test_connection(self, tenant_id: str, provider: CRMProvider) -> dict[str, Any]:
         """Test the CRM connection using stored credentials.
 
         Args:
@@ -326,20 +348,22 @@ class IntegrationService:
         """
         integration = await self.get_integration(tenant_id, provider)
         if not integration:
-            return IntegrationService_test_connectionResult.model_validate({
-                "success": False,
-                "message": f"No {provider.value} integration configured",
-                "error_code": "NOT_CONFIGURED",
-            })
-
+            return IntegrationService_test_connectionResult.model_validate(
+                {
+                    "success": False,
+                    "message": f"No {provider.value} integration configured",
+                    "error_code": "NOT_CONFIGURED",
+                }
+            )
 
         if not integration.enabled:
-            return IntegrationService_test_connectionResult.model_validate({
-                "success": False,
-                "message": "Integration is disabled",
-                "error_code": "DISABLED",
-            })
-
+            return IntegrationService_test_connectionResult.model_validate(
+                {
+                    "success": False,
+                    "message": "Integration is disabled",
+                    "error_code": "DISABLED",
+                }
+            )
 
         try:
             creds_json = await EncryptionService.decrypt(
@@ -347,22 +371,22 @@ class IntegrationService:
             )
             credentials = json.loads(creds_json)
 
-            # Perform actual HTTP connection test
-            test_result = await self._test_crm_connection(
-                provider, credentials, integration.instance_url
-            )
-            return test_result
+            # Perform actual HTTP connection test through the provider connector.
+            connector = get_connector(provider, credentials)
+            test_result = await connector.test_connection()
+            return IntegrationService_test_connectionResult.model_validate(test_result)
 
         except asyncio.CancelledError:
             raise
         except Exception as e:
             logger.error("Connection test failed for %s: %s", provider, e)
-            return IntegrationService_test_connectionResult.model_validate({
-                "success": False,
-                "message": "CONNECTION_FAILED_ERROR",
-                "error_code": "CONNECTION_FAILED",
-            })
-
+            return IntegrationService_test_connectionResult.model_validate(
+                {
+                    "success": False,
+                    "message": "CONNECTION_FAILED_ERROR",
+                    "error_code": "CONNECTION_FAILED",
+                }
+            )
 
     async def _test_crm_connection(
         self,
@@ -382,18 +406,17 @@ class IntegrationService:
         """
         async with httpx.AsyncClient(timeout=30.0) as client:
             if provider == CRMProvider.SALESFORCE:
-                return await self._test_salesforce_connection(
-                    client, credentials, instance_url
-                )
+                return await self._test_salesforce_connection(client, credentials, instance_url)
             elif provider == CRMProvider.HUBSPOT:
                 return await self._test_hubspot_connection(client, credentials)
             else:
-                return IntegrationService__test_crm_connectionResult.model_validate({
-                    "success": False,
-                    "message": f"Unsupported provider: {provider.value}",
-                    "error_code": "UNSUPPORTED_PROVIDER",
-                })
-
+                return IntegrationService__test_crm_connectionResult.model_validate(
+                    {
+                        "success": False,
+                        "message": f"Unsupported provider: {provider.value}",
+                        "error_code": "UNSUPPORTED_PROVIDER",
+                    }
+                )
 
     async def _test_salesforce_connection(
         self,
@@ -413,22 +436,24 @@ class IntegrationService:
         """
         access_token = credentials.get("api_key")
         if not access_token:
-            return IntegrationService__test_salesforce_connectionResult.model_validate({
-                "success": False,
-                "message": "Missing OAuth access token in credentials",
-                "error_code": "MISSING_CREDENTIALS",
-            })
-
+            return IntegrationService__test_salesforce_connectionResult.model_validate(
+                {
+                    "success": False,
+                    "message": "Missing OAuth access token in credentials",
+                    "error_code": "MISSING_CREDENTIALS",
+                }
+            )
 
         # Use provided instance_url or construct from credentials
         base_url = instance_url or credentials.get("instance_url", "")
         if not base_url:
-            return IntegrationService__test_salesforce_connectionResult.model_validate({
-                "success": False,
-                "message": "Salesforce instance URL is required",
-                "error_code": "MISSING_INSTANCE_URL",
-            })
-
+            return IntegrationService__test_salesforce_connectionResult.model_validate(
+                {
+                    "success": False,
+                    "message": "Salesforce instance URL is required",
+                    "error_code": "MISSING_INSTANCE_URL",
+                }
+            )
 
         try:
             # Test API access by querying Organization info (lightweight call)
@@ -442,49 +467,54 @@ class IntegrationService:
                 data = response.json()
                 org_name = data.get("records", [{}])[0].get("Name", "Unknown")
 
-                return IntegrationService__test_salesforce_connectionResult.model_validate({
-                    "success": True,
-                    "message": f"Connected to Salesforce: {org_name}",
-                    "details": {
-                        "accounts_accessible": True,
-                        "opportunities_accessible": True,
-                        "organization": org_name,
-                        "api_version": SALESFORCE_API_VERSION,
-                    },
-                })
-
+                return IntegrationService__test_salesforce_connectionResult.model_validate(
+                    {
+                        "success": True,
+                        "message": f"Connected to Salesforce: {org_name}",
+                        "details": {
+                            "accounts_accessible": True,
+                            "opportunities_accessible": True,
+                            "organization": org_name,
+                            "api_version": SALESFORCE_API_VERSION,
+                        },
+                    }
+                )
 
             elif response.status_code == 401:
-                return IntegrationService__test_salesforce_connectionResult.model_validate({
-                    "success": False,
-                    "message": "Authentication failed - token may be expired",
-                    "error_code": "AUTH_FAILED",
-                })
-
+                return IntegrationService__test_salesforce_connectionResult.model_validate(
+                    {
+                        "success": False,
+                        "message": "Authentication failed - token may be expired",
+                        "error_code": "AUTH_FAILED",
+                    }
+                )
 
             else:
-                return IntegrationService__test_salesforce_connectionResult.model_validate({
-                    "success": False,
-                    "message": f"Salesforce API error: {response.status_code}",
-                    "error_code": f"API_ERROR_{response.status_code}",
-                })
-
+                return IntegrationService__test_salesforce_connectionResult.model_validate(
+                    {
+                        "success": False,
+                        "message": f"Salesforce API error: {response.status_code}",
+                        "error_code": f"API_ERROR_{response.status_code}",
+                    }
+                )
 
         except httpx.TimeoutException:
-            return IntegrationService__test_salesforce_connectionResult.model_validate({
-                "success": False,
-                "message": "Connection timed out after 30 seconds",
-                "error_code": "TIMEOUT",
-            })
-
+            return IntegrationService__test_salesforce_connectionResult.model_validate(
+                {
+                    "success": False,
+                    "message": "Connection timed out after 30 seconds",
+                    "error_code": "TIMEOUT",
+                }
+            )
 
         except httpx.NetworkError:
-            return IntegrationService__test_salesforce_connectionResult.model_validate({
-                "success": False,
-                "message": "NETWORK_ERROR",
-                "error_code": "NETWORK_ERROR",
-            })
-
+            return IntegrationService__test_salesforce_connectionResult.model_validate(
+                {
+                    "success": False,
+                    "message": "NETWORK_ERROR",
+                    "error_code": "NETWORK_ERROR",
+                }
+            )
 
     async def _test_hubspot_connection(
         self,
@@ -502,12 +532,13 @@ class IntegrationService:
         """
         api_key = credentials.get("api_key")
         if not api_key:
-            return IntegrationService__test_hubspot_connectionResult.model_validate({
-                "success": False,
-                "message": "Missing API key in credentials",
-                "error_code": "MISSING_CREDENTIALS",
-            })
-
+            return IntegrationService__test_hubspot_connectionResult.model_validate(
+                {
+                    "success": False,
+                    "message": "Missing API key in credentials",
+                    "error_code": "MISSING_CREDENTIALS",
+                }
+            )
 
         try:
             # Test API access by querying account info
@@ -520,49 +551,54 @@ class IntegrationService:
                 data = response.json()
                 portal_name = data.get("portalName", "Unknown")
 
-                return IntegrationService__test_hubspot_connectionResult.model_validate({
-                    "success": True,
-                    "message": f"Connected to HubSpot: {portal_name}",
-                    "details": {
-                        "accounts_accessible": True,
-                        "opportunities_accessible": True,
-                        "portal_name": portal_name,
-                        "api_version": HUBSPOT_API_VERSION,
-                    },
-                })
-
+                return IntegrationService__test_hubspot_connectionResult.model_validate(
+                    {
+                        "success": True,
+                        "message": f"Connected to HubSpot: {portal_name}",
+                        "details": {
+                            "accounts_accessible": True,
+                            "opportunities_accessible": True,
+                            "portal_name": portal_name,
+                            "api_version": HUBSPOT_API_VERSION,
+                        },
+                    }
+                )
 
             elif response.status_code == 401:
-                return IntegrationService__test_hubspot_connectionResult.model_validate({
-                    "success": False,
-                    "message": "Authentication failed - API key may be invalid",
-                    "error_code": "AUTH_FAILED",
-                })
-
+                return IntegrationService__test_hubspot_connectionResult.model_validate(
+                    {
+                        "success": False,
+                        "message": "Authentication failed - API key may be invalid",
+                        "error_code": "AUTH_FAILED",
+                    }
+                )
 
             else:
-                return IntegrationService__test_hubspot_connectionResult.model_validate({
-                    "success": False,
-                    "message": f"HubSpot API error: {response.status_code}",
-                    "error_code": f"API_ERROR_{response.status_code}",
-                })
-
+                return IntegrationService__test_hubspot_connectionResult.model_validate(
+                    {
+                        "success": False,
+                        "message": f"HubSpot API error: {response.status_code}",
+                        "error_code": f"API_ERROR_{response.status_code}",
+                    }
+                )
 
         except httpx.TimeoutException:
-            return IntegrationService__test_hubspot_connectionResult.model_validate({
-                "success": False,
-                "message": "Connection timed out after 30 seconds",
-                "error_code": "TIMEOUT",
-            })
-
+            return IntegrationService__test_hubspot_connectionResult.model_validate(
+                {
+                    "success": False,
+                    "message": "Connection timed out after 30 seconds",
+                    "error_code": "TIMEOUT",
+                }
+            )
 
         except httpx.NetworkError:
-            return IntegrationService__test_hubspot_connectionResult.model_validate({
-                "success": False,
-                "message": "NETWORK_ERROR",
-                "error_code": "NETWORK_ERROR",
-            })
-
+            return IntegrationService__test_hubspot_connectionResult.model_validate(
+                {
+                    "success": False,
+                    "message": "NETWORK_ERROR",
+                    "error_code": "NETWORK_ERROR",
+                }
+            )
 
     async def trigger_sync(
         self, tenant_id: str, provider: CRMProvider, user_id: str | None = None
@@ -587,8 +623,8 @@ class IntegrationService:
         queued_at_dt = datetime.now(UTC)
         queued_at = queued_at_dt.isoformat()
 
-        # Mark as pending until the worker starts
-        integration.sync_status = IntegrationStatus.PENDING
+        # Mark as running/pending until the worker starts
+        await apply_observation(self.db, integration, ObservedStatus.RUNNING)
         job = CRMSyncJob(
             tenant_id=tenant_id,
             provider=provider,
@@ -613,7 +649,12 @@ class IntegrationService:
             job.status = CRMSyncJobStatus.FAILED
             job.finished_at = datetime.now(UTC)
             job.error_summary = f"Failed to enqueue sync: {exc}"
-            integration.sync_status = IntegrationStatus.FAILED
+            await apply_observation(
+                self.db,
+                integration,
+                ObservedStatus.FAILURE,
+                error_class=ErrorClass.TRANSIENT,
+            )
             integration.last_error_message = f"Failed to enqueue sync: {exc}"
             await self.db.commit()
             raise IntegrationValidationError(f"Unable to queue sync: {exc}") from exc
@@ -626,13 +667,15 @@ class IntegrationService:
             user_id,
         )
 
-        return IntegrationService_trigger_syncResult.model_validate({
-            "sync_id": str(job.id),
-            "job_id": str(job.id),
-            "status": "queued",
-            "provider": provider.value,
-            "queued_at": queued_at,
-        })
+        return IntegrationService_trigger_syncResult.model_validate(
+            {
+                "sync_id": str(job.id),
+                "job_id": str(job.id),
+                "status": "queued",
+                "provider": provider.value,
+                "queued_at": queued_at,
+            }
+        )
 
     async def list_sync_jobs(
         self,
@@ -666,7 +709,6 @@ class IntegrationService:
             )
         )
         return result.scalar_one_or_none()
-
 
     def _validate_config(
         self,
@@ -703,11 +745,10 @@ class IntegrationService:
             # Require HTTPS for production URLs (allow HTTP only for localhost)
             # Match exact localhost or localhost with port (not localhost.something.com)
             localhost_prefix = "http://localhost"
-            is_localhost_http = (
-                instance_url.startswith(localhost_prefix) and
-                (len(instance_url) == len(localhost_prefix) or
-                 instance_url[len(localhost_prefix)] in (":", "/"))  # port, path, or exact match
-            )
+            is_localhost_http = instance_url.startswith(localhost_prefix) and (
+                len(instance_url) == len(localhost_prefix)
+                or instance_url[len(localhost_prefix)] in (":", "/")
+            )  # port, path, or exact match
             if instance_url.startswith("http://") and not is_localhost_http:
                 raise IntegrationValidationError(
                     f"HTTPS is required for production URLs: {instance_url}"
@@ -726,7 +767,9 @@ class IntegrationService:
             Decrypted credentials dict
         """
         if tenant_id is not None and str(integration.tenant_id) != str(tenant_id):
-            raise IntegrationValidationError("Integration tenant does not match authenticated tenant")
+            raise IntegrationValidationError(
+                "Integration tenant does not match authenticated tenant"
+            )
 
         creds_json = await EncryptionService.decrypt(
             integration.credentials_encrypted, integration.encryption_key_id
@@ -759,46 +802,41 @@ class IntegrationService:
 
         # Salesforce OAuth token endpoint
         instance_url = integration.instance_url or "https://login.salesforce.com"
-        token_url = f"{instance_url}/services/oauth2/token"
 
         client_id = os.getenv("SALESFORCE_CLIENT_ID")
         client_secret = os.getenv("SALESFORCE_CLIENT_SECRET")
 
-        if not client_id or not client_secret:
-            raise IntegrationValidationError(
-                "SALESFORCE_CLIENT_ID and SALESFORCE_CLIENT_SECRET must be configured"
+        from layer4_agents.integrations.providers.salesforce.connector import SalesforceConnector
+
+        try:
+            token_result = await SalesforceConnector.refresh_token(
+                refresh_token=refresh_token,
+                instance_url=instance_url,
+                client_id=client_id,
+                client_secret=client_secret,
             )
-
-        import httpx
-
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.post(
-                token_url,
-                data={
-                    "grant_type": "refresh_token",
-                    "refresh_token": refresh_token,
-                    "client_id": client_id,
-                    "client_secret": client_secret,
-                },
+        except CRMError as e:
+            classified = classify_http_status(getattr(e, "status_code", 0), str(e))
+            logger.warning(
+                "Salesforce OAuth credential renewal failed for tenant=%s error_class=%s",
+                integration.tenant_id,
+                type(classified).__name__,
             )
-
-        if response.status_code != 200:
-            integration.sync_status = IntegrationStatus.DEGRADED
-            integration.last_error_message = f"Token refresh failed: HTTP {response.status_code}"
+            error_cls = (
+                ErrorClass.AUTH if isinstance(classified, AuthError) else ErrorClass.TRANSIENT
+            )
+            await apply_observation(
+                self.db, integration, ObservedStatus.FAILURE, error_class=error_cls
+            )
+            integration.last_error_message = "Token refresh failed"
             await self.db.commit()
             prom = get_metrics()
             if prom:
                 prom.increment_crm_salesforce_token_refresh_failed(integration.tenant_id)
-            raise IntegrationValidationError(
-                f"Token refresh failed: HTTP {response.status_code} - {response.text}"
-            )
+            raise IntegrationValidationError("Token refresh failed") from e
 
-        token_data = response.json()
-        new_access_token = token_data.get("access_token")
-        new_instance_url = token_data.get("instance_url")
-
-        if not new_access_token:
-            raise IntegrationValidationError("Token refresh response missing access_token")
+        new_access_token = token_result["api_key"]
+        new_instance_url = token_result.get("instance_url")
 
         # Update credentials with new access token
         credentials = await self.decrypt_credentials(integration)
@@ -813,13 +851,13 @@ class IntegrationService:
         )
 
         # Update refresh token if rotated
-        new_refresh_token = token_data.get("refresh_token")
+        new_refresh_token = token_result.get("refresh_token")
         if new_refresh_token:
             integration.refresh_token_encrypted = await EncryptionService.encrypt(
                 new_refresh_token, key_id=integration.encryption_key_id
             )
 
-        integration.sync_status = IntegrationStatus.IDLE
+        await apply_observation(self.db, integration, ObservedStatus.SUCCESS)
         integration.last_error_message = None
         await self.db.commit()
 
@@ -850,7 +888,11 @@ class IntegrationService:
                 "SALESFORCE_CLIENT_ID and SALESFORCE_CLIENT_SECRET must be configured"
             )
 
-        base_url = (oauth_base_url or os.getenv("SALESFORCE_OAUTH_BASE_URL") or "https://login.salesforce.com").rstrip("/")
+        base_url = (
+            oauth_base_url
+            or os.getenv("SALESFORCE_OAUTH_BASE_URL")
+            or "https://login.salesforce.com"
+        ).rstrip("/")
         self._validate_config(
             enabled=False,
             credentials={},
@@ -900,7 +942,9 @@ class IntegrationService:
         salesforce_org_id = token_data.get("organization_id") or token_data.get("org_id")
 
         if not access_token or not refresh_token or not instance_url:
-            raise IntegrationValidationError("OAuth token response is missing required Salesforce values")
+            raise IntegrationValidationError(
+                "OAuth token response is missing required Salesforce values"
+            )
 
         self._validate_config(
             enabled=True,
@@ -945,8 +989,8 @@ class IntegrationService:
             existing.refresh_token_encrypted = encrypted_refresh_token
             existing.encryption_key_id = DEFAULT_KEY_ID
             existing.instance_url = instance_url
-            existing.sync_status = IntegrationStatus.IDLE
             existing.last_error_message = None
+            await apply_observation(self.db, existing, ObservedStatus.SUCCESS)
             existing.updated_by = user_id
             if salesforce_org_id:
                 existing.salesforce_org_id = str(salesforce_org_id)
@@ -963,11 +1007,11 @@ class IntegrationService:
                 salesforce_org_id=str(salesforce_org_id) if salesforce_org_id else None,
                 sync_interval_minutes=60,
                 sync_batch_size=100,
-                sync_status=IntegrationStatus.IDLE,
                 created_by=user_id,
                 updated_by=user_id,
             )
             self.db.add(integration)
+            await apply_observation(self.db, integration, ObservedStatus.SUCCESS)
 
         await self.db.commit()
         await self.db.refresh(integration)

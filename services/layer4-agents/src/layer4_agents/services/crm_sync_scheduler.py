@@ -24,6 +24,13 @@ from value_fabric.shared.models.typed_dict import TypedDictModel
 from ..database import _clear_local_tenant_context, db_session_for_context, get_session_factory
 from ..engine.scheduler import TaskScheduler
 from ..engine.types import ScheduledTask, TaskPriority
+from ..integrations.core.observations import (
+    SyncInterrupted,
+    SyncPartial,
+    SyncStarted,
+    SyncSucceeded,
+)
+from ..integrations.core.state import apply_observation
 from ..models.account import CRMProvider
 from ..models.integration import Integration
 from .crm_sync_service import CRMSyncService
@@ -240,8 +247,8 @@ to avoid impacting user-facing workflows.
                 logger.debug("Integration disabled for tenant=%s provider=%s", tenant_id, provider.value)
                 return {"skipped": True, "reason": "disabled"}
 
-            # Update sync status to running
-            integration.sync_status = "running"
+            # Update sync status through the reducer.
+            await apply_observation(db, integration, SyncStarted())
             await db.commit()
 
             try:
@@ -254,10 +261,10 @@ to avoid impacting user-facing workflows.
                 integration.last_sync_at = datetime.now(UTC)
 
                 if stats.get("failed", 0) > 0:
-                    integration.sync_status = "failed"
+                    await apply_observation(db, integration, SyncPartial())
                     integration.last_error_message = "; ".join(stats.get("errors", [])[:3]) or "Sync failed"
                 else:
-                    integration.sync_status = "idle"
+                    await apply_observation(db, integration, SyncSucceeded())
                     integration.last_successful_sync_at = datetime.now(UTC)
                     integration.last_error_message = None
 
@@ -272,7 +279,7 @@ to avoid impacting user-facing workflows.
                     tenant_id,
                     provider.value,
                 )
-                integration.sync_status = "failed"
+                await apply_observation(db, integration, SyncInterrupted(message=str(exc)))
                 integration.last_sync_at = datetime.now(UTC)
                 integration.last_error_message = f"{type(exc).__name__}: sync_failed"
                 await db.commit()
