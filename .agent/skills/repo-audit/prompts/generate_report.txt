@@ -1,0 +1,17 @@
+Generate a Markdown repository health audit report from the provided scorecard, findings, and sprint plan. The report must include:
+
+1. Header with repository name, branch, commit, timestamp, overall score, and grade.
+2. Executive summary with open/critical/high finding counts and key metrics.
+3. Reconnaissance telemetry.
+4. Scorecard table with all ten areas, weights, scores, grades, confidence, trend risk, and finding counts.
+5. Findings register sorted by severity.
+6. Governance gap matrix.
+7. Agent readiness section.
+8. Quality gates remediation plan.
+9. Quick wins (low effort, high impact).
+10. Sprint roadmap and narrative summary.
+11. Projected scorecard after completing all sprints.
+12. Roadmap draft with objectives and deliverables.
+13. Verification appendix.
+
+Use concise, professional language and Markdown tables. Do not invent facts not present in the scorecard.

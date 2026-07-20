@@ -1,0 +1,9 @@
+Analyze the completeness and quality of governance documentation. Focus on:
+
+- Presence and recency of tier-1 root files: AGENTS.md, README.md, ARCHITECTURE.md, CONTRIBUTING.md, TESTING.md, SECURITY.md, STATUS.md, ROADMAP.md, RUNBOOK.md, CHANGELOG.md, CODEOWNERS, LICENSE.
+- Presence of tier-2 files: DESIGN.md, DEVELOPMENT.md, DEPLOYMENT.md, OPERATIONS.md, API.md, DATA_MODEL.md, DECISIONS.md, THREAT_MODEL.md.
+- Section count, empty files, stale content, and broken cross-references.
+- ADR count and numbering gaps.
+- Agent configuration completeness (.agent/, tool dirs, skills).
+
+Return structured findings mapped to Documentation H and Agent Readiness I. Include file paths, evidence, severity, confidence, effort, and owner.

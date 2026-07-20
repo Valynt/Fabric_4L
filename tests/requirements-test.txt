@@ -22,7 +22,7 @@ pytest-asyncio>=0.24.0
 pytest-cov>=6.0.0
 pytest-timeout>=2.3.0
 pytest-randomly>=3.16.0
-pytest-xdist>=3.6.0
+pytest-xdist>=3.8.0
 
 # ---------------------------------------------------------------------------
 # Async / HTTP
@@ -63,7 +63,7 @@ asyncpg>=0.29.0            # SQLAlchemy asyncpg dialect imported at collection t
 passlib[bcrypt]>=1.7.4     # API gateway CryptContext imported at collection time by contract tests
 email-validator>=2.1.0     # Required by pydantic[email] in tenant API tests
 numpy>=2.1.0               # Required by Layer 4 calculation tools at mandatory test collection
-pandas>=2.2.0              # Required by Layer 4 workflow/tooling imports in mandatory gates
+pandas>=3.0.3              # Required by Layer 4 workflow/tooling imports in mandatory gates
 langgraph>=0.2.0           # Required by Layer 4 tenant/security imports during mandatory collection
 
 # ---------------------------------------------------------------------------

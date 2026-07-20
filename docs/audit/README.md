@@ -22,3 +22,5 @@ python3 scripts/compliance/generate_audit_snapshot.py
 ```
 
 CI automation is defined in `.github/workflows/audit-snapshot.yml` and runs on a weekly schedule plus manual dispatch.
+
+> **Audit note (2026-07-18):** `.github/workflows/audit-snapshot.yml` does not currently exist. The snapshots are therefore manually generated; regenerate with `python3 scripts/compliance/generate_audit_snapshot.py` when needed.

@@ -7,10 +7,11 @@ from value_fabric.shared.error_handling.exceptions import (
 
 """Provenance and audit read-only route group."""
 
+import json
 import logging
 import uuid
 from datetime import datetime
-from typing import Literal
+from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
@@ -33,6 +34,18 @@ def _extract_tenant_id(request: Request | None) -> str | None:
     if ctx and getattr(ctx, "tenant_id", None):
         return str(ctx.tenant_id)
     return None
+
+
+def _parse_audit_details(value: Any) -> dict[str, Any]:
+    """Deserialize JSON-encoded audit details stored as a Neo4j string property."""
+    if isinstance(value, dict):
+        return value
+    if isinstance(value, str):
+        try:
+            return json.loads(value)
+        except json.JSONDecodeError:
+            return {"raw": value}
+    return {}
 
 
 def _require_tenant_id_from_context(
@@ -225,7 +238,7 @@ async def list_audit_logs(
                                     entity_type=r.get("entity_type"),
                                     action=r.get("action", "unknown"),
                                     agent=r.get("agent", "system"),
-                                    details=r.get("details") or {},
+                                    details=_parse_audit_details(r.get("details")),
                                 )
                             )
                 except Exception as neo4j_error:

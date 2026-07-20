@@ -55,31 +55,23 @@ class Integration(Base):
     )
 
     # Primary key
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
 
     # Tenant isolation (required for multi-tenancy)
     tenant_id: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
 
     # Provider type
-    provider: Mapped[CRMProvider] = mapped_column(
-        String(50), nullable=False
-    )
+    provider: Mapped[CRMProvider] = mapped_column(String(50), nullable=False)
 
     # Enablement flag
     enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     # Encrypted credentials (AES-256 encrypted)
     # Structure: {"api_key": "...", "api_secret": "...", "instance_url": "..."}
-    credentials_encrypted: Mapped[bytes] = mapped_column(
-        LargeBinary, nullable=False
-    )
+    credentials_encrypted: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
 
     # OAuth refresh token (encrypted separately for rotation/audit)
-    refresh_token_encrypted: Mapped[bytes | None] = mapped_column(
-        LargeBinary, nullable=True
-    )
+    refresh_token_encrypted: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
 
     # Encryption key reference for credential rotation
     encryption_key_id: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -89,16 +81,20 @@ class Integration(Base):
 
     # Configuration
     instance_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
-    sync_interval_minutes: Mapped[int] = mapped_column(
-        Integer, nullable=False, default=60
-    )
-    sync_batch_size: Mapped[int] = mapped_column(
-        Integer, nullable=False, default=100
-    )
+    sync_interval_minutes: Mapped[int] = mapped_column(Integer, nullable=False, default=60)
+    sync_batch_size: Mapped[int] = mapped_column(Integer, nullable=False, default=100)
 
     # Sync status (denormalized for quick reads)
     last_sync_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     last_successful_sync_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    observed_sync_status: Mapped[str] = mapped_column(String(50), default="idle", nullable=False)
+    operational_status: Mapped[str] = mapped_column(
+        String(50), default="idle", nullable=False, index=True
+    )
+    error_class: Mapped[str] = mapped_column(String(50), default="none", nullable=False)
+    last_known_good_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
     records_synced: Mapped[int] = mapped_column(Integer, default=0)
@@ -132,8 +128,10 @@ class Integration(Base):
             Dictionary representation, credentials excluded by default
         """
         # Handle both enum instances and string values from SQLAlchemy
-        provider_val = self.provider.value if hasattr(self.provider, 'value') else self.provider
-        status_val = self.sync_status.value if hasattr(self.sync_status, 'value') else self.sync_status
+        provider_val = self.provider.value if hasattr(self.provider, "value") else self.provider
+        status_val = (
+            self.sync_status.value if hasattr(self.sync_status, "value") else self.sync_status
+        )
 
         result = {
             "id": str(self.id),
@@ -144,13 +142,19 @@ class Integration(Base):
             "sync_interval_minutes": self.sync_interval_minutes,
             "sync_batch_size": self.sync_batch_size,
             "last_sync_at": self.last_sync_at.isoformat() if self.last_sync_at else None,
-            "last_successful_sync_at": self.last_successful_sync_at.isoformat()
-            if self.last_successful_sync_at
-            else None,
+            "last_successful_sync_at": (
+                self.last_successful_sync_at.isoformat() if self.last_successful_sync_at else None
+            ),
             "records_synced": self.records_synced,
             "records_updated": self.records_updated,
             "records_failed": self.records_failed,
             "status": status_val,
+            "observed_sync_status": self.observed_sync_status,
+            "operational_status": self.operational_status,
+            "error_class": self.error_class,
+            "last_known_good_at": (
+                self.last_known_good_at.isoformat() if self.last_known_good_at else None
+            ),
             "last_error_message": self.last_error_message,
             "has_refresh_token": bool(self.refresh_token_encrypted),
             "created_at": self.created_at.isoformat() if self.created_at else None,

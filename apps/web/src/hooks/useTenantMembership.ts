@@ -1,27 +1,34 @@
 /**
- * useTenantMembership — Verify user belongs to the tenant in the URL slug.
+ * Tenant membership hooks — verify the user belongs to the tenant in the URL
+ * slug.
  *
- * Phase 2: When Clerk is enabled, derives membership from the active Clerk
+ * Phase 2: When Clerk is enabled, membership is derived from the active Clerk
  * organization slug instead of legacy AuthContext metadata.
+ *
+ * The auth provider flag is stable for the lifetime of the app, and
+ * <ClerkProvider> is only mounted in Clerk mode, so the two implementations
+ * are exposed as separate hooks instead of a conditional dispatcher: callers
+ * select the implementation at the component level (see UnifiedRouteGuard),
+ * which keeps every hook call unconditional (rules-of-hooks) and never calls
+ * Clerk hooks outside <ClerkProvider>.
  */
 
 import { useMemo } from "react";
 import { useOrganization } from "@clerk/react";
 import { useAuthContext } from "@/contexts/AuthContext";
-import { isClerkAuthEnabled } from "@/auth/clerkConfig";
 import { matchesClerkTenantRouteSlug } from "@/auth/clerkTenant";
 
-interface TenantMembership {
+export interface TenantMembership {
   isMemberOfTenant: boolean;
   isLoading: boolean;
 }
 
 /**
  * Clerk-mode implementation. Membership is derived from the active Clerk
- * organization slug. useOrganization() is called unconditionally because this
- * hook is only selected when Clerk is enabled and <ClerkProvider> is mounted.
+ * organization slug. Only call this hook when Clerk is enabled and
+ * <ClerkProvider> is mounted; useOrganization() throws otherwise.
  */
-function useTenantMembershipClerk(tenantSlug: string | undefined): TenantMembership {
+export function useTenantMembershipClerk(tenantSlug: string | undefined): TenantMembership {
   const { organization, isLoaded: orgLoaded } = useOrganization();
 
   const isMemberOfTenant = useMemo(() => {
@@ -39,7 +46,7 @@ function useTenantMembershipClerk(tenantSlug: string | undefined): TenantMembers
  * Legacy-mode implementation. Never calls Clerk hooks, so it is safe to use
  * when <ClerkProvider> is not mounted.
  */
-function useTenantMembershipLegacy(tenantSlug: string | undefined): TenantMembership {
+export function useTenantMembershipLegacy(tenantSlug: string | undefined): TenantMembership {
   const { user, isLoading: legacyLoading } = useAuthContext();
 
   const isMemberOfTenant = useMemo(() => {
@@ -49,20 +56,4 @@ function useTenantMembershipLegacy(tenantSlug: string | undefined): TenantMember
   }, [tenantSlug, user]);
 
   return { isMemberOfTenant, isLoading: legacyLoading };
-}
-
-/**
- * Resolve tenant membership at render time based on the active auth provider.
- *
- * The auth provider flag is stable for the lifetime of the app, so the hook
- * branch is effectively fixed once the app mounts. This pattern is used by
- * other auth-aware components (e.g., UnifiedRouteGuard, RootAuthStateAdapter)
- * and allows tests to switch providers without re-importing the module.
- */
-export function useTenantMembership(tenantSlug: string | undefined): TenantMembership {
-  // Auth-provider is stable at runtime; branch once per render.
-  if (isClerkAuthEnabled()) {
-    return useTenantMembershipClerk(tenantSlug);
-  }
-  return useTenantMembershipLegacy(tenantSlug);
 }

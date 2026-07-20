@@ -54,6 +54,14 @@ MANIFEST_FILE="${ARTIFACT_DIR}/mandatory_security_manifest.txt"
 #   FABRIC_GATE_TEST_MODE=1 bash scripts/ci/mandatory_security_regression_gate.sh
 FABRIC_GATE_TEST_MODE="${FABRIC_GATE_TEST_MODE:-0}"
 
+# The canonical GitHub check must never use the local-only test-mode escape
+# hatch. GitHub Actions sets CI=true, and the workflow also pins this value to
+# zero so a future workflow edit cannot turn skipped work into a green check.
+if [[ "${CI:-}" == "true" && "${FABRIC_GATE_TEST_MODE}" == "1" ]]; then
+  echo "ERROR: FABRIC_GATE_TEST_MODE=1 is forbidden for mandatory CI enforcement." >&2
+  exit 1
+fi
+
 # Pre-flight check: if test mode is disabled, verify node/pnpm are available.
 # Fail early with a clear error rather than silently skipping the E2E valve.
 if [[ "${FABRIC_GATE_TEST_MODE}" != "1" ]]; then
@@ -428,23 +436,12 @@ run_step_record "Tenant-boundary and auth/security regression checks" \
   -- \
   "Tenant/Auth Security Regression" "pytest tests/security/*" "Yes" "${ARTIFACT_DIR}/tenant_security.xml"
 
-if [ ${#CROSS_LAYER_TENANT_MATRIX_TESTS[@]} -gt 0 ]; then
-  write_summary "→ Cross-layer tenant isolation matrix checks (best-effort — pre-existing import/assertion failures tracked)"
-  set +e
-  bash -c "CROSS_LAYER_TENANT_MATRIX_ARTIFACT='${ROOT_DIR}/${CROSS_LAYER_TENANT_MATRIX_ARTIFACT}' python -m pytest --tb=short -q -n 0 --timeout=60 --junitxml='${ARTIFACT_DIR}/cross_layer_tenant_matrix.xml' '${CROSS_LAYER_TENANT_MATRIX_TESTS[0]}' && python scripts/ci/assert_no_pytest_skips.py '${ARTIFACT_DIR}/cross_layer_tenant_matrix.xml' && python scripts/ci/validate_cross_layer_tenant_matrix.py '${CROSS_LAYER_TENANT_MATRIX_ARTIFACT}'"
-  _cross_layer_exit=$?
-  set -e
-  if [ ${_cross_layer_exit} -eq 0 ]; then
-    write_summary "✅ Cross-layer tenant isolation matrix checks"
-    log_suite_result "Cross-Layer Tenant Isolation Matrix" "pytest tests/security/test_cross_layer_tenant_isolation_matrix.py" "Yes" "PASS" "${CROSS_LAYER_TENANT_MATRIX_ARTIFACT}"
-  else
-    write_summary "⚠️ Cross-layer tenant isolation matrix checks completed with failures (exit ${_cross_layer_exit}) — evidence retained for follow-up"
-    log_suite_result "Cross-Layer Tenant Isolation Matrix" "pytest tests/security/test_cross_layer_tenant_isolation_matrix.py" "Yes" "PARTIAL" "${CROSS_LAYER_TENANT_MATRIX_ARTIFACT}"
-  fi
-else
-  write_summary "→ [SKIPPED] Cross-layer tenant isolation matrix checks (excluded from mandatory gate)"
-  log_suite_result "Cross-Layer Tenant Isolation Matrix" "pytest tests/security/test_cross_layer_tenant_isolation_matrix.py" "Yes" "SKIPPED" "⊘"
-fi
+run_step_record "Cross-layer tenant isolation matrix checks" \
+  bash -c "CROSS_LAYER_TENANT_MATRIX_ARTIFACT='${ROOT_DIR}/${CROSS_LAYER_TENANT_MATRIX_ARTIFACT}' python -m pytest --tb=short -q -n 0 --timeout=60 --junitxml='${ARTIFACT_DIR}/cross_layer_tenant_matrix.xml' '${CROSS_LAYER_TENANT_MATRIX_TESTS[0]}' && python scripts/ci/assert_no_pytest_skips.py '${ARTIFACT_DIR}/cross_layer_tenant_matrix.xml' && python scripts/ci/validate_cross_layer_tenant_matrix.py '${CROSS_LAYER_TENANT_MATRIX_ARTIFACT}'" \
+  -- \
+  "Cross-Layer Tenant Isolation Matrix" \
+  "pytest tests/security/test_cross_layer_tenant_isolation_matrix.py" \
+  "Yes" "${CROSS_LAYER_TENANT_MATRIX_ARTIFACT}"
 
 run_step_record "Layer 4 C-06 tenant rate-limit and security regression checks" \
   run_root_pytest "${ARTIFACT_DIR}/layer4_c06_security.xml" "${LAYER4_C06_SECURITY_TESTS[@]}" \
@@ -453,17 +450,12 @@ run_step_record "Layer 4 C-06 tenant rate-limit and security regression checks" 
   "pytest services/layer4-agents/tests/test_tenant_rate_limits.py services/layer4-agents/tests/test_security_fixes.py" \
   "Yes" "${ARTIFACT_DIR}/layer4_c06_security.xml"
 
-if [ ${#CONTRACT_TESTS[@]} -gt 0 ]; then
-  run_step_record "Shared tenant context contract and import-boundary checks" \
-    run_root_pytest "${ARTIFACT_DIR}/shared_contracts.xml" "${CONTRACT_TESTS[@]}" \
-    -- \
-    "Tenant Context Contract" \
-    "pytest tests/context/test_tenant_context_contract.py tests/contract/test_shared_import_boundary.py tests/contract/test_retention_deletion_contract.py" \
-    "Yes" "${ARTIFACT_DIR}/shared_contracts.xml"
-else
-  write_summary "→ [SKIPPED] Shared tenant context contract and import-boundary checks (require live services)"
-  log_suite_result "Tenant Context Contract" "pytest tests/context/test_tenant_context_contract.py tests/contract/test_shared_import_boundary.py tests/contract/test_retention_deletion_contract.py" "Yes" "SKIPPED" "⊘"
-fi
+run_step_record "Shared tenant context contract and import-boundary checks" \
+  run_root_pytest "${ARTIFACT_DIR}/shared_contracts.xml" "${CONTRACT_TESTS[@]}" \
+  -- \
+  "Tenant Context Contract" \
+  "pytest tests/context/test_tenant_context_contract.py tests/contract/test_shared_import_boundary.py tests/contract/test_retention_deletion_contract.py" \
+  "Yes" "${ARTIFACT_DIR}/shared_contracts.xml"
 
 if [[ "${FABRIC_GATE_TEST_MODE}" != "1" ]]; then
   run_step "OpenAPI contract drift check" \
@@ -494,14 +486,9 @@ else
   log_suite_result "Critical E2E Skip-Valve" "assert-no-skipped-critical-e2e.mjs" "Yes" "SKIPPED_TEST_MODE" "⊘"
 fi
 
-if [ ${#K8S_TESTS[@]} -gt 0 ]; then
-  run_step_record "Kubernetes workload hardening checks" \
-    run_root_pytest "${ARTIFACT_DIR}/k8s_security.xml" "${K8S_TESTS[@]}" \
-    -- "Kubernetes Hardening" "pytest tests/k8s/*" "Yes" "${ARTIFACT_DIR}/k8s_security.xml"
-else
-  write_summary "→ [SKIPPED] Kubernetes workload hardening checks (require Linux/OPA tools)"
-  log_suite_result "Kubernetes Hardening" "pytest tests/k8s/*" "Yes" "SKIPPED" "⊘"
-fi
+run_step_record "Kubernetes workload hardening checks" \
+  run_root_pytest "${ARTIFACT_DIR}/k8s_security.xml" "${K8S_TESTS[@]}" \
+  -- "Kubernetes Hardening" "pytest tests/k8s/*" "Yes" "${ARTIFACT_DIR}/k8s_security.xml"
 
 run_step_record "I-02 production fail-closed checks - Layer 2 (Extraction)" \
   bash -c "cd services/layer2-extraction && \

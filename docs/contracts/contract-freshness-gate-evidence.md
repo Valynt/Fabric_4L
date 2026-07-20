@@ -1,5 +1,7 @@
 # Contract Freshness Gate Evidence
 
+> **Audit note (2026-07-18):** The gate inventory mentions only Layer 1–Layer 6 OpenAPI files. The current `scripts/ci/check_contract_freshness.sh` also checks `layer7-billing.json` and `fabric-4l-api.json`, so this evidence record is incomplete for the current gate scope.
+
 **Author:** Manus AI  
 **Date:** 2026-05-05  
 **Scope:** Fabric_4L frontend-backend type-alignment gate between Sprint 1 and Sprint 2.

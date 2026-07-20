@@ -1,12 +1,14 @@
 # Audit Evidence Index
 
+**Status:** Partially stale — audit note added 2026-07-18. Several shorthand evidence paths below do not resolve from the repo root; canonical paths are noted where known.
+
 Quick reference for auditors reviewing Value Fabric compliance evidence.
 
 ## Evidence Bundle Quick Access
 
 | Control Type | Primary Evidence | Location | Format |
 |--------------|----------------|----------|--------|
-| **Identity & Access** | RBAC config | `shared/identity/` | Python/YAML |
+| **Identity & Access** | RBAC config | `packages/shared/src/value_fabric/shared/identity/` | Python/YAML |
 | **Change Management** | Git history | `.github/` | Git/YAML |
 | **Security Testing** | Penetration tests | `tests/penetration/` | Python/Shell |
 | **Vulnerability Mgmt** | Scan results | `.github/workflows/` | SARIF/JSON |
@@ -18,7 +20,7 @@ Quick reference for auditors reviewing Value Fabric compliance evidence.
 ### CC6.1 - Logical Access Security
 - **CODEOWNERS** - Mandatory reviewers by path
 - **RBAC tests** - `tests/security/test_rbac.py`
-- **JWT middleware** - `shared/identity/jwt_middleware.py`
+- **JWT middleware** - `packages/shared/src/value_fabric/shared/identity/middleware.py` (canonical; `shared/identity/jwt_middleware.py` does not exist)
 
 ### CC6.2 - Access Removal
 - **Offboarding checklist** - `docs/operations/` (HR process)
@@ -42,8 +44,8 @@ Quick reference for auditors reviewing Value Fabric compliance evidence.
 ## ISO 27001:2022 Evidence
 
 ### A.9 - Access Control
-- **Network policies** - `k8s/base/network-policies.yaml`
-- **Tenant isolation tests** - `tests/chaos/tenant-isolation-loadtest.py`
+- **Network policies** - `k8s/base/network-policies/` (directory; `k8s/base/network-policies.yaml` does not exist)
+- **Tenant isolation tests** - `tests/security/test_cross_layer_tenant_isolation_matrix.py` (canonical); `tests/chaos/tenant-isolation-loadtest.py` does not exist
 - **Service accounts** - K8s manifests with minimal privileges
 
 ### A.12 - Operations Security
@@ -76,8 +78,8 @@ Quick reference for auditors reviewing Value Fabric compliance evidence.
 - **Auto-scaler** - `pod-autoscaler-l1.yaml`
 
 ### Tenant Isolation
-- **Realistic workloads** - `tests/chaos/tenant-isolation-loadtest.py`
-- **Race conditions** - `tests/chaos/tenant-race-condition-test.py`
+- **Realistic workloads** - `tests/security/test_cross_layer_tenant_isolation_matrix.py`; `tests/chaos/tenant-isolation-loadtest.py` does not exist
+- **Race conditions** - Tenant-isolation hostile tests; `tests/chaos/tenant-race-condition-test.py` does not exist
 
 ## Automated Evidence Collection
 

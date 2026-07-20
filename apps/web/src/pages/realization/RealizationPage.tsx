@@ -158,7 +158,7 @@ export default function RealizationPage({ accountId }: StudioTabProps) {
   );
   const { data: productsData } = useProducts();
 
-  const hypotheses = hypothesesData?.hypotheses ?? [];
+  const hypotheses = useMemo(() => hypothesesData?.hypotheses ?? [], [hypothesesData]);
   const initiatives = useMemo(() => mapHypothesesToInitiatives(hypotheses), [hypotheses]);
   const nextAction = accountId
     ? createNextAction({

@@ -26,11 +26,13 @@ The root-level `value_fabric/shared/environment.py` likely still exists, creatin
 
 ## Acceptance Criteria
 
-- [ ] Canonical implementation confirmed at `packages/shared/src/value_fabric/shared/environment.py`
-- [ ] Root-level duplicate removed or converted to a compatibility shim
-- [ ] Imports resolve consistently in tests and runtime
-- [ ] No shadowing between regular package and namespace package paths
-- [ ] Compile/import smoke tests pass across L1–L6
+- [x] Canonical implementation confirmed at `packages/shared/src/value_fabric/shared/environment.py`
+- [x] Root-level duplicate removed or converted to a compatibility shim
+- [x] Imports resolve consistently in tests and runtime
+- [x] No shadowing between regular package and namespace package paths
+- [x] Compile/import smoke tests pass across L1–L6
+
+> [AUDIT 2026-07-18] cleanup-agent: Criteria marked complete. The root-level `value_fabric/shared/` directory no longer exists (`dir not found`); the canonical implementation remains under `packages/shared/src/value_fabric/shared/`.
 
 ## Dependencies
 

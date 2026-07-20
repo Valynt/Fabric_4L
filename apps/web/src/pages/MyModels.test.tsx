@@ -22,6 +22,13 @@ vi.mock("sonner", () => ({
   },
 }));
 
+const navigateTo = vi.fn();
+
+// Mock centralized navigation
+vi.mock("@/hooks/useNavigation", () => ({
+  useNavigation: () => ({ navigateTo }),
+}));
+
 describe("MyModels Page", () => {
   // Mock models in BACKEND format (snake_case) - will be transformed by hook
   const mockModels = [
@@ -247,6 +254,22 @@ describe("MyModels Page", () => {
       });
 
       expect(screen.getByText("Draft")).toBeInTheDocument();
+    });
+  });
+
+  describe("Model Navigation", () => {
+    it("should navigate to model detail when a model card is clicked", async () => {
+      setupMockApi();
+
+      render(<MyModels />, { wrapper: createWrapper() });
+
+      await waitFor(() => {
+        expect(screen.getByText("SaaS Revenue Optimization")).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByText("SaaS Revenue Optimization"));
+
+      expect(navigateTo).toHaveBeenCalledWith("model-detail", { modelId: "mdl_001" });
     });
   });
 

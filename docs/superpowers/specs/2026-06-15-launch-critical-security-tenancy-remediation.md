@@ -1,8 +1,11 @@
 # Launch-Critical Security & Tenancy Remediation Design
 
 **Date:** 2026-06-15  
+**Status:** Active — audit note added 2026-07-18.
 **Goal:** Fix the High and Critical code-level security and tenancy findings that are most likely to block launch or cause incidents, without destabilizing the rest of the platform.  
 **Scope:** Code-level security/tenancy defects only. CI/CD, K8s, frontend hygiene, and large architecture refactorings are out of scope for this pass and will be tracked separately.
+
+> **Audit note (2026-07-18):** The Layer 4 executable sub-plan is `docs/superpowers/plans/2026-06-15-layer4-security-tenancy-plan.md`. Some tasks (e.g., API-key hardening, auth-bypass consolidation) have already landed in `services/api` and `packages/shared`; verify current code before re-implementing. The older `docs/superpowers/plans/2026-06-14-remediation-sprint-plan.md` has been archived as superseded by `2026-06-15-remediation-sprint-p0.md`.
 
 ---
 

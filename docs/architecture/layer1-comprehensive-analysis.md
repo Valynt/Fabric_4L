@@ -1,5 +1,7 @@
 # Layer 1 Comprehensive Analysis Report
 
+> **Audit note (2026-07-18):** The API layer section references `app_monolith.py` and a `routes/` subdirectory that do not match the current Layer 1 layout. Routers are now imported from sibling modules such as `main_target_routes.py`, `main_job_routes.py`, and `main_content_routes.py` in `services/layer1-ingestion/src/layer1_ingestion/api/`.
+
 **Date:** 2026-05-25  
 **Analyst:** AI Systems Architect  
 **Scope:** Layer 1: Intelligent Data Ingestion Service

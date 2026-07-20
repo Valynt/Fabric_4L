@@ -8,8 +8,9 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { useAccount } from "@/hooks/useAccounts";
-import { useAccountHypotheses } from "@/hooks/useHypotheses";
+import { useAccountHypotheses, type ValueHypothesis } from "@/hooks/useHypotheses";
 import { useValueTreePaths } from "@/hooks/useValueTrees";
+import type { ValueTreePath } from "@/api/valueTrees";
 import { useNavigation } from "@/hooks";
 import { AccountRequiredGuard } from "@/components/AccountRequiredGuard";
 import { LoadingState, ErrorState, EmptyState } from "@/components/states";
@@ -39,57 +40,32 @@ const DRIVER_SUB_TABS: { key: DriverSubTab; label: string }[] = [
     : []),
 ];
 
-export default function DriverTreePage({ accountId }: StudioTabProps) {
-  const { navigateTo } = useNavigation();
-  const location = useLocation();
-  const setSelection = useWorkspaceSelectionStore((state) => state.setSelection);
-  const getSelection = useWorkspaceSelectionStore((state) => state.getSelection);
-  const { data: account, isLoading: accountLoading } = useAccount(accountId ?? null);
-  const { data: hypothesesData, isLoading: hypothesesLoading } = useAccountHypotheses(
-    accountId ?? null,
-    { status: 'draft' }
-  );
-  const [selectedTreeId, setSelectedTreeId] = useState<string | null>(null);
-  const [subTab, setSubTab] = useState<DriverSubTab>("trees");
+type NavigateTo = ReturnType<typeof useNavigation>["navigateTo"];
 
-  const hypotheses = hypothesesData?.hypotheses ?? [];
-  const selectedHypothesis = hypotheses.find((h) => h.id === selectedTreeId);
-  const capabilityId = selectedHypothesis?.capability_id;
-  const { data: treePaths, isLoading: pathsLoading } = useValueTreePaths(capabilityId, {
-    direction: "upward",
-    maxDepth: 4,
-    enabled: !!capabilityId,
-  });
+interface TreesTabProps {
+  accountId: string;
+  hypotheses: ValueHypothesis[];
+  hypothesesLoading: boolean;
+  selectedTreeId: string | null;
+  onSelectTree: (treeId: string) => void;
+  capabilityId: string | undefined;
+  pathsLoading: boolean;
+  treePaths: ValueTreePath[] | undefined;
+  navigateTo: NavigateTo;
+}
 
-  useEffect(() => {
-    if (!accountId) return;
-    const params = new URLSearchParams(location.search);
-    const treeId = params.get("tree_id") || null;
-    const valueModelId = params.get("value_model_id") || null;
-    if (treeId || valueModelId) {
-      setSelection(accountId, { treeId, valueModelId });
-      if (treeId) setSelectedTreeId(treeId);
-      return;
-    }
-    const persisted = getSelection(accountId);
-    if (persisted.treeId) {
-      setSelectedTreeId(persisted.treeId);
-    }
-  }, [accountId, location.search, getSelection, setSelection]);
-
-  if (!accountId) {
-    return <AccountRequiredGuard accountId={accountId} />;
-  }
-
-  if (accountLoading) {
-    return <LoadingState message="Loading driver tree…" fullPage />;
-  }
-
-  if (!account) {
-    return <ErrorState title="Account not found." description="Select a valid account to continue in this workspace." fullPage />;
-  }
-
-  const TreesTab = () => (
+function TreesTab({
+  accountId,
+  hypotheses,
+  hypothesesLoading,
+  selectedTreeId,
+  onSelectTree,
+  capabilityId,
+  pathsLoading,
+  treePaths,
+  navigateTo,
+}: TreesTabProps) {
+  return (
     <div className="space-y-6">
       {hypothesesLoading ? (
         <LoadingState message="Loading driver tree suggestions…" />
@@ -116,7 +92,7 @@ export default function DriverTreePage({ accountId }: StudioTabProps) {
                       ? 'border-primary bg-primary/5'
                       : 'border-border hover:bg-muted/50'
                   }`}
-                  onClick={() => setSelectedTreeId(h.id)}
+                  onClick={() => onSelectTree(h.id)}
                 >
                   <div className="flex items-start justify-between">
                     <div>
@@ -182,6 +158,57 @@ export default function DriverTreePage({ accountId }: StudioTabProps) {
       )}
     </div>
   );
+}
+
+export default function DriverTreePage({ accountId }: StudioTabProps) {
+  const { navigateTo } = useNavigation();
+  const location = useLocation();
+  const setSelection = useWorkspaceSelectionStore((state) => state.setSelection);
+  const getSelection = useWorkspaceSelectionStore((state) => state.getSelection);
+  const { data: account, isLoading: accountLoading } = useAccount(accountId ?? null);
+  const { data: hypothesesData, isLoading: hypothesesLoading } = useAccountHypotheses(
+    accountId ?? null,
+    { status: 'draft' }
+  );
+  const [selectedTreeId, setSelectedTreeId] = useState<string | null>(null);
+  const [subTab, setSubTab] = useState<DriverSubTab>("trees");
+
+  const hypotheses = hypothesesData?.hypotheses ?? [];
+  const selectedHypothesis = hypotheses.find((h) => h.id === selectedTreeId);
+  const capabilityId = selectedHypothesis?.capability_id;
+  const { data: treePaths, isLoading: pathsLoading } = useValueTreePaths(capabilityId, {
+    direction: "upward",
+    maxDepth: 4,
+    enabled: !!capabilityId,
+  });
+
+  useEffect(() => {
+    if (!accountId) return;
+    const params = new URLSearchParams(location.search);
+    const treeId = params.get("tree_id") || null;
+    const valueModelId = params.get("value_model_id") || null;
+    if (treeId || valueModelId) {
+      setSelection(accountId, { treeId, valueModelId });
+      if (treeId) setSelectedTreeId(treeId);
+      return;
+    }
+    const persisted = getSelection(accountId);
+    if (persisted.treeId) {
+      setSelectedTreeId(persisted.treeId);
+    }
+  }, [accountId, location.search, getSelection, setSelection]);
+
+  if (!accountId) {
+    return <AccountRequiredGuard accountId={accountId} />;
+  }
+
+  if (accountLoading) {
+    return <LoadingState message="Loading driver tree…" fullPage />;
+  }
+
+  if (!account) {
+    return <ErrorState title="Account not found." description="Select a valid account to continue in this workspace." fullPage />;
+  }
 
   return (
     <div className="space-y-6">
@@ -202,7 +229,19 @@ export default function DriverTreePage({ accountId }: StudioTabProps) {
           </button>
         ))}
       </div>
-      {subTab === "trees" && <TreesTab />}
+      {subTab === "trees" && (
+        <TreesTab
+          accountId={accountId}
+          hypotheses={hypotheses}
+          hypothesesLoading={hypothesesLoading}
+          selectedTreeId={selectedTreeId}
+          onSelectTree={setSelectedTreeId}
+          capabilityId={capabilityId}
+          pathsLoading={pathsLoading}
+          treePaths={treePaths}
+          navigateTo={navigateTo}
+        />
+      )}
       {subTab === "evidence" && <EvidenceTabContent />}
       {subTab === "alternatives" && <AlternativesTab />}
       {subTab === "solution-cost" && <SolutionCostTab />}

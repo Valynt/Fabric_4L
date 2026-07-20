@@ -13,9 +13,9 @@ import { safeAsync } from '@/lib/async';
 
 export default function CollaborationCommentsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [subjectType, setSubjectType] = useState(searchParams.get('subject_type') || 'account');
-  const [subjectId, setSubjectId] = useState(searchParams.get('subject_id') || 'general');
-  const [accountId, setAccountId] = useState(searchParams.get('account_id') || '');
+  const [subjectType, setSubjectType] = useState(() => searchParams.get('subject_type') || 'account');
+  const [subjectId, setSubjectId] = useState(() => searchParams.get('subject_id') || 'general');
+  const [accountId, setAccountId] = useState(() => searchParams.get('account_id') || '');
   const [body, setBody] = useState('');
 
   const filters = {

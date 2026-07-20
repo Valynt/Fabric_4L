@@ -1,5 +1,7 @@
 # Updated SOC2/ISO27001 Controls Mapping
 
+**Status:** Partially stale — audit note added 2026-07-18. Several evidence paths below are shorthand or point to non-existent files; canonical paths are noted where known.
+
 ## Overview
 
 This document provides an updated mapping of Value Fabric platform controls to SOC 2 Type II and ISO 27001:2022 requirements, including Phase 5 audit readiness controls.
@@ -10,11 +12,11 @@ This document provides an updated mapping of Value Fabric platform controls to S
 
 | Control | Implementation | Evidence Location | Test Coverage |
 |---------|---------------|-------------------|---------------|
-| **CC6.1.1** | Unique user IDs via OIDC JWT | `shared/identity/jwt_middleware.py` | ✅ Unit + Integration tests |
+| **CC6.1.1** | Unique user IDs via OIDC JWT | `packages/shared/src/value_fabric/shared/identity/middleware.py` | ✅ Unit + Integration tests |
 | **CC6.1.2** | Strong authentication (MFA via IdP) | IdP configuration | ✅ SSO integration tests |
-| **CC6.1.3** | Role-based access control | `shared/identity/rbac.py` | ✅ `tests/security/test_rbac.py` |
+| **CC6.1.3** | Role-based access control | `packages/shared/src/value_fabric/shared/identity/permissions.py`, `policy_registry.py` | ✅ `tests/security/test_rbac.py` |
 | **CC6.1.4** | Least privilege service accounts | `k8s/base/*.yaml` | ✅ Security contexts, read-only root FS |
-| **CC6.1.5** | Quarterly access audits | `scripts/access_review.py` | ✅ Automated access review |
+| **CC6.1.5** | Quarterly access audits | `scripts/access_review.py` *(path does not exist; process tracked in `docs/operations/`)* | ⚠️ Path needs owner |
 
 ### CC6.2 - Access Removal
 
@@ -34,15 +36,15 @@ This document provides an updated mapping of Value Fabric platform controls to S
 
 | Control | Implementation | Evidence Location |
 |---------|---------------|-------------------|
-| **CC6.4.1** | Failed access logging | `shared/audit/logger.py` |
+| **CC6.4.1** | Failed access logging | `packages/shared/src/value_fabric/shared/logging/` |
 | **CC6.4.2** | Suspicious activity alerts | Prometheus alerts in `monitoring/alerting/` |
 
 ### CC6.5 - Logical Access Testing
 
 | Control | Implementation | Evidence Location | Phase 5 Addition |
 |---------|---------------|-------------------|------------------|
-| **CC6.5.1** | Multi-tenant isolation | `SecurityMiddleware` | ✅ `tests/chaos/tenant-isolation-loadtest.py` |
-| **CC6.5.2** | Race condition detection | Tenant validation | ✅ `tests/chaos/tenant-race-condition-test.py` |
+| **CC6.5.1** | Multi-tenant isolation | `SecurityMiddleware` | ✅ `tests/security/test_cross_layer_tenant_isolation_matrix.py` (canonical tenant-isolation suite); `tests/chaos/tenant-isolation-loadtest.py` does not exist |
+| **CC6.5.2** | Race condition detection | Tenant validation | ✅ Tenant-isolation hostile tests; `tests/chaos/tenant-race-condition-test.py` does not exist |
 
 ### CC7.1 - Security Operations
 
@@ -115,7 +117,7 @@ This document provides an updated mapping of Value Fabric platform controls to S
 
 | Control | Title | Implementation | Test Evidence |
 |---------|-------|----------------|---------------|
-| **A.9.1** | Access to networks | NetworkPolicies, VPN | ✅ Network policies |
+| **A.9.1** | Access to networks | NetworkPolicies, VPN | ✅ `k8s/base/network-policies/` (directory, not `network-policies.yaml`) |
 | **A.9.2** | Access to systems | RBAC, JWT validation | ✅ RBAC tests |
 | **A.9.3** | Access to apps | OIDC, role-based permissions | ✅ SSO tests |
 | **A.9.4** | System access control | `shared/identity/` | ✅ Middleware tests |

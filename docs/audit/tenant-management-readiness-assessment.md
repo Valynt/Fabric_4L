@@ -1,7 +1,10 @@
 # Tenant Management Readiness Assessment
 
 **Date:** 2026-06-08  
+**Status:** Partially stale — audit note added 2026-07-18. Path references and frontend artifact claims below need re-verification.
 **Standard:** Tenant management is release-ready only when authorized admins can safely create, configure, switch, invite into, govern, suspend, audit, and manage tenants with clear scope, permission-aware UI, tenant-safe APIs, reliable state transitions, complete audit logs, and no possibility of cross-tenant leakage or ambiguous tenant context.
+
+> **Audit note (2026-07-18):** This assessment contains stale references. `j6-account-tenant-switching.spec.ts` and `AccountContextStore` do not exist in the current tree; `test_tenant_lifecycle.py` lives under `services/layer4-agents/tests/`, not `packages/shared/...`; `test_tenant_isolation.py` lives under `tests/security/`; and `test_permissions.py` is in `packages/shared/src/value_fabric/shared/identity/tests/`. The L4 invitation and real-time suspension gaps remain open and should be re-verified against current code before the next readiness review.
 
 ---
 

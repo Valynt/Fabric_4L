@@ -80,8 +80,9 @@ export function logDebug(message: string, context?: LogContext): void {
 /**
  * Send error report to backend telemetry endpoint.
  * Uses navigator.sendBeacon for reliable delivery during page unload.
+ * Exported for direct transport testing (same pattern as web-vitals sendToAnalytics).
  */
-function sendToTelemetryBackend(
+export function sendToTelemetryBackend(
   type: 'exception' | 'message',
   payload: { message: string; stack?: string; name?: string; level?: LogLevel; context?: LogContext }
 ): void {
@@ -98,12 +99,16 @@ function sendToTelemetryBackend(
     // Use sendBeacon for reliable delivery even during page unload
     if (typeof navigator !== 'undefined' && navigator.sendBeacon) {
       navigator.sendBeacon(`${API_BASE}/telemetry/error`, new Blob([data], { type: 'application/json' }));
-    } else {
-      // Fallback: synchronous XHR for critical error reporting
-      const xhr = new XMLHttpRequest();
-      xhr.open('POST', `${API_BASE}/telemetry/error`, false);
-      xhr.setRequestHeader('Content-Type', 'application/json');
-      xhr.send(data);
+    } else if (typeof fetch !== 'undefined') {
+      // Fallback: keepalive fetch stays unload-safe without blocking the main thread
+      void fetch(`${API_BASE}/telemetry/error`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: data,
+        keepalive: true,
+      }).catch(() => {
+        // Silently fail - don't cause errors while reporting errors
+      });
     }
   } catch {
     // Silently fail - don't cause errors while reporting errors

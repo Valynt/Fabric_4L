@@ -196,18 +196,20 @@ const asNumber = (value: unknown): number | undefined =>
 const asArray = (value: unknown): unknown[] => (Array.isArray(value) ? value : []);
 
 export const parseIngestionJobs = (value: unknown): ApiIngestionJobDto[] =>
-  asArray(value)
-    .filter(isRecord)
-    .map((item): ApiIngestionJobDto => ({
-      id: asString(item.id),
-      status: asString(item.status),
-      created_at: asString(item.created_at),
-      started_at: asString(item.started_at),
-      updated_at: asString(item.updated_at),
-      progress_percent_complete: asNumber(item.progress_percent_complete),
-      progress_processed_pages: asNumber(item.progress_processed_pages),
-      configuration: isRecord(item.configuration) ? { url: asString(item.configuration.url) } : undefined,
-    }));
+  asArray(value).flatMap((item): ApiIngestionJobDto[] =>
+    isRecord(item)
+      ? [{
+          id: asString(item.id),
+          status: asString(item.status),
+          created_at: asString(item.created_at),
+          started_at: asString(item.started_at),
+          updated_at: asString(item.updated_at),
+          progress_percent_complete: asNumber(item.progress_percent_complete),
+          progress_processed_pages: asNumber(item.progress_processed_pages),
+          configuration: isRecord(item.configuration) ? { url: asString(item.configuration.url) } : undefined,
+        }]
+      : [],
+  );
 
 export const parseIngestionAggregation = (value: unknown): ApiIngestionAggregationDto => {
   if (!isRecord(value)) return {};
@@ -228,10 +230,14 @@ export const parseIngestionAggregation = (value: unknown): ApiIngestionAggregati
 export const parseWorkflowResult = (value: unknown): ApiWorkflowResultDto => {
   if (!isRecord(value)) return {};
   const output = isRecord(value.output) ? { company_name: asString(value.output.company_name) } : undefined;
-  const steps = asArray(value.steps).filter(isRecord).map((step): ApiWorkflowStepDto => ({
-    agent: asString(step.agent),
-    result: isRecord(step.result) ? { output: step.result.output } : undefined,
-  }));
+  const steps = asArray(value.steps).flatMap((step): ApiWorkflowStepDto[] =>
+    isRecord(step)
+      ? [{
+          agent: asString(step.agent),
+          result: isRecord(step.result) ? { output: step.result.output } : undefined,
+        }]
+      : [],
+  );
 
   return {
     output,
@@ -242,14 +248,18 @@ export const parseWorkflowResult = (value: unknown): ApiWorkflowResultDto => {
 
 export const parseBusinessCaseRoiOutput = (value: unknown): ApiBusinessCaseRoiOutputDto => {
   if (!isRecord(value)) return {};
-  const use_cases = asArray(value.use_cases).filter(isRecord).map((useCase): ApiBusinessCaseUseCaseDto => ({
-    name: asString(useCase.name),
-    persona: asString(useCase.persona),
-    value_driver: asString(useCase.value_driver),
-    roi_value: asNumber(useCase.roi_value),
-    payback_months: asNumber(useCase.payback_months),
-    confidence: asNumber(useCase.confidence),
-  }));
+  const use_cases = asArray(value.use_cases).flatMap((useCase): ApiBusinessCaseUseCaseDto[] =>
+    isRecord(useCase)
+      ? [{
+          name: asString(useCase.name),
+          persona: asString(useCase.persona),
+          value_driver: asString(useCase.value_driver),
+          roi_value: asNumber(useCase.roi_value),
+          payback_months: asNumber(useCase.payback_months),
+          confidence: asNumber(useCase.confidence),
+        }]
+      : [],
+  );
   return {
     use_cases,
     total_value: asNumber(value.total_value),
@@ -269,16 +279,24 @@ export const parseExtractionJob = (value: unknown): ApiExtractionJobDto => {
     progress_percent_complete: asNumber(value.progress_percent_complete),
     progress_pages_found: asNumber(value.progress_pages_found),
     progress_processed_pages: asNumber(value.progress_processed_pages),
-    progress_logs: asArray(value.progress_logs).filter(isRecord).map((log): ApiProgressLogDto => ({
-      timestamp: asString(log.timestamp),
-      level: asString(log.level),
-      message: asString(log.message),
-      status: asString(log.status),
-    })),
-    extracted_entities: asArray(value.extracted_entities).filter(isRecord).map((entity): ApiExtractedEntityDto => ({
-      type: asString(entity.type),
-      name: asString(entity.name),
-    })),
+    progress_logs: asArray(value.progress_logs).flatMap((log): ApiProgressLogDto[] =>
+      isRecord(log)
+        ? [{
+            timestamp: asString(log.timestamp),
+            level: asString(log.level),
+            message: asString(log.message),
+            status: asString(log.status),
+          }]
+        : [],
+    ),
+    extracted_entities: asArray(value.extracted_entities).flatMap((entity): ApiExtractedEntityDto[] =>
+      isRecord(entity)
+        ? [{
+            type: asString(entity.type),
+            name: asString(entity.name),
+          }]
+        : [],
+    ),
     created_at: asString(value.created_at),
     updated_at: asString(value.updated_at),
     configuration: isRecord(value.configuration) ? { url: asString(value.configuration.url) } : undefined,

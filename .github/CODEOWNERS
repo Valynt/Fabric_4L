@@ -179,6 +179,20 @@ AGENTS.md @value-fabric/maintainers @value-fabric/architects
 # Documentation typo fixes (low risk)
 *.md @value-fabric/tech-writers
 
+# Mandatory security merge-control governance. These explicit entries are last
+# because GitHub uses the final matching CODEOWNERS pattern.
+.github/CODEOWNERS @value-fabric/security-leads @value-fabric/sre-leads @value-fabric/maintainers
+.github/workflows/security-gates.yml @value-fabric/security-leads @value-fabric/sre-leads
+.github/workflows/branch-protection-validation.yml @value-fabric/security-leads @value-fabric/sre-leads
+config/ci/ @value-fabric/security-leads @value-fabric/sre-leads
+scripts/ci/mandatory_security_regression_gate.sh @value-fabric/security-leads @value-fabric/sre-leads
+scripts/ci/check_mandatory_security_gate_contract.py @value-fabric/security-leads @value-fabric/sre-leads
+scripts/ci/validate_mandatory_security_gate_enforcement.py @value-fabric/security-leads @value-fabric/sre-leads
+docs/governance/branch-protection-required-checks.yml @value-fabric/security-leads @value-fabric/sre-leads
+docs/governance/mandatory-security-regression-merge-policy.md @value-fabric/security-leads @value-fabric/sre-leads
+docs/governance/incidents/ @value-fabric/security-leads @value-fabric/sre-leads
+docs/validation/security_regression/ @value-fabric/security-leads @value-fabric/sre-leads
+
 # ============================================
 # DEPENDENCY UPDATE OWNERSHIP (H-07 Audit Fix)
 # Ensures every package manifest and Dockerfile has an update owner

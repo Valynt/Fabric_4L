@@ -716,7 +716,9 @@ jobs:
       - name: Test image runs as non-root
         run: |
           # Build test images and verify user
-          docker build -t test-frontend apps/web/
+          # apps/web/Dockerfile copies workspace files (package.json, pnpm-workspace.yaml,
+          # packages/*), so the build context must be the repository root.
+          docker build -t test-frontend -f apps/web/Dockerfile .
           docker build \
             --build-arg BASE_IMAGE="${BASE_IMAGE:-}" \
             --build-arg BUILDER_BASE_IMAGE="${BUILDER_BASE_IMAGE:-}" \
@@ -873,7 +875,6 @@ jobs:
     name: mandatory-security-regression
     runs-on: ubuntu-latest
     timeout-minutes: 45
-    if: github.event_name == 'pull_request' || github.event_name == 'push'
 
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
@@ -882,6 +883,12 @@ jobs:
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: '3.11'
+
+      - name: Validate mandatory security merge-control contract
+        run: |
+          set -euo pipefail
+          python -m pip install pyyaml
+          python scripts/ci/check_mandatory_security_gate_contract.py
 
       - name: Setup pnpm
         uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
@@ -915,6 +922,7 @@ jobs:
         env:
           MANDATORY_SECURITY_ARTIFACT_DIR: artifacts/mandatory_security
           FABRIC_AUDIT_DIR: .fabric/audit
+          FABRIC_GATE_TEST_MODE: "0"
         run: bash scripts/ci/mandatory_security_regression_gate.sh
 
       - name: Upload mandatory security evidence

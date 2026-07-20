@@ -71,7 +71,7 @@ export function usePaginatedList(options: PaginatedListOptions): PaginatedListSt
   const [pageSize, setPageSize] = useState(initialPageSize);
 
   // Calculate derived values
-  const offset = useMemo(() => (page - 1) * pageSize, [page, pageSize]);
+  const offset = (page - 1) * pageSize;
   const limit = pageSize;
 
   const totalPages = useMemo(() => {
@@ -93,7 +93,7 @@ export function usePaginatedList(options: PaginatedListOptions): PaginatedListSt
     return page < totalPages;
   }, [mode, page, totalPages, totalItems]);
 
-  const canPrevious = useMemo(() => page > 1, [page]);
+  const canPrevious = page > 1;
 
   // Navigation methods
   const nextPage = useCallback(() => {

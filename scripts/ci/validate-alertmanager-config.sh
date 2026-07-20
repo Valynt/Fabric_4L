@@ -12,6 +12,8 @@ if ! command -v "$AMTOOL" &> /dev/null; then
     # Try to install via go or docker
     if command -v go &> /dev/null; then
         go install github.com/prometheus/alertmanager/cmd/amtool@latest
+        # Ensure the freshly-built binary is on PATH for the rest of the script.
+        export PATH="$(go env GOPATH)/bin:${PATH}"
     elif command -v docker &> /dev/null; then
         echo "Using docker to run amtool validation..."
         AMBIN="docker run --rm -i prom/alertmanager:v0.28.1 amtool"

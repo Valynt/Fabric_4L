@@ -74,19 +74,15 @@
     if (document.body) document.body.appendChild(el);
   }
 
-  function connect() {
-    if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
-    setStatus(everConnected ? 'reconnecting' : 'connecting');
-    ws = new WebSocket(websocketUrl());
-
-    ws.onopen = () => {
+  function attachWebSocketHandlers(socket) {
+    socket.onopen = () => {
       const recovered = tombstoneShown;
       everConnected = true;
       disconnectedSince = null;
       reconnectDelay = MIN_RECONNECT_MS;
       tombstoneShown = false;
       setStatus('connected');
-      eventQueue.forEach(e => ws.send(JSON.stringify(e)));
+      eventQueue.forEach(e => socket.send(JSON.stringify(e)));
       eventQueue = [];
       // Recovered from a tombstoned outage (e.g. the server restarted on the same
       // port) — reload through the keyed bootstrap when possible so the cookie is
@@ -94,13 +90,13 @@
       if (recovered) reloadAfterRecovery();
     };
 
-    ws.onmessage = (msg) => {
+    socket.onmessage = (msg) => {
       let data;
       try { data = JSON.parse(msg.data); } catch (e) { return; }
       if (data.type === 'reload') window.location.reload();
     };
 
-    ws.onclose = () => {
+    socket.onclose = () => {
       ws = null;
       if (disconnectedSince === null) disconnectedSince = Date.now();
       if (Date.now() - disconnectedSince >= TOMBSTONE_AFTER_MS) {
@@ -114,7 +110,14 @@
     };
 
     // Let onclose own reconnection so we don't schedule it twice.
-    ws.onerror = () => { try { ws.close(); } catch (e) {} };
+    socket.onerror = () => { try { socket.close(); } catch (e) {} };
+  }
+
+  function connect() {
+    if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+    setStatus(everConnected ? 'reconnecting' : 'connecting');
+    ws = new WebSocket(websocketUrl());
+    attachWebSocketHandlers(ws);
   }
 
   function sendEvent(event) {
@@ -126,42 +129,52 @@
     }
   }
 
-  // Capture clicks on choice elements
-  document.addEventListener('click', (e) => {
-    const target = e.target.closest('[data-choice]');
-    if (!target) return;
+  function bindBrainstormEvents() {
+    // Capture clicks on choice elements
+    document.addEventListener('click', (e) => {
+      const target = e.target.closest('[data-choice]');
+      if (!target) return;
 
-    sendEvent({
-      type: 'click',
-      text: target.textContent.trim(),
-      choice: target.dataset.choice,
-      id: target.id || null
+      sendEvent({
+        type: 'click',
+        text: target.textContent.trim(),
+        choice: target.dataset.choice,
+        id: target.id || null
+      });
+
     });
+  }
 
-  });
+  function exposeBrainstormApi() {
+    // Frame UI: selection tracking
+    window.selectedChoice = null;
 
-  // Frame UI: selection tracking
-  window.selectedChoice = null;
+    window.toggleSelect = function(el) {
+      const container = el.closest('.options') || el.closest('.cards');
+      const multi = container && container.dataset.multiselect !== undefined;
+      if (container && !multi) {
+        container.querySelectorAll('.option, .card').forEach(o => o.classList.remove('selected'));
+      }
+      if (multi) {
+        el.classList.toggle('selected');
+      } else {
+        el.classList.add('selected');
+      }
+      window.selectedChoice = el.dataset.choice;
+    };
 
-  window.toggleSelect = function(el) {
-    const container = el.closest('.options') || el.closest('.cards');
-    const multi = container && container.dataset.multiselect !== undefined;
-    if (container && !multi) {
-      container.querySelectorAll('.option, .card').forEach(o => o.classList.remove('selected'));
-    }
-    if (multi) {
-      el.classList.toggle('selected');
-    } else {
-      el.classList.add('selected');
-    }
-    window.selectedChoice = el.dataset.choice;
-  };
+    // Expose API for explicit use
+    window.brainstorm = {
+      send: sendEvent,
+      choice: (value, metadata = {}) => sendEvent({ type: 'choice', value, ...metadata })
+    };
+  }
 
-  // Expose API for explicit use
-  window.brainstorm = {
-    send: sendEvent,
-    choice: (value, metadata = {}) => sendEvent({ type: 'choice', value, ...metadata })
-  };
+  function initBrainstorm() {
+    bindBrainstormEvents();
+    exposeBrainstormApi();
+    connect();
+  }
 
-  connect();
+  initBrainstorm();
 })();

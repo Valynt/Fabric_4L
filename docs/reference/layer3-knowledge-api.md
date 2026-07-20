@@ -10,8 +10,10 @@ related: ["api-overview", "layer2-extraction-api", "layer4-agents-api", "layer5-
 # Layer 3: Knowledge Graph API
 
 > **Base URL:** `http://localhost:8003` (local) / `https://l3.valuefabric.io` (production)  
-> **Base Path:** `/v1`  
+> **Base Path:** `/v1` (with additional un-prefixed routers such as `/graph`)  
 > **Service:** Knowledge graph backed by Neo4j graph traversal and Neo4j-native vector indexes
+>
+> **Audit note (2026-07-18):** The `/graph/subgraph` endpoint is mounted without the `/v1` prefix (router has no prefix in `services/layer3-knowledge/src/api/main.py`). `/v1/search/hybrid` exists only as a deprecated compatibility alias.
 
 ---
 

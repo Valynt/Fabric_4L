@@ -17,6 +17,21 @@ function setStoredCaseId(accountId: string, caseId: string) {
   window.localStorage.setItem(`${CASE_STORAGE_PREFIX}.${accountId}`, caseId);
 }
 
+/**
+ * Detects the 501 soft-success sentinel returned when workspace tab
+ * persistence is not implemented (H-01). In that case nothing was persisted,
+ * so the tab query must not be invalidated — a refetch would return the
+ * empty fallback and clobber local tab state.
+ */
+function isNotImplementedPersistResult(data: unknown): boolean {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    'not_implemented' in data &&
+    data.not_implemented === true
+  );
+}
+
 export function useCanonicalCaseId(accountId: string | null) {
   return useQuery<string | null>({
     queryKey: ['workspace', 'case-id', accountId],
@@ -73,6 +88,7 @@ export function useWorkspaceTabQuery<TData>(caseId: string | null, tabKey: strin
 }
 
 export function usePersistWorkspaceTab(tabKey: string) {
+  const queryClient = useQueryClient();
   const mutation = useMutation({
     mutationFn: async ({ caseId, payload }: { caseId: string; payload: unknown }) => {
       try {
@@ -87,6 +103,10 @@ export function usePersistWorkspaceTab(tabKey: string) {
         }
         throw error;
       }
+    },
+    onSuccess: (data, { caseId }) => {
+      if (isNotImplementedPersistResult(data)) return;
+      queryClient.invalidateQueries({ queryKey: QK.workspace.tab(caseId, tabKey) });
     },
   });
 
@@ -117,6 +137,7 @@ export function useValidateEvidenceClaim() {
  * for a case. Should be called when workspace is first loaded with empty data.
  */
 export function useGenerateWorkspaceIntelligence() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (caseId: string) => {
       const response = await apiPost<{
@@ -141,6 +162,11 @@ export function useGenerateWorkspaceIntelligence() {
           stakeholders: number;
         };
       };
+    },
+    onSuccess: () => {
+      // Generation creates signals, drivers, evidence, and stakeholders
+      // server-side; refresh every cached workspace tab for the case.
+      queryClient.invalidateQueries({ queryKey: QK.workspace.all });
     },
   });
 }
