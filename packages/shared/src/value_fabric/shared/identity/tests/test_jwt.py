@@ -24,6 +24,17 @@ _TEST_CLERK_AUDIENCE = "fabric4l-api"
 _TEST_CLERK_ORIGIN = "http://localhost:3001"
 
 
+def test_jwt_facade_exposes_extracted_token_implementations():
+    """The legacy jwt module remains a stable import façade after the split."""
+    from .. import jwt as jwt_facade
+    from .. import jwt_tokens
+
+    assert jwt_facade.decode_jwt is jwt_tokens.decode_jwt
+    assert jwt_facade.encode_jwt is jwt_tokens.encode_jwt
+    assert jwt_facade.decode_service_jwt is jwt_tokens.decode_service_jwt
+    assert jwt_facade.encode_service_jwt is jwt_tokens.encode_service_jwt
+
+
 @pytest.fixture(autouse=True)
 def _jwt_env():
     """Set predictable JWT env vars for every test."""
