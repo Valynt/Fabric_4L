@@ -5954,6 +5954,24 @@
     },
     {
       "kind": "python-any",
+      "line": 9,
+      "path": "scripts/ci/check_mandatory_security_gate_contract.py",
+      "text": "from typing import Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 22,
+      "path": "scripts/ci/check_mandatory_security_gate_contract.py",
+      "text": "def _load_json(path: Path) -> dict[str, Any]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 41,
+      "path": "scripts/ci/check_mandatory_security_gate_contract.py",
+      "text": "def _load_yaml(path: Path) -> dict[str, Any]:"
+    },
+    {
+      "kind": "python-any",
       "line": 22,
       "path": "scripts/ci/check_migration_drift.py",
       "text": "from typing import Any"
@@ -8027,6 +8045,30 @@
       "line": 103,
       "path": "scripts/ci/validate_live_workflow_artifacts.py",
       "text": "def validate_manifest(artifact_dir: Path, expected_status: str) -> dict[str, Any]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 10,
+      "path": "scripts/ci/validate_mandatory_security_gate_enforcement.py",
+      "text": "from typing import Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 17,
+      "path": "scripts/ci/validate_mandatory_security_gate_enforcement.py",
+      "text": "def _load(path: Path) -> Any:"
+    },
+    {
+      "kind": "python-any",
+      "line": 21,
+      "path": "scripts/ci/validate_mandatory_security_gate_enforcement.py",
+      "text": "def _enabled(payload: dict[str, Any], key: str) -> bool:"
+    },
+    {
+      "kind": "python-any",
+      "line": 26,
+      "path": "scripts/ci/validate_mandatory_security_gate_enforcement.py",
+      "text": "def validate(protection: dict[str, Any], rulesets: list[dict[str, Any]], contract: dict[str, Any]) -> list[str]:"
     },
     {
       "kind": "python-any",

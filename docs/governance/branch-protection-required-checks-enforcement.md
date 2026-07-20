@@ -8,7 +8,7 @@
 
 ## Exact required status check names
 
-The required status checks enforced for `main` and `release/*` are:
+The required status checks enforced for `main` are:
 
 1. `mandatory-security-regression`
 2. `contract-compliance`
@@ -25,13 +25,13 @@ The required status checks enforced for `main` and `release/*` are:
 
 - **Pull-request merge enforcement** by asserting `required_status_checks.strict == true`.
 - **Direct push enforcement** by asserting `required_status_checks.contexts` is non-empty and includes required contexts.
-- **Branch coverage** by validating `main` plus all existing `release/*` branches discovered through the GitHub Branches API.
+- **Branch coverage** by validating the effective `main` branch-protection response.
 
 ## Drift prevention policy
 
 `check_required_check_policy.py` fails when required-check metadata and branch-protection validator diverge, including:
 
 - Required check name list drift.
-- Missing `main` or `release/*` branch validation logic.
+- Missing `main` branch validation logic.
 - Missing strict PR merge enforcement check.
 - Missing required status context enforcement check.
