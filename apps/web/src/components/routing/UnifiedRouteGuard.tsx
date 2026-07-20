@@ -2,7 +2,11 @@ import { Navigate, useLocation, useParams, useMatches } from "react-router-dom";
 import { useAuth as useClerkAuth } from "@clerk/react";
 import { isClerkAuthEnabled } from "@/auth/clerkConfig";
 import { useAuthContext } from "@/contexts/AuthContext";
-import { useTenantMembership } from "@/hooks/useTenantMembership";
+import {
+  useTenantMembershipClerk,
+  useTenantMembershipLegacy,
+  type TenantMembership,
+} from "@/hooks/useTenantMembership";
 import { useAccountAccess } from "@/hooks/useAccountAccess";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
 import { useFeatureFlags } from "@/hooks/useFeatureFlags";
@@ -66,7 +70,11 @@ function shouldWaitForTierHydration(requiredTier?: RouteAccessPolicy["requiredTi
 function UnifiedRouteGuardInner({
   children,
   authStateOverride,
-}: UnifiedRouteGuardProps & { authStateOverride?: RouteGuardAuthState }) {
+  tenantMembershipOverride,
+}: UnifiedRouteGuardProps & {
+  authStateOverride?: RouteGuardAuthState;
+  tenantMembershipOverride?: TenantMembership;
+}) {
   const location = useLocation();
   const params = useParams();
   const matches = useMatches();
@@ -92,8 +100,12 @@ function UnifiedRouteGuardInner({
   const tierStoreHydrated = isRehydrated || useUserTierStore.persist.hasHydrated();
 
   const tenantSlug = params.tenantSlug;
+  // Legacy (AuthContext) membership is always resolved here; in Clerk mode the
+  // outer ClerkUnifiedRouteGuard supplies a Clerk-derived override, mirroring
+  // authStateOverride, so Clerk hooks never run without <ClerkProvider>.
+  const legacyTenantMembership = useTenantMembershipLegacy(tenantSlug);
   const { isMemberOfTenant, isLoading: tenantLoading } =
-    useTenantMembership(tenantSlug);
+    tenantMembershipOverride ?? legacyTenantMembership;
 
   const accountId = params.accountId;
   const { hasAccountAccess, isLoading: accountLoading } =
@@ -205,6 +217,10 @@ function UnifiedRouteGuardInner({
 
 function ClerkUnifiedRouteGuard(props: UnifiedRouteGuardProps) {
   const { isLoaded, isSignedIn } = useClerkAuth();
+  // Only rendered when Clerk is enabled and <ClerkProvider> is mounted (see
+  // UnifiedRouteGuard below), so the Clerk membership hook is safe here.
+  const { tenantSlug } = useParams();
+  const tenantMembership = useTenantMembershipClerk(tenantSlug);
 
   return (
     <UnifiedRouteGuardInner
@@ -213,6 +229,7 @@ function ClerkUnifiedRouteGuard(props: UnifiedRouteGuardProps) {
         isLoading: !isLoaded,
         isAuthenticated: isLoaded && !!isSignedIn,
       }}
+      tenantMembershipOverride={tenantMembership}
     />
   );
 }

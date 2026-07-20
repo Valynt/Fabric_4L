@@ -1,5 +1,7 @@
 # Route Mapping & Alias Audit
 
+> **Audit note (2026-07-18):** The mismatch registry below contains stale entries. R-04 (`GET /workflows?type=business_case` "not in OpenAPI") and R-05 (`POST /workflows/{id}/archive` "not found in backend code") have been resolved in the current Layer 4 code and OpenAPI spec. The Layer 5 double-prefix analysis is also outdated because the frontend now routes L5 calls through the Layer 4 `/v1/ground-truth/*` proxy. Review and prune the resolved rows.
+
 > Compare frontend route expectations against backend canonical paths. Flag mismatches, missing aliases, and gateway rewrite requirements.
 
 ---

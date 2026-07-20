@@ -149,7 +149,7 @@ export default function IngestionJobs() {
   const retryJob = useRetryJob();
   const batchOperation = useBatchOperation();
 
-  const jobs = listData?.jobs ?? [];
+  const jobs = useMemo(() => listData?.jobs ?? [], [listData]);
   const apiPagination = listData?.pagination ?? { page: 1, limit: paginationState.limit, total: 0, totalPages: 1 };
   const latestJob = jobs[0];
 
@@ -189,11 +189,10 @@ export default function IngestionJobs() {
   const handleBatchRetry = useCallback(async () => {
     if (batchOperation.isPending || jobs.length === 0) return;
     
-    // Filter failed jobs and validate UUID format
-    const failedJobs = jobs.filter(j => j.status === 'failed');
-    const validJobIds = failedJobs
-      .map(j => j.id)
-      .filter(id => UUID_REGEX.test(id));
+    // Filter failed jobs and validate UUID format in a single pass
+    const validJobIds = jobs.flatMap(j =>
+      j.status === 'failed' && UUID_REGEX.test(j.id) ? [j.id] : []
+    );
     
     // Validate that we have valid UUIDs to retry
     if (validJobIds.length === 0) {

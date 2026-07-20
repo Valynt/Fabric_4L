@@ -46,9 +46,13 @@ function ChartContainer({
 }) {
   const uniqueId = React.useId();
   const chartId = `chart-${id || uniqueId.replace(/:/g, "")}`;
+  const contextValue = React.useMemo<ChartContextProps>(
+    () => ({ config }),
+    [config]
+  );
 
   return (
-    <ChartContext.Provider value={{ config }}>
+    <ChartContext.Provider value={contextValue}>
       <div
         data-slot="chart"
         data-chart={chartId}
@@ -127,7 +131,10 @@ function ChartTooltipContent({
   const { config } = useChart();
 
   const tooltipLabel = React.useMemo(() => {
-    if (hideLabel || !payload?.length) {
+    // `active` is checked here (rather than only in the early return below)
+    // because the early return must stay after this hook per the rules of
+    // hooks; bailing out inside the memo skips the JSX work when inactive.
+    if (!active || hideLabel || !payload?.length) {
       return null;
     }
 
@@ -153,6 +160,7 @@ function ChartTooltipContent({
 
     return <div className={cn("font-medium", labelClassName)}>{value}</div>;
   }, [
+    active,
     label,
     labelFormatter,
     payload,

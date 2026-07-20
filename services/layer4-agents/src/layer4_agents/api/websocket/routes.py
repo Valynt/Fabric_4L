@@ -23,6 +23,7 @@ import uuid
 
 from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
 from value_fabric.shared.error_handling import sanitize_log_error
+from value_fabric.shared.error_handling.exceptions import ServiceUnavailableError
 from value_fabric.shared.observability.trace_context import resolve_trace_context
 
 from .auth import (
@@ -57,10 +58,14 @@ async def _resolve_workflow_authorization(
         tenant-only.
     """
     try:
-        # Local import — avoids circular dependency at module load time.
-        from ...api.routes.workflows import get_executor
+        # Read the executor straight from the shared runtime-state holder.
+        # Importing api.routes.workflows here would close an import cycle:
+        # routes/workflows.py -> api.startup -> api.websocket -> this module.
+        from ..runtime_state import runtime_state
 
-        executor = get_executor()
+        executor = runtime_state.workflow_executor
+        if executor is None:
+            raise ServiceUnavailableError(message="Workflow executor not initialized")
         status = await executor.get_workflow_status(workflow_id)
         if not status:
             return False, "AUTHZ_WORKFLOW_NOT_FOUND"

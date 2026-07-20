@@ -1,5 +1,7 @@
 # Service Routing and API Version Matrix
 
+> **Audit note (2026-07-18):** The external-port column is misleading for Layer 1, Layer 2, and Layer 4, which are shown as `8000`. The canonical localhost/service ports are 8001 (L1), 8002 (L2), 8003 (L3), 8004 (L4), 8005 (L5), and 8006 (L6). The `8000` entries may reflect container-internal ports in some compose overlays, not the external developer-facing ports. Clarify the distinction before using this matrix for routing configuration.
+
 This document is the canonical routing and API version reference for all Value Fabric layers.
 
 Use this matrix when configuring:

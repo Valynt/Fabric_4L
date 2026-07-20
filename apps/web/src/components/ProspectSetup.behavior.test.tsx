@@ -13,6 +13,21 @@ const VALID_PROMPT = [
   "Why this account now: Q4 planning",
 ].join("\n");
 
+/**
+ * Enters the multi-line prompt through the same onChange path as typing, but
+ * as a single paste event. Per-keystroke typing re-parses the prompt on every
+ * character (~110 renders in jsdom), which pushes these tests past the 5s
+ * timeout under parallel CPU contention without exercising anything extra.
+ */
+async function enterPrompt(
+  user: ReturnType<typeof userEvent.setup>,
+  text: string
+) {
+  const prompt = screen.getByLabelText("New value case prompt");
+  await user.click(prompt);
+  await user.paste(text);
+}
+
 function renderProspectSetup(ui: React.ReactElement) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -69,10 +84,7 @@ describe("ProspectSetup behavior primitives", () => {
       />
     );
 
-    await user.type(
-      screen.getByLabelText("New value case prompt"),
-      VALID_PROMPT
-    );
+    await enterPrompt(user, VALID_PROMPT);
     await user.click(
       screen.getByRole("button", { name: "Launch Intelligence" })
     );
@@ -102,8 +114,7 @@ describe("ProspectSetup behavior primitives", () => {
       .mockResolvedValue({ accountId: "account-123" });
     renderProspectSetup(<ProspectSetupPage onCreateSetup={onCreateSetup} />);
 
-    const prompt = screen.getByLabelText("New value case prompt");
-    await user.type(prompt, VALID_PROMPT);
+    await enterPrompt(user, VALID_PROMPT);
     await user.keyboard("{Control>}{Enter}{/Control}");
 
     expect(onCreateSetup).toHaveBeenCalledTimes(1);
@@ -121,10 +132,7 @@ describe("ProspectSetup behavior primitives", () => {
     });
     renderProspectSetup(<ProspectSetupPage onCreateSetup={onCreateSetup} />);
 
-    await user.type(
-      screen.getByLabelText("New value case prompt"),
-      VALID_PROMPT
-    );
+    await enterPrompt(user, VALID_PROMPT);
     await user.click(
       screen.getByRole("button", { name: "Launch Intelligence" })
     );

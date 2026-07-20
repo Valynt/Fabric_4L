@@ -29,6 +29,8 @@ import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from neo4j import AsyncGraphDatabase
+from value_fabric.shared.identity import RequestContext
+from value_fabric.shared.identity.middleware import GovernanceMiddleware
 
 # Guard: skip entire module if testcontainers is not installed
 try:
@@ -60,6 +62,27 @@ pytestmark = [
     ),
     pytest.mark.integration,  # P1: Explicit marker for selective test running
 ]
+
+
+
+
+
+def _patch_app_for_test_auth(application) -> None:
+    """Bypass GovernanceMiddleware auth/tenant checks for live E2E fixtures."""
+    from value_fabric.shared.identity import require_authenticated
+
+    async def _handle_authentication(self, request):
+        return RequestContext(tenant_id=TEST_TENANT_ID, user_id="test-user")
+
+    async def _enforce_tenant_status(self, ctx):
+        return None
+
+    GovernanceMiddleware._handle_authentication = _handle_authentication
+    GovernanceMiddleware._enforce_tenant_status = _enforce_tenant_status
+    application.dependency_overrides[require_authenticated] = lambda: RequestContext(
+        tenant_id=TEST_TENANT_ID, user_id="test-user"
+    )
+    application.middleware_stack = None
 
 
 # Test configuration
@@ -253,11 +276,11 @@ class TestSchemaInitialization:
         # Verify constraints match edition expectations
         if neo4j_edition == "community":
             # Community should have fewer constraints (no TENANT_CONSTRAINTS)
-            from schema.constraints import CONSTRAINTS, TENANT_CONSTRAINTS
+            from src.schema.constraints import CONSTRAINTS, TENANT_CONSTRAINTS
             assert results["constraints"]["expected"] == len(CONSTRAINTS)
         else:
             # Enterprise should have all constraints
-            from schema.constraints import CONSTRAINTS, TENANT_CONSTRAINTS
+            from src.schema.constraints import CONSTRAINTS, TENANT_CONSTRAINTS
             assert results["constraints"]["expected"] == len(CONSTRAINTS) + len(TENANT_CONSTRAINTS)
 
         # Schema should be valid
@@ -378,10 +401,10 @@ class TestGraphRAGQueries:
         # Create test data
         async with neo4j_driver.session() as session:
             await session.run("""
-                CREATE (c:Capability {id: 'cap-003', name: 'Data Pipeline', confidence: 0.9})
-                CREATE (u:UseCase {id: 'uc-002', name: 'ETL Processing', confidence: 0.85})
+                CREATE (c:Capability {id: 'cap-003', name: 'Data Pipeline', confidence: 0.9, tenant_id: $tenant_id})
+                CREATE (u:UseCase {id: 'uc-002', name: 'ETL Processing', confidence: 0.85, tenant_id: $tenant_id})
                 CREATE (c)-[:enables {confidence: 0.9}]->(u)
-            """)
+            """, {"tenant_id": TEST_TENANT_ID})
         
         # Initialize GraphRAG
         graph_rag = GraphRAGEngine(driver=neo4j_driver, settings=settings)
@@ -391,6 +414,7 @@ class TestGraphRAGQueries:
             query_text="ETL Processing",
             max_hops=2,
             max_results=5,
+            tenant_id=TEST_TENANT_ID,
         )
         
         assert result is not None
@@ -406,12 +430,12 @@ class TestGraphRAGQueries:
         # Create chain: Capability -> UseCase -> Persona
         async with neo4j_driver.session() as session:
             await session.run("""
-                CREATE (c:Capability {id: 'cap-004', name: 'ML Platform', confidence: 0.9})
-                CREATE (u:UseCase {id: 'uc-003', name: 'AutoML', confidence: 0.85})
-                CREATE (p:Persona {id: 'pers-001', name: 'Data Scientist', confidence: 0.9})
+                CREATE (c:Capability {id: 'cap-004', name: 'ML Platform', confidence: 0.9, tenant_id: $tenant_id})
+                CREATE (u:UseCase {id: 'uc-003', name: 'AutoML', confidence: 0.85, tenant_id: $tenant_id})
+                CREATE (p:Persona {id: 'pers-001', name: 'Data Scientist', confidence: 0.9, tenant_id: $tenant_id})
                 CREATE (c)-[:enables {confidence: 0.9}]->(u)
                 CREATE (u)-[:involves {confidence: 0.85}]->(p)
-            """)
+            """, {"tenant_id": TEST_TENANT_ID})
         
         graph_rag = GraphRAGEngine(driver=neo4j_driver, settings=settings)
         
@@ -420,6 +444,7 @@ class TestGraphRAGQueries:
             query_text="ML Platform",
             max_hops=3,
             max_results=10,
+            tenant_id=TEST_TENANT_ID,
         )
         
         assert result is not None
@@ -446,9 +471,10 @@ class TestHybridSearch:
                     name: 'Stream Processing',
                     description: 'Real-time data stream processing',
                     confidence: 0.9,
-                    embedding: range(0, 767)
+                    embedding: range(0, 767),
+                    tenant_id: $tenant_id
                 })
-            """)
+            """, {"tenant_id": TEST_TENANT_ID})
         
         # Initialize hybrid search (without vector store - uses Neo4j only)
         hybrid_search = HybridSearch(driver=neo4j_driver, settings=settings)
@@ -457,6 +483,7 @@ class TestHybridSearch:
         results = await hybrid_search.search(
             query="stream processing",
             limit=5,
+            tenant_id=TEST_TENANT_ID,
         )
         
         # Verify results structure
@@ -482,6 +509,7 @@ class TestAPIEndpoints:
             "valid": True,
         }
         app.dependency_overrides[get_schema_initializer] = lambda: schema_initializer
+        _patch_app_for_test_auth(app)
         transport = ASGITransport(app=app)
         try:
             async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -530,6 +558,7 @@ class TestAPIEndpoints:
         app.dependency_overrides[get_graph_rag] = lambda: graph_rag
         app.dependency_overrides[get_hybrid_search] = lambda: hybrid
 
+        _patch_app_for_test_auth(app)
         transport = ASGITransport(app=app)
         try:
             async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -599,21 +628,21 @@ class TestAPIEndpoints:
         )
         assert ingest_resp.status_code == 200
 
-        # Test both query endpoints
+        # Test two graph query routes (both are deprecated compatibility aliases).
         payload = {
             "query": "Graph Query Test",
             "max_hops": 2,
             "top_k": 10,
         }
 
-        # Alias route
+        # /v1/query/graph alias route
         alias_resp = await api_client_with_neo4j.post("/v1/query/graph", json=payload)
         assert alias_resp.status_code == 200
         alias_data = alias_resp.json()
         assert len(alias_data["entities"]) > 0, "Alias route should return entities"
 
-        # Legacy route
-        legacy_resp = await api_client_with_neo4j.post("/v1/query", json=payload)
+        # /v1/graphrag legacy alias route
+        legacy_resp = await api_client_with_neo4j.post("/v1/graphrag", json=payload)
         assert legacy_resp.status_code == 200
         legacy_data = legacy_resp.json()
         assert len(legacy_data["entities"]) > 0, "Legacy route should return entities"
@@ -753,6 +782,7 @@ class TestE2ECompletePipeline:
             query_text="Predictive Maintenance",
             max_hops=2,
             max_results=5,
+            tenant_id=TEST_TENANT_ID,
         )
 
         # Assert: Should find the capability

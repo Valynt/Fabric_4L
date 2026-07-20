@@ -418,20 +418,35 @@ export default function AgentWorkflows() {
               "Actions",
             ]}
             rows={historyWorkflows.map((w: Workflow) => [
-              <span className="font-mono vf-text-caption text-muted-foreground">
+              <span
+                key={`${w.id}-job`}
+                className="font-mono vf-text-caption text-muted-foreground"
+              >
                 {w.id}
               </span>,
-              <span className="text-foreground font-semibold">{w.name}</span>,
+              <span
+                key={`${w.id}-name`}
+                className="text-foreground font-semibold"
+              >
+                {w.name}
+              </span>,
               <StatusBadgePrimitive
+                key={`${w.id}-status`}
                 status={w.status === "interrupted" ? "failed" : w.status}
               />,
-              <span className="text-muted-foreground vf-text-caption">
+              <span
+                key={`${w.id}-progress`}
+                className="text-muted-foreground vf-text-caption"
+              >
                 {w.progress}%
               </span>,
-              <span className="text-muted-foreground/60 vf-text-caption">
+              <span
+                key={`${w.id}-created`}
+                className="text-muted-foreground/60 vf-text-caption"
+              >
                 {w.createdAt ? new Date(w.createdAt).toLocaleDateString() : "-"}
               </span>,
-              <div className="flex gap-2">
+              <div key={`${w.id}-actions`} className="flex gap-2">
                 <button
                   className="text-primary vf-text-caption hover:underline flex items-center gap-1"
                   onClick={() => {

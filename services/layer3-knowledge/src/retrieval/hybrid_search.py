@@ -298,18 +298,16 @@ class HybridSearch:
                 builder = self._tenant_builder(tenant_id)
                 scoped = builder.custom_tenant_query(
                     """
-                    CALL () {
-                        CALL db.index.fulltext.queryNodes($index_name, $query)
-                        YIELD node, score
-                        WHERE node.tenant_id = $_tenant_id
-                        OPTIONAL MATCH (node)-[r]-(neighbor)
-                        WHERE neighbor.tenant_id = $_tenant_id
-                        WITH node, score as text_score, count(r) as degree
-                        RETURN node.id as id, labels(node)[0] as entity_type, node.name as name,
-                               text_score * log(degree + 1) as score
-                        ORDER BY score DESC
-                        LIMIT $limit
-                    }
+                    CALL db.index.fulltext.queryNodes($index_name, $query)
+                    YIELD node, score
+                    WHERE node.tenant_id = $_tenant_id
+                    OPTIONAL MATCH (node)-[r]-(neighbor)
+                    WHERE neighbor.tenant_id = $_tenant_id
+                    WITH node, score as text_score, count(r) as degree
+                    RETURN node.id as id, labels(node)[0] as entity_type, node.name as name,
+                           text_score * log(degree + 1) as score
+                    ORDER BY score DESC
+                    LIMIT $limit
                     """,
                     params={"index_name": f"{etype.lower()}_fulltext", "query": escaped_query, "limit": top_k},
                     operation="hybrid_search.graph",

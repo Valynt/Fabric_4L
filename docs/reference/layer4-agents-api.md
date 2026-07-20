@@ -10,8 +10,10 @@ related: ["api-overview", "layer3-knowledge-api", "layer5-ground-truth-api", "..
 # Layer 4: Agents & Workflow API
 
 > **Base URL:** `http://localhost:8004` (local) / `https://l4.valuefabric.io` (production)  
-> **Base Path:** `/api/v1`  
+> **Base Path:** `/v1`  
 > **Service:** Agentic engine with LangGraph orchestration
+>
+> **Audit note (2026-07-18):** The base path was corrected from `/api/v1` to `/v1`. The Layer 4 router tree in `services/layer4-agents/src/layer4_agents/api/routers.py` mounts routers with `prefix="/v1"`, so all endpoint examples below should be read with the `/v1` prefix.
 
 ---
 

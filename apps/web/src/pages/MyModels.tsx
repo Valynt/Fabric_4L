@@ -435,6 +435,7 @@ export default function MyModels() {
   const { data: models, isLoading, isError } = useModels(filters);
   const { data: folders, isLoading: foldersLoading } = useModelFolders();
   const createModel = useCreateModel();
+  const { navigateTo } = useNavigation();
 
   // Handlers
   const handleCreate = useCallback(
@@ -446,11 +447,13 @@ export default function MyModels() {
     [createModel]
   );
 
-  const handleModelClick = useCallback((model: ValueModel) => {
-    // Navigate to model detail page
-    const { navigateTo } = useNavigation();
-    navigateTo('model-detail', { modelId: model.id });
-  }, []);
+  const handleModelClick = useCallback(
+    (model: ValueModel) => {
+      // Navigate to model detail page
+      navigateTo('model-detail', { modelId: model.id });
+    },
+    [navigateTo]
+  );
 
   return (
     <div className="h-full flex flex-col p-6">

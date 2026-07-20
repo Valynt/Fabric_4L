@@ -392,6 +392,7 @@ Layer 3: Knowledge Graph & Semantic Layer
 Layer 4: Agentic Workflow Engine
 - Port: 8004
 - Responsibilities: LangGraph workflows, ROI calculator, business case generation, checkpoints, agent orchestration
+- AuditOrchestrator router is mounted at `/v1/repo-audit` (the legacy audit-log router remains at `/v1/audit`)
 
 Layer 5: Ground Truth
 - Port: 8005
@@ -1116,6 +1117,69 @@ For every task, follow this loop:
 6. Validate with targeted commands.
 7. Report what changed, what passed, and what risk remains.
 ```
+
+---
+
+## AuditOrchestrator Agent
+
+The `AuditOrchestrator` is a Layer 4 LangGraph agent that performs autonomous, read-only repository health audits. It analyzes git history, source code, and governance documentation; produces a ten-area scorecard; plans remediation sprints; and persists findings for trend tracking.
+
+### Purpose
+
+- Run repository health audits on schedule, on demand, or via webhook.
+- Generate a weighted scorecard across ten audit areas (A–J).
+- Track findings across runs and plan time-boxed remediation sprints.
+- Feed audit results into PostgreSQL, Neo4j, and file-system reports without modifying source.
+
+### Skill package
+
+The portable skill definition lives in `.agent/skills/repo-audit/`:
+
+- `SKILL.md` — skill definition, triggers, inputs, outputs, and permissions.
+- `config.yaml` — default configuration matching `AuditConfig` defaults.
+- `prompts/system.txt` — system prompt for the audit agent.
+- `prompts/analyze_git.txt`, `analyze_code.txt`, `analyze_docs.txt`, `generate_report.txt` — task-specific prompts.
+
+### Skill triggers
+
+| Pattern | Action |
+|---|---|
+| `audit.*repo` | `run_full_audit` |
+| `check.*health`, `health.*check` | `run_full_audit` |
+| `score.*card`, `scorecard` | `get_latest_scorecard` |
+| `finding.*status`, `update.*finding` | `update_finding` |
+| `sprint.*plan`, `roadmap` | `get_sprint_plan` |
+| `repo.*status`, `how.*healthy` | `get_quick_status` |
+
+### API endpoints
+
+The AuditOrchestrator router is mounted under `/v1/repo-audit` to avoid collision with the legacy audit-log router at `/v1/audit`:
+
+- `POST /v1/repo-audit/run` — trigger a new audit run (async).
+- `GET /v1/repo-audit/runs/{run_id}` — get a single run.
+- `GET /v1/repo-audit/runs` — list recent runs.
+- `GET /v1/repo-audit/scorecard/latest` — latest scorecard for a repo.
+- `GET /v1/repo-audit/scorecard/history` — score history for trend charts.
+- `GET /v1/repo-audit/findings` — list findings with filters.
+- `PATCH /v1/repo-audit/findings/{finding_id}` — update finding status.
+- `GET /v1/repo-audit/sprints` — current sprint plan.
+- `GET /v1/repo-audit/report/{run_id}` — download report (Markdown or JSON).
+- `POST /v1/repo-audit/webhook/github?tenant_id=<tenant>` — GitHub push/release webhook handler. The URL must include `?tenant_id=<tenant>`; the triggered audit run is scoped to that tenant.
+
+### Configuration sources
+
+Configuration is loaded with this precedence (highest first):
+
+1. Environment variables with the `AUDIT__` prefix (e.g., `AUDIT__REPO_URL`, `AUDIT__AREA_WEIGHTS__ARCHITECTURE`).
+2. YAML file at `.agent/skills/repo-audit/config.yaml`.
+3. Pydantic defaults in `layer4_agents.agents.audit_orchestrator.models.AuditConfig`.
+
+### Cache and report directories
+
+- `.audit_cache/` — incremental audit cache and JSON fallback storage.
+- `audit_reports/` — generated Markdown reports.
+
+Both directories are ignored at the repository root.
 
 ---
 

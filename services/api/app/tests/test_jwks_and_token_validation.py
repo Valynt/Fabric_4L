@@ -57,7 +57,7 @@ class TestKeycloakJWKSResolution:
 
         static_jwks = {"keys": [{"kid": "test-kid", "kty": "RSA", "n": "abc", "e": "AQAB", "alg": "RS256"}]}
         with patch.dict(os.environ, {"OIDC_JWKS_JSON": json.dumps(static_jwks)}, clear=False):
-            with patch("value_fabric.shared.identity.jwt._fetch_jwks_from_url") as mock_fetch:
+            with patch("value_fabric.shared.identity.jwt_external._fetch_jwks_from_url") as mock_fetch:
                 with patch("jwt.algorithms.get_default_algorithms") as mock_algs:
                     mock_alg_instance = MagicMock()
                     mock_algs.return_value = {"RS256": mock_alg_instance}
@@ -72,7 +72,7 @@ class TestKeycloakJWKSResolution:
 
         with patch.dict(os.environ, {"OIDC_JWKS_JSON": ""}, clear=False):
             with patch.dict(os.environ, {"OIDC_JWKS_URL": "http://example.com/jwks"}, clear=False):
-                with patch("value_fabric.shared.identity.jwt._fetch_jwks_from_url") as mock_fetch:
+                with patch("value_fabric.shared.identity.jwt_external._fetch_jwks_from_url") as mock_fetch:
                     mock_fetch.return_value = {"keys": []}
                     header = {"kid": "missing", "alg": "RS256"}
                     _resolve_external_key(header, "test-issuer")
@@ -90,7 +90,7 @@ class TestKeycloakJWKSResolution:
             "KEYCLOAK_URL": "http://keycloak:8080",
             "KEYCLOAK_REALM": "fabric",
         }, clear=False):
-            with patch("value_fabric.shared.identity.jwt._fetch_jwks_from_url") as mock_fetch:
+            with patch("value_fabric.shared.identity.jwt_external._fetch_jwks_from_url") as mock_fetch:
                 mock_fetch.return_value = {"keys": []}
                 header = {"kid": "missing", "alg": "RS256"}
                 _resolve_external_key(header, "test-issuer")

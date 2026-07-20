@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM node@sha256:027911463b296bdaf6df82b5ccf2c6b290fee725d5fba6513a037ed019400625
+FROM node@sha256:926d6cafec97f338577041890465522f70fe74aa6fe4b021a4fd7f87a5996b25
 WORKDIR /workspace
 RUN npm install -g corepack@latest && corepack enable
 

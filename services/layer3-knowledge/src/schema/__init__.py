@@ -1,6 +1,6 @@
 """Schema management for Neo4j Knowledge Graph."""
 
-from ..schema.constraints import (
+from .constraints import (
     CONSTRAINTS,
     ENTITY_TYPES,
     INDEXES,
@@ -12,7 +12,7 @@ from ..schema.constraints import (
     get_entity_types,
     get_relationship_types,
 )
-from ..schema.initializer import SchemaInitializer
+from .initializer import SchemaInitializer
 
 __all__ = [
     "Constraint",

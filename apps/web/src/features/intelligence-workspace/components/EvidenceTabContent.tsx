@@ -33,7 +33,7 @@ function useEvidenceTabState() {
   const { data, isLoading, error } = useWorkspaceTabQuery<{ evidence: EvidenceItem[] }>(caseId ?? null, "evidence");
   const [selectedEvidence, setSelectedEvidence] = useState<EvidenceItem | null>(null);
 
-  const evidence = data?.evidence ?? [];
+  const evidence = useMemo(() => data?.evidence ?? [], [data]);
   const verified = useMemo(() => evidence.filter((e) => e.verification === "verified").length, [evidence]);
   const avgMatch = evidence.length ? Math.round(evidence.reduce((s, e) => s + e.matchScore, 0) / evidence.length) : 0;
 

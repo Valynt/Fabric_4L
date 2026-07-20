@@ -163,6 +163,27 @@ const PromptSettingsPopover = React.memo(function PromptSettingsPopover({
   state: BuilderState;
   dispatch: React.Dispatch<BuilderAction>;
 }) {
+  const handleUseUploadedFilesChange = React.useCallback(
+    (v: boolean) =>
+      dispatch({ type: "SET_FLAG", key: "useUploadedFiles", value: v }),
+    [dispatch]
+  );
+  const handleUsePriorContextChange = React.useCallback(
+    (v: boolean) =>
+      dispatch({ type: "SET_FLAG", key: "usePriorAccountContext", value: v }),
+    [dispatch]
+  );
+  const handleRunWebEnrichmentChange = React.useCallback(
+    (v: boolean) =>
+      dispatch({ type: "SET_FLAG", key: "runWebEnrichment", value: v }),
+    [dispatch]
+  );
+  const handleComplianceSensitiveChange = React.useCallback(
+    (v: boolean) =>
+      dispatch({ type: "SET_FLAG", key: "complianceSensitive", value: v }),
+    [dispatch]
+  );
+
   return (
     <Popover>
       <Tooltip>
@@ -254,49 +275,25 @@ const PromptSettingsPopover = React.memo(function PromptSettingsPopover({
               id="uploaded-files"
               label="Use uploaded files"
               checked={state.useUploadedFiles}
-              onCheckedChange={v =>
-                dispatch({
-                  type: "SET_FLAG",
-                  key: "useUploadedFiles",
-                  value: v,
-                })
-              }
+              onCheckedChange={handleUseUploadedFilesChange}
             />
             <SettingsSwitch
               id="prior-context"
               label="Use prior account context"
               checked={state.usePriorAccountContext}
-              onCheckedChange={v =>
-                dispatch({
-                  type: "SET_FLAG",
-                  key: "usePriorAccountContext",
-                  value: v,
-                })
-              }
+              onCheckedChange={handleUsePriorContextChange}
             />
             <SettingsSwitch
               id="web-enrichment"
               label="Run web enrichment"
               checked={state.runWebEnrichment}
-              onCheckedChange={v =>
-                dispatch({
-                  type: "SET_FLAG",
-                  key: "runWebEnrichment",
-                  value: v,
-                })
-              }
+              onCheckedChange={handleRunWebEnrichmentChange}
             />
             <SettingsSwitch
               id="compliance-sensitive"
               label="Compliance-sensitive mode"
               checked={state.complianceSensitive}
-              onCheckedChange={v =>
-                dispatch({
-                  type: "SET_FLAG",
-                  key: "complianceSensitive",
-                  value: v,
-                })
-              }
+              onCheckedChange={handleComplianceSensitiveChange}
             />
           </div>
         </div>
@@ -425,6 +422,12 @@ const PromptHeader = React.memo(function PromptHeader({
   dispatch: React.Dispatch<BuilderAction>;
   recentActivities: ActivityItem[];
 }) {
+  const handleRestoreActivity = React.useCallback(
+    (activity: ActivityItem) =>
+      dispatch({ type: "RESTORE_ACTIVITY", activity }),
+    [dispatch]
+  );
+
   return (
     <div className="flex items-center justify-between gap-3 px-2">
       <div className="flex min-w-0 items-center gap-2">
@@ -479,9 +482,7 @@ const PromptHeader = React.memo(function PromptHeader({
         <PromptSettingsPopover state={state} dispatch={dispatch} />
         <RecentActivityMenu
           activities={recentActivities}
-          onRestore={activity =>
-            dispatch({ type: "RESTORE_ACTIVITY", activity })
-          }
+          onRestore={handleRestoreActivity}
         />
       </div>
     </div>
@@ -743,14 +744,25 @@ const PromptFooter = React.memo(function PromptFooter({
     dispatch({ type: "SET_RECORDING", value: !state.isRecording });
   };
 
+  const handleSearchOpenChange = React.useCallback(
+    (open: boolean) => dispatch({ type: "SET_SEARCH_OPEN", open }),
+    [dispatch]
+  );
+
+  const handleCompanySelect = React.useCallback(
+    (company: CompanyOption) =>
+      dispatch({ type: "SELECT_COMPANY", company }),
+    [dispatch]
+  );
+
   return (
     <div className="flex items-center justify-between gap-3 border-t border-border/50 px-4 py-4">
       <div className="flex items-center gap-1">
         <CompanySearchPopover
           open={state.searchOpen}
-          onOpenChange={o => dispatch({ type: "SET_SEARCH_OPEN", open: o })}
+          onOpenChange={handleSearchOpenChange}
           companyOptions={companyOptions}
-          onSelect={c => dispatch({ type: "SELECT_COMPANY", company: c })}
+          onSelect={handleCompanySelect}
         />
 
         <Tooltip>
@@ -988,6 +1000,10 @@ export function ProspectPromptBuilder({
     []
   );
 
+  const handleModeChange = React.useCallback((mode: PromptMode) => {
+    dispatch({ type: "SET_MODE", mode });
+  }, []);
+
   const handleEnableSection = React.useCallback(
     (section: SectionKey) => {
       dispatch({ type: "ENABLE_SECTION", section });
@@ -1120,7 +1136,7 @@ export function ProspectPromptBuilder({
         >
           <PromptHeader
             mode={state.mode}
-            onModeChange={mode => dispatch({ type: "SET_MODE", mode })}
+            onModeChange={handleModeChange}
             state={state}
             dispatch={dispatch}
             recentActivities={recentActivities}

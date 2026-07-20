@@ -52,6 +52,15 @@ export function formatRelativeTime(dateString: string): string {
   return formatDate(dateString);
 }
 
+// Compact USD currency formatter, built once at module scope; the locale and
+// options are static, so constructing Intl.NumberFormat per call is wasteful.
+const COMPACT_CURRENCY_FORMATTER = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+  notation: "compact",
+  maximumFractionDigits: 1,
+});
+
 /**
  * Format a number as currency (USD)
  * @param value - Number to format
@@ -60,12 +69,7 @@ export function formatRelativeTime(dateString: string): string {
  */
 export function formatCurrency(value: number | undefined, fallback = "—"): string {
   if (value === undefined || value === null) return fallback;
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    notation: "compact",
-    maximumFractionDigits: 1,
-  }).format(value);
+  return COMPACT_CURRENCY_FORMATTER.format(value);
 }
 
 /**

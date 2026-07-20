@@ -349,11 +349,13 @@ export function useSuggestValuePacks() {
             size_compatibility: 0.8, // Default
             tech_fit: 1.0, // Default
           },
-          recommended_drivers: vp.primary_value_drivers
-            .filter(d => painPoints.some(pp => 
+          recommended_drivers: vp.primary_value_drivers.flatMap(d =>
+            painPoints.some(pp =>
               d.description.toLowerCase().includes(pp.toLowerCase())
-            ))
-            .map(d => ({ driver_id: d.id, relevance: `Matches pain point` })),
+            )
+              ? [{ driver_id: d.id, relevance: `Matches pain point` }]
+              : []
+          ),
         };
       }).sort((a, b) => b.match_score - a.match_score);
     },

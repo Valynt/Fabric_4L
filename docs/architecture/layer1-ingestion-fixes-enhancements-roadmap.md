@@ -1,12 +1,14 @@
 # Layer 1 (Ingestion) — Fixes & Enhancements Roadmap
 
+**Status:** Active — audit note added 2026-07-18. The older duplicate `docs/archive/2026-05-28/layer1-fixes-enhancements-roadmap.md` has been archived; this file is the canonical roadmap.
+
 ## Purpose
 
 This roadmap defines a contract-first, tenant-safe plan to harden and improve **Layer 1 ingestion** across runtime code, service wrappers, contracts, and operations.
 
 Canonical scopes:
 
-- Runtime package: `value_fabric/layer1/`
+- Runtime package: `services/layer1-ingestion/src/layer1_ingestion/` (the `value_fabric/layer1/` shim has been removed)
 - Deployable service: `services/layer1-ingestion/`
 - Layer 1 contracts: `contracts/openapi/layer1-ingestion.json` and related schemas
 
