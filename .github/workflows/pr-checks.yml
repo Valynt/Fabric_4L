@@ -16,6 +16,10 @@ permissions:
   push:
     branches: [main]
 
+concurrency:
+  group: pr-checks-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   # Opt into Node.js 24 for GitHub Actions
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
