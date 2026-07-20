@@ -16,6 +16,7 @@ import os
 import re
 import subprocess
 import sys
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -413,7 +414,10 @@ def is_one_shot_service(service_name: str, service: dict[str, Any]) -> bool:
     name = service_name.lower()
     if any(pattern in name for pattern in ONE_SHOT_SERVICE_PATTERNS):
         return True
-    restart = str(service.get("restart", "")).lower()
+    restart = str(service.get("restart", "")).strip().lower()
+    normalized_profiles = {profile.strip().lower() for profile in service_profiles(service)}
+    if "backup" in normalized_profiles and restart in {"no", "none", "false"}:
+        return True
     command = service.get("command", "")
     command_text = " ".join(command) if isinstance(command, list) else str(command)
     if restart in {"no", "none", "false"} and any(
@@ -421,6 +425,53 @@ def is_one_shot_service(service_name: str, service: dict[str, Any]) -> bool:
     ):
         return True
     return False
+
+
+def service_has_extends_healthcheck(
+    service: Mapping[str, object],
+    compose_file: Path,
+    visited: set[tuple[Path, str]] | None = None,
+) -> bool:
+    """Check if a service inherits a healthcheck via Docker Compose `extends`."""
+    extends = service.get("extends")
+    if not isinstance(extends, Mapping):
+        return False
+
+    extends_file = extends.get("file")
+    extends_service = extends.get("service")
+    if not isinstance(extends_file, str) or not extends_file.strip():
+        return False
+    if not isinstance(extends_service, str) or not extends_service.strip():
+        return False
+
+    base_path = (compose_file.parent / extends_file).resolve()
+    inheritance_key = (base_path, extends_service)
+    visited = set() if visited is None else visited
+    if inheritance_key in visited:
+        return False
+    visited.add(inheritance_key)
+
+    try:
+        base_data = yaml.safe_load(base_path.read_text(encoding="utf-8"))
+    except (OSError, yaml.YAMLError):
+        return False
+
+    if not isinstance(base_data, Mapping):
+        return False
+
+    base_services = base_data.get("services") or {}
+    if not isinstance(base_services, Mapping):
+        return False
+
+    base_service = base_services.get(extends_service)
+    if not isinstance(base_service, Mapping):
+        return False
+
+    if "healthcheck" in base_service:
+        return True
+
+    # Recursively follow chained extends
+    return service_has_extends_healthcheck(base_service, base_path, visited)
 
 
 def iter_environment_entries(service: dict[str, Any]) -> list[tuple[str, str]]:
@@ -807,6 +858,8 @@ def validate_compose_contract(compose_file: Path, repo_root: Path = REPO_ROOT) -
         has_healthcheck = "healthcheck" in service
         if not has_healthcheck and dockerfile_path:
             has_healthcheck = dockerfile_has_healthcheck(dockerfile_path)
+        if not has_healthcheck:
+            has_healthcheck = service_has_extends_healthcheck(service, compose_file)
         if not has_healthcheck and not is_one_shot_service(service_name, service):
             failures.append(
                 ComposeFailure(
