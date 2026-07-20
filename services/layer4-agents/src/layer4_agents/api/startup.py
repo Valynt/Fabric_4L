@@ -9,10 +9,9 @@ import os
 from collections.abc import Awaitable, Callable
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from fastapi import FastAPI
-from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from value_fabric.shared.identity.feature_flags import (
     init_feature_flags,
     register_feature_flag_lookup,
@@ -28,14 +27,13 @@ from ..engine.state_manager import StateManager
 from ..feature_flags.service import FeatureFlagService
 from ..resilience import TenantRateLimiter
 from ..services.crm_sync_job_runner import CRMSyncJobRunner
-from ..services.crm_sync_scheduler import CRMSyncScheduler, get_crm_sync_scheduler
+from ..services.crm_sync_scheduler import get_crm_sync_scheduler
 from ..services.health_tracker import get_health_tracker
 from ..services.value_flow_facade import ValueFlowFacadeService
 from ..tools import create_default_registry
+from .runtime_state import RuntimeState as RuntimeState
+from .runtime_state import runtime_state
 from .websocket import get_ws_manager
-
-if TYPE_CHECKING:
-    from ..services.oidc_cleanup import OIDCCleanupTask
 
 logger = logging.getLogger(__name__)
 
@@ -76,20 +74,6 @@ async def check_vault_ready(*, environment: str, vault_addr: str | None) -> Star
         return StartupCheckResult(name="vault", ok=True, detail="check skipped")
     ok = await is_vault_healthy(vault_addr)
     return StartupCheckResult(name="vault", ok=ok, detail=None if ok else "Vault unreachable")
-
-
-class RuntimeState:
-    workflow_executor: OrchestrationController | None = None
-    state_manager: StateManager | None = None
-    checkpoint_saver: AsyncPostgresSaver | None = None
-    crm_sync_scheduler: CRMSyncScheduler | None = None
-    crm_sync_job_runner: CRMSyncJobRunner | None = None
-    oidc_cleanup_task: OIDCCleanupTask | None = None
-    gate_timeout_scheduler: Any | None = None
-    stuck_workflow_task: asyncio.Task | None = None
-
-
-runtime_state = RuntimeState()
 
 
 def build_lifespan(
