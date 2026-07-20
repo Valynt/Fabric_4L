@@ -231,8 +231,11 @@ class IntegrationService:
                 existing_credentials = {}
             if existing_credentials.get("api_key"):
                 merged_credentials["api_key"] = existing_credentials["api_key"]
-            if existing_credentials.get("instance_url") and not instance_url:
-                instance_url = existing_credentials["instance_url"]
+            if not instance_url:
+                instance_url = existing_credentials.get("instance_url") or existing.instance_url
+
+        if is_update and not instance_url:
+            instance_url = existing.instance_url
 
         # Validate configuration
         self._validate_config(
