@@ -72,8 +72,7 @@ export function ScenarioPanel({ formulaId }: ScenarioPanelProps) {
     runScenario({
       base_case_id: baseCaseId,
       adjustments: adjustments
-        .filter((a) => a.name.trim())
-        .map(toVariableAdjustmentDto),
+        .flatMap((a) => a.name.trim() ? [toVariableAdjustmentDto(a)] : []),
     });
   };
 
@@ -189,7 +188,7 @@ export function ScenarioPanel({ formulaId }: ScenarioPanelProps) {
           </div>
           {result.warnings && result.warnings.length > 0 && (
             <div className="mt-2 vf-text-caption text-warning bg-warning/10 p-2 rounded">
-              {result.warnings.map((w, i) => <div key={`warning-${i}`}>{w}</div>)}
+              {result.warnings.map((w) => <div key={w}>{w}</div>)}
             </div>
           )}
         </div>

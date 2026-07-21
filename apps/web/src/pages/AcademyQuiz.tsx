@@ -97,8 +97,8 @@ function AcademyQuiz() {
               <p>{result.feedback.overall}</p>
               {result.feedback.strengths.length > 0 && (
                 <ul className="text-sm list-disc pl-4">
-                  {result.feedback.strengths.map((s, i) => (
-                    <li key={i}>{s}</li>
+                  {result.feedback.strengths.map((s) => (
+                    <li key={s}>{s}</li>
                   ))}
                 </ul>
               )}

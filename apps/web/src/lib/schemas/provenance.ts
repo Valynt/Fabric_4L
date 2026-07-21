@@ -71,7 +71,7 @@ export const TenantScopeSchema = z.object({
   scope: z.enum(["tenant", "cross_tenant_blocked"]),
 });
 
-export const AgentResponseEnvelopeSchema = z.object({
+export const AgentResponseEnvelopeSchema = z.looseObject({
   content: z.string().nullable().optional(),
   claim_citations: z.array(ClaimCitationSchema).default([]),
   evidence_provenance_ids: z.array(z.string()).default([]),
@@ -79,7 +79,7 @@ export const AgentResponseEnvelopeSchema = z.object({
   policy_decision: z.enum(["allow", "allow_with_redaction", "needs_approval", "deny"]),
   tenant_scope: TenantScopeSchema,
   approval_required: z.boolean(),
-}).passthrough();
+});
 
 export type ClaimCitation = z.infer<typeof ClaimCitationSchema>;
 export type TenantScope = z.infer<typeof TenantScopeSchema>;

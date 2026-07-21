@@ -106,7 +106,7 @@ function FilterChip({ label, options, value, onChange }: FilterChipProps) {
 
   return (
     <div className="relative">
-      <button
+      <button type="button"
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
           "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full vf-text-body-s font-medium border transition-colors",
@@ -130,7 +130,7 @@ function FilterChip({ label, options, value, onChange }: FilterChipProps) {
           <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
           <div className="absolute top-full left-0 mt-1 min-w-[160px] bg-card border border-border rounded-lg shadow-lg z-50 py-1">
             {options.map((option) => (
-              <button
+              <button type="button"
                 key={option.value}
                 onClick={() => {
                   onChange(option.value === "all" ? undefined : option.value);
@@ -216,7 +216,7 @@ function FilterChipBar({ filters, filterOptions, onChange }: FilterChipBarProps)
       />
 
       {hasActiveFilters && (
-        <button
+        <button type="button"
           onClick={() =>
             onChange({
               region: undefined,
@@ -646,7 +646,7 @@ function Accounts() {
                   icon={Building2}
                   action={
                     !filters.search && !hasActiveFilter(filters) ? (
-                      <button
+                      <button type="button"
                         onClick={handleAddAccount}
                         className="text-sm font-medium text-primary hover:underline"
                       >

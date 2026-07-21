@@ -124,7 +124,7 @@ function TypeTreeNode({
 
   return (
     <div className={indentClass}>
-      <button
+      <button type="button"
         onClick={() => onSelect(type.id)}
         className={cn(
           "w-full flex items-center gap-2 px-3 py-1.5 text-left transition-colors",

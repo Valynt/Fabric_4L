@@ -95,7 +95,7 @@ export type TokenResponse = z.infer<typeof TokenResponseSchema>;
  * LoginInitiationResponse schema — OIDC authorization URL response
  */
 export const LoginInitiationResponseSchema = z.object({
-  authorization_url: z.string().url('Valid authorization URL required'),
+  authorization_url: z.url('Valid authorization URL required'),
   state: z.string().min(1, 'State parameter is required'),
 });
 

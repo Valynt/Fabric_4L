@@ -125,7 +125,7 @@ export default function TechnicalView() {
         {bc.truth_references && bc.truth_references.length > 0 ? (
           <div className="space-y-2">
             {bc.truth_references.map((ref, i: number) => (
-              <div key={i} className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg border border-border">
+              <div key={String(ref.truth_object_id ?? i)} className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg border border-border">
                 <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                   <span className="vf-text-micro font-bold text-primary">{i + 1}</span>
                 </div>
@@ -174,7 +174,7 @@ export default function TechnicalView() {
           <h3 className="vf-text-body-l font-bold text-foreground mb-3">Technical Remediation Items</h3>
           <div className="space-y-2">
             {bc.remediation_items.map((item, i: number) => (
-              <div key={i} className="flex items-start gap-2 p-2 bg-warning/5 rounded-md border border-warning/20">
+              <div key={String(item.title ?? i)} className="flex items-start gap-2 p-2 bg-warning/5 rounded-md border border-warning/20">
                 <Clock size={12} className="text-warning mt-0.5 shrink-0" />
                 <div>
                   <div className="vf-text-body-s font-semibold text-foreground">

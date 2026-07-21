@@ -119,8 +119,8 @@ export default function ExecutiveView() {
           <h3 className="vf-text-body-l font-bold text-foreground mb-3">Strategic Recommendations</h3>
           {bc.recommendations.length > 0 ? (
             <div className="space-y-2">
-              {bc.recommendations.map((rec, i) => (
-                <div key={i} className="flex items-start gap-2">
+              {bc.recommendations.map((rec) => (
+                <div key={rec} className="flex items-start gap-2">
                   <CheckCircle2 size={14} className="text-success mt-0.5 shrink-0" />
                   <span className="vf-text-body-s text-foreground">{rec}</span>
                 </div>

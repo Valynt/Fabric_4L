@@ -70,7 +70,7 @@ export function ModelInputsTracker({ inputs, className }: ModelInputsTrackerProp
       aria-label="Model inputs tracker"
     >
       {/* Collapsible header */}
-      <button
+      <button type="button"
         onClick={() => setCollapsed(!collapsed)}
         className="w-full px-4 py-3 flex items-center justify-between hover:bg-muted/50 transition-colors"
         aria-expanded={!collapsed}
@@ -113,7 +113,7 @@ export function ModelInputsTracker({ inputs, className }: ModelInputsTrackerProp
             const config = statusConfig[input.status];
             const Icon = config.icon;
             return (
-              <button
+              <button type="button"
                 key={input.id}
                 onClick={input.onClick}
                 className={cn(

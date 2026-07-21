@@ -45,9 +45,12 @@ function OrgSync({ syncTenant }: { syncTenant: () => void }): null {
   const { organization } = useOrganization();
   const queryClient = useQueryClient();
 
+  const syncTenantRef = useRef(syncTenant);
+  syncTenantRef.current = syncTenant;
+
   useEffect(() => {
     setActiveClerkOrgId(organization?.id ?? null);
-    syncTenant();
+    syncTenantRef.current();
     // Tenant/org switch: do not reuse any cached account or tenant-scoped data
     // from the previous organization. The gateway is the authority, but this
     // prevents the frontend from momentarily displaying stale data.
@@ -55,7 +58,7 @@ function OrgSync({ syncTenant }: { syncTenant: () => void }): null {
     return () => {
       setActiveClerkOrgId(null);
     };
-  }, [organization?.id, syncTenant, queryClient]);
+  }, [organization?.id, queryClient]);
 
   return null;
 }

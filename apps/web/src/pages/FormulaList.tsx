@@ -130,21 +130,21 @@ function FormulaRow({ formula, onEdit, onDelete, isDeleting }: FormulaRowProps) 
 
       {/* Actions */}
       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-        <button
+        <button type="button"
           onClick={() => navigateTo('formula-builder', { formulaId: formula.id })}
           className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-md transition-colors"
           title="Edit"
         >
           <Edit3 size={16} />
         </button>
-        <button
+        <button type="button"
           onClick={() => onEdit(formula.id)}
           className="p-2 text-muted-foreground hover:text-success hover:bg-success/10 rounded-md transition-colors"
           title="Test"
         >
           <Play size={16} />
         </button>
-        <button
+        <button type="button"
           onClick={() => onDelete(formula.id)}
           disabled={isDeleting}
           className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md transition-colors disabled:opacity-50"
@@ -229,7 +229,7 @@ export default function FormulaList() {
         <div className="flex items-center gap-1 bg-card border border-border rounded-lg p-1">
           {/* All valid statuses from STATUS_CONFIG are filterable. Excluded statuses would require product justification. */}
           {(["all", "active", "draft", "pending", "deprecated", "archived"] as const).map((status) => (
-            <button
+            <button type="button"
               key={status}
               onClick={() => setStatusFilter(status)}
               className={`px-3 py-1.5 rounded-md vf-text-body-s font-medium transition-colors ${

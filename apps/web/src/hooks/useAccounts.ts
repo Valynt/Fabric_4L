@@ -339,7 +339,7 @@ export interface CreateAccountParams {
 }
 
 export const createAccountPayloadSchema = z.object({
-  id: z.string().uuid().optional(),
+  id: z.uuid().optional(),
   provider: z.enum(['salesforce', 'hubspot', 'manual']),
   provider_record_id: z.string().min(1).max(100),
   name: z.string().min(1).max(255),

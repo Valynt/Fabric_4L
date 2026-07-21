@@ -5,18 +5,15 @@ const NumericRecordSchema = z.record(z.string(), z.number());
 
 export const EvidenceStatusSchema = z.enum(["created", "updated", "deleted"]);
 
-export const CaseStudyOutcomeSchema = z
-  .object({
+export const CaseStudyOutcomeSchema = z.looseObject({
     metric: z.string(),
     before_value: z.string().nullable().optional(),
     after_value: z.string().nullable().optional(),
     improvement_pct: z.number().nullable().optional(),
     time_to_achieve_days: z.number().int().nullable().optional(),
-  })
-  .passthrough();
+  });
 
-export const CaseStudySchema = z
-  .object({
+export const CaseStudySchema = z.looseObject({
     id: z.string(),
     title: z.string(),
     evidence_type: z.string().nullable().optional(),
@@ -47,73 +44,58 @@ export const CaseStudySchema = z
     metrics_after: NumericRecordSchema.optional().default({}),
     improvement_pct: NumericRecordSchema.optional().default({}),
     published: z.boolean().nullable().optional(),
-  })
-  .passthrough();
+  });
 
-export const CaseStudyListResponseSchema = z
-  .object({
+export const CaseStudyListResponseSchema = z.looseObject({
     items: z.array(CaseStudySchema),
-    total: z.number().int().nonnegative(),
-    offset: z.number().int().nonnegative(),
-    limit: z.number().int().nonnegative(),
-  })
-  .passthrough();
+    total: z.number().int().min(0),
+    offset: z.number().int().min(0),
+    limit: z.number().int().min(0),
+  });
 
-export const CaseStudyMutationResponseSchema = z
-  .object({
+export const CaseStudyMutationResponseSchema = z.looseObject({
     id: z.string(),
     title: z.string(),
     industry: z.string().nullable().optional(),
     status: EvidenceStatusSchema.extract(["created", "updated"]),
-  })
-  .passthrough();
+  });
 
-export const DeleteCaseStudyResponseSchema = z
-  .object({
+export const DeleteCaseStudyResponseSchema = z.looseObject({
     id: z.string(),
     status: EvidenceStatusSchema.extract(["deleted"]),
-  })
-  .passthrough();
+  });
 
 export const EvidenceStatsResponseSchema = z.record(
   z.string(),
-  z.number().int().nonnegative()
+  z.number().int().min(0)
 );
 
-export const BulkImportErrorSchema = z
-  .object({
-    index: z.number().int().nonnegative(),
+export const BulkImportErrorSchema = z.looseObject({
+    index: z.number().int().min(0),
     title: z.string(),
     error: z.string(),
-  })
-  .passthrough();
+  });
 
-export const BulkImportResponseSchema = z
-  .object({
-    total: z.number().int().nonnegative(),
-    created: z.number().int().nonnegative(),
+export const BulkImportResponseSchema = z.looseObject({
+    total: z.number().int().min(0),
+    created: z.number().int().min(0),
     errors: z.array(BulkImportErrorSchema),
-  })
-  .passthrough();
+  });
 
-export const EvidenceSearchResultSchema = z
-  .object({
+export const EvidenceSearchResultSchema = z.looseObject({
     evidence_id: z.string(),
     evidence_type: z.string(),
     title: z.string(),
     match_score: z.number().int().min(0).max(100),
     match_reasoning: z.string(),
     relevance_quote: z.string().nullable().optional(),
-  })
-  .passthrough();
+  });
 
-export const EvidenceSearchResponseSchema = z
-  .object({
+export const EvidenceSearchResponseSchema = z.looseObject({
     query: z.string(),
-    total: z.number().int().nonnegative(),
+    total: z.number().int().min(0),
     results: z.array(EvidenceSearchResultSchema),
-  })
-  .passthrough();
+  });
 
 export type EvidenceStatus = z.infer<typeof EvidenceStatusSchema>;
 export type CaseStudyOutcome = z.infer<typeof CaseStudyOutcomeSchema>;

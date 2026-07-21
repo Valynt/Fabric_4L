@@ -86,10 +86,13 @@ function Carousel({
     [scrollPrev, scrollNext]
   );
 
+  const setApiRef = React.useRef(setApi);
+  setApiRef.current = setApi;
+
   React.useEffect(() => {
-    if (!api || !setApi) return;
-    setApi(api);
-  }, [api, setApi]);
+    if (!api) return;
+    setApiRef.current?.(api);
+  }, [api]);
 
   React.useEffect(() => {
     if (!api) return;

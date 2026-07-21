@@ -105,7 +105,7 @@ function ModeToggle({
   return (
     <div className="flex items-center justify-between px-4 py-2.5 border-b border-border shrink-0">
       <div className="flex items-center gap-1">
-        <button
+        <button type="button"
           onClick={() => onModeChange("detail")}
           className={cn(
             "px-3 py-1 vf-text-caption font-semibold rounded-md transition-colors",
@@ -117,7 +117,7 @@ function ModeToggle({
           <Info size={12} className="inline mr-1" />
           Details
         </button>
-        <button
+        <button type="button"
           onClick={() => onModeChange("agent")}
           className={cn(
             "px-3 py-1 vf-text-caption font-semibold rounded-md transition-colors",
@@ -129,7 +129,7 @@ function ModeToggle({
           <MessageSquare size={12} className="inline mr-1" />
           Agent Stream
         </button>
-        <button
+        <button type="button"
           onClick={() => onModeChange("audit")}
           className={cn(
             "px-3 py-1 vf-text-caption font-semibold rounded-md transition-colors",
@@ -143,7 +143,7 @@ function ModeToggle({
         </button>
       </div>
       {onClose && (
-        <button onClick={onClose} className="text-muted-foreground hover:text-foreground" aria-label="Close panel">
+        <button type="button" onClick={onClose} className="text-muted-foreground hover:text-foreground" aria-label="Close panel">
           <X size={14} />
         </button>
       )}
@@ -277,8 +277,8 @@ function AgentStream({
           {!isActionContextReady && missingActionContextMessage && (
             <p className="w-full vf-text-caption text-muted-foreground">{missingActionContextMessage}</p>
           )}
-          {suggestedActions.map((action, i) => (
-            <Btn key={i} variant="outline" onClick={action.onClick} disabled={!isActionContextReady} className="vf-text-caption">
+          {suggestedActions.map((action) => (
+            <Btn key={action.label} variant="outline" onClick={action.onClick} disabled={!isActionContextReady} className="vf-text-caption">
               {action.icon}
               {action.label}
             </Btn>
@@ -300,7 +300,7 @@ function AgentStream({
               isStreaming && "opacity-50 cursor-not-allowed",
             )}
           />
-          <button
+          <button type="button"
             onClick={handleSend}
             disabled={!input.trim() || isStreaming}
             aria-label="Send message"

@@ -47,7 +47,7 @@ export function DataTable<T>({
             <TableRow className="bg-muted/50 hover:bg-muted/50">
               {legacyColumns.map((col, idx) => (
                 <TableHead
-                  key={idx}
+                  key={col ?? idx}
                   className="h-10 px-4 vf-text-body-s font-medium text-muted-foreground uppercase tracking-wider"
                 >
                   {col}

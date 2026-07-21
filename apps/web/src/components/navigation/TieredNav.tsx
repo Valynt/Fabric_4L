@@ -359,7 +359,7 @@ function TierSwitcher({
 
   return (
     <div className="border-t border-border bg-card">
-      <button
+      <button type="button"
         onClick={() => setIsExpanded(!isExpanded)}
         className="w-full px-3 py-3 flex items-center gap-3 hover:bg-muted/50 transition-colors"
       >
@@ -399,7 +399,7 @@ function TierSwitcher({
                 Advanced Mode
               </span>
             </div>
-            <button
+            <button type="button"
               onClick={() => onAdvancedModeToggle(!isAdvancedModeEnabled)}
               className={cn(
                 "w-9 h-5 rounded-full transition-colors relative",
@@ -417,7 +417,7 @@ function TierSwitcher({
 
           <div className="space-y-1">
             {(Object.keys(TIER_LABELS) as UserTier[]).map(tier => (
-              <button
+              <button type="button"
                 key={tier}
                 onClick={() => {
                   onTierChange(tier);
