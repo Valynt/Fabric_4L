@@ -105,7 +105,7 @@ function MobileNavItem({ item, currentTier, accountId, depth = 0 }: MobileNavIte
   return (
     <div className="w-full">
       <Link to={resolvedPath}>
-        <button
+        <button type="button"
           onClick={handleClick}
           className={cn(
             "flex flex-col items-center justify-center gap-0.5 w-full py-2.5 px-1 rounded-lg transition-colors",
@@ -209,7 +209,7 @@ export function MobilePersistentSidebar({
       <div className="shrink-0 border-t border-sidebar-border p-1.5 space-y-1.5">
         {currentTier !== "admin" && (
           <div className="flex flex-col items-center gap-1">
-            <button
+            <button type="button"
               onClick={handleAdvancedToggle}
               className={cn(
                 "flex items-center justify-center w-full py-1.5 rounded-md vf-text-micro font-medium transition-colors",
@@ -229,7 +229,7 @@ export function MobilePersistentSidebar({
         {user && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button
+              <button type="button"
                 className="flex flex-col items-center justify-center w-full py-2 rounded-lg transition-colors hover:bg-sidebar-accent focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-sidebar-ring"
                 aria-label={`User menu for ${user.name || user.email}`}
               >

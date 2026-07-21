@@ -182,10 +182,10 @@ export default function CalcROITab({ accountId }: StudioTabProps) {
             ))}
           </div>
           <div className="mt-4 flex flex-wrap items-center gap-2 text-xs">
-            <button onClick={() => saveScenarioMutation.mutate(`Version ${new Date().toLocaleString()}`)} className="inline-flex items-center gap-1 rounded border border-border px-2 py-1 hover:bg-muted" disabled={saveScenarioMutation.isPending}>
+            <button type="button" onClick={() => saveScenarioMutation.mutate(`Version ${new Date().toLocaleString()}`)} className="inline-flex items-center gap-1 rounded border border-border px-2 py-1 hover:bg-muted" disabled={saveScenarioMutation.isPending}>
               <Save className="h-3.5 w-3.5" /> Save version
             </button>
-            <button onClick={() => recalcMutation.mutate({ ...scenario, account_id: accountId })} className="inline-flex items-center gap-1 rounded border border-border px-2 py-1 hover:bg-muted" disabled={recalcMutation.isPending}>
+            <button type="button" onClick={() => recalcMutation.mutate({ ...scenario, account_id: accountId })} className="inline-flex items-center gap-1 rounded border border-border px-2 py-1 hover:bg-muted" disabled={recalcMutation.isPending}>
               {recalcMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCcw className="h-3.5 w-3.5" />} Recalculate
             </button>
             {updateScenarioMutation.isPending && <span className="text-muted-foreground">Updating assumptions…</span>}
@@ -224,7 +224,7 @@ export default function CalcROITab({ accountId }: StudioTabProps) {
         <SectionCard title="Saved scenario versions (reload/resume)">
           <div className="space-y-2">
             {(versionsQuery.data ?? []).map((version) => (
-              <button key={version.versionId} onClick={() => setScenario(version.assumptions)} className="w-full rounded border border-border p-2 text-left text-xs hover:bg-muted">
+              <button type="button" key={version.versionId} onClick={() => setScenario(version.assumptions)} className="w-full rounded border border-border p-2 text-left text-xs hover:bg-muted">
                 <div className="font-medium">{version.name}</div>
                 <div className="text-muted-foreground">{version.accountId} / {version.caseId} / {version.modelId}</div>
               </button>

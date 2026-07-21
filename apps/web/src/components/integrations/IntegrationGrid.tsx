@@ -17,6 +17,7 @@ export function IntegrationGrid({
 }: IntegrationGridProps) {
   // Get configured providers
   const configuredProviders = integrations?.map(i => i.provider) || [];
+  const configuredProvidersSet = new Set(configuredProviders);
   const hasIntegrations = configuredProviders.length > 0;
 
   // Empty state - show available providers to configure
@@ -31,7 +32,7 @@ export function IntegrationGrid({
           {(Object.keys(PROVIDER_STYLES) as CRMProvider[]).map((provider) => {
             const style = PROVIDER_STYLES[provider];
             return (
-              <button
+              <button type="button"
                 key={provider}
                 onClick={() => onSelect(provider)}
                 className="flex flex-col items-center p-6 bg-muted border border-border rounded-xl hover:border-primary/30 hover:bg-primary/10 transition-colors text-center"
@@ -63,7 +64,7 @@ export function IntegrationGrid({
           const status = integration?.status || 'idle';
 
           return (
-            <button
+            <button type="button"
               key={provider}
               onClick={() => onSelect(provider)}
               className={`relative flex flex-col items-start p-4 border rounded-xl transition-all text-left ${
@@ -112,10 +113,10 @@ export function IntegrationGrid({
 
         {/* Add new integration placeholder */}
         {configuredProviders.length < Object.keys(PROVIDER_STYLES).length && (
-          <button
+          <button type="button"
             onClick={() => {
               const unconfigured = (Object.keys(PROVIDER_STYLES) as CRMProvider[]).find(
-                p => !configuredProviders.includes(p)
+                p => !configuredProvidersSet.has(p)
               );
               if (unconfigured) onSelect(unconfigured);
             }}

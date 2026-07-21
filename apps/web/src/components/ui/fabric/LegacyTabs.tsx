@@ -17,7 +17,7 @@ export function Tabs({ tabs, active, onChange }: LegacyTabsProps) {
   return (
     <div className="mb-4 flex overflow-x-auto border-b border-border" role="tablist" aria-label="Section tabs">
       {tabs.map((tab) => (
-        <button
+        <button type="button"
           key={tab}
           onClick={() => onChange(tab)}
           role="tab"

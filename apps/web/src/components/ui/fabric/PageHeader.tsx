@@ -21,7 +21,7 @@ export function PageHeader({ title, subtitle, actions, breadcrumbs, className }:
         <nav className="mb-3 flex flex-wrap items-center gap-1.5 vf-text-body-s text-muted-foreground" aria-label="Breadcrumb">
           <Home className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
           {breadcrumbs.map((crumb, i) => (
-            <span key={i} className="flex items-center gap-1.5">
+            <span key={crumb.href ?? crumb.label ?? i} className="flex items-center gap-1.5">
               <ChevronRight className="h-3 w-3 shrink-0" aria-hidden="true" />
               {crumb.href ? (
                 <a href={crumb.href} className="hover:text-foreground transition-colors">

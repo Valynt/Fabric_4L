@@ -20,8 +20,8 @@ export const SortParams = z.object({
 });
 
 export const DateRangeParams = z.object({
-  from: z.string().datetime().optional(),
-  to: z.string().datetime().optional(),
+  from: z.iso.datetime().optional(),
+  to: z.iso.datetime().optional(),
 });
 
 export const SignalFilterParams = z.object({

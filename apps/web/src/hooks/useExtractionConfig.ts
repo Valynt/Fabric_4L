@@ -109,17 +109,17 @@ export const useExtractionConfig = create<ExtractionConfigState>()(
       getExtractionRequest: () => {
         const state = get();
         const entityTypes = Object.entries(state.entityTypes)
-          .filter(([, enabled]) => enabled)
-          .map(([type]) => {
+          .flatMap(([, enabled], idx) => {
+            if (!enabled) return [];
             const map: Record<string, string> = {
               capability: 'Capability',
               useCase: 'UseCase',
               persona: 'Persona',
               valueDriver: 'ValueDriver',
             };
-            return map[type];
-          })
-          .filter(Boolean);
+            const key = Object.keys(state.entityTypes)[idx];
+            return map[key] ? [map[key]] : [];
+          });
 
         return {
           source_url: state.sourceUrl,

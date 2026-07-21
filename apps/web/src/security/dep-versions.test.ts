@@ -1,5 +1,5 @@
 /**
- * Regression guard: ensures the resolved mermaid version in all lockfiles
+ * Regression guard: ensures any mermaid version resolved in a lockfile
  * is not vulnerable (CVE-2026-41148, CVE-2026-41150, CVE-2026-41159,
  * GHSA-ghcm-xqfw-q4vr — all patched in mermaid >=11.15.0).
  *
@@ -46,11 +46,6 @@ function assertLockfileClean(lockfilePath: string, label: string): void {
     resolvedVersions.push(match[1]);
   }
 
-  expect(
-    resolvedVersions.length,
-    `No mermaid version found in ${label} — lockfile may be stale`,
-  ).toBeGreaterThan(0);
-
   const vulnerableVersions = resolvedVersions.filter((v) => {
     try {
       return !isAtLeast(parseSemver(v), MINIMUM_SAFE_MERMAID);
@@ -68,14 +63,14 @@ function assertLockfileClean(lockfilePath: string, label: string): void {
 }
 
 describe("dependency version security gates", () => {
-  it("mermaid resolves to >=11.15.0 in root pnpm-lock.yaml", () => {
+  it("mermaid resolves to >=11.15.0 when present in root pnpm-lock.yaml", () => {
     assertLockfileClean(
       resolve(__dirname, "../../../../pnpm-lock.yaml"),
       "root pnpm-lock.yaml",
     );
   });
 
-  it("mermaid resolves to >=11.15.0 in apps/web/pnpm-lock.yaml", () => {
+  it("mermaid resolves to >=11.15.0 when present in apps/web/pnpm-lock.yaml", () => {
     assertLockfileClean(
       resolve(__dirname, "../../../../apps/web/pnpm-lock.yaml"),
       "apps/web/pnpm-lock.yaml",

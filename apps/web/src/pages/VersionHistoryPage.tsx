@@ -83,7 +83,7 @@ export default function VersionHistoryPage() {
         <p className="text-sm text-muted-foreground">
           {snapshots?.length ?? 0} snapshot{(snapshots?.length ?? 0) !== 1 ? "s" : ""}
         </p>
-        <button
+        <button type="button"
           onClick={handleCreate}
           disabled={createSnapshot.isPending}
           className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
@@ -103,8 +103,8 @@ export default function VersionHistoryPage() {
               <p>No changes detected between snapshots.</p>
             ) : (
               <ul className="space-y-1">
-                {diffMutation.data.changes.map((c, idx) => (
-                  <li key={idx} className="rounded bg-muted p-2">
+                {diffMutation.data.changes.map((c) => (
+                  <li key={c.field} className="rounded bg-muted p-2">
                     <span className="font-medium">{c.field}:</span>{" "}
                     {JSON.stringify(c.from)} → {JSON.stringify(c.to)}
                   </li>
@@ -125,7 +125,7 @@ export default function VersionHistoryPage() {
                 <span className="rounded bg-secondary px-2 py-0.5 text-xs">{snapshot.snapshot_type}</span>
               </div>
               <div className="flex items-center gap-2">
-                <button
+                <button type="button"
                   onClick={() => handleCompare(snapshot.id)}
                   className={`inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-xs font-medium ${
                     compareBase === snapshot.id
@@ -136,7 +136,7 @@ export default function VersionHistoryPage() {
                   <GitCompare className="h-3 w-3" />
                   {compareBase === snapshot.id ? "Selected" : "Compare"}
                 </button>
-                <button
+                <button type="button"
                   onClick={() => { /* restore not wired in this demo */ }}
                   className="inline-flex items-center gap-1 rounded-md bg-secondary px-3 py-1.5 text-xs font-medium hover:bg-secondary/80"
                 >

@@ -132,7 +132,7 @@ export function ProcessSteps({ steps, className }: ProcessStepsProps) {
   return (
     <div className={cn("bg-muted/60 rounded-lg border border-border/60 overflow-hidden", className)}>
       {/* Header */}
-      <button
+      <button type="button"
         onClick={() => setCollapsed(!collapsed)}
         className="w-full flex items-center justify-between px-3 py-2 hover:bg-muted/80 transition-colors"
         aria-expanded={!collapsed}

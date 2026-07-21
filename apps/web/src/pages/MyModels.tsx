@@ -117,7 +117,7 @@ function FolderSidebar({
         Folders
       </div>
       {folders.map((folder) => (
-        <button
+        <button type="button"
           key={folder.id}
           onClick={() => onSelect(folder.id)}
           className={cn(
@@ -144,7 +144,7 @@ function ModelCard({
   onClick?: () => void;
 }) {
   return (
-    <button
+    <button type="button"
       onClick={onClick}
       className="bg-card border border-border rounded-lg p-4 text-left hover:border-primary/30 hover:shadow-sm transition-all group w-full"
     >
@@ -217,7 +217,7 @@ function ModelListRow({
   onClick?: () => void;
 }) {
   return (
-    <button
+    <button type="button"
       onClick={onClick}
       className="flex items-center gap-4 w-full px-4 py-3 border-b border-border/50 hover:bg-muted/50 transition-colors text-left last:border-0"
     >
@@ -463,7 +463,7 @@ export default function MyModels() {
         actions={
           <div className="flex items-center gap-2">
             <div className="flex items-center border border-border rounded-md overflow-hidden">
-              <button
+              <button type="button"
                 onClick={() => setViewMode("grid")}
                 className={cn(
                   "p-1.5 transition-colors",
@@ -475,7 +475,7 @@ export default function MyModels() {
               >
                 <LayoutGrid size={14} />
               </button>
-              <button
+              <button type="button"
                 onClick={() => setViewMode("list")}
                 className={cn(
                   "p-1.5 transition-colors",
@@ -548,7 +548,7 @@ export default function MyModels() {
             </div>
 
             {(searchQuery || industryFilter !== "All Industries") && (
-              <button
+              <button type="button"
                 onClick={() => {
                   setSearchQuery("");
                   setIndustryFilter("All Industries");

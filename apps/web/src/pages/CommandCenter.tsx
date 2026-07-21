@@ -151,7 +151,7 @@ export default function CommandCenter() {
         )}
 
         {/* Advanced config toggle */}
-        <button
+        <button type="button"
           onClick={() => setShowAdvanced((v) => !v)}
           className="w-full flex items-center gap-2 px-4 py-2 border-t border-border/50 vf-text-caption text-muted-foreground/60 hover:text-muted-foreground hover:bg-muted/20 transition-colors"
           aria-expanded={showAdvanced}
@@ -223,7 +223,7 @@ export default function CommandCenter() {
                 <span className="font-medium text-muted-foreground">
                   SaaS / B2B — Enterprise Security
                 </span>
-                <button className="ml-2 text-primary underline underline-offset-2">
+                <button type="button" className="ml-2 text-primary underline underline-offset-2">
                   Change
                 </button>
               </p>
@@ -259,7 +259,7 @@ export default function CommandCenter() {
         <div className="col-span-1 md:col-span-2 bg-card border border-border rounded-lg shadow-sm">
           <div className="px-4 pt-4 pb-3 border-b border-border/50 flex items-center justify-between">
             <h2 className="vf-text-body-l font-bold text-foreground">Recent Maps</h2>
-            <button className="vf-text-caption text-primary hover:underline">
+            <button type="button" className="vf-text-caption text-primary hover:underline">
               View all
             </button>
           </div>
@@ -325,7 +325,7 @@ export default function CommandCenter() {
             <div className="divide-y divide-border">
               {recentJobs.slice(0, 4).map((job: IngestionJob, idx: number) => (
                 <div
-                  key={idx}
+                  key={job.id ?? String(job.status) + idx}
                   className="px-4 py-3 flex items-start gap-2.5"
                 >
                   <span className="mt-0.5 shrink-0">

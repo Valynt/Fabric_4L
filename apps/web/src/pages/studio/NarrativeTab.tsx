@@ -101,7 +101,7 @@ function DILNarrativeCard({
 }) {
   const sc = DIL_STATUS_CONFIG[narrative.status] ?? DIL_STATUS_CONFIG.draft;
   return (
-    <button
+    <button type="button"
       onClick={onClick}
       className={cn(
         "flex items-center gap-4 w-full px-3 py-3 rounded-md text-left",
@@ -424,7 +424,7 @@ export default function NarrativeTab({ accountId }: StudioTabProps) {
             {narratives.map((narrative) => {
               const sc = STATUS_CONFIG[narrative.status];
               return (
-                <button
+                <button type="button"
                   key={narrative.id}
                   onClick={() => {
                     setSelectedNarrative(narrative);
@@ -493,8 +493,8 @@ export default function NarrativeTab({ accountId }: StudioTabProps) {
       ) : selectedDIL ? (
         <SectionCard title={selectedDIL.title} className="mt-4">
           <div className="space-y-3">
-            {selectedDIL.sections?.map((section: { title: string; summary: string }, i: number) => (
-              <div key={i}>
+            {selectedDIL.sections?.map((section: { title: string; summary: string }) => (
+              <div key={section.title}>
                 <h4 className="vf-text-body-s font-semibold mb-1">{section.title}</h4>
                 <p className="vf-text-body-s text-muted-foreground">{section.summary}</p>
               </div>

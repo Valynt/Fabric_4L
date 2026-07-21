@@ -400,7 +400,7 @@ export default function ValueTreeExplorer() {
                       </div>
                     ) : (
                       rootCandidates.map((entity: Entity) => (
-                        <button
+                        <button type="button"
                           key={entity.id}
                           onClick={() => handleSelectEntity(entity.id)}
                           className={`w-full text-left px-3 py-2 rounded-lg vf-text-body-s transition-colors ${

@@ -95,7 +95,7 @@ export default function DecisionTrace() {
   const auditEntries: AuditLogEntry[] = auditLogs?.entries || [];
 
   const auditRows = auditEntries.map((entry) => [
-    <button
+    <button type="button"
       key="id"
       onClick={() => entry.entity_id && handleViewEntity(entry.entity_id)}
       className={`font-mono vf-text-caption ${
@@ -119,7 +119,7 @@ export default function DecisionTrace() {
     <StatusBadge key="status" status={entry.event_type === 'error' ? 'failed' : 'completed'} />,
     <div key="actions" className="flex gap-2">
       {entry.entity_id && (
-        <button
+        <button type="button"
           onClick={() => handleViewEntity(entry.entity_id!)}
           className="text-primary vf-text-caption hover:underline"
         >
@@ -178,13 +178,13 @@ export default function DecisionTrace() {
             </SectionCard>
             <SectionCard title="Audit Log" noPad>
               <div className="flex bg-muted border-b border-border px-4 py-2.5">
-                {["Trace ID", "Entity", "Action", "Agent", "Timestamp", "Status", "Actions"].map((_, i) => (
-                  <Skeleton key={i} className="h-3 w-16 mr-4" />
+                {["Trace ID", "Entity", "Action", "Agent", "Timestamp", "Status", "Actions"].map((header) => (
+                  <Skeleton key={header} className="h-3 w-16 mr-4" />
                 ))}
               </div>
               <div className="divide-y divide-border">
                 {[1, 2, 3, 4, 5].map((i) => (
-                  <div key={i} className="flex items-center px-4 py-3">
+                  <div key={`skeleton-${i}`} className="flex items-center px-4 py-3">
                     <Skeleton className="h-3 w-20 mr-4" />
                     <Skeleton className="h-3 w-16 mr-4" />
                     <Skeleton className="h-3 w-20 mr-4" />

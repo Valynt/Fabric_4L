@@ -92,10 +92,18 @@ function HypothesisCard({
   const Icon = cfg.icon;
 
   return (
-    <button
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onSelect}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onSelect();
+        }
+      }}
       className={cn(
-        "flex flex-col gap-2 w-full px-4 py-3 rounded-md text-left transition-colors",
+        "flex flex-col gap-2 w-full px-4 py-3 rounded-md text-left transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         isSelected ? "bg-primary/5 ring-1 ring-primary/20" : "hover:bg-muted/50"
       )}
     >
@@ -124,14 +132,14 @@ function HypothesisCard({
       {/* Quick actions */}
       {isSelected && hypothesis.status === "draft" && (
         <div className="flex items-center gap-2 ml-7 mt-1">
-          <button
+          <button type="button"
             onClick={(e) => { e.stopPropagation(); onStatusChange("validated"); }}
             disabled={isUpdating}
             className="inline-flex items-center gap-1 px-2 py-0.5 rounded vf-text-micro font-semibold bg-success/10 text-success hover:bg-success/10 disabled:opacity-50"
           >
             <CheckCircle2 size={10} /> Validate
           </button>
-          <button
+          <button type="button"
             onClick={(e) => { e.stopPropagation(); onStatusChange("rejected"); }}
             disabled={isUpdating}
             className="inline-flex items-center gap-1 px-2 py-0.5 rounded vf-text-micro font-semibold bg-destructive/10 text-destructive hover:bg-destructive/10 disabled:opacity-50"
@@ -142,7 +150,7 @@ function HypothesisCard({
       )}
       {isSelected && hypothesis.status === "validated" && (
         <div className="flex items-center gap-2 ml-7 mt-1">
-          <button
+          <button type="button"
             onClick={(e) => { e.stopPropagation(); onConvert(); }}
             disabled={isConverting}
             className="inline-flex items-center gap-1 px-2 py-0.5 rounded vf-text-micro font-semibold bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-50"
@@ -152,7 +160,7 @@ function HypothesisCard({
           </button>
         </div>
       )}
-    </button>
+    </div>
   );
 }
 
@@ -316,7 +324,7 @@ export default function HypothesesTab() {
         <div className="flex items-center gap-1 ml-auto">
           <Filter size={12} className="text-muted-foreground" />
           {["all", "draft", "validated", "rejected", "converted"].map((s) => (
-            <button
+            <button type="button"
               key={s}
               onClick={() => setStatusFilter(s)}
               className={cn(

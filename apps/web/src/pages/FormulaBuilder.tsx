@@ -399,7 +399,7 @@ export default function FormulaBuilder({ isNew = false }: FormulaBuilderProps) {
       {/* Navigation Tabs */}
       <div className="flex items-center gap-6 border-b border-border mb-6" role="tablist" aria-label="Formula builder navigation">
         {["Tree Explorer", "Normalization", "Formulas"].map((tab) => (
-          <button
+          <button type="button"
             key={tab}
             role="tab"
             aria-selected={tab === "Formulas"}
@@ -626,7 +626,7 @@ export default function FormulaBuilder({ isNew = false }: FormulaBuilderProps) {
                   </div>
                 ))}
               </div>
-              <button className="w-full mt-3 py-2 vf-text-caption text-muted-foreground hover:text-foreground border border-dashed border-border rounded-md hover:border-muted-foreground/50 transition-colors">
+              <button type="button" className="w-full mt-3 py-2 vf-text-caption text-muted-foreground hover:text-foreground border border-dashed border-border rounded-md hover:border-muted-foreground/50 transition-colors">
                 + Add Custom Variable
               </button>
             </SectionCard>

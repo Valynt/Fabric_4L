@@ -52,7 +52,7 @@ export function FaqSection() {
         <FadeIn delay={0.2} className="mt-12">
           <Accordion type="single" collapsible className="w-full">
             {faqs.map((faq, i) => (
-              <AccordionItem key={i} value={`item-${i}`}>
+              <AccordionItem key={faq.q} value={`item-${i}`}>
                 <AccordionTrigger className="text-left text-sm font-medium">
                   {faq.q}
                 </AccordionTrigger>

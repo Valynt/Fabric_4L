@@ -65,26 +65,26 @@ export function ErrorFallback({
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         {onRetry && (
-          <Button onClick={onRetry} className="w-full" variant="default">
+          <Button type="button" onClick={onRetry} className="w-full" variant="default">
             <RefreshCw className="w-4 h-4 mr-2" />
             Try Again
           </Button>
         )}
         {onReset && (
-          <Button onClick={onReset} className="w-full" variant="outline">
+          <Button type="button" onClick={onReset} className="w-full" variant="outline">
             <RefreshCw className="w-4 h-4 mr-2" />
             Reset
           </Button>
         )}
         <div className="flex gap-3">
           {showBackButton && (
-            <Button onClick={handleBack} variant="outline" className="flex-1">
+            <Button type="button" onClick={handleBack} variant="outline" className="flex-1">
               <ArrowLeft className="w-4 h-4 mr-2" />
               Go Back
             </Button>
           )}
           {showHomeButton && (
-            <Button onClick={handleHome} variant="outline" className="flex-1">
+            <Button type="button" onClick={handleHome} variant="outline" className="flex-1">
               <Home className="w-4 h-4 mr-2" />
               Home
             </Button>
@@ -112,7 +112,7 @@ export function InlineError({
       <AlertTriangle className="w-4 h-4" />
       <span>{message}</span>
       {onRetry && (
-        <button
+        <button type="button"
           onClick={onRetry}
           className="ml-2 text-primary hover:underline font-medium"
         >
@@ -140,7 +140,7 @@ export function SectionError({
       <h3 className="font-medium text-foreground mb-1">{title}</h3>
       <p className="text-sm text-muted-foreground mb-3">{message}</p>
       {onRetry && (
-        <Button onClick={onRetry} size="sm" variant="outline">
+        <Button type="button" onClick={onRetry} size="sm" variant="outline">
           <RefreshCw className="w-4 h-4 mr-2" />
           Retry
         </Button>

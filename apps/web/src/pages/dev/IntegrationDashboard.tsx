@@ -147,7 +147,7 @@ export default function IntegrationDashboard() {
         </div>
         <div className="flex gap-1">
           {layers.map(l => (
-            <button key={l} onClick={() => setLayerFilter(l)}
+            <button type="button" key={l} onClick={() => setLayerFilter(l)}
               className={cn(
                 "px-3 py-1.5 rounded-md vf-text-caption font-medium transition-colors",
                 layerFilter === l ? "bg-primary/10 text-primary" : "bg-muted/50 text-muted-foreground hover:bg-muted"
@@ -196,8 +196,8 @@ export default function IntegrationDashboard() {
           <h3 className="vf-text-body-m font-bold text-foreground mb-3">Health Alerts</h3>
           {alerts && alerts.length > 0 ? (
             <div className="space-y-2 max-h-[200px] overflow-y-auto">
-              {alerts.map((alert: { id: string; severity: string; message: string; timestamp?: string }, i: number) => (
-                <div key={alert.id || i} className={cn(
+              {alerts.map((alert: { id: string; severity: string; message: string; timestamp?: string }) => (
+                <div key={alert.id} className={cn(
                   "p-2 rounded-md border vf-text-caption",
                   alert.severity === "critical" ? "bg-destructive/10 border-destructive/20 text-destructive" :
                   alert.severity === "warning" ? "bg-warning/10 border-warning/20 text-warning" :

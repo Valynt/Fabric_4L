@@ -95,7 +95,7 @@ export function WorkflowDetail({
             </div>
             <div className="flex items-center gap-1">
               {isActive && onCancel && (
-                <Button 
+                <Button type="button" 
                   variant="ghost" 
                   size="sm" 
                   className="h-8 text-destructive hover:text-destructive"
@@ -106,7 +106,7 @@ export function WorkflowDetail({
                 </Button>
               )}
               {isFailed && onRetry && (
-                <Button 
+                <Button type="button" 
                   variant="ghost" 
                   size="sm" 
                   className="h-8"
@@ -138,7 +138,7 @@ export function WorkflowDetail({
         {/* Tabs */}
         <div className="flex border-b px-6">
           {(["overview", "logs", "tools"] as const).map((tab) => (
-            <button
+            <button type="button"
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={cn(
@@ -320,7 +320,7 @@ function ToolCallRow({ call }: { call: ToolCall }) {
 
   return (
     <div className="border rounded-lg overflow-hidden">
-      <button
+      <button type="button"
         onClick={() => setExpanded(!expanded)}
         className="w-full flex items-center gap-2 p-3 hover:bg-muted/50 transition-colors"
       >

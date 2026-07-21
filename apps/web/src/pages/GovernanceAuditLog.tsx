@@ -50,7 +50,7 @@ export default function GovernanceAuditLog() {
           ) : (
             <div className="space-y-2 max-h-[520px] overflow-auto pr-1">
               {(truthList?.items ?? []).map(truth => (
-                <button
+                <button type="button"
                   key={truth.id}
                   onClick={() => setSelectedTruthId(truth.id)}
                   className={`w-full rounded-md border p-2 text-left vf-text-body-s ${

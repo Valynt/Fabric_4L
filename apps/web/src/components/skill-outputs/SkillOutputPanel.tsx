@@ -45,10 +45,10 @@ function SourceCorpusPanel({ data }: { data: SourceCorpusDetail }) {
           icon={<FileStack className="w-4 h-4" />}
         >
           <ul className="divide-y divide-border/50">
-            {data.source_groups.map((g, i) => {
+            {data.source_groups.map((g) => {
               const group = g as { source_type?: string; count?: number };
               return (
-                <li key={i} className="px-5 py-2 flex items-center justify-between text-xs">
+                <li key={String(group.source_type ?? Math.random())} className="px-5 py-2 flex items-center justify-between text-xs">
                   <span className="text-foreground capitalize">{String(group.source_type ?? '').replace(/_/g, ' ')}</span>
                   <span className="text-muted-foreground">{group.count ?? 0} sources</span>
                 </li>
@@ -104,10 +104,10 @@ function AccountIntelligencePacketPanel({ data }: { data: AccountIntelligencePac
           icon={<Signal className="w-4 h-4" />}
         >
           <ul className="divide-y divide-border/50">
-            {data.observed_signals.map((s, i) => {
+            {data.observed_signals.map((s) => {
               const sig = s as { signal?: unknown; description?: unknown; source?: unknown };
               return (
-                <li key={i} className="px-5 py-2 text-xs">
+                <li key={String(sig.signal ?? sig.description ?? Math.random())} className="px-5 py-2 text-xs">
                   <p className="text-foreground">{String(sig.signal ?? sig.description ?? 'Signal')}</p>
                   {Boolean(sig.source) && (
                     <p className="text-muted-foreground mt-0.5 capitalize">{String(sig.source).replace(/_/g, ' ')}</p>

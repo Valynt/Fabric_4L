@@ -274,8 +274,8 @@ function DashboardLayout({
                       { user: "Bob", action: "completed", target: "Quarterly Report", time: "15m ago" },
                       { user: "Carol", action: "invited", target: "new team member", time: "1h ago" },
                       { user: "System", action: "graph sync", target: "completed", time: "2h ago" },
-                    ].map((event, i) => (
-                      <div key={i} className="flex gap-3">
+                    ].map((event) => (
+                      <div key={event.user + event.action} className="flex gap-3">
                         <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-[10px] font-medium">
                           {event.user[0]}
                         </div>

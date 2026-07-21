@@ -42,9 +42,12 @@ export function useEntitlements(requiredEntitlements: string[]) {
   const denialReasons = useMemo(() => {
     if (!query.data?.decisions) return {} as Record<string, string>;
     return Object.fromEntries(
-      Object.entries(query.data.decisions)
-        .filter(([, value]) => value.allowed !== true)
-        .map(([key, value]) => [key, value.reason])
+      Object.entries(query.data.decisions).reduce((acc, [key, value]) => {
+        if (value.allowed !== true) {
+          acc.push([key, value.reason]);
+        }
+        return acc;
+      }, [] as [string, string][])
     );
   }, [query.data]);
 
