@@ -162,7 +162,7 @@ function C1ComponentRenderer({
           case 'MetricCard':
             return (
               <MetricCard
-                key={String(comp.props.name ?? comp.type)}
+                key={String(comp.props.name ?? comp.props.label ?? comp.type)}
                 label={comp.props.label as string}
                 value={comp.props.value as number}
                 delta={comp.props.delta as number | undefined}

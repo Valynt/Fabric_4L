@@ -93,9 +93,17 @@ function HypothesisCard({
 
   return (
     <div
+      role="button"
+      tabIndex={0}
       onClick={onSelect}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onSelect();
+        }
+      }}
       className={cn(
-        "flex flex-col gap-2 w-full px-4 py-3 rounded-md text-left transition-colors cursor-pointer",
+        "flex flex-col gap-2 w-full px-4 py-3 rounded-md text-left transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         isSelected ? "bg-primary/5 ring-1 ring-primary/20" : "hover:bg-muted/50"
       )}
     >
