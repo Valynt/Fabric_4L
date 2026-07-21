@@ -803,12 +803,11 @@ class AuditConfig(BaseModel):
 class AuditTriggerRequest(BaseModel):
     """Request body for triggering a new audit run via the API.
 
-    All fields are optional and will use configuration defaults when omitted.
+    ``repo_url`` is required; remaining fields use configuration defaults when omitted.
     """
 
-    repo_url: str | None = Field(
-        default=None,
-        description="Repository URL to audit. Uses configured default if omitted.",
+    repo_url: str = Field(
+        description="Repository URL to audit.",
     )
     branch: str | None = Field(
         default=None,

@@ -374,7 +374,19 @@ async def get_sprint_plan(
     return await manager.get_sprints(repo, tenant_id=tenant_id)
 
 
-@router.get("/report/{run_id}", response_model=None)
+@router.get(
+    "/report/{run_id}",
+    response_model=None,
+    responses={
+        200: {
+            "description": "Audit report as Markdown or JSON",
+            "content": {
+                "text/markdown": {"schema": {"type": "string"}},
+                "application/json": {"schema": {"type": "object"}},
+            },
+        }
+    },
+)
 async def get_report(
     run_id: str,
     format: ReportFormat = ReportFormat.MARKDOWN,
