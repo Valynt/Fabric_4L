@@ -82,20 +82,20 @@ class InvitationService:
         return token
 
     async def verify_token(self, token: str) -> InvitationToken | None:
-        """Atomically verify and consume an invitation token.
+        """Verify an invitation token and return its data.
 
-        Uses Redis GETDEL so that the token is consumed in a single round-trip,
-        preventing TOCTOU race conditions where two concurrent requests could
-        both read the same valid token before either marks it used.
+        Non-destructive: the token is NOT consumed here. Call ``consume_token``
+        after the downstream acceptance succeeds to ensure the token is only
+        deleted when the user is actually activated.
 
-        Returns None if the token is invalid, expired, or already consumed.
+        Returns None if the token is invalid, expired, or already used.
         """
         if not self.redis:
             return None
 
         key = f"invite:{token}"
         try:
-            data = cast(str | None, self.redis.getdel(key))
+            data = cast(str | None, self.redis.get(key))
         except asyncio.CancelledError:
             raise
         except Exception as e:
@@ -108,6 +108,9 @@ class InvitationService:
         try:
             parsed = json.loads(data)
         except json.JSONDecodeError:
+            return None
+
+        if parsed.get("used"):
             return None
 
         try:
@@ -124,13 +127,31 @@ class InvitationService:
             email=parsed["email"],
             token=token,
             expires_at=expires,
-            used=False,
+            used=parsed.get("used", False),
         )
 
+    async def consume_token(self, token: str) -> None:
+        """Atomically consume (delete) an invitation token after successful acceptance.
+
+        This should be called only after the user has been successfully activated
+        to ensure the token is not lost if a downstream failure occurs.
+        """
+        if not self.redis:
+            return
+
+        key = f"invite:{token}"
+        try:
+            self.redis.delete(key)
+        except asyncio.CancelledError:
+            raise
+        except Exception as e:
+            logger.warning("Failed to consume invitation token in Redis: %s", e)
+
     async def mark_token_used(self, token: str) -> None:
-        """Deprecated: token is atomically consumed by ``verify_token`` via GETDEL.
+        """Deprecated: use ``consume_token`` instead.
 
         This method is retained for backward compatibility but is a no-op.
+        Token consumption is now handled by ``consume_token``.
         """
         return
 

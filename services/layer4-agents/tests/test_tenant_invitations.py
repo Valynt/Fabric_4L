@@ -230,6 +230,7 @@ class TestAcceptInvitation:
         mock_token_data.user_id = user_id
         mock_token_data.tenant_id = tenant_id
         invitation_service.verify_token = AsyncMock(return_value=mock_token_data)
+        invitation_service.consume_token = AsyncMock()
 
         # Mock invited user
         invited_user = MagicMock()
@@ -253,6 +254,7 @@ class TestAcceptInvitation:
         assert invited_user.status == UserStatus.ACTIVE.value
         assert invited_user.hashed_password is not None
         assert invited_user.display_name == "New User"
+        invitation_service.consume_token.assert_awaited_once_with("valid_token")
 
 
 class TestInvitationService:

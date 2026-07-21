@@ -642,6 +642,9 @@ async def accept_invitation(
     user.updated_at = datetime.now(UTC)
     await db.flush()
 
+    # Consume the token only after successful activation
+    await invitation_service.consume_token(request.token)
+
     logger.info("User %s accepted invitation in tenant %s", user.id, user.tenant_id)
     return _user_to_model(user)
 

@@ -36,7 +36,7 @@ describe("<AcceptInvite />", () => {
 
     renderPage();
 
-    await user.type(screen.getByLabelText(/display name/i), "Invited User");
+    await user.type(screen.getByLabelText(/full name/i), "Invited User");
     await user.type(screen.getByLabelText(/^password$/i), "SecurePass123!");
     await user.type(screen.getByLabelText(/confirm password/i), "SecurePass123!");
     await user.click(screen.getByRole("button", { name: /accept invitation/i }));
@@ -45,7 +45,7 @@ describe("<AcceptInvite />", () => {
       expect(mutateAsync).toHaveBeenCalledWith({
         token: "test-token",
         password: "SecurePass123!",
-        display_name: "Invited User",
+        name: "Invited User",
       });
     });
     expect(await screen.findByText("SIGN_IN_PAGE")).toBeInTheDocument();

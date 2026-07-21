@@ -46,6 +46,10 @@ from ...service import (
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/users", tags=["Users"])
 
+# NOTE: IPRateLimitDependency uses in-process MemoryStorage. In a multi-replica
+# deployment each pod maintains an independent counter, so the effective limit is
+# requests_per_minute * replica_count. A Redis-backed storage backend should be
+# added to the shared package for deployment-wide enforcement.
 _accept_invite_limiter = IPRateLimitDependency(requests_per_minute=10)
 
 

@@ -130,13 +130,19 @@ export function useInviteUser() {
 export interface AcceptInvitePayload {
   token: string;
   password: string;
-  display_name?: string;
+  name: string;
+}
+
+export interface AcceptInviteResponse {
+  access_token: string;
+  token_type: string;
+  expires_in: number;
 }
 
 export function useAcceptInvite() {
-  return useMutation<User, GovernanceApiError, AcceptInvitePayload>({
+  return useMutation<AcceptInviteResponse, GovernanceApiError, AcceptInvitePayload>({
     mutationFn: async (payload) => {
-      const response = await apiPost<User>('l4', '/users/accept-invite', payload);
+      const response = await apiPost<AcceptInviteResponse>('api', '/auth/accept-invite', payload);
       return response.data;
     },
   });

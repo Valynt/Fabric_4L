@@ -15,7 +15,7 @@ export default function AcceptInvite() {
   const initialToken = useMemo(() => searchParams.get("token") ?? "", [searchParams]);
 
   const [token, setToken] = useState(initialToken);
-  const [displayName, setDisplayName] = useState("");
+  const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -38,7 +38,7 @@ export default function AcceptInvite() {
       await acceptInvite.mutateAsync({
         token: token.trim(),
         password,
-        display_name: displayName.trim() || undefined,
+        name: name.trim(),
       });
       navigate("/sign-in?invite=accepted", { replace: true });
     } catch {
@@ -73,11 +73,11 @@ export default function AcceptInvite() {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="display-name">Display name (optional)</Label>
+              <Label htmlFor="name">Full name</Label>
               <Input
-                id="display-name"
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
+                id="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
                 placeholder="Jane Doe"
               />
             </div>
