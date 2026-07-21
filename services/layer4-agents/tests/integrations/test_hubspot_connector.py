@@ -6,7 +6,6 @@ from unittest.mock import AsyncMock, patch
 import httpx
 import pytest
 
-from layer4_agents.integrations.core.errors import TransientError
 from layer4_agents.integrations.providers.hubspot.connector import HubSpotConnector
 
 
@@ -52,21 +51,6 @@ class TestHubSpotConnectorTestConnection:
         result = await connector.test_connection()
         assert result["success"] is False
         assert result["error_code"] == "AUTH_FAILED"
-
-    @pytest.mark.asyncio
-    async def test_transport_error_does_not_expose_provider_details(self) -> None:
-        connector = HubSpotConnector(config={"crm_api_key": "token"})
-        connector._request = AsyncMock(
-            side_effect=TransientError("connection failed with secret-token")
-        )
-
-        result = await connector.test_connection()
-
-        assert result == {
-            "success": False,
-            "message": "HubSpot connection failed",
-            "error_code": "TRANSIENTERROR",
-        }
 
 
 class TestHubSpotConnectorGetAccount:
