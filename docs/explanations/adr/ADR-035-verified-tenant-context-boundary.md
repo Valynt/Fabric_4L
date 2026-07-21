@@ -169,7 +169,7 @@ tenant-boundary mechanism:
 
 Endpoints that operate on tenant-scoped data but do not yet declare verified
 tenant context are identified by security test suites. Known gaps exist in
-some Layer 3 and Layer 6 endpoints.
+some Layer 3 endpoints.
 
 ### Migration owner
 

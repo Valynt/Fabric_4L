@@ -21,9 +21,9 @@ related: ["../../explanations/adr/ADR-010-postgresql-rls-for-multi-tenancy", "..
 
 Layer 3 (Knowledge Graph) uses Neo4j as its graph database (ADR-016). All
 application-originated Cypher queries flow through
-`services/layer3-knowledge/src/db/query_execution.py`, which currently has a
-health score of 1.0 (alert band), cyclomatic complexity 27, 8 bug fixes in 6
-months, and zero test coverage.
+`services/layer3-knowledge/src/db/query_execution.py`, which is a
+critical hotspot with cyclomatic complexity 27, 8 bug fixes in 6 months, and
+zero test coverage.
 
 ADR-010 established PostgreSQL RLS for relational tenant isolation, but
 PostgreSQL RLS cannot protect Neo4j queries. The graph layer requires its own

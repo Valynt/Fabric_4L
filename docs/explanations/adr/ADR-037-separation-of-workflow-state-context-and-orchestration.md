@@ -4,7 +4,7 @@ category: "architecture"
 audience: "advanced"
 last-reviewed: "2026-07-20"
 freshness: "current"
-related: ["../../explanations/adr/ADR-006-langgraph-for-agent-orchestration", "../../explanations/adr/ADR-011-langgraph-for-workflow-orchestration", "../../explanations/adr/ADR-028-tenant-context-ratification"]
+related: ["../../explanations/adr/ADR-006-langgraph-for-agent-orchestration", "../../explanations/adr/ADR-011-langgraph-for-workflow-orchestration", "../../explanations/adr/ADR-022-layer4-internal-decomposition", "../../explanations/adr/ADR-028-tenant-context-ratification"]
 ---
 
 # ADR-037: Separation of Workflow State, Context, and Orchestration
@@ -135,7 +135,7 @@ change without amending this ADR:
 
 - **Pros:** Single file to navigate; no cross-module imports; no re-export maintenance.
 - **Cons:** 1,540 NLOC, CCN 24, 26 commits/90d, 4 bug fixes in 6mo; complexity and churn make it a defect magnet; context leakage risk from interleaved concerns; untestable in isolation.
-- **Why rejected:** Repowise health score 1.0 and bug-magnet status demonstrate that the current structure is unsustainable.
+- **Why rejected:** The module's complexity metrics (CCN 24, 1,540 NLOC, 4 bug fixes in 6 months) demonstrate that the current structure is unsustainable.
 
 ### Two-way split (state + execution)
 
@@ -232,5 +232,6 @@ modules and reverting the facade to the original implementation.
 
 - ADR-006: LangGraph for Agent Orchestration
 - ADR-011: LangGraph for Workflow Orchestration
+- ADR-022: Layer 4 Internal Decomposition (service-level decomposition, complementary to this module-level separation)
 - ADR-028: Tenant Context Propagation Contract (context lifecycle patterns)
 - `services/layer4-agents/src/layer4_agents/engine/executor.py` (current implementation — motivates this ADR)
