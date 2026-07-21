@@ -144,8 +144,8 @@ class InvitationService:
             self.redis.delete(key)
         except asyncio.CancelledError:
             raise
-        except Exception as e:
-            logger.warning("Failed to consume invitation token in Redis: %s", e)
+        except Exception:
+            logger.warning("Failed to consume invitation token in Redis")
 
     async def mark_token_used(self, token: str) -> None:
         """Deprecated: use ``consume_token`` instead.
