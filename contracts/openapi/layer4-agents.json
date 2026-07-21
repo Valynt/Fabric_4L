@@ -1132,6 +1132,555 @@
         }
       }
     },
+    "/v1/repo-audit/run": {
+      "post": {
+        "tags": [
+          "repo-audit"
+        ],
+        "summary": "Trigger Audit",
+        "description": "Trigger a new audit run. Returns a run ID immediately.",
+        "operationId": "trigger_audit_v1_repo_audit_run_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuditTriggerRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditRunResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/repo-audit/runs/{run_id}": {
+      "get": {
+        "tags": [
+          "repo-audit"
+        ],
+        "summary": "Get Audit Run",
+        "description": "Get the status and results of a single audit run.",
+        "operationId": "get_audit_run_v1_repo_audit_runs__run_id__get",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Run Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditRunDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/repo-audit/runs": {
+      "get": {
+        "tags": [
+          "repo-audit"
+        ],
+        "summary": "List Audit Runs",
+        "description": "List recent audit runs for a repository.",
+        "operationId": "list_audit_runs_v1_repo_audit_runs_get",
+        "parameters": [
+          {
+            "name": "repo",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Repo"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 20,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AuditRunSummary"
+                  },
+                  "title": "Response List Audit Runs V1 Repo Audit Runs Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/repo-audit/scorecard/latest": {
+      "get": {
+        "tags": [
+          "repo-audit"
+        ],
+        "summary": "Get Latest Scorecard",
+        "description": "Return the latest scorecard for a repository.",
+        "operationId": "get_latest_scorecard_v1_repo_audit_scorecard_latest_get",
+        "parameters": [
+          {
+            "name": "repo",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Repo"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Scorecard"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/repo-audit/scorecard/history": {
+      "get": {
+        "tags": [
+          "repo-audit"
+        ],
+        "summary": "Get Score History",
+        "description": "Return score history over time for a repository.",
+        "operationId": "get_score_history_v1_repo_audit_scorecard_history_get",
+        "parameters": [
+          {
+            "name": "repo",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Repo"
+            }
+          },
+          {
+            "name": "area",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/AuditArea"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Area"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScoreHistory"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/repo-audit/findings": {
+      "get": {
+        "tags": [
+          "repo-audit"
+        ],
+        "summary": "List Findings",
+        "description": "List findings for a repository, filtered by status, severity, and area.",
+        "operationId": "list_findings_v1_repo_audit_findings_get",
+        "parameters": [
+          {
+            "name": "repo",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Repo"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/FindingStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "severity",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/Severity"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Severity"
+            }
+          },
+          {
+            "name": "area",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/AuditArea"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Area"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Finding"
+                  },
+                  "title": "Response List Findings V1 Repo Audit Findings Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/repo-audit/findings/{finding_id}": {
+      "patch": {
+        "tags": [
+          "repo-audit"
+        ],
+        "summary": "Update Finding",
+        "description": "Update a finding's status, owner, sprint, or resolution note.\n\nThe ``repo`` query parameter scopes the update to a single repository and\nprevents accidental cross-repo modifications.",
+        "operationId": "update_finding_v1_repo_audit_findings__finding_id__patch",
+        "parameters": [
+          {
+            "name": "finding_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Finding Id"
+            }
+          },
+          {
+            "name": "repo",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Repo"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FindingUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Finding"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/repo-audit/sprints": {
+      "get": {
+        "tags": [
+          "repo-audit"
+        ],
+        "summary": "Get Sprint Plan",
+        "description": "Return the current sprint plan for a repository.",
+        "operationId": "get_sprint_plan_v1_repo_audit_sprints_get",
+        "parameters": [
+          {
+            "name": "repo",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Repo"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Sprint"
+                  },
+                  "title": "Response Get Sprint Plan V1 Repo Audit Sprints Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/repo-audit/report/{run_id}": {
+      "get": {
+        "tags": [
+          "repo-audit"
+        ],
+        "summary": "Get Report",
+        "description": "Download the audit report for a run as Markdown or JSON.",
+        "operationId": "get_report_v1_repo_audit_report__run_id__get",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Run Id"
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/ReportFormat",
+              "default": "markdown"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/repo-audit/webhook/github": {
+      "post": {
+        "tags": [
+          "repo-audit"
+        ],
+        "summary": "Github Webhook",
+        "description": "Receive GitHub push/release webhooks and trigger audits after HMAC verification.\n\nThe webhook URL must include ``?tenant_id=<tenant>`` so the resulting audit\nrun is scoped to a tenant. Requests without ``tenant_id`` are rejected with\na 400 error.",
+        "operationId": "github_webhook_v1_repo_audit_webhook_github_post",
+        "parameters": [
+          {
+            "name": "tenant_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Tenant that owns the triggered audit run",
+              "title": "Tenant Id"
+            },
+            "description": "Tenant that owns the triggered audit run"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Github Webhook V1 Repo Audit Webhook Github Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/validation/seed/auth-context": {
       "post": {
         "tags": [
@@ -14422,6 +14971,83 @@
         "title": "ArchiveWorkflowResponse",
         "description": "Archive workflow response."
       },
+      "AreaScore": {
+        "properties": {
+          "area": {
+            "$ref": "#/components/schemas/AuditArea",
+            "description": "The audit area being scored"
+          },
+          "weight": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Weight",
+            "description": "Weight of this area in overall score calculation, e.g., 0.12 for 12%"
+          },
+          "score": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Score",
+            "description": "Calculated score for this area (0-100)"
+          },
+          "grade": {
+            "type": "string",
+            "title": "Grade",
+            "description": "Letter grade with +/-, e.g., 'A+', 'B-', 'C'"
+          },
+          "confidence": {
+            "$ref": "#/components/schemas/Confidence",
+            "description": "Confidence level in this area score"
+          },
+          "trend_risk": {
+            "type": "string",
+            "title": "Trend Risk",
+            "description": "Trend assessment: Stable, Improving, or Worsening"
+          },
+          "diagnosis": {
+            "type": "string",
+            "title": "Diagnosis",
+            "description": "One-line diagnosis summarizing the area's health"
+          },
+          "findings_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Findings Count",
+            "description": "Number of findings in this area",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "area",
+          "weight",
+          "score",
+          "grade",
+          "confidence",
+          "trend_risk",
+          "diagnosis"
+        ],
+        "title": "AreaScore",
+        "description": "Score for a single audit area within a scorecard.\n\nRepresents the computed score, grade, and metadata for one of the ten\naudit areas defined in :class:`AuditArea`."
+      },
+      "AuditArea": {
+        "type": "string",
+        "enum": [
+          "A: Architecture and Code Structure",
+          "B: Code Quality and Maintainability",
+          "C: Correctness, Data Integrity, Contracts",
+          "D: Testing and Verification",
+          "E: Security and Supply Chain",
+          "F: CI/CD and Quality Gates",
+          "G: Reliability, Observability, Operations",
+          "H: Documentation, Decisions, Knowledge",
+          "I: AI-Agent Readiness, Rules, Skills",
+          "J: Developer Experience and Velocity"
+        ],
+        "title": "AuditArea",
+        "description": "Audit area categories with their descriptions and default weights."
+      },
       "AuditEventInfo": {
         "properties": {
           "id": {
@@ -14625,6 +15251,326 @@
         ],
         "title": "AuditLogEntry",
         "description": "Single audit log entry."
+      },
+      "AuditRunDetail": {
+        "properties": {
+          "run_id": {
+            "type": "string",
+            "title": "Run Id",
+            "description": "Audit run identifier"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "Current run status"
+          },
+          "trigger_type": {
+            "type": "string",
+            "title": "Trigger Type",
+            "description": "Trigger source"
+          },
+          "repo_name": {
+            "type": "string",
+            "title": "Repo Name",
+            "description": "Repository name"
+          },
+          "branch": {
+            "type": "string",
+            "title": "Branch",
+            "description": "Branch audited",
+            "default": "main"
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Started At",
+            "description": "Start timestamp"
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At",
+            "description": "Completion timestamp"
+          },
+          "overall_score": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 100.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Overall Score",
+            "description": "Overall score if completed"
+          },
+          "overall_grade": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Overall Grade",
+            "description": "Overall grade if completed"
+          },
+          "findings_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Findings Count",
+            "description": "Number of findings",
+            "default": 0
+          },
+          "sprints_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Sprints Count",
+            "description": "Number of planned sprints",
+            "default": 0
+          },
+          "error_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Message",
+            "description": "Error message if failed"
+          },
+          "areas_reanalyzed": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Areas Reanalyzed",
+            "description": "Areas re-analyzed (incremental)"
+          },
+          "previous_run_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Previous Run Id",
+            "description": "Previous run ID for incremental tracking"
+          }
+        },
+        "type": "object",
+        "required": [
+          "run_id",
+          "status",
+          "trigger_type",
+          "repo_name",
+          "started_at"
+        ],
+        "title": "AuditRunDetail",
+        "description": "Detailed response for a single audit run including results.\n\nReturned by the GET /runs/{run_id} endpoint. Contains the full audit\nrun record with its scorecard when available."
+      },
+      "AuditRunResponse": {
+        "properties": {
+          "run_id": {
+            "type": "string",
+            "title": "Run Id",
+            "description": "Unique identifier for the accepted audit run"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "Initial status: typically 'pending'"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "Human-readable status message",
+            "default": "Audit run accepted and queued for processing."
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Started At",
+            "description": "Timestamp when the run was accepted"
+          }
+        },
+        "type": "object",
+        "required": [
+          "run_id",
+          "status"
+        ],
+        "title": "AuditRunResponse",
+        "description": "Response returned immediately when an audit is triggered.\n\nProvides the run ID for polling and a message indicating the run\nhas been accepted for processing."
+      },
+      "AuditRunSummary": {
+        "properties": {
+          "run_id": {
+            "type": "string",
+            "title": "Run Id",
+            "description": "Audit run identifier"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "Run status"
+          },
+          "trigger_type": {
+            "type": "string",
+            "title": "Trigger Type",
+            "description": "Trigger source"
+          },
+          "repo_name": {
+            "type": "string",
+            "title": "Repo Name",
+            "description": "Repository name"
+          },
+          "branch": {
+            "type": "string",
+            "title": "Branch",
+            "description": "Branch audited",
+            "default": "main"
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Started At",
+            "description": "Start timestamp"
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At",
+            "description": "Completion timestamp"
+          },
+          "overall_score": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 100.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Overall Score",
+            "description": "Overall score"
+          },
+          "overall_grade": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Overall Grade",
+            "description": "Overall grade"
+          },
+          "findings_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Findings Count",
+            "description": "Number of findings",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "run_id",
+          "status",
+          "trigger_type",
+          "repo_name",
+          "started_at"
+        ],
+        "title": "AuditRunSummary",
+        "description": "Summary of an audit run for listing operations.\n\nA lightweight representation suitable for the GET /runs list endpoint."
+      },
+      "AuditTriggerRequest": {
+        "properties": {
+          "repo_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Repo Url",
+            "description": "Repository URL to audit. Uses configured default if omitted."
+          },
+          "branch": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Branch",
+            "description": "Branch to audit. Defaults to 'main'."
+          },
+          "incremental": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Incremental",
+            "description": "Override incremental mode for this run."
+          },
+          "areas": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/AuditArea"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Areas",
+            "description": "List of areas to audit. Defaults to all enabled areas."
+          },
+          "trigger_type": {
+            "type": "string",
+            "title": "Trigger Type",
+            "description": "Source of the trigger: manual, scheduled, webhook, post_merge",
+            "default": "manual"
+          }
+        },
+        "type": "object",
+        "title": "AuditTriggerRequest",
+        "description": "Request body for triggering a new audit run via the API.\n\nAll fields are optional and will use configuration defaults when omitted."
       },
       "AuthSessionResponse": {
         "properties": {
@@ -16127,6 +17073,16 @@
         ],
         "title": "ComponentHealthInfo",
         "description": "Health information for a single component."
+      },
+      "Confidence": {
+        "type": "string",
+        "enum": [
+          "high",
+          "medium",
+          "low"
+        ],
+        "title": "Confidence",
+        "description": "Confidence level in a finding or score."
       },
       "ConnectionQualityRequest": {
         "properties": {
@@ -17801,6 +18757,261 @@
         ],
         "title": "FieldInfo",
         "description": "Information about a state field."
+      },
+      "Finding": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "Unique finding identifier, e.g., 'COR-001', 'ARCH-002'",
+            "examples": [
+              "COR-001",
+              "ARCH-002"
+            ]
+          },
+          "severity": {
+            "$ref": "#/components/schemas/Severity",
+            "description": "Severity level of the finding"
+          },
+          "confidence": {
+            "$ref": "#/components/schemas/Confidence",
+            "description": "Confidence level in the finding's accuracy"
+          },
+          "area": {
+            "$ref": "#/components/schemas/AuditArea",
+            "description": "Audit area this finding belongs to"
+          },
+          "evidence": {
+            "type": "string",
+            "title": "Evidence",
+            "description": "File path and line numbers where the issue was found",
+            "examples": [
+              "src/app.py:42-56"
+            ]
+          },
+          "observed_fact": {
+            "type": "string",
+            "title": "Observed Fact",
+            "description": "Description of what was observed during analysis"
+          },
+          "inference_risk": {
+            "type": "string",
+            "title": "Inference Risk",
+            "description": "Explanation of why the finding matters and what it implies"
+          },
+          "business_impact": {
+            "type": "string",
+            "title": "Business Impact",
+            "description": "Business impact if the issue is not addressed"
+          },
+          "recommended_fix": {
+            "type": "string",
+            "title": "Recommended Fix",
+            "description": "Recommended remediation approach"
+          },
+          "effort": {
+            "type": "string",
+            "pattern": "^(XS|S|M|L|XL)$",
+            "title": "Effort",
+            "description": "Estimated effort to fix: XS, S, M, L, XL"
+          },
+          "risk_of_change": {
+            "type": "string",
+            "title": "Risk Of Change",
+            "description": "Risk associated with implementing the fix: Low, Medium, High"
+          },
+          "owner": {
+            "type": "string",
+            "title": "Owner",
+            "description": "Team or individual responsible for remediation"
+          },
+          "target_sprint": {
+            "type": "integer",
+            "maximum": 8.0,
+            "minimum": 0.0,
+            "title": "Target Sprint",
+            "description": "Target sprint number (1-8, 0 = backlog)",
+            "default": 0
+          },
+          "status": {
+            "$ref": "#/components/schemas/FindingStatus",
+            "description": "Current lifecycle status of the finding",
+            "default": "open"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "Timestamp when the finding was first created"
+          },
+          "resolved_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolved At",
+            "description": "Timestamp when the finding was resolved"
+          },
+          "resolution_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolution Note",
+            "description": "Notes explaining how the finding was resolved"
+          },
+          "first_seen_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "First Seen At",
+            "description": "Timestamp when the finding was first observed across any run"
+          },
+          "last_seen_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Last Seen At",
+            "description": "Timestamp when the finding was most recently observed"
+          },
+          "times_seen": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Times Seen",
+            "description": "Number of audit runs in which this finding has been observed",
+            "default": 1
+          },
+          "analyzer_type": {
+            "type": "string",
+            "title": "Analyzer Type",
+            "description": "Type of analyzer that produced this finding: git, code, doc"
+          },
+          "check_command": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Check Command",
+            "description": "Shell command used to detect this finding"
+          },
+          "check_output": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Check Output",
+            "description": "Raw command output that led to this finding"
+          },
+          "tenant_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tenant Id",
+            "description": "Tenant that owns this finding"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "severity",
+          "confidence",
+          "area",
+          "evidence",
+          "observed_fact",
+          "inference_risk",
+          "business_impact",
+          "recommended_fix",
+          "effort",
+          "risk_of_change",
+          "owner",
+          "analyzer_type"
+        ],
+        "title": "Finding",
+        "description": "A single audit finding representing an issue discovered during analysis.\n\nFindings are the primary output of analyzers and are tracked across audit\nruns to support incremental auditing and remediation sprints."
+      },
+      "FindingStatus": {
+        "type": "string",
+        "enum": [
+          "open",
+          "in_progress",
+          "resolved",
+          "deferred",
+          "waived"
+        ],
+        "title": "FindingStatus",
+        "description": "Lifecycle status of an audit finding."
+      },
+      "FindingUpdate": {
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/FindingStatus",
+            "description": "New status for the finding"
+          },
+          "resolution_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolution Note",
+            "description": "Optional note explaining the status change"
+          },
+          "owner": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner",
+            "description": "Optional reassignment of finding owner"
+          },
+          "target_sprint": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 8.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Sprint",
+            "description": "Optional sprint reassignment (0 = backlog)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "FindingUpdate",
+        "description": "Request body for updating a finding's status.\n\nSupports resolving, deferring, or re-opening findings with an\noptional explanatory note."
       },
       "GateDecisionRequest": {
         "properties": {
@@ -21052,6 +22263,15 @@
         "title": "RegisterTenantResponse",
         "description": "Response from tenant registration."
       },
+      "ReportFormat": {
+        "type": "string",
+        "enum": [
+          "markdown",
+          "json"
+        ],
+        "title": "ReportFormat",
+        "description": "Output format for audit reports."
+      },
       "RequestContext": {
         "properties": {
           "tenant_id": {
@@ -21715,6 +22935,245 @@
         "title": "SavedScenarioSummary",
         "description": "Safe scenario metadata returned to the frontend."
       },
+      "ScoreHistory": {
+        "properties": {
+          "repo_name": {
+            "type": "string",
+            "title": "Repo Name",
+            "description": "Repository name"
+          },
+          "area": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Area",
+            "description": "Audit area filter (None for overall)"
+          },
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/ScoreHistoryEntry"
+            },
+            "type": "array",
+            "title": "Entries",
+            "description": "Chronological score entries"
+          }
+        },
+        "type": "object",
+        "required": [
+          "repo_name"
+        ],
+        "title": "ScoreHistory",
+        "description": "Score history over time for trend analysis.\n\nReturned by the GET /scorecard/history endpoint. Supports filtering\nby audit area for area-specific trend charts."
+      },
+      "ScoreHistoryEntry": {
+        "properties": {
+          "run_id": {
+            "type": "string",
+            "title": "Run Id",
+            "description": "Audit run identifier"
+          },
+          "score": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Score",
+            "description": "Score at this point in time"
+          },
+          "grade": {
+            "type": "string",
+            "title": "Grade",
+            "description": "Grade at this point in time"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Timestamp",
+            "description": "Timestamp of the score snapshot"
+          },
+          "findings_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Findings Count",
+            "description": "Number of findings at this time",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "run_id",
+          "score",
+          "grade",
+          "timestamp"
+        ],
+        "title": "ScoreHistoryEntry",
+        "description": "A single score history entry.\n\nRepresents a snapshot of a score at a specific point in time."
+      },
+      "Scorecard": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "Unique scorecard identifier (UUID)"
+          },
+          "repo_name": {
+            "type": "string",
+            "title": "Repo Name",
+            "description": "Repository name, e.g., 'bmsull560/Fabric_4L'"
+          },
+          "branch": {
+            "type": "string",
+            "title": "Branch",
+            "description": "Git branch that was audited",
+            "default": "main"
+          },
+          "commit_sha": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Commit Sha",
+            "description": "Git commit SHA at the time of audit"
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version",
+            "description": "Semantic version of the codebase, if tagged"
+          },
+          "overall_score": {
+            "type": "integer",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Overall Score",
+            "description": "Weighted overall score (0-100)"
+          },
+          "overall_grade": {
+            "type": "string",
+            "title": "Overall Grade",
+            "description": "Overall letter grade, e.g., 'A+', 'B-', 'C'"
+          },
+          "confidence": {
+            "$ref": "#/components/schemas/Confidence",
+            "description": "Overall confidence in the scorecard"
+          },
+          "trend": {
+            "type": "string",
+            "title": "Trend",
+            "description": "Overall trend: Improving, Stable, or Declining"
+          },
+          "area_scores": {
+            "items": {
+              "$ref": "#/components/schemas/AreaScore"
+            },
+            "type": "array",
+            "title": "Area Scores",
+            "description": "Scores for each of the ten audit areas"
+          },
+          "total_files": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Total Files",
+            "description": "Total number of files in the repository",
+            "default": 0
+          },
+          "total_directories": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Total Directories",
+            "description": "Total number of directories in the repository",
+            "default": 0
+          },
+          "total_commits": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Total Commits",
+            "description": "Total number of commits analyzed",
+            "default": 0
+          },
+          "total_contributors": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Total Contributors",
+            "description": "Total number of unique contributors",
+            "default": 0
+          },
+          "audit_timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Audit Timestamp",
+            "description": "Timestamp when the audit was completed"
+          },
+          "findings": {
+            "items": {
+              "$ref": "#/components/schemas/Finding"
+            },
+            "type": "array",
+            "title": "Findings",
+            "description": "All findings from the audit"
+          },
+          "executive_summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Executive Summary",
+            "description": "Executive summary of the audit results"
+          },
+          "tenant_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tenant Id",
+            "description": "Tenant that owns this scorecard"
+          }
+        },
+        "type": "object",
+        "required": [
+          "repo_name",
+          "overall_score",
+          "overall_grade",
+          "confidence",
+          "trend",
+          "area_scores"
+        ],
+        "title": "Scorecard",
+        "description": "Full repository scorecard summarizing the health of a codebase.\n\nA scorecard aggregates area scores, overall metrics, and all findings\nfrom a single audit run. It serves as the primary output of the audit\npipeline."
+      },
+      "Severity": {
+        "type": "string",
+        "enum": [
+          "critical",
+          "high",
+          "medium",
+          "low"
+        ],
+        "title": "Severity",
+        "description": "Severity level of an audit finding."
+      },
       "SignalListResponse": {
         "properties": {
           "account_id": {
@@ -21845,6 +23304,141 @@
         ],
         "title": "SourceType",
         "description": "Origin of a knowledge source."
+      },
+      "Sprint": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "maximum": 8.0,
+            "minimum": 1.0,
+            "title": "Id",
+            "description": "Sprint number (1-8)"
+          },
+          "theme": {
+            "type": "string",
+            "title": "Theme",
+            "description": "High-level theme or focus area for the sprint"
+          },
+          "objectives": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Objectives",
+            "description": "List of sprint objectives"
+          },
+          "deliverables": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Deliverables",
+            "description": "List of expected deliverables"
+          },
+          "findings_targeted": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Findings Targeted",
+            "description": "Finding IDs targeted for remediation in this sprint"
+          },
+          "status": {
+            "$ref": "#/components/schemas/SprintStatus",
+            "description": "Current status of the sprint",
+            "default": "planned"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At",
+            "description": "Timestamp when the sprint started"
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At",
+            "description": "Timestamp when the sprint was completed"
+          },
+          "actual_effort_days": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actual Effort Days",
+            "description": "Actual effort in days spent on the sprint"
+          },
+          "score_impact_projected": {
+            "type": "integer",
+            "title": "Score Impact Projected",
+            "description": "Projected score impact from completing this sprint",
+            "default": 0
+          },
+          "score_impact_actual": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score Impact Actual",
+            "description": "Actual score impact after sprint completion"
+          },
+          "tenant_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tenant Id",
+            "description": "Tenant that owns this sprint"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "theme",
+          "objectives",
+          "deliverables",
+          "findings_targeted"
+        ],
+        "title": "Sprint",
+        "description": "A remediation sprint from the audit roadmap.\n\nSprints group findings into time-boxed remediation periods with\ndefined themes, objectives, and deliverables."
+      },
+      "SprintStatus": {
+        "type": "string",
+        "enum": [
+          "planned",
+          "in_progress",
+          "completed",
+          "deferred"
+        ],
+        "title": "SprintStatus",
+        "description": "Status of a remediation sprint."
       },
       "StartAnalysisRequest": {
         "properties": {

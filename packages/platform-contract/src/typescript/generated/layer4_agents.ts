@@ -505,6 +505,213 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/repo-audit/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Trigger Audit
+         * @description Trigger a new audit run. Returns a run ID immediately.
+         */
+        post: operations["trigger_audit_v1_repo_audit_run_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/repo-audit/runs/{run_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Audit Run
+         * @description Get the status and results of a single audit run.
+         */
+        get: operations["get_audit_run_v1_repo_audit_runs__run_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/repo-audit/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Audit Runs
+         * @description List recent audit runs for a repository.
+         */
+        get: operations["list_audit_runs_v1_repo_audit_runs_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/repo-audit/scorecard/latest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Latest Scorecard
+         * @description Return the latest scorecard for a repository.
+         */
+        get: operations["get_latest_scorecard_v1_repo_audit_scorecard_latest_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/repo-audit/scorecard/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Score History
+         * @description Return score history over time for a repository.
+         */
+        get: operations["get_score_history_v1_repo_audit_scorecard_history_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/repo-audit/findings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Findings
+         * @description List findings for a repository, filtered by status, severity, and area.
+         */
+        get: operations["list_findings_v1_repo_audit_findings_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/repo-audit/findings/{finding_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update Finding
+         * @description Update a finding's status, owner, sprint, or resolution note.
+         *
+         *     The ``repo`` query parameter scopes the update to a single repository and
+         *     prevents accidental cross-repo modifications.
+         */
+        patch: operations["update_finding_v1_repo_audit_findings__finding_id__patch"];
+        trace?: never;
+    };
+    "/v1/repo-audit/sprints": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Sprint Plan
+         * @description Return the current sprint plan for a repository.
+         */
+        get: operations["get_sprint_plan_v1_repo_audit_sprints_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/repo-audit/report/{run_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Report
+         * @description Download the audit report for a run as Markdown or JSON.
+         */
+        get: operations["get_report_v1_repo_audit_report__run_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/repo-audit/webhook/github": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Github Webhook
+         * @description Receive GitHub push/release webhooks and trigger audits after HMAC verification.
+         *
+         *     The webhook URL must include ``?tenant_id=<tenant>`` so the resulting audit
+         *     run is scoped to a tenant. Requests without ``tenant_id`` are rejected with
+         *     a 400 error.
+         */
+        post: operations["github_webhook_v1_repo_audit_webhook_github_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/validation/seed/auth-context": {
         parameters: {
             query?: never;
@@ -5562,6 +5769,56 @@ export interface components {
             archived_at: string;
         };
         /**
+         * AreaScore
+         * @description Score for a single audit area within a scorecard.
+         *
+         *     Represents the computed score, grade, and metadata for one of the ten
+         *     audit areas defined in :class:`AuditArea`.
+         */
+        AreaScore: {
+            /** @description The audit area being scored */
+            area: components["schemas"]["AuditArea"];
+            /**
+             * Weight
+             * @description Weight of this area in overall score calculation, e.g., 0.12 for 12%
+             */
+            weight: number;
+            /**
+             * Score
+             * @description Calculated score for this area (0-100)
+             */
+            score: number;
+            /**
+             * Grade
+             * @description Letter grade with +/-, e.g., 'A+', 'B-', 'C'
+             */
+            grade: string;
+            /** @description Confidence level in this area score */
+            confidence: components["schemas"]["Confidence"];
+            /**
+             * Trend Risk
+             * @description Trend assessment: Stable, Improving, or Worsening
+             */
+            trend_risk: string;
+            /**
+             * Diagnosis
+             * @description One-line diagnosis summarizing the area's health
+             */
+            diagnosis: string;
+            /**
+             * Findings Count
+             * @description Number of findings in this area
+             * @default 0
+             */
+            findings_count: number;
+        };
+        /**
+         * AuditArea
+         * @description Audit area categories with their descriptions and default weights.
+         * @enum {string}
+         */
+        AuditArea: "A: Architecture and Code Structure" | "B: Code Quality and Maintainability" | "C: Correctness, Data Integrity, Contracts" | "D: Testing and Verification" | "E: Security and Supply Chain" | "F: CI/CD and Quality Gates" | "G: Reliability, Observability, Operations" | "H: Documentation, Decisions, Knowledge" | "I: AI-Agent Readiness, Rules, Skills" | "J: Developer Experience and Velocity";
+        /**
          * AuditEventInfo
          * @description Audit event information.
          */
@@ -5638,6 +5895,215 @@ export interface components {
             details: {
                 [key: string]: unknown;
             };
+        };
+        /**
+         * AuditRunDetail
+         * @description Detailed response for a single audit run including results.
+         *
+         *     Returned by the GET /runs/{run_id} endpoint. Contains the full audit
+         *     run record with its scorecard when available.
+         */
+        AuditRunDetail: {
+            /**
+             * Run Id
+             * @description Audit run identifier
+             */
+            run_id: string;
+            /**
+             * Status
+             * @description Current run status
+             */
+            status: string;
+            /**
+             * Trigger Type
+             * @description Trigger source
+             */
+            trigger_type: string;
+            /**
+             * Repo Name
+             * @description Repository name
+             */
+            repo_name: string;
+            /**
+             * Branch
+             * @description Branch audited
+             * @default main
+             */
+            branch: string;
+            /**
+             * Started At
+             * Format: date-time
+             * @description Start timestamp
+             */
+            started_at: string;
+            /**
+             * Completed At
+             * @description Completion timestamp
+             */
+            completed_at?: string | null;
+            /**
+             * Overall Score
+             * @description Overall score if completed
+             */
+            overall_score?: number | null;
+            /**
+             * Overall Grade
+             * @description Overall grade if completed
+             */
+            overall_grade?: string | null;
+            /**
+             * Findings Count
+             * @description Number of findings
+             * @default 0
+             */
+            findings_count: number;
+            /**
+             * Sprints Count
+             * @description Number of planned sprints
+             * @default 0
+             */
+            sprints_count: number;
+            /**
+             * Error Message
+             * @description Error message if failed
+             */
+            error_message?: string | null;
+            /**
+             * Areas Reanalyzed
+             * @description Areas re-analyzed (incremental)
+             */
+            areas_reanalyzed?: string[];
+            /**
+             * Previous Run Id
+             * @description Previous run ID for incremental tracking
+             */
+            previous_run_id?: string | null;
+        };
+        /**
+         * AuditRunResponse
+         * @description Response returned immediately when an audit is triggered.
+         *
+         *     Provides the run ID for polling and a message indicating the run
+         *     has been accepted for processing.
+         */
+        AuditRunResponse: {
+            /**
+             * Run Id
+             * @description Unique identifier for the accepted audit run
+             */
+            run_id: string;
+            /**
+             * Status
+             * @description Initial status: typically 'pending'
+             */
+            status: string;
+            /**
+             * Message
+             * @description Human-readable status message
+             * @default Audit run accepted and queued for processing.
+             */
+            message: string;
+            /**
+             * Started At
+             * Format: date-time
+             * @description Timestamp when the run was accepted
+             */
+            started_at?: string;
+        };
+        /**
+         * AuditRunSummary
+         * @description Summary of an audit run for listing operations.
+         *
+         *     A lightweight representation suitable for the GET /runs list endpoint.
+         */
+        AuditRunSummary: {
+            /**
+             * Run Id
+             * @description Audit run identifier
+             */
+            run_id: string;
+            /**
+             * Status
+             * @description Run status
+             */
+            status: string;
+            /**
+             * Trigger Type
+             * @description Trigger source
+             */
+            trigger_type: string;
+            /**
+             * Repo Name
+             * @description Repository name
+             */
+            repo_name: string;
+            /**
+             * Branch
+             * @description Branch audited
+             * @default main
+             */
+            branch: string;
+            /**
+             * Started At
+             * Format: date-time
+             * @description Start timestamp
+             */
+            started_at: string;
+            /**
+             * Completed At
+             * @description Completion timestamp
+             */
+            completed_at?: string | null;
+            /**
+             * Overall Score
+             * @description Overall score
+             */
+            overall_score?: number | null;
+            /**
+             * Overall Grade
+             * @description Overall grade
+             */
+            overall_grade?: string | null;
+            /**
+             * Findings Count
+             * @description Number of findings
+             * @default 0
+             */
+            findings_count: number;
+        };
+        /**
+         * AuditTriggerRequest
+         * @description Request body for triggering a new audit run via the API.
+         *
+         *     All fields are optional and will use configuration defaults when omitted.
+         */
+        AuditTriggerRequest: {
+            /**
+             * Repo Url
+             * @description Repository URL to audit. Uses configured default if omitted.
+             */
+            repo_url?: string | null;
+            /**
+             * Branch
+             * @description Branch to audit. Defaults to 'main'.
+             */
+            branch?: string | null;
+            /**
+             * Incremental
+             * @description Override incremental mode for this run.
+             */
+            incremental?: boolean | null;
+            /**
+             * Areas
+             * @description List of areas to audit. Defaults to all enabled areas.
+             */
+            areas?: components["schemas"]["AuditArea"][] | null;
+            /**
+             * Trigger Type
+             * @description Source of the trigger: manual, scheduled, webhook, post_merge
+             * @default manual
+             */
+            trigger_type: string;
         };
         /**
          * AuthSessionResponse
@@ -6293,6 +6759,12 @@ export interface components {
                 [key: string]: unknown;
             };
         };
+        /**
+         * Confidence
+         * @description Confidence level in a finding or score.
+         * @enum {string}
+         */
+        Confidence: "high" | "medium" | "low";
         /**
          * ConnectionQualityRequest
          * @description Request to report connection quality from client.
@@ -6962,6 +7434,166 @@ export interface components {
             has_default: boolean;
             /** Description */
             description?: string | null;
+        };
+        /**
+         * Finding
+         * @description A single audit finding representing an issue discovered during analysis.
+         *
+         *     Findings are the primary output of analyzers and are tracked across audit
+         *     runs to support incremental auditing and remediation sprints.
+         */
+        Finding: {
+            /**
+             * Id
+             * @description Unique finding identifier, e.g., 'COR-001', 'ARCH-002'
+             * @example COR-001
+             * @example ARCH-002
+             */
+            id: string;
+            /** @description Severity level of the finding */
+            severity: components["schemas"]["Severity"];
+            /** @description Confidence level in the finding's accuracy */
+            confidence: components["schemas"]["Confidence"];
+            /** @description Audit area this finding belongs to */
+            area: components["schemas"]["AuditArea"];
+            /**
+             * Evidence
+             * @description File path and line numbers where the issue was found
+             * @example src/app.py:42-56
+             */
+            evidence: string;
+            /**
+             * Observed Fact
+             * @description Description of what was observed during analysis
+             */
+            observed_fact: string;
+            /**
+             * Inference Risk
+             * @description Explanation of why the finding matters and what it implies
+             */
+            inference_risk: string;
+            /**
+             * Business Impact
+             * @description Business impact if the issue is not addressed
+             */
+            business_impact: string;
+            /**
+             * Recommended Fix
+             * @description Recommended remediation approach
+             */
+            recommended_fix: string;
+            /**
+             * Effort
+             * @description Estimated effort to fix: XS, S, M, L, XL
+             */
+            effort: string;
+            /**
+             * Risk Of Change
+             * @description Risk associated with implementing the fix: Low, Medium, High
+             */
+            risk_of_change: string;
+            /**
+             * Owner
+             * @description Team or individual responsible for remediation
+             */
+            owner: string;
+            /**
+             * Target Sprint
+             * @description Target sprint number (1-8, 0 = backlog)
+             * @default 0
+             */
+            target_sprint: number;
+            /**
+             * @description Current lifecycle status of the finding
+             * @default open
+             */
+            status: components["schemas"]["FindingStatus"];
+            /**
+             * Created At
+             * Format: date-time
+             * @description Timestamp when the finding was first created
+             */
+            created_at?: string;
+            /**
+             * Resolved At
+             * @description Timestamp when the finding was resolved
+             */
+            resolved_at?: string | null;
+            /**
+             * Resolution Note
+             * @description Notes explaining how the finding was resolved
+             */
+            resolution_note?: string | null;
+            /**
+             * First Seen At
+             * Format: date-time
+             * @description Timestamp when the finding was first observed across any run
+             */
+            first_seen_at?: string;
+            /**
+             * Last Seen At
+             * Format: date-time
+             * @description Timestamp when the finding was most recently observed
+             */
+            last_seen_at?: string;
+            /**
+             * Times Seen
+             * @description Number of audit runs in which this finding has been observed
+             * @default 1
+             */
+            times_seen: number;
+            /**
+             * Analyzer Type
+             * @description Type of analyzer that produced this finding: git, code, doc
+             */
+            analyzer_type: string;
+            /**
+             * Check Command
+             * @description Shell command used to detect this finding
+             */
+            check_command?: string | null;
+            /**
+             * Check Output
+             * @description Raw command output that led to this finding
+             */
+            check_output?: string | null;
+            /**
+             * Tenant Id
+             * @description Tenant that owns this finding
+             */
+            tenant_id?: string | null;
+        };
+        /**
+         * FindingStatus
+         * @description Lifecycle status of an audit finding.
+         * @enum {string}
+         */
+        FindingStatus: "open" | "in_progress" | "resolved" | "deferred" | "waived";
+        /**
+         * FindingUpdate
+         * @description Request body for updating a finding's status.
+         *
+         *     Supports resolving, deferring, or re-opening findings with an
+         *     optional explanatory note.
+         */
+        FindingUpdate: {
+            /** @description New status for the finding */
+            status: components["schemas"]["FindingStatus"];
+            /**
+             * Resolution Note
+             * @description Optional note explaining the status change
+             */
+            resolution_note?: string | null;
+            /**
+             * Owner
+             * @description Optional reassignment of finding owner
+             */
+            owner?: string | null;
+            /**
+             * Target Sprint
+             * @description Optional sprint reassignment (0 = backlog)
+             */
+            target_sprint?: number | null;
         };
         /**
          * GateDecisionRequest
@@ -8404,6 +9036,12 @@ export interface components {
             verification_required: boolean;
         };
         /**
+         * ReportFormat
+         * @description Output format for audit reports.
+         * @enum {string}
+         */
+        ReportFormat: "markdown" | "json";
+        /**
          * RequestContext
          * @description Identity context carried by a single request.
          *
@@ -8679,6 +9317,174 @@ export interface components {
             created_at: string;
         };
         /**
+         * ScoreHistory
+         * @description Score history over time for trend analysis.
+         *
+         *     Returned by the GET /scorecard/history endpoint. Supports filtering
+         *     by audit area for area-specific trend charts.
+         */
+        ScoreHistory: {
+            /**
+             * Repo Name
+             * @description Repository name
+             */
+            repo_name: string;
+            /**
+             * Area
+             * @description Audit area filter (None for overall)
+             */
+            area?: string | null;
+            /**
+             * Entries
+             * @description Chronological score entries
+             */
+            entries?: components["schemas"]["ScoreHistoryEntry"][];
+        };
+        /**
+         * ScoreHistoryEntry
+         * @description A single score history entry.
+         *
+         *     Represents a snapshot of a score at a specific point in time.
+         */
+        ScoreHistoryEntry: {
+            /**
+             * Run Id
+             * @description Audit run identifier
+             */
+            run_id: string;
+            /**
+             * Score
+             * @description Score at this point in time
+             */
+            score: number;
+            /**
+             * Grade
+             * @description Grade at this point in time
+             */
+            grade: string;
+            /**
+             * Timestamp
+             * Format: date-time
+             * @description Timestamp of the score snapshot
+             */
+            timestamp: string;
+            /**
+             * Findings Count
+             * @description Number of findings at this time
+             * @default 0
+             */
+            findings_count: number;
+        };
+        /**
+         * Scorecard
+         * @description Full repository scorecard summarizing the health of a codebase.
+         *
+         *     A scorecard aggregates area scores, overall metrics, and all findings
+         *     from a single audit run. It serves as the primary output of the audit
+         *     pipeline.
+         */
+        Scorecard: {
+            /**
+             * Id
+             * @description Unique scorecard identifier (UUID)
+             */
+            id?: string;
+            /**
+             * Repo Name
+             * @description Repository name, e.g., 'bmsull560/Fabric_4L'
+             */
+            repo_name: string;
+            /**
+             * Branch
+             * @description Git branch that was audited
+             * @default main
+             */
+            branch: string;
+            /**
+             * Commit Sha
+             * @description Git commit SHA at the time of audit
+             */
+            commit_sha?: string | null;
+            /**
+             * Version
+             * @description Semantic version of the codebase, if tagged
+             */
+            version?: string | null;
+            /**
+             * Overall Score
+             * @description Weighted overall score (0-100)
+             */
+            overall_score: number;
+            /**
+             * Overall Grade
+             * @description Overall letter grade, e.g., 'A+', 'B-', 'C'
+             */
+            overall_grade: string;
+            /** @description Overall confidence in the scorecard */
+            confidence: components["schemas"]["Confidence"];
+            /**
+             * Trend
+             * @description Overall trend: Improving, Stable, or Declining
+             */
+            trend: string;
+            /**
+             * Area Scores
+             * @description Scores for each of the ten audit areas
+             */
+            area_scores: components["schemas"]["AreaScore"][];
+            /**
+             * Total Files
+             * @description Total number of files in the repository
+             * @default 0
+             */
+            total_files: number;
+            /**
+             * Total Directories
+             * @description Total number of directories in the repository
+             * @default 0
+             */
+            total_directories: number;
+            /**
+             * Total Commits
+             * @description Total number of commits analyzed
+             * @default 0
+             */
+            total_commits: number;
+            /**
+             * Total Contributors
+             * @description Total number of unique contributors
+             * @default 0
+             */
+            total_contributors: number;
+            /**
+             * Audit Timestamp
+             * Format: date-time
+             * @description Timestamp when the audit was completed
+             */
+            audit_timestamp?: string;
+            /**
+             * Findings
+             * @description All findings from the audit
+             */
+            findings?: components["schemas"]["Finding"][];
+            /**
+             * Executive Summary
+             * @description Executive summary of the audit results
+             */
+            executive_summary?: string | null;
+            /**
+             * Tenant Id
+             * @description Tenant that owns this scorecard
+             */
+            tenant_id?: string | null;
+        };
+        /**
+         * Severity
+         * @description Severity level of an audit finding.
+         * @enum {string}
+         */
+        Severity: "critical" | "high" | "medium" | "low";
+        /**
          * SignalListResponse
          * @description Response with list of signals for an account.
          */
@@ -8751,6 +9557,82 @@ export interface components {
          * @enum {string}
          */
         SourceType: "website" | "icp" | "upload" | "manual";
+        /**
+         * Sprint
+         * @description A remediation sprint from the audit roadmap.
+         *
+         *     Sprints group findings into time-boxed remediation periods with
+         *     defined themes, objectives, and deliverables.
+         */
+        Sprint: {
+            /**
+             * Id
+             * @description Sprint number (1-8)
+             */
+            id: number;
+            /**
+             * Theme
+             * @description High-level theme or focus area for the sprint
+             */
+            theme: string;
+            /**
+             * Objectives
+             * @description List of sprint objectives
+             */
+            objectives: string[];
+            /**
+             * Deliverables
+             * @description List of expected deliverables
+             */
+            deliverables: string[];
+            /**
+             * Findings Targeted
+             * @description Finding IDs targeted for remediation in this sprint
+             */
+            findings_targeted: string[];
+            /**
+             * @description Current status of the sprint
+             * @default planned
+             */
+            status: components["schemas"]["SprintStatus"];
+            /**
+             * Started At
+             * @description Timestamp when the sprint started
+             */
+            started_at?: string | null;
+            /**
+             * Completed At
+             * @description Timestamp when the sprint was completed
+             */
+            completed_at?: string | null;
+            /**
+             * Actual Effort Days
+             * @description Actual effort in days spent on the sprint
+             */
+            actual_effort_days?: number | null;
+            /**
+             * Score Impact Projected
+             * @description Projected score impact from completing this sprint
+             * @default 0
+             */
+            score_impact_projected: number;
+            /**
+             * Score Impact Actual
+             * @description Actual score impact after sprint completion
+             */
+            score_impact_actual?: number | null;
+            /**
+             * Tenant Id
+             * @description Tenant that owns this sprint
+             */
+            tenant_id?: string | null;
+        };
+        /**
+         * SprintStatus
+         * @description Status of a remediation sprint.
+         * @enum {string}
+         */
+        SprintStatus: "planned" | "in_progress" | "completed" | "deferred";
         /**
          * StartAnalysisRequest
          * @description Request to start prospect analysis workflow.
@@ -11994,6 +12876,334 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["layer4_agents__api__routes__audit__AuditLogResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    trigger_audit_v1_repo_audit_run_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AuditTriggerRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditRunResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_audit_run_v1_repo_audit_runs__run_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditRunDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_audit_runs_v1_repo_audit_runs_get: {
+        parameters: {
+            query: {
+                repo: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditRunSummary"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_latest_scorecard_v1_repo_audit_scorecard_latest_get: {
+        parameters: {
+            query: {
+                repo: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Scorecard"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_score_history_v1_repo_audit_scorecard_history_get: {
+        parameters: {
+            query: {
+                repo: string;
+                area?: components["schemas"]["AuditArea"] | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScoreHistory"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_findings_v1_repo_audit_findings_get: {
+        parameters: {
+            query: {
+                repo: string;
+                status?: components["schemas"]["FindingStatus"] | null;
+                severity?: components["schemas"]["Severity"] | null;
+                area?: components["schemas"]["AuditArea"] | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Finding"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_finding_v1_repo_audit_findings__finding_id__patch: {
+        parameters: {
+            query: {
+                repo: string;
+            };
+            header?: never;
+            path: {
+                finding_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FindingUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Finding"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_sprint_plan_v1_repo_audit_sprints_get: {
+        parameters: {
+            query: {
+                repo: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Sprint"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_report_v1_repo_audit_report__run_id__get: {
+        parameters: {
+            query?: {
+                format?: components["schemas"]["ReportFormat"];
+            };
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    github_webhook_v1_repo_audit_webhook_github_post: {
+        parameters: {
+            query: {
+                /** @description Tenant that owns the triggered audit run */
+                tenant_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: string;
+                    };
                 };
             };
             /** @description Validation Error */
