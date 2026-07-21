@@ -228,7 +228,7 @@ class SalesforceConnector(CRMConnector, CRMWriteConnector):
         except CRMError as e:
             return {
                 "success": False,
-                "message": str(e),
+                "message": "Salesforce connection failed",
                 "error_code": type(e).__name__.upper(),
             }
 
