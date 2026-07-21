@@ -1612,10 +1612,17 @@
         ],
         "responses": {
           "200": {
-            "description": "Successful Response",
+            "description": "Audit report as Markdown or JSON",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "type": "object"
+                }
+              },
+              "text/markdown": {
+                "schema": {
+                  "type": "string"
+                }
               }
             }
           },
@@ -15511,16 +15518,9 @@
       "AuditTriggerRequest": {
         "properties": {
           "repo_url": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "string",
             "title": "Repo Url",
-            "description": "Repository URL to audit. Uses configured default if omitted."
+            "description": "Repository URL to audit."
           },
           "branch": {
             "anyOf": [
@@ -15569,8 +15569,11 @@
           }
         },
         "type": "object",
+        "required": [
+          "repo_url"
+        ],
         "title": "AuditTriggerRequest",
-        "description": "Request body for triggering a new audit run via the API.\n\nAll fields are optional and will use configuration defaults when omitted."
+        "description": "Request body for triggering a new audit run via the API.\n\n``repo_url`` is required; remaining fields use configuration defaults when omitted."
       },
       "AuthSessionResponse": {
         "properties": {

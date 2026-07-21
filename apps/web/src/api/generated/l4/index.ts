@@ -6077,14 +6077,14 @@ export interface components {
          * AuditTriggerRequest
          * @description Request body for triggering a new audit run via the API.
          *
-         *     All fields are optional and will use configuration defaults when omitted.
+         *     ``repo_url`` is required; remaining fields use configuration defaults when omitted.
          */
         AuditTriggerRequest: {
             /**
              * Repo Url
-             * @description Repository URL to audit. Uses configured default if omitted.
+             * @description Repository URL to audit.
              */
-            repo_url?: string | null;
+            repo_url: string;
             /**
              * Branch
              * @description Branch to audit. Defaults to 'main'.
@@ -13165,13 +13165,14 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Successful Response */
+            /** @description Audit report as Markdown or JSON */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": Record<string, never>;
+                    "text/markdown": string;
                 };
             };
             /** @description Validation Error */
