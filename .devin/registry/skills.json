@@ -1060,6 +1060,40 @@
       "timeout_ms": 300000,
       "required_context": ["project_graph", "frontend/framework", "env_config"],
       "allowed_agents": ["*"]
+    },
+    {
+      "skill_id": "superpowers",
+      "name": "superpowers",
+      "version": "6.1.1",
+      "description": "Agentic software development methodology for planning, TDD, debugging, code review, and delivery workflows.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": ["brainstorm", "write-plan", "execute-plan", "tdd", "debug", "subagent-dev", "parallel-agents", "git-worktree", "request-review", "receive-review", "verify-completion", "finish-branch", "write-skill"]
+          },
+          "task_description": {
+            "type": "string",
+            "description": "Description of the task to apply the superpowers workflow to"
+          }
+        },
+        "required": ["action"]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean" },
+          "skill_invoked": { "type": "string" },
+          "artifacts": { "type": "array", "items": { "type": "string" } },
+          "next_steps": { "type": "array", "items": { "type": "string" } }
+        }
+      },
+      "side_effects": "read, write",
+      "timeout_ms": 600000,
+      "required_context": ["project_graph"],
+      "allowed_agents": ["*"],
+      "source_path": ".agents/skills/superpowers"
     }
   ]
 }

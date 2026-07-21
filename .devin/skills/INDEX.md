@@ -103,6 +103,12 @@ For skill authoring specifications, see [SKILL_SCHEMA.md](./SKILL_SCHEMA.md).
 
 ## Code Review & Development
 
+### superpowers
+**Description:** Agentic software development methodology for planning, TDD, debugging, code review, and delivery workflows
+**When to Use:** Starting a new feature needing structured planning, writing tests first (TDD), systematically debugging, requesting/receiving code review, executing implementation plans, dispatching parallel agents, isolating work with git worktrees, finishing a development branch
+**Side Effects:** read, write
+**Source:** `.agents/skills/superpowers/` (v6.1.1, 14 child skills)
+
 *(Note: Legacy jr-* workflow skills removed - not used in this repository)*
 
 ---
@@ -260,9 +266,9 @@ For skill authoring specifications, see [SKILL_SCHEMA.md](./SKILL_SCHEMA.md).
 
 **Last Updated:** 2026-06-25
 
-**Total Skills:** 42
+**Total Skills:** 43
 
-**Skills with Full Frontmatter:** 11 (security-auditor, stripe-integration, observability-setup, load-testing, siem-integration, contract-enforcement-auditor, deprecation-migrator, dead-code-sweeper, bunnyshell, clerk-auth, invariant-driven-testing)
+**Skills with Full Frontmatter:** 12 (security-auditor, stripe-integration, observability-setup, load-testing, siem-integration, contract-enforcement-auditor, deprecation-migrator, dead-code-sweeper, bunnyshell, clerk-auth, invariant-driven-testing, superpowers)
 
 **Skills Needing Frontmatter Updates:** 30 remaining
 
