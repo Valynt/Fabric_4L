@@ -82,16 +82,20 @@ class InvitationService:
         return token
 
     async def verify_token(self, token: str) -> InvitationToken | None:
-        """Verify an invitation token and return its data.
+        """Atomically verify and consume an invitation token.
 
-        Returns None if the token is invalid, expired, or already used.
+        Uses Redis GETDEL so that the token is consumed in a single round-trip,
+        preventing TOCTOU race conditions where two concurrent requests could
+        both read the same valid token before either marks it used.
+
+        Returns None if the token is invalid, expired, or already consumed.
         """
         if not self.redis:
             return None
 
         key = f"invite:{token}"
         try:
-            data = cast(str | None, self.redis.get(key))
+            data = cast(str | None, self.redis.getdel(key))
         except asyncio.CancelledError:
             raise
         except Exception as e:
@@ -104,9 +108,6 @@ class InvitationService:
         try:
             parsed = json.loads(data)
         except json.JSONDecodeError:
-            return None
-
-        if parsed.get("used"):
             return None
 
         try:
@@ -123,26 +124,15 @@ class InvitationService:
             email=parsed["email"],
             token=token,
             expires_at=expires,
-            used=parsed.get("used", False),
+            used=False,
         )
 
     async def mark_token_used(self, token: str) -> None:
-        """Mark an invitation token as used after acceptance."""
-        if not self.redis:
-            return
+        """Deprecated: token is atomically consumed by ``verify_token`` via GETDEL.
 
-        key = f"invite:{token}"
-        try:
-            data_str = cast(str | None, self.redis.get(key))
-            if data_str:
-                data = json.loads(data_str)
-                data["used"] = True
-                # Keep for 1 hour post-use for audit/debugging
-                self.redis.setex(key, 3600, json.dumps(data))
-        except asyncio.CancelledError:
-            raise
-        except Exception as e:
-            logger.warning("Failed to mark invitation token as used: %s", e)
+        This method is retained for backward compatibility but is a no-op.
+        """
+        return
 
     async def send_invitation_email(
         self,

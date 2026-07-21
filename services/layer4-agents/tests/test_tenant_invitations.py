@@ -7,11 +7,10 @@ from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from fastapi import HTTPException
 from value_fabric.shared.error_handling.exceptions import (
     AuthorizationError,
     ConflictError,
-    NotFoundError,
-    ValidationError,
 )
 from value_fabric.shared.identity.models import (
     Role,
@@ -148,7 +147,7 @@ class TestAcceptInvitation:
 
     @pytest.mark.asyncio
     async def test_accept_invitation_invalid_token(self):
-        """accept_invitation should reject invalid tokens."""
+        """accept_invitation should reject invalid tokens with uniform 401."""
         from layer4_agents.tenants.invitations import InvitationService
         from layer4_agents.tenants.service import accept_invitation
 
@@ -156,12 +155,14 @@ class TestAcceptInvitation:
         invitation_service = InvitationService(redis_client=None)
         request = UserAcceptInviteRequest(token="invalid", password="SecurePass123!")
 
-        with pytest.raises(ValidationError, match="Invalid or expired invitation token"):
+        with pytest.raises(HTTPException) as exc_info:
             await accept_invitation(db, request, invitation_service)
+        assert exc_info.value.status_code == 401
+        assert "Invalid or expired invitation token" in exc_info.value.detail
 
     @pytest.mark.asyncio
     async def test_accept_invitation_user_not_found(self):
-        """accept_invitation should reject if user not found."""
+        """accept_invitation should reject with uniform 401 if user not found."""
         from layer4_agents.tenants.invitations import InvitationService
         from layer4_agents.tenants.service import accept_invitation
 
@@ -180,12 +181,13 @@ class TestAcceptInvitation:
             return_value=MagicMock(scalar_one_or_none=MagicMock(return_value=None))
         )
 
-        with pytest.raises(NotFoundError, match="Invitation user not found"):
+        with pytest.raises(HTTPException) as exc_info:
             await accept_invitation(db, request, invitation_service)
+        assert exc_info.value.status_code == 401
 
     @pytest.mark.asyncio
     async def test_accept_invitation_already_accepted(self):
-        """accept_invitation should reject if already accepted."""
+        """accept_invitation should reject with uniform 401 if already accepted."""
         from layer4_agents.tenants.invitations import InvitationService
         from layer4_agents.tenants.service import accept_invitation
 
@@ -205,8 +207,9 @@ class TestAcceptInvitation:
             return_value=MagicMock(scalar_one_or_none=MagicMock(return_value=existing_user))
         )
 
-        with pytest.raises(ConflictError, match="Invitation already accepted"):
+        with pytest.raises(HTTPException) as exc_info:
             await accept_invitation(db, request, invitation_service)
+        assert exc_info.value.status_code == 401
 
     @pytest.mark.asyncio
     async def test_accept_invitation_success(self):
@@ -227,7 +230,6 @@ class TestAcceptInvitation:
         mock_token_data.user_id = user_id
         mock_token_data.tenant_id = tenant_id
         invitation_service.verify_token = AsyncMock(return_value=mock_token_data)
-        invitation_service.mark_token_used = AsyncMock()
 
         # Mock invited user
         invited_user = MagicMock()
@@ -251,7 +253,6 @@ class TestAcceptInvitation:
         assert invited_user.status == UserStatus.ACTIVE.value
         assert invited_user.hashed_password is not None
         assert invited_user.display_name == "New User"
-        invitation_service.mark_token_used.assert_awaited_once_with("valid_token")
 
 
 class TestInvitationService:

@@ -127,6 +127,21 @@ export function useInviteUser() {
   });
 }
 
+export interface AcceptInvitePayload {
+  token: string;
+  password: string;
+  display_name?: string;
+}
+
+export function useAcceptInvite() {
+  return useMutation<User, GovernanceApiError, AcceptInvitePayload>({
+    mutationFn: async (payload) => {
+      const response = await apiPost<User>('l4', '/users/accept-invite', payload);
+      return response.data;
+    },
+  });
+}
+
 export interface ApiKeyCreateRequest {
   name: string;
   role: ApiKey['role'];
