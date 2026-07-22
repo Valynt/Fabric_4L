@@ -106,6 +106,7 @@ pyyaml>=6.0
 schemathesis>=3.38.0
 hypothesis>=6.122.0
 jsonschema>=4.23.0
+jsondiff>=2.2.1
 protobuf>=5.0.0,<7.0.0  # Compatible with the OpenTelemetry protobuf runtime used by service locks
 
 # ---------------------------------------------------------------------------
