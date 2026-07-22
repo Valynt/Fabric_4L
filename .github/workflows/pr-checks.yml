@@ -811,6 +811,10 @@ jobs:
         # Root conftest.py hard-requires the mandatory test deps (jsonschema
         # et al.), and the coverage step uses --json-report.
         run: uv pip install -r ../../tests/requirements-test.txt pytest-json-report
+      - name: Configure CI authentication verification keys
+        run: |
+          printf 'FABRIC_AUTH_PUBLIC_KEYS=%s\n' "$(cat ../../config/ci/fabric_auth_test_public_keys.json)" >> "$GITHUB_ENV"
+          echo 'FABRIC_AUTH_MODE=enforce' >> "$GITHUB_ENV"
 
       - name: Lint with ruff (comprehensive)
         run: |
