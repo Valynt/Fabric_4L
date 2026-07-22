@@ -61,4 +61,53 @@ describe('ValueCaseGenerationPanel', () => {
       }));
     });
   });
+
+  it('does not render legacy hardcoded strings when the draft uses live data', () => {
+    const legacyStrings = [
+      'Economic buyer',
+      'Business champion',
+      'Technical evaluator',
+      'Validated calculator assumptions',
+      'Accepted business pains from discovery',
+      'Conservative ramp in Q1',
+      'Expected adoption by Q2',
+      '$1.8M',
+      '214%',
+      '9 months',
+      'Change management capacity',
+      'Competing budget priorities',
+    ];
+
+    (useValueCaseGenerationInputs as Mock).mockReturnValue(
+      mockInputs({
+        draft: {
+          account_id: 'acct-1',
+          account_name: 'Acme',
+          stakeholders: ['Live economic buyer'],
+          accepted_evidence: ['Live evidence from discovery'],
+          scenario_assumptions: ['Live adoption assumption'],
+          roi_metrics: { three_year_value: '$2.1M', roi: '150%', payback: '6 months' },
+          risk_notes: ['Live risk note'],
+        },
+      })
+    );
+
+    const wrapper = createWrapper();
+    render(
+      <ValueCaseGenerationPanel
+        accountId="acct-1"
+        accountName="Acme"
+        caseId="case-1"
+        isOpen={true}
+        onClose={vi.fn()}
+        onGenerate={vi.fn()}
+        isGenerating={false}
+      />,
+      { wrapper }
+    );
+
+    legacyStrings.forEach((text) => {
+      expect(screen.queryByText(text)).not.toBeInTheDocument();
+    });
+  });
 });

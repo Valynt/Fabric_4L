@@ -46,7 +46,7 @@ function EditableStringList({
       <h4 className="text-sm font-medium">{label}</h4>
       <div className="flex flex-wrap gap-2">
         {items.map((item, index) => (
-          <Badge key={`${item}-${index}`} variant="secondary" className="gap-1">
+          <Badge key={index} variant="secondary" className="gap-1">
             {item}
             <button
               type="button"
@@ -179,6 +179,7 @@ export function ValueCaseGenerationPanel({
                   }))
                 }
                 placeholder="3-Year Value"
+                aria-label="3-Year Value"
               />
               <Input
                 value={input.roi_metrics.roi}
@@ -189,6 +190,7 @@ export function ValueCaseGenerationPanel({
                   }))
                 }
                 placeholder="ROI"
+                aria-label="ROI"
               />
               <Input
                 value={input.roi_metrics.payback}
@@ -199,6 +201,7 @@ export function ValueCaseGenerationPanel({
                   }))
                 }
                 placeholder="Payback"
+                aria-label="Payback"
               />
             </div>
           </div>
