@@ -558,10 +558,12 @@ jobs:
           name: generated-openapi-${{matrix.layer}}
           path: generated/
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Set up deterministic root test dependencies
+        uses: ./.github/actions/setup-fabric-ci
         with:
-          python-version: '3.11'
+          python-dependency-mode: root-test
+          install-node-deps: 'false'
+          cache: ''
 
       - name: Compare OpenAPI specs
         id: compare
@@ -570,7 +572,6 @@ jobs:
             python services/layer5-ground-truth/scripts/check_openapi_contract.py \
               > drift-report-${{matrix.layer}}.md 2>&1 || EXIT_CODE=$?
           else
-            pip install jsondiff
             python scripts/compare_openapi.py \
               contracts/openapi/${{matrix.layer}}.json \
               generated/generated-openapi.json \
