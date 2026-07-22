@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any
 
@@ -120,7 +120,7 @@ def reduce(
         A ConnectionState object with reducer-derived fields and a legacy
         status shim.
     """
-    now = now or datetime.now(timezone.utc)
+    now = now or datetime.now(UTC)
     current = current or OperationalStatus.IDLE
 
     observed, resolved_error_class = _resolve_observation(observed, error_class)
