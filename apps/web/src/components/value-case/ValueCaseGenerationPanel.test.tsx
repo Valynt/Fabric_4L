@@ -26,7 +26,15 @@ function mockInputs(
       },
       risk_notes: ["Change management"],
     },
-    provenance: {},
+    provenance: {
+      account_id: [{ source: "manual" as const }],
+      account_name: [{ source: "manual" as const }],
+      stakeholders: [{ source: "workspace_stakeholder" as const, id: "st-1" }],
+      accepted_evidence: [{ source: "l5_truth" as const, id: "truth-1" }],
+      scenario_assumptions: [{ source: "manual" as const }],
+      roi_metrics: [{ source: "roi_calculation" as const, id: "roi-1" }],
+      risk_notes: [{ source: "l5_truth" as const, id: "truth-2" }],
+    },
     isLoading: false,
     isError: false,
     error: null,
@@ -265,5 +273,74 @@ describe("ValueCaseGenerationPanel", () => {
     await waitFor(() => {
       expect(screen.getByLabelText("3-Year Value")).toHaveValue("$2.0M");
     });
+  });
+
+  it("shows a confirmation dialog when closing with unsaved edits", async () => {
+    const onClose = vi.fn();
+    (useValueCaseGenerationInputs as Mock).mockReturnValue(mockInputs());
+    renderPanel({ onClose });
+
+    const valueInput = screen.getByLabelText("3-Year Value");
+    fireEvent.change(valueInput, { target: { value: "$2.5M" } });
+
+    fireEvent.click(screen.getByRole("button", { name: /cancel/i }));
+
+    expect(
+      screen.getByText("Discard unsaved changes?")
+    ).toBeInTheDocument();
+    expect(onClose).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: /discard changes/i }));
+
+    await waitFor(() => {
+      expect(onClose).toHaveBeenCalled();
+    });
+  });
+
+  it("keeps the panel open when the user chooses to keep editing", async () => {
+    const onClose = vi.fn();
+    (useValueCaseGenerationInputs as Mock).mockReturnValue(mockInputs());
+    renderPanel({ onClose });
+
+    const valueInput = screen.getByLabelText("3-Year Value");
+    fireEvent.change(valueInput, { target: { value: "$2.5M" } });
+
+    fireEvent.click(screen.getByRole("button", { name: /cancel/i }));
+
+    fireEvent.click(screen.getByRole("button", { name: /keep editing/i }));
+
+    await waitFor(() => {
+      expect(
+        screen.queryByText("Discard unsaved changes?")
+      ).not.toBeInTheDocument();
+    });
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("closes immediately when there are no unsaved edits", async () => {
+    const onClose = vi.fn();
+    (useValueCaseGenerationInputs as Mock).mockReturnValue(mockInputs());
+    renderPanel({ onClose });
+
+    fireEvent.click(screen.getByRole("button", { name: /cancel/i }));
+
+    await waitFor(() => {
+      expect(onClose).toHaveBeenCalled();
+    });
+    expect(
+      screen.queryByText("Discard unsaved changes?")
+    ).not.toBeInTheDocument();
+  });
+
+  it("renders source badges for live data sections", () => {
+    (useValueCaseGenerationInputs as Mock).mockReturnValue(mockInputs());
+    renderPanel();
+
+    expect(screen.getAllByText("from Workspace").length).toBeGreaterThanOrEqual(
+      1
+    );
+    expect(screen.getAllByText("from Ground Truth").length).toBe(2);
+    expect(screen.getByText("from ROI Calculator")).toBeInTheDocument();
+    expect(screen.getByText("from Manual")).toBeInTheDocument();
   });
 });

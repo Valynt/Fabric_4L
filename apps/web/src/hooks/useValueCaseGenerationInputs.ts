@@ -24,13 +24,15 @@ export interface ValueCaseGenerationInputsResult {
 }
 
 function formatThreeYearValue(npv: number): string {
-  if (Math.abs(npv) >= 1_000_000) {
-    return `$${(npv / 1_000_000).toFixed(1)}M`;
+  const sign = npv < 0 ? "-" : "";
+  const absNpv = Math.abs(npv);
+  if (absNpv >= 1_000_000) {
+    return `${sign}$${(absNpv / 1_000_000).toFixed(1)}M`;
   }
-  if (Math.abs(npv) >= 1_000) {
-    return `$${(npv / 1_000).toFixed(1)}K`;
+  if (absNpv >= 1_000) {
+    return `${sign}$${(absNpv / 1_000).toFixed(1)}K`;
   }
-  return `$${npv}`;
+  return `${sign}$${absNpv}`;
 }
 
 export function useValueCaseGenerationInputs(

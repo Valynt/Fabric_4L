@@ -11,7 +11,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useValueCaseGenerationInputs } from "@/hooks/useValueCaseGenerationInputs";
+import type { ValueCaseInputProvenance } from "@/hooks/useValueCaseGenerationInputs";
 import type { ValueCaseArtifactsInput } from "@/hooks/useValueCaseArtifacts";
 
 export interface ValueCaseGenerationPanelProps {
@@ -29,11 +40,13 @@ function EditableStringList({
   items,
   onChange,
   placeholder,
+  source,
 }: {
   label: string;
   items: string[];
   onChange: (items: string[]) => void;
   placeholder?: string;
+  source?: ValueCaseInputProvenance[];
 }) {
   const [newItem, setNewItem] = useState("");
 
@@ -49,10 +62,14 @@ function EditableStringList({
 
   return (
     <div className="space-y-2">
-      <h4 className="text-sm font-medium">{label}</h4>
+      <div className="flex items-center gap-2">
+        <h4 className="text-sm font-medium">{label}</h4>
+        <SourceBadge provenance={source} />
+      </div>
       <div className="flex flex-wrap gap-2">
+        {/* Badges are stateless and reordering is not supported, so index is a stable key here. */}
         {items.map((item, index) => (
-          <Badge key={`${item}-${index}`} variant="secondary" className="gap-1">
+          <Badge key={index} variant="secondary" className="gap-1">
             {item}
             <button
               type="button"
@@ -91,6 +108,38 @@ function EditableStringList({
   );
 }
 
+function getSourceLabel(source: ValueCaseInputProvenance["source"]): string {
+  switch (source) {
+    case "workspace_stakeholder":
+    case "workspace_tab":
+      return "Workspace";
+    case "l5_truth":
+      return "Ground Truth";
+    case "roi_calculation":
+      return "ROI Calculator";
+    case "manual":
+      return "Manual";
+    default:
+      return source;
+  }
+}
+
+function SourceBadge({
+  provenance,
+}: {
+  provenance: ValueCaseInputProvenance[] | undefined;
+}) {
+  if (!provenance || provenance.length === 0) return null;
+  const firstSource = provenance[0].source;
+  const allSame = provenance.every(p => p.source === firstSource);
+  const label = allSame ? getSourceLabel(firstSource) : "Mixed";
+  return (
+    <span className="text-xs text-muted-foreground" data-testid="source-badge">
+      from {label}
+    </span>
+  );
+}
+
 export function ValueCaseGenerationPanel({
   accountId,
   accountName,
@@ -100,10 +149,11 @@ export function ValueCaseGenerationPanel({
   onGenerate,
   isGenerating,
 }: ValueCaseGenerationPanelProps) {
-  const { draft, isLoading, isError, error, isReady } =
+  const { draft, provenance, isLoading, isError, error, isReady } =
     useValueCaseGenerationInputs(accountId, accountName, caseId);
   const [input, setInput] = useState<ValueCaseArtifactsInput>(draft);
   const [isDirty, setIsDirty] = useState(false);
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false);
 
   useEffect(() => {
     if (!isDirty) {
@@ -127,13 +177,26 @@ export function ValueCaseGenerationPanel({
     onGenerate(input);
   };
 
+  const requestClose = () => {
+    if (isDirty) {
+      setShowCloseConfirm(true);
+    } else {
+      onClose();
+    }
+  };
+
+  const confirmDiscard = () => {
+    setShowCloseConfirm(false);
+    onClose();
+  };
+
   const hasMinimumData =
     input.stakeholders.length > 0 ||
     input.accepted_evidence.length > 0 ||
     input.roi_metrics.three_year_value !== "";
 
   return (
-    <Sheet open={isOpen} onOpenChange={open => !open && onClose()}>
+    <Sheet open={isOpen} onOpenChange={open => !open && requestClose()}>
       <SheetContent className="w-full sm:max-w-md flex flex-col">
         <SheetHeader>
           <div className="flex items-start justify-between gap-4">
@@ -192,6 +255,7 @@ export function ValueCaseGenerationPanel({
               updateInput(prev => ({ ...prev, stakeholders }))
             }
             placeholder="Add stakeholder"
+            source={provenance.stakeholders}
           />
 
           <EditableStringList
@@ -201,6 +265,7 @@ export function ValueCaseGenerationPanel({
               updateInput(prev => ({ ...prev, accepted_evidence }))
             }
             placeholder="Add evidence claim"
+            source={provenance.accepted_evidence}
           />
 
           <EditableStringList
@@ -210,10 +275,14 @@ export function ValueCaseGenerationPanel({
               updateInput(prev => ({ ...prev, scenario_assumptions }))
             }
             placeholder="Add assumption"
+            source={provenance.scenario_assumptions}
           />
 
           <div className="space-y-2">
-            <h4 className="text-sm font-medium">ROI Metrics</h4>
+            <div className="flex items-center gap-2">
+              <h4 className="text-sm font-medium">ROI Metrics</h4>
+              <SourceBadge provenance={provenance.roi_metrics} />
+            </div>
             <div className="grid grid-cols-3 gap-2">
               <Input
                 value={input.roi_metrics.three_year_value}
@@ -264,11 +333,16 @@ export function ValueCaseGenerationPanel({
               updateInput(prev => ({ ...prev, risk_notes }))
             }
             placeholder="Add risk note"
+            source={provenance.risk_notes}
           />
         </div>
 
         <div className="border-t pt-4 flex justify-end gap-2">
-          <Button variant="outline" onClick={onClose} disabled={isGenerating}>
+          <Button
+            variant="outline"
+            onClick={requestClose}
+            disabled={isGenerating}
+          >
             Cancel
           </Button>
           <Button
@@ -280,6 +354,25 @@ export function ValueCaseGenerationPanel({
           </Button>
         </div>
       </SheetContent>
+
+      <AlertDialog open={showCloseConfirm} onOpenChange={setShowCloseConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Discard unsaved changes?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You have unsaved edits. Closing now will discard your changes.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setShowCloseConfirm(false)}>
+              Keep editing
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDiscard}>
+              Discard changes
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Sheet>
   );
 }

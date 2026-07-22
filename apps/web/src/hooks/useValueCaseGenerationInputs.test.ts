@@ -147,6 +147,40 @@ describe("useValueCaseGenerationInputs", () => {
     expect(result.current.isReady).toBe(false);
   });
 
+  it("maps disputed truths into risk_notes with l5_truth provenance", async () => {
+    (useStakeholdersData as Mock).mockReturnValue(mockQuery({ items: [] }));
+    (useTruths as Mock).mockImplementation(
+      (params: { status: string }) => {
+        if (params.status === "disputed") {
+          return mockQuery({
+            data: {
+              items: [{ id: "risk-1", claim: "Disputed integration risk" }],
+            },
+          });
+        }
+        return mockQuery({ data: { items: [] } });
+      }
+    );
+    (useROICalculations as Mock).mockReturnValue(
+      mockQuery({ data: { calculations: [] } })
+    );
+
+    const wrapper = createWrapper();
+    const { result } = renderHook(
+      () => useValueCaseGenerationInputs("acct-1", "Acme", "case-1"),
+      { wrapper }
+    );
+
+    await waitFor(() => expect(result.current.isReady).toBe(true));
+
+    expect(result.current.draft.risk_notes).toEqual([
+      "Disputed integration risk",
+    ]);
+    expect(result.current.provenance.risk_notes).toEqual([
+      { source: "l5_truth", id: "risk-1" },
+    ]);
+  });
+
   it("falls back to empty inputs when no live sources are available", async () => {
     const wrapper = createWrapper();
     const { result } = renderHook(
