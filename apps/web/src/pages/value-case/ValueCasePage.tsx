@@ -3,7 +3,7 @@
  *
  * Route: /value-case/:accountId
  */
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   AlertCircle,
   FileText,
@@ -12,10 +12,13 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { useAccount } from "@/hooks/useAccounts";
+import { useCanonicalCaseId } from "@/hooks/useWorkspaceCase";
 import { AccountRequiredGuard } from "@/components/AccountRequiredGuard";
 import { LoadingState, ErrorState } from "@/components/states";
 import { Button } from "@/components/ui/button";
 import { useValueCaseArtifacts } from "@/hooks/useValueCaseArtifacts";
+import type { ValueCaseArtifactsInput } from "@/hooks/useValueCaseArtifacts";
+import { ValueCaseGenerationPanel } from "@/components/value-case/ValueCaseGenerationPanel";
 import { SectionCard } from "@/components/blocks/SectionCard";
 import { MetricCard } from "@/components/ui/fabric";
 import type { StudioTabProps } from "@/features/value-studio/types";
@@ -24,6 +27,35 @@ function getErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
   if (typeof error === "string") return error;
   return "Unexpected error. Please try again.";
+}
+
+function GenerationPanelWithCase({
+  accountId,
+  accountName,
+  isOpen,
+  onClose,
+  onGenerate,
+  isGenerating,
+}: {
+  accountId: string;
+  accountName: string;
+  isOpen: boolean;
+  onClose: () => void;
+  onGenerate: (input: ValueCaseArtifactsInput) => void;
+  isGenerating: boolean;
+}) {
+  const { data: caseId } = useCanonicalCaseId(accountId);
+  return (
+    <ValueCaseGenerationPanel
+      accountId={accountId}
+      accountName={accountName}
+      caseId={caseId ?? null}
+      isOpen={isOpen}
+      onClose={onClose}
+      onGenerate={onGenerate}
+      isGenerating={isGenerating}
+    />
+  );
 }
 
 export default function ValueCasePage({ accountId }: StudioTabProps) {
@@ -83,30 +115,15 @@ export default function ValueCasePage({ accountId }: StudioTabProps) {
     );
   }
 
+  const [isPanelOpen, setIsPanelOpen] = useState(false);
+
   const handleGenerate = () => {
-    generateArtifact.mutate({
-      account_id: account.id,
-      account_name: account.name,
-      stakeholders: [
-        "Economic buyer",
-        "Business champion",
-        "Technical evaluator",
-      ],
-      accepted_evidence: [
-        "Validated calculator assumptions",
-        "Accepted business pains from discovery",
-      ],
-      scenario_assumptions: [
-        "Conservative ramp in Q1",
-        "Expected adoption by Q2",
-      ],
-      roi_metrics: {
-        three_year_value: "$1.8M",
-        roi: "214%",
-        payback: "9 months",
-      },
-      risk_notes: ["Change management capacity", "Competing budget priorities"],
-    });
+    setIsPanelOpen(true);
+  };
+
+  const handleConfirmGenerate = (input: ValueCaseArtifactsInput) => {
+    generateArtifact.mutate(input);
+    setIsPanelOpen(false);
   };
 
   const handlePublishRetry = () => {
@@ -300,6 +317,15 @@ export default function ValueCasePage({ accountId }: StudioTabProps) {
           </div>
         )}
       </SectionCard>
+
+      <GenerationPanelWithCase
+        accountId={account.id}
+        accountName={account.name}
+        isOpen={isPanelOpen}
+        onClose={() => setIsPanelOpen(false)}
+        onGenerate={handleConfirmGenerate}
+        isGenerating={generateArtifact.isPending}
+      />
     </div>
   );
 }
