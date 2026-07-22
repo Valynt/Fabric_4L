@@ -5,7 +5,6 @@ from pathlib import Path
 
 import yaml
 
-
 ROOT = Path(__file__).resolve().parents[2]
 PR_CHECKS = ROOT / ".github/workflows/pr-checks.yml"
 CONTRACT_COMPLIANCE = ROOT / ".github/workflows/contract-compliance.yml"
