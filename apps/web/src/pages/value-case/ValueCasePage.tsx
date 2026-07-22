@@ -318,14 +318,16 @@ export default function ValueCasePage({ accountId }: StudioTabProps) {
         )}
       </SectionCard>
 
-      <GenerationPanelWithCase
-        accountId={account.id}
-        accountName={account.name}
-        isOpen={isPanelOpen}
-        onClose={() => setIsPanelOpen(false)}
-        onGenerate={handleConfirmGenerate}
-        isGenerating={generateArtifact.isPending}
-      />
+      {isPanelOpen && (
+        <GenerationPanelWithCase
+          accountId={account.id}
+          accountName={account.name}
+          isOpen={isPanelOpen}
+          onClose={() => setIsPanelOpen(false)}
+          onGenerate={handleConfirmGenerate}
+          isGenerating={generateArtifact.isPending}
+        />
+      )}
     </div>
   );
 }
