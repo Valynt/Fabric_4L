@@ -2075,7 +2075,8 @@ jobs:
 
       - name: Install test dependencies
         run: |
-          pip install pytest
+          python -m pip install --require-hashes -r tests/requirements-test.lock
+          python -m pip check
 
       - name: Run billing/entitlement regression pack
         run: |
