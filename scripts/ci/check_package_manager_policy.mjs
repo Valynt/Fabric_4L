@@ -4,10 +4,11 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 import path from 'node:path';
 
-const LOCKFILE_PATTERN = /(\/(?:package-lock\.json|yarn\.lock)$|^(?:package-lock\.json|yarn\.lock)$|\/(?:pnpm-lock\.yaml|uv\.lock)$|^(?:pnpm-lock\.yaml|uv\.lock)$)/;
+const LOCKFILE_PATTERN = /(\/(?:package-lock\.json|yarn\.lock)$|^(?:package-lock\.json|yarn\.lock)$|\/(?:pnpm-lock\.yaml|uv\.lock|requirements-test\.lock)$|^(?:pnpm-lock\.yaml|uv\.lock|requirements-test\.lock)$)/;
 const ALLOWED_LOCKFILE_PATHS = new Set([
   'pnpm-lock.yaml',
   'apps/web/pnpm-lock.yaml',
+  'tests/requirements-test.lock',
   'services/billing/uv.lock',
   'services/layer1-ingestion/uv.lock',
   'services/layer2-extraction/uv.lock',
@@ -148,7 +149,7 @@ if (blockedNpmOrYarn.length > 0) {
 }
 
 const unauthorizedLockfiles = changedLockfiles.filter(
-  (filePath) => (filePath.endsWith('pnpm-lock.yaml') || filePath.endsWith('uv.lock')) && !ALLOWED_LOCKFILE_PATHS.has(filePath),
+  (filePath) => (filePath.endsWith('pnpm-lock.yaml') || filePath.endsWith('uv.lock') || filePath.endsWith('requirements-test.lock')) && !ALLOWED_LOCKFILE_PATHS.has(filePath),
 );
 if (unauthorizedLockfiles.length > 0) {
   fail(`Lockfile churn is only allowed in approved paths. Unauthorized: ${unauthorizedLockfiles.join(', ')}`);
