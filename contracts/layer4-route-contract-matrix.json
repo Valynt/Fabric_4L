@@ -1767,7 +1767,7 @@
       "error_envelope_schemas": [
         {
           "status_code": "400",
-          "description": "Invalid webhook payload — verify the payload body and Stripe-Signature timestamp",
+          "description": "Invalid webhook payload \u2014 verify the payload body and Stripe-Signature timestamp",
           "schema": {}
         },
         {
@@ -7994,6 +7994,146 @@
           }
         }
       ],
+      "sse_event_channels": [],
+      "frontend_consumers": []
+    },
+    {
+      "route_id": "POST /v1/repo-audit/run",
+      "backend_route_files": [
+        "services/layer4-agents/src/layer4_agents/api/routes/audit.py"
+      ],
+      "openapi_path": "/v1/repo-audit/run",
+      "method": "POST",
+      "operation_id": "trigger_audit_v1_repo_audit_run_post",
+      "request_schema": null,
+      "success_response_schemas": [],
+      "error_envelope_schemas": [],
+      "sse_event_channels": [],
+      "frontend_consumers": []
+    },
+    {
+      "route_id": "GET /v1/repo-audit/runs/{run_id}",
+      "backend_route_files": [
+        "services/layer4-agents/src/layer4_agents/api/routes/audit.py"
+      ],
+      "openapi_path": "/v1/repo-audit/runs/{run_id}",
+      "method": "GET",
+      "operation_id": "get_audit_run_v1_repo_audit_runs__run_id__get",
+      "request_schema": null,
+      "success_response_schemas": [],
+      "error_envelope_schemas": [],
+      "sse_event_channels": [],
+      "frontend_consumers": []
+    },
+    {
+      "route_id": "GET /v1/repo-audit/runs",
+      "backend_route_files": [
+        "services/layer4-agents/src/layer4_agents/api/routes/audit.py"
+      ],
+      "openapi_path": "/v1/repo-audit/runs",
+      "method": "GET",
+      "operation_id": "list_audit_runs_v1_repo_audit_runs_get",
+      "request_schema": null,
+      "success_response_schemas": [],
+      "error_envelope_schemas": [],
+      "sse_event_channels": [],
+      "frontend_consumers": []
+    },
+    {
+      "route_id": "GET /v1/repo-audit/scorecard/latest",
+      "backend_route_files": [
+        "services/layer4-agents/src/layer4_agents/api/routes/audit.py"
+      ],
+      "openapi_path": "/v1/repo-audit/scorecard/latest",
+      "method": "GET",
+      "operation_id": "get_latest_scorecard_v1_repo_audit_scorecard_latest_get",
+      "request_schema": null,
+      "success_response_schemas": [],
+      "error_envelope_schemas": [],
+      "sse_event_channels": [],
+      "frontend_consumers": []
+    },
+    {
+      "route_id": "GET /v1/repo-audit/scorecard/history",
+      "backend_route_files": [
+        "services/layer4-agents/src/layer4_agents/api/routes/audit.py"
+      ],
+      "openapi_path": "/v1/repo-audit/scorecard/history",
+      "method": "GET",
+      "operation_id": "get_score_history_v1_repo_audit_scorecard_history_get",
+      "request_schema": null,
+      "success_response_schemas": [],
+      "error_envelope_schemas": [],
+      "sse_event_channels": [],
+      "frontend_consumers": []
+    },
+    {
+      "route_id": "GET /v1/repo-audit/findings",
+      "backend_route_files": [
+        "services/layer4-agents/src/layer4_agents/api/routes/audit.py"
+      ],
+      "openapi_path": "/v1/repo-audit/findings",
+      "method": "GET",
+      "operation_id": "list_findings_v1_repo_audit_findings_get",
+      "request_schema": null,
+      "success_response_schemas": [],
+      "error_envelope_schemas": [],
+      "sse_event_channels": [],
+      "frontend_consumers": []
+    },
+    {
+      "route_id": "PATCH /v1/repo-audit/findings/{finding_id}",
+      "backend_route_files": [
+        "services/layer4-agents/src/layer4_agents/api/routes/audit.py"
+      ],
+      "openapi_path": "/v1/repo-audit/findings/{finding_id}",
+      "method": "PATCH",
+      "operation_id": "update_finding_v1_repo_audit_findings__finding_id__patch",
+      "request_schema": null,
+      "success_response_schemas": [],
+      "error_envelope_schemas": [],
+      "sse_event_channels": [],
+      "frontend_consumers": []
+    },
+    {
+      "route_id": "GET /v1/repo-audit/sprints",
+      "backend_route_files": [
+        "services/layer4-agents/src/layer4_agents/api/routes/audit.py"
+      ],
+      "openapi_path": "/v1/repo-audit/sprints",
+      "method": "GET",
+      "operation_id": "get_sprint_plan_v1_repo_audit_sprints_get",
+      "request_schema": null,
+      "success_response_schemas": [],
+      "error_envelope_schemas": [],
+      "sse_event_channels": [],
+      "frontend_consumers": []
+    },
+    {
+      "route_id": "GET /v1/repo-audit/report/{run_id}",
+      "backend_route_files": [
+        "services/layer4-agents/src/layer4_agents/api/routes/audit.py"
+      ],
+      "openapi_path": "/v1/repo-audit/report/{run_id}",
+      "method": "GET",
+      "operation_id": "get_report_v1_repo_audit_report__run_id__get",
+      "request_schema": null,
+      "success_response_schemas": [],
+      "error_envelope_schemas": [],
+      "sse_event_channels": [],
+      "frontend_consumers": []
+    },
+    {
+      "route_id": "POST /v1/repo-audit/webhook/github",
+      "backend_route_files": [
+        "services/layer4-agents/src/layer4_agents/api/routes/audit.py"
+      ],
+      "openapi_path": "/v1/repo-audit/webhook/github",
+      "method": "POST",
+      "operation_id": "github_webhook_v1_repo_audit_webhook_github_post",
+      "request_schema": null,
+      "success_response_schemas": [],
+      "error_envelope_schemas": [],
       "sse_event_channels": [],
       "frontend_consumers": []
     }
