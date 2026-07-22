@@ -180,7 +180,7 @@ export default function EntityDetail() {
       {/* Tabs */}
       <div className="flex border-b border-border mb-4">
         {tabs.map(tab => (
-          <button
+          <button type="button"
             key={tab}
             onClick={() => setActiveTab(tab)}
             className={cn(

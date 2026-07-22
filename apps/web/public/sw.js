@@ -25,8 +25,7 @@ self.addEventListener("activate", (event) => {
       .then((keys) =>
         Promise.all(
           keys
-            .filter((key) => key !== STATIC_CACHE)
-            .map((key) => caches.delete(key))
+            .flatMap((key) => key !== STATIC_CACHE ? [caches.delete(key)] : [])
         )
       )
       .then(() => self.clients.claim())

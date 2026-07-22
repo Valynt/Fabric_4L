@@ -144,7 +144,7 @@ function ValidationSection({
           )}
         </div>
         {results.length > 0 && (
-          <button
+          <button type="button"
             className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
             onClick={() => setExpanded((v) => !v)}
           >
@@ -244,7 +244,7 @@ function GateRow({ gate, runId }: { gate: HumanGate; runId: string }) {
       </div>
       {isPending && (
         <div className="flex gap-1.5 shrink-0">
-          <Button
+          <Button type="button"
             size="sm"
             variant="outline"
             className="h-7 text-xs text-success border-success/20 hover:bg-success/10"
@@ -253,7 +253,7 @@ function GateRow({ gate, runId }: { gate: HumanGate; runId: string }) {
           >
             {decide.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : "Approve"}
           </Button>
-          <Button
+          <Button type="button"
             size="sm"
             variant="outline"
             className="h-7 text-xs text-destructive border-destructive/20 hover:bg-destructive/10"
@@ -311,7 +311,7 @@ export function HarnessRunDetail({ runId, isOpen, onClose }: HarnessRunDetailPro
                 </p>
               )}
             </div>
-            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={onClose} aria-label="Close">
+            <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={onClose} aria-label="Close">
               <X className="h-4 w-4" />
             </Button>
           </div>
@@ -375,7 +375,7 @@ export function HarnessRunDetail({ runId, isOpen, onClose }: HarnessRunDetailPro
                     </h3>
                     <div className="flex gap-2">
                       {run.status === "failed" && (
-                        <Button
+                        <Button type="button"
                           size="sm"
                           variant="outline"
                           disabled={transition.isPending}
@@ -393,7 +393,7 @@ export function HarnessRunDetail({ runId, isOpen, onClose }: HarnessRunDetailPro
                         </Button>
                       )}
                       {run.status === "running" && (
-                        <Button
+                        <Button type="button"
                           size="sm"
                           variant="outline"
                           disabled={transition.isPending}

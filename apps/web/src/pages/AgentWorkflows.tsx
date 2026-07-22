@@ -447,7 +447,7 @@ export default function AgentWorkflows() {
                 {w.createdAt ? new Date(w.createdAt).toLocaleDateString() : "-"}
               </span>,
               <div key={`${w.id}-actions`} className="flex gap-2">
-                <button
+                <button type="button"
                   className="text-primary vf-text-caption hover:underline flex items-center gap-1"
                   onClick={() => {
                     setSelectedWorkflow(w);
@@ -521,14 +521,14 @@ export default function AgentWorkflows() {
                   {new Date(run.created_at).toLocaleDateString()}
                 </span>,
                 <div key="actions" className="flex items-center gap-2">
-                  <button
+                  <button type="button"
                     className="text-primary vf-text-caption hover:underline flex items-center gap-1"
                     onClick={() => { setHarnessRunId(run.id); setIsHarnessDetailOpen(true); }}
                   >
                     <Eye size={12} /> View
                   </button>
                   {!isTerminalState(run.current_state) && run.status === "running" && (
-                    <button
+                    <button type="button"
                       className="text-muted-foreground vf-text-caption hover:underline"
                       onClick={() => transitionRun.mutate({
                         runId: run.id,
@@ -539,7 +539,7 @@ export default function AgentWorkflows() {
                     </button>
                   )}
                   {run.status === "failed" && (
-                    <button
+                    <button type="button"
                       className="text-warning vf-text-caption hover:underline"
                       onClick={() => transitionRun.mutate({
                         runId: run.id,

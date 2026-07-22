@@ -83,7 +83,7 @@ class HubSpotConnector(CRMConnector, CRMWriteConnector):
         except CRMError as e:
             return {
                 "success": False,
-                "message": str(e),
+                "message": "HubSpot connection failed",
                 "error_code": type(e).__name__.upper(),
             }
 

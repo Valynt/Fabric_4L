@@ -239,8 +239,8 @@ def test_list_findings_filters_by_repo(client: Any, tmp_path: Any, monkeypatch: 
 def test_trigger_audit_requires_repo_url(client: Any):
     """POST /run must reject requests without a repository URL."""
     response = client.post("/v1/repo-audit/run", json={})
-    assert response.status_code == 400
-    assert "repo_url" in response.json()["detail"].lower()
+    assert response.status_code == 422
+    assert any(error["loc"][-1] == "repo_url" for error in response.json()["detail"])
 
 
 @pytest.mark.unit
@@ -492,3 +492,19 @@ def test_background_run_async_persists_failure(
     assert run.status == "failed"
     assert run.tenant_id == tenant_id
     assert "simulated audit failure" in run.error_message
+
+
+@pytest.mark.unit
+def test_openapi_matches_audit_trigger_and_report_contract(app):
+    spec = app.openapi()
+    request_schema = spec["paths"]["/v1/repo-audit/run"]["post"]["requestBody"][
+        "content"
+    ]["application/json"]["schema"]
+    model_name = request_schema["$ref"].rsplit("/", 1)[-1]
+    trigger_model = spec["components"]["schemas"][model_name]
+    assert "repo_url" in trigger_model.get("required", [])
+
+    report_content = spec["paths"]["/v1/repo-audit/report/{run_id}"]["get"][
+        "responses"
+    ]["200"]["content"]
+    assert {"application/json", "text/markdown"} <= set(report_content)

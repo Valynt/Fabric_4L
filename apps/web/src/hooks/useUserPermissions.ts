@@ -43,7 +43,8 @@ export function useUserPermissions(requiredPermissions: string[]) {
 
   const hasPermissions = useMemo(() => {
     if (requiredPermissions.length === 0) return true;
-    return requiredPermissions.every((p) => grantedPermissions.includes(p));
+    const grantedSet = new Set(grantedPermissions);
+    return requiredPermissions.every((p) => grantedSet.has(p));
   }, [requiredPermissions, grantedPermissions]);
 
   return {

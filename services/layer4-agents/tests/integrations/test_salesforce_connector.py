@@ -65,6 +65,26 @@ class TestSalesforceConnectorTestConnection:
         assert result["success"] is False
         assert result["error_code"] == "AUTH_FAILED"
 
+    @pytest.mark.asyncio
+    async def test_transport_error_does_not_expose_provider_details(self) -> None:
+        connector = SalesforceConnector(
+            config={
+                "crm_api_key": "token",
+                "crm_instance_url": "https://test.salesforce.com",
+            }
+        )
+        connector._request = AsyncMock(
+            side_effect=TransientError("connection failed with secret-token")
+        )
+
+        result = await connector.test_connection()
+
+        assert result == {
+            "success": False,
+            "message": "Salesforce connection failed",
+            "error_code": "TRANSIENTERROR",
+        }
+
 
 class TestSalesforceConnectorRefreshToken:
     @pytest.mark.asyncio

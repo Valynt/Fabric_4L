@@ -368,14 +368,14 @@ export default function OntologyEditor() {
             </span>
           </div>
           <div className="space-y-1 max-h-[120px] overflow-y-auto">
-            {validationResult.errors.map((error, idx) => (
-              <div key={idx} className="flex items-start gap-2 vf-text-caption text-destructive">
+            {validationResult.errors.map((error) => (
+              <div key={error.message} className="flex items-start gap-2 vf-text-caption text-destructive">
                 <X size={12} className="mt-0.5 shrink-0" />
                 <span>{error.message}</span>
               </div>
             ))}
-            {validationResult.warnings.map((warning, idx) => (
-              <div key={idx} className="flex items-start gap-2 vf-text-caption text-warning">
+            {validationResult.warnings.map((warning) => (
+              <div key={warning.message} className="flex items-start gap-2 vf-text-caption text-warning">
                 <AlertCircle size={12} className="mt-0.5 shrink-0" />
                 <span>{warning.message}</span>
               </div>

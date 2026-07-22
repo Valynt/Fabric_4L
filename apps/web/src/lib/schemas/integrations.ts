@@ -42,8 +42,8 @@ export const SyncTriggerResultSchema = z.object({
 });
 
 export const OAuthAuthorizeResultSchema = z.object({
-  authorization_url: z.string().url().optional(),
-  authorize_url: z.string().url().optional(),
+  authorization_url: z.url().optional(),
+  authorize_url: z.url().optional(),
   state_expires_at: z.string(),
 }).refine((value) => Boolean(value.authorization_url || value.authorize_url), {
   message: "authorization_url or authorize_url is required",

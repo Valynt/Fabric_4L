@@ -98,7 +98,7 @@ const AppShell = memo(function AppShell({
           </div>
         </Link>
         <div className="flex-1 max-w-xs">
-          <button
+          <button type="button"
             onClick={() => setIsSearchOpen(true)}
             className="flex items-center gap-2 h-7 px-3 bg-muted rounded-full vf-text-caption text-muted-foreground border border-border hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer w-full"
           >
@@ -117,10 +117,10 @@ const AppShell = memo(function AppShell({
           )}>
             {`${t(`appShell.modes.${currentTier as UserMode}`)} ${t("appShell.modeSuffix")}`}
           </span>
-          <button className="w-7 h-7 rounded-full border border-border bg-secondary flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors">
+          <button type="button" className="w-7 h-7 rounded-full border border-border bg-secondary flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors">
             <Bell size={12}/>
           </button>
-          <button className="w-7 h-7 rounded-full bg-foreground text-background flex items-center justify-center vf-text-micro font-bold">
+          <button type="button" className="w-7 h-7 rounded-full bg-foreground text-background flex items-center justify-center vf-text-micro font-bold">
             <User size={12}/>
           </button>
         </div>

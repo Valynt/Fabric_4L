@@ -138,8 +138,7 @@ function sentenceFragments(notes: string): string[] {
 function extractPain(notes: string): string[] {
   const keywords = /(manual|delay|breach|churn|overhead|struggl|risk|inefficien|lag|slow|compliance|routing|cost)/i;
   return sentenceFragments(notes)
-    .filter(sentence => keywords.test(sentence))
-    .map(sentence => sentence.replace(/^[-*]\s*/, ""))
+    .flatMap(sentence => keywords.test(sentence) ? [sentence.replace(/^[-*]\s*/, "")] : [])
     .slice(0, 5);
 }
 
