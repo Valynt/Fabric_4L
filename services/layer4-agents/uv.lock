@@ -1793,6 +1793,7 @@ dependencies = [
     { name = "python-docx" },
     { name = "python-jose", extra = ["cryptography"] },
     { name = "python-multipart" },
+    { name = "pyyaml" },
     { name = "rdflib" },
     { name = "redis" },
     { name = "sentry-sdk" },
@@ -1807,6 +1808,7 @@ dependencies = [
 
 [package.optional-dependencies]
 dev = [
+    { name = "aiosqlite" },
     { name = "black" },
     { name = "factory-boy" },
     { name = "faker" },
@@ -1851,6 +1853,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "aiohttp", specifier = ">=3.14.1" },
+    { name = "aiosqlite", marker = "extra == 'dev'", specifier = ">=0.20.0" },
     { name = "asyncpg", specifier = ">=0.30.0" },
     { name = "authlib", specifier = ">=1.7.1,<2.0" },
     { name = "black", marker = "extra == 'dev'", specifier = ">=24.10.0" },
@@ -1896,6 +1899,7 @@ requires-dist = [
     { name = "python-docx", specifier = ">=1.1.0" },
     { name = "python-jose", extras = ["cryptography"], specifier = ">=3.3.0" },
     { name = "python-multipart", specifier = ">=0.0.31" },
+    { name = "pyyaml", specifier = ">=6.0.0" },
     { name = "rdflib", specifier = ">=7.0.0" },
     { name = "redis", specifier = ">=5.2.0" },
     { name = "respx", marker = "extra == 'dev'", specifier = ">=0.21.0" },
