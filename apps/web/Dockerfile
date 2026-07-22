@@ -25,9 +25,9 @@ ENV VITE_L5_PREFIX=${VITE_L5_PREFIX}
 ENV VITE_L6_PREFIX=${VITE_L6_PREFIX}
 ENV VITE_L7_PREFIX=${VITE_L7_PREFIX}
 
-# Activate pnpm via Corepack per repo policy (docs/development/BUILD_SYSTEM.md).
+# Install the exact pnpm version in the image per repo policy (docs/development/BUILD_SYSTEM.md).
 # Version is pinned explicitly to match root package.json "packageManager".
-RUN corepack enable && corepack prepare pnpm@10.18.1 --activate
+RUN npm install --global pnpm@10.18.1
 
 # Copy workspace manifests for pnpm --filter support
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
@@ -53,8 +53,8 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3000
 
-# Activate pnpm via Corepack per repo policy (version pinned to match root package.json).
-RUN corepack enable && corepack prepare pnpm@10.18.1 --activate
+# Install the exact pnpm version in the image per repo policy (version pinned to match root package.json).
+RUN npm install --global pnpm@10.18.1
 
 # Copy workspace manifests for pnpm --filter support
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
