@@ -501,6 +501,9 @@ jobs:
 
       - name: Generate OpenAPI spec from code
         working-directory: ./services/${{matrix.layer}}
+        env:
+          NEO4J_PASSWORD: ci-openapi-password
+          ENVIRONMENT: test
         run: |
           python -c "
           import sys
