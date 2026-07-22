@@ -1,16 +1,16 @@
-import { useMemo } from 'react';
-import { useStakeholdersData } from '@/features/intelligence-workspace/tabs/_shared/useWorkspaceData';
-import { useTruths } from '@/hooks/useGroundTruthGovernance';
-import { useROICalculations } from '@/hooks/useROICalculator';
-import type { ValueCaseArtifactsInput } from '@/hooks/useValueCaseArtifacts';
+import { useMemo } from "react";
+import { useStakeholdersData } from "@/features/intelligence-workspace/tabs/_shared/useWorkspaceData";
+import { useTruths } from "@/hooks/useGroundTruthGovernance";
+import { useROICalculations } from "@/hooks/useROICalculator";
+import type { ValueCaseArtifactsInput } from "@/hooks/useValueCaseArtifacts";
 
 export interface ValueCaseInputProvenance {
   source:
-    | 'workspace_stakeholder'
-    | 'l5_truth'
-    | 'roi_calculation'
-    | 'workspace_tab'
-    | 'manual';
+    | "workspace_stakeholder"
+    | "l5_truth"
+    | "roi_calculation"
+    | "workspace_tab"
+    | "manual";
   id?: string;
 }
 
@@ -40,11 +40,11 @@ export function useValueCaseGenerationInputs(
 ): ValueCaseGenerationInputsResult {
   const stakeholdersQuery = useStakeholdersData(caseId);
   const validatedTruthsQuery = useTruths(
-    { status: 'validated', applies_to_opportunity: accountId },
+    { status: "validated", applies_to_opportunity: accountId },
     { enabled: Boolean(accountId) }
   );
   const disputedTruthsQuery = useTruths(
-    { status: 'disputed', applies_to_opportunity: accountId },
+    { status: "disputed", applies_to_opportunity: accountId },
     { enabled: Boolean(accountId) }
   );
   const roiQuery = useROICalculations({ account_id: accountId });
@@ -56,6 +56,23 @@ export function useValueCaseGenerationInputs(
 
   const latestROI = roiCalculations[0] ?? null;
 
+  const isLoading =
+    stakeholdersQuery.isLoading ||
+    validatedTruthsQuery.isLoading ||
+    disputedTruthsQuery.isLoading ||
+    roiQuery.isLoading;
+
+  const isError =
+    stakeholdersQuery.isError ||
+    validatedTruthsQuery.isError ||
+    disputedTruthsQuery.isError ||
+    roiQuery.isError;
+
+  const error = (stakeholdersQuery.error ??
+    validatedTruthsQuery.error ??
+    disputedTruthsQuery.error ??
+    roiQuery.error) as Error | null;
+
   return useMemo(() => {
     const selectedStakeholders = stakeholders.slice(0, 5);
     const selectedEvidence = validatedTruths.slice(0, 5);
@@ -64,8 +81,8 @@ export function useValueCaseGenerationInputs(
     const draft: ValueCaseArtifactsInput = {
       account_id: accountId,
       account_name: accountName,
-      stakeholders: selectedStakeholders.map((s) => s.name),
-      accepted_evidence: selectedEvidence.map((t) => t.claim),
+      stakeholders: selectedStakeholders.map(s => s.name),
+      accepted_evidence: selectedEvidence.map(t => t.claim),
       scenario_assumptions: [],
       roi_metrics: latestROI
         ? {
@@ -73,48 +90,33 @@ export function useValueCaseGenerationInputs(
             roi: `${latestROI.total_roi_pct.toFixed(0)}%`,
             payback: `${latestROI.payback_months} months`,
           }
-        : { three_year_value: '', roi: '', payback: '' },
-      risk_notes: selectedRisks.map((t) => t.claim),
+        : { three_year_value: "", roi: "", payback: "" },
+      risk_notes: selectedRisks.map(t => t.claim),
     };
 
-    const provenance: Record<keyof ValueCaseArtifactsInput, ValueCaseInputProvenance[]> = {
-      account_id: [{ source: 'manual' }],
-      account_name: [{ source: 'manual' }],
-      stakeholders: selectedStakeholders.map((s) => ({
-        source: 'workspace_stakeholder',
+    const provenance: Record<
+      keyof ValueCaseArtifactsInput,
+      ValueCaseInputProvenance[]
+    > = {
+      account_id: [{ source: "manual" }],
+      account_name: [{ source: "manual" }],
+      stakeholders: selectedStakeholders.map(s => ({
+        source: "workspace_stakeholder",
         id: s.id,
       })),
-      accepted_evidence: selectedEvidence.map((t) => ({
-        source: 'l5_truth',
+      accepted_evidence: selectedEvidence.map(t => ({
+        source: "l5_truth",
         id: t.id,
       })),
-      scenario_assumptions: [],
+      scenario_assumptions: [{ source: "manual" }],
       roi_metrics: latestROI
-        ? [{ source: 'roi_calculation', id: latestROI.id }]
+        ? [{ source: "roi_calculation", id: latestROI.id }]
         : [],
-      risk_notes: selectedRisks.map((t) => ({
-        source: 'l5_truth',
+      risk_notes: selectedRisks.map(t => ({
+        source: "l5_truth",
         id: t.id,
       })),
     };
-
-    const isLoading =
-      stakeholdersQuery.isLoading ||
-      validatedTruthsQuery.isLoading ||
-      disputedTruthsQuery.isLoading ||
-      roiQuery.isLoading;
-
-    const isError =
-      stakeholdersQuery.isError ||
-      validatedTruthsQuery.isError ||
-      disputedTruthsQuery.isError ||
-      roiQuery.isError;
-
-    const error =
-      (stakeholdersQuery.error ??
-        validatedTruthsQuery.error ??
-        disputedTruthsQuery.error ??
-        roiQuery.error) as Error | null;
 
     return {
       draft,
@@ -131,9 +133,8 @@ export function useValueCaseGenerationInputs(
     validatedTruths,
     disputedTruths,
     latestROI,
-    stakeholdersQuery,
-    validatedTruthsQuery,
-    disputedTruthsQuery,
-    roiQuery,
+    isLoading,
+    isError,
+    error,
   ]);
 }

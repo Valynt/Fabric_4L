@@ -1,12 +1,18 @@
-import { useState, useEffect } from 'react';
-import { Loader2, Plus, X, AlertCircle } from 'lucide-react';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useValueCaseGenerationInputs } from '@/hooks/useValueCaseGenerationInputs';
-import type { ValueCaseArtifactsInput } from '@/hooks/useValueCaseArtifacts';
+import { useState, useEffect } from "react";
+import { Loader2, Plus, X, AlertCircle, RefreshCw } from "lucide-react";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useValueCaseGenerationInputs } from "@/hooks/useValueCaseGenerationInputs";
+import type { ValueCaseArtifactsInput } from "@/hooks/useValueCaseArtifacts";
 
 export interface ValueCaseGenerationPanelProps {
   accountId: string;
@@ -29,12 +35,12 @@ function EditableStringList({
   onChange: (items: string[]) => void;
   placeholder?: string;
 }) {
-  const [newItem, setNewItem] = useState('');
+  const [newItem, setNewItem] = useState("");
 
   const addItem = () => {
     if (!newItem.trim()) return;
     onChange([...items, newItem.trim()]);
-    setNewItem('');
+    setNewItem("");
   };
 
   const removeItem = (index: number) => {
@@ -46,7 +52,7 @@ function EditableStringList({
       <h4 className="text-sm font-medium">{label}</h4>
       <div className="flex flex-wrap gap-2">
         {items.map((item, index) => (
-          <Badge key={index} variant="secondary" className="gap-1">
+          <Badge key={`${item}-${index}`} variant="secondary" className="gap-1">
             {item}
             <button
               type="button"
@@ -62,16 +68,22 @@ function EditableStringList({
       <div className="flex gap-2">
         <Input
           value={newItem}
-          onChange={(e) => setNewItem(e.target.value)}
-          placeholder={placeholder ?? 'Add item'}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
+          onChange={e => setNewItem(e.target.value)}
+          placeholder={placeholder ?? "Add item"}
+          onKeyDown={e => {
+            if (e.key === "Enter") {
               e.preventDefault();
               addItem();
             }
           }}
         />
-        <Button type="button" variant="outline" size="icon" onClick={addItem}>
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          onClick={addItem}
+          aria-label={`Add ${label}`}
+        >
           <Plus className="h-4 w-4" />
         </Button>
       </div>
@@ -88,16 +100,28 @@ export function ValueCaseGenerationPanel({
   onGenerate,
   isGenerating,
 }: ValueCaseGenerationPanelProps) {
-  const { draft, isLoading, isError, error, isReady } = useValueCaseGenerationInputs(
-    accountId,
-    accountName,
-    caseId
-  );
+  const { draft, isLoading, isError, error, isReady } =
+    useValueCaseGenerationInputs(accountId, accountName, caseId);
   const [input, setInput] = useState<ValueCaseArtifactsInput>(draft);
+  const [isDirty, setIsDirty] = useState(false);
 
   useEffect(() => {
+    if (!isDirty) {
+      setInput(draft);
+    }
+  }, [draft, isDirty]);
+
+  const updateInput = (
+    updater: (prev: ValueCaseArtifactsInput) => ValueCaseArtifactsInput
+  ) => {
+    setInput(updater);
+    setIsDirty(true);
+  };
+
+  const handleReload = () => {
+    setIsDirty(false);
     setInput(draft);
-  }, [draft]);
+  };
 
   const handleGenerate = () => {
     onGenerate(input);
@@ -106,16 +130,32 @@ export function ValueCaseGenerationPanel({
   const hasMinimumData =
     input.stakeholders.length > 0 ||
     input.accepted_evidence.length > 0 ||
-    input.roi_metrics.three_year_value !== '';
+    input.roi_metrics.three_year_value !== "";
 
   return (
-    <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
+    <Sheet open={isOpen} onOpenChange={open => !open && onClose()}>
       <SheetContent className="w-full sm:max-w-md flex flex-col">
         <SheetHeader>
-          <SheetTitle>Generate Value Case</SheetTitle>
-          <SheetDescription>
-            Review and edit the inputs that will be used to generate the value case for {accountName}.
-          </SheetDescription>
+          <div className="flex items-start justify-between gap-4">
+            <div className="space-y-1">
+              <SheetTitle>Generate Value Case</SheetTitle>
+              <SheetDescription>
+                Review and edit the inputs that will be used to generate the
+                value case for {accountName}.
+              </SheetDescription>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleReload}
+              disabled={isLoading || isGenerating}
+              aria-label="Reload from workspace"
+            >
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Reload
+            </Button>
+          </div>
         </SheetHeader>
 
         <div className="flex-1 overflow-y-auto py-4 space-y-6">
@@ -130,7 +170,7 @@ export function ValueCaseGenerationPanel({
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                {error?.message ?? 'Failed to load some workspace data.'}
+                {error?.message ?? "Failed to load some workspace data."}
               </AlertDescription>
             </Alert>
           )}
@@ -139,7 +179,8 @@ export function ValueCaseGenerationPanel({
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                No workspace data found. Add stakeholders, evidence, or run the ROI calculator before generating.
+                No workspace data found. Add stakeholders, evidence, or run the
+                ROI calculator before generating.
               </AlertDescription>
             </Alert>
           )}
@@ -147,22 +188,26 @@ export function ValueCaseGenerationPanel({
           <EditableStringList
             label="Stakeholders"
             items={input.stakeholders}
-            onChange={(stakeholders) => setInput((prev) => ({ ...prev, stakeholders }))}
+            onChange={stakeholders =>
+              updateInput(prev => ({ ...prev, stakeholders }))
+            }
             placeholder="Add stakeholder"
           />
 
           <EditableStringList
             label="Accepted Evidence"
             items={input.accepted_evidence}
-            onChange={(accepted_evidence) => setInput((prev) => ({ ...prev, accepted_evidence }))}
+            onChange={accepted_evidence =>
+              updateInput(prev => ({ ...prev, accepted_evidence }))
+            }
             placeholder="Add evidence claim"
           />
 
           <EditableStringList
             label="Scenario Assumptions"
             items={input.scenario_assumptions}
-            onChange={(scenario_assumptions) =>
-              setInput((prev) => ({ ...prev, scenario_assumptions }))
+            onChange={scenario_assumptions =>
+              updateInput(prev => ({ ...prev, scenario_assumptions }))
             }
             placeholder="Add assumption"
           />
@@ -172,10 +217,13 @@ export function ValueCaseGenerationPanel({
             <div className="grid grid-cols-3 gap-2">
               <Input
                 value={input.roi_metrics.three_year_value}
-                onChange={(e) =>
-                  setInput((prev) => ({
+                onChange={e =>
+                  updateInput(prev => ({
                     ...prev,
-                    roi_metrics: { ...prev.roi_metrics, three_year_value: e.target.value },
+                    roi_metrics: {
+                      ...prev.roi_metrics,
+                      three_year_value: e.target.value,
+                    },
                   }))
                 }
                 placeholder="3-Year Value"
@@ -183,8 +231,8 @@ export function ValueCaseGenerationPanel({
               />
               <Input
                 value={input.roi_metrics.roi}
-                onChange={(e) =>
-                  setInput((prev) => ({
+                onChange={e =>
+                  updateInput(prev => ({
                     ...prev,
                     roi_metrics: { ...prev.roi_metrics, roi: e.target.value },
                   }))
@@ -194,10 +242,13 @@ export function ValueCaseGenerationPanel({
               />
               <Input
                 value={input.roi_metrics.payback}
-                onChange={(e) =>
-                  setInput((prev) => ({
+                onChange={e =>
+                  updateInput(prev => ({
                     ...prev,
-                    roi_metrics: { ...prev.roi_metrics, payback: e.target.value },
+                    roi_metrics: {
+                      ...prev.roi_metrics,
+                      payback: e.target.value,
+                    },
                   }))
                 }
                 placeholder="Payback"
@@ -209,7 +260,9 @@ export function ValueCaseGenerationPanel({
           <EditableStringList
             label="Risk Notes"
             items={input.risk_notes}
-            onChange={(risk_notes) => setInput((prev) => ({ ...prev, risk_notes }))}
+            onChange={risk_notes =>
+              updateInput(prev => ({ ...prev, risk_notes }))
+            }
             placeholder="Add risk note"
           />
         </div>
@@ -218,7 +271,10 @@ export function ValueCaseGenerationPanel({
           <Button variant="outline" onClick={onClose} disabled={isGenerating}>
             Cancel
           </Button>
-          <Button onClick={handleGenerate} disabled={!isReady || isGenerating || !hasMinimumData}>
+          <Button
+            onClick={handleGenerate}
+            disabled={!isReady || isGenerating || !hasMinimumData}
+          >
             {isGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Generate Value Case
           </Button>
