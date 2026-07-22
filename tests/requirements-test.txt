@@ -23,6 +23,7 @@ pytest-cov>=6.0.0
 pytest-timeout>=2.3.0
 pytest-randomly>=3.16.0
 pytest-xdist>=3.8.0
+pytest-json-report>=1.5.0
 
 # ---------------------------------------------------------------------------
 # Async / HTTP

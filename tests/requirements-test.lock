@@ -2315,6 +2315,8 @@ pytest==9.1.1 \
     #   -r tests/requirements-test.txt
     #   pytest-asyncio
     #   pytest-cov
+    #   pytest-json-report
+    #   pytest-metadata
     #   pytest-randomly
     #   pytest-timeout
     #   pytest-xdist
@@ -2327,6 +2329,14 @@ pytest-cov==7.1.0 \
     --hash=sha256:30674f2b5f6351aa09702a9c8c364f6a01c27aae0c1366ae8016160d1efc56b2 \
     --hash=sha256:a0461110b7865f9a271aa1b51e516c9a95de9d696734a2f71e3e78f46e1d4678
     # via -r tests/requirements-test.txt
+pytest-json-report==1.5.0 \
+    --hash=sha256:2dde3c647851a19b5f3700729e8310a6e66efb2077d674f27ddea3d34dc615de \
+    --hash=sha256:9897b68c910b12a2e48dd849f9a284b2c79a732a8a9cb398452ddd23d3c8c325
+    # via -r tests/requirements-test.txt
+pytest-metadata==3.1.1 \
+    --hash=sha256:c8e0844db684ee1c798cfa38908d20d67d0463ecb6137c72e91f418558dd5f4b \
+    --hash=sha256:d2a29b0355fbc03f168aa96d41ff88b1a3b44a3b02acbe491801c98a048017c8
+    # via pytest-json-report
 pytest-randomly==4.1.0 \
     --hash=sha256:47f1d9746c3bc3efabd53ae1ebfb8bb385cf3d4df4b505b6d58d9c97a3dfe70f \
     --hash=sha256:f55e89e53367b090c0c053697d7f9d77595543d0e0516c93978b50c0f6b252f9

@@ -2424,29 +2424,11 @@ jobs:
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
 
-      - name: Set up Python
-        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
+      - name: Set up deterministic root test and workspace dependencies
+        uses: ./.github/actions/setup-fabric-ci
         with:
-          python-version: "3.11"
-          cache: "pip"
-
-      - name: Install gate-engineering dependencies
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install jsonschema pyyaml
-
-      - name: Enable pnpm
-        uses: pnpm/action-setup@v3
-        with:
-          version: "10.18.1"
-
-      - name: Set up Node.js
-        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4
-        with:
-          node-version: "22.18.0"
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+          python-dependency-mode: root-test
+          install-node-deps: 'true'
 
       - name: Check canonical gate artifact paths
         run: |
