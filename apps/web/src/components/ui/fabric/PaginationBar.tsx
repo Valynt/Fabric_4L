@@ -146,7 +146,7 @@ export function PaginationBar({
       <Pagination className="w-auto">
         <PaginationContent className="flex items-center gap-1">
           <PaginationItem>
-            <button
+            <button type="button"
               onClick={onPrevious}
               disabled={!canPrevious}
               className={cn(
@@ -161,7 +161,7 @@ export function PaginationBar({
           </PaginationItem>
 
           {pageNumbers.map((p, index) => (
-            <React.Fragment key={index}>
+            <React.Fragment key={typeof p === 'number' ? p : `ellipsis-${index}`}>
               {p === "..." ? (
                 <PaginationItem>
                   <PaginationEllipsis>
@@ -183,7 +183,7 @@ export function PaginationBar({
           ))}
 
           <PaginationItem>
-            <button
+            <button type="button"
               onClick={onNext}
               disabled={!canNext}
               className={cn(

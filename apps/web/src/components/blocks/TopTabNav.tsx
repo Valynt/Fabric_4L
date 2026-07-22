@@ -51,7 +51,7 @@ export function TopTabNav({ tabs, activeTab, onChange, className }: TopTabNavPro
       {tabs.map((tab) => {
         const isActive = activeTab === tab.id;
         return (
-          <button
+          <button type="button"
             key={tab.id}
             onClick={() => onChange(tab.id)}
             role="tab"

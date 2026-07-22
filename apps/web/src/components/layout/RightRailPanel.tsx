@@ -54,7 +54,7 @@ export function RightRailPanel({
           <h3 className="text-sm font-semibold text-foreground leading-tight">{title}</h3>
           {status && <div className="mt-1">{status}</div>}
         </div>
-        <button 
+        <button type="button" 
           onClick={onClose}
           className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors flex-shrink-0"
           aria-label="Close panel"

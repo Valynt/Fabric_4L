@@ -152,8 +152,8 @@ export default function CFOView() {
           <h3 className="vf-text-body-l font-bold text-foreground mb-3">Key Recommendations</h3>
           {bc.recommendations.length > 0 ? (
             <div className="space-y-2">
-              {bc.recommendations.map((rec, i) => (
-                <div key={i} className="flex items-start gap-2 p-2 bg-muted rounded-md">
+              {bc.recommendations.map((rec) => (
+                <div key={rec} className="flex items-start gap-2 p-2 bg-muted rounded-md">
                   <BarChart3 size={12} className="text-primary mt-0.5 shrink-0" />
                   <span className="vf-text-body-s text-foreground">{rec}</span>
                 </div>
@@ -173,8 +173,8 @@ export default function CFOView() {
         <SectionCard className="mt-4">
           <h3 className="vf-text-body-l font-bold text-foreground mb-3">Risk & Remediation Items</h3>
           <div className="space-y-2">
-            {bc.remediation_items.map((item, i) => (
-              <div key={i} className="flex items-start gap-2 p-2 rounded-md border border-warning/20 bg-warning/5">
+            {bc.remediation_items.map((item) => (
+              <div key={String(item.description || item.title)} className="flex items-start gap-2 p-2 rounded-md border border-warning/20 bg-warning/5">
                 <AlertCircle size={12} className="text-warning mt-0.5 shrink-0" />
                 <span className="vf-text-body-s text-foreground">{String(item.description || item.title || JSON.stringify(item))}</span>
               </div>

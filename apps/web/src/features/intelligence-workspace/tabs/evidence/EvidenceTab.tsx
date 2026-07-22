@@ -177,13 +177,11 @@ export default function EvidenceTab() {
                   <span className="vf-text-caption text-foreground">{selected.linkedDriver}</span>
                 </Block>
               )}
-              <a
-                href="#"
-                onClick={(e) => e.preventDefault()}
+              <button type="button"
                 className="inline-flex items-center gap-1 vf-text-micro font-medium text-primary hover:underline"
               >
                 <ExternalLink className="h-3 w-3" /> View source
-              </a>
+              </button>
               {decision.isError && (
                 <p className="vf-text-micro text-destructive">Could not save your decision. Try again.</p>
               )}

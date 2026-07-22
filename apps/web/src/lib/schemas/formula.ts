@@ -35,7 +35,7 @@ export const FormulaSchema = z.object({
   used_in_count: z.number().int().min(0).optional().default(0),
   governance_score: z.number().min(0).max(1).optional(),
   last_reviewed: z.string().optional(),
-  reviewers: z.array(z.string().email('Reviewer must be a valid email')).optional(),
+  reviewers: z.array(z.email('Reviewer must be a valid email')).optional(),
   expression: z.string().optional(),
   variables: z.union([
     z.array(z.string().min(1, 'Variable names must be non-empty strings')),
@@ -49,11 +49,11 @@ export const ApprovalStatusSchema = z.enum(['pending', 'approved', 'rejected']);
 
 /** Schema for formula approval request workflow */
 export const ApprovalRequestSchema = z.object({
-  id: z.string().uuid('ID must be a valid UUID'),
+  id: z.uuid('ID must be a valid UUID'),
   formula_id: z.string(),
   formula_name: z.string().min(1, 'Formula name is required'),
-  submitted_by: z.string().email('Submitter must be a valid email'),
-  submitted_at: z.string().datetime({ message: 'Submitted at must be ISO 8601 datetime' }),
+  submitted_by: z.email('Submitter must be a valid email'),
+  submitted_at: z.iso.datetime({ message: 'Submitted at must be ISO 8601 datetime' }),
   change_summary: z.string().min(1, 'Change summary is required'),
   previous_version: z.string().regex(/^\d+\.\d+(\.\d+)?$/, 'Version must follow semantic versioning'),
   status: ApprovalStatusSchema,

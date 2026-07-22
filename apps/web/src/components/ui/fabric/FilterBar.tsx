@@ -35,7 +35,7 @@ export function FilterBar({
             className="h-8 pl-9 pr-9 text-sm"
           />
           {searchValue && (
-            <button
+            <button type="button"
               onClick={onClearSearch}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
             >

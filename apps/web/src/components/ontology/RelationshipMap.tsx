@@ -181,7 +181,7 @@ export function RelationshipMap({
           const isSelected = selectedTypeId === type.id;
 
           return (
-            <button
+            <button type="button"
               key={type.id}
               onClick={() => onSelectType(type.id)}
               className={cn(

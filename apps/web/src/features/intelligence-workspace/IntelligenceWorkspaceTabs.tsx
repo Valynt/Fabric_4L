@@ -25,7 +25,7 @@ export default function IntelligenceWorkspaceTabs() {
 
   const renderTab = (tab: WorkspaceTabDef, emphasized: boolean) => (
     <Link key={tab.id} to={workspacePath(tenantSlug ?? "", accountId ?? "", tab.id)}>
-      <button
+      <button type="button"
         role="tab"
         aria-selected={activeTab === tab.id}
         title={tab.description}

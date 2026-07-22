@@ -97,7 +97,7 @@ export default function ReviewQueuePage() {
         <p className="text-sm text-muted-foreground">
           {reviews?.length ?? 0} review request{(reviews?.length ?? 0) !== 1 ? "s" : ""}
         </p>
-        <button
+        <button type="button"
           onClick={handleSubmitForReview}
           disabled={createReview.isPending}
           className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
@@ -139,19 +139,19 @@ export default function ReviewQueuePage() {
 
             {review.status === "pending" && (
               <div className="flex items-center gap-2 mb-3">
-                <button
+                <button type="button"
                   onClick={() => handleStatusChange(review.id, "approved")}
                   className="inline-flex items-center gap-1 rounded-md bg-success px-3 py-1.5 text-xs font-medium text-success-foreground hover:bg-success/90"
                 >
                   <CheckCircle className="h-3 w-3" /> Approve
                 </button>
-                <button
+                <button type="button"
                   onClick={() => handleStatusChange(review.id, "changes_requested")}
                   className="inline-flex items-center gap-1 rounded-md bg-warning px-3 py-1.5 text-xs font-medium text-warning-foreground hover:bg-warning/90"
                 >
                   <MessageCircle className="h-3 w-3" /> Request Changes
                 </button>
-                <button
+                <button type="button"
                   onClick={() => handleStatusChange(review.id, "rejected")}
                   className="inline-flex items-center gap-1 rounded-md bg-destructive px-3 py-1.5 text-xs font-medium text-destructive-foreground hover:bg-destructive/90"
                 >
@@ -172,7 +172,7 @@ export default function ReviewQueuePage() {
                   placeholder="Add a comment..."
                   className="flex-1"
                 />
-                <button
+                <button type="button"
                   onClick={handleAddComment}
                   disabled={addComment.isPending || !commentText.trim()}
                   className="rounded-md bg-secondary px-3 py-1.5 text-xs font-medium hover:bg-secondary/80 disabled:opacity-50"
@@ -190,7 +190,7 @@ export default function ReviewQueuePage() {
             title="No review requests yet"
             description="Submit this account for review to start the approval workflow."
             action={
-              <button
+              <button type="button"
                 onClick={handleSubmitForReview}
                 disabled={createReview.isPending}
                 className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"

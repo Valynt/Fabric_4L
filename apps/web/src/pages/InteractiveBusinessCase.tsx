@@ -157,12 +157,12 @@ function C1ComponentRenderer({
 
   return (
     <div className="space-y-4">
-      {components.map((comp, idx) => {
+      {components.map((comp) => {
         switch (comp.type) {
           case 'MetricCard':
             return (
               <MetricCard
-                key={idx}
+                key={String(comp.props.name ?? comp.props.label ?? comp.type)}
                 label={comp.props.label as string}
                 value={comp.props.value as number}
                 delta={comp.props.delta as number | undefined}
@@ -174,7 +174,7 @@ function C1ComponentRenderer({
           case 'Slider':
             return (
               <SliderControl
-                key={idx}
+                key={String(comp.props.name ?? comp.type)}
                 label={comp.props.label as string}
                 name={comp.props.name as string}
                 value={comp.props.value as number}
@@ -189,7 +189,7 @@ function C1ComponentRenderer({
 
           case 'SaveScenarioButton':
             return (
-              <div key={idx} className="flex items-center gap-2">
+              <div key={comp.type} className="flex items-center gap-2">
                 <Input
                   placeholder="Scenario name..."
                   value={newScenarioName}
@@ -213,7 +213,7 @@ function C1ComponentRenderer({
 
           case 'ScenarioSelector':
             return savedScenarios.length > 0 ? (
-              <div key={idx} className="bg-muted rounded-lg p-3">
+              <div key={comp.type} className="bg-muted rounded-lg p-3">
                 <div className="text-sm font-medium text-foreground mb-2">Saved Scenarios</div>
                 <div className="flex flex-wrap gap-2">
                   {savedScenarios.map((scenario) => (
@@ -232,7 +232,7 @@ function C1ComponentRenderer({
 
           default:
             return (
-              <div key={idx} className="text-sm text-muted-foreground italic">
+              <div key={comp.type} className="text-sm text-muted-foreground italic">
                 Unknown component: {comp.type}
               </div>
             );
@@ -299,11 +299,10 @@ export default function InteractiveBusinessCase() {
   const handleSaveScenario = useCallback((name: string) => {
     // Get current slider values from C1 components
     const adjustments = c1State.components
-      .filter(c => c.type === 'Slider')
-      .map(c => ({
+      .flatMap(c => c.type === 'Slider' ? [{
         name: c.props.name as string,
         value: c.props.value as number,
-      }));
+      }] : []);
 
     const id = saveCurrentScenario(name, adjustments);
     setSavedScenarios(prev => [...prev, { id, name }]);

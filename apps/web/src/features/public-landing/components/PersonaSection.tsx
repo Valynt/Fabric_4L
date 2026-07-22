@@ -76,7 +76,7 @@ export function PersonaSection() {
             {personas.map((p) => {
               const Icon = p.icon;
               return (
-                <button
+                <button type="button"
                   key={p.id}
                   onClick={() => setActive(p.id)}
                   role="tab"
@@ -133,7 +133,7 @@ export function PersonaSection() {
             const Icon = p.icon;
             return (
               <FadeIn key={p.id} delay={i * 0.08}>
-                <button
+                <button type="button"
                   onClick={() => setActive(active === p.id ? "" : p.id)}
                   aria-expanded={active === p.id}
                   className={`w-full text-left rounded-xl border p-5 transition-all ${

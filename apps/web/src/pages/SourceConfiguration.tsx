@@ -177,7 +177,7 @@ function SourceCard({
         </div>
         {/* Actions */}
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button
+          <button type="button"
             onClick={(e) => { e.stopPropagation(); onExecute(); }}
             disabled={isExecuting}
             className="p-2 rounded hover:bg-success/10 text-muted-foreground/60 hover:text-success disabled:opacity-50"
@@ -185,7 +185,7 @@ function SourceCard({
           >
             {isExecuting ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
           </button>
-          <button
+          <button type="button"
             onClick={(e) => { e.stopPropagation(); onTest(); }}
             disabled={isTesting}
             className="p-2 rounded hover:bg-muted/30 text-muted-foreground/60 hover:text-muted-foreground disabled:opacity-50"
@@ -193,7 +193,7 @@ function SourceCard({
           >
             <TestTube size={14} />
           </button>
-          <button
+          <button type="button"
             onClick={(e) => { e.stopPropagation(); onDelete(); }}
             className="p-2 rounded hover:bg-destructive/10 text-muted-foreground/60 hover:text-destructive"
             title="Delete source"
@@ -264,8 +264,8 @@ function SourceCard({
                     </tr>
                   </thead>
                   <tbody>
-                    {source.fieldMappings.map((mapping, idx) => (
-                      <tr key={idx} className="border-t border-border">
+                    {source.fieldMappings.map((mapping) => (
+                      <tr key={mapping.sourceField} className="border-t border-border">
                         <td className="px-3 py-2 font-mono text-muted-foreground">{mapping.sourceField}</td>
                         <td className="px-3 py-2 text-center text-muted-foreground/60">→</td>
                         <td className="px-3 py-2 font-mono text-muted-foreground">{mapping.targetField}</td>

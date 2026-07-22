@@ -22,7 +22,7 @@ import { useTarget, useCreateTarget, useUpdateTarget, type Target, type CreateTa
 
 const schema = z.object({
   name: z.string().min(1, 'Name is required').max(255),
-  url: z.string().url('Must be a valid URL'),
+  url: z.url('Must be a valid URL'),
   urlPattern: z.string().optional(),
   targetType: z.enum(['SINGLE_PAGE', 'PAGINATED', 'SPIDER', 'API_ENDPOINT']),
   sourceCategory: z.string().optional(),

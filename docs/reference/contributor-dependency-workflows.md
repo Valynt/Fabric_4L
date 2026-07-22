@@ -43,6 +43,7 @@ Each maintained Python service follows a service-local dependency boundary. Use 
 
 ### Canonical lockfiles
 
+- `services/billing/uv.lock`
 - `services/layer1-ingestion/uv.lock`
 - `services/layer2-extraction/uv.lock`
 - `services/layer3-knowledge/uv.lock`

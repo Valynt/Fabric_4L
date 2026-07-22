@@ -254,9 +254,9 @@ export function SettingsLayout() {
                     <h3 className="text-xs font-semibold text-warning dark:text-warning">
                       Restrictions
                     </h3>
-                    {access.restrictions.map((r: string, i: number) => (
+                    {access.restrictions.map((r: string) => (
                       <p
-                        key={i}
+                        key={r}
                         className="vf-text-caption text-warning dark:text-warning"
                       >
                         • {r}
