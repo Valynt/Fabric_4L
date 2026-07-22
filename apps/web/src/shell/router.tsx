@@ -54,6 +54,7 @@ const GovernanceAdminControls = lazy(() => import("@/app/settings/pages/Governan
 const ClerkSignInPage = lazy(() => import("@/pages/ClerkSignIn"));
 const ClerkSignUpPage = lazy(() => import("@/pages/ClerkSignUp"));
 const ClerkSsoCallbackPage = lazy(() => import("@/pages/ClerkSsoCallback"));
+const AcceptInvitePage = lazy(() => import("@/pages/AcceptInvite"));
 const SelectOrganizationPage = lazy(() => import("@/pages/SelectOrganization"));
 const OnboardingPage = lazy(() => import("@/pages/Onboarding"));
 const ValueNarrativeHome = lazy(() => import("@/pages/ValueNarrativeHome"));
@@ -284,6 +285,11 @@ export const router = createBrowserRouter([
   {
     path: "/sign-up/*",
     element: <ClerkSignUpPage />,
+    handle: { accessPolicy: authPolicy },
+  },
+  {
+    path: "/accept-invite",
+    element: <AcceptInvitePage />,
     handle: { accessPolicy: authPolicy },
   },
   {

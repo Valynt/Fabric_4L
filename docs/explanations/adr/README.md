@@ -89,6 +89,10 @@ An ADR is ready for review only when it includes:
 | [ADR-032](./ADR-032-ui-route-state-ratification.md) | UI Route/State Progression Contract Ratification | ✅ Accepted | 2026-07-10 |
 | [ADR-033](./ADR-033-tool-boundary-ratification.md) | Tool Invocation Boundary Contract Ratification | ✅ Accepted | 2026-07-10 |
 | [ADR-034](./ADR-034-request-context-contract.md) | RequestContext Contract Definition | ✅ Accepted | 2026-05-25 |
+| [ADR-035](./ADR-035-verified-tenant-context-boundary.md) | Verified Tenant Context Boundary | Accepted — partially implemented | 2026-07-20 |
+| [ADR-036](./ADR-036-tenant-bound-graph-query-execution.md) | Tenant-Bound Graph Query Execution | Proposed | 2026-07-20 |
+| [ADR-037](./ADR-037-separation-of-workflow-state-context-and-orchestration.md) | Separation of Workflow State, Context, and Orchestration | Proposed | 2026-07-20 |
+| [ADR-038](./ADR-038-externalized-secret-management-and-automated-detection.md) | Externalized Secret Management and Automated Secret Detection | Accepted — partially implemented | 2026-07-20 |
 
 ---
 
@@ -169,4 +173,4 @@ To propose a new ADR:
 
 ---
 
-*Last updated: 2026-06-23*
+*Last updated: 2026-07-20*
