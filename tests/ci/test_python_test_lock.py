@@ -27,3 +27,4 @@ def test_checker_rejects_missing_lock(tmp_path: Path) -> None:
     checker = _load_checker()
     requirements = tmp_path / "requirements-test.txt"
     requirements.write_text("pytest>=8.3\n", encoding="utf-8")
+    assert checker.check_lock(requirements, tmp_path / "missing.lock") == 1
