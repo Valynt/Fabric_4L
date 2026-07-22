@@ -115,3 +115,5 @@ protobuf>=5.0.0,<7.0.0  # Compatible with the OpenTelemetry protobuf runtime use
 # HTML parsing (used by security tests)
 # ---------------------------------------------------------------------------
 # beautifulsoup4 already listed above
+
+toml>=0.10.2
