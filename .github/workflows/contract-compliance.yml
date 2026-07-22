@@ -348,6 +348,15 @@ jobs:
           python-version: '3.11'
           cache: pip
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: "10.18.1"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.18.0"
       - name: Run Platform Contract Lint
         run: python scripts/ci/platform_contract_lint.py
 

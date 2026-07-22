@@ -104,13 +104,12 @@ jobs:
           format: sarif
           output: trivy-${{ matrix.service }}.sarif
 
-      - name: Trivy HTML report
+      - name: Trivy JSON report
         uses: aquasecurity/trivy-action@314ff8b43182423b84c50b1670b0e10f858f2d98 # master (post-v0.36.0)
         with:
           image-ref: ${{ steps.mode.outputs.publish == 'true' && format('{0}/fabric_4l/{1}:{2}', env.REGISTRY, matrix.service, github.sha) || format('{0}:local-{1}', matrix.service, github.sha) }}
-          format: template
-          template: '@contrib/html.tpl'
-          output: trivy-${{ matrix.service }}.html
+          format: json
+          output: trivy-${{ matrix.service }}.json
 
       - name: Generate SBOM (CycloneDX)
         uses: anchore/sbom-action@v0
