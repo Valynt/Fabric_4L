@@ -198,6 +198,21 @@ jobs:
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
+      # Trivy's config scanner renders Helm charts; fetch sub-chart
+      # dependencies first so infra/helm/fabric-chart renders correctly.
+      - name: Setup Helm
+        uses: azure/setup-helm@bf6a7d304bc2fdb57e0331155b7ebf2c504acf0a # v4
+        with:
+          version: "v3.16.2"
+
+      - name: Build Helm chart dependencies
+        # Repos must be registered because Chart.lock is committed (helm
+        # dependency build resolves locked deps through named repositories).
+        run: |
+          helm repo add bitnami https://charts.bitnami.com/bitnami
+          helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+          helm dependency build infra/helm/fabric-chart
+
       - name: Run Trivy repository scanner
         uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
         with:
@@ -535,8 +550,18 @@ jobs:
       - name: Run bandit scan
         working-directory: services/${{matrix.layer}}
         run: |
-          bandit -r src/ -ll -ii --format json --output bandit-report.json || true
+          # Bandit exit codes: 0 = clean, 1 = findings exist (handled via the
+          # JSON report below), >1 = execution/setup error (must fail the step).
+          set +e
+          bandit -r src/ -ll -ii --format json --output bandit-report.json
+          json_rc=$?
           bandit -r src/ -ll -ii --format screen
+          screen_rc=$?
+          set -e
+          if [ "$json_rc" -gt 1 ] || [ "$screen_rc" -gt 1 ]; then
+            echo "::error::Bandit execution failed (json exit=$json_rc, screen exit=$screen_rc) before producing a findings report"
+            exit 1
+          fi
           if [ -s bandit-report.json ]; then
             echo "Bandit issues found - checking severity"
             python3 << 'PYEOF'

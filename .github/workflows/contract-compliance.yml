@@ -478,7 +478,7 @@ jobs:
         include:
           - layer: layer3-knowledge
             port: 8003
-            module: layer3_knowledge.api.main
+            module: api.main
           - layer: layer5-ground-truth
             port: 8005
             module: layer5_ground_truth.api.main
@@ -501,6 +501,9 @@ jobs:
 
       - name: Generate OpenAPI spec from code
         working-directory: ./services/${{matrix.layer}}
+        env:
+          NEO4J_PASSWORD: ci-openapi-password
+          ENVIRONMENT: test
         run: |
           python -c "
           import sys
@@ -560,6 +563,9 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Install deterministic root test dependencies
+        run: python -m pip install --require-hashes -r tests/requirements-test.lock
+
       - name: Compare OpenAPI specs
         id: compare
         run: |
@@ -567,7 +573,6 @@ jobs:
             python services/layer5-ground-truth/scripts/check_openapi_contract.py \
               > drift-report-${{matrix.layer}}.md 2>&1 || EXIT_CODE=$?
           else
-            pip install jsondiff
             python scripts/compare_openapi.py \
               contracts/openapi/${{matrix.layer}}.json \
               generated/generated-openapi.json \
@@ -623,9 +628,8 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install dependencies
-        run: |
-          pip install pytest pytest-asyncio httpx
+      - name: Install deterministic root test dependencies
+        run: python -m pip install --require-hashes -r tests/requirements-test.lock
 
       - name: Run contract tests
         run: |
@@ -658,7 +662,10 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: pip install pytest httpx
+        # Canonical test profile: provides pytest plus the plugins the root
+        # pytest.ini addopts require (pytest-timeout, pytest-randomly) and the
+        # root conftest imports (pyyaml); httpx is included in the profile.
+        run: python -m pip install --require-hashes -r tests/requirements-test.lock
 
       - name: Run representative shape regression tests
         run: pytest tests/contract/test_api_shape_regression.py -v --tb=short

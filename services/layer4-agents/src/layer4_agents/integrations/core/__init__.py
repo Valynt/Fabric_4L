@@ -6,8 +6,8 @@ from .errors import (
     AuthError,
     CRMError,
     MappingError,
-    PermissionError_,
     PermanentError,
+    PermissionError_,
     TransientError,
     classify_http_status,
     classify_httpx_exception,
@@ -19,9 +19,9 @@ from .state import (
     reduce,
 )
 from .types import (
+    CanonicalRecord,
     CRMModel,
     CRMOperationResult,
-    CanonicalRecord,
     SyncCursor,
 )
 

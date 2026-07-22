@@ -26,10 +26,10 @@ from ..integrations.core.connector import CRMConnector
 from ..integrations.core.errors import AuthError, TransientError
 from ..integrations.core.observations import (
     ErrorClass,
-    SyncFailed,
-    SyncPartial,
-    SyncStarted,
-    SyncSucceeded,
+    sync_failed,
+    sync_partial,
+    sync_started,
+    sync_succeeded,
 )
 from ..integrations.core.state import apply_observation
 from ..integrations.factory import get_connector
@@ -151,7 +151,7 @@ class CRMSyncService:
             },
         )
 
-        # Emit SyncStarted observation on the Integration row
+        # Emit sync_started observation on the Integration row
         integration_result = await self.db.execute(
             select(Integration).where(
                 and_(
@@ -162,7 +162,7 @@ class CRMSyncService:
         )
         integration = integration_result.scalar_one_or_none()
         if isinstance(integration, Integration):
-            await apply_observation(self.db, integration, SyncStarted())
+            await apply_observation(self.db, integration, sync_started())
 
         # Update AccountSyncStatus to running
         await self._update_account_sync_status(tenant_id, provider, "running", None)
@@ -242,13 +242,13 @@ class CRMSyncService:
             # Emit observation on Integration row
             if isinstance(integration, Integration):
                 if final_status == "idle":
-                    await apply_observation(self.db, integration, SyncSucceeded())
+                    await apply_observation(self.db, integration, sync_succeeded())
                     integration.last_error_message = None
                 elif final_status == "degraded":
-                    await apply_observation(self.db, integration, SyncPartial(message=final_error))
+                    await apply_observation(self.db, integration, sync_partial(message=final_error))
                     integration.last_error_message = final_error
                 elif final_status == "failed":
-                    await apply_observation(self.db, integration, SyncFailed(message=final_error))
+                    await apply_observation(self.db, integration, sync_failed(message=final_error))
                     integration.last_error_message = final_error
 
             await self._update_account_sync_status(
@@ -312,7 +312,7 @@ class CRMSyncService:
             if isinstance(integration, Integration):
                 error_cls = ErrorClass.AUTH if isinstance(e, AuthError) else ErrorClass.TRANSIENT
                 await apply_observation(
-                    self.db, integration, SyncFailed(error_class=error_cls, message="SYNC_ERROR")
+                    self.db, integration, sync_failed(error_class=error_cls, message="SYNC_ERROR")
                 )
                 integration.last_error_message = "SYNC_ERROR"[:1000]
             await self._update_account_sync_status(

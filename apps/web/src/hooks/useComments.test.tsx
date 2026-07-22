@@ -74,3 +74,18 @@ describe('useComments', () => {
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: QK.comments.all });
   });
 });
+
+describe('useComments filter edge cases', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('requests the bare /comments path when no filters are provided', async () => {
+    (apiClient.get as Mock).mockResolvedValueOnce(createMockResponse({ items: [], total: 0 }));
+
+    const { result } = renderHook(() => useComments(), { wrapper: createWrapper() });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(apiClient.get).toHaveBeenCalledWith('l4', '/comments');
+  });
+});
