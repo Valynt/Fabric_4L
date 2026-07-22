@@ -139,7 +139,7 @@ class TestRequestIDInLogContext:
         """POSITIVE: _request_log_context includes request_id from X-Request-ID header."""
         from unittest.mock import MagicMock
 
-        from value_fabric.shared.identity.middleware import _request_log_context
+        from value_fabric.shared.identity.logging_helpers import _request_log_context
 
         mock_request = MagicMock()
         mock_request.url.path = "/api/v1/entities"
@@ -158,7 +158,7 @@ class TestRequestIDInLogContext:
         """NEGATIVE: request_id is None in log context when no ID header is present."""
         from unittest.mock import MagicMock
 
-        from value_fabric.shared.identity.middleware import _request_log_context
+        from value_fabric.shared.identity.logging_helpers import _request_log_context
 
         mock_request = MagicMock()
         mock_request.url.path = "/api/v1/entities"

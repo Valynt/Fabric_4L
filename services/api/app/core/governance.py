@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from fastapi import FastAPI
-from value_fabric.shared.identity.middleware import GovernanceMiddleware, audit_protected_routes
+from value_fabric.shared.identity.audit import audit_protected_routes
+from value_fabric.shared.identity.middleware import GovernanceMiddleware
 
 from app.core.api_key_auth import resolve_api_key
 from app.core.config import get_settings
