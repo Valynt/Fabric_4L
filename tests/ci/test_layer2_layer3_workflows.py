@@ -34,7 +34,7 @@ def test_layer2_workflow_loads_public_only_auth_fixture() -> None:
     assert "config/ci/fabric_auth_test_public_keys.json" in run
     assert "GITHUB_ENV" in run
     assert "FABRIC_AUTH_SIGNING_KEY" not in run
-    assert "FABRIC_AUTH_MODE" not in run or "enforce" in run
+    assert "FABRIC_AUTH_MODE=observe" in run
 
 
 def test_auth_fixture_contains_only_ed25519_public_material() -> None:
