@@ -24,4 +24,5 @@ Each child skill handles a specific phase or practice. Invoke the child skill th
 - `receiving-code-review` — evaluate and act on review feedback
 - `verification-before-completion` — verify before claiming work is done
 - `finishing-a-development-branch` — decide how to integrate completed work
+- `pr-lifecycle` — full PR pipeline: branch → commit → push → PR → CI → reviews → merge → cleanup
 - `writing-skills` — create or edit skills
