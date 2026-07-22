@@ -621,14 +621,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Set up deterministic root test dependencies
+        uses: ./.github/actions/setup-fabric-ci
         with:
-          python-version: '3.11'
-
-      - name: Install dependencies
-        run: |
-          pip install pytest pytest-asyncio httpx
+          python-dependency-mode: root-test
+          install-node-deps: 'false'
+          cache: ''
 
       - name: Run contract tests
         run: |
