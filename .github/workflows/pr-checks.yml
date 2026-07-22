@@ -1804,6 +1804,11 @@ jobs:
           pip install pytest requests
 
       - name: Start runtime contract services
+        env:
+          # Runtime contract health checks use local services only; these are
+          # non-secret CI placeholders and are never used for external calls.
+          OPENAI_API_KEY: ci-runtime-placeholder
+          JWT_SECRET: ci-runtime-jwt-secret-not-for-production
         run: |
           export OPENAI_API_KEY=${OPENAI_API_KEY:?set OPENAI_API_KEY}
           export REDIS_PASSWORD=test-redis
