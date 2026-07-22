@@ -15,7 +15,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from value_fabric.shared.error_handling import RequestIDMiddleware
 from value_fabric.shared.identity.api_key_stub import reject_api_key_unsupported
-from value_fabric.shared.identity.middleware import GovernanceMiddleware, audit_protected_routes
+from value_fabric.shared.identity.audit import audit_protected_routes
+from value_fabric.shared.identity.middleware import GovernanceMiddleware
 from value_fabric.shared.security import SecurityConfig, add_security_middleware
 from value_fabric.shared.security.config import is_strict_environment
 
@@ -277,10 +278,8 @@ def add_tenant_enforcement_middleware(app: FastAPI) -> None:
     from starlette.responses import JSONResponse
 
     from value_fabric.shared.fastapi_framework.app import record_enforcement_decision
-    from value_fabric.shared.identity.middleware import (
-        GovernanceMiddleware,
-        _is_external_auth_bootstrap_path,
-    )
+    from value_fabric.shared.identity.constants import _is_external_auth_bootstrap_path
+    from value_fabric.shared.identity.middleware import GovernanceMiddleware
 
     class _TenantEnforcementMiddleware(BaseHTTPMiddleware):
         async def dispatch(self, request, call_next):

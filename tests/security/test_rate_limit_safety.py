@@ -86,10 +86,8 @@ class TestMultiWorkerRateLimitSafety:
     def test_multi_worker_without_redis_raises_error(self):
         """P0: Multi-worker config without Redis raises MultiWorkerRateLimitError."""
         try:
-            from value_fabric.shared.identity.middleware import (
-                GovernanceMiddleware,
-                MultiWorkerRateLimitError,
-            )
+            from value_fabric.shared.identity.exceptions import MultiWorkerRateLimitError
+            from value_fabric.shared.identity.middleware import GovernanceMiddleware
             
             # Simulate multi-worker environment without Redis
             with patch.dict(os.environ, {"UVICORN_WORKERS": "4"}, clear=False):
@@ -223,7 +221,7 @@ class TestRateLimitWindowReset:
 
     def test_rate_limit_window_resets(self, client: TestClient, tenant_a_token: str):
         """P1: stale in-memory buckets are evicted without waiting for wall-clock time."""
-        from value_fabric.shared.identity.middleware import (
+        from value_fabric.shared.identity.rate_limit_handler import (
             _evict_stale_rate_limit_entries,
             _tenant_rate_limit_buckets,
         )
@@ -289,7 +287,7 @@ class TestRateLimitConfiguration:
     def test_rate_limit_configuration_defaults(self):
         """Default rate limit configuration is reasonable."""
         try:
-            from value_fabric.shared.identity.middleware import DEFAULT_REQUESTS_PER_MINUTE
+            from value_fabric.shared.identity.constants import DEFAULT_REQUESTS_PER_MINUTE
             
             # Default should be reasonable (not too low, not unlimited)
             assert DEFAULT_REQUESTS_PER_MINUTE > 0, (
@@ -305,7 +303,7 @@ class TestRateLimitConfiguration:
     def test_rate_limit_window_positive(self):
         """Rate limit window is positive."""
         try:
-            from value_fabric.shared.identity.middleware import RATE_LIMIT_WINDOW_SECONDS
+            from value_fabric.shared.identity.constants import RATE_LIMIT_WINDOW_SECONDS
             
             assert RATE_LIMIT_WINDOW_SECONDS > 0, (
                 "Rate limit window should be positive"
