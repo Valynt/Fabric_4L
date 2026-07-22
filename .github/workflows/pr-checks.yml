@@ -1819,6 +1819,17 @@ jobs:
           export MINIO_ROOT_PASSWORD=minio-password
           export SERVICE_AUTH_SECRET=ci-service-auth-secret
           export API_KEY_HMAC_SECRET=ci-api-key-hmac-secret
+          export SECRET_KEY=ci-secret-key
+          export CORS_ORIGINS=http://localhost:3001
+          export CLERK_AUTHORIZED_PARTIES=http://localhost:3001
+          export CLERK_ISSUER=http://localhost:3001
+          export CLERK_JWKS_URL=http://localhost:3001/.well-known/jwks.json
+          export CLERK_SECRET_KEY=ci-clerk-secret
+          export FABRIC_AUTH_PUBLIC_KEYS=ci-fabric-public-key
+          export FABRIC_AUTH_SIGNING_KEY=ci-fabric-signing-key
+          export FLOWER_PASSWORD=ci-flower-password
+          export GRAFANA_ADMIN_PASSWORD=ci-grafana-password
+          export LAYER4_DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/layer4
           export JWT_SECRET=${JWT_SECRET:?set JWT_SECRET}
           docker compose -f infra/compose/docker-compose.full.yml up -d postgres redis neo4j layer5-migrate layer5-ground-truth \
             layer1-ingestion layer2-extraction layer3-knowledge layer4-agents
