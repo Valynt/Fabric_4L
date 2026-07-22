@@ -571,6 +571,8 @@ jobs:
 
       - name: Compare OpenAPI specs
         id: compare
+        env:
+          PYTHONPATH: services/layer5-ground-truth/src:packages/shared/src
         run: |
           if [ "${{matrix.layer}}" = "layer5-ground-truth" ]; then
             python services/layer5-ground-truth/scripts/check_openapi_contract.py \

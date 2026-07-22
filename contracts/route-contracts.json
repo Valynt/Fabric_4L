@@ -619,6 +619,11 @@
       "reason": "Layer 3 static scanner double-prefix compatibility alias; canonical route is documented under /v1/agents*."
     },
     {
+      "path": "/v1/v1/benchmarks*",
+      "method": "*",
+      "reason": "Layer 6 router currently composes a /v1/benchmarks router beneath the service /v1 prefix; retain the observed double-prefix compatibility route until the public contract is consolidated."
+    },
+    {
       "path": "/admin/gdpr*",
       "method": "*",
       "reason": "GDPR/CCPA admin router (services/api/src/gdpr/routes.py) is an admin-only RBAC surface that is not mounted by any service app (no include_router reference) and not yet promoted into an OpenAPI contract."

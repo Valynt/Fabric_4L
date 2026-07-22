@@ -104,7 +104,7 @@ def reduce(
     error_class: ErrorClass | None = None,
     last_known_good_at: datetime | None = None,
     now: datetime | None = None,
-) -> ConnectionState:
+) -> dict[str, Any]:
     """Pure function: compute the next connection state from an observed event.
 
     Args:
@@ -117,8 +117,7 @@ def reduce(
         now: Clock override for deterministic tests.
 
     Returns:
-        A ConnectionState object with reducer-derived fields and a legacy
-        status shim.
+        A mapping with reducer-derived fields and a legacy status shim.
     """
     now = now or datetime.now(UTC)
     current = current or OperationalStatus.IDLE
