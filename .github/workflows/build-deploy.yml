@@ -110,6 +110,15 @@ jobs:
           build-args: |
             BUILD_DATE=${{ github.event.head_commit.timestamp }}
             VCS_REF=${{ github.sha }}
+            VITE_API_BASE=/api/v1
+            VITE_L1_PREFIX=/ingest
+            VITE_L2_PREFIX=/extract
+            VITE_L2_5_PREFIX=/signals
+            VITE_L3_PREFIX=/graph
+            VITE_L4_PREFIX=/agents
+            VITE_L5_PREFIX=/truths
+            VITE_L6_PREFIX=/benchmarks
+            VITE_L7_PREFIX=/billing
 
       - name: Write build metadata artifact
         run: |
