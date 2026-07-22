@@ -50,7 +50,7 @@ def test_layer3_openapi_generation_uses_canonical_module_and_service_directory()
     workflow = _workflow(CONTRACT_COMPLIANCE)
     job = workflow["jobs"]["generate-openapi"]
     layer3 = next(item for item in job["strategy"]["matrix"]["include"] if item["layer"] == "layer3-knowledge")
-    assert layer3["module"] == "api.main"
+    assert layer3["module"] == "src.api.main"
     generation = next(step for step in job["steps"] if step.get("name") == "Generate OpenAPI spec from code")
     assert generation["working-directory"] == "./services/${{matrix.layer}}"
     assert "sys.path.insert(0, 'src')" in generation["run"]
