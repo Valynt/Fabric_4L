@@ -180,15 +180,14 @@ def run_scan(
     finally:
         diagnostic["export"] = _process_evidence(export_result)
         diagnostic["scanner"] = _process_evidence(scanner_result)
-        diagnostic_path.write_text(json.dumps(diagnostic, indent=2) + "\n", encoding="utf-8")
-    return status, diagnostic
-
-
-def enforce(diagnostic_path: Path, *, expected_status: int) -> int:
-    try:
-        payload = json.loads(diagnostic_path.read_text(encoding="utf-8"))
-        if not isinstance(payload, dict) or payload.get("schema_version") != SCHEMA_VERSION:
-            raise AuditOperationalError("diagnostic does not match schema version 1")
+        try:
+            diagnostic_path.write_text(json.dumps(diagnostic, indent=2) + "\n", encoding="utf-8")
+        except Exception as write_exc:
+            sys.stderr.write(f"Failed to write diagnostic to {diagnostic_path}: {write_exc}\n")
+            try:
+                sys.stderr.write(json.dumps(diagnostic, indent=2) + "\n")
+            except Exception:
+                sys.stderr.write("Failed to serialize diagnostic for stderr output\n")
         outcome = payload.get("outcome")
         saved_status = payload.get("exit_code")
         expected = {"clean": CLEAN_EXIT, "vulnerable": VULNERABLE_EXIT, "operational_error": OPERATIONAL_ERROR_EXIT}
