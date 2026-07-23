@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
-import { createWrapper } from "@/test-utils";
+import { createWrapper } from "../test-utils";
 import { useValueCaseGenerationInputs } from "./useValueCaseGenerationInputs";
 
 vi.mock(
@@ -18,9 +18,9 @@ vi.mock("@/hooks/useROICalculator", () => ({
   useROICalculations: vi.fn(),
 }));
 
-import { useStakeholdersData } from "@/features/intelligence-workspace/tabs/_shared/useWorkspaceData";
-import { useTruths } from "@/hooks/useGroundTruthGovernance";
-import { useROICalculations } from "@/hooks/useROICalculator";
+import { useStakeholdersData } from "../features/intelligence-workspace/tabs/_shared/useWorkspaceData";
+import { useTruths } from "./useGroundTruthGovernance";
+import { useROICalculations } from "./useROICalculator";
 
 function mockQuery(
   overrides: Partial<ReturnType<typeof useStakeholdersData>> = {}
@@ -63,9 +63,9 @@ describe("useValueCaseGenerationInputs", () => {
           calculations: [
             {
               id: "roi-1",
-              npv: 1_800_000,
-              total_roi_pct: 214,
-              payback_months: 9,
+              npv: 2_500_000,
+              total_roi_pct: 150,
+              payback_months: 6,
             },
           ],
         },
@@ -88,9 +88,9 @@ describe("useValueCaseGenerationInputs", () => {
     ]);
     expect(result.current.draft.scenario_assumptions).toEqual([]);
     expect(result.current.draft.roi_metrics).toEqual({
-      three_year_value: "$1.8M",
-      roi: "214%",
-      payback: "9 months",
+      three_year_value: "$2.5M",
+      roi: "150%",
+      payback: "6 months",
     });
     expect(result.current.provenance.stakeholders).toEqual([
       { source: "workspace_stakeholder", id: "st-1" },
