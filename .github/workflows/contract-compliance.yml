@@ -478,7 +478,7 @@ jobs:
         include:
           - layer: layer3-knowledge
             port: 8003
-            module: layer3_knowledge.api.main
+            module: src.api.main
           - layer: layer5-ground-truth
             port: 8005
             module: layer5_ground_truth.api.main
@@ -501,6 +501,9 @@ jobs:
 
       - name: Generate OpenAPI spec from code
         working-directory: ./services/${{matrix.layer}}
+        env:
+          NEO4J_PASSWORD: ci-openapi-password
+          ENVIRONMENT: test
         run: |
           python -c "
           import sys
@@ -555,10 +558,12 @@ jobs:
           name: generated-openapi-${{matrix.layer}}
           path: generated/
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Set up deterministic root test dependencies
+        uses: ./.github/actions/setup-fabric-ci
         with:
-          python-version: '3.11'
+          python-dependency-mode: root-test
+          install-node-deps: 'false'
+          cache: ''
 
       - name: Compare OpenAPI specs
         id: compare
@@ -567,7 +572,6 @@ jobs:
             python services/layer5-ground-truth/scripts/check_openapi_contract.py \
               > drift-report-${{matrix.layer}}.md 2>&1 || EXIT_CODE=$?
           else
-            pip install jsondiff
             python scripts/compare_openapi.py \
               contracts/openapi/${{matrix.layer}}.json \
               generated/generated-openapi.json \
@@ -618,14 +622,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Set up deterministic root test dependencies
+        uses: ./.github/actions/setup-fabric-ci
         with:
-          python-version: '3.11'
-
-      - name: Install dependencies
-        run: |
-          pip install pytest pytest-asyncio httpx
+          python-dependency-mode: root-test
+          install-node-deps: 'false'
+          cache: ''
 
       - name: Run contract tests
         run: |
@@ -652,16 +654,15 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Set up deterministic root test dependencies
+        uses: ./.github/actions/setup-fabric-ci
         with:
-          python-version: '3.11'
-
-      - name: Install dependencies
-        run: pip install pytest httpx
+          python-dependency-mode: root-test
+          install-node-deps: 'false'
+          cache: ''
 
       - name: Run representative shape regression tests
-        run: pytest tests/contract/test_api_shape_regression.py -v --tb=short
+        run: python -m pytest tests/contract/test_api_shape_regression.py -v --tb=short
         env:
           CONTRACT_TEST_MODE: mock
 

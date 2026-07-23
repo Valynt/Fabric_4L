@@ -51,6 +51,16 @@ jobs:
             langgraph-checkpoint-postgres jinja2 protego markdownify celery playwright \
             opentelemetry-sdk opentelemetry-instrumentation-fastapi
 
+      - name: Install uv for test lock verification
+        uses: astral-sh/setup-uv@caf0cab7a618c569241d31dcd442f54681755d39 # v3
+        with:
+          version: "0.11.6"
+          enable-cache: true
+
+      - name: Verify root Python test lock is current
+        run: |
+          python scripts/ci/check_python_test_lock.py
+
       - name: Setup pnpm
         uses: pnpm/action-setup@v3
         with:
@@ -810,7 +820,11 @@ jobs:
       - name: Install root gate dependencies
         # Root conftest.py hard-requires the mandatory test deps (jsonschema
         # et al.), and the coverage step uses --json-report.
-        run: uv pip install -r ../../tests/requirements-test.txt pytest-json-report
+        run: uv pip install --require-hashes -r ../../tests/requirements-test.lock
+      - name: Configure CI authentication verification keys
+        run: |
+          printf 'FABRIC_AUTH_PUBLIC_KEYS=%s\n' "$(cat ../../config/ci/fabric_auth_test_public_keys.json)" >> "$GITHUB_ENV"
+          echo 'FABRIC_AUTH_MODE=observe' >> "$GITHUB_ENV"
 
       - name: Lint with ruff (comprehensive)
         run: |
@@ -2420,29 +2434,11 @@ jobs:
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
 
-      - name: Set up Python
-        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
+      - name: Set up deterministic root test and workspace dependencies
+        uses: ./.github/actions/setup-fabric-ci
         with:
-          python-version: "3.11"
-          cache: "pip"
-
-      - name: Install gate-engineering dependencies
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install jsonschema pyyaml
-
-      - name: Enable pnpm
-        uses: pnpm/action-setup@v3
-        with:
-          version: "10.18.1"
-
-      - name: Set up Node.js
-        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4
-        with:
-          node-version: "22.18.0"
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+          python-dependency-mode: root-test
+          install-node-deps: 'true'
 
       - name: Check canonical gate artifact paths
         run: |

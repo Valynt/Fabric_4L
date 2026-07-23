@@ -7,7 +7,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
 CONTRACT_CHECK = REPO_ROOT / "scripts" / "ci" / "check_mandatory_security_gate_contract.py"
 ENFORCEMENT_CHECK = REPO_ROOT / "scripts" / "ci" / "validate_mandatory_security_gate_enforcement.py"
