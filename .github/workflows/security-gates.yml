@@ -27,6 +27,9 @@ permissions:
 
 env:
   SECURITY_ARTIFACT_RETENTION_DAYS: 30
+  # Reviewed scanner release shared by every Semgrep job. Update only in a
+  # dedicated security-tool review together with config/semgrep/registry/.
+  SEMGREP_VERSION: '1.136.0'
   # Opt into Node.js 24 for GitHub Actions
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
@@ -69,8 +72,13 @@ jobs:
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
-      - name: Install Semgrep
-        run: pip install semgrep
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.11'
+
+      - name: Install reviewed Semgrep release
+        run: pip install "semgrep==${{ env.SEMGREP_VERSION }}"
 
       - name: Run Cypher dynamic guard (ERROR rules — block on failure)
         run: |
@@ -106,8 +114,8 @@ jobs:
             semgrep-cypher-warnings.json
           retention-days: ${{env.SECURITY_ARTIFACT_RETENTION_DAYS}}
 
-  # Full-repository Semgrep CE scan (SAST) with curated registry rulesets plus
-  # local .semgrep/ rules. Produces SARIF for the GitHub Security tab and fails
+  # Full-repository Semgrep CE scan (SAST) with a reviewed local snapshot of
+  # registry rules plus local .semgrep/ rules. Produces SARIF and fails
   # closed on ERROR-severity findings.
   semgrep-full-scan:
     name: Semgrep CE Full Scan (SAST)
@@ -122,25 +130,40 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install Semgrep CE
-        run: pip install semgrep
+      - name: Install reviewed Semgrep CE release
+        run: pip install "semgrep==${{ env.SEMGREP_VERSION }}"
 
-      - name: Run Semgrep CE (registry rulesets + local rules)
+      - name: Smoke check pinned Semgrep
+        env:
+          SEMGREP_SEND_METRICS: 'off'
+        run: |
+          semgrep scan \
+            --validate \
+            --config config/semgrep/registry/ \
+            --config .semgrep/
+          printf 'print("semgrep smoke")\n' > /tmp/semgrep-smoke.py
+          semgrep scan \
+            --config config/semgrep/registry/ \
+            --config .semgrep/ \
+            --metrics off \
+            --sarif \
+            --output /tmp/semgrep-smoke.sarif \
+            /tmp/semgrep-smoke.py
+          python3 - <<'PYEOF'
+          import json
+          with open('/tmp/semgrep-smoke.sarif', encoding='utf-8') as fh:
+              sarif = json.load(fh)
+          assert sarif.get('version') == '2.1.0'
+          assert isinstance(sarif.get('runs'), list) and sarif['runs']
+          PYEOF
+
+      - name: Run Semgrep CE (reviewed registry snapshot + local rules)
         env:
           # Semgrep CE only; no Semgrep AppSec Platform token is used.
           SEMGREP_SEND_METRICS: 'off'
         run: |
           semgrep scan \
-            --config p/security-audit \
-            --config p/secrets \
-            --config p/owasp-top-ten \
-            --config p/python \
-            --config p/typescript \
-            --config p/react \
-            --config p/dockerfile \
-            --config p/docker-compose \
-            --config p/kubernetes \
-            --config p/github-actions \
+            --config config/semgrep/registry/ \
             --config .semgrep/ \
             --metrics off \
             --exclude 'archive/**' \
