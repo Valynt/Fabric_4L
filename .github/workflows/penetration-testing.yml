@@ -69,8 +69,9 @@ jobs:
           FABRIC_AUTH_PUBLIC_KEYS=[]
           EOF
           mkdir -p zap-results
+          printf '{"startup_time":"%s"}\n' "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" > zap-results/metadata.json
           if ! docker compose -f infra/compose/docker-compose.full.yml --env-file .env up -d; then
-            docker compose -f infra/compose/docker-compose.full.yml --env-file .env logs --no-color
+            docker compose -f infra/compose/docker-compose.full.yml --env-file .env logs --no-color | tee zap-results/compose.log
             exit 1
           fi
 
@@ -85,7 +86,7 @@ jobs:
           done
 
           echo "Target never became healthy at $health_url"
-          docker compose -f infra/compose/docker-compose.full.yml --env-file .env logs --no-color
+          docker compose -f infra/compose/docker-compose.full.yml --env-file .env logs --no-color | tee zap-results/compose.log
           exit 1
 
       - name: Run ZAP Full Scan (Docker)
@@ -238,8 +239,10 @@ jobs:
           FABRIC_AUTH_SIGNING_KEY=ci-only-dummy-signing-key
           FABRIC_AUTH_PUBLIC_KEYS=[]
           EOF
+          mkdir -p nikto-results
+          printf '{"startup_time":"%s"}\n' "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" > nikto-results/metadata.json
           if ! docker compose -f infra/compose/docker-compose.full.yml --env-file .env up -d; then
-            docker compose -f infra/compose/docker-compose.full.yml --env-file .env logs --no-color
+            docker compose -f infra/compose/docker-compose.full.yml --env-file .env logs --no-color | tee nikto-results/compose.log
             exit 1
           fi
 
@@ -254,7 +257,7 @@ jobs:
           done
 
           echo "Target never became healthy at $health_url"
-          docker compose -f infra/compose/docker-compose.full.yml --env-file .env logs --no-color
+          docker compose -f infra/compose/docker-compose.full.yml --env-file .env logs --no-color | tee nikto-results/compose.log
           exit 1
 
       - name: Run Nikto Scan

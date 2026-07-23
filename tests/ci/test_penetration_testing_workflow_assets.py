@@ -53,6 +53,9 @@ def test_zap_workflow_fails_closed_and_preserves_evidence() -> None:
     assert "curl --fail --silent --show-error" in startup["run"]
     assert "docker compose -f infra/compose/docker-compose.full.yml --env-file .env logs --no-color" in startup["run"]
     assert startup["continue-on-error"] is True
+    assert "mkdir -p zap-results" in startup["run"], "Output directory must be created up front"
+    assert "zap-results/metadata.json" in startup["run"], "Metadata file must be written up front"
+    assert "tee zap-results/compose.log" in startup["run"], "Compose logs must be teed to compose.log on failure"
 
     scan = _find_step_by_name(zap_steps, "Run ZAP Full Scan (Docker)")
     assert scan["id"] == "zap_scan"
@@ -91,3 +94,6 @@ def test_nikto_stack_startup_is_bounded_and_fail_closed() -> None:
     assert "up -d || true" not in startup["run"]
     assert "curl --fail --silent --show-error" in startup["run"]
     assert "docker compose -f infra/compose/docker-compose.full.yml --env-file .env logs --no-color" in startup["run"]
+    assert "mkdir -p nikto-results" in startup["run"], "Output directory must be created up front"
+    assert "nikto-results/metadata.json" in startup["run"], "Metadata file must be written up front"
+    assert "tee nikto-results/compose.log" in startup["run"], "Compose logs must be teed to compose.log on failure"
