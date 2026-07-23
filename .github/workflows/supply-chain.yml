@@ -21,6 +21,7 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_TAG: ${{ inputs.image_tag || github.sha }}
+  # Publisher, versions, digest verification, and rotation: docs/supply-chain/CI_TOOLS_SECURITY_SUITE.md
   CI_TOOLS_IMAGE: ghcr.io/value-fabric/ci-tools/security-suite@sha256:a4c5f6e78b2a1bc98d3f4e1c8a7b6d5e4f3a2b1c0d9e8f7766554433221100aa
 
 permissions:
@@ -31,6 +32,41 @@ permissions:
   id-token: write
 
 jobs:
+  # Fail closed before any job starts the centrally managed tools container.
+  ci-tools-preflight:
+    name: CI Tools Image Preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Log in to GHCR
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Pull image and verify digest and tool versions
+        run: |
+          set -euo pipefail
+          image='${{ env.CI_TOOLS_IMAGE }}'
+          expected_digest="${image##*@}"
+          docker pull "$image"
+          repo_digests="$(docker image inspect --format '{{json .RepoDigests}}' "$image")"
+          grep -Fq "@${expected_digest}" <<<"$repo_digests"
+
+          assert_line() {
+            local command="$1" expected="$2"
+            docker run --rm "$image" bash -o pipefail -c "$command" | grep -Fx -- "$expected"
+          }
+          assert_line "grype version | sed -n 's/^Version: //p'" "0.104.1"
+          assert_line "syft version | sed -n 's/^Version: //p'" "1.30.0"
+          assert_line "cosign version | sed -n 's/^GitVersion:[[:space:]]*//p'" "v2.5.3"
+          assert_line "pip-audit --version" "pip-audit 2.9.0"
+          assert_line "pip-licenses --version" "pip-licenses 5.0.0"
+          assert_line "python --version" "Python 3.12.10"
+          assert_line "node --version" "v22.17.0"
+          assert_line "pnpm --version" "10.18.1"
+
   # ============================================
   # Source-Level SBOM Scan (runs on every PR/push)
   # ============================================
@@ -86,6 +122,7 @@ jobs:
   # SBOM Generation and Vulnerability Scan (image-based, release only)
   # ============================================
   sbom-scan:
+    needs: ci-tools-preflight
     container:
       image: ${{ env.CI_TOOLS_IMAGE }}
     name: SBOM + Vulnerability Scan
@@ -190,6 +227,7 @@ jobs:
   # Cosign Signature Verification
   # ============================================
   verify-signatures:
+    needs: ci-tools-preflight
     container:
       image: ${{ env.CI_TOOLS_IMAGE }}
     name: Verify Image Signatures
@@ -218,6 +256,7 @@ jobs:
   # Dependency Audit
   # ============================================
   dependency-audit:
+    needs: ci-tools-preflight
     container:
       image: ${{ env.CI_TOOLS_IMAGE }}
     name: Dependency Audit
@@ -301,6 +340,7 @@ jobs:
   # License Compliance Check
   # ============================================
   license-check:
+    needs: ci-tools-preflight
     container:
       image: ${{ env.CI_TOOLS_IMAGE }}
     name: License Compliance
