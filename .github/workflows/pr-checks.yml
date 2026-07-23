@@ -136,6 +136,9 @@ jobs:
       - name: Enforce shell test bracket spacing in workflow run blocks
         run: python scripts/ci/check_shell_test_spacing.py
 
+      - name: Reject unsupported pip-audit workflow options
+        run: python scripts/ci/check_pip_audit_workflow.py
+
       - name: Run structural preflight
         run: |
           python scripts/ci/structural_preflight.py --strict --json | tee artifacts/structural-preflight.json
@@ -795,8 +798,9 @@ jobs:
         run: uvx bandit@1.9.4 -r src/ -ll -ii
 
       - name: Dependency audit with pip-audit
-        run: |
-          uv run pip-audit --severity high --exit-code 1
+        env:
+          PIP_AUDIT_VULNERABILITY_POLICY: any
+        run: ../../scripts/ci/run_pip_audit.sh
 
   # Layer 2 - Extraction
   layer2-checks:
@@ -888,8 +892,9 @@ jobs:
         run: uvx bandit@1.9.4 -r src/ -ll -ii
 
       - name: Dependency audit with pip-audit
-        run: |
-          uv run pip-audit --severity high --exit-code 1
+        env:
+          PIP_AUDIT_VULNERABILITY_POLICY: any
+        run: ../../scripts/ci/run_pip_audit.sh
 
   # Layer 3 - Knowledge
   layer3-checks:
@@ -1001,8 +1006,9 @@ jobs:
         run: uvx bandit@1.9.4 -r src/ -ll -ii
 
       - name: Dependency audit with pip-audit
-        run: |
-          uv run pip-audit --severity high --exit-code 1
+        env:
+          PIP_AUDIT_VULNERABILITY_POLICY: any
+        run: ../../scripts/ci/run_pip_audit.sh
 
   # Layer 4 - Agents
   layer4-checks:
@@ -1070,8 +1076,9 @@ jobs:
         run: uvx bandit@1.9.4 -r src/ -ll -ii
 
       - name: Dependency audit with pip-audit
-        run: |
-          uv run pip-audit --severity high --exit-code 1
+        env:
+          PIP_AUDIT_VULNERABILITY_POLICY: any
+        run: ../../scripts/ci/run_pip_audit.sh
 
   # Layer 5 - Ground Truth
   layer5-checks:
@@ -1139,8 +1146,9 @@ jobs:
         run: uvx bandit@1.9.4 -r src/ -ll -ii
 
       - name: Dependency audit with pip-audit
-        run: |
-          uv run pip-audit --severity high --exit-code 1
+        env:
+          PIP_AUDIT_VULNERABILITY_POLICY: any
+        run: ../../scripts/ci/run_pip_audit.sh
 
   layer5-source-contract:
     name: Layer 5 - Source Contract
@@ -1323,8 +1331,9 @@ jobs:
         run: uvx bandit@1.9.4 -r src/ -ll -ii
 
       - name: Dependency audit with pip-audit
-        run: |
-          uv run pip-audit --severity high --exit-code 1
+        env:
+          PIP_AUDIT_VULNERABILITY_POLICY: any
+        run: ../../scripts/ci/run_pip_audit.sh
 
   # Cross-layer shared and tests validation
   shared-and-tests-checks:
