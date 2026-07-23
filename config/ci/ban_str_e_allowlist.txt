@@ -1,0 +1,33 @@
+# Reviewed legacy exception-string debt. Entries are relative path + exact stripped line.
+# New str(exc)/repr(exc) usage outside this file fails the repo-hygiene gate.
+services/api/app/core/config.py|errors.append(str(exc))
+services/api/src/gdpr/deletion.py|report.error_summary = str(exc)
+services/api/src/gdpr/routes.py|error=str(exc),
+services/layer5-ground-truth/src/layer5_ground_truth/services/agent_permission_service.py|message = str(exc) or "policy_evaluation_failed"
+services/layer1-ingestion/src/layer1_ingestion/orchestrator/outbox_relay.py|event.last_error = str(exc)
+services/layer1-ingestion/src/layer1_ingestion/orchestrator/stage_handlers/applying_policy.py|error_detail_safe=f"Payload processing failed: {str(exc)}",
+services/layer1-ingestion/src/layer1_ingestion/orchestrator/stage_handlers/fetching_source.py|error_detail_safe=f"Failed to parse resolution artifact: {str(exc)}",
+services/layer1-ingestion/src/layer1_ingestion/orchestrator/stage_handlers/fetching_source.py|error_detail_safe=f"Permanent failure reading local payload: {str(exc)}",
+services/layer1-ingestion/src/layer1_ingestion/orchestrator/stage_handlers/fetching_source.py|error_detail_safe=f"Transient failure reading local payload: {str(exc)}",
+services/layer1-ingestion/src/layer1_ingestion/orchestrator/stage_handlers/fetching_source.py|error_detail_safe=f"Permanent failure downloading object: {str(exc)}",
+services/layer1-ingestion/src/layer1_ingestion/orchestrator/stage_handlers/fetching_source.py|error_detail_safe=f"Transient failure downloading object: {str(exc)}",
+services/layer1-ingestion/src/layer1_ingestion/orchestrator/stage_handlers/fetching_source.py|error_detail_safe=f"Timeout fetching customer-hosted metadata: {str(exc)}",
+services/layer1-ingestion/src/layer1_ingestion/orchestrator/stage_handlers/fetching_source.py|error_detail_safe=f"Network error fetching customer-hosted metadata: {str(exc)}",
+services/layer1-ingestion/src/layer1_ingestion/orchestrator/stage_handlers/fetching_source.py|error_detail_safe=f"Permanent failure fetching customer-hosted metadata: {str(exc)}",
+services/layer1-ingestion/src/layer1_ingestion/orchestrator/stage_handlers/fetching_source.py|error_detail_safe=f"Transient failure fetching customer-hosted metadata: {str(exc)}",
+services/layer1-ingestion/src/layer1_ingestion/orchestrator/stage_handlers/fetching_source.py|error_detail_safe=f"Permanent failure fetching customer-hosted metadata: {str(exc)}",
+services/layer1-ingestion/src/layer1_ingestion/orchestrator/stage_handlers/fetching_source.py|error_detail_safe=f"Timeout fetching target URL: {str(exc)}",
+services/layer1-ingestion/src/layer1_ingestion/orchestrator/stage_handlers/fetching_source.py|error_detail_safe=f"Network error fetching target URL: {str(exc)}",
+services/layer1-ingestion/src/layer1_ingestion/orchestrator/stage_handlers/fetching_source.py|error_detail_safe=f"Permanent failure fetching target URL: {str(exc)}",
+services/layer1-ingestion/src/layer1_ingestion/orchestrator/stage_handlers/fetching_source.py|error_detail_safe=f"Transient failure fetching target URL: {str(exc)}",
+services/layer1-ingestion/src/layer1_ingestion/orchestrator/stage_handlers/fetching_source.py|error_detail_safe=f"Permanent failure fetching target URL: {str(exc)}",
+services/layer4-agents/src/layer4_agents/services/crm_sync_scheduler.py|await apply_observation(db, integration, sync_interrupted(message=str(exc)))
+services/layer4-agents/src/layer4_agents/services/anthropic_provider.py|msg = str(exc)
+services/layer4-agents/src/layer4_agents/api/routes/harness.py|raise ValidationError(message=str(exc))
+services/layer4-agents/src/layer4_agents/integrations/core/errors.py|return TransientError(str(exc))
+services/layer4-agents/src/layer4_agents/integrations/core/errors.py|return classify_http_status(status, str(exc))
+services/layer4-agents/src/layer4_agents/integrations/core/errors.py|return PermanentError(str(exc))
+services/layer4-agents/src/layer4_agents/integrations/providers/hubspot/connector.py|error_message=str(e),
+services/layer4-agents/src/layer4_agents/integrations/providers/salesforce/connector.py|error_message=str(e),
+services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/api.py|error_message=str(exc),
+packages/shared/src/value_fabric/shared/security/config.py|self.errors.append(str(exc))
