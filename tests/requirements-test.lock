@@ -2909,10 +2909,13 @@ tld==0.13.2 \
     --hash=sha256:9b8fdbdb880e7ba65b216a4937f2c94c49a7226723783d5838fc958ac76f4e0c \
     --hash=sha256:d983fa92b9d717400742fca844e29d5e18271079c7bcfabf66d01b39b4a14345
     # via courlan
+<<<<<<< HEAD
 toml==0.10.2 \
     --hash=sha256:806143ae5bfb6a3c6e736a764057db0e6a0e05e338b5630894a5f779cabb4f9b \
     --hash=sha256:b3bda1d108d5dd99f4a20d24d9c348e91c4db7ab1b749200bded2f839ccbe68f
     # via -r tests/requirements-test.txt
+=======
+>>>>>>> c7204bc9cc8b70d760f0ccc84d0e61f8bbe2b834
 tomli==2.4.1 \
     --hash=sha256:01f520d4f53ef97964a240a035ec2a869fe1a37dde002b57ebc4417a27ccd853 \
     --hash=sha256:0d85819802132122da43cb86656f8d1f8c6587d54ae7dcaf30e90533028b49fe \
@@ -2966,6 +2969,7 @@ trafilatura==2.1.0 \
     --hash=sha256:0eded5207a806445ddebbe36eae30b9035fe6a2f233c36f6fe82663fca8b9d30 \
     --hash=sha256:f689e2116fc89c7bc0b9a296d01dcfe2eb0b5455f8c371a77dc0db1f06a05643
     # via -r tests/requirements-test.txt
+<<<<<<< HEAD
 types-python-dateutil==2.9.0.20260716 \
     --hash=sha256:1ae41d51a5c5f6bbeeb7f1f34df7086d55ff1605cf88d2ed71a7a276e1a7794e \
     --hash=sha256:1d55d1c3024bdb4861bb6a6622c9ec800c433d87bdc5b16fb84cdd0eed4ef2cb
@@ -2978,6 +2982,8 @@ types-toml==0.10.8.20260518 \
     --hash=sha256:0e564ab05f6fde62a315b3b5a9b6624fda569399795d30a37e64705a70459303 \
     --hash=sha256:80e10facd24fdeda9d5c672187d72be3ac284843788d67f5aae59e3e016db6fe
     # via -r tests/requirements-test.txt
+=======
+>>>>>>> c7204bc9cc8b70d760f0ccc84d0e61f8bbe2b834
 typing-extensions==4.16.0 \
     --hash=sha256:481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8 \
     --hash=sha256:dc983d19a509c94dba722ee6abd33940f7c05a89e243c47e907eb4db6f1a43e5
