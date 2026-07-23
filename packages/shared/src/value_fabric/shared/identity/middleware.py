@@ -294,6 +294,7 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
             try:
                 UUID(raw_tenant_header)
             except ValueError:
+                logger.debug("Invalid X-Tenant-ID header: %r", raw_tenant_header)
                 return None
         return await resolve_identity(request, self._api_key_resolver)
 

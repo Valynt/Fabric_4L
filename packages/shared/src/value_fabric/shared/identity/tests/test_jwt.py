@@ -249,6 +249,16 @@ class TestDecodeJwt:
         with patch.dict(os.environ, env, clear=False):
             assert decode_jwt(token) is None
 
+    def test_clerk_token_accepts_compat_issuer_alias(self):
+        token, env = _make_clerk_rs256_token(azp=_TEST_CLERK_ORIGIN)
+        env["CLERK_ISSUER"] = ""
+        env["CLERK_JWT_ISSUER"] = _TEST_CLERK_ISSUER
+        with patch.dict(os.environ, env, clear=False):
+            claims = decode_jwt(token)
+
+        assert claims is not None
+        assert claims.tenant_id == str(_TEST_TENANT)
+
 
 class TestJwtSecretPolicy:
     """Tests for fail-closed JWT secret policy."""

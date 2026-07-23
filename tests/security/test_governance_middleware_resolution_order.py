@@ -10,6 +10,7 @@ Note: Query param fallback was removed in P0 fix (self._allow_query_param = Fals
 Tests focus on actual middleware implementation patterns.
 """
 
+import logging
 from unittest.mock import Mock, patch
 from uuid import uuid4
 
@@ -204,6 +205,18 @@ class TestGovernanceMiddlewareFailureModes:
 
         assert exc_info.value.status_code == 401
         assert exc_info.value.detail["error_code"] == "AUTH_SERVICE_UNAVAILABLE"
+
+    @pytest.mark.asyncio
+    async def test_malformed_tenant_header_logs_debug_message(
+        self, caplog: pytest.LogCaptureFixture
+    ):
+        middleware = GovernanceMiddleware(app=Mock(), api_key_resolver=None, rate_limiter=None)
+        request = self._build_request({"X-Tenant-ID": "not-a-uuid"})
+
+        caplog.set_level(logging.DEBUG)
+
+        assert await middleware._resolve_identity(request) is None
+        assert "Invalid X-Tenant-ID header: 'not-a-uuid'" in caplog.text
 
 
 class TestGovernanceMiddlewareDispatch:

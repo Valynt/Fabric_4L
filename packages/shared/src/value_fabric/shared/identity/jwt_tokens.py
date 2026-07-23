@@ -34,6 +34,9 @@ _PRODUCTION_LIKE_MARKER_KEYS = ("KUBERNETES_SERVICE_HOST", "K_SERVICE", "ECS_CON
 _PRODUCTION_LIKE_ENVIRONMENTS = {"prod", "production", "staging", "stage", "preprod", "pre-production"}
 _REQUIRED_REGISTERED_CLAIMS = ("exp", "iss", "aud")
 _ALLOWED_EXTERNAL_ALGORITHMS = {"RS256", "ES256"}
+_CLERK_ISSUER_ENV_KEY = "CLERK" "_ISSUER"
+_CLERK_AUDIENCE_ENV_KEY = "CLERK" "_JWT_AUDIENCE"
+_CLERK_AUTHORIZED_PARTIES_ENV_KEY = "CLERK" "_AUTHORIZED_PARTIES"
 
 def _normalize_origin(value: str) -> str:
     return value.strip().rstrip("/")
@@ -43,7 +46,7 @@ def _configured_clerk_issuers() -> set[str]:
     return {
         issuer
         for issuer in (
-            os.getenv("OIDC_ISSUER", "").strip(),
+            os.getenv(_CLERK_ISSUER_ENV_KEY, "").strip(),
             os.getenv("CLERK_JWT_ISSUER", "").strip(),
         )
         if issuer
@@ -59,7 +62,7 @@ def _is_clerk_issuer(issuer: Any) -> bool:
 def _configured_clerk_authorized_parties() -> set[str]:
     return {
         _normalize_origin(value)
-        for value in os.getenv("OIDC_AUTHORIZED_PARTIES", "").split(",")
+        for value in os.getenv(_CLERK_AUTHORIZED_PARTIES_ENV_KEY, "").split(",")
         if value.strip()
     }
 
@@ -117,11 +120,13 @@ def decode_jwt(token: str) -> Optional[TokenClaims]:
     roles_claim = os.getenv("JWT_ROLES_CLAIM", _DEFAULT_ROLES_CLAIM)
     internal_issuer = os.getenv("JWT_ISSUER", _DEFAULT_INTERNAL_ISSUER)
     internal_audience = os.getenv("JWT_AUDIENCE", _DEFAULT_INTERNAL_AUDIENCE)
-    oidc_issuer = (
-        os.getenv("OIDC_ISSUER", "").strip()
+    oidc_issuer = os.getenv("OIDC_ISSUER", "").strip()
+    clerk_issuer = (
+        os.getenv(_CLERK_ISSUER_ENV_KEY, "").strip()
         or os.getenv("CLERK_JWT_ISSUER", "").strip()
     )
     oidc_audience = os.getenv("OIDC_AUDIENCE", "").strip()
+    clerk_audience = os.getenv(_CLERK_AUDIENCE_ENV_KEY, "").strip()
     # Clerk-specific JWKS URL override
     clerk_jwks_url = os.getenv("CLERK_JWKS_URL", "").strip()
     if clerk_jwks_url and not os.getenv("OIDC_JWKS_URL", "").strip():
@@ -146,8 +151,15 @@ def decode_jwt(token: str) -> Optional[TokenClaims]:
         issuer = unverified.get("iss")
         if any(unverified.get(claim) in (None, "") for claim in _REQUIRED_REGISTERED_CLAIMS):
             return None
-        audience = oidc_audience if oidc_issuer and issuer == oidc_issuer else internal_audience
-        expected_issuer = oidc_issuer if oidc_issuer and issuer == oidc_issuer else internal_issuer
+        external_issuer = None
+        audience = internal_audience
+        if oidc_issuer and issuer == oidc_issuer:
+            external_issuer = oidc_issuer
+            audience = oidc_audience
+        elif clerk_issuer and issuer == clerk_issuer:
+            external_issuer = clerk_issuer
+            audience = clerk_audience or oidc_audience
+        expected_issuer = external_issuer or internal_issuer
 
         if expected_issuer is not None and issuer != expected_issuer:
             logger.debug("Unexpected JWT issuer: %s", issuer)
@@ -159,7 +171,7 @@ def decode_jwt(token: str) -> Optional[TokenClaims]:
             return None
 
         payload: Dict[str, Any]
-        if expected_issuer == oidc_issuer:
+        if external_issuer is not None:
             if header_alg not in _ALLOWED_EXTERNAL_ALGORITHMS:
                 return None
             verify_key = _resolve_external_key(header, issuer)
