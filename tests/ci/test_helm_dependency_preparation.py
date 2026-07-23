@@ -38,6 +38,7 @@ def _write_archive(
     version: str,
     *,
     filename: str | None = None,
+    subcharts: dict[str, str] | None = None,
 ) -> Path:
     charts_dir = chart_dir / "charts"
     charts_dir.mkdir(parents=True, exist_ok=True)
@@ -47,6 +48,15 @@ def _write_archive(
         info = tarfile.TarInfo(f"{name}/Chart.yaml")
         info.size = len(chart_yaml)
         bundle.addfile(info, io.BytesIO(chart_yaml))
+        for subchart_name, subchart_version in (subcharts or {}).items():
+            subchart_yaml = (
+                f"apiVersion: v2\nname: {subchart_name}\nversion: {subchart_version}\n"
+            ).encode()
+            subchart_info = tarfile.TarInfo(
+                f"{name}/charts/{subchart_name}/Chart.yaml"
+            )
+            subchart_info.size = len(subchart_yaml)
+            bundle.addfile(subchart_info, io.BytesIO(subchart_yaml))
     return archive
 
 
@@ -87,6 +97,24 @@ def _generate(prepared_chart: tuple[Path, Path]) -> tuple[Path, Path]:
     result = _run_validator("generate", chart_dir, evidence_dir)
     assert result.returncode == 0, result.stderr
     return chart_dir, evidence_dir
+
+
+def test_generate_accepts_archives_with_nested_subchart_metadata(
+    prepared_chart: tuple[Path, Path],
+) -> None:
+    chart_dir, evidence_dir = prepared_chart
+    archive = chart_dir / "charts/postgresql-13.2.0.tgz"
+    archive.unlink()
+    _write_archive(
+        chart_dir,
+        "postgresql",
+        "13.2.0",
+        subcharts={"common": "2.14.1"},
+    )
+
+    result = _run_validator("generate", chart_dir, evidence_dir)
+
+    assert result.returncode == 0, result.stderr
 
 
 def test_generate_and_validate_records_lock_and_archive_integrity(
