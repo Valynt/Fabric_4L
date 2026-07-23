@@ -577,6 +577,9 @@ jobs:
           install-node-deps: 'false'
           cache: ''
 
+      - name: Install deterministic root test dependencies
+        run: python -m pip install --require-hashes -r tests/requirements-test.lock
+
       - name: Compare OpenAPI specs
         id: compare
         env:

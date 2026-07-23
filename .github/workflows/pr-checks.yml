@@ -57,17 +57,6 @@ jobs:
           PY
           python -m mypy --version
           python -m pytest --version
-
-      - name: Install uv for test lock verification
-        uses: astral-sh/setup-uv@caf0cab7a618c569241d31dcd442f54681755d39 # v3
-        with:
-          version: "0.11.6"
-          enable-cache: true
-
-      - name: Verify root Python test lock is current
-        run: |
-          python scripts/ci/check_python_test_lock.py
-
       - name: Install uv for test lock verification
         uses: astral-sh/setup-uv@caf0cab7a618c569241d31dcd442f54681755d39 # v3
         with:
@@ -852,6 +841,7 @@ jobs:
         # Root conftest.py hard-requires the mandatory test deps (jsonschema
         # et al.), and the coverage step uses --json-report.
         run: uv pip install --require-hashes -r ../../tests/requirements-test.lock
+
       - name: Configure CI authentication verification keys
         run: |
           printf 'FABRIC_AUTH_PUBLIC_KEYS=%s\n' "$(cat ../../config/ci/fabric_auth_test_public_keys.json)" >> "$GITHUB_ENV"

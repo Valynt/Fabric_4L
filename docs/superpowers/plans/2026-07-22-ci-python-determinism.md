@@ -544,4 +544,3 @@ git status --short --branch
 ```
 
 Expected: ancestor check exits 0; local `main` equals `origin/main`; working tree is clean except separately preserved user-owned agent-memory files.
-
