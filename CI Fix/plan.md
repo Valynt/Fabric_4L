@@ -3,7 +3,7 @@
 Goal: remediate verified CI failures in bmsull560/Fabric_4L, validate locally, produce one apply-ready unified git patch (full-index, binary-safe, no prose wrapper).
 
 ## Stage 0 — Setup & Discovery (orchestrator + explore agents)
-- Load skill: vibecoding-general-swarm (+ swarm-workspace if needed)
+- Load skills as needed (see `.agent/skills/_index.md`); avoid referencing non-existent skill names.
 - Clone repo to /mnt/agents/work/Fabric_4L
 - Inventory: .github/workflows/**, pyproject.toml(s), lockfiles, package.json/pnpm workspace, Jest/Babel/Vitest configs, Dockerfiles, Helm charts, route audit config, OpenAPI generators, conftest.py, runtime docs
 - Confirm each of the 16 failure classes against current checkout; drop stale ones
