@@ -74,6 +74,7 @@ The repository currently contains **53** GitHub Actions workflow files.
 | `.github/workflows/pr-checks.yml` | `@value-fabric/sre-leads` | no | `pull_request, push` | `make check-workflow-references` |
 | `.github/workflows/prod-readiness.yml` | `@value-fabric/sre-leads` | no | `pull_request, push, workflow_dispatch` | `make check-workflow-references` |
 | `.github/workflows/public-docs.yml` | `@value-fabric/sre-leads` | no | `pull_request, push` | `make check-workflow-references` |
+| `.github/workflows/publish-ci-tools.yml` | `@value-fabric/sre-leads` | no | `push, workflow_dispatch` | `make check-workflow-references` |
 | `.github/workflows/publish-sdk.yml` | `@value-fabric/sre-leads` | no | `push, workflow_dispatch` | `make check-workflow-references` |
 | `.github/workflows/release-evidence-bundle.yml` | `@value-fabric/sre-leads` | no | `pull_request, push, workflow_dispatch` | `make check-workflow-references` |
 | `.github/workflows/repo-hygiene.yml` | `@value-fabric/sre-leads` | no | `pull_request, push, schedule, workflow_dispatch` | `make check-workflow-references` |

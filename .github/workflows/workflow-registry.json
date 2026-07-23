@@ -802,6 +802,24 @@
       "deprecation_status": "active"
     },
     {
+      "path": ".github/workflows/publish-ci-tools.yml",
+      "name": "Publish CI Tools Security Suite",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "push",
+        "workflow_dispatch"
+      ],
+      "trigger_purpose": "Publish the pinned supply-chain CI tools image with provenance and SBOM evidence",
+      "blocking": false,
+      "required_secrets": [],
+      "produced_artifacts": [
+        "security-suite-digest.txt"
+      ],
+      "runtime_budget_minutes": 30,
+      "local_validation_command": "make check-workflow-references",
+      "deprecation_status": "active"
+    },
+    {
       "path": ".github/workflows/publish-sdk.yml",
       "name": "Publish SDK",
       "owner": "@value-fabric/sre-leads",
