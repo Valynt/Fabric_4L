@@ -9,7 +9,7 @@ import json
 import sys
 import tarfile
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Sequence
 
 
@@ -80,11 +80,13 @@ def _parse_embedded_chart(archive: Path) -> tuple[str, str]:
             chart_members = [
                 member
                 for member in bundle.getmembers()
-                if member.isfile() and Path(member.name).name == "Chart.yaml"
+                if member.isfile()
+                and PurePosixPath(member.name).name == "Chart.yaml"
+                and len(PurePosixPath(member.name).parts) == 2
             ]
             if len(chart_members) != 1:
                 raise ValidationError(
-                    f"{archive.name} must contain exactly one embedded Chart.yaml"
+                    f"{archive.name} must contain exactly one root Chart.yaml"
                 )
             extracted = bundle.extractfile(chart_members[0])
             if extracted is None:
