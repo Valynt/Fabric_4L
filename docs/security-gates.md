@@ -197,8 +197,11 @@ echo "Security evidence generated at $(date -u +"%Y-%m-%dT%H:%M:%SZ")" > release
 
 ```bash
 # Semgrep CE (same reviewed binary and rules as CI; read the current pin from
-# .github/workflows/security-gates.yml SEMGREP_VERSION env before running)
-pip install "semgrep==$(grep 'SEMGREP_VERSION:' .github/workflows/security-gates.yml | awk '{print $2}')"
+# .github/workflows/security-gates.yml env.SEMGREP_VERSION before running)
+# Use sed for reliable extraction regardless of YAML whitespace/quoting:
+SEMGREP_VERSION=$(sed -n "s/.*SEMGREP_VERSION:[[:space:]]*['\"]\\?\\([^'\" ]*\\)['\"]\\?.*/\\1/p" \
+  .github/workflows/security-gates.yml | head -1)
+pip install "semgrep==${SEMGREP_VERSION}"
 semgrep scan \
   --config config/semgrep/registry/ --config .semgrep/ \
   --metrics off --exclude 'archive/**' --exclude 'docs/archive/**'

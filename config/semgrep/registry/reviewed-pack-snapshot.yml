@@ -4,7 +4,8 @@
 # p/typescript, p/react, p/dockerfile, p/docker-compose, p/kubernetes, and
 # p/github-actions). This is NOT a full snapshot of those packs; it contains
 # only the rules explicitly selected here. Changes require code review and
-# travel with the workflow pin.
+# must be synchronized with the SEMGREP_VERSION pin in
+# .github/workflows/security-gates.yml (env.SEMGREP_VERSION).
 rules:
   - id: reviewed.python-dangerous-eval
     languages: [python]
