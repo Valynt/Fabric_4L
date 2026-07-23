@@ -374,7 +374,7 @@ class TestRateLimitMiddlewareIntegration(unittest.TestCase):
 
     def test_prod_like_environment_requires_shared_limiter(self):
         """Multi-worker deployments should fail closed without a shared limiter."""
-        from value_fabric.shared.identity.middleware import MultiWorkerRateLimitError
+        from value_fabric.shared.identity.exceptions import MultiWorkerRateLimitError
         with patch.dict("os.environ", {"ENVIRONMENT": "production", "UVICORN_WORKERS": "2"}, clear=False):
             with self.assertRaises(MultiWorkerRateLimitError):
                 GovernanceMiddleware(app=MagicMock(), rate_limiter=None)

@@ -20,8 +20,8 @@ try:
     import importlib
 
     import value_fabric.shared.identity.middleware as _middleware_module
-    from value_fabric.shared.identity.middleware import (
-        _RATE_LIMIT_WINDOW_SECONDS,
+    from value_fabric.shared.identity.constants import _RATE_LIMIT_WINDOW_SECONDS
+    from value_fabric.shared.identity.rate_limit_handler import (
         _evict_stale_rate_limit_entries,
         _tenant_rate_limit_buckets,
     )

@@ -63,7 +63,7 @@ class TestRequestLogContext:
 
     def test_log_context_includes_path(self):
         """POSITIVE: _request_log_context returns the request path."""
-        from value_fabric.shared.identity.middleware import _request_log_context
+        from value_fabric.shared.identity.logging_helpers import _request_log_context
         req = _make_mock_request(path="/api/v1/entities")
         ctx = _request_log_context(req)
         assert ctx.get("path") == "/api/v1/entities", (
@@ -72,7 +72,7 @@ class TestRequestLogContext:
 
     def test_log_context_includes_method(self):
         """POSITIVE: _request_log_context returns the HTTP method."""
-        from value_fabric.shared.identity.middleware import _request_log_context
+        from value_fabric.shared.identity.logging_helpers import _request_log_context
         req = _make_mock_request(method="POST")
         ctx = _request_log_context(req)
         assert ctx.get("method") == "POST", (
@@ -81,7 +81,7 @@ class TestRequestLogContext:
 
     def test_log_context_includes_request_id_from_header(self):
         """POSITIVE: X-Request-ID header is captured in log context."""
-        from value_fabric.shared.identity.middleware import _request_log_context
+        from value_fabric.shared.identity.logging_helpers import _request_log_context
         req = _make_mock_request(request_id="req-xyz-999")
         ctx = _request_log_context(req)
         assert ctx.get("request_id") == "req-xyz-999", (
@@ -90,7 +90,7 @@ class TestRequestLogContext:
 
     def test_log_context_request_id_none_when_header_absent(self):
         """POSITIVE: request_id is None when neither X-Request-ID nor X-Correlation-ID is set."""
-        from value_fabric.shared.identity.middleware import _request_log_context
+        from value_fabric.shared.identity.logging_helpers import _request_log_context
         req = _make_mock_request(request_id=None)
         ctx = _request_log_context(req)
         assert ctx.get("request_id") is None, (
@@ -99,7 +99,7 @@ class TestRequestLogContext:
 
     def test_log_context_includes_tenant_hint(self):
         """POSITIVE: X-Tenant-ID header is captured as tenant_hint."""
-        from value_fabric.shared.identity.middleware import _request_log_context
+        from value_fabric.shared.identity.logging_helpers import _request_log_context
         req = _make_mock_request(tenant_hint="tenant-abc")
         ctx = _request_log_context(req)
         assert ctx.get("tenant_hint") == "tenant-abc", (
@@ -108,7 +108,7 @@ class TestRequestLogContext:
 
     def test_log_context_path_and_method_present_for_all_http_methods(self):
         """POSITIVE: path and method are present for all standard HTTP methods."""
-        from value_fabric.shared.identity.middleware import _request_log_context
+        from value_fabric.shared.identity.logging_helpers import _request_log_context
         for method in ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"]:
             req = _make_mock_request(method=method, path=f"/api/v1/test-{method.lower()}")
             ctx = _request_log_context(req)
@@ -127,7 +127,7 @@ class TestAuthFailureLogging:
 
     def test_jwt_validation_failed_log_includes_path_and_method(self):
         """NEGATIVE: jwt_validation_failed log event includes path and method."""
-        from value_fabric.shared.identity.middleware import _request_log_context
+        from value_fabric.shared.identity.logging_helpers import _request_log_context
 
         req = _make_mock_request(path="/api/v1/sensitive", method="DELETE")
         ctx = _request_log_context(req)
@@ -148,7 +148,7 @@ class TestAuthFailureLogging:
 
     def test_jwt_context_rejected_log_includes_path_and_method(self):
         """NEGATIVE: jwt_context_rejected log event includes path and method."""
-        from value_fabric.shared.identity.middleware import _request_log_context
+        from value_fabric.shared.identity.logging_helpers import _request_log_context
 
         req = _make_mock_request(path="/api/v1/admin/tenants", method="GET")
         ctx = _request_log_context(req)
@@ -164,7 +164,7 @@ class TestAuthFailureLogging:
 
     def test_log_context_does_not_include_auth_header_value(self):
         """ADVERSARIAL: _request_log_context must not log the Authorization header value."""
-        from value_fabric.shared.identity.middleware import _request_log_context
+        from value_fabric.shared.identity.logging_helpers import _request_log_context
 
         req = _make_mock_request()
         # Add a fake Authorization header to the mock
@@ -184,7 +184,7 @@ class TestAuthFailureLogging:
 
     def test_log_context_does_not_include_cookie_values(self):
         """ADVERSARIAL: _request_log_context must not log session cookie values."""
-        from value_fabric.shared.identity.middleware import _request_log_context
+        from value_fabric.shared.identity.logging_helpers import _request_log_context
 
         req = _make_mock_request()
         req.headers = {

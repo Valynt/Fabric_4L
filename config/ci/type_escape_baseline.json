@@ -1712,43 +1712,43 @@
     },
     {
       "kind": "python-any",
-      "line": 35,
+      "line": 36,
       "path": "packages/shared/src/value_fabric/shared/fastapi_framework/middleware.py",
       "text": "def as_kwargs(self) -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 107,
+      "line": 108,
       "path": "packages/shared/src/value_fabric/shared/fastapi_framework/middleware.py",
       "text": "def add_governance_middleware(app: FastAPI, *, rate_limiter: Any | None = None) -> None:"
     },
     {
       "kind": "python-any",
-      "line": 126,
+      "line": 127,
       "path": "packages/shared/src/value_fabric/shared/fastapi_framework/middleware.py",
       "text": "rate_limiter_factory: Any,"
     },
     {
       "kind": "python-any",
-      "line": 127,
+      "line": 128,
       "path": "packages/shared/src/value_fabric/shared/fastapi_framework/middleware.py",
       "text": "mode: Any,"
-    },
-    {
-      "kind": "python-any",
-      "line": 159,
-      "path": "packages/shared/src/value_fabric/shared/fastapi_framework/middleware.py",
-      "text": "service_factory: Any,"
     },
     {
       "kind": "python-any",
       "line": 160,
       "path": "packages/shared/src/value_fabric/shared/fastapi_framework/middleware.py",
+      "text": "service_factory: Any,"
+    },
+    {
+      "kind": "python-any",
+      "line": 161,
+      "path": "packages/shared/src/value_fabric/shared/fastapi_framework/middleware.py",
       "text": "mode: Any,"
     },
     {
       "kind": "python-type-ignore",
-      "line": 256,
+      "line": 257,
       "path": "packages/shared/src/value_fabric/shared/fastapi_framework/middleware.py",
       "text": "request._receive = _receive  # type: ignore[attr-defined]"
     },
@@ -2189,6 +2189,30 @@
       "line": 331,
       "path": "packages/shared/src/value_fabric/shared/identity/context.py",
       "text": "def __exit__(self, *args: Any) -> None:"
+    },
+    {
+      "kind": "python-any",
+      "line": 13,
+      "path": "packages/shared/src/value_fabric/shared/identity/context_builders.py",
+      "text": "from typing import Any, Optional"
+    },
+    {
+      "kind": "python-any",
+      "line": 70,
+      "path": "packages/shared/src/value_fabric/shared/identity/context_builders.py",
+      "text": "def _coerce_tenant_id_for_context(raw_tenant_id: Any) -> UUID | str:"
+    },
+    {
+      "kind": "python-any",
+      "line": 81,
+      "path": "packages/shared/src/value_fabric/shared/identity/context_builders.py",
+      "text": "def extract_context_from_jwt(payload: dict[str, Any]) -> RequestContext:"
+    },
+    {
+      "kind": "python-any",
+      "line": 147,
+      "path": "packages/shared/src/value_fabric/shared/identity/context_builders.py",
+      "text": "async def lookup_api_key(api_key: str) -> Optional[dict[str, Any]]:"
     },
     {
       "kind": "python-any",
@@ -2827,80 +2851,68 @@
       "text": "extra: Dict[str, Any] = {k: v for k, v in payload.items() if k not in standard_claims}"
     },
     {
+      "kind": "python-type-ignore",
+      "line": 20,
+      "path": "packages/shared/src/value_fabric/shared/identity/jwt_wrapper.py",
+      "text": "class JWTError(Exception):  # type: ignore[no-redef]"
+    },
+    {
       "kind": "python-any",
-      "line": 38,
+      "line": 5,
+      "path": "packages/shared/src/value_fabric/shared/identity/logging_helpers.py",
+      "text": "from typing import Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 12,
+      "path": "packages/shared/src/value_fabric/shared/identity/logging_helpers.py",
+      "text": "def _request_log_context(request: Request) -> dict[str, Any]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 30,
       "path": "packages/shared/src/value_fabric/shared/identity/middleware.py",
       "text": "from typing import Any, Callable, Optional"
     },
     {
       "kind": "python-type-ignore",
-      "line": 49,
-      "path": "packages/shared/src/value_fabric/shared/identity/middleware.py",
-      "text": "jwt = None  # type: ignore"
-    },
-    {
-      "kind": "python-type-ignore",
-      "line": 56,
+      "line": 109,
       "path": "packages/shared/src/value_fabric/shared/identity/middleware.py",
       "text": "redis_async = None  # type: ignore"
     },
     {
       "kind": "python-type-ignore",
-      "line": 65,
+      "line": 118,
       "path": "packages/shared/src/value_fabric/shared/identity/middleware.py",
       "text": "RedisError = None  # type: ignore"
     },
     {
-      "kind": "python-any",
-      "line": 99,
-      "path": "packages/shared/src/value_fabric/shared/identity/middleware.py",
-      "text": "def _request_log_context(request: Request) -> dict[str, Any]:"
-    },
-    {
       "kind": "python-type-ignore",
-      "line": 125,
+      "line": 124,
       "path": "packages/shared/src/value_fabric/shared/identity/middleware.py",
-      "text": "class JWTError(Exception):  # type: ignore[no-redef]"
+      "text": "jwt = None  # type: ignore"
     },
     {
       "kind": "python-any",
-      "line": 292,
-      "path": "packages/shared/src/value_fabric/shared/identity/middleware.py",
-      "text": "def _coerce_tenant_id_for_context(raw_tenant_id: Any) -> UUID | str:"
-    },
-    {
-      "kind": "python-any",
-      "line": 303,
-      "path": "packages/shared/src/value_fabric/shared/identity/middleware.py",
-      "text": "def extract_context_from_jwt(payload: dict[str, Any]) -> RequestContext:"
-    },
-    {
-      "kind": "python-any",
-      "line": 369,
-      "path": "packages/shared/src/value_fabric/shared/identity/middleware.py",
-      "text": "async def lookup_api_key(api_key: str) -> Optional[dict[str, Any]]:"
-    },
-    {
-      "kind": "python-any",
-      "line": 506,
+      "line": 154,
       "path": "packages/shared/src/value_fabric/shared/identity/middleware.py",
       "text": "app: Any,"
     },
     {
       "kind": "python-any",
-      "line": 538,
+      "line": 182,
       "path": "packages/shared/src/value_fabric/shared/identity/middleware.py",
       "text": "token: Any = _current_context.set(None)  # always reset at start"
     },
     {
       "kind": "python-any",
-      "line": 627,
+      "line": 280,
       "path": "packages/shared/src/value_fabric/shared/identity/middleware.py",
       "text": "def _set_request_context(self, ctx: RequestContext, token: Any) -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 1156,
+      "line": 315,
       "path": "packages/shared/src/value_fabric/shared/identity/middleware.py",
       "text": "self, claims: Any, request: Request"
     },
@@ -3200,6 +3212,12 @@
     },
     {
       "kind": "python-any",
+      "line": 12,
+      "path": "packages/shared/src/value_fabric/shared/identity/rate_limit_handler.py",
+      "text": "from typing import Any, Callable, Optional"
+    },
+    {
+      "kind": "python-any",
       "line": 16,
       "path": "packages/shared/src/value_fabric/shared/identity/rate_limiter.py",
       "text": "from typing import Any"
@@ -3215,6 +3233,24 @@
       "line": 66,
       "path": "packages/shared/src/value_fabric/shared/identity/rate_limiter.py",
       "text": "def redis_client(self) -> Any | None:"
+    },
+    {
+      "kind": "python-any",
+      "line": 15,
+      "path": "packages/shared/src/value_fabric/shared/identity/resolvers.py",
+      "text": "from typing import Any, Callable, Optional"
+    },
+    {
+      "kind": "python-type-ignore",
+      "line": 47,
+      "path": "packages/shared/src/value_fabric/shared/identity/resolvers.py",
+      "text": "jwt = None  # type: ignore"
+    },
+    {
+      "kind": "python-any",
+      "line": 331,
+      "path": "packages/shared/src/value_fabric/shared/identity/resolvers.py",
+      "text": "claims: Any, request: Request"
     },
     {
       "kind": "python-any",
