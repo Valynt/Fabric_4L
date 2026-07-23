@@ -570,10 +570,12 @@ jobs:
           name: generated-openapi-${{matrix.layer}}
           path: generated/
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Set up deterministic root test dependencies
+        uses: ./.github/actions/setup-fabric-ci
         with:
-          python-version: '3.11'
+          python-dependency-mode: root-test
+          install-node-deps: 'false'
+          cache: ''
 
       - name: Install deterministic root test dependencies
         run: python -m pip install --require-hashes -r tests/requirements-test.lock
@@ -637,13 +639,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Set up deterministic root test dependencies
+        uses: ./.github/actions/setup-fabric-ci
         with:
-          python-version: '3.11'
-
-      - name: Install deterministic root test dependencies
-        run: python -m pip install --require-hashes -r tests/requirements-test.lock
+          python-dependency-mode: root-test
+          install-node-deps: 'false'
+          cache: ''
 
       - name: Run contract tests
         run: |
@@ -670,19 +671,15 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Set up deterministic root test dependencies
+        uses: ./.github/actions/setup-fabric-ci
         with:
-          python-version: '3.11'
-
-      - name: Install dependencies
-        # Canonical test profile: provides pytest plus the plugins the root
-        # pytest.ini addopts require (pytest-timeout, pytest-randomly) and the
-        # root conftest imports (pyyaml); httpx is included in the profile.
-        run: python -m pip install --require-hashes -r tests/requirements-test.lock
+          python-dependency-mode: root-test
+          install-node-deps: 'false'
+          cache: ''
 
       - name: Run representative shape regression tests
-        run: pytest tests/contract/test_api_shape_regression.py -v --tb=short
+        run: python -m pytest tests/contract/test_api_shape_regression.py -v --tb=short
         env:
           CONTRACT_TEST_MODE: mock
 

@@ -41276,13 +41276,13 @@
     },
     {
       "kind": "python-any",
-      "line": 26,
+      "line": 25,
       "path": "tests/ci/test_type_escape_ratchet.py",
       "text": "python_file.write_text(\"value: Any = source  # type: ignore[assignment]\\n\", encoding=\"utf-8\")"
     },
     {
       "kind": "python-type-ignore",
-      "line": 26,
+      "line": 25,
       "path": "tests/ci/test_type_escape_ratchet.py",
       "text": "python_file.write_text(\"value: Any = source  # type: ignore[assignment]\\n\", encoding=\"utf-8\")"
     },
