@@ -1,11 +1,5 @@
 ---
-workflow_id: incident-response
-name: Incident Response
-version: 1.0.0
 description: Structured incident response workflow for production incidents with severity triage, communication, and post-mortem
-pattern: human-in-the-loop
-risk_level: high
-category: operations
 ---
 
 # Incident Response Workflow

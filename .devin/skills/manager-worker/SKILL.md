@@ -1,11 +1,5 @@
 ---
-workflow_id: template-manager-worker
-name: Manager-Worker Refactoring
-version: 1.0.0
 description: Decompose large refactoring by project graph; workers execute in parallel; manager validates
-pattern: manager-worker
-risk_level: medium
-category: orchestration
 ---
 
 # Manager-Worker Workflow Template

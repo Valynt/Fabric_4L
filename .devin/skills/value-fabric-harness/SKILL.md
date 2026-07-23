@@ -1,11 +1,5 @@
 ---
-workflow_id: value-fabric-harness
-name: Value Fabric Coding Harness
-version: 1.0.0
 description: Value Fabric coding harness — layer-scoped context assembly and pre-edit boundary guards for safe, contract-aligned development.
-pattern: circuit-breaker
-risk_level: high
-category: agent-infrastructure
 ---
 
 # Value Fabric Coding Harness

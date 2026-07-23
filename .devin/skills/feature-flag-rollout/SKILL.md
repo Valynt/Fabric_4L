@@ -1,11 +1,5 @@
 ---
-workflow_id: feature-flag-rollout
-name: Feature Flag Rollout
-version: 1.0.0
 description: Systematic feature flag rollout workflow for safe, gradual feature deployment with monitoring and rollback capabilities
-pattern: human-in-the-loop
-risk_level: medium
-category: infrastructure
 ---
 
 # Feature Flag Rollout Workflow

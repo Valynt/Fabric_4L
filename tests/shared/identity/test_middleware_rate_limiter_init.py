@@ -4,9 +4,6 @@ import os
 from unittest.mock import MagicMock, patch
 
 import pytest
-from jose import (
-    jwt as _jose_jwt,  # noqa: F401 — mandatory dep; python-jose already in layer4 dependencies
-)
 from value_fabric.shared.identity.middleware import (
     GovernanceMiddleware,
     RateLimiterConfigurationError,

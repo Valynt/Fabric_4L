@@ -1,11 +1,5 @@
 ---
-workflow_id: dependency-update
-name: Dependency Update
-version: 1.0.0
 description: Systematic dependency update workflow for security patches, bug fixes, and feature updates with testing and rollback planning
-pattern: pipeline-dag
-risk_level: medium
-category: infrastructure
 ---
 
 # Dependency Update Workflow

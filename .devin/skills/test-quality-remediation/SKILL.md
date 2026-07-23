@@ -1,11 +1,5 @@
 ---
-workflow_id: test-quality-remediation
-name: Test Quality Remediation
-version: 1.0.0
 description: Step-by-step operational workflow for auditing tests, applying targeted rewrites, executing suites, diagnosing failures, and resolving them safely
-pattern: pipeline-dag
-risk_level: medium
-category: testing
 ---
 
 # Test Quality Remediation Workflow

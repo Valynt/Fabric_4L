@@ -1,11 +1,5 @@
 ---
-workflow_id: code-boundary-enforcement
-name: Code Boundary Enforcement
-version: 1.0.0
 description: Enforce strict boundary discipline between domains, dependencies, and system layers
-pattern: circuit-breaker
-risk_level: medium
-category: quality-debt
 ---
 
 # Code Boundary Enforcement Workflow

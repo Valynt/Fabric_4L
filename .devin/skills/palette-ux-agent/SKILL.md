@@ -1,11 +1,5 @@
 ---
-workflow_id: palette-ux-agent
-name: Palette UX Agent
-version: 1.0.0
 description: UX-focused agent for small interface improvements and accessibility enhancements
-pattern: human-in-the-loop
-risk_level: low
-category: frontend-ux
 ---
 
 ## Required State JSON

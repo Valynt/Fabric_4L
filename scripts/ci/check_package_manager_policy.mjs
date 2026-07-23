@@ -19,7 +19,88 @@ const ALLOWED_LOCKFILE_PATHS = new Set([
   'services/layer6-benchmarks/uv.lock',
 ]);
 const ALLOWED_NPM_YARN_LOCKFILE_PATHS = new Set([
-  'prototypes/ui-prototype/app/package-lock.json',
+  'prototypes/ui-pruit.
+  
+  Alertmanager Config Validation	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605298/job/89088528166	
+  Analyze (actions)	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605310/job/89088527459	
+  Analyze (javascript-typescript)	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605310/job/89088527518	
+  Analyze (python)	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605310/job/89088527466	
+  Analyze Bundle	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605338/job/89088527770	
+  Billing/Entitlements Regression + Evidence	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605298/job/89088528098	
+  Build App	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605279/job/89088527463	
+  Build images & security scan (layer1-ingestion)	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605295/job/89088527634	
+  Build images & security scan (layer2-extraction)	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605295/job/89088527648	
+  Build images & security scan (layer3-knowledge)	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605295/job/89088527683	
+  Build images & security scan (layer4-agents)	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605295/job/89088527651	
+  Build images & security scan (layer5-ground-truth)	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605295/job/89088527641	
+  Build images & security scan (layer6-benchmarks)	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605295/job/89088527652	
+  Canonical Layout & Legacy Path Check	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605291/job/89088527629	
+  Collect Test Results	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605277/job/89088527555	
+  Container Scan (Trivy) (layer1-ingestion)	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605540/job/89088528717	
+  Container Scan (Trivy) (layer2-extraction)	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605540/job/89088528722	
+  Container Scan (Trivy) (layer3-knowledge)	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605540/job/89088528697	
+  Container Scan (Trivy) (layer4-agents)	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605540/job/89088528709	
+  Container Scan (Trivy) (layer5-ground-truth)	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605540/job/89088528724	
+  Container Scan (Trivy) (layer6-benchmarks)	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605540/job/89088528746	
+  Critical Behaviors Gate	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605298/job/89088528111	
+  Critical Gate: adr027-deprecated-namespaces	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605312/job/89088527778	
+  Critical Gate: adr027-duplicate-source-trees	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605312/job/89088527753	
+  Critical Gate: adr027-import-hygiene	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605312/job/89088527730	
+  Critical Gate: adr027-layer3-imports	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605312/job/89088527758	
+  Critical Gate: adr027-layer4-imports	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605312/job/89088527797	
+  Critical Gate: adr027-layer5-shim	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605312/job/89088527819	
+  Critical Gate: adr027-layer6-imports	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605312/job/89088527769	
+  Critical Gate: alembic-head-consistency	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605312/job/89088527830	
+  Critical Gate: auth-coverage	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605312/job/89088527786	
+  Critical Gate: behavior-contract	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605312/job/89088527748	
+  Critical Gate: compatibility-shims-unified	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605312/job/89088527759	
+  Critical Gate: correlation-log-contract	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605312/job/89088527738	
+  Critical Gate: env-contract-structure	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605312/job/89088527804	
+  Critical Gate: generated-client-reproducibility	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605312/job/89088527815	
+  Critical Gate: hermetic-build-inputs	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605312/job/89088527814	
+  Critical Gate: l1-target-schema	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605312/job/89088527809	
+  Critical Gate: l4-generated-jsonvalue	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605312/job/89088527808	
+  Critical Gate: layer1-api-main-shim-drift	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605312/job/89088527824	
+  Critical Gate: layer3-tenant-dependency-imports	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605312/job/89088527741	
+  Critical Gate: openapi-drift	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605312/job/89088527799	
+  Critical Gate: p0-auth-boundaries	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605312/job/89088527806	
+  Critical Gate: p0-auth-source	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605312/job/89088527787	
+  Critical Gate: p0-cross-tenant-write	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605312/job/89088527803	
+  Critical Gate: p0-jwt-config	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605312/job/89088527794	
+  Critical Gate: p0-rate-limit-safety	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605312/job/89088527812	
+  Critical Gate: production-config-policy	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605312/job/89088527767	
+  Critical Gate: production-config-policy-layer6	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605312/job/89088527760	
+  Critical Gate: shared-identity-canonical-imports	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605312/job/89088527776	
+  Critical Gate: stale-namespace-dirs	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605312/job/89088527805	
+  Critical Gate: targets-stats-named-schema	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605312/job/89088527820	
+  Critical Gate: tenant-isolation-hostile	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605312/job/89088527781	
+  Cross-Layer Contract Tests	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605298/job/89088528285	
+  Cypher Dynamic Construction Guard (SEC-L3-CYPHER-003)	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605540/job/89088528729	
+  DAST (OWASP ZAP baseline)	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605540/job/89088528820	
+  Dependency Review	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605540/job/89088528795	
+  Determine CI Profile	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605303/job/89088527468	
+  Dev Auth Bypass Guard	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605540/job/89088528676	
+  Docker Compose Config Contract	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605298/job/89088528070	
+  Docker Image Build Verification (frontend)	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605298/job/89088528238	
+  Docker Image Build Verification (layer1-ingestion)	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605298/job/89088528228	
+  Docker Image Build Verification (layer2-extraction)	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605298/job/89088528225	
+  Docker Image Build Verification (layer3-knowledge)	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605298/job/89088528230	
+  Docker Image Build Verification (layer4-agents)	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605298/job/89088528239	
+  Docker Image Build Verification (layer5-ground-truth)	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605298/job/89088528219	
+  Docker Image Build Verification (layer6-benchmarks)	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605298/job/89088528226	
+  Dockerfile Non-Root User Check	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605540/job/89088528807	
+  ESLint Plugin Tests	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605304/job/89088527711	
+  Frontend	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605298/job/89088528186	
+  Frontend Security Audit (pnpm)	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605540/job/89088528804	
+  Generate OpenAPI from Code (layer3-knowledge)	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605304/job/89088527712	
+  Generate OpenAPI from Code (layer5-ground-truth)	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605304/job/89088527739	
+  Governance Docs Guard	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605298/job/89088528059	
+  Integration Tests (Docker)	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605298/job/89088528112	
+  Kubernetes Dry-Run Validation	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605298/job/89088528118	
+  Layer 1 - Ingestion	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605298/job/89088528023	
+  Layer 2 - Extraction	pending	0	https://github.com/bmsull560/Fabric_4L/actions/runs/29969605298/job/89088528018	
+  
+  Waiting up tototype/app/package-lock.json',
 ]);
 const WORKFLOW_FORBIDDEN_PM_PATTERN = /(^|[^a-z])(?:npm|yarn)(?:\s|$)/i;
 const UNSUPPORTED_PNPM_ACTION_PATTERN = /pnpm\/action-setup@v2(?:\.\d+)?\b/;

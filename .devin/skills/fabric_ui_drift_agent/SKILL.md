@@ -1,11 +1,5 @@
 ---
-workflow_id: fabric-ui-drift-agent
-name: Fabric UI Drift Agent
-version: 1.0.0
 description: Fabric System Hardening + UI Consistency Deployment with autonomous multi-agent enforcement loop
-pattern: manager-worker
-risk_level: medium
-category: frontend-ux
 ---
 
 # Fabric UI System Enforcement

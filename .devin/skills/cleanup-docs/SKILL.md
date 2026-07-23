@@ -1,11 +1,5 @@
 ---
-workflow_id: cleanup-docs
-name: Monorepo Documentation Cleanup
-version: 1.0.0
 description: Monorepo documentation cleanup
-pattern: circuit-breaker
-risk_level: low
-category: documentation
 ---
 
 **Prompt: Monorepo Documentation Archaeologist**

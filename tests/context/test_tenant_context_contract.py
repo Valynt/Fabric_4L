@@ -497,7 +497,11 @@ class TestNegativePathContextScenarios:
         
         Rationale: Expired tokens should not grant access.
         """
-        from jose import JWTError
+        try:
+            from jose import JWTError
+        except ImportError:
+            pytest.skip("python-jose not available")
+            return
         from value_fabric.shared.identity.jwt_wrapper import decode_jwt
         
         expired_token = "eyJ..."  # Mock expired token
@@ -511,7 +515,11 @@ class TestNegativePathContextScenarios:
         
         Attack scenario: Attacker modifies token payload.
         """
-        from jose import JWTError
+        try:
+            from jose import JWTError
+        except ImportError:
+            pytest.skip("python-jose not available")
+            return
         from value_fabric.shared.identity.jwt_wrapper import decode_jwt
         
         tampered_token = "eyJ..."  # Mock tampered token

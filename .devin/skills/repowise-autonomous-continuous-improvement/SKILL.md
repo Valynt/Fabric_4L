@@ -1,11 +1,5 @@
 ---
-workflow_id: repowise-autonomous-continuous-improvement
-name: Repowise Autonomous Continuous Improvement Loop
-version: 1.0.0
 description: Closed-loop operating system for continuously improving Value Fabric with repowise intelligence while preserving contract, tenant, security, and governance invariants
-pattern: observe-orient-decide-act-verify
-risk_level: medium
-category: autonomous-improvement
 ---
 
 # Repowise Autonomous Continuous Improvement Loop
