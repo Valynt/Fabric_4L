@@ -39,10 +39,15 @@ The `Security Gates` workflow now includes:
    - Publishes `release-security-evidence-<sha>` for release/audit evidence.
 
 6. **Semgrep CE full SAST scan** (`Semgrep CE Full Scan (SAST)`)
-   - Scans the whole repository with curated Semgrep registry rulesets
-     (`p/security-audit`, `p/secrets`, `p/owasp-top-ten`, `p/python`,
-     `p/typescript`, `p/react`, `p/dockerfile`, `p/docker-compose`,
-     `p/kubernetes`, `p/github-actions`) plus the local `.semgrep/` rules.
+   - Uses the exact Semgrep version in the workflow-level `SEMGREP_VERSION`.
+     Both Semgrep jobs consume this single reviewed pin.
+   - Scans with the reviewed rules in `config/semgrep/registry/`, which replace
+     mutable runtime lookups of `p/security-audit`, `p/secrets`,
+     `p/owasp-top-ten`, and the Python, TypeScript, React, Docker, Kubernetes,
+     and GitHub Actions packs. The remaining local `.semgrep/` rules continue
+     to load alongside that snapshot.
+   - Validates every checked-in Semgrep configuration and parses a generated
+     SARIF document in a smoke step before the repository scan.
    - Uploads SARIF to the GitHub Security tab (category `semgrep-full-scan`).
    - Fails closed on ERROR-severity findings; WARNING findings are report-only.
    - Runs with `--metrics off` (Semgrep CE only, no platform token).
@@ -190,13 +195,11 @@ echo "Security evidence generated at $(date -u +"%Y-%m-%dT%H:%M:%SZ")" > release
 ### 6) Run the static scanners locally
 
 ```bash
-# Semgrep CE (same rulesets as CI)
-pip install semgrep
+# Semgrep CE (same reviewed binary and rules as CI; read the current pin from
+# .github/workflows/security-gates.yml before running this command)
+pip install 'semgrep==1.136.0'
 semgrep scan \
-  --config p/security-audit --config p/secrets --config p/owasp-top-ten \
-  --config p/python --config p/typescript --config p/react \
-  --config p/dockerfile --config p/docker-compose --config p/kubernetes \
-  --config p/github-actions --config .semgrep/ \
+  --config config/semgrep/registry/ --config .semgrep/ \
   --metrics off --exclude 'archive/**' --exclude 'docs/archive/**'
 
 # Trivy repository scan (vuln + secret + IaC misconfig)
