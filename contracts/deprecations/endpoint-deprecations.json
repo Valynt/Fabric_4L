@@ -1,0 +1,17 @@
+{
+  "schema_version": "1.0",
+  "description": "Manually curated endpoint deprecation registry entries for routes flagged by router_contract_gate.py. Dates and canonical replacements are taken from the deprecating code annotations.",
+  "entries": [
+    {
+      "key": "POST /auth/register",
+      "type": "endpoint",
+      "path": "/auth/register",
+      "method": "POST",
+      "introduction_version": "2026-05-29",
+      "removal_target": "2026-07-01",
+      "replacement": "/v1/tenants/register",
+      "owner": "layer4-agents",
+      "description": "DEPRECATED frontend-compat alias for POST /v1/tenants/register (services/layer4-agents/src/layer4_agents/api/routes/frontend_compat.py). Deprecated since 2026-05-29 per x-deprecated-since; planned removal 2026-07-01 per x-deprecated-removal-date."
+    }
+  ]
+}

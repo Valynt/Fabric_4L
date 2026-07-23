@@ -99,6 +99,9 @@ structlog>=23.0.0
 # CI / workflow scripting
 # ---------------------------------------------------------------------------
 pyyaml>=6.0
+types-PyYAML>=6.0.12.20250915
+types-toml>=0.10.8.20240310
+mypy>=1.13.0
 
 # ---------------------------------------------------------------------------
 # Schema / contract testing
@@ -113,3 +116,7 @@ protobuf>=5.0.0,<7.0.0  # Compatible with the OpenTelemetry protobuf runtime use
 # HTML parsing (used by security tests)
 # ---------------------------------------------------------------------------
 # beautifulsoup4 already listed above
+
+toml>=0.10.2
+
+types-python-dateutil>=2.9.0.20251115

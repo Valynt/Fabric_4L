@@ -55,4 +55,3 @@ def test_layer3_openapi_generation_uses_canonical_module_and_service_directory()
     env = generation["env"]
     assert env["NEO4J_PASSWORD"] == "ci-openapi-password"
     assert "sys.path.insert(0, 'src')" in generation["run"]
-

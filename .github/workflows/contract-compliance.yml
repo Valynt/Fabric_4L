@@ -348,6 +348,15 @@ jobs:
           python-version: '3.11'
           cache: pip
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: "10.18.1"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.18.0"
       - name: Run Platform Contract Lint
         run: python scripts/ci/platform_contract_lint.py
 
@@ -510,8 +519,11 @@ jobs:
           import json
           import traceback
 
-          sys.path.insert(0, 'src')
-          sys.path.insert(0, '../../packages/shared/src')
+          # Import Layer 3 as the `src` package so its relative imports resolve;
+          # Layer 5 continues to resolve from its service `src/` directory.
+          sys.path.insert(0, '.')
+          sys.path.insert(1, 'src')
+          sys.path.insert(2, '../../packages/shared/src')
 
           try:
               from ${{matrix.module}} import app
@@ -565,8 +577,13 @@ jobs:
           install-node-deps: 'false'
           cache: ''
 
+      - name: Install deterministic root test dependencies
+        run: python -m pip install --require-hashes -r tests/requirements-test.lock
+
       - name: Compare OpenAPI specs
         id: compare
+        env:
+          PYTHONPATH: services/layer5-ground-truth/src:packages/shared/src
         run: |
           if [ "${{matrix.layer}}" = "layer5-ground-truth" ]; then
             python services/layer5-ground-truth/scripts/check_openapi_contract.py \

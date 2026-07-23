@@ -363,6 +363,56 @@
       "owner": "identity"
     },
     {
+      "path": "/admin/gdpr*",
+      "method": "*",
+      "owner": "platform-security"
+    },
+    {
+      "path": "/findings*",
+      "method": "*",
+      "owner": "layer4-agents"
+    },
+    {
+      "path": "/report/*",
+      "method": "*",
+      "owner": "layer4-agents"
+    },
+    {
+      "path": "/runs*",
+      "method": "*",
+      "owner": "layer4-agents"
+    },
+    {
+      "path": "/scorecard/*",
+      "method": "*",
+      "owner": "layer4-agents"
+    },
+    {
+      "path": "/sprints*",
+      "method": "*",
+      "owner": "layer4-agents"
+    },
+    {
+      "path": "/run",
+      "method": "POST",
+      "owner": "layer4-agents"
+    },
+    {
+      "path": "/webhook/github",
+      "method": "POST",
+      "owner": "layer4-agents"
+    },
+    {
+      "path": "/jobs/batch",
+      "method": "POST",
+      "owner": "layer1-ingestion"
+    },
+    {
+      "path": "/targets/stats",
+      "method": "GET",
+      "owner": "layer1-ingestion"
+    },
+    {
       "path": "/v1/*",
       "method": "*",
       "owner": "platform-api"
@@ -567,6 +617,61 @@
       "path": "/v1/v1/agents*",
       "method": "*",
       "reason": "Layer 3 static scanner double-prefix compatibility alias; canonical route is documented under /v1/agents*."
+    },
+    {
+      "path": "/v1/v1/benchmarks*",
+      "method": "*",
+      "reason": "Layer 6 router currently composes a /v1/benchmarks router beneath the service /v1 prefix; retain the observed double-prefix compatibility route until the public contract is consolidated."
+    },
+    {
+      "path": "/admin/gdpr*",
+      "method": "*",
+      "reason": "GDPR/CCPA admin router (services/api/src/gdpr/routes.py) is an admin-only RBAC surface that is not mounted by any service app (no include_router reference) and not yet promoted into an OpenAPI contract."
+    },
+    {
+      "path": "/findings*",
+      "method": "*",
+      "reason": "Layer 4 audit orchestrator route; canonical mount is /v1/repo-audit/findings* via register_routers() and documented in contracts/openapi/layer4-agents.json. Unprefixed path is a static-scan artifact."
+    },
+    {
+      "path": "/report/*",
+      "method": "*",
+      "reason": "Layer 4 audit orchestrator route; canonical mount is /v1/repo-audit/report/* via register_routers() and documented in contracts/openapi/layer4-agents.json. Unprefixed path is a static-scan artifact."
+    },
+    {
+      "path": "/runs*",
+      "method": "*",
+      "reason": "Layer 4 audit orchestrator route; canonical mount is /v1/repo-audit/runs* via register_routers() and documented in contracts/openapi/layer4-agents.json. Unprefixed path is a static-scan artifact."
+    },
+    {
+      "path": "/scorecard/*",
+      "method": "*",
+      "reason": "Layer 4 audit orchestrator route; canonical mount is /v1/repo-audit/scorecard/* via register_routers() and documented in contracts/openapi/layer4-agents.json. Unprefixed path is a static-scan artifact."
+    },
+    {
+      "path": "/sprints*",
+      "method": "*",
+      "reason": "Layer 4 audit orchestrator route; canonical mount is /v1/repo-audit/sprints via register_routers() and documented in contracts/openapi/layer4-agents.json. Unprefixed path is a static-scan artifact."
+    },
+    {
+      "path": "/run",
+      "method": "POST",
+      "reason": "Layer 4 audit orchestrator route; canonical mount is POST /v1/repo-audit/run via register_routers() and documented in contracts/openapi/layer4-agents.json. Unprefixed path is a static-scan artifact."
+    },
+    {
+      "path": "/webhook/github",
+      "method": "POST",
+      "reason": "Layer 4 audit orchestrator GitHub webhook; canonical mount is POST /v1/repo-audit/webhook/github via register_routers() and documented in contracts/openapi/layer4-agents.json. Unprefixed path is a static-scan artifact."
+    },
+    {
+      "path": "/jobs/batch",
+      "method": "POST",
+      "reason": "Layer 1 batch route; canonical mount is POST /api/v1/ingestion/jobs/batch (router.include_router in layer1_ingestion/api/main.py) and documented in contracts/openapi/layer1-ingestion.json. Unprefixed path is a static-scan artifact."
+    },
+    {
+      "path": "/targets/stats",
+      "method": "GET",
+      "reason": "Layer 1 target statistics route; canonical mount is GET /api/v1/ingestion/targets/stats (router.include_router in layer1_ingestion/api/main.py) and documented in contracts/openapi/layer1-ingestion.json. Unprefixed path is a static-scan artifact."
     }
   ],
   "auth_declared_routes": [

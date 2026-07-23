@@ -104,12 +104,12 @@ jobs:
           format: sarif
           output: trivy-${{ matrix.service }}.sarif
 
-      - name: Trivy HTML report
+      - name: Trivy JSON report
         uses: aquasecurity/trivy-action@314ff8b43182423b84c50b1670b0e10f858f2d98 # master (post-v0.36.0)
         with:
           image-ref: ${{ steps.mode.outputs.publish == 'true' && format('{0}/fabric_4l/{1}:{2}', env.REGISTRY, matrix.service, github.sha) || format('{0}:local-{1}', matrix.service, github.sha) }}
-          format: html
-          output: trivy-${{ matrix.service }}.html
+          format: json
+          output: trivy-${{ matrix.service }}.json
 
       - name: Generate SBOM (CycloneDX)
         uses: anchore/sbom-action@v0
@@ -205,8 +205,28 @@ jobs:
       - name: Bandit SAST
         run: |
           uv pip install --system bandit[toml]
+          # Bandit returns 1 when findings exist; enforce the repository policy
+          # on medium/high findings explicitly instead of failing on low findings.
+          set +e
           bandit -r services/ -f json -o bandit-report.json
+          json_rc=$?
           bandit -r services/ -f txt -o bandit-report.txt
+          screen_rc=$?
+          set -e
+          if [ "$json_rc" -gt 1 ] || [ "$screen_rc" -gt 1 ]; then
+            echo "Bandit execution failed (json=$json_rc screen=$screen_rc)"
+            exit 1
+          fi
+          python3 - <<'PYEOF'
+          import json, sys
+          report = json.load(open("bandit-report.json", encoding="utf-8"))
+          issues = [r for r in report.get("results", []) if r.get("issue_severity") in {"MEDIUM", "HIGH"}]
+          if issues:
+              for issue in issues[:20]:
+                  print(f"{issue['issue_severity']}: {issue['test_id']} {issue['filename']}:{issue['line_number']}")
+              sys.exit(1)
+          print("No medium/high Bandit findings")
+          PYEOF
 
       - name: Run security regression tests
         run: |

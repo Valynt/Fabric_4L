@@ -1,11 +1,9 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { chromium } from "@playwright/test";
+import { AxeBuilder } from "@axe-core/playwright";
 
 const baseUrl = process.env.A11Y_BASE_URL || "http://127.0.0.1:4173";
-const axeScriptUrl =
-  process.env.AXE_SCRIPT_URL ||
-  "https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.10.2/axe.min.js";
 const reportPath = process.env.A11Y_REPORT_PATH || "./a11y-report.json";
 const defaultRoutes = ["/", "/home", "/login", "/discover/accounts"];
 const routes = (process.env.A11Y_ROUTES || "")
@@ -24,17 +22,9 @@ const routeResults = [];
 for (const route of routes) {
   const url = `${baseUrl}${route}`;
   await page.goto(url, { waitUntil: "networkidle" });
-  await page.addScriptTag({ url: axeScriptUrl });
-
-  const results = await page.evaluate(async () => {
-    // @ts-ignore injected by script tag
-    return window.axe.run(document, {
-      runOnly: {
-        type: "tag",
-        values: ["wcag2a", "wcag2aa", "wcag21aa"],
-      },
-    });
-  });
+  const results = await new AxeBuilder({ page })
+    .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
+    .analyze();
 
   routeResults.push({
     route,

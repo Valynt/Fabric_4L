@@ -47,9 +47,16 @@ jobs:
       - name: Install Python gate dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -r tests/requirements-test.txt \
-            langgraph-checkpoint-postgres jinja2 protego markdownify celery playwright \
-            opentelemetry-sdk opentelemetry-instrumentation-fastapi
+          python -m pip install --require-hashes -r tests/requirements-test.lock
+          python - <<'PY'
+          import jsonschema
+          import pytest
+          import toml
+          import yaml
+          print("dependency smoke test passed")
+          PY
+          python -m mypy --version
+          python -m pytest --version
 
       - name: Install uv for test lock verification
         uses: astral-sh/setup-uv@caf0cab7a618c569241d31dcd442f54681755d39 # v3
@@ -430,7 +437,7 @@ jobs:
       - name: Install production-readiness gate dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -r tests/requirements-test.txt
+          python -m pip install --require-hashes -r tests/requirements-test.lock
 
       - name: Run canonical production-readiness gate
         shell: bash
@@ -668,7 +675,7 @@ jobs:
       - name: Install root gate dependencies
         # Root conftest.py hard-requires the mandatory test deps (jsonschema
         # et al.), and the coverage step uses --json-report.
-        run: uv pip install -r ../../tests/requirements-test.txt pytest-json-report
+        run: uv pip install --require-hashes -r ../../tests/requirements-test.lock
 
       - name: Lint with ruff (comprehensive)
         run: |
@@ -785,7 +792,7 @@ jobs:
           retention-days: 14
 
       - name: Security scan with bandit
-        run: uv run bandit -r src/ -ll -ii
+        run: uvx bandit@1.9.4 -r src/ -ll -ii
 
       - name: Dependency audit with pip-audit
         run: |
@@ -799,6 +806,20 @@ jobs:
     defaults:
       run:
         working-directory: services/layer2-extraction
+    # Mirrors services/layer2-extraction/pyproject.toml [tool.pytest.ini_options]
+    # env list (declared for pytest-env, which is not installed). ENVIRONMENT=development
+    # keeps the strict-env startup guard in api/main.py from requiring
+    # FABRIC_AUTH_PUBLIC_KEYS at test collection time. All values are non-secret
+    # test fixtures committed in pyproject.toml.
+    env:
+      ENVIRONMENT: development
+      ALLOW_DEV_AUTH_BYPASS: I_UNDERSTAND_RISK
+      TESTING: "true"
+      LOG_LEVEL: DEBUG
+      MOCK_PERSISTENCE: "true"
+      JWT_SECRET: test-jwt-secret-must-be-at-least-32-characters-long
+      API_KEY_HMAC_SECRET: test-api-key-hmac-secret-32-chars
+      CORS_ORIGINS: '["http://localhost:3000"]'
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
@@ -821,6 +842,7 @@ jobs:
         # Root conftest.py hard-requires the mandatory test deps (jsonschema
         # et al.), and the coverage step uses --json-report.
         run: uv pip install --require-hashes -r ../../tests/requirements-test.lock
+
       - name: Configure CI authentication verification keys
         run: |
           printf 'FABRIC_AUTH_PUBLIC_KEYS=%s\n' "$(cat ../../config/ci/fabric_auth_test_public_keys.json)" >> "$GITHUB_ENV"
@@ -863,7 +885,7 @@ jobs:
           retention-days: 14
 
       - name: Security scan with bandit
-        run: uv run bandit -r src/ -ll -ii
+        run: uvx bandit@1.9.4 -r src/ -ll -ii
 
       - name: Dependency audit with pip-audit
         run: |
@@ -898,7 +920,7 @@ jobs:
       - name: Install root gate dependencies
         # Root conftest.py hard-requires the mandatory test deps (jsonschema
         # et al.), and the coverage step uses --json-report.
-        run: uv pip install -r ../../tests/requirements-test.txt pytest-json-report
+        run: uv pip install --require-hashes -r ../../tests/requirements-test.lock
 
       - name: Lint with ruff (comprehensive)
         run: |
@@ -976,7 +998,7 @@ jobs:
           retention-days: 30
 
       - name: Security scan with bandit
-        run: uv run bandit -r src/ -ll -ii
+        run: uvx bandit@1.9.4 -r src/ -ll -ii
 
       - name: Dependency audit with pip-audit
         run: |
@@ -1011,7 +1033,7 @@ jobs:
       - name: Install root gate dependencies
         # Root conftest.py hard-requires the mandatory test deps (jsonschema
         # et al.), and the coverage step uses --json-report.
-        run: uv pip install -r ../../tests/requirements-test.txt pytest-json-report
+        run: uv pip install --require-hashes -r ../../tests/requirements-test.lock
 
       - name: Lint with ruff (comprehensive)
         run: |
@@ -1045,7 +1067,7 @@ jobs:
           retention-days: 14
 
       - name: Security scan with bandit
-        run: uv run bandit -r src/ -ll -ii
+        run: uvx bandit@1.9.4 -r src/ -ll -ii
 
       - name: Dependency audit with pip-audit
         run: |
@@ -1080,7 +1102,7 @@ jobs:
       - name: Install root gate dependencies
         # Root conftest.py hard-requires the mandatory test deps (jsonschema
         # et al.), and the coverage step uses --json-report.
-        run: uv pip install -r ../../tests/requirements-test.txt pytest-json-report
+        run: uv pip install --require-hashes -r ../../tests/requirements-test.lock
 
       - name: Lint with ruff (comprehensive)
         run: |
@@ -1114,7 +1136,7 @@ jobs:
           retention-days: 14
 
       - name: Security scan with bandit
-        run: uv run bandit -r src/ -ll -ii
+        run: uvx bandit@1.9.4 -r src/ -ll -ii
 
       - name: Dependency audit with pip-audit
         run: |
@@ -1167,7 +1189,7 @@ jobs:
       - name: Install root gate dependencies
         # Root conftest.py hard-requires the mandatory test deps (jsonschema
         # et al.), and the coverage step uses --json-report.
-        run: uv pip install -r ../../tests/requirements-test.txt pytest-json-report
+        run: uv pip install --require-hashes -r ../../tests/requirements-test.lock
 
       - name: Enforce Layer 5 tenant isolation matrix coverage
         run: python ../../scripts/ci/check_layer5_tenant_isolation_matrix.py
@@ -1209,7 +1231,7 @@ jobs:
       - name: Install root gate dependencies
         # Root conftest.py hard-requires the mandatory test deps (jsonschema
         # et al.), and the coverage step uses --json-report.
-        run: uv pip install -r ../../tests/requirements-test.txt pytest-json-report
+        run: uv pip install --require-hashes -r ../../tests/requirements-test.lock
 
       - name: Generate and diff Layer 5 OpenAPI contract
         env:
@@ -1269,7 +1291,7 @@ jobs:
       - name: Install root gate dependencies
         # Root conftest.py hard-requires the mandatory test deps (jsonschema
         # et al.), and the coverage step uses --json-report.
-        run: uv pip install -r ../../tests/requirements-test.txt pytest-json-report
+        run: uv pip install --require-hashes -r ../../tests/requirements-test.lock
 
       - name: Lint with ruff (comprehensive)
         run: |
@@ -1298,7 +1320,7 @@ jobs:
           retention-days: 14
 
       - name: Security scan with bandit
-        run: uv run bandit -r src/ -ll -ii
+        run: uvx bandit@1.9.4 -r src/ -ll -ii
 
       - name: Dependency audit with pip-audit
         run: |
@@ -1797,12 +1819,34 @@ jobs:
           pip install pytest requests
 
       - name: Start runtime contract services
+        env:
+          # Runtime contract health checks use local services only; these are
+          # non-secret CI placeholders and are never used for external calls.
+          OPENAI_API_KEY: ci-runtime-placeholder
+          JWT_SECRET: ci-runtime-jwt-secret-not-for-production
         run: |
           export OPENAI_API_KEY=${OPENAI_API_KEY:?set OPENAI_API_KEY}
           export REDIS_PASSWORD=test-redis
           export NEO4J_PASSWORD=test-neo4j
+          export POSTGRES_USER=postgres
+          export POSTGRES_PASSWORD=postgres
+          export MINIO_ROOT_USER=minio
+          export MINIO_ROOT_PASSWORD=minio-password
+          export SERVICE_AUTH_SECRET=ci-service-auth-secret
+          export API_KEY_HMAC_SECRET=ci-api-key-hmac-secret
+          export SECRET_KEY=ci-secret-key
+          export CORS_ORIGINS=http://localhost:3001
+          export CLERK_AUTHORIZED_PARTIES=http://localhost:3001
+          export CLERK_ISSUER=http://localhost:3001
+          export CLERK_JWKS_URL=http://localhost:3001/.well-known/jwks.json
+          export CLERK_SECRET_KEY=ci-clerk-secret
+          export FABRIC_AUTH_PUBLIC_KEYS=ci-fabric-public-key
+          export FABRIC_AUTH_SIGNING_KEY=ci-fabric-signing-key
+          export FLOWER_PASSWORD=ci-flower-password
+          export GRAFANA_ADMIN_PASSWORD=ci-grafana-password
+          export LAYER4_DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/layer4
           export JWT_SECRET=${JWT_SECRET:?set JWT_SECRET}
-          docker compose up -d postgres redis neo4j layer5-migrate layer5-ground-truth \
+          docker compose -f infra/compose/docker-compose.full.yml up -d postgres redis neo4j layer5-migrate layer5-ground-truth \
             layer1-ingestion layer2-extraction layer3-knowledge layer4-agents
 
       - name: Wait for L1-L4 health endpoints
@@ -1879,33 +1923,55 @@ jobs:
       - name: Install Schemathesis
         run: pip install "schemathesis==3.39.16" "pytest-xdist==3.5.0"
 
+      - name: Schemathesis version diagnostics
+        run: st --version
+
+      # Schemathesis 3.x has no `st check` subcommand (only run/replay/auth/upload).
+      # `st run --dry-run` loads and validates the schema and generates the full
+      # deterministic example set (--hypothesis-seed 42) without making network
+      # requests, which is the hermetic equivalent of the former static check.
+      # The contracts are OpenAPI 3.1.0, so the documented
+      # --experimental=openapi-3.1 flag is required for schema loading.
+      # --hypothesis-suppress-health-check filter_too_much only silences a
+      # Hypothesis input-generation health check on heavily constrained
+      # operations; it does not disable any response/contract check.
       - name: Run Schemathesis on L1 OpenAPI (static validation)
         run: |
-          st check contracts/openapi/layer1-ingestion.json \
-            --max-examples 10 \
+          st run contracts/openapi/layer1-ingestion.json \
+            --dry-run \
+            --experimental=openapi-3.1 \
+            --hypothesis-max-examples 10 \
             --hypothesis-seed 42
         # CONTRACT ENFORCEMENT: L1 now fully implemented - blocking enabled
 
       - name: Run Schemathesis on L2 OpenAPI (static validation)
         run: |
-          st check contracts/openapi/layer2-extraction.json \
-            --max-examples 10 \
+          st run contracts/openapi/layer2-extraction.json \
+            --dry-run \
+            --experimental=openapi-3.1 \
+            --hypothesis-max-examples 10 \
             --hypothesis-seed 42
         # CONTRACT ENFORCEMENT: L2 now fully implemented - blocking enabled
 
       - name: Run Schemathesis on L3 OpenAPI (strict validation)
         run: |
-          st check contracts/openapi/layer3-knowledge.json \
-            --max-examples 50 \
+          st run contracts/openapi/layer3-knowledge.json \
+            --dry-run \
+            --experimental=openapi-3.1 \
+            --hypothesis-max-examples 50 \
             --hypothesis-seed 42 \
-            --checks all
+            --checks all \
+            --hypothesis-suppress-health-check filter_too_much
 
       - name: Run Schemathesis on L4 OpenAPI (strict validation)
         run: |
-          st check contracts/openapi/layer4-agents.json \
-            --max-examples 50 \
+          st run contracts/openapi/layer4-agents.json \
+            --dry-run \
+            --experimental=openapi-3.1 \
+            --hypothesis-max-examples 50 \
             --hypothesis-seed 42 \
-            --checks all
+            --checks all \
+            --hypothesis-suppress-health-check filter_too_much
 
       - name: Upload Schemathesis results
         if: always()
@@ -1941,7 +2007,14 @@ jobs:
 
       # once Infisical project is fully populated and CI validation passes.
       # Target: after first successful Infisical-only CI run.
+      # OIDC secret fetch only runs on trusted pushes to the repo (e.g. main),
+      # where the INFISICAL_IDENTITY_ID secret and id-token are guaranteed to be
+      # available. PR runs (including same-repo PRs) use the documented non-secret
+      # fallbacks in the subsequent steps (e.g. JWT_SECRET:-release-smoke-...),
+      # so the hermetic integration/smoke tests never require a real external
+      # API key. Secrets are never hardcoded here.
       - name: Fetch secrets from Infisical
+        if: github.event_name == 'push'
         id: infisical
         uses: Infisical/secrets-action@77ab1f4ccd183a543cb5b42435fbd181189f4995 # v1.0.16
         with:
@@ -2034,7 +2107,8 @@ jobs:
 
       - name: Install test dependencies
         run: |
-          pip install pytest
+          python -m pip install --require-hashes -r tests/requirements-test.lock
+          python -m pip check
 
       - name: Run billing/entitlement regression pack
         run: |
@@ -2117,7 +2191,7 @@ jobs:
       - name: Install queue topology test dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -r tests/requirements-test.txt
+          python -m pip install --require-hashes -r tests/requirements-test.lock
 
       - name: Run queue topology checks
         run: pnpm test:queues
@@ -2325,7 +2399,7 @@ jobs:
       - name: Install tenant isolation test dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -r tests/requirements-test.txt
+          python -m pip install --require-hashes -r tests/requirements-test.lock
 
       - name: Run first-class tenant isolation gate
         env:
@@ -2473,6 +2547,17 @@ jobs:
       - production-readiness-gate
       - gate-engineering
     steps:
+      - name: Environment reproducibility metadata
+        run: |
+          echo "=== CI environment (reproducibility metadata) ==="
+          echo "runner: ${{ runner.os }} / ${{ runner.arch }}"
+          python3 --version 2>/dev/null || echo "python3: not installed on gate runner"
+          pip3 --version 2>/dev/null || true
+          uv --version 2>/dev/null || echo "uv: not installed on gate runner"
+          node --version 2>/dev/null || echo "node: not installed on gate runner"
+          pnpm --version 2>/dev/null || echo "pnpm: not installed on gate runner"
+          echo "event: ${{ github.event_name }} ref: ${{ github.ref }} sha: ${{ github.sha }}"
+
       - name: Enforce unified structural/security/tenant/contract/migration/deployment gate
         run: |
           declare -A CHECKS=(
@@ -2494,15 +2579,54 @@ jobs:
           )
 
           failed=0
+          root_failures=()
+          cascades=()
+          skips=()
           for check in "${!CHECKS[@]}"; do
             result="${CHECKS[$check]}"
-            if [[ "$result" != "success" ]]; then
-              echo "❌ ${check} => ${result}"
-              failed=1
-            else
-              echo "✅ ${check} => ${result}"
-            fi
+            case "$result" in
+              success)
+                echo "✅ ${check} => ${result}"
+                ;;
+              failure)
+                echo "❌ FAILED (root failure): ${check}"
+                root_failures+=("$check")
+                failed=1
+                ;;
+              cancelled)
+                echo "🚫 CANCELLED (cascade of an upstream failure/timeout): ${check}"
+                cascades+=("$check")
+                failed=1
+                ;;
+              skipped)
+                echo "⏭️  SKIPPED: ${check}"
+                skips+=("$check")
+                failed=1
+                ;;
+              *)
+                echo "❓ UNKNOWN RESULT '${result}': ${check}"
+                root_failures+=("$check")
+                failed=1
+                ;;
+            esac
           done
+
+          echo ""
+          echo "=================== GATE SUMMARY ==================="
+          if [[ ${#root_failures[@]} -gt 0 ]]; then
+            echo "Root-failure jobs (investigate these first):"
+            printf '  - %s\n' "${root_failures[@]}"
+          else
+            echo "Root-failure jobs: none"
+          fi
+          if [[ ${#cascades[@]} -gt 0 ]]; then
+            echo "Cancelled jobs (cascades of upstream failure, not independent failures):"
+            printf '  - %s\n' "${cascades[@]}"
+          fi
+          if [[ ${#skips[@]} -gt 0 ]]; then
+            echo "Skipped jobs (treated as gate failures — required checks must run):"
+            printf '  - %s\n' "${skips[@]}"
+          fi
 
           if [[ "$failed" -ne 0 ]]; then
             echo "Unified readiness gate failed."

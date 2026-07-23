@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 # Multi-stage build for Layer 1: Data Ingestion Service
 # Stage 1: Builder - installs dependencies and Playwright browsers
-FROM python@sha256:09b29c360b84742bf98eba40b214f7f6b4b53286bb2c8a8b5b1afa188a8d9c0e AS builder
+FROM python@sha256:f5cf0344c9886ff24d34797578d5d7dd6e8911ae0fe5962bb55d0f89603ec361 AS builder
 
 WORKDIR /app
 
@@ -37,7 +37,7 @@ RUN if [ "$INSTALL_PLAYWRIGHT_BROWSERS" = "true" ]; then \
     fi
 
 # Stage 2: Runtime - minimal image with only runtime dependencies
-FROM python@sha256:09b29c360b84742bf98eba40b214f7f6b4b53286bb2c8a8b5b1afa188a8d9c0e AS runtime
+FROM python@sha256:f5cf0344c9886ff24d34797578d5d7dd6e8911ae0fe5962bb55d0f89603ec361 AS runtime
 
 # Install runtime dependencies (Playwright libs + curl for healthcheck)
 RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
