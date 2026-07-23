@@ -196,12 +196,16 @@ def enforce(diagnostic_path: Path, *, expected_status: int) -> int:
         payload = json.loads(diagnostic_path.read_text(encoding="utf-8"))
         if not isinstance(payload, dict):
             raise AuditOperationalError("diagnostic must be a JSON object")
+        schema_version = payload.get("schema_version")
+        if schema_version != SCHEMA_VERSION:
+            raise AuditOperationalError("diagnostic schema_version is missing or unsupported")
         outcome = payload.get("outcome")
         saved_status = payload.get("exit_code")
         expected = {"clean": CLEAN_EXIT, "vulnerable": VULNERABLE_EXIT, "operational_error": OPERATIONAL_ERROR_EXIT}
         if outcome not in expected or saved_status != expected[outcome] or saved_status != expected_status:
             raise AuditOperationalError("saved audit status does not match the diagnostic outcome")
         required_fields = (
+            "schema_version",
             "service",
             "dependency_source",
             "requirements_file",

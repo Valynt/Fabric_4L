@@ -33,7 +33,8 @@ def test_scan_python_propagates_status_through_uploads_to_final_enforcement() ->
     assert scan_index < sarif_index < enforce_index
     assert 'echo "status=$status" >> "$GITHUB_OUTPUT"' in job
     assert "test -s \"$ARTIFACT_DIR/diagnostic.json\"" in job
-    assert job.count("if: always()") >= 3
+    assert job.count("if: always()") >= 2
+    assert "if: always() && hashFiles(format('artifacts/pip-audit/{0}/report.sarif', matrix.service)) != ''" in job
     assert "--expected-status '${{ steps.audit.outputs.status }}'" in job
 
 

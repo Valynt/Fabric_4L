@@ -240,6 +240,14 @@ def test_enforce_fails_closed_for_missing_invalid_or_mismatched_diagnostic(tmp_p
     invalid.write_text("[]")
     assert module.enforce(invalid, expected_status=0) == module.OPERATIONAL_ERROR_EXIT
 
+    missing_schema = tmp_path / "missing-schema.json"
+    missing_schema.write_text(json.dumps({"outcome": "clean", "exit_code": 0}))
+    assert module.enforce(missing_schema, expected_status=0) == module.OPERATIONAL_ERROR_EXIT
+
+    wrong_schema = tmp_path / "wrong-schema.json"
+    wrong_schema.write_text(json.dumps({"schema_version": module.SCHEMA_VERSION + 1, "outcome": "clean", "exit_code": 0}))
+    assert module.enforce(wrong_schema, expected_status=0) == module.OPERATIONAL_ERROR_EXIT
+
     mismatch = tmp_path / "mismatch.json"
     mismatch.write_text(json.dumps({"schema_version": 1, "outcome": "clean", "exit_code": 0}))
     assert module.enforce(mismatch, expected_status=1) == module.OPERATIONAL_ERROR_EXIT
