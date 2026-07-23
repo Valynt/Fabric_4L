@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 # Layer 2: Extraction Service - Deterministic build with uv
-FROM python@sha256:09b29c360b84742bf98eba40b214f7f6b4b53286bb2c8a8b5b1afa188a8d9c0e AS builder
+FROM python@sha256:db3ff2e1800a8581e2c48a27c3995339d47bdf046da21c7627accd3d51053a93 AS builder
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
@@ -18,7 +18,7 @@ RUN uv sync --frozen --no-install-project
 
 COPY src/ ./src/
 
-FROM python@sha256:09b29c360b84742bf98eba40b214f7f6b4b53286bb2c8a8b5b1afa188a8d9c0e AS runtime
+FROM python@sha256:db3ff2e1800a8581e2c48a27c3995339d47bdf046da21c7627accd3d51053a93 AS runtime
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \

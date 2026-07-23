@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM node@sha256:926d6cafec97f338577041890465522f70fe74aa6fe4b021a4fd7f87a5996b25 AS builder
+FROM node@sha256:6c74791e557ce11fc957704f6d4fe134a7bc8d6f5ca4403205b2966bd488f6b3 AS builder
 WORKDIR /app
 
 # Canonical public API route prefixes for production builds. These match
@@ -51,7 +51,7 @@ COPY packages/platform-contract ./packages/platform-contract
 COPY packages/shared ./packages/shared
 RUN pnpm --filter ./apps/web build
 
-FROM node@sha256:926d6cafec97f338577041890465522f70fe74aa6fe4b021a4fd7f87a5996b25 AS runtime
+FROM node@sha256:6c74791e557ce11fc957704f6d4fe134a7bc8d6f5ca4403205b2966bd488f6b3 AS runtime
 WORKDIR /app
 
 ENV NODE_ENV=production

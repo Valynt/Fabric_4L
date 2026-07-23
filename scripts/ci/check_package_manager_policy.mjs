@@ -8,9 +8,11 @@ const LOCKFILE_PATTERN = /(\/(?:package-lock\.json|yarn\.lock)$|^(?:package-lock
 const ALLOWED_LOCKFILE_PATHS = new Set([
   'pnpm-lock.yaml',
   'apps/web/pnpm-lock.yaml',
+  'services/api/uv.lock',
   'services/billing/uv.lock',
   'services/layer1-ingestion/uv.lock',
   'services/layer2-extraction/uv.lock',
+  'services/layer2-5-signal-refinery/uv.lock',
   'services/layer3-knowledge/uv.lock',
   'services/layer4-agents/uv.lock',
   'services/layer5-ground-truth/uv.lock',

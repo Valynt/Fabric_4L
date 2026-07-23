@@ -62,7 +62,7 @@ Response:
 
 ```json
 {
-  "access_token": "eyJhbGciOiJSUzI1NiIs...",
+  "access_token": "<YOUR_ACCESS_TOKEN>",
   "token_type": "Bearer",
   "expires_in": 3600
 }
@@ -74,7 +74,7 @@ Include the token in every API request:
 
 ```http
 GET /v1/initiatives
-Authorization: Bearer eyJhbGciOiJSUzI1NiIs...
+Authorization: Bearer <YOUR_ACCESS_TOKEN>
 X-Tenant-ID: your-tenant-id
 ```
 
@@ -98,7 +98,7 @@ Response:
 
 ```json
 {
-  "access_token": "eyJhbGciOiJSUzI1NiIs...",
+  "access_token": "<YOUR_ACCESS_TOKEN>",
   "refresh_token": "new-refresh-token",
   "expires_in": 3600
 }

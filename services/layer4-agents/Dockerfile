@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 # Multi-stage build for Layer 4: Agentic Workflow Engine
 # Stage 1: Builder - compiles dependencies
-FROM python@sha256:09b29c360b84742bf98eba40b214f7f6b4b53286bb2c8a8b5b1afa188a8d9c0e AS builder
+FROM python@sha256:db3ff2e1800a8581e2c48a27c3995339d47bdf046da21c7627accd3d51053a93 AS builder
 
 WORKDIR /app
 
@@ -30,7 +30,7 @@ COPY prompts/ ./src/prompts/
 # value_fabric is mounted as a volume in docker-compose.dev.yml
 
 # Stage 2: Runtime - minimal image with only runtime libraries
-FROM python@sha256:09b29c360b84742bf98eba40b214f7f6b4b53286bb2c8a8b5b1afa188a8d9c0e AS runtime
+FROM python@sha256:db3ff2e1800a8581e2c48a27c3995339d47bdf046da21c7627accd3d51053a93 AS runtime
 
 # Install only runtime library (libpq for psycopg2)
 RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \

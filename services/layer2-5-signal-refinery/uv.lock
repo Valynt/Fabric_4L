@@ -658,7 +658,7 @@ requires-dist = [
     { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.23" },
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=4.1" },
     { name = "python-dateutil", specifier = ">=2.9" },
-    { name = "python-multipart", specifier = ">=0.0.27" },
+    { name = "python-multipart", specifier = ">=0.0.31" },
     { name = "redis", specifier = ">=5.0.0" },
     { name = "sentry-sdk", specifier = ">=2.0.0" },
     { name = "sqlalchemy", specifier = ">=2.0" },
