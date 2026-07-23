@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import logging
 from typing import Any, Callable, Optional
+from uuid import UUID
 
 from fastapi import HTTPException, Request, Response, status
 from fastapi.responses import JSONResponse
@@ -288,6 +289,12 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
     # ------------------------------------------------------------------
 
     async def _resolve_identity(self, request: Request) -> Optional[RequestContext]:
+        raw_tenant_header = request.headers.get(TENANT_ID_HEADER)
+        if raw_tenant_header is not None:
+            try:
+                UUID(raw_tenant_header)
+            except ValueError:
+                return None
         return await resolve_identity(request, self._api_key_resolver)
 
     async def _resolve_bearer_jwt(self, request: Request) -> Optional[RequestContext]:
