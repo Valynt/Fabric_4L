@@ -187,31 +187,157 @@ jobs:
           path: semgrep-full.sarif
           retention-days: ${{env.SECURITY_ARTIFACT_RETENTION_DAYS}}
 
+  # Prepare Helm dependencies separately so repository availability failures are
+  # reported as rendering-preparation failures rather than Trivy scan failures.
+  prepare-helm-dependencies:
+    name: Prepare Helm Dependencies
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Setup Helm
+        uses: azure/setup-helm@bf6a7d304bc2fdb57e0331155b7ebf2c504acf0a # v4
+        with:
+          version: "v3.16.2"
+
+      - name: Initialize Helm preparation diagnostics
+        run: |
+          mkdir -p artifacts/helm-preparation-diagnostics
+          {
+            echo "helm_version=v3.16.2"
+            echo "chart_lock_sha256=$(sha256sum infra/helm/fabric-chart/Chart.lock | cut -d' ' -f1)"
+          } > artifacts/helm-preparation-diagnostics/context.txt
+
+      - name: Restore exact locked Helm dependency cache
+        id: helm-cache
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        with:
+          path: |
+            infra/helm/fabric-chart/charts/
+            artifacts/helm-dependencies/checksums.sha256
+            artifacts/helm-dependencies/metadata.json
+          key: helm-deps-${{ runner.os }}-${{ runner.arch }}-helm-v3.16.2-${{ hashFiles('infra/helm/fabric-chart/Chart.lock') }}
+
+      - name: Validate restored Helm dependency cache
+        id: cache-validation
+        if: steps.helm-cache.outputs.cache-hit == 'true'
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          python3 scripts/ci/validate_helm_dependencies.py validate \
+            --chart-dir infra/helm/fabric-chart \
+            --evidence-dir artifacts/helm-dependencies \
+            --helm-version v3.16.2 \
+            2>&1 | tee artifacts/helm-preparation-diagnostics/cache-validation.log
+
+      - name: Rebuild locked Helm dependencies with bounded retries
+        if: steps.helm-cache.outputs.cache-hit != 'true' || steps.cache-validation.outcome != 'success'
+        run: |
+          set -Eeuo pipefail
+          rm -rf infra/helm/fabric-chart/charts artifacts/helm-dependencies
+          mkdir -p infra/helm/fabric-chart/charts artifacts/helm-dependencies
+          echo "cache_hit=${{ steps.helm-cache.outputs.cache-hit }}" \
+            >> artifacts/helm-preparation-diagnostics/context.txt
+
+          success=false
+          for attempt in 1 2 3; do
+            log="artifacts/helm-preparation-diagnostics/live-build-attempt-${attempt}.log"
+            echo "Helm dependency build attempt ${attempt}/3" | tee "${log}"
+            if {
+              set -x
+              timeout 60s helm repo add bitnami https://charts.bitnami.com/bitnami --force-update &&
+              timeout 60s helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx --force-update &&
+              timeout 60s helm repo update bitnami ingress-nginx &&
+              timeout 180s helm dependency build infra/helm/fabric-chart
+            } 2>&1 | tee -a "${log}"; then
+              success=true
+              break
+            fi
+            echo "Attempt ${attempt} failed; see ${log}" | tee -a artifacts/helm-preparation-diagnostics/failures.log
+            if [ "${attempt}" -lt 3 ]; then
+              sleep $((attempt * 10))
+            fi
+          done
+          if [ "${success}" != true ]; then
+            echo "Helm preparation exhausted three bounded live-resolution attempts" | tee -a artifacts/helm-preparation-diagnostics/failures.log
+            exit 1
+          fi
+
+          python3 scripts/ci/validate_helm_dependencies.py generate \
+            --chart-dir infra/helm/fabric-chart \
+            --evidence-dir artifacts/helm-dependencies \
+            --helm-version v3.16.2 \
+            2>&1 | tee artifacts/helm-preparation-diagnostics/evidence-generation.log
+
+      - name: Validate prepared Helm dependencies
+        run: |
+          set -Eeuo pipefail
+          python3 scripts/ci/validate_helm_dependencies.py validate \
+            --chart-dir infra/helm/fabric-chart \
+            --evidence-dir artifacts/helm-dependencies \
+            --helm-version v3.16.2 \
+            2>&1 | tee artifacts/helm-preparation-diagnostics/final-validation.log
+          helm dependency list infra/helm/fabric-chart \
+            2>&1 | tee artifacts/helm-preparation-diagnostics/dependency-list.log
+          git diff --exit-code -- \
+            infra/helm/fabric-chart/Chart.lock \
+            infra/helm/fabric-chart/Chart.yaml
+
+      - name: Upload validated Helm dependencies
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: helm-prepared-dependencies-${{github.sha}}
+          path: |
+            infra/helm/fabric-chart/charts/
+            artifacts/helm-dependencies/checksums.sha256
+            artifacts/helm-dependencies/metadata.json
+          if-no-files-found: error
+          retention-days: ${{env.SECURITY_ARTIFACT_RETENTION_DAYS}}
+
+      - name: Upload Helm preparation diagnostics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: helm-preparation-diagnostics-${{github.sha}}
+          path: artifacts/helm-preparation-diagnostics/
+          if-no-files-found: error
+          retention-days: ${{env.SECURITY_ARTIFACT_RETENTION_DAYS}}
+
   # Repository-wide Trivy scan: dependency vulnerabilities (lockfiles/requirements),
   # secrets, and IaC misconfigurations (Dockerfiles, Compose, Kubernetes, Terraform).
   # Complements the per-image trivy-image-scan job below.
   trivy-repo-scan:
     name: Repository Scan (Trivy fs + IaC + secrets)
+    needs: prepare-helm-dependencies
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
-      # Trivy's config scanner renders Helm charts; fetch sub-chart
-      # dependencies first so infra/helm/fabric-chart renders correctly.
       - name: Setup Helm
         uses: azure/setup-helm@bf6a7d304bc2fdb57e0331155b7ebf2c504acf0a # v4
         with:
           version: "v3.16.2"
 
-      - name: Build Helm chart dependencies
-        # Repos must be registered because Chart.lock is committed (helm
-        # dependency build resolves locked deps through named repositories).
+      - name: Download prepared Helm dependencies
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: helm-prepared-dependencies-${{github.sha}}
+          path: .
+
+      - name: Revalidate prepared Helm dependencies
         run: |
-          helm repo add bitnami https://charts.bitnami.com/bitnami
-          helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
-          helm dependency build infra/helm/fabric-chart
+          python3 scripts/ci/validate_helm_dependencies.py validate \
+            --chart-dir infra/helm/fabric-chart \
+            --evidence-dir artifacts/helm-dependencies \
+            --helm-version v3.16.2
+          helm dependency list infra/helm/fabric-chart
+          git diff --exit-code -- \
+            infra/helm/fabric-chart/Chart.lock \
+            infra/helm/fabric-chart/Chart.yaml
 
       - name: Run Trivy repository scanner
         uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
