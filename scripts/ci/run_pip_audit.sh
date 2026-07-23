@@ -10,7 +10,7 @@ if [[ "${vulnerability_policy}" != "any" ]]; then
   exit 64
 fi
 
-requirements_file="$(mktemp)"
+requirements_file="$(mktemp "${TMPDIR:-/tmp}/pip-audit.XXXXXX")"
 trap 'rm -f "${requirements_file}"' EXIT
 
 uv export \

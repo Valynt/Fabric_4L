@@ -800,7 +800,7 @@ jobs:
       - name: Dependency audit with pip-audit
         env:
           PIP_AUDIT_VULNERABILITY_POLICY: any
-        run: ../../scripts/ci/run_pip_audit.sh
+        run: bash "${{ github.workspace }}/scripts/ci/run_pip_audit.sh"
 
   # Layer 2 - Extraction
   layer2-checks:
@@ -894,7 +894,7 @@ jobs:
       - name: Dependency audit with pip-audit
         env:
           PIP_AUDIT_VULNERABILITY_POLICY: any
-        run: ../../scripts/ci/run_pip_audit.sh
+        run: bash "${{ github.workspace }}/scripts/ci/run_pip_audit.sh"
 
   # Layer 3 - Knowledge
   layer3-checks:
@@ -1008,7 +1008,7 @@ jobs:
       - name: Dependency audit with pip-audit
         env:
           PIP_AUDIT_VULNERABILITY_POLICY: any
-        run: ../../scripts/ci/run_pip_audit.sh
+        run: bash "${{ github.workspace }}/scripts/ci/run_pip_audit.sh"
 
   # Layer 4 - Agents
   layer4-checks:
@@ -1078,7 +1078,7 @@ jobs:
       - name: Dependency audit with pip-audit
         env:
           PIP_AUDIT_VULNERABILITY_POLICY: any
-        run: ../../scripts/ci/run_pip_audit.sh
+        run: bash "${{ github.workspace }}/scripts/ci/run_pip_audit.sh"
 
   # Layer 5 - Ground Truth
   layer5-checks:
@@ -1148,7 +1148,7 @@ jobs:
       - name: Dependency audit with pip-audit
         env:
           PIP_AUDIT_VULNERABILITY_POLICY: any
-        run: ../../scripts/ci/run_pip_audit.sh
+        run: bash "${{ github.workspace }}/scripts/ci/run_pip_audit.sh"
 
   layer5-source-contract:
     name: Layer 5 - Source Contract
@@ -1333,7 +1333,7 @@ jobs:
       - name: Dependency audit with pip-audit
         env:
           PIP_AUDIT_VULNERABILITY_POLICY: any
-        run: ../../scripts/ci/run_pip_audit.sh
+        run: bash "${{ github.workspace }}/scripts/ci/run_pip_audit.sh"
 
   # Cross-layer shared and tests validation
   shared-and-tests-checks:
