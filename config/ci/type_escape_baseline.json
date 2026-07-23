@@ -29468,7 +29468,13 @@
     },
     {
       "kind": "python-any",
-      "line": 190,
+      "line": 107,
+      "path": "services/layer4-agents/src/layer4_agents/integrations/core/state.py",
+      "text": ") -> dict[str, Any]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 189,
       "path": "services/layer4-agents/src/layer4_agents/integrations/core/state.py",
       "text": "integration: Any,"
     },
@@ -35828,67 +35834,67 @@
     },
     {
       "kind": "python-any",
-      "line": 58,
+      "line": 57,
       "path": "services/layer4-agents/src/layer4_agents/tenants/service.py",
       "text": "from typing import Any"
     },
     {
       "kind": "python-type-ignore",
-      "line": 70,
+      "line": 69,
       "path": "services/layer4-agents/src/layer4_agents/tenants/service.py",
       "text": "emit_audit_event = None  # type: ignore"
     },
     {
       "kind": "python-type-ignore",
-      "line": 71,
+      "line": 70,
       "path": "services/layer4-agents/src/layer4_agents/tenants/service.py",
       "text": "AuditAction = None  # type: ignore"
     },
     {
       "kind": "python-type-ignore",
-      "line": 72,
+      "line": 71,
       "path": "services/layer4-agents/src/layer4_agents/tenants/service.py",
       "text": "AuditOutcome = None  # type: ignore"
     },
     {
       "kind": "python-any",
-      "line": 83,
+      "line": 82,
       "path": "services/layer4-agents/src/layer4_agents/tenants/service.py",
       "text": "enabled: Any"
     },
     {
       "kind": "python-any",
-      "line": 84,
+      "line": 83,
       "path": "services/layer4-agents/src/layer4_agents/tenants/service.py",
       "text": "key_id: Any"
     },
     {
       "kind": "python-any",
-      "line": 85,
+      "line": 84,
       "path": "services/layer4-agents/src/layer4_agents/tenants/service.py",
       "text": "permissions: Any"
     },
     {
       "kind": "python-any",
-      "line": 86,
+      "line": 85,
       "path": "services/layer4-agents/src/layer4_agents/tenants/service.py",
       "text": "rate_limit_per_minute: Any"
     },
     {
       "kind": "python-any",
-      "line": 87,
+      "line": 86,
       "path": "services/layer4-agents/src/layer4_agents/tenants/service.py",
       "text": "role: Any"
     },
     {
       "kind": "python-any",
-      "line": 88,
+      "line": 87,
       "path": "services/layer4-agents/src/layer4_agents/tenants/service.py",
       "text": "tenant_id: Any"
     },
     {
       "kind": "python-any",
-      "line": 89,
+      "line": 88,
       "path": "services/layer4-agents/src/layer4_agents/tenants/service.py",
       "text": "user_id: Any"
     },
