@@ -188,6 +188,14 @@ def run_scan(
                 sys.stderr.write(json.dumps(diagnostic, indent=2) + "\n")
             except Exception:
                 sys.stderr.write("Failed to serialize diagnostic for stderr output\n")
+    return status, diagnostic
+
+
+def enforce(diagnostic_path: Path, *, expected_status: int) -> int:
+    try:
+        payload = json.loads(diagnostic_path.read_text(encoding="utf-8"))
+        if not isinstance(payload, dict):
+            raise AuditOperationalError("diagnostic must be a JSON object")
         outcome = payload.get("outcome")
         saved_status = payload.get("exit_code")
         expected = {"clean": CLEAN_EXIT, "vulnerable": VULNERABLE_EXIT, "operational_error": OPERATIONAL_ERROR_EXIT}
