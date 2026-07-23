@@ -8,7 +8,7 @@ updates:
       day: monday
       time: "05:00"
       timezone: America/New_York
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 10
     labels:
       - dependencies
       - nodejs
@@ -37,7 +37,7 @@ updates:
       day: monday
       time: "05:00"
       timezone: America/New_York
-    open-pull-requests-limit: 3
+    open-pull-requests-limit: 10
     labels:
       - dependencies
       - nodejs
@@ -132,7 +132,7 @@ updates:
       day: monday
       time: "05:00"
       timezone: America/New_York
-    open-pull-requests-limit: 2
+    open-pull-requests-limit: 5
     labels:
       - dependencies
       - python
@@ -161,7 +161,7 @@ updates:
       day: monday
       time: "05:00"
       timezone: America/New_York
-    open-pull-requests-limit: 2
+    open-pull-requests-limit: 5
     labels:
       - dependencies
       - python
@@ -190,7 +190,7 @@ updates:
       day: monday
       time: "05:00"
       timezone: America/New_York
-    open-pull-requests-limit: 2
+    open-pull-requests-limit: 5
     labels:
       - dependencies
       - python
@@ -219,7 +219,7 @@ updates:
       day: monday
       time: "05:00"
       timezone: America/New_York
-    open-pull-requests-limit: 2
+    open-pull-requests-limit: 5
     labels:
       - dependencies
       - python
@@ -247,7 +247,7 @@ updates:
       day: monday
       time: "05:00"
       timezone: America/New_York
-    open-pull-requests-limit: 2
+    open-pull-requests-limit: 5
     labels:
       - dependencies
       - python
@@ -276,7 +276,7 @@ updates:
       day: monday
       time: "05:00"
       timezone: America/New_York
-    open-pull-requests-limit: 2
+    open-pull-requests-limit: 5
     labels:
       - dependencies
       - python
@@ -305,7 +305,7 @@ updates:
       day: monday
       time: "05:00"
       timezone: America/New_York
-    open-pull-requests-limit: 2
+    open-pull-requests-limit: 5
     labels:
       - dependencies
       - python

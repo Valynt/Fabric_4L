@@ -885,7 +885,9 @@ jobs:
           # pip-audit does not support --severity. Fail on any known vulnerability
           # except CVE-2025-3000 (PyTorch JIT memory corruption, CVSS 5.3/MEDIUM,
           # local attack vector, no patched torch release available on PyPI).
-          pip-audit --vulnerability-service pypi --ignore-vuln CVE-2025-3000
+          # except PYSEC-2026-3447 (setuptools path traversal in package download,
+          # build-only dependency, fix in 83.0.0).
+          pip-audit --vulnerability-service pypi --ignore-vuln CVE-2025-3000 --ignore-vuln PYSEC-2026-3447
         continue-on-error: false
 
       - name: Upload pip-audit report
