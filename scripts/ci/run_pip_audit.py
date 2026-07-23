@@ -216,10 +216,37 @@ def run_scan(
         print(f"Dependency audit operational error: {exc}", file=sys.stderr)
         return OPERATIONAL_ERROR_EXIT
     if outcome == "vulnerable":
-        for finding in payload.get("vulnerabilities", []):
-            print(f"Vulnerable dependency: {finding['package']} ({', '.join(finding['ids'])})", file=sys.stderr)
+        vulnerabilities = payload.get("vulnerabilities")
+        if not isinstance(vulnerabilities, list):
+            print("Dependency audit operational error: diagnostic vulnerabilities must be a list", file=sys.stderr)
+            return OPERATIONAL_ERROR_EXIT
+        for finding in vulnerabilities:
+            if not isinstance(finding, dict):
+                print(
+                    "Dependency audit operational error: diagnostic vulnerability entries must be objects",
+                    file=sys.stderr,
+                )
+                return OPERATIONAL_ERROR_EXIT
+            package = finding.get("package")
+            ids = finding.get("ids")
+            if (
+                not isinstance(package, str)
+                or not package.strip()
+                or not isinstance(ids, list)
+                or any(not isinstance(vuln_id, str) or not vuln_id for vuln_id in ids)
+            ):
+                print(
+                    "Dependency audit operational error: diagnostic vulnerability entry is malformed",
+                    file=sys.stderr,
+                )
+                return OPERATIONAL_ERROR_EXIT
+            print(f"Vulnerable dependency: {package} ({', '.join(ids)})", file=sys.stderr)
     elif outcome == "operational_error":
-        print(f"Dependency audit operational error: {payload.get('error')}", file=sys.stderr)
+        error = payload.get("error")
+        print(
+            f"Dependency audit operational error: {error if isinstance(error, str) else 'unknown'}",
+            file=sys.stderr,
+        )
     return expected[outcome]
 
 
