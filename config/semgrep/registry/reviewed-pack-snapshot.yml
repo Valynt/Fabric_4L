@@ -1,9 +1,10 @@
-# Reviewed local snapshot replacing mutable Semgrep Registry pack lookups.
-#
-# Source packs: p/security-audit, p/secrets, p/owasp-top-ten, p/python,
+# Curated handpicked ruleset — an intentionally narrowed subset of rules used
+# in place of the mutable Semgrep Registry pack lookups previously referenced
+# at runtime (p/security-audit, p/secrets, p/owasp-top-ten, p/python,
 # p/typescript, p/react, p/dockerfile, p/docker-compose, p/kubernetes, and
-# p/github-actions. This repository intentionally owns the effective rules
-# below: changes require normal code review and travel with the workflow pin.
+# p/github-actions). This is NOT a full snapshot of those packs; it contains
+# only the rules explicitly selected here. Changes require code review and
+# travel with the workflow pin.
 rules:
   - id: reviewed.python-dangerous-eval
     languages: [python]
@@ -12,6 +13,9 @@ rules:
     pattern-either:
       - pattern: eval(...)
       - pattern: exec(...)
+    paths:
+      exclude:
+        - packs/**/tests/**
     metadata:
       category: security
       cwe: CWE-95
@@ -52,7 +56,7 @@ rules:
     languages: [dockerfile]
     severity: WARNING
     message: Do not pipe an unverified network response directly to a shell.
-    pattern-regex: '(?i)RUN\\s+.*(?:curl|wget).*\\|\\s*(?:ba)?sh'
+    pattern-regex: '(?i)RUN\s+.*(?:curl|wget).*\|\s*(?:ba)?sh'
     metadata:
       category: security
       cwe: CWE-494

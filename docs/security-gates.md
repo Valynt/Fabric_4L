@@ -41,11 +41,12 @@ The `Security Gates` workflow now includes:
 6. **Semgrep CE full SAST scan** (`Semgrep CE Full Scan (SAST)`)
    - Uses the exact Semgrep version in the workflow-level `SEMGREP_VERSION`.
      Both Semgrep jobs consume this single reviewed pin.
-   - Scans with the reviewed rules in `config/semgrep/registry/`, which replace
-     mutable runtime lookups of `p/security-audit`, `p/secrets`,
-     `p/owasp-top-ten`, and the Python, TypeScript, React, Docker, Kubernetes,
-     and GitHub Actions packs. The remaining local `.semgrep/` rules continue
-     to load alongside that snapshot.
+   - Scans with the curated rules in `config/semgrep/registry/`, which are an
+     intentionally narrowed subset of the rules formerly loaded at runtime from
+     `p/security-audit`, `p/secrets`, `p/owasp-top-ten`, and the Python,
+     TypeScript, React, Docker, Kubernetes, and GitHub Actions packs. This is
+     not a full replacement of those packs. The remaining local `.semgrep/`
+     rules continue to load alongside that snapshot.
    - Validates every checked-in Semgrep configuration and parses a generated
      SARIF document in a smoke step before the repository scan.
    - Uploads SARIF to the GitHub Security tab (category `semgrep-full-scan`).
@@ -196,8 +197,8 @@ echo "Security evidence generated at $(date -u +"%Y-%m-%dT%H:%M:%SZ")" > release
 
 ```bash
 # Semgrep CE (same reviewed binary and rules as CI; read the current pin from
-# .github/workflows/security-gates.yml before running this command)
-pip install 'semgrep==1.136.0'
+# .github/workflows/security-gates.yml SEMGREP_VERSION env before running)
+pip install "semgrep==$(grep 'SEMGREP_VERSION:' .github/workflows/security-gates.yml | awk '{print $2}')"
 semgrep scan \
   --config config/semgrep/registry/ --config .semgrep/ \
   --metrics off --exclude 'archive/**' --exclude 'docs/archive/**'
