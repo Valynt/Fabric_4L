@@ -57,6 +57,7 @@ jobs:
           PY
           python -m mypy --version
           python -m pytest --version
+
       - name: Install uv for test lock verification
         uses: astral-sh/setup-uv@caf0cab7a618c569241d31dcd442f54681755d39 # v3
         with:
