@@ -796,7 +796,7 @@ jobs:
 
       - name: Dependency audit with pip-audit
         run: |
-          uv run pip-audit --severity high --exit-code 1
+          uv run pip-audit --exit-code 1
 
   # Layer 2 - Extraction
   layer2-checks:
@@ -889,7 +889,7 @@ jobs:
 
       - name: Dependency audit with pip-audit
         run: |
-          uv run pip-audit --severity high --exit-code 1
+          uv run pip-audit --exit-code 1
 
   # Layer 3 - Knowledge
   layer3-checks:
@@ -1002,7 +1002,7 @@ jobs:
 
       - name: Dependency audit with pip-audit
         run: |
-          uv run pip-audit --severity high --exit-code 1
+          uv run pip-audit --exit-code 1
 
   # Layer 4 - Agents
   layer4-checks:
@@ -1071,7 +1071,7 @@ jobs:
 
       - name: Dependency audit with pip-audit
         run: |
-          uv run pip-audit --severity high --exit-code 1
+          uv run pip-audit --exit-code 1
 
   # Layer 5 - Ground Truth
   layer5-checks:
@@ -1140,7 +1140,7 @@ jobs:
 
       - name: Dependency audit with pip-audit
         run: |
-          uv run pip-audit --severity high --exit-code 1
+          uv run pip-audit --exit-code 1
 
   layer5-source-contract:
     name: Layer 5 - Source Contract
@@ -1324,7 +1324,7 @@ jobs:
 
       - name: Dependency audit with pip-audit
         run: |
-          uv run pip-audit --severity high --exit-code 1
+          uv run pip-audit --exit-code 1
 
   # Cross-layer shared and tests validation
   shared-and-tests-checks:
@@ -2282,7 +2282,7 @@ jobs:
         uses: hadolint/hadolint-action@v3.1.0
         if: matrix.layer != 'frontend'
         with:
-          dockerfile: ${{ matrix.context }}/${{ matrix.dockerfile }}
+          dockerfile: ${{ matrix.dockerfile || format('{0}/Dockerfile', matrix.context) }}
           ignore: DL3008,DL3013
 
   # Alertmanager configuration validation
