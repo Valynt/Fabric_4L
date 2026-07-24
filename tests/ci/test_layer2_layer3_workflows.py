@@ -54,4 +54,7 @@ def test_layer3_openapi_generation_uses_canonical_module_and_service_directory()
     assert generation["working-directory"] == "./services/${{matrix.layer}}"
     env = generation["env"]
     assert env["NEO4J_PASSWORD"] == "ci-openapi-password"
-    assert "sys.path.insert(0, 'src')" in generation["run"]
+    run = generation["run"]
+    assert "sys.path.insert(0, '.')" in run
+    assert "sys.path.insert(1, 'src')" in run
+    assert "sys.path.insert(2, '../../packages/shared/src')" in run
