@@ -23,7 +23,6 @@ from typing import Any
 
 import yaml
 
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 TARGET_COMPOSE_FILES = (
@@ -53,6 +52,7 @@ SAFE_REQUIRED_ENV_DEFAULTS = {
     "POSTGRES_PASSWORD": "compose-contract-postgres-password",
     "API_KEY_HMAC_SECRET": "compose-contract-api-key-hmac-secret-32chars",
     "SERVICE_AUTH_SECRET": "compose-contract-service-auth-secret-32chars",
+    "CREDENTIALS_MASTER_KEY": "compose-contract-credentials-master-key-32chars",
     "LAYER4_DATABASE_URL": "postgresql+asyncpg://compose_contract_user:compose-contract-postgres-password@postgres:5432/layer4_agents",
 }
 
@@ -235,8 +235,7 @@ def run_command(
             cwd=cwd,
             env=env,
             text=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
             check=False,
         )
     if result.returncode != 0:
@@ -273,11 +272,8 @@ def has_unresolved_env_reference(value: str) -> bool:
 
 def looks_like_path(source: str) -> bool:
     normalized = source.replace("\\", "/")
-    return (
-        normalized.startswith(".")
-        or normalized.startswith("/")
-        or normalized.startswith("~")
-        or bool(re.match(r"^[A-Za-z]:/", normalized))
+    return normalized.startswith((".", "/", "~")) or bool(
+        re.match(r"^[A-Za-z]:/", normalized)
     )
 
 
@@ -302,7 +298,7 @@ def split_short_volume(volume: str) -> tuple[str | None, str | None]:
     parts = volume.split(":")
     if re.match(r"^[A-Za-z]$", parts[0]) and len(parts) > 2:
         source = ":".join(parts[:2])
-        target = parts[2] if len(parts) == 3 else parts[2]
+        target = parts[2]
         return source, target
     return parts[0], parts[1] if len(parts) > 1 else None
 
@@ -420,11 +416,9 @@ def is_one_shot_service(service_name: str, service: dict[str, Any]) -> bool:
         return True
     command = service.get("command", "")
     command_text = " ".join(command) if isinstance(command, list) else str(command)
-    if restart in {"no", "none", "false"} and any(
+    return restart in {"no", "none", "false"} and any(
         token in command_text.lower() for token in ("alembic", "seed", "pytest", "pnpm run seed")
-    ):
-        return True
-    return False
+    )
 
 
 def service_has_extends_healthcheck(

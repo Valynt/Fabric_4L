@@ -127,6 +127,21 @@ def auth_headers(tenant_id: str = "tenant-a", roles: list[str] | None = None) ->
     return {"Authorization": f"Bearer {token}"}
 
 
+
+
+@pytest.fixture(autouse=True)
+def active_tenant_kill_switch(monkeypatch):
+    """Keep lightweight Layer 7 tests focused on auth/RBAC outcomes, not Redis availability."""
+    from value_fabric.shared.tenant_kill_switch import (
+        TenantKillSwitch,
+        TenantSuspensionStatus,
+    )
+
+    async def active_status(self, tenant_id):
+        return TenantSuspensionStatus.ACTIVE
+
+    monkeypatch.setattr(TenantKillSwitch, "check_status", active_status)
+
 @pytest.fixture(autouse=True)
 def override_db_dependency():
     """Override get_db_from_context to prevent real PostgreSQL connections in all tests."""

@@ -14,8 +14,8 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from collections.abc import Iterable, Sequence
 from pathlib import Path
-from typing import Any
 
 HTTP_METHODS = {"get", "post", "put", "patch", "delete", "options", "head", "trace"}
 WRITE_METHODS = {"post", "put", "patch"}
@@ -38,7 +38,7 @@ GENERIC_DESCRIPTIONS = {
 }
 
 
-def has_meaningful_text(value: Any, *, min_words: int = 4) -> bool:
+def has_meaningful_text(value: object, *, min_words: int = 4) -> bool:
     if not isinstance(value, str):
         return False
     text = " ".join(value.strip().split())
@@ -47,7 +47,7 @@ def has_meaningful_text(value: Any, *, min_words: int = 4) -> bool:
     return len(text.split()) >= min_words
 
 
-def iter_operations(spec: dict[str, Any]):
+def iter_operations(spec: dict[str, object]):
     for path, path_item in spec.get("paths", {}).items():
         if not isinstance(path_item, dict):
             continue
@@ -56,7 +56,7 @@ def iter_operations(spec: dict[str, Any]):
                 yield path, method.lower(), operation
 
 
-def validate(spec: dict[str, Any]) -> list[str]:
+def collect_errors(spec: dict[str, object]) -> list[str]:
     errors: list[str] = []
 
     for path, method, operation in iter_operations(spec):
@@ -104,7 +104,34 @@ def validate(spec: dict[str, Any]) -> list[str]:
     return errors
 
 
-def main() -> int:
+def load_baseline(path: Path | None) -> set[str]:
+    if path is None:
+        return set()
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    violations = payload.get("violations", [])
+    if not isinstance(violations, list) or not all(isinstance(item, str) for item in violations):
+        raise ValueError(f"OpenAPI documentation baseline has invalid violations list: {path}")
+    return set(violations)
+
+
+def write_baseline(path: Path, errors: Iterable[str]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "description": (
+            "Baseline for existing Fabric_4L OpenAPI documentation completeness debt. "
+            "New violations fail scripts/ci/validate_fabric_openapi_docs.py."
+        ),
+        "violations": list(errors),
+    }
+    path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+
+
+def validate(spec: dict[str, object], *, baseline: Iterable[str] | None = None) -> list[str]:
+    approved = set(baseline or [])
+    return [error for error in collect_errors(spec) if error not in approved]
+
+
+def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "spec",
@@ -113,7 +140,20 @@ def main() -> int:
         type=Path,
         help="Path to the Fabric_4L OpenAPI JSON document.",
     )
-    args = parser.parse_args()
+    parser.add_argument(
+        "--baseline",
+        type=Path,
+        help="JSON baseline of existing documentation violations to subtract from the gate.",
+    )
+    parser.add_argument(
+        "--update-baseline",
+        action="store_true",
+        help="Write the current violation set to --baseline and exit successfully.",
+    )
+    args = parser.parse_args(argv)
+
+    if args.update_baseline and args.baseline is None:
+        parser.error("--update-baseline requires --baseline")
 
     try:
         spec = json.loads(args.spec.read_text())
@@ -121,7 +161,19 @@ def main() -> int:
         print(f"OpenAPI JSON is invalid: {exc}", file=sys.stderr)
         return 1
 
-    errors = validate(spec)
+    all_errors = collect_errors(spec)
+    if args.update_baseline:
+        write_baseline(args.baseline, all_errors)
+        print(f"Fabric_4L OpenAPI documentation baseline updated ({len(all_errors)} violations).")
+        return 0
+
+    try:
+        baseline = load_baseline(args.baseline)
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        print(f"OpenAPI documentation baseline is invalid: {exc}", file=sys.stderr)
+        return 1
+
+    errors = [error for error in all_errors if error not in baseline]
     if errors:
         print("Fabric_4L OpenAPI documentation validation failed:", file=sys.stderr)
         for error in errors:

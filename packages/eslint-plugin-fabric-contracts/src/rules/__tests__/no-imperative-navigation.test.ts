@@ -22,6 +22,16 @@ ruleTester.run("no-imperative-navigation", rule, {
     {
       code: `array.push(item);`,
     },
+    // Valid: canonical navigation service implementation in the route manifest
+    {
+      code: `class NavigationService { back() { return this.navigate("dashboard"); } }`,
+      filename: "examples/canonical/ui/route-manifest.ts",
+    },
+    // Valid: exported helper delegates through canonical navigation service in the route manifest
+    {
+      code: `function navigate(state) { return navigationService.navigate(state); }`,
+      filename: "examples/canonical/ui/route-manifest.ts",
+    },
   ],
   invalid: [
     // Invalid: router.push
@@ -42,6 +52,18 @@ ruleTester.run("no-imperative-navigation", rule, {
     // Invalid: app.navigate
     {
       code: `app.navigate('/settings');`,
+      errors: [{ messageId: "noImperativeNavigation" }],
+    },
+    // Invalid: lookalike class methods outside the canonical route manifest
+    {
+      code: `class OtherService { back() { return this.navigate("dashboard"); } }`,
+      filename: "apps/web/src/features/OtherService.ts",
+      errors: [{ messageId: "noImperativeNavigation" }],
+    },
+    // Invalid: unrelated objects named navigationService outside the canonical route manifest
+    {
+      code: `function go() { return navigationService.navigate("dashboard"); }`,
+      filename: "apps/web/src/features/go.ts",
       errors: [{ messageId: "noImperativeNavigation" }],
     },
   ],

@@ -27,6 +27,12 @@
       "replacement_field": "confidence_score"
     },
     {
+      "key": "layer3-knowledge.json:components.schemas.FormulaMetadata.properties.formula_id",
+      "introduced_in": "v2.4",
+      "removal_target": "v2.5",
+      "replacement_field": "id"
+    },
+    {
       "key": "POST /v1/graphrag",
       "type": "endpoint",
       "path": "/v1/graphrag",

@@ -21,8 +21,11 @@ x-common-env: &common-env
   LOG_LEVEL: warning
   PYTHONUNBUFFERED: "1"
   JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET via secure env}
+  API_KEY_HMAC_SECRET: ${API_KEY_HMAC_SECRET:?set API_KEY_HMAC_SECRET via secure env}
   SERVICE_AUTH_SECRET: ${SERVICE_AUTH_SECRET:?set SERVICE_AUTH_SECRET via secure env}
-  DEFAULT_TENANT_ID: tenant-release-smoke-a
+  CREDENTIALS_MASTER_KEY: ${CREDENTIALS_MASTER_KEY:?set CREDENTIALS_MASTER_KEY via secure env}
+  CORS_ORIGINS: ${CORS_ORIGINS:?set CORS_ORIGINS via secure env}
+  DEFAULT_TENANT_ID: 00000000-0000-4000-8000-000000000001
   FABRIC_TENANT_HEADER: X-Tenant-ID
   FABRIC_USER_HEADER: X-User-ID
   FABRIC_ROLE_HEADER: X-Role
@@ -39,6 +42,7 @@ x-python-healthcheck: &python-healthcheck
 
 x-shared-code-volumes: &shared-code-volumes
   - ../../packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
+  - ../../packages/platform-contract/src/python:/app/packages/platform-contract/src/python:ro
 
 x-build-args: &build-args
   BASE_IMAGE: ${BASE_IMAGE:-}
@@ -110,7 +114,7 @@ services:
       LAYER1_DATABASE_URL: postgresql+asyncpg://release_smoke_app:release_smoke_strong_credential@postgres:5432/ingestion
       LAYER1_REDIS_URL: redis://redis:6379/0
       LAYER1_JWT_SECRET: layer1-release-smoke-secret-with-more-than-32-characters
-      LAYER1_CORS_ORIGINS: '["http://localhost:5173"]'
+      LAYER1_CORS_ORIGINS: '["https://localhost:5173"]'
       LAYER1_S3_ACCESS_KEY: release-smoke-access-key
       LAYER1_S3_SECRET_KEY: release-smoke-secret-key-with-more-than-32-characters
       LAYER1_RELEASE_SMOKE_LIGHT_HEALTH: "true"

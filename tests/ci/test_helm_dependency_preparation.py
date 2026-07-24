@@ -9,6 +9,7 @@ import tarfile
 from pathlib import Path
 
 import pytest
+import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 VALIDATOR = REPO_ROOT / "scripts/ci/validate_helm_dependencies.py"
@@ -212,10 +213,20 @@ def test_security_workflow_separates_preparation_from_trivy() -> None:
     assert "helm dependency build" not in trivy
     assert "git diff --exit-code" in trivy
     assert "Run Trivy repository scanner" in trivy
+    assert "trivy-config: 'config/trivy/repository.yaml'" in trivy
     assert trivy.index("validate_helm_dependencies.py validate") < trivy.index(
         "Run Trivy repository scanner"
     )
     assert "helm dependency update" not in workflow
+
+
+def test_trivy_repository_config_supplies_helm_render_secrets() -> None:
+    config_path = REPO_ROOT / "config/trivy/repository.yaml"
+    config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+
+    helm_sets = config["misconfiguration"]["helm"]["set"]
+    assert "global.serviceAuthSecret=ci-render-service-auth-placeholder" in helm_sets
+    assert "global.jwtSecret=ci-render-jwt-placeholder" in helm_sets
 
 
 def test_repository_does_not_track_helm_archives() -> None:
@@ -227,3 +238,12 @@ def test_repository_does_not_track_helm_archives() -> None:
         check=True,
     )
     assert tracked.stdout.strip() == ""
+
+
+def test_release_evidence_bundle_uses_valid_download_artifact_pin() -> None:
+    workflow = (REPO_ROOT / ".github/workflows/release-evidence-bundle.yml").read_text(
+        encoding="utf-8"
+    )
+
+    assert "actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093" in workflow
+    assert "actions/download-artifact@fa0a91b85d4f404e444306234a53f49b9be1f8b9" not in workflow
