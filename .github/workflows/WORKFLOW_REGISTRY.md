@@ -33,7 +33,7 @@ The verifier fails closed when workflow files, registry entries, triggers, secre
 
 ## Inventory
 
-The repository currently contains **53** GitHub Actions workflow files.
+The repository currently contains **54** GitHub Actions workflow files.
 
 | Workflow | Owner | Blocking | Triggers | Local validation |
 |---|---|---:|---|---|
