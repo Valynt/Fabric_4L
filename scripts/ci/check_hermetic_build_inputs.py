@@ -45,12 +45,14 @@ APPROVED_DOMAINS = {
     "valuefabric.ai",
     "github.com",
     "api.github.com",
-    # scripts/ci/generate_sbom.py references the GitHub CLI installation URL in
-    # an error message when the `gh` binary is missing.
-    "cli.github.com",
+    # scripts/ci/run_pip_audit.py references the SARIF schema registry
+    "json.schemastore.org",
     # scripts/ci/coverage_trends.py emits an SVG trend chart; the SVG namespace
     # URI is a required W3C standard identifier and is not fetched at runtime.
     "www.w3.org",
+    # scripts/ci/generate_sbom.py references the GitHub CLI installation URL in
+    # an error message when the `gh` binary is missing.
+    "cli.github.com",
 }
 
 ACTION_REF_RE = re.compile(r"^\s*-\s*uses:\s*([^@\s]+)@([^\s#]+)")
