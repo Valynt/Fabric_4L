@@ -311,7 +311,10 @@
       "required_secrets": [],
       "produced_artifacts": [
         "apps/web/pnpm-audit.json",
-        "pip-audit-${{ matrix.service }}.*",
+        "artifacts/pip-audit/${{ matrix.service }}/diagnostic.json",
+        "artifacts/pip-audit/${{ matrix.service }}/report.json",
+        "artifacts/pip-audit/${{ matrix.service }}/report.sarif",
+        "artifacts/pip-audit/${{ matrix.service }}/requirements.txt",
         "sbom-vuln-track.json"
       ],
       "runtime_budget_minutes": 30,
@@ -809,7 +812,7 @@
         "push",
         "workflow_dispatch"
       ],
-      "trigger_purpose": "Publish the pinned supply-chain CI tools image with provenance and SBOM evidence",
+      "trigger_purpose": "CI/CD",
       "blocking": false,
       "required_secrets": [],
       "produced_artifacts": [
