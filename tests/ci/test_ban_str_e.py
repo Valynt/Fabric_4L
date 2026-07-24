@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "scripts" / "ci"))
-from ban_str_e import check_file
+from ban_str_e import check_file, load_allowlist
 
 
 class TestCheckFile:
@@ -64,3 +64,26 @@ class TestCheckFile:
         f.write_text(code)
         issues = check_file(f)
         assert len(issues) == 0, f"Expected 0 issues for {code!r}, got {issues}"
+
+class TestAllowlist:
+    def test_load_allowlist_uses_path_and_exact_line(self, tmp_path):
+        allowlist = tmp_path / "config" / "ci" / "ban_str_e_allowlist.txt"
+        allowlist.parent.mkdir(parents=True)
+        allowlist.write_text(
+            "# reviewed debt\n"
+            "services/example.py|message = str(exc)\n"
+            "\n",
+            encoding="utf-8",
+        )
+
+        entries = load_allowlist(tmp_path)
+
+        assert entries == {("services/example.py", "message = str(exc)")}
+
+    def test_allowlist_key_does_not_match_changed_code(self, tmp_path):
+        f = tmp_path / "sample.py"
+        f.write_text("message = str(exc)\n", encoding="utf-8")
+        issue = check_file(f)[0]
+        entries = {("sample.py", "other = str(exc)")}
+
+        assert ("sample.py", issue[1]) not in entries

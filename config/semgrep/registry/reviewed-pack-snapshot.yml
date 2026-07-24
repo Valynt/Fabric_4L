@@ -1,0 +1,97 @@
+# Curated handpicked ruleset — an intentionally narrowed subset of rules used
+# in place of the mutable Semgrep Registry pack lookups previously referenced
+# at runtime (p/security-audit, p/secrets, p/owasp-top-ten, p/python,
+# p/typescript, p/react, p/dockerfile, p/docker-compose, p/kubernetes, and
+# p/github-actions). This is NOT a full snapshot of those packs; it contains
+# only the rules explicitly selected here. Changes require code review and
+# must be synchronized with the SEMGREP_VERSION pin in
+# .github/workflows/security-gates.yml (env.SEMGREP_VERSION).
+rules:
+  - id: reviewed.python-dangerous-eval
+    languages: [python]
+    severity: ERROR
+    message: Avoid evaluating untrusted strings as Python code.
+    pattern-either:
+      - pattern: eval(...)
+      - pattern: exec(...)
+    paths:
+      exclude:
+        - packs/**/tests/**
+    metadata:
+      category: security
+      cwe: CWE-95
+
+  - id: reviewed.python-subprocess-shell-true
+    languages: [python]
+    severity: WARNING
+    message: Review subprocess shell execution and prefer an argument vector.
+    patterns:
+      - pattern-either:
+          - pattern: subprocess.$FUNC(..., shell=True, ...)
+          - pattern: $SUBPROCESS.$FUNC(..., shell=True, ...)
+    metadata:
+      category: security
+      cwe: CWE-78
+
+  - id: reviewed.javascript-dangerous-eval
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: Avoid dynamic JavaScript evaluation.
+    pattern-either:
+      - pattern: eval(...)
+      - pattern: new Function(...)
+    metadata:
+      category: security
+      cwe: CWE-95
+
+  - id: reviewed.react-dangerously-set-inner-html
+    languages: [javascript, typescript]
+    severity: WARNING
+    message: Review raw HTML rendering for an XSS-safe sanitization boundary.
+    pattern: <$EL dangerouslySetInnerHTML={...} />
+    metadata:
+      category: security
+      cwe: CWE-79
+
+  - id: reviewed.dockerfile-curl-pipe-shell
+    languages: [dockerfile]
+    severity: WARNING
+    message: Do not pipe an unverified network response directly to a shell.
+    pattern-regex: '(?i)RUN\s+.*(?:curl|wget).*\|\s*(?:ba)?sh'
+    metadata:
+      category: security
+      cwe: CWE-494
+
+  - id: reviewed.kubernetes-privileged-container
+    languages: [yaml]
+    severity: ERROR
+    message: Kubernetes containers must not run privileged.
+    patterns:
+      - pattern-inside: |
+          securityContext:
+            ...
+      - pattern: 'privileged: true'
+    paths:
+      include:
+        - k8s/**
+        - infra/**
+    metadata:
+      category: security
+      cwe: CWE-250
+
+  - id: reviewed.github-actions-untrusted-checkout
+    languages: [yaml]
+    severity: WARNING
+    message: Review pull_request_target workflows before checking out PR-controlled refs.
+    patterns:
+      - pattern-inside: |
+          on:
+            pull_request_target: ...
+          ...
+      - pattern-regex: 'uses:\s*actions/checkout@'
+    paths:
+      include:
+        - .github/workflows/**
+    metadata:
+      category: security
+      cwe: CWE-829

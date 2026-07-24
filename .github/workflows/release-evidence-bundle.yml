@@ -205,12 +205,12 @@ jobs:
       - name: Bandit SAST
         run: |
           uv pip install --system bandit[toml]
-          # Bandit returns 1 when findings exist; enforce the repository policy
-          # on medium/high findings explicitly instead of failing on low findings.
+          # Match the maintained security-gates Bandit policy: medium severity,
+          # medium confidence, excluding tests and migrations from release evidence.
           set +e
-          bandit -r services/ -f json -o bandit-report.json
+          bandit -r services/ -ll -ii -x '*/tests/*,*/migrations/*' -f json -o bandit-report.json
           json_rc=$?
-          bandit -r services/ -f txt -o bandit-report.txt
+          bandit -r services/ -ll -ii -x '*/tests/*,*/migrations/*' -f txt -o bandit-report.txt
           screen_rc=$?
           set -e
           if [ "$json_rc" -gt 1 ] || [ "$screen_rc" -gt 1 ]; then

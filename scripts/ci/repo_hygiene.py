@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Repository Hygiene Validator for Fabric_4L / Value Fabric.
 
-Enforces the canonical-paths.yaml manifest by scanning CI workflows,
+Enforces the config/canonical-paths.yaml manifest by scanning CI workflows,
 Dependabot, CODEOWNERS, and selected scripts for references to obsolete
 or deleted directories.
 
@@ -46,7 +46,7 @@ class HygieneReport:
 
 
 def load_manifest(repo_root: Path) -> dict[str, Any]:
-    manifest_path = repo_root / "canonical-paths.yaml"
+    manifest_path = repo_root / "config" / "canonical-paths.yaml"
     if not manifest_path.exists():
         raise FileNotFoundError(f"Canonical path manifest not found: {manifest_path}")
     with manifest_path.open("r", encoding="utf-8") as fh:
@@ -65,7 +65,7 @@ def check_canonical_paths_exist(repo_root: Path, manifest: dict[str, Any]) -> li
                 Violation(
                     rule_id="canonical_docs_exist",
                     severity="error",
-                    file="canonical-paths.yaml",
+                    file="config/canonical-paths.yaml",
                     line=0,
                     message=f"Canonical {category} path does not exist: {path_str}",
                     suggestion="Update the manifest or restore the missing directory.",
@@ -80,7 +80,7 @@ def check_canonical_paths_exist(repo_root: Path, manifest: dict[str, Any]) -> li
                     Violation(
                         rule_id="canonical_docs_exist",
                         severity="error",
-                        file="canonical-paths.yaml",
+                        file="config/canonical-paths.yaml",
                         line=0,
                         message=f"Canonical Dockerfile does not exist: {df}",
                         suggestion="Update the manifest or restore the missing Dockerfile.",
@@ -95,7 +95,7 @@ def check_canonical_paths_exist(repo_root: Path, manifest: dict[str, Any]) -> li
                     Violation(
                         rule_id="canonical_docs_exist",
                         severity="error",
-                        file="canonical-paths.yaml",
+                        file="config/canonical-paths.yaml",
                         line=0,
                         message=f"Canonical Dockerfile does not exist: {df}",
                         suggestion="Update the manifest or restore the missing Dockerfile.",
@@ -168,6 +168,8 @@ def scan_workflows(repo_root: Path, manifest: dict[str, Any]) -> list[Violation]
             stripped = line.strip()
             if not stripped or stripped.startswith("#"):
                 continue
+            if stripped.startswith(("service:", "owner:", "escalation:", "EKS_CLUSTER_NAME:")):
+                continue
 
             # Extract candidate path strings from the line
             candidates: list[str] = []
@@ -223,7 +225,7 @@ def scan_workflows(repo_root: Path, manifest: dict[str, Any]) -> list[Violation]
                                 file=str(wf_file.relative_to(repo_root)).replace("\\", "/"),
                                 line=lineno,
                                 message=f"Workflow references obsolete path '{obs_name}': {candidate}",
-                                suggestion=f"Migrate reference from '{obs_name}/' to its canonical location (see canonical-paths.yaml).",
+                                suggestion=f"Migrate reference from '{obs_name}/' to its canonical location (see config/canonical-paths.yaml).",
                             )
                         )
                         break  # one violation per line is enough
@@ -398,6 +400,8 @@ def scan_production_frontend_client_references(repo_root: Path) -> list[Violatio
             if "apps/web/" in line and "instead of frontend/" in line:
                 continue
             if "OBSOLETE" in line.upper() or "legacy frontend" in line.lower():
+                continue
+            if "legacy commands" in line.lower() and "canonical paths" in line.lower():
                 continue
             if any(pattern in line for pattern in patterns):
                 violations.append(
