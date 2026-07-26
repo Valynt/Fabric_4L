@@ -157,7 +157,7 @@ class NotificationService:
             try:
                 await self._batch_task
             except asyncio.CancelledError:
-                pass
+                logger.debug("Batch processing task cancelled")
             self._batch_task = None
         if self._webhook_session:
             await self._webhook_session.close()
