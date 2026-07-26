@@ -4,6 +4,8 @@ Phase 1: Add admin-only write path guards for audit tables
 Issue B: Audit log tamper resistance is not proven
 """
 
+from __future__ import annotations
+
 import logging
 from collections.abc import Mapping
 from typing import TYPE_CHECKING
@@ -22,7 +24,7 @@ ADMIN_ROLES = {"admin", "system", "auditor"}
 AgentPermissionError = PermissionError
 
 
-def is_admin_user(caller: "TokenClaims | None") -> bool:
+def is_admin_user(caller: TokenClaims | None) -> bool:
     """Check if the caller has admin privileges for audit writes.
 
     Args:
@@ -36,7 +38,7 @@ def is_admin_user(caller: "TokenClaims | None") -> bool:
     return any(role in ADMIN_ROLES for role in getattr(caller, "roles", []))
 
 
-def require_admin_for_audit_write(caller: "TokenClaims | None", operation: str) -> None:
+def require_admin_for_audit_write(caller: TokenClaims | None, operation: str) -> None:
     """Require admin privileges for audit table write operations.
 
     Args:
