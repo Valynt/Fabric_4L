@@ -163,38 +163,40 @@ jobs:
           # Semgrep CE only; no Semgrep AppSec Platform token is used.
           SEMGREP_SEND_METRICS: 'off'
         run: |
+          set +e
           semgrep scan \
             --config config/semgrep/registry/ \
             --config .semgrep/ \
             --metrics off \
             --exclude 'archive/**' \
             --exclude 'docs/archive/**' \
-            --sarif \
-            --output semgrep-full.sarif
-          test -s semgrep-full.sarif
-
-      - name: Upload Semgrep SARIF to GitHub Security
-        if: always()
-        uses: github/codeql-action/upload-sarif@3ce22a6e336a7fcc318bc58ae1986395bdc83ba7 # v4.35.4
-        with:
-          sarif_file: semgrep-full.sarif
-          category: semgrep-full-scan
+            --verbose \
+            --json-output semgrep-full.json \
+            --sarif-output semgrep-full.sarif \
+            > /dev/null 2> semgrep-full.stderr.log
+          semgrep_exit=$?
+          set -e
+          echo "$semgrep_exit" > semgrep.exitcode
+          # Ensure a SARIF file exists for downstream evidence and upload steps.
+          # If Semgrep produced no SARIF, preserve its original failure below.
+          test -s semgrep-full.sarif || exit "$semgrep_exit"
+          exit "$semgrep_exit"
 
       - name: Fail on ERROR-severity Semgrep findings
         run: |
           python3 << 'PYEOF'
           import json
           import sys
-          with open('semgrep-full.sarif', encoding='utf-8') as fh:
-              sarif = json.load(fh)
+          with open('semgrep-full.json', encoding='utf-8') as fh:
+              data = json.load(fh)
           errors = []
-          for run in sarif.get('runs', []):
-              for result in run.get('results', []):
-                  if result.get('level', 'warning') == 'error':
-                      loc = result.get('locations', [{}])[0].get('physicalLocation', {})
-                      uri = loc.get('artifactLocation', {}).get('uri', '<unknown>')
-                      line = loc.get('region', {}).get('startLine', '?')
-                      errors.append(f"{result.get('ruleId', '<rule>')} at {uri}:{line}")
+          for result in data.get('results', []):
+              severity = result.get('extra', {}).get('severity', 'WARNING').upper()
+              if severity == 'ERROR':
+                  loc = result.get('path', '<unknown>')
+                  start = result.get('start', {}) or {}
+                  line = start.get('line', '?') if isinstance(start, dict) else '?'
+                  errors.append(f"{result.get('check_id', '<rule>')} at {loc}:{line}")
           if errors:
               print(f"Found {len(errors)} ERROR-severity Semgrep findings:")
               for item in errors[:20]:
@@ -203,12 +205,55 @@ jobs:
           print("No ERROR-severity Semgrep findings")
           PYEOF
 
+      - name: Upload Semgrep SARIF to GitHub Security
+        if: always()
+        uses: github/codeql-action/upload-sarif@3ce22a6e336a7fcc318bc58ae1986395bdc83ba7 # v4.35.4
+        with:
+          sarif_file: semgrep-full.sarif
+          category: semgrep-full-scan
+
+      - name: Generate Semgrep scan coverage evidence
+        if: always()
+        run: |
+          semgrep_exit=$(cat semgrep.exitcode 2>/dev/null || echo 1)
+          python3 scripts/security/collect_scan_coverage.py \
+            --json-path semgrep-full.json \
+            --sarif-path semgrep-full.sarif \
+            --output-dir artifacts/security/semgrep \
+            --scan-root . \
+            --exclude 'archive/**' \
+            --exclude 'docs/archive/**' \
+            --max-target-bytes 1000000 \
+            --workflow "Security Gates" \
+            --job "Semgrep CE Full Scan (SAST)" \
+            --commit-sha "${{ github.sha }}" \
+            --ref "${{ github.ref }}" \
+            --event "${{ github.event_name }}" \
+            --scan-mode full \
+            --scanner-version "${{ env.SEMGREP_VERSION }}" \
+            --setup-type python-package \
+            --configuration "config/semgrep/registry/" \
+            --configuration ".semgrep/" \
+            --exit-code "$semgrep_exit"
+
+      - name: Publish Semgrep scan coverage summary
+        if: always()
+        run: cat artifacts/security/semgrep/job-summary.md >> "$GITHUB_STEP_SUMMARY"
+
       - name: Upload Semgrep full-scan results
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: semgrep-full-scan-${{github.sha}}
           path: semgrep-full.sarif
+          retention-days: ${{env.SECURITY_ARTIFACT_RETENTION_DAYS}}
+
+      - name: Upload Semgrep scan coverage evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: semgrep-scan-evidence-${{github.sha}}
+          path: artifacts/security/semgrep/
           retention-days: ${{env.SECURITY_ARTIFACT_RETENTION_DAYS}}
 
   # Prepare Helm dependencies separately so repository availability failures are

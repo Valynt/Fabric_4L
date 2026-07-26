@@ -49,9 +49,24 @@ The `Security Gates` workflow now includes:
      rules continue to load alongside that snapshot.
    - Validates every checked-in Semgrep configuration and parses a generated
      SARIF document in a smoke step before the repository scan.
+   - Writes both **JSON** (`semgrep-full.json`) and **SARIF**
+     (`semgrep-full.sarif`) output so findings can be inspected independently of
+     the GitHub upload.
+   - Fails closed on ERROR-severity findings by reading Semgrep's own JSON
+     `extra.severity` field (the SARIF `result.level` is not authoritative for
+     Semgrep CE rules).
    - Uploads SARIF to the GitHub Security tab (category `semgrep-full-scan`).
-   - Fails closed on ERROR-severity findings; WARNING findings are report-only.
    - Runs with `--metrics off` (Semgrep CE only, no platform token).
+   - After the scan, `scripts/security/collect_scan_coverage.py` generates a
+     deterministic coverage record and publishes a job summary, even when the
+     scan fails or finds issues. The summary shows the Semgrep version, scan
+     mode, candidate/eligible/scanned/skipped file counts, active rulesets, and
+     the SARIF upload status.
+   - **GitHub Tool Status limitation:** Semgrep CE SARIF does not populate
+     `run.artifacts`, so GitHub Code Scanning cannot derive a scanned-files
+     summary for this third-party tool. The repository-owned coverage evidence
+     (`semgrep-scan-evidence-<sha>`) provides the independently verifiable
+     scanned-file manifest instead.
 
 7. **Trivy repository scan** (`Repository Scan (Trivy fs + IaC + secrets)`)
    - Filesystem scan of the repo: dependency vulnerabilities in
@@ -220,6 +235,51 @@ export GITHUB_AUTH_TOKEN="$(<path-to-secure-token-source>)"
 scorecard --repo=github.com/bmsull560/Fabric_4L
 ```
 
+### 6a) Generate Semgrep scan coverage evidence locally
+
+The CI job emits both JSON and SARIF. To produce the same repository-owned
+coverage evidence locally, run the same Semgrep command CI uses and then call
+the reporting utility:
+
+```bash
+semgrep scan \
+  --config config/semgrep/registry/ --config .semgrep/ \
+  --metrics off \
+  --exclude 'archive/**' --exclude 'docs/archive/**' \
+  --verbose \
+  --json-output semgrep-full.json \
+  --sarif-output semgrep-full.sarif
+
+python3 scripts/security/collect_scan_coverage.py \
+  --json-path semgrep-full.json \
+  --sarif-path semgrep-full.sarif \
+  --output-dir artifacts/security/semgrep \
+  --scan-root . \
+  --exclude 'archive/**' --exclude 'docs/archive/**' \
+  --scan-mode full \
+  --setup-type python-package \
+  --configuration "config/semgrep/registry/" \
+  --configuration ".semgrep/"
+```
+
+This writes:
+
+- `artifacts/security/semgrep/scan-coverage.json` — machine-readable evidence
+  record.
+- `artifacts/security/semgrep/scanned-files.txt` — deterministic, sorted
+  repository-relative manifest of files Semgrep processed.
+- `artifacts/security/semgrep/skipped-files.json` — skipped files with reasons
+  from Semgrep's own verbose output.
+- `artifacts/security/semgrep/job-summary.md` — markdown table suitable for
+  GitHub Actions step summaries.
+
+The evidence record intentionally reports `null` or `unavailable` for any
+field that cannot be derived from the Semgrep output, and lists the reason in
+`reporting_limitations`. One expected limitation is that Semgrep CE SARIF does
+not include `run.artifacts`, so GitHub Code Scanning cannot show a scanned-files
+summary for this third-party tool; the repository-owned evidence provides that
+manifest instead.
+
 ### 7) Teardown
 
 ```bash
@@ -232,6 +292,7 @@ docker compose down -v
 - `dast-zap-reports` (ZAP JSON/HTML/markdown + compose logs)
 - `sbom-<layer>` (CycloneDX SBOM + SBOM vulnerability SARIF)
 - `semgrep-full-scan-<sha>` (Semgrep CE SARIF)
+- `semgrep-scan-evidence-<sha>` (Semgrep JSON, `scan-coverage.json`, `scanned-files.txt`, `skipped-files.json`, and `job-summary.md`)
 - `trivy-repo-scan-<sha>` (Trivy filesystem/IaC/secret SARIF)
 - `OSV Scanner SARIF file` (uploaded by the OSV-Scanner reusable workflows)
 - `openssf-scorecard-<sha>` (Scorecard SARIF)
