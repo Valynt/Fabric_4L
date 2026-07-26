@@ -9,6 +9,7 @@ import pytest
 from typer.testing import CliRunner
 
 from valuefabric.cli.main import app
+from valuefabric.errors import ConfigurationError
 from valuefabric.models import (
     APIKey,
     APIKeyCreateResult,
@@ -341,3 +342,18 @@ class TestHealthCommand:
             result = runner.invoke(app, ["health"])
             assert result.exit_code == 0
             assert "healthy" in result.output
+
+
+class TestMainCommands:
+    def test_main_configuration_error(self):
+        from valuefabric.cli.main import main
+
+        with (
+            patch("valuefabric.cli.main.app", side_effect=ConfigurationError("Test config error")),
+            patch("valuefabric.cli.main.rich_print") as mock_print,
+        ):
+            with pytest.raises(SystemExit) as exc:
+                main()
+            assert exc.value.code == 1
+            mock_print.assert_called_once()
+            assert "Test config error" in mock_print.call_args.args[0]
