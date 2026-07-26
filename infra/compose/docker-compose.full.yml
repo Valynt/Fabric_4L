@@ -300,6 +300,7 @@ services:
       - LAYER3_API_URL=http://layer3-knowledge:8001
       - LAYER5_GROUND_TRUTH_URL=http://layer5-ground-truth:8005
       - LAYER6_BENCHMARKS_URL=http://layer6-benchmarks:8006
+      - ALLOW_INSECURE_SERVICE_HTTP_IN_DEVELOPMENT=true
       - PINECONE_API_KEY=${PINECONE_API_KEY:-}
       - CHECKPOINT_DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/ground_truth
       - LOG_LEVEL=info
