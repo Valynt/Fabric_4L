@@ -322,3 +322,31 @@ class TestAsyncClient:
         assert len(tenants) == 1
         assert tenants[0].name == "Acme"
         await client.aclose()
+
+    async def test_apromote_model(self):
+        transport = _mock_transport({
+            ("POST", "/v1/models/44444444-4444-4444-4444-444444444444/promote"): (200, {
+                "id": "44444444-4444-4444-4444-444444444444",
+                "tenant_id": "11111111-1111-1111-1111-111111111111",
+                "provider": "openai",
+                "model_name": "gpt-4",
+                "model_version": "1.0",
+                "stage": "staging",
+                "config": {},
+                "created_at": "2024-01-01T00:00:00Z",
+            }),
+        })
+        client = ValueFabricClient(
+            base_url="https://api.example.com",
+            api_key="test-api-key",
+        )
+        client._async_client = httpx.AsyncClient(
+            transport=transport,
+            base_url="https://api.example.com",
+        )
+        model = await client.apromote_model(
+            "44444444-4444-4444-4444-444444444444", "staging"
+        )
+        assert isinstance(model, ModelVersion)
+        assert model.stage == "staging"
+        await client.aclose()
