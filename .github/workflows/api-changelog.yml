@@ -16,6 +16,10 @@
 
 name: "API Changelog"
 
+# Re-registered 2026-07-26: this workflow was registered by GitHub with name==path
+# (ignoring the YAML `name:` above) and, alongside supply-chain.yml, produced zero-job
+# instant-failure runs on every push repo-wide. This edit forces a registry refresh.
+# It intentionally triggers only on release publish and manual dispatch — never on push.
 permissions:
   contents: read
 

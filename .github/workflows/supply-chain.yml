@@ -1,9 +1,13 @@
 name: Supply Chain Integrity
 
+# NOTE: the `push: [main]` trigger was removed (2026-07-26) — it is redundant with
+# `pull_request` for changes landing on main and was spawning zero-job instant-failure
+# runs on every push repo-wide due to a GitHub-side workflow-registration defect
+# (this workflow and api-changelog.yml were registered with name==path, ignoring the
+# YAML `name:`). The remaining triggers (pull_request, workflow_call, workflow_dispatch)
+# cover all intended invocations.
 on:
   pull_request:
-    branches: [main]
-  push:
     branches: [main]
   workflow_call:
     inputs:
