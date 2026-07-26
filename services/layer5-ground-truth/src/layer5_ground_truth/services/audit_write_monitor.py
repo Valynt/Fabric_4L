@@ -52,8 +52,12 @@ def require_admin_for_audit_write(caller: "TokenClaims | None", operation: str) 
             "audit_write_permission_denied",
             extra={
                 "operation": operation,
-                "user_id": getattr(caller, "user_id", "unknown") if caller else "unknown",
-                "tenant_id": str(getattr(caller, "tenant_id", "unknown")) if caller else "unknown",
+                "user_id": getattr(caller, "user_id", "unknown")
+                if caller
+                else "unknown",
+                "tenant_id": str(getattr(caller, "tenant_id", "unknown"))
+                if caller
+                else "unknown",
             },
         )
         try:
@@ -63,7 +67,9 @@ def require_admin_for_audit_write(caller: "TokenClaims | None", operation: str) 
             if metrics is not None:
                 metrics.increment_audit_write_denials(operation=operation)
         except Exception:
-            pass
+            logger.warning(
+                "Failed to increment audit write denial metric", exc_info=True
+            )
         raise PermissionError(
             f"Admin privileges required for audit write operation: {operation}. "
             f"User lacks required role from {ADMIN_ROLES}."
@@ -74,7 +80,9 @@ def require_admin_for_audit_write(caller: "TokenClaims | None", operation: str) 
             "audit_write_admin_bypass",
             extra={
                 "operation": operation,
-                "user_id": getattr(caller, "user_id", "unknown") if caller else "unknown",
+                "user_id": getattr(caller, "user_id", "unknown")
+                if caller
+                else "unknown",
             },
         )
 
@@ -88,7 +96,7 @@ def record_audit_write_failure() -> None:
         if metrics is not None:
             metrics.increment_audit_write_failures()
     except Exception:
-        return
+        logger.warning("Failed to increment audit write failure metric", exc_info=True)
 
 
 def get_audit_write_stats() -> Mapping[str, int]:
