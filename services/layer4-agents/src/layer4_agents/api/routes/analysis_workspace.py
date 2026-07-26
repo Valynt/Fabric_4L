@@ -246,12 +246,11 @@ def build_workspace_router(
         result = await db.execute(
             select(WorkspaceTabData).where(
                 WorkspaceTabData.case_id == case_id,
-                WorkspaceTabData.tenant_id == tenant_id,
                 WorkspaceTabData.tab_key.in_(tab_keys),
+                WorkspaceTabData.tenant_id == tenant_id,
             )
         )
-        existing_records = result.scalars().all()
-        existing_tabs = {record.tab_key: record for record in existing_records}
+        existing_tabs = {tab.tab_key: tab for tab in result.scalars().all()}
 
         for tab_key, data in tab_data.items():
             existing = existing_tabs.get(tab_key)
