@@ -36,8 +36,8 @@ services:
       dockerfile: ./services/api/Dockerfile
     container_name: value-fabric-api-gateway
     <<: *app-hardening
-    expose:
-      - "8000"
+    ports:
+      - "8001:8000"
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/ingestion
       - REDIS_URL=redis://:${REDIS_PASSWORD:?REDIS_PASSWORD is required}@redis:6379/0
@@ -131,8 +131,8 @@ services:
       args: *build-args
     container_name: value-fabric-layer2
     <<: *app-hardening
-    expose:
-      - "8000"
+    ports:
+      - "8002:8000"
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - LLM_MODEL=${LLM_MODEL:-gpt-4o}
@@ -240,8 +240,8 @@ services:
         BUILDER_BASE_IMAGE: ${BUILDER_BASE_IMAGE:-python:3.11.11-slim-bookworm}
     container_name: value-fabric-layer3
     <<: *app-hardening
-    expose:
-      - "8001"
+    ports:
+      - "8003:8001"
     environment:
       - NEO4J_URI=bolt://neo4j:7687
       - NEO4J_USER=neo4j
@@ -340,8 +340,8 @@ services:
       args: *build-args
     container_name: value-fabric-layer5
     <<: *app-hardening
-    expose:
-      - "8005"
+    ports:
+      - "8005:8005"
     environment:
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/ground_truth
       - DATABASE_URL_SYNC=postgresql+psycopg2://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/ground_truth
@@ -421,8 +421,8 @@ services:
       args: *build-args
     container_name: value-fabric-layer6
     <<: *app-hardening
-    expose:
-      - "8006"
+    ports:
+      - "8006:8006"
     environment:
       - PORT=8006
       - LOG_LEVEL=info
