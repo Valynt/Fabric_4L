@@ -173,7 +173,7 @@ services:
   layer2-5-signal-refinery:
     build:
       context: ../..
-      dockerfile: ./services/layer2-5-signal-refinery/Dockerfile
+      dockerfile: ./services/layer2-5-signal-refinery/Dockerfile.full
       args: *build-args
     container_name: value-fabric-layer2-5
     <<: *app-hardening
