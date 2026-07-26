@@ -224,14 +224,18 @@ async def batch_operation(
     failed = 0
 
     if request.operation == BatchOperationType.EXECUTE:
+        # Pre-fetch all targets for this batch to prevent N+1 queries
+        targets = (
+            db.query(ScrapingTarget)
+            .filter(ScrapingTarget.id.in_(request.target_ids), ScrapingTarget.tenant_id == org_id)
+            .all()
+        )
+        target_map = {target.id: target for target in targets}
+
         for target_id in request.target_ids:
             try:
                 # Verify target belongs to tenant
-                target = (
-                    db.query(ScrapingTarget)
-                    .filter(ScrapingTarget.id == target_id, ScrapingTarget.tenant_id == org_id)
-                    .first()
-                )
+                target = target_map.get(target_id)
                 if not target:
                     results.append(
                         BatchOperationItemResult(
@@ -303,14 +307,18 @@ async def batch_operation(
                 failed += 1
 
     elif request.operation == BatchOperationType.CANCEL:
+        # Pre-fetch all jobs for this batch to prevent N+1 queries
+        jobs = (
+            db.query(ScrapingJob)
+            .filter(ScrapingJob.id.in_(request.job_ids), ScrapingJob.tenant_id == org_id)
+            .all()
+        )
+        job_map = {job.id: job for job in jobs}
+
         for job_id in request.job_ids:
             try:
                 # Verify job belongs to tenant
-                job = (
-                    db.query(ScrapingJob)
-                    .filter(ScrapingJob.id == job_id, ScrapingJob.tenant_id == org_id)
-                    .first()
-                )
+                job = job_map.get(job_id)
                 if not job:
                     results.append(
                         BatchOperationItemResult(
@@ -369,14 +377,18 @@ async def batch_operation(
                 failed += 1
 
     elif request.operation == BatchOperationType.RETRY:
+        # Pre-fetch all jobs for this batch to prevent N+1 queries
+        jobs = (
+            db.query(ScrapingJob)
+            .filter(ScrapingJob.id.in_(request.job_ids), ScrapingJob.tenant_id == org_id)
+            .all()
+        )
+        job_map = {job.id: job for job in jobs}
+
         for job_id in request.job_ids:
             try:
                 # Verify job belongs to tenant
-                job = (
-                    db.query(ScrapingJob)
-                    .filter(ScrapingJob.id == job_id, ScrapingJob.tenant_id == org_id)
-                    .first()
-                )
+                job = job_map.get(job_id)
                 if not job:
                     results.append(
                         BatchOperationItemResult(
