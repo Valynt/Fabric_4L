@@ -260,6 +260,8 @@ services:
     networks:
       - value-fabric-network
     restart: unless-stopped
+    volumes:
+      - layer3-hf-cache:/home/appuser/.cache
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
       interval: 30s
@@ -961,6 +963,7 @@ volumes:
   grafana-data:
   alertmanager-data:
   jaeger-data:
+  layer3-hf-cache:
 
 networks:
   value-fabric-network:

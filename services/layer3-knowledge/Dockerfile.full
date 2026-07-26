@@ -18,12 +18,21 @@ ENV PATH="/app/.venv/bin:$PATH" \
     PYTHONPATH=/app:/app/src \
     UVICORN_CMD="uvicorn value_fabric.layer3.api.main:app --host 0.0.0.0 --port 8001"
 
+# Pre-download the sentence-transformers embedding model so the read-only
+# runtime container can start without writing to ~/.cache at runtime.
+ENV HF_HOME=/home/appuser/.cache/huggingface
+RUN mkdir -p /home/appuser/.cache/huggingface && \
+    python - <<'PY'
+from sentence_transformers import SentenceTransformer
+SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+PY
+
 COPY services/layer3-knowledge/src/ ./src/
 COPY packages/shared/src/value_fabric/ ./value_fabric/
 COPY packages/shared/src/value_fabric/shared/ ./value_fabric/shared/
 COPY services/layer3-knowledge/src/ ./value_fabric/layer3/
 
-RUN groupadd -r appgroup && useradd -r -g appgroup -m appuser && chown -R appuser:appgroup /app
+RUN groupadd -r appgroup && useradd -r -g appgroup -m appuser && chown -R appuser:appgroup /app /home/appuser
 USER appuser
 
 EXPOSE 8001
