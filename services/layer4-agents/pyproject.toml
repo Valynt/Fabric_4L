@@ -48,6 +48,8 @@ dependencies = [
     # Shared identity module dependencies
     "sqlalchemy>=2.0",
     "psycopg2-binary>=2.9",
+    # Rate-limiting dependency used by shared rate_limiting.ip_limiter
+    "limits>=3.13.0",
     # Observability
     "opentelemetry-api>=1.20.0",
     "opentelemetry-sdk>=1.20.0",
