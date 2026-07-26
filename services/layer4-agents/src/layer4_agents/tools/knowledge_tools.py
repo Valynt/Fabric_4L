@@ -467,7 +467,6 @@ class GetEntityTool(BaseTool):
 
         try:
             async with driver.session(database=self.database) as session:
-                # P0 FIX: Query entity by ID with mandatory tenant filter
                 entity_query = """
                     MATCH (n {id: $entity_id, tenant_id: $tenant_id})
                     RETURN n, labels(n) as labels
