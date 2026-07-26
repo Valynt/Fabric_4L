@@ -1,4 +1,4 @@
-FROM python@sha256:f5cf0344c9886ff24d34797578d5d7dd6e8911ae0fe5962bb55d0f89603ec361 AS builder
+FROM python@sha256:5f1cdbcab9a50594a79502dd73e885456d2a2fc31f1a1fa18484815b37ee9152 AS builder
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
@@ -18,7 +18,7 @@ COPY services/api/app/ ./app/
 COPY services/api/migrations/ ./migrations/
 COPY packages/shared/src/value_fabric/ ./value_fabric/
 
-FROM python@sha256:f5cf0344c9886ff24d34797578d5d7dd6e8911ae0fe5962bb55d0f89603ec361 AS runtime
+FROM python@sha256:5f1cdbcab9a50594a79502dd73e885456d2a2fc31f1a1fa18484815b37ee9152 AS runtime
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
