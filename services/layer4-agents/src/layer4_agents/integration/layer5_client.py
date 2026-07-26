@@ -394,7 +394,7 @@ class Layer5GroundTruthClient:
             raise
         except Exception as exc:
             logger.warning("Layer 5 list_truths failed: %s", exc)
-            return Layer5GroundTruthClient_list_truthsResult.model_validate({"error": type(exc).__name__, "items": [], "total": 0})
+            return Layer5GroundTruthClient_list_truthsResult.model_validate({"error": str(exc), "items": [], "total": 0})
 
     async def validate_truth(
         self,

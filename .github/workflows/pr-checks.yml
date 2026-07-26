@@ -2455,7 +2455,7 @@ jobs:
 
       - name: Run first-class tenant isolation gate
         env:
-          PYTHONPATH: packages/shared/src:services/layer4-agents/src:services/layer5-ground-truth/src:services/layer7-billing/src
+          PYTHONPATH: ${{ github.workspace }}/packages/shared/src:${{ github.workspace }}/services/layer4-agents/src:${{ github.workspace }}/services/layer5-ground-truth/src:${{ github.workspace }}/services/layer7-billing/src
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/fabric_test
           TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/fabric_test
           REDIS_URL: redis://localhost:6379

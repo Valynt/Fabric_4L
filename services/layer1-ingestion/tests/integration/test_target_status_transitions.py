@@ -130,6 +130,7 @@ class TestUpdateTargetStatus:
                 headers={"X-Organization-ID": str(other_org_id)},
             )
             assert resp.status_code == 404
+        app.dependency_overrides.clear()
 
     def test_nonexistent_target_returns_404(self, client, org_id):
         resp = client.put(
