@@ -53,6 +53,7 @@ EXEMPT_FILE_NAMES: frozenset[str] = frozenset(
         # OIDC fallbacks. This should be refactored so callers pass OIDC
         # config explicitly instead of the shared module reading Clerk env.
         "jwt.py",
+        "jwt_tokens.py",
     }
 )
 

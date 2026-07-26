@@ -116,7 +116,7 @@ async def resolve_s2s_jwt(
 ) -> Optional[RequestContext]:
     """Try to resolve as service-to-service JWT."""
     try:
-        from .jwt import decode_service_jwt as _decode_service_jwt
+        from value_fabric.shared.identity.jwt import decode_service_jwt as _decode_service_jwt
 
         expected_audience = os.getenv("S2S_AUDIENCE", "").strip() or None
         s2s_claims = await asyncio.to_thread(

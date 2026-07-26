@@ -248,10 +248,11 @@ def test_tenant_required_api_dependencies_reject_missing_and_invalid_tenant() ->
         "require_tenant must depend on require_authenticated to reject missing tenant context"
     )
 
-    resolve_identity = _get_function(middleware_tree, "_resolve_identity")
-    assert resolve_identity is not None, "middleware.py must define _resolve_identity"
+    resolvers_tree = _parse(REPO_ROOT / "packages/shared/src/value_fabric/shared/identity/resolvers.py")
+    resolve_identity = _get_function(resolvers_tree, "resolve_identity")
+    assert resolve_identity is not None, "resolvers.py must define resolve_identity"
     assert _function_calls_uuid(resolve_identity), (
-        "_resolve_identity must parse tenant identifiers with UUID(...) validation"
+        "resolve_identity must parse tenant identifiers with UUID(...) validation"
     )
 
 
