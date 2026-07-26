@@ -322,3 +322,37 @@ class TestAsyncClient:
         assert len(tenants) == 1
         assert tenants[0].name == "Acme"
         await client.aclose()
+
+    async def test_alist_models(self):
+        transport = _mock_transport({
+            ("GET", "/v1/models"): (200, [
+                {
+                    "id": "55555555-5555-5555-5555-555555555555",
+                    "tenant_id": "11111111-1111-1111-1111-111111111111",
+                    "provider": "openai",
+                    "model_name": "gpt-4",
+                    "model_version": "0613",
+                    "stage": "production",
+                    "created_at": "2024-01-01T00:00:00Z",
+                }
+            ]),
+        })
+        client = ValueFabricClient(
+            base_url="https://api.example.com",
+            api_key="test-api-key",
+        )
+        client._async_client = httpx.AsyncClient(
+            transport=transport,
+            base_url="https://api.example.com",
+        )
+        models = await client.alist_models()
+        assert len(models) == 1
+        assert models[0].model_name == "gpt-4"
+        assert models[0].stage == "production"
+
+        models_stg = await client.alist_models(stage="production")
+        assert len(models_stg) == 1
+        assert models_stg[0].model_name == "gpt-4"
+        assert models_stg[0].stage == "production"
+
+        await client.aclose()
