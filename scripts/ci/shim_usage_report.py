@@ -5,6 +5,7 @@ import argparse
 import csv
 import datetime as dt
 import json
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -19,8 +20,37 @@ from scripts.ci.compatibility_registry import parse_registry
 REGISTRY = ROOT / "docs/governance/compatibility-debt-registry.md"
 
 
+GLOB_EXTENSIONS = ("*.py", "*.ts", "*.tsx", "*.md", "*.yml", "*.yaml", "*.json")
+SKIP_DIRS = {".git", ".venv", "venv", "node_modules", "__pycache__", ".pytest_cache", ".tmp", ".tox"}
+
+
+def _python_count(pattern: str) -> int:
+    """Pure-Python fallback for counting pattern occurrences in repo files."""
+    total = 0
+    for ext in GLOB_EXTENSIONS:
+        for path in ROOT.rglob(ext):
+            if any(part in SKIP_DIRS for part in path.parts):
+                continue
+            try:
+                text = path.read_text(encoding="utf-8", errors="ignore")
+            except OSError:
+                continue
+            # Count matching lines to mirror `rg --count` semantics.
+            total += sum(1 for line in text.splitlines() if pattern in line)
+    return total
+
+
 def rg_count(pattern: str) -> int:
-    cmd = ["rg", "--fixed-strings", "--glob", "*.py", "--glob", "*.ts", "--glob", "*.tsx", "--glob", "*.md", "--glob", "*.yml", "--glob", "*.yaml", "--glob", "*.json", "--count", pattern, str(ROOT)]
+    if shutil.which("rg") is None:
+        return _python_count(pattern)
+    cmd = [
+        "rg",
+        "--fixed-strings",
+        *[g for ext in GLOB_EXTENSIONS for g in ("--glob", ext)],
+        "--count",
+        pattern,
+        str(ROOT),
+    ]
     out = subprocess.run(cmd, check=False, capture_output=True, text=True)
     if out.returncode not in (0, 1):
         raise RuntimeError(out.stderr.strip() or "rg failed")
