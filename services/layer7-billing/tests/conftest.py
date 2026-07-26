@@ -143,6 +143,22 @@ def active_tenant_kill_switch(monkeypatch):
     monkeypatch.setattr(TenantKillSwitch, "check_status", active_status)
 
 @pytest.fixture(autouse=True)
+def bypass_redis_rate_limiter(monkeypatch):
+    """Disable Redis-backed rate limiting for tests; CI tenant isolation gate has no Redis."""
+    from value_fabric.shared.identity.rate_limiter import RedisRateLimiter, RateLimitResult
+
+    async def _allow(*args, **kwargs):
+        return RateLimitResult(
+            allowed=True,
+            remaining=100,
+            reset_at=0.0,
+            retry_after=None,
+        )
+
+    monkeypatch.setattr(RedisRateLimiter, "check", _allow)
+
+
+@pytest.fixture(autouse=True)
 def override_db_dependency():
     """Override get_db_from_context to prevent real PostgreSQL connections in all tests."""
     from unittest.mock import AsyncMock
