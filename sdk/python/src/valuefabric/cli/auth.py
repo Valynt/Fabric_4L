@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import webbrowser
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 from urllib.parse import urlencode, urljoin, urlparse, urlunparse
 from uuid import uuid4
