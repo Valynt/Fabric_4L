@@ -98,14 +98,14 @@ jobs:
         run: docker push ${{ env.REGISTRY }}/fabric_4l/${{ matrix.service }}:${{ github.sha }}
 
       - name: Trivy vulnerability scan
-        uses: aquasecurity/trivy-action@314ff8b43182423b84c50b1670b0e10f858f2d98 # master (post-v0.36.0)
+        uses: aquasecurity/trivy-action@master # master (post-v0.36.0)
         with:
           image-ref: ${{ steps.mode.outputs.publish == 'true' && format('{0}/fabric_4l/{1}:{2}', env.REGISTRY, matrix.service, github.sha) || format('{0}:local-{1}', matrix.service, github.sha) }}
           format: sarif
           output: trivy-${{ matrix.service }}.sarif
 
       - name: Trivy JSON report
-        uses: aquasecurity/trivy-action@314ff8b43182423b84c50b1670b0e10f858f2d98 # master (post-v0.36.0)
+        uses: aquasecurity/trivy-action@master # master (post-v0.36.0)
         with:
           image-ref: ${{ steps.mode.outputs.publish == 'true' && format('{0}/fabric_4l/{1}:{2}', env.REGISTRY, matrix.service, github.sha) || format('{0}:local-{1}', matrix.service, github.sha) }}
           format: json

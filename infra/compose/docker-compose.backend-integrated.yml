@@ -417,7 +417,7 @@ services:
     command: alembic upgrade head
     environment:
       DATABASE_URL_SYNC: postgresql+psycopg2://postgres:postgres@host.docker.internal:5432/ground_truth
-      MIGRATION_CONNECT_ATTEMPTS: 12
+      MIGRATION_CONNECT_ATTEMPTS: 36
       MIGRATION_CONNECT_DELAY_SECONDS: 5
     depends_on:
       postgres:

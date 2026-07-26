@@ -9,6 +9,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     libpq-dev \
     curl \
+    postgresql-client \
+    postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
 RUN pip install --no-cache-dir uv
@@ -27,6 +29,8 @@ FROM python@sha256:f5cf0344c9886ff24d34797578d5d7dd6e8911ae0fe5962bb55d0f89603ec
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
+    postgresql-client \
+    postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
 RUN groupadd -r appgroup && useradd -r -g appgroup -m appuser

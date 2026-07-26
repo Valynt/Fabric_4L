@@ -363,7 +363,7 @@ jobs:
             infra/helm/fabric-chart/Chart.yaml
 
       - name: Run Trivy repository scanner
-        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
+        uses: aquasecurity/trivy-action@master # v0.35.0
         with:
           scan-type: 'fs'
           scan-ref: '.'
@@ -501,7 +501,7 @@ jobs:
             services/${{matrix.layer}}
 
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
+        uses: aquasecurity/trivy-action@master # v0.35.0
         with:
           image-ref: '${{matrix.layer}}:scan-target'
           format: 'sarif'
@@ -555,7 +555,7 @@ jobs:
             ${{matrix.artifact.context}}
 
       - name: Generate CycloneDX SBOM (Trivy)
-        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
+        uses: aquasecurity/trivy-action@master # v0.35.0
         with:
           image-ref: '${{matrix.artifact.name}}:ci'
           format: 'cyclonedx'
@@ -563,7 +563,7 @@ jobs:
           scanners: 'vuln'
 
       - name: Evaluate SBOM vulnerability policy
-        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
+        uses: aquasecurity/trivy-action@master # v0.35.0
         with:
           scan-type: 'sbom'
           scan-ref: '${{matrix.artifact.name}}-sbom.cdx.json'

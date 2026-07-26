@@ -432,7 +432,7 @@ services:
       \ database ($${attempts}/24)\"\n  sleep 5\ndone\n"
     environment:
       DATABASE_URL_SYNC: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/ground_truth
-      MIGRATION_CONNECT_ATTEMPTS: 12
+      MIGRATION_CONNECT_ATTEMPTS: 36
       MIGRATION_CONNECT_DELAY_SECONDS: 5
     volumes:
     - ../../packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
