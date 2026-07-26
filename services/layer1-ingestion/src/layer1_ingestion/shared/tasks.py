@@ -2382,29 +2382,48 @@ def cleanup_old_content(days: int = 30, tenant_id: str = None):
         failed_tenants = []
         started_at = datetime.now(UTC)
 
-        for tenant_uuid in tenant_ids:
+        from sqlalchemy import update
+        batch_size = 1000
+        for i in range(0, len(tenant_ids), batch_size):
+            chunk = tenant_ids[i:i + batch_size]
             try:
-                with maintenance_audit_log("cleanup_old_content", tenant_id=str(tenant_uuid)) as record:
-                    with get_db_session(tenant_id=tenant_uuid, require_tenant=True) as session:
-                        deleted_count = (
-                            session.query(RawContent)
-                            .filter(
-                                RawContent.created_at < cutoff_date,
-                                RawContent.processing_status != "DELETED",
-                            )
-                            .update({"processing_status": "DELETED"}, synchronize_session=False)
+                # Use a system-wide batch query with RETURNING to accurately log per-tenant results
+                with get_db_session(tenant_id=None, require_tenant=False) as session:
+                    stmt = (
+                        update(RawContent)
+                        .where(
+                            RawContent.tenant_id.in_(chunk),
+                            RawContent.created_at < cutoff_date,
+                            RawContent.processing_status != "DELETED",
                         )
+                        .values(processing_status="DELETED")
+                        .returning(RawContent.tenant_id)
+                    ).execution_options(synchronize_session=False)
 
-                        session.commit()
-                        record.rows_affected = deleted_count
-                        total_deleted += deleted_count
+                    result = session.execute(stmt)
+
+                    deleted_counts = {str(t): 0 for t in chunk}
+                    for row in result:
+                        deleted_counts[str(row[0])] += 1
+
+                    session.commit()
+
+                # Preserve per-tenant audit logs as required by governance and testing
+                for tenant_uuid in chunk:
+                    t_str = str(tenant_uuid)
+                    d_count = deleted_counts[t_str]
+                    with maintenance_audit_log("cleanup_old_content", tenant_id=t_str) as record:
+                        record.rows_affected = d_count
+                        total_deleted += d_count
+
             except Exception as e:
-                failed_tenants.append((str(tenant_uuid), repr(e)))  # ban-str-e-allow: internal-tracking
-                logger.error(
-                    "Tenant cleanup failed",
-                    tenant_id=str(tenant_uuid),
-                    error=repr(e),
-                )
+                for tenant_uuid in chunk:
+                    failed_tenants.append((str(tenant_uuid), repr(e)))  # ban-str-e-allow: internal-tracking
+                    logger.error(
+                        "Tenant cleanup batch failed",
+                        tenant_id=str(tenant_uuid),
+                        error=repr(e),
+                    )
 
         completed_at = datetime.now(UTC)
 
