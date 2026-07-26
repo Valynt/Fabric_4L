@@ -8,7 +8,9 @@ namespace: value-fabric
 
 resources:
   - ../../envs/dev
-  - ../../routing/nginx
+  - ../../routing/nginx/clusterissuer.yaml
+  - ../../routing/nginx/ingress.yaml
+  - ../../routing/nginx/oauth2-proxy.yaml
   - hostname-config.yaml
 
 # Propagate the single source of truth (routing-host ConfigMap) into every
@@ -37,3 +39,19 @@ replacements:
         fieldPaths:
           - spec.rules.0.host
           - spec.tls.0.hosts.0
+  # Replace ingress namespace in NetworkPolicy
+  - source:
+      kind: ConfigMap
+      name: routing-host
+      fieldPath: data.ingressNamespace
+    targets:
+      - select:
+          kind: NetworkPolicy
+          name: frontend-policy
+        fieldPaths:
+          - spec.ingress.0.from.0.namespaceSelector.matchLabels.[kubernetes.io/metadata.name]
+      - select:
+          kind: NetworkPolicy
+          name: oauth2-proxy
+        fieldPaths:
+          - spec.ingress.0.from.0.namespaceSelector.matchLabels.[kubernetes.io/metadata.name]

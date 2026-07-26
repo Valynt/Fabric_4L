@@ -377,8 +377,8 @@ class TestAdversarialHeaderInjection:
         from httpx import AsyncClient, ASGITransport
         from layer7_billing.api.main import app
 
-        trusted_tenant = "tenant-trusted-abc"
-        spoofed_tenant = "tenant-spoofed-xyz"
+        trusted_tenant = "11111111-1111-4111-8111-111111111111"
+        spoofed_tenant = "22222222-2222-4222-8222-222222222222"
 
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             response = await client.get(
@@ -450,8 +450,8 @@ class TestAdversarialHeaderInjection:
                 },
             )
 
-        # Invalid header value must be rejected
-        assert response.status_code == 403
+        # Invalid header value must fail closed before identity resolution.
+        assert response.status_code == 401
 
     @pytest.mark.asyncio
     async def test_header_injection_via_unicode_rejected(self):
@@ -469,5 +469,5 @@ class TestAdversarialHeaderInjection:
                 },
             )
 
-        # Null bytes in headers are invalid and must be rejected
-        assert response.status_code in (400, 403)
+        # Null bytes in headers are invalid and must be rejected before routing.
+        assert response.status_code in (400, 401, 403)

@@ -38,6 +38,11 @@ ruleTester.run("no-throw-in-tool", rule, {
       `,
       filename: "tools/data-tool.ts",
     },
+    // Valid: exported non-tool helpers may throw domain errors
+    {
+      code: `export function connectWithTenant() { throw new Error("mismatch"); }`,
+      filename: "db/session-manager.ts",
+    },
   ],
   invalid: [
     // Invalid: throw in tool function

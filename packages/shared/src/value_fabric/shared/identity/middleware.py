@@ -27,56 +27,64 @@ bootstrap endpoints that perform their own authentication are listed in
 from __future__ import annotations
 
 import logging
-from typing import Any, Callable, Optional
+from contextvars import Token
+from typing import Callable, Optional
+from uuid import UUID
 
 from fastapi import HTTPException, Request, Response, status
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.types import ASGIApp
+from value_fabric.shared.tenant_kill_switch import (
+    TenantKillSwitch,
+    TenantSuspensionStatus,
+)
 
 from .audit import audit_protected_routes
 from .compat import register_middleware_module
 from .constants import (
+    _LEGACY_TEST_TENANT_ID_RE,
+    _RATE_LIMIT_WINDOW_SECONDS,
+    DEFAULT_REQUESTS_PER_MINUTE,
     ERR_AUTH_CONTEXT_INVALID,
     ERR_AUTH_INVALID_TOKEN,
     ERR_AUTH_SERVICE_UNAVAILABLE,
     EXTERNAL_AUTH_BOOTSTRAP_ALLOWLIST,
+    MIN_SERVICE_SECRET_LENGTH,
     RATE_LIMIT_WINDOW_SECONDS,
     SERVICE_AUTH_HEADER,
     SESSION_COOKIE_NAME,
     TENANT_ID_HEADER,
-    MIN_SERVICE_SECRET_LENGTH,
-    DEFAULT_REQUESTS_PER_MINUTE,
-    _LEGACY_TEST_TENANT_ID_RE,
-    _RATE_LIMIT_WINDOW_SECONDS,
     _is_external_auth_bootstrap_path,
 )
 from .context import (
     RequestContext,
-    set_request_context,
     _current_context,
+    set_request_context,
 )
 from .context_builders import (
+    _KNOWN_PERMISSION_VALUES,
     _allow_legacy_test_tenant_ids,
     _coerce_tenant_id_for_context,
     _is_known_permission,
-    _KNOWN_PERMISSION_VALUES,
-    build_context_from_role as _build_context_from_role,
     extract_context_from_api_key,
     extract_context_from_jwt,
     lookup_api_key,
     validate_context_consistency,
 )
+from .context_builders import (
+    build_context_from_role as _build_context_from_role,
+)
 from .exceptions import (
     DeletedTenantError,
     MultiWorkerRateLimitError,
     PendingTenantError,
-    RateLimitExceeded,
     RateLimiterConfigurationError,
+    RateLimitExceeded,
     SuspendedTenantError,
 )
 from .jwt_wrapper import decode_jwt
 from .logging_helpers import _request_log_context
-from .rate_limiter import RedisRateLimiter, RateLimitResult
 from .rate_limit_handler import (
     RateLimitHandler,
     _check_tenant_rate_limit,
@@ -85,7 +93,8 @@ from .rate_limit_handler import (
     _tenant_rate_limit_buckets,
     _validate_multi_worker_rate_limit_configuration,
 )
-from .rate_limiting import RateLimitConfig, RateLimitScope, ROLE_DEFAULT_RATE_LIMITS
+from .rate_limiter import RateLimitResult, RedisRateLimiter
+from .rate_limiting import ROLE_DEFAULT_RATE_LIMITS, RateLimitConfig, RateLimitScope
 from .resolvers import (
     build_context_from_claims,
     resolve_api_key,
@@ -96,32 +105,6 @@ from .resolvers import (
     resolve_session_cookie,
 )
 from .tenant_status import enforce_tenant_status
-from value_fabric.shared.tenant_kill_switch import (
-    TenantKillSwitch,
-    TenantSuspensionStatus,
-)
-
-try:
-    import redis.asyncio as redis_async
-
-    redis_available = True
-except ImportError:
-    redis_async = None  # type: ignore
-    redis_available = False
-
-# Import RedisError at module level for cleaner exception handling
-try:
-    from redis.exceptions import RedisError
-
-    redis_error_available = True
-except ImportError:
-    RedisError = None  # type: ignore
-    redis_error_available = False
-
-try:
-    import jwt
-except ImportError:
-    jwt = None  # type: ignore
 
 logger = logging.getLogger(__name__)
 
@@ -151,7 +134,7 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
 
     def __init__(
         self,
-        app: Any,
+        app: ASGIApp,
         api_key_resolver: Optional[Callable] = None,
         rate_limiter: Optional[RedisRateLimiter] = None,
         tenant_settings_resolver: Optional[Callable] = None,
@@ -179,7 +162,7 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
         self._allow_query_param = False
 
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
-        token: Any = _current_context.set(None)  # always reset at start
+        token: Token[RequestContext | None] = _current_context.set(None)  # always reset at start
         ctx: Optional[RequestContext] = None
 
         try:
@@ -199,12 +182,7 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
                 token = self._set_request_context(ctx, token)
                 request.state.governance_context = ctx
 
-                tenant_status_response = await enforce_tenant_status(
-                    ctx,
-                    tenant_status_resolver=self._tenant_status_resolver,
-                    rate_limiter=self._rate_limiter,
-                    redis_client=self._redis_client,
-                )
+                tenant_status_response = await self._enforce_tenant_status(ctx)
                 if tenant_status_response is not None:
                     return tenant_status_response
             else:
@@ -277,7 +255,9 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
 
         return ctx
 
-    def _set_request_context(self, ctx: RequestContext, token: Any) -> Any:
+    def _set_request_context(
+        self, ctx: RequestContext, token: Token[RequestContext | None]
+    ) -> Token[RequestContext | None]:
         """Set the request context in the context var and return new token."""
         _current_context.reset(token)
         return set_request_context(ctx)
@@ -288,6 +268,12 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
     # ------------------------------------------------------------------
 
     async def _resolve_identity(self, request: Request) -> Optional[RequestContext]:
+        raw_tenant_header = request.headers.get(TENANT_ID_HEADER)
+        if raw_tenant_header is not None:
+            try:
+                UUID(raw_tenant_header)
+            except ValueError:
+                return None
         return await resolve_identity(request, self._api_key_resolver)
 
     async def _resolve_bearer_jwt(self, request: Request) -> Optional[RequestContext]:
@@ -312,7 +298,7 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
         return await resolve_service_to_service(request)
 
     def _build_context_from_claims(
-        self, claims: Any, request: Request
+        self, claims: object, request: Request
     ) -> RequestContext:
         try:
             if isinstance(claims, dict):

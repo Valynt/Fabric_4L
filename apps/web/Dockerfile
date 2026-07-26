@@ -1,4 +1,3 @@
-# syntax=docker/dockerfile:1
 FROM node@sha256:926d6cafec97f338577041890465522f70fe74aa6fe4b021a4fd7f87a5996b25 AS builder
 WORKDIR /app
 

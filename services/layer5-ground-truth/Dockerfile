@@ -1,10 +1,9 @@
-# syntax=docker/dockerfile:1
 FROM python@sha256:f5cf0344c9886ff24d34797578d5d7dd6e8911ae0fe5962bb55d0f89603ec361 AS builder
 
 LABEL maintainer="Value Fabric Engineering"
 LABEL description="Layer 5 — Ground Truth Service"
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
     gcc \
     libpq-dev \
     curl \
@@ -22,14 +21,14 @@ COPY alembic.ini .
 
 FROM python@sha256:f5cf0344c9886ff24d34797578d5d7dd6e8911ae0fe5962bb55d0f89603ec361 AS runtime
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
 RUN groupadd -r appgroup && useradd -r -g appgroup -m appuser
 
 # Upgrade base-image setuptools/wheel to remediate known CVEs flagged by Trivy
-RUN pip install --no-cache-dir --upgrade setuptools wheel
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel
 
 WORKDIR /app
 

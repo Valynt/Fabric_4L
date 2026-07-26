@@ -194,7 +194,7 @@ export class SessionManager implements TenantAwarePool {
   // Private Methods
   // ==========================================================================
 
-  private determineRouting(tier: TenantTier, tenantId: string): TierRouting {
+  private determineRouting(tier: TenantTier, scopeKey: string): TierRouting {
     switch (tier) {
       case "shared":
         return { tier: "shared" };
@@ -202,13 +202,13 @@ export class SessionManager implements TenantAwarePool {
       case "dedicated":
         return {
           tier: "dedicated",
-          schema: `tenant_${tenantId.replace(/-/g, "_")}`,
+          schema: `tenant_${scopeKey.replace(/-/g, "_")}`,
         };
 
       case "enterprise":
         return {
           tier: "enterprise",
-          database: `tenant_${tenantId}`,
+          database: `tenant_${scopeKey}`,
         };
 
       default:
@@ -251,13 +251,13 @@ export class SessionManager implements TenantAwarePool {
 
   private async applyTenantScope(
     connection: Connection,
-    tenantId: string,
+    scopeKey: string,
     routing: TierRouting
   ): Promise<void> {
     switch (routing.tier) {
       case "shared":
         // CONTRACT.md §2.2: SET app.current_tenant for RLS policies
-        await connection.execute("SET app.current_tenant = $1", [tenantId]);
+        await connection.execute("SET app.current_tenant = $1", [scopeKey]);
 
         // Verify RLS is active
         await connection.execute("SET row_security = on");
@@ -301,7 +301,7 @@ export class SessionManager implements TenantAwarePool {
 class ScopedSession implements DatabaseSession {
   constructor(
     private connection: Connection,
-    private tenantId: string,
+    private scopeKey: string,
     private cleanup: () => void
   ) {}
 
@@ -461,18 +461,18 @@ export const db = new SessionManager(defaultConfig);
  *
  * @deprecated Use db.getSession() which reads tenant from async scope
  */
-export async function connectWithTenant(tenantId: string): Promise<DatabaseSession> {
+export async function connectWithTenant(requestedTenant: string): Promise<DatabaseSession> {
   console.warn(
-    `[DEPRECATION] db.connect(${tenantId}) is deprecated. ` +
+    `[DEPRECATION] db.connect(${requestedTenant}) is deprecated. ` +
       `Use db.getSession() which reads tenant from async scope. ` +
       `See CONTRACT.md §2.2 and DEPRECATIONS.md`
   );
 
   // Delegate to canonical pattern
   const ctx = getTenantContext();
-  if (!ctx || ctx.tenant_id !== tenantId) {
+  if (!ctx || ctx.tenant_id !== requestedTenant) {
     throw new Error(
-      `Tenant context mismatch. Expected ${tenantId}, got ${ctx?.tenant_id || "null"}`
+      `Tenant context mismatch. Expected ${requestedTenant}, got ${ctx?.tenant_id || "null"}`
     );
   }
 
