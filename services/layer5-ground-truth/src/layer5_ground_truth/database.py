@@ -16,8 +16,11 @@ import time
 import uuid
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from urllib.parse import urlparse
+
+if TYPE_CHECKING:
+    from value_fabric.shared.identity.context import RequestContext
 
 from sqlalchemy import event
 from sqlalchemy.exc import TimeoutError as SATimeoutError
@@ -409,11 +412,10 @@ except ImportError:
     get_metrics = None  # type: ignore
 
 try:
-    from value_fabric.shared.identity.context import RequestContext, get_request_context
+    from value_fabric.shared.identity.context import get_request_context
     SHARED_IDENTITY_AVAILABLE = True
 except ImportError:
     SHARED_IDENTITY_AVAILABLE = False
-    RequestContext = None  # type: ignore
 
     def get_request_context():  # type: ignore
         """Fail-closed fallback used when the shared identity package is unavailable."""
