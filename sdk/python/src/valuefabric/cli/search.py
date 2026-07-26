@@ -73,7 +73,7 @@ def _execute_search(
     # Output results
     if json_output:
         import json
-        print(json.dumps(response.model_dump(mode="json"), indent=2))
+        rich_print(json.dumps(response.model_dump(mode="json"), indent=2))
         return
 
     if not response.results:
