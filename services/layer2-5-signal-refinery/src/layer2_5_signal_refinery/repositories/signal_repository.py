@@ -116,6 +116,8 @@ class SignalRepository:
         combined = and_(*filters)
 
         count_result = await self._db.execute(
+            # nosemgrep: python.fastapi.db.generic-sql-fastapi.generic-sql-fastapi
+            # SQLAlchemy ORM query object with bound parameters, not raw SQL string concatenation.
             select(func.count()).select_from(ValueSignalRow).where(combined)
         )
         total = count_result.scalar_one()

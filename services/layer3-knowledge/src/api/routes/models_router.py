@@ -304,6 +304,8 @@ async def list_models(
             total = count_records[0].get("total", 0) if count_records else 0
             
             # Execute data query
+            # nosemgrep: python.fastapi.db.generic-sql-fastapi.generic-sql-fastapi
+            # Neo4j graph query execution via the driver; not a SQL database call.
             data_records = await neo4j.execute_query(data_query, params)
             models = [_model_node_to_summary(record) for record in data_records] if data_records else []
             

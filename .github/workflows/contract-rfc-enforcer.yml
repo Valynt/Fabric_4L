@@ -8,8 +8,8 @@ on:
   pull_request:
     branches: [main]
     paths:
-      - "contracts/openapi/**"
-      - "contracts/jsonschema/**"
+    - "contracts/openapi/**"
+    - "contracts/jsonschema/**"
 
 permissions:
   contents: read
@@ -20,28 +20,30 @@ jobs:
     name: Contract RFC Reference Check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
-        with:
-          fetch-depth: 0
+    - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+      with:
+        fetch-depth: 0
 
-      - name: Collect changed contract files
-        id: changed
-        run: |
-          files=$(git diff --name-only origin/${{ github.base_ref }}...HEAD \
-            | grep -E '^contracts/(openapi|jsonschema)/' || true)
-          {
-            echo 'files<<EOF'
-            echo "$files"
-            echo 'EOF'
-          } >> $GITHUB_OUTPUT
-          if [ -n "$files" ]; then
-            echo "Contract files changed:"
-            echo "$files"
-          fi
+    - name: Collect changed contract files
+      id: changed
+      run: |
+        files=$(git diff --name-only origin/${GITHUB_BASE_REF}...HEAD \
+          | grep -E '^contracts/(openapi|jsonschema)/' || true)
+        {
+          echo 'files<<EOF'
+          echo "$files"
+          echo 'EOF'
+        } >> $GITHUB_OUTPUT
+        if [ -n "$files" ]; then
+          echo "Contract files changed:"
+          echo "$files"
+        fi
 
-      - name: Enforce RFC reference in PR description
-        env:
-          PR_BODY: ${{ github.event.pull_request.body }}
-          CHANGED_FILES: ${{ steps.changed.outputs.files }}
-        run: |
-          bash .github/scripts/contract-rfc-enforcer.sh "$PR_BODY" "$CHANGED_FILES"
+      env:
+        GITHUB_BASE_REF: ${{ github.base_ref }}
+    - name: Enforce RFC reference in PR description
+      env:
+        PR_BODY: ${{ github.event.pull_request.body }}
+        CHANGED_FILES: ${{ steps.changed.outputs.files }}
+      run: |
+        bash .github/scripts/contract-rfc-enforcer.sh "$PR_BODY" "$CHANGED_FILES"

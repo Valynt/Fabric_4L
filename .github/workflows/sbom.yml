@@ -26,7 +26,7 @@ on:
         type: string
   push:
     tags:
-      - "v*"
+    - "v*"
 
 env:
   COSIGN_EXPERIMENTAL: "1"
@@ -48,165 +48,180 @@ jobs:
       # -----------------------------------------------------------------------
       # 1. Checkout
       # -----------------------------------------------------------------------
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # Full history for accurate attribution
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0    # Full history for accurate attribution
 
       # -----------------------------------------------------------------------
       # 2. Setup Python
       # -----------------------------------------------------------------------
-      - name: Setup Python 3.11
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
+    - name: Setup Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
 
       # -----------------------------------------------------------------------
       # 3. Setup Node.js (for pnpm / Node SBOM)
       # -----------------------------------------------------------------------
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: "20"
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v3
-        with:
-          version: 8
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v3
+      with:
+        version: 8
 
       # -----------------------------------------------------------------------
       # 4. Install Python tooling
       # -----------------------------------------------------------------------
-      - name: Install CycloneDX Python
-        run: pip install cyclonedx-bom
+    - name: Install CycloneDX Python
+      run: pip install cyclonedx-bom
 
       # -----------------------------------------------------------------------
       # 5. Install Syft (universal SBOM generator)
       # -----------------------------------------------------------------------
-      - name: Install Syft
-        uses: anchore/sbom-action/download-syft@v0
+    - name: Install Syft
+      uses: anchore/sbom-action/download-syft@v0
 
       # -----------------------------------------------------------------------
       # 6. Install Cosign (Sigstore signing)
       # -----------------------------------------------------------------------
-      - name: Install Cosign
-        uses: sigstore/cosign-installer@v3
-        with:
-          cosign-release: "v2.2.0"
+    - name: Install Cosign
+      uses: sigstore/cosign-installer@v3
+      with:
+        cosign-release: "v2.2.0"
 
       # -----------------------------------------------------------------------
       # 7. Install pnpm dependencies (for accurate Node SBOM)
       # -----------------------------------------------------------------------
-      - name: Install Node.js dependencies
-        run: |
-          for dir in frontend/web frontend/admin; do
-            if [ -f "$dir/pnpm-lock.yaml" ]; then
-              cd "$dir" && pnpm install --frozen-lockfile && cd ../..
-            fi
-          done
+    - name: Install Node.js dependencies
+      run: |
+        for dir in frontend/web frontend/admin; do
+          if [ -f "$dir/pnpm-lock.yaml" ]; then
+            cd "$dir" && pnpm install --frozen-lockfile && cd ../..
+          fi
+        done
 
       # -----------------------------------------------------------------------
       # 8. Determine release tag
       # -----------------------------------------------------------------------
-      - name: Set release tag
-        id: tag
-        run: |
-          if [ "${{ github.event_name }}" = "release" ]; then
-            echo "tag=${{ github.event.release.tag_name }}" >> "$GITHUB_OUTPUT"
-          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
-          else
-            echo "tag=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
-          fi
+    - name: Set release tag
+      id: tag
+      run: |
+        if [ "${GITHUB_EVENT_NAME}" = "release" ]; then
+          echo "tag=${GITHUB_EVENT_RELEASE_TAG_NAME}" >> "$GITHUB_OUTPUT"
+        elif [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
+          echo "tag=${INPUTS_TAG}" >> "$GITHUB_OUTPUT"
+        else
+          echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+        fi
 
       # -----------------------------------------------------------------------
       # 9. Generate SBOMs
       # -----------------------------------------------------------------------
-      - name: Generate unified SBOM
-        run: |
-          python scripts/ci/generate_sbom.py \
-            --format json xml \
-            --output ${{ env.SBOM_OUTPUT_DIR }} \
-            --sign
-        env:
-          RELEASE_VERSION: ${{ steps.tag.outputs.tag }}
+      env:
+        GITHUB_EVENT_NAME: ${{ github.event_name }}
+        GITHUB_EVENT_RELEASE_TAG_NAME: ${{ github.event.release.tag_name }}
+        INPUTS_TAG: ${{ inputs.tag }}
+        GITHUB_REF_NAME: ${{ github.ref_name }}
+    - name: Generate unified SBOM
+      run: |
+        python scripts/ci/generate_sbom.py \
+          --format json xml \
+          --output ${ENV_SBOM_OUTPUT_DIR} \
+          --sign
+      env:
+        RELEASE_VERSION: ${{ steps.tag.outputs.tag }}
 
       # -----------------------------------------------------------------------
       # 10. Upload SBOM artifacts (for workflow debugging)
       # -----------------------------------------------------------------------
-      - name: Upload SBOM artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: sbom-${{ steps.tag.outputs.tag }}
-          path: ${{ env.SBOM_OUTPUT_DIR }}/
-          retention-days: 90
+        ENV_SBOM_OUTPUT_DIR: ${{ env.SBOM_OUTPUT_DIR }}
+    - name: Upload SBOM artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: sbom-${{ steps.tag.outputs.tag }}
+        path: ${{ env.SBOM_OUTPUT_DIR }}/
+        retention-days: 90
 
       # -----------------------------------------------------------------------
       # 11. Sign SBOMs with Sigstore (keyless)
       # -----------------------------------------------------------------------
-      - name: Sign SBOMs with Sigstore
-        run: |
-          for sbom in ${{ env.SBOM_OUTPUT_DIR }}/*/*-sbom.json; do
-            echo "Signing $sbom..."
-            cosign sign-blob \
-              --yes \
-              --output-certificate "${sbom}.cert" \
-              --output-signature "${sbom}.sig" \
-              "$sbom"
-          done
+    - name: Sign SBOMs with Sigstore
+      run: |
+        for sbom in ${ENV_SBOM_OUTPUT_DIR}/*/*-sbom.json; do
+          echo "Signing $sbom..."
+          cosign sign-blob \
+            --yes \
+            --output-certificate "${sbom}.cert" \
+            --output-signature "${sbom}.sig" \
+            "$sbom"
+        done
 
       # -----------------------------------------------------------------------
       # 12. Upload to GitHub Release
       # -----------------------------------------------------------------------
-      - name: Upload SBOMs to GitHub release
-        if: github.event_name == 'release' || github.event_name == 'workflow_dispatch'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          python scripts/ci/generate_sbom.py \
-            --format json xml \
-            --output ${{ env.SBOM_OUTPUT_DIR }} \
-            --upload-release ${{ steps.tag.outputs.tag }}
+      env:
+        ENV_SBOM_OUTPUT_DIR: ${{ env.SBOM_OUTPUT_DIR }}
+    - name: Upload SBOMs to GitHub release
+      if: github.event_name == 'release' || github.event_name == 'workflow_dispatch'
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        ENV_SBOM_OUTPUT_DIR: ${{ env.SBOM_OUTPUT_DIR }}
+        STEPS_TAG_OUTPUTS_TAG: ${{ steps.tag.outputs.tag }}
+      run: |
+        python scripts/ci/generate_sbom.py \
+          --format json xml \
+          --output ${ENV_SBOM_OUTPUT_DIR} \
+          --upload-release ${STEPS_TAG_OUTPUTS_TAG}
 
       # -----------------------------------------------------------------------
       # 13. Create GitHub Attestation
       # -----------------------------------------------------------------------
-      - name: Attest SBOM to GitHub
-        uses: actions/attest-build-provenance@v1
-        with:
-          subject-path: |
-            ${{ env.SBOM_OUTPUT_DIR }}/**/fabric4l-unified-sbom.json
-            ${{ env.SBOM_OUTPUT_DIR }}/**/fabric4l-unified-sbom.xml
+    - name: Attest SBOM to GitHub
+      uses: actions/attest-build-provenance@v1
+      with:
+        subject-path: |
+          ${{ env.SBOM_OUTPUT_DIR }}/**/fabric4l-unified-sbom.json
+          ${{ env.SBOM_OUTPUT_DIR }}/**/fabric4l-unified-sbom.xml
 
       # -----------------------------------------------------------------------
       # 14. Verify signatures
       # -----------------------------------------------------------------------
-      - name: Verify SBOM signatures
-        run: |
-          for sbom in ${{ env.SBOM_OUTPUT_DIR }}/*/*-sbom.json; do
-            echo "Verifying $sbom..."
-            cosign verify-blob \
-              --signature "${sbom}.sig" \
-              --certificate "${sbom}.cert" \
-              --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
-              --certificate-identity-regexp "^https://github.com/${{ github.repository }}" \
-              "$sbom"
-          done
+    - name: Verify SBOM signatures
+      run: |
+        for sbom in ${ENV_SBOM_OUTPUT_DIR}/*/*-sbom.json; do
+          echo "Verifying $sbom..."
+          cosign verify-blob \
+            --signature "${sbom}.sig" \
+            --certificate "${sbom}.cert" \
+            --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+            --certificate-identity-regexp "^https://github.com/${GITHUB_REPOSITORY}" \
+            "$sbom"
+        done
 
       # -----------------------------------------------------------------------
       # 15. Summary
       # -----------------------------------------------------------------------
-      - name: Generate summary
-        run: |
-          echo "## SBOM Generation Results" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Artifact | Size |" >> "$GITHUB_STEP_SUMMARY"
-          echo "|----------|------|" >> "$GITHUB_STEP_SUMMARY"
-          for f in ${{ env.SBOM_OUTPUT_DIR }}/*/*; do
-            if [ -f "$f" ]; then
-              size=$(du -h "$f" | cut -f1)
-              echo "| $(basename $f) | $size |" >> "$GITHUB_STEP_SUMMARY"
-            fi
-          done
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "✅ All SBOMs signed with Sigstore cosign" >> "$GITHUB_STEP_SUMMARY"
+      env:
+        ENV_SBOM_OUTPUT_DIR: ${{ env.SBOM_OUTPUT_DIR }}
+        GITHUB_REPOSITORY: ${{ github.repository }}
+    - name: Generate summary
+      run: |
+        echo "## SBOM Generation Results" >> "$GITHUB_STEP_SUMMARY"
+        echo "" >> "$GITHUB_STEP_SUMMARY"
+        echo "| Artifact | Size |" >> "$GITHUB_STEP_SUMMARY"
+        echo "|----------|------|" >> "$GITHUB_STEP_SUMMARY"
+        for f in ${ENV_SBOM_OUTPUT_DIR}/*/*; do
+          if [ -f "$f" ]; then
+            size=$(du -h "$f" | cut -f1)
+            echo "| $(basename $f) | $size |" >> "$GITHUB_STEP_SUMMARY"
+          fi
+        done
+        echo "" >> "$GITHUB_STEP_SUMMARY"
+        echo "✅ All SBOMs signed with Sigstore cosign" >> "$GITHUB_STEP_SUMMARY"
+      env:
+        ENV_SBOM_OUTPUT_DIR: ${{ env.SBOM_OUTPUT_DIR }}

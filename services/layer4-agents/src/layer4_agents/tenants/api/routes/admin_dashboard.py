@@ -446,6 +446,8 @@ async def update_tenant_settings(
     _allowed_tenant_update_fields = {"name", "settings"}
 
     # Build SET clause from allow-listed fields with bound parameters.
+    # Identifiers are hard-coded per allowed key so Semgrep/SQL injection scanners
+    # can verify no user-controlled column names reach the query.
     set_parts = []
     params: dict[str, Any] = {}
     for key, value in updates.items():
@@ -454,9 +456,12 @@ async def update_tenant_settings(
         if key == "settings":
             set_parts.append("settings = :settings::jsonb")
             params["settings"] = json.dumps(value)
+        elif key == "name":
+            set_parts.append("name = :name")
+            params["name"] = value
         else:
-            set_parts.append(f"{key} = :{key}")
-            params[key] = value
+            # Defensive: every allowed field must have an explicit SQL fragment.
+            raise HTTPException(status_code=400, detail=f"Cannot update field: {key}")
 
     if not set_parts:
         raise HTTPException(status_code=400, detail="No valid fields to update")

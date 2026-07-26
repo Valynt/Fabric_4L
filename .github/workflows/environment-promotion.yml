@@ -13,9 +13,9 @@ name: Environment Promotion
   workflow_run:
     workflows: ["Build & Deploy"]
     types:
-      - completed
+    - completed
     branches:
-      - main
+    - main
   workflow_dispatch:
     inputs:
       environment:
@@ -23,9 +23,9 @@ name: Environment Promotion
         required: true
         type: choice
         options:
-          - dev
-          - staging
-          - production
+        - dev
+        - staging
+        - production
       image_ref:
         description: "Image digest or immutable tag to promote (e.g., sha-abc123)"
         required: true
@@ -55,97 +55,105 @@ jobs:
       image_ref: ${{ steps.metadata.outputs.image_ref }}
       can_promote: ${{ steps.check-promotion.outputs.can_promote }}
     steps:
-      - name: Download build metadata artifacts
-        if: github.event_name != 'workflow_dispatch'
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
-        with:
-          pattern: build-metadata-*
-          path: artifacts/build-metadata
-          merge-multiple: true
-          run-id: ${{ github.event.workflow_run.id }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+    - name: Download build metadata artifacts
+      if: github.event_name != 'workflow_dispatch'
+      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093   # v4
+      with:
+        pattern: build-metadata-*
+        path: artifacts/build-metadata
+        merge-multiple: true
+        run-id: ${{ github.event.workflow_run.id }}
+        github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Resolve promotion metadata
-        id: metadata
-        run: |
-          set -euo pipefail
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            ref="${{ github.event.inputs.image_ref }}"
-            echo "Promoting manually to ${{ github.event.inputs.environment }}"
+    - name: Resolve promotion metadata
+      id: metadata
+      run: |
+        set -euo pipefail
+        if [ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]; then
+          ref="${GITHUB_EVENT_INPUTS_IMAGE_REF}"
+          echo "Promoting manually to ${GITHUB_EVENT_INPUTS_ENVIRONMENT}"
+        else
+          test -d artifacts/build-metadata
+          python3 scripts/ci/validate_promotion_artifact_contract.py \
+            --build-workflow .github/workflows/build-deploy.yml \
+            --promotion-workflow .github/workflows/environment-promotion.yml \
+            --metadata-dir artifacts/build-metadata
+          first_file=$(find artifacts/build-metadata -name '*.json' | sort | head -n1)
+          ref=$(python3 -c 'import json,sys;d=json.load(open(sys.argv[1]));print(d.get("published_ref",""))' "$first_file")
+          if [ -z "$ref" ]; then
+            ref="sha-${GITHUB_EVENT_WORKFLOW_RUN_HEAD_SHA}"
+          fi
+          echo "Auto-promoting build ${ref}"
+        fi
+
+        if [[ "$ref" == "latest" ]] || [[ "$ref" =~ ^(main|master|develop|dev|staging|production|stable|edge|nightly)$ ]]; then
+          echo "Mutable image reference is forbidden: $ref"
+          exit 1
+        fi
+        if [[ ! "$ref" =~ ^sha-[0-9a-f]{40}$ ]] && [[ ! "$ref" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?$ ]]; then
+          echo "Image reference must be immutable (sha-<40> or semver release tag): $ref"
+          exit 1
+        fi
+
+        echo "image_ref=$ref" >> $GITHUB_OUTPUT
+
+      env:
+        GITHUB_EVENT_NAME: ${{ github.event_name }}
+        GITHUB_EVENT_INPUTS_IMAGE_REF: ${{ github.event.inputs.image_ref }}
+        GITHUB_EVENT_INPUTS_ENVIRONMENT: ${{ github.event.inputs.environment }}
+        GITHUB_EVENT_WORKFLOW_RUN_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+    - name: Verify images exist in registry by digest
+      if: github.event_name != 'workflow_dispatch'
+      run: |
+        for metadata_file in artifacts/build-metadata/*.json; do
+          layer=$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["layer"])' "$metadata_file")
+          digest=$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["image_digest"])' "$metadata_file")
+          tag=$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["published_tag"])' "$metadata_file")
+          image="${ENV_REGISTRY}/${GITHUB_REPOSITORY_OWNER}/fabric_4l/${layer}@${digest}"
+          if ! docker manifest inspect "$image" > /dev/null 2>&1; then
+            echo "❌ Image digest not found: $image"
+            exit 1
+          fi
+          echo "✅ Image digest verified: $image"
+        done
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+        ENV_REGISTRY: ${{ env.REGISTRY }}
+        GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
+    - name: Check promotion eligibility
+      id: check-promotion
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        HEAD_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+        GITHUB_REPOSITORY: ${{ github.repository }}
+      run: |
+        required_checks=("Unified Readiness Gate" "Security Gates" "Smoke Gate")
+        can_promote=true
+
+        for check in "${required_checks[@]}"; do
+          result=$(gh api \
+            "repos/${GITHUB_REPOSITORY}/commits/${HEAD_SHA}/check-runs" \
+            --jq ".check_runs[] | select(.name == \"$check\") | .conclusion" \
+            2>/dev/null | head -1 || echo "")
+          if [[ "$result" == "success" ]]; then
+            echo "✅ $check: success"
+          elif [[ -z "$result" ]]; then
+            echo "❌ $check: no check run found for commit ${HEAD_SHA}"
+            can_promote=false
           else
-            test -d artifacts/build-metadata
-            python3 scripts/ci/validate_promotion_artifact_contract.py \
-              --build-workflow .github/workflows/build-deploy.yml \
-              --promotion-workflow .github/workflows/environment-promotion.yml \
-              --metadata-dir artifacts/build-metadata
-            first_file=$(find artifacts/build-metadata -name '*.json' | sort | head -n1)
-            ref=$(python3 -c 'import json,sys;d=json.load(open(sys.argv[1]));print(d.get("published_ref",""))' "$first_file")
-            if [ -z "$ref" ]; then
-              ref="sha-${{ github.event.workflow_run.head_sha }}"
-            fi
-            echo "Auto-promoting build ${ref}"
+            echo "❌ $check: $result"
+            can_promote=false
           fi
+        done
 
-          if [[ "$ref" == "latest" ]] || [[ "$ref" =~ ^(main|master|develop|dev|staging|production|stable|edge|nightly)$ ]]; then
-            echo "Mutable image reference is forbidden: $ref"
-            exit 1
-          fi
-          if [[ ! "$ref" =~ ^sha-[0-9a-f]{40}$ ]] && [[ ! "$ref" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?$ ]]; then
-            echo "Image reference must be immutable (sha-<40> or semver release tag): $ref"
-            exit 1
-          fi
-
-          echo "image_ref=$ref" >> $GITHUB_OUTPUT
-
-      - name: Verify images exist in registry by digest
-        if: github.event_name != 'workflow_dispatch'
-        run: |
-          for metadata_file in artifacts/build-metadata/*.json; do
-            layer=$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["layer"])' "$metadata_file")
-            digest=$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["image_digest"])' "$metadata_file")
-            tag=$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["published_tag"])' "$metadata_file")
-            image="${{ env.REGISTRY }}/${{ github.repository_owner }}/fabric_4l/${layer}@${digest}"
-            if ! docker manifest inspect "$image" > /dev/null 2>&1; then
-              echo "❌ Image digest not found: $image"
-              exit 1
-            fi
-            echo "✅ Image digest verified: $image"
-          done
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Check promotion eligibility
-        id: check-promotion
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          HEAD_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
-        run: |
-          required_checks=("Unified Readiness Gate" "Security Gates" "Smoke Gate")
-          can_promote=true
-
-          for check in "${required_checks[@]}"; do
-            result=$(gh api \
-              "repos/${{ github.repository }}/commits/${HEAD_SHA}/check-runs" \
-              --jq ".check_runs[] | select(.name == \"$check\") | .conclusion" \
-              2>/dev/null | head -1 || echo "")
-            if [[ "$result" == "success" ]]; then
-              echo "✅ $check: success"
-            elif [[ -z "$result" ]]; then
-              echo "❌ $check: no check run found for commit ${HEAD_SHA}"
-              can_promote=false
-            else
-              echo "❌ $check: $result"
-              can_promote=false
-            fi
-          done
-
-          echo "can_promote=$can_promote" >> $GITHUB_OUTPUT
-          if [[ "$can_promote" == "true" ]]; then
-            echo "✅ All required checks passed, promotion eligible"
-          else
-            echo "❌ One or more required checks did not pass — promotion blocked"
-            exit 1
-          fi
+        echo "can_promote=$can_promote" >> $GITHUB_OUTPUT
+        if [[ "$can_promote" == "true" ]]; then
+          echo "✅ All required checks passed, promotion eligible"
+        else
+          echo "❌ One or more required checks did not pass — promotion blocked"
+          exit 1
+        fi
 
   # ============================================================================
   # Auto-Deploy to Dev (No Approval Required)
@@ -159,88 +167,94 @@ jobs:
       name: dev
       url: https://dev.fabric.internal
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+    - name: Checkout repository
+      uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332   # v4
 
-      - name: Setup kustomize
-        uses: imranismail/setup-kustomize@2ba527d4d055ab63514ba50a99456fc35684947f # v2
-        with:
-          kustomize-version: "5.4.3"
+    - name: Setup kustomize
+      uses: imranismail/setup-kustomize@2ba527d4d055ab63514ba50a99456fc35684947f   # v2
+      with:
+        kustomize-version: "5.4.3"
 
-      - name: Guard against placeholder digests
-        run: |
-          bash scripts/check-no-placeholder-digests.sh k8s/envs/prod/kustomization.yaml
+    - name: Guard against placeholder digests
+      run: |
+        bash scripts/check-no-placeholder-digests.sh k8s/envs/prod/kustomization.yaml
 
-      - name: Update Dev overlay with new image tags
-        run: |
-          set -euo pipefail
-          cd k8s/envs/dev
-          ref="${{ needs.validate-build.outputs.image_ref }}"
-          for layer in $LAYERS; do
-            # Map layer names to the image keys used in kustomization.yaml images[].name
-            # and to the registry image name. The key (left of =) must match images[].name
-            # exactly; the value (right of =) is the full registry reference.
-            case "$layer" in
-              frontend)
-                key="apps/web"
-                img="${{ env.REGISTRY }}/${{ github.repository_owner }}/fabric_4l/frontend"
-                ;;
-              *)
-                key="services/$layer"
-                img="${{ env.REGISTRY }}/${{ github.repository_owner }}/fabric_4l/$layer"
-                ;;
-            esac
-            kustomize edit set image "${key}=${img}:${ref}"
-            echo "✅ Set $layer ($key) → $ref"
-          done
+    - name: Update Dev overlay with new image tags
+      run: |
+        set -euo pipefail
+        cd k8s/envs/dev
+        ref="${NEEDS_VALIDATE_BUILD_OUTPUTS_IMAGE_REF}"
+        for layer in $LAYERS; do
+          # Map layer names to the image keys used in kustomization.yaml images[].name
+          # and to the registry image name. The key (left of =) must match images[].name
+          # exactly; the value (right of =) is the full registry reference.
+          case "$layer" in
+            frontend)
+              key="apps/web"
+              img="${ENV_REGISTRY}/${GITHUB_REPOSITORY_OWNER}/fabric_4l/frontend"
+              ;;
+            *)
+              key="services/$layer"
+              img="${ENV_REGISTRY}/${GITHUB_REPOSITORY_OWNER}/fabric_4l/$layer"
+              ;;
+          esac
+          kustomize edit set image "${key}=${img}:${ref}"
+          echo "✅ Set $layer ($key) → $ref"
+        done
 
-      - name: Commit and push Dev overlay changes
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add k8s/envs/dev/
-          git commit -m "chore(dev): deploy ${{ needs.validate-build.outputs.image_ref }} to dev [skip ci]"
-          git push origin main
+      env:
+        NEEDS_VALIDATE_BUILD_OUTPUTS_IMAGE_REF: ${{ needs.validate-build.outputs.image_ref }}
+        ENV_REGISTRY: ${{ env.REGISTRY }}
+        GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
+    - name: Commit and push Dev overlay changes
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add k8s/envs/dev/
+        git commit -m "chore(dev): deploy ${NEEDS_VALIDATE_BUILD_OUTPUTS_IMAGE_REF} to dev [skip ci]"
+        git push origin main
 
-      - name: Trigger ArgoCD sync
-        run: |
-          # ArgoCD will auto-sync based on Git changes
-          # This step can be enhanced with ArgoCD API calls for forced sync
-          echo "🚀 Dev deployment initiated via GitOps"
-          echo "ArgoCD will auto-sync changes"
+      env:
+        NEEDS_VALIDATE_BUILD_OUTPUTS_IMAGE_REF: ${{ needs.validate-build.outputs.image_ref }}
+    - name: Trigger ArgoCD sync
+      run: |
+        # ArgoCD will auto-sync based on Git changes
+        # This step can be enhanced with ArgoCD API calls for forced sync
+        echo "🚀 Dev deployment initiated via GitOps"
+        echo "ArgoCD will auto-sync changes"
 
-      - name: Wait for Dev health checks
-        run: |
-          # Poll health endpoints for 5 minutes
-          timeout=300
-          interval=10
-          elapsed=0
+    - name: Wait for Dev health checks
+      run: |
+        # Poll health endpoints for 5 minutes
+        timeout=300
+        interval=10
+        elapsed=0
 
-          while [ $elapsed -lt $timeout ]; do
-            all_healthy=true
+        while [ $elapsed -lt $timeout ]; do
+          all_healthy=true
 
-            for port in 8001 8002 8003 8004 8005 8006; do
-              # Check health endpoint for each layer
-              if ! curl -sf --max-time 5 https://dev.fabric.internal:$port/health > /dev/null 2>&1; then
-                echo "❌ Layer on port $port not healthy"
-                all_healthy=false
-              else
-                echo "✅ Layer on port $port healthy"
-              fi
-            done
-
-            if [ "$all_healthy" = true ]; then
-              echo "✅ All Dev services healthy"
-              exit 0
+          for port in 8001 8002 8003 8004 8005 8006; do
+            # Check health endpoint for each layer
+            if ! curl -sf --max-time 5 https://dev.fabric.internal:$port/health > /dev/null 2>&1; then
+              echo "❌ Layer on port $port not healthy"
+              all_healthy=false
+            else
+              echo "✅ Layer on port $port healthy"
             fi
-
-            sleep $interval
-            elapsed=$((elapsed + interval))
-            echo "Waiting for Dev services... (${elapsed}s/${timeout}s)"
           done
 
-          echo "⚠️ Health check timeout - manual verification required"
-          exit 0  # Non-blocking for Dev
+          if [ "$all_healthy" = true ]; then
+            echo "✅ All Dev services healthy"
+            exit 0
+          fi
+
+          sleep $interval
+          elapsed=$((elapsed + interval))
+          echo "Waiting for Dev services... (${elapsed}s/${timeout}s)"
+        done
+
+        echo "⚠️ Health check timeout - manual verification required"
+        exit 0  # Non-blocking for Dev
 
   # ============================================================================
   # Create Staging Promotion PR (Requires Approval)
@@ -250,89 +264,94 @@ jobs:
     runs-on: ubuntu-latest
     needs: [validate-build, deploy-dev]
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
-        with:
-          fetch-depth: 0
+    - name: Checkout repository
+      uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332   # v4
+      with:
+        fetch-depth: 0
 
-      - name: Create staging promotion branch
-        run: |
-          branch_name="promote/staging-${{ needs.validate-build.outputs.image_ref }}"
-          git checkout -b "$branch_name"
+    - name: Create staging promotion branch
+      run: |
+        branch_name="promote/staging-${NEEDS_VALIDATE_BUILD_OUTPUTS_IMAGE_REF}"
+        git checkout -b "$branch_name"
 
-          # Update Staging overlay with new image digests
-          # The staging env uses kustomization.yaml with SHA digest images
-          kustomization_file="k8s/envs/staging/kustomization.yaml"
-          if [ -f "$kustomization_file" ]; then
-            # Use kustomize edit to update image digests for all layers
-            for layer in $LAYERS; do
-              image="ghcr.io/${{ github.repository_owner }}/fabric_4l/${layer }"
-              digest="${{ needs.validate-build.outputs.image_ref }}"
-              # Note: CI should set actual digests here
-              echo "📦 Layer $layer would be updated to $digest"
-            done
-            echo "✅ Staging kustomization ready for image updates"
-          else
-            echo "❌ Missing $kustomization_file"
-            exit 1
-          fi
+        # Update Staging overlay with new image digests
+        # The staging env uses kustomization.yaml with SHA digest images
+        kustomization_file="k8s/envs/staging/kustomization.yaml"
+        if [ -f "$kustomization_file" ]; then
+          # Use kustomize edit to update image digests for all layers
+          for layer in $LAYERS; do
+            image="ghcr.io/${GITHUB_REPOSITORY_OWNER}/fabric_4l/${layer }"
+            digest="${NEEDS_VALIDATE_BUILD_OUTPUTS_IMAGE_REF}"
+            # Note: CI should set actual digests here
+            echo "📦 Layer $layer would be updated to $digest"
+          done
+          echo "✅ Staging kustomization ready for image updates"
+        else
+          echo "❌ Missing $kustomization_file"
+          exit 1
+        fi
 
-      - name: Block placeholder image digests (staging)
+      env:
+        NEEDS_VALIDATE_BUILD_OUTPUTS_IMAGE_REF: ${{ needs.validate-build.outputs.image_ref }}
+        GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
+    - name: Block placeholder image digests (staging)
         # Guard runs after digest injection so it validates the updated file, not the pre-existing one.
-        run: bash scripts/check-no-placeholder-digests.sh k8s/envs/staging/kustomization.yaml
+      run: bash scripts/check-no-placeholder-digests.sh k8s/envs/staging/kustomization.yaml
 
-      - name: Commit and push staging promotion branch
-        run: |
-          git add k8s/envs/staging/
-          git commit -m "chore(staging): promote ${{ needs.validate-build.outputs.image_ref }} to staging"
-          git push origin "promote/staging-${{ needs.validate-build.outputs.image_ref }}"
-          echo "branch_name=promote/staging-${{ needs.validate-build.outputs.image_ref }}" >> $GITHUB_ENV
+    - name: Commit and push staging promotion branch
+      run: |
+        git add k8s/envs/staging/
+        git commit -m "chore(staging): promote ${NEEDS_VALIDATE_BUILD_OUTPUTS_IMAGE_REF} to staging"
+        git push origin "promote/staging-${NEEDS_VALIDATE_BUILD_OUTPUTS_IMAGE_REF}"
+        echo "branch_name=promote/staging-${NEEDS_VALIDATE_BUILD_OUTPUTS_IMAGE_REF}" >> $GITHUB_ENV
 
-      - name: Create Pull Request
-        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
-        with:
-          script: |
-            const body = [
-              '## Environment Promotion Request',
-              '',
-              '**Source:** Dev environment (verified healthy)',
-              '**Target:** Staging',
-              `**Image Tag:** \`${process.env.IMAGE_REF}\``,
-              '',
-              '### Affected Layers',
-              ...process.env.LAYERS.split(' ').map((layer) => `- ${layer}`),
-              '',
-              '### Pre-Deployment Checklist',
-              '- [ ] QA approved',
-              '- [ ] Performance baseline acceptable',
-              '- [ ] Security scan passed',
-              '- [ ] Integration tests green',
-              '',
-              '### Post-Deployment Verification',
-              'Staging health checks will run automatically after merge.',
-              '',
-              '---',
-              '**Auto-generated by Environment Promotion workflow**',
-            ].join('\n');
+      env:
+        NEEDS_VALIDATE_BUILD_OUTPUTS_IMAGE_REF: ${{ needs.validate-build.outputs.image_ref }}
+    - name: Create Pull Request
+      uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b   # v7
+      with:
+        script: |
+          const body = [
+            '## Environment Promotion Request',
+            '',
+            '**Source:** Dev environment (verified healthy)',
+            '**Target:** Staging',
+            `**Image Tag:** \`${process.env.IMAGE_REF}\``,
+            '',
+            '### Affected Layers',
+            ...process.env.LAYERS.split(' ').map((layer) => `- ${layer}`),
+            '',
+            '### Pre-Deployment Checklist',
+            '- [ ] QA approved',
+            '- [ ] Performance baseline acceptable',
+            '- [ ] Security scan passed',
+            '- [ ] Integration tests green',
+            '',
+            '### Post-Deployment Verification',
+            'Staging health checks will run automatically after merge.',
+            '',
+            '---',
+            '**Auto-generated by Environment Promotion workflow**',
+          ].join('\n');
 
-            const { data: pr } = await github.rest.pulls.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: `🚀 Promote ${process.env.IMAGE_REF.substring(0, 7)} to Staging`,
-              head: process.env.branch_name,
-              base: 'main',
-              body,
-            });
+          const { data: pr } = await github.rest.pulls.create({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            title: `🚀 Promote ${process.env.IMAGE_REF.substring(0, 7)} to Staging`,
+            head: process.env.branch_name,
+            base: 'main',
+            body,
+          });
 
-            // Request reviews from QA team
-            await github.rest.pulls.requestReviewers({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: pr.number,
-              team_reviewers: ['qa-team']
-            });
+          // Request reviews from QA team
+          await github.rest.pulls.requestReviewers({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            pull_number: pr.number,
+            team_reviewers: ['qa-team']
+          });
 
-            console.log(`Created PR #${pr.number}: ${pr.html_url}`);
+          console.log(`Created PR #${pr.number}: ${pr.html_url}`);
 
   # ============================================================================
   # Staging Health Verification (After PR Merge)
@@ -345,56 +364,56 @@ jobs:
       name: staging
       url: https://staging.fabric.internal
     steps:
-      - name: Wait for ArgoCD sync
-        run: |
-          echo "Waiting for ArgoCD to sync staging..."
-          sleep 60  # Give ArgoCD time to detect and sync
+    - name: Wait for ArgoCD sync
+      run: |
+        echo "Waiting for ArgoCD to sync staging..."
+        sleep 60  # Give ArgoCD time to detect and sync
 
-      - name: Run Staging health checks
-        run: |
-          timeout=600  # 10 minutes for staging
-          interval=15
-          elapsed=0
+    - name: Run Staging health checks
+      run: |
+        timeout=600  # 10 minutes for staging
+        interval=15
+        elapsed=0
 
-          while [ $elapsed -lt $timeout ]; do
-            all_healthy=true
+        while [ $elapsed -lt $timeout ]; do
+          all_healthy=true
 
-            for port in 8001 8002 8003 8004 8005 8006; do
-              # In real implementation:
-              # response=$(curl -sf https://staging.fabric.internal:$port/health)
-              # if [ $? -ne 0 ]; then all_healthy=false; fi
-              echo "Checking layer on port $port..."
-            done
-
-            if [ "$all_healthy" = true ]; then
-              echo "✅ All Staging services healthy"
-              exit 0
-            fi
-
-            sleep $interval
-            elapsed=$((elapsed + interval))
-            echo "Waiting for Staging services... (${elapsed}s/${timeout}s)"
+          for port in 8001 8002 8003 8004 8005 8006; do
+            # In real implementation:
+            # response=$(curl -sf https://staging.fabric.internal:$port/health)
+            # if [ $? -ne 0 ]; then all_healthy=false; fi
+            echo "Checking layer on port $port..."
           done
 
-          echo "❌ Staging health check timeout - deployment may be unhealthy"
-          exit 1  # Blocking for Staging
+          if [ "$all_healthy" = true ]; then
+            echo "✅ All Staging services healthy"
+            exit 0
+          fi
 
-      - name: Run integration tests against staging
-        run: |
-          echo "Running integration test suite against staging..."
-          # Trigger integration-tests workflow against staging URL
-          # This validates the full stack before production promotion
+          sleep $interval
+          elapsed=$((elapsed + interval))
+          echo "Waiting for Staging services... (${elapsed}s/${timeout}s)"
+        done
 
-      - name: Create Production Promotion PR
-        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
-        with:
-          script: |
-            // Only create prod PR if staging tests pass
-            const branch_name = `promote/prod-${process.env.IMAGE_REF}`;
+        echo "❌ Staging health check timeout - deployment may be unhealthy"
+        exit 1  # Blocking for Staging
 
-            // Create branch with prod overlay updates
-            // Similar to staging PR creation
-            console.log("Creating Production promotion PR...");
+    - name: Run integration tests against staging
+      run: |
+        echo "Running integration test suite against staging..."
+        # Trigger integration-tests workflow against staging URL
+        # This validates the full stack before production promotion
+
+    - name: Create Production Promotion PR
+      uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b   # v7
+      with:
+        script: |
+          // Only create prod PR if staging tests pass
+          const branch_name = `promote/prod-${process.env.IMAGE_REF}`;
+
+          // Create branch with prod overlay updates
+          // Similar to staging PR creation
+          console.log("Creating Production promotion PR...");
 
   # ============================================================================
   # Production Deployment (Manual Approval Required)
@@ -407,90 +426,90 @@ jobs:
       name: production
       url: https://fabric.internal
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+    - name: Checkout repository
+      uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332   # v4
 
-      - name: Block placeholder image digests (prod)
-        run: bash scripts/check-no-placeholder-digests.sh k8s/envs/prod/kustomization.yaml
+    - name: Block placeholder image digests (prod)
+      run: bash scripts/check-no-placeholder-digests.sh k8s/envs/prod/kustomization.yaml
 
-      - name: Verify approval context
-        run: |
-          echo "🔒 Production deployment requires:"
-          echo "  - Manual approval from release manager"
-          echo "  - Staging health verification passed"
-          echo "  - Integration tests green"
-          echo ""
-          echo "Proceeding with production deployment..."
+    - name: Verify approval context
+      run: |
+        echo "🔒 Production deployment requires:"
+        echo "  - Manual approval from release manager"
+        echo "  - Staging health verification passed"
+        echo "  - Integration tests green"
+        echo ""
+        echo "Proceeding with production deployment..."
 
-      - name: Install Argo Rollouts kubectl plugin
-        run: |
-          curl -sSL https://github.com/argoproj/argo-rollouts/releases/latest/download/kubectl-argo-rollouts-linux-amd64 -o /tmp/kubectl-argo-rollouts
-          chmod +x /tmp/kubectl-argo-rollouts
-          sudo mv /tmp/kubectl-argo-rollouts /usr/local/bin/kubectl-argo-rollouts
-          kubectl-argo-rollouts version
+    - name: Install Argo Rollouts kubectl plugin
+      run: |
+        curl -sSL https://github.com/argoproj/argo-rollouts/releases/latest/download/kubectl-argo-rollouts-linux-amd64 -o /tmp/kubectl-argo-rollouts
+        chmod +x /tmp/kubectl-argo-rollouts
+        sudo mv /tmp/kubectl-argo-rollouts /usr/local/bin/kubectl-argo-rollouts
+        kubectl-argo-rollouts version
 
-      - name: Run canary analysis
-        env:
-          PROMETHEUS_URL: ${{ env.PROMETHEUS_URL }}
-        run: |
-          python scripts/ci/canary_analysis.py \
-            --namespace prod \
-            --rollouts layer1-ingestion,layer2-extraction,layer3-knowledge,layer4-agents,layer5-ground-truth,layer6-benchmarks,frontend \
-            --timeout-seconds 1800 \
-            --poll-interval-seconds 30
+    - name: Run canary analysis
+      env:
+        PROMETHEUS_URL: ${{ env.PROMETHEUS_URL }}
+      run: |
+        python scripts/ci/canary_analysis.py \
+          --namespace prod \
+          --rollouts layer1-ingestion,layer2-extraction,layer3-knowledge,layer4-agents,layer5-ground-truth,layer6-benchmarks,frontend \
+          --timeout-seconds 1800 \
+          --poll-interval-seconds 30
 
-      - name: Verify production health
-        run: |
-          # Final health verification
-          echo "✅ Production deployment complete"
-          echo "Monitoring dashboards:"
-          echo "  - https://grafana.fabric.internal/d/production"
-          echo "  - https://prometheus.fabric.internal"
+    - name: Verify production health
+      run: |
+        # Final health verification
+        echo "✅ Production deployment complete"
+        echo "Monitoring dashboards:"
+        echo "  - https://grafana.fabric.internal/d/production"
+        echo "  - https://prometheus.fabric.internal"
 
       # once Infisical project is fully populated and CI validation passes.
       # Target: after first successful Infisical-only CI run.
-      - name: Fetch secrets from Infisical
-        id: infisical
-        uses: Infisical/secrets-action@77ab1f4ccd183a543cb5b42435fbd181189f4995 # v1.0.16
-        with:
-          method: oidc
-          env-slug: prod
-          project-slug: fabric4l
-          identity-id: ${{ secrets.INFISICAL_IDENTITY_ID }}
-          secret-path: /monitoring
+    - name: Fetch secrets from Infisical
+      id: infisical
+      uses: Infisical/secrets-action@77ab1f4ccd183a543cb5b42435fbd181189f4995   # v1.0.16
+      with:
+        method: oidc
+        env-slug: prod
+        project-slug: fabric4l
+        identity-id: ${{ secrets.INFISICAL_IDENTITY_ID }}
+        secret-path: /monitoring
 
-      - name: Notify on deployment success
-        uses: slackapi/slack-github-action@fcfb566f8b0aab22203f066d80ca1d7e4b5d05b3 # v1
-        if: success()
-        with:
-          payload: |
-            {
-              "text": "🚀 Production deployment complete",
-              "blocks": [
-                {
-                  "type": "header",
-                  "text": {
-                    "type": "plain_text",
-                    "text": "✅ Production Deployment Complete"
-                  }
-                },
-                {
-                  "type": "section",
-                  "fields": [
-                    {
-                      "type": "mrkdwn",
-                      "text": "*Version:*\n`${{ env.IMAGE_REF }}`"
-                    },
-                    {
-                      "type": "mrkdwn",
-                      "text": "*Deployed by:*\n${{ github.actor }}"
-                    }
-                  ]
+    - name: Notify on deployment success
+      uses: slackapi/slack-github-action@fcfb566f8b0aab22203f066d80ca1d7e4b5d05b3   # v1
+      if: success()
+      with:
+        payload: |
+          {
+            "text": "🚀 Production deployment complete",
+            "blocks": [
+              {
+                "type": "header",
+                "text": {
+                  "type": "plain_text",
+                  "text": "✅ Production Deployment Complete"
                 }
-              ]
-            }
-        env:
-          SLACK_WEBHOOK_URL: ${{ env.SLACK_WEBHOOK_URL }}
+              },
+              {
+                "type": "section",
+                "fields": [
+                  {
+                    "type": "mrkdwn",
+                    "text": "*Version:*\n`${{ env.IMAGE_REF }}`"
+                  },
+                  {
+                    "type": "mrkdwn",
+                    "text": "*Deployed by:*\n${{ github.actor }}"
+                  }
+                ]
+              }
+            ]
+          }
+      env:
+        SLACK_WEBHOOK_URL: ${{ env.SLACK_WEBHOOK_URL }}
 
   # ============================================================================
   # Rollback on Failure
@@ -501,25 +520,25 @@ jobs:
     needs: [deploy-dev, create-staging-pr, verify-staging, deploy-production]
     if: failure()
     steps:
-      - name: Detect failure and initiate rollback
-        run: |
-          echo "❌ Deployment failed - initiating rollback procedure"
-          # Rollback logic:
-          # 1. Get previous stable image tag from git history
-          # 2. Revert kustomization.yaml changes
-          # 3. Commit revert to trigger ArgoCD sync
-          # 4. Alert on-call engineer
+    - name: Detect failure and initiate rollback
+      run: |
+        echo "❌ Deployment failed - initiating rollback procedure"
+        # Rollback logic:
+        # 1. Get previous stable image tag from git history
+        # 2. Revert kustomization.yaml changes
+        # 3. Commit revert to trigger ArgoCD sync
+        # 4. Alert on-call engineer
 
-      - name: Create rollback PR
-        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
-        with:
-          script: |
-            // Create emergency rollback PR
-            await github.rest.pulls.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: '🚨 EMERGENCY ROLLBACK',
-              head: 'rollback/${process.env.IMAGE_REF}',
-              base: 'main',
-              body: 'Automatic rollback due to deployment failure'
-            });
+    - name: Create rollback PR
+      uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b   # v7
+      with:
+        script: |
+          // Create emergency rollback PR
+          await github.rest.pulls.create({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            title: '🚨 EMERGENCY ROLLBACK',
+            head: 'rollback/${process.env.IMAGE_REF}',
+            base: 'main',
+            body: 'Automatic rollback due to deployment failure'
+          });

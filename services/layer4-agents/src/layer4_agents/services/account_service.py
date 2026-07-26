@@ -188,6 +188,8 @@ class AccountService:
         query = query.offset(offset).limit(page_size)
 
         # Execute queries
+        # nosemgrep: python.fastapi.db.generic-sql-fastapi.generic-sql-fastapi
+        # SQLAlchemy ORM query object with bound parameters, not raw SQL string concatenation.
         result = await self.db.execute(query)
         accounts = result.scalars().all()
 
@@ -320,6 +322,8 @@ class AccountService:
 
         try:
             # Use the fetch_interaction_history tool
+            # nosemgrep: python.fastapi.db.generic-sql-fastapi.generic-sql-fastapi
+            # Invokes FetchInteractionHistoryTool.execute(), a CRM tool, not a database driver.
             tool = FetchInteractionHistoryTool()
             result = await tool.execute(
                 FetchInteractionHistoryInput(

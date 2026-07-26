@@ -14,6 +14,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 import time
 import uuid
@@ -26,8 +27,13 @@ LAYER1_BASE = "http://localhost:8001/api/v1/ingestion"
 POLL_INTERVAL = 3.0
 MAX_POLL_SECONDS = 120
 
-# JWT configuration (matches docker-compose.live.yml dev defaults)
-JWT_SECRET = "dev-local-secret-do-not-use-in-production-minimum-32-chars"
+# JWT configuration (matches docker-compose.live.yml dev defaults).
+# The default secret is for local development only and must never be used in
+# production. Set TEST_L1_JWT_SECRET in your environment to override it.
+JWT_SECRET = os.environ.get(
+    "TEST_L1_JWT_SECRET",
+    "dev-local-secret-do-not-use-in-production-minimum-32-chars",
+)
 JWT_ISSUER = "value-fabric-internal"
 JWT_AUDIENCE = "value-fabric-services"
 
@@ -438,6 +444,13 @@ def main() -> int:
         help="Layer 1 base URL",
     )
     args = parser.parse_args()
+
+    if "TEST_L1_JWT_SECRET" not in os.environ:
+        print(
+            "[WARN] Using default dev JWT secret. Set TEST_L1_JWT_SECRET "
+            "to a secure secret for any non-local use.",
+            file=sys.stderr,
+        )
 
     # Update base URL if overridden
     base_url = args.base_url.rstrip("/")

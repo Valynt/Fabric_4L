@@ -6,33 +6,35 @@ permissions:
 on:
   pull_request:
     paths:
-      - 'services/layer3-knowledge/src/**/*.py'
-      - 'scripts/ci/check_layer3_wrapper_drift.py'
-      - 'scripts/ci/check_layer3_settings_shim_drift.py'
-      - '.github/workflows/layer3-wrapper-drift.yml'
+    - 'services/layer3-knowledge/src/**/*.py'
+    - 'scripts/ci/check_layer3_wrapper_drift.py'
+    - 'scripts/ci/check_layer3_settings_shim_drift.py'
+    - '.github/workflows/layer3-wrapper-drift.yml'
   workflow_dispatch:
 
 jobs:
   check-layer3-wrapper-drift:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+    - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
 
-      - name: Validate Layer3 compatibility namespace
-        run: python scripts/ci/check_layer3_wrapper_drift.py
+    - name: Validate Layer3 compatibility namespace
+      run: python scripts/ci/check_layer3_wrapper_drift.py
 
-      - name: Validate Layer3 settings shim
-        run: python scripts/ci/check_layer3_settings_shim_drift.py
+    - name: Validate Layer3 settings shim
+      run: python scripts/ci/check_layer3_settings_shim_drift.py
 
-      - name: Collect changed files
-        run: |
-          git fetch --no-tags --depth=1 origin "${{ github.base_ref }}"
-          echo "CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | tr '\n' ' ')" >> "$GITHUB_ENV"
+    - name: Collect changed files
+      run: |
+        git fetch --no-tags --depth=1 origin "${GITHUB_BASE_REF}"
+        echo "CHANGED_FILES=$(git diff --name-only origin/${GITHUB_BASE_REF}...HEAD | tr '\n' ' ')" >> "$GITHUB_ENV"
 
-      - name: Report unregistered Layer3 compatibility additions
-        run: python scripts/ci/report_layer3_compat_additions.py
+      env:
+        GITHUB_BASE_REF: ${{ github.base_ref }}
+    - name: Report unregistered Layer3 compatibility additions
+      run: python scripts/ci/report_layer3_compat_additions.py

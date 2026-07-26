@@ -482,6 +482,8 @@ class BillingService:
             )
         )
         try:
+            # nosemgrep: python.fastapi.db.generic-sql-fastapi.generic-sql-fastapi
+            # SQLAlchemy ORM query object with bound parameters, not raw SQL string concatenation.
             await self.db.execute(stmt)
             await self.db.commit()
             result = await self.db.execute(select(BillingWebhookEvent).where(BillingWebhookEvent.id == event_id))

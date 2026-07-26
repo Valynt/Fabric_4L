@@ -52,6 +52,8 @@ async def value_tree_projection(
     """Execute value tree projection agent for traversal and semantic matching."""
     tenant_id = _require_tenant_id(fastapi_request)
     try:
+        # nosemgrep: python.fastapi.db.generic-sql-fastapi.generic-sql-fastapi
+        # agent.execute invokes a LangGraph agent, not a database driver.
         result = await agent.execute({**body, "tenant_id": tenant_id})
         return result.to_dict() if hasattr(result, "to_dict") else result.__dict__
     except HTTPException:
@@ -70,6 +72,8 @@ async def whitespace_analysis(
     """Execute whitespace analysis agent for gap identification and account planning."""
     tenant_id = _require_tenant_id(fastapi_request)
     try:
+        # nosemgrep: python.fastapi.db.generic-sql-fastapi.generic-sql-fastapi
+        # agent.execute invokes a LangGraph agent, not a database driver.
         result = await agent.execute({**body, "tenant_id": tenant_id})
         return result.to_dict() if hasattr(result, "to_dict") else result.__dict__
     except HTTPException:
@@ -88,6 +92,8 @@ async def roi_calculation(
     """Execute ROI calculation agent for formula execution and sensitivity analysis."""
     tenant_id = _require_tenant_id(fastapi_request)
     try:
+        # nosemgrep: python.fastapi.db.generic-sql-fastapi.generic-sql-fastapi
+        # agent.execute invokes a LangGraph agent, not a database driver.
         result = await agent.execute({**body, "tenant_id": tenant_id})
         return result.to_dict() if hasattr(result, "to_dict") else result.__dict__
     except HTTPException:
@@ -106,6 +112,8 @@ async def narrative_synthesis(
     """Execute narrative synthesis agent for report generation."""
     tenant_id = _require_tenant_id(fastapi_request)
     try:
+        # nosemgrep: python.fastapi.db.generic-sql-fastapi.generic-sql-fastapi
+        # agent.execute invokes a LangGraph agent, not a database driver.
         result = await agent.execute({**body, "tenant_id": tenant_id})
         return result.to_dict() if hasattr(result, "to_dict") else result.__dict__
     except HTTPException:
@@ -124,6 +132,8 @@ async def provenance_tracking(
     """Execute provenance tracking agent for lineage and decision traces."""
     tenant_id = _require_tenant_id(fastapi_request)
     try:
+        # nosemgrep: python.fastapi.db.generic-sql-fastapi.generic-sql-fastapi
+        # agent.execute invokes a LangGraph agent, not a database driver.
         result = await agent.execute({**body, "tenant_id": tenant_id})
         return result.to_dict() if hasattr(result, "to_dict") else result.__dict__
     except HTTPException:
@@ -158,6 +168,8 @@ async def agent_workflow(
         results: list[dict[str, Any]] = []
 
         if workflow_type == "whitespace_analysis":
+            # nosemgrep: python.fastapi.db.generic-sql-fastapi.generic-sql-fastapi
+            # agent.execute invokes a LangGraph agent, not a database driver.
             gap_result = await whitespace_agent.execute(
                 {"operation": "gap_analysis", **context}
             )
@@ -165,6 +177,8 @@ async def agent_workflow(
                 {"step": 1, "agent": "WhitespaceAnalysisAgent", "result": gap_result}
             )
 
+            # nosemgrep: python.fastapi.db.generic-sql-fastapi.generic-sql-fastapi
+            # agent.execute invokes a LangGraph agent, not a database driver.
             plan_result = await whitespace_agent.execute(
                 {"operation": "account_plan", **context}
             )
@@ -172,6 +186,8 @@ async def agent_workflow(
                 {"step": 2, "agent": "WhitespaceAnalysisAgent", "result": plan_result}
             )
 
+            # nosemgrep: python.fastapi.db.generic-sql-fastapi.generic-sql-fastapi
+            # agent.execute invokes a LangGraph agent, not a database driver.
             await provenance_agent.execute(
                 {
                     "operation": "create_decision_trace",
@@ -184,6 +200,8 @@ async def agent_workflow(
             )
 
         elif workflow_type == "business_case":
+            # nosemgrep: python.fastapi.db.generic-sql-fastapi.generic-sql-fastapi
+            # agent.execute invokes a LangGraph agent, not a database driver.
             vt_result = await value_tree_agent.execute(
                 {"operation": "upward_traversal", **context}
             )
@@ -191,11 +209,15 @@ async def agent_workflow(
                 {"step": 1, "agent": "ValueTreeProjectionAgent", "result": vt_result}
             )
 
+            # nosemgrep: python.fastapi.db.generic-sql-fastapi.generic-sql-fastapi
+            # agent.execute invokes a LangGraph agent, not a database driver.
             roi_result = await roi_agent.execute({"operation": "calculate", **context})
             results.append(
                 {"step": 2, "agent": "ROICalculationAgent", "result": roi_result}
             )
 
+            # nosemgrep: python.fastapi.db.generic-sql-fastapi.generic-sql-fastapi
+            # agent.execute invokes a LangGraph agent, not a database driver.
             narrative_result = await narrative_agent.execute(
                 {"operation": "generate_executive_summary", **context}
             )
@@ -203,6 +225,8 @@ async def agent_workflow(
                 {"step": 3, "agent": "NarrativeSynthesisAgent", "result": narrative_result}
             )
 
+            # nosemgrep: python.fastapi.db.generic-sql-fastapi.generic-sql-fastapi
+            # agent.execute invokes a LangGraph agent, not a database driver.
             await provenance_agent.execute(
                 {
                     "operation": "create_decision_trace",

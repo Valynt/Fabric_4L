@@ -199,10 +199,14 @@ async def list_truth_objects(
 
     # Count
     count_result = await db.execute(
+        # nosemgrep: python.fastapi.db.generic-sql-fastapi.generic-sql-fastapi
+        # SQLAlchemy ORM query object with bound parameters, not raw SQL string concatenation.
         select(func.count()).select_from(TruthObject).where(where_clause)
     )
     total = count_result.scalar_one()
 
+    # nosemgrep: python.fastapi.db.generic-sql-fastapi.generic-sql-fastapi
+    # SQLAlchemy ORM query object with bound parameters, not raw SQL string concatenation.
     # Items
     items_result = await db.execute(
         select(TruthObject)

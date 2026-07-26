@@ -187,6 +187,8 @@ async def list_entities(
         )
         params = dict(scoped_query.params)
 
+        # nosemgrep: python.fastapi.db.generic-sql-fastapi.generic-sql-fastapi
+        # Neo4j graph query execution via the driver; not a SQL database call.
         results = await neo4j.execute_query(scoped_query, params)
         total = results[0]["total"] if results else 0
 

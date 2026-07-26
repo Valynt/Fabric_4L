@@ -922,14 +922,33 @@ class PersistenceManager:
     # Fallback helpers
     # -----------------------------------------------------------------------
 
+    def _sanitize_path_segment(self, segment: str, default: str = "_default") -> str:
+        """Sanitize a string so it can be used safely as a directory name.
+
+        Replaces path separators, dots-only components, and leading separators
+        that could enable directory traversal.
+        """
+        if not segment:
+            return default
+        safe = segment.replace("/", "__").replace("\\", "__")
+        # Reject traversal components (..) and absolute-path markers.
+        if safe in {"..", "."}:
+            return default
+        # Strip leading path separators already replaced, plus any remaining
+        # leading dots that could confuse path resolution.
+        safe = safe.lstrip(".")
+        if not safe:
+            return default
+        return safe
+
     def _fallback_tenant_dir(self, tenant_id: str | None) -> Path:
         """Return the sanitized fallback directory for a tenant."""
-        safe = tenant_id.replace("/", "__").replace("\\", "__") if tenant_id else "_default"
+        safe = self._sanitize_path_segment(tenant_id or "")
         return self._fallback_dir / safe
 
     def _fallback_repo_dir(self, tenant_id: str | None, repo_name: str) -> Path:
         """Return the sanitized fallback directory for a repository within a tenant."""
-        safe = repo_name.replace("/", "__").replace("\\", "__")
+        safe = self._sanitize_path_segment(repo_name)
         return self._fallback_tenant_dir(tenant_id) / safe
 
     def _atomic_write_json(self, path: Path, data: dict[str, Any]) -> None:
@@ -946,10 +965,14 @@ class PersistenceManager:
         except Exception:
             Path(tmp).unlink(missing_ok=True)
             raise
+        # nosemgrep: python.fastapi.file.tainted-path-traversal-stdlib-fastapi.tainted-path-traversal-stdlib-fastapi
+        # Destination path is built from sanitized tenant/repo segments and a UUID run id.
         shutil.move(tmp, path)
 
     def _fallback_write_run(
         self, run: AuditRun, tenant_id: str | None, repo_name: str
+    # nosemgrep: python.fastapi.file.tainted-path-traversal-stdlib-fastapi.tainted-path-traversal-stdlib-fastapi
+    # Fallback path is built from sanitized tenant/repo segments and a UUID run id.
     ) -> None:
         """Persist an audit run to the fallback store under its tenant/repo scope."""
         path = self._fallback_repo_dir(tenant_id, repo_name) / "runs" / f"{run.id}.json"
@@ -1505,6 +1528,8 @@ class PersistenceManager:
     def _fallback_load_run(
         self,
         tenant_id: str | None,
+        # nosemgrep: python.fastapi.file.tainted-path-traversal-stdlib-fastapi.tainted-path-traversal-stdlib-fastapi
+        # Fallback path is built from sanitized tenant/repo segments and a UUID run id.
         repo_name: str,
         run_id: str,
     ) -> AuditRun | None:

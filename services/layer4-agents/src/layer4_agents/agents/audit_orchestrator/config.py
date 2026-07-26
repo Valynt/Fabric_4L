@@ -31,6 +31,33 @@ ENV_PREFIX: str = "AUDIT__"
 DEFAULT_YAML_PATH: str = ".agent/skills/repo-audit/config.yaml"
 
 
+def _repo_root() -> Path:
+    """Return the repository root by walking up from cwd looking for ``.git``."""
+    cwd = Path.cwd().resolve()
+    for parent in [cwd, *cwd.parents]:
+        if (parent / ".git").exists():
+            return parent
+    return cwd
+
+
+def _resolve_allowed_path(path: str | Path) -> Path:
+    """Resolve ``path`` against the repo root and reject traversal.
+
+    Prevents path-traversal attacks by ensuring the resolved file stays within
+    the repository root. Absolute paths are accepted only if they fall inside
+    the repo root.
+    """
+    base = _repo_root()
+    target = Path(path).resolve()
+    try:
+        target.relative_to(base)
+    except ValueError as exc:
+        raise ValueError(
+            f"Config path {target} resolves outside allowed base {base}"
+        ) from exc
+    return target
+
+
 def _convert_env_value(value: str) -> Any:
     """Convert an environment variable string to an appropriate Python type.
 
@@ -129,7 +156,7 @@ def _try_load_yaml(path: str | Path) -> dict[str, Any] | None:
         Parsed YAML content as a dictionary, or ``None`` if the file
         does not exist or cannot be parsed.
     """
-    file_path = Path(path)
+    file_path = _resolve_allowed_path(path)
     if not file_path.exists():
         logger.debug("YAML config not found at %s", file_path)
         return None
@@ -241,7 +268,7 @@ class ConfigManager:
                 path is given, it is resolved from the current working directory.
             env_prefix: Prefix for environment variables to read.
         """
-        self.yaml_path = Path(yaml_path)
+        self.yaml_path = _resolve_allowed_path(yaml_path)
         self.env_prefix = env_prefix
 
     # ------------------------------------------------------------------
