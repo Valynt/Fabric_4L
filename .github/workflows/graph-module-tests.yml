@@ -208,7 +208,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install pytest jsonschema
+          pip install pytest jsonschema pyyaml
 
       - name: Run L5 Contract Tests
         run: |

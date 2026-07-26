@@ -304,7 +304,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Generate evidence bundle
-        run: pnpm evidence:bundle -- --release-sha "${{ github.sha }}"
+        run: pnpm evidence:bundle --release-sha "${{ github.sha }}"
 
       - name: Resolve evidence bundle path
         id: bundle
