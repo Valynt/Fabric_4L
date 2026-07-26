@@ -16,7 +16,7 @@ def _workflow() -> dict:
 def test_ci_tools_image_is_digest_qualified() -> None:
     image = _workflow()["env"]["CI_TOOLS_IMAGE"]
     assert re.fullmatch(
-        r"ghcr\.io/value-fabric/ci-tools/security-suite@sha256:[0-9a-f]{64}", image
+        r"ghcr\.io/bmsull560/ci-tools/security-suite@sha256:[0-9a-f]{64}", image
     ), "CI_TOOLS_IMAGE must be the approved digest-qualified GHCR reference"
     assert ":latest" not in image
 
