@@ -184,7 +184,7 @@ SWAPPED_GATEWAY_RENDER = textwrap.dedent(
         - name: https-api
           protocol: HTTPS
           port: 443
-          hostname: app.example.com   # BUG: should be api.example.com
+          hostname: api.example.com
     ---
     apiVersion: gateway.networking.k8s.io/v1
     kind: HTTPRoute
@@ -275,7 +275,11 @@ def test_gate_detects_listener_bucket_swap(tmp_path: Path, repo_root: Path) -> N
     """
     rendered = tmp_path / "rendered"
     rendered.mkdir()
-    (rendered / "prod-gateway-api.yaml").write_text(SWAPPED_GATEWAY_RENDER, encoding="utf-8")
+    bad = SWAPPED_GATEWAY_RENDER.replace(
+        "name: https-api\n          protocol: HTTPS\n          port: 443\n          hostname: api.example.com",
+        "name: https-api\n          protocol: HTTPS\n          port: 443\n          hostname: app.example.com",
+    )
+    (rendered / "prod-gateway-api.yaml").write_text(bad, encoding="utf-8")
     result = _run_gate(
         repo_root, rendered, _ok_routing_dir(tmp_path), ["prod-gateway-api:gateway-api"]
     )
