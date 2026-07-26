@@ -31,8 +31,7 @@ spec:
                 - entries:
                     - keyless:
                         issuer: "https://token.actions.githubusercontent.com"
-                        rekor:
-                          url: https://rekor.sigstore.dev
+                        rekorURL: https://rekor.sigstore.dev
               conditions:
                 - all:
                     # Verify build was from our repository

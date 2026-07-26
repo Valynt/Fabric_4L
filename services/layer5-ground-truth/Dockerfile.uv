@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 # Multi-stage build for Layer 5: Ground Truth Service (uv edition)
 ARG BASE_IMAGE=python@sha256:f5cf0344c9886ff24d34797578d5d7dd6e8911ae0fe5962bb55d0f89603ec361
 FROM ${BASE_IMAGE} AS builder

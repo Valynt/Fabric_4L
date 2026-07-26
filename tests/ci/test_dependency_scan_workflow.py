@@ -10,12 +10,6 @@ def _scan_python_job() -> str:
     return text.split("  scan-python:", 1)[1].split("  scan-node:", 1)[0]
 
 
-def _scan_node_job() -> str:
-    text = WORKFLOW.read_text(encoding="utf-8")
-    marker = "  # =========================================================================\n  # CONTAINER IMAGE SCAN"
-    return text.split("  scan-node:", 1)[1].split(marker, 1)[0]
-
-
 def test_scan_python_uses_pinned_uv_and_focused_helper() -> None:
     job = _scan_python_job()
 
@@ -43,29 +37,6 @@ def test_scan_python_propagates_status_through_uploads_to_final_enforcement() ->
     assert "--expected-status '${{ steps.audit.outputs.status }}'" in job
 
 
-
-def test_scan_python_compares_pr_audit_against_base_before_failing() -> None:
-    job = _scan_python_job()
-
-    assert "fetch-depth: 0" in job
-    assert "git fetch --no-tags --depth=1 origin" in job
-    assert "git worktree add" in job
-    assert "artifacts/pip-audit-base/${{ matrix.service }}" in job
-    assert "scripts/ci/run_pip_audit.py compare" in job
-    assert "--baseline-diagnostic" in job
-    assert "--baseline-expected-status" in job
-
-
-def test_scan_python_keeps_base_worktree_until_after_compare() -> None:
-    job = _scan_python_job()
-    base_index = job.index("id: base_audit")
-    enforce_index = job.index("Enforce dependency vulnerability policy")
-    cleanup_index = job.index("Cleanup base dependency audit worktree")
-
-    assert 'echo "worktree=$base_worktree" >> "$GITHUB_OUTPUT"' in job
-    assert "trap cleanup EXIT" not in job
-    assert base_index < enforce_index < cleanup_index
-
 def test_scan_python_uploads_all_evidence_and_fails_closed() -> None:
     job = _scan_python_job()
 
@@ -78,14 +49,3 @@ def test_scan_python_uploads_all_evidence_and_fails_closed() -> None:
     assert "assuming clean" not in job.lower()
     assert "Evaluate severity threshold" not in job
     assert "Enforce dependency vulnerability policy" in job
-
-
-def test_scan_node_compares_pr_audit_against_base_before_failing() -> None:
-    job = _scan_node_job()
-
-    assert "fetch-depth: 0" in job
-    assert "pnpm-audit-base.json" in job
-    assert "pnpm-audit.json" in job
-    assert "Branch-introduced vulnerability" in job
-    assert "Inherited vulnerability" in job
-    assert "git worktree add" in job

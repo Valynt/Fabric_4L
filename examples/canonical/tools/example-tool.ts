@@ -234,12 +234,12 @@ export const exampleTool = defineTool<ExampleToolInput, ExampleToolOutput>({
       );
     }
 
-    const scopeKey = ctx.tenant_context.tenant_id;
+    const tenantId = ctx.tenant_context.tenant_id;
 
     // Helper to build consistent metadata
     const buildMetadata = (executionTimeMs: number) => ({
       execution_time_ms: executionTimeMs,
-      tenant_id: scopeKey,
+      tenant_id: tenantId,
       tool_version: ctx.tool_version,
       trace_id: ctx.trace_id,
     });
@@ -286,7 +286,7 @@ export const exampleTool = defineTool<ExampleToolInput, ExampleToolOutput>({
       // -----------------------------------------------------------------------
       const customer = await fetchCustomerFromDatabase(
         input.customer_id,
-        scopeKey
+        tenantId
       );
 
       if (!customer) {
@@ -294,9 +294,9 @@ export const exampleTool = defineTool<ExampleToolInput, ExampleToolOutput>({
         return error<ExampleToolOutput>(
           {
             code: "NOT_FOUND",
-            message: `Customer "${input.customer_id}" not found in tenant "${scopeKey}"`,
+            message: `Customer "${input.customer_id}" not found in tenant "${tenantId}"`,
             recoverable: false,
-            details: { customer_id: input.customer_id, tenant_id: scopeKey },
+            details: { customer_id: input.customer_id, tenant_id: tenantId },
           },
           buildMetadata(Date.now() - startTime)
         );
@@ -312,12 +312,12 @@ export const exampleTool = defineTool<ExampleToolInput, ExampleToolOutput>({
           // Update customer with provided data
           if (input.data?.name) customer.name = input.data.name;
           if (input.data?.email) customer.email = input.data.email;
-          await saveCustomerToDatabase(customer, scopeKey);
+          await saveCustomerToDatabase(customer, tenantId);
           break;
 
         case "delete":
           // Soft delete the customer
-          await deleteCustomerFromDatabase(input.customer_id, scopeKey);
+          await deleteCustomerFromDatabase(input.customer_id, tenantId);
           break;
       }
 
@@ -377,7 +377,7 @@ interface CustomerRecord {
 
 async function fetchCustomerFromDatabase(
   customerId: string,
-  scopeKey: string
+  tenantId: string
 ): Promise<CustomerRecord | null> {
   // CONTRACT.md §2.2: Use tenant-scoped database sessions
   // db.getSession() automatically applies tenant scoping
@@ -385,7 +385,7 @@ async function fetchCustomerFromDatabase(
   // Mock implementation - replace with actual ORM query
   // Example with Prisma:
   // return await db.getSession().customer.findUnique({
-  //   where: { id: customerId, tenant_id: scopeKey }
+  //   where: { id: customerId, tenant_id: tenantId }
   // });
 
   if (customerId === "cust_notfound") {
@@ -402,18 +402,18 @@ async function fetchCustomerFromDatabase(
 
 async function saveCustomerToDatabase(
   customer: CustomerRecord,
-  scopeKey: string
+  tenantId: string
 ): Promise<void> {
   // Mock implementation - replace with actual ORM update
-  console.log(`[DB] Updated customer ${customer.id} in tenant ${scopeKey}`);
+  console.log(`[DB] Updated customer ${customer.id} in tenant ${tenantId}`);
 }
 
 async function deleteCustomerFromDatabase(
   customerId: string,
-  scopeKey: string
+  tenantId: string
 ): Promise<void> {
   // Mock implementation - replace with actual ORM delete
-  console.log(`[DB] Deleted customer ${customerId} in tenant ${scopeKey}`);
+  console.log(`[DB] Deleted customer ${customerId} in tenant ${tenantId}`);
 }
 
 // ============================================================================

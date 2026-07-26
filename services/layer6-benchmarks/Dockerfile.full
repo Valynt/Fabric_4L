@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 # Root-context build for full/live compose stacks.
 FROM python@sha256:f5cf0344c9886ff24d34797578d5d7dd6e8911ae0fe5962bb55d0f89603ec361 AS builder
 
@@ -15,7 +16,7 @@ RUN uv sync --frozen --no-install-project
 RUN uv pip install "sqlalchemy>=2.0" "pyjwt>=2.8.0" "redis>=5.0"
 
 COPY services/layer6-benchmarks/src/ ./src/
-COPY packages/shared/src/value_fabric/ ./value_fabric/
+COPY value_fabric/ ./value_fabric/
 COPY packages/shared/src/value_fabric/shared/ ./value_fabric/shared/
 COPY services/layer6-benchmarks/src/ ./value_fabric/layer6/
 
@@ -34,7 +35,7 @@ ENV PATH="/app/.venv/bin:$PATH"
 ENV PYTHONPATH=/app:/app/src
 
 COPY services/layer6-benchmarks/src/ ./src/
-COPY packages/shared/src/value_fabric/ ./value_fabric/
+COPY value_fabric/ ./value_fabric/
 COPY packages/shared/src/value_fabric/shared/ ./value_fabric/shared/
 COPY services/layer6-benchmarks/src/ ./value_fabric/layer6/
 
