@@ -322,3 +322,29 @@ class TestAsyncClient:
         assert len(tenants) == 1
         assert tenants[0].name == "Acme"
         await client.aclose()
+
+    async def test_acreate_api_key(self):
+        transport = _mock_transport({
+            ("POST", "/v1/api-keys"): (201, {
+                "key_id": "vf_def",
+                "tenant_id": "11111111-1111-1111-1111-111111111111",
+                "name": "new-key",
+                "api_key": "vf_def_secret",
+                "prefix": "vf_de",
+                "role": "analyst",
+                "permissions": [],
+                "created_at": "2024-01-01T00:00:00Z",
+            }),
+        })
+        client = ValueFabricClient(
+            base_url="https://api.example.com",
+            api_key="test-api-key",
+        )
+        client._async_client = httpx.AsyncClient(
+            transport=transport,
+            base_url="https://api.example.com",
+        )
+        result = await client.acreate_api_key("new-key", "analyst")
+        assert result.api_key == "vf_def_secret"
+        assert isinstance(result, APIKeyCreateResult)
+        await client.aclose()
