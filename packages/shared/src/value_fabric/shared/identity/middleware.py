@@ -182,12 +182,7 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
                 token = self._set_request_context(ctx, token)
                 request.state.governance_context = ctx
 
-                tenant_status_response = await enforce_tenant_status(
-                    ctx,
-                    tenant_status_resolver=self._tenant_status_resolver,
-                    rate_limiter=self._rate_limiter,
-                    redis_client=self._redis_client,
-                )
+                tenant_status_response = await self._enforce_tenant_status(ctx)
                 if tenant_status_response is not None:
                     return tenant_status_response
             else:

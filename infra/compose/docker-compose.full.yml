@@ -144,10 +144,10 @@ services:
       - RDF_OUTPUT_DIR=/app/rdf-output
       - LOG_LEVEL=info
       - LAYER3_API_URL=http://layer3-knowledge:8001
-      - JWT_SECRET=${JWT_SECRET}
-      - API_KEY_HMAC_SECRET=${API_KEY_HMAC_SECRET}
-      - SERVICE_AUTH_SECRET=${SERVICE_AUTH_SECRET}
-      - FABRIC_AUTH_PUBLIC_KEYS=${FABRIC_AUTH_PUBLIC_KEYS}
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
+      - API_KEY_HMAC_SECRET=${API_KEY_HMAC_SECRET:?API_KEY_HMAC_SECRET is required}
+      - SERVICE_AUTH_SECRET=${SERVICE_AUTH_SECRET:?SERVICE_AUTH_SECRET is required}
+      - FABRIC_AUTH_PUBLIC_KEYS=${FABRIC_AUTH_PUBLIC_KEYS:?FABRIC_AUTH_PUBLIC_KEYS is required}
       # Infisical — leave blank to use plain env vars
       - INFISICAL_CLIENT_ID=${INFISICAL_CLIENT_ID:-}
       - INFISICAL_CLIENT_SECRET=${INFISICAL_CLIENT_SECRET:-}
@@ -185,7 +185,7 @@ services:
       - "8007"
     environment:
       - ENVIRONMENT=development
-      - JWT_SECRET=${JWT_SECRET}
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/signal_refinery
       - LAYER3_BASE_URL=http://layer3-knowledge:8001
       - LAYER4_BASE_URL=http://layer4-agents:8000

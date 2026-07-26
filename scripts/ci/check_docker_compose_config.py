@@ -72,7 +72,14 @@ SKIPPED_BIND_SOURCES = {
 FULL_COMPOSE_FILE = "docker-compose.full.yml"
 
 FULL_COMPOSE_ALLOWED_PORT_SERVICES = {
+    # DAST scans all layer API ports from the host; keep the list minimal and
+    # aligned with the endpoints exercised in .github/workflows/security-gates.yml.
+    "api-gateway",
+    "layer2-extraction",
+    "layer3-knowledge",
     "layer4-agents",
+    "layer5-ground-truth",
+    "layer6-benchmarks",
 }
 
 FULL_COMPOSE_HARDENING_EXEMPT_SERVICES = {
