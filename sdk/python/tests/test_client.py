@@ -2,10 +2,20 @@
 
 from __future__ import annotations
 
+from unittest.mock import patch
+
 import httpx
 import pytest
 
 from valuefabric.client import ValueFabricClient
+from valuefabric.errors import (
+    APIError,
+    AuthenticationError,
+    ConnectionError,
+    NotFoundError,
+    RateLimitError,
+    ValidationError,
+)
 from valuefabric.models import (
     APIKey,
     APIKeyCreateResult,
@@ -321,4 +331,98 @@ class TestAsyncClient:
         tenants = await client.alist_tenants()
         assert len(tenants) == 1
         assert tenants[0].name == "Acme"
+        await client.aclose()
+
+
+class TestErrorHandling:
+    def test_request_error_sync(self, mock_client):
+        request = httpx.Request("GET", "https://api.example.com/v1/tenants")
+
+        def _mock_request(*args, **kwargs):
+            raise httpx.RequestError("Mock connection error", request=request)
+
+        with (
+            patch.object(mock_client._sync_client, "request", side_effect=_mock_request),
+            pytest.raises(ConnectionError, match="Failed to connect"),
+        ):
+            mock_client.list_tenants()
+
+    @pytest.mark.asyncio
+    async def test_request_error_async(self):
+        client = ValueFabricClient(
+            base_url="https://api.example.com",
+            api_key="test-api-key",
+        )
+
+        request = httpx.Request("GET", "https://api.example.com/v1/tenants")
+
+        async def _mock_request(*args, **kwargs):
+            raise httpx.RequestError("Mock connection error", request=request)
+
+        with (
+            patch.object(client._async_client, "request", side_effect=_mock_request),
+            pytest.raises(ConnectionError, match="Failed to connect"),
+        ):
+            await client.alist_tenants()
+
+        await client.aclose()
+
+    @pytest.mark.parametrize(
+        "status_code, expected_exception, match_text",
+        [
+            (401, AuthenticationError, "Authentication failed"),
+            (400, ValidationError, "Request validation failed"),
+            (404, NotFoundError, "Resource not found"),
+            (429, RateLimitError, "Rate limit exceeded"),
+            (500, APIError, "Server error"),
+            (503, APIError, "Server error"),
+            (418, APIError, "API error"),
+        ],
+    )
+    def test_http_status_error_sync(self, mock_client, status_code, expected_exception, match_text):
+        request = httpx.Request("GET", "https://api.example.com/v1/tenants")
+        response = httpx.Response(status_code, request=request)
+        error = httpx.HTTPStatusError("Mock HTTP Error", request=request, response=response)
+
+        def _mock_request(*args, **kwargs):
+            raise error
+
+        with (
+            patch.object(mock_client._sync_client, "request", side_effect=_mock_request),
+            pytest.raises(expected_exception, match=match_text),
+        ):
+            mock_client.list_tenants()
+
+    @pytest.mark.parametrize(
+        "status_code, expected_exception, match_text",
+        [
+            (401, AuthenticationError, "Authentication failed"),
+            (400, ValidationError, "Request validation failed"),
+            (404, NotFoundError, "Resource not found"),
+            (429, RateLimitError, "Rate limit exceeded"),
+            (500, APIError, "Server error"),
+            (503, APIError, "Server error"),
+            (418, APIError, "API error"),
+        ],
+    )
+    @pytest.mark.asyncio
+    async def test_http_status_error_async(self, status_code, expected_exception, match_text):
+        client = ValueFabricClient(
+            base_url="https://api.example.com",
+            api_key="test-api-key",
+        )
+
+        request = httpx.Request("GET", "https://api.example.com/v1/tenants")
+        response = httpx.Response(status_code, request=request)
+        error = httpx.HTTPStatusError("Mock HTTP Error", request=request, response=response)
+
+        async def _mock_request(*args, **kwargs):
+            raise error
+
+        with (
+            patch.object(client._async_client, "request", side_effect=_mock_request),
+            pytest.raises(expected_exception, match=match_text),
+        ):
+            await client.alist_tenants()
+
         await client.aclose()
