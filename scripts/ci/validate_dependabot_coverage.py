@@ -51,6 +51,7 @@ EXCLUDE_DIRS = {
     "*.egg-info",
     "prototypes",  # Prototypes are temporary/experimental and don't need automated updates
     ".worktrees",  # Git worktrees are not part of the canonical source tree
+    ".codex-worktrees",  # Codex-linked worktrees are not part of the canonical source tree
     ".agents",     # Agent skill templates are copied/checked-in scaffolding
     ".claude",     # Claude skill templates are copied/checked-in scaffolding
 }

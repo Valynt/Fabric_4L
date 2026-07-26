@@ -194,7 +194,7 @@ class TestMiddlewareTenantStatusEnforcement:
         transport = ASGITransport(app=app_with_status_check)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             with patch(
-                "shared.identity.middleware.decode_jwt",
+                "value_fabric.shared.identity.resolvers.decode_jwt",
                 return_value=self._jwt_payload("11111111-1111-1111-1111-111111111111"),
             ):
                 response = await client.get(
@@ -209,7 +209,7 @@ class TestMiddlewareTenantStatusEnforcement:
         transport = ASGITransport(app=app_with_status_check)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             with patch(
-                "shared.identity.middleware.decode_jwt",
+                "value_fabric.shared.identity.resolvers.decode_jwt",
                 return_value=self._jwt_payload("22222222-2222-2222-2222-222222222222"),
             ):
                 response = await client.get(
@@ -227,7 +227,7 @@ class TestMiddlewareTenantStatusEnforcement:
         transport = ASGITransport(app=app_with_status_check)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             with patch(
-                "shared.identity.middleware.decode_jwt",
+                "value_fabric.shared.identity.resolvers.decode_jwt",
                 return_value=self._jwt_payload("33333333-3333-3333-3333-333333333333"),
             ):
                 response = await client.get(
@@ -245,7 +245,7 @@ class TestMiddlewareTenantStatusEnforcement:
         transport = ASGITransport(app=app_with_status_check)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             with patch(
-                "shared.identity.middleware.decode_jwt",
+                "value_fabric.shared.identity.resolvers.decode_jwt",
                 return_value=self._jwt_payload("44444444-4444-4444-4444-444444444444"),
             ):
                 response = await client.get(

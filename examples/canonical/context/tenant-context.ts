@@ -209,12 +209,12 @@ export const SIGNATURE_HEADER = "x-fabric-signature";
  */
 export function extractTenantFromHeaders(
   headers: Record<string, string | string[] | undefined>,
-  signatureVerifier: (tenantId: string, signature: string) => boolean
+  signatureVerifier: (scopeKey: string, signature: string) => boolean
 ): { valid: false; error: string } | { valid: true; context: TenantContext } {
-  const tenantId = headers[TENANT_HEADER];
+  const scopeKey = headers[TENANT_HEADER];
   const signature = headers[SIGNATURE_HEADER];
 
-  if (!tenantId || Array.isArray(tenantId)) {
+  if (!scopeKey || Array.isArray(scopeKey)) {
     return { valid: false, error: `Missing or invalid ${TENANT_HEADER} header` };
   }
 
@@ -223,14 +223,14 @@ export function extractTenantFromHeaders(
   }
 
   // Verify signature to prevent forgery
-  if (!signatureVerifier(tenantId, signature)) {
+  if (!signatureVerifier(scopeKey, signature)) {
     return { valid: false, error: "Invalid request signature" };
   }
 
   // In production, this would look up tenant in database/cache
   // This is a simplified example showing the pattern
   const context: TenantContext = {
-    tenant_id: tenantId,
+    tenant_id: scopeKey,
     tenant_tier: "shared", // Would be looked up
     region: "us-east-1", // Would be looked up
     issued_at: Date.now(),
@@ -266,7 +266,7 @@ export function extractTenantFromHeaders(
  */
 export function generatePropagationHeaders(
   tenantContext: TenantContext,
-  signer: (tenantId: string) => string
+  signer: (scopeKey: string) => string
 ): Record<string, string> {
   return {
     [TENANT_HEADER]: tenantContext.tenant_id,
@@ -430,15 +430,15 @@ export function createTestContext(
  */
 export function __guardParameterPollution(
   functionName: string,
-  tenantIdParam?: string
+  providedTenant?: string
 ): void {
   if (process.env.NODE_ENV === "production") return;
 
   const context = getTenantContext();
-  if (context && tenantIdParam && tenantIdParam !== context.tenant_id) {
+  if (context && providedTenant && providedTenant !== context.tenant_id) {
     console.warn(
-      `[CONTRACT VIOLATION §2.1] Function "${functionName}" received tenantId parameter ` +
-        `"${tenantIdParam}" but context shows "${context.tenant_id}". ` +
+      `[CONTRACT VIOLATION §2.1] Function "${functionName}" received tenant scope parameter ` +
+        `"${providedTenant}" but context shows "${context.tenant_id}". ` +
         `Use getTenantContext() instead of passing tenantId as parameter. ` +
         `See CONTRACT.md §2.1`
     );

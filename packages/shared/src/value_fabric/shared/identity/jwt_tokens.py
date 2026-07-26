@@ -5,17 +5,18 @@ import logging
 import os
 import re
 import time
-from typing import Any, Dict, List, Optional
+from collections.abc import Mapping
+from typing import List, Optional
 from uuid import UUID
 
 import jwt
 from fastapi import HTTPException, status
+from value_fabric.shared.models.typed_dict import TypedDictModel
 
 from .jwt_external import _resolve_external_key
 from .jwt_keys import _build_keyset, _get_revoked_kids
 from .models import TokenClaims
 from .permissions import normalize_role_claims
-from value_fabric.shared.models.typed_dict import TypedDictModel
 
 logger = logging.getLogger("value_fabric.shared.identity.jwt")
 
@@ -39,33 +40,32 @@ def _normalize_origin(value: str) -> str:
     return value.strip().rstrip("/")
 
 
-def _configured_clerk_issuers() -> set[str]:
+def _configured_oidc_issuers() -> set[str]:
     return {
         issuer
         for issuer in (
-            os.getenv("CLERK_ISSUER", "").strip(),
-            os.getenv("CLERK_JWT_ISSUER", "").strip(),
+            os.getenv("OIDC_ISSUER", "").strip(),
         )
         if issuer
     }
 
 
-def _is_clerk_issuer(issuer: Any) -> bool:
+def _is_oidc_issuer(issuer: object) -> bool:
     if not isinstance(issuer, str) or not issuer.strip():
         return False
-    return issuer.strip().rstrip("/") in {_normalize_origin(value) for value in _configured_clerk_issuers()}
+    return issuer.strip().rstrip("/") in {_normalize_origin(value) for value in _configured_oidc_issuers()}
 
 
-def _configured_clerk_authorized_parties() -> set[str]:
+def _configured_oidc_authorized_parties() -> set[str]:
     return {
         _normalize_origin(value)
-        for value in os.getenv("CLERK_AUTHORIZED_PARTIES", "").split(",")
+        for value in os.getenv("OIDC_AUTHORIZED_PARTIES", "").split(",")
         if value.strip()
     }
 
 
-def _clerk_authorized_party_allowed(payload: Dict[str, Any]) -> bool:
-    allowed_parties = _configured_clerk_authorized_parties()
+def _oidc_authorized_party_allowed(payload: Mapping[str, object]) -> bool:
+    allowed_parties = _configured_oidc_authorized_parties()
     if not allowed_parties:
         return True
     azp = payload.get("azp")
@@ -117,19 +117,10 @@ def decode_jwt(token: str) -> Optional[TokenClaims]:
     roles_claim = os.getenv("JWT_ROLES_CLAIM", _DEFAULT_ROLES_CLAIM)
     internal_issuer = os.getenv("JWT_ISSUER", _DEFAULT_INTERNAL_ISSUER)
     internal_audience = os.getenv("JWT_AUDIENCE", _DEFAULT_INTERNAL_AUDIENCE)
-    # Support both generic OIDC and Clerk-specific issuer configuration.
-    # CLERK_ISSUER is the canonical gateway env; CLERK_JWT_ISSUER remains
-    # accepted as a compatibility alias for older deployment notes.
-    oidc_issuer = (
-        os.getenv("OIDC_ISSUER", "").strip()
-        or os.getenv("CLERK_ISSUER", "").strip()
-        or os.getenv("CLERK_JWT_ISSUER", "").strip()
-    )
-    oidc_audience = os.getenv("OIDC_AUDIENCE", "").strip() or os.getenv("CLERK_JWT_AUDIENCE", "").strip()
-    # Clerk-specific JWKS URL override
-    clerk_jwks_url = os.getenv("CLERK_JWKS_URL", "").strip()
-    if clerk_jwks_url and not os.getenv("OIDC_JWKS_URL", "").strip():
-        os.environ.setdefault("OIDC_JWKS_URL", clerk_jwks_url)
+    # Shared JWT verification consumes generic OIDC configuration. Provider-specific
+    # env names are normalized at the gateway boundary before tokens reach L1-L6.
+    oidc_issuer = os.getenv("OIDC_ISSUER", "").strip()
+    oidc_audience = os.getenv("OIDC_AUDIENCE", "").strip()
 
     try:
         header = jwt.get_unverified_header(token)
@@ -162,7 +153,7 @@ def decode_jwt(token: str) -> Optional[TokenClaims]:
             logger.debug("JWT kid revoked: %s", kid)
             return None
 
-        payload: Dict[str, Any]
+        payload: dict[str, object]
         if expected_issuer == oidc_issuer:
             if header_alg not in _ALLOWED_EXTERNAL_ALGORITHMS:
                 return None
@@ -184,15 +175,15 @@ def decode_jwt(token: str) -> Optional[TokenClaims]:
                     "verify_nbf": True,
                 },
             )
-            if _is_clerk_issuer(expected_issuer) and not _clerk_authorized_party_allowed(payload):
-                logger.debug("Clerk JWT authorized party rejected")
+            if _is_oidc_issuer(expected_issuer) and not _oidc_authorized_party_allowed(payload):
+                logger.debug("OIDC JWT authorized party rejected")
                 return None
         else:
             keyset = _build_keyset()
             algorithm = keyset["algorithm"]
             if header_alg != algorithm:
                 return None
-            decode_kwargs: Dict[str, Any] = {
+            decode_kwargs: dict[str, object] = {
                 "algorithms": [algorithm],
                 "audience": audience,
                 "issuer": expected_issuer,
@@ -254,7 +245,7 @@ def decode_jwt(token: str) -> Optional[TokenClaims]:
         tenant_claim, user_claim, roles_claim, org_claim, workspace_claim,
         "role", "exp", "iat", "jti", "api_key_id", "email", "name", "impersonator_id",
     }
-    extra: Dict[str, Any] = {k: v for k, v in payload.items() if k not in standard_claims}
+    extra: dict[str, object] = {k: v for k, v in payload.items() if k not in standard_claims}
 
     return TokenClaims(
         sub=payload.get(user_claim, ""),

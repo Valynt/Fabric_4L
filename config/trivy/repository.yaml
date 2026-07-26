@@ -1,0 +1,5 @@
+misconfiguration:
+  helm:
+    set:
+      - global.serviceAuthSecret=ci-render-service-auth-placeholder
+      - global.jwtSecret=ci-render-jwt-placeholder

@@ -16,7 +16,9 @@ resources:
   - ../../operators
   - ../../policy
   - ./monitoring
-  - ../../routing/nginx
+  - ../../routing/nginx/clusterissuer.yaml
+  - ../../routing/nginx/ingress.yaml
+  - ../../routing/nginx/oauth2-proxy.yaml
   - hostname-config.yaml
   - oauth2-proxy-config.yaml
 
@@ -151,12 +153,12 @@ replacements:
           kind: NetworkPolicy
           name: frontend-policy
         fieldPaths:
-          - spec.ingress.0.from.0.namespaceSelector.matchLabels.kubernetes\.io/metadata\.name
+          - spec.ingress.0.from.0.namespaceSelector.matchLabels.[kubernetes.io/metadata.name]
       - select:
           kind: NetworkPolicy
           name: oauth2-proxy
         fieldPaths:
-          - spec.ingress.0.from.0.namespaceSelector.matchLabels.kubernetes\.io/metadata\.name
+          - spec.ingress.0.from.0.namespaceSelector.matchLabels.[kubernetes.io/metadata.name]
   # Replace TLS issuer in Ingress annotations
   - source:
       kind: ConfigMap
