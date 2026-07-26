@@ -183,7 +183,7 @@ async def get_state_schema(
     """
     state = await executor.state_manager.load_state(workflow_id)
     if not state:
-        raise NotFoundError(message = str(f"Workflow {workflow_id} not found"))
+        raise NotFoundError(message=str(f"Workflow {workflow_id} not found"))
 
     # Extract schema from Pydantic model
     schema = state.model_json_schema()
@@ -244,7 +244,7 @@ async def get_state_values(
     """
     state = await executor.state_manager.load_state(workflow_id)
     if not state:
-        raise NotFoundError(message = str(f"Workflow {workflow_id} not found"))
+        raise NotFoundError(message=str(f"Workflow {workflow_id} not found"))
 
     state_dict = state.model_dump()
     values = {}
@@ -310,7 +310,7 @@ async def inspect_output_data(
     """
     state = await executor.state_manager.load_state(workflow_id)
     if not state:
-        raise NotFoundError(message = str(f"Workflow {workflow_id} not found"))
+        raise NotFoundError(message=str(f"Workflow {workflow_id} not found"))
 
     output_data = state.output_data if hasattr(state, "output_data") else {}
 
@@ -361,7 +361,7 @@ async def analyze_errors(
     """
     state = await executor.state_manager.load_state(workflow_id)
     if not state:
-        raise NotFoundError(message = str(f"Workflow {workflow_id} not found"))
+        raise NotFoundError(message=str(f"Workflow {workflow_id} not found"))
 
     errors = state.errors if hasattr(state, "errors") else []
 
@@ -490,8 +490,14 @@ async def get_performance_metrics(
             last_dt = dateutil_parser.isoparse(last_ts) if last_ts else None
             if first_dt and last_dt:
                 total_duration = int((last_dt - first_dt).total_seconds() * 1000)
-        except (ValueError, TypeError):
-            pass
+        except (ValueError, TypeError) as e:
+            logger.warning(
+                "Failed to parse timestamps for workflow_id=%s. first_ts='%s', last_ts='%s'. Error: %s",
+                workflow_id,
+                first_ts,
+                last_ts,
+                str(e),
+            )
 
     return PerformanceMetricsResponse(
         workflow_id=workflow_id,
