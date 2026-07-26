@@ -1,3 +1,4 @@
+cat << 'INNER_EOF' > tests/security/test_auth_default_deny.py
 from __future__ import annotations
 
 import pytest
@@ -78,3 +79,4 @@ def test_kill_switch_active_returns_401(client: TestClient) -> None:
     """If tenant status in claims is 'suspended' or 'archived', it returns 401."""
     # Simulation: Normally this requires a JWT string
     pass
+INNER_EOF

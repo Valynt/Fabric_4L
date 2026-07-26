@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { axe, toHaveNoViolations } from "jest-axe";
@@ -100,7 +100,7 @@ describe("component accessibility smoke tests", () => {
     );
 
     expect(screen.getByRole("button", { name: /close dialog/i })).toBeInTheDocument();
-    const results = await axe(container);
+    const results = await axe(container as HTMLElement);
     expect(results).toHaveNoViolations();
   });
 
@@ -112,7 +112,7 @@ describe("component accessibility smoke tests", () => {
       </div>,
     );
 
-    const results = await axe(container);
+    const results = await axe(container as HTMLElement);
     expect(results).toHaveNoViolations();
   });
 
@@ -132,7 +132,7 @@ describe("component accessibility smoke tests", () => {
 
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: /confirm action/i })).toBeInTheDocument();
-    const results = await axe(container);
+    const results = await axe(container as HTMLElement);
     expect(results).toHaveNoViolations();
   });
 
@@ -150,7 +150,7 @@ describe("component accessibility smoke tests", () => {
     );
 
     expect(screen.getByRole("combobox")).toBeInTheDocument();
-    const results = await axe(container);
+    const results = await axe(container as HTMLElement);
     expect(results).toHaveNoViolations();
   });
 
@@ -166,7 +166,7 @@ describe("component accessibility smoke tests", () => {
 
     const skipLink = screen.getByRole("link", { name: /skip to content/i });
     expect(skipLink).toBeInTheDocument();
-    const results = await axe(container);
+    const results = await axe(container as HTMLElement);
     expect(results).toHaveNoViolations();
   });
 
@@ -180,48 +180,56 @@ describe("component accessibility smoke tests", () => {
     );
 
     expect(screen.getByRole("heading", { name: /no items/i })).toBeInTheDocument();
-    const results = await axe(container);
+    const results = await axe(container as HTMLElement);
     expect(results).toHaveNoViolations();
   });
 
   // ── P2/P3 Fix Accessibility Tests ─────────────────────────────────────────
 
   it("virtual list single-column passes axe", async () => {
-    const { container } = render(
-      <div style={{ height: "200px" }}>
-        <VirtualList
-          items={[
-            { id: "1", label: "First" },
-            { id: "2", label: "Second" },
-            { id: "3", label: "Third" },
-          ]}
-          estimateSize={50}
-          renderItem={(item) => <div>{item.label}</div>}
-        />
-      </div>
-    );
+    let container: HTMLElement | undefined;
+    await act(async () => {
+      const res = render(
+        <div style={{ height: "200px" }}>
+          <VirtualList
+            items={[
+              { id: "1", label: "First" },
+              { id: "2", label: "Second" },
+              { id: "3", label: "Third" },
+            ]}
+            estimateSize={50}
+            renderItem={(item) => <div>{item.label}</div>}
+          />
+        </div>
+      );
+      container = res.container;
+    });
 
-    const results = await axe(container);
+    const results = await axe(container as HTMLElement);
     expect(results).toHaveNoViolations();
   });
 
   it("virtual list multi-column grid passes axe", async () => {
-    const { container } = render(
-      <div style={{ height: "200px" }}>
-        <VirtualList
-          items={[
-            { id: "1", label: "A" },
-            { id: "2", label: "B" },
-            { id: "3", label: "C" },
-          ]}
-          estimateSize={80}
-          columns={3}
-          renderItem={(item) => <div>{item.label}</div>}
-        />
-      </div>
-    );
+    let container: HTMLElement | undefined;
+    await act(async () => {
+      const res = render(
+        <div style={{ height: "200px" }}>
+          <VirtualList
+            items={[
+              { id: "1", label: "A" },
+              { id: "2", label: "B" },
+              { id: "3", label: "C" },
+            ]}
+            estimateSize={80}
+            columns={3}
+            renderItem={(item) => <div>{item.label}</div>}
+          />
+        </div>
+      );
+      container = res.container;
+    });
 
-    const results = await axe(container);
+    const results = await axe(container as HTMLElement);
     expect(results).toHaveNoViolations();
   });
 
@@ -238,7 +246,7 @@ describe("component accessibility smoke tests", () => {
     expect(img).toBeInTheDocument();
     expect(img).toHaveAttribute("loading", "lazy");
     expect(img).toHaveAttribute("decoding", "async");
-    const results = await axe(container);
+    const results = await axe(container as HTMLElement);
     expect(results).toHaveNoViolations();
   });
 
@@ -262,7 +270,7 @@ describe("component accessibility smoke tests", () => {
     const chip = screen.getByRole("button", { name: /insert variable revenue/i });
     expect(chip).toBeInTheDocument();
     expect(chip).toHaveAttribute("tabIndex", "0");
-    const results = await axe(container);
+    const results = await axe(container as HTMLElement);
     expect(results).toHaveNoViolations();
   });
 
@@ -283,7 +291,7 @@ describe("component accessibility smoke tests", () => {
       </div>
     );
 
-    const results = await axe(container);
+    const results = await axe(container as HTMLElement);
     expect(results).toHaveNoViolations();
   });
 

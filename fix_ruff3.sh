@@ -1,3 +1,4 @@
+cat << 'INNER_EOF' > tests/ci/test_security_gates_semgrep_pinning.py
 from pathlib import Path
 
 import yaml
@@ -21,3 +22,4 @@ def test_semgrep_jobs_share_one_exact_binary_pin() -> None:
         assert (
             'python3 -m pip install "semgrep==${{ env.SEMGREP_VERSION }}"' in commands
         )
+INNER_EOF

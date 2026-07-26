@@ -380,7 +380,7 @@ def node_score(state: AuditState) -> dict[str, Any]:
             metrics_by_area=metrics_by_area,
             area_weights=config.area_weights,
             branch=config.branch,
-            commit_sha=state.get("commit_sha") or _git_head(Path(state["repo_path"] or ".")),
+            commit_sha=str(state.get("commit_sha")) if state.get("commit_sha") else _git_head(Path(str(state.get("repo_path", ".")))),
             total_files=total_files,
             total_directories=total_dirs,
             total_commits=total_commits,
@@ -461,7 +461,7 @@ async def node_persist(state: AuditState) -> dict[str, Any]:
             error_message=state.get("error"),
             previous_run_id=state.get("previous_run_id"),
             files_changed_since_last=state.get("files_changed_since_last", []),
-            areas_reanalyzed=state.get("areas_reanalyzed", []),
+            areas_reanalyzed=list(state.get("areas_reanalyzed", [])),  # type: ignore[arg-type]
             tenant_id=tenant_id,
         )
 
@@ -535,7 +535,7 @@ async def node_handle_error(state: AuditState) -> dict[str, Any]:
             error_message=error_message,
             previous_run_id=state.get("previous_run_id"),
             files_changed_since_last=state.get("files_changed_since_last", []),
-            areas_reanalyzed=state.get("areas_reanalyzed", []),
+            areas_reanalyzed=list(state.get("areas_reanalyzed", [])),  # type: ignore[arg-type]
             tenant_id=tenant_id,
         )
         await manager.save_run(audit_run, tenant_id=tenant_id)

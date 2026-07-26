@@ -112,7 +112,7 @@ class SalesforceConnector(CRMConnector, CRMWriteConnector):
             try:
                 token_result = await self.refresh_token(
                     refresh_token=self._refresh_token,
-                    instance_url=self.instance_url,
+                    instance_url=self.instance_url or "",
                     client_id=self._client_id,
                     client_secret=self._client_secret,
                 )
@@ -122,7 +122,7 @@ class SalesforceConnector(CRMConnector, CRMWriteConnector):
             self.access_token = token_result["api_key"]
             new_instance_url = token_result.get("instance_url")
             if new_instance_url:
-                self.instance_url = new_instance_url
+                self.instance_url = new_instance_url  # type: ignore[assignment]
             new_refresh = token_result.get("refresh_token")
             if new_refresh:
                 self._refresh_token = new_refresh
@@ -321,7 +321,7 @@ class SalesforceConnector(CRMConnector, CRMWriteConnector):
                 "name": rec.get("Name"),
                 "stage": rec.get("StageName"),
                 "value": rec.get("Amount"),
-                "probability": rec.get("Probability") / 100 if rec.get("Probability") else 0,
+                "probability": (rec.get("Probability") / 100) if rec.get("Probability") is not None else 0,  # type: ignore[operator]
                 "close_date": rec.get("CloseDate"),
             }
             canonical_records.append(

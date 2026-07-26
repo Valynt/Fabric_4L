@@ -139,12 +139,12 @@ def clear_engine_cache() -> None:
 
 if _SQLALCHEMY_AVAILABLE:
 
-    class Base(DeclarativeBase):  # type: ignore[valid-type,misc]
+    class Base(DeclarativeBase):  # type: ignore[valid-type,misc,no-redef]
         """Shared declarative base for audit persistence models."""
 
         pass
 
-    class AuditRunDB(Base):  # type: ignore[valid-type,misc]
+    class AuditRunDB(Base):  # type: ignore[valid-type,misc,no-redef]
         """Persisted audit execution run."""
 
         __tablename__ = "audit_runs"
@@ -179,7 +179,7 @@ if _SQLALCHEMY_AVAILABLE:
             viewonly=True,
         )
 
-    class FindingDB(Base):  # type: ignore[valid-type,misc]
+    class FindingDB(Base):  # type: ignore[valid-type,misc,no-redef]
         """Deduplicated audit finding persisted across runs."""
 
         __tablename__ = "findings"
@@ -219,7 +219,7 @@ if _SQLALCHEMY_AVAILABLE:
         check_command: Mapped[str | None] = mapped_column(nullable=True)
         check_output: Mapped[str | None] = mapped_column(nullable=True)
 
-    class FindingOccurrenceDB(Base):  # type: ignore[valid-type,misc]
+    class FindingOccurrenceDB(Base):  # type: ignore[valid-type,misc,no-redef]
         """Per-run evidence that a finding was checked."""
 
         __tablename__ = "finding_occurrences"
@@ -238,7 +238,7 @@ if _SQLALCHEMY_AVAILABLE:
             DateTime(timezone=True), default=lambda: datetime.now(UTC)
         )
 
-    class ScorecardDB(Base):  # type: ignore[valid-type,misc]
+    class ScorecardDB(Base):  # type: ignore[valid-type,misc,no-redef]
         """Persisted repository scorecard."""
 
         __tablename__ = "scorecards"
@@ -269,7 +269,7 @@ if _SQLALCHEMY_AVAILABLE:
             cascade="all, delete-orphan",
         )
 
-    class AreaScoreDB(Base):  # type: ignore[valid-type,misc]
+    class AreaScoreDB(Base):  # type: ignore[valid-type,misc,no-redef]
         """Persisted area score belonging to a scorecard."""
 
         __tablename__ = "area_scores"
@@ -289,7 +289,7 @@ if _SQLALCHEMY_AVAILABLE:
 
         scorecard: Mapped[ScorecardDB] = relationship("ScorecardDB", back_populates="area_scores")
 
-    class SprintDB(Base):  # type: ignore[valid-type,misc]
+    class SprintDB(Base):  # type: ignore[valid-type,misc,no-redef]
         """Persisted remediation sprint."""
 
         __tablename__ = "sprints"
@@ -875,7 +875,7 @@ class PersistenceManager:
                 expire_on_commit=False,
             )
         else:
-            self._session_factory = None
+            self._session_factory = None  # type: ignore[assignment]
             self._engine = None
 
         self._fallback_dir = Path(fallback_dir)
@@ -921,7 +921,7 @@ class PersistenceManager:
         if self._engine is None:
             return
         async with self._engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
+            await conn.run_sync(Base.metadata.create_all)  # type: ignore[attr-defined]
 
     # -----------------------------------------------------------------------
     # Fallback helpers

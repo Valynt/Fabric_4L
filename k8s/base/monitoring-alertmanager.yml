@@ -25,11 +25,11 @@ data:
     receivers:
       - name: default
         webhook_configs:
-          - url: '${ALERTMANAGER_DEFAULT_WEBHOOK_URL:-http://localhost:5001/webhook}'
+          - url: 'http://localhost:5001/webhook'
             send_resolved: true
       - name: critical
         webhook_configs:
-          - url: '${ALERTMANAGER_CRITICAL_WEBHOOK_URL:-http://localhost:5001/webhook}'
+          - url: 'http://localhost:5001/webhook'
             send_resolved: true
 
     inhibit_rules:

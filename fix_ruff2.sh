@@ -1,3 +1,4 @@
+cat << 'INNER_EOF' > tests/ci/test_pip_audit_workflow.py
 from __future__ import annotations
 
 import subprocess
@@ -39,3 +40,4 @@ def test_all_expected_layers_have_pip_audit_steps():
 def test_checker_script_can_run():
     res = subprocess.run([sys.executable, str(CHECKER)], capture_output=True)
     assert res.returncode == 0, f"checker script failed: {res.stderr.decode()}"
+INNER_EOF

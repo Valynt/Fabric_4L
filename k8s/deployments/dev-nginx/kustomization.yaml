@@ -37,3 +37,22 @@ replacements:
         fieldPaths:
           - spec.rules.0.host
           - spec.tls.0.hosts.0
+  - source:
+      kind: ConfigMap
+      name: routing-host
+      fieldPath: data.ingressNamespace
+    targets:
+      - select:
+          kind: NetworkPolicy
+          name: frontend-policy
+        fieldPaths:
+          - spec.ingress.*.from.*.namespaceSelector.matchLabels.[kubernetes.io/metadata.name]
+        options:
+          create: true
+      - select:
+          kind: NetworkPolicy
+          name: oauth2-proxy
+        fieldPaths:
+          - spec.ingress.*.from.*.namespaceSelector.matchLabels.[kubernetes.io/metadata.name]
+        options:
+          create: true

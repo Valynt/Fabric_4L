@@ -6,3 +6,4 @@ metadata:
 data:
   host: dev.value-fabric.local
   apiHost: dev-api.value-fabric.local
+  ingressNamespace: ingress-nginx
