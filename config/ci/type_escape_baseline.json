@@ -7766,42 +7766,6 @@
     },
     {
       "kind": "python-any",
-      "line": 19,
-      "path": "scripts/ci/stack_health_check.py",
-      "text": "from typing import Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 31,
-      "path": "scripts/ci/stack_health_check.py",
-      "text": "def _probe(url: str, timeout: int = 10) -> dict[str, Any]:"
-    },
-    {
-      "kind": "python-any",
-      "line": 53,
-      "path": "scripts/ci/stack_health_check.py",
-      "text": "def _probe_any(urls: tuple[str, ...], timeout: int = 10) -> dict[str, Any]:"
-    },
-    {
-      "kind": "python-any",
-      "line": 54,
-      "path": "scripts/ci/stack_health_check.py",
-      "text": "errors: list[dict[str, Any]] = []"
-    },
-    {
-      "kind": "python-any",
-      "line": 72,
-      "path": "scripts/ci/stack_health_check.py",
-      "text": ") -> dict[str, Any]:"
-    },
-    {
-      "kind": "python-any",
-      "line": 75,
-      "path": "scripts/ci/stack_health_check.py",
-      "text": "results: dict[str, Any] = {name: {\"ok\": False} for name in endpoints}"
-    },
-    {
-      "kind": "python-any",
       "line": 22,
       "path": "scripts/ci/standardize_deprecation_markers.py",
       "text": "from typing import Any"
