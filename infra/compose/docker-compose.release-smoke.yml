@@ -17,7 +17,7 @@
 name: fabric4l-release-smoke
 
 x-common-env: &common-env
-  ENVIRONMENT: release_smoke
+  ENVIRONMENT: test
   LOG_LEVEL: warning
   PYTHONUNBUFFERED: "1"
   JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET via secure env}
