@@ -139,6 +139,12 @@ def main() -> int:
         else:
             print("\n🔴 **Some services unhealthy**")
 
+    if not report["all_healthy"]:
+        logs = report.get("container_logs", "")
+        if logs:
+            print("\n## Container logs on failure (docker compose logs --tail 200)\n")
+            print(logs)
+
     return 0 if report["all_healthy"] else 1
 
 
