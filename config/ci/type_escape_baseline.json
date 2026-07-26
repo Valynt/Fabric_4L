@@ -7766,18 +7766,6 @@
     },
     {
       "kind": "python-any",
-      "line": 11,
-      "path": "scripts/ci/shim_usage_report.py",
-      "text": "from typing import Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 64,
-      "path": "scripts/ci/shim_usage_report.py",
-      "text": "history: list[dict[str, Any]] = []"
-    },
-    {
-      "kind": "python-any",
       "line": 19,
       "path": "scripts/ci/stack_health_check.py",
       "text": "from typing import Any"

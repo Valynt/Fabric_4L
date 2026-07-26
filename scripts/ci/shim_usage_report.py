@@ -9,7 +9,6 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any
 
 ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
@@ -91,7 +90,7 @@ def main() -> int:
         writer.writerows(rows)
 
     history_path = outdir / "shim-usage-history.json"
-    history: list[dict[str, Any]] = []
+    history: list[dict[str, object]] = []
     if history_path.exists():
         history = json.loads(history_path.read_text(encoding="utf-8"))
     history.append({"date": today, "rows": rows})
