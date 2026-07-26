@@ -213,7 +213,7 @@ class TestGovernanceMiddlewareClaims:
             "auth_source": AUTH_SOURCE_JWT,
         }
         with patch(
-            "value_fabric.shared.identity.middleware.decode_jwt",
+            "value_fabric.shared.identity.resolvers.decode_jwt",
             return_value=mock_payload,
         ):
             transport = ASGITransport(app=claim_capture_app)
@@ -245,7 +245,7 @@ class TestGovernanceMiddlewareClaims:
             "auth_source": AUTH_SOURCE_JWT,
         }
         with patch(
-            "value_fabric.shared.identity.middleware.decode_jwt",
+            "value_fabric.shared.identity.resolvers.decode_jwt",
             return_value=mock_payload,
         ):
             transport = ASGITransport(app=claim_capture_app)
@@ -278,7 +278,7 @@ class TestGovernanceMiddlewareClaims:
             "auth_source": AUTH_SOURCE_JWT,
         }
         with patch(
-            "value_fabric.shared.identity.middleware.decode_jwt",
+            "value_fabric.shared.identity.resolvers.decode_jwt",
             return_value=mock_payload,
         ):
             transport = ASGITransport(app=claim_capture_app)
@@ -374,7 +374,7 @@ class TestCrossTenantDenial:
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             # No tenant_id in token
             with patch(
-                "shared.identity.middleware.decode_jwt",
+                "value_fabric.shared.identity.resolvers.decode_jwt",
                 return_value={"sub": str(uuid.uuid4()), "roles": []},
             ):
                 response = await client.get(

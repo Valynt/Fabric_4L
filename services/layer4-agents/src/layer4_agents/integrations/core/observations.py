@@ -44,45 +44,57 @@ class SyncObservation:
 
 # Convenience constructors so producers read like domain events rather than
 # enum assemblies. They return plain SyncObservation instances.
-def SyncStarted(message: str | None = None) -> SyncObservation:
+def sync_started(message: str | None = None) -> SyncObservation:
     return SyncObservation(ObservedStatus.SYNC_STARTED, ErrorClass.NONE, message)
 
 
-def SyncSucceeded(message: str | None = None) -> SyncObservation:
+def sync_succeeded(message: str | None = None) -> SyncObservation:
     return SyncObservation(ObservedStatus.SUCCESS, ErrorClass.NONE, message)
 
 
-def SyncPartial(message: str | None = None) -> SyncObservation:
+def sync_partial(message: str | None = None) -> SyncObservation:
     return SyncObservation(ObservedStatus.PARTIAL, ErrorClass.TRANSIENT, message)
 
 
-def SyncFailed(
+def sync_failed(
     error_class: ErrorClass = ErrorClass.TRANSIENT, message: str | None = None
 ) -> SyncObservation:
     return SyncObservation(ObservedStatus.FAILURE, error_class, message)
 
 
-def SyncInterrupted(message: str | None = None) -> SyncObservation:
+def sync_interrupted(message: str | None = None) -> SyncObservation:
     return SyncObservation(
         ObservedStatus.SYNC_INTERRUPTED, ErrorClass.INTERRUPTED, message
     )
 
 
-def TransientFailure(message: str | None = None) -> SyncObservation:
+def transient_failure(message: str | None = None) -> SyncObservation:
     return SyncObservation(ObservedStatus.FAILURE, ErrorClass.TRANSIENT, message)
 
 
-def AuthFailure(message: str | None = None) -> SyncObservation:
+def auth_failure(message: str | None = None) -> SyncObservation:
     return SyncObservation(ObservedStatus.FAILURE, ErrorClass.AUTH, message)
 
 
-def PermissionFailure(message: str | None = None) -> SyncObservation:
+def permission_failure(message: str | None = None) -> SyncObservation:
     return SyncObservation(ObservedStatus.FAILURE, ErrorClass.PERMISSION, message)
 
 
-def MappingFailure(message: str | None = None) -> SyncObservation:
+def mapping_failure(message: str | None = None) -> SyncObservation:
     return SyncObservation(ObservedStatus.FAILURE, ErrorClass.MAPPING, message)
 
 
-def PermanentFailure(message: str | None = None) -> SyncObservation:
+def permanent_failure(message: str | None = None) -> SyncObservation:
     return SyncObservation(ObservedStatus.FAILURE, ErrorClass.PERMANENT, message)
+
+# Backward-compatible aliases for existing integrations and external consumers.
+SyncStarted = sync_started
+SyncSucceeded = sync_succeeded
+SyncPartial = sync_partial
+SyncFailed = sync_failed
+SyncInterrupted = sync_interrupted
+TransientFailure = transient_failure
+AuthFailure = auth_failure
+PermissionFailure = permission_failure
+MappingFailure = mapping_failure
+PermanentFailure = permanent_failure

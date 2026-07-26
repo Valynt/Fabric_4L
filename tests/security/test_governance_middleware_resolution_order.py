@@ -15,12 +15,10 @@ from uuid import uuid4
 
 import pytest
 from fastapi import HTTPException, Request
-from value_fabric.shared.identity.middleware import (
-    GovernanceMiddleware,
-    _is_external_auth_bootstrap_path,
-    decode_jwt,
-    extract_context_from_jwt,
-)
+from value_fabric.shared.identity.constants import _is_external_auth_bootstrap_path
+from value_fabric.shared.identity.context_builders import extract_context_from_jwt
+from value_fabric.shared.identity.jwt_wrapper import decode_jwt
+from value_fabric.shared.identity.middleware import GovernanceMiddleware
 
 
 class TestGovernanceMiddlewareResolutionOrder:
@@ -90,7 +88,7 @@ class TestJWTDecodingSecurity:
 
     def test_jwt_decode_verifies_signature(self):
         """POSITIVE: JWT decode should verify signature."""
-        with patch("value_fabric.shared.identity.middleware._decode_jwt") as mock_decode:
+        with patch("value_fabric.shared.identity.jwt_wrapper._decode_jwt") as mock_decode:
             mock_decode.return_value = {"tenant_id": str(uuid4())}
             
             result = decode_jwt("valid-token")
@@ -105,7 +103,7 @@ class TestJWTDecodingSecurity:
             pytest.skip("jose not available")
             return
 
-        with patch("value_fabric.shared.identity.middleware._decode_jwt") as mock_decode:
+        with patch("value_fabric.shared.identity.jwt_wrapper._decode_jwt") as mock_decode:
             mock_decode.side_effect = JWTError("Token expired")
             
             with pytest.raises(JWTError):
@@ -172,7 +170,7 @@ class TestGovernanceMiddlewareFailureModes:
         middleware = GovernanceMiddleware(app=Mock(), api_key_resolver=None, rate_limiter=None)
         request = self._build_request({"Authorization": "Bearer invalid-token", "X-Request-ID": "req-123"})
 
-        with patch("value_fabric.shared.identity.middleware.decode_jwt") as mock_decode:
+        with patch("value_fabric.shared.identity.resolvers.decode_jwt") as mock_decode:
             mock_decode.return_value = None
             with pytest.raises(HTTPException) as exc_info:
                 await middleware._resolve_identity(request)
@@ -185,7 +183,7 @@ class TestGovernanceMiddlewareFailureModes:
         middleware = GovernanceMiddleware(app=Mock(), api_key_resolver=None, rate_limiter=None)
         request = self._build_request({"Authorization": "Bearer malformed-claims", "X-Tenant-ID": str(uuid4())})
 
-        with patch("value_fabric.shared.identity.middleware.decode_jwt") as mock_decode:
+        with patch("value_fabric.shared.identity.resolvers.decode_jwt") as mock_decode:
             mock_decode.return_value = {"tenant_id": "not-a-uuid"}
             with pytest.raises(HTTPException) as exc_info:
                 await middleware._resolve_identity(request)
@@ -199,7 +197,7 @@ class TestGovernanceMiddlewareFailureModes:
         middleware = GovernanceMiddleware(app=Mock(), api_key_resolver=None, rate_limiter=None)
         request = self._build_request({"Authorization": "Bearer service-down", "X-Correlation-ID": "corr-456"})
 
-        with patch("value_fabric.shared.identity.middleware.decode_jwt") as mock_decode:
+        with patch("value_fabric.shared.identity.resolvers.decode_jwt") as mock_decode:
             mock_decode.side_effect = RuntimeError("auth service outage")
             with pytest.raises(HTTPException) as exc_info:
                 await middleware._resolve_identity(request)

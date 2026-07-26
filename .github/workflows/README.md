@@ -2,7 +2,7 @@
 
 ## Overview
 
-This directory currently contains **53** GitHub Actions workflow files.
+This directory currently contains **54** GitHub Actions workflow files.
 
 The authoritative ownership, trigger, secret, artifact, runtime, local-command,
 and deprecation inventory lives in:
@@ -52,6 +52,7 @@ to an existing canonical workflow.
 | `zero-trust-validation.yml` | Zero-trust/security policy checks | `pull_request`, `push`, `schedule`, `workflow_dispatch` |
 | `supply-chain.yml` | Supply-chain integrity and provenance checks | `pull_request`, `push`, `workflow_call`, `workflow_dispatch` |
 | `test-reporting.yml` | Unified test result aggregation/reporting | `pull_request`, `workflow_run` |
+| `publish-ci-tools.yml` | Publishes the pinned supply-chain security tools image with provenance and SBOM | `push`, `workflow_dispatch` |
 | `publish-sdk.yml` | SDK publish workflow | `push`, `workflow_dispatch` |
 | `runbook-validation.yml` | Runbook reference and format validation | `pull_request`, `push` |
 | `release-evidence-bundle.yml` | Release-candidate evidence bundle | `pull_request`, `push`, `workflow_dispatch` |

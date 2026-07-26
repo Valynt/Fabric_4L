@@ -60,6 +60,9 @@ for config in "$TEMP_DIR"/*.yml "$TEMP_DIR"/*.yaml; do
     if [ -f "$config" ]; then
         echo ""
         echo "✅ Validating: $(basename "$config")"
+        sed -i 's#\${ALERTMANAGER_DEFAULT_WEBHOOK_URL:-http://localhost:5001/webhook}#http://localhost:5001/webhook#g' "$config"
+        sed -i 's#\${ALERTMANAGER_CRITICAL_WEBHOOK_URL:-http://localhost:5001/webhook}#http://localhost:5001/webhook#g' "$config"
+        sed -i 's#\${ALERTMANAGER_WARNING_WEBHOOK_URL:-http://localhost:5001/webhook}#http://localhost:5001/webhook#g' "$config"
         if [ -n "$AMBIN" ]; then
             # Use docker
             if ! $AMBIN check-config "$config" 2>&1; then

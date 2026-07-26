@@ -21,7 +21,6 @@ try:
     from value_fabric.shared.error_handling.exceptions import (
         AuthorizationError,
         ConflictError,
-        NotFoundError,
         TenantIsolationError,
         ValidationError,
     )

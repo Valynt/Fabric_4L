@@ -1,10 +1,14 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 
-from layer4_agents.integrations.core.observations import SyncInterrupted, SyncStarted, SyncSucceeded
+from layer4_agents.integrations.core.observations import (
+    sync_interrupted,
+    sync_started,
+    sync_succeeded,
+)
 from layer4_agents.integrations.core.state import (
     ErrorClass,
     ObservedStatus,
@@ -35,7 +39,7 @@ class TestStateReducer:
         assert result["status"] == "running"
 
     def test_success_sets_ready_and_last_known_good(self) -> None:
-        now = datetime(2026, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+        now = datetime(2026, 1, 1, 12, 0, 0, tzinfo=UTC)
         result = reduce(
             observed=ObservedStatus.SUCCESS,
             current=OperationalStatus.RUNNING,
@@ -106,7 +110,7 @@ class TestStateReducer:
         assert result["operational_status"] == "degraded"
 
     def test_preserves_last_known_good_through_failure(self) -> None:
-        lkg = datetime(2026, 1, 1, 10, 0, 0, tzinfo=timezone.utc)
+        lkg = datetime(2026, 1, 1, 10, 0, 0, tzinfo=UTC)
         result = reduce(
             observed=ObservedStatus.FAILURE,
             current=OperationalStatus.READY,
@@ -116,9 +120,9 @@ class TestStateReducer:
         assert result["last_known_good_at"] == lkg
 
     def test_sync_started_preserves_operational_state_and_lkg(self) -> None:
-        lkg = datetime(2026, 1, 1, 10, 0, 0, tzinfo=timezone.utc)
+        lkg = datetime(2026, 1, 1, 10, 0, 0, tzinfo=UTC)
         result = reduce(
-            observed=SyncStarted(),
+            observed=sync_started(),
             current=OperationalStatus.READY,
             last_known_good_at=lkg,
         )
@@ -138,9 +142,9 @@ class TestStateReducer:
         ],
     )
     def test_sync_interrupted_never_blocks(self, current: OperationalStatus) -> None:
-        lkg = datetime(2026, 1, 1, 10, 0, 0, tzinfo=timezone.utc)
+        lkg = datetime(2026, 1, 1, 10, 0, 0, tzinfo=UTC)
         result = reduce(
-            observed=SyncInterrupted(),
+            observed=sync_interrupted(),
             current=current,
             last_known_good_at=lkg,
         )
@@ -150,14 +154,14 @@ class TestStateReducer:
         assert result["last_known_good_at"] == lkg
 
     def test_started_interrupted_succeeded_ends_ready(self) -> None:
-        """SyncStarted → SyncInterrupted → SyncSucceeded ends at ready with updated LKG."""
-        lkg = datetime(2026, 1, 1, 10, 0, 0, tzinfo=timezone.utc)
-        t1 = datetime(2026, 1, 2, 10, 0, 0, tzinfo=timezone.utc)
-        t2 = datetime(2026, 1, 2, 10, 5, 0, tzinfo=timezone.utc)
-        t3 = datetime(2026, 1, 3, 10, 0, 0, tzinfo=timezone.utc)
+        """sync_started → sync_interrupted → sync_succeeded ends at ready with updated LKG."""
+        lkg = datetime(2026, 1, 1, 10, 0, 0, tzinfo=UTC)
+        t1 = datetime(2026, 1, 2, 10, 0, 0, tzinfo=UTC)
+        t2 = datetime(2026, 1, 2, 10, 5, 0, tzinfo=UTC)
+        t3 = datetime(2026, 1, 3, 10, 0, 0, tzinfo=UTC)
 
         r1 = reduce(
-            observed=SyncStarted(),
+            observed=sync_started(),
             current=OperationalStatus.READY,
             last_known_good_at=lkg,
             now=t1,
@@ -166,7 +170,7 @@ class TestStateReducer:
         assert r1["last_known_good_at"] == lkg
 
         r2 = reduce(
-            observed=SyncInterrupted(),
+            observed=sync_interrupted(),
             current=OperationalStatus(r1["operational_status"]),
             last_known_good_at=r1["last_known_good_at"],
             now=t2,
@@ -175,7 +179,7 @@ class TestStateReducer:
         assert r2["last_known_good_at"] == lkg
 
         r3 = reduce(
-            observed=SyncSucceeded(),
+            observed=sync_succeeded(),
             current=OperationalStatus(r2["operational_status"]),
             last_known_good_at=r2["last_known_good_at"],
             now=t3,

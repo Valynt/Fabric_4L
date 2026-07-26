@@ -123,14 +123,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '22.18.0'
           cache: 'pnpm'
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@v3
 
       - name: Install dependencies
         working-directory: apps/web
@@ -157,14 +157,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '22.18.0'
           cache: 'pnpm'
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@v3
 
       - name: Install dependencies
         working-directory: apps/web
@@ -208,7 +208,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install pytest jsonschema
+          pip install pytest jsonschema pyyaml
 
       - name: Run L5 Contract Tests
         run: |

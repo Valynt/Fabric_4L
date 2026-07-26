@@ -27,6 +27,9 @@ permissions:
 
 env:
   SECURITY_ARTIFACT_RETENTION_DAYS: 30
+  # Reviewed scanner release shared by every Semgrep job. Update only in a
+  # dedicated security-tool review together with config/semgrep/registry/.
+  SEMGREP_VERSION: '1.136.0'
   # Opt into Node.js 24 for GitHub Actions
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
@@ -69,8 +72,13 @@ jobs:
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
-      - name: Install Semgrep
-        run: pip install semgrep
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.11'
+
+      - name: Install reviewed Semgrep release
+        run: pip install "semgrep==${{ env.SEMGREP_VERSION }}"
 
       - name: Run Cypher dynamic guard (ERROR rules — block on failure)
         run: |
@@ -106,9 +114,10 @@ jobs:
             semgrep-cypher-warnings.json
           retention-days: ${{env.SECURITY_ARTIFACT_RETENTION_DAYS}}
 
-  # Full-repository Semgrep CE scan (SAST) with curated registry rulesets plus
-  # local .semgrep/ rules. Produces SARIF for the GitHub Security tab and fails
-  # closed on ERROR-severity findings.
+  # Full-repository Semgrep CE scan (SAST) with an intentionally narrowed,
+  # curated ruleset in config/semgrep/registry/ (NOT a full snapshot of the
+  # former p/* registry packs) plus local .semgrep/ rules. Produces SARIF and
+  # fails closed on ERROR-severity findings.
   semgrep-full-scan:
     name: Semgrep CE Full Scan (SAST)
     runs-on: ubuntu-latest
@@ -122,25 +131,40 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install Semgrep CE
-        run: pip install semgrep
+      - name: Install reviewed Semgrep CE release
+        run: pip install "semgrep==${{ env.SEMGREP_VERSION }}"
 
-      - name: Run Semgrep CE (registry rulesets + local rules)
+      - name: Smoke check pinned Semgrep
+        env:
+          SEMGREP_SEND_METRICS: 'off'
+        run: |
+          semgrep scan \
+            --validate \
+            --config config/semgrep/registry/ \
+            --config .semgrep/
+          printf 'print("semgrep smoke")\n' > /tmp/semgrep-smoke.py
+          semgrep scan \
+            --config config/semgrep/registry/ \
+            --config .semgrep/ \
+            --metrics off \
+            --sarif \
+            --output /tmp/semgrep-smoke.sarif \
+            /tmp/semgrep-smoke.py
+          python3 - <<'PYEOF'
+          import json
+          with open('/tmp/semgrep-smoke.sarif', encoding='utf-8') as fh:
+              sarif = json.load(fh)
+          assert sarif.get('version') == '2.1.0'
+          assert isinstance(sarif.get('runs'), list) and sarif['runs']
+          PYEOF
+
+      - name: Run Semgrep CE (curated rules + local rules)
         env:
           # Semgrep CE only; no Semgrep AppSec Platform token is used.
           SEMGREP_SEND_METRICS: 'off'
         run: |
           semgrep scan \
-            --config p/security-audit \
-            --config p/secrets \
-            --config p/owasp-top-ten \
-            --config p/python \
-            --config p/typescript \
-            --config p/react \
-            --config p/dockerfile \
-            --config p/docker-compose \
-            --config p/kubernetes \
-            --config p/github-actions \
+            --config config/semgrep/registry/ \
             --config .semgrep/ \
             --metrics off \
             --exclude 'archive/**' \
@@ -187,16 +211,156 @@ jobs:
           path: semgrep-full.sarif
           retention-days: ${{env.SECURITY_ARTIFACT_RETENTION_DAYS}}
 
+  # Prepare Helm dependencies separately so repository availability failures are
+  # reported as rendering-preparation failures rather than Trivy scan failures.
+  prepare-helm-dependencies:
+    name: Prepare Helm Dependencies
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Initialize Helm preparation diagnostics
+        run: |
+          mkdir -p artifacts/helm-preparation-diagnostics
+          {
+            echo "helm_version=v3.16.2"
+            echo "chart_lock_sha256=$(sha256sum infra/helm/fabric-chart/Chart.lock | cut -d' ' -f1)"
+          } > artifacts/helm-preparation-diagnostics/context.txt
+
+      - name: Setup Helm
+        uses: azure/setup-helm@bf6a7d304bc2fdb57e0331155b7ebf2c504acf0a # v4
+        with:
+          version: "v3.16.2"
+      - name: Restore exact locked Helm dependency cache
+        id: helm-cache
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        with:
+          path: |
+            infra/helm/fabric-chart/charts/
+            artifacts/helm-dependencies/checksums.sha256
+            artifacts/helm-dependencies/metadata.json
+          key: helm-deps-${{ runner.os }}-${{ runner.arch }}-helm-v3.16.2-${{ hashFiles('infra/helm/fabric-chart/Chart.lock') }}
+
+      - name: Validate restored Helm dependency cache
+        id: cache-validation
+        if: steps.helm-cache.outputs.cache-hit == 'true'
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          python3 scripts/ci/validate_helm_dependencies.py validate \
+            --chart-dir infra/helm/fabric-chart \
+            --evidence-dir artifacts/helm-dependencies \
+            --helm-version v3.16.2 \
+            2>&1 | tee artifacts/helm-preparation-diagnostics/cache-validation.log
+
+      - name: Rebuild locked Helm dependencies with bounded retries
+        if: steps.helm-cache.outputs.cache-hit != 'true' || steps.cache-validation.outcome != 'success'
+        run: |
+          set -Eeuo pipefail
+          rm -rf infra/helm/fabric-chart/charts artifacts/helm-dependencies
+          mkdir -p infra/helm/fabric-chart/charts artifacts/helm-dependencies
+          echo "cache_hit=${{ steps.helm-cache.outputs.cache-hit }}" \
+            >> artifacts/helm-preparation-diagnostics/context.txt
+
+          success=false
+          for attempt in 1 2 3; do
+            log="artifacts/helm-preparation-diagnostics/live-build-attempt-${attempt}.log"
+            echo "Helm dependency build attempt ${attempt}/3" | tee "${log}"
+            if {
+              set -x
+              timeout 60s helm repo add bitnami https://charts.bitnami.com/bitnami --force-update &&
+              timeout 60s helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx --force-update &&
+              timeout 60s helm repo update bitnami ingress-nginx &&
+              timeout 180s helm dependency build infra/helm/fabric-chart
+            } 2>&1 | tee -a "${log}"; then
+              success=true
+              break
+            fi
+            echo "Attempt ${attempt} failed; see ${log}" | tee -a artifacts/helm-preparation-diagnostics/failures.log
+            if [ "${attempt}" -lt 3 ]; then
+              sleep $((attempt * 10))
+            fi
+          done
+          if [ "${success}" != true ]; then
+            echo "Helm preparation exhausted three bounded live-resolution attempts" | tee -a artifacts/helm-preparation-diagnostics/failures.log
+            exit 1
+          fi
+
+          python3 scripts/ci/validate_helm_dependencies.py generate \
+            --chart-dir infra/helm/fabric-chart \
+            --evidence-dir artifacts/helm-dependencies \
+            --helm-version v3.16.2 \
+            2>&1 | tee artifacts/helm-preparation-diagnostics/evidence-generation.log
+
+      - name: Validate prepared Helm dependencies
+        run: |
+          set -Eeuo pipefail
+          python3 scripts/ci/validate_helm_dependencies.py validate \
+            --chart-dir infra/helm/fabric-chart \
+            --evidence-dir artifacts/helm-dependencies \
+            --helm-version v3.16.2 \
+            2>&1 | tee artifacts/helm-preparation-diagnostics/final-validation.log
+          helm dependency list infra/helm/fabric-chart \
+            2>&1 | tee artifacts/helm-preparation-diagnostics/dependency-list.log
+          git diff --exit-code -- \
+            infra/helm/fabric-chart/Chart.lock \
+            infra/helm/fabric-chart/Chart.yaml
+
+      - name: Upload validated Helm dependencies
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: helm-prepared-dependencies-${{github.sha}}
+          path: |
+            infra/helm/fabric-chart/charts/
+            artifacts/helm-dependencies/checksums.sha256
+            artifacts/helm-dependencies/metadata.json
+          if-no-files-found: error
+          retention-days: ${{env.SECURITY_ARTIFACT_RETENTION_DAYS}}
+
+      - name: Upload Helm preparation diagnostics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: helm-preparation-diagnostics-${{github.sha}}
+          path: artifacts/helm-preparation-diagnostics/
+          if-no-files-found: error
+          retention-days: ${{env.SECURITY_ARTIFACT_RETENTION_DAYS}}
+
   # Repository-wide Trivy scan: dependency vulnerabilities (lockfiles/requirements),
   # secrets, and IaC misconfigurations (Dockerfiles, Compose, Kubernetes, Terraform).
   # Complements the per-image trivy-image-scan job below.
   trivy-repo-scan:
     name: Repository Scan (Trivy fs + IaC + secrets)
+    needs: prepare-helm-dependencies
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Setup Helm
+        uses: azure/setup-helm@bf6a7d304bc2fdb57e0331155b7ebf2c504acf0a # v4
+        with:
+          version: "v3.16.2"
+
+      - name: Download prepared Helm dependencies
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: helm-prepared-dependencies-${{github.sha}}
+          path: .
+
+      - name: Revalidate prepared Helm dependencies
+        run: |
+          python3 scripts/ci/validate_helm_dependencies.py validate \
+            --chart-dir infra/helm/fabric-chart \
+            --evidence-dir artifacts/helm-dependencies \
+            --helm-version v3.16.2
+          helm dependency list infra/helm/fabric-chart
+          git diff --exit-code -- \
+            infra/helm/fabric-chart/Chart.lock \
+            infra/helm/fabric-chart/Chart.yaml
 
       - name: Run Trivy repository scanner
         uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
@@ -211,6 +375,7 @@ jobs:
           severity: 'HIGH,CRITICAL'
           scanners: 'vuln,secret,config'
           skip-dirs: 'archive,docs/archive,node_modules'
+          trivy-config: 'config/trivy/repository.yaml'
 
       - name: Verify Trivy SARIF artifact
         if: always()
@@ -236,19 +401,97 @@ jobs:
   # pre-existing findings. Uses Google's official reusable workflow so we get
   # SARIF upload, artifacts, and annotations for free.
   osv-scanner-pr:
-    name: OSV-Scanner (PR diff)
+    name: OSV-Scanner (PR diff) / osv-scan
     if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       actions: read
       contents: read
       security-events: write
-    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable-pr.yml@9a498708959aeaef5ef730655706c5a1df1edbc2 # v2.3.8
-    with:
-      scan-args: |-
-        -r
-        ./
-      results-file-name: osv-scanner-pr.sarif
-      fail-on-vuln: true
+
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Checkout target branch
+        run: |
+          git checkout "${GITHUB_BASE_REF}"
+          git submodule update --recursive
+
+      - name: Run scanner on existing code
+        uses: google/osv-scanner-action/osv-scanner-action@8dc09193bb540e09b23da07ad7e30bd33bf87018 # v2.3.8
+        continue-on-error: true
+        with:
+          scan-args: |-
+            --format=json
+            --output=osv-pr-base.json
+            -r
+            ./
+
+      - name: Checkout current branch
+        run: |
+          git checkout -f "${GITHUB_SHA}"
+          git submodule update --recursive
+
+      - name: Run scanner on new code
+        uses: google/osv-scanner-action/osv-scanner-action@8dc09193bb540e09b23da07ad7e30bd33bf87018 # v2.3.8
+        continue-on-error: true
+        with:
+          scan-args: |-
+            --format=json
+            --output=osv-pr-head.json
+            -r
+            ./
+
+      - name: Run osv-scanner reporter
+        uses: google/osv-scanner-action/osv-reporter-action@8dc09193bb540e09b23da07ad7e30bd33bf87018 # v2.3.8
+        with:
+          scan-args: |-
+            --output=osv-scanner-pr.sarif
+            --old=osv-pr-base.json
+            --new=osv-pr-head.json
+            --gh-annotations=true
+            --fail-on-vuln=true
+
+      - name: Verify OSV report artifacts exist
+        if: ${{ !cancelled() }}
+        run: |
+          test -s osv-pr-base.json
+          test -s osv-pr-head.json
+          test -s osv-scanner-pr.sarif
+
+      - name: Upload OSV SARIF artifact
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: osv-scanner-pr-sarif
+          path: osv-scanner-pr.sarif
+          retention-days: 5
+
+      - name: Upload OSV JSON artifacts
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: osv-scanner-pr-json
+          path: |
+            osv-pr-base.json
+            osv-pr-head.json
+          retention-days: 5
+
+      - name: Upload OSV SARIF to code scanning
+        if: ${{ !cancelled() }}
+        uses: github/codeql-action/upload-sarif@cdefb33c0f6224e58673d9004f47f7cb3e328b89 # v4.31.10
+        with:
+          sarif_file: osv-scanner-pr.sarif
+          category: osv-scanner-pr
+
+      - name: Print Code Scanning PR URL
+        if: ${{ !cancelled() }}
+        run: |
+          echo "View the OSV-Scanner results for this PR in the 'Security' tab, using the following link:"
+          echo "${{ github.server_url }}/${{ github.repository }}/security/code-scanning?query=pr%3A${{ github.event.pull_request.number }}"
 
   # OSV-Scanner full scan of the repository on push and weekly schedule.
   osv-scanner-full:
@@ -438,13 +681,51 @@ jobs:
 
       - name: Start ephemeral Value Fabric stack
         run: |
+          mkdir -p zap-reports
+          openssl genpkey -algorithm ED25519 -out zap-reports/fabric-auth-signing-key.pem
+          openssl pkey -in zap-reports/fabric-auth-signing-key.pem -pubout -out zap-reports/fabric-auth-public-key.pem
+          python3 - <<'PY'
+          import json
+          import shlex
+          from pathlib import Path
+
+          private_pem = Path("zap-reports/fabric-auth-signing-key.pem").read_text(encoding="utf-8")
+          public_pem = Path("zap-reports/fabric-auth-public-key.pem").read_text(encoding="utf-8")
+          public_keys = json.dumps([{"kid": "ci-verification", "public_pem": public_pem}])
+          private_env = private_pem.replace("\n", "\\n")
+          Path("zap-reports/fabric-auth.env").write_text(
+              f'FABRIC_AUTH_SIGNING_KEY="{private_env}"\n'
+              "FABRIC_AUTH_SIGNING_KID=ci-verification\n"
+              f"FABRIC_AUTH_PUBLIC_KEYS={shlex.quote(public_keys)}\n",
+              encoding="utf-8",
+          )
+          PY
           cat > .env << 'EOF'
-          OPENAI_API_KEY=${OPENAI_API_KEY:?set OPENAI_API_KEY}
+          OPENAI_API_KEY=dummy-key-for-ci
           ANTHROPIC_API_KEY=dummy-key-for-ci
-          JWT_SECRET=${JWT_SECRET:?set JWT_SECRET}
+          POSTGRES_USER=valuefabric
+          POSTGRES_PASSWORD=valuefabric-ci-postgres
+          REDIS_PASSWORD=valuefabric-ci-redis
+          SECRET_KEY=valuefabric-ci-secret-key-minimum-32-characters
+          JWT_SECRET=valuefabric-ci-jwt-secret-minimum-32-characters
+          API_KEY_HMAC_SECRET=valuefabric-ci-api-key-hmac-secret-32chars
+          SERVICE_AUTH_SECRET=valuefabric-ci-service-auth-secret-32chars
+          LAYER4_DATABASE_URL=postgresql+asyncpg://valuefabric:valuefabric-ci-postgres@postgres:5432/ground_truth
           NEO4J_PASSWORD=valuefabric
+          CORS_ORIGINS=["http://localhost:3000"]
+          AUTH_PROVIDER=layer4
+          CLERK_ISSUER=https://ci-clerk.example.test
+          CLERK_JWT_AUDIENCE=value-fabric-ci
+          CLERK_AUTHORIZED_PARTIES=http://localhost:3000
+          CLERK_JWKS_URL=https://ci-clerk.example.test/.well-known/jwks.json
+          CLERK_SECRET_KEY=sk_test_valuefabric_ci
+          FABRIC_AUTH_ISSUER=value-fabric-ci
+          FABRIC_AUTH_AUDIENCE=value-fabric-ci
+          FLOWER_PASSWORD=valuefabric-ci-flower
+          GRAFANA_ADMIN_PASSWORD=valuefabric-ci-grafana
           EOF
-          docker compose -f infra/compose/docker-compose.full.yml up -d --build
+          cat zap-reports/fabric-auth.env >> .env
+          docker compose -f infra/compose/docker-compose.full.yml --env-file .env up -d --build
 
       - name: Wait for public API health endpoints
         run: |
@@ -497,7 +778,9 @@ jobs:
 
       - name: Collect compose logs for evidence
         if: always()
-        run: docker compose -f infra/compose/docker-compose.full.yml logs --no-color > zap-reports/ephemeral-stack.log
+        run: |
+          mkdir -p zap-reports
+          docker compose -f infra/compose/docker-compose.full.yml --env-file .env logs --no-color > zap-reports/ephemeral-stack.log
 
       - name: Upload DAST evidence artifacts
         if: always()
@@ -509,7 +792,7 @@ jobs:
 
       - name: Stop ephemeral stack
         if: always()
-        run: docker compose -f infra/compose/docker-compose.full.yml down -v
+        run: docker compose -f infra/compose/docker-compose.full.yml --env-file .env down -v
 
   # Python security linting with bandit
   bandit-scan:
@@ -535,8 +818,18 @@ jobs:
       - name: Run bandit scan
         working-directory: services/${{matrix.layer}}
         run: |
-          bandit -r src/ -ll -ii --format json --output bandit-report.json || true
+          # Bandit exit codes: 0 = clean, 1 = findings exist (handled via the
+          # JSON report below), >1 = execution/setup error (must fail the step).
+          set +e
+          bandit -r src/ -ll -ii --format json --output bandit-report.json
+          json_rc=$?
           bandit -r src/ -ll -ii --format screen
+          screen_rc=$?
+          set -e
+          if [ "$json_rc" -gt 1 ] || [ "$screen_rc" -gt 1 ]; then
+            echo "::error::Bandit execution failed (json exit=$json_rc, screen exit=$screen_rc) before producing a findings report"
+            exit 1
+          fi
           if [ -s bandit-report.json ]; then
             echo "Bandit issues found - checking severity"
             python3 << 'PYEOF'
@@ -582,7 +875,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install pip-audit
-        run: pip install pip-audit
+        run: python -m pip install --upgrade pip "setuptools>=83.0.0" pip-audit
 
       - name: Run pip-audit
         working-directory: services/${{matrix.layer}}
@@ -828,11 +1121,20 @@ jobs:
 
       - name: Build Docker image for SBOM
         run: |
-          docker build \
-            --build-arg BASE_IMAGE="${BASE_IMAGE:-}" \
-            --build-arg BUILDER_BASE_IMAGE="${BUILDER_BASE_IMAGE:-}" \
-            -t ${{matrix.layer}}:sbom-target \
-            ${{ matrix.layer == 'apps-web' && 'apps/web' || format('services/{0}', matrix.layer) }}
+          if [ "${{ matrix.layer }}" = "apps-web" ]; then
+            docker build \
+              --build-arg BASE_IMAGE="${BASE_IMAGE:-}" \
+              --build-arg BUILDER_BASE_IMAGE="${BUILDER_BASE_IMAGE:-}" \
+              -t ${{matrix.layer}}:sbom-target \
+              -f apps/web/Dockerfile \
+              .
+          else
+            docker build \
+              --build-arg BASE_IMAGE="${BASE_IMAGE:-}" \
+              --build-arg BUILDER_BASE_IMAGE="${BUILDER_BASE_IMAGE:-}" \
+              -t ${{matrix.layer}}:sbom-target \
+              services/${{matrix.layer}}
+          fi
 
       - name: Generate CycloneDX SBOM
         uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0

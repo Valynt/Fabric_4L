@@ -60,6 +60,11 @@ ALLOWED_WRITE_PERMISSIONS: dict[str, dict[str, str]] = {
         "id-token": "uses OIDC for provenance and keyless signing",
         "packages": "reads and signs package artifacts from GHCR",
     },
+    "publish-ci-tools.yml": {
+        "attestations": "publishes build provenance and SBOM attestations",
+        "id-token": "authenticates GitHub Actions provenance through OIDC",
+        "packages": "publishes the pinned CI tools image to GHCR",
+    },
     "penetration-testing.yml": {
         "issues": "comments penetration test results on pull requests",
         "security-events": "uploads penetration scan SARIF",

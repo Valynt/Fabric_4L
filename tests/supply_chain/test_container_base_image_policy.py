@@ -55,3 +55,28 @@ def test_ci_container_scans_use_blocking_high_critical_policy() -> None:
     assert "severity: 'HIGH,CRITICAL'" in security_gates
     assert "scanners: 'vuln,secret,config'" in security_gates
 
+
+def test_hadolint_uses_matrix_dockerfile_or_context_dockerfile() -> None:
+    pr_checks = (REPO_ROOT / ".github/workflows/pr-checks.yml").read_text(encoding="utf-8")
+
+    assert "dockerfile: ${{ matrix.context }}/${{ matrix.dockerfile }}" not in pr_checks
+    assert "dockerfile: ${{ matrix.dockerfile || format('{0}/Dockerfile', matrix.context) }}" in pr_checks
+
+
+def test_python_runtime_dockerfiles_upgrade_os_and_pip_packages() -> None:
+    scanned_layer_dockerfiles = [
+        REPO_ROOT / "services" / layer / "Dockerfile"
+        for layer in (
+            "layer1-ingestion",
+            "layer2-extraction",
+            "layer3-knowledge",
+            "layer4-agents",
+            "layer5-ground-truth",
+            "layer6-benchmarks",
+        )
+    ]
+
+    for dockerfile in scanned_layer_dockerfiles:
+        content = dockerfile.read_text(encoding="utf-8")
+        assert "apt-get update && apt-get upgrade -y && apt-get install" in content, dockerfile
+        assert "pip install --no-cache-dir --upgrade pip setuptools wheel" in content, dockerfile
