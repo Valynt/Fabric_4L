@@ -438,8 +438,12 @@ class ValidationStateMachine:
                 truth_object = await self.validate(
                     db, truth_object, validated_by="system:auto_advance"
                 )
-            except (InvalidTransitionError, InsufficientEvidenceError, ValueError):
-                pass
+            except (InvalidTransitionError, InsufficientEvidenceError, ValueError) as e:
+                logger.debug(
+                    "Auto-advance skipped for TruthObject %s: %s",
+                    truth_object.id,
+                    str(e),
+                )
 
         return truth_object
 
