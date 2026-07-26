@@ -20,6 +20,7 @@ Endpoints:
   GET    /health                    — Health check
 """
 
+import asyncio
 import logging
 from datetime import UTC, datetime
 from uuid import UUID
@@ -298,8 +299,9 @@ async def sync_to_kg(
     request_id = getattr(request.state, "trace_id", None)
     synced = 0
     failed = 0
-    for truth in pending:
-        node_id = await client.sync_truth_object(
+
+    tasks = [
+        client.sync_truth_object(
             truth_object_id=truth.id,
             tenant_id=truth.tenant_id,
             claim=truth.claim,
@@ -312,6 +314,16 @@ async def sync_to_kg(
             source_count=len(truth.sources),
             request_id=str(request_id) if request_id else None,
         )
+        for truth in pending
+    ]
+
+    node_ids = await asyncio.gather(*tasks, return_exceptions=True)
+
+    for truth, node_id in zip(pending, node_ids):
+        if isinstance(node_id, Exception):
+            logger.warning("sync_truth_object_exception_during_gather", exc_info=node_id)
+            failed += 1
+            continue
         if node_id:
             truth.kg_node_id = node_id
             truth.kg_synced_at = datetime.now(UTC)
