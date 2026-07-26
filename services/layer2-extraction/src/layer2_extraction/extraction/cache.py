@@ -6,9 +6,9 @@ Uses Redis when available, with an in-memory LRU fallback for local dev.
 from __future__ import annotations
 
 import hashlib
+import json
 import logging
 import os
-import pickle
 from collections import OrderedDict
 from typing import Any
 
@@ -53,7 +53,9 @@ class ExtractionCache:
     Cache key = SHA256(content + model + temperature + extraction_type + endpoint)
     """
 
-    def __init__(self, redis_url: str | None = None, default_ttl: int = LLM_CACHE_TTL_SECONDS) -> None:
+    def __init__(
+        self, redis_url: str | None = None, default_ttl: int = LLM_CACHE_TTL_SECONDS
+    ) -> None:
         self._redis = None
         self._fallback: _InMemoryLRUCache | None = _InMemoryLRUCache()
         self._default_ttl = default_ttl
@@ -62,6 +64,7 @@ class ExtractionCache:
         if redis_url:
             try:
                 import redis.asyncio as aioredis
+
                 self._redis = aioredis.from_url(redis_url, decode_responses=False)
             except (ImportError,) + _REDIS_ERRORS as exc:
                 logger.warning(
@@ -76,15 +79,21 @@ class ExtractionCache:
                 )
 
     @staticmethod
-    def _log_cache_failure(operation: str, exc: Exception, context: dict[str, str | None] | None = None) -> None:
+    def _log_cache_failure(
+        operation: str, exc: Exception, context: dict[str, str | None] | None = None
+    ) -> None:
         context = context or {}
         tenant_id = context.get("tenant_id") or ""  # Use empty string as fallback for metrics
-        
+
         # Always record metrics even without tenant context for observability
         metrics = get_metrics()
         if metrics:
             metrics.record_cache_failure(
-                failure_type="decode" if isinstance(exc, (pickle.UnpicklingError, AttributeError, EOFError, ValueError, TypeError)) else "corruption",
+                failure_type="decode"
+                if isinstance(
+                    exc, (json.JSONDecodeError, AttributeError, EOFError, ValueError, TypeError)
+                )
+                else "corruption",
                 tenant_id=tenant_id,
                 ingestion_id=context.get("ingestion_id", ""),
                 extraction_job_id=context.get("extraction_job_id") or context.get("job_id") or "",
@@ -93,7 +102,7 @@ class ExtractionCache:
                 value_pack_id=context.get("value_pack_id", ""),
                 operation=operation,
             )
-        
+
         logger.warning(
             "Cache operation failed; continuing without cache",
             exc_info=exc,
@@ -118,9 +127,16 @@ class ExtractionCache:
     ) -> str:
         model = model or os.getenv("EXTRACTION_MODEL", "gpt-4o-mini")
         temperature = temperature if temperature is not None else 0.0
-        import json
         payload = json.dumps(
-            [tenant_id, source_hash, extraction_version, value_pack_id, model, str(temperature), endpoint],
+            [
+                tenant_id,
+                source_hash,
+                extraction_version,
+                value_pack_id,
+                model,
+                str(temperature),
+                endpoint,
+            ],
             separators=(",", ":"),
         )
         return f"l2_cache:{hashlib.sha256(payload.encode()).hexdigest()}"
@@ -151,10 +167,10 @@ class ExtractionCache:
             try:
                 raw = await self._redis.get(key)
                 if raw:
-                    return pickle.loads(raw)  # nosec B301
+                    return json.loads(raw)
             except RedisError as exc:
                 self._log_cache_failure("read", exc, context)
-            except (pickle.UnpicklingError, AttributeError, EOFError, ValueError, TypeError) as exc:
+            except (json.JSONDecodeError, AttributeError, EOFError, ValueError, TypeError) as exc:
                 self._log_cache_failure("read", exc, context)
             except (RuntimeError, OSError) as exc:
                 self._log_cache_failure("read", exc, context)
@@ -177,15 +193,17 @@ class ExtractionCache:
     ) -> None:
         if not tenant_id:
             raise ValueError("tenant_id is required for cache operations")
-        key = self._make_key(tenant_id, source_hash, extraction_version, value_pack_id, endpoint, model, temperature)
+        key = self._make_key(
+            tenant_id, source_hash, extraction_version, value_pack_id, endpoint, model, temperature
+        )
         ttl = ttl or self._default_ttl
         if self._redis is not None:
             try:
-                await self._redis.setex(key, ttl, pickle.dumps(value))
+                await self._redis.setex(key, ttl, json.dumps(value))
                 return
             except RedisError as exc:
                 self._log_cache_failure("write", exc, context)
-            except (pickle.PickleError, TypeError, AttributeError, ValueError) as exc:
+            except (TypeError, AttributeError, ValueError) as exc:
                 self._log_cache_failure("write", exc, context)
             except (RuntimeError, OSError) as exc:
                 self._log_cache_failure("write", exc, context)
