@@ -11,6 +11,15 @@ pytestmark = [pytest.mark.integration, pytest.mark.postgres]
 
 
 @pytest.fixture(autouse=True)
+def _clear_dependency_overrides():
+    """Ensure no dependency override leaks out of integration tests."""
+    yield
+    from layer1_ingestion.api.main import app
+
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture(autouse=True)
 def _mock_process_scraping_job(monkeypatch):
     """Mock Celery task delay so batch tests don't fail when broker is unavailable."""
     import layer1_ingestion.api._batch_and_stats as _app_mod
