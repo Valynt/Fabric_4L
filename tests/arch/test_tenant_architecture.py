@@ -222,7 +222,7 @@ def test_tenant_scoped_sql_queries_are_guarded() -> None:
 def test_tenant_required_api_dependencies_reject_missing_and_invalid_tenant() -> None:
     """Auth helpers must enforce auth and treat invalid tenant IDs as unresolved."""
     deps_tree = _parse(REPO_ROOT / "packages/shared/src/value_fabric/shared/identity/dependencies.py")
-    middleware_tree = _parse(REPO_ROOT / "packages/shared/src/value_fabric/shared/identity/middleware.py")
+    middleware_tree = _parse(REPO_ROOT / "packages/shared/src/value_fabric/shared/identity/resolvers.py")
 
     require_authenticated = _get_function(deps_tree, "require_authenticated")
     assert require_authenticated is not None, "dependencies.py must define require_authenticated"

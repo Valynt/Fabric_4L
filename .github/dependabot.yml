@@ -736,3 +736,19 @@ updates:
         applies-to: security-updates
         patterns:
           - "*"
+
+  - package-ecosystem: docker
+    directory: /tools/ci/security-suite
+    schedule:
+      interval: weekly
+      day: monday
+      time: "05:00"
+      timezone: America/New_York
+    open-pull-requests-limit: 2
+    labels:
+      - dependencies
+      - docker
+    reviewers:
+      - value-fabric/sre-leads
+    commit-message:
+      prefix: chore(deps)
