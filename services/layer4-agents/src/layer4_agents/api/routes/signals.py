@@ -51,7 +51,10 @@ async def _tenant_owns_prospect(*, prospect_id: str, tenant_id: str) -> bool:
     try:
         filters.append(Account.id == UUID(prospect_id))
     except ValueError:
-        pass
+        logger.debug(
+            "prospect_id is not a valid UUID, skipping Account.id filter",
+            extra={"prospect_id": prospect_id, "tenant_id": tenant_id},
+        )
 
     context = RequestContext(tenant_id=tenant_id)
     async with db_session_for_context(context) as session:
@@ -76,7 +79,9 @@ class ProspectData(BaseModel):
     desired_outcomes: list[str] = Field(default_factory=list, description="Desired outcomes")
     prompt_text: str = Field(..., description="Freeform prompt text")
     prompt_id: str | None = Field(default=None, description="Optional prompt identifier")
-    attachments: list[dict[str, Any]] = Field(default_factory=list, description="Attached documents")
+    attachments: list[dict[str, Any]] = Field(
+        default_factory=list, description="Attached documents"
+    )
 
 
 class ProspectSetupRequest(BaseModel):
@@ -84,8 +89,7 @@ class ProspectSetupRequest(BaseModel):
 
     prospect_data: ProspectData = Field(..., description="Prospect information")
     options: dict[str, Any] = Field(
-        default_factory=dict,
-        description="Detection options (include_evidence, quantify_impact)"
+        default_factory=dict, description="Detection options (include_evidence, quantify_impact)"
     )
 
 
@@ -147,8 +151,6 @@ class SignalReviewResponse(BaseModel):
     decision_note: str | None = None
 
 
-
-
 class EvidenceDecisionRequest(BaseModel):
     account_id: str
     case_id: str
@@ -170,6 +172,8 @@ class EvidenceDecisionResponse(BaseModel):
     reviewed_at: str
     provenance: dict[str, Any] = Field(default_factory=dict)
     confidence: float | None = None
+
+
 # ============================================================================
 # API Endpoints
 # ============================================================================
@@ -291,7 +295,11 @@ async def setup_prospect(
             resource_type="signals",
             resource_id=request.prospect_data.account_id,
             outcome=AuditOutcome.FAILURE,
-            metadata={"error": "Signal detection failed", "error_code": "SIGNAL_DETECTION_ERROR", "trace_id": ctx.trace_id},
+            metadata={
+                "error": "Signal detection failed",
+                "error_code": "SIGNAL_DETECTION_ERROR",
+                "trace_id": ctx.trace_id,
+            },
         )
 
         raise ServiceUnavailableError(message="Signal detection failed")
@@ -358,7 +366,9 @@ async def get_signal_by_id(
     """
     # This would typically call Layer 3 to fetch the signal
     # For now, return a placeholder that Layer 3 will implement
-    raise ServiceUnavailableError(message="Signal retrieval by ID - implement in Layer 3 integration")
+    raise ServiceUnavailableError(
+        message="Signal retrieval by ID - implement in Layer 3 integration"
+    )
 
 
 @router.patch("/signals/{signal_id}/review", response_model=SignalReviewResponse)
@@ -370,7 +380,7 @@ async def review_signal(
 ) -> SignalReviewResponse:
     """Review a signal and persist reviewer metadata/timestamp."""
     if request.review_status not in {"approved", "rejected"}:
-        raise ValidationError(message = "review_status must be approved or rejected")
+        raise ValidationError(message="review_status must be approved or rejected")
 
     reviewed_at = datetime.now(UTC).isoformat()
     response = await review_client.review_signal(
@@ -464,9 +474,7 @@ async def signal_stream_websocket(
         if isinstance(payload, dict):
             tenant_id: str | None = payload.get("tenant_id", None)
             user_id: str | None = (
-                payload["sub"]
-                if "sub" in payload
-                else payload.get("user_id", None)
+                payload["sub"] if "sub" in payload else payload.get("user_id", None)
             )
         else:
             tenant_id = getattr(payload, "tenant_id", None)
@@ -514,12 +522,14 @@ async def signal_stream_websocket(
 
     try:
         # Send connection confirmation
-        await websocket.send_json({
-            "event_type": "connected",
-            "prospect_id": prospect_id,
-            "correlation_id": correlation_id,
-            "timestamp": datetime.now(UTC).isoformat(),
-        })
+        await websocket.send_json(
+            {
+                "event_type": "connected",
+                "prospect_id": prospect_id,
+                "correlation_id": correlation_id,
+                "timestamp": datetime.now(UTC).isoformat(),
+            }
+        )
 
         # Keep connection alive and wait for client messages
         while active:
@@ -527,18 +537,22 @@ async def signal_stream_websocket(
                 # Receive messages from client (ping/keepalive or configuration)
                 data = await websocket.receive_text()
                 if data == "ping":
-                    await websocket.send_json({
-                        "event_type": "pong",
-                        "correlation_id": correlation_id,
-                        "timestamp": datetime.now(UTC).isoformat(),
-                    })
+                    await websocket.send_json(
+                        {
+                            "event_type": "pong",
+                            "correlation_id": correlation_id,
+                            "timestamp": datetime.now(UTC).isoformat(),
+                        }
+                    )
                 else:
-                    await websocket.send_json({
-                        "event_type": "ack",
-                        "received": data,
-                        "correlation_id": correlation_id,
-                        "timestamp": datetime.now(UTC).isoformat(),
-                    })
+                    await websocket.send_json(
+                        {
+                            "event_type": "ack",
+                            "received": data,
+                            "correlation_id": correlation_id,
+                            "timestamp": datetime.now(UTC).isoformat(),
+                        }
+                    )
 
             except WebSocketDisconnect:
                 active = False
@@ -547,7 +561,10 @@ async def signal_stream_websocket(
     except asyncio.CancelledError:
         raise
     except Exception as e:
-        logger.error("Signals WebSocket session error", extra={**_log, "error_code": "WEBSOCKET_SESSION_ERROR", "error": sanitize_log_error(e)})
+        logger.error(
+            "Signals WebSocket session error",
+            extra={**_log, "error_code": "WEBSOCKET_SESSION_ERROR", "error": sanitize_log_error(e)},
+        )
         await websocket.close(code=1011, reason="Server error")
     finally:
         logger.info("Signals WebSocket session ended", extra=_log)
@@ -610,7 +627,7 @@ async def decide_evidence(
     review_client: SignalReviewPort = Depends(get_signal_review_client),
 ) -> EvidenceDecisionResponse:
     if request.decision not in {"accepted", "rejected"}:
-        raise ValidationError(message = "decision must be accepted or rejected")
+        raise ValidationError(message="decision must be accepted or rejected")
     now = datetime.now(UTC).isoformat()
     response = await review_client.decide_evidence(
         evidence_id=evidence_id,
