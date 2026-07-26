@@ -5,7 +5,6 @@ from uuid import uuid4
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-
 from value_fabric.shared.identity.api_key_stub import reject_api_key_unsupported
 from value_fabric.shared.identity.middleware import GovernanceMiddleware
 
@@ -27,7 +26,7 @@ def _build_contract_app(monkeypatch: pytest.MonkeyPatch) -> tuple[TestClient, _S
     tenant_id = str(uuid4())
     user_id = str(uuid4())
     monkeypatch.setattr(
-        "value_fabric.shared.identity.middleware.decode_jwt",
+        "value_fabric.shared.identity.resolvers.decode_jwt",
         lambda token: {"tenant_id": tenant_id, "sub": user_id, "roles": ["viewer"]},
     )
 

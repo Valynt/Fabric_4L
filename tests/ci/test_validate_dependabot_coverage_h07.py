@@ -67,3 +67,20 @@ def test_validate_coverage_reports_stale_entries_separately(tmp_path, monkeypatc
     assert missing_dependabot == []
     assert missing_ownership == []
     assert stale_dependabot == ["npm: frontend (directory does not exist)"]
+
+
+def test_discover_packages_excludes_codex_worktrees(tmp_path, monkeypatch):
+    validator = load_validator_module()
+    monkeypatch.setattr(validator, "REPO_ROOT", tmp_path)
+
+    canonical_dir = tmp_path / "services" / "api"
+    canonical_dir.mkdir(parents=True)
+    (canonical_dir / "pyproject.toml").write_text("[project]\nname = 'api'\n", encoding="utf-8")
+
+    linked_worktree_dir = tmp_path / ".codex-worktrees" / "old-branch" / "services" / "api"
+    linked_worktree_dir.mkdir(parents=True)
+    (linked_worktree_dir / "pyproject.toml").write_text("[project]\nname = 'old-api'\n", encoding="utf-8")
+
+    packages = validator.discover_packages()
+
+    assert packages["pip"] == {Path("services/api")}
