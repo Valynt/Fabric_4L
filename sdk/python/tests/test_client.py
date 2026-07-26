@@ -36,148 +36,195 @@ def _mock_transport(responses: dict) -> httpx.MockTransport:
 
 @pytest.fixture
 def mock_client():
-    transport = _mock_transport({
-        ("GET", "/v1/tenants"): (200, [
-            {
-                "id": "11111111-1111-1111-1111-111111111111",
-                "name": "Acme",
-                "slug": "acme",
-                "status": "active",
-                "created_at": "2024-01-01T00:00:00Z",
-                "updated_at": "2024-01-01T00:00:00Z",
-            }
-        ]),
-        ("GET", "/v1/tenants/11111111-1111-1111-1111-111111111111"): (200, {
-            "id": "11111111-1111-1111-1111-111111111111",
-            "name": "Acme",
-            "slug": "acme",
-            "status": "active",
-            "created_at": "2024-01-01T00:00:00Z",
-            "updated_at": "2024-01-01T00:00:00Z",
-        }),
-        ("GET", "/v1/users"): (200, [
-            {
-                "id": "22222222-2222-2222-2222-222222222222",
-                "tenant_id": "11111111-1111-1111-1111-111111111111",
-                "email": "alice@example.com",
-                "role": "analyst",
-                "status": "active",
-                "created_at": "2024-01-01T00:00:00Z",
-                "updated_at": "2024-01-01T00:00:00Z",
-            }
-        ]),
-        ("POST", "/v1/users/invite"): (201, {
-            "id": "33333333-3333-3333-3333-333333333333",
-            "tenant_id": "11111111-1111-1111-1111-111111111111",
-            "email": "bob@example.com",
-            "role": "analyst",
-            "status": "invited",
-            "created_at": "2024-01-01T00:00:00Z",
-            "updated_at": "2024-01-01T00:00:00Z",
-        }),
-        ("GET", "/v1/api-keys"): (200, [
-            {
-                "key_id": "vf_abc",
-                "tenant_id": "11111111-1111-1111-1111-111111111111",
-                "name": "test-key",
-                "prefix": "vf_ab",
-                "role": "analyst",
-                "permissions": [],
-                "enabled": True,
-                "created_at": "2024-01-01T00:00:00Z",
-            }
-        ]),
-        ("POST", "/v1/api-keys"): (201, {
-            "key_id": "vf_def",
-            "tenant_id": "11111111-1111-1111-1111-111111111111",
-            "name": "new-key",
-            "api_key": "vf_def_secret",
-            "prefix": "vf_de",
-            "role": "analyst",
-            "permissions": [],
-            "created_at": "2024-01-01T00:00:00Z",
-        }),
-        ("GET", "/v1/workflows/types"): (200, {
-            "workflows": [
+    transport = _mock_transport(
+        {
+            ("GET", "/v1/tenants"): (
+                200,
+                [
+                    {
+                        "id": "11111111-1111-1111-1111-111111111111",
+                        "name": "Acme",
+                        "slug": "acme",
+                        "status": "active",
+                        "created_at": "2024-01-01T00:00:00Z",
+                        "updated_at": "2024-01-01T00:00:00Z",
+                    }
+                ],
+            ),
+            ("GET", "/v1/tenants/11111111-1111-1111-1111-111111111111"): (
+                200,
                 {
-                    "type": "roi_calculator",
-                    "name": "ROI Calculator",
-                    "description": "Calculate ROI",
-                }
-            ]
-        }),
-        ("GET", "/v1/workflows/active"): (200, [
-            {
-                "workflow_instance_id": "wf-1",
-                "workflow_type": "roi_calculator",
-                "status": "running",
-                "progress_percentage": 50.0,
-            }
-        ]),
-        ("POST", "/v1/workflows"): (201, {
-            "workflow_instance_id": "wf-2",
-            "status": "scheduled",
-            "estimated_duration_seconds": 300,
-        }),
-        ("GET", "/v1/workflows/wf-1"): (200, {
-            "workflow_instance_id": "wf-1",
-            "workflow_type": "roi_calculator",
-            "status": "running",
-            "progress_percentage": 50.0,
-        }),
-        ("GET", "/v1/models"): (200, [
-            {
-                "id": "44444444-4444-4444-4444-444444444444",
-                "tenant_id": "11111111-1111-1111-1111-111111111111",
-                "provider": "openai",
-                "model_name": "gpt-4",
-                "model_version": "1.0",
-                "stage": "dev",
-                "config": {},
-                "created_at": "2024-01-01T00:00:00Z",
-            }
-        ]),
-        ("POST", "/v1/models/44444444-4444-4444-4444-444444444444/promote"): (200, {
-            "id": "44444444-4444-4444-4444-444444444444",
-            "tenant_id": "11111111-1111-1111-1111-111111111111",
-            "provider": "openai",
-            "model_name": "gpt-4",
-            "model_version": "1.0",
-            "stage": "staging",
-            "config": {},
-            "created_at": "2024-01-01T00:00:00Z",
-        }),
-        ("GET", "/v1/feature-flags"): (200, [
-            {
-                "id": "55555555-5555-5555-5555-555555555555",
-                "flag_key": "new_ui",
-                "enabled": True,
-                "rollout_percentage": 100,
-                "metadata": {},
-                "created_at": "2024-01-01T00:00:00Z",
-                "updated_at": "2024-01-01T00:00:00Z",
-            }
-        ]),
-        ("PUT", "/v1/feature-flags/new_ui"): (200, {
-            "id": "55555555-5555-5555-5555-555555555555",
-            "flag_key": "new_ui",
-            "enabled": False,
-            "rollout_percentage": 0,
-            "metadata": {},
-            "created_at": "2024-01-01T00:00:00Z",
-            "updated_at": "2024-01-01T00:00:00Z",
-        }),
-        ("GET", "/health"): (200, {
-            "status": "healthy",
-            "service": "layer4-agents",
-            "version": "0.2.0",
-            "timestamp": "2024-01-01T00:00:00Z",
-            "executor_ready": True,
-            "uptime_seconds": 123.0,
-            "dependencies": [],
-            "metrics": {},
-        }),
-    })
+                    "id": "11111111-1111-1111-1111-111111111111",
+                    "name": "Acme",
+                    "slug": "acme",
+                    "status": "active",
+                    "created_at": "2024-01-01T00:00:00Z",
+                    "updated_at": "2024-01-01T00:00:00Z",
+                },
+            ),
+            ("GET", "/v1/users"): (
+                200,
+                [
+                    {
+                        "id": "22222222-2222-2222-2222-222222222222",
+                        "tenant_id": "11111111-1111-1111-1111-111111111111",
+                        "email": "alice@example.com",
+                        "role": "analyst",
+                        "status": "active",
+                        "created_at": "2024-01-01T00:00:00Z",
+                        "updated_at": "2024-01-01T00:00:00Z",
+                    }
+                ],
+            ),
+            ("POST", "/v1/users/invite"): (
+                201,
+                {
+                    "id": "33333333-3333-3333-3333-333333333333",
+                    "tenant_id": "11111111-1111-1111-1111-111111111111",
+                    "email": "bob@example.com",
+                    "role": "analyst",
+                    "status": "invited",
+                    "created_at": "2024-01-01T00:00:00Z",
+                    "updated_at": "2024-01-01T00:00:00Z",
+                },
+            ),
+            ("GET", "/v1/api-keys"): (
+                200,
+                [
+                    {
+                        "key_id": "vf_abc",
+                        "tenant_id": "11111111-1111-1111-1111-111111111111",
+                        "name": "test-key",
+                        "prefix": "vf_ab",
+                        "role": "analyst",
+                        "permissions": [],
+                        "enabled": True,
+                        "created_at": "2024-01-01T00:00:00Z",
+                    }
+                ],
+            ),
+            ("POST", "/v1/api-keys"): (
+                201,
+                {
+                    "key_id": "vf_def",
+                    "tenant_id": "11111111-1111-1111-1111-111111111111",
+                    "name": "new-key",
+                    "api_key": "vf_def_secret",
+                    "prefix": "vf_de",
+                    "role": "analyst",
+                    "permissions": [],
+                    "created_at": "2024-01-01T00:00:00Z",
+                },
+            ),
+            ("GET", "/v1/workflows/types"): (
+                200,
+                {
+                    "workflows": [
+                        {
+                            "type": "roi_calculator",
+                            "name": "ROI Calculator",
+                            "description": "Calculate ROI",
+                        }
+                    ]
+                },
+            ),
+            ("GET", "/v1/workflows/active"): (
+                200,
+                [
+                    {
+                        "workflow_instance_id": "wf-1",
+                        "workflow_type": "roi_calculator",
+                        "status": "running",
+                        "progress_percentage": 50.0,
+                    }
+                ],
+            ),
+            ("POST", "/v1/workflows"): (
+                201,
+                {
+                    "workflow_instance_id": "wf-2",
+                    "status": "scheduled",
+                    "estimated_duration_seconds": 300,
+                },
+            ),
+            ("GET", "/v1/workflows/wf-1"): (
+                200,
+                {
+                    "workflow_instance_id": "wf-1",
+                    "workflow_type": "roi_calculator",
+                    "status": "running",
+                    "progress_percentage": 50.0,
+                },
+            ),
+            ("GET", "/v1/models"): (
+                200,
+                [
+                    {
+                        "id": "44444444-4444-4444-4444-444444444444",
+                        "tenant_id": "11111111-1111-1111-1111-111111111111",
+                        "provider": "openai",
+                        "model_name": "gpt-4",
+                        "model_version": "1.0",
+                        "stage": "dev",
+                        "config": {},
+                        "created_at": "2024-01-01T00:00:00Z",
+                    }
+                ],
+            ),
+            ("POST", "/v1/models/44444444-4444-4444-4444-444444444444/promote"): (
+                200,
+                {
+                    "id": "44444444-4444-4444-4444-444444444444",
+                    "tenant_id": "11111111-1111-1111-1111-111111111111",
+                    "provider": "openai",
+                    "model_name": "gpt-4",
+                    "model_version": "1.0",
+                    "stage": "staging",
+                    "config": {},
+                    "created_at": "2024-01-01T00:00:00Z",
+                },
+            ),
+            ("GET", "/v1/feature-flags"): (
+                200,
+                [
+                    {
+                        "id": "55555555-5555-5555-5555-555555555555",
+                        "flag_key": "new_ui",
+                        "enabled": True,
+                        "rollout_percentage": 100,
+                        "metadata": {},
+                        "created_at": "2024-01-01T00:00:00Z",
+                        "updated_at": "2024-01-01T00:00:00Z",
+                    }
+                ],
+            ),
+            ("PUT", "/v1/feature-flags/new_ui"): (
+                200,
+                {
+                    "id": "55555555-5555-5555-5555-555555555555",
+                    "flag_key": "new_ui",
+                    "enabled": False,
+                    "rollout_percentage": 0,
+                    "metadata": {},
+                    "created_at": "2024-01-01T00:00:00Z",
+                    "updated_at": "2024-01-01T00:00:00Z",
+                },
+            ),
+            ("GET", "/health"): (
+                200,
+                {
+                    "status": "healthy",
+                    "service": "layer4-agents",
+                    "version": "0.2.0",
+                    "timestamp": "2024-01-01T00:00:00Z",
+                    "executor_ready": True,
+                    "uptime_seconds": 123.0,
+                    "dependencies": [],
+                    "metrics": {},
+                },
+            ),
+        }
+    )
 
     client = ValueFabricClient(
         base_url="https://api.example.com",
@@ -249,9 +296,7 @@ class TestWorkflows:
         assert isinstance(workflows[0], Workflow)
 
     def test_execute_workflow(self, mock_client):
-        result = mock_client.execute_workflow(
-            "roi_calculator", "tenant-1", "user-1"
-        )
+        result = mock_client.execute_workflow("roi_calculator", "tenant-1", "user-1")
         assert result["workflow_instance_id"] == "wf-2"
 
     def test_get_workflow(self, mock_client):
@@ -268,9 +313,7 @@ class TestModels:
         assert isinstance(models[0], ModelVersion)
 
     def test_promote_model(self, mock_client):
-        model = mock_client.promote_model(
-            "44444444-4444-4444-4444-444444444444", "staging"
-        )
+        model = mock_client.promote_model("44444444-4444-4444-4444-444444444444", "staging")
         assert model.stage == "staging"
         assert isinstance(model, ModelVersion)
 
@@ -298,18 +341,23 @@ class TestHealth:
 @pytest.mark.asyncio
 class TestAsyncClient:
     async def test_alist_tenants(self):
-        transport = _mock_transport({
-            ("GET", "/v1/tenants"): (200, [
-                {
-                    "id": "11111111-1111-1111-1111-111111111111",
-                    "name": "Acme",
-                    "slug": "acme",
-                    "status": "active",
-                    "created_at": "2024-01-01T00:00:00Z",
-                    "updated_at": "2024-01-01T00:00:00Z",
-                }
-            ]),
-        })
+        transport = _mock_transport(
+            {
+                ("GET", "/v1/tenants"): (
+                    200,
+                    [
+                        {
+                            "id": "11111111-1111-1111-1111-111111111111",
+                            "name": "Acme",
+                            "slug": "acme",
+                            "status": "active",
+                            "created_at": "2024-01-01T00:00:00Z",
+                            "updated_at": "2024-01-01T00:00:00Z",
+                        }
+                    ],
+                ),
+            }
+        )
         client = ValueFabricClient(
             base_url="https://api.example.com",
             api_key="test-api-key",
@@ -321,4 +369,39 @@ class TestAsyncClient:
         tenants = await client.alist_tenants()
         assert len(tenants) == 1
         assert tenants[0].name == "Acme"
+        await client.aclose()
+
+    async def test_aexecute_workflow(self):
+        transport = _mock_transport(
+            {
+                ("POST", "/v1/workflows"): (
+                    201,
+                    {
+                        "workflow_instance_id": "wf-3",
+                        "status": "scheduled",
+                        "estimated_duration_seconds": 300,
+                    },
+                ),
+            }
+        )
+        client = ValueFabricClient(
+            base_url="https://api.example.com",
+            api_key="test-api-key",
+        )
+        client._async_client = httpx.AsyncClient(
+            transport=transport,
+            base_url="https://api.example.com",
+        )
+
+        result = await client.aexecute_workflow(
+            workflow_type="roi_calculator",
+            tenant_id="tenant-1",
+            user_id="user-1",
+            inputs={"param1": "value1"},
+            priority="HIGH",
+            workflow_id="wf-3",
+        )
+
+        assert result["workflow_instance_id"] == "wf-3"
+        assert result["status"] == "scheduled"
         await client.aclose()
