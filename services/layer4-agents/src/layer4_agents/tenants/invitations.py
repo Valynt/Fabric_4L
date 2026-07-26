@@ -84,6 +84,10 @@ class InvitationService:
     async def verify_token(self, token: str) -> InvitationToken | None:
         """Verify an invitation token and return its data.
 
+        Non-destructive: the token is NOT consumed here. Call ``consume_token``
+        after the downstream acceptance succeeds to ensure the token is only
+        deleted when the user is actually activated.
+
         Returns None if the token is invalid, expired, or already used.
         """
         if not self.redis:
@@ -126,23 +130,30 @@ class InvitationService:
             used=parsed.get("used", False),
         )
 
-    async def mark_token_used(self, token: str) -> None:
-        """Mark an invitation token as used after acceptance."""
+    async def consume_token(self, token: str) -> None:
+        """Atomically consume (delete) an invitation token after successful acceptance.
+
+        This should be called only after the user has been successfully activated
+        to ensure the token is not lost if a downstream failure occurs.
+        """
         if not self.redis:
             return
 
         key = f"invite:{token}"
         try:
-            data_str = cast(str | None, self.redis.get(key))
-            if data_str:
-                data = json.loads(data_str)
-                data["used"] = True
-                # Keep for 1 hour post-use for audit/debugging
-                self.redis.setex(key, 3600, json.dumps(data))
+            self.redis.delete(key)
         except asyncio.CancelledError:
             raise
-        except Exception as e:
-            logger.warning("Failed to mark invitation token as used: %s", e)
+        except Exception:
+            logger.warning("Failed to consume invitation token in Redis")
+
+    async def mark_token_used(self, token: str) -> None:
+        """Deprecated: use ``consume_token`` instead.
+
+        This method is retained for backward compatibility but is a no-op.
+        Token consumption is now handled by ``consume_token``.
+        """
+        return
 
     async def send_invitation_email(
         self,

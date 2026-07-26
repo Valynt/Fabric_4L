@@ -1,6 +1,5 @@
-# syntax=docker/dockerfile:1
 # Root-context build for full/live compose stacks.
-FROM python@sha256:09b29c360b84742bf98eba40b214f7f6b4b53286bb2c8a8b5b1afa188a8d9c0e AS builder
+FROM python@sha256:f5cf0344c9886ff24d34797578d5d7dd6e8911ae0fe5962bb55d0f89603ec361 AS builder
 
 WORKDIR /app
 ENV UV_TORCH_BACKEND=cpu
@@ -8,7 +7,7 @@ RUN pip install --no-cache-dir uv
 COPY services/layer3-knowledge/pyproject.toml services/layer3-knowledge/uv.lock ./
 RUN uv sync --frozen --no-install-project --no-dev
 
-FROM python@sha256:09b29c360b84742bf98eba40b214f7f6b4b53286bb2c8a8b5b1afa188a8d9c0e
+FROM python@sha256:f5cf0344c9886ff24d34797578d5d7dd6e8911ae0fe5962bb55d0f89603ec361
 
 WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
@@ -19,12 +18,21 @@ ENV PATH="/app/.venv/bin:$PATH" \
     PYTHONPATH=/app:/app/src \
     UVICORN_CMD="uvicorn value_fabric.layer3.api.main:app --host 0.0.0.0 --port 8001"
 
+# Pre-download the sentence-transformers embedding model so the read-only
+# runtime container can start without writing to ~/.cache at runtime.
+ENV HF_HOME=/home/appuser/.cache/huggingface
+RUN mkdir -p /home/appuser/.cache/huggingface && \
+    python - <<'PY'
+from sentence_transformers import SentenceTransformer
+SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+PY
+
 COPY services/layer3-knowledge/src/ ./src/
-COPY value_fabric/ ./value_fabric/
+COPY packages/shared/src/value_fabric/ ./value_fabric/
 COPY packages/shared/src/value_fabric/shared/ ./value_fabric/shared/
 COPY services/layer3-knowledge/src/ ./value_fabric/layer3/
 
-RUN groupadd -r appgroup && useradd -r -g appgroup -m appuser && chown -R appuser:appgroup /app
+RUN groupadd -r appgroup && useradd -r -g appgroup -m appuser && chown -R appuser:appgroup /app /home/appuser
 USER appuser
 
 EXPOSE 8001

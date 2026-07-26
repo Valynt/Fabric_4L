@@ -310,8 +310,16 @@
       "blocking": false,
       "required_secrets": [],
       "produced_artifacts": [
-        "apps/web/pnpm-audit.json",
-        "pip-audit-${{ matrix.service }}.*",
+        "apps/${{ matrix.frontend }}/pnpm-audit-base.json",
+        "apps/${{ matrix.frontend }}/pnpm-audit.json",
+        "artifacts/pip-audit-base/${{ matrix.service }}/diagnostic.json",
+        "artifacts/pip-audit-base/${{ matrix.service }}/report.json",
+        "artifacts/pip-audit-base/${{ matrix.service }}/report.sarif",
+        "artifacts/pip-audit-base/${{ matrix.service }}/requirements.txt",
+        "artifacts/pip-audit/${{ matrix.service }}/diagnostic.json",
+        "artifacts/pip-audit/${{ matrix.service }}/report.json",
+        "artifacts/pip-audit/${{ matrix.service }}/report.sarif",
+        "artifacts/pip-audit/${{ matrix.service }}/requirements.txt",
         "sbom-vuln-track.json"
       ],
       "runtime_budget_minutes": 30,
@@ -650,6 +658,24 @@
       "deprecation_status": "active"
     },
     {
+      "path": ".github/workflows/pr-backlog-health.yml",
+      "name": "PR Backlog Health Report",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "schedule",
+        "workflow_dispatch"
+      ],
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
+      "required_secrets": [
+        "GITHUB_TOKEN"
+      ],
+      "produced_artifacts": [],
+      "runtime_budget_minutes": 10,
+      "local_validation_command": "make check-workflow-references",
+      "deprecation_status": "active"
+    },
+    {
       "path": ".github/workflows/pr-checks.yml",
       "name": "PR Checks",
       "owner": "@value-fabric/sre-leads",
@@ -779,6 +805,24 @@
       "blocking": false,
       "required_secrets": [],
       "produced_artifacts": [],
+      "runtime_budget_minutes": 30,
+      "local_validation_command": "make check-workflow-references",
+      "deprecation_status": "active"
+    },
+    {
+      "path": ".github/workflows/publish-ci-tools.yml",
+      "name": "Publish CI Tools Security Suite",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "push",
+        "workflow_dispatch"
+      ],
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
+      "required_secrets": [],
+      "produced_artifacts": [
+        "security-suite-digest.txt"
+      ],
       "runtime_budget_minutes": 30,
       "local_validation_command": "make check-workflow-references",
       "deprecation_status": "active"
@@ -977,7 +1021,14 @@
         "${{matrix.artifact.name}}-sbom.cdx.json",
         ".fabric/audit/security_regression_gate/",
         "apps/web/pnpm-audit-report.json",
+        "artifacts/helm-dependencies/checksums.sha256",
+        "artifacts/helm-dependencies/metadata.json",
+        "artifacts/helm-preparation-diagnostics/",
         "artifacts/mandatory_security/",
+        "infra/helm/fabric-chart/charts/",
+        "osv-pr-base.json",
+        "osv-pr-head.json",
+        "osv-scanner-pr.sarif",
         "sbom-${{matrix.layer}}.cdx.json",
         "scorecard-results.sarif",
         "security-evidence/",

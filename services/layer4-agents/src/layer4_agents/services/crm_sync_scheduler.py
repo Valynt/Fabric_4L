@@ -25,10 +25,10 @@ from ..database import _clear_local_tenant_context, db_session_for_context, get_
 from ..engine.scheduler import TaskScheduler
 from ..engine.types import ScheduledTask, TaskPriority
 from ..integrations.core.observations import (
-    SyncInterrupted,
-    SyncPartial,
-    SyncStarted,
-    SyncSucceeded,
+    sync_interrupted,
+    sync_partial,
+    sync_started,
+    sync_succeeded,
 )
 from ..integrations.core.state import apply_observation
 from ..models.account import CRMProvider
@@ -248,7 +248,7 @@ to avoid impacting user-facing workflows.
                 return {"skipped": True, "reason": "disabled"}
 
             # Update sync status through the reducer.
-            await apply_observation(db, integration, SyncStarted())
+            await apply_observation(db, integration, sync_started())
             await db.commit()
 
             try:
@@ -261,10 +261,10 @@ to avoid impacting user-facing workflows.
                 integration.last_sync_at = datetime.now(UTC)
 
                 if stats.get("failed", 0) > 0:
-                    await apply_observation(db, integration, SyncPartial())
+                    await apply_observation(db, integration, sync_partial())
                     integration.last_error_message = "; ".join(stats.get("errors", [])[:3]) or "Sync failed"
                 else:
-                    await apply_observation(db, integration, SyncSucceeded())
+                    await apply_observation(db, integration, sync_succeeded())
                     integration.last_successful_sync_at = datetime.now(UTC)
                     integration.last_error_message = None
 
@@ -279,7 +279,7 @@ to avoid impacting user-facing workflows.
                     tenant_id,
                     provider.value,
                 )
-                await apply_observation(db, integration, SyncInterrupted(message=str(exc)))
+                await apply_observation(db, integration, sync_interrupted(message=str(exc)))
                 integration.last_sync_at = datetime.now(UTC)
                 integration.last_error_message = f"{type(exc).__name__}: sync_failed"
                 await db.commit()

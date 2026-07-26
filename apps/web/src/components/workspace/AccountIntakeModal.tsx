@@ -232,7 +232,7 @@ export default function AccountIntakeModal({
               New Value Case
             </h2>
           </div>
-          <button
+          <button type="button"
             onClick={onClose}
             className="text-muted-foreground hover:text-foreground"
           >
@@ -341,7 +341,7 @@ export default function AccountIntakeModal({
             </label>
             <div className="grid grid-cols-3 gap-2">
               {DEPTH_OPTIONS.map(opt => (
-                <button
+                <button type="button"
                   key={opt.key}
                   onClick={() => setDepth(opt.key)}
                   className={cn(

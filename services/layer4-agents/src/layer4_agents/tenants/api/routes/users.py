@@ -29,6 +29,7 @@ from value_fabric.shared.identity.models import (
     UserModel,
     UserUpdateRequest,
 )
+from value_fabric.shared.rate_limiting.ip_limiter import IPRateLimitDependency
 
 from ....database import get_db_from_context
 from ...invitations import InvitationService
@@ -44,6 +45,12 @@ from ...service import (
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/users", tags=["Users"])
+
+# NOTE: IPRateLimitDependency uses in-process MemoryStorage. In a multi-replica
+# deployment each pod maintains an independent counter, so the effective limit is
+# requests_per_minute * replica_count. A Redis-backed storage backend should be
+# added to the shared package for deployment-wide enforcement.
+_accept_invite_limiter = IPRateLimitDependency(requests_per_minute=10)
 
 
 # ---------------------------------------------------------------------------
@@ -120,6 +127,7 @@ async def api_invite_user(
 async def api_accept_invite(
     request: UserAcceptInviteRequest,
     db: AsyncSession = Depends(get_db_from_context),
+    _rate_limit: None = Depends(_accept_invite_limiter),
 ) -> UserModel:
     """Accept an invitation by setting a password and activating the account.
 

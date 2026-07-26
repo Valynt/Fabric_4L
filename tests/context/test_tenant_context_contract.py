@@ -42,7 +42,7 @@ class TestContextExtraction:
         
         Rationale: JWT is primary auth mechanism for user requests.
         """
-        from value_fabric.shared.identity.middleware import extract_context_from_jwt
+        from value_fabric.shared.identity.context_builders import extract_context_from_jwt
         
         tenant_id = uuid4()
         user_id = uuid4()
@@ -67,13 +67,13 @@ class TestContextExtraction:
         
         Rationale: API keys are used for service-to-service auth.
         """
-        from value_fabric.shared.identity.middleware import extract_context_from_api_key
+        from value_fabric.shared.identity.context_builders import extract_context_from_api_key
         
         tenant_id = uuid4()
         api_key = "sk_test_12345"
         
         # Mock API key lookup
-        with patch("shared.identity.middleware.lookup_api_key") as mock_lookup:
+        with patch("value_fabric.shared.identity.context_builders.lookup_api_key") as mock_lookup:
             mock_lookup.return_value = {
                 "tenant_id": tenant_id,
                 "permissions": ["api:read", "api:write"],
@@ -90,7 +90,7 @@ class TestContextExtraction:
         
         Rationale: All authenticated requests must have tenant context.
         """
-        from value_fabric.shared.identity.middleware import extract_context_from_jwt
+        from value_fabric.shared.identity.context_builders import extract_context_from_jwt
         
         # JWT missing tenant_id
         jwt_payload = {
@@ -108,7 +108,7 @@ class TestContextExtraction:
         
         Rationale: Invalid UUIDs could cause downstream errors.
         """
-        from value_fabric.shared.identity.middleware import extract_context_from_jwt
+        from value_fabric.shared.identity.context_builders import extract_context_from_jwt
         
         # JWT with invalid UUID
         jwt_payload = {
@@ -129,7 +129,7 @@ class TestContextExtraction:
         ],
     )
     def test_non_uuid_tenant_rejected_in_prod_like_middleware_matrices(self, env_overrides):
-        from value_fabric.shared.identity.middleware import extract_context_from_jwt
+        from value_fabric.shared.identity.context_builders import extract_context_from_jwt
 
         with patch.dict("os.environ", env_overrides, clear=False):
             with pytest.raises(ValueError, match="Invalid tenant_id"):
@@ -142,7 +142,7 @@ class TestContextExtraction:
         Attack scenario: Attacker provides different tenant_id in header
         to bypass authorization.
         """
-        from value_fabric.shared.identity.middleware import validate_context_consistency
+        from value_fabric.shared.identity.context_builders import validate_context_consistency
         
         tenant_a = uuid4()
         tenant_b = uuid4()
@@ -356,7 +356,7 @@ class TestContextPropagation:
         # The tenant kill switch fails closed (503) when Redis is absent
         # (RB-4, commit 493e63d2a); stub it ACTIVE so the request reaches the route.
         with (
-            patch("shared.identity.middleware.decode_jwt") as mock_decode,
+            patch("value_fabric.shared.identity.resolvers.decode_jwt") as mock_decode,
             patch(
                 "value_fabric.shared.identity.middleware.TenantKillSwitch"
             ) as mock_kill_switch,
@@ -498,7 +498,7 @@ class TestNegativePathContextScenarios:
         Rationale: Expired tokens should not grant access.
         """
         from jose import JWTError
-        from value_fabric.shared.identity.middleware import decode_jwt
+        from value_fabric.shared.identity.jwt_wrapper import decode_jwt
         
         expired_token = "eyJ..."  # Mock expired token
         
@@ -512,7 +512,7 @@ class TestNegativePathContextScenarios:
         Attack scenario: Attacker modifies token payload.
         """
         from jose import JWTError
-        from value_fabric.shared.identity.middleware import decode_jwt
+        from value_fabric.shared.identity.jwt_wrapper import decode_jwt
         
         tampered_token = "eyJ..."  # Mock tampered token
         
@@ -525,11 +525,11 @@ class TestNegativePathContextScenarios:
         
         Rationale: Revoked keys should not grant access.
         """
-        from value_fabric.shared.identity.middleware import extract_context_from_api_key
+        from value_fabric.shared.identity.context_builders import extract_context_from_api_key
         
         revoked_api_key = "sk_test_revoked"
         
-        with patch("shared.identity.middleware.lookup_api_key") as mock_lookup:
+        with patch("value_fabric.shared.identity.context_builders.lookup_api_key") as mock_lookup:
             mock_lookup.return_value = None  # Key not found (revoked)
             
             with pytest.raises(HTTPException) as exc_info:
@@ -543,7 +543,7 @@ class TestNegativePathContextScenarios:
         
         Attack scenario: Attacker provides SQL in tenant_id field.
         """
-        from value_fabric.shared.identity.middleware import extract_context_from_jwt
+        from value_fabric.shared.identity.context_builders import extract_context_from_jwt
         
         # JWT with SQL injection attempt
         jwt_payload = {
@@ -561,7 +561,7 @@ class TestNegativePathContextScenarios:
         
         Attack scenario: Attacker provides script tag in user_id.
         """
-        from value_fabric.shared.identity.middleware import extract_context_from_jwt
+        from value_fabric.shared.identity.context_builders import extract_context_from_jwt
         
         # JWT with XSS attempt
         jwt_payload = {
@@ -579,7 +579,7 @@ class TestNegativePathContextScenarios:
         
         Attack scenario: Attacker provides huge permissions list to DoS.
         """
-        from value_fabric.shared.identity.middleware import extract_context_from_jwt
+        from value_fabric.shared.identity.context_builders import extract_context_from_jwt
         
         # JWT with 10,000 permissions
         jwt_payload = {

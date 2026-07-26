@@ -7,8 +7,8 @@ from .core.errors import (
     AuthError,
     CRMError,
     MappingError,
-    PermissionError_,
     PermanentError,
+    PermissionError_,
     TransientError,
     classify_http_status,
     classify_httpx_exception,
@@ -20,9 +20,9 @@ from .core.state import (
     reduce,
 )
 from .core.types import (
+    CanonicalRecord,
     CRMModel,
     CRMOperationResult,
-    CanonicalRecord,
     SyncCursor,
 )
 from .factory import get_connector, get_write_connector

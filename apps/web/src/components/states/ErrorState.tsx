@@ -67,7 +67,7 @@ export function ErrorState({
 
       {!!error && (
         <div className="pt-2">
-          <button
+          <button type="button"
             onClick={() => setShowDetails(!showDetails)}
             aria-expanded={showDetails}
             className="flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"

@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "../test/mocks/server";
 import { apiClient, buildApiFetchInit } from "./client";
+import { apiDelete, apiGet, apiPatch, apiPost, apiPut } from "./typedClient";
 import {
   applySessionServiceTestEnvironment,
   authFixtures,
@@ -307,5 +308,145 @@ describe("ApiClient", () => {
         expect(capturedUrl).toContain(expectedPath);
       }
     });
+  });
+});
+
+describe("typed API client wrappers", () => {
+  beforeEach(() => {
+    applySessionServiceTestEnvironment();
+  });
+
+  it("apiGet forwards an explicit axios config to the underlying client", async () => {
+    let capturedHeaders: Record<string, string> = {};
+    server.use(
+      http.get("/api/v1/agents/typed", ({ request }) => {
+        request.headers.forEach((value, key) => {
+          capturedHeaders[key] = value;
+        });
+        return HttpResponse.json({ ok: true });
+      })
+    );
+
+    const res = await apiGet<{ ok: boolean }>("l4", "/typed", {
+      headers: { "x-trace-id": "trace-typed-1" },
+    });
+
+    expect(res.data.ok).toBe(true);
+    expect(capturedHeaders["x-trace-id"]).toBe("trace-typed-1");
+  });
+
+  it("apiGet works without a config argument", async () => {
+    server.use(
+      http.get("/api/v1/agents/typed", () => HttpResponse.json({ ok: true }))
+    );
+
+    const res = await apiGet<{ ok: boolean }>("l4", "/typed");
+
+    expect(res.data.ok).toBe(true);
+  });
+
+  it("apiPost forwards body and config", async () => {
+    let capturedBody: unknown;
+    let capturedHeaders: Record<string, string> = {};
+    server.use(
+      http.post("/api/v1/agents/typed", async ({ request }) => {
+        capturedBody = await request.json();
+        request.headers.forEach((value, key) => {
+          capturedHeaders[key] = value;
+        });
+        return HttpResponse.json({ id: "1" }, { status: 201 });
+      })
+    );
+
+    const res = await apiPost<{ id: string }>(
+      "l4",
+      "/typed",
+      { name: "agent" },
+      { headers: { "x-trace-id": "trace-typed-2" } }
+    );
+
+    expect(res.status).toBe(201);
+    expect(res.data.id).toBe("1");
+    expect(capturedBody).toEqual({ name: "agent" });
+    expect(capturedHeaders["x-trace-id"]).toBe("trace-typed-2");
+  });
+
+  it("apiPost works without a config argument", async () => {
+    let capturedBody: unknown;
+    server.use(
+      http.post("/api/v1/agents/typed", async ({ request }) => {
+        capturedBody = await request.json();
+        return HttpResponse.json({ id: "2" });
+      })
+    );
+
+    const res = await apiPost<{ id: string }>("l4", "/typed", { name: "a" });
+
+    expect(res.data.id).toBe("2");
+    expect(capturedBody).toEqual({ name: "a" });
+  });
+
+  it("apiPut forwards body and config", async () => {
+    let capturedBody: unknown;
+    let capturedHeaders: Record<string, string> = {};
+    server.use(
+      http.put("/api/v1/agents/typed/1", async ({ request }) => {
+        capturedBody = await request.json();
+        request.headers.forEach((value, key) => {
+          capturedHeaders[key] = value;
+        });
+        return HttpResponse.json({ updated: true });
+      })
+    );
+
+    const res = await apiPut<{ updated: boolean }>(
+      "l4",
+      "/typed/1",
+      { name: "b" },
+      { headers: { "if-match": "v1" } }
+    );
+
+    expect(res.data.updated).toBe(true);
+    expect(capturedBody).toEqual({ name: "b" });
+    expect(capturedHeaders["if-match"]).toBe("v1");
+  });
+
+  it("apiPatch forwards body and config", async () => {
+    let capturedBody: unknown;
+    server.use(
+      http.patch("/api/v1/agents/typed/1", async ({ request }) => {
+        capturedBody = await request.json();
+        return HttpResponse.json({ patched: true });
+      })
+    );
+
+    const res = await apiPatch<{ patched: boolean }>(
+      "l4",
+      "/typed/1",
+      { name: "c" },
+      { headers: { "x-trace-id": "trace-typed-3" } }
+    );
+
+    expect(res.data.patched).toBe(true);
+    expect(capturedBody).toEqual({ name: "c" });
+  });
+
+  it("apiDelete forwards config", async () => {
+    let capturedHeaders: Record<string, string> = {};
+    server.use(
+      http.delete("/api/v1/agents/typed/1", ({ request }) => {
+        request.headers.forEach((value, key) => {
+          capturedHeaders[key] = value;
+        });
+        return new HttpResponse(null, { status: 204 });
+      })
+    );
+
+    const res = await apiDelete("l4", "/typed/1", {
+      headers: { "if-match": "*" },
+    });
+
+    expect(res.status).toBe(204);
+    expect(capturedHeaders["if-match"]).toBe("*");
   });
 });

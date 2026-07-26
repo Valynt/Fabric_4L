@@ -9,11 +9,20 @@ SKIP_FILES={'MIGRATION_REPORT.md','canonical-paths.yaml','tests/ci/test_legacy_p
 IGNORE_PATTERNS=[re.compile(p) for p in (
     r'@value-fabric/',r'value-fabric\.io/',r'secret/(data/)?value-fabric/',r'cluster\.local/ns/value-fabric/',
     r'\.value-fabric\.',r'/var/log/value-fabric/',r'value-fabric\.svc\.cluster\.local',r'fabric-4l/value-fabric/',
+    r'value-fabric/(security-leads|qa-leads|backend-leads|frontend-leads|infrastructure)(?:["/]|$)',
+    r'value-fabric/\$\{layer\}',r'\.config/value-fabric/crawler\.yml',r'ghcr\\?\.io/value-fabric/ci-tools/security-suite',
 )]
 
 def should_scan(path: Path, root: Path)->bool:
     rel=path.relative_to(root).as_posix()
-    if any(rel.startswith(s) for s in SKIP_PREFIXES) or rel in SKIP_FILES or path.is_dir(): return False
+    if (
+        any(rel.startswith(s) for s in SKIP_PREFIXES)
+        or rel in SKIP_FILES
+        or path.is_dir()
+        or "__pycache__" in path.parts
+        or path.suffix == ".pyc"
+    ):
+        return False
     return True
 
 def is_ignored(line:str)->bool:

@@ -11,8 +11,8 @@ export function PersonalSessions() {
         <h3 className="text-sm font-semibold">Active Sessions</h3>
         <p className="text-xs text-muted-foreground">Review and manage devices signed into your account.</p>
         <div className="mt-4 space-y-2">
-          {sessions.map((s, i) => (
-            <div key={i} className="flex items-center justify-between rounded-md border p-3">
+          {sessions.map((s) => (
+            <div key={s.device} className="flex items-center justify-between rounded-md border p-3">
               <div>
                 <p className="text-sm font-medium">
                   {s.device}

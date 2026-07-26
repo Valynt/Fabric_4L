@@ -16,7 +16,7 @@ on:
       target_url:
         description: 'Target URL to scan'
         required: false
-        default: 'http://localhost:8000'
+        default: 'http://localhost:8004'
       scan_type:
         description: 'Scan type'
         required: false
@@ -28,7 +28,7 @@ on:
           - nikto-only
 
 env:
-  TARGET_URL: ${{ inputs.target_url || 'http://localhost:8000' }}
+  TARGET_URL: ${{ inputs.target_url || 'http://localhost:8004' }}
   SCAN_TYPE: ${{ inputs.scan_type || 'full' }}
 
 jobs:
@@ -54,6 +54,8 @@ jobs:
           pip install requests aiohttp
 
       - name: Start test stack
+        id: startup
+        continue-on-error: true
         run: |
           # Build a CI env file from the committed template. The template ships
           # safe defaults but leaves a few required secrets blank, so append
@@ -66,15 +68,37 @@ jobs:
           FABRIC_AUTH_SIGNING_KEY=ci-only-dummy-signing-key
           FABRIC_AUTH_PUBLIC_KEYS=[]
           EOF
-          docker compose -f infra/compose/docker-compose.full.yml --env-file .env up -d || true
-          sleep 30
+          mkdir -p zap-results
+          printf '{"startup_time":"%s"}\n' "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" > zap-results/metadata.json
+          if ! docker compose -f infra/compose/docker-compose.full.yml --env-file .env up -d; then
+            docker compose -f infra/compose/docker-compose.full.yml --env-file .env logs --no-color | tee zap-results/compose.log
+            exit 1
+          fi
+
+          health_url="${TARGET_URL%/}/health"
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent --show-error --max-time 5 "$health_url" > /dev/null; then
+              echo "Target is healthy at $health_url"
+              exit 0
+            fi
+            echo "Waiting for $health_url ($attempt/30)"
+            sleep 5
+          done
+
+          echo "Target never became healthy at $health_url"
+          docker compose -f infra/compose/docker-compose.full.yml --env-file .env logs --no-color | tee zap-results/compose.log
+          exit 1
 
       - name: Run ZAP Full Scan (Docker)
+        id: zap_scan
+        if: always() && steps.startup.outcome == 'success'
+        continue-on-error: true
         run: |
           mkdir -p zap-results
 
           # Run ZAP full scan via Docker. --network host lets the container
           # reach the compose stack published on the runner's localhost.
+          set +e
           docker run --rm \
             --network host \
             -v $(pwd)/zap-results:/zap/wrk/:rw \
@@ -85,24 +109,66 @@ jobs:
             -J zap-report.json \
             -w zap-report.md \
             -x zap-report.xml \
-            -I || true
+            -I
+          zap_exit_code=$?
+          set -e
 
-          # Check if report was generated
-          if [ -f zap-results/zap-report.json ]; then
-            echo "ZAP scan completed"
-            cat zap-results/zap-report.json | head -50
-          else
-            echo "ZAP report not generated - target may be unavailable"
-          fi
+          echo "zap_exit_code=$zap_exit_code" >> "$GITHUB_OUTPUT"
+          case "$zap_exit_code" in
+            0)
+              echo "execution_status=completed" >> "$GITHUB_OUTPUT"
+              echo "policy_status=clean" >> "$GITHUB_OUTPUT"
+              ;;
+            1)
+              echo "execution_status=completed" >> "$GITHUB_OUTPUT"
+              echo "policy_status=warnings" >> "$GITHUB_OUTPUT"
+              ;;
+            2)
+              echo "execution_status=completed" >> "$GITHUB_OUTPUT"
+              echo "policy_status=findings" >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "execution_status=runtime_failure" >> "$GITHUB_OUTPUT"
+              echo "policy_status=unknown" >> "$GITHUB_OUTPUT"
+              echo "ZAP scanner/runtime failed with exit code $zap_exit_code"
+              ;;
+          esac
+          echo "ZAP exit code: $zap_exit_code"
+          exit "$zap_exit_code"
+
+      - name: Validate ZAP JSON report
+        id: validate_report
+        if: always() && steps.zap_scan.outputs.execution_status == 'completed'
+        continue-on-error: true
+        run: |
+          test -s zap-results/zap-report.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          report_path = Path("zap-results/zap-report.json")
+          with report_path.open(encoding="utf-8") as report_file:
+              report = json.load(report_file)
+          sites = report.get("site") if isinstance(report, dict) else None
+          if not isinstance(sites, list) or not sites:
+              raise SystemExit("ZAP report must be a JSON object with a non-empty site array")
+          if any(not isinstance(site, dict) or not isinstance(site.get("alerts"), list) for site in sites):
+              raise SystemExit("Every ZAP site must be an object with an alerts array")
+          PY
 
       - name: Convert ZAP results to SARIF
+        id: convert_sarif
+        if: always() && steps.validate_report.outcome == 'success'
+        continue-on-error: true
         run: |
           python tests/penetration/zap-full-scan.py \
             --target ${{ env.TARGET_URL }} \
             --output zap-results/zap-results.sarif \
-            --use-docker || true
+            --use-docker
+          test -s zap-results/zap-results.sarif
 
       - name: Upload ZAP results
+        if: always()
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
         with:
           name: zap-scan-results
@@ -118,6 +184,7 @@ jobs:
           category: zap-penetration-test
 
       - name: Check for high-risk findings
+        if: steps.validate_report.outcome == 'success'
         run: |
           if [ -f zap-results/zap-report.json ]; then
             HIGH_COUNT=$(grep -o '"risk": "High"' zap-results/zap-report.json | wc -l || echo "0")
@@ -127,6 +194,28 @@ jobs:
               # Don't fail CI, just warn (penetration tests are informational)
             fi
           fi
+
+      - name: Enforce penetration test policy
+        if: always()
+        run: |
+          failed=0
+          if [ "${{ steps.startup.outcome }}" != "success" ]; then
+            echo "Startup/readiness failed"
+            failed=1
+          fi
+          if [ "${{ steps.zap_scan.outputs.execution_status }}" != "completed" ]; then
+            echo "ZAP scanner/runtime execution failed"
+            failed=1
+          fi
+          if [ "${{ steps.validate_report.outcome }}" != "success" ]; then
+            echo "ZAP JSON report validation failed"
+            failed=1
+          fi
+          if [ "${{ steps.convert_sarif.outcome }}" != "success" ]; then
+            echo "ZAP-to-SARIF conversion failed"
+            failed=1
+          fi
+          exit "$failed"
 
   # ============================================
   # Nikto Web Server Scan
@@ -150,8 +239,26 @@ jobs:
           FABRIC_AUTH_SIGNING_KEY=ci-only-dummy-signing-key
           FABRIC_AUTH_PUBLIC_KEYS=[]
           EOF
-          docker compose -f infra/compose/docker-compose.full.yml --env-file .env up -d || true
-          sleep 30
+          mkdir -p nikto-results
+          printf '{"startup_time":"%s"}\n' "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" > nikto-results/metadata.json
+          if ! docker compose -f infra/compose/docker-compose.full.yml --env-file .env up -d; then
+            docker compose -f infra/compose/docker-compose.full.yml --env-file .env logs --no-color | tee nikto-results/compose.log
+            exit 1
+          fi
+
+          health_url="${TARGET_URL%/}/health"
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent --show-error --max-time 5 "$health_url" > /dev/null; then
+              echo "Target is healthy at $health_url"
+              exit 0
+            fi
+            echo "Waiting for $health_url ($attempt/30)"
+            sleep 5
+          done
+
+          echo "Target never became healthy at $health_url"
+          docker compose -f infra/compose/docker-compose.full.yml --env-file .env logs --no-color | tee nikto-results/compose.log
+          exit 1
 
       - name: Run Nikto Scan
         run: |
@@ -180,6 +287,7 @@ jobs:
           fi
 
       - name: Upload Nikto results
+        if: always()
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
         with:
           name: nikto-scan-results

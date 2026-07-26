@@ -9,8 +9,8 @@ import httpx
 
 from ....models.account import CRMProvider
 from ...core.connector import CRMConnector, CRMWriteConnector
-from ...core.errors import CRMError, PermanentError, classify_httpx_exception
-from ...core.types import CRMModel, CRMOperationResult, CanonicalRecord, SyncCursor
+from ...core.errors import CRMError, classify_httpx_exception
+from ...core.types import CanonicalRecord, CRMModel, CRMOperationResult, SyncCursor
 
 logger = logging.getLogger(__name__)
 
@@ -83,7 +83,7 @@ class HubSpotConnector(CRMConnector, CRMWriteConnector):
         except CRMError as e:
             return {
                 "success": False,
-                "message": str(e),
+                "message": "HubSpot connection failed",
                 "error_code": type(e).__name__.upper(),
             }
 

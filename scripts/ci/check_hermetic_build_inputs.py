@@ -45,12 +45,14 @@ APPROVED_DOMAINS = {
     "valuefabric.ai",
     "github.com",
     "api.github.com",
-    # scripts/ci/generate_sbom.py references the GitHub CLI installation URL in
-    # an error message when the `gh` binary is missing.
-    "cli.github.com",
+    # scripts/ci/run_pip_audit.py references the SARIF schema registry
+    "json.schemastore.org",
     # scripts/ci/coverage_trends.py emits an SVG trend chart; the SVG namespace
     # URI is a required W3C standard identifier and is not fetched at runtime.
     "www.w3.org",
+    # scripts/ci/generate_sbom.py references the GitHub CLI installation URL in
+    # an error message when the `gh` binary is missing.
+    "cli.github.com",
 }
 
 ACTION_REF_RE = re.compile(r"^\s*-\s*uses:\s*([^@\s]+)@([^\s#]+)")
@@ -81,6 +83,10 @@ def check_workflows(violations: list[str]) -> None:
 def check_dockerfiles(violations: list[str]) -> None:
     for dockerfile in DOCKERFILES:
         for i, line in enumerate(dockerfile.read_text(encoding="utf-8").splitlines(), start=1):
+            if line.startswith("# syntax=docker/dockerfile:"):
+                violations.append(
+                    f"{dockerfile.relative_to(ROOT)}:{i} Dockerfile frontend must not be pulled at build time: {line}"
+                )
             m = FROM_RE.match(line)
             if not m:
                 continue

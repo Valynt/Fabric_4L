@@ -388,7 +388,7 @@ export default function ExtractionEngine() {
                 </div>
               )}
               {liveLogs.slice(0, visibleLogLines).map((line, i) => (
-                <div key={i} className="flex gap-2">
+                <div key={`${line.t}-${i}`} className="flex gap-2">
                   <span className="text-muted-foreground shrink-0 w-[60px]">
                     {line.t}
                   </span>

@@ -109,8 +109,8 @@ function ReadinessGauge({ readiness }: { readiness: DealReadiness }) {
       {readiness.recommendations.length > 0 && (
         <div className="mt-3 space-y-1">
           <span className="vf-text-micro font-semibold text-muted-foreground">Recommendations</span>
-          {readiness.recommendations.map((rec, i) => (
-            <div key={i} className="flex items-start gap-1.5 vf-text-micro text-muted-foreground">
+          {readiness.recommendations.map((rec) => (
+            <div key={rec} className="flex items-start gap-1.5 vf-text-micro text-muted-foreground">
               <AlertTriangle size={10} className="mt-0.5 text-warning shrink-0" />
               <span>{rec}</span>
             </div>

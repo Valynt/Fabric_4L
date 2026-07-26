@@ -48,7 +48,7 @@ export default function WorkspacePagePattern({
         <div className="flex border-b border-border px-6" role="tablist">
           {tabs.map((tab) => (
             <Link key={tab.key} to={tab.to}>
-              <button
+              <button type="button"
                 role="tab"
                 aria-selected={activeTab === tab.key}
                 className={cn(

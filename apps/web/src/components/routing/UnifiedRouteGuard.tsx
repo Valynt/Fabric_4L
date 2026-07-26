@@ -89,8 +89,10 @@ function UnifiedRouteGuardInner({
 
   // Walk up the match tree to find the most specific access policy
   const policy = matches
-    .map((m) => (m.handle as Record<string, unknown> | undefined)?.accessPolicy as RouteAccessPolicy | undefined)
-    .filter(Boolean)
+    .flatMap((m) => {
+      const p = (m.handle as Record<string, unknown> | undefined)?.accessPolicy as RouteAccessPolicy | undefined;
+      return p ? [p] : [];
+    })
     .pop() ?? FAIL_CLOSED_ACCESS_POLICY;
 
   // ALL hooks must be called before any conditional return (Rules of Hooks).

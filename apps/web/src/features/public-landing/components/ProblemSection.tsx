@@ -33,8 +33,8 @@ export function ProblemSection() {
 
             <FadeIn delay={0.2}>
               <ul className="mt-8 space-y-4">
-                {painPoints.map((point, i) => (
-                  <li key={i} className="flex items-start gap-3">
+                {painPoints.map((point) => (
+                  <li key={point} className="flex items-start gap-3">
                     <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-destructive/70" />
                     <span className="text-sm text-muted-foreground">
                       {point}

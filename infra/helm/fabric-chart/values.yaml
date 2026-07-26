@@ -16,6 +16,11 @@ image:
   # Production should prefer digest pinning; when set, this takes precedence over tag.
   digest: ""
 
+# ─── Service Account ────────────────────────────────────────────────────────
+serviceAccount:
+  create: true
+  name: ""
+
 # ─── Ingress ────────────────────────────────────────────────────────────────
 ingress:
   enabled: true

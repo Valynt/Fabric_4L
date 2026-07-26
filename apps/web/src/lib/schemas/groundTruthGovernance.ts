@@ -25,8 +25,7 @@ export const ClaimTypeSchema = z.enum([
   "other",
 ]);
 
-export const TruthObjectSummarySchema = z
-  .object({
+export const TruthObjectSummarySchema = z.looseObject({
     id: z.string(),
     claim: z.string(),
     claim_type: ClaimTypeSchema,
@@ -34,25 +33,21 @@ export const TruthObjectSummarySchema = z
     status: TruthStatusSchema,
     maturity_level: z.number(),
     is_stale: z.boolean(),
-    source_count: z.number().int().nonnegative(),
+    source_count: z.number().int().min(0),
     validated_by: z.string().nullable().optional(),
     freshness: z.string(),
     created_at: z.string(),
-  })
-  .passthrough();
+  });
 
-export const TruthObjectListResponseSchema = z
-  .object({
+export const TruthObjectListResponseSchema = z.looseObject({
     items: z.array(TruthObjectSummarySchema),
-    total: z.number().int().nonnegative(),
-    limit: z.number().int().nonnegative(),
-    offset: z.number().int().nonnegative(),
+    total: z.number().int().min(0),
+    limit: z.number().int().min(0),
+    offset: z.number().int().min(0),
     has_more: z.boolean(),
-  })
-  .passthrough();
+  });
 
-export const ValidationEventResponseSchema = z
-  .object({
+export const ValidationEventResponseSchema = z.looseObject({
     id: z.string(),
     from_status: z.string().nullable().optional(),
     to_status: z.string(),
@@ -64,56 +59,45 @@ export const ValidationEventResponseSchema = z
     source_count_at_transition: z.number().nullable().optional(),
     notes: z.string().nullable().optional(),
     created_at: z.string(),
-  })
-  .passthrough();
+  });
 
 export const ValidationEventListResponseSchema = z.array(
   ValidationEventResponseSchema
 );
 
-export const FreshnessCountsSchema = z
-  .object({
-    stale: z.number().int().nonnegative(),
-    fresh: z.number().int().nonnegative(),
-    expiring_soon: z.number().int().nonnegative(),
-    total: z.number().int().nonnegative(),
-  })
-  .passthrough();
+export const FreshnessCountsSchema = z.looseObject({
+    stale: z.number().int().min(0),
+    fresh: z.number().int().min(0),
+    expiring_soon: z.number().int().min(0),
+    total: z.number().int().min(0),
+  });
 
-export const FreshnessSummaryResponseSchema = z
-  .object({
+export const FreshnessSummaryResponseSchema = z.looseObject({
     tenant_id: z.string(),
     timestamp: z.string(),
     summary: FreshnessCountsSchema,
-    warning_threshold_days: z.number().int().nonnegative(),
-  })
-  .passthrough();
+    warning_threshold_days: z.number().int().min(0),
+  });
 
-export const StaleTruthsEnvelopeSchema = z
-  .object({
+export const StaleTruthsEnvelopeSchema = z.looseObject({
     items: z.array(TruthObjectSummarySchema),
-    total: z.number().int().nonnegative().optional(),
-    limit: z.number().int().nonnegative().optional(),
-    offset: z.number().int().nonnegative().optional(),
+    total: z.number().int().min(0).optional(),
+    limit: z.number().int().min(0).optional(),
+    offset: z.number().int().min(0).optional(),
     has_more: z.boolean().optional(),
-  })
-  .passthrough();
+  });
 
-export const MaturityLevelDetailSchema = z
-  .object({
+export const MaturityLevelDetailSchema = z.looseObject({
     level: z.number(),
     name: z.string(),
     description: z.string(),
     required_status: z.string(),
     advancement_trigger: z.string(),
-  })
-  .passthrough();
+  });
 
-export const MaturityLadderResponseSchema = z
-  .object({
+export const MaturityLadderResponseSchema = z.looseObject({
     levels: z.array(MaturityLevelDetailSchema),
-  })
-  .passthrough();
+  });
 
 export type TruthStatus = z.infer<typeof TruthStatusSchema>;
 export type ClaimType = z.infer<typeof ClaimTypeSchema>;
@@ -190,7 +174,7 @@ export function parseMaturityLadderResponse(data: unknown): MaturityLadderRespon
 }
 
 
-export const GovernanceEnvelopeSchema = z.object({
+export const GovernanceEnvelopeSchema = z.looseObject({
   content: z.unknown().optional(),
   claim_citations: z.array(z.object({ claim_id: z.string(), source_id: z.string() })).default([]),
   evidence_provenance_ids: z.array(z.string()).default([]),
@@ -198,7 +182,7 @@ export const GovernanceEnvelopeSchema = z.object({
   policy_decision: z.enum(["allow", "allow_with_redaction", "needs_approval", "deny"]),
   tenant_scope: z.object({ tenant_id: z.string(), scope: z.enum(["tenant", "cross_tenant_blocked"]) }),
   approval_required: z.boolean(),
-}).passthrough();
+});
 
 export function unwrapGovernanceEnvelope(data: unknown): unknown {
   const parsed = GovernanceEnvelopeSchema.safeParse(data);

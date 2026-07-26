@@ -4,7 +4,7 @@
  * Provides accessibility utilities following WCAG 2.1 AA standards.
  */
 
-import { useEffect, useCallback, useState } from 'react';
+import { useEffect, useCallback, useState, useRef } from 'react';
 
 /**
  * Detect if user prefers reduced motion
@@ -174,9 +174,12 @@ export function useListKeyboardNavigation(
     [itemCount, selectedIndex, onActivate]
   );
 
+  const onSelectRef = useRef(onSelect);
+  onSelectRef.current = onSelect;
+
   useEffect(() => {
-    onSelect(selectedIndex);
-  }, [selectedIndex, onSelect]);
+    onSelectRef.current(selectedIndex);
+  }, [selectedIndex]);
 
   return { selectedIndex, setSelectedIndex, handleKeyDown };
 }

@@ -67,7 +67,7 @@ export function TabNav({
       {tabs.map((tab) => {
         const isActive = activeTab === tab.id;
         return (
-          <button
+          <button type="button"
             key={tab.id}
             onClick={() => onChange(tab.id)}
             role="tab"

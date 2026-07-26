@@ -193,7 +193,7 @@ export default function EntityBrowser() {
       {/* Type legend chips */}
       <div className="flex gap-2 mb-4 flex-wrap">
         {(["capability","usecase","persona","valuedriver"] as EntityType[]).map(t => (
-          <button
+          <button type="button"
             key={t}
             onClick={() => setSelectedType(selectedType === t ? null : t)}
             className={`cursor-pointer transition-opacity ${selectedType && selectedType !== t ? 'opacity-50' : ''}`}
@@ -240,13 +240,13 @@ export default function EntityBrowser() {
                       ● {e.status.charAt(0).toUpperCase() + e.status.slice(1)}
                     </span>,
                     <div key={`${e.id}-actions`} className="flex gap-2">
-                      <button
+                      <button type="button"
                         onClick={() => setSelectedEntityId(e.id)}
                         className={`vf-text-caption hover:underline ${isSelected ? 'text-primary font-semibold' : 'text-primary'}`}
                       >
                         {isSelected ? 'Selected' : 'View'}
                       </button>
-                      <button className="text-muted-foreground/60 vf-text-caption hover:underline">Edit</button>
+                      <button type="button" className="text-muted-foreground/60 vf-text-caption hover:underline">Edit</button>
                     </div>,
                   ];
                 })}
@@ -272,7 +272,7 @@ export default function EntityBrowser() {
                       <EntityBadge type={mapEntityType(selectedEntity.type)}/>
                     </div>
                   </div>
-                  <button
+                  <button type="button"
                     onClick={() => setSelectedEntityId(null)}
                     className="text-muted-foreground/60 hover:text-muted-foreground transition-colors ml-2"
                   >
@@ -298,7 +298,7 @@ export default function EntityBrowser() {
                 {/* Tabs */}
                 <div className="flex border-b border-border px-4">
                   {["Details", "Relationships", "Source", "History"].map(tab => (
-                    <button
+                    <button type="button"
                       key={tab}
                       onClick={() => setDrawerTab(tab)}
                       className={`px-3 py-2.5 vf-text-caption font-semibold border-b-2 -mb-px transition-colors ${

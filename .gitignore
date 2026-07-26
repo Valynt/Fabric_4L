@@ -256,3 +256,6 @@ skip_debug.txt
 /_tmp_working_diff.txt
 
 .worktrees/
+
+# Helm chart dependencies fetched by CI (helm dependency build) — not vendored
+infra/helm/**/charts/

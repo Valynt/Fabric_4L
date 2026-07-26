@@ -131,8 +131,8 @@ function TreesTab({
                 />
               ) : (
                 <div className="space-y-3">
-                  {treePaths.map((path, idx) => (
-                    <div key={idx} className="border rounded-lg p-3">
+                  {treePaths.map((path) => (
+                    <div key={path.nodes.map(n => n.id).join('-')} className="border rounded-lg p-3">
                       <div className="flex items-center gap-2 flex-wrap">
                         {path.nodes.map((node, nIdx) => (
                           <span key={node.id} className="flex items-center gap-2">

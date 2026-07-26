@@ -70,7 +70,7 @@ export function EvidenceTabContent() {
                 const vc = VERIFICATION_CONFIG[item.verification];
                 const Icon = vc.icon;
                 return (
-                  <button
+                  <button type="button"
                     key={item.id}
                     onClick={() => setSelectedEvidence(item)}
                     className={cn(

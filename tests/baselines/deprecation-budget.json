@@ -3,37 +3,62 @@
   "description": "Baseline for approved deprecated symbols/modules in governance hot spots.",
   "approved": [
     {
-      "id": "apps/web/src/contexts/AuthContext.tsx:28:ts_js_doc_deprecated",
+      "id": "apps/web/src/api/generated/l3/index.ts:2295:ts_js_doc_deprecated",
       "rationale": "Approved temporary deprecation compatibility surface; tracked for staged removal.",
       "target_removal_date": "2026-12-31"
     },
     {
-      "id": "apps/web/src/services/sessionService.ts:69:ts_js_doc_deprecated",
+      "id": "apps/web/src/api/generated/l3/index.ts:2315:ts_js_doc_deprecated",
       "rationale": "Approved temporary deprecation compatibility surface; tracked for staged removal.",
       "target_removal_date": "2026-12-31"
     },
     {
-      "id": "apps/web/src/services/sessionService.ts:152:ts_js_doc_deprecated",
+      "id": "apps/web/src/api/generated/l3/index.ts:2335:ts_js_doc_deprecated",
       "rationale": "Approved temporary deprecation compatibility surface; tracked for staged removal.",
       "target_removal_date": "2026-12-31"
     },
     {
-      "id": "apps/web/src/services/sessionService.ts:162:ts_js_doc_deprecated",
+      "id": "apps/web/src/api/generated/l3/index.ts:2355:ts_js_doc_deprecated",
       "rationale": "Approved temporary deprecation compatibility surface; tracked for staged removal.",
       "target_removal_date": "2026-12-31"
     },
     {
-      "id": "apps/web/src/services/sessionService.ts:174:ts_js_doc_deprecated",
+      "id": "apps/web/src/api/generated/l3/index.ts:2375:ts_js_doc_deprecated",
       "rationale": "Approved temporary deprecation compatibility surface; tracked for staged removal.",
       "target_removal_date": "2026-12-31"
     },
     {
-      "id": "apps/web/src/test/authSessionTestUtils.ts:100:ts_js_doc_deprecated",
+      "id": "apps/web/src/api/generated/l3/index.ts:2395:ts_js_doc_deprecated",
       "rationale": "Approved temporary deprecation compatibility surface; tracked for staged removal.",
       "target_removal_date": "2026-12-31"
     },
     {
-      "id": "apps/web/src/test/authSessionTestUtils.ts:113:ts_js_doc_deprecated",
+      "id": "apps/web/src/api/generated/l3/index.ts:4281:ts_js_doc_deprecated",
+      "rationale": "Approved temporary deprecation compatibility surface; tracked for staged removal.",
+      "target_removal_date": "2026-12-31"
+    },
+    {
+      "id": "apps/web/src/api/generated/l4/index.ts:2341:ts_js_doc_deprecated",
+      "rationale": "Approved temporary deprecation compatibility surface; tracked for staged removal.",
+      "target_removal_date": "2026-12-31"
+    },
+    {
+      "id": "apps/web/src/api/generated/l4/index.ts:4677:ts_js_doc_deprecated",
+      "rationale": "Approved temporary deprecation compatibility surface; tracked for staged removal.",
+      "target_removal_date": "2026-12-31"
+    },
+    {
+      "id": "apps/web/src/api/generated/l4/index.ts:4688:ts_js_doc_deprecated",
+      "rationale": "Approved temporary deprecation compatibility surface; tracked for staged removal.",
+      "target_removal_date": "2026-12-31"
+    },
+    {
+      "id": "apps/web/src/api/generated/l4/index.ts:4705:ts_js_doc_deprecated",
+      "rationale": "Approved temporary deprecation compatibility surface; tracked for staged removal.",
+      "target_removal_date": "2026-12-31"
+    },
+    {
+      "id": "apps/web/src/api/generated/l6/index.ts:73:ts_js_doc_deprecated",
       "rationale": "Approved temporary deprecation compatibility surface; tracked for staged removal.",
       "target_removal_date": "2026-12-31"
     },
@@ -43,124 +68,54 @@
       "target_removal_date": "2026-12-31"
     },
     {
-      "id": "apps/web/src/api/legacy.ts:8:ts_js_doc_deprecated",
+      "id": "services/layer4-agents/src/layer4_agents/api/routes/frontend_compat.py:125:py_route_deprecated",
       "rationale": "Approved temporary deprecation compatibility surface; tracked for staged removal.",
       "target_removal_date": "2026-12-31"
     },
     {
-      "id": "apps/web/src/api/legacy.ts:19:ts_js_doc_deprecated",
+      "id": "services/layer4-agents/src/layer4_agents/api/routes/frontend_compat.py:149:py_route_deprecated",
       "rationale": "Approved temporary deprecation compatibility surface; tracked for staged removal.",
       "target_removal_date": "2026-12-31"
     },
     {
-      "id": "apps/web/src/api/legacy.ts:32:ts_js_doc_deprecated",
+      "id": "services/layer4-agents/src/layer4_agents/api/routes/frontend_compat.py:195:py_route_deprecated",
       "rationale": "Approved temporary deprecation compatibility surface; tracked for staged removal.",
       "target_removal_date": "2026-12-31"
     },
     {
-      "id": "apps/web/src/api/legacy.ts:55:ts_js_doc_deprecated",
+      "id": "services/layer4-agents/src/layer4_agents/api/routes/integrations.py:589:py_route_deprecated",
       "rationale": "Approved temporary deprecation compatibility surface; tracked for staged removal.",
       "target_removal_date": "2026-12-31"
     },
     {
-      "id": "apps/web/src/api/legacy.ts:69:ts_js_doc_deprecated",
+      "id": "services/layer4-agents/src/layer4_agents/database.py:630:py_deprecated_message",
       "rationale": "Approved temporary deprecation compatibility surface; tracked for staged removal.",
       "target_removal_date": "2026-12-31"
     },
     {
-      "id": "apps/web/src/api/generated/l4/index.ts:3651:ts_js_doc_deprecated",
+      "id": "services/layer4-agents/src/layer4_agents/database.py:661:py_deprecated_message",
       "rationale": "Approved temporary deprecation compatibility surface; tracked for staged removal.",
       "target_removal_date": "2026-12-31"
     },
     {
-      "id": "apps/web/src/api/generated/l4/index.ts:3662:ts_js_doc_deprecated",
+      "id": "services/layer4-agents/src/layer4_agents/database.py:767:py_deprecated_message",
       "rationale": "Approved temporary deprecation compatibility surface; tracked for staged removal.",
       "target_removal_date": "2026-12-31"
     },
     {
-      "id": "apps/web/src/api/generated/l4/index.ts:3679:ts_js_doc_deprecated",
+      "id": "services/layer4-agents/src/layer4_agents/database.py:853:py_deprecated_message",
       "rationale": "Approved temporary deprecation compatibility surface; tracked for staged removal.",
       "target_removal_date": "2026-12-31"
     },
     {
-      "id": "apps/web/src/api/generated/l3/index.ts:1898:ts_js_doc_deprecated",
+      "id": "services/layer4-agents/src/layer4_agents/database.py:931:py_deprecated_message",
       "rationale": "Approved temporary deprecation compatibility surface; tracked for staged removal.",
       "target_removal_date": "2026-12-31"
     },
     {
-      "id": "apps/web/src/api/generated/l3/index.ts:1918:ts_js_doc_deprecated",
+      "id": "services/layer4-agents/src/layer4_agents/tenant/middleware.py:21:py_deprecated_message",
       "rationale": "Approved temporary deprecation compatibility surface; tracked for staged removal.",
       "target_removal_date": "2026-12-31"
-    },
-    {
-      "id": "apps/web/src/api/generated/l3/index.ts:4407:ts_js_doc_deprecated",
-      "rationale": "Approved temporary deprecation compatibility surface; tracked for staged removal.",
-      "target_removal_date": "2026-12-31"
-    },
-    {
-      "id": "apps/web/src/api/generated/l3/index.ts:4413:ts_js_doc_deprecated",
-      "rationale": "Approved temporary deprecation compatibility surface; tracked for staged removal.",
-      "target_removal_date": "2026-12-31"
-    },
-    {
-      "id": "apps/web/src/api/generated/l3/index.ts:4419:ts_js_doc_deprecated",
-      "rationale": "Approved temporary deprecation compatibility surface; tracked for staged removal.",
-      "target_removal_date": "2026-12-31"
-    },
-    {
-      "id": "apps/web/src/components/ui/README.md:17:ts_js_doc_deprecated",
-      "rationale": "Approved temporary deprecation compatibility surface; tracked for staged removal.",
-      "target_removal_date": "2026-12-31"
-    },
-    {
-      "id": "apps/web/src/components/ui/fabric/LoadingSkeleton.tsx:2:ts_js_doc_deprecated",
-      "rationale": "Approved temporary deprecation compatibility surface; tracked for staged removal.",
-      "target_removal_date": "2026-12-31"
-    },
-    {
-      "id": "services/layer4-agents/src/database.py:362:py_deprecated_message",
-      "rationale": "Approved temporary deprecation compatibility surface; tracked for staged removal.",
-      "target_removal_date": "2026-12-31"
-    },
-    {
-      "id": "services/layer4-agents/src/database.py:409:py_deprecated_message",
-      "rationale": "Approved temporary deprecation compatibility surface; tracked for staged removal.",
-      "target_removal_date": "2026-12-31"
-    },
-    {
-      "id": "services/layer4-agents/src/database.py:526:py_deprecated_message",
-      "rationale": "Approved temporary deprecation compatibility surface; tracked for staged removal.",
-      "target_removal_date": "2026-12-31"
-    },
-    {
-      "id": "services/layer4-agents/src/database.py:610:py_deprecated_message",
-      "rationale": "Approved temporary deprecation compatibility surface; tracked for staged removal.",
-      "target_removal_date": "2026-12-31"
-    },
-    {
-      "id": "services/layer4-agents/src/database.py:688:py_deprecated_message",
-      "rationale": "Approved temporary deprecation compatibility surface; tracked for staged removal.",
-      "target_removal_date": "2026-12-31"
-    },
-    {
-      "id": "services/layer4-agents/src/tenant/middleware.py:18:py_deprecated_message",
-      "rationale": "Approved temporary deprecation compatibility surface; tracked for staged removal.",
-      "target_removal_date": "2026-12-31"
-    },
-    {
-      "id": "services/layer4-agents/src/api/routes/frontend_compat.py:117:py_route_deprecated",
-      "rationale": "Approved temporary deprecation compatibility surface; tracked for staged removal.",
-      "target_removal_date": "2026-08-01"
-    },
-    {
-      "id": "services/layer4-agents/src/api/routes/frontend_compat.py:141:py_route_deprecated",
-      "rationale": "Approved temporary deprecation compatibility surface; tracked for staged removal.",
-      "target_removal_date": "2026-08-01"
-    },
-    {
-      "id": "services/layer4-agents/src/api/routes/frontend_compat.py:187:py_route_deprecated",
-      "rationale": "Approved temporary deprecation compatibility surface; tracked for staged removal.",
-      "target_removal_date": "2026-07-01"
     }
   ]
 }
