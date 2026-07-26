@@ -322,3 +322,29 @@ class TestAsyncClient:
         assert len(tenants) == 1
         assert tenants[0].name == "Acme"
         await client.aclose()
+
+    async def test_ahealth(self):
+        transport = _mock_transport({
+            ("GET", "/health"): (200, {
+                "status": "healthy",
+                "service": "layer4-agents",
+                "version": "0.2.0",
+                "timestamp": "2024-01-01T00:00:00Z",
+                "executor_ready": True,
+                "uptime_seconds": 123.0,
+                "dependencies": [],
+                "metrics": {},
+            }),
+        })
+        client = ValueFabricClient(
+            base_url="https://api.example.com",
+            api_key="test-api-key",
+        )
+        client._async_client = httpx.AsyncClient(
+            transport=transport,
+            base_url="https://api.example.com",
+        )
+        health = await client.ahealth()
+        assert health.status == "healthy"
+        assert isinstance(health, HealthResponse)
+        await client.aclose()
