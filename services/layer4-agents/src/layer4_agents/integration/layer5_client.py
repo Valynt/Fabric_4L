@@ -394,7 +394,8 @@ class Layer5GroundTruthClient:
             raise
         except Exception as exc:
             logger.warning("Layer 5 list_truths failed: %s", exc)
-            return Layer5GroundTruthClient_list_truthsResult.model_validate({"error": str(exc), "items": [], "total": 0})
+            error_message = "Missing tenant context for 'list_truths'. Provide organization_id or use privileged system-call path with audit reason."
+            return Layer5GroundTruthClient_list_truthsResult.model_validate({"error": error_message, "items": [], "total": 0})
 
     async def validate_truth(
         self,
