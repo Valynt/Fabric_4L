@@ -50,7 +50,7 @@ const routeManifest: RouteManifest = {
 | `ui/route-manifest.ts` | §2.6 | State-machine routes | ~5 lines per route |
 | `ui/guards.ts` | §2.6 | Route guard examples | Copy guard patterns |
 | `errors/error-shape.ts` | §2.5 | Canonical error structures | Use as-is |
-| `errors/error-boundary.ts` | §2.3 | Error handling | Use as-is |
+| `errors/error-boundary.tsx` | §2.3 | Error handling | Use as-is |
 
 ## Usage Patterns
 

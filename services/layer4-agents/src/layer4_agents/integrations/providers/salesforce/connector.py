@@ -6,7 +6,7 @@ import re
 import urllib.parse
 from collections.abc import Awaitable, Callable
 from datetime import datetime
-from typing import Any
+from typing import Any, cast
 
 import httpx
 
@@ -59,11 +59,11 @@ class SalesforceConnector(CRMConnector, CRMWriteConnector):
     provider: CRMProvider = CRMProvider.SALESFORCE
 
     def __init__(self, config: dict[str, Any], client: httpx.AsyncClient | None = None) -> None:
-        self.access_token = config.get("crm_api_key") or config.get("api_key")
-        self.instance_url = config.get("crm_instance_url") or config.get("instance_url")
-        self._refresh_token = config.get("refresh_token")
-        self._client_id = config.get("client_id") or os.getenv("SALESFORCE_CLIENT_ID")
-        self._client_secret = config.get("client_secret") or os.getenv("SALESFORCE_CLIENT_SECRET")
+        self.access_token: str | None = cast(str | None, config.get("crm_api_key") or config.get("api_key"))
+        self.instance_url: str | None = cast(str | None, config.get("crm_instance_url") or config.get("instance_url"))
+        self._refresh_token: str | None = cast(str | None, config.get("refresh_token"))
+        self._client_id: str | None = cast(str | None, config.get("client_id") or os.getenv("SALESFORCE_CLIENT_ID"))
+        self._client_secret: str | None = cast(str | None, config.get("client_secret") or os.getenv("SALESFORCE_CLIENT_SECRET"))
         self._on_token_refresh: Callable[[dict[str, Any]], Awaitable[None]] | None = config.get(
             "on_token_refresh"
         )
@@ -94,6 +94,8 @@ class SalesforceConnector(CRMConnector, CRMWriteConnector):
         raised.
         """
         client = self._get_client()
+        if path.startswith("/") and self.instance_url is None:
+            raise PermanentError("Salesforce instance_url is required")
         url = f"{self.instance_url}{path}" if path.startswith("/") else path
         try:
             response = await client.request(
@@ -108,7 +110,7 @@ class SalesforceConnector(CRMConnector, CRMWriteConnector):
         except httpx.RequestError as e:
             raise classify_httpx_exception(e) from e
 
-        if response.status_code == 401 and self._refresh_token:
+        if response.status_code == 401 and self._refresh_token and self.instance_url:
             try:
                 token_result = await self.refresh_token(
                     refresh_token=self._refresh_token,
@@ -161,7 +163,7 @@ class SalesforceConnector(CRMConnector, CRMWriteConnector):
     ) -> tuple[list[dict[str, Any]], bool]:
         """Execute a SOQL query with pagination support."""
         all_records: list[dict[str, Any]] = []
-        query_url = (
+        query_url: str | None = (
             f"{self.instance_url}/services/data/{API_VERSION}/query?"
             f"q={urllib.parse.quote(query)}"
         )
@@ -317,11 +319,12 @@ class SalesforceConnector(CRMConnector, CRMWriteConnector):
             raise TransientError("Salesforce opportunity query was truncated")
         canonical_records = []
         for rec in records[:limit]:
+            probability = rec.get("Probability")
             canonical = {
                 "name": rec.get("Name"),
                 "stage": rec.get("StageName"),
                 "value": rec.get("Amount"),
-                "probability": rec.get("Probability") / 100 if rec.get("Probability") else 0,
+                "probability": probability / 100 if isinstance(probability, (int, float)) else 0,
                 "close_date": rec.get("CloseDate"),
             }
             canonical_records.append(

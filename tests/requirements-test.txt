@@ -31,6 +31,7 @@ pytest-json-report>=1.5.0
 httpx>=0.27.0
 anyio>=4.0.0
 aiohttp>=3.9.0        # Async HTTP client used by L4 notification tests at collection time
+aiosqlite>=0.20.0      # Async SQLite driver used by Layer 5 in-memory tenant isolation tests
 respx>=0.21.0          # HTTP mocking for httpx — mandatory for L1 crawler tests
 
 # ---------------------------------------------------------------------------
@@ -71,6 +72,7 @@ numpy>=2.1.0               # Required by Layer 4 calculation tools at mandatory 
 pandas>=3.0.3              # Required by Layer 4 workflow/tooling imports in mandatory gates
 langgraph>=0.2.0           # Required by Layer 4 tenant/security imports during mandatory collection
 jinja2>=3.1.4              # Required by Layer 4 document export tests during root collection
+boto3>=1.34.0                # Required by Layer 4 package storage imports during tenant/security gates
 
 # ---------------------------------------------------------------------------
 # Root conftest collection dependencies
@@ -100,6 +102,7 @@ PyJWT>=2.8.0
 prometheus-client>=0.17.0
 opentelemetry-api>=1.25.0
 opentelemetry-sdk>=1.25.0
+opentelemetry-exporter-otlp-proto-http>=1.25.0
 structlog>=23.0.0
 
 # ---------------------------------------------------------------------------

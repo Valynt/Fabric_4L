@@ -70,3 +70,22 @@ def test_no_expired_deprecation_exceptions() -> None:
             for e in expired
         )
         pytest.fail(f"Found {len(expired)} expired deprecation exception waiver(s):\n{details}")
+
+
+def test_contract_compliance_workflow_ignores_resolved_deprecation_targets() -> None:
+    workflow = (DEPRECATIONS_JSON.parents[2] / ".github" / "workflows" / "contract-compliance.yml").read_text(
+        encoding="utf-8"
+    )
+
+    assert "item.status !== 'resolved'" in workflow
+    assert "i.status !== 'resolved'" in workflow
+
+
+def test_contract_compliance_installs_ripgrep_before_deprecation_debt_scan() -> None:
+    workflow = (DEPRECATIONS_JSON.parents[2] / ".github" / "workflows" / "contract-compliance.yml").read_text(
+        encoding="utf-8"
+    )
+
+    install_idx = workflow.index("- name: Install ripgrep")
+    scan_idx = workflow.index("- name: Baseline deprecation debt scan")
+    assert install_idx < scan_idx
