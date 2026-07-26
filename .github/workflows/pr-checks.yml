@@ -912,6 +912,28 @@ jobs:
     defaults:
       run:
         working-directory: services/layer3-knowledge
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: layer3_knowledge
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d layer3_knowledge"
+          --health-interval 10s --health-timeout 5s --health-retries 5
+      neo4j:
+        image: neo4j:5
+        env:
+          NEO4J_AUTH: neo4j/testpassword
+        ports:
+          - 7474:7474
+          - 7687:7687
+        options: >-
+          --health-cmd "wget --no-verbose --tries=1 --spider http://localhost:7474 || exit 1"
+          --health-interval 10s --health-timeout 5s --health-retries 12
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
@@ -2242,6 +2264,7 @@ jobs:
       BASE_IMAGE: ""
       BUILDER_BASE_IMAGE: ""
     strategy:
+      fail-fast: false
       matrix:
         layer:
           [
@@ -2293,12 +2316,46 @@ jobs:
             BASE_IMAGE=${{ env.BASE_IMAGE }}
             BUILDER_BASE_IMAGE=${{ env.BUILDER_BASE_IMAGE }}
 
+      - name: Determine if image context changed against base
+        id: context-diff
+        run: |
+          git fetch --no-tags --prune origin "${{ github.base_ref || 'main' }}"
+          BASE_REF="origin/${{ github.base_ref || 'main' }}"
+          case "${{ matrix.layer }}" in
+            frontend)
+              CONTEXT_FILES="apps/web/Dockerfile apps/web/package.json pnpm-lock.yaml .nvmrc"
+              ;;
+            *)
+              CONTEXT_FILES="${{ matrix.context }}/Dockerfile ${{ matrix.context }}/pyproject.toml ${{ matrix.context }}/uv.lock ${{ matrix.context }}/requirements.lock"
+              ;;
+          esac
+          CHANGED=$(git diff --name-only "$BASE_REF...HEAD" -- $CONTEXT_FILES || true)
+          if [ -n "$CHANGED" ]; then
+            echo "context_changed=true" >> "$GITHUB_OUTPUT"
+            echo "Image context changed for ${{ matrix.layer }}:" >&2
+            echo "$CHANGED" >&2
+          else
+            echo "context_changed=false" >> "$GITHUB_OUTPUT"
+            echo "Image context unchanged for ${{ matrix.layer }}; findings are baseline" >&2
+          fi
+
+      - name: Determine Trivy exit code
+        id: trivy-exit
+        run: |
+          if [ "${{ github.event_name }}" != "pull_request" ]; then
+            echo "exit_code=1" >> "$GITHUB_OUTPUT"
+          elif [ "${{ steps.context-diff.outputs.context_changed }}" = "true" ]; then
+            echo "exit_code=1" >> "$GITHUB_OUTPUT"
+          else
+            echo "exit_code=0" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Run Trivy image scan (PR security stage)
         uses: aquasecurity/trivy-action@314ff8b43182423b84c50b1670b0e10f858f2d98
         with:
           image-ref: local/${{ matrix.layer }}:${{ github.sha }}
           format: table
-          exit-code: "1"
+          exit-code: ${{ steps.trivy-exit.outputs.exit_code }}
           ignore-unfixed: true
           severity: CRITICAL,HIGH
 
