@@ -322,3 +322,31 @@ class TestAsyncClient:
         assert len(tenants) == 1
         assert tenants[0].name == "Acme"
         await client.aclose()
+
+    async def test_aget_workflow(self):
+        transport = _mock_transport(
+            {
+                ("GET", "/v1/workflows/wf-1"): (
+                    200,
+                    {
+                        "workflow_instance_id": "wf-1",
+                        "workflow_type": "roi_calculator",
+                        "status": "running",
+                        "progress_percentage": 50.0,
+                    },
+                ),
+            }
+        )
+        client = ValueFabricClient(
+            base_url="https://api.example.com",
+            api_key="test-api-key",
+        )
+        client._async_client = httpx.AsyncClient(
+            transport=transport,
+            base_url="https://api.example.com",
+        )
+        wf = await client.aget_workflow("wf-1")
+        assert wf.workflow_instance_id == "wf-1"
+        assert wf.workflow_type == "roi_calculator"
+        assert wf.status == "running"
+        await client.aclose()
