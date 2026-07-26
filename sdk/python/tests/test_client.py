@@ -322,3 +322,27 @@ class TestAsyncClient:
         assert len(tenants) == 1
         assert tenants[0].name == "Acme"
         await client.aclose()
+
+    async def test_aget_tenant(self):
+        transport = _mock_transport({
+            ("GET", "/v1/tenants/11111111-1111-1111-1111-111111111111"): (200, {
+                "id": "11111111-1111-1111-1111-111111111111",
+                "name": "Acme",
+                "slug": "acme",
+                "status": "active",
+                "created_at": "2024-01-01T00:00:00Z",
+                "updated_at": "2024-01-01T00:00:00Z",
+            }),
+        })
+        client = ValueFabricClient(
+            base_url="https://api.example.com",
+            api_key="test-api-key",
+        )
+        client._async_client = httpx.AsyncClient(
+            transport=transport,
+            base_url="https://api.example.com",
+        )
+        tenant = await client.aget_tenant("11111111-1111-1111-1111-111111111111")
+        assert tenant.name == "Acme"
+        assert tenant.id == "11111111-1111-1111-1111-111111111111"
+        await client.aclose()
