@@ -35,3 +35,17 @@ def test_strict_flag_is_supported(tmp_path, monkeypatch, capsys) -> None:
 
     assert main() == 0
     assert "No breaking drift detected" in capsys.readouterr().out
+
+
+def test_check_drift_allows_registered_layer3_path_renames() -> None:
+    snapshot = {"paths": {"/graph": {"get": {"responses": {"200": {}}}}}}
+    current = {"paths": {"/v1/graph": {"get": {"responses": {"200": {}}}}}}
+
+    assert check_drift(snapshot, current) == []
+
+
+def test_check_drift_allows_registered_layer3_error_response_standardization() -> None:
+    snapshot = {"paths": {"/v1/variables": {"get": {"responses": {"200": {}, "401": {}}}}}}
+    current = {"paths": {"/v1/variables": {"get": {"responses": {"200": {}}}}}}
+
+    assert check_drift(snapshot, current) == []

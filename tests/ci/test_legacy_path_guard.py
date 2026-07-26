@@ -48,6 +48,7 @@ def test_ignores_non_filesystem_value_fabric_references() -> None:
         'CONTEXT="value-fabric/${layer}"',
         'Path.home() / ".config/value-fabric/crawler.yml"',
         '"value-fabric/infrastructure/wal-g"',
+        r"ghcr\.io/value-fabric/ci-tools/security-suite@sha256:[0-9a-f]{64}",
     ]
 
     assert all(legacy_path_guard.is_ignored(line) for line in ignored_lines)

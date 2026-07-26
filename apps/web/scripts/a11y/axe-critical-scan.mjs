@@ -15,7 +15,8 @@ if (routes.length === 0) {
 }
 
 const browser = await chromium.launch({ headless: true });
-const page = await browser.newPage();
+const context = await browser.newContext();
+const page = await context.newPage();
 
 const routeResults = [];
 
