@@ -333,6 +333,11 @@ async def batch_operation(
                     failed += 1
                     continue
 
+                # Refresh the prefetched row to avoid a TOCTOU race: a worker may
+                # have committed a terminal state after the batch prefetch, and
+                # blindly overwriting it would resurrect/cancel a finished job.
+                db.refresh(job)
+
                 # Check if job can be cancelled
                 terminal_states = [
                     JobStatus.COMPLETED.value,
