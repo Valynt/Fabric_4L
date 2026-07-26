@@ -4,8 +4,8 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from value_fabric.shared.fastapi_framework.middleware import add_governance_middleware
-from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.audit import audit_protected_routes
+from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.middleware import GovernanceMiddleware
 
 _TENANT_ID = "11111111-1111-4111-8111-111111111111"

@@ -19,9 +19,9 @@ _TEST_SECRET = "test-jwt-secret-for-unit-tests-32"
 _TEST_TENANT = uuid4()
 _TEST_ISSUER = "value-fabric-internal"
 _TEST_AUDIENCE = "value-fabric-services"
-_TEST_CLERK_ISSUER = "https://clerk.fabric4l.test"
-_TEST_CLERK_AUDIENCE = "fabric4l-api"
-_TEST_CLERK_ORIGIN = "http://localhost:3001"
+_TEST_OIDC_ISSUER = "https://clerk.fabric4l.test"
+_TEST_OIDC_AUDIENCE = "fabric4l-api"
+_TEST_OIDC_ORIGIN = "http://localhost:3001"
 
 
 def test_jwt_facade_exposes_extracted_token_implementations():
@@ -230,22 +230,22 @@ class TestDecodeJwt:
         with patch.dict(os.environ, env_overrides, clear=False):
             assert decode_jwt(token) is None
 
-    def test_clerk_token_accepts_configured_authorized_party(self):
-        token, env = _make_clerk_rs256_token(azp=_TEST_CLERK_ORIGIN)
+    def test_oidc_token_accepts_configured_authorized_party(self):
+        token, env = _make_oidc_rs256_token(azp=_TEST_OIDC_ORIGIN)
         with patch.dict(os.environ, env, clear=False):
             claims = decode_jwt(token)
 
         assert claims is not None
         assert claims.tenant_id == str(_TEST_TENANT)
-        assert claims.extra_claims["azp"] == _TEST_CLERK_ORIGIN
+        assert claims.extra_claims["azp"] == _TEST_OIDC_ORIGIN
 
-    def test_clerk_token_rejects_unconfigured_authorized_party(self):
-        token, env = _make_clerk_rs256_token(azp="https://attacker.example")
+    def test_oidc_token_rejects_unconfigured_authorized_party(self):
+        token, env = _make_oidc_rs256_token(azp="https://attacker.example")
         with patch.dict(os.environ, env, clear=False):
             assert decode_jwt(token) is None
 
-    def test_clerk_token_rejects_missing_authorized_party_when_configured(self):
-        token, env = _make_clerk_rs256_token(azp=None)
+    def test_oidc_token_rejects_missing_authorized_party_when_configured(self):
+        token, env = _make_oidc_rs256_token(azp=None)
         with patch.dict(os.environ, env, clear=False):
             assert decode_jwt(token) is None
 
@@ -268,18 +268,18 @@ class TestJwtSecretPolicy:
                 encode_jwt(_TEST_TENANT)
 
 
-def _make_clerk_rs256_token(*, azp: str | None) -> tuple[str, dict[str, str]]:
+def _make_oidc_rs256_token(*, azp: str | None) -> tuple[str, dict[str, str]]:
     private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
     public_jwk = json.loads(pyjwt.algorithms.RSAAlgorithm.to_jwk(private_key.public_key()))
-    public_jwk.update({"kid": "clerk-test-key", "alg": "RS256", "use": "sig"})
+    public_jwk.update({"kid": "oidc-test-key", "alg": "RS256", "use": "sig"})
     now = int(time.time())
     payload = {
-        "sub": "user_clerk_123",
+        "sub": "user_oidc_123",
         "tenant_id": str(_TEST_TENANT),
-        "org_id": "org_clerk_123",
+        "org_id": "org_oidc_123",
         "roles": ["analyst"],
-        "iss": _TEST_CLERK_ISSUER,
-        "aud": _TEST_CLERK_AUDIENCE,
+        "iss": _TEST_OIDC_ISSUER,
+        "aud": _TEST_OIDC_AUDIENCE,
         "iat": now,
         "nbf": now,
         "exp": now + 3600,
@@ -291,16 +291,13 @@ def _make_clerk_rs256_token(*, azp: str | None) -> tuple[str, dict[str, str]]:
         payload,
         private_key,
         algorithm="RS256",
-        headers={"kid": "clerk-test-key"},
+        headers={"kid": "oidc-test-key"},
     )
     env = {
-        "CLERK_ISSUER": _TEST_CLERK_ISSUER,
-        "CLERK_JWT_AUDIENCE": _TEST_CLERK_AUDIENCE,
-        "CLERK_AUTHORIZED_PARTIES": _TEST_CLERK_ORIGIN,
+        "OIDC_ISSUER": _TEST_OIDC_ISSUER,
+        "OIDC_AUDIENCE": _TEST_OIDC_AUDIENCE,
+        "OIDC_AUTHORIZED_PARTIES": _TEST_OIDC_ORIGIN,
         "OIDC_JWKS_JSON": json.dumps({"keys": [public_jwk]}),
-        "OIDC_ISSUER": "",
-        "OIDC_AUDIENCE": "",
         "OIDC_JWKS_URL": "",
-        "CLERK_JWKS_URL": "",
     }
     return token, env

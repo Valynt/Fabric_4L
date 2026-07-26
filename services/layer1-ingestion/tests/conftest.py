@@ -105,16 +105,23 @@ from starlette.types import ASGIApp
 
 
 def _get_app():
-    # Patch rate limiting before app import so tests don't get 429 from Redis
+    # Patch rate limiting before app import so tests don't get 429 from Redis.
+    from value_fabric.shared.identity import middleware as governance_middleware
     from value_fabric.shared.identity.middleware import GovernanceMiddleware
+
     async def _mock_check_rate_limit(self, request, ctx):
         mock_result = type("_MockResult", (), {"allowed": True, "remaining": 100, "reset_at": 0, "retry_after": None})
         return mock_result()
 
-    async def _mock_enforce_tenant_status(self, ctx):
+    async def _mock_enforce_tenant_status_method(self, ctx):
         return None
+
+    async def _mock_enforce_tenant_status_function(ctx, **kwargs):
+        return None
+
     GovernanceMiddleware._check_rate_limit = _mock_check_rate_limit
-    GovernanceMiddleware._enforce_tenant_status = _mock_enforce_tenant_status
+    GovernanceMiddleware._enforce_tenant_status = _mock_enforce_tenant_status_method
+    governance_middleware.enforce_tenant_status = _mock_enforce_tenant_status_function
     from value_fabric.shared.error_handling.handlers import register_exception_handlers
 
     from layer1_ingestion.api.main import app

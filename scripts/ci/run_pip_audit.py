@@ -9,8 +9,8 @@ import re
 import shutil
 import subprocess
 import sys
+from collections.abc import Callable, Sequence
 from pathlib import Path
-from typing import Any, Callable, Sequence
 
 CLEAN_EXIT = 0
 VULNERABLE_EXIT = 1
@@ -36,7 +36,7 @@ def _process_evidence(result: subprocess.CompletedProcess[str] | None) -> dict[s
     return {"stdout": _sanitize(result.stdout or ""), "stderr": _sanitize(result.stderr or "")}
 
 
-def _validate_report(report_path: Path) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+def _validate_report(report_path: Path) -> tuple[dict[str, object], list[dict[str, object]]]:
     if not report_path.exists():
         raise AuditOperationalError("pip-audit did not produce a report")
     if report_path.stat().st_size == 0:
@@ -51,7 +51,7 @@ def _validate_report(report_path: Path) -> tuple[dict[str, Any], list[dict[str, 
     if not isinstance(dependencies, list):
         raise AuditOperationalError("pip-audit report dependencies must be a list")
 
-    findings: list[dict[str, Any]] = []
+    findings: list[dict[str, object]] = []
     for index, dependency in enumerate(dependencies):
         if not isinstance(dependency, dict):
             raise AuditOperationalError(f"dependency entry {index} must be an object")
@@ -79,9 +79,9 @@ def _validate_report(report_path: Path) -> tuple[dict[str, Any], list[dict[str, 
     return report, findings
 
 
-def _write_sarif(path: Path, dependency_source: Path, findings: list[dict[str, Any]]) -> None:
-    rules: list[dict[str, Any]] = []
-    results: list[dict[str, Any]] = []
+def _write_sarif(path: Path, dependency_source: Path, findings: list[dict[str, object]]) -> None:
+    rules: list[dict[str, object]] = []
+    results: list[dict[str, object]] = []
     seen_rules: set[str] = set()
     for finding in findings:
         for detail in finding["details"]:
@@ -114,7 +114,7 @@ def run_scan(
     artifact_dir: Path,
     command_runner: CommandRunner = subprocess.run,
     executable_finder: ExecutableFinder = shutil.which,
-) -> tuple[int, dict[str, Any]]:
+) -> tuple[int, dict[str, object]]:
     artifact_dir.mkdir(parents=True, exist_ok=True)
     requirements_path = artifact_dir / "requirements.txt"
     report_path = artifact_dir / "report.json"
@@ -122,7 +122,7 @@ def run_scan(
     diagnostic_path = artifact_dir / "diagnostic.json"
     lock_path = service_dir / "uv.lock"
     project_path = service_dir / "pyproject.toml"
-    diagnostic: dict[str, Any] = {
+    diagnostic: dict[str, object] = {
         "schema_version": SCHEMA_VERSION,
         "service": service_name,
         "outcome": "operational_error",
@@ -182,16 +182,16 @@ def run_scan(
         diagnostic["scanner"] = _process_evidence(scanner_result)
         try:
             diagnostic_path.write_text(json.dumps(diagnostic, indent=2) + "\n", encoding="utf-8")
-        except Exception as write_exc:
+        except OSError as write_exc:
             sys.stderr.write(f"Failed to write diagnostic to {diagnostic_path}: {write_exc}\n")
             try:
                 sys.stderr.write(json.dumps(diagnostic, indent=2) + "\n")
-            except Exception:
+            except TypeError:
                 sys.stderr.write("Failed to serialize diagnostic for stderr output\n")
     return status, diagnostic
 
 
-def enforce(diagnostic_path: Path, *, expected_status: int) -> int:
+def _load_validated_diagnostic(diagnostic_path: Path, *, expected_status: int) -> tuple[int, dict[str, object] | None]:
     try:
         payload = json.loads(diagnostic_path.read_text(encoding="utf-8"))
         if not isinstance(payload, dict):
@@ -222,32 +222,53 @@ def enforce(diagnostic_path: Path, *, expected_status: int) -> int:
                 raise AuditOperationalError("diagnostic outcome is inconsistent with the saved report")
     except (OSError, json.JSONDecodeError, AuditOperationalError) as exc:
         print(f"Dependency audit operational error: {exc}", file=sys.stderr)
-        return OPERATIONAL_ERROR_EXIT
+        return OPERATIONAL_ERROR_EXIT, None
+    return expected[outcome], payload
+
+
+def _validate_vulnerability_entries(payload: dict[str, object]) -> list[tuple[str, str]] | None:
+    vulnerabilities = payload.get("vulnerabilities")
+    if not isinstance(vulnerabilities, list):
+        print("Dependency audit operational error: diagnostic vulnerabilities must be a list", file=sys.stderr)
+        return None
+    signatures: list[tuple[str, str]] = []
+    for finding in vulnerabilities:
+        if not isinstance(finding, dict):
+            print(
+                "Dependency audit operational error: diagnostic vulnerability entries must be objects",
+                file=sys.stderr,
+            )
+            return None
+        package = finding.get("package")
+        ids = finding.get("ids")
+        if (
+            not isinstance(package, str)
+            or not package.strip()
+            or not isinstance(ids, list)
+            or any(not isinstance(vuln_id, str) or not vuln_id for vuln_id in ids)
+        ):
+            print(
+                "Dependency audit operational error: diagnostic vulnerability entry is malformed",
+                file=sys.stderr,
+            )
+            return None
+        signatures.extend((package, vuln_id) for vuln_id in ids)
+    return signatures
+
+
+def enforce(diagnostic_path: Path, *, expected_status: int) -> int:
+    status, payload = _load_validated_diagnostic(diagnostic_path, expected_status=expected_status)
+    if payload is None:
+        return status
+    outcome = payload.get("outcome")
     if outcome == "vulnerable":
-        vulnerabilities = payload.get("vulnerabilities")
-        if not isinstance(vulnerabilities, list):
-            print("Dependency audit operational error: diagnostic vulnerabilities must be a list", file=sys.stderr)
+        signatures = _validate_vulnerability_entries(payload)
+        if signatures is None:
             return OPERATIONAL_ERROR_EXIT
-        for finding in vulnerabilities:
-            if not isinstance(finding, dict):
-                print(
-                    "Dependency audit operational error: diagnostic vulnerability entries must be objects",
-                    file=sys.stderr,
-                )
-                return OPERATIONAL_ERROR_EXIT
-            package = finding.get("package")
-            ids = finding.get("ids")
-            if (
-                not isinstance(package, str)
-                or not package.strip()
-                or not isinstance(ids, list)
-                or any(not isinstance(vuln_id, str) or not vuln_id for vuln_id in ids)
-            ):
-                print(
-                    "Dependency audit operational error: diagnostic vulnerability entry is malformed",
-                    file=sys.stderr,
-                )
-                return OPERATIONAL_ERROR_EXIT
+        packages: dict[str, list[str]] = {}
+        for package, vuln_id in signatures:
+            packages.setdefault(package, []).append(vuln_id)
+        for package, ids in packages.items():
             print(f"Vulnerable dependency: {package} ({', '.join(ids)})", file=sys.stderr)
     elif outcome == "operational_error":
         error = payload.get("error")
@@ -255,7 +276,42 @@ def enforce(diagnostic_path: Path, *, expected_status: int) -> int:
             f"Dependency audit operational error: {error if isinstance(error, str) else 'unknown'}",
             file=sys.stderr,
         )
-    return expected[outcome]
+    return status
+
+
+def compare(
+    current_diagnostic_path: Path,
+    *,
+    expected_current_status: int,
+    baseline_diagnostic_path: Path,
+    expected_baseline_status: int,
+) -> int:
+    current_status, current = _load_validated_diagnostic(
+        current_diagnostic_path, expected_status=expected_current_status
+    )
+    if current is None or current_status == OPERATIONAL_ERROR_EXIT:
+        return current_status
+    baseline_status, baseline = _load_validated_diagnostic(
+        baseline_diagnostic_path, expected_status=expected_baseline_status
+    )
+    if baseline is None or baseline_status == OPERATIONAL_ERROR_EXIT:
+        return baseline_status
+    if current_status == CLEAN_EXIT:
+        return CLEAN_EXIT
+
+    current_signatures = _validate_vulnerability_entries(current)
+    baseline_signatures = _validate_vulnerability_entries(baseline)
+    if current_signatures is None or baseline_signatures is None:
+        return OPERATIONAL_ERROR_EXIT
+
+    baseline_set = set(baseline_signatures)
+    introduced = [signature for signature in current_signatures if signature not in baseline_set]
+    inherited = [signature for signature in current_signatures if signature in baseline_set]
+    for package, vuln_id in inherited:
+        print(f"Inherited vulnerability: {package} ({vuln_id})")
+    for package, vuln_id in introduced:
+        print(f"Branch-introduced vulnerability: {package} ({vuln_id})", file=sys.stderr)
+    return VULNERABLE_EXIT if introduced else CLEAN_EXIT
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -268,6 +324,11 @@ def _parser() -> argparse.ArgumentParser:
     gate = subparsers.add_parser("enforce")
     gate.add_argument("--diagnostic", type=Path, required=True)
     gate.add_argument("--expected-status", type=int, required=True)
+    compare_parser = subparsers.add_parser("compare")
+    compare_parser.add_argument("--current-diagnostic", type=Path, required=True)
+    compare_parser.add_argument("--current-expected-status", type=int, required=True)
+    compare_parser.add_argument("--baseline-diagnostic", type=Path, required=True)
+    compare_parser.add_argument("--baseline-expected-status", type=int, required=True)
     return parser
 
 
@@ -276,6 +337,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.command == "scan":
         status, _ = run_scan(service_name=args.service_name, service_dir=args.service_dir, artifact_dir=args.artifact_dir)
         return status
+    if args.command == "compare":
+        return compare(
+            args.current_diagnostic,
+            expected_current_status=args.current_expected_status,
+            baseline_diagnostic_path=args.baseline_diagnostic,
+            expected_baseline_status=args.baseline_expected_status,
+        )
     return enforce(args.diagnostic, expected_status=args.expected_status)
 
 
