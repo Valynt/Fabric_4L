@@ -14,7 +14,6 @@ import typer
 from rich import print as rich_print
 from rich.prompt import Prompt
 
-from ._utils import get_client
 from .config import CONFIG_DIR, CONFIG_FILE, _load_config, _save_config
 
 app = typer.Typer(help="Authentication management")
