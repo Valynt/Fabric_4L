@@ -34,7 +34,6 @@ __all__ = [
     # Enums
     "ClaimType",
     "DeploymentEnvironment",
-    "DeploymentStatus",
     "DisputeReason",
     "MaturityLevel",
     "ModelCapability",
@@ -519,7 +518,6 @@ class MaturityLadderResponse(BaseModel):
 # Re-export enums
 from ..models.model_registry import (
     DeploymentEnvironment,
-    DeploymentStatus,
     ModelCapability,
     ModelProvider,
 )
