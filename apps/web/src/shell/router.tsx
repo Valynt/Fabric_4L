@@ -54,6 +54,7 @@ const GovernanceAdminControls = lazy(() => import("@/app/settings/pages/Governan
 const ClerkSignInPage = lazy(() => import("@/pages/ClerkSignIn"));
 const ClerkSignUpPage = lazy(() => import("@/pages/ClerkSignUp"));
 const ClerkSsoCallbackPage = lazy(() => import("@/pages/ClerkSsoCallback"));
+const AcceptInvitePage = lazy(() => import("@/pages/AcceptInvite"));
 const SelectOrganizationPage = lazy(() => import("@/pages/SelectOrganization"));
 const OnboardingPage = lazy(() => import("@/pages/Onboarding"));
 const ValueNarrativeHome = lazy(() => import("@/pages/ValueNarrativeHome"));
@@ -284,6 +285,11 @@ export const router = createBrowserRouter([
   {
     path: "/sign-up/*",
     element: <ClerkSignUpPage />,
+    handle: { accessPolicy: authPolicy },
+  },
+  {
+    path: "/accept-invite",
+    element: <AcceptInvitePage />,
     handle: { accessPolicy: authPolicy },
   },
   {
@@ -984,10 +990,10 @@ export const router = createBrowserRouter([
           { path: "/personal/preferences", element: <PersonalPreferences />, handle: { title: "Preferences", category: "Personal Settings" } },
           { path: "/personal/notifications", element: <PersonalNotifications />, handle: { title: "Notifications", category: "Personal Settings" } },
           { path: "/personal/sessions", element: <PersonalSessions />, handle: { title: "Active Sessions", category: "Personal Settings" } },
-          { path: "/personal/activity", element: <PersonalActivity />, handle: { title: "My Activity", category: "Personal Settings" } },
-          { path: "/settings", element: <Navigate to="/settings/profile" replace /> },
-          { path: "/settings/profile", element: <PersonalProfile />, handle: { title: "Profile", category: "Personal Settings" } },
-          { path: "/settings/security", element: <PersonalSecurity />, handle: { title: "Security", category: "Personal Settings" } },
+          { path: "/personal/activity", element: <PersonalActivity />, handle: { title: "My Activity", category: "Personal Settings", accessPolicy: homePolicy } },
+          { path: "/settings", element: <Navigate to="/settings/profile" replace />, handle: { accessPolicy: homePolicy } },
+          { path: "/settings/profile", element: <PersonalProfile />, handle: { title: "Profile", category: "Personal Settings", accessPolicy: homePolicy } },
+          { path: "/settings/security", element: <PersonalSecurity />, handle: { title: "Security", category: "Personal Settings", accessPolicy: homePolicy } },
           { path: "/settings/preferences", element: <PersonalPreferences />, handle: { title: "Preferences", category: "Personal Settings" } },
           { path: "/settings/notifications", element: <PersonalNotifications />, handle: { title: "Notifications", category: "Personal Settings" } },
           { path: "/settings/sessions", element: <PersonalSessions />, handle: { title: "Active Sessions", category: "Personal Settings" } },

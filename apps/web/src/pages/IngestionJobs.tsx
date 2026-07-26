@@ -356,7 +356,7 @@ export default function IngestionJobs() {
               />
             </div>
             {(filters.status !== 'all' || filters.dateFrom || filters.dateTo) && (
-              <button
+              <button type="button"
                 onClick={() => {
                   resetFilters();
                   paginationState.setPage(1);
@@ -513,8 +513,8 @@ export default function IngestionJobs() {
                         Stages
                       </span>
                       <div className="space-y-1">
-                        {detailData.stages.map((stage, i) => (
-                          <div key={i} className="flex items-center justify-between vf-text-caption">
+                        {detailData.stages.map((stage) => (
+                          <div key={stage.stage} className="flex items-center justify-between vf-text-caption">
                             <span className="truncate">{stage.stage}</span>
                             <span
                               className={

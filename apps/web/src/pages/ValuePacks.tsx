@@ -259,7 +259,7 @@ function PackActions({ selectedPackId, onDeploy, isDeploying, error, onClearErro
           <AlertCircle size={12} className="shrink-0 mt-0.5" />
           <span className="flex-1">{error}</span>
           {onClearError && (
-            <button onClick={onClearError} className="text-destructive/70 hover:text-destructive shrink-0">×</button>
+            <button type="button" onClick={onClearError} className="text-destructive/70 hover:text-destructive shrink-0">×</button>
           )}
         </div>
       )}
@@ -482,8 +482,8 @@ function ComparisonPanel({ packs }: { packs: ValuePack[] }) {
       </Btn>
       {comparison.data && (
         <div className="mt-3 space-y-1.5 vf-text-caption">
-          {Object.entries(comparison.data.differentiation_analysis || {}).map(([key, val]: [string, string], i: number) => (
-            <div key={i} className="flex items-center justify-between p-1.5 bg-muted/10 rounded vf-text-micro">
+          {Object.entries(comparison.data.differentiation_analysis || {}).map(([key, val]: [string, string]) => (
+            <div key={key} className="flex items-center justify-between p-1.5 bg-muted/10 rounded vf-text-micro">
               <span className="font-medium text-muted-foreground">{key}</span>
               <span className="text-foreground">{val}</span>
             </div>

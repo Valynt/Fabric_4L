@@ -85,12 +85,12 @@ export function LeftNavigation({
   );
   const accounts = accountsData?.items ?? [];
 
-  const navItems = NAV_SCHEMA
-    .filter((item) => isItemVisible(item.tier, currentTier))
-    .map((item) => ({
-      ...item,
-      path: resolveNavPath(item.path, resolvedTenantSlug, accountId),
-    }));
+  const navItems = NAV_SCHEMA.reduce((acc, item) => {
+    if (isItemVisible(item.tier, currentTier)) {
+      acc.push({ ...item, path: resolveNavPath(item.path, resolvedTenantSlug, accountId) });
+    }
+    return acc;
+  }, [] as Array<typeof NAV_SCHEMA[number] & { path: string }>);
 
   return (
     <aside
@@ -150,12 +150,12 @@ export function LeftNavigation({
             pathname.startsWith(item.path);
 
           const visibleChildren = sectionActive
-            ? (item.children ?? [])
-                .filter((child) => isItemVisible(child.tier, currentTier))
-                .map((child) => ({
-                  ...child,
-                  path: resolveNavPath(child.path, tenantSlug, accountId),
-                }))
+            ? (item.children ?? []).reduce((acc, child) => {
+                if (isItemVisible(child.tier, currentTier)) {
+                  acc.push({ ...child, path: resolveNavPath(child.path, tenantSlug, accountId) });
+                }
+                return acc;
+              }, [] as Array<NonNullable<typeof item.children>[number] & { path: string }>)
             : [];
 
           return (

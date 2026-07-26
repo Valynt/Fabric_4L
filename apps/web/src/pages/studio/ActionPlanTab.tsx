@@ -250,7 +250,7 @@ export default function ActionPlanTab({ accountId }: StudioTabProps) {
             const expanded = expandedId === rec.id;
             return (
               <SectionCard key={rec.id}>
-                <button
+                <button type="button"
                   onClick={() => setExpandedId(expanded ? null : rec.id)}
                   className="flex items-start gap-3 w-full text-left"
                 >

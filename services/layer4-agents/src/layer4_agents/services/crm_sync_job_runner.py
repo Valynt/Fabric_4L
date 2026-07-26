@@ -15,10 +15,10 @@ from value_fabric.shared.identity.context import RequestContext
 
 from ..database import db_session_for_context, get_session_factory
 from ..integrations.core.observations import (
-    SyncInterrupted,
-    SyncPartial,
-    SyncStarted,
-    SyncSucceeded,
+    sync_interrupted,
+    sync_partial,
+    sync_started,
+    sync_succeeded,
 )
 from ..integrations.core.state import apply_observation
 from ..models.account import CRMProvider
@@ -122,7 +122,7 @@ class CRMSyncJobRunner:
 
             job.status = CRMSyncJobStatus.RUNNING
             job.started_at = datetime.now(UTC)
-            await apply_observation(db, integration, SyncStarted())
+            await apply_observation(db, integration, sync_started())
 
             try:
                 stats = await sync_service.sync_provider(provider, tenant_id=tenant_id)
@@ -133,12 +133,12 @@ class CRMSyncJobRunner:
                 if stats["failed"] > 0:
                     job.status = CRMSyncJobStatus.FAILED
                     job.error_summary = "; ".join(stats["errors"][:3]) or "Sync failed"
-                    await apply_observation(db, integration, SyncPartial())
+                    await apply_observation(db, integration, sync_partial())
                     integration.last_error_message = job.error_summary
                 else:
                     job.status = CRMSyncJobStatus.SUCCEEDED
                     job.error_summary = None
-                    await apply_observation(db, integration, SyncSucceeded())
+                    await apply_observation(db, integration, sync_succeeded())
                     integration.last_error_message = None
                     integration.last_successful_sync_at = datetime.now(UTC)
                 integration.records_synced = job.records_synced + job.records_updated
@@ -167,7 +167,7 @@ class CRMSyncJobRunner:
                 job.finished_at = datetime.now(UTC)
                 sanitized = f"{type(exc).__name__}: sync_job_failed"
                 job.error_summary = sanitized
-                await apply_observation(db, integration, SyncInterrupted(message=sanitized))
+                await apply_observation(db, integration, sync_interrupted(message=sanitized))
                 integration.last_sync_at = datetime.now(UTC)
                 integration.last_error_message = sanitized
                 try:

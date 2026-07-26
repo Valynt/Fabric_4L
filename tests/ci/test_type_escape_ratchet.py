@@ -7,7 +7,6 @@ import yaml
 
 from scripts.ci import type_escape_ratchet
 
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 

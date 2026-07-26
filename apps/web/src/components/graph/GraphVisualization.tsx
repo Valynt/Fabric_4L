@@ -115,7 +115,7 @@ export function GraphVisualization({
 
             return (
               <line
-                key={`edge-${edge.sourceId}-${edge.targetId}-${index}`}
+                key={`edge-${edge.sourceId}-${edge.targetId}`}
                 x1={sourcePos.x}
                 y1={sourcePos.y}
                 x2={targetPos.x}

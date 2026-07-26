@@ -41,7 +41,7 @@ function CopyButton({ text }: { text: string }) {
   };
 
   return (
-    <button
+    <button type="button"
       onClick={handleCopy}
       className="ml-2 p-1 rounded hover:bg-muted transition-colors"
       title="Copy trace ID"
@@ -136,7 +136,7 @@ class ErrorBoundary extends Component<Props, State> {
               </div>
             )}
 
-            <button
+            <button type="button"
               onClick={() => window.location.reload()}
               className={cn(
                 "flex items-center gap-2 px-4 py-2 rounded-lg",

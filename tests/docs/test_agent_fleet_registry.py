@@ -1,6 +1,5 @@
 from pathlib import Path
 
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
 FLEET_REGISTRY = REPO_ROOT / ".windsurf" / "AGENTS.md"
 

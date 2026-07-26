@@ -18,12 +18,12 @@ from value_fabric.shared.identity.context import (
     AUTH_SOURCE_SERVICE_ACCOUNT,
     RequestContext,
 )
-from value_fabric.shared.identity.middleware import (
+from value_fabric.shared.identity.constants import (
     EXTERNAL_AUTH_BOOTSTRAP_ALLOWLIST,
-    GovernanceMiddleware,
     SESSION_COOKIE_NAME,
     TENANT_ID_HEADER,
 )
+from value_fabric.shared.identity.middleware import GovernanceMiddleware
 from value_fabric.shared.identity.permissions import Permission, Role
 
 

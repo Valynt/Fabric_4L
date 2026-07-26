@@ -38,7 +38,8 @@ spec:
                 - keyless:
                     issuer: "https://token.actions.githubusercontent.com"
                     subject: "https://github.com/bmsull560/Fabric_4L/.github/workflows/build-deploy.yml*"
-                    rekorURL: https://rekor.sigstore.dev
+                    rekor:
+                          url: https://rekor.sigstore.dev
           # Additional verification for attestations
           attestations:
             - type: https://slsa.dev/provenance/v0.2
@@ -47,7 +48,8 @@ spec:
                     - keyless:
                         issuer: "https://token.actions.githubusercontent.com"
                         subject: "https://github.com/bmsull560/Fabric_4L/.github/workflows/build-deploy.yml*"
-                        rekorURL: https://rekor.sigstore.dev
+                        rekor:
+                          url: https://rekor.sigstore.dev
               conditions:
                 - all:
                     - key: buildType
@@ -86,7 +88,8 @@ spec:
                 - entries:
                     - keyless:
                         issuer: "https://token.actions.githubusercontent.com"
-                        rekorURL: https://rekor.sigstore.dev
+                        rekor:
+                          url: https://rekor.sigstore.dev
 ---
 apiVersion: kyverno.io/v1
 kind: ClusterPolicy

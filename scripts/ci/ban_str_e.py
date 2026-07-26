@@ -13,6 +13,26 @@ from pathlib import Path
 _UNSAFE_PATTERN = re.compile(
     r"(str|repr)\((e|err|exc|error|exception)\b\)", re.IGNORECASE
 )
+_ALLOWLIST = Path("config/ci/ban_str_e_allowlist.txt")
+
+
+def load_allowlist(repo_root):
+    """Load reviewed exception-string debt entries keyed by path and exact line."""
+    allowlist_path = repo_root / _ALLOWLIST
+    if not allowlist_path.exists():
+        return set()
+    entries = set()
+    for raw_line in allowlist_path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if "|" not in line:
+            print(f"ERROR: malformed allowlist entry in {_ALLOWLIST}: {raw_line}")
+            entries.add(("__malformed__", raw_line))
+            continue
+        rel_path, code = line.split("|", 1)
+        entries.add((rel_path.strip(), code.strip()))
+    return entries
 
 
 def check_file(filepath):
@@ -61,6 +81,7 @@ def main():
     exit_code = 0
     # scripts/ci/ban_str_e.py -> repo_root needs 3 levels up
     repo_root = Path(__file__).resolve().parents[2]
+    allowlist = load_allowlist(repo_root)
     # Check all Python files in services/ and packages/
     globs = ["services/**/*.py", "packages/**/*.py"]
     for glob_pattern in globs:
@@ -71,8 +92,11 @@ def main():
                 continue
             if "/tests/" in path_str.replace("\\", "/") or "/migrations/" in path_str.replace("\\", "/") or ".venv" in path_str or "node_modules" in path_str:
                 continue
+            rel_path = pyfile.relative_to(repo_root).as_posix()
             issues = check_file(pyfile)
             for lineno, line in issues:
+                if (rel_path, line) in allowlist:
+                    continue
                 print(f"ERROR: {pyfile}:{lineno}: str(e)/repr(e) leak detected")
                 print(f"  {line}")
                 exit_code = 1

@@ -40,3 +40,24 @@ def test_detects_legacy_value_fabric_fs_token(tmp_path: Path) -> None:
                     violations.append((path.relative_to(repo).as_posix(), idx))
 
     assert violations == [("scripts/bad.sh", 1)]
+
+def test_ignores_non_filesystem_value_fabric_references() -> None:
+    ignored_lines = [
+        '"owner": "value-fabric/security-leads"',
+        '"owner": "value-fabric/backend-leads"',
+        'CONTEXT="value-fabric/${layer}"',
+        'Path.home() / ".config/value-fabric/crawler.yml"',
+        '"value-fabric/infrastructure/wal-g"',
+        r"ghcr\.io/value-fabric/ci-tools/security-suite@sha256:[0-9a-f]{64}",
+    ]
+
+    assert all(legacy_path_guard.is_ignored(line) for line in ignored_lines)
+    assert not legacy_path_guard.is_ignored("cd value-fabric/service")
+
+def test_should_scan_skips_python_cache_files(tmp_path: Path) -> None:
+    repo = tmp_path
+    cache_file = repo / "scripts" / "ci" / "__pycache__" / "legacy_path_guard.pyc"
+    cache_file.parent.mkdir(parents=True)
+    cache_file.write_bytes(b"value-fabric/cache")
+
+    assert not legacy_path_guard.should_scan(cache_file, repo)

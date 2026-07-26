@@ -1,13 +1,12 @@
 import { z } from "zod";
 
-const UnknownRecordSchema = z.object({}).catchall(z.unknown());
+const UnknownRecordSchema = z.record(z.string(), z.unknown());
 
 export const ProductFeatureSchema = UnknownRecordSchema;
 
 export const ProductCapabilitySchema = UnknownRecordSchema;
 
-export const ProductSchema = z
-  .object({
+export const ProductSchema = z.looseObject({
     id: z.string(),
     name: z.string(),
     description: z.string().nullable().optional(),
@@ -20,46 +19,37 @@ export const ProductSchema = z
     capabilities: z.array(ProductCapabilitySchema).optional().default([]),
     created_at: z.string().nullable().optional(),
     updated_at: z.string().nullable().optional(),
-  })
-  .passthrough();
+  });
 
-export const ProductListResponseSchema = z
-  .object({
+export const ProductListResponseSchema = z.looseObject({
     products: z.array(ProductSchema),
-    total: z.number().int().nonnegative(),
-    skip: z.number().int().nonnegative().optional().default(0),
-    limit: z.number().int().nonnegative().optional().default(0),
-  })
-  .passthrough();
+    total: z.number().int().min(0),
+    skip: z.number().int().min(0).optional().default(0),
+    limit: z.number().int().min(0).optional().default(0),
+  });
 
-export const SignalMatchSchema = z
-  .object({
+export const SignalMatchSchema = z.looseObject({
     product: ProductSchema.or(UnknownRecordSchema),
     total_score: z.number(),
-    signal_count: z.number().int().nonnegative(),
+    signal_count: z.number().int().min(0),
     top_matches: z.array(UnknownRecordSchema),
-  })
-  .passthrough();
+  });
 
-export const PortfolioSummarySchema = z
-  .object({
-    total_products: z.number().int().nonnegative(),
-    total_features: z.number().int().nonnegative(),
-    total_capabilities: z.number().int().nonnegative(),
+export const PortfolioSummarySchema = z.looseObject({
+    total_products: z.number().int().min(0),
+    total_features: z.number().int().min(0),
+    total_capabilities: z.number().int().min(0),
     categories: z.array(z.string()),
     avg_features_per_product: z.number(),
     avg_capabilities_per_product: z.number(),
-  })
-  .passthrough();
+  });
 
-export const CapabilityCoverageSchema = z
-  .object({
+export const CapabilityCoverageSchema = z.looseObject({
     capability: ProductCapabilitySchema,
     products: z.array(ProductSchema.or(UnknownRecordSchema)),
-    signal_demand: z.number().int().nonnegative(),
+    signal_demand: z.number().int().min(0),
     status: z.string(),
-  })
-  .passthrough();
+  });
 
 export const FeatureMutationResponseSchema = UnknownRecordSchema;
 

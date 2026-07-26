@@ -176,8 +176,8 @@ export function ValuePackDetail({
 
           <SectionCard title="Why This Platform Wins" subtitle="Differentiated value propositions">
             <div className="space-y-3">
-              {valuepack.why_it_wins.map((win, idx) => (
-                <div key={idx} className="p-3 border rounded-lg bg-primary/5">
+              {valuepack.why_it_wins.map((win) => (
+                <div key={win.statement} className="p-3 border rounded-lg bg-primary/5">
                   <p className="font-medium text-sm text-foreground">{win.statement}</p>
                   <p className="text-xs text-muted-foreground mt-1">{win.differentiation}</p>
                   <p className="text-xs text-primary mt-1">Proof: {win.proof_point}</p>
@@ -245,7 +245,7 @@ function ValueDriverCard({ driver }: { driver: ValuePackFrameworkData["primary_v
         </Badge>
       </div>
       
-      <button
+      <button type="button"
         onClick={() => setExpanded(!expanded)}
         className="flex items-center gap-1 text-xs text-primary mt-3 hover:underline"
       >

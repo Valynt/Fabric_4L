@@ -21,7 +21,6 @@ try:
     from value_fabric.shared.error_handling.exceptions import (
         AuthorizationError,
         ConflictError,
-        NotFoundError,
         TenantIsolationError,
         ValidationError,
     )
@@ -589,6 +588,9 @@ async def accept_invitation(
 ) -> UserModel:
     """Accept an invitation by setting a password and activating the account.
 
+    All failure modes (invalid/expired/consumed token, user not found, already
+    accepted) return a uniform 401 to prevent information leakage.
+
     Args:
         db: Database session
         request: Accept invite request with token, password, and optional display_name
@@ -598,14 +600,19 @@ async def accept_invitation(
         Activated user model
 
     Raises:
-        ValidationError: If token is invalid, expired, or already used
-        NotFoundError: If user not found
-        ConflictError: If invitation already accepted or account deactivated
+        HTTPException: 401 for any token/user/state failure; 400 for bad password
     """
-    # Verify invitation token
+    from fastapi import HTTPException, status
+
+    _auth_fail = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Invalid or expired invitation token",
+    )
+
+    # Atomically verify and consume the invitation token (GETDEL)
     token_data = await invitation_service.verify_token(request.token)
     if not token_data:
-        raise ValidationError(message="Invalid or expired invitation token")
+        raise _auth_fail
 
     # Look up user
     result = await db.execute(
@@ -613,10 +620,10 @@ async def accept_invitation(
     )
     user = result.scalar_one_or_none()
     if not user:
-        raise NotFoundError(message="Invitation user not found")
+        raise _auth_fail
 
     if user.status != UserStatus.INVITED.value:
-        raise ConflictError(message="Invitation already accepted or account deactivated")
+        raise _auth_fail
 
     # Validate and hash password
     try:
@@ -634,8 +641,8 @@ async def accept_invitation(
     user.updated_at = datetime.now(UTC)
     await db.flush()
 
-    # Mark token as used
-    await invitation_service.mark_token_used(request.token)
+    # Consume the token only after successful activation
+    await invitation_service.consume_token(request.token)
 
     logger.info("User %s accepted invitation in tenant %s", user.id, user.tenant_id)
     return _user_to_model(user)

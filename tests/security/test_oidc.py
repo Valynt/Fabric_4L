@@ -22,7 +22,7 @@ from unittest.mock import Mock, patch
 import httpx
 import pytest
 from value_fabric.shared.audit import AuditAction, AuditOutcome
-from value_fabric.shared.identity.middleware import extract_context_from_jwt
+from value_fabric.shared.identity.context_builders import extract_context_from_jwt
 from value_fabric.shared.identity.oidc import OIDCClient, map_role_from_claims
 from value_fabric.shared.identity.oidc_config import OIDCProviderConfig
 

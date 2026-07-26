@@ -1,4 +1,3 @@
-# syntax=docker/dockerfile:1
 FROM node@sha256:926d6cafec97f338577041890465522f70fe74aa6fe4b021a4fd7f87a5996b25 AS builder
 WORKDIR /app
 
@@ -25,9 +24,9 @@ ENV VITE_L5_PREFIX=${VITE_L5_PREFIX}
 ENV VITE_L6_PREFIX=${VITE_L6_PREFIX}
 ENV VITE_L7_PREFIX=${VITE_L7_PREFIX}
 
-# Install pnpm directly instead of corepack to avoid signature-key rotation
-# issues that periodically break `corepack enable` in pinned base images.
-RUN npm install -g pnpm@10.18.1
+# Install the exact pnpm version in the image per repo policy (docs/development/BUILD_SYSTEM.md).
+# Version is pinned explicitly to match root package.json "packageManager".
+RUN npm install --global pnpm@10.18.1
 
 # Copy workspace manifests for pnpm --filter support
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
@@ -36,9 +35,7 @@ COPY apps/web/package.json ./apps/web/
 COPY apps/web/scripts/enforce-package-manager.cjs ./apps/web/scripts/enforce-package-manager.cjs
 COPY packages/eslint-plugin-fabric-contracts/package.json ./packages/eslint-plugin-fabric-contracts/
 COPY packages/config/package.json ./packages/config/
-COPY packages/feature-flags/package.json ./packages/feature-flags/
 COPY packages/platform-contract/package.json ./packages/platform-contract/
-COPY packages/shared/package.json ./packages/shared/
 
 # Install from workspace root
 RUN pnpm install --frozen-lockfile --ignore-scripts
@@ -46,9 +43,7 @@ RUN pnpm install --frozen-lockfile --ignore-scripts
 # Copy workspace source needed for the web build
 COPY apps/web ./apps/web
 COPY packages/config ./packages/config
-COPY packages/feature-flags ./packages/feature-flags
 COPY packages/platform-contract ./packages/platform-contract
-COPY packages/shared ./packages/shared
 RUN pnpm --filter ./apps/web build
 
 FROM node@sha256:926d6cafec97f338577041890465522f70fe74aa6fe4b021a4fd7f87a5996b25 AS runtime
@@ -57,8 +52,8 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3000
 
-# Install pnpm directly instead of corepack to avoid signature-key rotation issues.
-RUN npm install -g pnpm@10.18.1
+# Install the exact pnpm version in the image per repo policy (version pinned to match root package.json).
+RUN npm install --global pnpm@10.18.1
 
 # Copy workspace manifests for pnpm --filter support
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
@@ -67,6 +62,7 @@ COPY apps/web/package.json ./apps/web/
 COPY apps/web/scripts/enforce-package-manager.cjs ./apps/web/scripts/enforce-package-manager.cjs
 COPY packages/eslint-plugin-fabric-contracts/package.json ./packages/eslint-plugin-fabric-contracts/
 COPY packages/config/package.json ./packages/config/
+COPY packages/platform-contract/package.json ./packages/platform-contract/
 
 # Install from workspace root (production only)
 # Ignore lifecycle scripts in the runtime stage: the app is already built in the

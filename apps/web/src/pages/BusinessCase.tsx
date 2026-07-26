@@ -481,7 +481,7 @@ export default function BusinessCase() {
                 idx,
               );
               return (
-                <li key={idx} className="flex items-start gap-2 vf-text-body-m text-foreground">
+                <li key={rec} className="flex items-start gap-2 vf-text-body-m text-foreground">
                   <span className="text-primary font-bold shrink-0">{idx + 1}.</span>
                   <span className="flex-1">{rec}</span>
                   {claimState && (
@@ -554,7 +554,7 @@ export default function BusinessCase() {
               const refType = String(r.type ?? 'reference');
               const typeLabel = refType === 'evidence' ? 'Evidence' : refType === 'benchmark' ? 'Benchmark' : 'Assumption';
               return (
-                <li key={idx} className="flex items-start gap-2 vf-text-body-s border-l-2 border-primary/30 pl-3">
+                <li key={String(r.claim ?? r.text ?? idx)} className="flex items-start gap-2 vf-text-body-s border-l-2 border-primary/30 pl-3">
                   <span className="font-semibold text-primary shrink-0">{typeLabel}:</span>
                   <span className="text-foreground">{String(r.claim ?? r.text ?? '')}</span>
                   {r.source != null && (
@@ -574,8 +574,8 @@ export default function BusinessCase() {
       {businessCase.revision_history && businessCase.revision_history.length > 0 && (
         <SectionCard title="Revision History" className="mt-5">
           <ul className="space-y-1 vf-text-body-s">
-            {businessCase.revision_history.map((entry, idx) => (
-              <li key={idx}>{String(entry.case_id)} · {String(entry.created_at ?? "unknown")}</li>
+            {businessCase.revision_history.map((entry) => (
+              <li key={String(entry.case_id ?? entry.created_at)}>{String(entry.case_id)} · {String(entry.created_at ?? "unknown")}</li>
             ))}
           </ul>
         </SectionCard>

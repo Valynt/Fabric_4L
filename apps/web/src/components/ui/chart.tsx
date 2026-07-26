@@ -283,13 +283,12 @@ function ChartLegendContent({
         className
       )}
     >
-      {payload
-        .filter(item => item.type !== "none")
-        .map(item => {
+      {payload.flatMap(item => {
+          if (item.type === "none") return [];
           const key = `${nameKey || item.dataKey || "value"}`;
           const itemConfig = getPayloadConfigFromPayload(config, item, key);
 
-          return (
+          return [(
             <div
               key={item.value}
               className={cn(
@@ -308,7 +307,7 @@ function ChartLegendContent({
               )}
               {itemConfig?.label}
             </div>
-          );
+          )];
         })}
     </div>
   );

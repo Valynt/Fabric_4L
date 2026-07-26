@@ -428,7 +428,7 @@ class TestPermissionScopeChecks:
         string passes through the same code that runs in production.
         """
         try:
-            from value_fabric.shared.identity.middleware import extract_context_from_jwt
+            from value_fabric.shared.identity.context_builders import extract_context_from_jwt
             from value_fabric.shared.identity.permissions import Permission
         except ImportError:
             pytest.skip("Identity middleware not available")

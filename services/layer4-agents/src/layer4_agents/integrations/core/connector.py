@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Protocol, runtime_checkable
 
-from .types import CRMModel, CRMOperationResult, CanonicalRecord, SyncCursor
+from .types import CanonicalRecord, CRMModel, CRMOperationResult, SyncCursor
 
 
 @runtime_checkable

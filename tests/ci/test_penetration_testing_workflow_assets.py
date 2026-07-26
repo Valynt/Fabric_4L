@@ -41,3 +41,59 @@ def test_nikto_workflow_has_missing_script_fallback() -> None:
     assert "Nikto report unavailable for target ${{ env.TARGET_URL }}" in run_section, "Missing fallback report message"
     assert "nikto-results/nikto-report.txt" in run_section, "Missing fallback nikto-report output"
     assert "nikto-results/summary.json" in run_section, "Missing fallback summary.json generation"
+
+
+def test_zap_workflow_fails_closed_and_preserves_evidence() -> None:
+    workflow = yaml.safe_load(PEN_TEST_WORKFLOW.read_text(encoding="utf-8"))
+    assert workflow["env"]["TARGET_URL"] == "${{ inputs.target_url || 'http://localhost:8004' }}"
+
+    zap_steps = workflow["jobs"]["zap-scan"]["steps"]
+    startup = _find_step_by_name(zap_steps, "Start test stack")
+    assert "up -d || true" not in startup["run"]
+    assert "curl --fail --silent --show-error" in startup["run"]
+    assert "docker compose -f infra/compose/docker-compose.full.yml --env-file .env logs --no-color" in startup["run"]
+    assert startup["continue-on-error"] is True
+    assert "mkdir -p zap-results" in startup["run"], "Output directory must be created up front"
+    assert "zap-results/metadata.json" in startup["run"], "Metadata file must be written up front"
+    assert "tee zap-results/compose.log" in startup["run"], "Compose logs must be teed to compose.log on failure"
+
+    scan = _find_step_by_name(zap_steps, "Run ZAP Full Scan (Docker)")
+    assert scan["id"] == "zap_scan"
+    assert "zap_exit_code=$?" in scan["run"]
+    assert "zap_exit_code=$zap_exit_code" in scan["run"]
+    assert "policy_status=findings" in scan["run"]
+    assert "execution_status=runtime_failure" in scan["run"]
+    assert scan["continue-on-error"] is True
+
+    validation = _find_step_by_name(zap_steps, "Validate ZAP JSON report")
+    assert "json.load" in validation["run"]
+    assert "report.get(\"site\")" in validation["run"]
+    assert validation["continue-on-error"] is True
+
+    conversion = _find_step_by_name(zap_steps, "Convert ZAP results to SARIF")
+    assert "|| true" not in conversion["run"]
+    assert conversion["continue-on-error"] is True
+
+    artifact = _find_step_by_name(zap_steps, "Upload ZAP results")
+    sarif = _find_step_by_name(zap_steps, "Upload SARIF to GitHub Security")
+    assert artifact["if"] == "always()"
+    assert sarif["if"] == "always()"
+
+    policy = _find_step_by_name(zap_steps, "Enforce penetration test policy")
+    assert policy["if"] == "always()"
+    assert "steps.startup.outcome" in policy["run"]
+    assert "steps.zap_scan.outputs.execution_status" in policy["run"]
+    assert "steps.validate_report.outcome" in policy["run"]
+    assert "steps.convert_sarif.outcome" in policy["run"]
+
+
+def test_nikto_stack_startup_is_bounded_and_fail_closed() -> None:
+    workflow = yaml.safe_load(PEN_TEST_WORKFLOW.read_text(encoding="utf-8"))
+    nikto_steps = workflow["jobs"]["nikto-scan"]["steps"]
+    startup = _find_step_by_name(nikto_steps, "Start test stack")
+    assert "up -d || true" not in startup["run"]
+    assert "curl --fail --silent --show-error" in startup["run"]
+    assert "docker compose -f infra/compose/docker-compose.full.yml --env-file .env logs --no-color" in startup["run"]
+    assert "mkdir -p nikto-results" in startup["run"], "Output directory must be created up front"
+    assert "nikto-results/metadata.json" in startup["run"], "Metadata file must be written up front"
+    assert "tee nikto-results/compose.log" in startup["run"], "Compose logs must be teed to compose.log on failure"

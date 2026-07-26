@@ -34,7 +34,9 @@ const rule: Rule.RuleModule = {
           ? parent.parent.parent.id.name
           : "";
       if (/tool/i.test(directName) || /tool/i.test(variableName) || /tool/i.test(propertyName) || /tool/i.test(objectVarName)) return true;
-      return parent?.type === "ExportNamedDeclaration" || parent?.parent?.type === "ExportNamedDeclaration";
+      const filename = context.getFilename();
+      const exported = parent?.type === "ExportNamedDeclaration" || parent?.parent?.type === "ExportNamedDeclaration";
+      return exported && /(^|[/\\])tools([/\\]|$)/.test(filename);
     }
 
     return {
