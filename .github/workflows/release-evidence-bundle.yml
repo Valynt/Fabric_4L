@@ -346,6 +346,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: evidence-bundle-${{ github.sha }}
+          overwrite: true
           path: |
             ${{ steps.bundle.outputs.path }}
             artifacts/evidence/*.summary.json
