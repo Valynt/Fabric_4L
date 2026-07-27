@@ -1879,7 +1879,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install pytest requests
+          pip install pytest requests pyyaml
 
       - name: Write runtime contract compose override
         run: |

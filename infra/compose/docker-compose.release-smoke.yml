@@ -29,6 +29,9 @@ x-common-env: &common-env
   FABRIC_TENANT_HEADER: X-Tenant-ID
   FABRIC_USER_HEADER: X-User-ID
   FABRIC_ROLE_HEADER: X-Role
+  # Release smoke uses plain HTTP between ephemeral containers; this flag is
+  # intentionally scoped to non-production test environments only.
+  ALLOW_INSECURE_SERVICE_HTTP_IN_DEVELOPMENT: "true"
   OPENAI_API_KEY: ""
   ANTHROPIC_API_KEY: ""
   INFISICAL_CLIENT_ID: ""

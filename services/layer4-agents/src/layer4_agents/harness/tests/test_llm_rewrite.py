@@ -26,8 +26,14 @@ import pytest
 # ---------------------------------------------------------------------------
 _SRC = Path(__file__).resolve().parents[2]
 _SERVICE_ROOT = _SRC.parent
-_PROMPTS = _SERVICE_ROOT / "prompts"
-_CONFIG = _SERVICE_ROOT / "config" / "harness.runtime.yaml"
+# Prompts/config are next to src/ in the source tree and copied into src/
+# in the Docker image. Prefer the in-image location when it exists.
+_PROMPTS = (_SERVICE_ROOT / "prompts") if (_SERVICE_ROOT / "prompts").exists() else (_SERVICE_ROOT.parent / "prompts")
+_CONFIG = (
+    (_SERVICE_ROOT / "config" / "harness.runtime.yaml")
+    if (_SERVICE_ROOT / "config" / "harness.runtime.yaml").exists()
+    else (_SERVICE_ROOT.parent / "config" / "harness.runtime.yaml")
+)
 _SHARED = _SERVICE_ROOT.parents[1] / "packages" / "shared" / "src"
 _PLATFORM_CONTRACT = _SERVICE_ROOT.parents[1] / "packages" / "platform-contract" / "src" / "python"
 
@@ -253,13 +259,14 @@ class TestLLMCostCalculatorTogether:
 
 
 # ---------------------------------------------------------------------------
-# TogetherAIProvider — JSON parsing (real static method)
+# TogetherAIProvider — JSON parsing (canonical parse_llm_json boundary §2.5)
 # ---------------------------------------------------------------------------
 
 class TestTogetherJSONParsing:
     def setup_method(self):
-        mod = _load_direct("services/together_provider.py")
-        self._parse = mod.TogetherAIProvider._parse_json_response
+        from canonical.llm_output_parser import parse_llm_json
+
+        self._parse = parse_llm_json
 
     def test_clean_json(self):
         assert self._parse('{"a": 1}') == {"a": 1}
@@ -382,40 +389,6 @@ class TestGetLLMProviderFactory:
             assert "Together" in self._name(mod.get_llm_provider())
 
 
-# ---------------------------------------------------------------------------
-# AIModelStatus component — structural smoke tests
-# ---------------------------------------------------------------------------
-
-class TestAIModelStatusComponent:
-    @pytest.fixture(autouse=True)
-    def _path(self):
-        self.tsx = (
-            _SERVICE_ROOT.parents[1]
-            / "apps" / "web" / "src" / "components" / "AIModelStatus.tsx"
-        )
-
-    def test_file_exists(self):
-        assert self.tsx.exists()
-
-    def test_exports_component(self):
-        assert "export function AIModelStatus" in self.tsx.read_text()
-
-    def test_exports_interfaces(self):
-        src = self.tsx.read_text()
-        for sym in ["AIModelStatusProps", "AIEnrichmentStatus", "AIModelAssignments"]:
-            assert sym in src, f"Missing: {sym}"
-
-    def test_governance_flags_present(self):
-        src = self.tsx.read_text()
-        for flag in ["llm_enrichment", "customer_facing_allowed", "human_review_required", "degraded_reason"]:
-            assert flag in src, f"Missing flag: {flag}"
-
-    def test_together_provider_configured(self):
-        src = self.tsx.read_text()
-        assert "together" in src
-        assert "Together.ai" in src
-
-    def test_uses_design_system(self):
-        src = self.tsx.read_text()
-        assert "cn(" in src
-        assert "lucide-react" in src
+# Note: AIModelStatus.tsx does not exist in apps/web/src/components. Tests for
+# that component were removed because they asserted a file that was never
+# committed to the repository; re-add them only alongside the actual component.

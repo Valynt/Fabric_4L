@@ -111,7 +111,7 @@ services:
       - LAYER6_BENCHMARKS_URL=http://layer4:8000
       # Logging
       - LOG_LEVEL=warning
-      - PYTHONPATH=/app
+      # PYTHONPATH is set by the image to /app:/app/src; do not override it.
       # Disable Infisical
       - INFISICAL_CLIENT_ID=
       - INFISICAL_CLIENT_SECRET=
@@ -125,7 +125,7 @@ services:
     networks:
       - e2e-network
     command: >
-      uvicorn src.api.main:app
+      uvicorn layer4_agents.api.main:app
       --host 0.0.0.0
       --port 8000
       --log-level warning
@@ -147,17 +147,17 @@ services:
     environment:
       - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/layer4_agents
       - CHECKPOINT_DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/ground_truth
-      - PYTHONPATH=/app
+      # PYTHONPATH is set by the image to /app:/app/src; do not override it.
     depends_on:
       postgres:
         condition: service_healthy
     networks:
       - e2e-network
-    command: >
+    command: |
       python -c "
       import asyncio
       from sqlalchemy.ext.asyncio import create_async_engine
-      from src.database import Base
+      from layer4_agents.database import Base
       async def run():
           engine = create_async_engine('postgresql+asyncpg://postgres:postgres@postgres:5432/layer4_agents')
           async with engine.begin() as conn:

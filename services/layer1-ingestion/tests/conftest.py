@@ -193,8 +193,10 @@ def engine():
 @pytest.fixture(scope="session")
 def _postgres_engine():
     """PostgreSQL engine for integration tests marked with ``postgres``."""
+    # Use the same database name the Layer 1 service default connects to so
+    # integration tests that exercise the live API routes share a schema.
     eng = create_engine(
-        "postgresql+psycopg2://postgres:postgres@localhost:5432/ingestion",
+        "postgresql+psycopg2://postgres:postgres@localhost:5432/layer1_ingestion",
     )
     base = _get_base()
     base.metadata.create_all(eng)
@@ -284,7 +286,7 @@ def pytest_runtest_setup(item):
         from sqlalchemy import create_engine, text
         try:
             engine = create_engine(
-                "postgresql+psycopg2://postgres:postgres@localhost:5432/ingestion",
+                "postgresql+psycopg2://postgres:postgres@localhost:5432/layer1_ingestion",
                 connect_args={"connect_timeout": 2},
             )
             with engine.connect() as conn:
