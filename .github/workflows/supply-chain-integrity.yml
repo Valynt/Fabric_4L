@@ -56,7 +56,12 @@ jobs:
 
           assert_line() {
             local command="$1" expected="$2"
-            docker run --rm "$image" bash -o pipefail -c "$command" | grep -Fx -- "$expected"
+            local output
+            output=$(docker run --rm "$image" bash -o pipefail -c "$command" 2>&1)
+            if ! grep -Fxq -- "$expected" <<<"$output"; then
+              printf 'ASSERTION FAILED: %s\nExpected: %s\nGot:\n%s\n' "$command" "$expected" "$output" >&2
+              return 1
+            fi
           }
           assert_line "grype version | sed -n 's/^Version: //p'" "0.104.1"
           assert_line "syft version | sed -n 's/^Version: //p'" "1.30.0"
