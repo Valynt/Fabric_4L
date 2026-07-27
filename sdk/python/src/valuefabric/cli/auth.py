@@ -75,7 +75,7 @@ def _start_local_server(
                 self.send_response(404)
                 self.end_headers()
 
-        def log_message(self, format: str, *args: typing.Any) -> None:
+        def log_message(self, format: str, *args: object) -> None:
             # Suppress default HTTP server logging
             pass
 
