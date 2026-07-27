@@ -2147,7 +2147,8 @@ jobs:
         if: failure()
         run: |
           mkdir -p artifacts/logs
-          docker compose -f infra/compose/docker-compose.test.yml logs > artifacts/logs/docker-compose.log || true
+          PROJECT_NAME="fabric4l-release-smoke-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          docker compose -p "$PROJECT_NAME" -f infra/compose/docker-compose.release-smoke.yml logs --no-color > artifacts/logs/docker-compose.log || true
 
       - name: Upload smoke report
         if: always()
