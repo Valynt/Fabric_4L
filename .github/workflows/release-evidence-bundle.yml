@@ -323,7 +323,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: evidence-bundle-${{ github.sha }}
-          path: ${{ steps.bundle.outputs.path }}
+          path: |
+            ${{ steps.bundle.outputs.path }}
+            artifacts/evidence/*.summary.json
           retention-days: 90
 
       - name: Upload to GitHub Release
@@ -340,12 +342,3 @@ jobs:
             - Prompt-injection/refusal E2E results
             - Live stack health evidence
             - OWASP ZAP baseline report
-
-      - name: Upload release candidate evidence bundle artifact
-        if: github.event_name != 'push' || !startsWith(github.ref, 'refs/tags/v')
-        uses: actions/upload-artifact@v4
-        with:
-          name: evidence-bundle-${{ github.sha }}
-          path: |
-            ${{ steps.bundle.outputs.path }}
-            artifacts/evidence/*.summary.json
