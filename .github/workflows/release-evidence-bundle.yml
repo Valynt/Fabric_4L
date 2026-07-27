@@ -25,6 +25,7 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
+  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
 
 jobs:
   release-readiness-gate:
