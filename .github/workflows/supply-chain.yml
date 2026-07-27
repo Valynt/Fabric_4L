@@ -1,6 +1,6 @@
 name: Supply Chain Integrity
 
-on:
+"on":
   pull_request:
     branches: [main]
   push:
