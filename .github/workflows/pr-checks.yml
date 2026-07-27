@@ -1089,7 +1089,9 @@ jobs:
 
       - name: Run tests with coverage
         run: |
-          uv run pytest tests/ -v --tb=short \
+          # Run the full testpaths declared in pyproject.toml, including
+          # src/layer4_agents/harness/tests, so coverage reflects the suite.
+          uv run pytest -v --tb=short \
             --cov=src --cov-report=xml:layer4-coverage.xml \
             --junitxml=layer4-junit.xml \
             --json-report --json-report-file=layer4-results.json \
