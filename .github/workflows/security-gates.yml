@@ -464,7 +464,7 @@ jobs:
 
       - name: Upload OSV SARIF artifact
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: osv-scanner-pr-sarif
           path: osv-scanner-pr.sarif
@@ -472,7 +472,7 @@ jobs:
 
       - name: Upload OSV JSON artifacts
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: osv-scanner-pr-json
           path: |
