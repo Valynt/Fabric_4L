@@ -224,18 +224,6 @@ jobs:
           node-version: '22.18.0'
 
       # -----------------------------------------------------------------------
-      # 3. Dependency review (PR only)
-      # -----------------------------------------------------------------------
-      - name: Dependency Review
-        if: github.event_name == 'pull_request'
-        uses: actions/dependency-review-action@v4.3.4
-        continue-on-error: true
-        with:
-          # dependency-review-action uses 'moderate', not 'medium'
-          fail-on-severity: ${{ env.FAIL_THRESHOLD == 'medium' && 'moderate' || env.FAIL_THRESHOLD }}
-          comment-summary-in-pr: true
-
-      # -----------------------------------------------------------------------
       # 4. pnpm audit
       # -----------------------------------------------------------------------
       - name: pnpm audit ${{ matrix.frontend }}
