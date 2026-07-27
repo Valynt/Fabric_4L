@@ -336,9 +336,9 @@ jobs:
       - name: Upload release candidate evidence bundle artifact
         uses: actions/upload-artifact@v4
         with:
+          overwrite: true
+          retention-days: 90
           name: evidence-bundle-${{ github.sha }}
           path: |
             ${{ steps.bundle.outputs.path }}
             artifacts/evidence/*.summary.json
-          overwrite: true
-          retention-days: 90
