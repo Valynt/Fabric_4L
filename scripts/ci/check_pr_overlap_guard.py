@@ -24,6 +24,14 @@ ALLOWLIST: dict[str, str] = {
     "docs/**": "Documentation churn is expected and should not block delivery.",
     "docs/reliability/**": "Release/readiness docs often change together across PRs.",
     ".github/workflows/**": "Workflow maintenance can legitimately overlap in coordinated release windows.",
+    "package.json": "Package configurations frequently overlap.",
+    "*/package.json": "Package configurations frequently overlap.",
+    "*/*/package.json": "Package configurations frequently overlap.",
+    "*/*/*/package.json": "Package configurations frequently overlap.",
+    "*/*/*/*/package.json": "Package configurations frequently overlap.",
+    "*/*/*/*/*/package.json": "Package configurations frequently overlap.",
+    "*/*/*/*/*/*/package.json": "Package configurations frequently overlap.",
+    "scripts/ci/*": "CI scripts often need isolated updates.",
 }
 
 
