@@ -38,7 +38,6 @@ The repository currently contains **54** GitHub Actions workflow files.
 | Workflow | Owner | Blocking | Triggers | Local validation |
 |---|---|---:|---|---|
 | `.github/workflows/ai-evals-pipeline.yml` | `@value-fabric/sre-leads` | no | `pull_request, push, workflow_dispatch` | `make check-workflow-references` |
-| `.github/workflows/release-api-changelog.yml` | `@value-fabric/sre-leads` | no | `release, workflow_dispatch` | `make check-workflow-references` |
 | `.github/workflows/api-key-rotation.yml` | `@value-fabric/sre-leads` | no | `schedule, workflow_dispatch` | `make check-workflow-references` |
 | `.github/workflows/audit-evidence.yml` | `@value-fabric/sre-leads` | no | `schedule, workflow_call, workflow_dispatch` | `make check-workflow-references` |
 | `.github/workflows/backend-integrated-reproducibility.yml` | `@value-fabric/sre-leads` | no | `workflow_dispatch` | `make check-workflow-references` |
@@ -76,6 +75,7 @@ The repository currently contains **54** GitHub Actions workflow files.
 | `.github/workflows/public-docs.yml` | `@value-fabric/sre-leads` | no | `pull_request, push` | `make check-workflow-references` |
 | `.github/workflows/publish-ci-tools.yml` | `@value-fabric/sre-leads` | no | `push, workflow_dispatch` | `make check-workflow-references` |
 | `.github/workflows/publish-sdk.yml` | `@value-fabric/sre-leads` | no | `push, workflow_dispatch` | `make check-workflow-references` |
+| `.github/workflows/release-api-changelog.yml` | `@value-fabric/sre-leads` | no | `release, workflow_dispatch` | `make check-workflow-references` |
 | `.github/workflows/release-evidence-bundle.yml` | `@value-fabric/sre-leads` | no | `pull_request, push, workflow_dispatch` | `make check-workflow-references` |
 | `.github/workflows/repo-hygiene.yml` | `@value-fabric/sre-leads` | no | `pull_request, push, schedule, workflow_dispatch` | `make check-workflow-references` |
 | `.github/workflows/repro-seed-validation.yml` | `@value-fabric/sre-leads` | no | `pull_request, push` | `make check-workflow-references` |
