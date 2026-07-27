@@ -22,6 +22,5 @@ RUN pnpm install --frozen-lockfile --ignore-scripts
 WORKDIR /workspace/apps/web
 COPY apps/web/ .
 
-USER node
 EXPOSE 3001
 CMD ["pnpm", "dev"]
