@@ -286,6 +286,8 @@ jobs:
     name: Consolidate & Publish Evidence Bundle
     runs-on: ubuntu-latest
     needs: [release-readiness-gate, build-and-scan, supply-chain-policy-check, sast-and-tests, live-stack-evidence]
+    env:
+      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
     steps:
       - uses: actions/checkout@v4
 
@@ -317,14 +319,6 @@ jobs:
         uses: actions/attest-build-provenance@v1
         with:
           subject-path: ${{ steps.bundle.outputs.path }}
-
-      - name: Upload release-candidate evidence bundle artifact
-        if: github.event_name == 'pull_request' || startsWith(github.ref, 'refs/heads/release/') || github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
-        uses: actions/upload-artifact@v4
-        with:
-          name: evidence-bundle-${{ github.sha }}
-          path: ${{ steps.bundle.outputs.path }}
-          retention-days: 90
 
       - name: Upload to GitHub Release
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
