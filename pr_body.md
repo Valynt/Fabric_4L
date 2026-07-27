@@ -1,7 +1,7 @@
 ## Summary
 
-🎯 **What:** Removed the unused `MissingTenantContextError` import from `services/api/app/core/database.py`.
-💡 **Why:** To improve code maintainability and resolve the unused import linting issue.
+🎯 **What:** Removed the unused `MissingTenantContextError` import from `services/api/app/core/database.py`. Updated vulnerable dependencies (`astro`, `axios`, `postcss`) in templates and archives which was failing the `Dependency Review` action.
+💡 **Why:** To improve code maintainability and resolve the unused import linting issue. To resolve the `Scan Node.js Dependencies (web)` check run failure.
 ✅ **Verification:** Verified via `ruff check` that the file no longer reports unused imports.
 
 ## Governance Impact
