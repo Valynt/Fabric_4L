@@ -57,13 +57,13 @@ class TestInMemoryLRUCache:
 class TestExtractionCacheInMemory:
     @pytest.mark.asyncio
     async def test_get_returns_none_on_cache_miss(self):
-        cache = ExtractionCache(redis_url=None)  # no redis_url → in-memory fallback
+        cache = ExtractionCache()  # no redis_url → in-memory fallback
         result = await cache.get(*DEFAULT_SCOPE, "entities")
         assert result is None
 
     @pytest.mark.asyncio
     async def test_set_and_get_round_trip(self):
-        cache = ExtractionCache(redis_url=None)
+        cache = ExtractionCache()
         value = {"entities": ["A", "B"]}
         await cache.set(*DEFAULT_SCOPE, "entities", value)
         retrieved = await cache.get(*DEFAULT_SCOPE, "entities")
@@ -71,7 +71,7 @@ class TestExtractionCacheInMemory:
 
     @pytest.mark.asyncio
     async def test_cache_hit_returns_stored_value(self):
-        cache = ExtractionCache(redis_url=None)
+        cache = ExtractionCache()
         call_count = 0
 
         async def expensive_fn():
@@ -92,7 +92,7 @@ class TestExtractionCacheInMemory:
 
     @pytest.mark.asyncio
     async def test_different_endpoints_have_different_keys(self):
-        cache = ExtractionCache(redis_url=None)
+        cache = ExtractionCache()
         await cache.set(*DEFAULT_SCOPE, "entities", {"type": "entities"})
         await cache.set(*DEFAULT_SCOPE, "relationships", {"type": "relationships"})
         assert await cache.get(*DEFAULT_SCOPE, "entities") == {"type": "entities"}
@@ -100,7 +100,7 @@ class TestExtractionCacheInMemory:
 
     @pytest.mark.asyncio
     async def test_different_source_hashes_have_different_keys(self):
-        cache = ExtractionCache(redis_url=None)
+        cache = ExtractionCache()
         await cache.set("tenant-a", "source-hash-a", "v1", "value-pack-default", "entities", "result A")
         await cache.set("tenant-a", "source-hash-b", "v1", "value-pack-default", "entities", "result B")
         assert (
@@ -126,7 +126,7 @@ class TestExtractionCacheInMemory:
 
     @pytest.mark.asyncio
     async def test_different_models_have_different_keys(self):
-        cache = ExtractionCache(redis_url=None)
+        cache = ExtractionCache()
         await cache.set(*DEFAULT_SCOPE, "entities", "gpt4", model="gpt-4")
         await cache.set(*DEFAULT_SCOPE, "entities", "gpt4mini", model="gpt-4o-mini")
         assert await cache.get(*DEFAULT_SCOPE, "entities", model="gpt-4") == "gpt4"
@@ -134,24 +134,24 @@ class TestExtractionCacheInMemory:
 
     @pytest.mark.asyncio
     async def test_close_does_not_raise_without_redis(self):
-        cache = ExtractionCache(redis_url=None)
+        cache = ExtractionCache()
         await cache.close()  # should not raise
 
 
 class TestExtractionCacheMakeKey:
     def test_same_inputs_produce_same_key(self):
-        cache = ExtractionCache(redis_url=None)
+        cache = ExtractionCache()
         k1 = cache._make_key(*DEFAULT_SCOPE, "entities", model="gpt-4", temperature=0.0)
         k2 = cache._make_key(*DEFAULT_SCOPE, "entities", model="gpt-4", temperature=0.0)
         assert k1 == k2
 
     def test_key_starts_with_l2_cache_prefix(self):
-        cache = ExtractionCache(redis_url=None)
+        cache = ExtractionCache()
         key = cache._make_key(*DEFAULT_SCOPE, "entities")
         assert key.startswith("l2_cache:")
 
     def test_different_temperatures_produce_different_keys(self):
-        cache = ExtractionCache(redis_url=None)
+        cache = ExtractionCache()
         k1 = cache._make_key(*DEFAULT_SCOPE, "entities", temperature=0.0)
         k2 = cache._make_key(*DEFAULT_SCOPE, "entities", temperature=0.5)
         assert k1 != k2
@@ -297,7 +297,7 @@ class TestExtractionCacheFailureBehavior:
 
     @pytest.mark.asyncio
     async def test_cache_keys_are_distinct_across_tenant_version_and_value_pack_scopes(self):
-        cache = ExtractionCache(redis_url=None)
+        cache = ExtractionCache()
         scope_a = ("tenant-a", "shared-source-hash", "v1", "value-pack-default")
         scope_b = ("tenant-b", "shared-source-hash", "v1", "value-pack-default")
         scope_c = ("tenant-a", "shared-source-hash", "v2", "value-pack-default")

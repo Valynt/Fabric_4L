@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 # Multi-stage build for Layer 1: Data Ingestion Service
 # Stage 1: Builder - installs dependencies and Playwright browsers
 FROM python@sha256:f5cf0344c9886ff24d34797578d5d7dd6e8911ae0fe5962bb55d0f89603ec361 AS builder
@@ -67,7 +68,7 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-reco
 RUN groupadd -r appgroup && useradd -r -g appgroup -m appuser
 
 # Upgrade base-image setuptools/wheel to remediate known CVEs flagged by Trivy
-RUN pip install --no-cache-dir --upgrade pip setuptools wheel
+RUN pip install --no-cache-dir --upgrade setuptools wheel
 
 WORKDIR /app
 

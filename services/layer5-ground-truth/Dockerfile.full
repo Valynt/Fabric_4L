@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 # Root-context build for full/live compose stacks.
 FROM python@sha256:f5cf0344c9886ff24d34797578d5d7dd6e8911ae0fe5962bb55d0f89603ec361 AS builder
 
@@ -19,7 +20,7 @@ RUN uv sync --frozen --no-install-project
 
 COPY services/layer5-ground-truth/src/ ./src/
 COPY services/layer5-ground-truth/alembic.ini ./
-COPY packages/shared/src/value_fabric/ ./value_fabric/
+COPY value_fabric/ ./value_fabric/
 COPY packages/shared/src/value_fabric/shared/ ./value_fabric/shared/
 
 FROM python@sha256:f5cf0344c9886ff24d34797578d5d7dd6e8911ae0fe5962bb55d0f89603ec361 AS runtime
@@ -38,7 +39,7 @@ ENV PYTHONPATH=/app:/app/src
 
 COPY services/layer5-ground-truth/src/ ./src/
 COPY services/layer5-ground-truth/alembic.ini ./
-COPY packages/shared/src/value_fabric/ ./value_fabric/
+COPY value_fabric/ ./value_fabric/
 COPY packages/shared/src/value_fabric/shared/ ./value_fabric/shared/
 
 RUN chown -R appuser:appgroup /app

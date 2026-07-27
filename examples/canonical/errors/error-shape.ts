@@ -405,9 +405,9 @@ export const Errors = {
     recoverable: false,
   }),
 
-  tenantAccessDenied: (scopeKey: string): CanonicalError => ({
+  tenantAccessDenied: (tenantId: string): CanonicalError => ({
     code: "TENANT_ACCESS_DENIED",
-    message: `Access denied for tenant "${scopeKey}"`,
+    message: `Access denied for tenant "${tenantId}"`,
     recoverable: false,
   }),
 

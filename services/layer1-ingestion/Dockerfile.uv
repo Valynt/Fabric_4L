@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 # Multi-stage build for Layer 1: Data Ingestion Service (uv edition)
 # Stage 1: Builder - installs dependencies using uv.lock
 ARG BASE_IMAGE=python@sha256:f5cf0344c9886ff24d34797578d5d7dd6e8911ae0fe5962bb55d0f89603ec361

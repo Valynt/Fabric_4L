@@ -82,8 +82,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
-        with:
-          fetch-depth: 0
 
       - name: Setup Python
         uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
@@ -114,30 +112,6 @@ jobs:
           test -s "$ARTIFACT_DIR/diagnostic.json"
         shell: bash
 
-      - name: Run base dependency audit
-        id: base_audit
-        if: github.event_name == 'pull_request'
-        env:
-          BASE_ARTIFACT_DIR: artifacts/pip-audit-base/${{ matrix.service }}
-          BASE_REF: ${{ github.base_ref }}
-        run: |
-          set -euo pipefail
-          git fetch --no-tags --depth=1 origin "$BASE_REF"
-          base_worktree="$(mktemp -d)"
-          rm -rf "$base_worktree"
-          git worktree add --detach "$base_worktree" "origin/$BASE_REF"
-          echo "worktree=$base_worktree" >> "$GITHUB_OUTPUT"
-          set +e
-          python scripts/ci/run_pip_audit.py scan \
-            --service-name "${{ matrix.service }}" \
-            --service-dir "$base_worktree/services/${{ matrix.service }}" \
-            --artifact-dir "$BASE_ARTIFACT_DIR"
-          status=$?
-          set -e
-          echo "status=$status" >> "$GITHUB_OUTPUT"
-          test -s "$BASE_ARTIFACT_DIR/diagnostic.json"
-        shell: bash
-
       - name: Upload dependency-audit evidence
         if: always()
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
@@ -158,37 +132,12 @@ jobs:
           sarif_file: artifacts/pip-audit/${{ matrix.service }}/report.sarif
           category: pip-audit-${{ matrix.service }}
 
-      - name: Upload base dependency-audit evidence
-        if: always() && github.event_name == 'pull_request'
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
-        with:
-          name: pip-audit-base-${{ matrix.service }}
-          path: |
-            artifacts/pip-audit-base/${{ matrix.service }}/requirements.txt
-            artifacts/pip-audit-base/${{ matrix.service }}/report.json
-            artifacts/pip-audit-base/${{ matrix.service }}/report.sarif
-            artifacts/pip-audit-base/${{ matrix.service }}/diagnostic.json
-          if-no-files-found: error
-          retention-days: 30
-
       - name: Enforce dependency vulnerability policy
         if: always()
         run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            python scripts/ci/run_pip_audit.py compare \
-              --current-diagnostic "artifacts/pip-audit/${{ matrix.service }}/diagnostic.json" \
-              --current-expected-status '${{ steps.audit.outputs.status }}' \
-              --baseline-diagnostic "artifacts/pip-audit-base/${{ matrix.service }}/diagnostic.json" \
-              --baseline-expected-status '${{ steps.base_audit.outputs.status }}'
-          else
-            python scripts/ci/run_pip_audit.py enforce \
-              --diagnostic "artifacts/pip-audit/${{ matrix.service }}/diagnostic.json" \
-              --expected-status '${{ steps.audit.outputs.status }}'
-          fi
-
-      - name: Cleanup base dependency audit worktree
-        if: always() && github.event_name == 'pull_request' && steps.base_audit.outputs.worktree != ''
-        run: git worktree remove --force "${{ steps.base_audit.outputs.worktree }}"
+          python scripts/ci/run_pip_audit.py enforce \
+            --diagnostic "artifacts/pip-audit/${{ matrix.service }}/diagnostic.json" \
+            --expected-status '${{ steps.audit.outputs.status }}'
 
   # =========================================================================
   # NODE.JS DEPENDENCY SCAN
@@ -212,8 +161,6 @@ jobs:
       # -----------------------------------------------------------------------
       - name: Checkout code
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
-        with:
-          fetch-depth: 0
 
       # -----------------------------------------------------------------------
       # 2. Setup Node.js + pnpm
@@ -238,64 +185,25 @@ jobs:
       # 4. pnpm audit
       # -----------------------------------------------------------------------
       - name: pnpm audit ${{ matrix.frontend }}
-        working-directory: apps/${{ matrix.frontend }}
+        working-directory: apps/web
         run: |
-          BASE_REF="${GITHUB_BASE_REF:-main}"
-          BASE_WORKTREE="${RUNNER_TEMP}/pnpm-audit-base-${{ matrix.frontend }}"
-          git fetch --no-tags --prune origin "${BASE_REF}"
-
           pnpm install --frozen-lockfile
           pnpm audit --json --audit-level ${{ env.FAIL_THRESHOLD }} > pnpm-audit.json || true
-
-          git worktree add --detach "${BASE_WORKTREE}" "origin/${BASE_REF}"
-          (
-            cd "${BASE_WORKTREE}/apps/${{ matrix.frontend }}"
-            pnpm install --frozen-lockfile
-            pnpm audit --json --audit-level ${{ env.FAIL_THRESHOLD }} > "${GITHUB_WORKSPACE}/apps/${{ matrix.frontend }}/pnpm-audit-base.json" || true
-          )
-
-          node <<'NODE'
-          const fs = require('fs');
-          const current = JSON.parse(fs.readFileSync('pnpm-audit.json', 'utf8'));
-          const baseline = JSON.parse(fs.readFileSync('pnpm-audit-base.json', 'utf8'));
+          # Check if any vulnerabilities exceed threshold
+          node -e "
+          const data = require('./pnpm-audit.json');
+          const advisories = data.advisories || {};
           const sevMap = {low: 0, moderate: 1, high: 2, critical: 3};
-          const threshold = sevMap[process.env.FAIL_THRESHOLD] ?? 1;
-
-          function signatures(report) {
-            const advisories = report.advisories || {};
-            const out = new Set();
-            for (const [id, adv] of Object.entries(advisories)) {
-              if ((sevMap[adv.severity] ?? -1) < threshold) continue;
-              const advisoryId = adv.github_advisory_id || adv.url || id;
-              const paths = (adv.findings || [])
-                .flatMap((finding) => finding.paths || [])
-                .sort()
-                .join('|');
-              out.add(`${adv.module_name}:${advisoryId}:${paths}`);
-            }
-            return out;
-          }
-
-          const baselineSignatures = signatures(baseline);
+          const threshold = sevMap['${{ env.FAIL_THRESHOLD }}'] || 1;
           let fail = false;
-          for (const [id, adv] of Object.entries(current.advisories || {})) {
-            if ((sevMap[adv.severity] ?? -1) < threshold) continue;
-            const advisoryId = adv.github_advisory_id || adv.url || id;
-            const paths = (adv.findings || [])
-              .flatMap((finding) => finding.paths || [])
-              .sort()
-              .join('|');
-            const signature = `${adv.module_name}:${advisoryId}:${paths}`;
-            if (baselineSignatures.has(signature)) {
-              console.log(`Inherited vulnerability: ${adv.severity} - ${adv.module_name} - ${advisoryId}`);
-              continue;
+          for (const [id, adv] of Object.entries(advisories)) {
+            if (sevMap[adv.severity] >= threshold) {
+              console.log(\`FAIL: \${adv.severity} - \${adv.overview}\`);
+              fail = true;
             }
-            console.log(`Branch-introduced vulnerability: ${adv.severity} - ${adv.module_name} - ${advisoryId}`);
-            console.log(adv.overview || adv.title || 'No advisory overview available');
-            fail = true;
           }
           process.exit(fail ? 1 : 0);
-          NODE
+          "
 
       # -----------------------------------------------------------------------
       # 5. Upload results
@@ -305,9 +213,7 @@ jobs:
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
         with:
           name: node-audit-${{ matrix.frontend }}
-          path: |
-            apps/${{ matrix.frontend }}/pnpm-audit.json
-            apps/${{ matrix.frontend }}/pnpm-audit-base.json
+          path: apps/web/pnpm-audit.json
           retention-days: 30
 
   # =========================================================================
@@ -324,8 +230,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
-        with:
-          fetch-depth: 0
 
       - name: Build API service image
         run: |
@@ -358,8 +262,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
-        with:
-          fetch-depth: 0
 
       - name: Setup Python
         uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5

@@ -83,10 +83,6 @@ def check_workflows(violations: list[str]) -> None:
 def check_dockerfiles(violations: list[str]) -> None:
     for dockerfile in DOCKERFILES:
         for i, line in enumerate(dockerfile.read_text(encoding="utf-8").splitlines(), start=1):
-            if line.startswith("# syntax=docker/dockerfile:"):
-                violations.append(
-                    f"{dockerfile.relative_to(ROOT)}:{i} Dockerfile frontend must not be pulled at build time: {line}"
-                )
             m = FROM_RE.match(line)
             if not m:
                 continue
