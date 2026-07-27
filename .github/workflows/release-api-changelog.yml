@@ -2,9 +2,15 @@ name: "Minimal API Changelog"
 
 "on":
   workflow_dispatch:
+    inputs:
+      from_ref:
+        description: "Base ref"
+        required: true
+        default: ""
+        type: string
 
 jobs:
   hello:
     runs-on: ubuntu-latest
     steps:
-      - run: echo "hello api changelog"
+      - run: echo "hello ${{ github.event.inputs.from_ref }}"
