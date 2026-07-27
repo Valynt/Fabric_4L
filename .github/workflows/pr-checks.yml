@@ -17,7 +17,13 @@ permissions:
     branches: [main]
 
 concurrency:
-  group: pr-checks-${{ github.ref }}
+  # On protected branches each workflow keeps its own per-ref group so that
+  # a newer push cancels an obsolete one. On PR/feature branches the heaviest
+  # workflows share a single global group to prevent the runner pool from being
+  # flooded by many open PRs launching ~100+ jobs each. cancel-in-progress is
+  # true on the shared group so the latest queued heavy run always executes
+  # rather than leaving older pending runs cancelled.
+  group: ${{ (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/staging' || github.ref == 'refs/heads/production' || startsWith(github.ref, 'refs/heads/release/')) && format('pr-checks-{0}', github.ref) || 'fabric-pr-checks-shared' }}
   cancel-in-progress: true
 
 env:
@@ -1085,7 +1091,7 @@ jobs:
         run: uv run mypy src/ --ignore-missing-imports
 
       - name: Layer 4 pytest collection check
-        run: uv run pytest --collect-only . -q
+        run: uv run pytest --collect-only -q
 
       - name: Run tests with coverage
         run: |
