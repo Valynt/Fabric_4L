@@ -280,15 +280,19 @@ async def test_hybrid_search_no_attribute_error(driver, settings):
     from retrieval.hybrid_search import HybridSearch
     from retrieval.vector_store import VectorStore
     from schema import SchemaInitializer
+    from db.driver import reset_driver
 
     await SchemaInitializer(driver=driver, settings=settings).initialize_schema()
     vs = VectorStore(driver=driver, settings=settings)
-    hs = HybridSearch(driver=driver, vector_store=vs, settings=settings)
+    await reset_driver()
+    hs = HybridSearch(driver=None, vector_store=vs, settings=settings)
+    hs._driver = driver
+    hs._owned_driver = False
 
     # search() must not raise; results may be empty on a fresh DB
     results = await hs.search(
-        query_text="single sign-on authentication",
-        entity_type="Capability",
+        query="single sign-on authentication",
+        entity_types=["Capability"],
         top_k=5,
     )
     assert isinstance(results, list)
@@ -320,8 +324,12 @@ async def test_graph_rag_returns_dict(driver, settings):
 async def test_graph_rag_null_driver_raises_503(settings):
     """GraphRAGEngine should raise a meaningful error when driver is None."""
     from retrieval.graph_rag import GraphRAGEngine
+    from db.driver import reset_driver
 
+    await reset_driver()
     rag = GraphRAGEngine(driver=None, vector_store=None, settings=settings)
+    rag._driver = None
+    rag._owned_driver = True
 
     with pytest.raises(Exception) as exc_info:
         await rag.query("test query", max_hops=1, max_results=3)
