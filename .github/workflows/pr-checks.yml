@@ -1658,6 +1658,13 @@ jobs:
           mkdir -p e2e-results playwright-report
           pnpm run test:e2e:live:p0
 
+      - name: Capture Compose diagnostics
+        if: failure()
+        working-directory: ${{ github.workspace }}
+        run: |
+          docker compose -f infra/compose/docker-compose.e2e.yml ps -a
+          docker compose -f infra/compose/docker-compose.e2e.yml logs --no-color --timestamps --tail=500
+
       - name: Upload P0 E2E artifacts
         if: always()
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
