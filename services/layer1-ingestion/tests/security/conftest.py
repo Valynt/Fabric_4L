@@ -52,7 +52,7 @@ def _get_postgres_url():
     """Get PostgreSQL URL from environment or use default dev stack."""
     return os.environ.get(
         "TEST_DATABASE_URL",
-        "postgresql+psycopg2://postgres:postgres@localhost:5432/ingestion"
+        "postgresql+psycopg2://postgres:postgres@localhost:5432/layer1_ingestion"
     )
 
 
@@ -157,8 +157,17 @@ def engine():
 
 
 @pytest.fixture(scope="function")
-def db(engine):
-    """SQLAlchemy Session scoped to each test."""
+def db(request, engine):
+    """SQLAlchemy Session scoped to each test.
+
+    PostgreSQL-required security tests use ``postgres_db`` so the app and
+    factories operate on the same database; other tests keep the fast SQLite
+    engine.
+    """
+    if "requires_postgres" in request.keywords or "postgres" in request.keywords:
+        yield request.getfixturevalue("postgres_db")
+        return
+
     Base = _get_base()
     Base.metadata.create_all(bind=engine)
     SessionLocal = sessionmaker(bind=engine)
