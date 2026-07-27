@@ -25,8 +25,8 @@
       "deprecation_status": "active"
     },
     {
-      "path": ".github/workflows/api-changelog.yml",
-      "name": "API Changelog",
+      "path": ".github/workflows/release-api-changelog.yml",
+      "name": "API Changelog Automation",
       "owner": "@value-fabric/sre-leads",
       "trigger": [
         "release",
@@ -1045,8 +1045,8 @@
       "deprecation_status": "active"
     },
     {
-      "path": ".github/workflows/supply-chain.yml",
-      "name": "Supply Chain Integrity",
+      "path": ".github/workflows/supply-chain-integrity.yml",
+      "name": "Supply Chain Integrity Gate",
       "owner": "@value-fabric/sre-leads",
       "trigger": [
         "pull_request",
