@@ -2,15 +2,36 @@ name: "Minimal Supply Chain"
 
 permissions:
   contents: read
+  packages: read
+  security-events: write
+  actions: read
+  id-token: write
 
 "on":
   push:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_call:
+    inputs:
+      image_tag:
+        description: 'Image tag to verify'
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Image tag to verify'
+        required: true
+        type: string
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_TAG: ${{ inputs.image_tag || github.sha }}
+  CI_TOOLS_IMAGE: ghcr.io/value-fabric/ci-tools/security-suite@sha256:a4c5f6e78b2a1bc98d3f4e1c8a7b6d5e4f3a2b1c0d9e8f7766554433221100aa
 
 jobs:
   hello:
     runs-on: ubuntu-latest
     steps:
-      - run: echo "hello supply chain"
+      - run: echo "hello supply chain ${{ env.IMAGE_TAG }}"
