@@ -51,6 +51,9 @@ class _Unset:
     """Sentinel distinguishing "redis_url not supplied" from "redis_url explicitly None"."""
 
 
+_UNSET: _Unset = _Unset()
+
+
 class ExtractionCache:
     """Cache for LLM extraction responses keyed by content hash.
 
@@ -59,7 +62,7 @@ class ExtractionCache:
 
     def __init__(
         self,
-        redis_url: str | None = _Unset,  # type: ignore[assignment]
+        redis_url: str | None | _Unset = _UNSET,
         default_ttl: int = LLM_CACHE_TTL_SECONDS,
     ) -> None:
         self._redis = None

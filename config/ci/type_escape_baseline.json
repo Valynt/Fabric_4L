@@ -14174,13 +14174,13 @@
     },
     {
       "kind": "python-any",
-      "line": 138,
+      "line": 150,
       "path": "services/layer2-extraction/src/layer2_extraction/extraction/cache.py",
       "text": ") -> Any | None:"
     },
     {
       "kind": "python-any",
-      "line": 172,
+      "line": 184,
       "path": "services/layer2-extraction/src/layer2_extraction/extraction/cache.py",
       "text": "value: Any,"
     },
