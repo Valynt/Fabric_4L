@@ -381,6 +381,7 @@ class TestAsyncClient:
                         "tenant_id": "11111111-1111-1111-1111-111111111111",
                         "email": "bob@example.com",
                         "role": "analyst",
+                        "display_name": "Bob Analyst",
                         "status": "invited",
                         "created_at": "2024-01-01T00:00:00Z",
                         "updated_at": "2024-01-01T00:00:00Z",
@@ -396,7 +397,8 @@ class TestAsyncClient:
             transport=transport,
             base_url="https://api.example.com",
         )
-        user = await client.ainvite_user("bob@example.com", "analyst")
+        user = await client.ainvite_user("bob@example.com", "analyst", display_name="Bob Analyst")
         assert user.email == "bob@example.com"
+        assert user.display_name == "Bob Analyst"
         assert isinstance(user, User)
         await client.aclose()
