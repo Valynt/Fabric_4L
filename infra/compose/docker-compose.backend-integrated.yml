@@ -391,7 +391,7 @@ services:
       postgres:
         condition: service_healthy
       layer5-migrate:
-        condition: service_started
+        condition: service_completed_successfully
       layer3:
         condition: service_healthy
     volumes:

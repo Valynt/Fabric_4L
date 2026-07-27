@@ -213,8 +213,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v3
@@ -240,16 +238,7 @@ jobs:
         run: |
           # Uses .eslintrc.cjs to enforce blocking contract rules while surfacing
           # Phase 2 semantic-contract metadata findings in warning mode.
-          git fetch --no-tags --prune origin "${{ github.base_ref || 'main' }}"
-          changed=()
-          while IFS= read -r file; do
-            changed+=("${file#apps/web/}")
-          done < <(git diff --name-only "origin/${{ github.base_ref || 'main' }}...HEAD" -- src server | grep -E '\.(ts|tsx)$' || true)
-          if [ "${#changed[@]}" -eq 0 ]; then
-            echo "No changed frontend TypeScript files to contract-lint."
-            exit 0
-          fi
-          pnpm exec eslint "${changed[@]}" --ext .ts,.tsx \
+          pnpm exec eslint src/ server/ --ext .ts,.tsx \
             --cache --cache-location .eslintcache \
             --format json --output-file eslint-report.json
 
@@ -291,10 +280,8 @@ jobs:
         run: pnpm install --frozen-lockfile && pnpm run build
 
       - name: Validate examples/canonical/
-        working-directory: packages/eslint-plugin-fabric-contracts
         run: |
-          pnpm exec eslint ../../examples/canonical/ --ext .ts,.tsx \
-            --parser @typescript-eslint/parser \
+          pnpm exec eslint examples/canonical/ --ext .ts \
             --plugin fabric-contracts \
             --rule 'fabric-contracts/no-tenant-id-parameter: error' \
             --rule 'fabric-contracts/no-throw-in-tool: error' \
@@ -431,6 +418,32 @@ jobs:
           echo "✅ No banned deprecated namespace imports found"
         # Phase 4 remediation: Ruff linting enforcement for deprecated imports
 
+      - name: Contract scan - Tenant context violations
+        run: |
+          echo "Scanning for tenantId parameter violations (CONTRACT.md §2.1)..."
+          # Use extended regex so alternation works; exclude canonical utility functions
+          VIOLATIONS=$(grep -rnE "def.*tenant_id|def.*tenantId" services/*/src/ --include="*.py" | \
+            grep -vE "def (validate|get|set|create|require)_tenant(_id)?" | \
+            grep -v "_tenant_id" | \
+            grep -v "test_" | \
+            wc -l || true)
+          echo "tenant_id parameter violations found: $VIOLATIONS"
+          test "$VIOLATIONS" -eq 0
+          echo "tenant_violations=$VIOLATIONS" >> $GITHUB_ENV
+
+      - name: Contract scan - Raw SQL tenant filtering
+        run: |
+          echo "Scanning for raw SQL tenant_id filtering (CONTRACT.md §2.2)..."
+          # Use extended regex; exclude ORM .where/.filter patterns and migrations/tests
+          VIOLATIONS=$(grep -rnE "WHERE.*tenant_id|tenant_id.*=" services/*/src/ --include="*.py" | \
+            grep -v "migrations/" | \
+            grep -vE "\.where\([^)]*tenant_id|\.filter\([^)]*tenant_id" | \
+            grep -v "test_" | \
+            wc -l || true)
+          echo "raw SQL tenant violations found: $VIOLATIONS"
+          test "$VIOLATIONS" -eq 0
+          echo "sql_violations=$VIOLATIONS" >> $GITHUB_ENV
+
       # ==========================================================================
       # P0 FIX: Tenant Boundary Security Gate (BLOCKING)
       # ==========================================================================
@@ -446,7 +459,7 @@ jobs:
       - name: Run tenant boundary security tests
         run: |
           echo "🧪 Running tenant boundary fails-closed tests..."
-          pip install -r tests/requirements-test.lock
+          pip install pytest pytest-asyncio pydantic
           python -m pytest tests/security/test_tenant_boundary_fails_closed.py -v
         env:
           PYTHONPATH: "packages/shared/src"
@@ -712,7 +725,7 @@ jobs:
                 if (isNaN(removal.getTime())) {
                   throw new Error(\`Item \${item.id} has invalid targetRemoval date format: \${item.targetRemoval}. Expected ISO 8601 format (YYYY-MM-DD).\`);
                 }
-                if (item.status !== 'resolved' && removal < new Date()) {
+                if (removal < new Date()) {
                   console.error(\`::error::Deprecation \${item.id} expired on \${item.targetRemoval}\`);
                   process.exitCode = 1;
                 }
@@ -731,7 +744,7 @@ jobs:
             const fs = require('fs');
             const data = JSON.parse(fs.readFileSync('docs/governance/deprecations.json', 'utf8'));
             const now = new Date();
-            const expired = data.items.filter(i => i.status !== 'resolved' && new Date(i.targetRemoval) < now);
+            const expired = data.items.filter(i => new Date(i.targetRemoval) < now);
             console.log(expired.map(i => i.id).join(' ') || 'NONE');
           ")
           if [ "$EXPIRED" != "NONE" ]; then
@@ -739,9 +752,6 @@ jobs:
             exit 1
           fi
           echo "✅ No expired deprecations"
-
-      - name: Install ripgrep
-        run: sudo apt-get update && sudo apt-get install -y ripgrep
 
       - name: Baseline deprecation debt scan (warning mode)
         continue-on-error: true
@@ -796,7 +806,7 @@ jobs:
       - name: Run contract scorecard
         id: scorecard
         run: |
-          python scripts/ci/contract_scorecard.py --output contract-scorecard.json --gha-comment || true
+          python scripts/ci/contract_scorecard.py --output contract-scorecard.json --gha-comment
           echo "score=$(python -c 'import json; print(json.load(open("contract-scorecard.json"))["overall_score"])')" >> $GITHUB_OUTPUT
 
       - name: Upload scorecard
@@ -807,7 +817,6 @@ jobs:
 
       - name: Comment PR with scorecard
         if: github.event_name == 'pull_request'
-        continue-on-error: true
         uses: actions/github-script@v7
         with:
           script: |

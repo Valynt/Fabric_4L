@@ -12,11 +12,11 @@ from __future__ import annotations
 
 import argparse
 import json
-import subprocess
 import sys
 import time
 import urllib.request
 from datetime import UTC, datetime
+from typing import Any
 
 DEFAULT_ENDPOINTS: dict[str, tuple[str, ...]] = {
     "layer1": ("http://localhost:8001/health",),
@@ -28,7 +28,7 @@ DEFAULT_ENDPOINTS: dict[str, tuple[str, ...]] = {
 }
 
 
-def _probe(url: str, timeout: int = 10) -> dict[str, object]:
+def _probe(url: str, timeout: int = 10) -> dict[str, Any]:
     """Return {ok: bool, status: int, latency_ms: float, error: str | None}."""
     start = time.perf_counter()
     try:
@@ -50,8 +50,8 @@ def _probe(url: str, timeout: int = 10) -> dict[str, object]:
         }
 
 
-def _probe_any(urls: tuple[str, ...], timeout: int = 10) -> dict[str, object]:
-    errors: list[dict[str, object]] = []
+def _probe_any(urls: tuple[str, ...], timeout: int = 10) -> dict[str, Any]:
+    errors: list[dict[str, Any]] = []
     for url in urls:
         result = _probe(url, timeout=timeout)
         result["url"] = url
@@ -63,30 +63,16 @@ def _probe_any(urls: tuple[str, ...], timeout: int = 10) -> dict[str, object]:
     return last
 
 
-def _capture_logs(compose_file: str | None) -> str:
-    """Best-effort capture of container logs to surface one-off failures like migrations."""
-    cmd = ["docker", "compose"]
-    if compose_file:
-        cmd.extend(["-f", compose_file])
-    cmd.extend(["logs", "--no-color", "--tail", "200"])
-    try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=60, check=False)
-        return result.stdout + result.stderr
-    except Exception as exc:
-        return f"Could not capture container logs: {type(exc).__name__}: {exc}"
-
-
 def check_all(
     endpoints: dict[str, tuple[str, ...]],
     *,
     overall_timeout: int = 300,
     per_service_timeout: int = 10,
     retry_interval: int = 5,
-    compose_file: str | None = None,
-) -> dict[str, object]:
+) -> dict[str, Any]:
     """Poll every endpoint until all pass or overall_timeout is reached."""
     deadline = time.time() + overall_timeout
-    results: dict[str, object] = {name: {"ok": False} for name in endpoints}
+    results: dict[str, Any] = {name: {"ok": False} for name in endpoints}
 
     while time.time() < deadline:
         all_ok = True
@@ -99,16 +85,13 @@ def check_all(
             break
         time.sleep(retry_interval)
 
-    report: dict[str, object] = {
+    return {
         "timestamp": datetime.now(UTC).isoformat(),
         "overall_timeout_seconds": overall_timeout,
         "retry_interval_seconds": retry_interval,
         "all_healthy": all(r.get("ok") for r in results.values()),
         "services": results,
     }
-    if not report["all_healthy"]:
-        report["container_logs"] = _capture_logs(compose_file)
-    return report
 
 
 def main() -> int:
@@ -116,14 +99,9 @@ def main() -> int:
     parser.add_argument("--timeout", type=int, default=300, help="Overall timeout in seconds")
     parser.add_argument("--output", type=str, default="stack-health.json", help="Output JSON path")
     parser.add_argument("--format", choices=["json", "gha"], default="json", help="Output format")
-    parser.add_argument("--compose-file", type=str, default="infra/compose/docker-compose.backend-integrated.yml", help="Docker Compose file for log capture on failure")
     args = parser.parse_args()
 
-    report = check_all(
-        DEFAULT_ENDPOINTS,
-        overall_timeout=args.timeout,
-        compose_file=args.compose_file,
-    )
+    report = check_all(DEFAULT_ENDPOINTS, overall_timeout=args.timeout)
 
     with open(args.output, "w", encoding="utf-8") as f:
         json.dump(report, f, indent=2)
@@ -138,12 +116,6 @@ def main() -> int:
             print("\n🟢 **All services healthy**")
         else:
             print("\n🔴 **Some services unhealthy**")
-
-    if not report["all_healthy"]:
-        logs = report.get("container_logs", "")
-        if logs:
-            print("\n## Container logs on failure (docker compose logs --tail 200)\n")
-            print(logs)
 
     return 0 if report["all_healthy"] else 1
 

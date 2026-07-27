@@ -48,7 +48,7 @@ def parse_date(value: str | None) -> dt.date | None:
 
 
 def check_registry(registry_path: Path, openapi_dir: Path) -> tuple[int, str]:
-    today = dt.datetime.now(dt.UTC).date()
+    today = dt.date.today()
     with registry_path.open(encoding="utf-8") as fh:
         registry = json.load(fh)
 
@@ -160,7 +160,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--registry",
-        default="apps/web/contracts/endpoint-hook-registry.json",
+        default="frontend/contracts/endpoint-hook-registry.json",
         type=Path,
         help="Path to endpoint-hook registry JSON file.",
     )
@@ -184,7 +184,7 @@ def main() -> int:
     code, report = check_registry(args.registry, args.openapi_dir)
     print(report)
     if args.write_report:
-        today = dt.datetime.now(dt.UTC).date().isoformat()
+        today = dt.date.today().isoformat()
         report_payload = {
             "generated_on": today,
             "status": "fail" if code else "pass",

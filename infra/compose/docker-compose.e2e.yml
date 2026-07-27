@@ -73,8 +73,8 @@ services:
       test: ["CMD", "curl", "-f", "http://localhost:7474"]
       interval: 10s
       timeout: 5s
-      retries: 20
-      start_period: 60s
+      retries: 10
+      start_period: 30s
 
   # ---------------------------------------------------------------------------
   # Backend — Layer 4 Agents API (primary API surface for frontend)

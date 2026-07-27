@@ -57,7 +57,7 @@ async def test_pending_ingestion_probe_reports_store_error(
 
     assert result.name == "pending_ingestion_store"
     assert result.healthy is False
-    assert result.detail == "RuntimeError"
+    assert result.detail == "pending unavailable"
 
 
 @pytest.mark.asyncio
@@ -86,4 +86,4 @@ async def test_quarantine_probe_reports_store_error(
 
     assert result.name == "quarantine_store"
     assert result.healthy is False
-    assert result.detail == "RuntimeError"
+    assert result.detail == "quarantine unavailable"

@@ -98,7 +98,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        project: [journeys]
+        project: [chromium]
         shard: [1/1]
 
     steps:
@@ -132,17 +132,6 @@ jobs:
       - name: Start preview server
         run: pnpm exec vite preview --port 4173 --host &
         working-directory: apps/web
-        env:
-          # Safe, non-secret route defaults required by the production Vite preview server.
-          VITE_API_BASE: /api/v1
-          VITE_L1_PREFIX: /ingest
-          VITE_L2_PREFIX: /extract
-          VITE_L2_5_PREFIX: /signals
-          VITE_L3_PREFIX: /graph
-          VITE_L4_PREFIX: /agents
-          VITE_L5_PREFIX: /truths
-          VITE_L6_PREFIX: /benchmarks
-          VITE_L7_PREFIX: /billing
 
       - name: Wait for server
         run: npx wait-on http://localhost:4173 --timeout 30000
@@ -153,7 +142,7 @@ jobs:
           mkdir -p playwright-report test-results
           pnpm exec playwright test e2e/visual/regression.spec.ts \
             --project=${{ matrix.project }} \
-            --update-snapshots=${{ inputs.update_snapshots && 'all' || 'none' }}
+            --update-snapshots=${{ inputs.update_snapshots || 'false' }}
         working-directory: apps/web
         continue-on-error: true
 
@@ -207,8 +196,8 @@ jobs:
           else
             REPORT+="⚠️ **Visual differences detected.**\n\n"
             REPORT+="Review the artifacts in the GitHub Actions summary:\n"
-            REPORT+="- \\"playwright-report-journeys\\" — full HTML report\n"
-            REPORT+="- \\"visual-diff-journeys\\" — diff, actual, and expected screenshots\n\n"
+            REPORT+="- \\"playwright-report-chromium\\" — full HTML report\n"
+            REPORT+="- \\"visual-diff-chromium\\" — diff, actual, and expected screenshots\n\n"
             REPORT+="> To update baselines, re-run this workflow with **Update baseline screenshots** enabled.\n"
           fi
           echo "report<<EOF" >> "$GITHUB_OUTPUT"

@@ -73,14 +73,21 @@ try:  # pragma: no cover
 
     _SQLALCHEMY_AVAILABLE = True
 except ImportError:  # pragma: no cover
-    pass
+    # Stubs so the module remains importable when SQLAlchemy is absent.
+    Base = None  # type: ignore[assignment]
+    AuditRunDB = Any  # type: ignore[misc,assignment]
+    FindingDB = Any  # type: ignore[misc,assignment]
+    FindingOccurrenceDB = Any  # type: ignore[misc,assignment]
+    ScorecardDB = Any  # type: ignore[misc,assignment]
+    AreaScoreDB = Any  # type: ignore[misc,assignment]
+    SprintDB = Any  # type: ignore[misc,assignment]
 
 try:  # pragma: no cover
     from neo4j import AsyncGraphDatabase
 
     _NEO4J_AVAILABLE = True
 except ImportError:  # pragma: no cover
-    AsyncGraphDatabase = None  # type: ignore[misc,assignment,no-redef]
+    AsyncGraphDatabase = None  # type: ignore[misc,assignment]
 
 
 # Module-level cache for async SQLAlchemy engines keyed by DSN.
@@ -307,13 +314,13 @@ if _SQLALCHEMY_AVAILABLE:
 
 else:  # pragma: no cover
     # Stubs so the module remains importable when SQLAlchemy is absent.
-    Base = None  # type: ignore[misc,assignment,no-redef]
-    AuditRunDB = Any  # type: ignore[misc,assignment,no-redef]
-    FindingDB = Any  # type: ignore[misc,assignment,no-redef]
-    FindingOccurrenceDB = Any  # type: ignore[misc,assignment,no-redef]
-    ScorecardDB = Any  # type: ignore[misc,assignment,no-redef]
-    AreaScoreDB = Any  # type: ignore[misc,assignment,no-redef]
-    SprintDB = Any  # type: ignore[misc,assignment,no-redef]
+    Base = None  # type: ignore[assignment]
+    AuditRunDB = Any  # type: ignore[misc,assignment]
+    FindingDB = Any  # type: ignore[misc,assignment]
+    FindingOccurrenceDB = Any  # type: ignore[misc,assignment]
+    ScorecardDB = Any  # type: ignore[misc,assignment]
+    AreaScoreDB = Any  # type: ignore[misc,assignment]
+    SprintDB = Any  # type: ignore[misc,assignment]
 
 
 # ---------------------------------------------------------------------------
@@ -855,8 +862,6 @@ class PersistenceManager:
             neo4j_user: Optional Neo4j username.
             neo4j_password: Optional Neo4j password.
         """
-        self._session_factory: Callable[[], AsyncSession] | async_sessionmaker[Any] | None
-
         if session_factory is not None:
             self._session_factory = session_factory
             self._engine: AsyncEngine | None = None
@@ -913,7 +918,7 @@ class PersistenceManager:
 
         No-op in JSON fallback mode.
         """
-        if self._engine is None or not _SQLALCHEMY_AVAILABLE:
+        if self._engine is None:
             return
         async with self._engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
@@ -1610,11 +1615,11 @@ class PersistenceManager:
                 .limit(limit)
             )
             rows = result.scalars().all()
-            db_runs: list[AuditRun] = []
+            runs: list[AuditRun] = []
             for row in rows:
                 scorecard = await self._db_get_scorecard_for_run(session, row.id, tenant_id)
-                db_runs.append(_run_from_db_with_scorecard(row, scorecard))
-            return db_runs
+                runs.append(_run_from_db_with_scorecard(row, scorecard))
+            return runs
 
     async def _db_get_scorecard_for_run(
         self,

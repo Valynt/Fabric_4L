@@ -63,18 +63,7 @@ const rule: Rule.RuleModule = {
             return;
           }
 
-          const filename = context.getFilename().replace(/\\/g, "/");
-          const isCanonicalRouteManifest = filename.endsWith(
-            "examples/canonical/ui/route-manifest.ts"
-          );
-          const isCanonicalNavigationService =
-            isCanonicalRouteManifest &&
-            (callee.object?.type === "ThisExpression" ||
-              objName === "navigationService");
-          if (
-            (objName === "navigate" || propName === "navigate") &&
-            !isCanonicalNavigationService
-          ) {
+          if (objName === "navigate" || propName === "navigate") {
             context.report({
               node,
               messageId: "noImperativeNavigation",

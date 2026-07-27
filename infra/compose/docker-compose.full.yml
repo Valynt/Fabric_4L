@@ -36,8 +36,8 @@ services:
       dockerfile: ./services/api/Dockerfile
     container_name: value-fabric-api-gateway
     <<: *app-hardening
-    ports:
-      - "8001:8000"
+    expose:
+      - "8000"
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/ingestion
       - REDIS_URL=redis://:${REDIS_PASSWORD:?REDIS_PASSWORD is required}@redis:6379/0
@@ -131,8 +131,8 @@ services:
       args: *build-args
     container_name: value-fabric-layer2
     <<: *app-hardening
-    ports:
-      - "8002:8000"
+    expose:
+      - "8000"
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - LLM_MODEL=${LLM_MODEL:-gpt-4o}
@@ -144,10 +144,6 @@ services:
       - RDF_OUTPUT_DIR=/app/rdf-output
       - LOG_LEVEL=info
       - LAYER3_API_URL=http://layer3-knowledge:8001
-      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
-      - API_KEY_HMAC_SECRET=${API_KEY_HMAC_SECRET:?API_KEY_HMAC_SECRET is required}
-      - SERVICE_AUTH_SECRET=${SERVICE_AUTH_SECRET:?SERVICE_AUTH_SECRET is required}
-      - FABRIC_AUTH_PUBLIC_KEYS=${FABRIC_AUTH_PUBLIC_KEYS:?FABRIC_AUTH_PUBLIC_KEYS is required}
       # Infisical — leave blank to use plain env vars
       - INFISICAL_CLIENT_ID=${INFISICAL_CLIENT_ID:-}
       - INFISICAL_CLIENT_SECRET=${INFISICAL_CLIENT_SECRET:-}
@@ -177,15 +173,14 @@ services:
   layer2-5-signal-refinery:
     build:
       context: ../..
-      dockerfile: ./services/layer2-5-signal-refinery/Dockerfile.full
+      dockerfile: ./services/layer2-5-signal-refinery/Dockerfile
       args: *build-args
     container_name: value-fabric-layer2-5
     <<: *app-hardening
     expose:
       - "8007"
     environment:
-      - ENVIRONMENT=development
-      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
+      - ENVIRONMENT=production
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/signal_refinery
       - LAYER3_BASE_URL=http://layer3-knowledge:8001
       - LAYER4_BASE_URL=http://layer4-agents:8000
@@ -240,8 +235,8 @@ services:
         BUILDER_BASE_IMAGE: ${BUILDER_BASE_IMAGE:-python:3.11.11-slim-bookworm}
     container_name: value-fabric-layer3
     <<: *app-hardening
-    ports:
-      - "8003:8001"
+    expose:
+      - "8001"
     environment:
       - NEO4J_URI=bolt://neo4j:7687
       - NEO4J_USER=neo4j
@@ -265,8 +260,6 @@ services:
     networks:
       - value-fabric-network
     restart: unless-stopped
-    volumes:
-      - layer3-hf-cache:/home/appuser/.cache
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
       interval: 30s
@@ -300,7 +293,6 @@ services:
       - LAYER3_API_URL=http://layer3-knowledge:8001
       - LAYER5_GROUND_TRUTH_URL=http://layer5-ground-truth:8005
       - LAYER6_BENCHMARKS_URL=http://layer6-benchmarks:8006
-      - ALLOW_INSECURE_SERVICE_HTTP_IN_DEVELOPMENT=true
       - PINECONE_API_KEY=${PINECONE_API_KEY:-}
       - CHECKPOINT_DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/ground_truth
       - LOG_LEVEL=info
@@ -340,8 +332,8 @@ services:
       args: *build-args
     container_name: value-fabric-layer5
     <<: *app-hardening
-    ports:
-      - "8005:8005"
+    expose:
+      - "8005"
     environment:
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/ground_truth
       - DATABASE_URL_SYNC=postgresql+psycopg2://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/ground_truth
@@ -421,8 +413,8 @@ services:
       args: *build-args
     container_name: value-fabric-layer6
     <<: *app-hardening
-    ports:
-      - "8006:8006"
+    expose:
+      - "8006"
     environment:
       - PORT=8006
       - LOG_LEVEL=info
@@ -969,7 +961,6 @@ volumes:
   grafana-data:
   alertmanager-data:
   jaeger-data:
-  layer3-hf-cache:
 
 networks:
   value-fabric-network:

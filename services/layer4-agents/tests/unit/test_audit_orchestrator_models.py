@@ -504,7 +504,7 @@ def test_config_manager_load_or_default(tmp_path: Path, monkeypatch: Any) -> Non
 
 @pytest.mark.unit
 def test_audit_trigger_request_defaults() -> None:
-    req = AuditTriggerRequest(repo_url="https://github.com/test/repo")
+    req = AuditTriggerRequest()
     assert req.trigger_type == "manual"
     assert req.branch is None
 

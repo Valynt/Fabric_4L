@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 # Live-stack build for Layer 1 from the repository root context.
 #
 # The service-local Dockerfile is used by the standalone Layer 1 compose file.
@@ -68,7 +69,7 @@ COPY --from=builder /root/.cache/ms-playwright /home/appuser/.cache/ms-playwrigh
 ENV PLAYWRIGHT_BROWSERS_PATH=/home/appuser/.cache/ms-playwright
 
 COPY services/layer1-ingestion/src/ ./src/
-COPY packages/shared/src/value_fabric/ ./value_fabric/
+COPY value_fabric/ ./value_fabric/
 COPY packages/shared/src/value_fabric/shared/ ./value_fabric/shared/
 COPY services/layer1-ingestion/alembic.ini ./
 COPY services/layer1-ingestion/migrations/ ./migrations/

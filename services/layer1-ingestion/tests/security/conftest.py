@@ -74,15 +74,6 @@ def _apply_rls_policies(engine):
         "crawl_decisions",
     ]
     with engine.connect() as conn:
-        # Ensure bypass roles exist before referencing them in policies.
-        for role in ("admin_role", "system_role"):
-            conn.execute(text(f"""
-                DO $$ BEGIN
-                    CREATE ROLE {role};
-                EXCEPTION WHEN duplicate_object THEN
-                    NULL;
-                END $$;
-            """))
         for table in tables:
             conn.execute(text(f"DROP POLICY IF EXISTS tenant_isolation_policy ON {table}"))
             conn.execute(text(f"DROP POLICY IF EXISTS admin_bypass_policy ON {table}"))

@@ -57,8 +57,6 @@ dependencies = [
     # Downgraded from >=2.0.0 to >=1.0.0 for compatibility with existing auth flow
     # v2 introduced breaking changes in client initialization
     "infisicalsdk>=1.0.0",
-    "lxml_html_clean>=0.4.5",
-    "setuptools>=83.0.0",
 ]
 
 [project.optional-dependencies]

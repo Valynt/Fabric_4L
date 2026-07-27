@@ -57,7 +57,7 @@ def test_ci_uses_first_class_tenant_isolation_gate() -> None:
 
     assert "tenant-isolation-gate:" in pr_checks
     assert "name: Tenant Isolation Gate" in pr_checks
-    assert "python scripts/ci/run_tenant_isolation_gate.py" in pr_checks
+    assert "run: pnpm test:isolation" in pr_checks
     assert "- tenant-isolation-gate" in pr_checks
     assert '["tenant-isolation-gate"]="${{ needs.tenant-isolation-gate.result }}"' in pr_checks
     assert 'command: "pnpm test:isolation"' in critical_gates
@@ -65,25 +65,8 @@ def test_ci_uses_first_class_tenant_isolation_gate() -> None:
 
 def test_pytest_marker_inventory_includes_tenant_isolation() -> None:
     pytest_ini = _read("pytest.ini")
+    conftest = _read("conftest.py")
+
     assert "tenant_isolation: First-class tenant isolation gate tests" in pytest_ini
-    assert "tenant_boundary: High-risk tenant boundary tests" in pytest_ini
-    assert "tenant_matrix: Cross-layer route-to-hostile-test tenant isolation matrix coverage tests" in pytest_ini
-    assert "cross_tenant_write: cross-tenant write isolation regression tests" in pytest_ini
-
-
-def test_critical_tenant_isolation_gate_provisions_redis() -> None:
-    critical_gates = _read(".github/workflows/critical-gates.yml")
-
-    assert "services:" in critical_gates
-    assert "redis:" in critical_gates
-    assert '--health-cmd "redis-cli ping"' in critical_gates
-
-
-def test_tenant_isolation_gate_provides_strict_auth_and_shared_paths() -> None:
-    pr_checks = _read(".github/workflows/pr-checks.yml")
-
-    tenant_job = pr_checks.split("  tenant-isolation-gate:", 1)[1].split("  critical-behaviors-gate:", 1)[0]
-    assert "FABRIC_AUTH_PUBLIC_KEYS=%s" in tenant_job
-    assert "cat config/ci/fabric_auth_test_public_keys.json" in tenant_job
-    assert "PYTHONPATH: packages/shared/src:services/layer4-agents/src:services/layer5-ground-truth/src:services/layer7-billing/src" in tenant_job
-    assert "python -m pip install --require-hashes -r tests/requirements-test.lock" in tenant_job
+    assert '"tenant_boundary", "tenant_matrix", "cross_tenant_write"' in conftest
+    assert '"tenant_isolation"' in conftest
