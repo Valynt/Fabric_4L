@@ -69,6 +69,9 @@ ALLOWED_WRITE_PERMISSIONS: dict[str, dict[str, str]] = {
         "issues": "comments penetration test results on pull requests",
         "security-events": "uploads penetration scan SARIF",
     },
+    "pr-backlog-health.yml": {
+        "issues": "creates or updates weekly backlog health report issues",
+    },
     "pr-performance-gate.yml": {
         "issues": "comments performance gate results on pull requests",
     },
