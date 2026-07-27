@@ -72,10 +72,13 @@ def test_node_audit_overrides_patch_known_transitive_advisories() -> None:
     package_json = json.loads((REPO_ROOT / "package.json").read_text(encoding="utf-8"))
     overrides = package_json["pnpm"]["overrides"]
 
-    assert overrides["brace-expansion"] == "5.0.8"
+    assert overrides["brace-expansion@<2.1.0"] == ">=2.1.0"
+    assert overrides["brace-expansion@2.1.2"] == "2.1.0"
+    assert overrides["brace-expansion@>=5.0.0 <5.0.8"] == "5.0.8"
     assert overrides["systeminformation@<=5.31.6"] == "5.31.7"
 
     lockfile = (REPO_ROOT / "pnpm-lock.yaml").read_text(encoding="utf-8")
+    assert "brace-expansion@2.1.0:" in lockfile
     assert "brace-expansion@5.0.8:" in lockfile
     for vulnerable_version in ("1.1.16", "2.1.2", "5.0.7"):
         assert f"brace-expansion@{vulnerable_version}:" not in lockfile
