@@ -63,9 +63,9 @@ jobs:
               return 1
             fi
           }
-          assert_line "grype version | sed -n 's/^Version: //p'" "0.104.1"
-          assert_line "syft version | sed -n 's/^Version: //p'" "1.30.0"
-          assert_line "cosign version | sed -n 's/^GitVersion:[[:space:]]*//p'" "v2.5.3"
+          assert_line "grype version | sed -n 's/^[[:space:]]*Version: //p'" "0.104.1"
+          assert_line "syft version | sed -n 's/^[[:space:]]*Version: //p'" "1.30.0"
+          assert_line "cosign version | sed -n 's/^[[:space:]]*GitVersion:[[:space:]]*//p'" "v2.5.3"
           assert_line "pip-audit --version" "pip-audit 2.9.0"
           assert_line "pip-licenses --version" "pip-licenses 5.0.0"
           assert_line "python --version" "Python 3.12.10"
