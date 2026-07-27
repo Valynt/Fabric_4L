@@ -119,7 +119,7 @@ ALLOWED_WRITE_PERMISSIONS: dict[str, dict[str, str]] = {
         "security-events": "uploads security scan SARIF",
         "id-token": "publishes OpenSSF Scorecard results through OIDC",
     },
-    "supply-chain.yml": {
+    "supply-chain-integrity.yml": {
         "id-token": "uses OIDC for provenance verification",
         "security-events": "uploads supply-chain scan SARIF",
     },
@@ -156,6 +156,13 @@ ALLOWED_WRITE_PERMISSIONS: dict[str, dict[str, str]] = {
     "refresh-testing-kpis.yml": {
         "contents": "pushes KPI snapshot updates to a PR branch",
         "pull-requests": "opens automated KPI refresh pull requests",
+    },
+    "pr-backlog-health.yml": {
+        "issues": "opens/updates backlog-health issues",
+    },
+    "release-api-changelog.yml": {
+        "contents": "attaches generated changelog and updates release notes",
+        "issues": "creates breaking-change advisory issues",
     },
 }
 

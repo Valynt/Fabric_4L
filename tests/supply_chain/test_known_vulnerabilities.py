@@ -11,7 +11,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 def test_vulnerability_policy_blocks_critical_and_high_findings() -> None:
     policy = (REPO_ROOT / "security/supply_chain/vulnerability_triage_sla.md").read_text(encoding="utf-8")
     security_gates = (REPO_ROOT / ".github/workflows/security-gates.yml").read_text(encoding="utf-8")
-    supply_chain = (REPO_ROOT / ".github/workflows/supply-chain.yml").read_text(encoding="utf-8")
+    supply_chain = (REPO_ROOT / ".github/workflows/supply-chain-integrity.yml").read_text(encoding="utf-8")
 
     assert "Critical" in policy
     assert "High" in policy
@@ -39,7 +39,7 @@ def test_audit_ci_writes_vulnerability_summary_artifact() -> None:
 
 
 def test_ci_publishes_vulnerability_summary_artifacts() -> None:
-    supply_chain = (REPO_ROOT / ".github/workflows/supply-chain.yml").read_text(encoding="utf-8")
+    supply_chain = (REPO_ROOT / ".github/workflows/supply-chain-integrity.yml").read_text(encoding="utf-8")
     security_gates = (REPO_ROOT / ".github/workflows/security-gates.yml").read_text(encoding="utf-8")
 
     assert "source-${{ matrix.layer }}-vulns.sarif" in supply_chain
@@ -77,12 +77,24 @@ def test_node_audit_overrides_patch_known_transitive_advisories() -> None:
     assert overrides["brace-expansion@^5.0.0"] == "5.0.8"
     assert overrides["systeminformation@<=5.31.6"] == "5.31.7"
 
-    lockfile = (REPO_ROOT / "pnpm-lock.yaml").read_text(encoding="utf-8")
-    assert "brace-expansion@1.1.16:" in lockfile
-    assert "brace-expansion@2.1.2:" in lockfile
-    assert "brace-expansion@5.0.8:" in lockfile
+    root_lockfile = (REPO_ROOT / "pnpm-lock.yaml").read_text(encoding="utf-8")
+    web_lockfile = (REPO_ROOT / "apps/web/pnpm-lock.yaml").read_text(encoding="utf-8")
+
+    # Root lockfile must resolve all three overridden brace-expansion lines.
+    assert "brace-expansion@1.1.16:" in root_lockfile
+    assert "brace-expansion@2.1.2:" in root_lockfile
+    assert "brace-expansion@5.0.8:" in root_lockfile
     for vulnerable_version in ("1.1.14", "2.1.1"):
-        assert f"brace-expansion@{vulnerable_version}:" not in lockfile
+        assert f"brace-expansion@{vulnerable_version}:" not in root_lockfile
+
+    # Apps/web may resolve only a subset of brace-expansion versions, but
+    # any resolved version must be a patched override, not a known vulnerable
+    # release.  This catches GHSA-... on transitive brace-expansion pulls.
+    for lockfile in (root_lockfile, web_lockfile):
+        for vulnerable_version in ("1.1.14", "2.1.1", "2.1.0", "5.0.6"):
+            assert f"brace-expansion@{vulnerable_version}:" not in lockfile
+        assert "brace-expansion@2.1.2:" in lockfile
+        assert "brace-expansion@5.0.8:" in lockfile
     assert overrides["body-parser@<1.20.6"] == "1.20.6"
 
 
