@@ -6,18 +6,18 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 LAYER6_SRC = REPO_ROOT / "services" / "layer6-benchmarks" / "src"
-LAYER6_PKG = LAYER6_SRC / "layer6_benchmarks"
+LAYER6_BENCHMARKS_PKG = LAYER6_SRC / "layer6_benchmarks"
 REQUIRED_WRAPPERS = [
-    LAYER6_PKG / "__init__.py",
-    LAYER6_PKG / "api" / "__init__.py",
-    LAYER6_PKG / "api" / "main.py",
-    LAYER6_PKG / "api" / "deps.py",
-    LAYER6_PKG / "api" / "schemas.py",
-    LAYER6_PKG / "api" / "routes" / "__init__.py",
-    LAYER6_PKG / "api" / "routes" / "benchmarks.py",
-    LAYER6_PKG / "api" / "routes" / "system.py",
-    LAYER6_PKG / "database.py",
-    LAYER6_PKG / "shared_bootstrap.py",
+    LAYER6_BENCHMARKS_PKG / "__init__.py",
+    LAYER6_BENCHMARKS_PKG / "api" / "__init__.py",
+    LAYER6_BENCHMARKS_PKG / "api" / "main.py",
+    LAYER6_BENCHMARKS_PKG / "api" / "deps.py",
+    LAYER6_BENCHMARKS_PKG / "api" / "schemas.py",
+    LAYER6_BENCHMARKS_PKG / "api" / "routes" / "__init__.py",
+    LAYER6_BENCHMARKS_PKG / "api" / "routes" / "benchmarks.py",
+    LAYER6_BENCHMARKS_PKG / "api" / "routes" / "system.py",
+    LAYER6_BENCHMARKS_PKG / "database.py",
+    LAYER6_BENCHMARKS_PKG / "shared_bootstrap.py",
 ]
 
 
@@ -26,7 +26,7 @@ def test_layer6_service_src_directory_exists() -> None:
 
 
 def test_layer6_service_entrypoint_exists() -> None:
-    entrypoint = LAYER6_PKG / "api" / "main.py"
+    entrypoint = LAYER6_BENCHMARKS_PKG / "api" / "main.py"
     assert entrypoint.is_file(), f"Missing Layer 6 API entrypoint required by Docker CMD: {entrypoint}"
 
 
