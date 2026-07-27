@@ -22,7 +22,7 @@ env:
   REGISTRY: ghcr.io
   IMAGE_TAG: ${{ inputs.image_tag || github.sha }}
   # Publisher, versions, digest verification, and rotation: docs/supply-chain/CI_TOOLS_SECURITY_SUITE.md
-  CI_TOOLS_IMAGE: ghcr.io/value-fabric/ci-tools/security-suite@sha256:a4c5f6e78b2a1bc98d3f4e1c8a7b6d5e4f3a2b1c0d9e8f7766554433221100aa
+  CI_TOOLS_IMAGE: ghcr.io/${{ github.repository_owner }}/ci-tools/security-suite@sha256:24a75a644c16e625723872badc4555de8db6c6db3afe3ea354dae072966e9b3d
 
 permissions:
   contents: read
@@ -124,7 +124,7 @@ jobs:
   sbom-scan:
     needs: ci-tools-preflight
     container:
-      image: ghcr.io/value-fabric/ci-tools/security-suite@sha256:a4c5f6e78b2a1bc98d3f4e1c8a7b6d5e4f3a2b1c0d9e8f7766554433221100aa
+      image: ghcr.io/${{ github.repository_owner }}/ci-tools/security-suite@sha256:24a75a644c16e625723872badc4555de8db6c6db3afe3ea354dae072966e9b3d
     name: SBOM + Vulnerability Scan
     if: github.event_name == 'workflow_call' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
@@ -229,7 +229,7 @@ jobs:
   verify-signatures:
     needs: ci-tools-preflight
     container:
-      image: ghcr.io/value-fabric/ci-tools/security-suite@sha256:a4c5f6e78b2a1bc98d3f4e1c8a7b6d5e4f3a2b1c0d9e8f7766554433221100aa
+      image: ghcr.io/${{ github.repository_owner }}/ci-tools/security-suite@sha256:24a75a644c16e625723872badc4555de8db6c6db3afe3ea354dae072966e9b3d
     name: Verify Image Signatures
     if: github.event_name == 'workflow_call' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
@@ -258,7 +258,7 @@ jobs:
   dependency-audit:
     needs: ci-tools-preflight
     container:
-      image: ghcr.io/value-fabric/ci-tools/security-suite@sha256:a4c5f6e78b2a1bc98d3f4e1c8a7b6d5e4f3a2b1c0d9e8f7766554433221100aa
+      image: ghcr.io/${{ github.repository_owner }}/ci-tools/security-suite@sha256:24a75a644c16e625723872badc4555de8db6c6db3afe3ea354dae072966e9b3d
     name: Dependency Audit
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -342,7 +342,7 @@ jobs:
   license-check:
     needs: ci-tools-preflight
     container:
-      image: ghcr.io/value-fabric/ci-tools/security-suite@sha256:a4c5f6e78b2a1bc98d3f4e1c8a7b6d5e4f3a2b1c0d9e8f7766554433221100aa
+      image: ghcr.io/${{ github.repository_owner }}/ci-tools/security-suite@sha256:24a75a644c16e625723872badc4555de8db6c6db3afe3ea354dae072966e9b3d
     name: License Compliance
     runs-on: ubuntu-latest
     timeout-minutes: 15
