@@ -47,18 +47,27 @@ class _InMemoryLRUCache:
             self._store.popitem(last=False)
 
 
+class _Unset:
+    """Sentinel distinguishing "redis_url not supplied" from "redis_url explicitly None"."""
+
+
 class ExtractionCache:
     """Cache for LLM extraction responses keyed by content hash.
 
     Cache key = SHA256(content + model + temperature + extraction_type + endpoint)
     """
 
-    def __init__(self, redis_url: str | None = None, default_ttl: int = LLM_CACHE_TTL_SECONDS) -> None:
+    def __init__(
+        self,
+        redis_url: str | None = _Unset,  # type: ignore[assignment]
+        default_ttl: int = LLM_CACHE_TTL_SECONDS,
+    ) -> None:
         self._redis = None
         self._fallback: _InMemoryLRUCache | None = _InMemoryLRUCache()
         self._default_ttl = default_ttl
 
-        redis_url = redis_url or os.getenv("REDIS_URL")
+        if redis_url is _Unset:
+            redis_url = os.getenv("REDIS_URL")
         if redis_url:
             try:
                 import redis.asyncio as aioredis
