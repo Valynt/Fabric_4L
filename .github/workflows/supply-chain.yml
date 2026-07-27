@@ -1,4 +1,4 @@
-name: Supply Chain Integrity
+name: "Supply Chain Integrity Gate"
 
 "on":
   pull_request:
