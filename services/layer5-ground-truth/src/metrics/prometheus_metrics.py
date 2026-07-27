@@ -184,11 +184,6 @@ class PrometheusMetrics:
         # Initialize with healthy status
         self._metrics["health_status"].labels(component="api").set(1)
         self._metrics["health_status"].labels(component="database").set(1)
-        # NOTE: The Layer 3 health status initialized below serves as a placeholder
-        # for future cross-layer health monitoring. We do not currently monitor
-        # L3 health directly from this service, but this gauge is reserved for
-        # future use when L5 needs to track dependency health on the KG layer.
-        self._metrics["health_status"].labels(component="layer3").set(1)
 
         # Error metrics
         self._metrics["errors_total"] = Counter(
