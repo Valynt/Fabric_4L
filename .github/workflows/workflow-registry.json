@@ -25,27 +25,6 @@
       "deprecation_status": "active"
     },
     {
-      "path": ".github/workflows/release-api-changelog.yml",
-      "name": "API Changelog Automation",
-      "owner": "@value-fabric/sre-leads",
-      "trigger": [
-        "release",
-        "workflow_dispatch"
-      ],
-      "trigger_purpose": "CI/CD",
-      "blocking": false,
-      "required_secrets": [
-        "GITHUB_TOKEN",
-        "SLACK_WEBHOOK_URL_API_CHANGES"
-      ],
-      "produced_artifacts": [
-        "${{ steps.changelog.outputs.output_path }}"
-      ],
-      "runtime_budget_minutes": 30,
-      "local_validation_command": "make check-workflow-references",
-      "deprecation_status": "active"
-    },
-    {
       "path": ".github/workflows/api-key-rotation.yml",
       "name": "API Key Rotation",
       "owner": "@value-fabric/sre-leads",
@@ -842,6 +821,27 @@
       ],
       "produced_artifacts": [
         "sdk/python/dist/"
+      ],
+      "runtime_budget_minutes": 30,
+      "local_validation_command": "make check-workflow-references",
+      "deprecation_status": "active"
+    },
+    {
+      "path": ".github/workflows/release-api-changelog.yml",
+      "name": "API Changelog Automation",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "release",
+        "workflow_dispatch"
+      ],
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
+      "required_secrets": [
+        "GITHUB_TOKEN",
+        "SLACK_WEBHOOK_URL_API_CHANGES"
+      ],
+      "produced_artifacts": [
+        "${{ steps.changelog.outputs.output_path }}"
       ],
       "runtime_budget_minutes": 30,
       "local_validation_command": "make check-workflow-references",
