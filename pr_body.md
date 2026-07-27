@@ -8,4 +8,3 @@
 - **Contract shape impact:** No API contract changes.
 - **Tenant isolation impact:** No change.
 - **Compatibility shim impact:** No change.
-
