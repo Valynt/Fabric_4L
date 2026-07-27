@@ -188,7 +188,7 @@ def _login_oidc(base_url: str | None, tenant: str | None) -> None:
     params = {
         "response_type": "code",
         "client_id": tenant,
-# Build authorization URL parameters
+        "redirect_uri": "http://localhost:8080/callback",
         "scope": "openid profile email",
         "state": state,
         "code_challenge": code_challenge,
