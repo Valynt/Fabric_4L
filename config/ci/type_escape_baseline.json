@@ -39808,59 +39808,53 @@
       "kind": "python-any",
       "line": 19,
       "path": "services/layer5-ground-truth/src/layer5_ground_truth/database.py",
-      "text": "from typing import Any"
+      "text": "from typing import TYPE_CHECKING, Any"
     },
     {
       "kind": "python-type-ignore",
-      "line": 210,
+      "line": 213,
       "path": "services/layer5-ground-truth/src/layer5_ground_truth/database.py",
       "text": "async def execute(self, statement, params=None, /, **kwargs):  # type: ignore[override]"
     },
     {
       "kind": "python-any",
-      "line": 236,
+      "line": 239,
       "path": "services/layer5-ground-truth/src/layer5_ground_truth/database.py",
       "text": "engine_kwargs: dict[str, Any] = {"
     },
     {
       "kind": "python-type-ignore",
-      "line": 409,
+      "line": 412,
       "path": "services/layer5-ground-truth/src/layer5_ground_truth/database.py",
       "text": "get_metrics = None  # type: ignore"
     },
     {
       "kind": "python-type-ignore",
-      "line": 416,
-      "path": "services/layer5-ground-truth/src/layer5_ground_truth/database.py",
-      "text": "RequestContext = None  # type: ignore"
-    },
-    {
-      "kind": "python-type-ignore",
-      "line": 418,
+      "line": 420,
       "path": "services/layer5-ground-truth/src/layer5_ground_truth/database.py",
       "text": "def get_request_context():  # type: ignore"
     },
     {
       "kind": "python-type-ignore",
-      "line": 428,
+      "line": 430,
       "path": "services/layer5-ground-truth/src/layer5_ground_truth/database.py",
       "text": "class TenantContextError(Exception):  # type: ignore"
     },
     {
       "kind": "python-type-ignore",
-      "line": 433,
+      "line": 435,
       "path": "services/layer5-ground-truth/src/layer5_ground_truth/database.py",
       "text": "def validate_tenant_id(tenant_id: UUID | str | None) -> str:  # type: ignore"
     },
     {
       "kind": "python-type-ignore",
-      "line": 456,
+      "line": 458,
       "path": "services/layer5-ground-truth/src/layer5_ground_truth/database.py",
       "text": "context: \"RequestContext\" = Depends(get_request_context),  # type: ignore"
     },
     {
       "kind": "python-type-ignore",
-      "line": 505,
+      "line": 507,
       "path": "services/layer5-ground-truth/src/layer5_ground_truth/database.py",
       "text": "context: \"RequestContext\" = Depends(get_request_context),  # type: ignore"
     },
