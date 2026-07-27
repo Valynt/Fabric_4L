@@ -738,7 +738,7 @@ jobs:
             "http://localhost:8005/api/v1/health" \
             "http://localhost:8006/health"; do
             echo "Waiting for $target"
-            for _ in $(seq 1 60); do
+            for _ in $(seq 1 120); do
               if curl -fsS "$target" >/dev/null; then
                 echo "Healthy: $target"
                 break
