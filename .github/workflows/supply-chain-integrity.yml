@@ -63,9 +63,9 @@ jobs:
               return 1
             fi
           }
-          assert_line "grype version | awk 'NF{print \$1}'" "0.104.1"
-          assert_line "syft version | awk 'NF{print \$1}'" "1.30.0"
-          assert_line "cosign version | sed -n 's/^[[:space:]]*GitVersion:[[:space:]]*//p'" "v2.5.3"
+          assert_line "grype version | awk -F: '/Version/{gsub(/^[[:space:]]+|[[:space:]]+$/,\"\",\$2); print \$2}'" "0.104.1"
+          assert_line "syft version | awk -F: '/Version/{gsub(/^[[:space:]]+|[[:space:]]+$/,\"\",\$2); print \$2}'" "1.30.0"
+          assert_line "cosign version | awk -F: '/GitVersion/{gsub(/^[[:space:]]+|[[:space:]]+$/,\"\",\$2); print \$2}'" "v2.5.3"
           assert_line "pip-audit --version" "pip-audit 2.9.0"
           assert_line "pip-licenses --version" "pip-licenses 5.0.0"
           assert_line "python --version" "Python 3.12.10"
