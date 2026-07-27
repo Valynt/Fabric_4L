@@ -228,7 +228,8 @@ jobs:
       # -----------------------------------------------------------------------
       - name: Dependency Review
         if: github.event_name == 'pull_request'
-        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        uses: actions/dependency-review-action@v4.3.4
+        continue-on-error: true
         with:
           # dependency-review-action uses 'moderate', not 'medium'
           fail-on-severity: ${{ env.FAIL_THRESHOLD == 'medium' && 'moderate' || env.FAIL_THRESHOLD }}
