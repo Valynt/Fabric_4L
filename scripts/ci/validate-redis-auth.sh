@@ -48,13 +48,14 @@ if [[ ! -s "${REDIS_DEPLOY}" ]]; then
   echo "::error::Redis Deployment not found in rendered output"
   ERRORS=$((ERRORS + 1))
 else
-  if ! yq eval '.spec.template.spec.containers[0].command[]' "${REDIS_DEPLOY}" | grep -q "requirepass"; then
-    echo "::error::Redis deployment does not have '--requirepass' in command"
+  # Redis can take arguments either in command or args
+  if ! yq eval '.spec.template.spec.containers[0].command[]?, .spec.template.spec.containers[0].args[]?' "${REDIS_DEPLOY}" | grep -q "requirepass"; then
+    echo "::error::Redis deployment does not have '--requirepass' in command or args"
     ERRORS=$((ERRORS + 1))
   fi
 
-  if ! yq eval '.spec.template.spec.containers[0].command[]' "${REDIS_DEPLOY}" | grep -q "REDIS_PASSWORD"; then
-    echo "::error::Redis deployment command does not reference REDIS_PASSWORD"
+  if ! yq eval '.spec.template.spec.containers[0].command[]?, .spec.template.spec.containers[0].args[]?' "${REDIS_DEPLOY}" | grep -q "REDIS_PASSWORD"; then
+    echo "::error::Redis deployment command or args does not reference REDIS_PASSWORD"
     ERRORS=$((ERRORS + 1))
   fi
 fi
