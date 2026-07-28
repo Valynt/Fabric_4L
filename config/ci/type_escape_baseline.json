@@ -41060,24 +41060,6 @@
     },
     {
       "kind": "python-any",
-      "line": 4,
-      "path": "tests/ci/test_workflow_permissions.py",
-      "text": "from typing import Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 179,
-      "path": "tests/ci/test_workflow_permissions.py",
-      "text": "def _load_workflow(path: Path) -> dict[str, Any]:"
-    },
-    {
-      "kind": "python-any",
-      "line": 186,
-      "path": "tests/ci/test_workflow_permissions.py",
-      "text": "workflow_name: str, permissions: Any, location: str"
-    },
-    {
-      "kind": "python-any",
       "line": 5,
       "path": "tests/config/_helpers.py",
       "text": "from typing import Any"

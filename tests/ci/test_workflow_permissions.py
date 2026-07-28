@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
 
 import yaml
 
@@ -176,14 +175,14 @@ def _workflow_files() -> list[Path]:
     )
 
 
-def _load_workflow(path: Path) -> dict[str, Any]:
+def _load_workflow(path: Path) -> dict[str, object]:
     data = yaml.safe_load(path.read_text(encoding="utf-8"))
     assert isinstance(data, dict), f"{path} did not parse as a YAML mapping"
     return data
 
 
 def _permission_scopes(
-    workflow_name: str, permissions: Any, location: str
+    workflow_name: str, permissions: object, location: str
 ) -> list[tuple[str, str]]:
     assert permissions != "write-all", f"{workflow_name} {location} uses write-all"
     if permissions in (None, "read-all"):
