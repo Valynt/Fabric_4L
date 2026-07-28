@@ -1879,7 +1879,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install pytest requests pyyaml
+          pip install pytest requests pyyaml jsonschema
 
       - name: Write runtime contract compose override
         run: |
@@ -2126,7 +2126,7 @@ jobs:
           export NEO4J_PASSWORD="${NEO4J_PASSWORD:-devpassword}"
 
           docker compose up -d neo4j redis postgres
-          docker compose up -d --build layer2-extraction layer3-knowledge layer4-agents
+          docker compose up -d --build layer2 layer3 layer4
 
       - name: Wait for services to be healthy
         run: |
