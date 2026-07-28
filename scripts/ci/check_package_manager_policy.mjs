@@ -9,6 +9,7 @@ const ALLOWED_LOCKFILE_PATHS = new Set([
   'pnpm-lock.yaml',
   'apps/web/pnpm-lock.yaml',
   'tests/requirements-test.lock',
+  'services/api/uv.lock',
   'services/billing/uv.lock',
   'services/layer1-ingestion/uv.lock',
   'services/layer2-extraction/uv.lock',

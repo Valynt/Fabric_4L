@@ -14,7 +14,7 @@ import subprocess
 from collections.abc import Sequence
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Annotated, Any, TypedDict
+from typing import Annotated, Any, NotRequired, TypedDict, cast
 from uuid import uuid4
 
 from langgraph.graph import END, StateGraph
@@ -77,6 +77,11 @@ class AuditState(TypedDict):
     sprints: list[Sprint]
     report_path: str | None
     report_markdown: str | None
+
+    # Incremental audit metadata
+    commit_sha: NotRequired[str | None]
+    files_changed_since_last: NotRequired[list[str]]
+    areas_reanalyzed: NotRequired[list[str]]
 
     # Error handling
     error: str | None
@@ -690,7 +695,7 @@ async def run_audit_async(
         config.tenant_id = tenant_id
     graph = create_audit_graph()
     initial_state = _initial_state(config, trigger_type, previous_run_id, run_id)
-    final_state = await graph.ainvoke(initial_state)
+    final_state = cast(AuditState, await graph.ainvoke(initial_state))
     if final_state.get("error"):
         raise RuntimeError(f"Audit run failed: {final_state['error']}")
     return final_state

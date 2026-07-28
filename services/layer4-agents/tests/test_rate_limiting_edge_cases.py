@@ -135,7 +135,7 @@ class TestBurstVsSustainedBehavior(unittest.TestCase):
         rpm = 3
 
         start = time.time()
-        with patch("value_fabric.shared.identity.middleware.time.time", return_value=start):
+        with patch("value_fabric.shared.identity.rate_limit_handler.time.time", return_value=start):
             # Exhaust quota
             for _ in range(3):
                 allowed, _ = _check_tenant_rate_limit(tenant_id, requests_per_minute=rpm)
@@ -146,7 +146,7 @@ class TestBurstVsSustainedBehavior(unittest.TestCase):
             self.assertFalse(allowed)
 
         # After window reset, should be allowed again
-        with patch("value_fabric.shared.identity.middleware.time.time", return_value=start + 61):
+        with patch("value_fabric.shared.identity.rate_limit_handler.time.time", return_value=start + 61):
             allowed, retry_after = _check_tenant_rate_limit(tenant_id, requests_per_minute=rpm)
             self.assertTrue(allowed)
             self.assertEqual(retry_after, 0)
