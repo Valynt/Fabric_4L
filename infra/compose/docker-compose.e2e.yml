@@ -1,6 +1,6 @@
-# =============================================================================
+# ==========================================================================
 # docker-compose.e2e.yml — Deterministic E2E Backend for Journey Tests
-# =============================================================================
+# ==========================================================================
 #
 # Purpose:  Provide a fully isolated, repeatable backend stack for the 16
 #           data-dependent Playwright journey tests. No persistent volumes,
@@ -13,11 +13,15 @@
 #   pnpm --filter frontend test:e2e:journeys # run journey tests
 #   docker compose -f infra/compose/docker-compose.e2e.yml down -v
 #
+x-shared-code-volumes: &shared-code-volumes
+  - ../../packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
+  - ../../packages/platform-contract/src/python:/app/packages/platform-contract/src/python:ro
+
 # Environment modes:
 #   Local deterministic  — developer confidence  — this file
 #   CI deterministic     — required gate         — this file
 #   Staging smoke        — deployment confidence — PLAYWRIGHT_BACKEND_URL override
-# =============================================================================
+# ==========================================================================
 
 services:
   # ---------------------------------------------------------------------------
@@ -111,7 +115,8 @@ services:
       - LAYER6_BENCHMARKS_URL=http://layer4:8000
       # Logging
       - LOG_LEVEL=warning
-      # PYTHONPATH is set by the image to /app:/app/src; do not override it.
+      # PYTHONPATH: include image defaults plus mounted shared/platform-contract code
+      - PYTHONPATH=/app:/app/src:/app/value_fabric/shared:/app/packages/platform-contract/src/python
       # Disable Infisical
       - INFISICAL_CLIENT_ID=
       - INFISICAL_CLIENT_SECRET=
@@ -124,6 +129,7 @@ services:
         condition: service_healthy
     networks:
       - e2e-network
+    volumes: *shared-code-volumes
     command: >
       uvicorn layer4_agents.api.main:app
       --host 0.0.0.0
@@ -147,12 +153,14 @@ services:
     environment:
       - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/layer4_agents
       - CHECKPOINT_DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/ground_truth
-      # PYTHONPATH is set by the image to /app:/app/src; do not override it.
+      # PYTHONPATH: include image defaults plus mounted shared/platform-contract code
+      - PYTHONPATH=/app:/app/src:/app/value_fabric/shared:/app/packages/platform-contract/src/python
     depends_on:
       postgres:
         condition: service_healthy
     networks:
       - e2e-network
+    volumes: *shared-code-volumes
     command: |
       python -c "
       import asyncio
