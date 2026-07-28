@@ -283,7 +283,7 @@ class TestTogetherJSONParsing:
 
     def test_array_json(self):
         r = self._parse('[{"id": 1}, {"id": 2}]')
-        assert len(r) == 2
+        assert len(r["result"]) == 2
 
     def test_json_after_markdown_fence(self):
         # Model wraps output in ```json ... ```

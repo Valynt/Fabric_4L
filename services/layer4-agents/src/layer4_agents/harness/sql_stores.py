@@ -50,6 +50,7 @@ from .repositories import (
     HumanGateRepository,
     ToolContractRepository,
     TraceEventRepository,
+    _event_to_row,
 )
 from .telemetry import EventHandler
 
@@ -60,6 +61,28 @@ logger = logging.getLogger(__name__)
 # SqlHumanGateManager
 # ---------------------------------------------------------------------------
 
+
+
+
+# ---------------------------------------------------------------------------
+# Transaction helpers
+# ---------------------------------------------------------------------------
+
+
+@asynccontextmanager
+async def _begin_or_nested(session: AsyncSession):
+    """Start a transaction, using a savepoint if already inside one.
+
+    Prevents ``InvalidRequestError: a transaction is already begun`` when
+    nested store calls run inside an existing session transaction (common
+    in test fixtures and orchestrator-level transactions).
+    """
+    if session.in_transaction():
+        async with session.begin_nested():
+            yield
+    else:
+        async with session.begin():
+            yield
 
 class SqlHumanGateManager:
     """SQL-backed HumanGate lifecycle manager.
@@ -86,7 +109,7 @@ class SqlHumanGateManager:
         while True:
             attempt += 1
             try:
-                async with self._session.begin():
+                async with _begin_or_nested(self._session):
                     yield
                 return
             except asyncio.CancelledError:
@@ -612,11 +635,16 @@ class SqlTelemetryEmitter:
 
         self._events.append(event)
 
-        # Schedule DB write as a fire-and-forget task after the current
-        # call stack unwinds (avoids Session.add() inside an active flush).
+        # Add the trace row to the current session so the caller's transaction
+        # flush persists it.  If the session is actively flushing, defer via a
+        # background task to avoid re-entrant flush errors; otherwise keep DB
+        # writes in the same transaction/connection as the orchestrator.
         try:
-            loop = asyncio.get_running_loop()
-            loop.call_soon(lambda: loop.create_task(self._persist(event)))
+            if getattr(self._repo._session, "_flushing", False):
+                loop = asyncio.get_running_loop()
+                loop.call_soon(lambda: loop.create_task(self._persist(event)))
+            else:
+                self._repo._session.add(_event_to_row(event))
         except RuntimeError:
             # No running event loop — skip DB write (sync test context).
             pass
@@ -761,7 +789,7 @@ class SqlHarnessRegistry:
             elif states and all(s == ValidationState.PASSED for s in states):
                 validation_state = ValidationState.PASSED
 
-        async with self._run_repo._session.begin():
+        async with _begin_or_nested(self._run_repo._session):
             locked = await self._run_repo.get_for_update(run_id, tenant_id)
             # Re-validate optimistic preconditions after lock acquisition.
             if (
