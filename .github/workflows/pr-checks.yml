@@ -1879,7 +1879,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install pytest requests pyyaml jsonschema
+          pip install pytest requests pyyaml jsonschema pyjwt
 
       - name: Write runtime contract compose override
         run: |

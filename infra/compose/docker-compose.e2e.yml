@@ -115,8 +115,9 @@ services:
       - LAYER6_BENCHMARKS_URL=http://layer4:8000
       # Logging
       - LOG_LEVEL=warning
-      # PYTHONPATH: include image defaults plus mounted shared/platform-contract code
-      - PYTHONPATH=/app:/app/src:/app/value_fabric/shared:/app/packages/platform-contract/src/python
+      # PYTHONPATH: include image defaults plus mounted platform-contract code.
+      # /app itself makes value_fabric/shared importable without creating a top-level 'secrets' package.
+      - PYTHONPATH=/app:/app/src:/app/packages/platform-contract/src/python
       # Disable Infisical
       - INFISICAL_CLIENT_ID=
       - INFISICAL_CLIENT_SECRET=
@@ -153,8 +154,9 @@ services:
     environment:
       - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/layer4_agents
       - CHECKPOINT_DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/ground_truth
-      # PYTHONPATH: include image defaults plus mounted shared/platform-contract code
-      - PYTHONPATH=/app:/app/src:/app/value_fabric/shared:/app/packages/platform-contract/src/python
+      # PYTHONPATH: include image defaults plus mounted platform-contract code.
+      # /app itself makes value_fabric/shared importable without creating a top-level 'secrets' package.
+      - PYTHONPATH=/app:/app/src:/app/packages/platform-contract/src/python
     depends_on:
       postgres:
         condition: service_healthy
