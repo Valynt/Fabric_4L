@@ -28682,49 +28682,49 @@
     },
     {
       "kind": "python-type-ignore",
-      "line": 146,
+      "line": 149,
       "path": "services/layer4-agents/src/layer4_agents/harness/sql_stores.py",
       "text": "from_state=None,  # type: ignore[arg-type]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 147,
+      "line": 150,
       "path": "services/layer4-agents/src/layer4_agents/harness/sql_stores.py",
       "text": "to_state=None,  # type: ignore[arg-type]"
     },
     {
       "kind": "python-any",
-      "line": 281,
+      "line": 284,
       "path": "services/layer4-agents/src/layer4_agents/harness/sql_stores.py",
       "text": "state_payload: dict[str, Any],"
     },
     {
       "kind": "python-any",
-      "line": 327,
+      "line": 330,
       "path": "services/layer4-agents/src/layer4_agents/harness/sql_stores.py",
       "text": "state_payload: dict[str, Any],"
     },
     {
       "kind": "python-type-ignore",
-      "line": 491,
+      "line": 494,
       "path": "services/layer4-agents/src/layer4_agents/harness/sql_stores.py",
       "text": "validator=row.validator,  # type: ignore[arg-type]"
     },
     {
       "kind": "python-any",
-      "line": 617,
+      "line": 620,
       "path": "services/layer4-agents/src/layer4_agents/harness/sql_stores.py",
       "text": "metadata: dict[str, Any] | None = None,"
     },
     {
       "kind": "python-type-ignore",
-      "line": 757,
+      "line": 760,
       "path": "services/layer4-agents/src/layer4_agents/harness/sql_stores.py",
       "text": "from_state=None,  # type: ignore[arg-type]"
     },
     {
       "kind": "python-any",
-      "line": 774,
+      "line": 777,
       "path": "services/layer4-agents/src/layer4_agents/harness/sql_stores.py",
       "text": "state_payload: dict[str, Any] | None = None,"
     },
