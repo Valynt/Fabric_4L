@@ -1,5 +1,6 @@
-from contextlib import asynccontextmanager
 from __future__ import annotations
+
+from contextlib import asynccontextmanager
 
 """SQL persistence tests for the Fabric Harness.
 
