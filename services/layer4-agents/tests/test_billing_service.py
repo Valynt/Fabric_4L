@@ -61,6 +61,7 @@ def override_app_db_dependency(mock_db):
     from value_fabric.shared.identity.context import RequestContext
     from value_fabric.shared.identity.dependencies import require_authenticated
 
+    from layer4_agents.api.routes import billing as billing_route
     from layer4_agents.database import get_db_from_context
 
     async def _override_db():
@@ -75,9 +76,11 @@ def override_app_db_dependency(mock_db):
         )
 
     app.dependency_overrides[get_db_from_context] = _override_db
+    app.dependency_overrides[billing_route.get_route_db] = _override_db
     app.dependency_overrides[require_authenticated] = _override_auth
     yield
     app.dependency_overrides.pop(get_db_from_context, None)
+    app.dependency_overrides.pop(billing_route.get_route_db, None)
     app.dependency_overrides.pop(require_authenticated, None)
 
 

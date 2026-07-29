@@ -22,7 +22,7 @@ async def test_configure_middleware_uses_runtime_redis_proxy(monkeypatch) -> Non
         for middleware in app.user_middleware
         if middleware.cls is GovernanceMiddleware
     )
-    proxy = governance.options["rate_limiter"]
+    proxy = governance.kwargs["rate_limiter"]
 
     sentinel_redis = object()
     original_state_manager = runtime_state.state_manager
