@@ -48,6 +48,7 @@ services:
       - JWT_ALGORITHM=${JWT_ALGORITHM}
       - ALGORITHM=${JWT_ALGORITHM}
       - CORS_ORIGINS=${CORS_ORIGINS:?CORS_ORIGINS is required}
+      - ALLOW_INSECURE_SERVICE_HTTP_IN_DEVELOPMENT=true
       - LAYER4_API_BASE_URL=http://layer4-agents:8000
       - AUTH_PROVIDER=${AUTH_PROVIDER}
       - CLERK_ISSUER=${CLERK_ISSUER:?CLERK_ISSUER is required}
@@ -143,6 +144,7 @@ services:
       - NEO4J_PASSWORD=${NEO4J_PASSWORD:?NEO4J_PASSWORD is required}
       - RDF_OUTPUT_DIR=/app/rdf-output
       - LOG_LEVEL=info
+      - ALLOW_INSECURE_SERVICE_HTTP_IN_DEVELOPMENT=true
       - LAYER3_API_URL=http://layer3-knowledge:8001
       - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
       - API_KEY_HMAC_SECRET=${API_KEY_HMAC_SECRET:?API_KEY_HMAC_SECRET is required}
@@ -187,6 +189,7 @@ services:
       - ENVIRONMENT=development
       - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/signal_refinery
+      - ALLOW_INSECURE_SERVICE_HTTP_IN_DEVELOPMENT=true
       - LAYER3_BASE_URL=http://layer3-knowledge:8001
       - LAYER4_BASE_URL=http://layer4-agents:8000
       - LOG_LEVEL=info
@@ -295,8 +298,10 @@ services:
       - NEO4J_URI=bolt://neo4j:7687
       - NEO4J_USER=neo4j
       - NEO4J_PASSWORD=${NEO4J_PASSWORD:?NEO4J_PASSWORD is required}
+      - ALLOW_INSECURE_SERVICE_HTTP_IN_DEVELOPMENT=true
       - LAYER2_API_URL=http://layer2-extraction:8000
       - LAYER1_API_URL=http://layer1-ingestion:8000
+      - ALLOW_INSECURE_SERVICE_HTTP_IN_DEVELOPMENT=true
       - LAYER3_API_URL=http://layer3-knowledge:8001
       - LAYER5_GROUND_TRUTH_URL=http://layer5-ground-truth:8005
       - LAYER6_BENCHMARKS_URL=http://layer6-benchmarks:8006
@@ -345,6 +350,7 @@ services:
     environment:
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/ground_truth
       - DATABASE_URL_SYNC=postgresql+psycopg2://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/ground_truth
+      - ALLOW_INSECURE_SERVICE_HTTP_IN_DEVELOPMENT=true
       - LAYER3_BASE_URL=http://layer3-knowledge:8001
       - LAYER3_SYNC_ENABLED=true
       - LAYER3_API_KEY=${LAYER3_API_KEY:-}

@@ -70,7 +70,7 @@ class GateTimeoutScheduler:
         now = datetime.now(UTC)
 
         async with self._session_factory() as session:
-            from harness.db_models import HumanGateRow
+            from layer4_agents.harness.db_models import HumanGateRow
 
             stmt = select(HumanGateRow).where(HumanGateRow.status == "pending")
             result = await session.execute(stmt)

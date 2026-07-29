@@ -113,6 +113,7 @@ services:
       - LAYER3_API_URL=http://layer4:8000
       - LAYER5_GROUND_TRUTH_URL=http://layer4:8000
       - LAYER6_BENCHMARKS_URL=http://layer4:8000
+      - ALLOW_INSECURE_SERVICE_HTTP_IN_DEVELOPMENT=true
       # Logging
       - LOG_LEVEL=warning
       # PYTHONPATH: include image defaults plus mounted platform-contract code.

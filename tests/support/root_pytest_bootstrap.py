@@ -47,6 +47,6 @@ def bootstrap_root_pytest() -> None:
 
 def _install_test_environment() -> None:
     for key, value in _TEST_ENV.items():
-        os.environ[key] = value
+        os.environ.setdefault(key, value)
     for key, value in _FAIL_CLOSED_TEST_DEFAULTS.items():
         os.environ.setdefault(key, value)

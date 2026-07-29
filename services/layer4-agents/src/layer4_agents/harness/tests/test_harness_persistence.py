@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from __future__ import annotations
 
 """SQL persistence tests for the Fabric Harness.
@@ -160,8 +161,17 @@ async def async_session_factory(tmp_path):
                 ],
             )
         )
-    factory = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
-    yield factory
+    from layer4_agents.database import _mark_session_tenant_bypass
+
+    _base_factory = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+
+    @asynccontextmanager
+    async def _bypassed_factory():
+        async with _base_factory() as session:
+            _mark_session_tenant_bypass(session.sync_session, reason="harness_concurrency_test")
+            yield session
+
+    yield _bypassed_factory
     await engine.dispose()
 
 

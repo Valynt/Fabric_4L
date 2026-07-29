@@ -356,7 +356,7 @@ class SqlToolContractRegistry:
         return await self._repo.register(tool, tenant_id)
 
     async def get_tool(self, tool_id: str, tenant_id: str | None = None) -> ToolContract:
-        from harness.tool_contracts import ToolNotFoundError
+        from layer4_agents.harness.tool_contracts import ToolNotFoundError
 
         if tenant_id is None:
             raise ToolNotFoundError(
@@ -370,7 +370,7 @@ class SqlToolContractRegistry:
         layer: str | None = None,
         risk_level: ToolRiskLevel | None = None,
     ) -> list[ToolContract]:
-        from harness.tool_contracts import ToolNotFoundError
+        from layer4_agents.harness.tool_contracts import ToolNotFoundError
 
         if tenant_id is None:
             raise ToolNotFoundError("list_tools requires tenant_id in SQL registry")
@@ -383,7 +383,7 @@ class SqlToolContractRegistry:
         has_approval: bool = False,
         account_context_present: bool = False,
     ) -> ToolContract:
-        from harness.policies import evaluate_tool_invocation_policy
+        from layer4_agents.harness.policies import evaluate_tool_invocation_policy
 
         tool = await self._repo.get(tool_id, tenant_id)
         evaluate_tool_invocation_policy(
@@ -722,8 +722,8 @@ class SqlHarnessRegistry:
         telemetry: SqlTelemetryEmitter | None = None,
         validation_hook=None,
     ) -> None:
-        from harness.state_machine import StateMachine
-        from harness.validation_hooks import ValidationHook
+        from layer4_agents.harness.state_machine import StateMachine
+        from layer4_agents.harness.validation_hooks import ValidationHook
 
         self._run_repo = HarnessRunRepository(session)
         self._sm = state_machine or StateMachine()
@@ -773,7 +773,7 @@ class SqlHarnessRegistry:
         human_override: bool = False,
         state_payload: dict[str, Any] | None = None,
     ) -> tuple[HarnessRun, HarnessTraceEvent]:
-        from harness.registry import TransitionConflictError
+        from layer4_agents.harness.registry import TransitionConflictError
 
         baseline = await self._run_repo.get(run_id, tenant_id)
 
@@ -851,7 +851,7 @@ class SqlHarnessRegistry:
         decision_by: str,
         decision_reason: str | None = None,
     ) -> HumanGate:
-        from harness.registry import HarnessRegistryError
+        from layer4_agents.harness.registry import HarnessRegistryError
 
         if decision == GateStatus.APPROVED:
             gate, event = await self._gates.approve_gate(gate_id, tenant_id, decision_by, decision_reason)
@@ -897,8 +897,8 @@ class SqlHarnessRegistry:
         written to harness_claim_validation_results so the GET /validation
         endpoint can return them without re-running validation.
         """
-        from harness.registry import HarnessRegistryError
-        from harness.validation_hooks import ClaimValidationRequest
+        from layer4_agents.harness.registry import HarnessRegistryError
+        from layer4_agents.harness.validation_hooks import ClaimValidationRequest
 
         mismatched = [
             r.claim_id
