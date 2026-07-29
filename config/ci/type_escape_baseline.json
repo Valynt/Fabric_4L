@@ -12781,34 +12781,22 @@
       "text": "def __init__(self, account_config: dict[str, Any] | None = None) -> None:"
     },
     {
-      "kind": "python-type-ignore",
-      "line": 459,
+      "kind": "python-any",
+      "line": 26,
       "path": "services/layer1-ingestion/src/layer1_ingestion/shared/database.py",
-      "text": "SyncRequestContext = None  # type: ignore"
+      "text": "from typing import TYPE_CHECKING, Any"
     },
     {
-      "kind": "python-type-ignore",
-      "line": 460,
+      "kind": "python-any",
+      "line": 490,
       "path": "services/layer1-ingestion/src/layer1_ingestion/shared/database.py",
-      "text": "get_request_context_sync = None  # type: ignore"
+      "text": "SyncRequestContext = Any"
     },
     {
-      "kind": "python-type-ignore",
-      "line": 461,
+      "kind": "python-any",
+      "line": 493,
       "path": "services/layer1-ingestion/src/layer1_ingestion/shared/database.py",
-      "text": "require_request_context_sync = None  # type: ignore"
-    },
-    {
-      "kind": "python-type-ignore",
-      "line": 465,
-      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/database.py",
-      "text": "context: \"SyncRequestContext\" = Depends(get_request_context_sync),  # type: ignore"
-    },
-    {
-      "kind": "python-type-ignore",
-      "line": 517,
-      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/database.py",
-      "text": "context: \"SyncRequestContext\" = Depends(get_request_context_sync),  # type: ignore"
+      "text": "def _missing_sync_request_context() -> Any:"
     },
     {
       "kind": "python-any",
