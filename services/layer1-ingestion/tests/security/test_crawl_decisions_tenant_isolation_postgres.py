@@ -37,7 +37,7 @@ class TestCrawlDecisionTenantIsolation:
         # Create decision for tenant A
         record_a = CrawlDecisionRecord(
             decision_id=str(uuid4()),
-            job_id=str(uuid4()),
+            job_id=None,
             tenant_id=str(org_id),
             url="https://example.com",
             domain="example.com",
@@ -83,7 +83,7 @@ class TestCrawlDecisionTenantIsolation:
         # Create decision for tenant A
         record_a = CrawlDecisionRecord(
             decision_id=str(uuid4()),
-            job_id=str(uuid4()),
+            job_id=None,
             tenant_id=str(org_id),
             url="https://example-a.com",
             domain="example-a.com",
@@ -106,7 +106,7 @@ class TestCrawlDecisionTenantIsolation:
         # Create decision for tenant B
         record_b = CrawlDecisionRecord(
             decision_id=str(uuid4()),
-            job_id=str(uuid4()),
+            job_id=None,
             tenant_id=str(other_org_id),
             url="https://example-b.com",
             domain="example-b.com",
@@ -166,7 +166,7 @@ class TestCrawlDecisionTenantIsolation:
 
         record = CrawlDecisionRecord(
             decision_id=str(uuid4()),
-            job_id=str(uuid4()),
+            job_id=None,
             tenant_id=str(org_id),
             url="https://example.com",
             domain="example.com",
@@ -206,7 +206,7 @@ class TestCrawlDecisionTenantIsolation:
         
         record_b = CrawlDecisionRecord(
             decision_id=str(uuid4()),
-            job_id=str(uuid4()),
+            job_id=None,
             tenant_id=str(other_org_id),  # Record belongs to tenant B
             url="https://example-b.com",
             domain="example-b.com",
@@ -248,7 +248,7 @@ class TestCrawlDecisionTenantIsolation:
         # Create decision for tenant B
         record_b = CrawlDecisionRecord(
             decision_id=str(uuid4()),
-            job_id=str(uuid4()),
+            job_id=None,
             tenant_id=str(other_org_id),
             url="https://example-b.com",
             domain="example-b.com",
