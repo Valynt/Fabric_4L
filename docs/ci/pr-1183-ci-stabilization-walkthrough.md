@@ -98,7 +98,18 @@ After the push, the new PR rerun showed the previously targeted contract/readine
 - `security-isolation` — `success`
 - The required checks remained passing throughout the rerun window
 
-This materially reduced the current stabilization scope to still-running or not-yet-finished jobs rather than confirmed recurrent failures in the areas above.
+Subsequent rerun polling showed additional targeted jobs completing successfully:
+
+- `Build App` — `success`
+- `Lint Frontend (Contract Rules)` — `success`
+- `Frontend Security Audit (pnpm)` — `success`
+- `Route Auth Dependency Gate` — `success`
+- `Layer 5 - Source Contract` — `success`
+- `Docker Compose Config Contract` — `success`
+- `Build images & security scan (layer4-agents)` — `success`
+- `Build images & security scan (layer2-extraction)` — `success`
+
+This materially reduced the current stabilization scope to long-running or not-yet-finished jobs rather than confirmed recurrent failures in the areas above.
 
 ## Remaining External or Queue-Blocked Items
 
@@ -121,6 +132,8 @@ Earlier evidence showed the visual-regression workflow was failing because the r
 
 Because Playwright and Node were unavailable in this environment, no baseline regeneration could be performed locally.
 
+On the fresh rerun, `Visual Tests (journeys)` was still `in_progress` at the time of the latest poll, so the prior missing-baseline evidence remains the best available explanation until the current run completes.
+
 ### Repository Scan (Trivy fs + IaC + secrets)
 
 Earlier evidence showed the repository-wide Trivy scan failing with a real non-zero exit, but the exact findings were not extractable from this environment:
@@ -131,12 +144,18 @@ Earlier evidence showed the repository-wide Trivy scan failing with a real non-z
 
 Until the final rerun result is known, this remains documented as an external evidence gap rather than a confirmed code-fixable issue in this pass.
 
+### DAST
+
+The earlier DAST failure mode was addressed by injecting `JWT_ALGORITHM=RS256` into the generated DAST environment so the production-like API gateway startup validation could pass.
+
+On the fresh rerun, `DAST (OWASP ZAP baseline)` was `in_progress` at the time of the latest poll, so the startup fix has been applied but the final outcome was not yet available when this artifact was last updated.
+
 ## Phase 2: Cancel Obsolete Workflow Runs
 
 This phase could not be fully executed from the available tool surface.
 
 - The preferred `gh` CLI was not available in the workspace.
-- No SCM tool for canceling GitHub workflow runs was discoverable in this environment.
+- A targeted tool search for GitHub Actions workflow-run cancellation did not reveal any cancel-run tool in the available SCM surface.
 
 Result:
 
@@ -197,5 +216,6 @@ Reason: required tooling was unavailable in the workspace environment.
 As of this artifact revision:
 
 - code-fixable issues identified in runtime contracts, Layer 4 release-smoke middleware wiring, and DAST API-gateway startup have been fixed and pushed
-- the fresh rerun has already cleared several previously failing or downstream-impacted checks
-- remaining work depends on final outcomes from the still-running post-push checks, plus any acceptable disposition of external/tooling-blocked items
+- the fresh rerun has already cleared several previously failing or downstream-impacted checks, including additional frontend, route-auth, and image/security jobs
+- `Layer 4 - Agents` was no longer failing on the fresh head; at latest poll it had not started running yet and remained `queued`
+- remaining work depends on final outcomes from the still-running post-push checks, especially `Visual Tests (journeys)`, `DAST (OWASP ZAP baseline)`, and the remaining long-tail matrix jobs, plus any acceptable disposition of external/tooling-blocked items
