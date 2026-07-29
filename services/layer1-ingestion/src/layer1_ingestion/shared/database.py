@@ -23,6 +23,7 @@ import logging
 import os
 from collections.abc import Generator
 from contextlib import contextmanager
+from typing import TYPE_CHECKING, Any
 from urllib.parse import urlparse
 from uuid import UUID
 
@@ -80,22 +81,56 @@ def _assert_rls_safe_database_url(database_url: str, *, source: str) -> None:
 
 _assert_rls_safe_database_url(settings.database_url, source="Layer 1 database URL")
 
-# Create engine with configurable pool settings
-# P0-05: Add statement_timeout for query timeout protection (configurable via env var)
-engine = create_engine(
-    settings.database_url, 
-    pool_size=DB_POOL_SIZE, 
-    max_overflow=DB_MAX_OVERFLOW, 
-    pool_pre_ping=True, 
-    pool_timeout=DB_POOL_TIMEOUT,
-    echo=settings.debug,
-    connect_args={
-        "options": f"-c statement_timeout={DB_STATEMENT_TIMEOUT_MS}",
-    }
-)
+def _create_sync_engine():
+    return create_engine(
+        settings.database_url,
+        pool_size=DB_POOL_SIZE,
+        max_overflow=DB_MAX_OVERFLOW,
+        pool_pre_ping=True,
+        pool_timeout=DB_POOL_TIMEOUT,
+        echo=settings.debug,
+        connect_args={
+            "options": f"-c statement_timeout={DB_STATEMENT_TIMEOUT_MS}",
+        },
+    )
 
-# Session factory
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+engine = None
+SessionLocal = sessionmaker(autocommit=False, autoflush=False)
+
+try:
+    engine = _create_sync_engine()
+except ModuleNotFoundError as exc:
+    logger.warning(
+        "Layer 1 sync database engine initialization deferred until first session use: %s",
+        exc,
+    )
+else:
+    SessionLocal.configure(bind=engine)
+
+
+def _ensure_session_factory_bound() -> None:
+    global engine
+
+    session_local_kwargs = getattr(SessionLocal, "kw", None)
+    if session_local_kwargs is None:
+        return
+
+    if session_local_kwargs.get("bind") is not None:
+        return
+
+    engine = _create_sync_engine()
+    SessionLocal.configure(bind=engine)
+
+
+def _new_session() -> Session:
+    try:
+        _ensure_session_factory_bound()
+    except ModuleNotFoundError as exc:
+        raise RuntimeError(
+            "Layer 1 sync database adapter unavailable; install psycopg2 before opening sync database sessions."
+        ) from exc
+    return SessionLocal()
 
 
 def close_db() -> None:
@@ -106,6 +141,8 @@ def close_db() -> None:
     global engine
     if engine is not None:
         engine.dispose()
+        engine = None
+        SessionLocal.configure(bind=None)
         logger.info("Layer 1 database engine disposed")
 
 # Redis client (used by health checks and Celery)
@@ -295,7 +332,7 @@ def get_db_session(
         if metrics:
             metrics.increment_privileged_db_session_activation(mode="bypass")
 
-    session = SessionLocal()
+    session = _new_session()
     try:
         if tenant_id is not None:
             session.execute(
@@ -320,7 +357,7 @@ def get_db() -> Generator[Session, None, None]:
     SECURITY: Use only for health checks or admin operations with proper
     role authentication. All production endpoints should use get_db_with_tenant.
     """
-    session = SessionLocal()
+    session = _new_session()
     try:
         _mark_session_tenant_bypass(session, reason="system_operation")
         yield session
@@ -361,7 +398,7 @@ def get_db_with_tenant(
         logger.warning("Tenant context validation failed: %s", e)
         raise ValidationError(message = "Invalid tenant context") from e
 
-    session = SessionLocal()
+    session = _new_session()
     try:
         session.execute(
             text("SET LOCAL app.tenant_id = :tenant_id"),
@@ -404,7 +441,7 @@ def get_db_from_context(
         logger.warning("Tenant context validation failed: %s", e)
         raise ValidationError(message = "Invalid tenant context") from e
 
-    session = SessionLocal()
+    session = _new_session()
     try:
         session.execute(
             text("SET LOCAL app.tenant_id = :tenant_id"),
@@ -447,22 +484,32 @@ def get_db_with_tenant_from_context(
 # Sprint 5: Context-aware database session for sync layers (Task 5.2.1)
 # ---------------------------------------------------------------------------
 
+if TYPE_CHECKING:
+    from value_fabric.shared.identity.middleware_sync import SyncRequestContext
+else:
+    SyncRequestContext = Any
+
+
+def _missing_sync_request_context() -> Any:
+    raise RuntimeError(
+        "shared.identity.middleware_sync required for sync database dependencies"
+    )
+
+
 try:
     from value_fabric.shared.identity.middleware_sync import (
-        SyncRequestContext,
         get_request_context_sync,
         require_request_context_sync,
     )
     SYNC_IDENTITY_AVAILABLE = True
 except ImportError:
     SYNC_IDENTITY_AVAILABLE = False
-    SyncRequestContext = None  # type: ignore
-    get_request_context_sync = None  # type: ignore
-    require_request_context_sync = None  # type: ignore
+    get_request_context_sync = _missing_sync_request_context
+    require_request_context_sync = _missing_sync_request_context
 
 
 def get_db_from_context_sync(
-    context: "SyncRequestContext" = Depends(get_request_context_sync),  # type: ignore
+    context: SyncRequestContext = Depends(get_request_context_sync),
 ) -> Generator[Session, None, None]:
     """FastAPI dependency for DB session with tenant from RequestContext (Sprint 5).
 
@@ -497,7 +544,7 @@ def get_db_from_context_sync(
         raise ValidationError(message = "Invalid tenant context") from e
 
     # Create session with RLS context
-    session = SessionLocal()
+    session = _new_session()
     try:
         session.execute(
             text("SET LOCAL app.tenant_id = :tenant_id"),
@@ -514,7 +561,7 @@ def get_db_from_context_sync(
 
 def get_db_with_optional_tenant_sync(
     request: Request,
-    context: "SyncRequestContext" = Depends(get_request_context_sync),  # type: ignore
+    context: SyncRequestContext = Depends(get_request_context_sync),
 ) -> Generator[Session, None, None]:
     """DB session with optional tenant for super-admin operations (Sprint 5).
 
@@ -538,7 +585,7 @@ def get_db_with_optional_tenant_sync(
             "shared.identity.middleware_sync required for get_db_with_optional_tenant_sync"
         )
 
-    session = SessionLocal()
+    session = _new_session()
     try:
         if context.tenant_id:
             try:
