@@ -709,6 +709,7 @@ jobs:
           REDIS_PASSWORD=valuefabric-ci-redis
           SECRET_KEY=valuefabric-ci-secret-key-minimum-32-characters
           JWT_SECRET=valuefabric-ci-jwt-secret-minimum-32-characters
+          JWT_ALGORITHM=RS256
           API_KEY_HMAC_SECRET=valuefabric-ci-api-key-hmac-secret-32chars
           SERVICE_AUTH_SECRET=valuefabric-ci-service-auth-secret-32chars
           LAYER4_DATABASE_URL=postgresql+asyncpg://valuefabric:valuefabric-ci-postgres@postgres:5432/ground_truth

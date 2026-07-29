@@ -42,6 +42,17 @@ def test_gate_engineering_uses_shared_locked_setup() -> None:
     assert "pnpm run gate-engineering:test" in runs
 
 
+def test_runtime_contract_checks_use_shared_locked_setup() -> None:
+    job = _load(PR_CHECKS)["jobs"]["runtime-contract-checks"]
+    setup = _uses_setup(job)
+    assert setup["with"]["python-dependency-mode"] == "root-test"
+    assert setup["with"]["install-node-deps"] == "false"
+    assert setup["with"]["cache"] == ""
+    runs = "\n".join(step.get("run", "") for step in job["steps"])
+    assert "pip install" not in runs
+    assert "pytest tests/contract/test_layer_integration.py -m runtime_contract -v --tb=short" in runs
+
+
 def test_root_test_lock_contains_json_report_plugin() -> None:
     requirements = (ROOT / "tests/requirements-test.txt").read_text(encoding="utf-8")
     lock = (ROOT / "tests/requirements-test.lock").read_text(encoding="utf-8")

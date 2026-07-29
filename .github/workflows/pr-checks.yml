@@ -1877,15 +1877,13 @@ jobs:
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
 
-      - name: Set up Python
-        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
+      - name: Set up Fabric CI
+        uses: ./.github/actions/setup-fabric-ci
         with:
           python-version: "3.11"
-          cache: "pip"
-
-      - name: Install dependencies
-        run: |
-          pip install pytest requests pyyaml jsonschema pyjwt pydantic
+          python-dependency-mode: root-test
+          install-node-deps: "false"
+          cache: ""
 
       - name: Write runtime contract compose override
         run: |
