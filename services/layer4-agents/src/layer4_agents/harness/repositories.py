@@ -370,6 +370,7 @@ class HumanGateRepository:
         """Fetch a gate row using a row lock while preserving tenant isolation."""
         from layer4_agents.harness.human_gates import GateNotFoundError
 
+        self._session.expire_all()
         result = await self._session.execute(
             select(HumanGateRow)
             .where(
@@ -384,22 +385,37 @@ class HumanGateRepository:
         return _row_to_gate(row)
 
     async def update(self, gate: HumanGate) -> HumanGate:
-        from layer4_agents.harness.human_gates import GateNotFoundError
+        from sqlalchemy import update
+
+        from layer4_agents.harness.human_gates import GateDecisionError, GateNotFoundError
 
         result = await self._session.execute(
-            select(HumanGateRow).where(
+            update(HumanGateRow)
+            .where(
                 HumanGateRow.id == gate.id,
                 HumanGateRow.tenant_id == gate.tenant_id,
+                HumanGateRow.status == GateStatus.PENDING.value,
+            )
+            .values(
+                status=gate.status.value,
+                decision_by=gate.decision_by,
+                decision_reason=gate.decision_reason,
+                decided_at=gate.decided_at,
             )
         )
-        row = result.scalar_one_or_none()
-        if row is None:
-            raise GateNotFoundError(f"Gate '{gate.id}' not found for update")
+        if result.rowcount == 0:
+            exists = (
+                await self._session.execute(
+                    select(HumanGateRow.id).where(
+                        HumanGateRow.id == gate.id,
+                        HumanGateRow.tenant_id == gate.tenant_id,
+                    )
+                )
+            ).scalar_one_or_none()
+            if exists is None:
+                raise GateNotFoundError(f"Gate '{gate.id}' not found for update")
+            raise GateDecisionError(f"Gate '{gate.id}' has already been decided")
 
-        row.status = gate.status.value
-        row.decision_by = gate.decision_by
-        row.decision_reason = gate.decision_reason
-        row.decided_at = gate.decided_at
         await self._session.flush()
         return gate
 

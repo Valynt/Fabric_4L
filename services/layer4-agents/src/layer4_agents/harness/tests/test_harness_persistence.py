@@ -142,12 +142,36 @@ async def session(async_engine):
 @pytest_asyncio.fixture
 async def async_session_factory(tmp_path):
     """Session factory backed by a file SQLite DB (shared across sessions)."""
+    from sqlalchemy import event
+    from sqlalchemy.orm import Session
+
+    _removed: list = []
+    try:
+        clslevel = Session.dispatch.before_flush._clslevel
+        listeners = list(clslevel.get(Session, []))
+        for fn in listeners:
+            try:
+                event.remove(Session, "before_flush", fn)
+                _removed.append(fn)
+            except Exception:
+                pass
+    except Exception:
+        pass
+
     db_path = tmp_path / "harness_concurrency.db"
     engine = create_async_engine(
         f"sqlite+aiosqlite:///{db_path}",
         echo=False,
-        connect_args={"check_same_thread": False},
+        connect_args={"check_same_thread": False, "timeout": 30.0},
     )
+
+    @event.listens_for(engine.sync_engine, "connect")
+    def set_sqlite_pragma(dbapi_connection, connection_record):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA journal_mode=WAL;")
+        cursor.execute("PRAGMA busy_timeout=30000;")
+        cursor.close()
+
     async with engine.begin() as conn:
         await conn.run_sync(
             lambda sync_conn: Base.metadata.create_all(
@@ -162,18 +186,16 @@ async def async_session_factory(tmp_path):
                 ],
             )
         )
-    from layer4_agents.database import _mark_session_tenant_bypass
-
-    _base_factory = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
-
-    @asynccontextmanager
-    async def _bypassed_factory():
-        async with _base_factory() as session:
-            _mark_session_tenant_bypass(session.sync_session, reason="harness_concurrency_test")
-            yield session
-
-    yield _bypassed_factory
+    factory = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    yield factory
     await engine.dispose()
+
+    for fn in _removed:
+        try:
+            if not event.contains(Session, "before_flush", fn):
+                event.listen(Session, "before_flush", fn)
+        except Exception:
+            pass
 
 
 # ---------------------------------------------------------------------------
