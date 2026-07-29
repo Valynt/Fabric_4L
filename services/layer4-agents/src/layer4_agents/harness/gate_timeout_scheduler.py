@@ -13,6 +13,8 @@ import logging
 from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
 
+from ..database import _clear_local_tenant_context
+
 logger = logging.getLogger(__name__)
 
 SAFE_FALLBACK_GATE_TIMEOUT_SECONDS = 600
@@ -70,6 +72,7 @@ class GateTimeoutScheduler:
         now = datetime.now(UTC)
 
         async with self._session_factory() as session:
+            await _clear_local_tenant_context(session)
             from layer4_agents.harness.db_models import HumanGateRow
 
             stmt = select(HumanGateRow).where(HumanGateRow.status == "pending")

@@ -43,10 +43,9 @@ async def test_configure_middleware_uses_runtime_redis_proxy(monkeypatch) -> Non
             "tenant:read",
             RateLimitConfig(requests_per_minute=60, burst_size=10),
         )
+        assert proxy.redis_client is sentinel_redis
+        assert observed["redis_client"] is sentinel_redis
+        assert observed["key"] == "tenant:read"
+        assert result == "rate-limit-result"
     finally:
         runtime_state.state_manager = original_state_manager
-
-    assert proxy.redis_client is sentinel_redis
-    assert observed["redis_client"] is sentinel_redis
-    assert observed["key"] == "tenant:read"
-    assert result == "rate-limit-result"

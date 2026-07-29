@@ -16,6 +16,8 @@ from sqlalchemy import text
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
 
+from ..database import _clear_local_tenant_context
+
 logger = logging.getLogger(__name__)
 
 
@@ -120,6 +122,7 @@ class OIDCCleanupTask:
         while not self._stop_event.is_set():
             try:
                 async with self._db_session_factory() as db:
+                    await _clear_local_tenant_context(db)
                     deleted = await cleanup_expired_oidc_sessions(db)
                     if deleted > 0:
                         logger.info(

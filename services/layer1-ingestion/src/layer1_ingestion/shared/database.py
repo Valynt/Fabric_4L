@@ -55,6 +55,21 @@ _TENANT_CONTEXT_VALUE_KEY = "tenant_context_value"
 _TENANT_BYPASS_REASON_KEY = "tenant_context_bypass_reason"
 
 
+def _normalize_sync_database_url(database_url: str) -> str:
+    """Pin generic PostgreSQL URLs to psycopg2 for the sync SQLAlchemy engine.
+
+    Layer 1 declares ``psycopg2-binary`` as its sync PostgreSQL dependency and
+    the test harness uses ``postgresql+psycopg2://`` explicitly. Normalizing
+    bare ``postgresql://`` URLs keeps SQLAlchemy from choosing a different
+    driver with incompatible ``connect_args`` semantics in CI.
+    """
+    if database_url.startswith("postgresql://"):
+        return database_url.replace("postgresql://", "postgresql+psycopg2://", 1)
+    if database_url.startswith("postgres://"):
+        return database_url.replace("postgres://", "postgresql+psycopg2://", 1)
+    return database_url
+
+
 def _is_production_like_runtime() -> bool:
     return bool(getattr(settings, "is_production_like", False))
 
@@ -83,7 +98,7 @@ _assert_rls_safe_database_url(settings.database_url, source="Layer 1 database UR
 # Create engine with configurable pool settings
 # P0-05: Add statement_timeout for query timeout protection (configurable via env var)
 engine = create_engine(
-    settings.database_url, 
+    _normalize_sync_database_url(settings.database_url),
     pool_size=DB_POOL_SIZE, 
     max_overflow=DB_MAX_OVERFLOW, 
     pool_pre_ping=True, 
