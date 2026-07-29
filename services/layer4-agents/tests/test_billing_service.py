@@ -934,7 +934,7 @@ async def test_webhook_subscription_created(mock_db):
     """Test customer.subscription.created webhook creates subscription."""
     customer = BillingCustomer(
         id="user_123",
-        tenant_id=TEST_TENANT_ID,
+        tenant_id="tenant_abc123",
         stripe_customer_id="cus_test123",
         email="test@example.com",
     )

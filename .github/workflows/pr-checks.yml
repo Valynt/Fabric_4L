@@ -645,7 +645,7 @@ jobs:
       PGPASSWORD: postgres
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/layer1_ingestion
+      DATABASE_URL: postgresql+psycopg2://postgres:postgres@localhost:5432/layer1_ingestion
     defaults:
       run:
         working-directory: services/layer1-ingestion
