@@ -35,5 +35,5 @@ respx>=0.20.0
 pact-python>=2.2.0
 
 # HTML parsing (layer1-ingestion dependency needed by XXE security tests)
-beautifulsoup4>=4.12.0
+beautifulsoup4>=4.15.0
 rdflib>=7.0.0

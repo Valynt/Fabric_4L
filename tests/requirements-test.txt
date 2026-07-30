@@ -46,7 +46,7 @@ testcontainers>=4.8.0  # Spins up Docker containers for integration tests
 # ---------------------------------------------------------------------------
 trafilatura>=1.6.0
 defusedxml>=0.7.1
-beautifulsoup4>=4.12.0
+beautifulsoup4>=4.15.0
 selectolax>=0.3.21
 pymupdf4llm>=0.0.17
 pytesseract>=0.3.13
