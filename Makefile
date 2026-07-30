@@ -386,6 +386,12 @@ test-backend-integrated-validation: ## Backend milestone: run direct release-pol
 test-backend-integrated-release-smoke: ## Backend milestone: boot full L1-L6 release stack and run release-environment smoke validation
 	bash scripts/ci/run_release_smoke.sh
 
+certify-production-path: ## Production path certification: execute end-to-end production path verification
+	@echo "→ Starting Production Path Certification..."
+	@echo "  Commit: $$(git rev-parse HEAD)"
+	@echo "  Timestamp: $$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+	python scripts/certify_production_path.py
+
 seed-e2e: ## Seed deterministic E2E fixture data into the local backend (requires running stack)
 	@echo "→ Seeding E2E test data..."
 	npx tsx scripts/db/seed-e2e-data.ts
