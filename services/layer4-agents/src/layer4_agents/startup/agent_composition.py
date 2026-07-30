@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
+from layer4_agents.adapters.benchmark_client import HTTPBenchmarkClient
 from layer4_agents.adapters.company_knowledge_pipeline import (
     CrossLayerCompanyKnowledgePipelineAdapter,
 )
@@ -23,10 +24,19 @@ from layer4_agents.agents.signal_detection import SignalDetectionAgent
 from layer4_agents.agents.taxonomy import ContextExtractionAgent
 from layer4_agents.config.settings import get_settings
 from layer4_agents.integration.layer5_client import get_layer5_client
+from layer4_agents.interfaces.benchmark_client import IBenchmarkClient
 from layer4_agents.interfaces.company_knowledge_pipeline import CompanyKnowledgePipelinePort
 from layer4_agents.interfaces.ground_truth_proxy import GroundTruthProxyPort
 from layer4_agents.interfaces.prospect_context import ProspectContextPort
 from layer4_agents.interfaces.signal_review import SignalReviewPort
+
+
+def create_benchmark_client() -> IBenchmarkClient:
+    """Create the production benchmark client adapter."""
+    settings = get_settings()
+    return HTTPBenchmarkClient(
+        base_url=str(settings.layer6_api_base_url),
+    )
 
 
 def create_signal_detection_agent(config: Mapping[str, Any] | None = None) -> SignalDetectionAgent:
