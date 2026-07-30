@@ -1,9 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
-
-from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import StreamingResponse
+from fastapi import APIRouter, Depends, Request
 
 from app.clients.layer1_client import Layer1Client
 from app.clients.layer2_client import Layer2Client

@@ -118,8 +118,9 @@ async def _verify_l3_graph_population(tenant_id: str, source_version_id: str) ->
     
     Calls L3 /v1/query/entities with source_version_id filter and returns count.
     """
-    from ..shared.config import settings
     import httpx
+
+    from ..shared.config import settings
     
     l3_url = settings.layer3_api_url
     service_secret = os.getenv("SERVICE_AUTH_SECRET", "")

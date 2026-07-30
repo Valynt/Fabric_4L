@@ -1,12 +1,17 @@
 from __future__ import annotations
 
 import os
-from typing import Any
+from typing import TYPE_CHECKING
 
 import httpx
 from fastapi import HTTPException
 
 from app.core.config import get_settings
+
+if TYPE_CHECKING:
+    pass
+
+JSONDict = dict[str, object]
 
 
 class Layer3Client:
@@ -18,7 +23,7 @@ class Layer3Client:
         self.timeout = timeout or settings.layer3_timeout_seconds
         self.service_secret = os.environ.get("SERVICE_AUTH_SECRET", "")
 
-    def _headers(self, tenant_id: str) -> dict[str, str]:
+    def _headers(self, tenant_id: str) -> JSONDict:
         return {
             "X-Tenant-ID": tenant_id,
             "X-Service-Auth": self.service_secret,
@@ -30,8 +35,9 @@ class Layer3Client:
         method: str,
         path: str,
         tenant_id: str,
-        json: dict[str, Any] | None = None,
-    ) -> dict[str, Any]:
+        json: JSONDict | None = None,
+        params: JSONDict | None = None,
+    ) -> JSONDict:
         url = f"{self.base_url}{path}"
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             response = await client.request(
@@ -39,6 +45,7 @@ class Layer3Client:
                 url,
                 headers=self._headers(tenant_id),
                 json=json,
+                params=params,
             )
         if response.status_code >= 400:
             detail = response.text or f"Layer 3 request failed ({response.status_code})"
@@ -51,54 +58,48 @@ class Layer3Client:
         entity_type: str | None = None,
         limit: int = 50,
         offset: int = 0,
-    ) -> dict[str, Any]:
+    ) -> JSONDict:
         """Query entities from the knowledge graph."""
-        params = {"limit": limit, "offset": offset}
-        if entity_type:
+        params: JSONDict = {"limit": limit, "offset": offset}
+        if entity_type is not None:
             params["entity_type"] = entity_type
-        url = f"{self.base_url}/v1/entities"
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
-            response = await client.get(url, headers=self._headers(tenant_id), params=params)
-        if response.status_code >= 400:
-            raise HTTPException(status_code=502, detail=f"Layer 3 entities query failed: {response.text}")
-        return response.json()
+        return await self._request("GET", "/v1/query/entities", tenant_id, params=params)
 
     async def search(
         self,
         tenant_id: str,
-        query: str,
+        query: str = "",
         limit: int = 10,
-    ) -> dict[str, Any]:
+    ) -> JSONDict:
         """Hybrid search in the knowledge graph."""
-        payload = {"query": query, "limit": limit}
-        return await self._request("POST", "/v1/search", tenant_id, json=payload)
+        return await self._request("POST", "/v1/search", tenant_id, {"query": query, "limit": limit})
 
-    async def get_value_tree(
-        self,
-        tenant_id: str,
-        tree_id: str,
-    ) -> dict[str, Any]:
+    async def get_value_tree(self, tenant_id: str, tree_id: str) -> JSONDict:
         """Get a value tree by ID."""
         return await self._request("GET", f"/v1/value-trees/{tree_id}", tenant_id)
 
     async def ingest_rdf(
         self,
         tenant_id: str,
-        rdf_data: str,
-        source_version_id: str,
-    ) -> dict[str, Any]:
+        rdf_data: str = "",
+        source_version_id: str = "",
+    ) -> JSONDict:
         """Ingest RDF data into the knowledge graph."""
-        payload = {"rdf": rdf_data, "source_version_id": source_version_id}
-        return await self._request("POST", "/v1/ingest", tenant_id, json=payload)
+        return await self._request(
+            "POST",
+            "/v1/ingest",
+            tenant_id,
+            {"rdf": rdf_data, "source_version_id": source_version_id},
+        )
 
     async def query_graphrag(
         self,
         tenant_id: str,
-        question: str,
-        context: dict[str, Any] | None = None,
-    ) -> dict[str, Any]:
+        question: str = "",
+        context: JSONDict | None = None,
+    ) -> JSONDict:
         """Query using GraphRAG."""
-        payload = {"question": question}
-        if context:
+        payload: JSONDict = {"question": question}
+        if context is not None:
             payload["context"] = context
-        return await self._request("POST", "/v1/graphrag/query", tenant_id, json=payload)
+        return await self._request("POST", "/v1/query/graphrag", tenant_id, payload)

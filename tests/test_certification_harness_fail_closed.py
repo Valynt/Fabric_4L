@@ -12,18 +12,19 @@ These tests verify that the harness correctly FAILS when:
 7. Cross-tenant isolation violation (Tenant B sees Tenant A data)
 """
 
-import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 import sys
 from pathlib import Path
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 # Add scripts to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
 
 from certify_production_path import (
+    CertificationEvidence,
     ProductionPathCertifier,
     TestContext,
-    CertificationEvidence,
 )
 
 
@@ -39,9 +40,7 @@ class TestHarnessFailClosed:
             user_admin="admin",
             account_id="account-123",
             source_id="source-123",
-            source_version_id="source-version-123",
             job_id="job-123",
-            ingestion_run_id="run-123",
             extraction_job_id="extraction-123",
             kg_node_ids=[],
             truth_object_ids=[],

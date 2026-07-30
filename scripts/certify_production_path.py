@@ -31,7 +31,6 @@ Usage:
 from __future__ import annotations
 
 import asyncio
-import hashlib
 import json
 import os
 import subprocess
@@ -41,9 +40,14 @@ import uuid
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import httpx
 
 import httpx
+
+JSONDict = dict[str, object]
 
 # ─── Constants ───
 REPO_ROOT = Path(__file__).parent.parent
@@ -69,14 +73,16 @@ ROLE_HEADER = "X-Role"
 SERVICE_AUTH_HEADER = "X-Service-Auth"
 SERVICE_AUTH_SECRET = os.getenv("SERVICE_AUTH_SECRET", "release-smoke-service-auth-secret-with-more-than-32-characters")
 
+JSONDict = dict[str, object]
+
 # ─── Data Classes ───
 @dataclass
 class CertificationEvidence:
     """Evidence collected during certification."""
     layer: str
     operation: str
-    input_data: dict[str, Any]
-    output_data: dict[str, Any]
+    input_data: JSONDict
+    output_data: JSONDict
     status: str  # success, failed
     timestamp: str
     duration_ms: float
@@ -178,8 +184,8 @@ class ProductionPathCertifier:
         return ev
 
     async def _request(self, layer: str, method: str, path: str,
-                       tenant_id: str, json_data: dict | None = None,
-                       expected: tuple = (200,)) -> tuple[Any, httpx.Response]:
+                       tenant_id: str, json_data: JSONDict | None = None,
+                       expected: tuple = (200,)) -> tuple[JSONDict, httpx.Response]:
         url = f"{SERVICE_URLS[layer]}{path}"
         headers = make_headers(tenant_id)
         async with httpx.AsyncClient(timeout=60.0) as client:
