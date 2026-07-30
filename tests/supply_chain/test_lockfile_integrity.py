@@ -57,7 +57,7 @@ def test_docker_and_ci_installs_use_frozen_lockfiles() -> None:
         text = dockerfile.read_text(encoding="utf-8")
         assert "--frozen-lockfile" in text or "uv sync --frozen" in text, dockerfile
 
-    workflow = (REPO_ROOT / ".github/workflows/supply-chain.yml").read_text(encoding="utf-8")
+    workflow = (REPO_ROOT / ".github/workflows/supply-chain-integrity.yml").read_text(encoding="utf-8")
     assert "pnpm --dir apps/web install --frozen-lockfile" in workflow
     assert "git diff --exit-code -- apps/web/pnpm-lock.yaml" in workflow
 

@@ -12781,34 +12781,22 @@
       "text": "def __init__(self, account_config: dict[str, Any] | None = None) -> None:"
     },
     {
-      "kind": "python-type-ignore",
-      "line": 459,
+      "kind": "python-any",
+      "line": 26,
       "path": "services/layer1-ingestion/src/layer1_ingestion/shared/database.py",
-      "text": "SyncRequestContext = None  # type: ignore"
+      "text": "from typing import TYPE_CHECKING, Any"
     },
     {
-      "kind": "python-type-ignore",
-      "line": 460,
+      "kind": "python-any",
+      "line": 490,
       "path": "services/layer1-ingestion/src/layer1_ingestion/shared/database.py",
-      "text": "get_request_context_sync = None  # type: ignore"
+      "text": "SyncRequestContext = Any"
     },
     {
-      "kind": "python-type-ignore",
-      "line": 461,
+      "kind": "python-any",
+      "line": 493,
       "path": "services/layer1-ingestion/src/layer1_ingestion/shared/database.py",
-      "text": "require_request_context_sync = None  # type: ignore"
-    },
-    {
-      "kind": "python-type-ignore",
-      "line": 465,
-      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/database.py",
-      "text": "context: \"SyncRequestContext\" = Depends(get_request_context_sync),  # type: ignore"
-    },
-    {
-      "kind": "python-type-ignore",
-      "line": 517,
-      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/database.py",
-      "text": "context: \"SyncRequestContext\" = Depends(get_request_context_sync),  # type: ignore"
+      "text": "def _missing_sync_request_context() -> Any:"
     },
     {
       "kind": "python-any",
@@ -14174,13 +14162,13 @@
     },
     {
       "kind": "python-any",
-      "line": 138,
+      "line": 150,
       "path": "services/layer2-extraction/src/layer2_extraction/extraction/cache.py",
       "text": ") -> Any | None:"
     },
     {
       "kind": "python-any",
-      "line": 172,
+      "line": 184,
       "path": "services/layer2-extraction/src/layer2_extraction/extraction/cache.py",
       "text": "value: Any,"
     },
@@ -28550,13 +28538,13 @@
     },
     {
       "kind": "python-type-ignore",
-      "line": 47,
+      "line": 45,
       "path": "services/layer4-agents/src/layer4_agents/harness/db_models.py",
       "text": "from sqlalchemy.orm import DeclarativeBase  # type: ignore[assignment]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 49,
+      "line": 47,
       "path": "services/layer4-agents/src/layer4_agents/harness/db_models.py",
       "text": "class Base(DeclarativeBase):  # type: ignore[no-redef]"
     },
@@ -28682,49 +28670,49 @@
     },
     {
       "kind": "python-type-ignore",
-      "line": 123,
+      "line": 149,
       "path": "services/layer4-agents/src/layer4_agents/harness/sql_stores.py",
       "text": "from_state=None,  # type: ignore[arg-type]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 124,
+      "line": 150,
       "path": "services/layer4-agents/src/layer4_agents/harness/sql_stores.py",
       "text": "to_state=None,  # type: ignore[arg-type]"
     },
     {
       "kind": "python-any",
-      "line": 258,
+      "line": 284,
       "path": "services/layer4-agents/src/layer4_agents/harness/sql_stores.py",
       "text": "state_payload: dict[str, Any],"
     },
     {
       "kind": "python-any",
-      "line": 304,
+      "line": 330,
       "path": "services/layer4-agents/src/layer4_agents/harness/sql_stores.py",
       "text": "state_payload: dict[str, Any],"
     },
     {
       "kind": "python-type-ignore",
-      "line": 468,
+      "line": 494,
       "path": "services/layer4-agents/src/layer4_agents/harness/sql_stores.py",
       "text": "validator=row.validator,  # type: ignore[arg-type]"
     },
     {
       "kind": "python-any",
-      "line": 594,
+      "line": 620,
       "path": "services/layer4-agents/src/layer4_agents/harness/sql_stores.py",
       "text": "metadata: dict[str, Any] | None = None,"
     },
     {
       "kind": "python-type-ignore",
-      "line": 729,
+      "line": 760,
       "path": "services/layer4-agents/src/layer4_agents/harness/sql_stores.py",
       "text": "from_state=None,  # type: ignore[arg-type]"
     },
     {
       "kind": "python-any",
-      "line": 746,
+      "line": 777,
       "path": "services/layer4-agents/src/layer4_agents/harness/sql_stores.py",
       "text": "state_payload: dict[str, Any] | None = None,"
     },
@@ -41057,24 +41045,6 @@
       "line": 25,
       "path": "tests/ci/test_type_escape_ratchet.py",
       "text": "python_file.write_text(\"value: Any = source  # type: ignore[assignment]\\n\", encoding=\"utf-8\")"
-    },
-    {
-      "kind": "python-any",
-      "line": 4,
-      "path": "tests/ci/test_workflow_permissions.py",
-      "text": "from typing import Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 172,
-      "path": "tests/ci/test_workflow_permissions.py",
-      "text": "def _load_workflow(path: Path) -> dict[str, Any]:"
-    },
-    {
-      "kind": "python-any",
-      "line": 179,
-      "path": "tests/ci/test_workflow_permissions.py",
-      "text": "workflow_name: str, permissions: Any, location: str"
     },
     {
       "kind": "python-any",

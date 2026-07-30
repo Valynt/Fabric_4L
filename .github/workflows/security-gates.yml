@@ -17,7 +17,8 @@ on:
     - cron: '0 9 * * 1'
 
 concurrency:
-  group: security-gates-${{ github.ref }}
+  # See pr-checks.yml for the shared heavy-gate throttling rationale.
+  group: ${{ (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/staging' || github.ref == 'refs/heads/production' || startsWith(github.ref, 'refs/heads/release/')) && format('security-gates-{0}', github.ref) || 'fabric-security-gates-shared' }}
   cancel-in-progress: true
 
 permissions:
@@ -653,7 +654,7 @@ jobs:
           severity: 'HIGH,CRITICAL'
 
       - name: Upload SBOM vulnerability SARIF
-        if: always()
+        if: always() && hashFiles(format('{0}-sbom-vuln.sarif', matrix.artifact.name)) != ''
         uses: github/codeql-action/upload-sarif@3ce22a6e336a7fcc318bc58ae1986395bdc83ba7 # v4.35.4
         with:
           sarif_file: '${{matrix.artifact.name}}-sbom-vuln.sarif'
@@ -708,6 +709,7 @@ jobs:
           REDIS_PASSWORD=valuefabric-ci-redis
           SECRET_KEY=valuefabric-ci-secret-key-minimum-32-characters
           JWT_SECRET=valuefabric-ci-jwt-secret-minimum-32-characters
+          JWT_ALGORITHM=RS256
           API_KEY_HMAC_SECRET=valuefabric-ci-api-key-hmac-secret-32chars
           SERVICE_AUTH_SECRET=valuefabric-ci-service-auth-secret-32chars
           LAYER4_DATABASE_URL=postgresql+asyncpg://valuefabric:valuefabric-ci-postgres@postgres:5432/ground_truth

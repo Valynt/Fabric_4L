@@ -25,10 +25,8 @@ from sqlalchemy import (
     DateTime,
     Float,
     ForeignKey,
-    Index,
     String,
     Text,
-    UniqueConstraint,
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -77,11 +75,7 @@ class HarnessRunRow(Base):
         onupdate=lambda: datetime.now(UTC),
     )
 
-    __table_args__ = (
-        Index("ix_harness_runs_tenant_status", "tenant_id", "status"),
-        Index("ix_harness_runs_tenant_state", "tenant_id", "current_state"),
-        Index("ix_harness_runs_trace_id", "trace_id"),
-    )
+    __table_args__ = {"extend_existing": True}
 
 
 class HumanGateRow(Base):
@@ -108,10 +102,7 @@ class HumanGateRow(Base):
     )
     decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
-    __table_args__ = (
-        Index("ix_harness_human_gates_run_tenant", "run_id", "tenant_id"),
-        Index("ix_harness_human_gates_tenant_status", "tenant_id", "status"),
-    )
+    __table_args__ = {"extend_existing": True}
 
 
 class HarnessCheckpointRow(Base):
@@ -137,11 +128,7 @@ class HarnessCheckpointRow(Base):
         DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC)
     )
 
-    __table_args__ = (
-        Index("ix_harness_checkpoints_run_tenant", "run_id", "tenant_id"),
-        Index("ix_harness_checkpoints_tenant_state", "tenant_id", "state_name"),
-        Index("ix_harness_checkpoints_input_hash", "input_hash"),
-    )
+    __table_args__ = {"extend_existing": True}
 
 
 class ToolContractRow(Base):
@@ -167,11 +154,7 @@ class ToolContractRow(Base):
         DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC)
     )
 
-    __table_args__ = (
-        UniqueConstraint("tenant_id", "tool_id", name="uq_harness_tool_contracts_tenant_tool"),
-        Index("ix_harness_tool_contracts_tenant_layer", "tenant_id", "layer"),
-        Index("ix_harness_tool_contracts_tenant_risk", "tenant_id", "risk_level"),
-    )
+    __table_args__ = {"extend_existing": True}
 
 
 class HarnessTraceEventRow(Base):
@@ -211,11 +194,7 @@ class HarnessTraceEventRow(Base):
         DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC)
     )
 
-    __table_args__ = (
-        Index("ix_harness_trace_events_run_tenant", "run_id", "tenant_id"),
-        Index("ix_harness_trace_events_tenant_type", "tenant_id", "event_type"),
-        Index("ix_harness_trace_events_trace_id", "trace_id"),
-    )
+    __table_args__ = {"extend_existing": True}
 
 
 class ClaimValidationResultRow(Base):
@@ -247,8 +226,4 @@ class ClaimValidationResultRow(Base):
         DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC)
     )
 
-    __table_args__ = (
-        Index("ix_harness_cvr_run_tenant", "run_id", "tenant_id"),
-        Index("ix_harness_cvr_tenant_state", "tenant_id", "validation_state"),
-        Index("ix_harness_cvr_claim_id", "claim_id"),
-    )
+    __table_args__ = {"extend_existing": True}

@@ -12,6 +12,11 @@ on:
     - cron: '0 3 * * *' # Nightly at 03:00 UTC
   workflow_dispatch:
 
+concurrency:
+  # See pr-checks.yml for the shared heavy-gate throttling rationale.
+  group: ${{ (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/staging' || github.ref == 'refs/heads/production' || startsWith(github.ref, 'refs/heads/release/')) && format('zero-trust-{0}', github.ref) || 'fabric-zero-trust-shared' }}
+  cancel-in-progress: true
+
 env:
   # Opt into Node.js 24 for GitHub Actions
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true

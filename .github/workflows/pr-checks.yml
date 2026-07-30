@@ -17,7 +17,13 @@ permissions:
     branches: [main]
 
 concurrency:
-  group: pr-checks-${{ github.ref }}
+  # On protected branches each workflow keeps its own per-ref group so that
+  # a newer push cancels an obsolete one. On PR/feature branches the heaviest
+  # workflows share a single global group to prevent the runner pool from being
+  # flooded by many open PRs launching ~100+ jobs each. cancel-in-progress is
+  # true on the shared group so the latest queued heavy run always executes
+  # rather than leaving older pending runs cancelled.
+  group: ${{ (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/staging' || github.ref == 'refs/heads/production' || startsWith(github.ref, 'refs/heads/release/')) && format('pr-checks-{0}', github.ref) || 'fabric-pr-checks-shared' }}
   cancel-in-progress: true
 
 env:
@@ -634,6 +640,12 @@ jobs:
     name: Layer 1 - Ingestion
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      DATABASE_URL: postgresql+psycopg2://postgres:postgres@localhost:5432/layer1_ingestion
     defaults:
       run:
         working-directory: services/layer1-ingestion
@@ -1085,11 +1097,13 @@ jobs:
         run: uv run mypy src/ --ignore-missing-imports
 
       - name: Layer 4 pytest collection check
-        run: uv run pytest --collect-only . -q
+        run: uv run pytest --collect-only -q
 
       - name: Run tests with coverage
         run: |
-          uv run pytest tests/ -v --tb=short \
+          # Run the full testpaths declared in pyproject.toml, including
+          # src/layer4_agents/harness/tests, so coverage reflects the suite.
+          uv run pytest -v --tb=short \
             --cov=src --cov-report=xml:layer4-coverage.xml \
             --junitxml=layer4-junit.xml \
             --json-report --json-report-file=layer4-results.json \
@@ -1656,6 +1670,13 @@ jobs:
           mkdir -p e2e-results playwright-report
           pnpm run test:e2e:live:p0
 
+      - name: Capture Compose diagnostics
+        if: failure()
+        working-directory: ${{ github.workspace }}
+        run: |
+          docker compose -f infra/compose/docker-compose.e2e.yml ps -a
+          docker compose -f infra/compose/docker-compose.e2e.yml logs --no-color --timestamps --tail=500
+
       - name: Upload P0 E2E artifacts
         if: always()
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
@@ -1856,15 +1877,22 @@ jobs:
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
 
-      - name: Set up Python
-        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
+      - name: Set up Fabric CI
+        uses: ./.github/actions/setup-fabric-ci
         with:
           python-version: "3.11"
-          cache: "pip"
+          python-dependency-mode: root-test
+          install-node-deps: "false"
+          cache: ""
 
-      - name: Install dependencies
+      - name: Write runtime contract compose override
         run: |
-          pip install pytest requests
+          cat > docker-compose.runtime-contract.yml <<'EOF'
+          services:
+            layer1-ingestion:
+              ports:
+                - "8001:8000"
+          EOF
 
       - name: Start runtime contract services
         env:
@@ -1892,9 +1920,9 @@ jobs:
           export FABRIC_AUTH_SIGNING_KEY=ci-fabric-signing-key
           export FLOWER_PASSWORD=ci-flower-password
           export GRAFANA_ADMIN_PASSWORD=ci-grafana-password
-          export LAYER4_DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/layer4
+          export LAYER4_DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/ground_truth
           export JWT_SECRET=${JWT_SECRET:?set JWT_SECRET}
-          docker compose -f infra/compose/docker-compose.full.yml up -d postgres redis neo4j layer5-migrate layer5-ground-truth \
+          docker compose -f infra/compose/docker-compose.full.yml -f docker-compose.runtime-contract.yml up -d postgres redis neo4j layer5-migrate layer5-ground-truth \
             layer1-ingestion layer2-extraction layer3-knowledge layer4-agents
 
       - name: Wait for L1-L4 health endpoints
@@ -1933,6 +1961,12 @@ jobs:
           if failed:
               raise SystemExit(f"Services did not become healthy in time: {failed}")
           PY
+
+      - name: Capture runtime contract service diagnostics
+        if: failure()
+        run: |
+          docker compose -f infra/compose/docker-compose.full.yml -f docker-compose.runtime-contract.yml ps
+          docker compose -f infra/compose/docker-compose.full.yml -f docker-compose.runtime-contract.yml logs --no-color --timestamps --tail=500
 
       - name: Run runtime contract marker suite
         env:
@@ -2096,7 +2130,7 @@ jobs:
           export NEO4J_PASSWORD="${NEO4J_PASSWORD:-devpassword}"
 
           docker compose up -d neo4j redis postgres
-          docker compose up -d --build layer2-extraction layer3-knowledge layer4-agents
+          docker compose up -d --build layer2 layer3 layer4
 
       - name: Wait for services to be healthy
         run: |
@@ -2132,7 +2166,8 @@ jobs:
         if: failure()
         run: |
           mkdir -p artifacts/logs
-          docker compose -f infra/compose/docker-compose.test.yml logs > artifacts/logs/docker-compose.log || true
+          PROJECT_NAME="fabric4l-release-smoke-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          docker compose -p "$PROJECT_NAME" -f infra/compose/docker-compose.release-smoke.yml logs --no-color > artifacts/logs/docker-compose.log || true
 
       - name: Upload smoke report
         if: always()

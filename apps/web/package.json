@@ -219,10 +219,5 @@
   "engines": {
     "node": ">=22.13.0"
   },
-  "pnpm": {
-    "overrides": {
-      "fast-uri@<=3.1.4": "3.1.4"
-    }
-  },
   "packageManager": "pnpm@10.18.1"
 }

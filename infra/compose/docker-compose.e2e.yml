@@ -1,6 +1,6 @@
-# =============================================================================
+# ==========================================================================
 # docker-compose.e2e.yml — Deterministic E2E Backend for Journey Tests
-# =============================================================================
+# ==========================================================================
 #
 # Purpose:  Provide a fully isolated, repeatable backend stack for the 16
 #           data-dependent Playwright journey tests. No persistent volumes,
@@ -13,11 +13,15 @@
 #   pnpm --filter frontend test:e2e:journeys # run journey tests
 #   docker compose -f infra/compose/docker-compose.e2e.yml down -v
 #
+x-shared-code-volumes: &shared-code-volumes
+  - ../../packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
+  - ../../packages/platform-contract/src/python:/app/packages/platform-contract/src/python:ro
+
 # Environment modes:
 #   Local deterministic  — developer confidence  — this file
 #   CI deterministic     — required gate         — this file
 #   Staging smoke        — deployment confidence — PLAYWRIGHT_BACKEND_URL override
-# =============================================================================
+# ==========================================================================
 
 services:
   # ---------------------------------------------------------------------------
@@ -70,7 +74,7 @@ services:
     networks:
       - e2e-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:7474"]
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:7474 || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 20
@@ -109,9 +113,12 @@ services:
       - LAYER3_API_URL=http://layer4:8000
       - LAYER5_GROUND_TRUTH_URL=http://layer4:8000
       - LAYER6_BENCHMARKS_URL=http://layer4:8000
+      - ALLOW_INSECURE_SERVICE_HTTP_IN_DEVELOPMENT=true
       # Logging
       - LOG_LEVEL=warning
-      - PYTHONPATH=/app
+      # PYTHONPATH: include image defaults plus mounted platform-contract code.
+      # /app itself makes value_fabric/shared importable without creating a top-level 'secrets' package.
+      - PYTHONPATH=/app:/app/src:/app/packages/platform-contract/src/python
       # Disable Infisical
       - INFISICAL_CLIENT_ID=
       - INFISICAL_CLIENT_SECRET=
@@ -124,8 +131,9 @@ services:
         condition: service_healthy
     networks:
       - e2e-network
+    volumes: *shared-code-volumes
     command: >
-      uvicorn src.api.main:app
+      uvicorn layer4_agents.api.main:app
       --host 0.0.0.0
       --port 8000
       --log-level warning
@@ -147,17 +155,20 @@ services:
     environment:
       - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/layer4_agents
       - CHECKPOINT_DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/ground_truth
-      - PYTHONPATH=/app
+      # PYTHONPATH: include image defaults plus mounted platform-contract code.
+      # /app itself makes value_fabric/shared importable without creating a top-level 'secrets' package.
+      - PYTHONPATH=/app:/app/src:/app/packages/platform-contract/src/python
     depends_on:
       postgres:
         condition: service_healthy
     networks:
       - e2e-network
-    command: >
+    volumes: *shared-code-volumes
+    command: |
       python -c "
       import asyncio
       from sqlalchemy.ext.asyncio import create_async_engine
-      from src.database import Base
+      from layer4_agents.database import Base
       async def run():
           engine = create_async_engine('postgresql+asyncpg://postgres:postgres@postgres:5432/layer4_agents')
           async with engine.begin() as conn:

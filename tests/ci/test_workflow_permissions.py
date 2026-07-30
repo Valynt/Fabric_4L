@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
 
 import yaml
 
@@ -119,7 +118,7 @@ ALLOWED_WRITE_PERMISSIONS: dict[str, dict[str, str]] = {
         "security-events": "uploads security scan SARIF",
         "id-token": "publishes OpenSSF Scorecard results through OIDC",
     },
-    "supply-chain.yml": {
+    "supply-chain-integrity.yml": {
         "id-token": "uses OIDC for provenance verification",
         "security-events": "uploads supply-chain scan SARIF",
     },
@@ -157,6 +156,13 @@ ALLOWED_WRITE_PERMISSIONS: dict[str, dict[str, str]] = {
         "contents": "pushes KPI snapshot updates to a PR branch",
         "pull-requests": "opens automated KPI refresh pull requests",
     },
+    "pr-backlog-health.yml": {
+        "issues": "opens/updates backlog-health issues",
+    },
+    "release-api-changelog.yml": {
+        "contents": "attaches generated changelog and updates release notes",
+        "issues": "creates breaking-change advisory issues",
+    },
 }
 
 
@@ -169,14 +175,14 @@ def _workflow_files() -> list[Path]:
     )
 
 
-def _load_workflow(path: Path) -> dict[str, Any]:
+def _load_workflow(path: Path) -> dict[str, object]:
     data = yaml.safe_load(path.read_text(encoding="utf-8"))
     assert isinstance(data, dict), f"{path} did not parse as a YAML mapping"
     return data
 
 
 def _permission_scopes(
-    workflow_name: str, permissions: Any, location: str
+    workflow_name: str, permissions: object, location: str
 ) -> list[tuple[str, str]]:
     assert permissions != "write-all", f"{workflow_name} {location} uses write-all"
     if permissions in (None, "read-all"):

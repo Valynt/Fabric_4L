@@ -14,7 +14,7 @@ ARG PNPM_VERSION=10.18.1
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 RUN apt-get update \
-    && apt-get install --no-install-recommends -y ca-certificates curl git \
+    && apt-get install --no-install-recommends -y ca-certificates curl git xz-utils \
     && rm -rf /var/lib/apt/lists/* \
     && test "${TARGETARCH}" = "amd64" \
     && curl --fail --location --silent --show-error \
