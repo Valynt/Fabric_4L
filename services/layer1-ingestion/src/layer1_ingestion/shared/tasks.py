@@ -113,6 +113,38 @@ def _domain_class(url: str) -> str:
 logger = structlog.get_logger()
 
 
+async def _verify_l3_graph_population(tenant_id: str, source_version_id: str) -> int:
+    """Verify L3 graph has entities from the given source version.
+    
+    Calls L3 /v1/query/entities with source_version_id filter and returns count.
+    """
+    from ..shared.config import settings
+    import httpx
+    
+    l3_url = settings.layer3_api_url
+    service_secret = os.getenv("SERVICE_AUTH_SECRET", "")
+    
+    headers = {
+        "X-Tenant-ID": tenant_id,
+        "X-Service-Auth": service_secret,
+        "Content-Type": "application/json",
+    }
+    
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(
+                f"{l3_url}/v1/query/entities",
+                params={"source_version_id": source_version_id, "limit": 1},
+                headers=headers,
+            )
+            if response.status_code == 200:
+                data = response.json()
+                return data.get("total", 0)
+    except Exception as e:
+        logger.warning("L3 graph verification failed", tenant_id=tenant_id, source_version_id=source_version_id, error=str(e))
+    return 0
+
+
 def _run_async(coro):
     # In a Celery worker there is no running event loop, so run the coroutine
     # to completion. When called from an async test context (e.g. pytest-asyncio)
@@ -911,6 +943,7 @@ async def _ai_extraction_stage_async(self, prev_result: dict, tenant_id: str):
                     "content_type": "text",
                     "extraction_method": method.lower(),
                     "source_id": str(raw_content_id),
+                    "source_version_id": str(raw_content_id),  # For L3 graph population tracking
                     "job_id": str(job_id),
                     "tenant_id": str(job.tenant_id),
                     "model_version": extraction_config.get("model_version", extraction_model),
@@ -942,19 +975,19 @@ async def _ai_extraction_stage_async(self, prev_result: dict, tenant_id: str):
                             backend=settings.layer2_celery_broker_url,
                         )
 
-                        # Dispatch task to L2 Celery worker
-                        logger.info("Dispatching extraction task to L2 Celery", job_id=str(job_id))
+                        # Dispatch task to L2 Celery worker with extract-and-ingest
+                        logger.info("Dispatching extract-and-ingest task to L2 Celery", job_id=str(job_id))
                         result = l2_celery.send_task(
                             "layer2_extraction.shared.tasks.run_extraction_task",
                             args=[str(job_id), job.source_url or "", raw_content.meta_title or "", extraction_payload],
-                            kwargs={"mark_pipeline_complete": False},
+                            kwargs={"mark_pipeline_complete": False, "use_extract_and_ingest": True},
                         )
 
                         # Wait for result with timeout
                         extraction_result = result.get(timeout=300)
                         tokens_consumed = extraction_result.get("tokens_consumed", 0)
 
-                        logger.info("L2 Celery extraction completed", job_id=str(job_id), task_id=result.id)
+                        logger.info("L2 Celery extract-and-ingest completed", job_id=str(job_id), task_id=result.id)
 
                     except Exception as e:
                         logger.warning(
@@ -965,9 +998,9 @@ async def _ai_extraction_stage_async(self, prev_result: dict, tenant_id: str):
                         # Fall through to HTTP fallback
                         use_celery_dispatch = False  # Disable for this run
                 else:
-                    logger.info("Using HTTP fallback for L2 extraction", job_id=str(job_id))
+                    logger.info("Using HTTP fallback for L2 extract-and-ingest", job_id=str(job_id))
 
-                # HTTP fallback (original implementation)
+                # HTTP fallback (extract-and-ingest endpoint for graph population)
                 if not use_celery_dispatch:
                     # P1-001: Sign S2S JWT for L2 authentication
                     s2s_token = None
@@ -985,9 +1018,9 @@ async def _ai_extraction_stage_async(self, prev_result: dict, tenant_id: str):
                         }
                         if s2s_token:
                             request_headers["Authorization"] = f"Bearer {s2s_token}"
-                        async with httpx.AsyncClient(timeout=30.0) as client:
+                        async with httpx.AsyncClient(timeout=60.0) as client:
                             response = await client.post(
-                                f"{l2_url}/v1/extract",
+                                f"{l2_url}/v1/extract-and-ingest",
                                 json=extraction_payload,
                                 headers=request_headers,
                             )
@@ -1005,12 +1038,24 @@ async def _ai_extraction_stage_async(self, prev_result: dict, tenant_id: str):
                                 status=e.response.status_code,
                             )
                             raise self.retry(exc=e, countdown=15)
-                        raise ValueError(f"L2 extraction failed: HTTP {e.response.status_code}: {e.response.text}")
+                        raise ValueError(f"L2 extract-and-ingest failed: HTTP {e.response.status_code}: {e.response.text}")
                     except Exception as e:
-                        logger.warning("L2 extraction failed, retrying via Celery", job_id=str(job_id), error_code="L2_EXTRACTION_ERROR")
+                        logger.warning("L2 extract-and-ingest failed, retrying via Celery", job_id=str(job_id), error_code="L2_EXTRACTION_ERROR")
                         raise self.retry(exc=e, countdown=30)
 
                 job.configuration["extraction_result"] = extraction_result
+
+                # Verify L3 graph population from this source version
+                l3_entity_count = await _verify_l3_graph_population(
+                    tenant_id=str(job.tenant_id),
+                    source_version_id=str(raw_content_id),
+                )
+                logger.info(
+                    "L3 graph population verified",
+                    job_id=str(job_id),
+                    source_version_id=str(raw_content_id),
+                    entities_in_graph=l3_entity_count,
+                )
 
                 _update_stage(session, job_id, PipelineStage.AI_EXTRACTION, "COMPLETED")
                 job.resources_llm_tokens_consumed += tokens_consumed

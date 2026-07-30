@@ -196,6 +196,24 @@ class SyncStatusResponse(BaseModel):
     )
 
 
+# Ground Truth Node Models (Layer 5 compatibility)
+class GroundTruthNodeRequest(BaseModel):
+    """Ground Truth node creation request from Layer 5.
+    
+    Matches the payload format used by Layer 5's Layer3Client.sync_truth_object().
+    """
+    node_type: str = Field(..., description="Node type (expected: 'GroundTruth')")
+    properties: dict[str, Any] = Field(..., description="Node properties")
+    merge_keys: list[str] = Field(default_factory=list, description="Keys for MERGE operation")
+
+
+class GroundTruthNodeResponse(BaseModel):
+    """Ground Truth node creation response."""
+    node_id: str = Field(..., description="Created node ID")
+    status: Literal["created", "updated"] = Field(..., description="Whether node was created or updated")
+    message: str = Field(default="", description="Additional message")
+
+
 # Query Models
 class EntityType(str, Enum):
     """Supported entity types for filtering (aligned with ontology schema spec)."""
@@ -672,6 +690,9 @@ class EntityFilterRequest(BaseModel):
     )
     extraction_job_ids: list[Annotated[str, Field(max_length=255)]] | None = Field(
         None, description="Filter by originating extraction job"
+    )
+    source_version_ids: list[Annotated[str, Field(max_length=255)]] | None = Field(
+        None, description="Filter by source version ID for graph population verification"
     )
 
     # Time range
