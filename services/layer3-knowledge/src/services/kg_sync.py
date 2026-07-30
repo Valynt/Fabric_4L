@@ -11,7 +11,6 @@ from typing import Any
 from uuid import UUID
 
 from ...db.driver import get_driver
-from ...db.query_execution import execute_query
 
 logger = logging.getLogger(__name__)
 
