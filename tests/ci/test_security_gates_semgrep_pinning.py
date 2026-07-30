@@ -2,6 +2,7 @@ from pathlib import Path
 
 import yaml
 
+
 ROOT = Path(__file__).resolve().parents[2]
 WORKFLOW = ROOT / ".github/workflows/security-gates.yml"
 
@@ -62,7 +63,12 @@ def test_static_scanner_smoke_check_validates_configs_and_sarif() -> None:
 def test_dast_ephemeral_stack_provides_required_compose_env_and_evidence_dir() -> None:
     workflow = _workflow()
     steps = workflow["jobs"]["dast-api-scan"]["steps"]
-    startup = next(step for step in steps if step.get("name") == "Start ephemeral Value Fabric stack")
+
+    startup = next(
+        step
+        for step in steps
+        if step.get("name") == "Start ephemeral Value Fabric stack"
+    )
     command = startup["run"]
 
     assert "BEGIN PRIVATE KEY" not in command
@@ -75,7 +81,11 @@ def test_dast_ephemeral_stack_provides_required_compose_env_and_evidence_dir() -
     assert "OPENAI_API_KEY=${OPENAI_API_KEY:?set OPENAI_API_KEY}" not in command
     assert "JWT_SECRET=valuefabric-ci-jwt-secret-minimum-32-characters" in command
     assert "JWT_SECRET=${JWT_SECRET:?set JWT_SECRET}" not in command
-    assert "docker compose -f infra/compose/docker-compose.full.yml --env-file .env up -d --build" in command
+    assert (
+        "docker compose -f infra/compose/docker-compose.full.yml "
+        "--env-file .env up -d --build"
+    ) in command
+
     for variable in (
         "POSTGRES_USER",
         "POSTGRES_PASSWORD",
@@ -98,9 +108,21 @@ def test_dast_ephemeral_stack_provides_required_compose_env_and_evidence_dir() -
     ):
         assert f"{variable}=" in command
 
-    collect_logs = next(step for step in steps if step.get("name") == "Collect compose logs for evidence")
+    collect_logs = next(
+        step
+        for step in steps
+        if step.get("name") == "Collect compose logs for evidence"
+    )
     assert "mkdir -p zap-reports" in collect_logs["run"]
-    assert "docker compose -f infra/compose/docker-compose.full.yml --env-file .env logs --no-color" in collect_logs["run"]
+    assert (
+        "docker compose -f infra/compose/docker-compose.full.yml "
+        "--env-file .env logs --no-color"
+    ) in collect_logs["run"]
 
-    stop_stack = next(step for step in steps if step.get("name") == "Stop ephemeral stack")
-    assert "docker compose -f infra/compose/docker-compose.full.yml --env-file .env down -v" in stop_stack["run"]
+    stop_stack = next(
+        step for step in steps if step.get("name") == "Stop ephemeral stack"
+    )
+    assert (
+        "docker compose -f infra/compose/docker-compose.full.yml "
+        "--env-file .env down -v"
+    ) in stop_stack["run"]
