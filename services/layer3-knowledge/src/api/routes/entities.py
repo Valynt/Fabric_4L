@@ -322,6 +322,7 @@ async def query_entities(
         params["entity_types"] = request.entity_types
         params["confidence_min"] = request.min_confidence
         params["confidence_max"] = request.max_confidence
+        params["source_version_ids"] = request.source_version_ids
         builder = TenantScopedCypher(neo4j.tenant_id or "")
         scoped_count = builder.custom_tenant_query(
             """
@@ -330,6 +331,7 @@ async def query_entities(
               AND ($entity_types IS NULL OR e.entity_type IN $entity_types)
               AND ($confidence_min IS NULL OR e.confidence_score >= $confidence_min)
               AND ($confidence_max IS NULL OR e.confidence_score <= $confidence_max)
+              AND ($source_version_ids IS NULL OR e.source_version_id IN $source_version_ids)
             RETURN count(e) as total
         """,
             params={k: v for k, v in params.items() if k not in ("limit", "offset")},
@@ -349,6 +351,7 @@ async def query_entities(
               AND ($entity_types IS NULL OR e.entity_type IN $entity_types)
               AND ($confidence_min IS NULL OR e.confidence_score >= $confidence_min)
               AND ($confidence_max IS NULL OR e.confidence_score <= $confidence_max)
+              AND ($source_version_ids IS NULL OR e.source_version_id IN $source_version_ids)
             RETURN e.id as id,
                    e.name as name,
                    e.description as description,
