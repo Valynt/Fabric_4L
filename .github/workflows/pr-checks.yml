@@ -2245,14 +2245,12 @@ jobs:
         run: |
           corepack enable
           corepack prepare pnpm@10.18.1 --activate
-          export PNPM_HOME="${RUNNER_TEMP}/pnpm"
-          export PATH="${PNPM_HOME}:${PATH}"
-          echo "PNPM_HOME=${RUNNER_TEMP}/pnpm" >> "$GITHUB_ENV"
-          echo "${RUNNER_TEMP}/pnpm" >> "$GITHUB_PATH"
-<<<<<<< HEAD
-=======
-          export PATH="${RUNNER_TEMP}/pnpm:$PATH"
->>>>>>> afbcd5660 (fix(ci): Docker Compose PATH and Layer 4 eager get_settings())
+          PNPM_HOME="${RUNNER_TEMP}/pnpm"
+          mkdir -p "$PNPM_HOME"
+          echo "PNPM_HOME=${PNPM_HOME}" >> "$GITHUB_ENV"
+          echo "${PNPM_HOME}" >> "$GITHUB_PATH"
+          export PATH="${PNPM_HOME}:$PATH"
+          export PNPM_HOME
           pnpm add --global @devcontainers/cli@0.80.1
 
       - name: Install compose contract dependencies
