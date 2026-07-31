@@ -4,18 +4,18 @@ from __future__ import annotations
 
 import json
 from collections.abc import Callable
-from typing import Any
 
 import httpx
 import pytest
-from pydantic import ValidationError as PydanticValidationError
 
-from valuefabric.client import ValueFabricClient
+from valuefabric.auth import APIKeyAuth, JWTAuth
+from valuefabric.client import JSONValue, ValueFabricClient
 from valuefabric.errors import (
     APIError,
     AuthenticationError,
     NotFoundError,
     RateLimitError,
+    ResponseError,
     ValueFabricError,
 )
 from valuefabric.errors import (
@@ -32,7 +32,9 @@ from valuefabric.models import (
     ModelVersion,
     Tenant,
     User,
-    Workflow,
+    WorkflowCreateResponse,
+    WorkflowListResponse,
+    WorkflowStatus,
     WorkflowTypeInfo,
 )
 
@@ -58,7 +60,7 @@ class RecordingTransport:
 
 def json_response(
     request: httpx.Request,
-    payload: Any,
+    payload: JSONValue,
     *,
     status_code: int = 200,
     headers: dict[str, str] | None = None,
@@ -71,7 +73,7 @@ def json_response(
     )
 
 
-def make_client(
+async def make_client(
     responder: Callable[[httpx.Request], httpx.Response],
     *,
     api_key: str = "sdk-secret",
@@ -79,12 +81,19 @@ def make_client(
     recorder = RecordingTransport(responder)
     transport = httpx.MockTransport(recorder)
     client = ValueFabricClient(BASE_URL, api_key=api_key)
-    client._sync_client._transport = transport
-    client._async_client._transport = transport
+    client.close()
+    await client.aclose()
+    headers = {"Accept": "application/json", "Content-Type": "application/json"}
+    client._sync_client = httpx.Client(
+        base_url=BASE_URL, headers=headers, auth=APIKeyAuth(api_key), transport=transport
+    )
+    client._async_client = httpx.AsyncClient(
+        base_url=BASE_URL, headers=headers, auth=APIKeyAuth(api_key), transport=transport
+    )
     return client, recorder
 
 
-def api_key_payload() -> dict[str, Any]:
+def api_key_payload() -> dict[str, JSONValue]:
     return {
         "key_id": "vf_abc",
         "tenant_id": TENANT_ID,
@@ -97,14 +106,14 @@ def api_key_payload() -> dict[str, Any]:
     }
 
 
-def workflow_payload() -> dict[str, Any]:
+def workflow_payload() -> dict[str, JSONValue]:
     return {
-        "workflow_instance_id": "wf-1",
+        "id": "wf-1",
         "workflow_type": "roi_calculator",
         "status": "running",
         "current_state": "calculate",
         "current_node": "calculate",
-        "progress_percentage": 50.0,
+        "progress": 50.0,
         "started_at": "2024-01-01T00:00:00Z",
         "completed_at": None,
         "error_count": 0,
@@ -117,7 +126,7 @@ def workflow_payload() -> dict[str, Any]:
     }
 
 
-def tenant_payload() -> dict[str, Any]:
+def tenant_payload() -> dict[str, JSONValue]:
     return {
         "id": TENANT_ID,
         "name": "Acme",
@@ -130,23 +139,23 @@ def tenant_payload() -> dict[str, Any]:
 
 @pytest.mark.parametrize("asynchronous", [False, True], ids=["sync", "async"])
 @pytest.mark.asyncio
-async def test_list_api_keys_preserves_public_enabled_only_query(
+async def test_list_api_keys_uses_canonical_active_only_query(
     asynchronous: bool,
 ) -> None:
     def responder(request: httpx.Request) -> httpx.Response:
         return json_response(request, [api_key_payload()])
 
-    client, recorder = make_client(responder)
+    client, recorder = await make_client(responder)
     try:
         if asynchronous:
-            result = await client.alist_api_keys(enabled_only=False)
+            result = await client.alist_api_keys(active_only=False)
         else:
-            result = client.list_api_keys(enabled_only=False)
+            result = client.list_api_keys(active_only=False)
 
         assert result == [APIKey.model_validate(api_key_payload())]
         assert recorder.requests[0].method == "GET"
         assert recorder.requests[0].url.path == "/v1/api-keys"
-        assert dict(recorder.requests[0].url.params) == {"enabled_only": "false"}
+        assert dict(recorder.requests[0].url.params) == {"active_only": "false"}
         assert recorder.requests[0].headers["x-api-key"] == "sdk-secret"
     finally:
         client.close()
@@ -155,20 +164,84 @@ async def test_list_api_keys_preserves_public_enabled_only_query(
 
 @pytest.mark.parametrize("asynchronous", [False, True], ids=["sync", "async"])
 @pytest.mark.asyncio
-async def test_list_active_workflows_deserializes_public_list_shape(
+async def test_list_workflows_uses_canonical_page_query(
+    asynchronous: bool,
+) -> None:
+    payload: JSONValue = {
+        "items": [workflow_payload()],
+        "total": 1,
+        "limit": 25,
+        "offset": 5,
+        "has_more": False,
+    }
+
+    def responder(request: httpx.Request) -> httpx.Response:
+        return json_response(request, payload)
+
+    client, recorder = await make_client(responder)
+    try:
+        if asynchronous:
+            result = await client.alist_workflows(
+                limit=25,
+                offset=5,
+                workflow_type="roi_calculator",
+                include_completed=False,
+            )
+        else:
+            result = client.list_workflows(
+                limit=25,
+                offset=5,
+                workflow_type="roi_calculator",
+                include_completed=False,
+            )
+
+        assert result == WorkflowListResponse.model_validate(payload)
+        assert recorder.requests[0].method == "GET"
+        assert recorder.requests[0].url.path == "/v1/workflows"
+        assert dict(recorder.requests[0].url.params) == {
+            "limit": "25",
+            "offset": "5",
+            "type": "roi_calculator",
+            "include_completed": "false",
+        }
+    finally:
+        client.close()
+        await client.aclose()
+
+
+@pytest.mark.parametrize("asynchronous", [False, True], ids=["sync", "async"])
+@pytest.mark.asyncio
+async def test_list_active_workflows_deserializes_canonical_page(
     asynchronous: bool,
 ) -> None:
     def responder(request: httpx.Request) -> httpx.Response:
-        return json_response(request, [workflow_payload()])
+        return json_response(
+            request,
+            {
+                "items": [workflow_payload()],
+                "total": 1,
+                "limit": 100,
+                "offset": 0,
+                "has_more": False,
+            },
+        )
 
-    client, recorder = make_client(responder)
+    client, recorder = await make_client(responder)
     try:
         if asynchronous:
             result = await client.alist_active_workflows()
         else:
             result = client.list_active_workflows()
 
-        assert result == [Workflow.model_validate(workflow_payload())]
+        assert result == WorkflowListResponse.model_validate(
+            {
+                "items": [workflow_payload()],
+                "total": 1,
+                "limit": 100,
+                "offset": 0,
+                "has_more": False,
+            }
+        )
         assert recorder.requests[0].method == "GET"
         assert recorder.requests[0].url.path == "/v1/workflows/active"
     finally:
@@ -184,15 +257,16 @@ async def test_get_workflow_deserializes_public_status_fields(
     def responder(request: httpx.Request) -> httpx.Response:
         return json_response(request, workflow_payload())
 
-    client, recorder = make_client(responder)
+    client, recorder = await make_client(responder)
     try:
         if asynchronous:
             result = await client.aget_workflow("wf-1")
         else:
             result = client.get_workflow("wf-1")
 
-        assert result.workflow_instance_id == "wf-1"
-        assert result.progress_percentage == 50.0
+        assert result == WorkflowStatus.model_validate(workflow_payload())
+        assert result.id == "wf-1"
+        assert result.progress == 50.0
         assert recorder.requests[0].url.path == "/v1/workflows/wf-1"
     finally:
         client.close()
@@ -201,7 +275,7 @@ async def test_get_workflow_deserializes_public_status_fields(
 
 @pytest.mark.parametrize("asynchronous", [False, True], ids=["sync", "async"])
 @pytest.mark.asyncio
-async def test_execute_workflow_serializes_documented_identity_without_mutating_inputs(
+async def test_execute_workflow_omits_caller_identity_and_returns_typed_response(
     asynchronous: bool,
 ) -> None:
     inputs = {"custom_data": {"revenue": 100}}
@@ -217,13 +291,11 @@ async def test_execute_workflow_serializes_documented_identity_without_mutating_
             status_code=201,
         )
 
-    client, recorder = make_client(responder)
+    client, recorder = await make_client(responder)
     try:
         if asynchronous:
             result = await client.aexecute_workflow(
                 "roi_calculator",
-                "caller-tenant",
-                "caller-user",
                 inputs=inputs,
                 priority="HIGH",
                 workflow_id="wf-2",
@@ -231,18 +303,18 @@ async def test_execute_workflow_serializes_documented_identity_without_mutating_
         else:
             result = client.execute_workflow(
                 "roi_calculator",
-                "caller-tenant",
-                "caller-user",
                 inputs=inputs,
                 priority="HIGH",
                 workflow_id="wf-2",
             )
 
-        assert result["workflow_instance_id"] == "wf-2"
+        assert result == WorkflowCreateResponse(
+            workflow_instance_id="wf-2",
+            status="scheduled",
+            estimated_duration_seconds=300,
+        )
         assert json.loads(recorder.requests[0].content) == {
             "workflow_type": "roi_calculator",
-            "tenant_id": "caller-tenant",
-            "user_id": "caller-user",
             "inputs": inputs,
             "priority": "HIGH",
             "workflow_id": "wf-2",
@@ -260,7 +332,7 @@ async def test_get_tenant_request_and_model(asynchronous: bool) -> None:
     def responder(request: httpx.Request) -> httpx.Response:
         return json_response(request, tenant_payload())
 
-    client, recorder = make_client(responder)
+    client, recorder = await make_client(responder)
     try:
         result = (
             await client.aget_tenant(TENANT_ID) if asynchronous else client.get_tenant(TENANT_ID)
@@ -273,7 +345,7 @@ async def test_get_tenant_request_and_model(asynchronous: bool) -> None:
         await client.aclose()
 
 
-def model_payload() -> dict[str, Any]:
+def model_payload() -> dict[str, JSONValue]:
     return {
         "id": MODEL_ID,
         "tenant_id": TENANT_ID,
@@ -292,7 +364,7 @@ async def test_list_models_request_and_model(asynchronous: bool) -> None:
     def responder(request: httpx.Request) -> httpx.Response:
         return json_response(request, [model_payload()])
 
-    client, recorder = make_client(responder)
+    client, recorder = await make_client(responder)
     try:
         result = (
             await client.alist_models(stage="staging")
@@ -307,7 +379,7 @@ async def test_list_models_request_and_model(asynchronous: bool) -> None:
         await client.aclose()
 
 
-def feature_flag_payload() -> dict[str, Any]:
+def feature_flag_payload() -> dict[str, JSONValue]:
     return {
         "id": "55555555-5555-5555-5555-555555555555",
         "tenant_id": TENANT_ID,
@@ -327,7 +399,7 @@ async def test_set_feature_flag_request_and_model(asynchronous: bool) -> None:
     def responder(request: httpx.Request) -> httpx.Response:
         return json_response(request, feature_flag_payload())
 
-    client, recorder = make_client(responder)
+    client, recorder = await make_client(responder)
     try:
         result = (
             await client.aset_feature_flag(
@@ -357,7 +429,7 @@ async def test_set_feature_flag_request_and_model(asynchronous: bool) -> None:
         await client.aclose()
 
 
-def health_payload() -> dict[str, Any]:
+def health_payload() -> dict[str, JSONValue]:
     return {
         "status": "healthy",
         "service": "layer4-agents",
@@ -376,7 +448,7 @@ async def test_health_request_and_model(asynchronous: bool) -> None:
     def responder(request: httpx.Request) -> httpx.Response:
         return json_response(request, health_payload())
 
-    client, recorder = make_client(responder)
+    client, recorder = await make_client(responder)
     try:
         result = await client.ahealth() if asynchronous else client.health()
         assert result == HealthResponse.model_validate(health_payload())
@@ -408,13 +480,17 @@ async def test_http_error_mapping_preserves_safe_context(
     status_code: int,
     exception_type: type[ValueFabricError],
 ) -> None:
-    body = {"detail": f"failure-{status_code}"}
+    body: JSONValue = {
+        "detail": f"failure-{status_code}",
+        "api_key": "server-secret",
+        "nested": {"authorization": "Bearer server-token"},
+    }
 
     def responder(request: httpx.Request) -> httpx.Response:
         headers = {"retry-after": "7"} if status_code == 429 else None
         return json_response(request, body, status_code=status_code, headers=headers)
 
-    client, _ = make_client(responder, api_key="must-not-leak")
+    client, _ = await make_client(responder, api_key="must-not-leak")
     try:
         with pytest.raises(exception_type) as captured:
             if asynchronous:
@@ -422,10 +498,17 @@ async def test_http_error_mapping_preserves_safe_context(
             else:
                 client.health()
         error = captured.value
-        assert error.response_body == body
+        assert error.response_body == {
+            "detail": f"failure-{status_code}",
+            "api_key": "[REDACTED]",
+            "nested": {"authorization": "[REDACTED]"},
+        }
+        assert error.status_code == status_code
+        assert error.endpoint == "/health"
+        assert error.__cause__ is None
         assert "must-not-leak" not in str(error)
-        if isinstance(error, APIError):
-            assert error.status_code == status_code
+        assert "server-secret" not in repr(error.response_body)
+        assert "server-token" not in repr(error.response_body)
         if isinstance(error, RateLimitError):
             assert error.retry_after == 7
     finally:
@@ -439,7 +522,7 @@ async def test_transport_errors_map_to_connection_error(asynchronous: bool) -> N
     def responder(request: httpx.Request) -> httpx.Response:
         raise httpx.ConnectError("connection refused", request=request)
 
-    client, _ = make_client(responder, api_key="must-not-leak")
+    client, _ = await make_client(responder, api_key="must-not-leak")
     try:
         with pytest.raises(SDKConnectionError) as captured:
             if asynchronous:
@@ -447,6 +530,8 @@ async def test_transport_errors_map_to_connection_error(asynchronous: bool) -> N
             else:
                 client.health()
         assert "connection refused" in str(captured.value)
+        assert captured.value.endpoint == "/health"
+        assert captured.value.__cause__ is None
         assert "must-not-leak" not in str(captured.value)
     finally:
         client.close()
@@ -544,8 +629,8 @@ PUBLIC_METHOD_CASES = [
         id="create-api-key",
     ),
     pytest.param(
-        "list_workflows",
-        "alist_workflows",
+        "list_workflow_types",
+        "alist_workflow_types",
         (),
         {},
         WORKFLOW_TYPES_PAYLOAD,
@@ -610,19 +695,19 @@ async def test_remaining_public_method_contracts(
     asynchronous: bool,
     sync_method: str,
     async_method: str,
-    args: tuple[Any, ...],
-    kwargs: dict[str, Any],
-    response_payload: Any,
-    expected_result: Any,
+    args: tuple[object, ...],
+    kwargs: dict[str, object],
+    response_payload: JSONValue,
+    expected_result: object,
     http_method: str,
     path: str,
     query: dict[str, str],
-    body: dict[str, Any] | None,
+    body: dict[str, JSONValue] | None,
 ) -> None:
     def responder(request: httpx.Request) -> httpx.Response:
         return json_response(request, response_payload)
 
-    client, recorder = make_client(responder)
+    client, recorder = await make_client(responder)
     try:
         if asynchronous:
             result = await getattr(client, async_method)(*args, **kwargs)
@@ -648,8 +733,15 @@ async def test_jwt_authentication_header(asynchronous: bool) -> None:
     recorder = RecordingTransport(responder)
     transport = httpx.MockTransport(recorder)
     client = ValueFabricClient(BASE_URL, jwt_token="jwt-secret")
-    client._sync_client._transport = transport
-    client._async_client._transport = transport
+    client.close()
+    await client.aclose()
+    headers = {"Accept": "application/json", "Content-Type": "application/json"}
+    client._sync_client = httpx.Client(
+        base_url=BASE_URL, headers=headers, auth=JWTAuth("jwt-secret"), transport=transport
+    )
+    client._async_client = httpx.AsyncClient(
+        base_url=BASE_URL, headers=headers, auth=JWTAuth("jwt-secret"), transport=transport
+    )
     try:
         if asynchronous:
             await client.ahealth()
@@ -669,7 +761,7 @@ async def test_timeout_maps_to_connection_error(asynchronous: bool) -> None:
     def responder(request: httpx.Request) -> httpx.Response:
         raise httpx.ReadTimeout("timed out", request=request)
 
-    client, _ = make_client(responder, api_key="must-not-leak")
+    client, _ = await make_client(responder, api_key="must-not-leak")
     try:
         with pytest.raises(SDKConnectionError) as captured:
             if asynchronous:
@@ -685,17 +777,41 @@ async def test_timeout_maps_to_connection_error(asynchronous: bool) -> None:
 
 @pytest.mark.parametrize("asynchronous", [False, True], ids=["sync", "async"])
 @pytest.mark.asyncio
-async def test_malformed_json_is_exposed_deterministically(asynchronous: bool) -> None:
+async def test_empty_success_body_raises_typed_response_error(asynchronous: bool) -> None:
     def responder(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(200, content=b"{broken", request=request)
+        return httpx.Response(204, content=b"", request=request)
 
-    client, _ = make_client(responder)
+    client, _ = await make_client(responder)
     try:
-        with pytest.raises(json.JSONDecodeError):
+        with pytest.raises(ResponseError) as captured:
             if asynchronous:
                 await client.ahealth()
             else:
                 client.health()
+        assert captured.value.status_code == 204
+        assert captured.value.endpoint == "/health"
+        assert captured.value.__cause__ is None
+    finally:
+        client.close()
+        await client.aclose()
+
+
+@pytest.mark.parametrize("asynchronous", [False, True], ids=["sync", "async"])
+@pytest.mark.asyncio
+async def test_malformed_json_is_exposed_deterministically(asynchronous: bool) -> None:
+    def responder(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, content=b"{broken", request=request)
+
+    client, _ = await make_client(responder)
+    try:
+        with pytest.raises(ResponseError) as captured:
+            if asynchronous:
+                await client.ahealth()
+            else:
+                client.health()
+        assert captured.value.status_code == 200
+        assert captured.value.endpoint == "/health"
+        assert captured.value.__cause__ is None
     finally:
         client.close()
         await client.aclose()
@@ -707,13 +823,16 @@ async def test_malformed_model_payload_is_rejected(asynchronous: bool) -> None:
     def responder(request: httpx.Request) -> httpx.Response:
         return json_response(request, {"status": "healthy"})
 
-    client, _ = make_client(responder)
+    client, _ = await make_client(responder)
     try:
-        with pytest.raises(PydanticValidationError):
+        with pytest.raises(ResponseError) as captured:
             if asynchronous:
                 await client.ahealth()
             else:
                 client.health()
+        assert captured.value.status_code == 200
+        assert captured.value.endpoint == "/health"
+        assert captured.value.__cause__ is None
     finally:
         client.close()
         await client.aclose()
@@ -742,12 +861,10 @@ async def test_malformed_model_payload_is_rejected(asynchronous: bool) -> None:
         pytest.param(
             "execute_workflow",
             "aexecute_workflow",
-            ("roi_calculator", "tenant-1", "user-1"),
+            ("roi_calculator",),
             {"workflow_instance_id": "wf-default", "status": "scheduled"},
             {
                 "workflow_type": "roi_calculator",
-                "tenant_id": "tenant-1",
-                "user_id": "user-1",
                 "inputs": {},
                 "priority": "NORMAL",
             },
@@ -761,13 +878,13 @@ async def test_optional_arguments_are_omitted_or_defaulted(
     sync_method: str,
     async_method: str,
     args: tuple[str, ...],
-    response_payload: dict[str, Any],
-    expected_body: dict[str, Any],
+    response_payload: dict[str, JSONValue],
+    expected_body: dict[str, JSONValue],
 ) -> None:
     def responder(request: httpx.Request) -> httpx.Response:
         return json_response(request, response_payload)
 
-    client, recorder = make_client(responder)
+    client, recorder = await make_client(responder)
     try:
         if asynchronous:
             await getattr(client, async_method)(*args)
@@ -785,7 +902,7 @@ async def test_optional_model_stage_omits_query(asynchronous: bool) -> None:
     def responder(request: httpx.Request) -> httpx.Response:
         return json_response(request, [model_payload()])
 
-    client, recorder = make_client(responder)
+    client, recorder = await make_client(responder)
     try:
         if asynchronous:
             await client.alist_models()

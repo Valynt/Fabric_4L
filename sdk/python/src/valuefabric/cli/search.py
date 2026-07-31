@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Optional
-
 import typer
 from rich import print as rich_print
 from rich.progress import Progress, SpinnerColumn, TextColumn
@@ -25,7 +23,7 @@ def _get_l3_client() -> L3Client:
 
 def _execute_search(
     query: str,
-    entity_type: Optional[str],
+    entity_type: str | None,
     top_k: int,
     search_type: str,
     json_output: bool,
@@ -39,23 +37,25 @@ def _execute_search(
     except ValueError:
         rich_print(f"[red]Invalid search type: {search_type}[/red]")
         rich_print("[yellow]Valid types: hybrid, vector, bm25, graph[/yellow]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
-    request_kwargs: dict = {
-        "query": query,
-        "top_k": top_k,
-        "search_type": search_type_enum,
-    }
-
+    parsed_entity_type: EntityType | None = None
     if entity_type:
         try:
-            request_kwargs["entity_type"] = EntityType(entity_type)
+            parsed_entity_type = EntityType(entity_type)
         except ValueError:
             rich_print(f"[red]Invalid entity type: {entity_type}[/red]")
-            rich_print("[yellow]Valid types: " + ", ".join(e.value for e in EntityType) + "[/yellow]")
-            raise typer.Exit(1)
+            rich_print(
+                "[yellow]Valid types: " + ", ".join(e.value for e in EntityType) + "[/yellow]"
+            )
+            raise typer.Exit(1) from None
 
-    request = SearchRequest(**request_kwargs)
+    request = SearchRequest(
+        query=query,
+        top_k=top_k,
+        search_type=search_type_enum,
+        entity_type=parsed_entity_type,
+    )
 
     # Execute search with progress indicator
     with Progress(
@@ -68,11 +68,12 @@ def _execute_search(
             response = client.search(request)
         except Exception as e:
             rich_print(f"[red]Search failed: {e}[/red]")
-            raise typer.Exit(1)
+            raise typer.Exit(1) from None
 
     # Output results
     if json_output:
         import json
+
         print(json.dumps(response.model_dump(mode="json"), indent=2))
         return
 
@@ -98,16 +99,20 @@ def _execute_search(
         )
 
     rich_print(table)
-    rich_print(f"[dim]Search type: {response.search_type.value} | "
-               f"Processing time: {response.processing_time_ms}ms[/dim]")
+    rich_print(
+        f"[dim]Search type: {response.search_type.value} | "
+        f"Processing time: {response.processing_time_ms}ms[/dim]"
+    )
 
 
 def search_command(
     query: str = typer.Argument(..., help="Search query string"),
-    entity_type: Optional[str] = typer.Option(
+    entity_type: str | None = typer.Option(
         None, "--type", "-t", help="Filter by entity type (e.g., Capability, UseCase)"
     ),
-    top_k: int = typer.Option(10, "--limit", "-l", help="Number of results to return", min=1, max=100),
+    top_k: int = typer.Option(
+        10, "--limit", "-l", help="Number of results to return", min=1, max=100
+    ),
     search_type: str = typer.Option(
         "hybrid", "--search-type", help="Search algorithm (hybrid, vector, bm25, graph)"
     ),

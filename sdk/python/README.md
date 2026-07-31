@@ -34,10 +34,8 @@ print(user.id)
 # Execute a workflow
 result = client.execute_workflow(
     workflow_type="roi_calculator",
-    tenant_id="tenant-001",
-    user_id="user-001",
 )
-print(result["workflow_instance_id"])
+print(result.workflow_instance_id)
 ```
 
 ### JWT Authentication
@@ -56,10 +54,12 @@ All SDK methods have an async counterpart prefixed with `a`:
 ```python
 import asyncio
 
+
 async def main():
     async with ValueFabricClient(base_url="...", api_key="...") as client:
         tenants = await client.alist_tenants()
         print(tenants)
+
 
 asyncio.run(main())
 ```
@@ -83,7 +83,7 @@ vf tenants list
 vf users invite alice@example.com --role analyst
 
 # Execute a workflow
-vf workflows execute roi_calculator --tenant-id t1 --user-id u1
+vf workflows execute roi_calculator
 
 # List feature flags
 vf feature-flags list
@@ -175,7 +175,7 @@ from valuefabric.generated.l3 import SearchRequest
 l3 = L3Client(base_url="http://localhost:8001", api_key="your-key")
 response = l3.search(SearchRequest(query="AI platform"))
 
-# L4 Agents client  
+# L4 Agents client
 l4 = L4Client(base_url="http://localhost:8000", api_key="your-key")
 health = l4.health()
 ```

@@ -1,8 +1,8 @@
-"""Generated HTTP client for L3 Knowledge Graph API."""
+"""Generated HTTP client for Value Fabric - Knowledge Graph & Semantic Layer."""
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 import httpx
 
@@ -10,14 +10,14 @@ from .l3 import SearchRequest, SearchResponse
 
 
 class L3Client:
-    """HTTP client for L3 Knowledge Graph API.
+    """HTTP client for Value Fabric - Knowledge Graph & Semantic Layer.
 
     Generated from OpenAPI spec at layer3-knowledge.json
     """
 
     def __init__(
         self,
-        base_url: str = "http://localhost:8001",
+        base_url: str = "http://localhost:8000",
         api_key: str | None = None,
         jwt_token: str | None = None,
         timeout: float = 30.0,
@@ -52,7 +52,7 @@ class L3Client:
     ) -> dict[str, Any]:
         response = self._sync_client.request(method, path, params=params, json=json)
         response.raise_for_status()
-        return response.json()
+        return cast(dict[str, Any], response.json())
 
     async def _arequest(
         self,
@@ -64,7 +64,7 @@ class L3Client:
     ) -> dict[str, Any]:
         response = await self._async_client.request(method, path, params=params, json=json)
         response.raise_for_status()
-        return response.json()
+        return cast(dict[str, Any], response.json())
 
     def health(self) -> dict[str, Any]:
         """Check API health."""
@@ -75,19 +75,19 @@ class L3Client:
         return await self._arequest("GET", "/health")
 
     def search(self, request: SearchRequest) -> SearchResponse:
-        """Execute hybrid search (BM25 + vector + graph)."""
-        response = self._request(
+        """Execute canonical hybrid search."""
+        payload = self._request(
             "POST",
             "/v1/search/hybrid",
             json=request.model_dump(mode="json", exclude_none=True),
         )
-        return SearchResponse.model_validate(response)
+        return SearchResponse.model_validate(payload)
 
     async def asearch(self, request: SearchRequest) -> SearchResponse:
-        """Execute hybrid search (async)."""
-        response = await self._arequest(
+        """Execute canonical hybrid search asynchronously."""
+        payload = await self._arequest(
             "POST",
             "/v1/search/hybrid",
             json=request.model_dump(mode="json", exclude_none=True),
         )
-        return SearchResponse.model_validate(response)
+        return SearchResponse.model_validate(payload)

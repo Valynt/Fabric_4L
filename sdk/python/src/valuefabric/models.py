@@ -61,13 +61,38 @@ class APIKeyCreateResult(BaseModel):
     created_at: datetime
 
 
-class Workflow(BaseModel):
+class WorkflowListItem(BaseModel):
+    id: str
+    workflow_type: str
+    status: str
+    created_at: str | None = None
+    started_at: str | None = None
+    completed_at: str | None = None
+    progress: float = 0.0
+    tenant_id: str | None = None
+
+
+class WorkflowListResponse(BaseModel):
+    items: list[WorkflowListItem]
+    total: int
+    limit: int
+    offset: int
+    has_more: bool
+
+
+class WorkflowCreateResponse(BaseModel):
     workflow_instance_id: str
+    status: str
+    estimated_duration_seconds: int | None = None
+
+
+class WorkflowStatus(BaseModel):
+    id: str
     workflow_type: str
     status: str
     current_state: str | None = None
     current_node: str | None = None
-    progress_percentage: float = 0.0
+    progress: float = 0.0
     started_at: str | None = None
     completed_at: str | None = None
     error_count: int = 0

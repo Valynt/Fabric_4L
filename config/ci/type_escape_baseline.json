@@ -9022,101 +9022,89 @@
       "kind": "python-any",
       "line": 5,
       "path": "sdk/python/src/valuefabric/client.py",
-      "text": "from typing import Any"
+      "text": "from typing import Any, NoReturn, TypeAlias, TypeVar, cast"
     },
     {
       "kind": "python-any",
-      "line": 139,
+      "line": 96,
+      "path": "sdk/python/src/valuefabric/client.py",
+      "text": "def _safe_response_body(response: httpx.Response) -> dict[str, Any] | None:"
+    },
+    {
+      "kind": "python-any",
+      "line": 119,
+      "path": "sdk/python/src/valuefabric/client.py",
+      "text": "def redact(item: Any, key: str | None = None) -> Any:"
+    },
+    {
+      "kind": "python-any",
+      "line": 235,
       "path": "sdk/python/src/valuefabric/client.py",
       "text": "params: dict[str, Any] | None = None,"
     },
     {
       "kind": "python-any",
-      "line": 140,
+      "line": 236,
       "path": "sdk/python/src/valuefabric/client.py",
       "text": "json: dict[str, Any] | None = None,"
     },
     {
       "kind": "python-any",
-      "line": 141,
-      "path": "sdk/python/src/valuefabric/client.py",
-      "text": ") -> dict[str, Any]:"
-    },
-    {
-      "kind": "python-any",
-      "line": 156,
+      "line": 259,
       "path": "sdk/python/src/valuefabric/client.py",
       "text": "params: dict[str, Any] | None = None,"
     },
     {
       "kind": "python-any",
-      "line": 157,
+      "line": 260,
       "path": "sdk/python/src/valuefabric/client.py",
       "text": "json: dict[str, Any] | None = None,"
     },
     {
       "kind": "python-any",
-      "line": 158,
-      "path": "sdk/python/src/valuefabric/client.py",
-      "text": ") -> dict[str, Any]:"
-    },
-    {
-      "kind": "python-any",
-      "line": 262,
+      "line": 368,
       "path": "sdk/python/src/valuefabric/client.py",
       "text": "json_body: dict[str, Any] = {\"name\": name, \"role\": role}"
     },
     {
       "kind": "python-any",
-      "line": 278,
+      "line": 384,
       "path": "sdk/python/src/valuefabric/client.py",
       "text": "json_body: dict[str, Any] = {\"name\": name, \"role\": role}"
     },
     {
       "kind": "python-any",
-      "line": 313,
+      "line": 496,
       "path": "sdk/python/src/valuefabric/client.py",
       "text": "inputs: dict[str, Any] | None = None,"
     },
     {
       "kind": "python-any",
-      "line": 316,
-      "path": "sdk/python/src/valuefabric/client.py",
-      "text": ") -> dict[str, Any]:"
-    },
-    {
-      "kind": "python-any",
-      "line": 317,
+      "line": 500,
       "path": "sdk/python/src/valuefabric/client.py",
       "text": "json_body: dict[str, Any] = {"
     },
     {
       "kind": "python-any",
-      "line": 334,
+      "line": 514,
       "path": "sdk/python/src/valuefabric/client.py",
       "text": "inputs: dict[str, Any] | None = None,"
     },
     {
       "kind": "python-any",
-      "line": 337,
-      "path": "sdk/python/src/valuefabric/client.py",
-      "text": ") -> dict[str, Any]:"
-    },
-    {
-      "kind": "python-any",
-      "line": 338,
+      "line": 518,
       "path": "sdk/python/src/valuefabric/client.py",
       "text": "json_body: dict[str, Any] = {"
     },
     {
       "kind": "python-any",
-      "line": 423,
+      "line": 600,
       "path": "sdk/python/src/valuefabric/client.py",
       "text": "json_body: dict[str, Any] = {"
     },
     {
       "kind": "python-any",
-      "line": 440,
+      "line": 617,
       "path": "sdk/python/src/valuefabric/client.py",
       "text": "json_body: dict[str, Any] = {"
     },
@@ -9128,19 +9116,13 @@
     },
     {
       "kind": "python-any",
-      "line": 11,
-      "path": "sdk/python/src/valuefabric/errors.py",
-      "text": "def __init__(self, message: str, *, response_body: dict[str, Any] | None = None) -> None:"
-    },
-    {
-      "kind": "python-any",
-      "line": 54,
+      "line": 17,
       "path": "sdk/python/src/valuefabric/errors.py",
       "text": "response_body: dict[str, Any] | None = None,"
     },
     {
       "kind": "python-any",
-      "line": 68,
+      "line": 55,
       "path": "sdk/python/src/valuefabric/errors.py",
       "text": "response_body: dict[str, Any] | None = None,"
     },

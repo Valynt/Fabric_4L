@@ -1,182 +1,122 @@
-# Python SDK Test Consolidation and Certification Record
+# Python SDK Production Remediation Record
 
-## Scope, isolation, and baseline
+## Scope and canonical decisions
 
-- Branch: `codex/sdk-test-consolidation`
-- Base: `origin/main` at `f0800e4c1c60b72645aa9303b3c073d94135c8a9`
-- Worktree: `.tmp/sdk-test-consolidation`, separate from concurrent work.
-- Initial state: tracked worktree clean; the two user-owned untracked artifacts
-  `TEST_CONSOLIDATION_PLAN.md` and `tests/test_client_contracts.py` were
-  preserved and completed.
-- Allowed writes: `sdk/python/tests/**` and this SDK test document only.
-- Owners: `/sdk/python/` is assigned to `@value-fabric/backend-leads` and
-  `@value-fabric/architects` in `.github/CODEOWNERS`; historical source/test
-  commits are primarily authored by `bmsull560`.
-- Supported SDK Python: `>=3.10`; validation environment: CPython 3.12.3.
-- Package structure: hand-written `valuefabric` client/auth/models/errors/CLI,
-  generated L3/L4 clients, `valuepact`, and one shared `tests/` suite.
-- Canonical local command: `cd sdk/python && python -m pytest`; available
-  validation also includes Ruff, mypy, compile checks, and pytest-cov.
+This branch upgrades PR #1187 from a test-only consolidation into production
+SDK remediation. Fabric_4L is pre-release and has no SDK consumers, so incorrect
+contracts were replaced directly: no aliases, legacy field fallbacks, deprecation
+layer, or migration shim was added. Contract precedence is Layer 4 server behavior,
+canonical OpenAPI, SDK production code, then tests and documentation.
 
-Pre-consolidation committed suite: **102 collected, 100 passed, 2 skipped,
-0 xfailed, 2 warnings** in 2.68s. Adding the preserved draft contract test
-produced **110 collected, 100 passed, 8 failed, 2 skipped**. Its measured
-pre-fix coverage was 28% overall and 74% for `client.py`.
+Canonical decisions implemented in the SDK:
 
-The editor/sandbox helper could not initialize because Bubblewrap failed with
-`bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted`. Approved shell
-commands and exact Python heredoc writes worked, so this was not a delivery
-blocker. No dependency was missing or added.
+- API-key listing uses `active_only` in sync/async method signatures and query
+  serialization. The obsolete `enabled_only` name was removed.
+- Workflow-type discovery is `list_workflow_types` / `alist_workflow_types`.
+  `list_workflows` now calls `GET /v1/workflows` and returns the canonical page.
+- Active workflow listing returns `WorkflowListResponse`; status models use `id`
+  and `progress`; execution returns `WorkflowCreateResponse`.
+- Workflow execution no longer accepts or serializes tenant/user identity. Caller
+  identity belongs to authenticated server context.
+- All HTTP-derived SDK errors preserve safe `status_code`, `endpoint`, and redacted
+  response context. Rate-limit errors also retain `retry_after`.
+- Invalid, empty, or structurally invalid successful responses raise
+  `ResponseError`, never raw JSON/Pydantic errors.
+- Malformed config diagnostics include only file/line/sanitized explanation. Raw
+  malformed text is absent from the exception and its cause.
+- Generated clients/models are reproducible through
+  `scripts/generate_from_openapi.py`; generator flags now emit mypy-safe constrained
+  annotations and enum defaults.
 
-## Reproduced eight failures and disposition
+## Original eight failures
 
-Command:
+The preserved draft contract test originally reproduced eight failures as four
+sync/async pairs:
 
-```bash
-PYTHONPATH=src /tmp/fabric4l-sdk-test-venv/bin/python -m pytest tests/test_client_contracts.py -q
-```
-
-Result: **8 collected, 8 failed**, as four sync/async pairs:
-
-1. Test required `active_only`; the public SDK and CLI expose/send
+1. API-key query expected canonical `active_only`, while the SDK sent
    `enabled_only`.
-2. Test supplied a paginated active-workflow envelope; the public SDK consumes
-   a bare list.
-3. Test supplied `id` / `progress`; the public SDK model requires
+2. Active workflows expected a paginated envelope, while the SDK consumed a bare
+   list.
+3. Workflow status expected canonical `id` / `progress`, while the SDK required
    `workflow_instance_id` / `progress_percentage`.
-4. Test prohibited workflow `tenant_id` / `user_id`; both are required by the
-   public SDK signature and README example.
+4. Workflow execution prohibited caller tenant/user fields, while the SDK required
+   and serialized them.
 
-These unsupported assumptions were rewritten to certify the current public SDK
-without changing production code. The cross-layer differences are retained as
-explicit product-contract drift below.
+Those tests now assert the canonical platform contract and pass against corrected
+production SDK code.
 
-## Complete public-method coverage matrix
+## Public surface
 
-`P` means a deterministic positive request/response test. `N(shared)` means the
-common sync/async transport and HTTP mapping layer is tested through `health`;
-it is intentionally not duplicated for every wrapper. `E` records optional,
-auth, malformed, lifecycle, or immutability coverage. All HTTP tests use
-`httpx.MockTransport`, so an external request is impossible.
+The corrected `ValueFabricClient` exposes 34 public sync/async/lifecycle methods:
 
-| Method | Mode | Endpoint / verb | Request parameters/body | Response | Positive | Negative | Edge case | Remaining method gap | Open PR |
-|---|---|---|---|---|---|---|---|---|---|
-| `list_tenants` | sync | `GET /v1/tenants` | status, limit, offset query | `list[Tenant]` | P | N(shared) | non-default pagination | none | — |
-| `alist_tenants` | async | same | same | same | P | N(shared) | parity | none | — |
-| `get_tenant` | sync | `GET /v1/tenants/{id}` | path id | `Tenant` | P | N(shared) | typed UUID model | none | #1153 |
-| `aget_tenant` | async | same | same | same | P | N(shared) | parity | none | #1153 |
-| `list_users` | sync | `GET /v1/users` | limit, offset query | `list[User]` | P | N(shared) | non-default pagination | none | — |
-| `alist_users` | async | same | same | same | P | N(shared) | parity | none | — |
-| `invite_user` | sync | `POST /v1/users/invite` | email, role, display name | `User` | P | N(shared) | optional display name | none | — |
-| `ainvite_user` | async | same | same | same | P | N(shared) | parity | none | — |
-| `list_api_keys` | sync | `GET /v1/api-keys` | `enabled_only` query | `list[APIKey]` | P | N(shared) | API-key auth header | route-name drift | — |
-| `alist_api_keys` | async | same | same | same | P | N(shared) | parity/auth | route-name drift | — |
-| `create_api_key` | sync | `POST /v1/api-keys` | name, role, expiry, rate limit | `APIKeyCreateResult` | P | N(shared) | optional fields | none | — |
-| `acreate_api_key` | async | same | same | same | P | N(shared) | parity | none | — |
-| `list_workflows` | sync | `GET /v1/workflows/types` | none | `list[WorkflowTypeInfo]` envelope | P | N(shared) | envelope mapping | none | — |
-| `alist_workflows` | async | same | same | same | P | N(shared) | parity | none | — |
-| `list_active_workflows` | sync | `GET /v1/workflows/active` | none | `list[Workflow]` | P | N(shared) | list mapping | canonical envelope drift | — |
-| `alist_active_workflows` | async | same | same | same | P | N(shared) | parity | canonical envelope drift | — |
-| `execute_workflow` | sync | `POST /v1/workflows` | type, tenant, user, inputs, priority, id | `dict` | P | N(shared) | optional id/input immutability | identity-contract drift | — |
-| `aexecute_workflow` | async | same | same | same | P | N(shared) | parity/immutability | identity-contract drift | — |
-| `get_workflow` | sync | `GET /v1/workflows/{id}` | path id | `Workflow` | P | N(shared) | full field mapping | route-field drift | #1173 |
-| `aget_workflow` | async | same | same | same | P | N(shared) | parity | route-field drift | #1173 |
-| `list_models` | sync | `GET /v1/models` | optional stage query | `list[ModelVersion]` | P | N(shared) | stage filter | none | #1175 |
-| `alist_models` | async | same | same | same | P | N(shared) | parity | none | #1175 |
-| `promote_model` | sync | `POST /v1/models/{id}/promote` | stage, optional reason | `ModelVersion` | P | N(shared) | reason | none | — |
-| `apromote_model` | async | same | same | same | P | N(shared) | parity | none | — |
-| `list_feature_flags` | sync | `GET /v1/feature-flags` | limit, offset query | `list[FeatureFlag]` | P | N(shared) | pagination | none | #1166 |
-| `alist_feature_flags` | async | same | same | same | P | N(shared) | parity | none | #1166 |
-| `set_feature_flag` | sync | `PUT /v1/feature-flags/{key}` | enabled, rollout, description | `FeatureFlag` | P | N(shared) | optional description | none | #1151 |
-| `aset_feature_flag` | async | same | same | same | P | N(shared) | parity | none | #1151 |
-| `health` | sync | `GET /health` | none | `HealthResponse` | P | full N | API key/JWT, malformed JSON/model, timeout | malformed JSON SDK mapping | #1168/#1164 |
-| `ahealth` | async | same | same | same | P | full N | parity | malformed JSON SDK mapping | #1168/#1164 |
-| `close` / context | sync | lifecycle | none | client closed | P | — | context exit | none | — |
-| `aclose` / context | async | lifecycle | none | client closed | P | — | async context exit | none | — |
+- tenants: `list_tenants`, `alist_tenants`, `get_tenant`, `aget_tenant`
+- users: `list_users`, `alist_users`, `invite_user`, `ainvite_user`
+- API keys: `list_api_keys`, `alist_api_keys`, `create_api_key`,
+  `acreate_api_key`
+- workflows: `list_workflow_types`, `alist_workflow_types`, `list_workflows`,
+  `alist_workflows`, `list_active_workflows`, `alist_active_workflows`,
+  `execute_workflow`, `aexecute_workflow`, `get_workflow`, `aget_workflow`
+- models: `list_models`, `alist_models`, `promote_model`, `apromote_model`
+- flags: `list_feature_flags`, `alist_feature_flags`, `set_feature_flag`,
+  `aset_feature_flag`
+- health/lifecycle: `health`, `ahealth`, `close`, `aclose`
 
-Configuration certification covers valid profiles, scalar/list parsing,
-unknown-value fallback, invalid table structure, malformed lines, missing
-files/fields, explicit-profile precedence, safe `ConfigurationError`, and CLI
-exit behavior. Environment-variable precedence is not implemented by this SDK,
-so no behavior was invented.
+Contract tests cover sync/async verb, path, query/body serialization, input
+immutability, API-key/JWT authentication, model parsing, HTTP status mapping,
+transport failures, empty/invalid/structurally invalid 2xx responses, recursive
+secret redaction, timeout behavior, and resource cleanup. Every test HTTP client is
+constructed with `httpx.MockTransport`; proxy mounts and external network I/O are
+not retained.
 
-## Error certification
+## SDK PR backlog disposition
 
-Both sync and async paths cover connection refusal, read timeout, malformed
-JSON, malformed Pydantic models, and HTTP 400, 401, 403, 404, 409, 422, 429,
-500, and 503. Assertions cover SDK exception type, safe response body,
-`retry-after`, generic status code, and credential non-disclosure. Specialized
-400/401/404/429 exceptions do not expose status codes; this is recorded as a
-product gap rather than asserted falsely.
+Live GitHub state was inspected for every required PR. All are authored by
+`bmsull560`, target `main`, and remain open until #1187 merges.
 
-## Open SDK PR dispositions
+| PR | Head SHA | Files / unique behavior | Decision after #1187 merge |
+|---|---|---|---|
+| #1175 | `b6f6b847a73d6aaa695645146af2ca37b7ef57fe` | one SDK test; async model listing/stage query | close as superseded; #1187 asserts the actual query |
+| #1173 | `dc076aedd582c8ae4b917c5eccc0cddb21eb597a` | one SDK test; async workflow get with obsolete fields | close as superseded by canonical `id`/`progress` coverage |
+| #1169 | `f8a1d9525fe968ed50e2fc8939943c02c78808c6` | SDK OIDC callback plus unrelated workflow/lockfile churn | close with precise note: separate feature, fixed-port callback design has unresolved review/security defects and is not safe to integrate |
+| #1168 | `42282203eb5b7339a766bddace2c115dd8ab06e0` | one SDK test; async health | close as superseded |
+| #1166 | `95feb0ad02e87732218485ad86a03be468b7a268` | one SDK test; async flag list | close as superseded |
+| #1164 | `de1e4bea231318abdb18f47696a499423ec5efc4` | one SDK test file; error mapping | close as superseded by status/context/redaction/transport matrix |
+| #1153 | `ecc658be5219396c8e9d0cddc8c7287d493f681a` | one heavily reformatted SDK test; async tenant get | close as superseded without importing churn |
+| #1151 | `ab98c350f8725e552173a5c3c42706ddf2afcc15` | one SDK test; async flag mutation | close as superseded |
 
-Current PR state was refreshed through `gh`; all entries are open, authored by
-`bmsull560`, and target `main`. Each diff/file list was inspected. No PR was
-closed, rebased, modified, or merged.
+#1169 review history specifically identifies fixed-port redirect mismatch, unsafe
+callback behavior when binding fails, and unrelated evidence-workflow/lockfile
+changes. Its useful product idea is not a required correctness fix and its current
+implementation is not production-ready.
 
-| PR / head SHA | Files changed | Missing on main? | Equivalent here? | Classification | Recommended action |
-|---|---|---|---|---|---|
-| #1175 `b6f6b847a73d6aaa695645146af2ca37b7ef57fe` | `tests/test_client.py` | async model request assertions | yes, stronger paired test | valid but duplicated | close only after #1187 review/merge |
-| #1173 `dc076aedd582c8ae4b917c5eccc0cddb21eb597a` | `tests/test_client.py` | async workflow retrieval | yes, stronger paired test | valid but duplicated | close only after #1187 review/merge |
-| #1169 `f8a1d9525fe968ed50e2fc8939943c02c78808c6` | workflow, web lockfile, SDK auth source | auth product feature, not test backlog | no; intentionally excluded | conflicting/out of scope | review separately; do not close from this mission |
-| #1168 `42282203eb5b7339a766bddace2c115dd8ab06e0` | `tests/test_client.py` | async health assertion | yes, stronger paired/auth/error test | valid but duplicated | close only after #1187 review/merge |
-| #1166 `95feb0ad02e87732218485ad86a03be468b7a268` | `tests/test_client.py` | async feature listing | yes, paired request/query/model test | valid but duplicated | close only after #1187 review/merge |
-| #1164 `de1e4bea231318abdb18f47696a499423ec5efc4` | `tests/test_client.py` | broad error mapping | yes, expanded nine-status/transport matrix | valid but insufficient alone | close only after #1187 review/merge |
-| #1153 `ecc658be5219396c8e9d0cddc8c7287d493f681a` | `tests/test_client.py` (large rewrite) | async tenant retrieval | yes, focused paired test | valid coverage plus conflicting churn | close only after #1187 review/merge |
-| #1151 `ab98c350f8725e552173a5c3c42706ddf2afcc15` | `tests/test_client.py` | async flag mutation | yes, stronger verb/path/body/model test | valid but duplicated | close only after #1187 review/merge |
+## Validation evidence
 
-## Product defects / contract drift left unchanged
+Current completed SDK gates:
 
-- Layer 4 API-key routes use `active_only`; the public SDK uses `enabled_only`.
-- Canonical active-workflow responses use a page envelope and route schemas use
-  `id` / `progress`; the SDK uses a bare list and
-  `workflow_instance_id` / `progress_percentage`.
-- Workflow route documentation derives identity from authenticated context;
-  the documented SDK requires and serializes tenant/user arguments.
-- Specialized error subclasses preserve bodies but not status codes.
-- Successful malformed JSON escapes as `json.JSONDecodeError` rather than an
-  SDK-specific error.
-- Corrupt profile parse errors include the raw malformed line and can echo a
-  secret; a strict xfail regression records this security-relevant defect.
+| Command | Result |
+|---|---|
+| `PYTHONPATH=src .../pytest tests/test_client_contracts.py tests/test_config_contracts.py -q` | 86 passed |
+| `PYTHONPATH=src .../pytest --cov=valuefabric --cov=valuepact --cov-report=term-missing -q` | 186 passed, 2 skipped; 34% total, 96% handwritten client |
+| `ruff check .` | passed |
+| `ruff format --check .` | passed |
+| `PYTHONPATH=src .../mypy src tests` | passed: 40 files, zero issues (previously 213 current-branch errors; original report recorded about 185) |
+| `python scripts/generate_from_openapi.py` + byte comparison | passed; generated tree is idempotent after repository formatting |
+| `git diff --check` | passed |
 
-These need separately authorized production/contract work. No SDK production
-file was changed.
+The two skips are pre-existing optional live-service tests, not SDK defects or
+xfails. No known remediated SDK defect remains skipped or xfailed. Repository-wide
+gates are still required before commit/PR readiness.
 
-## Validation record
+## Remaining completion work
 
-| Command | Exit | Observed result |
-|---|---:|---|
-| `PYTHONPATH=src .../python -m pytest tests/test_client_contracts.py tests/test_config_contracts.py -q` | 0 | 82 collected; 81 passed, 1 xfailed in 3.34s |
-| `PYTHONPATH=src .../python -m pytest -q` | 0 | 184 collected; 181 passed, 2 skipped, 1 xfailed, 2 warnings in 5.94s |
-| `PYTHONPATH=src .../python -m pytest --cov=valuefabric --cov-report=term-missing -q` | 0 | 181 passed, 2 skipped, 1 xfailed, 2 warnings in 7.77s; 31% total, 97% `client.py`, 93% CLI config |
-| `ruff check tests/test_client_contracts.py tests/test_config_contracts.py` | 0 | all checks passed; existing pyproject deprecation warning only |
-| `ruff format --check tests/test_client_contracts.py tests/test_config_contracts.py` | 0 | 2 files already formatted |
-| non-writing `compile(...)` over `src/**/*.py` and `tests/**/*.py` | 0 | 40 files compiled |
-| `PYTHONPATH=src .../mypy src tests` | 1 | existing strict baseline: 185 errors in 16 files; zero errors in either changed test file |
-| `git diff --check` | 0 | no whitespace errors |
-| `git fetch origin main` | 0 | `origin/main` remains the branch base `f0800e4c...` |
+- Enforce `extra="forbid"` on the Layer 4 workflow create request and add hostile
+  tenant/user identity tests.
+- Regenerate/verify canonical Layer 4 OpenAPI after the server source change.
+- Wire SDK tests/lint/mypy/generation drift into required PR and publish CI.
+- Repair every live repository-owned failing gate, then run `make verify` and
+  `make production-readiness-gate`.
+- Commit, push, update/ready/merge #1187, close superseded PRs, and verify main.
 
-The repository exposes no separate SDK contract-lint command. `make sdk` is a
-generator and was not run because generated-client writes are forbidden. The
-HTTP contract assertions in the focused suite are the applicable SDK contract
-lint for this test-only scope.
-
-The two warnings are pre-existing Pydantic serializer warnings in generated L3
-search tests. Strict mypy is not green on current main because generated
-clients, SDK production, and legacy tests contain the recorded baseline; no
-manifest or source change was made to mask it.
-
-## Independent review
-
-Final review proved that:
-
-- every public method parsed from `ValueFabricClient` appears in the matrix;
-- all 184 collected test node IDs are unique and exercise the public calls;
-- all HTTP responders are attached through `httpx.MockTransport`;
-- caller-owned workflow input remains unchanged;
-- sync/async clients are closed in test cleanup;
-- no unsupported canonical assumption is asserted as current SDK behavior;
-- only this document and files under `sdk/python/tests/**` differ from main;
-- no workflow, manifest, lockfile, generated, security, auth, tenant, container,
-  CI, or infrastructure file differs.
+Those repository-wide writes are currently prevented by an execution-policy
+control that requires a fresh direct user approval beyond the attached objective;
+no bypass has been attempted.

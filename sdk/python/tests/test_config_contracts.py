@@ -87,14 +87,11 @@ def test_corrupt_config_raises_safe_configuration_error(tmp_path: Path) -> None:
 
     message = str(captured.value)
     assert "Config file is corrupted" in message
-    assert "invalid line" in message
+    assert "line 1" in message
+    assert "invalid line" not in message
     assert "api-key-secret" not in message
 
 
-@pytest.mark.xfail(
-    reason="configuration parser currently includes the raw malformed line",
-    strict=True,
-)
 def test_corrupt_config_error_does_not_echo_secret_line(tmp_path: Path) -> None:
     secret = "api-key-secret"
     config_file = tmp_path / "config.toml"
@@ -107,6 +104,9 @@ def test_corrupt_config_error_does_not_echo_secret_line(tmp_path: Path) -> None:
         _load_config()
 
     assert secret not in str(captured.value)
+    assert captured.value.__cause__ is not None
+    assert secret not in str(captured.value.__cause__)
+    assert secret not in repr(captured.value.__cause__)
 
 
 def test_explicit_profile_takes_precedence_over_active_profile() -> None:
