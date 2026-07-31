@@ -182,6 +182,15 @@ jobs:
             apps/web/e2e/visual/**/*.expected.png
           retention-days: 7
 
+      - name: Upload generated baseline screenshots
+        uses: actions/upload-artifact@v4
+        if: github.event_name == 'workflow_dispatch' && inputs.update_snapshots
+        with:
+          name: visual-baselines-${{ matrix.project }}
+          path: apps/web/e2e/visual/**/*-snapshots/*.png
+          if-no-files-found: error
+          retention-days: 7
+
       - name: Fail on test failure
         if: steps.visual_test.outcome == 'failure'
         run: exit 1
