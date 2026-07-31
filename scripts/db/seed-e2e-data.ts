@@ -87,7 +87,7 @@ const HEADERS: Record<string, string> = {
   'X-User-ID': E2E_ADMIN_USER_ID,
   'X-User-Role': 'super_admin',
   'X-Role': 'super_admin',
-  'X-Privileged-Reason': 'playwright-backend-validation-seed',
+  'X-Privileged-Reason': 'validation-seed',
 };
 
 const reportRows: SeedReportRow[] = [];
@@ -644,6 +644,10 @@ async function main() {
       : 'auth context seed did not verify tenant/user/service metadata',
     status: authContextSeeded ? 'present' : 'blocked',
   });
+
+  if (!authContextSeeded) {
+    throw new Error('Unable to seed required auth context');
+  }
 
   // Step 2: Seed account
   console.log('\n[2/9] Seeding account...');

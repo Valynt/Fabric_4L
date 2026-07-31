@@ -11,6 +11,16 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 CONFTEST_PATH = REPO_ROOT / "tests" / "backend_integrated" / "conftest.py"
+E2E_SEED_PATH = REPO_ROOT / "scripts" / "db" / "seed-e2e-data.ts"
+SEED_RUNTIME_CONFIG_PATH = (
+    REPO_ROOT
+    / "services"
+    / "layer4-agents"
+    / "src"
+    / "layer4_agents"
+    / "test_support"
+    / "seed_runtime_config.py"
+)
 
 
 def load_backend_validation_conftest():
@@ -21,6 +31,16 @@ def load_backend_validation_conftest():
     sys.modules[spec.name] = module
     spec.loader.exec_module(module)
     return module
+
+
+def test_e2e_seed_uses_layer4_validation_privileged_reason_and_fails_closed():
+    seed_source = E2E_SEED_PATH.read_text(encoding="utf-8")
+    runtime_config = SEED_RUNTIME_CONFIG_PATH.read_text(encoding="utf-8")
+
+    assert "'X-Privileged-Reason': 'validation-seed'" in seed_source
+    assert '"VALIDATION_SEED_PRIVILEGED_REASON", "validation-seed"' in runtime_config
+    assert "if (!authContextSeeded)" in seed_source
+    assert "throw new Error('Unable to seed required auth context')" in seed_source
 
 
 def test_backend_validation_headers_use_signed_user_identity(monkeypatch):
