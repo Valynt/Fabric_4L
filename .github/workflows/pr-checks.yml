@@ -1969,12 +1969,6 @@ jobs:
               raise SystemExit(f"Services did not become healthy in time: {failed}")
           PY
 
-      - name: Capture runtime contract service diagnostics
-        if: failure()
-        run: |
-          docker compose -f infra/compose/docker-compose.full.yml -f docker-compose.runtime-contract.yml ps
-          docker compose -f infra/compose/docker-compose.full.yml -f docker-compose.runtime-contract.yml logs --no-color --timestamps --tail=500
-
       - name: Run runtime contract marker suite
         env:
           RUN_RUNTIME_CONTRACTS: "1"
@@ -1989,6 +1983,12 @@ jobs:
           RUNTIME_CONTRACT_TENANT_ID: 00000000-0000-4000-8000-000000000001
         run: |
           pytest tests/contract/test_layer_integration.py -m runtime_contract -v --tb=short
+
+      - name: Capture runtime contract service diagnostics
+        if: failure()
+        run: |
+          docker compose -f infra/compose/docker-compose.full.yml -f docker-compose.runtime-contract.yml ps
+          docker compose -f infra/compose/docker-compose.full.yml -f docker-compose.runtime-contract.yml logs --no-color --timestamps --tail=500
 
       - name: Upload runtime contract artifacts
         if: always()
@@ -2160,7 +2160,7 @@ jobs:
               break
             fi
           done
-          docker compose -f infra/compose/docker-compose.full.yml ps
+          docker compose ps
         timeout-minutes: 3
 
       - name: Run integration test suite

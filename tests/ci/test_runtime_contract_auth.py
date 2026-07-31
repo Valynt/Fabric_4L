@@ -29,3 +29,13 @@ def test_runtime_contract_uses_canonical_authenticated_workflow_route() -> None:
     assert '"X-Service-Auth": SERVICE_AUTH_SECRET' in source
     assert 'f"{L4_URL}/v1/workflows"' in source
     assert 'f"{L4_URL}/v1/workflows/ingestion"' not in source
+
+
+def test_runtime_diagnostics_follow_the_runtime_suite() -> None:
+    document = yaml.safe_load(WORKFLOW.read_text(encoding="utf-8"))
+    steps = document["jobs"]["runtime-contract-checks"]["steps"]
+    names = [item.get("name") for item in steps]
+
+    assert names.index("Capture runtime contract service diagnostics") > names.index(
+        "Run runtime contract marker suite"
+    )

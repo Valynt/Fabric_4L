@@ -86,6 +86,8 @@ def test_dast_ephemeral_stack_provides_required_compose_env_and_evidence_dir() -
         "JWT_ALGORITHM",
         "API_KEY_HMAC_SECRET",
         "SERVICE_AUTH_SECRET",
+        "CREDENTIALS_MASTER_KEY",
+        "DEFAULT_TENANT_ID",
         "LAYER4_DATABASE_URL",
         "NEO4J_PASSWORD",
         "CORS_ORIGINS",
@@ -99,6 +101,8 @@ def test_dast_ephemeral_stack_provides_required_compose_env_and_evidence_dir() -
         "GRAFANA_ADMIN_PASSWORD",
     ):
         assert f"{variable}=" in command
+
+    assert 'CORS_ORIGINS=["https://localhost:3000"]' in command
 
     collect_logs = next(step for step in steps if step.get("name") == "Collect compose logs for evidence")
     assert "mkdir -p zap-reports" in collect_logs["run"]

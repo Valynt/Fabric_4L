@@ -16,7 +16,7 @@ SERVICES = {
     "Layer 5": "http://localhost:8005/health",
 }
 
-MAX_RETRIES = 30
+MAX_RETRIES = 60
 DELAY = 2
 
 

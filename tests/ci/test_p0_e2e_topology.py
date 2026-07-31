@@ -33,3 +33,11 @@ def test_p0_frontend_routes_layer1_directly_and_defaults_to_layer4() -> None:
     assert environment["VITE_PROXY_L1_URL"] == "http://localhost:8001"
     assert environment["VITE_PROXY_L4_URL"] == "http://localhost:8004"
     assert environment["VITE_PROXY_API_GATEWAY_URL"] == "http://localhost:8004"
+
+
+def test_p0_seed_uses_the_server_privileged_reason() -> None:
+    seed_constants = (
+        REPO_ROOT / "apps" / "web" / "e2e" / "fixtures" / "seed-constants.ts"
+    ).read_text(encoding="utf-8")
+
+    assert "E2E_SEED_PRIVILEGED_REASON = 'validation-seed'" in seed_constants
