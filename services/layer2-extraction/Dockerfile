@@ -1,5 +1,5 @@
 # Layer 2: Extraction Service - Deterministic build with uv
-FROM python@sha256:f5cf0344c9886ff24d34797578d5d7dd6e8911ae0fe5962bb55d0f89603ec361 AS builder
+FROM python@sha256:5f1cdbcab9a50594a79502dd73e885456d2a2fc31f1a1fa18484815b37ee9152 AS builder
 
 RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
     gcc \
@@ -17,7 +17,7 @@ RUN uv sync --frozen --no-install-project
 
 COPY src/ ./src/
 
-FROM python@sha256:f5cf0344c9886ff24d34797578d5d7dd6e8911ae0fe5962bb55d0f89603ec361 AS runtime
+FROM python@sha256:5f1cdbcab9a50594a79502dd73e885456d2a2fc31f1a1fa18484815b37ee9152 AS runtime
 
 RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
     curl \
