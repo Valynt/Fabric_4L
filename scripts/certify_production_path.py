@@ -37,6 +37,7 @@ import subprocess
 import sys
 import time
 import uuid
+from collections.abc import Awaitable
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
@@ -46,8 +47,7 @@ if TYPE_CHECKING:
     import httpx
 
 import httpx
-
-JSONDict = dict[str, object]
+from value_fabric.shared.models import JSONDict
 
 # ─── Constants ───
 REPO_ROOT = Path(__file__).parent.parent
@@ -72,8 +72,6 @@ USER_HEADER = "X-User-ID"
 ROLE_HEADER = "X-Role"
 SERVICE_AUTH_HEADER = "X-Service-Auth"
 SERVICE_AUTH_SECRET = os.getenv("SERVICE_AUTH_SECRET", "release-smoke-service-auth-secret-with-more-than-32-characters")
-
-JSONDict = dict[str, object]
 
 # ─── Data Classes ───
 @dataclass
@@ -109,6 +107,7 @@ class TestContext:
     user_admin: str
     account_id: str
     source_id: str
+    source_version_id: str | None = None
     job_id: str | None = None
     extraction_job_id: str | None = None
     kg_node_ids: list[str] = field(default_factory=list)
@@ -133,12 +132,12 @@ def get_commit_sha() -> str:
 def now_iso() -> str:
     return datetime.now(UTC).isoformat().replace("+00:00", "Z")
 
-def run_cmd(cmd: list[str], cwd: Path = REPO_ROOT, timeout: int = 60, env: dict | None = None) -> subprocess.CompletedProcess:
+def run_cmd(cmd: list[str], cwd: Path = REPO_ROOT, timeout: int = 60, env: dict[str, str] | None = None) -> subprocess.CompletedProcess:
     """Run a command and return result."""
     merged_env = os.environ.copy()
     if env:
         merged_env.update(env)
-    return subprocess.run(cmd, capture_output=True, text=True, cwd=cwd, timeout=timeout, env=merged_env)
+    return subprocess.run(cmd, capture_output=True, text=True, cwd=cwd, timeout=timeout, env=merged_env, check=False)
 
 def make_headers(tenant_id: str, user_id: str = "admin", role: str = "super_admin") -> dict[str, str]:
     return {
@@ -166,7 +165,7 @@ class ProductionPathCertifier:
         )
         self.start_time = time.time()
 
-    def record_evidence(self, layer: str, operation: str, input_data: dict, output_data: dict,
+    def record_evidence(self, layer: str, operation: str, input_data: JSONDict, output_data: JSONDict,
                         status: str, duration_ms: float, tenant_id: str | None = None,
                         correlation_id: str | None = None) -> CertificationEvidence:
         ev = CertificationEvidence(
@@ -185,7 +184,7 @@ class ProductionPathCertifier:
 
     async def _request(self, layer: str, method: str, path: str,
                        tenant_id: str, json_data: JSONDict | None = None,
-                       expected: tuple = (200,)) -> tuple[JSONDict, httpx.Response]:
+                       expected: tuple[int, ...] = (200,)) -> tuple[JSONDict, httpx.Response]:
         url = f"{SERVICE_URLS[layer]}{path}"
         headers = make_headers(tenant_id)
         async with httpx.AsyncClient(timeout=60.0) as client:
@@ -197,6 +196,16 @@ class ProductionPathCertifier:
                 if "json" in ct:
                     return resp.json(), resp
             return {}, resp
+
+    async def _gateway_request(self, method: str, path: str,
+                               tenant_id: str, json_data: JSONDict | None = None,
+                               expected: tuple[int, ...] = (200,)) -> tuple[JSONDict, httpx.Response]:
+        """Make a request through the public API gateway.
+
+        User-facing operations should be routed through the gateway to ensure
+        the public contract is exercised during certification.
+        """
+        return await self._request("gateway", method, path, tenant_id, json_data, expected)
 
     # ─── Phase 1: Start canonical topology ───
     async def start_topology(self) -> bool:
@@ -235,24 +244,6 @@ class ProductionPathCertifier:
                 "FABRIC_AUTH_SIGNING_KID": os.getenv("FABRIC_AUTH_SIGNING_KID", "test-kid"),
                 "FABRIC_AUTH_AUDIENCE": os.getenv("FABRIC_AUTH_AUDIENCE", "value-fabric"),
                 "FABRIC_AUTH_ENVELOPE_TTL_SECONDS": os.getenv("FABRIC_AUTH_ENVELOPE_TTL_SECONDS", "3600"),
-                "FLOWER_PASSWORD": os.getenv("FLOWER_PASSWORD", "flower"),
-                "GRAFANA_ADMIN_PASSWORD": os.getenv("GRAFANA_ADMIN_PASSWORD", "admin"),
-                "POSTGRES_USER": os.getenv("POSTGRES_USER", "postgres"),
-                "POSTGRES_PASSWORD": os.getenv("POSTGRES_PASSWORD", "postgres"),
-                "REDIS_PASSWORD": os.getenv("REDIS_PASSWORD", "redis"),
-                "SECRET_KEY": os.getenv("SECRET_KEY", "dev-secret-key-change-in-production"),
-                "JWT_SECRET": os.getenv("JWT_SECRET", "dev-jwt-secret-key-change-in-production"),
-                "SERVICE_AUTH_SECRET": os.getenv("SERVICE_AUTH_SECRET", "service-auth-secret"),
-                "API_KEY_HMAC_SECRET": os.getenv("API_KEY_HMAC_SECRET", "api-key-hmac-secret"),
-                "CLERK_ISSUER": os.getenv("CLERK_ISSUER", "https://clerk.example.com"),
-                "CLERK_JWKS_URL": os.getenv("CLERK_JWKS_URL", "https://clerk.example.com/.well-known/jwks.json"),
-                "CLERK_SECRET_KEY": os.getenv("CLERK_SECRET_KEY", "sk_test_fake"),
-                "CLERK_WEBHOOK_SECRET": os.getenv("CLERK_WEBHOOK_SECRET", "whsec_fake"),
-                "FABRIC_AUTH_SIGNING_KEY": os.getenv("FABRIC_AUTH_SIGNING_KEY", "dev-signing-key"),
-                "FABRIC_AUTH_PUBLIC_KEYS": os.getenv("FABRIC_AUTH_PUBLIC_KEYS", "[]"),
-                "FABRIC_AUTH_ISSUER": os.getenv("FABRIC_AUTH_ISSUER", "value-fabric-internal"),
-                "NEO4J_PASSWORD": os.getenv("NEO4J_PASSWORD", "neo4jpassword"),
-                "OPENAI_API_KEY": os.getenv("OPENAI_API_KEY", "fake-key-for-testing"),
                 "LAYER4_DATABASE_URL": os.getenv("LAYER4_DATABASE_URL", "postgresql+asyncpg://postgres:postgres@postgres:5432/layer4"),
                 "LAYER1_API_URL": os.getenv("LAYER1_API_URL", "http://layer1-ingestion:8000"),
                 "LAYER2_API_URL": os.getenv("LAYER2_API_URL", "http://layer2-extraction:8000"),
@@ -281,23 +272,29 @@ class ProductionPathCertifier:
                                  "success", (time.time() - start) * 1000)
             print("✅ Topology started")
             return True
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             self.record_evidence("infra", "start_topology", {}, {"error": str(e)},
                                  "failed", (time.time() - start) * 1000)
             return False
 
-    async def wait_for_service(self, layer: str, max_attempts: int = 30) -> bool:
+    async def wait_for_service(self, layer: str, max_attempts: int = 30, delay_seconds: float = 1.0) -> bool:
         """Wait for a service to be healthy."""
+        return await self.wait_for_service_ready(layer, max_attempts, delay_seconds)
+
+    async def wait_for_service_ready(self, layer: str, max_attempts: int = 30, delay_seconds: float = 0.1) -> bool:
+        """Wait for a service to report both healthy and ready."""
         for attempt in range(max_attempts):
             try:
                 async with httpx.AsyncClient(timeout=5.0) as client:
-                    url = f"{SERVICE_URLS[layer]}/health"
-                    resp = await client.get(url)
-                    if resp.status_code == 200:
+                    health = await client.get(f"{SERVICE_URLS[layer]}/health")
+                    if health.status_code != 200:
+                        continue
+                    ready = await client.get(f"{SERVICE_URLS[layer]}/ready")
+                    if ready.status_code == 200:
                         return True
-            except Exception:
-                pass
-            await asyncio.sleep(2)
+            except Exception:  # noqa: BLE001
+                print(f"⏳ Service {layer} not ready yet (attempt {attempt})")
+            await asyncio.sleep(delay_seconds)
         return False
 
     # ─── Phase 2: Create tenants ───
@@ -312,7 +309,7 @@ class ProductionPathCertifier:
                 "slug": self.ctx.tenant_a,
                 "settings": {"plan": "enterprise", "certification_run": True},
             }
-            body, _ = await self._request("l4", "POST", "/v1/tenants", self.ctx.tenant_a, payload_a, (200, 201))
+            body, _ = await self._gateway_request("POST", "/v1/tenants", self.ctx.tenant_a, payload_a, (200, 201))
             self.record_evidence("l4", "create_tenant", payload_a, body, "success",
                                 (time.time() - start) * 1000, self.ctx.tenant_a)
 
@@ -322,13 +319,13 @@ class ProductionPathCertifier:
                 "slug": self.ctx.tenant_b,
                 "settings": {"plan": "enterprise", "certification_run": True},
             }
-            body, _ = await self._request("l4", "POST", "/v1/tenants", self.ctx.tenant_b, payload_b, (200, 201))
+            body, _ = await self._gateway_request("POST", "/v1/tenants", self.ctx.tenant_b, payload_b, (200, 201))
             self.record_evidence("l4", "create_tenant", payload_b, body, "success",
                                 (time.time() - start) * 1000, self.ctx.tenant_b)
 
             print("✅ Tenants created")
             return True
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             self.record_evidence("l4", "create_tenant", {}, {"error": str(e)},
                                 "failed", (time.time() - start) * 1000)
             return False
@@ -354,12 +351,12 @@ class ProductionPathCertifier:
                 "stage": "qualified",
                 "segment": "enterprise",
             }
-            body, _ = await self._request("l4", "POST", "/v1/accounts", self.ctx.tenant_a, payload, (200, 201))
+            body, _ = await self._gateway_request("POST", "/v1/accounts", self.ctx.tenant_a, payload, (200, 201))
             self.record_evidence("l4", "create_account", payload, body, "success",
                                 (time.time() - start) * 1000, self.ctx.tenant_a)
             print("✅ Account created")
             return True
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             self.record_evidence("l4", "create_account", {}, {"error": str(e)},
                                 "failed", (time.time() - start) * 1000, self.ctx.tenant_a)
             return False
@@ -380,13 +377,21 @@ class ProductionPathCertifier:
                 "requested_outputs": ["fabric_found_summary"],
                 "metadata": {"certification_run": True},
             }
-            body, _ = await self._request("l1", "POST", "/api/v1/ingestion/sources", self.ctx.tenant_a, payload, (200, 201, 202))
-            self.ctx.source_id = body.get("source_id") or body.get("id") or ""
+            body, _ = await self._gateway_request("POST", "/api/v1/ingestion/sources", self.ctx.tenant_a, payload, (200, 201, 202))
+            source_version_id = body.get("source_version_id")
+            if not source_version_id:
+                raise AssertionError("Source creation response missing source_version_id")
+            self.ctx.source_version_id = str(source_version_id)
+            self.ctx.source_id = self.ctx.source_version_id
             self.record_evidence("l1", "create_source", payload, body, "success",
                                 (time.time() - start) * 1000, self.ctx.tenant_a)
             print(f"✅ Source submitted: {self.ctx.source_id}")
             return True
-        except Exception as e:
+        except AssertionError as e:
+            self.record_evidence("l1", "create_source", {}, {"error": str(e)},
+                                "failed", (time.time() - start) * 1000, self.ctx.tenant_a)
+            raise
+        except Exception as e:  # noqa: BLE001
             self.record_evidence("l1", "create_source", {}, {"error": str(e)},
                                 "failed", (time.time() - start) * 1000, self.ctx.tenant_a)
             return False
@@ -407,7 +412,7 @@ class ProductionPathCertifier:
                                 (time.time() - start) * 1000, self.ctx.tenant_a)
             print(f"✅ Ingestion job started: {self.ctx.job_id}")
             return True
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             self.record_evidence("l1", "start_ingestion_job", {}, {"error": str(e)},
                                 "failed", (time.time() - start) * 1000, self.ctx.tenant_a)
             return False
@@ -435,13 +440,13 @@ class ProductionPathCertifier:
                 await asyncio.sleep(5)
 
             raise TimeoutError("L1 job did not complete in time")
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             self.record_evidence("l1", "wait_for_completion", {}, {"error": str(e)},
                                 "failed", (time.time() - start) * 1000, self.ctx.tenant_a)
             return False
 
     # ─── Phase 7: Verify L2 extraction ───
-    async def verify_l2_extraction(self) -> bool:
+    async def verify_l2_extraction(self, sleep_seconds: float = 5.0) -> bool:
         """Verify L2 extracted entities from the source."""
         print("🔍 Verifying L2 extraction...")
         start = time.time()
@@ -458,31 +463,41 @@ class ProductionPathCertifier:
                     break
 
             if not our_extraction:
-                # Trigger extraction via L1's payload
-                pass  # L1 should have triggered it
+                raise AssertionError(
+                    f"No extraction found for source_version_id {self.ctx.source_id}"
+                )
 
-            self.ctx.extraction_job_id = our_extraction.get("job_id") if our_extraction else ""
+            self.ctx.extraction_job_id = our_extraction.get("job_id") or our_extraction.get("id")
 
             # Wait for extraction to complete
-            if self.ctx.extraction_job_id:
-                for attempt in range(30):
-                    body, _ = await self._request("l2", "GET", f"/v1/extractions/{self.ctx.extraction_job_id}",
-                                                 self.ctx.tenant_a, expected=(200,))
-                    status = body.get("status", "").lower()
-                    if status in ("completed", "success"):
-                        self.record_evidence("l2", "verify_extraction", {}, body, "success",
-                                            (time.time() - start) * 1000, self.ctx.tenant_a)
-                        print("✅ L2 extraction verified")
-                        return True
-                    if status in ("failed", "error"):
-                        raise AssertionError(f"L2 extraction failed: {body}")
-                    await asyncio.sleep(5)
+            completed = False
+            for attempt in range(30):
+                body, _ = await self._request("l2", "GET", f"/v1/extractions/{self.ctx.extraction_job_id}",
+                                             self.ctx.tenant_a, expected=(200,))
+                status = body.get("status", "").lower()
+                if status in ("completed", "success"):
+                    completed = True
+                    break
+                if status in ("failed", "error"):
+                    raise AssertionError(f"L2 extraction failed: {body}")
+                await asyncio.sleep(sleep_seconds)
 
-            self.record_evidence("l2", "verify_extraction", {}, {"extraction_id": self.ctx.extraction_job_id}, "success",
+            if not completed:
+                raise AssertionError("L2 extraction timed out without reaching completed status")
+
+            entities = body.get("entities") or body.get("items") or []
+            if not entities:
+                raise AssertionError("L2 extraction completed but no entities extracted")
+
+            self.record_evidence("l2", "verify_extraction", {}, body, "success",
                                 (time.time() - start) * 1000, self.ctx.tenant_a)
             print("✅ L2 extraction verified")
             return True
-        except Exception as e:
+        except AssertionError as e:
+            self.record_evidence("l2", "verify_extraction", {}, {"error": str(e)},
+                                "failed", (time.time() - start) * 1000, self.ctx.tenant_a)
+            raise
+        except Exception as e:  # noqa: BLE001
             self.record_evidence("l2", "verify_extraction", {}, {"error": str(e)},
                                 "failed", (time.time() - start) * 1000, self.ctx.tenant_a)
             return False
@@ -522,13 +537,13 @@ class ProductionPathCertifier:
             else:
                 print("❌ L3 graph has no entities from our source")
                 return False
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             self.record_evidence("l3", "verify_graph", {}, {"error": str(e)},
                                 "failed", (time.time() - start) * 1000, self.ctx.tenant_a)
             return False
 
     # ─── Phase 9: Execute L4 workflow ───
-    async def execute_l4_workflow(self) -> bool:
+    async def execute_l4_workflow(self, sleep_seconds: float = 5.0) -> bool:
         """Execute L4 business case generation workflow."""
         print("🤖 Executing L4 workflow...")
         start = time.time()
@@ -541,28 +556,40 @@ class ProductionPathCertifier:
                     "source_version_id": self.ctx.source_id,
                 },
             }
-            body, _ = await self._request("l4", "POST", "/v1/workflows", self.ctx.tenant_a, payload, (200, 201))
+            body, _ = await self._gateway_request("POST", "/v1/workflows", self.ctx.tenant_a, payload, (200, 201))
             self.ctx.workflow_id = body.get("workflow_id") or body.get("id") or ""
+            if not self.ctx.workflow_id:
+                raise AssertionError("L4 workflow submission did not return a workflow_id")
 
-            # Wait for workflow completion
-            if self.ctx.workflow_id:
-                for attempt in range(60):
-                    body, _ = await self._request("l4", "GET", f"/v1/workflows/{self.ctx.workflow_id}",
-                                                 self.ctx.tenant_a, expected=(200,))
-                    status = body.get("status", "").lower()
-                    if status in ("completed", "success"):
-                        self.ctx.value_case_id = body.get("value_case_id") or body.get("output", {}).get("value_case_id")
-                        break
-                    if status in ("failed", "error"):
-                        raise AssertionError(f"L4 workflow failed: {body}")
-                    await asyncio.sleep(5)
+            # Wait for workflow completion (direct layer postcondition inspection)
+            terminal = False
+            for attempt in range(60):
+                body, _ = await self._request("l4", "GET", f"/v1/workflows/{self.ctx.workflow_id}",
+                                             self.ctx.tenant_a, expected=(200,))
+                status = body.get("status", "").lower()
+                if status in ("completed", "success"):
+                    terminal = True
+                    self.ctx.value_case_id = body.get("value_case_id") or body.get("output", {}).get("value_case_id")
+                    break
+                if status in ("failed", "error"):
+                    raise AssertionError(f"L4 workflow failed: {body}")
+                await asyncio.sleep(sleep_seconds)
+
+            if not terminal:
+                raise AssertionError("L4 workflow timed out without reaching a terminal status")
+            if not self.ctx.value_case_id:
+                raise AssertionError(f"L4 workflow completed but no value_case_id produced: {body}")
 
             self.record_evidence("l4", "execute_workflow", payload, body, "success",
                                 (time.time() - start) * 1000, self.ctx.tenant_a,
                                 correlation_id=self.ctx.workflow_id)
             print(f"✅ L4 workflow completed: {self.ctx.workflow_id}")
             return True
-        except Exception as e:
+        except AssertionError as e:
+            self.record_evidence("l4", "execute_workflow", {}, {"error": str(e)},
+                                "failed", (time.time() - start) * 1000, self.ctx.tenant_a)
+            raise
+        except Exception as e:  # noqa: BLE001
             self.record_evidence("l4", "execute_workflow", {}, {"error": str(e)},
                                 "failed", (time.time() - start) * 1000, self.ctx.tenant_a)
             return False
@@ -583,7 +610,7 @@ class ProductionPathCertifier:
             our_truths = []
             for t in truths:
                 applies_to = t.get("applies_to", {})
-                if (applies_to.get("source_version_id") == self.ctx.source_id or
+                if (applies_to.get("source_version_id") in (self.ctx.source_id, self.ctx.source_version_id) or
                     applies_to.get("workflow_id") == self.ctx.workflow_id):
                     our_truths.append(t)
 
@@ -595,19 +622,25 @@ class ProductionPathCertifier:
                 if t.get("status") in ("validated", "approved") and t.get("sources"):
                     valid_truths.append(t)
 
+            if not valid_truths:
+                raise AssertionError(
+                    f"no validated TruthObjects found for source_version_id={self.ctx.source_id} "
+                    f"workflow_id={self.ctx.workflow_id} (validated={len(valid_truths)})"
+                )
+
             self.record_evidence("l5", "verify_ground_truth", {},
                                 {"total_truths": len(our_truths), "validated_truths": len(valid_truths),
                                  "truth_ids": self.ctx.truth_object_ids},
-                                "success" if valid_truths else "partial",
+                                "success",
                                 (time.time() - start) * 1000, self.ctx.tenant_a)
 
-            if valid_truths:
-                print(f"✅ L5 Ground Truth verified: {len(valid_truths)} validated truths")
-                return True
-            else:
-                print("⚠️ L5 Ground Truth partial: no validated truths found")
-                return True  # Not a hard failure
-        except Exception as e:
+            print(f"✅ L5 Ground Truth verified: {len(valid_truths)} validated truths")
+            return True
+        except AssertionError as e:
+            self.record_evidence("l5", "verify_ground_truth", {}, {"error": str(e)},
+                                "failed", (time.time() - start) * 1000, self.ctx.tenant_a)
+            raise
+        except Exception as e:  # noqa: BLE001
             self.record_evidence("l5", "verify_ground_truth", {}, {"error": str(e)},
                                 "failed", (time.time() - start) * 1000, self.ctx.tenant_a)
             return False
@@ -629,18 +662,24 @@ class ProductionPathCertifier:
                              if c.get("value_case_id") == self.ctx.value_case_id or
                                 c.get("account_id") == self.ctx.account_id]
 
+            if not our_comparisons:
+                raise AssertionError(
+                    f"no comparisons found for value_case_id={self.ctx.value_case_id}"
+                )
+
             self.record_evidence("l6", "verify_benchmark", {},
                                 {"comparisons_found": len(our_comparisons),
                                  "comparison_ids": [c.get("id") for c in our_comparisons]},
-                                "success" if our_comparisons else "partial",
+                                "success",
                                 (time.time() - start) * 1000, self.ctx.tenant_a)
 
-            if our_comparisons:
-                print(f"✅ L6 benchmark verified: {len(our_comparisons)} comparisons")
-            else:
-                print("⚠️ L6 benchmark partial: no comparisons found")
+            print(f"✅ L6 benchmark verified: {len(our_comparisons)} comparisons")
             return True
-        except Exception as e:
+        except AssertionError as e:
+            self.record_evidence("l6", "verify_benchmark", {}, {"error": str(e)},
+                                "failed", (time.time() - start) * 1000, self.ctx.tenant_a)
+            raise
+        except Exception as e:  # noqa: BLE001
             self.record_evidence("l6", "verify_benchmark", {}, {"error": str(e)},
                                 "failed", (time.time() - start) * 1000, self.ctx.tenant_a)
             return False
@@ -652,9 +691,9 @@ class ProductionPathCertifier:
         start = time.time()
         try:
             # Use gateway to get the value case
-            body, _ = await self._request("gateway", "GET",
-                                         f"/v1/accounts/{self.ctx.account_id}/value-cases",
-                                         self.ctx.tenant_a, expected=(200,))
+            body, _ = await self._gateway_request("GET",
+                                                  f"/v1/accounts/{self.ctx.account_id}/value-cases",
+                                                  self.ctx.tenant_a, expected=(200,))
 
             cases = body.get("items", body) if isinstance(body, dict) else body
             our_case = None
@@ -674,7 +713,7 @@ class ProductionPathCertifier:
             else:
                 print("❌ Value case not found via gateway")
                 return False
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             self.record_evidence("gateway", "retrieve_value_case", {}, {"error": str(e)},
                                 "failed", (time.time() - start) * 1000, self.ctx.tenant_a)
             return False
@@ -696,7 +735,7 @@ class ProductionPathCertifier:
                                 (time.time() - start) * 1000)
             print("✅ Frontend contract validated")
             return True
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             self.record_evidence("frontend", "validate_contract", {}, {"error": str(e)},
                                 "failed", (time.time() - start) * 1000)
             return False
@@ -707,58 +746,76 @@ class ProductionPathCertifier:
         print("🔒 Proving cross-tenant isolation...")
         start = time.time()
         try:
-            isolation_checks = []
+            checks: JSONDict = {}
 
             # Check L4: tenant B cannot see tenant A's account
             try:
                 await self._request("l4", "GET", f"/v1/accounts/{self.ctx.account_id}",
                                    self.ctx.tenant_b, expected=(401, 403, 404))
-                isolation_checks.append(("l4_accounts", True))
+                checks["l4_accounts"] = {"passed": True}
             except AssertionError:
-                isolation_checks.append(("l4_accounts", False))
+                checks["l4_accounts"] = {"passed": False}
 
             # Check L4: tenant B cannot see tenant A's workflow
             if self.ctx.workflow_id:
                 try:
                     await self._request("l4", "GET", f"/v1/workflows/{self.ctx.workflow_id}",
                                        self.ctx.tenant_b, expected=(401, 403, 404))
-                    isolation_checks.append(("l4_workflows", True))
+                    checks["l4_workflows"] = {"passed": True}
                 except AssertionError:
-                    isolation_checks.append(("l4_workflows", False))
+                    checks["l4_workflows"] = {"passed": False}
 
             # Check L5: tenant B cannot see tenant A's truths
             try:
-                await self._request("l5", "GET", "/api/v1/truths", self.ctx.tenant_b, expected=(200,))
-                # If successful, verify no cross-tenant data
-                isolation_checks.append(("l5_truths", True))
-            except Exception:
-                isolation_checks.append(("l5_truths", False))
+                body, _ = await self._request("l5", "GET", "/api/v1/truths", self.ctx.tenant_b, expected=(200,))
+                items = body.get("items", body) if isinstance(body, dict) else body
+                cross_tenant_truth = self._find_cross_tenant_item(items)
+                checks["l5_truths"] = {"passed": cross_tenant_truth is None}
+            except Exception:  # noqa: BLE001
+                checks["l5_truths"] = {"passed": False}
 
             # Check L3: tenant B cannot query tenant A's entities
             try:
-                await self._request("l3", "GET", "/v1/query/entities",
+                body, _ = await self._request("l3", "GET", "/v1/query/entities",
                                    self.ctx.tenant_b, expected=(200,))
-                isolation_checks.append(("l3_entities", True))
-            except Exception:
-                isolation_checks.append(("l3_entities", False))
+                items = body.get("items", body) if isinstance(body, dict) else body
+                cross_tenant_entity = self._find_cross_tenant_item(items)
+                checks["l3_entities"] = {"passed": cross_tenant_entity is None}
+            except Exception:  # noqa: BLE001
+                checks["l3_entities"] = {"passed": False}
 
-            all_passed = all(passed for _, passed in isolation_checks)
+            all_passed = all(c.get("passed", False) for c in checks.values())
 
             self.record_evidence("security", "cross_tenant_isolation", {},
-                                {"checks": dict(isolation_checks), "all_passed": all_passed},
+                                {"checks": checks, "all_passed": all_passed},
                                 "success" if all_passed else "failed",
                                 (time.time() - start) * 1000)
 
             if all_passed:
                 print("✅ Cross-tenant isolation proven")
             else:
-                failed = [name for name, passed in isolation_checks if not passed]
+                failed = [name for name, c in checks.items() if not c.get("passed")]
                 print(f"❌ Cross-tenant isolation failed: {failed}")
             return all_passed
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             self.record_evidence("security", "cross_tenant_isolation", {}, {"error": str(e)},
                                 "failed", (time.time() - start) * 1000)
             return False
+
+    def _find_cross_tenant_item(self, items: object) -> JSONDict | None:
+        """Return the first item that appears to belong to tenant A, or None."""
+        if not isinstance(items, list):
+            return None
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            applies_to = item.get("applies_to", {}) if isinstance(item.get("applies_to"), dict) else {}
+            if (applies_to.get("source_version_id") in (self.ctx.source_id, self.ctx.source_version_id) or
+                applies_to.get("workflow_id") == self.ctx.workflow_id or
+                item.get("source_version_id") in (self.ctx.source_id, self.ctx.source_version_id) or
+                item.get("account_id") == self.ctx.account_id):
+                return item
+        return None
 
     # ─── Phase 15: Export evidence manifest ───
     def export_manifest(self) -> str:
@@ -769,7 +826,7 @@ class ProductionPathCertifier:
             commit_sha=self.commit_sha,
             timestamp=now_iso(),
             overall_status="PASS" if all(e.status == "success" for e in self.evidence) else "FAIL",
-            layers_verified=list(set(e.layer for e in self.evidence)),
+            layers_verified=list({e.layer for e in self.evidence}),
             evidence=self.evidence,
             cross_tenant_isolation=any(e.layer == "security" and e.status == "success" for e in self.evidence),
             manifest_path=str(MANIFEST_PATH),
@@ -801,60 +858,74 @@ class ProductionPathCertifier:
         print("=" * 60)
 
         # Phase 1: Start topology
-        if not await self.start_topology():
-            return self._fail_result("Topology start failed")
+        result = await self._run_phase("Topology start", self.start_topology())
+        if result:
+            return result
 
         # Phase 2: Create tenants
-        if not await self.create_tenants():
-            return self._fail_result("Tenant creation failed")
+        result = await self._run_phase("Tenant creation", self.create_tenants())
+        if result:
+            return result
 
         # Phase 3: Create account
-        if not await self.create_account():
-            return self._fail_result("Account creation failed")
+        result = await self._run_phase("Account creation", self.create_account())
+        if result:
+            return result
 
         # Phase 4: Submit source
-        if not await self.submit_source():
-            return self._fail_result("Source submission failed")
+        result = await self._run_phase("Source submission", self.submit_source())
+        if result:
+            return result
 
         # Phase 5: Start ingestion job
-        if not await self.start_ingestion_job():
-            return self._fail_result("Ingestion job start failed")
+        result = await self._run_phase("Ingestion job start", self.start_ingestion_job())
+        if result:
+            return result
 
         # Phase 6: Wait for L1 completion
-        if not await self.wait_for_l1_completion():
-            return self._fail_result("L1 completion failed")
+        result = await self._run_phase("L1 completion", self.wait_for_l1_completion())
+        if result:
+            return result
 
         # Phase 7: Verify L2 extraction
-        if not await self.verify_l2_extraction():
-            return self._fail_result("L2 extraction verification failed")
+        result = await self._run_phase("L2 extraction verification", self.verify_l2_extraction())
+        if result:
+            return result
 
         # Phase 8: Verify L3 graph
-        if not await self.verify_l3_graph():
-            return self._fail_result("L3 graph verification failed")
+        result = await self._run_phase("L3 graph verification", self.verify_l3_graph())
+        if result:
+            return result
 
         # Phase 9: Execute L4 workflow
-        if not await self.execute_l4_workflow():
-            return self._fail_result("L4 workflow execution failed")
+        result = await self._run_phase("L4 workflow execution", self.execute_l4_workflow())
+        if result:
+            return result
 
         # Phase 10: Verify L5 Ground Truth
-        if not await self.verify_l5_ground_truth():
-            return self._fail_result("L5 Ground Truth verification failed")
+        result = await self._run_phase("L5 Ground Truth verification", self.verify_l5_ground_truth())
+        if result:
+            return result
 
         # Phase 11: Verify L6 benchmark
-        if not await self.verify_l6_benchmark():
-            return self._fail_result("L6 benchmark verification failed")
+        result = await self._run_phase("L6 benchmark verification", self.verify_l6_benchmark())
+        if result:
+            return result
 
         # Phase 12: Retrieve value case via gateway
-        if not await self.retrieve_value_case_via_gateway():
-            return self._fail_result("Value case retrieval failed")
+        result = await self._run_phase("Value case retrieval", self.retrieve_value_case_via_gateway())
+        if result:
+            return result
 
         # Phase 13: Validate frontend contract
-        if not await self.validate_frontend_contract():
-            return self._fail_result("Frontend contract validation failed")
+        result = await self._run_phase("Frontend contract validation", self.validate_frontend_contract())
+        if result:
+            return result
 
         # Phase 14: Prove cross-tenant isolation
-        if not await self.prove_cross_tenant_isolation():
-            return self._fail_result("Cross-tenant isolation failed")
+        result = await self._run_phase("Cross-tenant isolation", self.prove_cross_tenant_isolation())
+        if result:
+            return result
 
         # Phase 15: Export manifest
         self.export_manifest()
@@ -867,12 +938,21 @@ class ProductionPathCertifier:
             commit_sha=self.commit_sha,
             timestamp=now_iso(),
             overall_status="PASS",
-            layers_verified=list(set(e.layer for e in self.evidence)),
+            layers_verified=list({e.layer for e in self.evidence}),
             evidence=self.evidence,
             cross_tenant_isolation=True,
             manifest_path=str(MANIFEST_PATH),
             notes="All phases completed successfully"
         )
+
+    async def _run_phase(self, phase_name: str, coro: Awaitable[bool]) -> CertificationResult | None:
+        """Run a phase and return a failure result if it raises or returns False."""
+        try:
+            if not await coro:
+                return self._fail_result(f"{phase_name} failed")
+            return None
+        except Exception as e:  # noqa: BLE001
+            return self._fail_result(f"{phase_name} failed: {e}")
 
     def _fail_result(self, reason: str) -> CertificationResult:
         self.export_manifest()
@@ -881,7 +961,7 @@ class ProductionPathCertifier:
             commit_sha=self.commit_sha,
             timestamp=now_iso(),
             overall_status="FAIL",
-            layers_verified=list(set(e.layer for e in self.evidence)),
+            layers_verified=list({e.layer for e in self.evidence}),
             evidence=self.evidence,
             cross_tenant_isolation=False,
             manifest_path=str(MANIFEST_PATH),

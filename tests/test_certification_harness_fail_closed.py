@@ -40,6 +40,7 @@ class TestHarnessFailClosed:
             user_admin="admin",
             account_id="account-123",
             source_id="source-123",
+            source_version_id="source-version-123",
             job_id="job-123",
             extraction_job_id="extraction-123",
             kg_node_ids=[],
@@ -59,7 +60,7 @@ class TestHarnessFailClosed:
         with pytest.raises(AssertionError) as exc_info:
             await self.certifier.verify_l2_extraction()
         
-        assert "No L2 extraction found for source_version_id" in str(exc_info.value)
+        assert "No extraction found for source_version_id" in str(exc_info.value)
         failed_evidence = [e for e in self.certifier.evidence if e.layer == "l2" and e.status == "failed"]
         assert len(failed_evidence) == 1
         assert "No extraction found" in failed_evidence[0].output_data.get("error", "")
@@ -69,16 +70,18 @@ class TestHarnessFailClosed:
         """Test L2 verification FAILS when extraction never completes."""
         mock_resp = MagicMock()
         mock_resp.status_code = 200
-        # Mock _request to return pending status forever
+        # First call lists an extraction for our source; subsequent calls poll as pending
         self.certifier._request = AsyncMock(
             side_effect=[
+                ([{"job_id": "extraction-123", "source_version_id": self.certifier.ctx.source_id, "status": "pending"}], mock_resp),
+            ] + [
                 ({"job_id": "extraction-123", "status": "pending"}, mock_resp),
-            ] * 35  # More than 30 attempts
+            ] * 35  # More than 30 poll attempts
         )
-        
+
         with pytest.raises(AssertionError) as exc_info:
-            await self.certifier.verify_l2_extraction()
-        
+            await self.certifier.verify_l2_extraction(sleep_seconds=0.1)
+
         assert "L2 extraction timed out" in str(exc_info.value)
 
     @pytest.mark.asyncio
@@ -87,12 +90,15 @@ class TestHarnessFailClosed:
         mock_resp = MagicMock()
         mock_resp.status_code = 200
         self.certifier._request = AsyncMock(
-            return_value=(["ext-123"], mock_resp)  # First call: list extractions
+            side_effect=[
+                ([{"job_id": "extraction-123", "source_version_id": self.certifier.ctx.source_id, "status": "completed"}], mock_resp),
+                ({"job_id": "extraction-123", "status": "completed", "entities": []}, mock_resp),
+            ]
         )
-        
+
         with pytest.raises(AssertionError) as exc_info:
-            await self.certifier.verify_l2_extraction()
-        
+            await self.certifier.verify_l2_extraction(sleep_seconds=0.1)
+
         assert "no entities extracted" in str(exc_info.value)
 
     @pytest.mark.asyncio
@@ -102,17 +108,17 @@ class TestHarnessFailClosed:
         mock_resp.status_code = 200
         mock_resp_gw = MagicMock()
         mock_resp_gw.status_code = 201
-        
+
         self.certifier._gateway_request = AsyncMock(
             return_value=({"workflow_id": "workflow-123"}, mock_resp_gw)
         )
         self.certifier._request = AsyncMock(
             return_value=({"workflow_id": "workflow-123", "status": "running"}, mock_resp)
         )
-        
+
         with pytest.raises(AssertionError) as exc_info:
-            await self.certifier.execute_l4_workflow()
-        
+            await self.certifier.execute_l4_workflow(sleep_seconds=0.1)
+
         assert "L4 workflow timed out" in str(exc_info.value)
 
     @pytest.mark.asyncio
@@ -372,12 +378,6 @@ class TestHarnessDirectLayerCalls:
     @pytest.mark.asyncio
     async def test_l2_verification_uses_direct_layer(self):
         """Test L2 verification uses direct layer call for postcondition check."""
-        mock_resp = MagicMock()
-        mock_resp.status_code = 200
-        self.certifier._request = AsyncMock(
-            return_value=([{"job_id": "ext-123", "status": "completed", "entities": [{"id": "e1"}]}], mock_resp)
-        )
-        
         self.certifier.ctx = TestContext(
             tenant_a="tenant-a-test",
             tenant_b="tenant-b-test",
@@ -385,6 +385,12 @@ class TestHarnessDirectLayerCalls:
             account_id="account-123",
             source_id="source-123",
             source_version_id="sv-123",
+        )
+
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        self.certifier._request = AsyncMock(
+            return_value=([{"job_id": "ext-123", "source_version_id": self.certifier.ctx.source_id, "status": "completed", "entities": [{"id": "e1"}]}], mock_resp)
         )
         
         await self.certifier.verify_l2_extraction()
