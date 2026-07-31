@@ -1142,6 +1142,7 @@
       "required_secrets": [],
       "produced_artifacts": [
         "apps/web/dist",
+        "apps/web/e2e/visual/**/*-snapshots/*.png",
         "apps/web/e2e/visual/**/*.actual.png",
         "apps/web/e2e/visual/**/*.diff.png",
         "apps/web/e2e/visual/**/*.expected.png",
