@@ -7546,6 +7546,99 @@
         "x-deprecated-removal-date": "2026-09-30",
         "x-deprecation-owner": "layer3-knowledge"
       }
+    },
+    "/v1/schema/status": {
+      "get": {
+        "tags": [
+          "Schema"
+        ],
+        "summary": "Get Schema Status",
+        "description": "Retrieve the current status of Neo4j schema elements.\n    \n    This endpoint checks:\n    - Constraint creation and validation\n    - Index creation and status\n    - Overall schema health\n    - Missing elements that need attention\n    \n    Use this endpoint to verify database schema integrity before operations.\n    \n    **Response Headers:**\n    - `X-RateLimit-*`: Current rate limiting information\n    \n    **Status Codes:**\n    - `200`: Schema status retrieved successfully\n    - `503`: Database connection issues",
+        "operationId": "get_schema_status_v1_schema_status_get",
+        "responses": {
+          "200": {
+            "description": "Schema status retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SchemaStatus"
+                },
+                "example": {
+                  "constraints": {
+                    "expected": 10,
+                    "found": 10,
+                    "missing": []
+                  },
+                  "indexes": {
+                    "expected": 15,
+                    "found": 15,
+                    "missing": []
+                  },
+                  "valid": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/schema/init": {
+      "post": {
+        "summary": "Init Schema",
+        "description": "Initialize or reinitialize schema.",
+        "operationId": "init_schema_v1_schema_init_post",
+        "parameters": [
+          {
+            "name": "drop_existing",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Drop Existing"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/schema/statistics": {
+      "get": {
+        "summary": "Get Schema Statistics",
+        "description": "Get database statistics.",
+        "operationId": "get_schema_statistics_v1_schema_statistics_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SchemaStatistics"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {

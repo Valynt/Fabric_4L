@@ -48,3 +48,12 @@ def test_visual_workflow_uses_existing_apps_web_playwright_project() -> None:
     matrix = workflow["jobs"]["test"]["strategy"]["matrix"]
 
     assert matrix["project"] == ["journeys"]
+
+
+def test_visual_workflow_points_playwright_at_production_preview() -> None:
+    workflow = _workflow()
+    steps = workflow["jobs"]["test"]["steps"]
+    visual_step = next(step for step in steps if step.get("name") == "Run visual regression tests")
+
+    assert visual_step["env"]["PLAYWRIGHT_BASE_URL"] == "http://localhost:4173"
+    assert visual_step["env"]["PLAYWRIGHT_SKIP_WEBSERVER"] == "true"

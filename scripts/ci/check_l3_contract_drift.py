@@ -49,9 +49,6 @@ DEFAULT_CURRENT = REPO_ROOT / "contracts/openapi/layer3-knowledge.json"
 # snapshot path to be considered preserved by an approved alias.
 COMPATIBILITY_HIDDEN_PATHS: set[str] = {
     "/metrics",
-    "/v1/schema/status",
-    "/v1/schema/init",
-    "/v1/schema/statistics",
 }
 
 COMPATIBILITY_PATH_ALIASES: dict[str, str] = {

@@ -149,6 +149,9 @@ jobs:
 
       - name: Run visual regression tests
         id: visual_test
+        env:
+          PLAYWRIGHT_BASE_URL: http://localhost:4173
+          PLAYWRIGHT_SKIP_WEBSERVER: "true"
         run: |
           mkdir -p playwright-report test-results
           pnpm exec playwright test e2e/visual/regression.spec.ts \

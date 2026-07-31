@@ -367,15 +367,21 @@ class Layer5GroundTruthClient:
             ``has_more``, or ``{"error": ...}`` on failure.
         """
         try:
-            params: dict[str, Any] = {"limit": limit, "offset": offset}
-            params.update(
-                self._require_organization_id(
-                    organization_id,
-                    operation="list_truths",
-                    allow_system_call=allow_system_call,
-                    audit_reason=audit_reason,
-                )
+            organization_params = self._require_organization_id(
+                organization_id,
+                operation="list_truths",
+                allow_system_call=allow_system_call,
+                audit_reason=audit_reason,
             )
+        except ValueError as exc:
+            logger.warning("Layer 5 list_truths rejected: %s", exc)
+            return Layer5GroundTruthClient_list_truthsResult.model_validate(
+                {"error": str(exc), "items": [], "total": 0}
+            )
+
+        try:
+            params: dict[str, Any] = {"limit": limit, "offset": offset}
+            params.update(organization_params)
             if status:
                 params["status"] = status
             if claim_type:
@@ -390,12 +396,27 @@ class Layer5GroundTruthClient:
             resp = await self._client.get("/api/v1/truths", params=params)
             resp.raise_for_status()
             return resp.json()
+        except httpx.HTTPStatusError as exc:
+            logger.warning(
+                "Layer 5 list_truths returned HTTP %s: %s",
+                exc.response.status_code,
+                exc.response.text[:200],
+            )
+            error_message = f"HTTP {exc.response.status_code}"
+        except httpx.TimeoutException as exc:
+            logger.warning("Layer 5 list_truths timed out: %s", exc)
+            error_message = "Layer 5 list truths timed out"
+        except httpx.NetworkError as exc:
+            logger.warning("Layer 5 list_truths connection failed: %s", exc)
+            error_message = "Layer 5 list truths connection failed"
         except asyncio.CancelledError:
             raise
         except Exception as exc:
             logger.warning("Layer 5 list_truths failed: %s", exc)
-            error_message = "Missing tenant context for 'list_truths'. Provide organization_id or use privileged system-call path with audit reason."
-            return Layer5GroundTruthClient_list_truthsResult.model_validate({"error": error_message, "items": [], "total": 0})
+            error_message = "Layer 5 list truths failed"
+        return Layer5GroundTruthClient_list_truthsResult.model_validate(
+            {"error": error_message, "items": [], "total": 0}
+        )
 
     async def validate_truth(
         self,

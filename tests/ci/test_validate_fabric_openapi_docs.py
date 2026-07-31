@@ -63,6 +63,15 @@ def test_validate_docs_fails_unbaselined_new_violations() -> None:
     ]
 
 
+def test_validate_docs_rejects_stale_baseline_violations() -> None:
+    spec = _minimal_spec()
+
+    assert docs_gate.validate(
+        spec,
+        baseline=["schema Sample.name: missing meaningful description"],
+    ) == ["STALE BASELINE: schema Sample.name: missing meaningful description"]
+
+
 def test_validate_docs_update_baseline_writes_current_errors(tmp_path: Path) -> None:
     spec_path = tmp_path / "openapi.json"
     baseline_path = tmp_path / "baseline.json"

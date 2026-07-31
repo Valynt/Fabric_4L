@@ -128,7 +128,10 @@ def write_baseline(path: Path, errors: Iterable[str]) -> None:
 
 def validate(spec: dict[str, object], *, baseline: Iterable[str] | None = None) -> list[str]:
     approved = set(baseline or [])
-    return [error for error in collect_errors(spec) if error not in approved]
+    all_errors = set(collect_errors(spec))
+    new_errors = sorted(all_errors - approved)
+    stale_approvals = [f"STALE BASELINE: {error}" for error in sorted(approved - all_errors)]
+    return new_errors + stale_approvals
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -173,7 +176,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"OpenAPI documentation baseline is invalid: {exc}", file=sys.stderr)
         return 1
 
-    errors = [error for error in all_errors if error not in baseline]
+    errors = validate(spec, baseline=baseline)
     if errors:
         print("Fabric_4L OpenAPI documentation validation failed:", file=sys.stderr)
         for error in errors:
