@@ -2152,51 +2152,11 @@ jobs:
           secret-path: /layer2-extraction
 
       - name: Run release smoke gate
+        env:
+          RELEASE_SMOKE_PYTEST_TARGET: tests/backend_integrated
+          RELEASE_SMOKE_PYTEST_MARKER: backend_integrated
+          RELEASE_SMOKE_PYTEST_EVIDENCE_NAME: backend_integrated
         run: make test-backend-integrated-release-smoke
-
-      - name: Start core services for integration tests
-        run: |
-          export JWT_SECRET="${JWT_SECRET:-release-smoke-jwt-secret-minimum-32-characters}"
-          export API_KEY_HMAC_SECRET="${API_KEY_HMAC_SECRET:-release-smoke-api-key-hmac-secret-32chars}"
-          export SERVICE_AUTH_SECRET="${SERVICE_AUTH_SECRET:-release-smoke-service-auth-secret-32chars}"
-          export CREDENTIALS_MASTER_KEY="${CREDENTIALS_MASTER_KEY:-release-smoke-credentials-master-key-32chars}"
-          export CORS_ORIGINS="${CORS_ORIGINS:-[\"https://localhost:3001\"]}"
-          export POSTGRES_USER="${POSTGRES_USER:-release_smoke_app}"
-          export POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-release_smoke_strong_credential}"
-          export NEO4J_PASSWORD="${NEO4J_PASSWORD:-devpassword}"
-
-          docker compose up -d neo4j redis postgres
-          docker compose up -d --build layer2 layer3 layer4
-
-      - name: Wait for services to be healthy
-        run: |
-          echo "Waiting for services to be healthy..."
-          for i in {1..24}; do
-            sleep 5
-            # Check if core DB services are responding
-            pg_isready -h localhost -p 5432 2>/dev/null && echo "PostgreSQL ready"
-            redis-cli -h localhost -p 6379 ping 2>/dev/null && echo "Redis ready"
-            # Check Neo4j
-            curl -s http://localhost:7474/dbms/health 2>/dev/null && echo "Neo4j ready"
-            # If we've waited enough, proceed
-            if [ "$i" -ge "12" ]; then
-              echo "Proceeding with available services..."
-              break
-            fi
-          done
-          docker compose ps
-        timeout-minutes: 3
-
-      - name: Run integration test suite
-        run: |
-          pip install pytest httpx pytest-asyncio
-          # Run the integration tests if they exist
-          if [ -d "tests/integration" ]; then
-            cd tests/integration
-            pytest -v --tb=short
-          else
-            echo "Integration test folder not found, skipping..."
-          fi
 
       - name: Capture logs on failure
         if: failure()

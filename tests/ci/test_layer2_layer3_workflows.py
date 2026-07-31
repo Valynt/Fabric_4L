@@ -76,6 +76,14 @@ def test_integration_release_smoke_job_provides_required_compose_env() -> None:
         step for step in job["steps"] if step.get("name") == "Run release smoke gate"
     )
     assert release_smoke_step["run"] == "make test-backend-integrated-release-smoke"
+    assert release_smoke_step["env"] == {
+        "RELEASE_SMOKE_PYTEST_TARGET": "tests/backend_integrated",
+        "RELEASE_SMOKE_PYTEST_MARKER": "backend_integrated",
+        "RELEASE_SMOKE_PYTEST_EVIDENCE_NAME": "backend_integrated",
+    }
+    step_names = {step.get("name") for step in job["steps"]}
+    assert "Start core services for integration tests" not in step_names
+    assert "Run integration test suite" not in step_names
 
     compose = (
         PR_CHECKS.parents[2] / "infra/compose/docker-compose.release-smoke.yml"
