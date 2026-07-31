@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Path, Query, Request
 from value_fabric.shared.models import JSONDict
 
 from app.clients.layer1_client import Layer1Client
@@ -59,7 +59,7 @@ def get_layer5_client() -> Layer5Client:
 # Layer 1 — Ingestion
 # =============================================================================
 
-@router.post("/ingestion/sources")
+@router.post("/ingestion/sources", tags=["L1-Ingestion"])
 async def create_source(
     request: Request,
     tenant_id: str = Depends(tenant_required),
@@ -75,10 +75,10 @@ async def create_source(
     )
 
 
-@router.post("/ingestion/sources/{source_id}/versions")
+@router.post("/ingestion/sources/{source_id}/versions", tags=["L1-Ingestion"])
 async def create_source_version(
-    source_id: str,
     request: Request,
+    source_id: str = Path(description="Unique identifier of the source to version"),
     tenant_id: str = Depends(tenant_required),
     client: Layer1Client = Depends(get_layer1_client),
 ):
@@ -92,7 +92,7 @@ async def create_source_version(
     )
 
 
-@router.post("/ingestion/runs")
+@router.post("/ingestion/runs", tags=["L1-Ingestion"])
 async def create_ingestion_run(
     request: Request,
     tenant_id: str = Depends(tenant_required),
@@ -107,9 +107,9 @@ async def create_ingestion_run(
     )
 
 
-@router.get("/ingestion/runs/{run_id}")
+@router.get("/ingestion/runs/{run_id}", tags=["L1-Ingestion"])
 async def get_ingestion_run(
-    run_id: str,
+    run_id: str = Path(description="Unique identifier of the ingestion run"),
     tenant_id: str = Depends(tenant_required),
     client: Layer1Client = Depends(get_layer1_client),
 ):
@@ -117,10 +117,10 @@ async def get_ingestion_run(
     return await client.get_ingestion_run(tenant_id=tenant_id, run_id=run_id)
 
 
-@router.get("/ingestion/sources")
+@router.get("/ingestion/sources", tags=["L1-Ingestion"])
 async def list_sources(
-    limit: int = 50,
-    offset: int = 0,
+    limit: int = Query(default=50, description="Maximum number of sources to return"),
+    offset: int = Query(default=0, description="Number of sources to skip for pagination"),
     tenant_id: str = Depends(tenant_required),
     client: Layer1Client = Depends(get_layer1_client),
 ):
@@ -132,7 +132,7 @@ async def list_sources(
 # Layer 2 — Extraction
 # =============================================================================
 
-@router.post("/extract")
+@router.post("/extract", tags=["L2-Extraction"])
 async def extract(
     request: Request,
     tenant_id: str = Depends(tenant_required),
@@ -156,7 +156,7 @@ async def extract(
     )
 
 
-@router.post("/extract-and-ingest")
+@router.post("/extract-and-ingest", tags=["L2-Extraction"])
 async def extract_and_ingest(
     request: Request,
     tenant_id: str = Depends(tenant_required),
@@ -180,9 +180,9 @@ async def extract_and_ingest(
     )
 
 
-@router.get("/extractions/{job_id}")
+@router.get("/extractions/{job_id}", tags=["L2-Extraction"])
 async def get_extraction_status(
-    job_id: str,
+    job_id: str = Path(description="Unique identifier of the extraction job"),
     tenant_id: str = Depends(tenant_required),
     client: Layer2Client = Depends(get_layer2_client),
 ):
@@ -194,11 +194,11 @@ async def get_extraction_status(
 # Layer 3 — Knowledge Graph
 # =============================================================================
 
-@router.get("/query/entities")
+@router.get("/query/entities", tags=["L3-Knowledge"])
 async def query_entities(
-    entity_type: str | None = None,
-    limit: int = 50,
-    offset: int = 0,
+    entity_type: str | None = Query(default=None, description="Filter entities by type"),
+    limit: int = Query(default=50, description="Maximum number of entities to return"),
+    offset: int = Query(default=0, description="Number of entities to skip for pagination"),
     tenant_id: str = Depends(tenant_required),
     client: Layer3Client = Depends(get_layer3_client),
 ):
@@ -211,7 +211,7 @@ async def query_entities(
     )
 
 
-@router.post("/search")
+@router.post("/search", tags=["L3-Knowledge"])
 async def search_knowledge_graph(
     request: Request,
     tenant_id: str = Depends(tenant_required),
@@ -226,9 +226,9 @@ async def search_knowledge_graph(
     )
 
 
-@router.get("/value-trees/{tree_id}")
+@router.get("/value-trees/{tree_id}", tags=["L3-Knowledge"])
 async def get_value_tree(
-    tree_id: str,
+    tree_id: str = Path(description="Unique identifier of the value tree"),
     tenant_id: str = Depends(tenant_required),
     client: Layer3Client = Depends(get_layer3_client),
 ):
@@ -236,7 +236,7 @@ async def get_value_tree(
     return await client.get_value_tree(tenant_id=tenant_id, tree_id=tree_id)
 
 
-@router.post("/ingest")
+@router.post("/ingest", tags=["L3-Knowledge"])
 async def ingest_rdf(
     request: Request,
     tenant_id: str = Depends(tenant_required),
@@ -251,13 +251,13 @@ async def ingest_rdf(
     )
 
 
-@router.post("/query/graphrag")
+@router.post("/query/graphrag", tags=["L3-Knowledge"])
 async def query_graphrag(
     request: Request,
     tenant_id: str = Depends(tenant_required),
     client: Layer3Client = Depends(get_layer3_client),
 ):
-    """Query using GraphRAG."""
+    """Query the knowledge graph using GraphRAG retrieval."""
     body: JSONDict = await request.json()
     return await client.query_graphrag(
         tenant_id=tenant_id,
@@ -270,7 +270,7 @@ async def query_graphrag(
 # Layer 4 — Agent Workflows
 # =============================================================================
 
-@router.post("/workflows")
+@router.post("/workflows", tags=["L4-Agents"])
 async def submit_workflow(
     request: Request,
     tenant_id: str = Depends(tenant_required),
@@ -285,27 +285,27 @@ async def submit_workflow(
     )
 
 
-@router.get("/workflows/{workflow_id}")
+@router.get("/workflows/{workflow_id}", tags=["L4-Agents"])
 async def get_workflow(
-    workflow_id: str,
+    workflow_id: str = Path(description="Unique identifier of the workflow"),
     tenant_id: str = Depends(tenant_required),
     client: Layer4Client = Depends(get_layer4_client),
 ):
-    """Get workflow status."""
+    """Retrieve the current status of a workflow."""
     return await client.get_workflow(tenant_id=tenant_id, workflow_id=workflow_id)
 
 
-@router.get("/workflows/{workflow_id}/result")
+@router.get("/workflows/{workflow_id}/result", tags=["L4-Agents"])
 async def get_workflow_result(
-    workflow_id: str,
+    workflow_id: str = Path(description="Unique identifier of the workflow"),
     tenant_id: str = Depends(tenant_required),
     client: Layer4Client = Depends(get_layer4_client),
 ):
-    """Get workflow result."""
+    """Retrieve the final result of a workflow."""
     return await client.get_workflow_result(tenant_id=tenant_id, workflow_id=workflow_id)
 
 
-@router.post("/hypotheses/generate")
+@router.post("/hypotheses/generate", tags=["L4-Agents"])
 async def generate_hypotheses(
     request: Request,
     tenant_id: str = Depends(tenant_required),
@@ -316,7 +316,7 @@ async def generate_hypotheses(
     return await client.generate_hypotheses(tenant_id=tenant_id, payload=body)
 
 
-@router.post("/analysis/roi")
+@router.post("/analysis/roi", tags=["L4-Agents"])
 async def run_roi_analysis(
     request: Request,
     tenant_id: str = Depends(tenant_required),
@@ -327,7 +327,7 @@ async def run_roi_analysis(
     return await client.run_roi_analysis(tenant_id=tenant_id, payload=body)
 
 
-@router.post("/narratives/generate")
+@router.post("/narratives/generate", tags=["L4-Agents"])
 async def generate_narrative(
     request: Request,
     tenant_id: str = Depends(tenant_required),
@@ -342,12 +342,12 @@ async def generate_narrative(
 # Layer 5 — Ground Truth
 # =============================================================================
 
-@router.get("/truths")
+@router.get("/truths", tags=["L5-Ground-Truth"])
 async def list_truths(
-    status: str | None = None,
-    claim_type: str | None = None,
-    limit: int = 50,
-    offset: int = 0,
+    status: str | None = Query(default=None, description="Filter truths by validation status"),
+    claim_type: str | None = Query(default=None, description="Filter truths by claim type"),
+    limit: int = Query(default=50, description="Maximum number of truths to return"),
+    offset: int = Query(default=0, description="Number of truths to skip for pagination"),
     tenant_id: str = Depends(tenant_required),
     client: Layer5Client = Depends(get_layer5_client),
 ):
@@ -361,9 +361,9 @@ async def list_truths(
     )
 
 
-@router.get("/truths/{truth_id}")
+@router.get("/truths/{truth_id}", tags=["L5-Ground-Truth"])
 async def get_truth(
-    truth_id: str,
+    truth_id: str = Path(description="Unique identifier of the TruthObject"),
     tenant_id: str = Depends(tenant_required),
     client: Layer5Client = Depends(get_layer5_client),
 ):
@@ -371,7 +371,7 @@ async def get_truth(
     return await client.get_truth(tenant_id=tenant_id, truth_id=truth_id)
 
 
-@router.post("/truths")
+@router.post("/truths", tags=["L5-Ground-Truth"])
 async def submit_truth(
     request: Request,
     tenant_id: str = Depends(tenant_required),
@@ -393,10 +393,10 @@ async def submit_truth(
     )
 
 
-@router.post("/truths/{truth_id}/validate")
+@router.post("/truths/{truth_id}/validate", tags=["L5-Ground-Truth"])
 async def validate_truth(
-    truth_id: str,
     request: Request,
+    truth_id: str = Path(description="Unique identifier of the TruthObject to validate"),
     tenant_id: str = Depends(tenant_required),
     client: Layer5Client = Depends(get_layer5_client),
 ):
@@ -412,7 +412,7 @@ async def validate_truth(
     )
 
 
-@router.post("/truths/sync-kg")
+@router.post("/truths/sync-kg", tags=["L5-Ground-Truth"])
 async def sync_knowledge_graph(
     tenant_id: str = Depends(tenant_required),
     client: Layer5Client = Depends(get_layer5_client),
@@ -421,7 +421,7 @@ async def sync_knowledge_graph(
     return await client.sync_kg(tenant_id=tenant_id)
 
 
-@router.get("/truths/freshness-summary")
+@router.get("/truths/freshness-summary", tags=["L5-Ground-Truth"])
 async def get_freshness_summary(
     tenant_id: str = Depends(tenant_required),
     client: Layer5Client = Depends(get_layer5_client),
@@ -430,7 +430,7 @@ async def get_freshness_summary(
     return await client.get_freshness_summary(tenant_id=tenant_id)
 
 
-@router.get("/maturity-ladder")
+@router.get("/maturity-ladder", tags=["L5-Ground-Truth"])
 async def get_maturity_ladder(
     tenant_id: str = Depends(tenant_required),
     client: Layer5Client = Depends(get_layer5_client),
