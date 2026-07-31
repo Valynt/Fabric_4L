@@ -341,6 +341,15 @@ jobs:
 
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Checkout live target for comparison
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha || github.event.before }}
+          path: .trivy-base
+          fetch-depth: 1
 
       - name: Setup Helm
         uses: azure/setup-helm@bf6a7d304bc2fdb57e0331155b7ebf2c504acf0a # v4
@@ -364,14 +373,23 @@ jobs:
             infra/helm/fabric-chart/Chart.lock \
             infra/helm/fabric-chart/Chart.yaml
 
-      - name: Run Trivy repository scanner
+      - name: Prepare target Helm dependencies
+        run: |
+          if cmp -s infra/helm/fabric-chart/Chart.lock .trivy-base/infra/helm/fabric-chart/Chart.lock; then
+            mkdir -p .trivy-base/infra/helm/fabric-chart
+            cp -a infra/helm/fabric-chart/charts .trivy-base/infra/helm/fabric-chart/
+          else
+            helm dependency build .trivy-base/infra/helm/fabric-chart
+          fi
+
+      - name: Scan target branch with Trivy
         uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
         with:
           scan-type: 'fs'
-          scan-ref: '.'
+          scan-ref: '.trivy-base'
           format: 'sarif'
-          output: 'trivy-repo.sarif'
-          exit-code: '1'
+          output: 'trivy-base.sarif'
+          exit-code: '0'
           ignore-unfixed: true
           vuln-type: 'os,library'
           severity: 'HIGH,CRITICAL'
@@ -379,9 +397,32 @@ jobs:
           skip-dirs: 'archive,docs/archive,node_modules'
           trivy-config: 'config/trivy/repository.yaml'
 
-      - name: Verify Trivy SARIF artifact
+      - name: Scan proposed merge with Trivy
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-repo.sarif'
+          exit-code: '0'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'HIGH,CRITICAL'
+          scanners: 'vuln,secret,config'
+          skip-dirs: 'archive,docs/archive,node_modules,.trivy-base'
+          trivy-config: 'config/trivy/repository.yaml'
+
+      - name: Enforce no-new-findings policy
+        run: |
+          python3 scripts/ci/check_trivy_pr_delta.py \
+            --base trivy-base.sarif \
+            --head trivy-repo.sarif
+
+      - name: Verify Trivy SARIF artifacts
         if: always()
-        run: test -s trivy-repo.sarif
+        run: |
+          test -s trivy-base.sarif
+          test -s trivy-repo.sarif
 
       - name: Upload Trivy repository scan results
         if: always()
@@ -395,7 +436,9 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: trivy-repo-scan-${{github.sha}}
-          path: trivy-repo.sarif
+          path: |
+            trivy-base.sarif
+            trivy-repo.sarif
           retention-days: ${{env.SECURITY_ARTIFACT_RETENTION_DAYS}}
 
   # OSV-Scanner PR diff scan: blocks PRs that introduce NEW known vulnerabilities
