@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
+from math import ceil
 from typing import Any, NoReturn, TypeAlias, TypeVar, cast
 
 import httpx
@@ -162,10 +165,10 @@ class ValueFabricClient:
                 response_body=body,
             ) from None
         if status_code == 429:
-            retry_after = response.headers.get("retry-after")
+            retry_after = self._parse_retry_after(response.headers.get("retry-after"))
             raise RateLimitError(
                 "Rate limit exceeded. Please retry after the specified time.",
-                retry_after=int(retry_after) if retry_after else None,
+                retry_after=retry_after,
                 status_code=status_code,
                 endpoint=endpoint,
                 response_body=body,
@@ -182,6 +185,23 @@ class ValueFabricClient:
         ) from None
 
     @staticmethod
+    def _parse_retry_after(value: str | None) -> int | None:
+        """Parse Retry-After delta-seconds or an HTTP date without masking a 429."""
+        if value is None:
+            return None
+        try:
+            seconds = int(value)
+        except ValueError:
+            try:
+                retry_at = parsedate_to_datetime(value)
+            except (TypeError, ValueError, OverflowError):
+                return None
+            if retry_at.tzinfo is None:
+                retry_at = retry_at.replace(tzinfo=timezone.utc)
+            return max(0, ceil((retry_at - datetime.now(timezone.utc)).total_seconds()))
+        return seconds if seconds >= 0 else None
+
+    @staticmethod
     def _decode_response(response: httpx.Response, endpoint: str) -> JSONValue:
         try:
             return cast(JSONValue, response.json())
@@ -193,39 +213,55 @@ class ValueFabricClient:
             ) from None
 
     @staticmethod
-    def _validate_model(model: type[ModelT], payload: JSONValue, *, endpoint: str) -> ModelT:
+    def _validate_model(
+        model: type[ModelT], payload: JSONValue, *, status_code: int, endpoint: str
+    ) -> ModelT:
         try:
             return model.model_validate(payload)
         except PydanticValidationError:
             raise ResponseError(
                 "API response did not match the documented schema.",
-                status_code=200,
+                status_code=status_code,
                 endpoint=endpoint,
             ) from None
 
     @classmethod
     def _validate_list(
-        cls, model: type[ModelT], payload: JSONValue, *, endpoint: str
+        cls,
+        model: type[ModelT],
+        payload: JSONValue,
+        *,
+        status_code: int,
+        endpoint: str,
     ) -> list[ModelT]:
         if not isinstance(payload, list):
             raise ResponseError(
                 "API response did not match the documented schema.",
-                status_code=200,
+                status_code=status_code,
                 endpoint=endpoint,
             )
-        return [cls._validate_model(model, item, endpoint=endpoint) for item in payload]
+        return [
+            cls._validate_model(model, item, status_code=status_code, endpoint=endpoint)
+            for item in payload
+        ]
 
     @classmethod
     def _validate_envelope_list(
-        cls, model: type[ModelT], payload: JSONValue, *, field: str, endpoint: str
+        cls,
+        model: type[ModelT],
+        payload: JSONValue,
+        *,
+        field: str,
+        status_code: int,
+        endpoint: str,
     ) -> list[ModelT]:
         if not isinstance(payload, dict) or field not in payload:
             raise ResponseError(
                 "API response did not match the documented schema.",
-                status_code=200,
+                status_code=status_code,
                 endpoint=endpoint,
             )
-        return cls._validate_list(model, payload[field], endpoint=endpoint)
+        return cls._validate_list(model, payload[field], status_code=status_code, endpoint=endpoint)
 
     def _request(
         self,
@@ -234,7 +270,7 @@ class ValueFabricClient:
         *,
         params: dict[str, Any] | None = None,
         json: dict[str, Any] | None = None,
-    ) -> JSONValue:
+    ) -> tuple[JSONValue, int]:
         try:
             query = (
                 {key: value for key, value in params.items() if value is not None}
@@ -243,7 +279,7 @@ class ValueFabricClient:
             )
             response = self._sync_client.request(method, path, params=query, json=json)
             response.raise_for_status()
-            return self._decode_response(response, path)
+            return self._decode_response(response, path), response.status_code
         except RequestError as e:
             raise ConnectionError(
                 f"Failed to connect to {self.base_url}: {e}", endpoint=path
@@ -258,7 +294,7 @@ class ValueFabricClient:
         *,
         params: dict[str, Any] | None = None,
         json: dict[str, Any] | None = None,
-    ) -> JSONValue:
+    ) -> tuple[JSONValue, int]:
         try:
             query = (
                 {key: value for key, value in params.items() if value is not None}
@@ -267,7 +303,7 @@ class ValueFabricClient:
             )
             response = await self._async_client.request(method, path, params=query, json=json)
             response.raise_for_status()
-            return self._decode_response(response, path)
+            return self._decode_response(response, path), response.status_code
         except RequestError as e:
             raise ConnectionError(
                 f"Failed to connect to {self.base_url}: {e}", endpoint=path
@@ -286,12 +322,12 @@ class ValueFabricClient:
         limit: int = 100,
         offset: int = 0,
     ) -> list[Tenant]:
-        payload = self._request(
+        payload, status_code = self._request(
             "GET",
             "/v1/tenants",
             params={"status": status, "limit": limit, "offset": offset},
         )
-        return self._validate_list(Tenant, payload, endpoint="/v1/tenants")
+        return self._validate_list(Tenant, payload, status_code=status_code, endpoint="/v1/tenants")
 
     async def alist_tenants(
         self,
@@ -300,62 +336,89 @@ class ValueFabricClient:
         limit: int = 100,
         offset: int = 0,
     ) -> list[Tenant]:
-        payload = await self._arequest(
+        payload, status_code = await self._arequest(
             "GET",
             "/v1/tenants",
             params={"status": status, "limit": limit, "offset": offset},
         )
-        return self._validate_list(Tenant, payload, endpoint="/v1/tenants")
+        return self._validate_list(Tenant, payload, status_code=status_code, endpoint="/v1/tenants")
 
     def get_tenant(self, tenant_id: str) -> Tenant:
-        payload = self._request("GET", f"/v1/tenants/{tenant_id}")
-        return Tenant.model_validate(payload)
+        payload, status_code = self._request("GET", f"/v1/tenants/{tenant_id}")
+        return self._validate_model(
+            Tenant, payload, status_code=status_code, endpoint=f"/v1/tenants/{tenant_id}"
+        )
 
     async def aget_tenant(self, tenant_id: str) -> Tenant:
-        payload = await self._arequest("GET", f"/v1/tenants/{tenant_id}")
-        return Tenant.model_validate(payload)
+        payload, status_code = await self._arequest("GET", f"/v1/tenants/{tenant_id}")
+        return self._validate_model(
+            Tenant,
+            payload,
+            status_code=status_code,
+            endpoint=f"/v1/tenants/{tenant_id}",
+        )
 
     # ------------------------------------------------------------------
     # Users
     # ------------------------------------------------------------------
 
     def list_users(self, *, limit: int = 100, offset: int = 0) -> list[User]:
-        payload = self._request("GET", "/v1/users", params={"limit": limit, "offset": offset})
-        return self._validate_list(User, payload, endpoint="/v1/users")
-
-    async def alist_users(self, *, limit: int = 100, offset: int = 0) -> list[User]:
-        payload = await self._arequest(
+        payload, status_code = self._request(
             "GET", "/v1/users", params={"limit": limit, "offset": offset}
         )
-        return self._validate_list(User, payload, endpoint="/v1/users")
+        return self._validate_list(User, payload, status_code=status_code, endpoint="/v1/users")
+
+    async def alist_users(self, *, limit: int = 100, offset: int = 0) -> list[User]:
+        payload, status_code = await self._arequest(
+            "GET", "/v1/users", params={"limit": limit, "offset": offset}
+        )
+        return self._validate_list(User, payload, status_code=status_code, endpoint="/v1/users")
 
     def invite_user(self, email: str, role: str, *, display_name: str | None = None) -> User:
-        payload = self._request(
+        payload, status_code = self._request(
             "POST",
             "/v1/users/invite",
             json={"email": email, "role": role, "display_name": display_name},
         )
-        return User.model_validate(payload)
+        return self._validate_model(
+            User,
+            payload,
+            status_code=status_code,
+            endpoint="/v1/users/invite",
+        )
 
     async def ainvite_user(self, email: str, role: str, *, display_name: str | None = None) -> User:
-        payload = await self._arequest(
+        payload, status_code = await self._arequest(
             "POST",
             "/v1/users/invite",
             json={"email": email, "role": role, "display_name": display_name},
         )
-        return User.model_validate(payload)
+        return self._validate_model(
+            User,
+            payload,
+            status_code=status_code,
+            endpoint="/v1/users/invite",
+        )
 
     # ------------------------------------------------------------------
     # API Keys
     # ------------------------------------------------------------------
 
     def list_api_keys(self, *, active_only: bool = True) -> list[APIKey]:
-        payload = self._request("GET", "/v1/api-keys", params={"active_only": active_only})
-        return self._validate_list(APIKey, payload, endpoint="/v1/api-keys")
+        payload, status_code = self._request(
+            "GET", "/v1/api-keys", params={"active_only": active_only}
+        )
+        return self._validate_list(
+            APIKey, payload, status_code=status_code, endpoint="/v1/api-keys"
+        )
 
     async def alist_api_keys(self, *, active_only: bool = True) -> list[APIKey]:
-        payload = await self._arequest("GET", "/v1/api-keys", params={"active_only": active_only})
-        return self._validate_list(APIKey, payload, endpoint="/v1/api-keys")
+        payload, status_code = await self._arequest(
+            "GET", "/v1/api-keys", params={"active_only": active_only}
+        )
+        return self._validate_list(
+            APIKey, payload, status_code=status_code, endpoint="/v1/api-keys"
+        )
 
     def create_api_key(
         self,
@@ -370,8 +433,13 @@ class ValueFabricClient:
             json_body["expires_at"] = expires_at
         if rate_limit_per_minute is not None:
             json_body["rate_limit_per_minute"] = rate_limit_per_minute
-        payload = self._request("POST", "/v1/api-keys", json=json_body)
-        return APIKeyCreateResult.model_validate(payload)
+        payload, status_code = self._request("POST", "/v1/api-keys", json=json_body)
+        return self._validate_model(
+            APIKeyCreateResult,
+            payload,
+            status_code=status_code,
+            endpoint="/v1/api-keys",
+        )
 
     async def acreate_api_key(
         self,
@@ -386,23 +454,36 @@ class ValueFabricClient:
             json_body["expires_at"] = expires_at
         if rate_limit_per_minute is not None:
             json_body["rate_limit_per_minute"] = rate_limit_per_minute
-        payload = await self._arequest("POST", "/v1/api-keys", json=json_body)
-        return APIKeyCreateResult.model_validate(payload)
+        payload, status_code = await self._arequest("POST", "/v1/api-keys", json=json_body)
+        return self._validate_model(
+            APIKeyCreateResult,
+            payload,
+            status_code=status_code,
+            endpoint="/v1/api-keys",
+        )
 
     # ------------------------------------------------------------------
     # Workflows
     # ------------------------------------------------------------------
 
     def list_workflow_types(self) -> list[WorkflowTypeInfo]:
-        payload = self._request("GET", "/v1/workflows/types")
+        payload, status_code = self._request("GET", "/v1/workflows/types")
         return self._validate_envelope_list(
-            WorkflowTypeInfo, payload, field="workflows", endpoint="/v1/workflows/types"
+            WorkflowTypeInfo,
+            payload,
+            field="workflows",
+            status_code=status_code,
+            endpoint="/v1/workflows/types",
         )
 
     async def alist_workflow_types(self) -> list[WorkflowTypeInfo]:
-        payload = await self._arequest("GET", "/v1/workflows/types")
+        payload, status_code = await self._arequest("GET", "/v1/workflows/types")
         return self._validate_envelope_list(
-            WorkflowTypeInfo, payload, field="workflows", endpoint="/v1/workflows/types"
+            WorkflowTypeInfo,
+            payload,
+            field="workflows",
+            status_code=status_code,
+            endpoint="/v1/workflows/types",
         )
 
     def list_workflows(
@@ -414,7 +495,7 @@ class ValueFabricClient:
         workflow_type: str | None = None,
         include_completed: bool = True,
     ) -> WorkflowListResponse:
-        payload = self._request(
+        payload, status_code = self._request(
             "GET",
             "/v1/workflows",
             params={
@@ -425,7 +506,9 @@ class ValueFabricClient:
                 "include_completed": include_completed,
             },
         )
-        return self._validate_model(WorkflowListResponse, payload, endpoint="/v1/workflows")
+        return self._validate_model(
+            WorkflowListResponse, payload, status_code=status_code, endpoint="/v1/workflows"
+        )
 
     async def alist_workflows(
         self,
@@ -436,7 +519,7 @@ class ValueFabricClient:
         workflow_type: str | None = None,
         include_completed: bool = True,
     ) -> WorkflowListResponse:
-        payload = await self._arequest(
+        payload, status_code = await self._arequest(
             "GET",
             "/v1/workflows",
             params={
@@ -447,7 +530,9 @@ class ValueFabricClient:
                 "include_completed": include_completed,
             },
         )
-        return self._validate_model(WorkflowListResponse, payload, endpoint="/v1/workflows")
+        return self._validate_model(
+            WorkflowListResponse, payload, status_code=status_code, endpoint="/v1/workflows"
+        )
 
     def list_active_workflows(
         self,
@@ -457,7 +542,7 @@ class ValueFabricClient:
         status: str | None = None,
         workflow_type: str | None = None,
     ) -> WorkflowListResponse:
-        payload = self._request(
+        payload, status_code = self._request(
             "GET",
             "/v1/workflows/active",
             params={
@@ -467,7 +552,9 @@ class ValueFabricClient:
                 "workflow_type": workflow_type,
             },
         )
-        return self._validate_model(WorkflowListResponse, payload, endpoint="/v1/workflows/active")
+        return self._validate_model(
+            WorkflowListResponse, payload, status_code=status_code, endpoint="/v1/workflows/active"
+        )
 
     async def alist_active_workflows(
         self,
@@ -477,7 +564,7 @@ class ValueFabricClient:
         status: str | None = None,
         workflow_type: str | None = None,
     ) -> WorkflowListResponse:
-        payload = await self._arequest(
+        payload, status_code = await self._arequest(
             "GET",
             "/v1/workflows/active",
             params={
@@ -487,7 +574,9 @@ class ValueFabricClient:
                 "workflow_type": workflow_type,
             },
         )
-        return self._validate_model(WorkflowListResponse, payload, endpoint="/v1/workflows/active")
+        return self._validate_model(
+            WorkflowListResponse, payload, status_code=status_code, endpoint="/v1/workflows/active"
+        )
 
     def execute_workflow(
         self,
@@ -504,8 +593,10 @@ class ValueFabricClient:
         }
         if workflow_id is not None:
             json_body["workflow_id"] = workflow_id
-        payload = self._request("POST", "/v1/workflows", json=json_body)
-        return self._validate_model(WorkflowCreateResponse, payload, endpoint="/v1/workflows")
+        payload, status_code = self._request("POST", "/v1/workflows", json=json_body)
+        return self._validate_model(
+            WorkflowCreateResponse, payload, status_code=status_code, endpoint="/v1/workflows"
+        )
 
     async def aexecute_workflow(
         self,
@@ -522,18 +613,20 @@ class ValueFabricClient:
         }
         if workflow_id is not None:
             json_body["workflow_id"] = workflow_id
-        payload = await self._arequest("POST", "/v1/workflows", json=json_body)
-        return self._validate_model(WorkflowCreateResponse, payload, endpoint="/v1/workflows")
+        payload, status_code = await self._arequest("POST", "/v1/workflows", json=json_body)
+        return self._validate_model(
+            WorkflowCreateResponse, payload, status_code=status_code, endpoint="/v1/workflows"
+        )
 
     def get_workflow(self, workflow_id: str) -> WorkflowStatus:
         path = f"/v1/workflows/{workflow_id}"
-        payload = self._request("GET", path)
-        return self._validate_model(WorkflowStatus, payload, endpoint=path)
+        payload, status_code = self._request("GET", path)
+        return self._validate_model(WorkflowStatus, payload, status_code=status_code, endpoint=path)
 
     async def aget_workflow(self, workflow_id: str) -> WorkflowStatus:
         path = f"/v1/workflows/{workflow_id}"
-        payload = await self._arequest("GET", path)
-        return self._validate_model(WorkflowStatus, payload, endpoint=path)
+        payload, status_code = await self._arequest("GET", path)
+        return self._validate_model(WorkflowStatus, payload, status_code=status_code, endpoint=path)
 
     # ------------------------------------------------------------------
     # Models (Registry)
@@ -541,53 +634,71 @@ class ValueFabricClient:
 
     def list_models(self, *, stage: str | None = None) -> list[ModelVersion]:
         params = {"stage": stage} if stage else None
-        payload = self._request("GET", "/v1/models", params=params)
-        return self._validate_list(ModelVersion, payload, endpoint="/v1/models")
+        payload, status_code = self._request("GET", "/v1/models", params=params)
+        return self._validate_list(
+            ModelVersion, payload, status_code=status_code, endpoint="/v1/models"
+        )
 
     async def alist_models(self, *, stage: str | None = None) -> list[ModelVersion]:
         params = {"stage": stage} if stage else None
-        payload = await self._arequest("GET", "/v1/models", params=params)
-        return self._validate_list(ModelVersion, payload, endpoint="/v1/models")
+        payload, status_code = await self._arequest("GET", "/v1/models", params=params)
+        return self._validate_list(
+            ModelVersion, payload, status_code=status_code, endpoint="/v1/models"
+        )
 
     def promote_model(
         self, model_id: str, to_stage: str, *, reason: str | None = None
     ) -> ModelVersion:
-        payload = self._request(
+        payload, status_code = self._request(
             "POST",
             f"/v1/models/{model_id}/promote",
             json={"to_stage": to_stage, "reason": reason},
         )
-        return ModelVersion.model_validate(payload)
+        return self._validate_model(
+            ModelVersion,
+            payload,
+            status_code=status_code,
+            endpoint=f"/v1/models/{model_id}/promote",
+        )
 
     async def apromote_model(
         self, model_id: str, to_stage: str, *, reason: str | None = None
     ) -> ModelVersion:
-        payload = await self._arequest(
+        payload, status_code = await self._arequest(
             "POST",
             f"/v1/models/{model_id}/promote",
             json={"to_stage": to_stage, "reason": reason},
         )
-        return ModelVersion.model_validate(payload)
+        return self._validate_model(
+            ModelVersion,
+            payload,
+            status_code=status_code,
+            endpoint=f"/v1/models/{model_id}/promote",
+        )
 
     # ------------------------------------------------------------------
     # Feature Flags
     # ------------------------------------------------------------------
 
     def list_feature_flags(self, *, limit: int = 100, offset: int = 0) -> list[FeatureFlag]:
-        payload = self._request(
+        payload, status_code = self._request(
             "GET",
             "/v1/feature-flags",
             params={"limit": limit, "offset": offset},
         )
-        return self._validate_list(FeatureFlag, payload, endpoint="/v1/feature-flags")
+        return self._validate_list(
+            FeatureFlag, payload, status_code=status_code, endpoint="/v1/feature-flags"
+        )
 
     async def alist_feature_flags(self, *, limit: int = 100, offset: int = 0) -> list[FeatureFlag]:
-        payload = await self._arequest(
+        payload, status_code = await self._arequest(
             "GET",
             "/v1/feature-flags",
             params={"limit": limit, "offset": offset},
         )
-        return self._validate_list(FeatureFlag, payload, endpoint="/v1/feature-flags")
+        return self._validate_list(
+            FeatureFlag, payload, status_code=status_code, endpoint="/v1/feature-flags"
+        )
 
     def set_feature_flag(
         self,
@@ -603,8 +714,13 @@ class ValueFabricClient:
         }
         if description is not None:
             json_body["description"] = description
-        payload = self._request("PUT", f"/v1/feature-flags/{key}", json=json_body)
-        return FeatureFlag.model_validate(payload)
+        payload, status_code = self._request("PUT", f"/v1/feature-flags/{key}", json=json_body)
+        return self._validate_model(
+            FeatureFlag,
+            payload,
+            status_code=status_code,
+            endpoint=f"/v1/feature-flags/{key}",
+        )
 
     async def aset_feature_flag(
         self,
@@ -620,20 +736,31 @@ class ValueFabricClient:
         }
         if description is not None:
             json_body["description"] = description
-        payload = await self._arequest("PUT", f"/v1/feature-flags/{key}", json=json_body)
-        return FeatureFlag.model_validate(payload)
+        payload, status_code = await self._arequest(
+            "PUT", f"/v1/feature-flags/{key}", json=json_body
+        )
+        return self._validate_model(
+            FeatureFlag,
+            payload,
+            status_code=status_code,
+            endpoint=f"/v1/feature-flags/{key}",
+        )
 
     # ------------------------------------------------------------------
     # Health
     # ------------------------------------------------------------------
 
     def health(self) -> HealthResponse:
-        payload = self._request("GET", "/health")
-        return self._validate_model(HealthResponse, payload, endpoint="/health")
+        payload, status_code = self._request("GET", "/health")
+        return self._validate_model(
+            HealthResponse, payload, status_code=status_code, endpoint="/health"
+        )
 
     async def ahealth(self) -> HealthResponse:
-        payload = await self._arequest("GET", "/health")
-        return self._validate_model(HealthResponse, payload, endpoint="/health")
+        payload, status_code = await self._arequest("GET", "/health")
+        return self._validate_model(
+            HealthResponse, payload, status_code=status_code, endpoint="/health"
+        )
 
     # ------------------------------------------------------------------
     # Lifecycle

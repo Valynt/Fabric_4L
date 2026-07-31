@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import importlib.util
+from pathlib import Path
+
 import pytest
 import respx
 from httpx import Response
@@ -159,3 +162,25 @@ class TestGeneratedModels:
         assert EntityType.Capability.value == "Capability"
         assert EntityType.UseCase.value == "UseCase"
         assert EntityType.Persona.value == "Persona"
+
+
+def test_generated_client_wrappers_are_byte_stable(tmp_path: Path) -> None:
+    sdk_root = Path(__file__).resolve().parents[1]
+    repo_root = sdk_root.parents[1]
+    script_path = sdk_root / "scripts" / "generate_from_openapi.py"
+    spec = importlib.util.spec_from_file_location("valuefabric_sdk_generator", script_path)
+    assert spec and spec.loader
+    generator = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(generator)
+
+    contracts = repo_root / "contracts" / "openapi"
+    for namespace, contract in (
+        ("l3", "layer3-knowledge.json"),
+        ("l4", "layer4-agents.json"),
+    ):
+        generator.create_client_wrapper(tmp_path, namespace, contracts / contract)
+        generated = (tmp_path / f"{namespace}_client.py").read_text(encoding="utf-8")
+        checked_in = (
+            sdk_root / "src" / "valuefabric" / "generated" / f"{namespace}_client.py"
+        ).read_text(encoding="utf-8")
+        assert checked_in == generated

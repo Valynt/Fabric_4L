@@ -929,22 +929,78 @@ async def test_constructor_timeout_configures_sync_and_async_clients() -> None:
 @pytest.mark.asyncio
 async def test_sync_context_manager_closes_sync_client() -> None:
     client = ValueFabricClient(BASE_URL, api_key="sdk-secret")
-    try:
+    async with client:
         with client as entered:
             assert entered is client
             assert not client._sync_client.is_closed
         assert client._sync_client.is_closed
-    finally:
-        await client.aclose()
 
 
 @pytest.mark.asyncio
 async def test_async_context_manager_closes_async_client() -> None:
     client = ValueFabricClient(BASE_URL, api_key="sdk-secret")
-    try:
+    with client:
         async with client as entered:
             assert entered is client
             assert not client._async_client.is_closed
         assert client._async_client.is_closed
+
+
+@pytest.mark.parametrize("asynchronous", [False, True], ids=["sync", "async"])
+@pytest.mark.asyncio
+async def test_invalid_retry_after_preserves_rate_limit_error(asynchronous: bool) -> None:
+    def responder(request: httpx.Request) -> httpx.Response:
+        return json_response(
+            request,
+            {"detail": "rate limited"},
+            status_code=429,
+            headers={"retry-after": "not-a-delay-or-date"},
+        )
+
+    client, _ = await make_client(responder)
+    try:
+        with pytest.raises(RateLimitError) as captured:
+            if asynchronous:
+                await client.ahealth()
+            else:
+                client.health()
+        assert captured.value.status_code == 429
+        assert captured.value.retry_after is None
+        assert captured.value.__cause__ is None
     finally:
         client.close()
+        await client.aclose()
+
+
+@pytest.mark.parametrize("asynchronous", [False, True], ids=["sync", "async"])
+@pytest.mark.asyncio
+async def test_invalid_created_model_preserves_actual_success_status(
+    asynchronous: bool,
+) -> None:
+    def responder(request: httpx.Request) -> httpx.Response:
+        return json_response(
+            request,
+            {"status": "scheduled"},
+            status_code=201,
+        )
+
+    client, _ = await make_client(responder)
+    try:
+        with pytest.raises(ResponseError) as captured:
+            if asynchronous:
+                await client.aexecute_workflow("roi_calculator")
+            else:
+                client.execute_workflow("roi_calculator")
+        assert captured.value.status_code == 201
+        assert captured.value.endpoint == "/v1/workflows"
+        assert captured.value.__cause__ is None
+    finally:
+        client.close()
+        await client.aclose()
+
+
+def test_retry_after_http_date_is_converted_to_delta_seconds() -> None:
+    retry_after = ValueFabricClient._parse_retry_after("Wed, 21 Oct 2099 07:28:00 GMT")
+
+    assert retry_after is not None
+    assert retry_after > 0
