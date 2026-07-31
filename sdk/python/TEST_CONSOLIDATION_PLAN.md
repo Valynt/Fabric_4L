@@ -120,3 +120,26 @@ gates are still required before commit/PR readiness.
 Those repository-wide writes are currently prevented by an execution-policy
 control that requires a fresh direct user approval beyond the attached objective;
 no bypass has been attempted.
+
+
+## Current execution checkpoint (2026-07-31)
+
+- Inspected required files in scope: `sdk/python/TEST_CONSOLIDATION_PLAN.md`, `sdk/python/tests/test_client_contracts.py`.
+- Reproduced contract tests on this branch with isolated deps:
+  - `/tmp/sdk-test-consolidation-venv/bin/pytest sdk/python/tests/test_client_contracts.py -q` -> `78 passed`
+  - `/tmp/sdk-test-consolidation-venv/bin/pytest sdk/python/tests -q` -> `192 passed, 2 skipped`
+- Reproduced previously reported eight failures: on this branch run they no longer fail (`0 currently failing in `test_client_contracts.py`).
+- Runtime public surface (non-underscore methods):
+  - Sync: `close`, `create_api_key`, `execute_workflow`, `get_tenant`, `get_workflow`, `health`, `invite_user`, `list_active_workflows`, `list_api_keys`, `list_feature_flags`, `list_models`, `list_tenants`, `list_users`, `list_workflow_types`, `list_workflows`, `promote_model`, `set_feature_flag`
+  - Async: `aclose`, `acreate_api_key`, `aexecute_workflow`, `aget_tenant`, `aget_workflow`, `ahealth`, `ainvite_user`, `alist_active_workflows`, `alist_api_keys`, `alist_feature_flags`, `alist_models`, `alist_tenants`, `alist_users`, `alist_workflow_types`, `alist_workflows`, `apromote_model`, `aset_feature_flag`
+- Open PR overlap scan (open PRs from @bmsull560 against branch targets):
+  - Fully superseded by #1187 with no unique files: #1175, #1174, #1173, #1168, #1167, #1166, #1165, #1164, #1163, #1162, #1161, #1159, #1158, #1155, #1153, #1151
+  - Partially unique: #1169 (`apps/web/pnpm-lock.yaml` is still outside #1187)
+- `gh pr checks 1187 --watch` shows current failures on latest run:
+  - Repository Scan (Trivy fs + IaC + secrets): FAIL
+  - DAST (OWASP ZAP baseline): FAIL
+  - Layer 3 - Knowledge: FAIL
+  - Run Contract Tests: FAIL
+  - p0-e2e-gate: FAIL
+- PR #1187 remains `OPEN`, state `UNSTABLE`, mergeStateStatus `UNSTABLE`, currently not merged.
+
