@@ -116,7 +116,6 @@ def upgrade() -> None:
     op.execute("""
         CREATE INDEX ix_billing_usage_events_recent 
         ON billing_usage_events (tenant_id, created_at DESC)
-        WHERE created_at > NOW() - INTERVAL '7 days'
     """)
 
 

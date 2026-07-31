@@ -181,10 +181,14 @@ class NotificationService:
         Raises:
             ValueError: If quiet hours configuration is invalid
         """
-        # Validate quiet hours if configured
+        # Validate quiet hours if configured. A partial range is ambiguous and
+        # must not silently disable quiet-hour enforcement.
+        if (preference.quiet_hours_start is None) != (preference.quiet_hours_end is None):
+            raise ValueError("Quiet hours start and end must be configured together")
         if preference.quiet_hours_start is not None and preference.quiet_hours_end is not None:
-            # Ensure both are set if either is set
-            if not (0 <= preference.quiet_hours_start <= 23 and 0 <= preference.quiet_hours_end <= 23):
+            if not (
+                0 <= preference.quiet_hours_start <= 23 and 0 <= preference.quiet_hours_end <= 23
+            ):
                 raise ValueError(
                     f"Quiet hours must be between 0-23, got "
                     f"start={preference.quiet_hours_start}, end={preference.quiet_hours_end}"
@@ -316,7 +320,12 @@ class NotificationService:
             return [NotificationChannel.IN_APP]
 
         # Filter channels based on severity threshold
-        if severity.value < prefs.pause_severity_threshold.value:
+        severity_rank = {
+            PauseSeverity.INFO: 0,
+            PauseSeverity.WARNING: 1,
+            PauseSeverity.CRITICAL: 2,
+        }
+        if severity_rank[severity] < severity_rank[prefs.pause_severity_threshold]:
             # Below threshold - only in-app
             return [NotificationChannel.IN_APP]
 
@@ -347,7 +356,7 @@ class NotificationService:
 
     async def _enqueue_event(self, event: NotificationEvent) -> bool:
         """Add event to queue with bounded size handling.
-        
+
         Returns True if event was queued, False if dropped.
         Implements priority-aware dropping: URGENT can evict LOW priority.
         """
@@ -358,7 +367,7 @@ class NotificationService:
             # Queue is full — apply drop policy based on priority
             if event.priority == NotificationPriority.URGENT:
                 # Try to drop oldest LOW priority event to make room
-                dropped = await self._drop_oldest_by_priority(NotificationPriority.LOW)
+                dropped = self._drop_oldest_by_priority(NotificationPriority.LOW)
                 if dropped:
                     try:
                         self._event_queue.put_nowait(event)
@@ -375,15 +384,15 @@ class NotificationService:
                 logger.warning(
                     f"Dropped {event.priority.value} notification {event.event_id}: queue full"
                 )
-            
+
             self._dropped_count += 1
             return False
 
     def _drop_oldest_by_priority(self, priority: NotificationPriority) -> bool:
         """Drop oldest event of specified priority from queue.
-        
+
         Returns True if an event was dropped.
-        
+
         Note: This drains the entire queue and rebuilds it. In high-concurrency
         scenarios, some events may be dropped if the queue refills during re-add.
         This is acceptable behavior for preventing OOM under extreme load.
@@ -393,7 +402,7 @@ class NotificationService:
         temp_events: list[NotificationEvent] = []
         overflow_events: list[NotificationEvent] = []
         dropped = False
-        
+
         try:
             # Drain queue (non-blocking)
             while not self._event_queue.empty():
@@ -402,12 +411,14 @@ class NotificationService:
                     if not dropped and event.priority == priority:
                         # Drop this one (don't re-add)
                         dropped = True
-                        logger.debug(f"Evicted {priority.value} event {event.event_id} to make room")
+                        logger.debug(
+                            f"Evicted {priority.value} event {event.event_id} to make room"
+                        )
                     else:
                         temp_events.append(event)
                 except asyncio.QueueEmpty:
                     break
-            
+
             # Sort by priority (URGENT first, LOW last) to ensure important events stay
             priority_order = {
                 NotificationPriority.URGENT: 0,
@@ -416,7 +427,7 @@ class NotificationService:
                 NotificationPriority.LOW: 3,
             }
             temp_events.sort(key=lambda e: priority_order.get(e.priority, 2))
-            
+
             # Re-add events, respecting max size
             for event in temp_events:
                 try:
@@ -424,7 +435,7 @@ class NotificationService:
                 except asyncio.QueueFull:
                     # Queue full during re-add, collect overflow
                     overflow_events.append(event)
-            
+
             # Count dropped overflow events
             if overflow_events:
                 self._dropped_count += len(overflow_events)
@@ -432,7 +443,7 @@ class NotificationService:
                     f"Dropped {len(overflow_events)} events during priority eviction "
                     f"(queue refilled during re-add)"
                 )
-            
+
             return dropped
         except asyncio.CancelledError:
             raise
@@ -445,19 +456,14 @@ class NotificationService:
         while True:
             try:
                 # Use timeout to allow periodic checks for cancellation
-                event = await asyncio.wait_for(
-                    self._event_queue.get(),
-                    timeout=1.0
-                )
-                
+                event = await asyncio.wait_for(self._event_queue.get(), timeout=1.0)
+
                 # Check event age (drop stale events)
                 age = (datetime.now(UTC) - event.created_at).total_seconds()
                 if age > self._max_event_age_seconds:
-                    logger.debug(
-                        f"Dropped stale notification {event.event_id} (age={age:.0f}s)"
-                    )
+                    logger.debug(f"Dropped stale notification {event.event_id} (age={age:.0f}s)")
                     continue
-                
+
                 await self._process_notification(event)
             except TimeoutError:
                 # No events in queue, continue loop

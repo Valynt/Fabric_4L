@@ -152,6 +152,7 @@ class get_tool_metadataResult(TypedDictModel):
     name: Any
     tenant_scoped: Any
 
+
 logger = logging.getLogger(__name__)
 lifecycle_logger = Layer4LifecycleLogger(logger)
 
@@ -297,9 +298,7 @@ class BaseTool(ABC):
             requires_auth=self.requires_auth,
         )
 
-    async def run(
-        self, input_dict: dict[str, Any], trace_id: str | None = None
-    ) -> ToolResult:
+    async def run(self, input_dict: dict[str, Any], trace_id: str | None = None) -> ToolResult:
         """Run the tool with raw input dict (validates first).
 
         CONTRACT §2.4: Returns structured ToolResult instead of raising exceptions.
@@ -440,9 +439,7 @@ class TenantAwareTool(BaseTool):
             )
         return "", None
 
-    async def run(
-        self, input_dict: dict[str, Any], trace_id: str | None = None
-    ) -> ToolResult:
+    async def run(self, input_dict: dict[str, Any], trace_id: str | None = None) -> ToolResult:
         """Run tool with tenant validation (Task 2.3).
 
         Validates tenant context before executing. Returns structured ToolResult
@@ -626,7 +623,9 @@ class ToolRegistry:
         distinguish cancellation hygiene from unstructured tool errors.
         """
         try:
-            authorize_action(tool_action, request_context, target_tenant_id=str(tenant_id) if tenant_id else None)
+            authorize_action(
+                tool_action, request_context, target_tenant_id=str(tenant_id) if tenant_id else None
+            )
         except asyncio.CancelledError:
             raise
         except Exception as exc:
@@ -642,6 +641,7 @@ class ToolRegistry:
             # Hardening: emit tool auth failure metric
             try:
                 from ..metrics.prometheus_metrics import get_metrics
+
                 metrics = get_metrics()
                 if metrics:
                     metrics.increment_tool_auth_failure(
@@ -657,7 +657,9 @@ class ToolRegistry:
                 message=message,
                 details=detail if isinstance(detail, dict) else {"detail": detail},
                 recoverable=False,
-                metadata=_safe_metadata(trace_id=trace_id, tenant_id=str(tenant_id) if tenant_id else None),
+                metadata=_safe_metadata(
+                    trace_id=trace_id, tenant_id=str(tenant_id) if tenant_id else None
+                ),
             )
         return None
 
@@ -706,7 +708,11 @@ class ToolRegistry:
                 recoverable=False,
                 metadata=_safe_metadata(trace_id=trace_id),
             )
-        if tenant_id and not configured_tenant_id and not _has_internal_execution_envelope(input_dict):
+        if (
+            tenant_id
+            and not configured_tenant_id
+            and not _has_internal_execution_envelope(input_dict)
+        ):
             return None, ToolResult.failure(
                 code="TENANT_CONTEXT_UNTRUSTED",
                 message=f"Tool '{tool_name}' tenant context requires approved request or workflow execution context",
@@ -786,9 +792,7 @@ class ToolRegistry:
         )
         return result
 
-    async def execute(
-        self, tool_name: str, input_dict: dict[str, Any]
-    ) -> ToolResult:
+    async def execute(self, tool_name: str, input_dict: dict[str, Any]) -> ToolResult:
         """Execute a tool by name.
 
         SECURITY: This is an orchestration method that dispatches to tool implementations.
@@ -822,7 +826,9 @@ class ToolRegistry:
         workflow_id = input_dict.get("workflow_id")
         idempotency_key = input_dict.get("idempotency_key")
         request_context = get_request_context()
-        user_id = str(request_context.user_id) if request_context and request_context.user_id else None
+        user_id = (
+            str(request_context.user_id) if request_context and request_context.user_id else None
+        )
         tool_action = get_tool_action(tool_name)
 
         tenant_id, tenant_error = self._resolve_execution_tenant(
@@ -907,6 +913,7 @@ class ToolRegistry:
 
         if ledger_enabled:
             from value_fabric.shared.crypto.canonical import canonical_hash
+
             request_hash = canonical_hash({"tool_name": tool_name, "input": input_dict})
             start_time = asyncio.get_running_loop().time()
 
@@ -926,6 +933,7 @@ class ToolRegistry:
 
         if ledger_enabled:
             from value_fabric.shared.crypto.canonical import canonical_hash as _ch
+
             response_hash = _ch(result.model_dump())
             elapsed_ms = int((asyncio.get_running_loop().time() - start_time) * 1000)
             self._emit_tool_invocation_audit(
@@ -1033,7 +1041,9 @@ class ToolRegistry:
         Returns:
             Dict mapping tool names to schemas
         """
-        return ToolRegistry_get_all_schemasResult.model_validate({name: tool.get_schema() for name, tool in self._tools.items()})
+        return ToolRegistry_get_all_schemasResult.model_validate(
+            {name: tool.get_schema() for name, tool in self._tools.items()}
+        )
 
     def clear(self) -> None:
         """Clear all registered tools."""
@@ -1117,81 +1127,82 @@ def tool(
 
 def get_all_tools(registry: ToolRegistry) -> dict[str, Callable]:
     """Get all registered tools.
-    
+
     Args:
         registry: ToolRegistry instance
-    
+
     Returns:
         Dictionary mapping tool names to tool functions
     """
     tools = {}
-    for tool_class in registry._tools.values():
-        # Create instance and get execute method
-        tool_instance = tool_class()
-        tools[tool_class.name] = tool_instance.execute
+    for tool_instance in registry._tools.values():
+        tools[tool_instance.name] = tool_instance.execute
     return tools
 
 
 def get_tool_metadata(registry: ToolRegistry, tool_name: str) -> dict:
     """Get metadata for a tool.
-    
+
     Args:
         registry: ToolRegistry instance
         tool_name: Name of tool
-    
+
     Returns:
         Tool metadata including tenant_scoped flag
     """
     if tool_name not in registry._tools:
         raise ToolNotFoundError(f"Tool {tool_name} not found")
-    
-    tool_class = registry._tools[tool_name]
-    
+
+    tool_instance = registry._tools[tool_name]
+
     # Check if tool is tenant-scoped (has tenant_id parameter)
     import inspect
-    sig = inspect.signature(tool_class().execute)
+
+    sig = inspect.signature(tool_instance.execute)
     tenant_scoped = "tenant_id" in sig.parameters
-    
-    return get_tool_metadataResult.model_validate({
-        "name": tool_class.name,
-        "category": tool_class.category,
-        "description": tool_class.description,
-        "tenant_scoped": tenant_scoped,
-    })
+
+    return get_tool_metadataResult.model_validate(
+        {
+            "name": tool_instance.name,
+            "category": tool_instance.category,
+            "description": tool_instance.description,
+            "tenant_scoped": tenant_scoped,
+        }
+    )
 
 
 def get_available_tools(registry: ToolRegistry, context: RequestContext) -> list[str]:
     """Get tools available to user based on permissions.
-    
+
     Args:
         registry: ToolRegistry instance
         context: Request context with permissions
-    
+
     Returns:
         List of tool names user can access
     """
     available = []
-    
+
     for tool_name, tool_class in registry._tools.items():
         _metadata = get_tool_metadata(registry, tool_name)
-        
+
         # Admin-only tools
         admin_tools = {"delete_tenant", "suspend_tenant", "grant_permission"}
         if tool_name in admin_tools:
             if "admin" in context.permissions:
                 available.append(tool_name)
             continue
-        
+
         # Write tools
         write_tools = {"update_entity", "delete_entity"}
         if tool_name in write_tools:
             if "write" in context.permissions or "admin" in context.permissions:
                 available.append(tool_name)
             continue
-        
+
         # Read tools (available to all authenticated users)
         available.append(tool_name)
-    
+
     return available
 
 

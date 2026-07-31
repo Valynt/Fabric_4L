@@ -54,6 +54,13 @@ def test_revision_015_declares_event_name_index_once() -> None:
     assert 'op.create_index(\n        "ix_billing_usage_events_event_name"' not in source
 
 
+def test_revision_015_recent_index_uses_only_immutable_expressions() -> None:
+    source = (MIGRATIONS / "015_add_usage_events_table.py").read_text(encoding="utf-8")
+
+    assert "CREATE INDEX ix_billing_usage_events_recent" in source
+    assert "WHERE created_at > NOW()" not in source
+
+
 def test_revision_019_does_not_recreate_account_tenant_ownership() -> None:
     source = (MIGRATIONS / "019_add_account_enrichment_columns.py").read_text(encoding="utf-8")
     assert 'op.add_column(\n        "accounts",\n        sa.Column("tenant_id"' not in source
