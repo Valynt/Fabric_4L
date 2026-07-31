@@ -390,6 +390,7 @@ def test_required_env_defaults_are_safe_and_do_not_use_real_env(monkeypatch):
                 "compose-contract",
                 "compose_contract",
                 "composecontract",
+                "00000000-0000-4000-8000-000000000001",
                 "http://localhost",
                 "https://compose-contract.",
                 "postgresql+asyncpg://compose_contract_",

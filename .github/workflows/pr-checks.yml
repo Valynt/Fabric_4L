@@ -1879,6 +1879,30 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    env:
+      OPENAI_API_KEY: ci-runtime-placeholder
+      JWT_SECRET: ci-runtime-jwt-secret-not-for-production
+      REDIS_PASSWORD: test-redis
+      NEO4J_PASSWORD: test-neo4j
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: minio-password
+      SERVICE_AUTH_SECRET: ci-runtime-service-auth-secret-minimum-32-chars
+      API_KEY_HMAC_SECRET: ci-runtime-api-key-hmac-secret-minimum-32-chars
+      SECRET_KEY: ci-runtime-secret-key-minimum-32-characters
+      CREDENTIALS_MASTER_KEY: ci-runtime-credentials-master-key-32chars
+      DEFAULT_TENANT_ID: 00000000-0000-4000-8000-000000000001
+      CORS_ORIGINS: http://localhost:3001
+      CLERK_AUTHORIZED_PARTIES: http://localhost:3001
+      CLERK_ISSUER: http://localhost:3001
+      CLERK_JWKS_URL: http://localhost:3001/.well-known/jwks.json
+      CLERK_SECRET_KEY: ci-clerk-secret
+      FABRIC_AUTH_PUBLIC_KEYS: ci-fabric-public-key
+      FABRIC_AUTH_SIGNING_KEY: ci-fabric-signing-key
+      FLOWER_PASSWORD: ci-flower-password
+      GRAFANA_ADMIN_PASSWORD: ci-grafana-password
+      LAYER4_DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/layer4_agents
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4

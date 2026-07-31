@@ -39,3 +39,15 @@ def test_runtime_diagnostics_follow_the_runtime_suite() -> None:
     assert names.index("Capture runtime contract service diagnostics") > names.index(
         "Run runtime contract marker suite"
     )
+
+
+def test_runtime_job_provides_every_required_compose_input() -> None:
+    document = yaml.safe_load(WORKFLOW.read_text(encoding="utf-8"))
+    environment = document["jobs"]["runtime-contract-checks"]["env"]
+    compose = (REPO_ROOT / "infra" / "compose" / "docker-compose.full.yml").read_text(
+        encoding="utf-8"
+    )
+    import re
+
+    required = set(re.findall(r"\$\{([A-Z0-9_]+):\?", compose))
+    assert required <= set(environment)

@@ -21,6 +21,8 @@ COMPOSE_RENDER_ENV_DEFAULTS = {
     "CLERK_JWKS_URL": "http://localhost:3001/.well-known/jwks.json",
     "CLERK_SECRET_KEY": "devcontainer-contract-clerk-secret-key",
     "CORS_ORIGINS": "http://localhost:3001",
+    "CREDENTIALS_MASTER_KEY": "devcontainer-contract-credentials-master-key-32chars",
+    "DEFAULT_TENANT_ID": "00000000-0000-4000-8000-000000000001",
     "FABRIC_AUTH_PUBLIC_KEYS": "devcontainer-contract-fabric-auth-public-key",
     "FABRIC_AUTH_SIGNING_KEY": "devcontainer-contract-fabric-auth-signing-key",
     "FLOWER_PASSWORD": "devcontainer-contract-flower-password",
