@@ -5,7 +5,7 @@ Removal/migration target: 2026-09-30
 Reason: Pydantic models for Layer 3 knowledge API.
 """
 
-from datetime import datetime
+from datetime import datetime, UTC
 from enum import Enum
 from typing import Annotated, Literal
 
@@ -86,7 +86,7 @@ class HealthResponse(BaseModel):
     readiness: JSONDict = Field(..., description="Readiness envelope")
     version: str = Field(..., min_length=1, max_length=20, description="API version")
     timestamp: datetime = Field(
-        default_factory=datetime.utcnow, description="Health check timestamp"
+        default_factory=lambda: datetime.now(UTC), description="Health check timestamp"
     )
     uptime_seconds: float = Field(..., ge=0, description="Service uptime in seconds")
     dependencies: list[DependencyStatus] = Field(..., description="Dependency statuses")
@@ -103,7 +103,7 @@ class DetailedHealthResponse(BaseModel):
     )
     version: str = Field(..., min_length=1, max_length=20, description="API version")
     timestamp: datetime = Field(
-        default_factory=datetime.utcnow, description="Health check timestamp"
+        default_factory=lambda: datetime.now(UTC), description="Health check timestamp"
     )
     uptime_seconds: float = Field(..., ge=0, description="Service uptime in seconds")
     dependencies: list[DependencyStatus] = Field(..., description="Dependency statuses")
@@ -405,7 +405,7 @@ class GraphRAGStreamEvent(BaseModel):
     event_type: StreamEventType = Field(..., description="Type of streaming event")
     data: JSONDict = Field(default_factory=dict, description="Event payload")
     timestamp: datetime = Field(
-        default_factory=datetime.utcnow, description="Event timestamp"
+        default_factory=lambda: datetime.now(UTC), description="Event timestamp"
     )
     progress_percent: float | None = Field(
         None, ge=0, le=100, description="Query progress percentage"
@@ -418,7 +418,7 @@ class SearchStreamEvent(BaseModel):
     event_type: StreamEventType = Field(..., description="Type of streaming event")
     data: JSONDict = Field(default_factory=dict, description="Event payload")
     timestamp: datetime = Field(
-        default_factory=datetime.utcnow, description="Event timestamp"
+        default_factory=lambda: datetime.now(UTC), description="Event timestamp"
     )
     progress_percent: float | None = Field(
         None, ge=0, le=100, description="Search progress percentage"
