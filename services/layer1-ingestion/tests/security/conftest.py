@@ -244,6 +244,9 @@ def postgres_db(postgres_engine):
             conn.execute(text("GRANT ALL ON SCHEMA public TO postgres"))
             conn.execute(text("GRANT ALL ON SCHEMA public TO public"))
             conn.commit()
+        # This database is shared with later integration tests in the same CI job.
+        # Restore the canonical schema after the security fixture's isolated teardown.
+        Base.metadata.create_all(bind=postgres_engine)
 
 
 @pytest.fixture(scope="function")

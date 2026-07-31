@@ -182,23 +182,37 @@ class CrawlDecisionRepository:
             "repository methods with tenant context already set."
         )
 
-    def _save_sync(self, record: CrawlDecisionRecord) -> None:
-        """Synchronous save implementation (runs in thread pool)."""
+    def _save_sync(
+        self,
+        record: CrawlDecisionRecord,
+        trusted_tenant_id: UUID | str | None,
+    ) -> None:
+        """Persist using caller-owned tenant context, never record-controlled context."""
         if not record.tenant_id:
             raise TenantContextError("CrawlDecisionRecord.tenant_id is required for persistence")
 
         try:
-            tenant_id = UUID(record.tenant_id)
+            record_tenant_id = UUID(record.tenant_id)
+            tenant_id = UUID(str(trusted_tenant_id)) if trusted_tenant_id is not None else None
         except (TypeError, ValueError) as exc:
-            raise TenantContextError(
-                f"Invalid CrawlDecisionRecord.tenant_id for persistence: {record.tenant_id!r}"
-            ) from exc
+            raise TenantContextError("Invalid tenant context for crawl-decision persistence") from exc
 
-        with get_db_session(tenant_id=tenant_id, require_tenant=True) as session:
+        if tenant_id is not None and tenant_id != record_tenant_id:
+            raise TenantContextError("Crawl decision tenant does not match trusted caller context")
+
+        effective_tenant_id = tenant_id or record_tenant_id
+
+        if self._session is None and tenant_id is None:
+            raise RuntimeError(
+                "CrawlDecisionRepository.save() requires an explicit tenant-scoped session "
+                "or trusted_tenant_id"
+            )
+
+        def persist(session: Session) -> None:
             db_record = CrawlDecisionModel(
                 decision_id=UUID(record.decision_id),
                 job_id=UUID(record.job_id) if record.job_id else None,
-                tenant_id=tenant_id,
+                tenant_id=effective_tenant_id,
                 url=record.url,
                 domain=record.domain,
                 requested_path=record.requested_path,
@@ -222,15 +236,28 @@ class CrawlDecisionRepository:
             session.add(db_record)
             session.commit()
 
-    async def save(self, record: CrawlDecisionRecord) -> None:
-        """Save a crawl decision record.
+        if self._session is not None:
+            persist(self._session)
+            return
 
-        Args:
-            record: The decision record to persist
-        """
+        assert tenant_id is not None
+        with get_db_session(tenant_id=tenant_id, require_tenant=True) as session:
+            persist(session)
+
+    async def save(
+        self,
+        record: CrawlDecisionRecord,
+        *,
+        trusted_tenant_id: UUID | str | None = None,
+    ) -> None:
+        """Save using an explicit trusted tenant or an injected tenant-scoped session."""
         try:
-            # P2 FIX: Run sync DB operations in thread pool to prevent blocking
-            await asyncio.to_thread(self._save_sync, record)
+            if self._session is not None:
+                # SQLAlchemy sessions are thread-affine; preserve caller ownership.
+                self._save_sync(record, trusted_tenant_id)
+            else:
+                # Create the tenant-selected session inside the worker thread.
+                await asyncio.to_thread(self._save_sync, record, trusted_tenant_id)
             self.logger.debug(
                 "Decision record saved",
                 decision_id=record.decision_id,

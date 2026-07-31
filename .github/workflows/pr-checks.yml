@@ -1941,7 +1941,7 @@ jobs:
               "L2": "http://localhost:8002/health",
               "L3": "http://localhost:8003/health",
               "L4": "http://localhost:8004/health",
-              "L5": "http://localhost:8005/api/v1/health",
+              "L5": "http://localhost:8005/health",
           }
 
           deadline = time.time() + 300
