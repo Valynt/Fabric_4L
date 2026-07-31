@@ -14,6 +14,8 @@ from layer4_agents.services.enrichment_orchestrator import (
     EnrichmentStatus,
 )
 
+TENANT_ID = "550e8400-e29b-41d4-a716-446655440000"
+
 ACCOUNT_ID = UUID("550e8400-e29b-41d4-a716-446655440000")
 
 
@@ -99,7 +101,7 @@ async def test_account_enrichment_missing_skipped_success_and_failure(monkeypatc
 @pytest.mark.asyncio
 async def test_batch_status_sources_and_dependency(monkeypatch) -> None:
     service = EnrichmentOrchestrator(DB(results=[Result([])]))
-    assert (await service.enrich_batch("tenant")).status == "no_accounts"
+    assert (await service.enrich_batch(TENANT_ID)).status == "no_accounts"
 
     service.db.results = [Result([(ACCOUNT_ID,), (UUID(int=2),)])]
     calls = []
@@ -111,7 +113,7 @@ async def test_batch_status_sources_and_dependency(monkeypatch) -> None:
         return {"status": EnrichmentStatus.ENRICHED}
 
     monkeypatch.setattr(service, "enrich_account", enrich)
-    result = await service.enrich_batch("tenant", force=True)
+    result = await service.enrich_batch(TENANT_ID, force=True)
     assert result.total == 2 and result.success == 1 and result.failed == 1
 
     service.db.results = [
@@ -122,7 +124,7 @@ async def test_batch_status_sources_and_dependency(monkeypatch) -> None:
             ]
         )
     ]
-    status = await service.get_enrichment_status("tenant")
+    status = await service.get_enrichment_status(TENANT_ID)
     assert status.total_accounts == 4 and status.coverage_pct == 75.0
 
     all_sources = service._determine_sources(account())

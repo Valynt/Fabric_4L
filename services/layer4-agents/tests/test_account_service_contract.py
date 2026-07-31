@@ -6,7 +6,7 @@ from uuid import UUID
 
 import pytest
 
-from layer4_agents.models.account import CRMProvider, SyncStatus
+from layer4_agents.models.account import Account, CRMProvider, SyncStatus
 from layer4_agents.services.account_service import AccountService, get_account_service
 
 TENANT = "550e8400-e29b-41d4-a716-446655440000"
@@ -54,6 +54,10 @@ class DB:
         return self.results.pop(0)
 
 
+def test_account_tenant_column_matches_canonical_uuid_schema() -> None:
+    assert Account.__table__.c.tenant_id.type.as_uuid is True
+
+
 @pytest.mark.asyncio
 async def test_create_account_generates_manual_id_and_normalizes_name() -> None:
     db = DB([Result(scalar=None)])
@@ -80,7 +84,7 @@ async def test_create_account_generates_manual_id_and_normalizes_name() -> None:
     assert account.id == ACCOUNT_ID
     assert account.provider_record_id.startswith("manual-")
     assert account.normalized_name == "acme corp"
-    assert account.tenant_id == TENANT
+    assert account.tenant_id == UUID(TENANT)
     assert account.sync_status == SyncStatus.PENDING.value
     assert db.added == [account] and db.commits == 1 and db.refreshed == [account]
 

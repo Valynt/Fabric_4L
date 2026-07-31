@@ -328,7 +328,7 @@ class EnrichmentOrchestrator:
         """
         query = (
             select(Account.id)
-            .where(Account.tenant_id == tenant_id)
+            .where(Account.tenant_id == UUID(str(tenant_id)))
             .order_by(Account.updated_at.desc())
             .limit(limit)
         )
@@ -398,7 +398,7 @@ class EnrichmentOrchestrator:
                 Account.enrichment_status,
                 func.count(Account.id).label("count"),
             )
-            .where(Account.tenant_id == tenant_id)
+            .where(Account.tenant_id == UUID(str(tenant_id)))
             .group_by(Account.enrichment_status)
         )
         result = await self.db.execute(query)

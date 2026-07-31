@@ -257,6 +257,7 @@ async def test_layer5_success_surface_auth_tenant_and_cleanup(monkeypatch) -> No
     await client._client.aclose()
     client._client = fake
     assert await client.ping()
+    assert fake.calls[0][0:2] == ("GET", "/health")
     assert (await client.sync_validated_truths("tenant"))["synced"] == 1
     assert (
         await client.submit_truth(
