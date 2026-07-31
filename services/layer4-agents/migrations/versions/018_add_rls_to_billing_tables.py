@@ -4,10 +4,10 @@ Revision ID: 018
 Revises: 017
 Create Date: 2026-04-25
 
-Billing tables (billing_customers, billing_subscriptions, billing_webhook_events,
-billing_usage_events, billing_invoices, billing_invoice_items, billing_charges)
-were added in migrations 009/015/016 with tenant_id columns but without RLS
-policies.  This migration closes that gap (Phase 1, Task 1.6).
+Billing tables available by revision 017 (billing_customers,
+billing_subscriptions, billing_webhook_events, and billing_usage_events) need
+canonical RLS policies. Invoice, invoice-item, and charge tables are created
+later by revision 024 and normalized by revision 025.
 """
 
 from alembic import op
@@ -28,9 +28,6 @@ RLS_TABLES = [
     "billing_subscriptions",
     "billing_webhook_events",
     "billing_usage_events",
-    "billing_invoices",
-    "billing_invoice_items",
-    "billing_charges",
 ]
 
 

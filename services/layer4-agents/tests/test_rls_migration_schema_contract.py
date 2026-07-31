@@ -61,6 +61,16 @@ def test_revision_015_recent_index_uses_only_immutable_expressions() -> None:
     assert "WHERE created_at > NOW()" not in source
 
 
+def test_revision_018_only_targets_billing_tables_created_by_revision_017() -> None:
+    path = MIGRATIONS / "018_add_rls_to_billing_tables.py"
+    assert set(_literal_list(path, "RLS_TABLES")) == {
+        "billing_customers",
+        "billing_subscriptions",
+        "billing_usage_events",
+        "billing_webhook_events",
+    }
+
+
 def test_revision_019_does_not_recreate_account_tenant_ownership() -> None:
     source = (MIGRATIONS / "019_add_account_enrichment_columns.py").read_text(encoding="utf-8")
     assert 'op.add_column(\n        "accounts",\n        sa.Column("tenant_id"' not in source
@@ -73,6 +83,51 @@ def test_revision_020_adds_tenant_identity_before_late_table_rls() -> None:
     source = (MIGRATIONS / "020_tenant_safe_crm_sync_constraints.py").read_text(encoding="utf-8")
     assert 'op.add_column(\n        "account_sync_status"' in source
     assert 'sa.Column("tenant_id"' in source
+
+
+def test_revisions_022_and_023_do_not_target_unowned_usage_events_table() -> None:
+    revision_022 = (MIGRATIONS / "022_add_missing_foreign_key_constraints.py").read_text(
+        encoding="utf-8"
+    )
+    revision_023 = (MIGRATIONS / "023_add_covering_indexes.py").read_text(encoding="utf-8")
+
+    assert "usage_events" not in revision_022
+    assert "usage_events" not in revision_023
+    assert "except Exception" not in revision_022
+
+
+def test_revision_023_indexes_match_columns_created_by_prior_revisions() -> None:
+    source = (MIGRATIONS / "023_add_covering_indexes.py").read_text(encoding="utf-8")
+
+    assert "INCLUDE (display_name, role, created_at, last_login_at)" in source
+    assert "INCLUDE (display_name, email, last_login_at, status)" in source
+    assert "ON audit_events (tenant_id, resource_type, resource_id, timestamp DESC)" in source
+    assert "INCLUDE (action, user_id, details, outcome)" in source
+    assert "ON feature_flags (tenant_id, flag_key, enabled)" in source
+    assert "INCLUDE (description, updated_by, created_at, updated_at)" in source
+    for stale_column in ("entity_type", "entity_id", "actor_id", "changes", "is_enabled"):
+        assert stale_column not in source
+
+
+def test_revision_036_widens_alembic_version_before_long_revision_ids() -> None:
+    source = (MIGRATIONS / "036_add_billing_customer_sync_state.py").read_text(encoding="utf-8")
+
+    widen = 'ALTER TABLE alembic_version ALTER COLUMN version_num TYPE VARCHAR(255)'
+    assert widen in source
+    assert source.index(widen) < source.index('op.add_column("billing_customers"')
+
+
+def test_revision_041_does_not_recreate_revision_027_tenant_index() -> None:
+    revision_027 = (MIGRATIONS / "027_add_tenant_id_to_business_case_records.py").read_text(
+        encoding="utf-8"
+    )
+    revision_041 = (
+        MIGRATIONS / "041_add_business_case_records_tenant_indexes.py"
+    ).read_text(encoding="utf-8")
+
+    assert '"ix_business_case_records_tenant_id"' in revision_027
+    assert '"ix_business_case_records_tenant_id"' not in revision_041
+    assert '"ix_business_case_records_tenant_status"' in revision_041
 
 
 def test_current_head_adds_strict_rls_for_late_tenant_scoped_tables() -> None:
