@@ -811,6 +811,7 @@
       "name": "Publish SDK",
       "owner": "@value-fabric/sre-leads",
       "trigger": [
+        "pull_request",
         "push",
         "workflow_dispatch"
       ],
