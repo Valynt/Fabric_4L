@@ -544,6 +544,9 @@ class Settings(BillingSettingsMixin, RuntimeSettingsMixin, BaseSettings):
             raise ValueError("field_name is required for URL validation")
         field_name = info.field_name.upper()
         if not v or not v.strip():
+            environment = info.data.get("environment", "development")
+            if environment in {"development", "test"}:
+                return v
             raise ValueError(
                 f"FATAL: {field_name} is required. Configure an explicit service endpoint."
             )
