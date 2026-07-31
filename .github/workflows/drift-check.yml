@@ -35,6 +35,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install fastapi uvicorn pydantic neo4j psycopg2-binary pytest pytest-timeout pytest-randomly
+          pip install -r tests/requirements-test.txt
           # Install layer dependencies for proper export
           pip install -e services/layer1-ingestion/
           pip install -e services/layer2-extraction/
