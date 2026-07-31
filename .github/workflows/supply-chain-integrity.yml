@@ -3,12 +3,19 @@ name: "Supply Chain Integrity Gate"
 "on":
   pull_request:
     branches: [main]
+  push:
+    branches: [main]
   workflow_call:
     inputs:
       image_tag:
         description: 'Image tag to verify'
         required: true
         type: string
+      certify_images:
+        description: 'Require release image SBOM, provenance, and signature controls'
+        required: false
+        default: false
+        type: boolean
   workflow_dispatch:
     inputs:
       image_tag:
@@ -131,7 +138,7 @@ jobs:
     container:
       image: ${{ env.CI_TOOLS_IMAGE }}
     name: SBOM + Vulnerability Scan
-    if: github.event_name == 'workflow_call' || github.event_name == 'workflow_dispatch'
+    if: inputs.certify_images || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     defaults:
@@ -190,7 +197,7 @@ jobs:
     env:
       IMAGE_TAG: ${{ inputs.image_tag || github.sha }}
     name: SLSA Provenance
-    if: github.event_name == 'workflow_call' || github.event_name == 'workflow_dispatch'
+    if: inputs.certify_images || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -243,7 +250,7 @@ jobs:
     container:
       image: ${{ env.CI_TOOLS_IMAGE }}
     name: Verify Image Signatures
-    if: github.event_name == 'workflow_call' || github.event_name == 'workflow_dispatch'
+    if: inputs.certify_images || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     defaults:
@@ -312,7 +319,8 @@ jobs:
               fi
 
               if [ "$audit_status" -eq 1 ]; then
-                echo "::warning::pip-audit reported vulnerabilities for $service_name; audit JSON was validated and uploaded for review"
+                echo "::error::pip-audit reported policy-blocking vulnerabilities for $service_name"
+                touch .dependency-findings
               fi
             fi
           done
@@ -351,15 +359,27 @@ jobs:
           python -c 'import json, sys; from pathlib import Path; payload = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8")); assert isinstance(payload, dict), "pnpm audit JSON is missing expected audit report fields"; error = payload.get("error"); assert not error, "pnpm audit failed to execute successfully: " + str(error); assert any(key in payload for key in ("advisories", "auditReportVersion", "metadata", "vulnerabilities")), "pnpm audit JSON is missing expected audit report fields"' frontend-audit.json
 
           if [ "$audit_status" -ne 0 ]; then
-            echo "::warning::pnpm audit reported high-severity dependency advisories; audit JSON was validated and uploaded for review"
+            echo "::error::pnpm audit reported high-severity dependency advisories"
+            touch .dependency-findings
           fi
 
       - name: Upload audit results
+        if: always()
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
         with:
           name: dependency-audit-${{ github.sha }}-${{ steps.web_lock_hash.outputs.lock_hash }}
-          path: "*-audit.json"
+          path: |
+            *-audit.json
+            .dependency-findings
           retention-days: 30
+
+      - name: Enforce dependency findings policy
+        if: always()
+        run: |
+          if [ -f .dependency-findings ]; then
+            echo "::error::Validated HIGH-or-higher dependency findings are release blocking"
+            exit 1
+          fi
 
   # ============================================
   # License Compliance Check
@@ -432,10 +452,48 @@ jobs:
       IMAGE_TAG: ${{ inputs.image_tag || github.sha }}
     name: Supply Chain Summary
     runs-on: ubuntu-latest
-    needs: [sbom-scan, provenance, verify-signatures, dependency-audit, license-check]
+    needs: [source-sbom-scan, sbom-scan, provenance, verify-signatures, dependency-audit, license-check]
     if: always()
 
     steps:
+      - name: Validate prerequisite results
+        run: |
+          set -euo pipefail
+          failed=0
+          for result in \
+            "${{ needs.source-sbom-scan.result }}" \
+            "${{ needs.sbom-scan.result }}" \
+            "${{ needs.provenance.result }}" \
+            "${{ needs.verify-signatures.result }}" \
+            "${{ needs.dependency-audit.result }}" \
+            "${{ needs.license-check.result }}"; do
+            case "$result" in
+              success|skipped) ;;
+              *) failed=1 ;;
+            esac
+          done
+          # Release/manual certification requires every image control. PR/push
+          # legitimately skip image-only jobs but still require dependency and
+          # license controls.
+          if [ "${{ needs.dependency-audit.result }}" != "success" ] ||
+             [ "${{ needs.license-check.result }}" != "success" ] ||
+             [ "${{ needs.source-sbom-scan.result }}" != "success" ]; then
+            failed=1
+          fi
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] ||
+             [ "${{ inputs.certify_images }}" = "true" ]; then
+            for result in \
+              "${{ needs.sbom-scan.result }}" \
+              "${{ needs.provenance.result }}" \
+              "${{ needs.verify-signatures.result }}"; do
+              [ "$result" = "success" ] || failed=1
+            done
+          fi
+          if [ "$failed" -ne 0 ]; then
+            echo "::error::One or more required supply-chain controls failed or were unexpectedly skipped"
+            exit 1
+          fi
+
       - name: Generate summary
         run: |
           cat << 'EOF' > supply-chain-report.md
@@ -446,21 +504,13 @@ jobs:
           - **Commit**: ${{ github.sha }}
           - **Repository**: ${{ github.repository }}
 
-          ## Artifacts Generated
-          | Artifact | Layers | Status |
-          |----------|--------|--------|
-          | SBOM (CycloneDX) | 7 | ✅ |
-          | SBOM (SPDX) | 7 | ✅ |
-          | SLSA Provenance | 7 | ✅ |
-          | Cosign Signatures | 7 | ✅ |
-
-          ## Verification Steps
-          - [x] Container images signed with Cosign
-          - [x] SBOMs generated (CycloneDX + SPDX)
-          - [x] Vulnerability scans completed
-          - [x] SLSA provenance attestations created
-          - [x] Dependency audit completed
-          - [x] License compliance checked
+          ## Recorded job results
+          - Source SBOM + vulnerability scan: ${{ needs.source-sbom-scan.result }}
+          - SBOM + vulnerability scan: ${{ needs.sbom-scan.result }}
+          - Provenance: ${{ needs.provenance.result }}
+          - Signature verification: ${{ needs.verify-signatures.result }}
+          - Dependency audit: ${{ needs.dependency-audit.result }}
+          - License compliance: ${{ needs.license-check.result }}
 
           ## Verification Commands
           ```bash
