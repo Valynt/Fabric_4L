@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Protocol
 
 from value_fabric.shared.error_handling.exceptions import AuthenticationError
 
@@ -21,10 +21,14 @@ try:  # noqa: E402
 except ImportError:
     SHARED_IDENTITY_AVAILABLE = False
 
-    def get_request_context() -> Any:  # type: ignore[misc]
+    # Fallback types when shared.identity is not available
+    class RequestContext(Protocol):
+        tenant_id: str | None
+
+    def get_request_context() -> RequestContext | None:
         return None
 
-    def require_authenticated() -> Any:  # type: ignore[misc]
+    def require_authenticated() -> None:
         return None
 
 

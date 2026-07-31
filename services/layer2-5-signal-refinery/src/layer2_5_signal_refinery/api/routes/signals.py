@@ -4,7 +4,7 @@ import asyncio
 import logging
 import uuid
 from datetime import UTC, datetime
-from typing import Any
+from typing import TypedDict
 
 from fastapi import APIRouter, Depends, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,6 +13,7 @@ from value_fabric.shared.error_handling.exceptions import (
     NotFoundError,
     ValidationError,
 )
+from value_fabric.shared.models import JSONDict
 
 from ...clients.l3_graph_client import get_l3_client
 from ...database import get_db_from_context
@@ -47,11 +48,13 @@ try:
         ValueSignalUpdate,
     )
 except ImportError:
-    # Fallback: use local Pydantic models when shared package unavailable
+    # Fallback: use local Pydantic models when shared package unavailable.
+    # Define each model once under a private name, then expose the canonical
+    # name via alias assignment to avoid redefinition errors.
 
     from pydantic import BaseModel  # noqa: E402
 
-    class ValueSignalCreate(BaseModel):  # type: ignore[no-redef]
+    class _ValueSignalCreate(BaseModel):
         account_id: str
         type: str
         content: str
@@ -62,7 +65,9 @@ except ImportError:
         provenance: dict = {}
         source_refs: list = []
 
-    class ValueSignalUpdate(BaseModel):  # type: ignore[no-redef]
+    ValueSignalCreate = _ValueSignalCreate
+
+    class _ValueSignalUpdate(BaseModel):
         lifecycle_state: str | None = None
         validation_notes: str | None = None
         reviewer_id: str | None = None
@@ -72,15 +77,21 @@ except ImportError:
         time_horizon: str | None = None
         value_driver_id: str | None = None
 
-    class SignalReviewRequest(BaseModel):  # type: ignore[no-redef]
+    ValueSignalUpdate = _ValueSignalUpdate
+
+    class _SignalReviewRequest(BaseModel):
         status: str
         notes: str | None = None
 
-    class SignalPromoteRequest(BaseModel):  # type: ignore[no-redef]
+    SignalReviewRequest = _SignalReviewRequest
+
+    class _SignalPromoteRequest(BaseModel):
         value_path_category: str
         value_driver_id: str | None = None
 
-    class RawSignalInput(BaseModel):  # type: ignore[no-redef]
+    SignalPromoteRequest = _SignalPromoteRequest
+
+    class _RawSignalInput(BaseModel):
         account_id: str
         type: str = "pain"
         content: str
@@ -89,17 +100,37 @@ except ImportError:
         provenance: dict = {}
         source_refs: list = []
 
-    class SignalRefineRequest(BaseModel):  # type: ignore[no-redef]
+    RawSignalInput = _RawSignalInput
+
+    class _SignalRefineRequest(BaseModel):
         account_id: str
         raw_signals: list | None = None
         source_refs: list = []
         extraction_run_id: str | None = None
 
-    class ValueSignalListResponse(BaseModel):  # type: ignore[no-redef]
+    SignalRefineRequest = _SignalRefineRequest
+
+    class _ValueSignalListResponse(BaseModel):
         items: list
         total: int
         limit: int
         offset: int
+
+    ValueSignalListResponse = _ValueSignalListResponse
+
+
+class SignalReviewUpdate(TypedDict, total=False):
+    """Partial update payload for signal review."""
+
+    lifecycle_state: str
+    reviewed_at: datetime
+    validation_notes: str
+
+
+class SignalPromoteUpdate(TypedDict, total=False):
+    """Partial update payload for signal promotion."""
+
+    lifecycle_state: str
 
 
 logger = logging.getLogger(__name__)
@@ -123,7 +154,7 @@ async def create_signal(
     body: ValueSignalCreate,
     request: Request,
     db: AsyncSession = Depends(get_db_from_context),  # noqa: B008
-) -> dict[str, Any]:
+) -> JSONDict:
     tenant_id = get_tenant_id_from_context()
     repo = _get_repo(db, tenant_id)
 
@@ -178,7 +209,7 @@ async def list_signals(
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
     db: AsyncSession = Depends(get_db_from_context),  # noqa: B008
-) -> dict[str, Any]:
+) -> JSONDict:
     tenant_id = get_tenant_id_from_context()
     repo = _get_repo(db, tenant_id)
 
@@ -210,7 +241,7 @@ async def get_account_signals(
     limit: int = Query(100, ge=1, le=500),
     offset: int = Query(0, ge=0),
     db: AsyncSession = Depends(get_db_from_context),  # noqa: B008
-) -> dict[str, Any]:
+) -> JSONDict:
     tenant_id = get_tenant_id_from_context()
     repo = _get_repo(db, tenant_id)
 
@@ -235,7 +266,7 @@ async def get_signal(
     signal_id: str,
     request: Request,
     db: AsyncSession = Depends(get_db_from_context),  # noqa: B008
-) -> dict[str, Any]:
+) -> JSONDict:
     tenant_id = get_tenant_id_from_context()
     repo = _get_repo(db, tenant_id)
 
@@ -256,7 +287,7 @@ async def update_signal(
     body: ValueSignalUpdate,
     request: Request,
     db: AsyncSession = Depends(get_db_from_context),  # noqa: B008
-) -> dict[str, Any]:
+) -> JSONDict:
     tenant_id = get_tenant_id_from_context()
     repo = _get_repo(db, tenant_id)
 
@@ -311,7 +342,7 @@ async def review_signal(
     body: SignalReviewRequest,
     request: Request,
     db: AsyncSession = Depends(get_db_from_context),  # noqa: B008
-) -> dict[str, Any]:
+) -> JSONDict:
     tenant_id = get_tenant_id_from_context()
     repo = _get_repo(db, tenant_id)
 
@@ -319,10 +350,10 @@ async def review_signal(
     if new_state not in _VALID_REVIEW_STATES:
         raise ValidationError(message=f"Review status must be one of: {_VALID_REVIEW_STATES}")
 
-    updates: dict[str, Any] = {
-        "lifecycle_state": new_state,
-        "reviewed_at": datetime.now(UTC),  # datetime object, not ISO string
-    }
+    updates = SignalReviewUpdate(
+        lifecycle_state=new_state,
+        reviewed_at=datetime.now(UTC),  # datetime object, not ISO string
+    )
     if body.notes:
         updates["validation_notes"] = body.notes
 
@@ -343,7 +374,7 @@ async def promote_signal(
     body: SignalPromoteRequest,
     request: Request,
     db: AsyncSession = Depends(get_db_from_context),  # noqa: B008
-) -> dict[str, Any]:
+) -> JSONDict:
     tenant_id = get_tenant_id_from_context()
     repo = _get_repo(db, tenant_id)
 
@@ -356,7 +387,7 @@ async def promote_signal(
             message=f"Cannot promote signal in state '{signal['lifecycle_state']}'. Must be validated or extracted."
         )
 
-    updates: dict[str, Any] = {"lifecycle_state": "promoted"}
+    updates = SignalPromoteUpdate(lifecycle_state="promoted")
     if body.value_driver_id:
         updates["value_driver_id"] = str(body.value_driver_id)
 
@@ -380,7 +411,7 @@ async def refine_signals(
     body: SignalRefineRequest,
     request: Request,
     db: AsyncSession = Depends(get_db_from_context),  # noqa: B008
-) -> dict[str, Any]:
+) -> JSONDict:
     """Trigger L2.5 refinement on a batch of raw L2 extraction payloads.
 
     Accepts ``raw_signals`` (preferred) — actual L2 extraction output — or

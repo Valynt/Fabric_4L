@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Request
+from value_fabric.shared.models import JSONDict
 
 from app.clients.layer1_client import Layer1Client
 from app.clients.layer2_client import Layer2Client
@@ -65,7 +66,7 @@ async def create_source(
     client: Layer1Client = Depends(get_layer1_client),
 ):
     """Create a new source in Layer 1 catalog."""
-    body = await request.json()
+    body: JSONDict = await request.json()
     return await client.create_source(
         tenant_id=tenant_id,
         url=body.get("url"),
@@ -82,7 +83,7 @@ async def create_source_version(
     client: Layer1Client = Depends(get_layer1_client),
 ):
     """Create a new source version."""
-    body = await request.json()
+    body: JSONDict = await request.json()
     return await client.create_source_version(
         tenant_id=tenant_id,
         source_id=source_id,
@@ -98,7 +99,7 @@ async def create_ingestion_run(
     client: Layer1Client = Depends(get_layer1_client),
 ):
     """Trigger an ingestion run."""
-    body = await request.json()
+    body: JSONDict = await request.json()
     return await client.create_ingestion_run(
         tenant_id=tenant_id,
         source_version_id=body.get("source_version_id"),
@@ -138,7 +139,7 @@ async def extract(
     client: Layer2Client = Depends(get_layer2_client),
 ):
     """Extract entities from content (extraction only)."""
-    body = await request.json()
+    body: JSONDict = await request.json()
     return await client.extract(
         tenant_id=tenant_id,
         content=body.get("content", ""),
@@ -162,7 +163,7 @@ async def extract_and_ingest(
     client: Layer2Client = Depends(get_layer2_client),
 ):
     """Extract and ingest into Layer 3 knowledge graph."""
-    body = await request.json()
+    body: JSONDict = await request.json()
     return await client.extract_and_ingest(
         tenant_id=tenant_id,
         content=body.get("content", ""),
@@ -217,7 +218,7 @@ async def search_knowledge_graph(
     client: Layer3Client = Depends(get_layer3_client),
 ):
     """Hybrid search in the knowledge graph."""
-    body = await request.json()
+    body: JSONDict = await request.json()
     return await client.search(
         tenant_id=tenant_id,
         query=body.get("query", ""),
@@ -242,7 +243,7 @@ async def ingest_rdf(
     client: Layer3Client = Depends(get_layer3_client),
 ):
     """Ingest RDF data into the knowledge graph."""
-    body = await request.json()
+    body: JSONDict = await request.json()
     return await client.ingest_rdf(
         tenant_id=tenant_id,
         rdf_data=body.get("rdf", ""),
@@ -257,7 +258,7 @@ async def query_graphrag(
     client: Layer3Client = Depends(get_layer3_client),
 ):
     """Query using GraphRAG."""
-    body = await request.json()
+    body: JSONDict = await request.json()
     return await client.query_graphrag(
         tenant_id=tenant_id,
         question=body.get("question", ""),
@@ -276,7 +277,7 @@ async def submit_workflow(
     client: Layer4Client = Depends(get_layer4_client),
 ):
     """Submit a workflow to Layer 4."""
-    body = await request.json()
+    body: JSONDict = await request.json()
     return await client.submit_workflow(
         tenant_id=tenant_id,
         workflow_type=body.get("workflow_type", ""),
@@ -311,7 +312,7 @@ async def generate_hypotheses(
     client: Layer4Client = Depends(get_layer4_client),
 ):
     """Generate hypotheses via Layer 4."""
-    body = await request.json()
+    body: JSONDict = await request.json()
     return await client.generate_hypotheses(tenant_id=tenant_id, payload=body)
 
 
@@ -322,7 +323,7 @@ async def run_roi_analysis(
     client: Layer4Client = Depends(get_layer4_client),
 ):
     """Run ROI analysis via Layer 4."""
-    body = await request.json()
+    body: JSONDict = await request.json()
     return await client.run_roi_analysis(tenant_id=tenant_id, payload=body)
 
 
@@ -333,7 +334,7 @@ async def generate_narrative(
     client: Layer4Client = Depends(get_layer4_client),
 ):
     """Generate narrative via Layer 4."""
-    body = await request.json()
+    body: JSONDict = await request.json()
     return await client.generate_narrative(tenant_id=tenant_id, payload=body)
 
 
@@ -377,7 +378,7 @@ async def submit_truth(
     client: Layer5Client = Depends(get_layer5_client),
 ):
     """Submit a new TruthObject."""
-    body = await request.json()
+    body: JSONDict = await request.json()
     return await client.submit_truth(
         tenant_id=tenant_id,
         claim=body.get("claim", ""),
@@ -400,7 +401,7 @@ async def validate_truth(
     client: Layer5Client = Depends(get_layer5_client),
 ):
     """Validate or transition a TruthObject."""
-    body = await request.json()
+    body: JSONDict = await request.json()
     return await client.validate_truth(
         tenant_id=tenant_id,
         truth_id=truth_id,

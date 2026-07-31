@@ -4,9 +4,25 @@ Provides a Pydantic BaseModel subclass used across the codebase
 for type-safe dictionary-like response models.
 """
 
-from typing import Any
+from typing import ForwardRef
 
 from pydantic import BaseModel, ConfigDict
+
+# Define JSON value type for use in JSONDict
+# Using ForwardRef to handle recursive type definition properly
+
+JsonValue = ForwardRef("JsonValue")
+JsonValue = (
+    None
+    | bool
+    | int
+    | float
+    | str
+    | list[JsonValue]
+    | dict[str, JsonValue]
+)
+
+JSONDict = dict[str, JsonValue]
 
 
 class TypedDictModel(BaseModel):
@@ -26,19 +42,19 @@ class TypedDictModel(BaseModel):
         strict=False,
     )
 
-    def __getitem__(self, key: str) -> Any:
+    def __getitem__(self, key: str) -> object:
         try:
             return getattr(self, key)
         except AttributeError as exc:
             raise KeyError(key) from exc
 
-    def __setitem__(self, key: str, value: Any) -> None:
+    def __setitem__(self, key: str, value: object) -> None:
         setattr(self, key, value)
 
     def __contains__(self, key: str) -> bool:
         return hasattr(self, key)
 
-    def get(self, key: str, default: Any = None) -> Any:
+    def get(self, key: str, default: object = None) -> object:
         """Return the value for ``key`` if it exists, else ``default``."""
         return getattr(self, key, default)
 

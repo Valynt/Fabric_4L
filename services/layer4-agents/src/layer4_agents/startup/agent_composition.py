@@ -2,8 +2,7 @@ from __future__ import annotations
 
 """Composition helpers that wire Layer 4 agents to concrete adapters."""
 
-from collections.abc import Mapping
-from typing import Any
+from value_fabric.shared.models import JSONDict
 
 from layer4_agents.adapters.benchmark_client import HTTPBenchmarkClient
 from layer4_agents.adapters.company_knowledge_pipeline import (
@@ -39,7 +38,7 @@ def create_benchmark_client() -> IBenchmarkClient:
     )
 
 
-def create_signal_detection_agent(config: Mapping[str, Any] | None = None) -> SignalDetectionAgent:
+def create_signal_detection_agent(config: JSONDict | None = None) -> SignalDetectionAgent:
     """Create SignalDetectionAgent with production cross-layer client factories."""
 
     return SignalDetectionAgent(
@@ -49,7 +48,7 @@ def create_signal_detection_agent(config: Mapping[str, Any] | None = None) -> Si
     )
 
 
-def create_context_extraction_agent(config: Mapping[str, Any] | None = None) -> ContextExtractionAgent:
+def create_context_extraction_agent(config: JSONDict | None = None) -> ContextExtractionAgent:
     """Create ContextExtractionAgent with production cross-layer client factories."""
 
     return ContextExtractionAgent(

@@ -5,13 +5,12 @@ from typing import TYPE_CHECKING
 
 import httpx
 from fastapi import HTTPException
+from value_fabric.shared.models import JSONDict
 
 from app.core.config import get_settings
 
 if TYPE_CHECKING:
     pass
-
-JSONDict = dict[str, object]
 
 
 class Layer1Client:
@@ -23,7 +22,7 @@ class Layer1Client:
         self.timeout = timeout or settings.layer1_timeout_seconds
         self.service_secret = os.environ.get("SERVICE_AUTH_SECRET", "")
 
-    def _headers(self, tenant_id: str) -> JSONDict:
+    def _headers(self, tenant_id: str) -> dict[str, str]:
         return {
             "X-Tenant-ID": tenant_id,
             "X-Service-Auth": self.service_secret,
