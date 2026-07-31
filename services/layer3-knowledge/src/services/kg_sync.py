@@ -7,8 +7,9 @@ Provides idempotent upsert of GroundTruth nodes from Layer 5.
 from __future__ import annotations
 
 import logging
-from typing import Any
 from uuid import UUID
+
+from value_fabric.shared.models import JSONDict
 
 from ...db.driver import get_driver
 
@@ -26,8 +27,8 @@ async def upsert_ground_truth_node(
     confidence: float,
     status: str,
     maturity_level: int,
-    value: dict[str, Any] | None = None,
-    applies_to: dict[str, Any] | None = None,
+    value: JSONDict | None = None,
+    applies_to: JSONDict | None = None,
     source_count: int = 0,
 ) -> str:
     """
@@ -83,7 +84,7 @@ async def link_ground_truth_to_entity(
     ground_truth_node_id: str,
     target_entity_id: str,
     relationship_type: str = "GROUNDS",
-    properties: dict[str, Any] | None = None,
+    properties: JSONDict | None = None,
 ) -> bool:
     """
     Create a relationship between a GroundTruth node and an existing KG entity.
@@ -120,7 +121,7 @@ async def get_ground_truth_node(
     *,
     tenant_id: UUID,
     truth_object_id: UUID,
-) -> dict[str, Any] | None:
+) -> JSONDict | None:
     """Retrieve a GroundTruth node by truth_object_id and tenant_id."""
     driver = get_driver()
     

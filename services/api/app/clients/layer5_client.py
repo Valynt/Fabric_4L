@@ -5,13 +5,12 @@ from typing import TYPE_CHECKING
 
 import httpx
 from fastapi import HTTPException
+from value_fabric.shared.models import JSONDict
 
 from app.core.config import get_settings
 
 if TYPE_CHECKING:
     pass
-
-JSONDict = dict[str, object]
 
 
 class Layer5Client:
@@ -23,7 +22,7 @@ class Layer5Client:
         self.timeout = timeout or settings.layer5_timeout_seconds
         self.service_secret = os.environ.get("SERVICE_AUTH_SECRET", "")
 
-    def _headers(self, tenant_id: str) -> JSONDict:
+    def _headers(self, tenant_id: str) -> dict[str, str]:
         return {
             "X-Tenant-ID": tenant_id,
             "X-Service-Auth": self.service_secret,
@@ -36,7 +35,7 @@ class Layer5Client:
         path: str,
         tenant_id: str,
         json: JSONDict | None = None,
-        params: JSONDict | None = None,
+        params: dict[str, str] | None = None,
     ) -> JSONDict:
         url = f"{self.base_url}{path}"
         async with httpx.AsyncClient(timeout=self.timeout) as client:
@@ -61,7 +60,7 @@ class Layer5Client:
         offset: int = 0,
     ) -> JSONDict:
         """List TruthObjects with optional filters."""
-        params: JSONDict = {"limit": limit, "offset": offset}
+        params: dict[str, str] = {"limit": str(limit), "offset": str(offset)}
         if status is not None:
             params["status"] = status
         if claim_type is not None:

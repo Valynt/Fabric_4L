@@ -8,7 +8,7 @@ exclusively from authenticated request context (never from X-Tenant-ID).
 from __future__ import annotations
 
 import logging
-from typing import Any, Literal
+from typing import Literal
 
 from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel, Field
@@ -17,6 +17,7 @@ from value_fabric.shared.error_handling.exceptions import (
     NotFoundError,
     ServiceUnavailableError,
 )
+from value_fabric.shared.models import JSONDict
 
 from ...api.dependencies import get_sync_manager
 from ...api.models import IngestRequest, IngestResponse, SyncStatusResponse
@@ -36,7 +37,7 @@ class GroundTruthNodeRequest(BaseModel):
     Matches the payload format used by Layer 5's Layer3Client.sync_truth_object().
     """
     node_type: str = Field(..., description="Node type (expected: 'GroundTruth')")
-    properties: dict[str, Any] = Field(..., description="Node properties")
+    properties: JSONDict = Field(..., description="Node properties")
     merge_keys: list[str] = Field(default_factory=list, description="Keys for MERGE operation")
 
 
@@ -178,7 +179,7 @@ async def delete_source(
     source_id: str,
     fastapi_request: Request,
     sync_manager=Depends(get_sync_manager),
-) -> dict[str, Any]:
+) -> JSONDict:
     """Delete all data for a source."""
     ctx = getattr(fastapi_request.state, "governance_context", None) or getattr(fastapi_request.state, "context", None)
     tenant_id = str(ctx.tenant_id) if ctx and getattr(ctx, "tenant_id", None) else None

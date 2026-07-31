@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Protocol
 
 from value_fabric.shared.error_handling.exceptions import AuthenticationError
 
@@ -25,12 +25,15 @@ try:
     SHARED_IDENTITY_AVAILABLE = True
 except ImportError:
     SHARED_IDENTITY_AVAILABLE = False
-    RequestContext = Any  # type: ignore[assignment,misc]
 
-    def get_request_context() -> Any:  # type: ignore[misc]
+    # Fallback types when shared.identity is not available
+    class RequestContext(Protocol):
+        tenant_id: str | None
+
+    def get_request_context() -> RequestContext | None:
         return None
 
-    def require_authenticated() -> Any:  # type: ignore[misc]
+    def require_authenticated() -> None:
         return None
 
 
@@ -40,4 +43,4 @@ def get_tenant_id_from_context() -> str:
     if ctx is not None and getattr(ctx, "tenant_id", None):
         return str(ctx.tenant_id)
 
-    raise AuthenticationError(message = "Tenant context required.")
+    raise AuthenticationError(message="Tenant context required.")

@@ -4,6 +4,7 @@ import logging
 from typing import Any
 
 import httpx
+from value_fabric.shared.models import JSONDict
 from value_fabric.shared.resilience import CircuitBreaker, CircuitBreakerOpen
 
 from ..config import get_settings
@@ -48,7 +49,7 @@ class L3GraphClient:
 
     async def push_signal(
         self,
-        signal: dict[str, Any],
+        signal: JSONDict,
         tenant_id: str,
         request_id: str | None = None,
         correlation_id: str | None = None,
@@ -102,7 +103,7 @@ class L3GraphClient:
         *,
         lifecycle_states: list[str] | None = None,
         signal_types: list[str] | None = None,
-    ) -> list[dict[str, Any]]:
+    ) -> list[JSONDict]:
         """Query L3 for ValueSignal nodes for an account.
 
         Returns empty list on failure.

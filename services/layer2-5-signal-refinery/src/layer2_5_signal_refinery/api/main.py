@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
-from typing import Any
 
 import structlog
 from fastapi import FastAPI
@@ -11,6 +10,7 @@ from value_fabric.shared.fastapi_framework import (
     create_fabric_app,
 )
 from value_fabric.shared.fastapi_framework.middleware import resolve_cors_policy
+from value_fabric.shared.models import JSONDict
 from value_fabric.shared.probes import normalize_probe_payload
 from value_fabric.shared.startup import reject_insecure_bypass_in_production
 
@@ -113,7 +113,7 @@ def _health_augmentation_hook(app: FastAPI) -> None:
 
     @app.get("/health", include_in_schema=False)
     @app.get("/health/live", include_in_schema=False)
-    async def health() -> dict[str, Any]:
+    async def health() -> JSONDict:
         return normalize_probe_payload(
             status="ok",
             service="layer2-5-signal-refinery",
