@@ -1922,7 +1922,7 @@ export interface paths {
         put?: never;
         /**
          * Query Graphrag
-         * @description Query using GraphRAG.
+         * @description Query the knowledge graph using GraphRAG retrieval.
          */
         post: operations["query_graphrag_v1_query_graphrag_post"];
         delete?: never;
@@ -1960,7 +1960,7 @@ export interface paths {
         };
         /**
          * Get Workflow
-         * @description Get workflow status.
+         * @description Retrieve the current status of a workflow.
          */
         get: operations["get_workflow_v1_workflows__workflow_id__get"];
         put?: never;
@@ -1980,7 +1980,7 @@ export interface paths {
         };
         /**
          * Get Workflow Result
-         * @description Get workflow result.
+         * @description Retrieve the final result of a workflow.
          */
         get: operations["get_workflow_result_v1_workflows__workflow_id__result_get"];
         put?: never;
@@ -4106,6 +4106,7 @@ export interface operations {
             header?: never;
             path?: never;
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -4137,6 +4138,7 @@ export interface operations {
             header?: never;
             path?: never;
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -4174,6 +4176,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -4207,6 +4210,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -4244,6 +4248,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -4277,6 +4282,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -4310,6 +4316,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -4407,6 +4414,7 @@ export interface operations {
             header?: never;
             path?: never;
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -4475,6 +4483,7 @@ export interface operations {
             header?: never;
             path?: never;
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -4504,6 +4513,7 @@ export interface operations {
             header?: never;
             path?: never;
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -4539,6 +4549,7 @@ export interface operations {
             header?: never;
             path?: never;
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -4568,6 +4579,7 @@ export interface operations {
             header?: never;
             path?: never;
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -5120,6 +5132,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -5153,6 +5166,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -5193,6 +5207,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -5226,6 +5241,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -5259,6 +5275,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -5295,6 +5312,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -5328,6 +5346,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -5368,6 +5387,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -5401,6 +5421,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -5434,6 +5455,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -5470,6 +5492,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -5503,6 +5526,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -5540,6 +5564,7 @@ export interface operations {
                 hypothesis_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -5582,6 +5607,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -5615,6 +5641,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -5648,6 +5675,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -5685,6 +5713,7 @@ export interface operations {
                 driver_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -5727,6 +5756,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -5760,6 +5790,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -5797,6 +5828,7 @@ export interface operations {
                 evidence_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -5831,6 +5863,7 @@ export interface operations {
                 evidence_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -5867,6 +5900,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -5900,6 +5934,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -5937,6 +5972,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -5976,6 +6012,7 @@ export interface operations {
                 calculation_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -6009,6 +6046,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -6042,6 +6080,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -6075,6 +6114,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -6112,6 +6152,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -6150,6 +6191,7 @@ export interface operations {
                 value_case_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -6184,6 +6226,7 @@ export interface operations {
                 value_case_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -6224,6 +6267,7 @@ export interface operations {
                 value_case_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -6257,6 +6301,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -6295,6 +6340,7 @@ export interface operations {
                 value_case_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -6329,6 +6375,7 @@ export interface operations {
             header?: never;
             path?: never;
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -6362,6 +6409,7 @@ export interface operations {
                 value_pack_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -6396,6 +6444,7 @@ export interface operations {
             header?: never;
             path?: never;
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -6429,6 +6478,7 @@ export interface operations {
                 formula_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -6463,6 +6513,7 @@ export interface operations {
             header?: never;
             path?: never;
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -6494,6 +6545,7 @@ export interface operations {
             header?: never;
             path?: never;
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -6525,6 +6577,7 @@ export interface operations {
             header?: never;
             path?: never;
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -6556,6 +6609,7 @@ export interface operations {
             header?: never;
             path?: never;
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -6594,6 +6648,7 @@ export interface operations {
             header?: never;
             path?: never;
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -6625,6 +6680,7 @@ export interface operations {
             header?: never;
             path?: never;
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -6661,6 +6717,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -6694,6 +6751,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -6732,6 +6790,7 @@ export interface operations {
                 review_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -6766,6 +6825,7 @@ export interface operations {
                 review_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -6809,6 +6869,7 @@ export interface operations {
                 review_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -6843,6 +6904,7 @@ export interface operations {
                 review_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -6883,6 +6945,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -6916,6 +6979,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -6954,6 +7018,7 @@ export interface operations {
                 snapshot_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -6990,6 +7055,7 @@ export interface operations {
                 snapshot_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -7024,6 +7090,7 @@ export interface operations {
                 snapshot_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -7057,6 +7124,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -7090,6 +7158,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -7128,6 +7197,7 @@ export interface operations {
                 plan_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -7166,6 +7236,7 @@ export interface operations {
                 plan_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -7200,6 +7271,7 @@ export interface operations {
                 plan_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -7231,6 +7303,7 @@ export interface operations {
             header?: never;
             path?: never;
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -7270,6 +7343,7 @@ export interface operations {
                 run_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -7303,6 +7377,7 @@ export interface operations {
                 run_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -7336,6 +7411,7 @@ export interface operations {
                 run_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -7367,6 +7443,7 @@ export interface operations {
             header?: never;
             path?: never;
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -7404,6 +7481,7 @@ export interface operations {
             header?: never;
             path?: never;
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -7437,6 +7515,7 @@ export interface operations {
                 id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -7470,6 +7549,7 @@ export interface operations {
                 id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -7503,6 +7583,7 @@ export interface operations {
                 id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -7536,6 +7617,7 @@ export interface operations {
                 id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -7569,6 +7651,7 @@ export interface operations {
                 id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -7602,6 +7685,7 @@ export interface operations {
             };
             path?: never;
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -7639,6 +7723,7 @@ export interface operations {
                 request_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -7674,6 +7759,7 @@ export interface operations {
                 package_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -7702,12 +7788,15 @@ export interface operations {
     list_sources_v1_ingestion_sources_get: {
         parameters: {
             query?: {
+                /** @description Maximum number of sources to return */
                 limit?: number;
+                /** @description Number of sources to skip for pagination */
                 offset?: number;
             };
             header?: never;
             path?: never;
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -7739,6 +7828,7 @@ export interface operations {
             header?: never;
             path?: never;
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -7769,9 +7859,11 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description Unique identifier of the source to version */
                 source_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -7803,6 +7895,7 @@ export interface operations {
             header?: never;
             path?: never;
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -7833,9 +7926,11 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description Unique identifier of the ingestion run */
                 run_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -7867,6 +7962,7 @@ export interface operations {
             header?: never;
             path?: never;
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -7898,6 +7994,7 @@ export interface operations {
             header?: never;
             path?: never;
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -7928,9 +8025,11 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description Unique identifier of the extraction job */
                 job_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -7959,13 +8058,17 @@ export interface operations {
     query_entities_v1_query_entities_get: {
         parameters: {
             query?: {
+                /** @description Filter entities by type */
                 entity_type?: string | null;
+                /** @description Maximum number of entities to return */
                 limit?: number;
+                /** @description Number of entities to skip for pagination */
                 offset?: number;
             };
             header?: never;
             path?: never;
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -7997,6 +8100,7 @@ export interface operations {
             header?: never;
             path?: never;
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -8027,9 +8131,11 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description Unique identifier of the value tree */
                 tree_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -8061,6 +8167,7 @@ export interface operations {
             header?: never;
             path?: never;
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -8092,6 +8199,7 @@ export interface operations {
             header?: never;
             path?: never;
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -8123,6 +8231,7 @@ export interface operations {
             header?: never;
             path?: never;
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -8153,9 +8262,11 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description Unique identifier of the workflow */
                 workflow_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -8186,9 +8297,11 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description Unique identifier of the workflow */
                 workflow_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -8220,6 +8333,7 @@ export interface operations {
             header?: never;
             path?: never;
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -8251,6 +8365,7 @@ export interface operations {
             header?: never;
             path?: never;
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -8282,6 +8397,7 @@ export interface operations {
             header?: never;
             path?: never;
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -8310,14 +8426,19 @@ export interface operations {
     list_truths_v1_truths_get: {
         parameters: {
             query?: {
+                /** @description Filter truths by validation status */
                 status?: string | null;
+                /** @description Filter truths by claim type */
                 claim_type?: string | null;
+                /** @description Maximum number of truths to return */
                 limit?: number;
+                /** @description Number of truths to skip for pagination */
                 offset?: number;
             };
             header?: never;
             path?: never;
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -8349,6 +8470,7 @@ export interface operations {
             header?: never;
             path?: never;
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -8379,9 +8501,11 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description Unique identifier of the TruthObject */
                 truth_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -8412,9 +8536,11 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description Unique identifier of the TruthObject to validate */
                 truth_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -8446,6 +8572,7 @@ export interface operations {
             header?: never;
             path?: never;
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -8477,6 +8604,7 @@ export interface operations {
             header?: never;
             path?: never;
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -8508,6 +8636,7 @@ export interface operations {
             header?: never;
             path?: never;
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
