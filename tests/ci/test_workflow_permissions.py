@@ -93,8 +93,7 @@ ALLOWED_WRITE_PERMISSIONS: dict[str, dict[str, str]] = {
         "issues": "comments runbook validation failures on pull requests",
     },
     "sbom.yml": {
-        "attestations": "publishes SBOM provenance attestations",
-        "contents": "uploads generated SBOM files to releases",
+        "security-events": "allows the canonical reusable workflow to upload scanner SARIF",
         "id-token": "obtains a Sigstore OIDC token for keyless signing",
     },
     "sdk-generation.yml": {
