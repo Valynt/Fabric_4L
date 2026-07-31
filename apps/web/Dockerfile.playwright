@@ -45,7 +45,11 @@ RUN date +%s > /baked/image-build.timestamp
 WORKDIR /app
 
 COPY apps/web/scripts/playwright-docker-entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+RUN chmod +x /entrypoint.sh \
+    && mkdir -p /app/node_modules \
+    && chown -R pwuser:pwuser /app /baked /baked-node-modules /entrypoint.sh
+
+USER pwuser
 
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["pnpm", "exec", "playwright", "test", "--project=contracts"]

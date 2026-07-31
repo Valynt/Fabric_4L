@@ -13,7 +13,10 @@ COPY scripts/enforce-package-manager.cjs ./scripts/
 # Install from workspace root
 # --ignore-scripts: skip package prepare/build lifecycle scripts (e.g. eslint-plugin-fabric-contracts
 # runs `tsc`, whose source is not copied into this dev image). Vite dev does not need them.
-RUN pnpm install --frozen-lockfile --ignore-scripts
+RUN pnpm install --frozen-lockfile --ignore-scripts \
+    && chown -R node:node /workspace
+
+USER node
 
 # Copy frontend source into its workspace location. Staying at the workspace path keeps
 # pnpm's relative symlinks (../../node_modules/.pnpm/...) valid against /workspace/node_modules,

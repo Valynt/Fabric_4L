@@ -37,3 +37,7 @@ RUN apt-get update \
 
 LABEL org.opencontainers.image.source="https://github.com/value-fabric/ci-tools" \
       org.opencontainers.image.description="Pinned Value Fabric supply-chain security toolchain"
+
+# Match the GitHub-hosted runner UID so mounted workspaces remain writable while
+# the security toolchain itself executes without root privileges.
+USER 1001:1001
