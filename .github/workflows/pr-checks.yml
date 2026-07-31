@@ -2249,6 +2249,10 @@ jobs:
           export PATH="${PNPM_HOME}:${PATH}"
           echo "PNPM_HOME=${RUNNER_TEMP}/pnpm" >> "$GITHUB_ENV"
           echo "${RUNNER_TEMP}/pnpm" >> "$GITHUB_PATH"
+<<<<<<< HEAD
+=======
+          export PATH="${RUNNER_TEMP}/pnpm:$PATH"
+>>>>>>> afbcd5660 (fix(ci): Docker Compose PATH and Layer 4 eager get_settings())
           pnpm add --global @devcontainers/cli@0.80.1
 
       - name: Install compose contract dependencies
