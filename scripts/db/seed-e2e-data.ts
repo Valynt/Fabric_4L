@@ -45,7 +45,7 @@ const STRICT_SEED =
 
 const E2E_TENANT_ID = process.env.BACKEND_E2E_TENANT_ID || '00000000-0000-4000-e2e0-000000000001';
 const E2E_TENANT_BETA_ID = process.env.BACKEND_E2E_TENANT_BETA_ID || '00000000-0000-4000-e2e0-000000000002';
-const E2E_ADMIN_USER_ID = 'e2e-admin-user';
+const E2E_ADMIN_USER_ID = process.env.BACKEND_E2E_USER_ID || '00000000-0000-4000-e2e0-0000000000a1';
 const E2E_REVIEWER_USER_ID = 'e2e-reviewer-user';
 const E2E_READ_ONLY_USER_ID = 'e2e-read-only-user';
 const E2E_SALES_USER_ID = 'e2e-sales-user';
@@ -163,11 +163,11 @@ function cookieHeaderFromSetCookie(setCookie: string | null): string {
 }
 
 async function issueValidationSessionCookieHeader(): Promise<string> {
-  if (!LIVE_FRONTEND_URL) {
+  if (!BASE_URL) {
     return '';
   }
 
-  const url = `${LIVE_FRONTEND_URL.replace(/\/$/, '')}/api/v1/agents/validation/session`;
+  const url = `${BASE_URL.replace(/\/$/, '')}/v1/validation/session`;
   const res = await fetch(url, {
     method: 'POST',
     headers: HEADERS,

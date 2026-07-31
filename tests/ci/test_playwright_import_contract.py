@@ -41,3 +41,14 @@ def test_billing_journey_uses_environment_aware_tenant_paths() -> None:
 
     assert "tenantScopedPath" in source
     assert "MOCK_TENANT_SLUG" not in source
+
+
+def test_live_seed_issues_validation_session_directly_against_backend() -> None:
+    source = (REPO_ROOT / "scripts" / "db" / "seed-e2e-data.ts").read_text(encoding="utf-8")
+    function = source.split("async function issueValidationSessionCookieHeader()", 1)[1].split(
+        "async function probeBackendEndpoint", 1
+    )[0]
+
+    assert "if (!BASE_URL)" in function
+    assert r"`${BASE_URL.replace(/\/$/, '')}/v1/validation/session`" in function
+    assert "LIVE_FRONTEND_URL" not in function

@@ -1641,6 +1641,10 @@ jobs:
       SERVICE_AUTH_SECRET: test-service-auth-secret-for-validation-seed-1234567890
       VITE_USE_MOCKS: "false"
       VITE_ENABLE_MOCK_FALLBACK: "false"
+      VITE_PROXY_DEBUG_DIRECT_LAYERS: "true"
+      VITE_PROXY_L1_URL: http://localhost:8001
+      VITE_PROXY_L4_URL: http://localhost:8004
+      VITE_PROXY_API_GATEWAY_URL: http://localhost:8004
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
@@ -1910,7 +1914,7 @@ jobs:
           export POSTGRES_PASSWORD=postgres
           export MINIO_ROOT_USER=minio
           export MINIO_ROOT_PASSWORD=minio-password
-          export SERVICE_AUTH_SECRET=ci-service-auth-secret
+          export SERVICE_AUTH_SECRET=ci-runtime-service-auth-secret-minimum-32-chars
           export API_KEY_HMAC_SECRET=ci-api-key-hmac-secret
           export SECRET_KEY=ci-secret-key
           export CORS_ORIGINS=http://localhost:3001
@@ -1981,6 +1985,8 @@ jobs:
           LAYER3_API_URL: http://localhost:8003
           LAYER4_API_URL: http://localhost:8004
           LAYER5_API_URL: http://localhost:8005
+          SERVICE_AUTH_SECRET: ci-runtime-service-auth-secret-minimum-32-chars
+          RUNTIME_CONTRACT_TENANT_ID: 00000000-0000-4000-8000-000000000001
         run: |
           pytest tests/contract/test_layer_integration.py -m runtime_contract -v --tb=short
 
