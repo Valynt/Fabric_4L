@@ -1034,7 +1034,6 @@
         "semgrep-full.sarif",
         "services/${{matrix.layer}}/bandit-report.json",
         "services/${{matrix.layer}}/pip-audit-report.json",
-        "trivy-base.sarif",
         "trivy-repo.sarif",
         "zap-reports/"
       ],
