@@ -454,7 +454,7 @@ class EnrichmentOrchestrator:
     # -------------------------------------------------------------------
 
     async def _enrich_from_source(
-        self, account: Account, source: EnrichmentSource
+        self, account: Account, source: EnrichmentSource | str
     ) -> dict[str, Any]:
         """Dispatch enrichment to the appropriate source handler."""
         handlers = {

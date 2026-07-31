@@ -42,9 +42,14 @@ def _get_app():
     GovernanceMiddleware._check_rate_limit = _mock_check_rate_limit
     GovernanceMiddleware._enforce_tenant_status = _mock_enforce_tenant_status
     from value_fabric.shared.error_handling.handlers import register_exception_handlers
+    from value_fabric.shared.testing.governance import (
+        patch_governance_middleware_for_tests,
+    )
 
     from layer1_ingestion.api.main import app
 
+    patch_governance_middleware_for_tests(app)
+    app.middleware_stack = None
     register_exception_handlers(app)
     return app
 

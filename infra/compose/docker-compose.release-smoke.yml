@@ -122,6 +122,7 @@ services:
       LAYER1_S3_SECRET_KEY: release-smoke-secret-key-with-more-than-32-characters
       LAYER1_RELEASE_SMOKE_LIGHT_HEALTH: "true"
     volumes: *shared-code-volumes
+    command: ["sh", "-c", "alembic upgrade head && exec uvicorn layer1_ingestion.api.main:app --host 0.0.0.0 --port 8000"]
     depends_on:
       postgres:
         condition: service_healthy

@@ -77,12 +77,25 @@ def _assert_rls_safe_database_url(database_url: str, *, source: str) -> None:
         )
 
 
+def _resolve_sync_database_url() -> str:
+    """Return an SQLAlchemy URL backed by a synchronous PostgreSQL driver."""
+    database_url = (
+        os.getenv("DATABASE_URL_SYNC")
+        or os.getenv("LAYER1_DATABASE_URL_SYNC")
+        or settings.database_url
+    )
+    return database_url.replace("postgresql+asyncpg://", "postgresql://", 1)
+
+
 _assert_rls_safe_database_url(settings.database_url, source="Layer 1 database URL")
+_assert_rls_safe_database_url(
+    _resolve_sync_database_url(), source="Layer 1 synchronous database URL"
+)
 
 
 def _create_sync_engine():
     return create_engine(
-        settings.database_url,
+        _resolve_sync_database_url(),
         pool_size=DB_POOL_SIZE,
         max_overflow=DB_MAX_OVERFLOW,
         pool_pre_ping=True,
@@ -324,6 +337,7 @@ def get_db_session(
     # If require_tenant=False and tenant_id is None, this is a system-level bypass.
     # Emit metric for observability — all bypass usage must be alertable.
     if not require_tenant:
+        _privileged_db_session_metrics["activations_total"] += 1
         metrics = get_metrics()
         if metrics:
             metrics.increment_privileged_db_session_activation(mode="bypass")

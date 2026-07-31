@@ -36,6 +36,11 @@ def upgrade() -> None:
         op.execute(f"ALTER TABLE {table} ENABLE ROW LEVEL SECURITY")
         op.execute(f"ALTER TABLE {table} FORCE ROW LEVEL SECURITY")
 
+        # Earlier billing migrations created policies on subsets of these tables.
+        # Replace them explicitly so a fresh upgrade remains deterministic.
+        op.execute(f"DROP POLICY IF EXISTS tenant_isolation_policy ON {table}")
+        op.execute(f"DROP POLICY IF EXISTS admin_bypass_policy ON {table}")
+
         # Tenant isolation policy — matches the pattern from migration 007/013
         # SECURITY FIX: Removed tenant_id IS NULL check that caused global data leak
         op.execute(f"""

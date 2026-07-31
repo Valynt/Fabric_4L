@@ -149,7 +149,7 @@ async def test_domain_news_and_dispatch_fail_closed(monkeypatch) -> None:
     assert (await service._enrich_from_news(account())).success
 
     assert (await service._enrich_from_source(account(), EnrichmentSource.DOMAIN_LOOKUP)).success
-    unknown = await service._enrich_from_source(account(), "unknown")  # type: ignore[arg-type]
+    unknown = await service._enrich_from_source(account(), "unknown")
     assert not unknown.success and "Unknown source" in unknown.error
 
 
