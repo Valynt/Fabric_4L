@@ -37,8 +37,8 @@ Routes:
   POST   /api/v1/signals/refine                 Trigger L2.5 refinement batch
 """
 
-try:  # noqa: E402
-    from value_fabric.shared.models.value_signal import (  # noqa: E402
+try:
+    from value_fabric.shared.models.value_signal import (
         SignalPromoteRequest,
         SignalRefineRequest,
         SignalReviewRequest,
@@ -122,7 +122,7 @@ def _get_repo(db: AsyncSession, tenant_id: str) -> SignalRepository:
 async def create_signal(
     body: ValueSignalCreate,
     request: Request,
-    db: AsyncSession = Depends(get_db_from_context),
+    db: AsyncSession = Depends(get_db_from_context),  # noqa: B008
 ) -> dict[str, Any]:
     tenant_id = get_tenant_id_from_context()
     repo = _get_repo(db, tenant_id)
@@ -170,14 +170,14 @@ async def create_signal(
 async def list_signals(
     request: Request,
     account_id: str = Query(...),
-    types: list[str] | None = Query(None),
-    lifecycle_state: list[str] | None = Query(None),
+    types: list[str] | None = Query(None),  # noqa: B008
+    lifecycle_state: list[str] | None = Query(None),  # noqa: B008
     min_confidence: float | None = Query(None, ge=0.0, le=1.0),
     min_trust_score: float | None = Query(None, ge=0.0, le=1.0),
     impact_area: str | None = Query(None),
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
-    db: AsyncSession = Depends(get_db_from_context),
+    db: AsyncSession = Depends(get_db_from_context),  # noqa: B008
 ) -> dict[str, Any]:
     tenant_id = get_tenant_id_from_context()
     repo = _get_repo(db, tenant_id)
@@ -204,12 +204,12 @@ async def list_signals(
 async def get_account_signals(
     account_id: str,
     request: Request,
-    lifecycle_state: list[str] | None = Query(None),
-    types: list[str] | None = Query(None),
+    lifecycle_state: list[str] | None = Query(None),  # noqa: B008
+    types: list[str] | None = Query(None),  # noqa: B008
     min_confidence: float | None = Query(None, ge=0.0, le=1.0),
     limit: int = Query(100, ge=1, le=500),
     offset: int = Query(0, ge=0),
-    db: AsyncSession = Depends(get_db_from_context),
+    db: AsyncSession = Depends(get_db_from_context),  # noqa: B008
 ) -> dict[str, Any]:
     tenant_id = get_tenant_id_from_context()
     repo = _get_repo(db, tenant_id)
@@ -234,7 +234,7 @@ async def get_account_signals(
 async def get_signal(
     signal_id: str,
     request: Request,
-    db: AsyncSession = Depends(get_db_from_context),
+    db: AsyncSession = Depends(get_db_from_context),  # noqa: B008
 ) -> dict[str, Any]:
     tenant_id = get_tenant_id_from_context()
     repo = _get_repo(db, tenant_id)
@@ -255,7 +255,7 @@ async def update_signal(
     signal_id: str,
     body: ValueSignalUpdate,
     request: Request,
-    db: AsyncSession = Depends(get_db_from_context),
+    db: AsyncSession = Depends(get_db_from_context),  # noqa: B008
 ) -> dict[str, Any]:
     tenant_id = get_tenant_id_from_context()
     repo = _get_repo(db, tenant_id)
@@ -290,7 +290,7 @@ async def update_signal(
 async def delete_signal(
     signal_id: str,
     request: Request,
-    db: AsyncSession = Depends(get_db_from_context),
+    db: AsyncSession = Depends(get_db_from_context),  # noqa: B008
 ) -> None:
     tenant_id = get_tenant_id_from_context()
     repo = _get_repo(db, tenant_id)
@@ -310,7 +310,7 @@ async def review_signal(
     signal_id: str,
     body: SignalReviewRequest,
     request: Request,
-    db: AsyncSession = Depends(get_db_from_context),
+    db: AsyncSession = Depends(get_db_from_context),  # noqa: B008
 ) -> dict[str, Any]:
     tenant_id = get_tenant_id_from_context()
     repo = _get_repo(db, tenant_id)
@@ -342,7 +342,7 @@ async def promote_signal(
     signal_id: str,
     body: SignalPromoteRequest,
     request: Request,
-    db: AsyncSession = Depends(get_db_from_context),
+    db: AsyncSession = Depends(get_db_from_context),  # noqa: B008
 ) -> dict[str, Any]:
     tenant_id = get_tenant_id_from_context()
     repo = _get_repo(db, tenant_id)
@@ -379,7 +379,7 @@ async def promote_signal(
 async def refine_signals(
     body: SignalRefineRequest,
     request: Request,
-    db: AsyncSession = Depends(get_db_from_context),
+    db: AsyncSession = Depends(get_db_from_context),  # noqa: B008
 ) -> dict[str, Any]:
     """Trigger L2.5 refinement on a batch of raw L2 extraction payloads.
 
