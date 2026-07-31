@@ -17,6 +17,11 @@ down_revision = "017"
 branch_labels = None
 depends_on = None
 
+MIGRATION_REVIEW_REQUIRED = (
+    "Security migration intentionally replaces pre-existing billing RLS policies "
+    "with canonical tenant-safe definitions during deterministic upgrades."
+)
+
 # Billing tables that have tenant_id but no RLS policies yet
 RLS_TABLES = [
     "billing_customers",
