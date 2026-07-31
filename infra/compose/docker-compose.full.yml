@@ -820,7 +820,7 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
       - POSTGRES_DB=ingestion
       # POSTGRES_MULTIPLE_DATABASES is consumed by init-multiple-dbs.sh
-      - POSTGRES_MULTIPLE_DATABASES=ingestion,extraction,ground_truth,layer4_agents,layer6_benchmarks,layer7_billing
+      - POSTGRES_MULTIPLE_DATABASES=ingestion,extraction,signal_refinery,ground_truth,layer4_agents,layer6_benchmarks,layer7_billing
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ../../scripts/db/init-multiple-dbs.sh:/docker-entrypoint-initdb.d/init-multiple-dbs.sh
@@ -829,7 +829,7 @@ services:
       - value-fabric-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5

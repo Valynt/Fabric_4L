@@ -920,7 +920,9 @@ jobs:
   layer3-checks:
     name: Layer 3 - Knowledge
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # The full coverage suite consistently needs more than 13 minutes on the
+    # hosted runner before the hostile-tenant and evidence steps execute.
+    timeout-minutes: 30
     defaults:
       run:
         working-directory: services/layer3-knowledge
@@ -1925,7 +1927,7 @@ jobs:
           export FABRIC_AUTH_SIGNING_KEY=ci-fabric-signing-key
           export FLOWER_PASSWORD=ci-flower-password
           export GRAFANA_ADMIN_PASSWORD=ci-grafana-password
-          export LAYER4_DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/ground_truth
+          export LAYER4_DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/layer4_agents
           export JWT_SECRET=${JWT_SECRET:?set JWT_SECRET}
           docker compose -f infra/compose/docker-compose.full.yml -f docker-compose.runtime-contract.yml up -d postgres redis neo4j layer5-migrate layer5-ground-truth \
             layer1-ingestion layer2-extraction layer3-knowledge layer4-agents

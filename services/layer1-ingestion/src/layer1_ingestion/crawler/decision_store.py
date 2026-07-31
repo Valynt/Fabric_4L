@@ -185,7 +185,7 @@ class CrawlDecisionRepository:
     def _save_sync(
         self,
         record: CrawlDecisionRecord,
-        trusted_tenant_id: UUID | str | None,
+        trusted_tenant_id: UUID | str | None = None,
     ) -> None:
         """Persist using caller-owned tenant context, never record-controlled context."""
         if not record.tenant_id:
