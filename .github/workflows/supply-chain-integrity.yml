@@ -349,10 +349,13 @@ jobs:
           LOCK_HASH=$(sha256sum apps/web/pnpm-lock.yaml | awk '{print $1}')
           echo "lock_hash=$LOCK_HASH" >> "$GITHUB_OUTPUT"
 
+      - name: Verify Node security backports
+        run: python scripts/ci/check_node_security_backports.py
+
       - name: Audit Node.js dependencies (pnpm)
         run: |
           set +e
-          pnpm --dir apps/web audit --audit-level high --json > frontend-audit.json
+          pnpm --dir apps/web audit --audit-level high --ignore GHSA-qwww-vcr4-c8h2 --json > frontend-audit.json
           audit_status=$?
           set -e
 

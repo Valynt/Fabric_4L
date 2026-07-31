@@ -6,8 +6,8 @@ settings:
 
 overrides:
   minimatch@>=9.0.0 <9.0.7: 9.0.9
-  brace-expansion@^1.1.7: 1.1.18
-  brace-expansion@^2.0.1: 2.1.4
+  brace-expansion@^1.1.7: 5.0.8
+  brace-expansion@^2.0.1: 5.0.8
   brace-expansion@^5.0.0: 5.0.8
   mermaid: '>=11.15.0 <12.0.0'
   fast-uri@<=3.1.4: 3.1.4
@@ -24,6 +24,14 @@ overrides:
   uuid: '>=11.1.1'
   qs: '>=6.15.2'
   js-yaml: ^4.2.0
+
+patchedDependencies:
+  brace-expansion@5.0.8:
+    hash: 572983b81b544c46041413dc8239fc01717aad7026d8299353e365f2793e6ea0
+    path: patches/brace-expansion@5.0.8.patch
+  react-router@7.18.0:
+    hash: ed3d2e8fc12134ca0e304def418b459c6039fc68d52ff961c9555ef120731b48
+    path: patches/react-router@7.18.0.patch
 
 importers:
 
@@ -3436,9 +3444,6 @@ packages:
     peerDependencies:
       '@babel/core': ^7.26.0
 
-  balanced-match@1.0.2:
-    resolution: {integrity: sha512-3oSeUO0TMV67hN1AmbXsK4yaqU7tjiHlbxRDZOpH0KW9+CeX4bRAaX0Anxt0tx2MrpRpWwQaPwIlISEJhYU5Pw==}
-
   balanced-match@4.0.4:
     resolution: {integrity: sha512-BLrgEcRTwX2o6gGxGOCNyMvGSp35YofuYzw9h1IMTRmKqttAZZVU67bdb9Pr2vUHA8+j3i2tJfjO6C6+4myGTA==}
     engines: {node: 18 || 20 || >=22}
@@ -3483,12 +3488,6 @@ packages:
 
   borsh@0.7.0:
     resolution: {integrity: sha512-CLCsZGIBCFnPtkNnieW/a8wmreDmfUtjU2m9yHrzPXIlNbqVs0AQrSatSG6vdNYUqdc83tkQi2eHfF98ubzQLA==}
-
-  brace-expansion@1.1.18:
-    resolution: {integrity: sha512-Edep/X9fGqVNmzKBVsDYIOtD+z1tuezV70LBjdCst9Tqu76lsnvRiZ6oTic1n+/BIwX6QDGAO94PN4N2SADvtw==}
-
-  brace-expansion@2.1.4:
-    resolution: {integrity: sha512-hGfVzPxthbf3+2yjg/RBs60cB0FhqBS/zvdV/4wn4/BmN0bNMMHPc4V/BbFieqf1TKAGGAHnY4eSjajCl0f2Xg==}
 
   brace-expansion@5.0.8:
     resolution: {integrity: sha512-JZyDyq3D4AUifKTPOB7DELf6XsB3WdPuNxCtob1vFXPsSXhdAiHBWJ/tJ8HAc9aH84BK+5JFZLNkJKx3G9kzQg==}
@@ -3712,9 +3711,6 @@ packages:
   common-tags@1.8.2:
     resolution: {integrity: sha512-gk/Z852D2Wtb//0I+kRFNKKE9dIIVirjoqPoA1wJU+XePVXZfGeBpk45+A1rKO4Q43prqWBNY/MiIeRLbPWUaA==}
     engines: {node: '>=4.0.0'}
-
-  concat-map@0.0.1:
-    resolution: {integrity: sha512-/Srv4dswyQNBfohGpz9o6Yb3Gz3SrUDqBH5rTuhGR7ahtlbYKnVxw2bCFMRljaA7EXHaXZ8wsHdodFvbkhKmqg==}
 
   connect@3.7.0:
     resolution: {integrity: sha512-ZqRXc+tZukToSNmh5C2iWMSoV3X1YUcPbqEM4DkEG5tNQXrQUZCNVGGv3IuicnkMtPfGf3Xtp8WCXs295iQ1pQ==}
@@ -10181,8 +10177,6 @@ snapshots:
       babel-plugin-jest-hoist: 29.6.3
       babel-preset-current-node-syntax: 1.2.0(@babel/core@7.29.7)
 
-  balanced-match@1.0.2: {}
-
   balanced-match@4.0.4: {}
 
   base-x@3.0.11:
@@ -10234,16 +10228,7 @@ snapshots:
       bs58: 4.0.1
       text-encoding-utf-8: 1.0.2
 
-  brace-expansion@1.1.18:
-    dependencies:
-      balanced-match: 1.0.2
-      concat-map: 0.0.1
-
-  brace-expansion@2.1.4:
-    dependencies:
-      balanced-match: 1.0.2
-
-  brace-expansion@5.0.8:
+  brace-expansion@5.0.8(patch_hash=572983b81b544c46041413dc8239fc01717aad7026d8299353e365f2793e6ea0):
     dependencies:
       balanced-match: 4.0.4
 
@@ -10459,8 +10444,6 @@ snapshots:
   commander@6.2.1: {}
 
   common-tags@1.8.2: {}
-
-  concat-map@0.0.1: {}
 
   connect@3.7.0:
     dependencies:
@@ -12353,19 +12336,19 @@ snapshots:
 
   minimatch@10.2.5:
     dependencies:
-      brace-expansion: 5.0.8
+      brace-expansion: 5.0.8(patch_hash=572983b81b544c46041413dc8239fc01717aad7026d8299353e365f2793e6ea0)
 
   minimatch@3.1.5:
     dependencies:
-      brace-expansion: 1.1.18
+      brace-expansion: 5.0.8(patch_hash=572983b81b544c46041413dc8239fc01717aad7026d8299353e365f2793e6ea0)
 
   minimatch@5.1.9:
     dependencies:
-      brace-expansion: 2.1.4
+      brace-expansion: 5.0.8(patch_hash=572983b81b544c46041413dc8239fc01717aad7026d8299353e365f2793e6ea0)
 
   minimatch@9.0.9:
     dependencies:
-      brace-expansion: 2.1.4
+      brace-expansion: 5.0.8(patch_hash=572983b81b544c46041413dc8239fc01717aad7026d8299353e365f2793e6ea0)
 
   minimist@1.2.8: {}
 
@@ -12867,9 +12850,9 @@ snapshots:
     dependencies:
       react: 19.2.5
       react-dom: 19.2.5(react@19.2.5)
-      react-router: 7.18.0(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
+      react-router: 7.18.0(patch_hash=ed3d2e8fc12134ca0e304def418b459c6039fc68d52ff961c9555ef120731b48)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
 
-  react-router@7.18.0(react-dom@19.2.5(react@19.2.5))(react@19.2.5):
+  react-router@7.18.0(patch_hash=ed3d2e8fc12134ca0e304def418b459c6039fc68d52ff961c9555ef120731b48)(react-dom@19.2.5(react@19.2.5))(react@19.2.5):
     dependencies:
       cookie: 1.1.1
       react: 19.2.5

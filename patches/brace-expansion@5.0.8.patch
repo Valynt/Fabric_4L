@@ -1,0 +1,19 @@
+diff --git a/dist/commonjs/index.js b/dist/commonjs/index.js
+index be9df86be09c7655787a65c55ae6da01858894c3..2f74012b1475be153a0be3a946dd9987b36604a3 100644
+--- a/dist/commonjs/index.js
++++ b/dist/commonjs/index.js
+@@ -260,4 +260,14 @@ function expand_(str, max, maxLength, isTop) {
+     }
+     return acc;
+ }
++
++// Compatibility for CommonJS consumers from minimatch <=9, which expect
++// require("brace-expansion") itself to be callable. Preserve v5's named
++// exports as properties so current consumers continue to work.
++Object.assign(expand, {
++    expand,
++    EXPANSION_MAX: exports.EXPANSION_MAX,
++    EXPANSION_MAX_LENGTH: exports.EXPANSION_MAX_LENGTH,
++});
++module.exports = expand;
+ //# sourceMappingURL=index.js.map

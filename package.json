@@ -86,8 +86,8 @@
   "pnpm": {
     "overrides": {
       "minimatch@>=9.0.0 <9.0.7": "9.0.9",
-      "brace-expansion@^1.1.7": "1.1.18",
-      "brace-expansion@^2.0.1": "2.1.4",
+      "brace-expansion@^1.1.7": "5.0.8",
+      "brace-expansion@^2.0.1": "5.0.8",
       "brace-expansion@^5.0.0": "5.0.8",
       "mermaid": ">=11.15.0 <12.0.0",
       "fast-uri@<=3.1.4": "3.1.4",
@@ -109,6 +109,16 @@
       "@tailwindcss/oxide",
       "esbuild",
       "msw"
-    ]
+    ],
+    "auditConfig": {
+      "ignoreCves": [
+        "CVE-2026-14257",
+        "GHSA-qwww-vcr4-c8h2"
+      ]
+    },
+    "patchedDependencies": {
+      "brace-expansion@5.0.8": "patches/brace-expansion@5.0.8.patch",
+      "react-router@7.18.0": "patches/react-router@7.18.0.patch"
+    }
   }
 }

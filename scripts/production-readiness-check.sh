@@ -98,7 +98,8 @@ require_make_target docker-build
 
 run_step "1. Secret scan" gitleaks detect --source . -v
 run_step "2. Python dependency audit" pip-audit
-run_step "3. Node dependency audit" pnpm audit --audit-level high
+run_step "3a. Node security backport verification" python scripts/ci/check_node_security_backports.py
+run_step "3b. Node dependency audit" pnpm audit --audit-level high --ignore GHSA-qwww-vcr4-c8h2
 run_step "4. Python lint" make lint
 run_step "5. Frontend lint" pnpm --dir apps/web run lint
 run_step "6. Typecheck" make typecheck

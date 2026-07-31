@@ -1568,8 +1568,13 @@ jobs:
           # Preview server is still running from previous step in the same job
           pnpm run test:a11y:keyboard-flow
 
+      - name: Verify Node security backports
+        run: python ../../scripts/ci/check_node_security_backports.py
+
       - name: Security audit (GATING)
-        run: pnpm audit --audit-level high
+        # GHSA-qwww-vcr4-c8h2 is backported from upstream commit 7a71c728;
+        # the preceding verifier fails closed if that patch is absent or incomplete.
+        run: pnpm audit --audit-level high --ignore GHSA-qwww-vcr4-c8h2
 
       - name: Upload build artifacts on failure
         if: failure()

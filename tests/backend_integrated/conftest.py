@@ -22,6 +22,7 @@ TENANT_HEADER = os.getenv("FABRIC_TENANT_HEADER", "X-Tenant-ID")
 USER_HEADER = os.getenv("FABRIC_USER_HEADER", "X-User-ID")
 ROLE_HEADER = os.getenv("FABRIC_ROLE_HEADER", "X-Role")
 RUN_ID = os.getenv("BACKEND_VALIDATION_RUN_ID", f"backend-validation-{uuid.uuid4().hex[:8]}")
+RUN_SLUG_SUFFIX = uuid.uuid5(uuid.NAMESPACE_URL, f"fabric-backend-integrated:{RUN_ID}").hex[:16]
 
 SERVICE_URLS = {
     "l1": os.getenv("LAYER1_API_URL", "http://localhost:8001").rstrip("/"),
@@ -171,11 +172,10 @@ class BackendValidationHarness:
 
     async def create_seed_graph(self) -> dict[str, Any]:
         """Seed the minimum data graph through real service contracts."""
-        suffix = RUN_ID.replace("backend-validation-", "")
         auth_seed_payload = {
             "tenant_id": self.seed_ids.tenant_a,
             "tenant_name": f"Fabric Backend Validation Tenant {RUN_ID}",
-            "tenant_slug": f"backend-validation-{suffix}-a",
+            "tenant_slug": f"backend-validation-{RUN_SLUG_SUFFIX}-a",
             "service_account_id": "backend-integrated-validation",
         }
         account_payload = {

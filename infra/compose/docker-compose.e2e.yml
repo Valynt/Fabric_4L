@@ -156,6 +156,7 @@ services:
     container_name: vf-e2e-migrate
     environment:
       - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/layer4_agents
+      - LAYER4_DATABASE_URL=postgresql+psycopg2://postgres:postgres@postgres:5432/layer4_agents
       - CHECKPOINT_DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/ground_truth
       # PYTHONPATH: include image defaults plus mounted platform-contract code.
       # /app itself makes value_fabric/shared importable without creating a top-level 'secrets' package.

@@ -211,7 +211,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install pytest jsonschema pyyaml pyjwt httpx
+          pip install pytest jsonschema pyyaml pyjwt httpx pydantic pydantic pydantic-settings
 
       - name: Run L5 Contract Tests
         run: |

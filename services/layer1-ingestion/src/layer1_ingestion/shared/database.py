@@ -23,7 +23,7 @@ import logging
 import os
 from collections.abc import Generator
 from contextlib import contextmanager
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, NoReturn
 from urllib.parse import urlparse
 from uuid import UUID
 
@@ -477,7 +477,7 @@ else:
     SyncRequestContext = Any
 
 
-def _missing_sync_request_context() -> Any:
+def _missing_sync_request_context() -> NoReturn:
     raise RuntimeError("shared.identity.middleware_sync required for sync database dependencies")
 
 
