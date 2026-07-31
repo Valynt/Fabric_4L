@@ -7,6 +7,7 @@ import yaml
 ROOT = Path(__file__).resolve().parents[2]
 PR_CHECKS = ROOT / ".github/workflows/pr-checks.yml"
 CONTRACT_COMPLIANCE = ROOT / ".github/workflows/contract-compliance.yml"
+GRAPH_MODULE_TESTS = ROOT / ".github/workflows/graph-module-tests.yml"
 SETUP_ACTION = "./.github/actions/setup-fabric-ci"
 
 
@@ -58,3 +59,14 @@ def test_root_test_lock_contains_json_report_plugin() -> None:
     lock = (ROOT / "tests/requirements-test.lock").read_text(encoding="utf-8")
     assert "pytest-json-report" in requirements
     assert "pytest-json-report==" in lock
+
+
+def test_graph_contract_job_uses_hash_locked_root_test_dependencies() -> None:
+    job = _load(GRAPH_MODULE_TESTS)["jobs"]["contract-tests"]
+    runs = "\n".join(step.get("run", "") for step in job["steps"])
+
+    assert (
+        "python -m pip install --require-hashes -r tests/requirements-test.lock"
+        in runs
+    )
+    assert "pip install pytest jsonschema" not in runs

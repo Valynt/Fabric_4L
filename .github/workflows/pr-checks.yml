@@ -2262,9 +2262,11 @@ jobs:
         run: |
           corepack enable
           corepack prepare pnpm@10.18.1 --activate
+          export PNPM_HOME="${RUNNER_TEMP}/pnpm"
+          export PATH="${PNPM_HOME}:${PATH}"
           echo "PNPM_HOME=${RUNNER_TEMP}/pnpm" >> "$GITHUB_ENV"
           echo "${RUNNER_TEMP}/pnpm" >> "$GITHUB_PATH"
-          PNPM_HOME="${RUNNER_TEMP}/pnpm" pnpm add --global @devcontainers/cli@0.80.1
+          pnpm add --global @devcontainers/cli@0.80.1
 
       - name: Install compose contract dependencies
         run: python -m pip install pyyaml
