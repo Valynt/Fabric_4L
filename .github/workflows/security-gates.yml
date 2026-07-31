@@ -375,6 +375,7 @@ jobs:
           ignore-unfixed: true
           vuln-type: 'os,library'
           severity: 'HIGH,CRITICAL'
+          limit-severities-for-sarif: true
           scanners: 'vuln,secret,config'
           skip-dirs: 'archive,docs/archive,node_modules'
           trivy-config: 'config/trivy/repository.yaml'
