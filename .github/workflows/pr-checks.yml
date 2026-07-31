@@ -2152,10 +2152,6 @@ jobs:
           secret-path: /layer2-extraction
 
       - name: Run release smoke gate
-        env:
-          RELEASE_SMOKE_PYTEST_TARGET: tests/backend_integrated
-          RELEASE_SMOKE_PYTEST_MARKER: backend_integrated
-          RELEASE_SMOKE_PYTEST_EVIDENCE_NAME: backend_integrated
         run: make test-backend-integrated-release-smoke
 
       - name: Capture logs on failure
