@@ -21,3 +21,15 @@ def test_contract_runner_uses_one_canonical_compose_file() -> None:
 
     assert 'COMPOSE_FILE="infra/compose/docker-compose.contract.yml"' in script
     assert "docker-compose.contract.yml up" not in script
+
+
+def test_layer4_contract_service_preserves_image_source_path() -> None:
+    compose = (ROOT / "infra" / "compose" / "docker-compose.contract.yml").read_text(
+        encoding="utf-8"
+    )
+    layer4 = compose.split("\n  layer4:", 1)[1].split("\n  layer5:", 1)[0]
+
+    assert "PYTHONPATH: /app:/app/src" in layer4
+    assert "layer4_agents.api.main:app" in (
+        ROOT / "services" / "layer4-agents" / "Dockerfile"
+    ).read_text(encoding="utf-8")

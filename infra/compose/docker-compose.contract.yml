@@ -144,7 +144,7 @@ services:
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       LLM_MODEL: gpt-4o
       LOG_LEVEL: debug
-      PYTHONPATH: /app
+      PYTHONPATH: /app:/app/src
     depends_on:
       postgres:
         condition: service_healthy
