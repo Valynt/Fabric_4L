@@ -8,7 +8,11 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from value_fabric.shared.error_handling.exceptions import ConflictError, NotFoundError, ValidationError
+from value_fabric.shared.error_handling.exceptions import (
+    ConflictError,
+    NotFoundError,
+    ValidationError,
+)
 
 from ...clients.l3_graph_client import get_l3_client
 from ...database import get_db_from_context
@@ -33,8 +37,8 @@ Routes:
   POST   /api/v1/signals/refine                 Trigger L2.5 refinement batch
 """
 
-try:  # noqa: E402
-    from value_fabric.shared.models.value_signal import (  # noqa: E402
+try:
+    from value_fabric.shared.models.value_signal import (
         SignalPromoteRequest,
         SignalRefineRequest,
         SignalReviewRequest,
@@ -44,8 +48,8 @@ try:  # noqa: E402
     )
 except ImportError:
     # Fallback: use local Pydantic models when shared package unavailable
-    from pydantic import BaseModel  # noqa: E402
-    from typing import Optional  # noqa: E402
+
+    from pydantic import BaseModel
 
     class ValueSignalCreate(BaseModel):  # type: ignore[no-redef]
         account_id: str
@@ -59,22 +63,22 @@ except ImportError:
         source_refs: list = []
 
     class ValueSignalUpdate(BaseModel):  # type: ignore[no-redef]
-        lifecycle_state: Optional[str] = None
-        validation_notes: Optional[str] = None
-        reviewer_id: Optional[str] = None
-        impact_area: Optional[str] = None
-        estimated_value: Optional[float] = None
-        currency: Optional[str] = None
-        time_horizon: Optional[str] = None
-        value_driver_id: Optional[str] = None
+        lifecycle_state: str | None = None
+        validation_notes: str | None = None
+        reviewer_id: str | None = None
+        impact_area: str | None = None
+        estimated_value: float | None = None
+        currency: str | None = None
+        time_horizon: str | None = None
+        value_driver_id: str | None = None
 
     class SignalReviewRequest(BaseModel):  # type: ignore[no-redef]
         status: str
-        notes: Optional[str] = None
+        notes: str | None = None
 
     class SignalPromoteRequest(BaseModel):  # type: ignore[no-redef]
         value_path_category: str
-        value_driver_id: Optional[str] = None
+        value_driver_id: str | None = None
 
     class RawSignalInput(BaseModel):  # type: ignore[no-redef]
         account_id: str
@@ -87,9 +91,9 @@ except ImportError:
 
     class SignalRefineRequest(BaseModel):  # type: ignore[no-redef]
         account_id: str
-        raw_signals: Optional[list] = None
+        raw_signals: list | None = None
         source_refs: list = []
-        extraction_run_id: Optional[str] = None
+        extraction_run_id: str | None = None
 
     class ValueSignalListResponse(BaseModel):  # type: ignore[no-redef]
         items: list
@@ -118,7 +122,7 @@ def _get_repo(db: AsyncSession, tenant_id: str) -> SignalRepository:
 async def create_signal(
     body: ValueSignalCreate,
     request: Request,
-    db: AsyncSession = Depends(get_db_from_context),
+    db: AsyncSession = Depends(get_db_from_context),  # noqa: B008
 ) -> dict[str, Any]:
     tenant_id = get_tenant_id_from_context()
     repo = _get_repo(db, tenant_id)
@@ -162,14 +166,14 @@ async def create_signal(
 async def list_signals(
     request: Request,
     account_id: str = Query(...),
-    types: list[str] | None = Query(None),
-    lifecycle_state: list[str] | None = Query(None),
+    types: list[str] | None = Query(None),  # noqa: B008
+    lifecycle_state: list[str] | None = Query(None),  # noqa: B008
     min_confidence: float | None = Query(None, ge=0.0, le=1.0),
     min_trust_score: float | None = Query(None, ge=0.0, le=1.0),
     impact_area: str | None = Query(None),
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
-    db: AsyncSession = Depends(get_db_from_context),
+    db: AsyncSession = Depends(get_db_from_context),  # noqa: B008
 ) -> dict[str, Any]:
     tenant_id = get_tenant_id_from_context()
     repo = _get_repo(db, tenant_id)
@@ -196,12 +200,12 @@ async def list_signals(
 async def get_account_signals(
     account_id: str,
     request: Request,
-    lifecycle_state: list[str] | None = Query(None),
-    types: list[str] | None = Query(None),
+    lifecycle_state: list[str] | None = Query(None),  # noqa: B008
+    types: list[str] | None = Query(None),  # noqa: B008
     min_confidence: float | None = Query(None, ge=0.0, le=1.0),
     limit: int = Query(100, ge=1, le=500),
     offset: int = Query(0, ge=0),
-    db: AsyncSession = Depends(get_db_from_context),
+    db: AsyncSession = Depends(get_db_from_context),  # noqa: B008
 ) -> dict[str, Any]:
     tenant_id = get_tenant_id_from_context()
     repo = _get_repo(db, tenant_id)
@@ -226,7 +230,7 @@ async def get_account_signals(
 async def get_signal(
     signal_id: str,
     request: Request,
-    db: AsyncSession = Depends(get_db_from_context),
+    db: AsyncSession = Depends(get_db_from_context),  # noqa: B008
 ) -> dict[str, Any]:
     tenant_id = get_tenant_id_from_context()
     repo = _get_repo(db, tenant_id)
@@ -247,7 +251,7 @@ async def update_signal(
     signal_id: str,
     body: ValueSignalUpdate,
     request: Request,
-    db: AsyncSession = Depends(get_db_from_context),
+    db: AsyncSession = Depends(get_db_from_context),  # noqa: B008
 ) -> dict[str, Any]:
     tenant_id = get_tenant_id_from_context()
     repo = _get_repo(db, tenant_id)
@@ -282,7 +286,7 @@ async def update_signal(
 async def delete_signal(
     signal_id: str,
     request: Request,
-    db: AsyncSession = Depends(get_db_from_context),
+    db: AsyncSession = Depends(get_db_from_context),  # noqa: B008
 ) -> None:
     tenant_id = get_tenant_id_from_context()
     repo = _get_repo(db, tenant_id)
@@ -302,7 +306,7 @@ async def review_signal(
     signal_id: str,
     body: SignalReviewRequest,
     request: Request,
-    db: AsyncSession = Depends(get_db_from_context),
+    db: AsyncSession = Depends(get_db_from_context),  # noqa: B008
 ) -> dict[str, Any]:
     tenant_id = get_tenant_id_from_context()
     repo = _get_repo(db, tenant_id)
@@ -334,7 +338,7 @@ async def promote_signal(
     signal_id: str,
     body: SignalPromoteRequest,
     request: Request,
-    db: AsyncSession = Depends(get_db_from_context),
+    db: AsyncSession = Depends(get_db_from_context),  # noqa: B008
 ) -> dict[str, Any]:
     tenant_id = get_tenant_id_from_context()
     repo = _get_repo(db, tenant_id)
@@ -369,7 +373,7 @@ async def promote_signal(
 async def refine_signals(
     body: SignalRefineRequest,
     request: Request,
-    db: AsyncSession = Depends(get_db_from_context),
+    db: AsyncSession = Depends(get_db_from_context),  # noqa: B008
 ) -> dict[str, Any]:
     """Trigger L2.5 refinement on a batch of raw L2 extraction payloads.
 

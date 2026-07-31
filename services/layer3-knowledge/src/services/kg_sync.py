@@ -72,7 +72,7 @@ async def upsert_ground_truth_node(
         result = await session.run(query, params)
         record = await result.single()
         if record:
-            return record["node_id"]
+            return str(record["node_id"])
     
     raise RuntimeError("Failed to upsert GroundTruth node")
 
