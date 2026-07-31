@@ -19,6 +19,10 @@ def test_p0_stack_provides_real_layer1_and_layer4_services() -> None:
         services["layer1"]["depends_on"]["layer1-migrate"]["condition"]
         == "service_completed_successfully"
     )
+    assert (
+        services["layer1-migrate"]["depends_on"]["migrate"]["condition"]
+        == "service_completed_successfully"
+    )
 
 
 def test_p0_frontend_routes_layer1_directly_and_defaults_to_layer4() -> None:
