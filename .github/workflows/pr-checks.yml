@@ -1936,6 +1936,7 @@ jobs:
               "L2": "http://localhost:8002/health",
               "L3": "http://localhost:8003/health",
               "L4": "http://localhost:8004/health",
+              "L5": "http://localhost:8005/api/v1/health",
           }
 
           deadline = time.time() + 300
@@ -1975,6 +1976,9 @@ jobs:
           L2_URL: http://localhost:8002
           L3_URL: http://localhost:8003
           L4_URL: http://localhost:8004
+          LAYER3_API_URL: http://localhost:8003
+          LAYER4_API_URL: http://localhost:8004
+          LAYER5_API_URL: http://localhost:8005
         run: |
           pytest tests/contract/test_layer_integration.py -m runtime_contract -v --tb=short
 

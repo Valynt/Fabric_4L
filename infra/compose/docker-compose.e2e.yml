@@ -129,6 +129,8 @@ services:
         condition: service_healthy
       neo4j:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     networks:
       - e2e-network
     volumes: *shared-code-volumes
@@ -164,19 +166,7 @@ services:
     networks:
       - e2e-network
     volumes: *shared-code-volumes
-    command: |
-      python -c "
-      import asyncio
-      from sqlalchemy.ext.asyncio import create_async_engine
-      from layer4_agents.database import Base
-      async def run():
-          engine = create_async_engine('postgresql+asyncpg://postgres:postgres@postgres:5432/layer4_agents')
-          async with engine.begin() as conn:
-              await conn.run_sync(Base.metadata.create_all)
-          await engine.dispose()
-          print('E2E migrations complete')
-      asyncio.run(run())
-      "
+    command: /app/.venv/bin/alembic upgrade head
     restart: "no"
 
 networks:
