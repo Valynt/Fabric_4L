@@ -1,48 +1,47 @@
-FROM mcr.microsoft.com/devcontainers/base@sha256:1a00517e89d3075f8c9dc8d9911404de0ff8991a4d71c62068573e9b016a89da
+# syntax=docker/dockerfile:1.7
+FROM mcr.microsoft.com/devcontainers/base@sha256:1a00517e89d3075f8c9dc8d9911404de0ff8991a4d71c62068573e9b016a89da AS toolchain
 
-# Install build tools not present in base image
-# (curl, wget, git, gnupg, ca-certificates, jq are already in devcontainers/base:bookworm)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    software-properties-common \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install Infisical CLI (secret management)
-RUN curl -1sLf 'https://dl.cloudsmith.io/public/infisical/infisical-cli/setup.deb.sh' | bash \
-    && apt-get install -y infisical \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install Docker Compose v2 plugin (pinned, arch-aware)
 ARG COMPOSE_VERSION=v2.35.1
-RUN mkdir -p /usr/local/lib/docker/cli-plugins && \
-    curl -fsSL "https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-linux-$(uname -m)" \
-    -o /usr/local/lib/docker/cli-plugins/docker-compose && \
-    chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
-
-# Install kubectl (pinned to 1.29 stable)
-RUN curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.29/deb/Release.key \
-    | gpg --dearmor -o /usr/share/keyrings/kubernetes-apt-keyring.gpg && \
-    echo 'deb [signed-by=/usr/share/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.29/deb/ /' \
-    | tee /etc/apt/sources.list.d/kubernetes.list && \
-    apt-get update && apt-get install -y kubectl && rm -rf /var/lib/apt/lists/*
-
-# Install kustomize (pinned, arch-aware — avoids curl|bash install pattern)
+ARG KUBECTL_VERSION=v1.29.15
 ARG KUSTOMIZE_VERSION=v5.4.3
-RUN ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/') && \
-    curl -fsSL "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2F${KUSTOMIZE_VERSION}/kustomize_${KUSTOMIZE_VERSION}_linux_${ARCH}.tar.gz" \
-    | tar -xz -C /usr/local/bin/ kustomize
-
-# Install cosign for image signing (pinned, arch-aware)
 ARG COSIGN_VERSION=v2.4.1
-RUN ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/') && \
-    curl -fsSLO "https://github.com/sigstore/cosign/releases/download/${COSIGN_VERSION}/cosign-linux-${ARCH}" && \
-    chmod +x "cosign-linux-${ARCH}" && \
-    mv "cosign-linux-${ARCH}" /usr/local/bin/cosign
+ARG INFISICAL_VERSION=0.41.11
 
-# Set up Python path for workspace (all six layers + layer 2.5)
-ENV PYTHONPATH=/workspace/services/layer1-ingestion/src:/workspace/services/layer2-extraction/src:/workspace/services/layer2-5-signal-refinery/src:/workspace/services/layer3-knowledge/src:/workspace/services/layer4-agents/src:/workspace/services/layer5-ground-truth/src:/workspace/services/layer6-benchmarks/src
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-# Ensure persistent temp directory exists for vscode user (fixes Windsurf server install race)
-RUN mkdir -p /var/tmp && chown vscode:vscode /var/tmp && chmod 1777 /var/tmp
+RUN apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+      build-essential docker.io uidmap dbus-user-session slirp4netns fuse-overlayfs \
+      pipx make jq curl ca-certificates gnupg \
+    && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /workspace
+RUN arch="$(dpkg --print-architecture)" \
+    && case "$arch" in amd64|arm64) ;; *) echo "Unsupported architecture: $arch" >&2; exit 1 ;; esac \
+    && curl -fsSL "https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-linux-${arch}" \
+      -o /usr/local/lib/docker/cli-plugins/docker-compose \
+    && chmod 0755 /usr/local/lib/docker/cli-plugins/docker-compose \
+    && curl -fsSL "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/${arch}/kubectl" -o /usr/local/bin/kubectl \
+    && chmod 0755 /usr/local/bin/kubectl \
+    && curl -fsSL "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2F${KUSTOMIZE_VERSION}/kustomize_${KUSTOMIZE_VERSION}_linux_${arch}.tar.gz" \
+      | tar -xz -C /usr/local/bin kustomize \
+    && curl -fsSL "https://github.com/sigstore/cosign/releases/download/${COSIGN_VERSION}/cosign-linux-${arch}" -o /usr/local/bin/cosign \
+    && chmod 0755 /usr/local/bin/cosign \
+    && curl -fsSL "https://github.com/Infisical/infisical/releases/download/infisical-cli%2Fv${INFISICAL_VERSION}/infisical_${INFISICAL_VERSION}_linux_${arch}.deb" -o /tmp/infisical.deb \
+    && dpkg -i /tmp/infisical.deb \
+    && rm /tmp/infisical.deb
+
+RUN mkdir -p /workspace/Fabric_4L /workspace-support /run/user/1000 /var/tmp \
+    && chown -R vscode:vscode /workspace/Fabric_4L /workspace-support /run/user/1000 /var/tmp \
+    && chmod 0700 /run/user/1000 \
+    && chmod 1777 /var/tmp
+
+ENV PYTHONPATH=/workspace/Fabric_4L/services/layer1-ingestion/src:/workspace/Fabric_4L/services/layer2-extraction/src:/workspace/Fabric_4L/services/layer2-5-signal-refinery/src:/workspace/Fabric_4L/services/layer3-knowledge/src:/workspace/Fabric_4L/services/layer4-agents/src:/workspace/Fabric_4L/services/layer5-ground-truth/src:/workspace/Fabric_4L/services/layer6-benchmarks/src
+WORKDIR /workspace/Fabric_4L
+
+FROM toolchain AS development
+USER vscode
+
+FROM toolchain AS docker-daemon
+COPY --chown=vscode:vscode .devcontainer/start-rootless-docker.sh /workspace-support/start-rootless-docker.sh
+RUN chmod 0755 /workspace-support/start-rootless-docker.sh
+USER vscode

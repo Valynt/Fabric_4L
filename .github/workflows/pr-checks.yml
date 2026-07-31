@@ -2244,6 +2244,19 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Set up Node.js for Dev Container validation
+        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4
+        with:
+          node-version: "22.18.0"
+
+      - name: Install pinned Dev Container CLI
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.18.1 --activate
+          echo "PNPM_HOME=${RUNNER_TEMP}/pnpm" >> "$GITHUB_ENV"
+          echo "${RUNNER_TEMP}/pnpm" >> "$GITHUB_PATH"
+          PNPM_HOME="${RUNNER_TEMP}/pnpm" pnpm add --global @devcontainers/cli@0.80.1
+
       - name: Install compose contract dependencies
         run: python -m pip install pyyaml
 
@@ -2251,6 +2264,9 @@ jobs:
         run: |
           python scripts/ci/check_docker_compose_config.py \
             --artifact-dir artifacts/docker-compose-config
+
+      - name: Validate canonical Dev Container topology
+        run: python scripts/ci/check_devcontainer_config.py
 
       - name: Upload Docker Compose config artifacts
         if: always()
