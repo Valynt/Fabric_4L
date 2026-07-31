@@ -59,7 +59,9 @@ class QueryGraphTool(BaseTool):
         if not self.neo4j_password:
             self.neo4j_password = get_settings().neo4j_password
         if not self.neo4j_password:
-            raise ConfigurationError("Neo4j password is required; set NEO4J_PASSWORD or LAYER4_NEO4J_PASSWORD")
+            raise ConfigurationError(
+                "Neo4j password is required; set NEO4J_PASSWORD or LAYER4_NEO4J_PASSWORD"
+            )
         self.database = config.get("database", "valuefabric") if config else "valuefabric"
         self._driver = None
 
@@ -89,22 +91,22 @@ class QueryGraphTool(BaseTool):
 
     def _inject_tenant_filter(self, query: str, tenant_id: UUID) -> tuple[str, str]:
         """Inject tenant_id filter into Cypher query with proper alias detection.
-        
+
         This method ensures that all Cypher queries are scoped to the
         authenticated tenant by adding a tenant_id filter.
-        
+
         Strategy:
         1. Extract the actual node alias from the MATCH clause (not hardcoded 'n')
         2. If query already has WHERE clause, append AND tenant_id condition
         3. If query has no WHERE, add WHERE tenant_id condition after MATCH
-        
+
         Args:
             query: The Cypher query to modify
             tenant_id: The tenant UUID to filter by
-            
+
         Returns:
             Tuple of (modified_query, node_alias) for parameter binding
-            
+
         Raises:
             ValueError: If node alias cannot be extracted from MATCH clause
         """
@@ -126,9 +128,7 @@ class QueryGraphTool(BaseTool):
 
         if where_match:
             modified_query = (
-                query[: where_match.end()]
-                + f" {tenant_filter} AND"
-                + query[where_match.end() :]
+                query[: where_match.end()] + f" {tenant_filter} AND" + query[where_match.end() :]
             )
         else:
             match_pattern = self._MATCH_PATTERN_PATTERN.search(query)
@@ -142,12 +142,14 @@ class QueryGraphTool(BaseTool):
                 + query[match_pattern.end() :]
             )
 
-        logger.debug(f"Injected tenant filter: alias={node_alias}, original={query[:50]}..., modified={modified_query[:50]}...")
+        logger.debug(
+            f"Injected tenant filter: alias={node_alias}, original={query[:50]}..., modified={modified_query[:50]}..."
+        )
         return modified_query, node_alias
-    
+
     def _ensure_tenant_parameters(self, parameters: dict | None, tenant_id) -> dict:
         """Ensure tenant_id is set in parameters, overriding any spoof attempts.
-        
+
         This prevents attackers from passing a different tenant_id in the
         query parameters to access cross-tenant data.
         """
@@ -172,14 +174,14 @@ class QueryGraphTool(BaseTool):
 
     async def execute(self, input_data: QueryGraphInput) -> QueryGraphOutput:
         """Execute Cypher query against Neo4j with mandatory tenant scoping.
-        
+
         SECURITY: This tool enforces tenant isolation by:
         1. Requiring valid TenantContext (fail-closed)
         2. Validating query is read-only
         3. Injecting tenant_id filter into Cypher query
         """
         start_time = time.time()
-        
+
         # P0 FIX: Extract and validate tenant context (FAIL-CLOSED)
         try:
             tenant_ctx = tenant_context.get_current_tenant_context()
@@ -192,26 +194,21 @@ class QueryGraphTool(BaseTool):
                 columns=[],
                 row_count=0,
                 execution_time_ms=0,
-                error=f"Tenant context required: {e}. Authentication required."
+                error=f"Tenant context required: {e}. Authentication required.",
             )
-        
+
         # P1-11 FIX: Validate query is read-only before execution
         validation_error = self._validate_read_only(input_data.cypher_query)
         if validation_error:
             # CONTRACT_EXCEPTION AP-7: Return structured error, don't raise
             return QueryGraphOutput(
-                results=[],
-                columns=[],
-                row_count=0,
-                execution_time_ms=0,
-                error=validation_error
+                results=[], columns=[], row_count=0, execution_time_ms=0, error=validation_error
             )
 
         # P0 FIX: Inject tenant filter into Cypher query with proper alias detection
         try:
             scoped_query, node_alias = self._inject_tenant_filter(
-                input_data.cypher_query,
-                effective_tenant_id
+                input_data.cypher_query, effective_tenant_id
             )
         except ValueError as e:
             # Query parsing failed, return structured error
@@ -220,13 +217,11 @@ class QueryGraphTool(BaseTool):
                 columns=[],
                 row_count=0,
                 execution_time_ms=0,
-                error=f"Invalid query format: {e}"
+                error=f"Invalid query format: {e}",
             )
-        
+
         # Log with tenant context for audit trail
-        logger.info(
-            f"Executing Cypher query for tenant={effective_tenant_id}"
-        )
+        logger.info(f"Executing Cypher query for tenant={effective_tenant_id}")
 
         driver = self._get_driver()
 
@@ -234,8 +229,7 @@ class QueryGraphTool(BaseTool):
 
         # P0 FIX: Override any tenant_id in parameters with authenticated context
         scoped_parameters = self._ensure_tenant_parameters(
-            input_data.parameters,
-            effective_tenant_id
+            input_data.parameters, effective_tenant_id
         )
 
         try:
@@ -264,7 +258,7 @@ class QueryGraphTool(BaseTool):
                 columns=[],
                 row_count=0,
                 execution_time_ms=int((time.time() - start_time) * 1000),
-                error="QUERY_EXECUTION_ERROR"
+                error="QUERY_EXECUTION_ERROR",
             )
 
 
@@ -295,9 +289,7 @@ class SemanticSearchTool(BaseTool):
             else "text-embedding-3-large"
         )
         self.embedding_model = (
-            config.get("embedding_model", _default_embedding)
-            if config
-            else _default_embedding
+            config.get("embedding_model", _default_embedding) if config else _default_embedding
         )
         self.pinecone_api_key = config.get("pinecone_api_key") if config else None
         self.pinecone_index = (
@@ -312,12 +304,15 @@ class SemanticSearchTool(BaseTool):
         Returns:
             Pinecone index client, or None if API key missing
         """
+        if not self.pinecone_api_key:
+            # CONTRACT_EXCEPTION AP-7: Return None to signal error, don't raise.
+            # Check before importing the optional dependency so the public
+            # missing-configuration contract is deterministic.
+            return None
+
         if self._pinecone_client is None:
             from pinecone import Pinecone
 
-            if not self.pinecone_api_key:
-                # CONTRACT_EXCEPTION AP-7: Return None to signal error, don't raise
-                return None
             self._pinecone_client = Pinecone(api_key=self.pinecone_api_key)
             self._index = self._pinecone_client.Index(self.pinecone_index)
         return self._index
@@ -332,12 +327,12 @@ class SemanticSearchTool(BaseTool):
 
     async def execute(self, input_data: SemanticSearchInput) -> SemanticSearchOutput:
         """Execute semantic search against Pinecone vector store with tenant isolation.
-        
+
         SECURITY: This tool enforces tenant isolation by requiring valid TenantContext
         and injecting tenant_id filter into Pinecone metadata filter.
         """
         start_time = time.time()
-        
+
         # P0 FIX: Extract and validate tenant context (FAIL-CLOSED)
         try:
             tenant_ctx = tenant_context.get_current_tenant_context()
@@ -348,7 +343,7 @@ class SemanticSearchTool(BaseTool):
                 results=[],
                 total_matches=0,
                 query_embedding_time_ms=int((time.time() - start_time) * 1000),
-                error=f"Tenant context required: {e}. Authentication required."
+                error=f"Tenant context required: {e}. Authentication required.",
             )
 
         try:
@@ -363,14 +358,14 @@ class SemanticSearchTool(BaseTool):
                     results=[],
                     total_matches=0,
                     query_embedding_time_ms=int((time.time() - start_time) * 1000),
-                    error="Pinecone API key required for semantic search"
+                    error="Pinecone API key required for semantic search",
                 )
 
             # P0 FIX: Build filter with mandatory tenant isolation
             filter_dict = {"tenant_id": str(tenant_ctx.tenant_id)}
             if input_data.entity_types:
                 filter_dict["entity_type"] = {"$in": input_data.entity_types}
-            
+
             logger.info(
                 f"Executing semantic search for tenant={tenant_ctx.tenant_id}, "
                 f"user={tenant_ctx.user_id}, "
@@ -410,7 +405,12 @@ class SemanticSearchTool(BaseTool):
             raise
         except Exception as e:
             logger.error(f"Semantic search failed: {e}")
-            return SemanticSearchOutput(results=[], total_matches=0, query_embedding_time_ms=0)
+            return SemanticSearchOutput(
+                results=[],
+                total_matches=0,
+                query_embedding_time_ms=0,
+                error="SEMANTIC_SEARCH_ERROR",
+            )
 
 
 class GetEntityTool(BaseTool):
@@ -433,7 +433,9 @@ class GetEntityTool(BaseTool):
         if not self.neo4j_password:
             self.neo4j_password = get_settings().neo4j_password
         if not self.neo4j_password:
-            raise ConfigurationError("Neo4j password is required; set NEO4J_PASSWORD or LAYER4_NEO4J_PASSWORD")
+            raise ConfigurationError(
+                "Neo4j password is required; set NEO4J_PASSWORD or LAYER4_NEO4J_PASSWORD"
+            )
         self.database = config.get("database", "valuefabric") if config else "valuefabric"
         self._driver = None
 
@@ -447,7 +449,7 @@ class GetEntityTool(BaseTool):
 
     async def execute(self, input_data: GetEntityInput) -> GetEntityOutput:
         """Get entity by ID from Neo4j with mandatory tenant isolation.
-        
+
         SECURITY: This tool enforces tenant isolation by requiring valid TenantContext
         and injecting tenant_id filter into Cypher queries.
         """
@@ -458,10 +460,9 @@ class GetEntityTool(BaseTool):
         except TenantContextError as e:
             logger.warning(f"Tenant context error in get_entity: {e}")
             return GetEntityOutput(
-                found=False,
-                error=f"Tenant context required: {e}. Authentication required."
+                found=False, error=f"Tenant context required: {e}. Authentication required."
             )
-        
+
         driver = self._get_driver()
         entity_id = input_data.entity_id
 
@@ -473,10 +474,9 @@ class GetEntityTool(BaseTool):
                     RETURN n, labels(n) as labels
                     LIMIT 1
                 """
-                entity_result = await session.run(entity_query, {
-                    "entity_id": entity_id,
-                    "tenant_id": str(tenant_ctx.tenant_id)
-                })
+                entity_result = await session.run(
+                    entity_query, {"entity_id": entity_id, "tenant_id": str(tenant_ctx.tenant_id)}
+                )
                 entity_record = await entity_result.single()
 
                 if not entity_record:
@@ -497,11 +497,14 @@ class GetEntityTool(BaseTool):
                                m.name as target_name, labels(m) as target_labels
                         LIMIT $limit
                     """
-                    rel_result = await session.run(rel_query, {
-                        "entity_id": entity_id,
-                        "tenant_id": str(tenant_ctx.tenant_id),
-                        "limit": input_data.relationship_limit
-                    })
+                    rel_result = await session.run(
+                        rel_query,
+                        {
+                            "entity_id": entity_id,
+                            "tenant_id": str(tenant_ctx.tenant_id),
+                            "limit": 50,
+                        },
+                    )
 
                     async for record in rel_result:
                         relationships.append(
@@ -521,7 +524,7 @@ class GetEntityTool(BaseTool):
             raise
         except Exception as e:
             logger.error(f"Failed to get entity {entity_id}: {e}")
-            return GetEntityOutput(found=False)
+            return GetEntityOutput(found=False, error="ENTITY_QUERY_ERROR")
 
 
 class GetRelationshipsTool(BaseTool):
@@ -544,7 +547,9 @@ class GetRelationshipsTool(BaseTool):
         if not self.neo4j_password:
             self.neo4j_password = get_settings().neo4j_password
         if not self.neo4j_password:
-            raise ConfigurationError("Neo4j password is required; set NEO4J_PASSWORD or LAYER4_NEO4J_PASSWORD")
+            raise ConfigurationError(
+                "Neo4j password is required; set NEO4J_PASSWORD or LAYER4_NEO4J_PASSWORD"
+            )
         self.database = config.get("database", "valuefabric") if config else "valuefabric"
         self._driver = None
 
@@ -558,7 +563,7 @@ class GetRelationshipsTool(BaseTool):
 
     async def execute(self, input_data: GetRelationshipsInput) -> GetRelationshipsOutput:
         """Get relationships for entity from Neo4j with mandatory tenant isolation.
-        
+
         SECURITY: This tool enforces tenant isolation by requiring valid TenantContext
         and injecting tenant_id filter into Cypher queries.
         """
@@ -571,9 +576,9 @@ class GetRelationshipsTool(BaseTool):
             return GetRelationshipsOutput(
                 relationships=[],
                 total_count=0,
-                error=f"Tenant context required: {e}. Authentication required."
+                error=f"Tenant context required: {e}. Authentication required.",
             )
-        
+
         driver = self._get_driver()
 
         try:
@@ -596,10 +601,9 @@ class GetRelationshipsTool(BaseTool):
                                m.id as target_id, m.name as target_name, r.confidence as confidence
                     """
 
-                result = await session.run(query, {
-                    "entity_id": input_data.entity_id,
-                    "tenant_id": tenant_id_str
-                })
+                result = await session.run(
+                    query, {"entity_id": input_data.entity_id, "tenant_id": tenant_id_str}
+                )
 
                 relationships = []
                 async for record in result:
@@ -646,7 +650,9 @@ class TraverseTreeTool(BaseTool):
         if not self.neo4j_password:
             self.neo4j_password = get_settings().neo4j_password
         if not self.neo4j_password:
-            raise ConfigurationError("Neo4j password is required; set NEO4J_PASSWORD or LAYER4_NEO4J_PASSWORD")
+            raise ConfigurationError(
+                "Neo4j password is required; set NEO4J_PASSWORD or LAYER4_NEO4J_PASSWORD"
+            )
         self.database = config.get("database", "valuefabric") if config else "valuefabric"
         self._driver = None
 
@@ -660,7 +666,7 @@ class TraverseTreeTool(BaseTool):
 
     async def execute(self, input_data: TraverseTreeInput) -> TraverseTreeOutput:
         """Traverse tree from starting entity using Neo4j with mandatory tenant isolation.
-        
+
         SECURITY: This tool enforces tenant isolation by requiring valid TenantContext
         and injecting tenant_id filter into Cypher queries.
         """
@@ -673,19 +679,18 @@ class TraverseTreeTool(BaseTool):
             return TraverseTreeOutput(
                 paths=[],
                 nodes_discovered=0,
-                error=f"Tenant context required: {e}. Authentication required."
+                error=f"Tenant context required: {e}. Authentication required.",
             )
-        
+
         driver = self._get_driver()
 
         try:
             async with driver.session(database=self.database) as session:
                 # Use variable-length path query
-                rel_pattern = (
-                    "|".join(input_data.relationship_types)
-                    if input_data.relationship_types
-                    else "ENABLES|REQUIRES|BENEFITS"
+                relationship_types = re.findall(
+                    r":([A-Za-z_][A-Za-z0-9_]*)", input_data.path_pattern
                 )
+                rel_pattern = "|".join(relationship_types) or "ENABLES|REQUIRES|BENEFITS"
 
                 # P0 FIX: Query with mandatory tenant filter on all nodes in path
                 query = """
@@ -695,11 +700,14 @@ class TraverseTreeTool(BaseTool):
                     LIMIT $limit
                 """ % (rel_pattern, input_data.max_depth)
 
-                result = await session.run(query, {
-                    "start_id": input_data.start_entity_id,
-                    "tenant_id": str(tenant_ctx.tenant_id),
-                    "limit": input_data.max_paths
-                })
+                result = await session.run(
+                    query,
+                    {
+                        "start_id": input_data.start_entity_id,
+                        "tenant_id": str(tenant_ctx.tenant_id),
+                        "limit": 50,
+                    },
+                )
 
                 paths = []
                 nodes_discovered = set()
@@ -740,7 +748,9 @@ class FindPathsTool(BaseTool):
         if not self.neo4j_password:
             self.neo4j_password = get_settings().neo4j_password
         if not self.neo4j_password:
-            raise ConfigurationError("Neo4j password is required; set NEO4J_PASSWORD or LAYER4_NEO4J_PASSWORD")
+            raise ConfigurationError(
+                "Neo4j password is required; set NEO4J_PASSWORD or LAYER4_NEO4J_PASSWORD"
+            )
         self.database = config.get("database", "valuefabric") if config else "valuefabric"
         self._driver = None
 
@@ -754,7 +764,7 @@ class FindPathsTool(BaseTool):
 
     async def execute(self, input_data: FindPathsInput) -> FindPathsOutput:
         """Find paths between entities using Neo4j shortest path algorithms with mandatory tenant isolation.
-        
+
         SECURITY: This tool enforces tenant isolation by requiring valid TenantContext
         and injecting tenant_id filter into Cypher queries.
         """
@@ -767,9 +777,9 @@ class FindPathsTool(BaseTool):
             return FindPathsOutput(
                 paths=[],
                 shortest_path_length=None,
-                error=f"Tenant context required: {e}. Authentication required."
+                error=f"Tenant context required: {e}. Authentication required.",
             )
-        
+
         driver = self._get_driver()
 
         try:
@@ -786,15 +796,18 @@ class FindPathsTool(BaseTool):
                            length(path) as path_length
                     LIMIT $limit
                 """
-                    % input_data.max_depth
+                    % input_data.max_length
                 )
 
-                result = await session.run(query, {
-                    "source_id": input_data.source_id,
-                    "target_id": input_data.target_id,
-                    "tenant_id": str(tenant_ctx.tenant_id),
-                    "limit": input_data.max_paths,
-                })
+                result = await session.run(
+                    query,
+                    {
+                        "source_id": input_data.source_id,
+                        "target_id": input_data.target_id,
+                        "tenant_id": str(tenant_ctx.tenant_id),
+                        "limit": 50,
+                    },
+                )
 
                 paths = []
                 shortest_length = None

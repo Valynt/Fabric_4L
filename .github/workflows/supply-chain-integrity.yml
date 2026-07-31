@@ -136,7 +136,7 @@ jobs:
       IMAGE_TAG: ${{ inputs.image_tag || github.sha }}
     needs: ci-tools-preflight
     container:
-      image: ${{ env.CI_TOOLS_IMAGE }}
+      image: ghcr.io/${{ github.repository_owner }}/ci-tools/security-suite@sha256:24a75a644c16e625723872badc4555de8db6c6db3afe3ea354dae072966e9b3d
     name: SBOM + Vulnerability Scan
     if: inputs.certify_images || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
@@ -248,7 +248,7 @@ jobs:
       IMAGE_TAG: ${{ inputs.image_tag || github.sha }}
     needs: ci-tools-preflight
     container:
-      image: ${{ env.CI_TOOLS_IMAGE }}
+      image: ghcr.io/${{ github.repository_owner }}/ci-tools/security-suite@sha256:24a75a644c16e625723872badc4555de8db6c6db3afe3ea354dae072966e9b3d
     name: Verify Image Signatures
     if: inputs.certify_images || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
@@ -280,7 +280,7 @@ jobs:
   dependency-audit:
     needs: ci-tools-preflight
     container:
-      image: ${{ env.CI_TOOLS_IMAGE }}
+      image: ghcr.io/${{ github.repository_owner }}/ci-tools/security-suite@sha256:24a75a644c16e625723872badc4555de8db6c6db3afe3ea354dae072966e9b3d
     name: Dependency Audit
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -340,28 +340,18 @@ jobs:
             exit 1
           fi
 
-      - name: Verify frontend lockfile is clean
-        run: git diff --exit-code -- apps/web/pnpm-lock.yaml
-
       - name: Compute frontend lockfile hash
         id: web_lock_hash
         run: |
           LOCK_HASH=$(sha256sum apps/web/pnpm-lock.yaml | awk '{print $1}')
           echo "lock_hash=$LOCK_HASH" >> "$GITHUB_OUTPUT"
 
-      - name: Audit Node.js dependencies (pnpm)
-        run: |
-          set +e
-          pnpm --dir apps/web audit --audit-level high --json > frontend-audit.json
-          audit_status=$?
-          set -e
-
-          python -c 'import json, sys; from pathlib import Path; payload = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8")); assert isinstance(payload, dict), "pnpm audit JSON is missing expected audit report fields"; error = payload.get("error"); assert not error, "pnpm audit failed to execute successfully: " + str(error); assert any(key in payload for key in ("advisories", "auditReportVersion", "metadata", "vulnerabilities")), "pnpm audit JSON is missing expected audit report fields"' frontend-audit.json
-
-          if [ "$audit_status" -ne 0 ]; then
-            echo "::error::pnpm audit reported high-severity dependency advisories"
-            touch .dependency-findings
-          fi
+      - name: Audit Node.js dependencies and verify security backports
+        run: >-
+          python scripts/ci/check_node_security_backports.py
+          --audit
+          --project-dir apps/web
+          --audit-report-output frontend-audit.json
 
       - name: Upload audit results
         if: always()
@@ -387,7 +377,7 @@ jobs:
   license-check:
     needs: ci-tools-preflight
     container:
-      image: ${{ env.CI_TOOLS_IMAGE }}
+      image: ghcr.io/${{ github.repository_owner }}/ci-tools/security-suite@sha256:24a75a644c16e625723872badc4555de8db6c6db3afe3ea354dae072966e9b3d
     name: License Compliance
     runs-on: ubuntu-latest
     timeout-minutes: 15

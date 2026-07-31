@@ -8,7 +8,7 @@ Reason: Prometheus metrics collection for Value Fabric Layer 3 API.
 import asyncio
 import re
 import time
-from datetime import datetime
+from datetime import UTC, datetime
 from functools import wraps
 
 try:
@@ -339,7 +339,7 @@ class PrometheusMetrics:
         self._metrics["build_info"].info(
             {
                 "version": "1.0.0",
-                "build_date": datetime.utcnow().isoformat(),
+                "build_date": datetime.now(UTC).isoformat(),
                 "namespace": self.config.label_namespace,
             }
         )

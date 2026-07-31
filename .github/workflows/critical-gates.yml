@@ -13,8 +13,9 @@ on:
     branches: [main]
 
 concurrency:
-  # See pr-checks.yml for the shared heavy-gate throttling rationale.
-  group: ${{ (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/staging' || github.ref == 'refs/heads/production' || startsWith(github.ref, 'refs/heads/release/')) && format('critical-gates-{0}', github.ref) || 'fabric-critical-gates-shared' }}
+  # Cancel only an obsolete run of this same workflow/ref. A global
+  # feature-branch group lets activity on an unrelated PR cancel required gates.
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -22,12 +23,23 @@ permissions:
 
 env:
   EVIDENCE_RETENTION_DAYS: 30
+  TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_value_fabric
 
 jobs:
   critical-gates:
     name: "Critical Gate: ${{ matrix.gate.id }}"
     runs-on: ubuntu-latest
     services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test_value_fabric
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d test_value_fabric" --health-interval 10s --health-timeout 5s --health-retries 5
       redis:
         image: redis:7
         ports:

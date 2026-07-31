@@ -13,8 +13,9 @@ on:
   workflow_dispatch:
 
 concurrency:
-  # See pr-checks.yml for the shared heavy-gate throttling rationale.
-  group: ${{ (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/staging' || github.ref == 'refs/heads/production' || startsWith(github.ref, 'refs/heads/release/')) && format('zero-trust-{0}', github.ref) || 'fabric-zero-trust-shared' }}
+  # Cancel only an obsolete run of this same workflow/ref. A global
+  # feature-branch group lets activity on an unrelated PR cancel required gates.
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 env:

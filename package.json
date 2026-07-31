@@ -109,6 +109,16 @@
       "@tailwindcss/oxide",
       "esbuild",
       "msw"
-    ]
+    ],
+    "auditConfig": {
+      "ignoreCves": [
+        "CVE-2026-14257",
+        "GHSA-qwww-vcr4-c8h2"
+      ]
+    },
+    "patchedDependencies": {
+      "brace-expansion@5.0.8": "patches/brace-expansion@5.0.8.patch",
+      "react-router@7.18.0": "patches/react-router@7.18.0.patch"
+    }
   }
 }

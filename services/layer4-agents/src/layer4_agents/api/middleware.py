@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from uuid import UUID
+
 """Middleware composition for Layer 4 API."""
 
 
@@ -25,11 +27,15 @@ def on_rate_limit_hit(tenant_id: str, scope: str):
 
 async def _tenant_settings_lookup(tenant_id) -> dict | None:
     from value_fabric.shared.identity.context import RequestContext
+
     if tenant_id is None:
         return None
-    context = RequestContext(tenant_id=tenant_id)
+    tenant_uuid = tenant_id if isinstance(tenant_id, UUID) else UUID(str(tenant_id))
+    context = RequestContext(tenant_id=tenant_uuid)
     async with db_session_for_context(context) as db:
-        return await get_tenant_settings(db, tenant_id)
+        if db.get_bind().dialect.name != "postgresql":
+            return None
+        return await get_tenant_settings(db, tenant_uuid)
 
 
 class _RuntimeRateLimiterProxy:

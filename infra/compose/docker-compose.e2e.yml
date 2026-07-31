@@ -81,6 +81,69 @@ services:
       start_period: 60s
 
   # ---------------------------------------------------------------------------
+  # Backend — Layer 1 Ingestion API (real target/job boundary for J1)
+  # ---------------------------------------------------------------------------
+  layer1:
+    build:
+      context: ../../services/layer1-ingestion
+      dockerfile: ./Dockerfile
+      args:
+        INSTALL_PLAYWRIGHT_BROWSERS: "false"
+    container_name: vf-e2e-layer1
+    ports:
+      - "8001:8000"
+    environment:
+      - ENVIRONMENT=development
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/ingestion
+      - DATABASE_URL_SYNC=postgresql://postgres:postgres@postgres:5432/ingestion
+      - REDIS_URL=redis://redis:6379/0
+      - JWT_SECRET=e2e-test-secret-do-not-use-in-production-minimum-32-chars
+      - SERVICE_AUTH_SECRET=${SERVICE_AUTH_SECRET:-test-service-auth-secret-for-validation-seed-1234567890}
+      - CORS_ORIGINS=["http://localhost:3001"]
+      - PYTHONPATH=/app:/app/src:/app/packages/platform-contract/src/python
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      layer1-migrate:
+        condition: service_completed_successfully
+    networks:
+      - e2e-network
+    volumes: *shared-code-volumes
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  layer1-migrate:
+    build:
+      context: ../../services/layer1-ingestion
+      dockerfile: ./Dockerfile
+      args:
+        INSTALL_PLAYWRIGHT_BROWSERS: "false"
+    container_name: vf-e2e-layer1-migrate
+    environment:
+      - ENVIRONMENT=development
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/ingestion
+      - DATABASE_URL_SYNC=postgresql://postgres:postgres@postgres:5432/ingestion
+      - REDIS_URL=redis://redis:6379/0
+      - JWT_SECRET=e2e-test-secret-do-not-use-in-production-minimum-32-chars
+      - PYTHONPATH=/app:/app/src:/app/packages/platform-contract/src/python
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    networks:
+      - e2e-network
+    volumes: *shared-code-volumes
+    command: /app/.venv/bin/alembic -c /app/alembic.ini upgrade head
+    restart: "no"
+
+  # ---------------------------------------------------------------------------
   # Backend — Layer 4 Agents API (primary API surface for frontend)
   # ---------------------------------------------------------------------------
   layer4:
@@ -129,6 +192,8 @@ services:
         condition: service_healthy
       neo4j:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     networks:
       - e2e-network
     volumes: *shared-code-volumes
@@ -154,6 +219,7 @@ services:
     container_name: vf-e2e-migrate
     environment:
       - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/layer4_agents
+      - LAYER4_DATABASE_URL=postgresql+psycopg2://postgres:postgres@postgres:5432/layer4_agents
       - CHECKPOINT_DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/ground_truth
       # PYTHONPATH: include image defaults plus mounted platform-contract code.
       # /app itself makes value_fabric/shared importable without creating a top-level 'secrets' package.
@@ -164,19 +230,7 @@ services:
     networks:
       - e2e-network
     volumes: *shared-code-volumes
-    command: |
-      python -c "
-      import asyncio
-      from sqlalchemy.ext.asyncio import create_async_engine
-      from layer4_agents.database import Base
-      async def run():
-          engine = create_async_engine('postgresql+asyncpg://postgres:postgres@postgres:5432/layer4_agents')
-          async with engine.begin() as conn:
-              await conn.run_sync(Base.metadata.create_all)
-          await engine.dispose()
-          print('E2E migrations complete')
-      asyncio.run(run())
-      "
+    command: /app/.venv/bin/alembic -c /app/alembic.ini upgrade head
     restart: "no"
 
 networks:

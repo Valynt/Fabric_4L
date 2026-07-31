@@ -811,6 +811,7 @@
       "name": "Publish SDK",
       "owner": "@value-fabric/sre-leads",
       "trigger": [
+        "pull_request",
         "push",
         "workflow_dispatch"
       ],
@@ -1142,6 +1143,7 @@
       "required_secrets": [],
       "produced_artifacts": [
         "apps/web/dist",
+        "apps/web/e2e/visual/**/*-snapshots/*.png",
         "apps/web/e2e/visual/**/*.actual.png",
         "apps/web/e2e/visual/**/*.diff.png",
         "apps/web/e2e/visual/**/*.expected.png",

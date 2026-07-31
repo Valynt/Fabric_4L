@@ -226,19 +226,17 @@ class TestCrawlDecisionTenantIsolation:
             text_length=1000,
         )
 
-        # Try to save with tenant A context but record has tenant_id=B
+        # Try to save with tenant A context but record has tenant_id=B. Keep
+        # the expected database error outside the session context so its
+        # manager can roll back the failed PostgreSQL transaction normally.
         tenant_a_uuid = UUID(str(org_id))
-        with get_db_session(tenant_id=tenant_a_uuid, require_tenant=True) as session:
-            repo = CrawlDecisionRepository(db_session=session)
-            # This should fail due to RLS or validation
-            try:
+        with pytest.raises(Exception) as exc_info:
+            with get_db_session(tenant_id=tenant_a_uuid, require_tenant=True) as session:
+                repo = CrawlDecisionRepository(db_session=session)
                 await repo.save(record_b)
-                # If we get here, cross-tenant write succeeded - security issue
-                assert False, "Cross-tenant write should be blocked by RLS"
-            except Exception as e:
-                # Expected: RLS should block cross-tenant write
-                # The error should be related to tenant isolation
-                assert "tenant" in str(e).lower() or "permission" in str(e).lower()
+
+        error = str(exc_info.value).lower()
+        assert "tenant" in error or "permission" in error
 
     @pytest.mark.asyncio
     async def test_crawl_decision_rls_prevents_cross_tenant_reads(self, db, org_id, other_org_id):

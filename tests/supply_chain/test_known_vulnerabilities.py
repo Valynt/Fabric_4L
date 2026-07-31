@@ -95,6 +95,17 @@ def test_node_audit_overrides_patch_known_transitive_advisories() -> None:
 
 
 
+def test_flagged_ci_and_test_images_run_as_non_root() -> None:
+    expectations = {
+        "apps/web/Dockerfile.dev": "USER node",
+        "apps/web/Dockerfile.playwright": "USER pwuser",
+        "tools/ci/security-suite/Dockerfile": "USER 1001:1001",
+    }
+    for relative_path, directive in expectations.items():
+        dockerfile = (REPO_ROOT / relative_path).read_text(encoding="utf-8")
+        assert directive in dockerfile
+
+
 def test_security_gates_builds_frontend_sbom_from_workspace_root() -> None:
     workflow = (REPO_ROOT / ".github/workflows/security-gates.yml").read_text(encoding="utf-8")
 

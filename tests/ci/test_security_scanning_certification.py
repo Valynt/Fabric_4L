@@ -1,7 +1,7 @@
+import json
 from pathlib import Path
 
 import yaml
-
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -62,8 +62,6 @@ def test_supply_chain_summary_fails_closed() -> None:
 
 
 def test_machine_readable_inventory_and_findings_validate() -> None:
-    import json
-
     inventory = json.loads(
         (ROOT / "security" / "scanning" / "tool-inventory.json").read_text(encoding="utf-8")
     )

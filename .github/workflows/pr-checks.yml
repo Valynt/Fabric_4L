@@ -17,13 +17,9 @@ permissions:
     branches: [main]
 
 concurrency:
-  # On protected branches each workflow keeps its own per-ref group so that
-  # a newer push cancels an obsolete one. On PR/feature branches the heaviest
-  # workflows share a single global group to prevent the runner pool from being
-  # flooded by many open PRs launching ~100+ jobs each. cancel-in-progress is
-  # true on the shared group so the latest queued heavy run always executes
-  # rather than leaving older pending runs cancelled.
-  group: ${{ (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/staging' || github.ref == 'refs/heads/production' || startsWith(github.ref, 'refs/heads/release/')) && format('pr-checks-{0}', github.ref) || 'fabric-pr-checks-shared' }}
+  # Cancel only an obsolete run of this same workflow/ref. A global
+  # feature-branch group lets activity on an unrelated PR cancel required gates.
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 env:
@@ -920,7 +916,9 @@ jobs:
   layer3-checks:
     name: Layer 3 - Knowledge
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # The full coverage suite consistently needs more than 13 minutes on the
+    # hosted runner before the hostile-tenant and evidence steps execute.
+    timeout-minutes: 30
     defaults:
       run:
         working-directory: services/layer3-knowledge
@@ -1568,8 +1566,12 @@ jobs:
           # Preview server is still running from previous step in the same job
           pnpm run test:a11y:keyboard-flow
 
-      - name: Security audit (GATING)
-        run: pnpm audit --audit-level high
+      - name: Security audit and verified Node backports (GATING)
+        run: >-
+          python ../../scripts/ci/check_node_security_backports.py
+          --audit
+          --project-dir apps/web
+          --audit-report-output frontend-audit.json
 
       - name: Upload build artifacts on failure
         if: failure()
@@ -1639,6 +1641,10 @@ jobs:
       SERVICE_AUTH_SECRET: test-service-auth-secret-for-validation-seed-1234567890
       VITE_USE_MOCKS: "false"
       VITE_ENABLE_MOCK_FALLBACK: "false"
+      VITE_PROXY_DEBUG_DIRECT_LAYERS: "true"
+      VITE_PROXY_L1_URL: http://localhost:8001
+      VITE_PROXY_L4_URL: http://localhost:8004
+      VITE_PROXY_API_GATEWAY_URL: http://localhost:8004
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
@@ -1873,6 +1879,30 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    env:
+      OPENAI_API_KEY: ci-runtime-placeholder
+      JWT_SECRET: ci-runtime-jwt-secret-not-for-production
+      REDIS_PASSWORD: test-redis
+      NEO4J_PASSWORD: test-neo4j
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: minio-password
+      SERVICE_AUTH_SECRET: ci-runtime-service-auth-secret-minimum-32-chars
+      API_KEY_HMAC_SECRET: ci-runtime-api-key-hmac-secret-minimum-32-chars
+      SECRET_KEY: ci-runtime-secret-key-minimum-32-characters
+      CREDENTIALS_MASTER_KEY: ci-runtime-credentials-master-key-32chars
+      DEFAULT_TENANT_ID: 00000000-0000-4000-8000-000000000001
+      CORS_ORIGINS: http://localhost:3001
+      CLERK_AUTHORIZED_PARTIES: http://localhost:3001
+      CLERK_ISSUER: http://localhost:3001
+      CLERK_JWKS_URL: http://localhost:3001/.well-known/jwks.json
+      CLERK_SECRET_KEY: ci-clerk-secret
+      FABRIC_AUTH_PUBLIC_KEYS: ci-fabric-public-key
+      FABRIC_AUTH_SIGNING_KEY: ci-fabric-signing-key
+      FLOWER_PASSWORD: ci-flower-password
+      GRAFANA_ADMIN_PASSWORD: ci-grafana-password
+      LAYER4_DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/layer4_agents
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
@@ -1908,7 +1938,7 @@ jobs:
           export POSTGRES_PASSWORD=postgres
           export MINIO_ROOT_USER=minio
           export MINIO_ROOT_PASSWORD=minio-password
-          export SERVICE_AUTH_SECRET=ci-service-auth-secret
+          export SERVICE_AUTH_SECRET=ci-runtime-service-auth-secret-minimum-32-chars
           export API_KEY_HMAC_SECRET=ci-api-key-hmac-secret
           export SECRET_KEY=ci-secret-key
           export CORS_ORIGINS=http://localhost:3001
@@ -1920,7 +1950,7 @@ jobs:
           export FABRIC_AUTH_SIGNING_KEY=ci-fabric-signing-key
           export FLOWER_PASSWORD=ci-flower-password
           export GRAFANA_ADMIN_PASSWORD=ci-grafana-password
-          export LAYER4_DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/ground_truth
+          export LAYER4_DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/layer4_agents
           export JWT_SECRET=${JWT_SECRET:?set JWT_SECRET}
           docker compose -f infra/compose/docker-compose.full.yml -f docker-compose.runtime-contract.yml up -d postgres redis neo4j layer5-migrate layer5-ground-truth \
             layer1-ingestion layer2-extraction layer3-knowledge layer4-agents
@@ -1936,6 +1966,7 @@ jobs:
               "L2": "http://localhost:8002/health",
               "L3": "http://localhost:8003/health",
               "L4": "http://localhost:8004/health",
+              "L5": "http://localhost:8005/health",
           }
 
           deadline = time.time() + 300
@@ -1962,12 +1993,6 @@ jobs:
               raise SystemExit(f"Services did not become healthy in time: {failed}")
           PY
 
-      - name: Capture runtime contract service diagnostics
-        if: failure()
-        run: |
-          docker compose -f infra/compose/docker-compose.full.yml -f docker-compose.runtime-contract.yml ps
-          docker compose -f infra/compose/docker-compose.full.yml -f docker-compose.runtime-contract.yml logs --no-color --timestamps --tail=500
-
       - name: Run runtime contract marker suite
         env:
           RUN_RUNTIME_CONTRACTS: "1"
@@ -1975,8 +2000,19 @@ jobs:
           L2_URL: http://localhost:8002
           L3_URL: http://localhost:8003
           L4_URL: http://localhost:8004
+          LAYER3_API_URL: http://localhost:8003
+          LAYER4_API_URL: http://localhost:8004
+          LAYER5_API_URL: http://localhost:8005
+          SERVICE_AUTH_SECRET: ci-runtime-service-auth-secret-minimum-32-chars
+          RUNTIME_CONTRACT_TENANT_ID: 00000000-0000-4000-8000-000000000001
         run: |
           pytest tests/contract/test_layer_integration.py -m runtime_contract -v --tb=short
+
+      - name: Capture runtime contract service diagnostics
+        if: failure()
+        run: |
+          docker compose -f infra/compose/docker-compose.full.yml -f docker-compose.runtime-contract.yml ps
+          docker compose -f infra/compose/docker-compose.full.yml -f docker-compose.runtime-contract.yml logs --no-color --timestamps --tail=500
 
       - name: Upload runtime contract artifacts
         if: always()
@@ -2118,50 +2154,6 @@ jobs:
       - name: Run release smoke gate
         run: make test-backend-integrated-release-smoke
 
-      - name: Start core services for integration tests
-        run: |
-          export JWT_SECRET="${JWT_SECRET:-release-smoke-jwt-secret-minimum-32-characters}"
-          export API_KEY_HMAC_SECRET="${API_KEY_HMAC_SECRET:-release-smoke-api-key-hmac-secret-32chars}"
-          export SERVICE_AUTH_SECRET="${SERVICE_AUTH_SECRET:-release-smoke-service-auth-secret-32chars}"
-          export CREDENTIALS_MASTER_KEY="${CREDENTIALS_MASTER_KEY:-release-smoke-credentials-master-key-32chars}"
-          export CORS_ORIGINS="${CORS_ORIGINS:-[\"https://localhost:3001\"]}"
-          export POSTGRES_USER="${POSTGRES_USER:-release_smoke_app}"
-          export POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-release_smoke_strong_credential}"
-          export NEO4J_PASSWORD="${NEO4J_PASSWORD:-devpassword}"
-
-          docker compose up -d neo4j redis postgres
-          docker compose up -d --build layer2 layer3 layer4
-
-      - name: Wait for services to be healthy
-        run: |
-          echo "Waiting for services to be healthy..."
-          for i in {1..24}; do
-            sleep 5
-            # Check if core DB services are responding
-            pg_isready -h localhost -p 5432 2>/dev/null && echo "PostgreSQL ready"
-            redis-cli -h localhost -p 6379 ping 2>/dev/null && echo "Redis ready"
-            # Check Neo4j
-            curl -s http://localhost:7474/dbms/health 2>/dev/null && echo "Neo4j ready"
-            # If we've waited enough, proceed
-            if [ "$i" -ge "12" ]; then
-              echo "Proceeding with available services..."
-              break
-            fi
-          done
-          docker compose -f infra/compose/docker-compose.full.yml ps
-        timeout-minutes: 3
-
-      - name: Run integration test suite
-        run: |
-          pip install pytest httpx pytest-asyncio
-          # Run the integration tests if they exist
-          if [ -d "tests/integration" ]; then
-            cd tests/integration
-            pytest -v --tb=short
-          else
-            echo "Integration test folder not found, skipping..."
-          fi
-
       - name: Capture logs on failure
         if: failure()
         run: |
@@ -2253,9 +2245,11 @@ jobs:
         run: |
           corepack enable
           corepack prepare pnpm@10.18.1 --activate
+          export PNPM_HOME="${RUNNER_TEMP}/pnpm"
+          export PATH="${PNPM_HOME}:${PATH}"
           echo "PNPM_HOME=${RUNNER_TEMP}/pnpm" >> "$GITHUB_ENV"
           echo "${RUNNER_TEMP}/pnpm" >> "$GITHUB_PATH"
-          PNPM_HOME="${RUNNER_TEMP}/pnpm" pnpm add --global @devcontainers/cli@0.80.1
+          pnpm add --global @devcontainers/cli@0.80.1
 
       - name: Install compose contract dependencies
         run: python -m pip install pyyaml

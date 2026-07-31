@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import pytest
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session, sessionmaker
 
 from layer4_agents.models.billing import (
@@ -21,36 +21,42 @@ def billing_db(postgres_container):
     dbname = postgres_container.dbname
 
     database_url = f"postgresql+psycopg2://{username}:{password}@{host}:{port}/{dbname}"
-    engine = create_engine(database_url)
-    
-    # Create billing tables
-    BillingCustomer.__table__.create(engine, checkfirst=True)
-    BillingPlanVersion.__table__.create(engine, checkfirst=True)
-    BillingSubscription.__table__.create(engine, checkfirst=True)
-    
-    SessionLocal = sessionmaker(bind=engine)
-    session = SessionLocal()
-    
-    # Bypass tenant context enforcement for billing tests
+    admin_engine = create_engine(database_url)
+    schema_name = "billing_tenant_key_test"
+    with admin_engine.begin() as connection:
+        connection.execute(text(f'DROP SCHEMA IF EXISTS "{schema_name}" CASCADE'))
+        connection.execute(text(f'CREATE SCHEMA "{schema_name}"'))
+
+    engine = admin_engine.execution_options(schema_translate_map={None: schema_name})
+    BillingCustomer.__table__.create(engine)
+    BillingPlanVersion.__table__.create(engine)
+    BillingSubscription.__table__.create(engine)
+
+    session_factory = sessionmaker(bind=engine)
+    session = session_factory()
+
     from layer4_agents.database import _mark_session_tenant_bypass
+
     _mark_session_tenant_bypass(session, reason="billing_test")
-    
-    yield session
-    
-    session.close()
-    # Drop tables for cleanup
-    BillingSubscription.__table__.drop(engine)
-    BillingPlanVersion.__table__.drop(engine)
-    BillingCustomer.__table__.drop(engine)
+
+    try:
+        yield session
+    finally:
+        session.close()
+        with admin_engine.begin() as connection:
+            connection.execute(text(f'DROP SCHEMA IF EXISTS "{schema_name}" CASCADE'))
+        admin_engine.dispose()
 
 
 @pytest.mark.postgres
 def test_same_logical_customer_id_can_exist_in_multiple_tenants(billing_db: Session) -> None:
     """Test that same logical customer_id can exist across tenants (PostgreSQL required for JSONB)."""
-    billing_db.add_all([
-        BillingCustomer(id="cust_1", tenant_id="tenant_a", email="a@example.com"),
-        BillingCustomer(id="cust_1", tenant_id="tenant_b", email="b@example.com"),
-    ])
+    billing_db.add_all(
+        [
+            BillingCustomer(id="cust_1", tenant_id="tenant_a", email="a@example.com"),
+            BillingCustomer(id="cust_1", tenant_id="tenant_b", email="b@example.com"),
+        ]
+    )
     billing_db.commit()
 
     rows = billing_db.query(BillingCustomer).filter(BillingCustomer.id == "cust_1").all()
