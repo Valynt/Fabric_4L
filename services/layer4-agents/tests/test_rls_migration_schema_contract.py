@@ -47,16 +47,37 @@ def test_revision_013_does_not_target_tables_before_tenant_columns_exist() -> No
     }
 
 
+def test_revision_019_does_not_recreate_account_tenant_ownership() -> None:
+    source = (MIGRATIONS / "019_add_account_enrichment_columns.py").read_text(encoding="utf-8")
+    assert 'op.add_column(\n        "accounts",\n        sa.Column("tenant_id"' not in source
+    assert 'op.create_index("ix_accounts_tenant_id"' not in source
+    assert "CREATE POLICY accounts_tenant_isolation" not in source
+    assert 'op.drop_column("accounts", "tenant_id")' not in source
+
+
+def test_revision_020_adds_tenant_identity_before_late_table_rls() -> None:
+    source = (MIGRATIONS / "020_tenant_safe_crm_sync_constraints.py").read_text(encoding="utf-8")
+    assert 'op.add_column(\n        "account_sync_status"' in source
+    assert 'sa.Column("tenant_id"' in source
+
+
 def test_current_head_adds_strict_rls_for_late_tenant_scoped_tables() -> None:
     path = MIGRATIONS / "045_harden_late_tenant_tables.py"
     assert path.exists()
     source = path.read_text(encoding="utf-8")
     assert set(_literal_list(path, "RLS_TABLES")) == {
         "account_sync_status",
+        "billing_plan_versions",
         "model_promotion_log",
     }
     assert 'op.add_column(\n        "model_promotion_log"' in source
     assert "UPDATE model_promotion_log AS promotion" in source
     assert 'op.alter_column("model_promotion_log", "tenant_id", nullable=False)' in source
+    assert "uq_model_versions_id_tenant_id" in source
+    assert "fk_model_promotion_log_model_tenant" in source
+    assert '["model_version_id", "tenant_id"]' in source
+    assert '["id", "tenant_id"]' in source
     assert "tenant_id::text = current_setting('app.tenant_id', true)" in source
     assert "tenant_id IS NULL OR" not in source
+    assert "CREATE POLICY global_plan_read_policy ON billing_plan_versions" in source
+    assert "FOR SELECT" in source

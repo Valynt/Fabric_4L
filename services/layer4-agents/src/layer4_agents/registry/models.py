@@ -7,7 +7,17 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import JSON, Boolean, DateTime, Float, ForeignKey, Index, String, Text
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    DateTime,
+    Float,
+    ForeignKey,
+    ForeignKeyConstraint,
+    Index,
+    String,
+    Text,
+)
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -161,6 +171,12 @@ class ModelPromotionLog(Base):
     )
 
     __table_args__ = (
+        ForeignKeyConstraint(
+            ["model_version_id", "tenant_id"],
+            ["model_versions.id", "model_versions.tenant_id"],
+            name="fk_model_promotion_log_model_tenant",
+            ondelete="CASCADE",
+        ),
         Index("ix_model_promotion_log_model_version_id", "model_version_id"),
         Index("ix_model_promotion_log_tenant_id", "tenant_id"),
     )

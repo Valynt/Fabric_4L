@@ -22,6 +22,7 @@ depends_on: Union[str, Sequence[str], None] = None
 
 RLS_TABLES = [
     "account_sync_status",
+    "billing_plan_versions",
     "model_promotion_log",
 ]
 
@@ -52,6 +53,19 @@ def upgrade() -> None:
         "model_promotion_log",
         ["tenant_id"],
     )
+    op.create_unique_constraint(
+        "uq_model_versions_id_tenant_id",
+        "model_versions",
+        ["id", "tenant_id"],
+    )
+    op.create_foreign_key(
+        "fk_model_promotion_log_model_tenant",
+        "model_promotion_log",
+        "model_versions",
+        ["model_version_id", "tenant_id"],
+        ["id", "tenant_id"],
+        ondelete="CASCADE",
+    )
 
     for table in RLS_TABLES:
         op.execute(f"ALTER TABLE {table} ENABLE ROW LEVEL SECURITY")
@@ -77,9 +91,21 @@ def upgrade() -> None:
                 WITH CHECK (current_setting('app.tenant_id', true) = '')
         """)
 
+    # Plan definitions with no tenant_id are canonical shared catalog entries.
+    # They are readable by every tenant but writable only through the separate
+    # privileged-role policy above. Tenant-owned overrides remain protected by
+    # tenant_isolation_policy.
+    op.execute("""
+        CREATE POLICY global_plan_read_policy ON billing_plan_versions
+            FOR SELECT
+            TO PUBLIC
+            USING (tenant_id IS NULL)
+    """)
+
 
 def downgrade() -> None:
     """Remove the late-table policies and promotion-log tenant column."""
+    op.execute("DROP POLICY IF EXISTS global_plan_read_policy ON billing_plan_versions")
     for table in RLS_TABLES:
         op.execute(f"DROP POLICY IF EXISTS tenant_isolation_policy ON {table}")
         op.execute(f"DROP POLICY IF EXISTS admin_bypass_policy ON {table}")
@@ -91,8 +117,18 @@ def downgrade() -> None:
         table_name="model_promotion_log",
     )
     op.drop_constraint(
+        "fk_model_promotion_log_model_tenant",
+        "model_promotion_log",
+        type_="foreignkey",
+    )
+    op.drop_constraint(
         "fk_model_promotion_log_tenant_id",
         "model_promotion_log",
         type_="foreignkey",
+    )
+    op.drop_constraint(
+        "uq_model_versions_id_tenant_id",
+        "model_versions",
+        type_="unique",
     )
     op.drop_column("model_promotion_log", "tenant_id")
