@@ -14,6 +14,27 @@ from pathlib import Path
 
 DIGEST_REF = re.compile(r"@sha256:[0-9a-f]{64}$")
 
+COMPOSE_RENDER_ENV_DEFAULTS = {
+    "API_KEY_HMAC_SECRET": "devcontainer-contract-api-key-hmac-secret-32chars",
+    "CLERK_AUTHORIZED_PARTIES": "http://localhost:3001",
+    "CLERK_ISSUER": "https://devcontainer-contract.clerk.example.com",
+    "CLERK_JWKS_URL": "https://devcontainer-contract.clerk.example.com/.well-known/jwks.json",
+    "CLERK_SECRET_KEY": "devcontainer-contract-clerk-secret-key",
+    "CORS_ORIGINS": "http://localhost:3001",
+    "FABRIC_AUTH_PUBLIC_KEYS": "devcontainer-contract-fabric-auth-public-key",
+    "FABRIC_AUTH_SIGNING_KEY": "devcontainer-contract-fabric-auth-signing-key",
+    "FLOWER_PASSWORD": "devcontainer-contract-flower-password",
+    "GRAFANA_ADMIN_PASSWORD": "devcontainer-contract-grafana-password",
+    "JWT_SECRET": "devcontainer-contract-jwt-secret-minimum-32-characters",
+    "LAYER4_DATABASE_URL": "postgresql+asyncpg://devcontainer:devcontainer@postgres:5432/layer4_agents",
+    "NEO4J_PASSWORD": "devcontainer-contract-neo4j-password",
+    "POSTGRES_PASSWORD": "devcontainer-contract-postgres-password",
+    "POSTGRES_USER": "devcontainer_contract_user",
+    "REDIS_PASSWORD": "devcontainer-contract-redis-password",
+    "SECRET_KEY": "devcontainer-contract-secret-key-minimum-32-characters",
+    "SERVICE_AUTH_SECRET": "devcontainer-contract-service-auth-secret-32chars",
+}
+
 
 def load_json(path: Path, errors: list[str]) -> dict:
     try:
@@ -299,7 +320,8 @@ def run_external_validation(root: Path, errors: list[str]) -> None:
         ],
     }
     render_env = os.environ.copy()
-    render_env.setdefault("FLOWER_PASSWORD", "devcontainer-contract-flower-password")
+    for key, value in COMPOSE_RENDER_ENV_DEFAULTS.items():
+        render_env.setdefault(key, value)
     for name, files in combinations.items():
         result = subprocess.run(
             [

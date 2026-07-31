@@ -4,7 +4,9 @@ import importlib.util
 import sys
 from pathlib import Path
 from types import SimpleNamespace
+from uuid import UUID
 
+import jwt
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -21,8 +23,50 @@ def load_backend_validation_conftest():
     return module
 
 
+def test_backend_validation_headers_use_signed_user_identity(monkeypatch):
+    monkeypatch.setenv("JWT_SECRET", "release-smoke-jwt-secret-minimum-32-characters")
+    module = load_backend_validation_conftest()
+    seed_ids = module.SeedIds(
+        tenant_a="00000000-0000-4000-8000-000000000001",
+        tenant_b="00000000-0000-4000-8000-000000000002",
+        user_admin="00000000-0000-4000-8000-000000000003",
+        user_reviewer="00000000-0000-4000-8000-000000000004",
+        account_id="00000000-0000-4000-8000-000000000005",
+        document_id="00000000-0000-4000-8000-000000000006",
+        value_pack_id="value-pack-test",
+        benchmark_id="benchmark-test",
+        evidence_id="evidence-test",
+        formula_id="formula-test",
+        crm_connection_id="crm-test",
+    )
+
+    headers = module.BackendValidationHarness(seed_ids).headers(
+        tenant_id=seed_ids.tenant_b,
+        user_id=seed_ids.user_reviewer,
+        role="analyst",
+    )
+
+    assert "X-Service-Auth" not in headers
+    assert "X-Dev-Tenant-ID" not in headers
+    assert "X-Dev-User-ID" not in headers
+    assert headers["X-Tenant-ID"] == seed_ids.tenant_b
+    assert headers["X-User-ID"] == seed_ids.user_reviewer
+    claims = jwt.decode(
+        headers["Authorization"].removeprefix("Bearer "),
+        "release-smoke-jwt-secret-minimum-32-characters",
+        algorithms=["HS256"],
+        audience="value-fabric-services",
+        issuer="value-fabric-internal",
+    )
+    assert UUID(claims["tenant_id"]) == UUID(seed_ids.tenant_b)
+    assert claims["sub"] == seed_ids.user_reviewer
+    assert claims["roles"] == ["analyst"]
+
+
 @pytest.mark.asyncio
-async def test_seed_graph_uses_validation_auth_seed_instead_of_super_admin_tenant_route(monkeypatch):
+async def test_seed_graph_uses_validation_auth_seed_instead_of_super_admin_tenant_route(
+    monkeypatch,
+):
     module = load_backend_validation_conftest()
     seed_ids = module.SeedIds(
         tenant_a="00000000-0000-4000-8000-000000000001",
@@ -61,7 +105,7 @@ async def test_seed_graph_uses_validation_auth_seed_instead_of_super_admin_tenan
     assert seed_call["json"] == {
         "tenant_id": seed_ids.tenant_a,
         "tenant_name": f"Fabric Backend Validation Tenant {module.RUN_ID}",
-        "tenant_slug": f"backend-validation-{module.RUN_ID.removeprefix('backend-validation-')}-a",
+        "tenant_slug": f"backend-validation-{module.RUN_SLUG_SUFFIX}-a",
         "service_account_id": "backend-integrated-validation",
     }
     assert seed_call["extra_headers"] == {"X-Privileged-Reason": "validation-seed"}

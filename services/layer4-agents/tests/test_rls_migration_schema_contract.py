@@ -47,6 +47,13 @@ def test_revision_013_does_not_target_tables_before_tenant_columns_exist() -> No
     }
 
 
+def test_revision_015_declares_event_name_index_once() -> None:
+    source = (MIGRATIONS / "015_add_usage_events_table.py").read_text(encoding="utf-8")
+
+    assert 'sa.Column("event_name", sa.String(100), nullable=False, index=True)' in source
+    assert 'op.create_index(\n        "ix_billing_usage_events_event_name"' not in source
+
+
 def test_revision_019_does_not_recreate_account_tenant_ownership() -> None:
     source = (MIGRATIONS / "019_add_account_enrichment_columns.py").read_text(encoding="utf-8")
     assert 'op.add_column(\n        "accounts",\n        sa.Column("tenant_id"' not in source

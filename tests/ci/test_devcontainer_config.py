@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -99,6 +100,15 @@ def test_compose_render_uses_canonical_compose_project_and_safe_required_env(mon
         for args, _kwargs in docker_calls
     )
     assert all(kwargs["env"]["FLOWER_PASSWORD"] for _args, kwargs in docker_calls)
+    required_env = {
+        match
+        for compose_path in (
+            REPO_ROOT / "infra" / "compose" / "docker-compose.prod.yml",
+            REPO_ROOT / "infra" / "compose" / "docker-compose.full.yml",
+        )
+        for match in re.findall(r"\$\{([A-Z0-9_]+):\?", compose_path.read_text(encoding="utf-8"))
+    }
+    assert all(required_env <= set(kwargs["env"]) for _args, kwargs in docker_calls)
 
 
 def test_dev_stack_uses_canonical_compose_project_directory() -> None:
