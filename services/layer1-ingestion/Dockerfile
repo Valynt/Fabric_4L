@@ -68,7 +68,7 @@ RUN groupadd -r appgroup && useradd -r -g appgroup -m appuser
 
 # Upgrade base-image setuptools/wheel to remediate known CVEs flagged by Trivy
 RUN pip install --no-cache-dir --upgrade setuptools wheel \
-    && python -m pip uninstall --yes pip
+    && pip uninstall --yes pip
 
 WORKDIR /app
 

@@ -166,7 +166,7 @@ services:
     networks:
       - e2e-network
     volumes: *shared-code-volumes
-    command: /app/.venv/bin/alembic upgrade head
+    command: /app/.venv/bin/alembic -c /app/alembic.ini upgrade head
     restart: "no"
 
 networks:

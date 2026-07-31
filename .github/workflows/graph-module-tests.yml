@@ -59,9 +59,12 @@ jobs:
       - name: Run L1 Unit Tests
         working-directory: apps/web
         run: |
-          pnpm test -- useGraphQuery.comprehensive.test.ts \
+          pnpm exec vitest run src/hooks/useGraphQuery.comprehensive.test.ts \
             --reporter=verbose \
             --coverage \
+            --coverage.reporter=text \
+            --coverage.reporter=cobertura \
+            --coverage.include=src/hooks/useGraphQuery.ts \
             --coverage.thresholds.statements=90 \
             --coverage.thresholds.branches=80 \
             --coverage.thresholds.functions=90 \
@@ -105,7 +108,7 @@ jobs:
       - name: Run L2 Integration Tests
         working-directory: apps/web
         run: |
-          pnpm test -- useGraphQuery.integration.test.ts \
+          pnpm exec vitest run src/hooks/useGraphQuery.test.ts \
             --reporter=verbose
 
   # ============================================================================
@@ -208,7 +211,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install pytest jsonschema pyyaml
+          pip install pytest jsonschema pyyaml pyjwt httpx
 
       - name: Run L5 Contract Tests
         run: |
@@ -230,6 +233,22 @@ jobs:
     if: always()
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.18.0'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        working-directory: apps/web
+        run: pnpm install --frozen-lockfile
+
       - name: Download coverage artifacts
         uses: actions/download-artifact@v4
         with:
@@ -254,7 +273,7 @@ jobs:
             total_runs=$((total_runs + 1))
             if ! pnpm vitest run \
               src/hooks/useGraphQuery.comprehensive.test.ts \
-              src/hooks/useGraphQuery.integration.test.ts \
+              src/hooks/useGraphQuery.test.ts \
               src/hooks/useGraphQuery.property.test.ts \
               src/hooks/useGraphQuery.performance.test.ts; then
               failed_runs=$((failed_runs + 1))
