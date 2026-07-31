@@ -19,6 +19,12 @@ def test_codeql_actions_are_immutable_and_queries_are_explicit() -> None:
     assert "queries: security-extended,security-and-quality" in text
 
 
+def test_structural_preflight_uses_immutable_pnpm_setup_action() -> None:
+    text, _ = _workflow("pr-checks.yml")
+    assert "pnpm/action-setup@v" not in text
+    assert "pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320" in text
+
+
 def test_dast_cannot_manufacture_or_soft_pass_results() -> None:
     text, workflow = _workflow("penetration-testing.yml")
     assert "generating fallback results" not in text
