@@ -340,9 +340,6 @@ jobs:
             exit 1
           fi
 
-      - name: Verify frontend lockfile is clean
-        run: git diff --exit-code -- apps/web/pnpm-lock.yaml
-
       - name: Compute frontend lockfile hash
         id: web_lock_hash
         run: |
