@@ -28,7 +28,7 @@ python3 scripts/check-contract-services.py
 
 echo "3. Running Contract Tests..."
 # First ensure we have the minimum number of tests
-python3 scripts/ensure-pytest-collection.py tests/contract 330
+python3 scripts/ensure-pytest-collection.py --dir tests/contract --min-tests 330
 
 # Run the actual tests
 export CONTRACT_TEST_STRICT=1
