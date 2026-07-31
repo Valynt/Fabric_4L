@@ -31,7 +31,7 @@ except ImportError:  # pragma: no cover - exercised only in minimal test envs
             return SimpleNamespace(used=0)
 
     psutil = _PsutilFallback()
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import Response
 from value_fabric.shared.error_handling.exceptions import AuthorizationError
 from value_fabric.shared.observability.metrics_access import (
@@ -47,6 +47,8 @@ from ...api.models import (
     DependencyStatus,
     DetailedHealthResponse,
     HealthResponse,
+    SchemaStatistics,
+    SchemaStatus,
 )
 
 # mypy: disable-error-code=import-untyped
@@ -384,3 +386,45 @@ async def detailed_health_check(
         configuration=configuration,
     )
 
+
+@router.get("/v1/schema/status", response_model=SchemaStatus, tags=["Schema"])
+async def get_schema_status(
+    schema_initializer: Any = Depends(get_schema_initializer),
+) -> SchemaStatus:
+    """Return the current Neo4j constraint and index status."""
+    if schema_initializer is None:
+        return SchemaStatus(constraints={}, indexes={}, valid=False)
+    verification = await schema_initializer.verify_schema()
+    return SchemaStatus(
+        constraints=verification["constraints"],
+        indexes=verification["indexes"],
+        valid=verification["valid"],
+    )
+
+
+@router.post("/v1/schema/init")
+async def init_schema(
+    drop_existing: bool = False,
+    schema_initializer: Any = Depends(get_schema_initializer),
+) -> dict[str, Any]:
+    """Initialize or reinitialize the Neo4j schema."""
+    if schema_initializer is None:
+        raise HTTPException(status_code=503, detail="Schema initializer not available")
+    await schema_initializer.initialize_schema(drop_existing=drop_existing)
+    return {"status": "initialized", "drop_existing": drop_existing}
+
+
+@router.get("/v1/schema/statistics", response_model=SchemaStatistics)
+async def get_schema_statistics(
+    schema_initializer: Any = Depends(get_schema_initializer),
+) -> SchemaStatistics:
+    """Return Neo4j node and relationship statistics."""
+    if schema_initializer is None:
+        raise HTTPException(status_code=503, detail="Schema initializer not available")
+    statistics = await schema_initializer.get_statistics()
+    return SchemaStatistics(
+        nodes=statistics["nodes"],
+        relationships=statistics["relationships"],
+        total_nodes=statistics["total_nodes"],
+        total_relationships=statistics["total_relationships"],
+    )

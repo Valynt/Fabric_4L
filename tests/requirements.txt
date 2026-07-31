@@ -2,19 +2,24 @@
 # Install with: pip install -r tests/requirements.txt
 
 # JWT signing/verification (required by tests/conftest.py)
-PyJWT>=2.8.0
+PyJWT>=2.13.0
 
 # HTTP client for contract tests
 httpx>=0.27.0
 
+# Transitive floors mirrored from tests/requirements-test.lock for OSV PR scans
+idna>=3.15
+pygments>=2.20.0
+starlette>=1.3.1
+
 # pytest plugins
-pytest>=7.4.0
+pytest>=9.1.1
 pytest-asyncio>=0.21.0
 pytest-cov>=4.1.0
 pytest-timeout>=2.2.0
 pytest-randomly>=3.15.0
 pytest-xdist==3.8.0
-schemathesis==3.39.16
+schemathesis>=4.24.2
 
 # Test utilities
 factory-boy>=3.3.0

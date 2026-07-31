@@ -6,6 +6,8 @@ import shutil
 import sys
 from pathlib import Path
 
+import yaml
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SCRIPT_PATH = REPO_ROOT / "scripts" / "ci" / "check_docker_compose_config.py"
 
@@ -31,6 +33,15 @@ def repo_tmp_path(name: str) -> Path:
         shutil.rmtree(path)
     path.mkdir(parents=True)
     return path
+
+
+def test_backend_integrated_layer5_waits_for_successful_migration() -> None:
+    compose_path = REPO_ROOT / "infra" / "compose" / "docker-compose.backend-integrated.yml"
+    compose = yaml.safe_load(compose_path.read_text(encoding="utf-8"))
+
+    assert compose["services"]["layer5"]["depends_on"]["layer5-migrate"] == {
+        "condition": "service_completed_successfully"
+    }
 
 
 def test_bind_mount_classification_ignores_named_and_anonymous_volumes():

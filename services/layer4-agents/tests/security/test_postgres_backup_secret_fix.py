@@ -29,7 +29,7 @@ def _load_cronjob():
 
 
 def _load_secret():
-    path = _project_root() / "k8s" / "secrets.yml"
+    path = _project_root() / "k8s" / "envs" / "dev" / "secrets.yml"
     with open(path, encoding="utf-8") as f:
         docs = list(yaml.safe_load_all(f))
     for doc in docs:

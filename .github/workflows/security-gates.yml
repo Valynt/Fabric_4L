@@ -375,6 +375,7 @@ jobs:
           severity: 'HIGH,CRITICAL'
           scanners: 'vuln,secret,config'
           skip-dirs: 'archive,docs/archive,node_modules'
+          trivy-config: 'config/trivy/repository.yaml'
 
       - name: Verify Trivy SARIF artifact
         if: always()
@@ -395,25 +396,98 @@ jobs:
           path: trivy-repo.sarif
           retention-days: ${{env.SECURITY_ARTIFACT_RETENTION_DAYS}}
 
-  # OSV-Scanner PR diff scan: blocks PRs that introduce NEW known vulnerabilities
-  # (compares base vs head against the OSV database) without failing on
-  # pre-existing findings. Uses Google's official reusable workflow so we get
-  # SARIF upload, artifacts, and annotations for free.
   osv-scanner-pr:
-    name: OSV-Scanner (PR diff)
+    name: OSV-Scanner (PR diff) / osv-scan
     if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       actions: read
       contents: read
       security-events: write
-    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable-pr.yml@v1.9.0
-    with:
-      scan-args: |-
-        -r
-        ./
-      results-file-name: osv-scanner-pr.sarif
-      fail-on-vuln: true
 
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Checkout target branch
+        run: |
+          git checkout "${GITHUB_BASE_REF}"
+          git submodule update --recursive
+
+      - name: Run scanner on existing code
+        uses: google/osv-scanner-action/osv-scanner-action@8dc09193bb540e09b23da07ad7e30bd33bf87018 # v2.3.8
+        continue-on-error: true
+        with:
+          scan-args: |-
+            --format=json
+            --output=osv-pr-base.json
+            -r
+            ./
+
+      - name: Checkout current branch
+        run: |
+          git checkout -f "${GITHUB_SHA}"
+          git submodule update --recursive
+
+      - name: Run scanner on new code
+        uses: google/osv-scanner-action/osv-scanner-action@8dc09193bb540e09b23da07ad7e30bd33bf87018 # v2.3.8
+        continue-on-error: true
+        with:
+          scan-args: |-
+            --format=json
+            --output=osv-pr-head.json
+            -r
+            ./
+
+      - name: Run osv-scanner reporter
+        uses: google/osv-scanner-action/osv-reporter-action@8dc09193bb540e09b23da07ad7e30bd33bf87018 # v2.3.8
+        with:
+          scan-args: |-
+            --output=osv-scanner-pr.sarif
+            --old=osv-pr-base.json
+            --new=osv-pr-head.json
+            --gh-annotations=true
+            --fail-on-vuln=true
+
+      - name: Verify OSV report artifacts exist
+        if: ${{ !cancelled() }}
+        run: |
+          test -s osv-pr-base.json
+          test -s osv-pr-head.json
+          test -s osv-scanner-pr.sarif
+
+      - name: Upload OSV SARIF artifact
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: osv-scanner-pr-sarif
+          path: osv-scanner-pr.sarif
+          retention-days: 5
+
+      - name: Upload OSV JSON artifacts
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: osv-scanner-pr-json
+          path: |
+            osv-pr-base.json
+            osv-pr-head.json
+          retention-days: 5
+
+      - name: Upload OSV SARIF to code scanning
+        if: ${{ !cancelled() }}
+        uses: github/codeql-action/upload-sarif@cdefb33c0f6224e58673d9004f47f7cb3e328b89 # v4.31.10
+        with:
+          sarif_file: osv-scanner-pr.sarif
+          category: osv-scanner-pr
+
+      - name: Print Code Scanning PR URL
+        if: ${{ !cancelled() }}
+        run: |
+          echo "View the OSV-Scanner results for this PR in the Security tab:"
+          echo "${{ github.server_url }}/${{ github.repository }}/security/code-scanning?query=pr%3A${{ github.event.pull_request.number }}"
   # OSV-Scanner full scan of the repository on push and weekly schedule.
   osv-scanner-full:
     name: OSV-Scanner (full repository)
@@ -602,16 +676,51 @@ jobs:
 
       - name: Start ephemeral Value Fabric stack
         run: |
+          mkdir -p zap-reports
+          openssl genpkey -algorithm ED25519 -out zap-reports/fabric-auth-signing-key.pem
+          openssl pkey -in zap-reports/fabric-auth-signing-key.pem -pubout -out zap-reports/fabric-auth-public-key.pem
+          python3 - <<'PY'
+          import json
+          import shlex
+          from pathlib import Path
+
+          private_pem = Path("zap-reports/fabric-auth-signing-key.pem").read_text(encoding="utf-8")
+          public_pem = Path("zap-reports/fabric-auth-public-key.pem").read_text(encoding="utf-8")
+          public_keys = json.dumps([{"kid": "ci-verification", "public_pem": public_pem}])
+          private_env = private_pem.replace("\n", "\\n")
+          Path("zap-reports/fabric-auth.env").write_text(
+              f'FABRIC_AUTH_SIGNING_KEY="{private_env}"\n'
+              "FABRIC_AUTH_SIGNING_KID=ci-verification\n"
+              f"FABRIC_AUTH_PUBLIC_KEYS={shlex.quote(public_keys)}\n",
+              encoding="utf-8",
+          )
+          PY
           cat > .env << 'EOF'
-          OPENAI_API_KEY=${OPENAI_API_KEY:?set OPENAI_API_KEY}
+          OPENAI_API_KEY=dummy-key-for-ci
           ANTHROPIC_API_KEY=dummy-key-for-ci
-          JWT_SECRET=${JWT_SECRET:?set JWT_SECRET}
-          NEO4J_PASSWORD=valuefabric
           POSTGRES_USER=valuefabric
-          POSTGRES_PASSWORD=valuefabric
-          FLOWER_PASSWORD=valuefabric
+          POSTGRES_PASSWORD=valuefabric-ci-postgres
+          REDIS_PASSWORD=valuefabric-ci-redis
+          SECRET_KEY=valuefabric-ci-secret-key-minimum-32-characters
+          JWT_SECRET=valuefabric-ci-jwt-secret-minimum-32-characters
+          API_KEY_HMAC_SECRET=valuefabric-ci-api-key-hmac-secret-32chars
+          SERVICE_AUTH_SECRET=valuefabric-ci-service-auth-secret-32chars
+          LAYER4_DATABASE_URL=postgresql+asyncpg://valuefabric:valuefabric-ci-postgres@postgres:5432/ground_truth
+          NEO4J_PASSWORD=valuefabric
+          CORS_ORIGINS=["http://localhost:3000"]
+          AUTH_PROVIDER=layer4
+          CLERK_ISSUER=https://ci-clerk.example.test
+          CLERK_JWT_AUDIENCE=value-fabric-ci
+          CLERK_AUTHORIZED_PARTIES=http://localhost:3000
+          CLERK_JWKS_URL=https://ci-clerk.example.test/.well-known/jwks.json
+          CLERK_SECRET_KEY=sk_test_valuefabric_ci
+          FABRIC_AUTH_ISSUER=value-fabric-ci
+          FABRIC_AUTH_AUDIENCE=value-fabric-ci
+          FLOWER_PASSWORD=valuefabric-ci-flower
+          GRAFANA_ADMIN_PASSWORD=valuefabric-ci-grafana
           EOF
-          docker compose -f infra/compose/docker-compose.full.yml up -d --build
+          cat zap-reports/fabric-auth.env >> .env
+          docker compose -f infra/compose/docker-compose.full.yml --env-file .env up -d --build
 
       - name: Wait for public API health endpoints
         run: |
@@ -666,7 +775,9 @@ jobs:
 
       - name: Collect compose logs for evidence
         if: always()
-        run: docker compose -f infra/compose/docker-compose.full.yml logs --no-color > zap-reports/ephemeral-stack.log
+        run: |
+          mkdir -p zap-reports
+          docker compose -f infra/compose/docker-compose.full.yml --env-file .env logs --no-color > zap-reports/ephemeral-stack.log
 
       - name: Upload DAST evidence artifacts
         if: always()
@@ -678,7 +789,7 @@ jobs:
 
       - name: Stop ephemeral stack
         if: always()
-        run: docker compose -f infra/compose/docker-compose.full.yml down -v
+        run: docker compose -f infra/compose/docker-compose.full.yml --env-file .env down -v
 
   # Python security linting with bandit
   bandit-scan:
@@ -1004,11 +1115,20 @@ jobs:
 
       - name: Build Docker image for SBOM
         run: |
-          docker build \
-            --build-arg BASE_IMAGE="${BASE_IMAGE:-}" \
-            --build-arg BUILDER_BASE_IMAGE="${BUILDER_BASE_IMAGE:-}" \
-            -t ${{matrix.layer}}:sbom-target \
-            ${{ matrix.layer == 'apps-web' && 'apps/web' || format('services/{0}', matrix.layer) }}
+          if [ "${{ matrix.layer }}" = "apps-web" ]; then
+            docker build \
+              --build-arg BASE_IMAGE="${BASE_IMAGE:-}" \
+              --build-arg BUILDER_BASE_IMAGE="${BUILDER_BASE_IMAGE:-}" \
+              -t ${{matrix.layer}}:sbom-target \
+              -f apps/web/Dockerfile \
+              .
+          else
+            docker build \
+              --build-arg BASE_IMAGE="${BASE_IMAGE:-}" \
+              --build-arg BUILDER_BASE_IMAGE="${BUILDER_BASE_IMAGE:-}" \
+              -t ${{matrix.layer}}:sbom-target \
+              services/${{matrix.layer}}
+          fi
 
       - name: Generate CycloneDX SBOM
         uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import httpx
 import pytest
 
 from integration.layer1_client import Layer1ClientError, Layer1IngestionClient
@@ -98,6 +99,47 @@ async def test_layer5_list_truths_requires_tenant_and_allows_privileged_with_rea
     assert ok["items"] == []
     assert "organization_id" not in captured["params"]
 
+    await client.close()
+
+
+@pytest.mark.asyncio
+async def test_layer5_list_truths_preserves_http_failure_reason(monkeypatch):
+    client = Layer5GroundTruthClient(base_url="http://example.test", service_token="token")
+    request = httpx.Request("GET", "http://example.test/api/v1/truths")
+    response = httpx.Response(503, request=request, text="unavailable")
+
+    async def _get(*args, **kwargs):
+        return response
+
+    monkeypatch.setattr(client._client, "get", _get)
+
+    result = await client.list_truths(organization_id="tenant-123")
+
+    assert result["error"] == "HTTP 503"
+    await client.close()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("failure", "expected_error"),
+    [
+        (httpx.ReadTimeout("timed out"), "Layer 5 list truths timed out"),
+        (httpx.ConnectError("connection refused"), "Layer 5 list truths connection failed"),
+    ],
+)
+async def test_layer5_list_truths_preserves_transport_failure_reason(
+    monkeypatch, failure, expected_error
+):
+    client = Layer5GroundTruthClient(base_url="http://example.test", service_token="token")
+
+    async def _get(*args, **kwargs):
+        raise failure
+
+    monkeypatch.setattr(client._client, "get", _get)
+
+    result = await client.list_truths(organization_id="tenant-123")
+
+    assert result["error"] == expected_error
     await client.close()
 
 
