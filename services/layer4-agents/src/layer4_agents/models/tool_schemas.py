@@ -86,6 +86,7 @@ class SemanticSearchOutput(BaseModel):
     results: list[dict[str, Any]] = Field(default_factory=list)
     total_matches: int = 0
     query_embedding_time_ms: int = 0
+    error: str | None = None
 
 
 class GetEntityInput(BaseModel):
@@ -102,6 +103,7 @@ class GetEntityOutput(BaseModel):
     entity: dict[str, Any] | None = None
     relationships: list[dict[str, Any]] = Field(default_factory=list)
     found: bool = False
+    error: str | None = None
 
 
 class GetRelationshipsInput(BaseModel):
@@ -118,6 +120,7 @@ class GetRelationshipsOutput(BaseModel):
 
     relationships: list[dict[str, Any]] = Field(default_factory=list)
     total_count: int = 0
+    error: str | None = None
 
 
 class TraverseTreeInput(BaseModel):
@@ -133,6 +136,7 @@ class TraverseTreeOutput(BaseModel):
 
     paths: list[list[dict[str, Any]]] = Field(default_factory=list)
     nodes_discovered: int = 0
+    error: str | None = None
 
 
 class FindPathsInput(BaseModel):
@@ -149,6 +153,7 @@ class FindPathsOutput(BaseModel):
 
     paths: list[dict[str, Any]] = Field(default_factory=list)
     shortest_path_length: int | None = None
+    error: str | None = None
 
 
 # ============================================================================
@@ -327,6 +332,7 @@ class FetchInteractionHistoryOutput(BaseModel):
     interactions: list[dict[str, Any]] = Field(default_factory=list)
     total_count: int = 0
     summary: str = ""
+    error: str | None = None
 
 
 class ScoreLeadInput(BaseModel):

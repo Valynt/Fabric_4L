@@ -7838,7 +7838,7 @@
     },
     {
       "kind": "python-any",
-      "line": 105,
+      "line": 112,
       "path": "scripts/ci/type_escape_ratchet.py",
       "text": "\"description\": \"Generated baseline for approved Python Any/type: ignore and TypeScript as any occurrences. Generated files are excluded by scripts/ci/type_escape_ratchet.py.\","
     },
@@ -8888,43 +8888,25 @@
     },
     {
       "kind": "python-any",
-      "line": 197,
+      "line": 201,
       "path": "sdk/python/scripts/generate_from_openapi.py",
       "text": "from typing import Any"
     },
     {
       "kind": "python-any",
-      "line": 240,
+      "line": 244,
       "path": "sdk/python/scripts/generate_from_openapi.py",
       "text": "params: dict[str, Any] | None = None,"
     },
     {
       "kind": "python-any",
-      "line": 241,
+      "line": 245,
       "path": "sdk/python/scripts/generate_from_openapi.py",
       "text": "json: dict[str, Any] | None = None,"
     },
     {
       "kind": "python-any",
-      "line": 242,
-      "path": "sdk/python/scripts/generate_from_openapi.py",
-      "text": ") -> dict[str, Any]:"
-    },
-    {
-      "kind": "python-any",
-      "line": 252,
-      "path": "sdk/python/scripts/generate_from_openapi.py",
-      "text": "params: dict[str, Any] | None = None,"
-    },
-    {
-      "kind": "python-any",
-      "line": 253,
-      "path": "sdk/python/scripts/generate_from_openapi.py",
-      "text": "json: dict[str, Any] | None = None,"
-    },
-    {
-      "kind": "python-any",
-      "line": 254,
+      "line": 246,
       "path": "sdk/python/scripts/generate_from_openapi.py",
       "text": ") -> dict[str, Any]:"
     },
@@ -8932,11 +8914,29 @@
       "kind": "python-any",
       "line": 259,
       "path": "sdk/python/scripts/generate_from_openapi.py",
+      "text": "params: dict[str, Any] | None = None,"
+    },
+    {
+      "kind": "python-any",
+      "line": 260,
+      "path": "sdk/python/scripts/generate_from_openapi.py",
+      "text": "json: dict[str, Any] | None = None,"
+    },
+    {
+      "kind": "python-any",
+      "line": 261,
+      "path": "sdk/python/scripts/generate_from_openapi.py",
+      "text": ") -> dict[str, Any]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 269,
+      "path": "sdk/python/scripts/generate_from_openapi.py",
       "text": "def health(self) -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 263,
+      "line": 273,
       "path": "sdk/python/scripts/generate_from_openapi.py",
       "text": "async def ahealth(self) -> dict[str, Any]:"
     },
@@ -8948,19 +8948,19 @@
     },
     {
       "kind": "python-any",
-      "line": 34,
+      "line": 32,
       "path": "sdk/python/src/valuefabric/cli/_utils.py",
       "text": "def print_json(data: Any) -> None:"
     },
     {
       "kind": "python-any",
-      "line": 40,
+      "line": 38,
       "path": "sdk/python/src/valuefabric/cli/_utils.py",
       "text": "rows: list[dict[str, Any]],"
     },
     {
       "kind": "python-any",
-      "line": 66,
+      "line": 64,
       "path": "sdk/python/src/valuefabric/cli/_utils.py",
       "text": "def print_object(data: dict[str, Any], *, json_output: bool = False) -> None:"
     },
@@ -8972,37 +8972,37 @@
     },
     {
       "kind": "python-any",
-      "line": 22,
+      "line": 21,
+      "path": "sdk/python/src/valuefabric/cli/config.py",
+      "text": "ConfigData = dict[str, Any]"
+    },
+    {
+      "kind": "python-any",
+      "line": 24,
       "path": "sdk/python/src/valuefabric/cli/config.py",
       "text": "def _parse_toml_value(raw: str) -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 44,
+      "line": 46,
       "path": "sdk/python/src/valuefabric/cli/config.py",
       "text": "def _load_profile_toml(text: str) -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 45,
+      "line": 47,
       "path": "sdk/python/src/valuefabric/cli/config.py",
       "text": "data: dict[str, Any] = {}"
     },
     {
       "kind": "python-any",
-      "line": 46,
+      "line": 48,
       "path": "sdk/python/src/valuefabric/cli/config.py",
       "text": "current_profile: dict[str, Any] | None = None"
     },
     {
       "kind": "python-any",
-      "line": 66,
-      "path": "sdk/python/src/valuefabric/cli/config.py",
-      "text": "def _format_toml_value(value: Any) -> str:"
-    },
-    {
-      "kind": "python-any",
-      "line": 77,
+      "line": 79,
       "path": "sdk/python/src/valuefabric/cli/config.py",
       "text": "def _dump_profile_toml(config: dict[str, Any]) -> str:"
     },
@@ -9014,7 +9014,7 @@
     },
     {
       "kind": "python-any",
-      "line": 43,
+      "line": 41,
       "path": "sdk/python/src/valuefabric/cli/workflows.py",
       "text": "parsed_inputs: dict[str, Any] = {}"
     },
@@ -9146,31 +9146,31 @@
     },
     {
       "kind": "python-any",
-      "line": 75,
+      "line": 100,
       "path": "sdk/python/src/valuefabric/models.py",
       "text": "results: dict[str, Any] | None = None"
     },
     {
       "kind": "python-any",
-      "line": 98,
+      "line": 123,
       "path": "sdk/python/src/valuefabric/models.py",
       "text": "config: dict[str, Any] = Field(default_factory=dict)"
     },
     {
       "kind": "python-any",
-      "line": 109,
+      "line": 134,
       "path": "sdk/python/src/valuefabric/models.py",
       "text": "metadata: dict[str, Any] = Field(default_factory=dict)"
     },
     {
       "kind": "python-any",
-      "line": 122,
+      "line": 147,
       "path": "sdk/python/src/valuefabric/models.py",
       "text": "dependencies: list[dict[str, Any]] = Field(default_factory=list)"
     },
     {
       "kind": "python-any",
-      "line": 123,
+      "line": 148,
       "path": "sdk/python/src/valuefabric/models.py",
       "text": "metrics: dict[str, Any] = Field(default_factory=dict)"
     },
@@ -9230,109 +9230,109 @@
     },
     {
       "kind": "python-any",
-      "line": 152,
+      "line": 153,
       "path": "sdk/python/src/valuepact/cli.py",
-      "text": "def _resolve_value(ctx: click.Context, key: str, env_name: str, profile: dict[str, Any]) -> str | None:"
+      "text": "ctx: click.Context, key: str, env_name: str, profile: dict[str, Any]"
     },
     {
       "kind": "python-any",
-      "line": 163,
+      "line": 165,
       "path": "sdk/python/src/valuepact/cli.py",
       "text": "def _resolve_api_url(ctx: click.Context, profile: dict[str, Any]) -> str:"
     },
     {
       "kind": "python-any",
-      "line": 244,
+      "line": 250,
       "path": "sdk/python/src/valuepact/cli.py",
-      "text": "def protected_command(required_scopes: set[str]) -> Callable[[Callable[..., Any]], Callable[..., Any]]:"
+      "text": ") -> Callable[[Callable[..., Any]], Callable[..., Any]]:"
     },
     {
       "kind": "python-any",
-      "line": 245,
+      "line": 251,
       "path": "sdk/python/src/valuepact/cli.py",
       "text": "def decorator(func: Callable[..., Any]) -> Callable[..., Any]:"
     },
     {
       "kind": "python-any",
-      "line": 247,
+      "line": 253,
       "path": "sdk/python/src/valuepact/cli.py",
       "text": "def wrapper(*args: Any, **kwargs: Any) -> None:"
     },
     {
       "kind": "python-any",
-      "line": 278,
+      "line": 286,
       "path": "sdk/python/src/valuepact/cli.py",
       "text": "def _emit_human(data: Any, context: ExecutionContext) -> None:"
     },
     {
       "kind": "python-any",
-      "line": 317,
+      "line": 325,
       "path": "sdk/python/src/valuepact/cli.py",
       "text": "data: dict[str, Any] = {"
     },
     {
       "kind": "python-any",
-      "line": 536,
+      "line": 546,
       "path": "sdk/python/src/valuepact/cli.py",
       "text": "def tenant_list(*, api_client: ValuePactApiClient, execution_context: ExecutionContext) -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 549,
+      "line": 559,
       "path": "sdk/python/src/valuepact/cli.py",
       "text": ") -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 563,
+      "line": 577,
       "path": "sdk/python/src/valuepact/cli.py",
       "text": "def workspace_list(*, api_client: ValuePactApiClient, execution_context: ExecutionContext) -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 576,
+      "line": 590,
       "path": "sdk/python/src/valuepact/cli.py",
       "text": ") -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 595,
+      "line": 609,
       "path": "sdk/python/src/valuepact/cli.py",
       "text": ") -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 610,
+      "line": 628,
       "path": "sdk/python/src/valuepact/cli.py",
       "text": "payload: dict[str, Any] = {}"
     },
     {
       "kind": "python-any",
-      "line": 633,
+      "line": 651,
       "path": "sdk/python/src/valuepact/cli.py",
       "text": "def execution_list(*, api_client: ValuePactApiClient, execution_context: ExecutionContext) -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 648,
+      "line": 666,
       "path": "sdk/python/src/valuepact/cli.py",
       "text": ") -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 664,
+      "line": 682,
       "path": "sdk/python/src/valuepact/cli.py",
       "text": ") -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 681,
+      "line": 699,
       "path": "sdk/python/src/valuepact/cli.py",
       "text": ") -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 719,
+      "line": 745,
       "path": "sdk/python/src/valuepact/cli.py",
       "text": ") -> Any:"
     },
@@ -9548,31 +9548,31 @@
     },
     {
       "kind": "python-any",
-      "line": 39,
+      "line": 50,
       "path": "sdk/python/src/valuepact/output.py",
       "text": "def success_envelope(data: Any, *, context: ExecutionContext | None = None) -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 40,
+      "line": 51,
       "path": "sdk/python/src/valuepact/output.py",
       "text": "meta: dict[str, Any] = {}"
     },
     {
       "kind": "python-any",
-      "line": 52,
+      "line": 63,
       "path": "sdk/python/src/valuepact/output.py",
       "text": "def error_envelope(error: CliError, *, request_id: str | None = None) -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 65,
+      "line": 76,
       "path": "sdk/python/src/valuepact/output.py",
       "text": "def emit_json(payload: dict[str, Any], *, err: bool = False) -> None:"
     },
     {
       "kind": "python-any",
-      "line": 69,
+      "line": 80,
       "path": "sdk/python/src/valuepact/output.py",
       "text": "def emit_human_mapping(mapping: dict[str, Any], *, err: bool = False) -> None:"
     },
@@ -12766,19 +12766,19 @@
       "kind": "python-any",
       "line": 26,
       "path": "services/layer1-ingestion/src/layer1_ingestion/shared/database.py",
-      "text": "from typing import TYPE_CHECKING, Any"
+      "text": "from typing import TYPE_CHECKING, Any, NoReturn"
     },
     {
       "kind": "python-any",
-      "line": 490,
+      "line": 148,
+      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/database.py",
+      "text": "def _initialize_redis_clients() -> tuple[Any | None, Any | None, bool]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 477,
       "path": "services/layer1-ingestion/src/layer1_ingestion/shared/database.py",
       "text": "SyncRequestContext = Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 493,
-      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/database.py",
-      "text": "def _missing_sync_request_context() -> Any:"
     },
     {
       "kind": "python-any",
@@ -13544,157 +13544,157 @@
     },
     {
       "kind": "python-any",
-      "line": 23,
+      "line": 26,
       "path": "services/layer2-5-signal-refinery/src/layer2_5_signal_refinery/api/auth.py",
       "text": "RequestContext = Any  # type: ignore[assignment,misc]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 23,
+      "line": 26,
       "path": "services/layer2-5-signal-refinery/src/layer2_5_signal_refinery/api/auth.py",
       "text": "RequestContext = Any  # type: ignore[assignment,misc]"
     },
     {
       "kind": "python-any",
-      "line": 25,
+      "line": 28,
       "path": "services/layer2-5-signal-refinery/src/layer2_5_signal_refinery/api/auth.py",
       "text": "def get_request_context() -> Any:  # type: ignore[misc]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 25,
+      "line": 28,
       "path": "services/layer2-5-signal-refinery/src/layer2_5_signal_refinery/api/auth.py",
       "text": "def get_request_context() -> Any:  # type: ignore[misc]"
     },
     {
       "kind": "python-any",
-      "line": 28,
+      "line": 31,
       "path": "services/layer2-5-signal-refinery/src/layer2_5_signal_refinery/api/auth.py",
       "text": "def require_authenticated() -> Any:  # type: ignore[misc]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 28,
+      "line": 31,
       "path": "services/layer2-5-signal-refinery/src/layer2_5_signal_refinery/api/auth.py",
       "text": "def require_authenticated() -> Any:  # type: ignore[misc]"
     },
     {
       "kind": "python-any",
-      "line": 5,
+      "line": 4,
       "path": "services/layer2-5-signal-refinery/src/layer2_5_signal_refinery/api/main.py",
       "text": "from typing import Any"
     },
     {
       "kind": "python-any",
-      "line": 111,
+      "line": 114,
       "path": "services/layer2-5-signal-refinery/src/layer2_5_signal_refinery/api/main.py",
       "text": "async def health() -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 7,
+      "line": 8,
       "path": "services/layer2-5-signal-refinery/src/layer2_5_signal_refinery/api/routes/signals.py",
       "text": "from typing import Any"
     },
     {
       "kind": "python-type-ignore",
-      "line": 50,
+      "line": 55,
       "path": "services/layer2-5-signal-refinery/src/layer2_5_signal_refinery/api/routes/signals.py",
       "text": "class ValueSignalCreate(BaseModel):  # type: ignore[no-redef]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 61,
+      "line": 66,
       "path": "services/layer2-5-signal-refinery/src/layer2_5_signal_refinery/api/routes/signals.py",
       "text": "class ValueSignalUpdate(BaseModel):  # type: ignore[no-redef]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 71,
+      "line": 76,
       "path": "services/layer2-5-signal-refinery/src/layer2_5_signal_refinery/api/routes/signals.py",
       "text": "class SignalReviewRequest(BaseModel):  # type: ignore[no-redef]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 75,
+      "line": 80,
       "path": "services/layer2-5-signal-refinery/src/layer2_5_signal_refinery/api/routes/signals.py",
       "text": "class SignalPromoteRequest(BaseModel):  # type: ignore[no-redef]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 79,
+      "line": 84,
       "path": "services/layer2-5-signal-refinery/src/layer2_5_signal_refinery/api/routes/signals.py",
       "text": "class RawSignalInput(BaseModel):  # type: ignore[no-redef]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 88,
+      "line": 93,
       "path": "services/layer2-5-signal-refinery/src/layer2_5_signal_refinery/api/routes/signals.py",
       "text": "class SignalRefineRequest(BaseModel):  # type: ignore[no-redef]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 94,
+      "line": 99,
       "path": "services/layer2-5-signal-refinery/src/layer2_5_signal_refinery/api/routes/signals.py",
       "text": "class ValueSignalListResponse(BaseModel):  # type: ignore[no-redef]"
     },
     {
       "kind": "python-any",
-      "line": 122,
+      "line": 127,
       "path": "services/layer2-5-signal-refinery/src/layer2_5_signal_refinery/api/routes/signals.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 173,
+      "line": 182,
       "path": "services/layer2-5-signal-refinery/src/layer2_5_signal_refinery/api/routes/signals.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 205,
+      "line": 214,
       "path": "services/layer2-5-signal-refinery/src/layer2_5_signal_refinery/api/routes/signals.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 230,
+      "line": 239,
       "path": "services/layer2-5-signal-refinery/src/layer2_5_signal_refinery/api/routes/signals.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 251,
+      "line": 260,
       "path": "services/layer2-5-signal-refinery/src/layer2_5_signal_refinery/api/routes/signals.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 306,
+      "line": 315,
       "path": "services/layer2-5-signal-refinery/src/layer2_5_signal_refinery/api/routes/signals.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 314,
+      "line": 323,
       "path": "services/layer2-5-signal-refinery/src/layer2_5_signal_refinery/api/routes/signals.py",
       "text": "updates: dict[str, Any] = {"
     },
     {
       "kind": "python-any",
-      "line": 338,
+      "line": 347,
       "path": "services/layer2-5-signal-refinery/src/layer2_5_signal_refinery/api/routes/signals.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 349,
+      "line": 360,
       "path": "services/layer2-5-signal-refinery/src/layer2_5_signal_refinery/api/routes/signals.py",
       "text": "updates: dict[str, Any] = {\"lifecycle_state\": \"promoted\"}"
     },
     {
       "kind": "python-any",
-      "line": 373,
+      "line": 384,
       "path": "services/layer2-5-signal-refinery/src/layer2_5_signal_refinery/api/routes/signals.py",
       "text": ") -> dict[str, Any]:"
     },
@@ -13706,19 +13706,19 @@
     },
     {
       "kind": "python-any",
-      "line": 52,
+      "line": 51,
       "path": "services/layer2-5-signal-refinery/src/layer2_5_signal_refinery/clients/l3_graph_client.py",
       "text": "signal: dict[str, Any],"
     },
     {
       "kind": "python-any",
-      "line": 106,
+      "line": 105,
       "path": "services/layer2-5-signal-refinery/src/layer2_5_signal_refinery/clients/l3_graph_client.py",
       "text": ") -> list[dict[str, Any]]:"
     },
     {
       "kind": "python-any",
-      "line": 111,
+      "line": 110,
       "path": "services/layer2-5-signal-refinery/src/layer2_5_signal_refinery/clients/l3_graph_client.py",
       "text": "params: dict[str, Any] = {\"account_id\": account_id}"
     },
@@ -13742,25 +13742,25 @@
     },
     {
       "kind": "python-any",
-      "line": 71,
+      "line": 73,
       "path": "services/layer2-5-signal-refinery/src/layer2_5_signal_refinery/repositories/signal_repository.py",
       "text": "async def get(self, signal_id: str) -> dict[str, Any] | None:"
     },
     {
       "kind": "python-any",
-      "line": 96,
+      "line": 98,
       "path": "services/layer2-5-signal-refinery/src/layer2_5_signal_refinery/repositories/signal_repository.py",
       "text": ") -> tuple[list[dict[str, Any]], int]:"
     },
     {
       "kind": "python-any",
-      "line": 137,
+      "line": 139,
       "path": "services/layer2-5-signal-refinery/src/layer2_5_signal_refinery/repositories/signal_repository.py",
       "text": "async def create(self, data: dict[str, Any]) -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 178,
+      "line": 194,
       "path": "services/layer2-5-signal-refinery/src/layer2_5_signal_refinery/repositories/signal_repository.py",
       "text": "async def update(self, signal_id: str, updates: dict[str, Any]) -> dict[str, Any] | None:"
     },
@@ -13790,7 +13790,7 @@
     },
     {
       "kind": "python-any",
-      "line": 116,
+      "line": 114,
       "path": "services/layer2-5-signal-refinery/src/layer2_5_signal_refinery/services/signal_refinery.py",
       "text": "def refine_signal(raw: dict[str, Any]) -> dict[str, Any]:"
     },
@@ -23600,13 +23600,13 @@
     },
     {
       "kind": "python-any",
-      "line": 79,
+      "line": 99,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/analyzers/git_analyzer.py",
       "text": "def _collect_git_metrics(self, path: Path, git_available: bool) -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 118,
+      "line": 138,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/analyzers/git_analyzer.py",
       "text": "def _collect_structural_metrics(self, path: Path) -> dict[str, Any]:"
     },
@@ -26936,21 +26936,21 @@
     },
     {
       "kind": "python-any",
-      "line": 55,
+      "line": 57,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/workflows.py",
       "text": "data: Any = Field(default_factory=dict)"
     },
     {
       "kind": "python-type-ignore",
-      "line": 449,
+      "line": 460,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/workflows.py",
       "text": "status=str(w.get(\"status\") or \"pending\"),  # type: ignore[arg-type]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 450,
+      "line": 465,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/workflows.py",
-      "text": "progress=float(w.get(\"progress\") if w.get(\"progress\") is not None else (w.get(\"progress_percentage\") or 0)),  # type: ignore[arg-type]"
+      "text": "),  # type: ignore[arg-type]"
     },
     {
       "kind": "python-any",
@@ -27458,73 +27458,73 @@
     },
     {
       "kind": "python-type-ignore",
-      "line": 101,
+      "line": 106,
       "path": "services/layer4-agents/src/layer4_agents/database.py",
       "text": "RequestContext = None  # type: ignore"
     },
     {
       "kind": "python-type-ignore",
-      "line": 102,
+      "line": 107,
       "path": "services/layer4-agents/src/layer4_agents/database.py",
       "text": "get_request_context = None  # type: ignore"
     },
     {
       "kind": "python-type-ignore",
-      "line": 115,
+      "line": 121,
       "path": "services/layer4-agents/src/layer4_agents/database.py",
       "text": "emit_audit_event = None  # type: ignore"
     },
     {
       "kind": "python-type-ignore",
-      "line": 116,
+      "line": 122,
       "path": "services/layer4-agents/src/layer4_agents/database.py",
       "text": "AuditAction = None  # type: ignore"
     },
     {
       "kind": "python-type-ignore",
-      "line": 117,
+      "line": 123,
       "path": "services/layer4-agents/src/layer4_agents/database.py",
       "text": "AuditOutcome = None  # type: ignore"
     },
     {
       "kind": "python-type-ignore",
-      "line": 118,
+      "line": 124,
       "path": "services/layer4-agents/src/layer4_agents/database.py",
       "text": "TenantContextSetDetails = None  # type: ignore"
     },
     {
       "kind": "python-type-ignore",
-      "line": 287,
+      "line": 295,
       "path": "services/layer4-agents/src/layer4_agents/database.py",
       "text": "async def execute(self, statement, params=None, /, **kwargs):  # type: ignore[override]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 441,
+      "line": 453,
       "path": "services/layer4-agents/src/layer4_agents/database.py",
       "text": "SharedTenantContextError = None  # type: ignore"
     },
     {
       "kind": "python-type-ignore",
-      "line": 442,
+      "line": 454,
       "path": "services/layer4-agents/src/layer4_agents/database.py",
       "text": "shared_validate_tenant_id = None  # type: ignore"
     },
     {
       "kind": "python-type-ignore",
-      "line": 651,
+      "line": 672,
       "path": "services/layer4-agents/src/layer4_agents/database.py",
       "text": "context: RequestContext = Depends(get_request_context),  # type: ignore"
     },
     {
       "kind": "python-type-ignore",
-      "line": 670,
+      "line": 691,
       "path": "services/layer4-agents/src/layer4_agents/database.py",
       "text": "context: RequestContext = Depends(get_request_context),  # type: ignore"
     },
     {
       "kind": "python-type-ignore",
-      "line": 740,
+      "line": 763,
       "path": "services/layer4-agents/src/layer4_agents/database.py",
       "text": "context: RequestContext = Depends(get_request_context),  # type: ignore"
     },
@@ -30494,25 +30494,25 @@
     },
     {
       "kind": "python-any",
-      "line": 142,
+      "line": 141,
       "path": "services/layer4-agents/src/layer4_agents/models/encrypted_mixin.py",
       "text": "def __init_subclass__(cls, **kwargs: Any) -> None:"
     },
     {
       "kind": "python-any",
-      "line": 164,
+      "line": 163,
       "path": "services/layer4-agents/src/layer4_agents/models/encrypted_mixin.py",
       "text": "def _add_pii_field(cls, field_name: str, field_cfg: dict[str, Any]) -> None:"
     },
     {
       "kind": "python-any",
-      "line": 188,
+      "line": 187,
       "path": "services/layer4-agents/src/layer4_agents/models/encrypted_mixin.py",
       "text": "def _make_getter(enc_name: str) -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 189,
+      "line": 188,
       "path": "services/layer4-agents/src/layer4_agents/models/encrypted_mixin.py",
       "text": "def getter(self: Any) -> str | None:"
     },
@@ -30530,123 +30530,9 @@
     },
     {
       "kind": "python-any",
-      "line": 274,
+      "line": 277,
       "path": "services/layer4-agents/src/layer4_agents/models/encrypted_mixin.py",
       "text": "def _pii_auto_populate_hash(mapper: Mapper[PIIMixin], connection: Any, target: PIIMixin) -> None:"
-    },
-    {
-      "kind": "python-any",
-      "line": 13,
-      "path": "services/layer4-agents/src/layer4_agents/models/encrypted_mixin_test.py",
-      "text": "from typing import TYPE_CHECKING, Any, ClassVar"
-    },
-    {
-      "kind": "python-type-ignore",
-      "line": 46,
-      "path": "services/layer4-agents/src/layer4_agents/models/encrypted_mixin_test.py",
-      "text": "def pii_key_version(cls) -> Mapped[str]:  # type: ignore[override]"
-    },
-    {
-      "kind": "python-type-ignore",
-      "line": 50,
-      "path": "services/layer4-agents/src/layer4_agents/models/encrypted_mixin_test.py",
-      "text": "PIIMixin = _PIIMixinTest  # type: ignore[misc]"
-    },
-    {
-      "kind": "python-any",
-      "line": 58,
-      "path": "services/layer4-agents/src/layer4_agents/models/encrypted_mixin_test.py",
-      "text": "__pii_config__: ClassVar[dict[str, dict[str, Any]]] = {"
-    },
-    {
-      "kind": "python-any",
-      "line": 72,
-      "path": "services/layer4-agents/src/layer4_agents/models/encrypted_mixin_test.py",
-      "text": "email: ClassVar[Any]"
-    },
-    {
-      "kind": "python-any",
-      "line": 73,
-      "path": "services/layer4-agents/src/layer4_agents/models/encrypted_mixin_test.py",
-      "text": "phone: ClassVar[Any]"
-    },
-    {
-      "kind": "python-any",
-      "line": 74,
-      "path": "services/layer4-agents/src/layer4_agents/models/encrypted_mixin_test.py",
-      "text": "ssn: ClassVar[Any]"
-    },
-    {
-      "kind": "python-any",
-      "line": 75,
-      "path": "services/layer4-agents/src/layer4_agents/models/encrypted_mixin_test.py",
-      "text": "address_line1: ClassVar[Any]"
-    },
-    {
-      "kind": "python-any",
-      "line": 76,
-      "path": "services/layer4-agents/src/layer4_agents/models/encrypted_mixin_test.py",
-      "text": "bank_account: ClassVar[Any]"
-    },
-    {
-      "kind": "python-any",
-      "line": 77,
-      "path": "services/layer4-agents/src/layer4_agents/models/encrypted_mixin_test.py",
-      "text": "email_hash: ClassVar[Any]"
-    },
-    {
-      "kind": "python-any",
-      "line": 78,
-      "path": "services/layer4-agents/src/layer4_agents/models/encrypted_mixin_test.py",
-      "text": "phone_hash: ClassVar[Any]"
-    },
-    {
-      "kind": "python-any",
-      "line": 79,
-      "path": "services/layer4-agents/src/layer4_agents/models/encrypted_mixin_test.py",
-      "text": "ssn_hash: ClassVar[Any]"
-    },
-    {
-      "kind": "python-any",
-      "line": 80,
-      "path": "services/layer4-agents/src/layer4_agents/models/encrypted_mixin_test.py",
-      "text": "address_line1_hash: ClassVar[Any]"
-    },
-    {
-      "kind": "python-any",
-      "line": 81,
-      "path": "services/layer4-agents/src/layer4_agents/models/encrypted_mixin_test.py",
-      "text": "bank_account_hash: ClassVar[Any]"
-    },
-    {
-      "kind": "python-any",
-      "line": 82,
-      "path": "services/layer4-agents/src/layer4_agents/models/encrypted_mixin_test.py",
-      "text": "pii_key_version: ClassVar[Any]"
-    },
-    {
-      "kind": "python-any",
-      "line": 115,
-      "path": "services/layer4-agents/src/layer4_agents/models/encrypted_mixin_test.py",
-      "text": "__pii_config__: ClassVar[dict[str, dict[str, Any]]] = {\"unknown_field\": {}}"
-    },
-    {
-      "kind": "python-any",
-      "line": 124,
-      "path": "services/layer4-agents/src/layer4_agents/models/encrypted_mixin_test.py",
-      "text": "__pii_config__: ClassVar[dict[str, dict[str, Any]]] = {"
-    },
-    {
-      "kind": "python-any",
-      "line": 147,
-      "path": "services/layer4-agents/src/layer4_agents/models/encrypted_mixin_test.py",
-      "text": "__pii_config__: ClassVar[dict[str, dict[str, Any]]] = {}"
-    },
-    {
-      "kind": "python-any",
-      "line": 336,
-      "path": "services/layer4-agents/src/layer4_agents/models/encrypted_mixin_test.py",
-      "text": "__pii_config__: ClassVar[dict[str, dict[str, Any]]] = {"
     },
     {
       "kind": "python-any",
@@ -30776,187 +30662,187 @@
     },
     {
       "kind": "python-any",
-      "line": 65,
+      "line": 67,
       "path": "services/layer4-agents/src/layer4_agents/models/tool_schemas.py",
       "text": "results: list[dict[str, Any]] = Field(default_factory=list)"
     },
     {
       "kind": "python-any",
-      "line": 84,
+      "line": 86,
       "path": "services/layer4-agents/src/layer4_agents/models/tool_schemas.py",
       "text": "results: list[dict[str, Any]] = Field(default_factory=list)"
     },
     {
       "kind": "python-any",
-      "line": 100,
+      "line": 102,
       "path": "services/layer4-agents/src/layer4_agents/models/tool_schemas.py",
       "text": "entity: dict[str, Any] | None = None"
     },
     {
       "kind": "python-any",
-      "line": 101,
+      "line": 103,
       "path": "services/layer4-agents/src/layer4_agents/models/tool_schemas.py",
       "text": "relationships: list[dict[str, Any]] = Field(default_factory=list)"
     },
     {
       "kind": "python-any",
-      "line": 117,
+      "line": 119,
       "path": "services/layer4-agents/src/layer4_agents/models/tool_schemas.py",
       "text": "relationships: list[dict[str, Any]] = Field(default_factory=list)"
     },
     {
       "kind": "python-any",
-      "line": 132,
+      "line": 134,
       "path": "services/layer4-agents/src/layer4_agents/models/tool_schemas.py",
       "text": "paths: list[list[dict[str, Any]]] = Field(default_factory=list)"
     },
     {
       "kind": "python-any",
-      "line": 148,
+      "line": 150,
       "path": "services/layer4-agents/src/layer4_agents/models/tool_schemas.py",
       "text": "paths: list[dict[str, Any]] = Field(default_factory=list)"
     },
     {
       "kind": "python-any",
-      "line": 166,
+      "line": 168,
       "path": "services/layer4-agents/src/layer4_agents/models/tool_schemas.py",
       "text": "def accept_legacy_expression_alias(cls, data: Any) -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 201,
+      "line": 203,
       "path": "services/layer4-agents/src/layer4_agents/models/tool_schemas.py",
       "text": "def accept_legacy_benefit_cost_shape(cls, data: Any) -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 210,
+      "line": 212,
       "path": "services/layer4-agents/src/layer4_agents/models/tool_schemas.py",
       "text": "def _amounts(items: Any) -> list[float]:"
     },
     {
       "kind": "python-any",
-      "line": 266,
+      "line": 268,
       "path": "services/layer4-agents/src/layer4_agents/models/tool_schemas.py",
       "text": "scenarios: list[dict[str, Any]] = Field(default_factory=list)"
     },
     {
       "kind": "python-any",
-      "line": 267,
+      "line": 269,
       "path": "services/layer4-agents/src/layer4_agents/models/tool_schemas.py",
       "text": "tornado_data: list[dict[str, Any]] = Field(default_factory=list)"
     },
     {
       "kind": "python-any",
-      "line": 283,
+      "line": 285,
       "path": "services/layer4-agents/src/layer4_agents/models/tool_schemas.py",
       "text": "prospect_data: dict[str, Any] = Field(default_factory=dict)"
     },
     {
       "kind": "python-any",
-      "line": 289,
+      "line": 291,
       "path": "services/layer4-agents/src/layer4_agents/models/tool_schemas.py",
       "text": "profile: dict[str, Any] = Field(default_factory=dict)"
     },
     {
       "kind": "python-any",
-      "line": 290,
+      "line": 292,
       "path": "services/layer4-agents/src/layer4_agents/models/tool_schemas.py",
       "text": "interactions: list[dict[str, Any]] = Field(default_factory=list)"
     },
     {
       "kind": "python-any",
-      "line": 291,
+      "line": 293,
       "path": "services/layer4-agents/src/layer4_agents/models/tool_schemas.py",
       "text": "opportunities: list[dict[str, Any]] = Field(default_factory=list)"
     },
     {
       "kind": "python-any",
-      "line": 292,
+      "line": 294,
       "path": "services/layer4-agents/src/layer4_agents/models/tool_schemas.py",
       "text": "custom_fields: dict[str, Any] = Field(default_factory=dict)"
     },
     {
       "kind": "python-any",
-      "line": 300,
+      "line": 302,
       "path": "services/layer4-agents/src/layer4_agents/models/tool_schemas.py",
       "text": "updates: dict[str, Any]"
     },
     {
       "kind": "python-any",
-      "line": 325,
+      "line": 327,
       "path": "services/layer4-agents/src/layer4_agents/models/tool_schemas.py",
       "text": "interactions: list[dict[str, Any]] = Field(default_factory=list)"
     },
     {
       "kind": "python-any",
-      "line": 356,
+      "line": 359,
       "path": "services/layer4-agents/src/layer4_agents/models/tool_schemas.py",
       "text": "context: dict[str, Any] = Field(default_factory=dict)"
     },
     {
       "kind": "python-any",
-      "line": 374,
+      "line": 377,
       "path": "services/layer4-agents/src/layer4_agents/models/tool_schemas.py",
       "text": "data: list[dict[str, Any]]"
     },
     {
       "kind": "python-any",
-      "line": 376,
+      "line": 379,
       "path": "services/layer4-agents/src/layer4_agents/models/tool_schemas.py",
       "text": "config: dict[str, Any] = Field(default_factory=dict)"
     },
     {
       "kind": "python-any",
-      "line": 382,
+      "line": 385,
       "path": "services/layer4-agents/src/layer4_agents/models/tool_schemas.py",
       "text": "chart_data: dict[str, Any] = Field(default_factory=dict)"
     },
     {
       "kind": "python-any",
-      "line": 391,
+      "line": 394,
       "path": "services/layer4-agents/src/layer4_agents/models/tool_schemas.py",
       "text": "rows: list[list[Any]]"
     },
     {
       "kind": "python-any",
-      "line": 406,
+      "line": 409,
       "path": "services/layer4-agents/src/layer4_agents/models/tool_schemas.py",
       "text": "sections: list[dict[str, Any]]"
     },
     {
       "kind": "python-any",
-      "line": 409,
+      "line": 412,
       "path": "services/layer4-agents/src/layer4_agents/models/tool_schemas.py",
       "text": "branding: dict[str, Any] | None = None"
     },
     {
       "kind": "python-any",
-      "line": 425,
+      "line": 428,
       "path": "services/layer4-agents/src/layer4_agents/models/tool_schemas.py",
       "text": "business_case_data: dict[str, Any] = Field("
     },
     {
       "kind": "python-any",
-      "line": 458,
+      "line": 461,
       "path": "services/layer4-agents/src/layer4_agents/models/tool_schemas.py",
       "text": "attachments: list[dict[str, Any]] | None = None"
     },
     {
       "kind": "python-any",
-      "line": 511,
+      "line": 516,
       "path": "services/layer4-agents/src/layer4_agents/models/tool_schemas.py",
       "text": "entity_data: dict[str, Any]"
     },
     {
       "kind": "python-any",
-      "line": 531,
+      "line": 537,
       "path": "services/layer4-agents/src/layer4_agents/models/tool_schemas.py",
       "text": "data: dict[str, Any]"
     },
     {
       "kind": "python-any",
-      "line": 541,
+      "line": 547,
       "path": "services/layer4-agents/src/layer4_agents/models/tool_schemas.py",
       "text": "normalized: dict[str, Any] = Field(default_factory=dict)"
     },
@@ -31490,7 +31376,7 @@
     },
     {
       "kind": "python-any",
-      "line": 76,
+      "line": 87,
       "path": "services/layer4-agents/src/layer4_agents/registry/models.py",
       "text": "config: Mapped[dict[str, Any]] = mapped_column("
     },
@@ -35948,19 +35834,19 @@
     },
     {
       "kind": "python-any",
-      "line": 174,
+      "line": 176,
       "path": "services/layer4-agents/src/layer4_agents/tools/integration_tools.py",
       "text": "def __init__(self, config: dict[str, Any] | None = None):"
     },
     {
       "kind": "python-any",
-      "line": 312,
+      "line": 316,
       "path": "services/layer4-agents/src/layer4_agents/tools/integration_tools.py",
       "text": "def __init__(self, config: dict[str, Any] | None = None):"
     },
     {
       "kind": "python-any",
-      "line": 445,
+      "line": 461,
       "path": "services/layer4-agents/src/layer4_agents/tools/integration_tools.py",
       "text": "def __init__(self, config: dict[str, Any] | None = None):"
     },
@@ -38528,19 +38414,19 @@
     },
     {
       "kind": "python-any",
-      "line": 24,
+      "line": 25,
       "path": "services/layer4-agents/tests/test_model_registry.py",
       "text": "def __init__(self, scalar: Any = None) -> None:"
     },
     {
       "kind": "python-any",
-      "line": 27,
+      "line": 28,
       "path": "services/layer4-agents/tests/test_model_registry.py",
       "text": "def scalar_one_or_none(self) -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 30,
+      "line": 31,
       "path": "services/layer4-agents/tests/test_model_registry.py",
       "text": "def scalars(self) -> Any:"
     },
@@ -40838,67 +40724,67 @@
     },
     {
       "kind": "python-any",
-      "line": 15,
+      "line": 16,
       "path": "tests/backend_integrated/conftest.py",
       "text": "from typing import Any, Iterable"
     },
     {
       "kind": "python-any",
-      "line": 116,
+      "line": 124,
       "path": "tests/backend_integrated/conftest.py",
       "text": "json: dict[str, Any] | None = None,"
     },
     {
       "kind": "python-any",
-      "line": 119,
+      "line": 127,
       "path": "tests/backend_integrated/conftest.py",
       "text": ") -> tuple[Any, httpx.Response]:"
     },
     {
       "kind": "python-any",
-      "line": 162,
+      "line": 172,
       "path": "tests/backend_integrated/conftest.py",
       "text": "async def first_healthy(self, layer: str) -> tuple[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 172,
+      "line": 182,
       "path": "tests/backend_integrated/conftest.py",
       "text": "async def create_seed_graph(self) -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 216,
+      "line": 242,
       "path": "tests/backend_integrated/conftest.py",
-      "text": "async def assert_persisted(self, layer: str, path: str, expected_id: str, *, tenant_id: str | None = None) -> Any:"
+      "text": ") -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 231,
+      "line": 259,
       "path": "tests/backend_integrated/conftest.py",
       "text": "async def assert_audit_event(self, action: str, entity_id: str) -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 241,
+      "line": 271,
       "path": "tests/backend_integrated/conftest.py",
       "text": "async def assert_job_terminal_or_progressing(self, job_id: str) -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 247,
+      "line": 284,
       "path": "tests/backend_integrated/conftest.py",
-      "text": "async def wait_for_job_state(self, layer: str, path: str, desired: set[str], attempts: int = 5) -> Any:"
+      "text": ") -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 248,
+      "line": 285,
       "path": "tests/backend_integrated/conftest.py",
       "text": "last_body: Any = None"
     },
     {
       "kind": "python-any",
-      "line": 263,
+      "line": 302,
       "path": "tests/backend_integrated/conftest.py",
       "text": "def validation_seed_plan(seed_ids: SeedIds) -> dict[str, Any]:"
     },

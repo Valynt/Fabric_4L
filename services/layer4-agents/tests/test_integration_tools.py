@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Any
+from typing import TypeAlias
 
 import pytest
 
@@ -18,12 +18,16 @@ from layer4_agents.tools.integration_tools import (
     SendNotificationTool,
 )
 
+JsonScalar: TypeAlias = str | int | float | bool | None
+JsonValue: TypeAlias = JsonScalar | list["JsonValue"] | dict[str, "JsonValue"]
+JsonObject: TypeAlias = dict[str, JsonValue]
+
 
 class FakeResponse:
     def __init__(
         self,
         status_code: int,
-        data: dict[str, Any] | None = None,
+        data: JsonObject | None = None,
         *,
         text: str = "",
         headers: dict[str, str] | None = None,
@@ -33,16 +37,16 @@ class FakeResponse:
         self.text = text
         self.headers = headers or {}
 
-    def json(self) -> dict[str, Any]:
+    def json(self) -> JsonObject:
         return self._data
 
 
 class FakeClient:
     def __init__(self, *responses: FakeResponse | BaseException) -> None:
         self.responses = list(responses)
-        self.calls: list[tuple[str, dict[str, Any]]] = []
+        self.calls: list[tuple[str, dict[str, JsonValue]]] = []
 
-    async def post(self, url: str | None, **kwargs: Any) -> FakeResponse:
+    async def post(self, url: str | None, **kwargs: JsonValue) -> FakeResponse:
         self.calls.append((str(url), kwargs))
         response = self.responses.pop(0)
         if isinstance(response, BaseException):
@@ -190,7 +194,7 @@ async def test_notification_cancellation_propagates() -> None:
 async def test_task_provider_success(
     provider: str,
     status: int,
-    data: dict[str, Any],
+    data: JsonObject,
     expected_id: str,
     url_fragment: str,
 ) -> None:
@@ -216,7 +220,7 @@ async def test_task_provider_success(
     ],
 )
 async def test_task_provider_failure(
-    provider: str, status: int, data: dict[str, Any], expected_error: str
+    provider: str, status: int, data: JsonObject, expected_error: str
 ) -> None:
     client = FakeClient(FakeResponse(status, data))
     tool = CreateTaskTool({"pm_provider": provider, "pm_project_id": "project-1"})
@@ -262,7 +266,7 @@ async def test_unsupported_task_provider_fails_closed() -> None:
 async def test_calendar_provider_success(
     provider: str,
     status: int,
-    data: dict[str, Any],
+    data: JsonObject,
     expected_id: str,
     link_key: str,
 ) -> None:
@@ -323,7 +327,7 @@ async def test_crm_export_success(
     crm_type: str,
     entity_type: str,
     status: int,
-    data: dict[str, Any],
+    data: JsonObject,
     expected_id: str,
 ) -> None:
     client = FakeClient(FakeResponse(status, data))

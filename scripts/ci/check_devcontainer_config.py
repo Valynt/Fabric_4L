@@ -17,8 +17,8 @@ DIGEST_REF = re.compile(r"@sha256:[0-9a-f]{64}$")
 COMPOSE_RENDER_ENV_DEFAULTS = {
     "API_KEY_HMAC_SECRET": "devcontainer-contract-api-key-hmac-secret-32chars",
     "CLERK_AUTHORIZED_PARTIES": "http://localhost:3001",
-    "CLERK_ISSUER": "https://devcontainer-contract.clerk.example.com",
-    "CLERK_JWKS_URL": "https://devcontainer-contract.clerk.example.com/.well-known/jwks.json",
+    "CLERK_ISSUER": "http://localhost:3001",
+    "CLERK_JWKS_URL": "http://localhost:3001/.well-known/jwks.json",
     "CLERK_SECRET_KEY": "devcontainer-contract-clerk-secret-key",
     "CORS_ORIGINS": "http://localhost:3001",
     "FABRIC_AUTH_PUBLIC_KEYS": "devcontainer-contract-fabric-auth-public-key",

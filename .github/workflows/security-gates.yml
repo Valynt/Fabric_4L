@@ -720,7 +720,7 @@ jobs:
           CLERK_JWT_AUDIENCE=value-fabric-ci
           CLERK_AUTHORIZED_PARTIES=http://localhost:3000
           CLERK_JWKS_URL=https://ci-clerk.example.test/.well-known/jwks.json
-          CLERK_SECRET_KEY=sk_test_valuefabric_ci
+          CLERK_SECRET_KEY=valuefabric-ci-clerk-secret
           FABRIC_AUTH_ISSUER=value-fabric-ci
           FABRIC_AUTH_AUDIENCE=value-fabric-ci
           FLOWER_PASSWORD=valuefabric-ci-flower
