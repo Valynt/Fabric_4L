@@ -54,8 +54,8 @@ run_with_secrets() {
   infisical run --env=dev "${infisical_paths[@]}" -- "$@"
 }
 
-compose_prod=(docker compose --project-directory "$workspace" -p fabric4l-cloud -f "$prod_compose" -f "$cloud_override")
-compose_full=(docker compose --project-directory "$workspace" -p fabric4l-cloud -f "$full_compose" -f "$cloud_override")
+compose_prod=(docker compose --project-directory "$workspace/infra/compose" -p fabric4l-cloud -f "$prod_compose" -f "$cloud_override")
+compose_full=(docker compose --project-directory "$workspace/infra/compose" -p fabric4l-cloud -f "$full_compose" -f "$cloud_override")
 
 case "${1:-help}" in
   infra)

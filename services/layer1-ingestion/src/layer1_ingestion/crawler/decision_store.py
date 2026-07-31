@@ -195,7 +195,9 @@ class CrawlDecisionRepository:
             record_tenant_id = UUID(record.tenant_id)
             tenant_id = UUID(str(trusted_tenant_id)) if trusted_tenant_id is not None else None
         except (TypeError, ValueError) as exc:
-            raise TenantContextError("Invalid tenant context for crawl-decision persistence") from exc
+            raise TenantContextError(
+                "Invalid tenant context for crawl-decision persistence"
+            ) from exc
 
         if tenant_id is not None and tenant_id != record_tenant_id:
             raise TenantContextError("Crawl decision tenant does not match trusted caller context")
@@ -453,7 +455,9 @@ class CrawlDecisionRepository:
                 browser_count=browser_count,
                 fallback_count=fallback_count,
                 fallback_rate=fallback_count / total if total > 0 else 0.0,
-                top_fallback_reasons=dict(sorted(reasons.items(), key=lambda x: x[1], reverse=True)[:5]),
+                top_fallback_reasons=dict(
+                    sorted(reasons.items(), key=lambda x: x[1], reverse=True)[:5]
+                ),
                 avg_fast_duration_ms=avg_fast,
                 avg_browser_duration_ms=avg_browser,
             )
@@ -476,9 +480,7 @@ class CrawlDecisionRepository:
         """
         return await asyncio.to_thread(self._get_fallback_stats_sync, domain, tenant_id, since)
 
-    def _get_router_quality_report_sync(
-        self, job_id: str, tenant_id: str
-    ) -> RouterQualityReport:
+    def _get_router_quality_report_sync(self, job_id: str, tenant_id: str) -> RouterQualityReport:
         """Synchronous get router quality report implementation."""
         with self._get_session() as session:
             stmt = (
@@ -535,9 +537,7 @@ class CrawlDecisionRepository:
                 fastest_url=fastest,
             )
 
-    async def get_router_quality_report(
-        self, job_id: str, tenant_id: str
-    ) -> RouterQualityReport:
+    async def get_router_quality_report(self, job_id: str, tenant_id: str) -> RouterQualityReport:
         """Generate a quality report for a job's routing decisions.
 
         Args:
@@ -547,9 +547,7 @@ class CrawlDecisionRepository:
         Returns:
             Router quality report
         """
-        return await asyncio.to_thread(
-            self._get_router_quality_report_sync, job_id, tenant_id
-        )
+        return await asyncio.to_thread(self._get_router_quality_report_sync, job_id, tenant_id)
 
     def _get_decisions_by_rule_sync(
         self,
@@ -605,7 +603,9 @@ class CrawlDecisionRepository:
             router_decision=db_record.router_decision,
             router_rule=db_record.router_rule,
             quality_passed=db_record.quality_passed,
-            quality_checks=json.loads(db_record.quality_checks) if db_record.quality_checks else None,
+            quality_checks=json.loads(db_record.quality_checks)
+            if db_record.quality_checks
+            else None,
             fallback_reason=db_record.fallback_reason,
             final_path=db_record.final_path,
             status_code=db_record.status_code,
@@ -636,8 +636,25 @@ class InMemoryCrawlDecisionRepository(CrawlDecisionRepository):
         self._url_index: dict[str, list[str]] = {}
         self._domain_index: dict[str, list[str]] = {}
 
-    async def save(self, record: CrawlDecisionRecord) -> None:
+    async def save(
+        self,
+        record: CrawlDecisionRecord,
+        *,
+        trusted_tenant_id: UUID | str | None = None,
+    ) -> None:
         """Save to in-memory store."""
+        if not record.tenant_id:
+            raise TenantContextError("CrawlDecisionRecord.tenant_id is required for persistence")
+        try:
+            record_tenant_id = UUID(record.tenant_id)
+            tenant_id = UUID(str(trusted_tenant_id)) if trusted_tenant_id is not None else None
+        except (TypeError, ValueError) as exc:
+            raise TenantContextError(
+                "Invalid tenant context for crawl-decision persistence"
+            ) from exc
+        if tenant_id is not None and tenant_id != record_tenant_id:
+            raise TenantContextError("Crawl decision tenant does not match trusted caller context")
+
         self._store[record.decision_id] = record
 
         # Update indexes
@@ -646,9 +663,7 @@ class InMemoryCrawlDecisionRepository(CrawlDecisionRepository):
         self._url_index.setdefault(record.url, []).append(record.decision_id)
         self._domain_index.setdefault(record.domain, []).append(record.decision_id)
 
-    async def get_by_id(
-        self, decision_id: str, tenant_id: str
-    ) -> CrawlDecisionRecord | None:
+    async def get_by_id(self, decision_id: str, tenant_id: str) -> CrawlDecisionRecord | None:
         """Get from in-memory store."""
         record = self._store.get(decision_id)
         if record and record.tenant_id == tenant_id:
@@ -664,7 +679,7 @@ class InMemoryCrawlDecisionRepository(CrawlDecisionRepository):
     ) -> list[CrawlDecisionRecord]:
         """Get by job from in-memory store."""
         ids = self._job_index.get(job_id, [])
-        sorted_ids = sorted(ids, reverse=True)[offset:offset + limit]
+        sorted_ids = sorted(ids, reverse=True)[offset : offset + limit]
         records = [self._store[i] for i in sorted_ids if i in self._store]
         return [r for r in records if r.tenant_id == tenant_id][:limit]
 

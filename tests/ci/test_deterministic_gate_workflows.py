@@ -7,6 +7,7 @@ import yaml
 ROOT = Path(__file__).resolve().parents[2]
 PR_CHECKS = ROOT / ".github/workflows/pr-checks.yml"
 CONTRACT_COMPLIANCE = ROOT / ".github/workflows/contract-compliance.yml"
+FRONTEND_ESLINT_CONFIG = ROOT / "apps/web/.eslintrc.cjs"
 GRAPH_MODULE_TESTS = ROOT / ".github/workflows/graph-module-tests.yml"
 DRIFT_CHECK = ROOT / ".github/workflows/drift-check.yml"
 SETUP_ACTION = "./.github/actions/setup-fabric-ci"
@@ -52,7 +53,9 @@ def test_runtime_contract_checks_use_shared_locked_setup() -> None:
     assert setup["with"]["cache"] == ""
     runs = "\n".join(step.get("run", "") for step in job["steps"])
     assert "pip install" not in runs
-    assert "pytest tests/contract/test_layer_integration.py -m runtime_contract -v --tb=short" in runs
+    assert (
+        "pytest tests/contract/test_layer_integration.py -m runtime_contract -v --tb=short" in runs
+    )
 
 
 def test_root_test_lock_contains_json_report_plugin() -> None:
@@ -66,10 +69,7 @@ def test_graph_contract_job_uses_hash_locked_root_test_dependencies() -> None:
     job = _load(GRAPH_MODULE_TESTS)["jobs"]["contract-tests"]
     runs = "\n".join(step.get("run", "") for step in job["steps"])
 
-    assert (
-        "python -m pip install --require-hashes -r tests/requirements-test.lock"
-        in runs
-    )
+    assert "python -m pip install --require-hashes -r tests/requirements-test.lock" in runs
     assert "pip install pytest jsonschema" not in runs
 
 
@@ -77,9 +77,13 @@ def test_openapi_drift_job_uses_hash_locked_pytest_plugins() -> None:
     job = _load(DRIFT_CHECK)["jobs"]["detect-drift"]
     runs = "\n".join(step.get("run", "") for step in job["steps"])
 
-    assert (
-        "python -m pip install --require-hashes -r tests/requirements-test.lock"
-        in runs
-    )
+    assert "python -m pip install --require-hashes -r tests/requirements-test.lock" in runs
     assert "pip install fastapi uvicorn" not in runs
     assert "pip install -e services/layer1-ingestion/ --no-deps" in runs
+
+
+def test_frontend_contract_lint_configures_type_information() -> None:
+    config = FRONTEND_ESLINT_CONFIG.read_text(encoding="utf-8")
+
+    assert 'project: ["./tsconfig.json"]' in config
+    assert "tsconfigRootDir: __dirname" in config

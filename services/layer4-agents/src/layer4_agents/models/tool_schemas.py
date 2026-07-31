@@ -56,7 +56,9 @@ class QueryGraphInput(BaseModel):
     cypher_query: str = Field(..., description="Cypher query to execute")
     parameters: dict[str, Any] = Field(default_factory=dict)
     read_only: bool = True
-    tenant_id: str | None = Field(default=None, description="Owning tenant for queries run outside a request context")
+    tenant_id: str | None = Field(
+        default=None, description="Owning tenant for queries run outside a request context"
+    )
 
 
 class QueryGraphOutput(BaseModel):
@@ -483,6 +485,7 @@ class CreateTaskOutput(BaseModel):
     task_id: str | None = None
     success: bool
     url: str | None = None
+    error: str | None = None
 
 
 class ScheduleMeetingInput(BaseModel):
@@ -502,6 +505,7 @@ class ScheduleMeetingOutput(BaseModel):
     scheduled_time: str | None = None
     calendar_link: str | None = None
     success: bool
+    error: str | None = None
 
 
 class ExportToCRMInput(BaseModel):
@@ -518,6 +522,7 @@ class ExportToCRMOutput(BaseModel):
     crm_record_id: str | None = None
     success: bool
     url: str | None = None
+    error: str | None = None
 
 
 # ============================================================================

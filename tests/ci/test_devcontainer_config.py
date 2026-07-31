@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import importlib.util
 import subprocess
 import sys
 from pathlib import Path
@@ -9,6 +10,15 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 VALIDATOR = REPO_ROOT / "scripts" / "ci" / "check_devcontainer_config.py"
 PR_CHECKS_WORKFLOW = REPO_ROOT / ".github" / "workflows" / "pr-checks.yml"
+DEV_STACK = REPO_ROOT / ".devcontainer" / "dev-stack.sh"
+
+
+def _load_validator():
+    spec = importlib.util.spec_from_file_location("test_devcontainer_validator", VALIDATOR)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def test_checked_in_devcontainer_topology_satisfies_static_contract() -> None:
@@ -64,3 +74,34 @@ def test_devcontainer_cli_install_activates_pnpm_home_in_current_step() -> None:
     assert export_path in install_step
     assert install_step.index(export_home) < install_step.index(global_install)
     assert install_step.index(export_path) < install_step.index(global_install)
+
+
+def test_compose_render_uses_canonical_compose_project_and_safe_required_env(monkeypatch) -> None:
+    validator = _load_validator()
+    calls = []
+
+    monkeypatch.setattr(validator.shutil, "which", lambda command: f"/usr/bin/{command}")
+
+    def fake_run(args, **kwargs):
+        calls.append((args, kwargs))
+        return subprocess.CompletedProcess(args, 0, "", "")
+
+    monkeypatch.setattr(validator.subprocess, "run", fake_run)
+    errors = []
+
+    validator.run_external_validation(REPO_ROOT, errors)
+
+    assert errors == []
+    docker_calls = [(args, kwargs) for args, kwargs in calls if args[0] == "/usr/bin/docker"]
+    assert docker_calls
+    assert all(
+        args[args.index("--project-directory") + 1] == str(REPO_ROOT / "infra/compose")
+        for args, _kwargs in docker_calls
+    )
+    assert all(kwargs["env"]["FLOWER_PASSWORD"] for _args, kwargs in docker_calls)
+
+
+def test_dev_stack_uses_canonical_compose_project_directory() -> None:
+    script = DEV_STACK.read_text(encoding="utf-8")
+
+    assert '--project-directory "$workspace/infra/compose"' in script
