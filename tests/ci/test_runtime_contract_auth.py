@@ -7,9 +7,7 @@ import yaml
 REPO_ROOT = Path(__file__).resolve().parents[2]
 WORKFLOW = REPO_ROOT / ".github" / "workflows" / "pr-checks.yml"
 RUNTIME_TEST = REPO_ROOT / "tests" / "contract" / "test_layer_integration.py"
-LAYER3_MAIN = (
-    REPO_ROOT / "services" / "layer3-knowledge" / "src" / "api" / "main.py"
-)
+LAYER3_MAIN = REPO_ROOT / "services" / "layer3-knowledge" / "src" / "api" / "main.py"
 FULL_COMPOSE = REPO_ROOT / "infra" / "compose" / "docker-compose.full.yml"
 
 
@@ -34,14 +32,17 @@ def test_runtime_contract_uses_canonical_authenticated_workflow_route() -> None:
     assert 'f"{L4_URL}/v1/workflows"' in source
     assert 'f"{L4_URL}/v1/workflows/ingestion"' not in source
     assert '"value_driver_ids": [' in source
+    assert '"entity_type": "Organization"' in source
+    assert '"rdf_data":' in source
+    assert '"entities": [' not in source
+    assert '"source_id":' in source
+    assert '"extraction_job_id":' in source
 
 
 def test_layer3_governance_uses_the_runtime_redis_service() -> None:
     source = LAYER3_MAIN.read_text(encoding="utf-8")
     compose = FULL_COMPOSE.read_text(encoding="utf-8")
-    layer3 = compose.split("\n  layer3-knowledge:", 1)[1].split(
-        "\n  layer4-agents:", 1
-    )[0]
+    layer3 = compose.split("\n  layer3-knowledge:", 1)[1].split("\n  layer4-agents:", 1)[0]
 
     assert "redis.asyncio" in source
     assert "RedisRateLimiter" in source

@@ -147,7 +147,7 @@ def test_entity_data():
     return {
         "id": test_id,
         "name": f"TestCorp {test_id}",
-        "entity_type": "Company",
+        "entity_type": "Organization",
         "properties": {
             "industry": "Technology",
             "employees": 500,
@@ -269,7 +269,7 @@ class TestL1ToL3DataFlow:
         # 2. Query L3 for the entity
         l3_response = _session.post(
             f"{L3_URL}/v1/search/hybrid",
-            json={"query": entity_name, "entity_type": "Company"},
+            json={"query": entity_name, "entity_type": "Organization"},
             headers=_runtime_auth_headers(),
             timeout=15,
         )
@@ -289,13 +289,15 @@ class TestL1ToL3DataFlow:
         response = _session.post(
             f"{L3_URL}/v1/ingest",
             json={
-                "entities": [
-                    {
-                        "id": f"test-{uuid.uuid4().hex[:8]}",
-                        "type": "Company",
-                        "name": "TestCorp Runtime",
-                    }
-                ]
+                "rdf_data": (
+                    "@prefix ex: <http://example.com/> . "
+                    "@prefix vf: <http://valuefabric.io/ontology/> . "
+                    "@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> . "
+                    f"ex:runtime-{uuid.uuid4().hex[:8]} rdf:type vf:Organization ; "
+                    'vf:name "TestCorp Runtime" .'
+                ),
+                "source_id": f"runtime-source-{uuid.uuid4().hex[:8]}",
+                "extraction_job_id": f"runtime-job-{uuid.uuid4().hex[:8]}",
             },
             headers=_runtime_auth_headers(),
             timeout=10,

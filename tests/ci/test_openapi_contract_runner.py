@@ -30,10 +30,8 @@ def test_layer4_contract_service_mounts_all_imported_source_packages() -> None:
     layer4 = compose.split("\n  layer4:", 1)[1].split("\n  layer5:", 1)[0]
 
     assert "PYTHONPATH: /app:/app/src" in layer4
-    assert (
-        "../../packages/platform-contract/src/python/canonical:/app/canonical:ro"
-        in layer4
-    )
+    assert 'ALLOW_INSECURE_SERVICE_HTTP_IN_DEVELOPMENT: "true"' in layer4
+    assert "../../packages/platform-contract/src/python/canonical:/app/canonical:ro" in layer4
     assert "layer4_agents.api.main:app" in (
         ROOT / "services" / "layer4-agents" / "Dockerfile"
     ).read_text(encoding="utf-8")
