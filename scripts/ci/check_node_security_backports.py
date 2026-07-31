@@ -3,9 +3,12 @@
 
 from __future__ import annotations
 
+import argparse
 import json
+import subprocess
 import sys
 from pathlib import Path
+from typing import Any
 
 ROOT = Path(__file__).resolve().parents[2]
 REACT_ROUTER_ADVISORY = "GHSA-qwww-vcr4-c8h2"
@@ -64,8 +67,102 @@ def check() -> list[str]:
     return errors
 
 
-def main() -> int:
+def validate_audit_report(payload: Any) -> list[str]:
+    """Reject scanner errors and every unpatched high/critical advisory."""
+    if not isinstance(payload, dict):
+        return ["pnpm audit report must be a JSON object"]
+    if payload.get("error"):
+        return [f"pnpm audit failed to execute: {payload['error']}"]
+
+    advisories = payload.get("advisories")
+    metadata = payload.get("metadata")
+    if not isinstance(advisories, dict) or not isinstance(metadata, dict):
+        return ["pnpm audit report is missing advisories or metadata"]
+
+    errors: list[str] = []
+    blocking_count = 0
+    for advisory in advisories.values():
+        if not isinstance(advisory, dict):
+            errors.append("pnpm audit report contains a malformed advisory")
+            continue
+        severity = str(advisory.get("severity") or "").lower()
+        if severity not in {"high", "critical"}:
+            continue
+        blocking_count += 1
+        advisory_id = str(advisory.get("github_advisory_id") or "")
+        module_name = str(advisory.get("module_name") or "")
+        findings = advisory.get("findings")
+        versions = {
+            str(finding.get("version"))
+            for finding in findings or []
+            if isinstance(finding, dict) and finding.get("version") is not None
+        }
+        if (
+            advisory_id == REACT_ROUTER_ADVISORY
+            and module_name == "react-router"
+            and versions == {"7.18.0"}
+        ):
+            continue
+        errors.append(
+            f"unpatched {severity} Node advisory: "
+            f"{advisory_id or 'unknown'} ({module_name or 'unknown package'})"
+        )
+
+    vulnerabilities = metadata.get("vulnerabilities")
+    if not isinstance(vulnerabilities, dict):
+        errors.append("pnpm audit metadata is missing vulnerability counts")
+    else:
+        reported_blocking = int(vulnerabilities.get("high", 0)) + int(
+            vulnerabilities.get("critical", 0)
+        )
+        if reported_blocking != blocking_count:
+            errors.append(
+                "pnpm audit advisory/count mismatch: "
+                f"metadata={reported_blocking}, advisories={blocking_count}"
+            )
+    return errors
+
+
+def run_audit(project_dir: str, output: Path) -> list[str]:
+    """Execute pnpm audit and validate its machine-readable report."""
+    result = subprocess.run(
+        [
+            "pnpm",
+            "--dir",
+            project_dir,
+            "audit",
+            "--audit-level",
+            "high",
+            "--json",
+        ],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    output.write_text(result.stdout, encoding="utf-8")
+    if result.returncode not in {0, 1}:
+        detail = result.stderr.strip() or "no diagnostic output"
+        return [f"pnpm audit scanner exited {result.returncode}: {detail}"]
+    try:
+        payload = json.loads(result.stdout)
+    except json.JSONDecodeError as exc:
+        return [f"pnpm audit did not emit valid JSON: {exc.msg}"]
+    return validate_audit_report(payload)
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--audit", action="store_true")
+    parser.add_argument("--project-dir", default="apps/web")
+    parser.add_argument(
+        "--audit-report-output", type=Path, default=Path("frontend-audit.json")
+    )
+    args = parser.parse_args(argv)
+
     errors = check()
+    if not errors and args.audit:
+        errors.extend(run_audit(args.project_dir, args.audit_report_output))
     if errors:
         for error in errors:
             print(f"ERROR: {error}", file=sys.stderr)
@@ -74,6 +171,8 @@ def main() -> int:
         "Node security backports verified: brace-expansion 5.0.8 compatibility and "
         f"React Router upstream fix for {REACT_ROUTER_ADVISORY}"
     )
+    if args.audit:
+        print("Node dependency audit passed with only verified backport exceptions")
     return 0
 
 

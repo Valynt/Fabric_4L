@@ -346,22 +346,12 @@ jobs:
           LOCK_HASH=$(sha256sum apps/web/pnpm-lock.yaml | awk '{print $1}')
           echo "lock_hash=$LOCK_HASH" >> "$GITHUB_OUTPUT"
 
-      - name: Verify Node security backports
-        run: python scripts/ci/check_node_security_backports.py
-
-      - name: Audit Node.js dependencies (pnpm)
-        run: |
-          set +e
-          pnpm --dir apps/web audit --audit-level high --ignore GHSA-qwww-vcr4-c8h2 --json > frontend-audit.json
-          audit_status=$?
-          set -e
-
-          python -c 'import json, sys; from pathlib import Path; payload = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8")); assert isinstance(payload, dict), "pnpm audit JSON is missing expected audit report fields"; error = payload.get("error"); assert not error, "pnpm audit failed to execute successfully: " + str(error); assert any(key in payload for key in ("advisories", "auditReportVersion", "metadata", "vulnerabilities")), "pnpm audit JSON is missing expected audit report fields"' frontend-audit.json
-
-          if [ "$audit_status" -ne 0 ]; then
-            echo "::error::pnpm audit reported high-severity dependency advisories"
-            touch .dependency-findings
-          fi
+      - name: Audit Node.js dependencies and verify security backports
+        run: >-
+          python scripts/ci/check_node_security_backports.py
+          --audit
+          --project-dir apps/web
+          --audit-report-output frontend-audit.json
 
       - name: Upload audit results
         if: always()
