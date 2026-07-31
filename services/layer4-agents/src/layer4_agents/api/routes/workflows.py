@@ -134,7 +134,6 @@ class WorkflowInputs(BaseModel):
     prospect_id: str | None = None
     prospect_company: str | None = None
     use_case_ids: list[str] | None = None
-    value_driver_ids: list[str] | None = None
     prospect_metrics: JsonObject | None = None
     custom_data: JsonObject | None = Field(default_factory=dict)
 

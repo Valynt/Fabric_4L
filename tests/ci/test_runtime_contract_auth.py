@@ -31,7 +31,7 @@ def test_runtime_contract_uses_canonical_authenticated_workflow_route() -> None:
     assert '"X-Service-Auth": SERVICE_AUTH_SECRET' in source
     assert 'f"{L4_URL}/v1/workflows"' in source
     assert 'f"{L4_URL}/v1/workflows/ingestion"' not in source
-    assert '"value_driver_ids": [' in source
+    assert '"use_case_ids": [' in source
     assert '"entity_type": "Organization"' in source
     assert '"rdf_data":' in source
     assert '"entities": [' not in source

@@ -33,19 +33,6 @@ class TestWorkflowCreateRequest:
         assert req.inputs.prospect_id == "p-001"
         assert req.priority == "HIGH"
 
-    def test_roi_value_driver_ids_are_preserved_for_execution(self):
-        req = WorkflowCreateRequest.model_validate(
-            {
-                "workflow_type": "roi_calculator",
-                "inputs": {
-                    "prospect_id": "p-001",
-                    "value_driver_ids": ["driver-001"],
-                },
-            }
-        )
-
-        assert req.inputs.model_dump(exclude_none=True)["value_driver_ids"] == ["driver-001"]
-
     def test_valid_request_minimal_with_type_only(self):
         """Only workflow_type is required for create request."""
         req = WorkflowCreateRequest(
