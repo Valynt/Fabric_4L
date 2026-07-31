@@ -8,7 +8,6 @@ import json
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any
 
 ROOT = Path(__file__).resolve().parents[2]
 REACT_ROUTER_ADVISORY = "GHSA-qwww-vcr4-c8h2"
@@ -67,7 +66,7 @@ def check() -> list[str]:
     return errors
 
 
-def validate_audit_report(payload: Any) -> list[str]:
+def validate_audit_report(payload: object) -> list[str]:
     """Reject scanner errors and every unpatched high/critical advisory."""
     if not isinstance(payload, dict):
         return ["pnpm audit report must be a JSON object"]
