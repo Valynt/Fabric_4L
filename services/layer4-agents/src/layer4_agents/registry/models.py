@@ -110,6 +110,12 @@ class ModelPromotionLog(Base):
         default=uuid.uuid4,
     )
 
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("tenants.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+
     model_version_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("model_versions.id", ondelete="CASCADE"),
@@ -154,7 +160,10 @@ class ModelPromotionLog(Base):
         default=lambda: datetime.now(UTC),
     )
 
-    __table_args__ = (Index("ix_model_promotion_log_model_version_id", "model_version_id"),)
+    __table_args__ = (
+        Index("ix_model_promotion_log_model_version_id", "model_version_id"),
+        Index("ix_model_promotion_log_tenant_id", "tenant_id"),
+    )
 
     def __repr__(self) -> str:
         return (

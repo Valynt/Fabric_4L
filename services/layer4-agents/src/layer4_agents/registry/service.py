@@ -203,6 +203,7 @@ class ModelRegistryService:
 
         # Log promotion
         log_entry = ModelPromotionLog(
+            tenant_id=model.tenant_id,
             model_version_id=model_version_id,
             from_stage=from_stage,
             to_stage=to_stage,

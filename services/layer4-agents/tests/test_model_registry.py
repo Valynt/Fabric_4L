@@ -31,8 +31,10 @@ class FakeResult:
         class _All:
             def __init__(self, items: list) -> None:
                 self._items = items
+
             def all(self) -> list:
                 return self._items
+
         return _All(self._scalar if isinstance(self._scalar, list) else [])
 
 
@@ -50,6 +52,7 @@ def db() -> AsyncMock:
 def mock_emit_audit_event(monkeypatch):
     """Mock emit_audit_event to accept any arguments."""
     from unittest.mock import MagicMock
+
     mock = MagicMock()
     monkeypatch.setattr("layer4_agents.registry.service.emit_audit_event", mock)
     return mock
@@ -59,7 +62,9 @@ class TestModelRegistryCRUD:
     """Tests for model registration and listing."""
 
     @pytest.mark.asyncio
-    async def test_register_model(self, db: AsyncMock, tenant_id: UUID, mock_emit_audit_event) -> None:
+    async def test_register_model(
+        self, db: AsyncMock, tenant_id: UUID, mock_emit_audit_event
+    ) -> None:
         model = await ModelRegistryService.register_model(
             db=db,
             tenant_id=tenant_id,
@@ -97,18 +102,14 @@ class TestModelRegistryCRUD:
             stage="production",
         )
         db.execute.return_value = FakeResult(mv)
-        result = await ModelRegistryService.get_active_production_model(
-            db, tenant_id, "openai"
-        )
+        result = await ModelRegistryService.get_active_production_model(db, tenant_id, "openai")
         assert result is not None
         assert result.stage == "production"
 
     @pytest.mark.asyncio
     async def test_get_active_production_model_none(self, db: AsyncMock, tenant_id: UUID) -> None:
         db.execute.return_value = FakeResult(None)
-        result = await ModelRegistryService.get_active_production_model(
-            db, tenant_id, "openai"
-        )
+        result = await ModelRegistryService.get_active_production_model(db, tenant_id, "openai")
         assert result is None
 
 
@@ -116,7 +117,9 @@ class TestModelPromotion:
     """Tests for promotion gates and audit trail."""
 
     @pytest.mark.asyncio
-    async def test_dev_to_staging_allowed(self, db: AsyncMock, tenant_id: UUID, mock_emit_audit_event) -> None:
+    async def test_dev_to_staging_allowed(
+        self, db: AsyncMock, tenant_id: UUID, mock_emit_audit_event
+    ) -> None:
         mv = ModelVersion(
             id=uuid4(),
             tenant_id=tenant_id,
@@ -132,7 +135,9 @@ class TestModelPromotion:
         assert result.stage == "staging"
 
     @pytest.mark.asyncio
-    async def test_staging_to_production_requires_eval(self, db: AsyncMock, tenant_id: UUID, mock_emit_audit_event) -> None:
+    async def test_staging_to_production_requires_eval(
+        self, db: AsyncMock, tenant_id: UUID, mock_emit_audit_event
+    ) -> None:
         mv = ModelVersion(
             id=uuid4(),
             tenant_id=tenant_id,
@@ -144,6 +149,7 @@ class TestModelPromotion:
         )
         # Mock tenant for threshold lookup
         from layer4_agents.tenants.models.tenant import Tenant
+
         tenant = Tenant(id=tenant_id, name="Test", slug="test", settings={}, status="active")
 
         # promote_model does 1 execute, then check_eval_gate does 2 executes
@@ -166,19 +172,25 @@ class TestModelPromotion:
             eval_score=0.95,
         )
         from layer4_agents.tenants.models.tenant import Tenant
+
         tenant = Tenant(id=tenant_id, name="Test", slug="test", settings={}, status="active")
 
         # promote_model: 1 execute + check_eval_gate (2 executes) first call
         # + check_eval_gate (2 executes) second call in eval_gate_passed expression
         db.execute.side_effect = [
-            FakeResult(mv), FakeResult(mv), FakeResult(tenant),
-            FakeResult(mv), FakeResult(tenant),
+            FakeResult(mv),
+            FakeResult(mv),
+            FakeResult(tenant),
+            FakeResult(mv),
+            FakeResult(tenant),
         ]
         result = await ModelRegistryService.promote_model(db, mv.id, "production")
         assert result.stage == "production"
 
     @pytest.mark.asyncio
-    async def test_production_to_deprecated_allowed(self, db: AsyncMock, tenant_id: UUID, mock_emit_audit_event) -> None:
+    async def test_production_to_deprecated_allowed(
+        self, db: AsyncMock, tenant_id: UUID, mock_emit_audit_event
+    ) -> None:
         mv = ModelVersion(
             id=uuid4(),
             tenant_id=tenant_id,
@@ -194,7 +206,9 @@ class TestModelPromotion:
         assert result.stage == "deprecated"
 
     @pytest.mark.asyncio
-    async def test_promotion_history_recorded(self, db: AsyncMock, tenant_id: UUID, mock_emit_audit_event) -> None:
+    async def test_promotion_history_recorded(
+        self, db: AsyncMock, tenant_id: UUID, mock_emit_audit_event
+    ) -> None:
         mv = ModelVersion(
             id=uuid4(),
             tenant_id=tenant_id,
@@ -208,6 +222,7 @@ class TestModelPromotion:
         # db.add should be called with a ModelPromotionLog
         added = db.add.call_args[0][0]
         assert isinstance(added, ModelPromotionLog)
+        assert added.tenant_id == tenant_id
         assert added.from_stage == "dev"
         assert added.to_stage == "staging"
 
@@ -248,6 +263,7 @@ class TestEvalGate:
             eval_score=0.84,
         )
         from layer4_agents.tenants.models.tenant import Tenant
+
         tenant = Tenant(
             id=tenant_id,
             name="Test",
@@ -270,6 +286,7 @@ class TestEvalGate:
             eval_score=_DEFAULT_PROMOTION_THRESHOLD,
         )
         from layer4_agents.tenants.models.tenant import Tenant
+
         tenant = Tenant(id=tenant_id, name="Test", slug="test", settings={}, status="active")
         db.execute.side_effect = [FakeResult(mv), FakeResult(tenant)]
         passed = await check_eval_gate(db, mv.id)
@@ -296,6 +313,7 @@ class TestResolveLLMModel:
     @pytest.mark.asyncio
     async def test_resolve_llm_model_fallback(self, db: AsyncMock, tenant_id: UUID) -> None:
         import os
+
         db.execute.return_value = FakeResult(None)
         result = await resolve_llm_model(db, tenant_id, "openai")
         assert result == os.getenv("LLM_MODEL", "gpt-4o")
