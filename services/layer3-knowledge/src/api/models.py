@@ -5,7 +5,7 @@ Removal/migration target: 2026-09-30
 Reason: Pydantic models for Layer 3 knowledge API.
 """
 
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from enum import Enum
 from typing import Annotated, Literal
 
