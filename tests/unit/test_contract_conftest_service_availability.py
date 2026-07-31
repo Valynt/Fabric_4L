@@ -9,7 +9,7 @@ from tests.contract import conftest as contract_conftest
 
 
 def test_local_default_missing_services(monkeypatch: pytest.MonkeyPatch) -> None:
-    def _raise_unavailable(*args, **kwargs):  # type: ignore[no-untyped-def]
+    def _raise_unavailable(*args: object, **kwargs: object) -> None:
         raise urllib.error.URLError("unreachable")
 
     monkeypatch.setattr(contract_conftest.urllib.request, "urlopen", _raise_unavailable)
@@ -27,7 +27,7 @@ def test_local_default_missing_services(monkeypatch: pytest.MonkeyPatch) -> None
 
 
 def test_ci_strict_mode_missing_services(monkeypatch: pytest.MonkeyPatch) -> None:
-    def _raise_unavailable(*args, **kwargs):  # type: ignore[no-untyped-def]
+    def _raise_unavailable(*args: object, **kwargs: object) -> None:
         raise urllib.error.URLError("unreachable")
 
     monkeypatch.setattr(contract_conftest.urllib.request, "urlopen", _raise_unavailable)
@@ -49,13 +49,13 @@ def test_live_service_checks_use_canonical_public_health_paths(
     class Response:
         status = 200
 
-        def __enter__(self):
+        def __enter__(self) -> Response:
             return self
 
-        def __exit__(self, *args):  # type: ignore[no-untyped-def]
+        def __exit__(self, *args: object) -> None:
             return None
 
-    def _record_url(request, timeout):  # type: ignore[no-untyped-def]
+    def _record_url(request: urllib.request.Request, timeout: float) -> Response:
         observed.append(request.full_url)
         return Response()
 
@@ -76,7 +76,7 @@ def test_live_service_checks_use_canonical_public_health_paths(
 
 
 def test_mock_mode_bypasses_service_checks(monkeypatch: pytest.MonkeyPatch) -> None:
-    def _unexpected_call(*args, **kwargs):  # type: ignore[no-untyped-def]
+    def _unexpected_call(*args: object, **kwargs: object) -> None:
         raise AssertionError("urlopen should not be called in CONTRACT_TEST_MODE=mock")
 
     monkeypatch.setattr(contract_conftest.urllib.request, "urlopen", _unexpected_call)

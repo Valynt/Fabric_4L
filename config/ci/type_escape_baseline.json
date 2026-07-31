@@ -13544,18 +13544,6 @@
     },
     {
       "kind": "python-any",
-      "line": 26,
-      "path": "services/layer2-5-signal-refinery/src/layer2_5_signal_refinery/api/auth.py",
-      "text": "RequestContext = Any  # type: ignore[assignment,misc]"
-    },
-    {
-      "kind": "python-type-ignore",
-      "line": 26,
-      "path": "services/layer2-5-signal-refinery/src/layer2_5_signal_refinery/api/auth.py",
-      "text": "RequestContext = Any  # type: ignore[assignment,misc]"
-    },
-    {
-      "kind": "python-any",
       "line": 28,
       "path": "services/layer2-5-signal-refinery/src/layer2_5_signal_refinery/api/auth.py",
       "text": "def get_request_context() -> Any:  # type: ignore[misc]"
@@ -42563,24 +42551,6 @@
       "line": 62,
       "path": "tests/unit/l7/test_webhook_security.py",
       "text": "sig.timestamp = 1  # type: ignore[misc]"
-    },
-    {
-      "kind": "python-type-ignore",
-      "line": 12,
-      "path": "tests/unit/test_contract_conftest_service_availability.py",
-      "text": "def _raise_unavailable(*args, **kwargs):  # type: ignore[no-untyped-def]"
-    },
-    {
-      "kind": "python-type-ignore",
-      "line": 30,
-      "path": "tests/unit/test_contract_conftest_service_availability.py",
-      "text": "def _raise_unavailable(*args, **kwargs):  # type: ignore[no-untyped-def]"
-    },
-    {
-      "kind": "python-type-ignore",
-      "line": 45,
-      "path": "tests/unit/test_contract_conftest_service_availability.py",
-      "text": "def _unexpected_call(*args, **kwargs):  # type: ignore[no-untyped-def]"
     }
   ]
 }
