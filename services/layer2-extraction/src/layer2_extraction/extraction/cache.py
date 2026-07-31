@@ -69,7 +69,7 @@ class ExtractionCache:
         self._fallback: _InMemoryLRUCache | None = _InMemoryLRUCache()
         self._default_ttl = default_ttl
 
-        if redis_url is _Unset:
+        if redis_url is _UNSET:
             redis_url = os.getenv("REDIS_URL")
         if redis_url:
             try:
