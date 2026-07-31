@@ -8,6 +8,7 @@ ROOT = Path(__file__).resolve().parents[2]
 PR_CHECKS = ROOT / ".github/workflows/pr-checks.yml"
 CONTRACT_COMPLIANCE = ROOT / ".github/workflows/contract-compliance.yml"
 GRAPH_MODULE_TESTS = ROOT / ".github/workflows/graph-module-tests.yml"
+DRIFT_CHECK = ROOT / ".github/workflows/drift-check.yml"
 SETUP_ACTION = "./.github/actions/setup-fabric-ci"
 
 
@@ -70,3 +71,15 @@ def test_graph_contract_job_uses_hash_locked_root_test_dependencies() -> None:
         in runs
     )
     assert "pip install pytest jsonschema" not in runs
+
+
+def test_openapi_drift_job_uses_hash_locked_pytest_plugins() -> None:
+    job = _load(DRIFT_CHECK)["jobs"]["detect-drift"]
+    runs = "\n".join(step.get("run", "") for step in job["steps"])
+
+    assert (
+        "python -m pip install --require-hashes -r tests/requirements-test.lock"
+        in runs
+    )
+    assert "pip install fastapi uvicorn" not in runs
+    assert "pip install -e services/layer1-ingestion/ --no-deps" in runs
