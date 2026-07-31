@@ -77,6 +77,7 @@ def test_current_head_adds_strict_rls_for_late_tenant_scoped_tables() -> None:
     assert "fk_model_promotion_log_model_tenant" in source
     assert '["model_version_id", "tenant_id"]' in source
     assert '["id", "tenant_id"]' in source
+    assert "MIGRATION_REVIEW_REQUIRED" in source
     assert "tenant_id::text = current_setting('app.tenant_id', true)" in source
     assert "tenant_id IS NULL OR" not in source
     assert "CREATE POLICY global_plan_read_policy ON billing_plan_versions" in source
