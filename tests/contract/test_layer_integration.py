@@ -321,6 +321,7 @@ class TestL4WorkflowOrchestration:
                 "workflow_type": "roi_calculator",
                 "inputs": {
                     "prospect_id": f"runtime-{uuid.uuid4().hex[:8]}",
+                    "value_driver_ids": ["runtime-contract-driver"],
                     "prospect_metrics": {"annual_revenue": 1000000},
                 },
                 "priority": "NORMAL",
