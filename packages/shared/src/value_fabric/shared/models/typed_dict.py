@@ -4,25 +4,12 @@ Provides a Pydantic BaseModel subclass used across the codebase
 for type-safe dictionary-like response models.
 """
 
-from typing import ForwardRef
-
 from pydantic import BaseModel, ConfigDict
 
-# Define JSON value type for use in JSONDict
-# Using ForwardRef to handle recursive type definition properly
-
-JsonValue = ForwardRef("JsonValue")
-JsonValue = (
-    None
-    | bool
-    | int
-    | float
-    | str
-    | list[JsonValue]
-    | dict[str, JsonValue]
-)
-
-JSONDict = dict[str, JsonValue]
+# Canonical dynamic JSON dictionary type.
+# ``object`` is the statically-correct top type for arbitrary JSON values
+# and is Pydantic-compatible, unlike a recursive ForwardRef alias.
+JSONDict = dict[str, object]
 
 
 class TypedDictModel(BaseModel):
