@@ -14,16 +14,12 @@ environments where the shared package is not installed (e.g. isolated tests).
 logger = logging.getLogger(__name__)
 
 try:  # noqa: E402
-    from value_fabric.shared.identity.context import (  # noqa: E402
-        RequestContext,
-        get_request_context,
-    )
+    from value_fabric.shared.identity.context import get_request_context  # noqa: E402
     from value_fabric.shared.identity.dependencies import require_authenticated  # noqa: E402
 
     SHARED_IDENTITY_AVAILABLE = True
 except ImportError:
     SHARED_IDENTITY_AVAILABLE = False
-    RequestContext = Any  # type: ignore[assignment,misc]
 
     def get_request_context() -> Any:  # type: ignore[misc]
         return None

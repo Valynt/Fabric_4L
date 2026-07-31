@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 import logging
 import uuid
-from contextlib import suppress
 from datetime import UTC, datetime
 from typing import Any
 
@@ -147,17 +146,17 @@ async def create_signal(
 
     signal = await repo.create(data)
 
-    # Push to L3 asynchronously (best-effort, non-blocking)
-    # No running event loop in test environments means there is no background push.
-    with suppress(RuntimeError):
-        asyncio.create_task(
-            get_l3_client().push_signal(
-                signal,
-                tenant_id,
-                request.headers.get("X-Request-ID"),
-                request.headers.get("X-Correlation-ID"),
-            )
+    # Push to L3 asynchronously (best-effort, non-blocking). This route is
+    # async, so a running loop is part of its runtime contract; a missing loop
+    # is an operational defect and must remain visible instead of being hidden.
+    asyncio.get_running_loop().create_task(
+        get_l3_client().push_signal(
+            signal,
+            tenant_id,
+            request.headers.get("X-Request-ID"),
+            request.headers.get("X-Correlation-ID"),
         )
+    )
 
     return signal
 
@@ -439,15 +438,15 @@ async def refine_signals(
         r["tenant_id"] = tenant_id
         signal = await repo.create(r)
         created.append(signal)
-        with suppress(RuntimeError):
-            asyncio.create_task(
-                get_l3_client().push_signal(
-                    signal,
-                    tenant_id,
-                    request.headers.get("X-Request-ID"),
-                    request.headers.get("X-Correlation-ID"),
-                )
+        # FastAPI async routes always execute inside a running event loop.
+        asyncio.get_running_loop().create_task(
+            get_l3_client().push_signal(
+                signal,
+                tenant_id,
+                request.headers.get("X-Request-ID"),
+                request.headers.get("X-Correlation-ID"),
             )
+        )
 
     return {
         "refined": len(created),

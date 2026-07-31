@@ -31,37 +31,36 @@ def check() -> list[str]:
             )
 
     expected_patches = {
-        "brace-expansion@5.0.8": "patches/brace-expansion@5.0.8.patch",
-        "react-router@7.18.0": "patches/react-router@7.18.0.patch",
+        "brace-expansion@5.0.8": {
+            "path": "patches/brace-expansion@5.0.8.patch",
+            "markers": ("module.exports = expand", "EXPANSION_MAX_LENGTH"),
+            "minimum_count": 1,
+        },
+        "react-router@7.18.0": {
+            "path": "patches/react-router@7.18.0.patch",
+            "markers": (
+                "potentialCSRFAttackError = error",
+                'method: "GET"',
+                "if (!potentialCSRFAttackError)",
+                "onError?.(error)",
+            ),
+            "minimum_count": 4,
+        },
     }
-    for dependency, patch_path in expected_patches.items():
+    for dependency, patch_contract in expected_patches.items():
+        patch_path = str(patch_contract["path"])
         if patched.get(dependency) != patch_path:
             errors.append(f"missing pinned patch registration for {dependency}")
-        elif not (ROOT / patch_path).is_file():
+            continue
+        full_path = ROOT / patch_path
+        if not full_path.is_file():
             errors.append(f"registered patch does not exist: {patch_path}")
-
-    brace_patch = (ROOT / expected_patches["brace-expansion@5.0.8"]).read_text(
-        encoding="utf-8"
-    )
-    for marker in ("module.exports = expand", "EXPANSION_MAX_LENGTH"):
-        if marker not in brace_patch:
-            errors.append(
-                f"brace-expansion compatibility patch missing marker: {marker}"
-            )
-
-    router_patch = (ROOT / expected_patches["react-router@7.18.0"]).read_text(
-        encoding="utf-8"
-    )
-    for marker in (
-        "potentialCSRFAttackError = error",
-        'method: "GET"',
-        "if (!potentialCSRFAttackError)",
-        "onError?.(error)",
-    ):
-        if router_patch.count(marker) < 4:
-            errors.append(
-                f"React Router CSRF backport missing compiled marker: {marker}"
-            )
+            continue
+        patch = full_path.read_text(encoding="utf-8")
+        minimum_count = int(patch_contract["minimum_count"])
+        for marker in patch_contract["markers"]:
+            if patch.count(str(marker)) < minimum_count:
+                errors.append(f"{dependency} patch missing marker: {marker}")
 
     return errors
 

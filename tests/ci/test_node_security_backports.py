@@ -5,6 +5,8 @@ from pathlib import Path
 
 from scripts.ci.check_node_security_backports import check, validate_audit_report
 
+from scripts.ci import check_node_security_backports
+
 ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -88,3 +90,26 @@ def test_react_router_patch_tracks_upstream_security_commit() -> None:
     assert patch.count("potentialCSRFAttackError = error") >= 4
     assert patch.count('method: "GET"') >= 4
     assert patch.count("if (!potentialCSRFAttackError)") >= 4
+
+
+def test_missing_registered_patch_is_reported_without_crashing(tmp_path, monkeypatch) -> None:
+    package = {
+        "pnpm": {
+            "overrides": {
+                "brace-expansion@^1.1.7": "5.0.8",
+                "brace-expansion@^2.0.1": "5.0.8",
+                "brace-expansion@^5.0.0": "5.0.8",
+            },
+            "patchedDependencies": {
+                "brace-expansion@5.0.8": "patches/brace-expansion@5.0.8.patch",
+                "react-router@7.18.0": "patches/react-router@7.18.0.patch",
+            },
+        }
+    }
+    (tmp_path / "package.json").write_text(json.dumps(package), encoding="utf-8")
+    monkeypatch.setattr(check_node_security_backports, "ROOT", tmp_path)
+
+    assert check_node_security_backports.check() == [
+        "registered patch does not exist: patches/brace-expansion@5.0.8.patch",
+        "registered patch does not exist: patches/react-router@7.18.0.patch",
+    ]

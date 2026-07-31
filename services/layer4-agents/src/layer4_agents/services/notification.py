@@ -408,6 +408,7 @@ class NotificationService:
             while not self._event_queue.empty():
                 try:
                     event = self._event_queue.get_nowait()
+                    self._event_queue.task_done()
                     if not dropped and event.priority == priority:
                         # Drop this one (don't re-add)
                         dropped = True
@@ -454,6 +455,7 @@ class NotificationService:
     async def _batch_processor(self) -> None:
         """Background task to process notification queue."""
         while True:
+            event: NotificationEvent | None = None
             try:
                 # Use timeout to allow periodic checks for cancellation
                 event = await asyncio.wait_for(self._event_queue.get(), timeout=1.0)
@@ -472,6 +474,9 @@ class NotificationService:
                 break
             except Exception as e:
                 logger.error(f"Error processing notification: {e}")
+            finally:
+                if event is not None:
+                    self._event_queue.task_done()
 
     async def _process_notification(self, event: NotificationEvent) -> None:
         """Process a single notification event across all channels."""

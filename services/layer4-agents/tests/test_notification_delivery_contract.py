@@ -197,6 +197,40 @@ async def test_batch_processor_drops_stale_and_processes_fresh() -> None:
 
 
 @pytest.mark.asyncio
+async def test_batch_processor_balances_queue_tasks_for_stale_and_processed_events() -> None:
+    svc = NotificationService()
+    svc._max_event_age_seconds = 1
+    await svc._event_queue.put(event(created_at=datetime.now(UTC) - timedelta(seconds=5)))
+    await svc._event_queue.put(event())
+    processed = asyncio.Event()
+
+    async def process(_value):
+        processed.set()
+
+    svc._process_notification = process
+    task = asyncio.create_task(svc._batch_processor())
+    await asyncio.wait_for(processed.wait(), timeout=2)
+    await asyncio.wait_for(svc._event_queue.join(), timeout=2)
+    task.cancel()
+    await task
+
+
+@pytest.mark.asyncio
+async def test_priority_eviction_balances_drained_queue_tasks() -> None:
+    svc = NotificationService()
+    low = event(priority=NotificationPriority.LOW)
+    high = event(priority=NotificationPriority.HIGH)
+    await svc._event_queue.put(low)
+    await svc._event_queue.put(high)
+
+    assert svc._drop_oldest_by_priority(NotificationPriority.LOW)
+    remaining = svc._event_queue.get_nowait()
+    svc._event_queue.task_done()
+    assert remaining is high
+    await asyncio.wait_for(svc._event_queue.join(), timeout=2)
+
+
+@pytest.mark.asyncio
 async def test_process_notification_dispatches_channels_and_tracks_failures() -> None:
     svc = NotificationService()
     calls = []

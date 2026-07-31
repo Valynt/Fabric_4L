@@ -30,6 +30,8 @@ def check_service(name, url):
                     print(f"  [OK] {name} is healthy.")
                     return True
         except (urllib.error.URLError, ConnectionResetError):
+            # Transient connection failures are expected while services boot;
+            # the bounded retry loop below reports the final health failure.
             pass
 
         print(f"  [WAIT] {name} not ready... ({i + 1}/{MAX_RETRIES})")
