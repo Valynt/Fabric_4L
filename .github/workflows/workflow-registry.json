@@ -947,12 +947,8 @@
       ],
       "trigger_purpose": "CI/CD",
       "blocking": false,
-      "required_secrets": [
-        "GITHUB_TOKEN"
-      ],
-      "produced_artifacts": [
-        "${{ env.SBOM_OUTPUT_DIR }}/"
-      ],
+      "required_secrets": [],
+      "produced_artifacts": [],
       "runtime_budget_minutes": 30,
       "local_validation_command": "make check-workflow-references",
       "deprecation_status": "active"
@@ -1050,6 +1046,7 @@
       "owner": "@value-fabric/sre-leads",
       "trigger": [
         "pull_request",
+        "push",
         "workflow_call",
         "workflow_dispatch"
       ],
@@ -1064,6 +1061,7 @@
         "${{ matrix.layer }}-vulns.sarif",
         "*-audit.json",
         "*.intoto.jsonl",
+        ".dependency-findings",
         "license-reports/",
         "source-${{ matrix.layer }}-sbom.cdx.json",
         "source-${{ matrix.layer }}-vulns.sarif",
