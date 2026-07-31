@@ -129,3 +129,42 @@ async def test_seed_graph_uses_validation_auth_seed_instead_of_super_admin_tenan
         "service_account_id": "backend-integrated-validation",
     }
     assert seed_call["extra_headers"] == {"X-Privileged-Reason": "validation-seed"}
+
+
+@pytest.mark.asyncio
+async def test_seed_graph_reloads_existing_account_after_idempotent_conflict(monkeypatch):
+    module = load_backend_validation_conftest()
+    seed_ids = module.SeedIds(
+        tenant_a="00000000-0000-4000-8000-000000000001",
+        tenant_b="00000000-0000-4000-8000-000000000002",
+        user_admin="00000000-0000-4000-8000-000000000003",
+        user_reviewer="00000000-0000-4000-8000-000000000004",
+        account_id="00000000-0000-4000-8000-000000000005",
+        document_id="00000000-0000-4000-8000-000000000006",
+        value_pack_id="value-pack-test",
+        benchmark_id="benchmark-test",
+        evidence_id="evidence-test",
+        formula_id="formula-test",
+        crm_connection_id="crm-test",
+    )
+    harness = module.BackendValidationHarness(seed_ids)
+    calls: list[tuple[str, str]] = []
+
+    async def fake_request(layer, method, path, **kwargs):
+        calls.append((method, path))
+        if path == "/v1/validation/seed/auth-context":
+            return {"tenant": {"id": seed_ids.tenant_a}}, SimpleNamespace(status_code=200)
+        if method == "POST" and path == "/v1/accounts":
+            return {"error": {"code": "CONFLICT"}}, SimpleNamespace(status_code=409)
+        if method == "GET" and path == f"/v1/accounts/{seed_ids.account_id}":
+            return {"id": seed_ids.account_id}, SimpleNamespace(status_code=200)
+        if path == "/api/v1/ingestion/sources":
+            return {"source_id": seed_ids.document_id}, SimpleNamespace(status_code=201)
+        raise AssertionError(f"unexpected request: {method} {path}")
+
+    monkeypatch.setattr(harness, "request", fake_request)
+
+    seeded = await harness.create_seed_graph()
+
+    assert seeded["account"] == {"id": seed_ids.account_id}
+    assert ("GET", f"/v1/accounts/{seed_ids.account_id}") in calls

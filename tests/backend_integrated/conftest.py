@@ -222,9 +222,16 @@ class BackendValidationHarness:
             extra_headers={"X-Privileged-Reason": "validation-seed"},
         )
         tenant = auth_seed["tenant"]
-        account, _ = await self.request(
+        account, account_response = await self.request(
             "l4", "POST", "/v1/accounts", json=account_payload, expected=(200, 201, 409)
         )
+        if account_response.status_code == 409:
+            account, _ = await self.request(
+                "l4",
+                "GET",
+                f"/v1/accounts/{self.seed_ids.account_id}",
+                expected=(200,),
+            )
         source, _ = await self.request(
             "l1",
             "POST",
