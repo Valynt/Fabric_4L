@@ -172,14 +172,11 @@ class BackendValidationHarness:
     async def create_seed_graph(self) -> dict[str, Any]:
         """Seed the minimum data graph through real service contracts."""
         suffix = RUN_ID.replace("backend-validation-", "")
-        tenant_payload = {
-            "name": f"Fabric Backend Validation Tenant {RUN_ID}",
-            "slug": f"backend-validation-{suffix}-a",
-            "settings": {
-                "validation_run_id": RUN_ID,
-                "requested_tenant_id": self.seed_ids.tenant_a,
-                "plan": "enterprise",
-            },
+        auth_seed_payload = {
+            "tenant_id": self.seed_ids.tenant_a,
+            "tenant_name": f"Fabric Backend Validation Tenant {RUN_ID}",
+            "tenant_slug": f"backend-validation-{suffix}-a",
+            "service_account_id": "backend-integrated-validation",
         }
         account_payload = {
             "id": self.seed_ids.account_id,
@@ -207,7 +204,15 @@ class BackendValidationHarness:
             "metadata": {"validation_run_id": RUN_ID, "source": "backend-integrated-seed"},
         }
 
-        tenant, _ = await self.request("l4", "POST", "/v1/tenants", json=tenant_payload, expected=(200, 201, 409))
+        auth_seed, _ = await self.request(
+            "l4",
+            "POST",
+            "/v1/validation/seed/auth-context",
+            json=auth_seed_payload,
+            expected=(200,),
+            extra_headers={"X-Privileged-Reason": "validation-seed"},
+        )
+        tenant = auth_seed["tenant"]
         account, _ = await self.request("l4", "POST", "/v1/accounts", json=account_payload, expected=(200, 201, 409))
         source, _ = await self.request("l1", "POST", "/api/v1/ingestion/sources", json=document_payload, expected=(200, 201, 202, 409))
         self.seed_source_id = source.get("source_id") or source.get("id") or self.seed_ids.document_id
