@@ -159,6 +159,7 @@ services:
     volumes:
       - ../../services/layer4-agents/src:/app/src:ro
       - ../../packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
+      - ../../packages/platform-contract/src/python/canonical:/app/canonical:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
