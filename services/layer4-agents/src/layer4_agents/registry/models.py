@@ -17,6 +17,7 @@ from sqlalchemy import (
     Index,
     String,
     Text,
+    UniqueConstraint,
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
@@ -97,6 +98,7 @@ class ModelVersion(Base):
     )
 
     __table_args__ = (
+        UniqueConstraint("id", "tenant_id", name="uq_model_versions_id_tenant_id"),
         Index("ix_model_versions_tenant_id", "tenant_id"),
         Index("ix_model_versions_stage", "stage"),
         Index("ix_model_versions_tenant_provider_stage", "tenant_id", "provider", "stage"),

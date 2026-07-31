@@ -6,10 +6,11 @@ from __future__ import annotations
 import os
 import sys
 from typing import Any
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 from uuid import UUID, uuid4
 
 import pytest
+from sqlalchemy import ForeignKeyConstraint, UniqueConstraint
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
@@ -45,14 +46,14 @@ def tenant_id() -> UUID:
 
 @pytest.fixture
 def db() -> AsyncMock:
-    return AsyncMock()
+    session = AsyncMock()
+    session.add = MagicMock()
+    return session
 
 
 @pytest.fixture
 def mock_emit_audit_event(monkeypatch):
     """Mock emit_audit_event to accept any arguments."""
-    from unittest.mock import MagicMock
-
     mock = MagicMock()
     monkeypatch.setattr("layer4_agents.registry.service.emit_audit_event", mock)
     return mock
@@ -111,6 +112,27 @@ class TestModelRegistryCRUD:
         db.execute.return_value = FakeResult(None)
         result = await ModelRegistryService.get_active_production_model(db, tenant_id, "openai")
         assert result is None
+
+    def test_promotion_log_tenant_foreign_key_matches_model_identity(self) -> None:
+        unique_scopes = {
+            tuple(column.name for column in constraint.columns)
+            for constraint in ModelVersion.__table__.constraints
+            if isinstance(constraint, UniqueConstraint)
+        }
+        tenant_foreign_keys = {
+            (
+                tuple(column.name for column in constraint.columns),
+                tuple(element.target_fullname for element in constraint.elements),
+            )
+            for constraint in ModelPromotionLog.__table__.constraints
+            if isinstance(constraint, ForeignKeyConstraint)
+        }
+
+        assert ("id", "tenant_id") in unique_scopes
+        assert (
+            ("model_version_id", "tenant_id"),
+            ("model_versions.id", "model_versions.tenant_id"),
+        ) in tenant_foreign_keys
 
 
 class TestModelPromotion:

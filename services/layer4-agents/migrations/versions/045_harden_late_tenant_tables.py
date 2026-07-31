@@ -19,6 +19,11 @@ down_revision: Union[str, None] = "044_repair_integration_state_drift"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
+MIGRATION_REVIEW_REQUIRED = (
+    "Replaces tenant and privileged RLS policies before recreating them with "
+    "strict tenant matching and a read-only global plan catalog policy."
+)
+
 
 RLS_TABLES = [
     "account_sync_status",
@@ -67,6 +72,9 @@ def upgrade() -> None:
         ondelete="CASCADE",
     )
 
+    # MIGRATION_REVIEW_REQUIRED: existing policies are dropped only so this
+    # revision can replace them immediately with strict tenant and admin
+    # policies; RLS remains enabled and forced throughout the replacement.
     for table in RLS_TABLES:
         op.execute(f"ALTER TABLE {table} ENABLE ROW LEVEL SECURITY")
         op.execute(f"ALTER TABLE {table} FORCE ROW LEVEL SECURITY")
