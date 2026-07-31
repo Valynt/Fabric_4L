@@ -74,8 +74,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -126,8 +128,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "requestBody": {
@@ -199,8 +203,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -260,8 +266,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "requestBody": {
@@ -333,8 +341,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -396,8 +406,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -457,8 +469,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -596,8 +610,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "requestBody": {
@@ -703,8 +719,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -750,8 +768,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "requestBody": {
@@ -814,8 +834,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -862,8 +884,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -1568,8 +1592,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -1631,8 +1657,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "requestBody": {
@@ -1727,8 +1755,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -1790,8 +1820,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -1853,8 +1885,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -1939,8 +1973,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -2002,8 +2038,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "requestBody": {
@@ -2098,8 +2136,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -2161,8 +2201,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -2224,8 +2266,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -2310,8 +2354,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -2373,8 +2419,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "requestBody": {
@@ -2446,8 +2494,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "requestBody": {
@@ -2544,8 +2594,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -2607,8 +2659,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -2670,8 +2724,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "requestBody": {
@@ -2743,8 +2799,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "requestBody": {
@@ -2841,8 +2899,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -2904,8 +2964,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "requestBody": {
@@ -2977,8 +3039,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -3049,8 +3113,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -3133,8 +3199,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -3194,8 +3262,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "requestBody": {
@@ -3267,8 +3337,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "requestBody": {
@@ -3342,8 +3414,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -3406,8 +3480,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -3474,8 +3550,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -3536,8 +3614,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "requestBody": {
@@ -3610,8 +3690,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "requestBody": {
@@ -3693,8 +3775,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -3764,8 +3848,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "requestBody": {
@@ -3849,8 +3935,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -3912,8 +4000,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -3996,8 +4086,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -4073,8 +4165,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -4136,8 +4230,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -4213,8 +4309,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -4276,8 +4374,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -4353,8 +4453,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -4407,8 +4509,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -4461,8 +4565,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -4515,8 +4621,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "requestBody": {
@@ -4602,8 +4710,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -4656,8 +4766,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -4719,8 +4831,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "requestBody": {
@@ -4813,8 +4927,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -4885,8 +5001,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -4955,8 +5073,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "requestBody": {
@@ -5039,8 +5159,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "requestBody": {
@@ -5142,8 +5264,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -5205,8 +5329,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "requestBody": {
@@ -5299,8 +5425,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -5371,8 +5499,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -5452,8 +5582,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -5524,8 +5656,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -5587,8 +5721,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "requestBody": {
@@ -5658,8 +5794,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -5734,8 +5872,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "requestBody": {
@@ -5816,8 +5956,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -5888,8 +6030,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -5942,8 +6086,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "requestBody": {
@@ -6017,8 +6163,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -6080,8 +6228,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -6143,8 +6293,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -6197,8 +6349,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "requestBody": {
@@ -6263,8 +6417,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -6330,8 +6486,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -6391,8 +6549,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -6454,8 +6614,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -6517,8 +6679,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -6580,8 +6744,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -6649,8 +6815,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "requestBody": {
@@ -6722,8 +6890,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -6794,8 +6964,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -6823,7 +6995,8 @@
     "/v1/ingestion/sources": {
       "post": {
         "tags": [
-          "Layer Proxy"
+          "Layer Proxy",
+          "L1-Ingestion"
         ],
         "summary": "Create Source",
         "description": "Create a new source in Layer 1 catalog.",
@@ -6847,8 +7020,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -6874,7 +7049,8 @@
       },
       "get": {
         "tags": [
-          "Layer Proxy"
+          "Layer Proxy",
+          "L1-Ingestion"
         ],
         "summary": "List Sources",
         "description": "List sources in the catalog.",
@@ -6891,9 +7067,11 @@
             "required": false,
             "schema": {
               "type": "integer",
+              "description": "Maximum number of sources to return",
               "default": 50,
               "title": "Limit"
-            }
+            },
+            "description": "Maximum number of sources to return"
           },
           {
             "name": "offset",
@@ -6901,9 +7079,11 @@
             "required": false,
             "schema": {
               "type": "integer",
+              "description": "Number of sources to skip for pagination",
               "default": 0,
               "title": "Offset"
-            }
+            },
+            "description": "Number of sources to skip for pagination"
           },
           {
             "name": "vf_session",
@@ -6918,8 +7098,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -6947,7 +7129,8 @@
     "/v1/ingestion/sources/{source_id}/versions": {
       "post": {
         "tags": [
-          "Layer Proxy"
+          "Layer Proxy",
+          "L1-Ingestion"
         ],
         "summary": "Create Source Version",
         "description": "Create a new source version.",
@@ -6964,8 +7147,10 @@
             "required": true,
             "schema": {
               "type": "string",
+              "description": "Unique identifier of the source to version",
               "title": "Source Id"
-            }
+            },
+            "description": "Unique identifier of the source to version"
           },
           {
             "name": "vf_session",
@@ -6980,8 +7165,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -7009,7 +7196,8 @@
     "/v1/ingestion/runs": {
       "post": {
         "tags": [
-          "Layer Proxy"
+          "Layer Proxy",
+          "L1-Ingestion"
         ],
         "summary": "Create Ingestion Run",
         "description": "Trigger an ingestion run.",
@@ -7033,8 +7221,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -7062,7 +7252,8 @@
     "/v1/ingestion/runs/{run_id}": {
       "get": {
         "tags": [
-          "Layer Proxy"
+          "Layer Proxy",
+          "L1-Ingestion"
         ],
         "summary": "Get Ingestion Run",
         "description": "Get ingestion run status.",
@@ -7079,8 +7270,10 @@
             "required": true,
             "schema": {
               "type": "string",
+              "description": "Unique identifier of the ingestion run",
               "title": "Run Id"
-            }
+            },
+            "description": "Unique identifier of the ingestion run"
           },
           {
             "name": "vf_session",
@@ -7095,8 +7288,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -7124,7 +7319,8 @@
     "/v1/extract": {
       "post": {
         "tags": [
-          "Layer Proxy"
+          "Layer Proxy",
+          "L2-Extraction"
         ],
         "summary": "Extract",
         "description": "Extract entities from content (extraction only).",
@@ -7148,8 +7344,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -7177,7 +7375,8 @@
     "/v1/extract-and-ingest": {
       "post": {
         "tags": [
-          "Layer Proxy"
+          "Layer Proxy",
+          "L2-Extraction"
         ],
         "summary": "Extract And Ingest",
         "description": "Extract and ingest into Layer 3 knowledge graph.",
@@ -7201,8 +7400,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -7230,7 +7431,8 @@
     "/v1/extractions/{job_id}": {
       "get": {
         "tags": [
-          "Layer Proxy"
+          "Layer Proxy",
+          "L2-Extraction"
         ],
         "summary": "Get Extraction Status",
         "description": "Get extraction job status.",
@@ -7247,8 +7449,10 @@
             "required": true,
             "schema": {
               "type": "string",
+              "description": "Unique identifier of the extraction job",
               "title": "Job Id"
-            }
+            },
+            "description": "Unique identifier of the extraction job"
           },
           {
             "name": "vf_session",
@@ -7263,8 +7467,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -7292,7 +7498,8 @@
     "/v1/query/entities": {
       "get": {
         "tags": [
-          "Layer Proxy"
+          "Layer Proxy",
+          "L3-Knowledge"
         ],
         "summary": "Query Entities",
         "description": "Query entities from the knowledge graph.",
@@ -7316,8 +7523,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Filter entities by type",
               "title": "Entity Type"
-            }
+            },
+            "description": "Filter entities by type"
           },
           {
             "name": "limit",
@@ -7325,9 +7534,11 @@
             "required": false,
             "schema": {
               "type": "integer",
+              "description": "Maximum number of entities to return",
               "default": 50,
               "title": "Limit"
-            }
+            },
+            "description": "Maximum number of entities to return"
           },
           {
             "name": "offset",
@@ -7335,9 +7546,11 @@
             "required": false,
             "schema": {
               "type": "integer",
+              "description": "Number of entities to skip for pagination",
               "default": 0,
               "title": "Offset"
-            }
+            },
+            "description": "Number of entities to skip for pagination"
           },
           {
             "name": "vf_session",
@@ -7352,8 +7565,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -7381,7 +7596,8 @@
     "/v1/search": {
       "post": {
         "tags": [
-          "Layer Proxy"
+          "Layer Proxy",
+          "L3-Knowledge"
         ],
         "summary": "Search Knowledge Graph",
         "description": "Hybrid search in the knowledge graph.",
@@ -7405,8 +7621,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -7434,7 +7652,8 @@
     "/v1/value-trees/{tree_id}": {
       "get": {
         "tags": [
-          "Layer Proxy"
+          "Layer Proxy",
+          "L3-Knowledge"
         ],
         "summary": "Get Value Tree",
         "description": "Get a value tree by ID.",
@@ -7451,8 +7670,10 @@
             "required": true,
             "schema": {
               "type": "string",
+              "description": "Unique identifier of the value tree",
               "title": "Tree Id"
-            }
+            },
+            "description": "Unique identifier of the value tree"
           },
           {
             "name": "vf_session",
@@ -7467,8 +7688,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -7496,7 +7719,8 @@
     "/v1/ingest": {
       "post": {
         "tags": [
-          "Layer Proxy"
+          "Layer Proxy",
+          "L3-Knowledge"
         ],
         "summary": "Ingest Rdf",
         "description": "Ingest RDF data into the knowledge graph.",
@@ -7520,8 +7744,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -7549,10 +7775,11 @@
     "/v1/query/graphrag": {
       "post": {
         "tags": [
-          "Layer Proxy"
+          "Layer Proxy",
+          "L3-Knowledge"
         ],
         "summary": "Query Graphrag",
-        "description": "Query using GraphRAG.",
+        "description": "Query the knowledge graph using GraphRAG retrieval.",
         "operationId": "query_graphrag_v1_query_graphrag_post",
         "security": [
           {
@@ -7573,8 +7800,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -7602,7 +7831,8 @@
     "/v1/workflows": {
       "post": {
         "tags": [
-          "Layer Proxy"
+          "Layer Proxy",
+          "L4-Agents"
         ],
         "summary": "Submit Workflow",
         "description": "Submit a workflow to Layer 4.",
@@ -7626,8 +7856,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -7655,10 +7887,11 @@
     "/v1/workflows/{workflow_id}": {
       "get": {
         "tags": [
-          "Layer Proxy"
+          "Layer Proxy",
+          "L4-Agents"
         ],
         "summary": "Get Workflow",
-        "description": "Get workflow status.",
+        "description": "Retrieve the current status of a workflow.",
         "operationId": "get_workflow_v1_workflows__workflow_id__get",
         "security": [
           {
@@ -7672,8 +7905,10 @@
             "required": true,
             "schema": {
               "type": "string",
+              "description": "Unique identifier of the workflow",
               "title": "Workflow Id"
-            }
+            },
+            "description": "Unique identifier of the workflow"
           },
           {
             "name": "vf_session",
@@ -7688,8 +7923,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -7717,10 +7954,11 @@
     "/v1/workflows/{workflow_id}/result": {
       "get": {
         "tags": [
-          "Layer Proxy"
+          "Layer Proxy",
+          "L4-Agents"
         ],
         "summary": "Get Workflow Result",
-        "description": "Get workflow result.",
+        "description": "Retrieve the final result of a workflow.",
         "operationId": "get_workflow_result_v1_workflows__workflow_id__result_get",
         "security": [
           {
@@ -7734,8 +7972,10 @@
             "required": true,
             "schema": {
               "type": "string",
+              "description": "Unique identifier of the workflow",
               "title": "Workflow Id"
-            }
+            },
+            "description": "Unique identifier of the workflow"
           },
           {
             "name": "vf_session",
@@ -7750,8 +7990,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -7779,7 +8021,8 @@
     "/v1/hypotheses/generate": {
       "post": {
         "tags": [
-          "Layer Proxy"
+          "Layer Proxy",
+          "L4-Agents"
         ],
         "summary": "Generate Hypotheses",
         "description": "Generate hypotheses via Layer 4.",
@@ -7803,8 +8046,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -7832,7 +8077,8 @@
     "/v1/analysis/roi": {
       "post": {
         "tags": [
-          "Layer Proxy"
+          "Layer Proxy",
+          "L4-Agents"
         ],
         "summary": "Run Roi Analysis",
         "description": "Run ROI analysis via Layer 4.",
@@ -7856,8 +8102,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -7885,7 +8133,8 @@
     "/v1/narratives/generate": {
       "post": {
         "tags": [
-          "Layer Proxy"
+          "Layer Proxy",
+          "L4-Agents"
         ],
         "summary": "Generate Narrative",
         "description": "Generate narrative via Layer 4.",
@@ -7909,8 +8158,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -7938,7 +8189,8 @@
     "/v1/truths": {
       "get": {
         "tags": [
-          "Layer Proxy"
+          "Layer Proxy",
+          "L5-Ground-Truth"
         ],
         "summary": "List Truths",
         "description": "List TruthObjects with optional filters.",
@@ -7962,8 +8214,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Filter truths by validation status",
               "title": "Status"
-            }
+            },
+            "description": "Filter truths by validation status"
           },
           {
             "name": "claim_type",
@@ -7978,8 +8232,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Filter truths by claim type",
               "title": "Claim Type"
-            }
+            },
+            "description": "Filter truths by claim type"
           },
           {
             "name": "limit",
@@ -7987,9 +8243,11 @@
             "required": false,
             "schema": {
               "type": "integer",
+              "description": "Maximum number of truths to return",
               "default": 50,
               "title": "Limit"
-            }
+            },
+            "description": "Maximum number of truths to return"
           },
           {
             "name": "offset",
@@ -7997,9 +8255,11 @@
             "required": false,
             "schema": {
               "type": "integer",
+              "description": "Number of truths to skip for pagination",
               "default": 0,
               "title": "Offset"
-            }
+            },
+            "description": "Number of truths to skip for pagination"
           },
           {
             "name": "vf_session",
@@ -8014,8 +8274,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -8041,7 +8303,8 @@
       },
       "post": {
         "tags": [
-          "Layer Proxy"
+          "Layer Proxy",
+          "L5-Ground-Truth"
         ],
         "summary": "Submit Truth",
         "description": "Submit a new TruthObject.",
@@ -8065,8 +8328,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -8094,7 +8359,8 @@
     "/v1/truths/{truth_id}": {
       "get": {
         "tags": [
-          "Layer Proxy"
+          "Layer Proxy",
+          "L5-Ground-Truth"
         ],
         "summary": "Get Truth",
         "description": "Get a single TruthObject by ID.",
@@ -8111,8 +8377,10 @@
             "required": true,
             "schema": {
               "type": "string",
+              "description": "Unique identifier of the TruthObject",
               "title": "Truth Id"
-            }
+            },
+            "description": "Unique identifier of the TruthObject"
           },
           {
             "name": "vf_session",
@@ -8127,8 +8395,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -8156,7 +8426,8 @@
     "/v1/truths/{truth_id}/validate": {
       "post": {
         "tags": [
-          "Layer Proxy"
+          "Layer Proxy",
+          "L5-Ground-Truth"
         ],
         "summary": "Validate Truth",
         "description": "Validate or transition a TruthObject.",
@@ -8173,8 +8444,10 @@
             "required": true,
             "schema": {
               "type": "string",
+              "description": "Unique identifier of the TruthObject to validate",
               "title": "Truth Id"
-            }
+            },
+            "description": "Unique identifier of the TruthObject to validate"
           },
           {
             "name": "vf_session",
@@ -8189,8 +8462,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -8218,7 +8493,8 @@
     "/v1/truths/sync-kg": {
       "post": {
         "tags": [
-          "Layer Proxy"
+          "Layer Proxy",
+          "L5-Ground-Truth"
         ],
         "summary": "Sync Knowledge Graph",
         "description": "Sync validated TruthObjects to Layer 3 knowledge graph.",
@@ -8242,8 +8518,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -8271,7 +8549,8 @@
     "/v1/truths/freshness-summary": {
       "get": {
         "tags": [
-          "Layer Proxy"
+          "Layer Proxy",
+          "L5-Ground-Truth"
         ],
         "summary": "Get Freshness Summary",
         "description": "Get freshness summary of TruthObjects.",
@@ -8295,8 +8574,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {
@@ -8324,7 +8605,8 @@
     "/v1/maturity-ladder": {
       "get": {
         "tags": [
-          "Layer Proxy"
+          "Layer Proxy",
+          "L5-Ground-Truth"
         ],
         "summary": "Get Maturity Ladder",
         "description": "Get maturity ladder reference.",
@@ -8348,8 +8630,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Session cookie for authenticated requests",
               "title": "Vf Session"
-            }
+            },
+            "description": "Session cookie for authenticated requests"
           }
         ],
         "responses": {

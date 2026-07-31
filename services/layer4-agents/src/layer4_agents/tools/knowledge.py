@@ -32,7 +32,6 @@ class ConfigurationError(ValueError):
 
 _NEO4J_URI = os.getenv("NEO4J_URI", "bolt://localhost:7687")
 _NEO4J_USER = os.getenv("NEO4J_USER", "neo4j")
-_NEO4J_PASSWORD = os.environ.get("NEO4J_PASSWORD") or get_settings().neo4j_password
 _NEO4J_DATABASE = os.getenv("NEO4J_DATABASE", "valuefabric")
 _DRIVER = None
 
