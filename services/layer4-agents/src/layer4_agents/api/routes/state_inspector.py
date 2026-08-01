@@ -29,6 +29,7 @@ from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import require_authenticated
 
 from ...engine.executor import OrchestrationController
+from .checkpoints import _require_workflow_tenant_access
 from .workflows import get_executor
 
 logger = logging.getLogger(__name__)
@@ -181,6 +182,9 @@ async def get_state_schema(
             "field_count": 15
         }
     """
+    await _require_workflow_tenant_access(
+        executor=executor, workflow_id=workflow_id, tenant_id=_ctx.tenant_id
+    )
     state = await executor.state_manager.load_state(workflow_id)
     if not state:
         raise NotFoundError(message = str(f"Workflow {workflow_id} not found"))
@@ -242,6 +246,9 @@ async def get_state_values(
     Example:
         GET /v1/workflows/wf-123/state/values?max_string_length=200
     """
+    await _require_workflow_tenant_access(
+        executor=executor, workflow_id=workflow_id, tenant_id=_ctx.tenant_id
+    )
     state = await executor.state_manager.load_state(workflow_id)
     if not state:
         raise NotFoundError(message = str(f"Workflow {workflow_id} not found"))
@@ -308,6 +315,9 @@ async def inspect_output_data(
             "large_data_keys": []
         }
     """
+    await _require_workflow_tenant_access(
+        executor=executor, workflow_id=workflow_id, tenant_id=_ctx.tenant_id
+    )
     state = await executor.state_manager.load_state(workflow_id)
     if not state:
         raise NotFoundError(message = str(f"Workflow {workflow_id} not found"))
@@ -359,6 +369,9 @@ async def analyze_errors(
     Example:
         GET /v1/workflows/wf-123/state/errors
     """
+    await _require_workflow_tenant_access(
+        executor=executor, workflow_id=workflow_id, tenant_id=_ctx.tenant_id
+    )
     state = await executor.state_manager.load_state(workflow_id)
     if not state:
         raise NotFoundError(message = str(f"Workflow {workflow_id} not found"))
@@ -417,6 +430,9 @@ async def get_performance_metrics(
     Example:
         GET /v1/workflows/wf-123/state/performance
     """
+    await _require_workflow_tenant_access(
+        executor=executor, workflow_id=workflow_id, tenant_id=_ctx.tenant_id
+    )
     # Get execution history
     history = await executor.state_manager.get_history(workflow_id, limit=100)
 
@@ -522,6 +538,9 @@ async def get_state_history(
     Example:
         GET /v1/workflows/wf-123/state/history?limit=20
     """
+    await _require_workflow_tenant_access(
+        executor=executor, workflow_id=workflow_id, tenant_id=_ctx.tenant_id
+    )
     history = await executor.state_manager.get_history(workflow_id, limit=limit)
 
     entries = []

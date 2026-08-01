@@ -23,6 +23,7 @@ from typing import Any
 
 import neo4j
 from fastapi import APIRouter, Depends, HTTPException, Request
+from value_fabric.shared.identity import RequestContext, require_authenticated
 
 from ...api.dependencies import (
     get_centrality_analyzer,
@@ -75,6 +76,7 @@ def _extract_tenant_id(request: Request | None) -> str | None:
 @router.post("/analytics/communities", response_model=CommunityDetectionResponse)
 async def detect_communities(
     request: CommunityDetectionRequest,
+    _ctx: RequestContext = Depends(require_authenticated),
     community_detector=Depends(get_community_detector),
 ) -> CommunityDetectionResponse:
     """Detect communities in the knowledge graph."""
@@ -123,6 +125,7 @@ async def detect_communities(
 @router.post("/analytics/centrality", response_model=CentralityResponse)
 async def calculate_centrality(
     request: CentralityRequest,
+    _ctx: RequestContext = Depends(require_authenticated),
     centrality_analyzer=Depends(get_centrality_analyzer),
 ) -> CentralityResponse:
     """Calculate centrality metrics for entities."""
@@ -168,6 +171,7 @@ async def calculate_centrality(
 @router.post("/analytics/similar", response_model=SimilarityResponse)
 async def find_similar_entities(
     request: SimilarityRequest,
+    _ctx: RequestContext = Depends(require_authenticated),
     similarity_analyzer=Depends(get_similarity_analyzer),
 ) -> SimilarityResponse:
     """Find similar entities using multiple methods."""
@@ -200,6 +204,7 @@ async def find_similar_entities(
 @router.post("/analytics/compare", response_model=EntityComparisonResponse)
 async def compare_entities(
     request: EntityComparisonRequest,
+    _ctx: RequestContext = Depends(require_authenticated),
     similarity_analyzer=Depends(get_similarity_analyzer),
 ) -> EntityComparisonResponse:
     """Compare two entities and return similarity metrics."""
@@ -555,6 +560,7 @@ async def _perform_rollback(
 @router.post("/batch/analytics", response_model=BatchAnalyticsResponse)
 async def batch_analytics(
     request: BatchAnalyticsRequest,
+    _ctx: RequestContext = Depends(require_authenticated),
     centrality_analyzer=Depends(get_centrality_analyzer),
     graph_rag=Depends(get_graph_rag),
 ) -> BatchAnalyticsResponse:
