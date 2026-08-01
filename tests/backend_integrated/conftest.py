@@ -14,8 +14,8 @@ from __future__ import annotations
 
 import pytest
 from tests.shared.live_harness import (
-    BackendValidationHarness,
     SERVICE_URLS,
+    BackendValidationHarness,
     SeedIds,
     build_seed_ids,
 )
