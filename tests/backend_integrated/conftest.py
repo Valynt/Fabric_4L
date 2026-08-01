@@ -13,7 +13,6 @@ same request, seeding, and tenant-denial primitives.
 from __future__ import annotations
 
 import pytest
-
 from tests.shared.live_harness import (
     BackendValidationHarness,
     SeedIds,
