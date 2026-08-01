@@ -361,7 +361,7 @@ def test_manager_uses_fallback_when_no_dsn(tmp_path: Path) -> None:
 
 
 @pytest.mark.unit
-def test_manager_requires_repo_name_for_fallback_findings(
+async def test_manager_requires_repo_name_for_fallback_findings(
     tmp_path: Path,
 ) -> None:
     manager = PersistenceManager(fallback_dir=tmp_path / "fallback")
@@ -381,10 +381,7 @@ def test_manager_requires_repo_name_for_fallback_findings(
         analyzer_type="code",
     )
     with pytest.raises(ValueError, match="repo_name is required"):
-        # type: ignore[arg-type] -- intentionally calling sync method in test
-        import asyncio
-
-        asyncio.run(manager.save_findings("run-1", [finding]))
+        await manager.save_findings("run-1", [finding])
 
 
 @pytest.mark.unit
