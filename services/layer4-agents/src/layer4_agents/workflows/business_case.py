@@ -20,6 +20,7 @@ from value_fabric.shared.models.typed_dict import TypedDictModel
 
 from ..agents.base import AgentResult
 from ..harness.prompt_registry import get_prompt_registry
+from ..integration.claim_types import to_layer5_claim_type
 from ..interfaces.business_case_ground_truth import (
     BusinessCaseGroundTruthClientFactory,
     BusinessCaseGroundTruthPort,
@@ -36,8 +37,6 @@ from ..services.llm_output_parser import parse_llm_json
 from ..services.llm_provider import get_llm_provider
 from ..tools.registry import ToolRegistry, ToolResult
 from .base import BaseWorkflow
-
-from ..integration.claim_types import to_layer5_claim_type
 
 # Backwards-compatible alias: the canonical implementation lives in
 # layer4_agents.integration.claim_types.
