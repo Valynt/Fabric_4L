@@ -15,12 +15,14 @@ from __future__ import annotations
 import pytest
 from tests.shared.live_harness import (
     BackendValidationHarness,
+    SERVICE_URLS,
     SeedIds,
     build_seed_ids,
 )
 
 __all__ = [
     "BackendValidationHarness",
+    "SERVICE_URLS",
     "SeedIds",
 ]
 
