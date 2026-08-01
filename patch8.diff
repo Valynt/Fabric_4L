@@ -1,0 +1,11 @@
+--- tests/security/test_layer4_stream_tenant_adversarial_contract.py
++++ tests/security/test_layer4_stream_tenant_adversarial_contract.py
+@@ -10,7 +10,7 @@
+
+ pytestmark = [pytest.mark.security, pytest.mark.tenant_boundary]
+
+-_PROJECT_ROOT = Path(__file__).resolve().parents[2]
++_PROJECT_ROOT = Path(__file__).resolve().parents[1]
+ _LAYER4_ROUTES = _PROJECT_ROOT / "services" / "layer4-agents" / "src" / "layer4_agents" / "api" / "routes"
+ _WORKFLOWS_FILE = _LAYER4_ROUTES / "workflows.py"
+ _CHECKPOINTS_FILE = _LAYER4_ROUTES / "checkpoints.py"

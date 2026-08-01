@@ -9,7 +9,7 @@ import pytest
 
 pytestmark = [pytest.mark.security, pytest.mark.tenant_boundary]
 
-_PROJECT_ROOT = Path(__file__).resolve().parents[1]
+_PROJECT_ROOT = Path(__file__).resolve().parents[2]
 _LAYER4_ROUTES = _PROJECT_ROOT / "services" / "layer4-agents" / "src" / "layer4_agents" / "api" / "routes"
 _WORKFLOWS_FILE = _LAYER4_ROUTES / "workflows.py"
 _CHECKPOINTS_FILE = _LAYER4_ROUTES / "checkpoints.py"
