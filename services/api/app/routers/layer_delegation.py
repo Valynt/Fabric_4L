@@ -18,6 +18,7 @@ it is owned by ``routers/benchmarks.py`` with a typed Layer 6 client.
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
+from urllib.parse import parse_qs
 
 import httpx
 from fastapi import APIRouter, Depends, Request
@@ -109,6 +110,8 @@ async def _delegate(
     url = _target_url(segment, path)
     body = await request.body()
     try:
+        _qp = request.scope.get("query_string", b"")
+        query = {k: v[-1] for k, v in parse_qs(_qp.decode()).items()} if _qp else {}
         async with httpx.AsyncClient(
             timeout=settings.delegation_timeout_seconds,
             follow_redirects=False,
@@ -116,7 +119,7 @@ async def _delegate(
             upstream = await client.request(
                 request.method,
                 url,
-                params=request.query_params,
+                params=query,
                 content=body if body else None,
                 headers=_request_headers(request, tenant_id),
             )
