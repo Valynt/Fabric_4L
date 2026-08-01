@@ -562,7 +562,7 @@ class AgentRun(BaseModel):
     tenant_id: str
     account_id: str | None = None
     workflow_type: str
-    status: Literal["pending", "running", "paused", "completed", "failed", "cancelled"] = "pending"
+    status: Literal["pending", "running", "paused", "interrupted", "completed", "failed", "cancelled"] = "pending"
     current_step: str | None = None
     checkpoint_id: str | None = None
     input: dict[str, Any] | None = None
@@ -581,7 +581,7 @@ class WorkflowResponse(BaseModel):
     id: str
     name: str
     workflow_type: str
-    status: Literal["pending", "running", "paused", "completed", "failed", "cancelled"] = "pending"
+    status: Literal["pending", "running", "paused", "interrupted", "completed", "failed", "cancelled"] = "pending"
     progress: int = 0
     progress_percentage: int = 0
     created_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())

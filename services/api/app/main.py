@@ -32,6 +32,7 @@ from app.routers import (
     hypotheses,
     intelligence,
     jobs,
+    layer_delegation,
     privacy,
     product_endpoints,
     realization,
@@ -213,6 +214,38 @@ app = create_fabric_app(
 # present for route dependencies to establish tenant context.
 add_gateway_governance_middleware(app, rate_limiter=None)
 
+# Fail-closed mapping for Layer 4 delegation failures (decision D2): the
+# gateway never returns record-only success when the owning service is down.
+from app.services.agent_orchestrator import (  # noqa: E402
+    Layer4DependencyError,
+    Layer4UnavailableError,
+)
+
+
+@app.exception_handler(Layer4UnavailableError)
+async def _layer4_unavailable_handler(request, exc: Layer4UnavailableError):  # type: ignore[no-untyped-def]
+    from fastapi.responses import JSONResponse
+
+    return JSONResponse(
+        status_code=503,
+        content={"detail": "layer4_unavailable", "code": exc.code},
+    )
+
+
+@app.exception_handler(Layer4DependencyError)
+async def _layer4_dependency_handler(request, exc: Layer4DependencyError):  # type: ignore[no-untyped-def]
+    from fastapi.responses import JSONResponse
+
+    status = 404 if exc.status_code == 404 else 502
+    return JSONResponse(
+        status_code=status,
+        content={
+            "detail": "layer4_dependency_error",
+            "code": exc.code,
+            "upstream_status": exc.status_code,
+        },
+    )
+
 app.include_router(accounts.router, prefix="/v1")
 app.include_router(auth.router, prefix="/v1")
 app.include_router(api_keys.router, prefix="/v1")
@@ -241,6 +274,11 @@ app.include_router(versioning.router, prefix="/v1")
 app.include_router(realization.router, prefix="/v1")
 app.include_router(agents.router, prefix="/v1")
 app.include_router(privacy.router, prefix="/v1")
+
+# Layer-segment delegation (decision D1/D2): registered last so the
+# product-domain routers above keep precedence. Serves frontend-generated
+# /v1/{agents,ingest,extract,graph,truths}/* paths no product router owns.
+app.include_router(layer_delegation.router, prefix="/v1")
 
 # Clerk webhook handler is mounted unconditionally; the handler itself
 # returns 503 when CLERK_WEBHOOK_SECRET is not configured. Network policy

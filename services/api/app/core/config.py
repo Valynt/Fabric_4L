@@ -109,6 +109,11 @@ class Settings(BaseSettings):
     layer4_timeout_seconds: float = 10.0
     layer6_api_base_url: str = "http://localhost:8006"
     layer6_timeout_seconds: float = 10.0
+    layer1_api_base_url: str = "http://localhost:8001"
+    layer2_api_base_url: str = "http://localhost:8002"
+    layer3_api_base_url: str = "http://localhost:8003"
+    layer5_api_base_url: str = "http://localhost:8005"
+    delegation_timeout_seconds: float = 30.0
     seed_demo_data: bool = False
     # Empty list = no cross-origin requests allowed by default (fail-closed).
     # Development get_settings() supplies localhost defaults only after warning.

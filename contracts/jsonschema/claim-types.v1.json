@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://valuefabric.ai/contracts/jsonschema/claim-types.v1.json",
+  "title": "ClaimTypesV1",
+  "description": "Canonical claim taxonomy for the L4 -> L5 Ground Truth boundary. Owner: Layer 5 (Ground Truth) — layer5_ground_truth.models.truth_object.ClaimType is the runtime authority. Consumers must map internal vocabularies before calling L5. Guarded by tests/contract/test_claim_type_taxonomy.py.",
+  "type": "object",
+  "properties": {
+    "version": { "type": "string", "const": "1.0.0" },
+    "claim_type": {
+      "type": "string",
+      "enum": [
+        "cost_savings_baseline",
+        "revenue_impact",
+        "efficiency_gain",
+        "risk_reduction",
+        "compliance_requirement",
+        "customer_outcome",
+        "technical_capability",
+        "market_benchmark",
+        "persona_pain_point",
+        "value_driver_metric",
+        "other"
+      ]
+    },
+    "layer4_vocabulary_mapping": {
+      "type": "object",
+      "description": "Layer 4 internal claim vocabulary mapped onto the canonical taxonomy. Owner: Layer 4 (layer4_agents.integration.claim_types).",
+      "properties": {
+        "metric": { "const": "value_driver_metric" },
+        "roi_assumption": { "const": "cost_savings_baseline" },
+        "outcome": { "const": "customer_outcome" },
+        "benchmark": { "const": "market_benchmark" },
+        "risk": { "const": "risk_reduction" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "required": ["version", "claim_type"],
+  "additionalProperties": false
+}
