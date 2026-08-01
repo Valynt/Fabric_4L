@@ -345,7 +345,7 @@ jobs:
         if: github.event_name != 'push' || !startsWith(github.ref, 'refs/tags/v')
         uses: actions/upload-artifact@v4
         with:
-          name: evidence-bundle-${{ github.sha }}-summary
+          name: evidence-bundle-${{ github.sha }}
           path: |
             ${{ steps.bundle.outputs.path }}
             artifacts/evidence/*.summary.json
