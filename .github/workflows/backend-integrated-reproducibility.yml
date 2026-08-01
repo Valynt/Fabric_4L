@@ -18,7 +18,7 @@ permissions:
   id-token: write # Required for Infisical OIDC authentication
 
 env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
   RELEASE_CANDIDATE_SHA: ${{ inputs.release_candidate_sha }}
   RETRY_CLASSIFICATION: ${{ inputs.retry_classification }}
   PLAYWRIGHT_BACKEND_URL: http://127.0.0.1:8004

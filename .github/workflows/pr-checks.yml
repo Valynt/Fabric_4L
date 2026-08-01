@@ -22,7 +22,7 @@ concurrency:
 
 env:
   # Opt into Node.js 24 for GitHub Actions
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 
 jobs:
   structural-preflight:
@@ -31,7 +31,7 @@ jobs:
     timeout-minutes: 5
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@v4 # v4
         with:
           fetch-depth: 0
 
@@ -40,7 +40,7 @@ jobs:
           git fetch --no-tags --prune origin "${{ github.base_ref || 'main' }}"
 
       - name: Set up Python
-        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
+        uses: actions/setup-python@v5 # v5
         with:
           python-version: "3.11"
 
@@ -74,7 +74,7 @@ jobs:
           version: "10.18.1"
 
       - name: Set up Node.js
-        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4
+        uses: actions/setup-node@v4 # v4
         with:
           node-version: "22.18.0"
 
@@ -379,7 +379,7 @@ jobs:
 
       - name: Upload structural reports
         if: always()
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        uses: actions/upload-artifact@v4 # v4
         with:
           name: structural-check-reports
           path: |
@@ -411,7 +411,7 @@ jobs:
       pull-requests: read # Required for read-only gh PR/file lookups in check_pr_overlap_guard.py; no PR mutations.
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@v4 # v4
 
       - name: Detect high overlap with recent merged PRs
         env:
@@ -429,10 +429,10 @@ jobs:
     timeout-minutes: 30
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@v4 # v4
 
       - name: Set up Python
-        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
+        uses: actions/setup-python@v5 # v5
         with:
           python-version: "3.11"
           cache: "pip"
@@ -459,7 +459,7 @@ jobs:
 
       - name: Upload production-readiness artifacts
         if: always()
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        uses: actions/upload-artifact@v4 # v4
         with:
           name: production-readiness-suite-results
           path: artifacts/production-readiness/**
@@ -471,7 +471,7 @@ jobs:
     timeout-minutes: 5
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@v4 # v4
         with:
           fetch-depth: 0
 
@@ -620,7 +620,7 @@ jobs:
 
       - name: Upload docs validation artifacts
         if: always()
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        uses: actions/upload-artifact@v4 # v4
         with:
           name: docs-validation-evidence
           path: |
@@ -654,7 +654,7 @@ jobs:
           --health-retries 5
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@v4 # v4
         with:
           fetch-depth: 0
 
@@ -663,7 +663,7 @@ jobs:
         working-directory: ${{ github.workspace }}
 
       - name: Set up Python
-        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
+        uses: actions/setup-python@v5 # v5
         with:
           python-version: "3.11"
 
@@ -753,7 +753,7 @@ jobs:
 
       - name: Upload Layer 3 Cypher scope audit
         if: always()
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        uses: actions/upload-artifact@v4 # v4
         with:
           name: layer3-cypher-scope-audit
           path: artifacts/layer3-cypher-scope-audit.json
@@ -761,7 +761,7 @@ jobs:
 
       - name: Upload Layer 3 query entrypoint matrix
         if: always()
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        uses: actions/upload-artifact@v4 # v4
         with:
           name: layer3-query-entrypoint-matrix
           path: artifacts/layer3-query-entrypoint-matrix.json
@@ -769,7 +769,7 @@ jobs:
 
       - name: Upload Layer 3 audited mutation violation report
         if: always()
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        uses: actions/upload-artifact@v4 # v4
         with:
           name: layer3-audited-mutation-violations
           path: artifacts/layer3-audited-mutation-violations.json
@@ -792,7 +792,7 @@ jobs:
           uv run pytest tests/benchmarks/test_router_performance.py -v --tb=short
 
       - name: Upload test results
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        uses: actions/upload-artifact@v4 # v4
         if: always()
         with:
           name: test-results-layer1-ingestion
@@ -834,10 +834,10 @@ jobs:
       CORS_ORIGINS: '["http://localhost:3000"]'
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@v4 # v4
 
       - name: Set up Python
-        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
+        uses: actions/setup-python@v5 # v5
         with:
           python-version: "3.11"
 
@@ -886,7 +886,7 @@ jobs:
             --cov-fail-under=78
 
       - name: Upload test results
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        uses: actions/upload-artifact@v4 # v4
         if: always()
         with:
           name: test-results-layer2-extraction
@@ -936,7 +936,7 @@ jobs:
           --health-interval 10s --health-timeout 5s --health-retries 12
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@v4 # v4
         with:
           fetch-depth: 0
 
@@ -945,7 +945,7 @@ jobs:
         working-directory: ${{ github.workspace }}
 
       - name: Set up Python
-        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
+        uses: actions/setup-python@v5 # v5
         with:
           python-version: "3.11"
 
@@ -988,7 +988,7 @@ jobs:
 
       - name: Upload Layer 3 contract drift report
         if: always()
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        uses: actions/upload-artifact@v4 # v4
         with:
           name: l3-contract-drift-report
           path: artifacts/l3-contract-drift.json
@@ -1020,7 +1020,7 @@ jobs:
             artifacts/layer3-tenancy/query-entrypoint-matrix.json || true
 
       - name: Upload test results
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        uses: actions/upload-artifact@v4 # v4
         if: always()
         with:
           name: test-results-layer3-knowledge
@@ -1031,7 +1031,7 @@ jobs:
           retention-days: 14
 
       - name: Upload Layer 3 tenancy evidence artifacts
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        uses: actions/upload-artifact@v4 # v4
         if: always()
         with:
           name: layer3-tenancy-evidence
@@ -1056,10 +1056,10 @@ jobs:
         working-directory: services/layer4-agents
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@v4 # v4
 
       - name: Set up Python
-        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
+        uses: actions/setup-python@v5 # v5
         with:
           python-version: "3.11"
 
@@ -1096,7 +1096,7 @@ jobs:
             --cov-fail-under=80
 
       - name: Upload test results
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        uses: actions/upload-artifact@v4 # v4
         if: always()
         with:
           name: test-results-layer4-agents
@@ -1124,10 +1124,10 @@ jobs:
         working-directory: services/layer5-ground-truth
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@v4 # v4
 
       - name: Set up Python
-        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
+        uses: actions/setup-python@v5 # v5
         with:
           python-version: "3.11"
 
@@ -1166,7 +1166,7 @@ jobs:
             --cov-fail-under=75
 
       - name: Upload test results
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        uses: actions/upload-artifact@v4 # v4
         if: always()
         with:
           name: test-results-layer5-ground-truth
@@ -1193,10 +1193,10 @@ jobs:
         working-directory: services/layer5-ground-truth
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@v4 # v4
 
       - name: Set up Python
-        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
+        uses: actions/setup-python@v5 # v5
         with:
           python-version: "3.11"
 
@@ -1212,10 +1212,10 @@ jobs:
         working-directory: services/layer5-ground-truth
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@v4 # v4
 
       - name: Set up Python
-        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
+        uses: actions/setup-python@v5 # v5
         with:
           python-version: "3.11"
 
@@ -1254,10 +1254,10 @@ jobs:
         working-directory: services/layer5-ground-truth
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@v4 # v4
 
       - name: Set up Python
-        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
+        uses: actions/setup-python@v5 # v5
         with:
           python-version: "3.11"
 
@@ -1298,7 +1298,7 @@ jobs:
 
       - name: Upload Layer 5 contract diff artifacts
         if: failure()
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        uses: actions/upload-artifact@v4 # v4
         with:
           name: layer5-contract-diff-artifacts
           path: services/layer5-ground-truth/contract-diff/
@@ -1314,10 +1314,10 @@ jobs:
         working-directory: services/layer6-benchmarks
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@v4 # v4
 
       - name: Set up Python
-        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
+        uses: actions/setup-python@v5 # v5
         with:
           python-version: "3.11"
 
@@ -1351,7 +1351,7 @@ jobs:
             --cov-fail-under=80
 
       - name: Upload test results
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        uses: actions/upload-artifact@v4 # v4
         if: always()
         with:
           name: test-results-layer6-benchmarks
@@ -1376,10 +1376,10 @@ jobs:
     timeout-minutes: 5
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@v4 # v4
 
       - name: Set up Python
-        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
+        uses: actions/setup-python@v5 # v5
         with:
           python-version: "3.11"
           cache: "pip"
@@ -1420,7 +1420,7 @@ jobs:
       VITE_L7_PREFIX: /billing
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@v4 # v4
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v3
@@ -1428,7 +1428,7 @@ jobs:
           version: "10.18.1"
 
       - name: Set up Node.js
-        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4
+        uses: actions/setup-node@v4 # v4
         with:
           node-version: "22.18.0"
           cache: "pnpm"
@@ -1490,7 +1490,7 @@ jobs:
         run: pnpm run build:analyze
 
       - name: Upload bundle report
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        uses: actions/upload-artifact@v4 # v4
         if: always()
         with:
           name: bundle-report
@@ -1505,7 +1505,7 @@ jobs:
         run: pnpm --dir apps/web run test:coverage:critical
 
       - name: Upload test results
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        uses: actions/upload-artifact@v4 # v4
         if: always()
         with:
           name: test-results-frontend
@@ -1515,7 +1515,7 @@ jobs:
           retention-days: 14
 
       - name: Upload frontend test report artifact (release evidence)
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        uses: actions/upload-artifact@v4 # v4
         if: always()
         with:
           name: frontend-test-report-${{ github.sha }}
@@ -1559,7 +1559,7 @@ jobs:
 
       - name: Upload build artifacts on failure
         if: failure()
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        uses: actions/upload-artifact@v4 # v4
         with:
           name: frontend-build-failure
           path: apps/web/dist/public/
@@ -1575,7 +1575,7 @@ jobs:
       CI: "true"
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@v4 # v4
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v3
@@ -1583,7 +1583,7 @@ jobs:
           version: "10.18.1"
 
       - name: Set up Node.js
-        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4
+        uses: actions/setup-node@v4 # v4
         with:
           node-version: "22.18.0"
           cache: "pnpm"
@@ -1602,7 +1602,7 @@ jobs:
 
       - name: Upload behavior test results
         if: always()
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        uses: actions/upload-artifact@v4 # v4
         with:
           name: behavior-test-results
           path: |
@@ -1627,7 +1627,7 @@ jobs:
       VITE_ENABLE_MOCK_FALLBACK: "false"
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@v4 # v4
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v3
@@ -1635,7 +1635,7 @@ jobs:
           version: "10.18.1"
 
       - name: Set up Node.js
-        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4
+        uses: actions/setup-node@v4 # v4
         with:
           node-version: "22.18.0"
           cache: "pnpm"
@@ -1658,7 +1658,7 @@ jobs:
 
       - name: Upload P0 E2E artifacts
         if: always()
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        uses: actions/upload-artifact@v4 # v4
         with:
           name: p0-e2e-gate-artifacts
           path: |
@@ -1679,7 +1679,7 @@ jobs:
     timeout-minutes: 15
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@v4 # v4
 
       - name: Create Kind cluster
         uses: helm/kind-action@v1
@@ -1745,10 +1745,10 @@ jobs:
     timeout-minutes: 5
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@v4 # v4
 
       - name: Set up Python
-        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
+        uses: actions/setup-python@v5 # v5
         with:
           python-version: "3.11"
           cache: "pip"
@@ -1759,7 +1759,7 @@ jobs:
           version: "10.18.1"
 
       - name: Set up Node.js
-        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4
+        uses: actions/setup-node@v4 # v4
         with:
           node-version: "22.18.0"
           cache: "pnpm"
@@ -1832,7 +1832,7 @@ jobs:
 
       - name: Upload compatibility shim report
         if: always()
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        uses: actions/upload-artifact@v4 # v4
         with:
           name: compatibility-shim-report
           path: artifacts/compatibility-debt/
@@ -1840,7 +1840,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        uses: actions/upload-artifact@v4 # v4
         with:
           name: contract-test-results
           path: |
@@ -1854,10 +1854,10 @@ jobs:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@v4 # v4
 
       - name: Set up Python
-        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
+        uses: actions/setup-python@v5 # v5
         with:
           python-version: "3.11"
           cache: "pip"
@@ -1946,7 +1946,7 @@ jobs:
 
       - name: Upload runtime contract artifacts
         if: always()
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        uses: actions/upload-artifact@v4 # v4
         with:
           name: runtime-contract-test-results
           path: |
@@ -1960,10 +1960,10 @@ jobs:
     timeout-minutes: 10
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@v4 # v4
 
       - name: Set up Python
-        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
+        uses: actions/setup-python@v5 # v5
         with:
           python-version: "3.11"
           cache: "pip"
@@ -2023,7 +2023,7 @@ jobs:
 
       - name: Upload Schemathesis results
         if: always()
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        uses: actions/upload-artifact@v4 # v4
         with:
           name: schemathesis-results
           path: |
@@ -2051,10 +2051,10 @@ jobs:
       NEO4J_PASSWORD: devpassword
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@v4 # v4
 
       - name: Set up Python
-        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
+        uses: actions/setup-python@v5 # v5
         with:
           python-version: "3.11"
 
@@ -2136,7 +2136,7 @@ jobs:
 
       - name: Upload smoke report
         if: always()
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        uses: actions/upload-artifact@v4 # v4
         with:
           name: smoke-report-pr
           path: artifacts/release_smoke/**
@@ -2144,7 +2144,7 @@ jobs:
 
       - name: Upload logs on failure
         if: failure()
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        uses: actions/upload-artifact@v4 # v4
         with:
           name: integration-logs
           path: artifacts/logs/
@@ -2157,10 +2157,10 @@ jobs:
     timeout-minutes: 10
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@v4 # v4
 
       - name: Set up Python
-        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
+        uses: actions/setup-python@v5 # v5
         with:
           python-version: "3.11"
           cache: "pip"
@@ -2186,7 +2186,7 @@ jobs:
 
       - name: Upload billing regression evidence
         if: always()
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        uses: actions/upload-artifact@v4 # v4
         with:
           name: launch-checklist-billing-entitlements-evidence
           path: |
@@ -2202,10 +2202,10 @@ jobs:
     timeout-minutes: 10
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@v4 # v4
 
       - name: Set up Python
-        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
+        uses: actions/setup-python@v5 # v5
         with:
           python-version: "3.11"
 
@@ -2219,7 +2219,7 @@ jobs:
 
       - name: Upload Docker Compose config artifacts
         if: always()
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        uses: actions/upload-artifact@v4 # v4
         with:
           name: docker-compose-config-contract
           path: artifacts/docker-compose-config/**
@@ -2231,16 +2231,16 @@ jobs:
     timeout-minutes: 10
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@v4 # v4
 
       - name: Set up Python
-        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
+        uses: actions/setup-python@v5 # v5
         with:
           python-version: "3.11"
           cache: "pip"
 
       - name: Set up Node.js
-        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4
+        uses: actions/setup-node@v4 # v4
         with:
           node-version: "22.18.0"
 
@@ -2294,7 +2294,7 @@ jobs:
             dockerfile: ./apps/web/Dockerfile
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@v4 # v4
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@988b5a0280414f521da01fcc63a27aeeb4b104db # v3
@@ -2367,7 +2367,7 @@ jobs:
           output-file: sbom-${{ matrix.layer }}-${{ github.sha }}.spdx.json
 
       - name: Upload SBOM artifact
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        uses: actions/upload-artifact@v4 # v4
         with:
           name: sbom-${{ matrix.layer }}-${{ github.sha }}
           path: sbom-${{ matrix.layer }}-${{ github.sha }}.spdx.json
@@ -2387,10 +2387,10 @@ jobs:
     timeout-minutes: 5
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@v4 # v4
 
       - name: Set up Python
-        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
+        uses: actions/setup-python@v5 # v5
         with:
           python-version: "3.11"
 
@@ -2437,10 +2437,10 @@ jobs:
     timeout-minutes: 10
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@v4 # v4
 
       - name: Set up Python
-        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
+        uses: actions/setup-python@v5 # v5
         with:
           python-version: "3.11"
 
@@ -2483,16 +2483,16 @@ jobs:
           --health-timeout 5s --health-retries 12
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@v4 # v4
 
       - name: Set up Python
-        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
+        uses: actions/setup-python@v5 # v5
         with:
           python-version: "3.11"
           cache: "pip"
 
       - name: Set up Node.js
-        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4
+        uses: actions/setup-node@v4 # v4
         with:
           node-version: "22.18.0"
 
@@ -2526,7 +2526,7 @@ jobs:
 
       - name: Upload tenant isolation evidence
         if: always()
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        uses: actions/upload-artifact@v4 # v4
         with:
           name: tenant-isolation-gate-summary
           path: artifacts/tenant-isolation/summary.json
@@ -2538,7 +2538,7 @@ jobs:
     timeout-minutes: 15
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@v4 # v4
 
       - name: Set up Node
         uses: actions/setup-node@v4
@@ -2565,7 +2565,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Set up Python
-        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
+        uses: actions/setup-python@v5 # v5
         with:
           python-version: "3.11"
 
@@ -2595,7 +2595,7 @@ jobs:
 
       - name: Upload critical-behaviors evidence
         if: always()
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        uses: actions/upload-artifact@v4 # v4
         with:
           name: critical-behaviors-gate-result
           path: artifacts/critical-behaviors-gate/result.json
@@ -2603,7 +2603,7 @@ jobs:
 
       - name: Upload behavior readiness audit report
         if: always()
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        uses: actions/upload-artifact@v4 # v4
         with:
           name: behavior-readiness-audit-report
           path: artifacts/readiness/behavior-readiness-audit.json
@@ -2616,7 +2616,7 @@ jobs:
     needs: structural-preflight
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@v4 # v4
 
       - name: Set up deterministic root test and workspace dependencies
         uses: ./.github/actions/setup-fabric-ci

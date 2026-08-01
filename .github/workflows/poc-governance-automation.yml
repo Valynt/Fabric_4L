@@ -45,7 +45,7 @@ jobs:
       matched: ${{ steps.profile.outputs.matched }}
     steps:
       - name: Checkout
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+        uses: actions/checkout@v4 # v4
 
       - name: Determine profile from registry
         id: profile
@@ -60,7 +60,7 @@ jobs:
     needs: [determine-profile]
     steps:
       - name: Checkout
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+        uses: actions/checkout@v4 # v4
 
       - name: Setup Fabric CI
         uses: ./.github/actions/setup-fabric-ci
@@ -83,7 +83,7 @@ jobs:
     needs: [determine-profile]
     steps:
       - name: Checkout
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+        uses: actions/checkout@v4 # v4
 
       - name: Emit selected profile
         shell: bash

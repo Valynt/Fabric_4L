@@ -613,7 +613,7 @@ jobs:
     if: always()
     needs: [determine-profile, release-policy, repo-maturity-scorecard, readiness-10, gate-engineering]
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@v4 # v4
       - name: PR-fast summary
         if: needs.determine-profile.outputs.profile == 'pr-fast'
         run: |

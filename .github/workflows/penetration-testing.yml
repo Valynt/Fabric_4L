@@ -42,10 +42,10 @@ jobs:
     if: github.event.inputs.scan_type != 'nikto-only'
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@v4 # v4
 
       - name: Set up Python
-        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
+        uses: actions/setup-python@v5 # v5
         with:
           python-version: '3.11'
 
@@ -169,7 +169,7 @@ jobs:
 
       - name: Upload ZAP results
         if: always()
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        uses: actions/upload-artifact@v4 # v4
         with:
           name: zap-scan-results
           path: |
@@ -227,7 +227,7 @@ jobs:
     if: github.event.inputs.scan_type != 'zap-only'
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@v4 # v4
 
       - name: Start test stack
         run: |
@@ -288,7 +288,7 @@ jobs:
 
       - name: Upload Nikto results
         if: always()
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        uses: actions/upload-artifact@v4 # v4
         with:
           name: nikto-scan-results
           path: |
@@ -316,10 +316,10 @@ jobs:
     if: always()
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@v4 # v4
 
       - name: Download all artifacts
-        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4
+        uses: actions/download-artifact@v4 # v4
         with:
           path: penetration-results/
           merge-multiple: true
@@ -350,7 +350,7 @@ jobs:
           EOF
 
       - name: Upload consolidated report
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        uses: actions/upload-artifact@v4 # v4
         with:
           name: penetration-test-report-${{ github.run_id }}
           path: |

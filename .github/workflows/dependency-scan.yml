@@ -81,12 +81,12 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+        uses: actions/checkout@v4 # v4
         with:
           fetch-depth: 0
 
       - name: Setup Python
-        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
+        uses: actions/setup-python@v5 # v5
         with:
           python-version: "3.11"
 
@@ -140,7 +140,7 @@ jobs:
 
       - name: Upload dependency-audit evidence
         if: always()
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        uses: actions/upload-artifact@v4 # v4
         with:
           name: pip-audit-${{ matrix.service }}
           path: |
@@ -160,7 +160,7 @@ jobs:
 
       - name: Upload base dependency-audit evidence
         if: always() && github.event_name == 'pull_request'
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        uses: actions/upload-artifact@v4 # v4
         with:
           name: pip-audit-base-${{ matrix.service }}
           path: |
@@ -211,7 +211,7 @@ jobs:
       # 1. Checkout
       # -----------------------------------------------------------------------
       - name: Checkout code
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+        uses: actions/checkout@v4 # v4
         with:
           fetch-depth: 0
 
@@ -228,7 +228,7 @@ jobs:
       # -----------------------------------------------------------------------
       - name: Dependency Review
         if: github.event_name == 'pull_request'
-        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        uses: actions/dependency-review-action@v4.9.0 # v5.0.0
         with:
           # dependency-review-action uses 'moderate', not 'medium'
           fail-on-severity: ${{ env.FAIL_THRESHOLD == 'medium' && 'moderate' || env.FAIL_THRESHOLD }}
@@ -302,7 +302,7 @@ jobs:
       # -----------------------------------------------------------------------
       - name: Upload audit results
         if: always()
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        uses: actions/upload-artifact@v4 # v4
         with:
           name: node-audit-${{ matrix.frontend }}
           path: |
@@ -323,7 +323,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+        uses: actions/checkout@v4 # v4
         with:
           fetch-depth: 0
 
@@ -357,12 +357,12 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+        uses: actions/checkout@v4 # v4
         with:
           fetch-depth: 0
 
       - name: Setup Python
-        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
+        uses: actions/setup-python@v5 # v5
         with:
           python-version: "3.11"
 
@@ -374,7 +374,7 @@ jobs:
           syft packages dir:. -o spdx-json=sbom-vuln-track.json
 
       - name: Upload SBOM artifact
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        uses: actions/upload-artifact@v4 # v4
         with:
           name: sbom-vulnerability-tracking
           path: sbom-vuln-track.json

@@ -18,7 +18,7 @@ on:
 
 env:
   # Opt into Node.js 24 for GitHub Actions
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

@@ -82,7 +82,7 @@ jobs:
         layer: [layer1-ingestion, layer2-extraction, layer3-knowledge, layer4-agents, layer5-ground-truth, layer6-benchmarks]
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+      - uses: actions/checkout@v4
 
       - name: Generate source SBOM (CycloneDX)
         uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
@@ -102,7 +102,7 @@ jobs:
         # BLOCKING: HIGH/CRITICAL vulnerabilities fail the build
 
       - name: Upload source SBOM artifacts
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: source-sbom-${{ matrix.layer }}-${{ github.sha }}
@@ -136,7 +136,7 @@ jobs:
         layer: [layer1-ingestion, layer2-extraction, layer3-knowledge, layer4-agents, layer5-ground-truth, layer6-benchmarks, apps-web]
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+      - uses: actions/checkout@v4
 
       - name: Generate CycloneDX SBOM
         run: |
@@ -159,7 +159,7 @@ jobs:
         # Never exemptible: Security scans must not soft-fail
 
       - name: Upload SBOM artifacts
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
+        uses: actions/upload-artifact@v4
         with:
           name: sbom-${{ matrix.layer }}-${{ env.IMAGE_TAG }}
           path: |
@@ -194,7 +194,7 @@ jobs:
         layer: [layer1-ingestion, layer2-extraction, layer3-knowledge, layer4-agents, layer5-ground-truth, layer6-benchmarks, apps-web]
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+      - uses: actions/checkout@v4
 
       - name: Log in to Container Registry
         uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567
@@ -217,7 +217,7 @@ jobs:
           path: "${{ matrix.layer }}-subject.txt"
 
       - name: Upload provenance
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
+        uses: actions/upload-artifact@v4
         with:
           name: provenance-${{ matrix.layer }}-${{ env.IMAGE_TAG }}
           path: "*.intoto.jsonl"
@@ -264,7 +264,7 @@ jobs:
     timeout-minutes: 20
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+      - uses: actions/checkout@v4
 
       - name: Audit Python dependencies
         run: |
@@ -330,7 +330,7 @@ jobs:
           fi
 
       - name: Upload audit results
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
+        uses: actions/upload-artifact@v4
         with:
           name: dependency-audit-${{ github.sha }}-${{ steps.web_lock_hash.outputs.lock_hash }}
           path: "*-audit.json"
@@ -348,7 +348,7 @@ jobs:
     timeout-minutes: 15
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+      - uses: actions/checkout@v4
 
       - name: Check Python licenses
         run: |
@@ -390,7 +390,7 @@ jobs:
 
       - name: Upload license report
         if: always()
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
+        uses: actions/upload-artifact@v4
         with:
           name: license-report-${{ github.sha }}
           path: license-reports/
@@ -450,7 +450,7 @@ jobs:
           cat supply-chain-report.md
 
       - name: Upload report
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
+        uses: actions/upload-artifact@v4
         with:
           name: supply-chain-report-${{ env.IMAGE_TAG }}
           path: supply-chain-report.md
