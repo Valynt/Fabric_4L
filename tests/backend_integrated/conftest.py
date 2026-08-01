@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import pytest
 from tests.shared.live_harness import (
+    RUN_SLUG_SUFFIX,
     SERVICE_URLS,
     BackendValidationHarness,
     SeedIds,
@@ -22,6 +23,7 @@ from tests.shared.live_harness import (
 
 __all__ = [
     "BackendValidationHarness",
+    "RUN_SLUG_SUFFIX",
     "SERVICE_URLS",
     "SeedIds",
 ]
