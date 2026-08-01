@@ -17,6 +17,8 @@ it is owned by ``routers/benchmarks.py`` with a typed Layer 6 client.
 
 from __future__ import annotations
 
+from collections.abc import Awaitable, Callable
+
 import httpx
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse, Response
@@ -140,7 +142,7 @@ async def _delegate(
     )
 
 
-def _make_handler(segment: str):  # type: ignore[no-untyped-def]
+def _make_handler(segment: str) -> Callable[..., Awaitable[Response]]:
     async def handler(
         request: Request,
         path: str = "",
