@@ -222,22 +222,22 @@ from app.services.agent_orchestrator import (  # noqa: E402
 )
 
 
-@app.exception_handler(Layer4UnavailableError)
-async def _layer4_unavailable_handler(request, exc: Layer4UnavailableError):  # type: ignore[no-untyped-def]
-    from fastapi.responses import JSONResponse
+from fastapi import Request as _Request
+from fastapi.responses import JSONResponse as _JSONResponse
 
-    return JSONResponse(
+
+@app.exception_handler(Layer4UnavailableError)
+async def _layer4_unavailable_handler(request: _Request, exc: Layer4UnavailableError) -> _JSONResponse:
+    return _JSONResponse(
         status_code=503,
         content={"detail": "layer4_unavailable", "code": exc.code},
     )
 
 
 @app.exception_handler(Layer4DependencyError)
-async def _layer4_dependency_handler(request, exc: Layer4DependencyError):  # type: ignore[no-untyped-def]
-    from fastapi.responses import JSONResponse
-
+async def _layer4_dependency_handler(request: _Request, exc: Layer4DependencyError) -> _JSONResponse:
     status = 404 if exc.status_code == 404 else 502
-    return JSONResponse(
+    return _JSONResponse(
         status_code=status,
         content={
             "detail": "layer4_dependency_error",
