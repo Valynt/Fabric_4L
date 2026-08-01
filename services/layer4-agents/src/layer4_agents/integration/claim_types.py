@@ -62,12 +62,17 @@ def require_canonical_claim_type(claim_type: str) -> str:
     """Fail fast when a value is not in the canonical Layer 5 taxonomy.
 
     Called at the L4 -> L5 client boundary so taxonomy drift surfaces as a
-    local error instead of a remote 422 with lost lineage.
+    local error instead of a remote 422 with lost lineage. Accepts both
+    canonical Layer 5 types and Layer 4 internal vocabulary (mapped via
+    ``to_layer5_claim_type``).
     """
     normalized = str(claim_type or "").strip().lower()
-    if normalized not in CANONICAL_CLAIM_TYPES:
+    if normalized in CANONICAL_CLAIM_TYPES:
+        return normalized
+    try:
+        return to_layer5_claim_type(normalized)
+    except ValueError:
         raise ValueError(
             f"claim_type {claim_type!r} is not in the canonical Layer 5 "
             f"taxonomy (contracts/jsonschema/claim-types.v1.json)"
         )
-    return normalized

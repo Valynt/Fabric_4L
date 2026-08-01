@@ -4,9 +4,9 @@ import json
 from datetime import UTC, datetime
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
-from value_fabric.shared.error_handling.exceptions import NotFoundError
+from value_fabric.shared.error_handling.exceptions import ConflictError, NotFoundError
 from value_fabric.shared.identity.context import get_request_context
 
 from app.core.database import db
@@ -160,9 +160,8 @@ async def pause_workflow(id: str, tenant_id: str = Depends(tenant_required)):
     if not run:
         raise NotFoundError(message="Workflow not found")
     if run.status not in {"pending", "running", "interrupted"}:
-        raise HTTPException(
-            status_code=409,
-            detail=f"Workflow is {run.status} and cannot be paused",
+        raise ConflictError(
+            message=f"Workflow is {run.status} and cannot be paused",
         )
     paused = orchestrator.pause_run(id, tenant_id=tenant_id, user_id=_current_user_id())
     return _run_to_workflow_payload(paused)
