@@ -199,7 +199,6 @@ jobs:
     permissions:
       contents: read
       security-events: write # Uploads dependency scan SARIF to code scanning.
-      pull-requests: write # Required for actions/dependency-review-action to comment on PRs
 
     strategy:
       fail-fast: false
