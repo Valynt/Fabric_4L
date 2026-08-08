@@ -330,3 +330,5 @@ here.
 | Date | Change |
 |---|---|
 | 2026-08-08 | Initial inventory. Upgraded `cryptography` 48.0.1 → 50.0.0 across services/api, layer1-ingestion, layer3-knowledge, layer4-agents. Upgraded `langgraph-checkpoint-postgres` 3.0.5 → 3.1.2 in layer4-agents. Both changes via `uv lock --upgrade-package` against the existing `>=` constraints in `pyproject.toml`; no constraint changes. |
+| 2026-08-08 | Phase 2 — `make test-layer4-live` run against Dockerised PostgreSQL: 141 passed, 8 skipped, exit 0 (140s). All 47 `pytest.mark.postgres` billing tests in `test_billing_route_coverage.py` pass against real PostgreSQL. Lane is stable. |
+| 2026-08-08 | Phase 3 — 11 `py/partial-ssrf` CodeQL alerts triaged as false positives with evidence-backed rationale per alert (see §4.1). All 11 sites are inter-service HTTP where the URL is derived from server configuration or OAuth instance URLs returned by the integration partner; no site has a user-influenced URL component. |
