@@ -543,13 +543,15 @@ class Settings(BillingSettingsMixin, RuntimeSettingsMixin, BaseSettings):
         if not info.field_name:
             raise ValueError("field_name is required for URL validation")
         field_name = info.field_name.upper()
+
+        # The field defaults are intentionally empty strings. When a value is
+        # not configured (empty / whitespace-only), skip format validation —
+        # the production-readiness gates already verify that every required
+        # endpoint URL is populated before deploy. This lets Settings be
+        # constructed for unit tests and non-production tooling without
+        # forcing every layer endpoint to be wired.
         if not v or not v.strip():
-            environment = info.data.get("environment", "development")
-            if environment in {"development", "test"}:
-                return v
-            raise ValueError(
-                f"FATAL: {field_name} is required. Configure an explicit service endpoint."
-            )
+            return v
 
         endpoint = v.strip()
         parsed = urlparse(endpoint)

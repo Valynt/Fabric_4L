@@ -131,6 +131,7 @@ class SignalPromoteUpdate(TypedDict, total=False):
     """Partial update payload for signal promotion."""
 
     lifecycle_state: str
+    value_driver_id: str
 
 
 logger = logging.getLogger(__name__)

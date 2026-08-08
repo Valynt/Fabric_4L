@@ -539,8 +539,18 @@ def validate_tenant_id(tenant_id: UUID | str | None) -> str:
 
 
 async def _set_local_tenant_context(session: AsyncSession, tenant_id: str) -> None:
-    """Set tenant context, using PostgreSQL RLS when the dialect supports it."""
-    dialect_name = session.get_bind().dialect.name
+    """Set tenant context, using PostgreSQL RLS when the dialect supports it.
+
+    ``set_config`` is a PostgreSQL-only function. Unit tests exercise this path
+    against SQLite (which has no equivalent transaction-local variable
+    mechanism), so we skip the SQL statement for non-PostgreSQL dialects and
+    only record the tenant mark on the session object. Production always runs
+    against PostgreSQL and is additionally protected by
+    ``_is_production_like_runtime``, which refuses to boot on a non-PostgreSQL
+    dialect.
+    """
+    bind = session.get_bind() if hasattr(session, "get_bind") else getattr(session, "bind", None)
+    dialect_name = getattr(getattr(bind, "dialect", None), "name", "") if bind is not None else ""
     if dialect_name != "postgresql":
         if _is_production_like_runtime():
             raise RuntimeError("Tenant RLS context requires PostgreSQL in protected environments.")

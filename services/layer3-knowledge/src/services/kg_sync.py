@@ -11,6 +11,7 @@ from uuid import UUID
 
 from value_fabric.shared.models import JSONDict
 
+from ...db import run_validated_query
 from ...db.driver import get_driver
 
 logger = logging.getLogger(__name__)
@@ -70,7 +71,13 @@ async def upsert_ground_truth_node(
     }
     
     async with driver.session() as session:
-        result = await session.run(query, params)
+        result = await run_validated_query(
+            session.run,
+            query,
+            params,
+            tenant_id=str(tenant_id),
+            query_name="upsert_ground_truth_node",
+        )
         record = await result.single()
         if record:
             return str(record["node_id"])
@@ -112,7 +119,13 @@ async def link_ground_truth_to_entity(
     }
     
     async with driver.session() as session:
-        result = await session.run(query, params)
+        result = await run_validated_query(
+            session.run,
+            query,
+            params,
+            tenant_id=str(tenant_id),
+            query_name="link_ground_truth_to_entity",
+        )
         record = await result.single()
         return record is not None
 
@@ -136,7 +149,13 @@ async def get_ground_truth_node(
     }
     
     async with driver.session() as session:
-        result = await session.run(query, params)
+        result = await run_validated_query(
+            session.run,
+            query,
+            params,
+            tenant_id=str(tenant_id),
+            query_name="get_ground_truth_node",
+        )
         record = await result.single()
         if record:
             node = dict(record["g"])
