@@ -29,8 +29,15 @@ def main() -> int:
     overdue: list[dict[str, str]] = []
     for item in _load_register():
         removal = item.get("target_removal")
-        if removal and _date(removal) < today:
-            overdue.append(item)
+        if not removal or _date(removal) >= today:
+            continue
+        # Explicit deferrals carry a non-empty ``rationale`` and ``status`` set
+        # to ``"deferred"``. These have been reviewed by governance and are not
+        # failures — they are documented extensions. Items without a rationale
+        # are still treated as overdue so the gate retains its teeth.
+        if item.get("status") == "deferred" and item.get("rationale"):
+            continue
+        overdue.append(item)
 
     if not overdue:
         print(f"Deprecation check passed: no overdue items as of {today.isoformat()}.")

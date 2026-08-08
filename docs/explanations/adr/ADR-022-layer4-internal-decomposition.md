@@ -2,9 +2,9 @@
 
 # ADR-022: Layer 4 Internal Decomposition
 
-**Status:** Proposed  
-**Date:** May 22, 2026  
-**Authors:** Platform Architecture  
+**Status:** Accepted
+**Date:** 2026-05-22
+**Deciders:** Platform Architecture Committee
 **Reviewers:** Platform Architecture Committee
 
 ---

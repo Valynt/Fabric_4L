@@ -106,9 +106,14 @@
       "js-yaml": "^4.2.0"
     },
     "onlyBuiltDependencies": [
+      "@clerk/shared",
       "@tailwindcss/oxide",
+      "bufferutil",
+      "core-js",
+      "cypress",
       "esbuild",
-      "msw"
+      "msw",
+      "utf-8-validate"
     ],
     "auditConfig": {
       "ignoreCves": [

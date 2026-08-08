@@ -187,6 +187,7 @@ module.exports = {
     "**/*.d.ts",
     "**/*.config.ts",
     "**/*.config.js",
+    "src/api/generated/**",
   ],
   settings: {
     react: {
