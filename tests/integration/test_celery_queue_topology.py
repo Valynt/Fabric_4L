@@ -13,6 +13,8 @@ pytestmark = [pytest.mark.integration, pytest.mark.celery]
 
 ROOT = Path(__file__).resolve().parents[2]
 L1_TASKS = "services/layer1-ingestion/src/layer1_ingestion/shared/tasks.py"
+L1_PIPELINE_TASKS = "services/layer1-ingestion/src/layer1_ingestion/shared/pipeline_tasks.py"
+L1_DELIVERY_TASKS = "services/layer1-ingestion/src/layer1_ingestion/shared/delivery_tasks.py"
 L1_CONFIG = "services/layer1-ingestion/src/layer1_ingestion/shared/config.py"
 L2_TASKS = "services/layer2-extraction/src/layer2_extraction/shared/tasks.py"
 
@@ -49,7 +51,7 @@ def test_celery_runtime_is_declared_in_source_and_dependencies() -> None:
     l1_pyproject = _read("services/layer1-ingestion/pyproject.toml")
     l2_pyproject = _read("services/layer2-extraction/pyproject.toml")
 
-    assert "from celery import Celery" in l1_tasks
+    assert "from celery import" in l1_tasks and "Celery" in l1_tasks
     assert "celery_app = Celery(" in l1_tasks
     assert "from celery import Celery" in l2_tasks
     assert "celery_app = Celery(" in l2_tasks
@@ -111,6 +113,8 @@ def test_l2_queue_names_and_dead_letter_queue_are_declared() -> None:
 def test_retry_dead_letter_and_worker_loss_policies_are_configured() -> None:
     """Celery tasks must retain retry, late-ack, and worker-loss policies."""
     l1_tasks = _read(L1_TASKS)
+    l1_pipeline_tasks = _read(L1_PIPELINE_TASKS)
+    l1_delivery_tasks = _read(L1_DELIVERY_TASKS)
     l2_tasks = _read(L2_TASKS)
 
     for source in (l1_tasks, l2_tasks):
@@ -118,10 +122,13 @@ def test_retry_dead_letter_and_worker_loss_policies_are_configured() -> None:
         assert 'task_reject_on_worker_lost=True' in source
         assert 'task_default_retry_delay=60' in source
         assert 'task_max_retries=3' in source
-        assert '@celery_app.task(bind=True, max_retries=3)' in source
+
+    # L1 registers its tasks with explicit names; L2 uses the compact form.
+    assert "bind=True, max_retries=3" in l1_pipeline_tasks
+    assert '@celery_app.task(bind=True, max_retries=3)' in l2_tasks
 
     assert "MAX_DISPATCH_ATTEMPTS = 5" in l1_tasks
-    assert "OutboxStatus.DEAD_LETTER.value" in l1_tasks
+    assert "OutboxStatus.DEAD_LETTER.value" in l1_delivery_tasks
 
 
 def test_l1_worker_manifests_expose_unprefixed_redis_url() -> None:
@@ -178,16 +185,16 @@ def test_worker_startup_and_broker_configuration_exist_in_kubernetes() -> None:
 
 def test_tenant_context_and_idempotency_are_preserved() -> None:
     """Celery dispatch must propagate tenant context and keep idempotency guards."""
-    l1_tasks = _read(L1_TASKS)
+    l1_pipeline_tasks = _read(L1_PIPELINE_TASKS)
     l1_target_handlers = _read(
         "services/layer1-ingestion/src/layer1_ingestion/api/target_handlers.py"
     )
     l2_tasks = _read(L2_TASKS)
 
-    assert 'def process_scraping_job(self, job_id: str, tenant_id: str)' in l1_tasks
-    assert "get_db_session(tenant_id=tenant_uuid, require_tenant=True)" in l1_tasks
-    assert '"tenant_id": str(job.tenant_id)' in l1_tasks
-    assert "layer2_extraction.shared.tasks.run_extraction_task" in l1_tasks
+    assert 'def process_scraping_job(self, job_id: str, tenant_id: str)' in l1_pipeline_tasks
+    assert "get_db_session(tenant_id=tenant_uuid, require_tenant=True)" in l1_pipeline_tasks
+    assert '"tenant_id": str(job.tenant_id)' in l1_pipeline_tasks
+    assert "layer2_extraction.shared.tasks.run_extraction_task" in l1_pipeline_tasks
 
     assert 'tenant_id = config.get("tenant_id")' in l2_tasks
     assert 'raise ValueError("tenant_id is required in config for extraction task")' in l2_tasks

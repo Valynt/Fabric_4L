@@ -3,12 +3,6 @@
 from datetime import UTC, datetime
 from uuid import UUID
 
-try:
-    from value_fabric.shared.identity.jwt import encode_service_jwt
-except ImportError:
-    encode_service_jwt = None  # type: ignore
-
-
 from value_fabric.shared.audit import emit_audit_event
 from value_fabric.shared.audit.models import AuditAction, AuditOutcome
 from value_fabric.shared.error_handling import sanitize_log_error

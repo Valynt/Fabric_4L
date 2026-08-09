@@ -35,7 +35,7 @@ from ..shared.models import JobStageDetail, ScrapingJob, ScrapingTarget  # noqa:
 from ..skills import get_skill  # noqa: F401
 
 try:
-    from value_fabric.shared.identity.jwt import encode_service_jwt
+    from value_fabric.shared.identity.jwt import encode_service_jwt  # noqa: F401
 except ImportError:
     encode_service_jwt = None  # type: ignore
 

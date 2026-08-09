@@ -6,11 +6,6 @@ from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 from uuid import UUID, uuid4
 
-try:
-    from value_fabric.shared.identity.jwt import encode_service_jwt
-except ImportError:
-    encode_service_jwt = None  # type: ignore
-
 from ..compliance.url_safety import (
     enforce_rebinding_protection,
 )
