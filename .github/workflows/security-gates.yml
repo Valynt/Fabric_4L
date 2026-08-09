@@ -1159,6 +1159,14 @@ jobs:
 
     steps:
       - name: Confirm required security gates passed or were safely out of scope
+        env:
+          # Scope outputs are passed via env (never interpolated into the
+          # script body) so a compromised scope resolver cannot inject into
+          # this final gate arbiter.
+          SCOPE_CODE: ${{ needs.change-scope.outputs.code }}
+          SCOPE_DOCKER: ${{ needs.change-scope.outputs.docker }}
+          SCOPE_DEPS: ${{ needs.change-scope.outputs.deps }}
+          SCOPE_BACKEND: ${{ needs.change-scope.outputs.backend }}
         run: |
           set -euo pipefail
           declare -A CHECKS=(
@@ -1171,17 +1179,13 @@ jobs:
           # to 'false' (the PR provably cannot affect it); anything else
           # fails closed. Scope values are compared in bash so unresolved
           # (empty) values never count as safe.
-          scope_code='${{ needs.change-scope.outputs.code }}'
-          scope_docker='${{ needs.change-scope.outputs.docker }}'
-          scope_deps='${{ needs.change-scope.outputs.deps }}'
-          scope_backend='${{ needs.change-scope.outputs.backend }}'
           declare -A SCOPE_SAFE=(
-            ["dast-api-scan"]="$([[ "$scope_code" == "false" ]] && echo true || echo false)"
-            ["sbom-policy"]="$([[ "$scope_docker" == "false" && "$scope_deps" == "false" ]] && echo true || echo false)"
+            ["dast-api-scan"]="$([[ "${SCOPE_CODE:-}" == "false" ]] && echo true || echo false)"
+            ["sbom-policy"]="$([[ "${SCOPE_DOCKER:-}" == "false" && "${SCOPE_DEPS:-}" == "false" ]] && echo true || echo false)"
             # mandatory-security-regression is a governed merge control and
             # is never scope-skipped; it must succeed on every PR.
             ["mandatory-security-regression"]="false"
-            ["route-auth-gate"]="$([[ "$scope_backend" == "false" ]] && echo true || echo false)"
+            ["route-auth-gate"]="$([[ "${SCOPE_BACKEND:-}" == "false" ]] && echo true || echo false)"
           )
           failed=0
           for check in "${!CHECKS[@]}"; do

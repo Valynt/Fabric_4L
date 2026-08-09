@@ -2810,6 +2810,16 @@ jobs:
           echo "event: ${{ github.event_name }} ref: ${{ github.ref }} sha: ${{ github.sha }}"
 
       - name: Enforce unified structural/security/tenant/contract/migration/deployment gate
+        env:
+          # Scope outputs are passed via env (never interpolated into the
+          # script body) so a compromised scope resolver cannot inject into
+          # this final gate arbiter. needs.*.result values are
+          # GitHub-controlled enums and safe to interpolate.
+          SCOPE_BACKEND: ${{ needs.change-scope.outputs.backend }}
+          SCOPE_LAYER5: ${{ needs.change-scope.outputs.layer5 }}
+          SCOPE_K8S: ${{ needs.change-scope.outputs.k8s }}
+          SCOPE_DOCKER: ${{ needs.change-scope.outputs.docker }}
+          SCOPE_CODE: ${{ needs.change-scope.outputs.code }}
         run: |
           declare -A CHECKS=(
             ["change-scope"]="${{ needs.change-scope.result }}"
@@ -2833,19 +2843,22 @@ jobs:
           # Scope each gated check resolves against. A skipped check is safe
           # only when its scope resolved to 'false' (the change provably
           # cannot affect it); any other skip is a gate failure.
+          # change-scope, structural-preflight, production-readiness-gate,
+          # and gate-engineering intentionally have NO scope mapping: they
+          # must run on every PR, so any skip of theirs fails the gate.
           declare -A SCOPES=(
-            ["shared-and-tests-checks"]="${{ needs.change-scope.outputs.backend }}"
-            ["layer5-tenant-isolation-regression"]="${{ needs.change-scope.outputs.layer5 }}"
-            ["contract-checks"]="${{ needs.change-scope.outputs.backend }}"
-            ["runtime-contract-checks"]="${{ needs.change-scope.outputs.backend }}"
-            ["integration-checks"]="${{ needs.change-scope.outputs.backend }}"
-            ["k8s-dry-run"]="${{ needs.change-scope.outputs.k8s }}"
-            ["docker-compose-config-contract"]="${{ needs.change-scope.outputs.docker }}"
-            ["queue-topology-checks"]="${{ needs.change-scope.outputs.backend }}"
-            ["docker-build-check"]="${{ needs.change-scope.outputs.docker }}"
-            ["route-auth-gate"]="${{ needs.change-scope.outputs.backend }}"
-            ["tenant-isolation-gate"]="${{ needs.change-scope.outputs.backend }}"
-            ["critical-behaviors-gate"]="${{ needs.change-scope.outputs.code }}"
+            ["shared-and-tests-checks"]="${SCOPE_BACKEND:-}"
+            ["layer5-tenant-isolation-regression"]="${SCOPE_LAYER5:-}"
+            ["contract-checks"]="${SCOPE_BACKEND:-}"
+            ["runtime-contract-checks"]="${SCOPE_BACKEND:-}"
+            ["integration-checks"]="${SCOPE_BACKEND:-}"
+            ["k8s-dry-run"]="${SCOPE_K8S:-}"
+            ["docker-compose-config-contract"]="${SCOPE_DOCKER:-}"
+            ["queue-topology-checks"]="${SCOPE_BACKEND:-}"
+            ["docker-build-check"]="${SCOPE_DOCKER:-}"
+            ["route-auth-gate"]="${SCOPE_BACKEND:-}"
+            ["tenant-isolation-gate"]="${SCOPE_BACKEND:-}"
+            ["critical-behaviors-gate"]="${SCOPE_CODE:-}"
           )
 
           failed=0
