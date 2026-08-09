@@ -1,0 +1,39 @@
+{
+  "id": "de9bc79d600b",
+  "key": "pattern_build_evidence_bundle_candidate_fabric_4l_de9bc7",
+  "name": "pattern_build_evidence_bundle_candidate_fabric_4l_de9bc7",
+  "claim": "Edited /home/runner/work/Fabric_4L/Fabric_4L/scripts/release/build_evidence_bundle.py",
+  "conditions": [
+    "build_evidence_bundle",
+    "candidate",
+    "edit",
+    "edited",
+    "evidence",
+    "fabric_4l",
+    "home",
+    "manifest",
+    "new_str",
+    "packet",
+    "release",
+    "runner",
+    "scripts",
+    "u2014",
+    "work"
+  ],
+  "evidence_ids": [
+    "2026-08-09T09:38:26.372848+00:00",
+    "2026-08-09T09:42:28.735636+00:00"
+  ],
+  "cluster_size": 2,
+  "canonical_salience": 9.0,
+  "staged_at": "2026-08-09T09:45:48.959617+00:00",
+  "status": "staged",
+  "decisions": [
+    {
+      "ts": "2026-08-09T09:45:48.959617+00:00",
+      "action": "staged",
+      "reviewer": "auto_dream"
+    }
+  ],
+  "rejection_count": 0
+}
