@@ -16,6 +16,12 @@ on:
     branches: ["main"]
   pull_request:
     branches: ["main"]
+    # Change-scoping: CodeQL analyzes code (actions, javascript-typescript,
+    # python); documentation-only PRs are skipped. Push-to-main and the
+    # weekly schedule remain unscoped.
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
   schedule:
     - cron: '16 9 * * 6'
 
