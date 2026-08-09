@@ -2,19 +2,21 @@
 
 ## Current task
 
-No active task.
+Fix failing GitHub Actions job "Structural Preflight" (job 93297738838) by reproducing the failure, identifying root cause, and applying the smallest safe fix.
 
 ## Status
 
-Complete. Issue #1191 was localized to the missing Dockerfile `HEALTHCHECK` in `/home/runner/work/Fabric_4L/Fabric_4L/.devcontainer/Dockerfile`, fixed in the shared toolchain stage, and covered by a regression test against `/home/runner/work/Fabric_4L/Fabric_4L/.devcontainer/docker-compose.yml`.
+In progress.
 
 ## What was done
 
-- Reproduced the static compose-contract failure for the `dev` service before the fix.
-- Added a generic Dockerfile `HEALTHCHECK` to the shared devcontainer toolchain image.
-- Added a regression test asserting the checked-in devcontainer compose file inherits Dockerfile health coverage.
-- Validated the fix with the compose-contract module and Python syntax checks.
+- Loaded agent memory, permissions, and debug-investigator skill.
+- Ran recall before investigating CI failure.
+
+## Active hypotheses
+
+- Structural Preflight is failing due to a static governance/contract check regression introduced in recent commits.
 
 ## Next step
 
-No active task.
+Inspect workflow run/job logs for run `31334067791`, isolate the exact failing check, reproduce locally, and apply a targeted fix with regression coverage.
