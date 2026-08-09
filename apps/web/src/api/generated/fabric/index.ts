@@ -1689,6 +1689,494 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/ingestion/sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Sources
+         * @description List sources in the catalog.
+         */
+        get: operations["list_sources_v1_ingestion_sources_get"];
+        put?: never;
+        /**
+         * Create Source
+         * @description Create a new source in Layer 1 catalog.
+         */
+        post: operations["create_source_v1_ingestion_sources_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/ingestion/sources/{source_id}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Source Version
+         * @description Create a new source version.
+         */
+        post: operations["create_source_version_v1_ingestion_sources__source_id__versions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/ingestion/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Ingestion Run
+         * @description Trigger an ingestion run.
+         */
+        post: operations["create_ingestion_run_v1_ingestion_runs_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/ingestion/runs/{run_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Ingestion Run
+         * @description Get ingestion run status.
+         */
+        get: operations["get_ingestion_run_v1_ingestion_runs__run_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/extract": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Extract
+         * @description Extract entities from content (extraction only).
+         */
+        post: operations["extract_v1_extract_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/extract-and-ingest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Extract And Ingest
+         * @description Extract and ingest into Layer 3 knowledge graph.
+         */
+        post: operations["extract_and_ingest_v1_extract_and_ingest_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/extractions/{job_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Extraction Status
+         * @description Get extraction job status.
+         */
+        get: operations["get_extraction_status_v1_extractions__job_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/query/entities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Query Entities
+         * @description Query entities from the knowledge graph.
+         */
+        get: operations["query_entities_v1_query_entities_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Search Knowledge Graph
+         * @description Hybrid search in the knowledge graph.
+         */
+        post: operations["search_knowledge_graph_v1_search_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/value-trees/{tree_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Value Tree
+         * @description Get a value tree by ID.
+         */
+        get: operations["get_value_tree_v1_value_trees__tree_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/ingest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ingest Rdf
+         * @description Ingest RDF data into the knowledge graph.
+         */
+        post: operations["ingest_rdf_v1_ingest_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/query/graphrag": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Query Graphrag
+         * @description Query the knowledge graph using GraphRAG retrieval.
+         */
+        post: operations["query_graphrag_v1_query_graphrag_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workflows": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit Workflow
+         * @description Submit a workflow to Layer 4.
+         */
+        post: operations["submit_workflow_v1_workflows_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workflows/{workflow_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Workflow
+         * @description Retrieve the current status of a workflow.
+         */
+        get: operations["get_workflow_v1_workflows__workflow_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workflows/{workflow_id}/result": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Workflow Result
+         * @description Retrieve the final result of a workflow.
+         */
+        get: operations["get_workflow_result_v1_workflows__workflow_id__result_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/hypotheses/generate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Generate Hypotheses
+         * @description Generate hypotheses via Layer 4.
+         */
+        post: operations["generate_hypotheses_v1_hypotheses_generate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/analysis/roi": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run Roi Analysis
+         * @description Run ROI analysis via Layer 4.
+         */
+        post: operations["run_roi_analysis_v1_analysis_roi_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/narratives/generate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Generate Narrative
+         * @description Generate narrative via Layer 4.
+         */
+        post: operations["generate_narrative_v1_narratives_generate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/truths": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Truths
+         * @description List TruthObjects with optional filters.
+         */
+        get: operations["list_truths_v1_truths_get"];
+        put?: never;
+        /**
+         * Submit Truth
+         * @description Submit a new TruthObject.
+         */
+        post: operations["submit_truth_v1_truths_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/truths/{truth_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Truth
+         * @description Get a single TruthObject by ID.
+         */
+        get: operations["get_truth_v1_truths__truth_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/truths/{truth_id}/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Validate Truth
+         * @description Validate or transition a TruthObject.
+         */
+        post: operations["validate_truth_v1_truths__truth_id__validate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/truths/sync-kg": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sync Knowledge Graph
+         * @description Sync validated TruthObjects to Layer 3 knowledge graph.
+         */
+        post: operations["sync_knowledge_graph_v1_truths_sync_kg_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/truths/freshness-summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Freshness Summary
+         * @description Get freshness summary of TruthObjects.
+         */
+        get: operations["get_freshness_summary_v1_truths_freshness_summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/maturity-ladder": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Maturity Ladder
+         * @description Get maturity ladder reference.
+         */
+        get: operations["get_maturity_ladder_v1_maturity_ladder_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/internal/webhooks/clerk": {
         parameters: {
             query?: never;
@@ -3620,6 +4108,7 @@ export interface operations {
             header?: never;
             path?: never;
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -3651,6 +4140,7 @@ export interface operations {
             header?: never;
             path?: never;
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -3688,6 +4178,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -3721,6 +4212,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -3758,6 +4250,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -3791,6 +4284,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -3824,6 +4318,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -3921,6 +4416,7 @@ export interface operations {
             header?: never;
             path?: never;
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -3989,6 +4485,7 @@ export interface operations {
             header?: never;
             path?: never;
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -4018,6 +4515,7 @@ export interface operations {
             header?: never;
             path?: never;
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -4053,6 +4551,7 @@ export interface operations {
             header?: never;
             path?: never;
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -4082,6 +4581,7 @@ export interface operations {
             header?: never;
             path?: never;
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -4634,6 +5134,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -4667,6 +5168,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -4707,6 +5209,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -4740,6 +5243,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -4773,6 +5277,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -4809,6 +5314,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -4842,6 +5348,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -4882,6 +5389,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -4915,6 +5423,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -4948,6 +5457,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -4984,6 +5494,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -5017,6 +5528,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -5054,6 +5566,7 @@ export interface operations {
                 hypothesis_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -5096,6 +5609,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -5129,6 +5643,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -5162,6 +5677,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -5199,6 +5715,7 @@ export interface operations {
                 driver_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -5241,6 +5758,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -5274,6 +5792,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -5311,6 +5830,7 @@ export interface operations {
                 evidence_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -5345,6 +5865,7 @@ export interface operations {
                 evidence_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -5381,6 +5902,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -5414,6 +5936,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -5451,6 +5974,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -5490,6 +6014,7 @@ export interface operations {
                 calculation_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -5523,6 +6048,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -5556,6 +6082,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -5589,6 +6116,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -5626,6 +6154,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -5664,6 +6193,7 @@ export interface operations {
                 value_case_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -5698,6 +6228,7 @@ export interface operations {
                 value_case_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -5738,6 +6269,7 @@ export interface operations {
                 value_case_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -5771,6 +6303,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -5809,6 +6342,7 @@ export interface operations {
                 value_case_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -5843,6 +6377,7 @@ export interface operations {
             header?: never;
             path?: never;
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -5876,6 +6411,7 @@ export interface operations {
                 value_pack_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -5910,6 +6446,7 @@ export interface operations {
             header?: never;
             path?: never;
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -5943,6 +6480,7 @@ export interface operations {
                 formula_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -5977,6 +6515,7 @@ export interface operations {
             header?: never;
             path?: never;
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -6008,6 +6547,7 @@ export interface operations {
             header?: never;
             path?: never;
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -6039,6 +6579,7 @@ export interface operations {
             header?: never;
             path?: never;
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -6070,6 +6611,7 @@ export interface operations {
             header?: never;
             path?: never;
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -6108,6 +6650,7 @@ export interface operations {
             header?: never;
             path?: never;
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -6139,6 +6682,7 @@ export interface operations {
             header?: never;
             path?: never;
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -6175,6 +6719,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -6208,6 +6753,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -6246,6 +6792,7 @@ export interface operations {
                 review_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -6280,6 +6827,7 @@ export interface operations {
                 review_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -6323,6 +6871,7 @@ export interface operations {
                 review_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -6357,6 +6906,7 @@ export interface operations {
                 review_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -6397,6 +6947,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -6430,6 +6981,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -6468,6 +7020,7 @@ export interface operations {
                 snapshot_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -6504,6 +7057,7 @@ export interface operations {
                 snapshot_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -6538,6 +7092,7 @@ export interface operations {
                 snapshot_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -6571,6 +7126,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -6604,6 +7160,7 @@ export interface operations {
                 account_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -6642,6 +7199,7 @@ export interface operations {
                 plan_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -6680,6 +7238,7 @@ export interface operations {
                 plan_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -6714,6 +7273,7 @@ export interface operations {
                 plan_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -6745,6 +7305,7 @@ export interface operations {
             header?: never;
             path?: never;
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -6784,6 +7345,7 @@ export interface operations {
                 run_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -6817,6 +7379,7 @@ export interface operations {
                 run_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -6850,6 +7413,7 @@ export interface operations {
                 run_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -6881,6 +7445,7 @@ export interface operations {
             header?: never;
             path?: never;
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -6918,6 +7483,7 @@ export interface operations {
             header?: never;
             path?: never;
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -6951,6 +7517,7 @@ export interface operations {
                 id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -6984,6 +7551,7 @@ export interface operations {
                 id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -7017,6 +7585,7 @@ export interface operations {
                 id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -7050,6 +7619,7 @@ export interface operations {
                 id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -7083,6 +7653,7 @@ export interface operations {
                 id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -7116,6 +7687,7 @@ export interface operations {
             };
             path?: never;
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -7153,6 +7725,7 @@ export interface operations {
                 request_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };
@@ -7188,6 +7761,884 @@ export interface operations {
                 package_id: string;
             };
             cookie?: {
+                /** @description Session cookie for authenticated requests */
+                vf_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_sources_v1_ingestion_sources_get: {
+        parameters: {
+            query?: {
+                /** @description Maximum number of sources to return */
+                limit?: number;
+                /** @description Number of sources to skip for pagination */
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: {
+                /** @description Session cookie for authenticated requests */
+                vf_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_source_v1_ingestion_sources_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                /** @description Session cookie for authenticated requests */
+                vf_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_source_version_v1_ingestion_sources__source_id__versions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Unique identifier of the source to version */
+                source_id: string;
+            };
+            cookie?: {
+                /** @description Session cookie for authenticated requests */
+                vf_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_ingestion_run_v1_ingestion_runs_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                /** @description Session cookie for authenticated requests */
+                vf_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_ingestion_run_v1_ingestion_runs__run_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Unique identifier of the ingestion run */
+                run_id: string;
+            };
+            cookie?: {
+                /** @description Session cookie for authenticated requests */
+                vf_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    extract_v1_extract_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                /** @description Session cookie for authenticated requests */
+                vf_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    extract_and_ingest_v1_extract_and_ingest_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                /** @description Session cookie for authenticated requests */
+                vf_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_extraction_status_v1_extractions__job_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Unique identifier of the extraction job */
+                job_id: string;
+            };
+            cookie?: {
+                /** @description Session cookie for authenticated requests */
+                vf_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    query_entities_v1_query_entities_get: {
+        parameters: {
+            query?: {
+                /** @description Filter entities by type */
+                entity_type?: string | null;
+                /** @description Maximum number of entities to return */
+                limit?: number;
+                /** @description Number of entities to skip for pagination */
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: {
+                /** @description Session cookie for authenticated requests */
+                vf_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    search_knowledge_graph_v1_search_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                /** @description Session cookie for authenticated requests */
+                vf_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_value_tree_v1_value_trees__tree_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Unique identifier of the value tree */
+                tree_id: string;
+            };
+            cookie?: {
+                /** @description Session cookie for authenticated requests */
+                vf_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ingest_rdf_v1_ingest_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                /** @description Session cookie for authenticated requests */
+                vf_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    query_graphrag_v1_query_graphrag_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                /** @description Session cookie for authenticated requests */
+                vf_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    submit_workflow_v1_workflows_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                /** @description Session cookie for authenticated requests */
+                vf_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_workflow_v1_workflows__workflow_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Unique identifier of the workflow */
+                workflow_id: string;
+            };
+            cookie?: {
+                /** @description Session cookie for authenticated requests */
+                vf_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_workflow_result_v1_workflows__workflow_id__result_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Unique identifier of the workflow */
+                workflow_id: string;
+            };
+            cookie?: {
+                /** @description Session cookie for authenticated requests */
+                vf_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    generate_hypotheses_v1_hypotheses_generate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                /** @description Session cookie for authenticated requests */
+                vf_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    run_roi_analysis_v1_analysis_roi_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                /** @description Session cookie for authenticated requests */
+                vf_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    generate_narrative_v1_narratives_generate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                /** @description Session cookie for authenticated requests */
+                vf_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_truths_v1_truths_get: {
+        parameters: {
+            query?: {
+                /** @description Filter truths by validation status */
+                status?: string | null;
+                /** @description Filter truths by claim type */
+                claim_type?: string | null;
+                /** @description Maximum number of truths to return */
+                limit?: number;
+                /** @description Number of truths to skip for pagination */
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: {
+                /** @description Session cookie for authenticated requests */
+                vf_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    submit_truth_v1_truths_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                /** @description Session cookie for authenticated requests */
+                vf_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_truth_v1_truths__truth_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Unique identifier of the TruthObject */
+                truth_id: string;
+            };
+            cookie?: {
+                /** @description Session cookie for authenticated requests */
+                vf_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    validate_truth_v1_truths__truth_id__validate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Unique identifier of the TruthObject to validate */
+                truth_id: string;
+            };
+            cookie?: {
+                /** @description Session cookie for authenticated requests */
+                vf_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sync_knowledge_graph_v1_truths_sync_kg_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                /** @description Session cookie for authenticated requests */
+                vf_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_freshness_summary_v1_truths_freshness_summary_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                /** @description Session cookie for authenticated requests */
+                vf_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_maturity_ladder_v1_maturity_ladder_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                /** @description Session cookie for authenticated requests */
                 vf_session?: string | null;
             };
         };

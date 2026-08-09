@@ -50,6 +50,11 @@ DB_MIGRATION_DATABASE_URL ?=
 
 PYTHON_BOOTSTRAP ?= python
 PYTHON ?= $(shell $(PYTHON_BOOTSTRAP) scripts/ci/resolve_python.py)
+# If a local venv exists, prefer its binaries (ruff, alembic, pytest, mypy, ...).
+# This is scoped to this make invocation — it does not mutate the user's shell.
+ifneq ($(wildcard .venv/bin),)
+export PATH := $(CURDIR)/.venv/bin:$(PATH)
+endif
 PIP    := $(PYTHON) -m pip install -e
 PNPM ?= corepack pnpm
 # Use python -m pytest to ensure pytest is available via the selected Python 3.11+ interpreter.
@@ -386,6 +391,12 @@ test-backend-integrated-validation: ## Backend milestone: run direct release-pol
 test-backend-integrated-release-smoke: ## Backend milestone: boot full L1-L6 release stack and run release-environment smoke validation
 	bash scripts/ci/run_release_smoke.sh
 
+certify-production-path: ## Production path certification: execute end-to-end production path verification
+	@echo "→ Starting Production Path Certification..."
+	@echo "  Commit: $$(git rev-parse HEAD)"
+	@echo "  Timestamp: $$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+	python scripts/certify_production_path.py
+
 seed-e2e: ## Seed deterministic E2E fixture data into the local backend (requires running stack)
 	@echo "→ Seeding E2E test data..."
 	npx tsx scripts/db/seed-e2e-data.ts
@@ -514,7 +525,15 @@ test-layer3-live: ## Run Layer 3 live Neo4j/vector integration tests
 	cd services/layer3-knowledge && $(PYTEST) --basetemp=../../.tmp/pytest-layer3-live -m "integration or requires_neo4j or vector" tests/
 
 test-layer4: ## Run Layer 4 local tests
-	cd services/layer4-agents && $(PYTEST) --basetemp=../../.tmp/pytest-layer4 -o cache_dir=../../.tmp/pytest-cache-layer4 -m "not postgres and not requires_postgres and not docker and not integration and not e2e" tests/
+	# Run with TMPDIR pointing outside the repo so pytest's ``tmp_path``
+	# lands in /tmp, not in ``.tmp/pytest-layer4`` inside the work tree.
+	# Tests that assert "no git repo" behaviour depend on this: if
+	# ``tmp_path`` is inside the repo, the filesystem walk for ``.git``
+	# correctly finds the repo's own ``.git`` and the test's premise
+	# collapses. We drop the explicit ``--basetemp`` so ``TMPDIR`` is
+	# honoured; the cache dir stays inside the repo (it is just pytest
+	# metadata and does not affect ``tmp_path``).
+	cd services/layer4-agents && TMPDIR=/tmp $(PYTEST) -o cache_dir=../../.tmp/pytest-cache-layer4 -o tmp_path_retention_count=0 -m "not postgres and not requires_postgres and not docker and not integration and not e2e" tests/
 
 test-layer4-live: ## Run Layer 4 live Docker/PostgreSQL/integration tests
 	cd services/layer4-agents && $(PYTEST) --basetemp=../../.tmp/pytest-layer4-live -o cache_dir=../../.tmp/pytest-cache-layer4-live -m "postgres or requires_postgres or docker or integration or e2e" tests/

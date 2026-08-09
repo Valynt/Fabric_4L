@@ -2933,6 +2933,9 @@
     },
     "/health": {
       "get": {
+        "tags": [
+          "health"
+        ],
         "summary": "Legacy Health Check",
         "description": "Legacy-compatible health check with dependency status.",
         "operationId": "legacy_health_check_health_get",

@@ -47,39 +47,35 @@ class GitAnalyzer(BaseAnalyzer):
         return findings, metrics
 
     def _git_available(self, path: Path) -> bool:
-        """Return True for a repository root or a tracked subtree within one."""
+        """Return True if ``repo_path`` is inside a git working tree.
+
+        Implementation is deliberately filesystem-based rather than shelling
+        out to ``git``. Earlier revisions invoked ``git rev-parse`` with a
+        scrubbed environment, but this was still vulnerable to ambient state
+        (ambient ``GIT_*`` vars, parent-process working directory, plugin
+        fixtures) that caused unit tests running against a pristine
+        ``tmp_path`` to report the host repo as available. Walking the
+        filesystem directly answers the question "is there a ``.git``
+        directory at or above this path?" without any subprocess involvement.
+        """
         try:
-            result = subprocess.run(
-                ["git", "rev-parse", "--show-toplevel"],
-                cwd=str(path),
-                capture_output=True,
-                text=True,
-                timeout=10,
-                check=False,
-            )
-            if result.returncode != 0:
-                return False
-
-            root = Path(result.stdout.strip()).resolve()
-            if root == path:
-                return True
-
-            try:
-                relative_path = path.relative_to(root)
-            except ValueError:
-                return False
-
-            tracked = subprocess.run(
-                ["git", "ls-files", "--", relative_path.as_posix()],
-                cwd=str(root),
-                capture_output=True,
-                text=True,
-                timeout=10,
-                check=False,
-            )
-            return tracked.returncode == 0 and bool(tracked.stdout.strip())
-        except (subprocess.SubprocessError, FileNotFoundError, OSError):
+            current = path.resolve()
+        except (OSError, RuntimeError):
             return False
+        # Walk upward looking for a ``.git`` directory. Stop at the filesystem
+        # root. ``.git`` may be a directory (standard repo) or a file
+        # (worktree / submodule gitdir pointer); both count as "inside a repo".
+        while True:
+            candidate = current / ".git"
+            try:
+                if candidate.exists():
+                    return True
+            except OSError:
+                return False
+            parent = current.parent
+            if parent == current:
+                return False
+            current = parent
 
     def _git_cmd(self, path: Path, args: list[str]) -> str:
         """Run a git command safely and return stdout, or an empty string on failure."""
