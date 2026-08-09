@@ -2,9 +2,15 @@
 """V1 release factory — build and schema-validate the candidate evidence manifest.
 
 Composes step records produced by certify_candidate.py plus the EXISTING
-release-evidence packet generator (make release-evidence-packet). Fails closed
-on schema violation or missing step records. Writes only under
-artifacts/release/<sha>/ (generated evidence is never committed).
+release-evidence packet generator (scripts/ci/generate_release_evidence_packet.py,
+invoked candidate-scoped with --release-sha). Fails closed on schema violation,
+missing step records, a record/packet SHA mismatch, or a malformed candidate
+SHA — before any side effect. Writes only under artifacts/release/<sha>/
+(generated evidence is never committed).
+
+Exit status is fail-closed: nonzero unless the manifest certifies the
+candidate, or --package-noncertified-diagnostics is passed explicitly to build
+a diagnostics-only bundle.
 
 Usage:
     python scripts/release/build_evidence_bundle.py <candidate_sha> [--out-dir DIR]
@@ -14,7 +20,9 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -31,6 +39,36 @@ MANIFEST_SCHEMA = REPO_ROOT / "release" / "v1" / "schemas" / "candidate-manifest
 RELEASE_EVIDENCE_MANIFEST_TEMPLATE = (
     REPO_ROOT / "docs" / "launch" / "evidence-manifest.example.yaml"
 )
+# The gitignore content of this directory is the observed clean-tree baseline
+# for clean_environment; no generated evidence may ever be committed here.
+GENERATED_ARTIFACT_PREFIXES = ("artifacts/release",)
+CANDIDATE_SHA_PATTERN = re.compile(r"[0-9a-f]{40}\Z")
+
+
+def require_full_sha(candidate_sha: str) -> str:
+    """Fail closed on anything that is not an immutable 40-char hex SHA."""
+    if not CANDIDATE_SHA_PATTERN.fullmatch(candidate_sha):
+        raise SystemExit(
+            f"candidate sha {candidate_sha!r} is not a 40-character lowercase hex "
+            "SHA; evidence bundles are bound to immutable candidates only "
+            "(fail closed)."
+        )
+    return candidate_sha
+
+
+def tracked_generated_artifacts() -> list[str]:
+    """List tracked files under generated-evidence prefixes.
+
+    Output paths are relative to the current working directory so callers can
+    point the check at a temporary scratch repo in tests.
+    """
+    proc = subprocess.run(
+        ["git", "ls-files", "--", *GENERATED_ARTIFACT_PREFIXES],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    return [line for line in proc.stdout.splitlines() if line]
 
 
 def _manifest_gate(gate: dict) -> dict:
@@ -39,7 +77,8 @@ def _manifest_gate(gate: dict) -> dict:
     certification.json carries richer internal fields (log, criterion,
     classification); the manifest schema permits only the deterministic
     gate identity fields, so anything else must be dropped and the log
-    path renamed (additionalProperties is false).
+    path renamed and normalized to a repo-relative path
+    (additionalProperties is false).
     """
     projected = {
         "gate": gate["gate"],
@@ -50,22 +89,32 @@ def _manifest_gate(gate: dict) -> dict:
     }
     log_path = gate.get("log_path") or gate.get("log")
     if log_path:
-        projected["log_path"] = log_path
+        projected["log_path"] = _repo_relative(Path(log_path))
     return projected
 
 
 def _repo_relative(path: Path) -> str:
-    """Prefer repo-relative evidence paths; fall back to absolute if outside."""
+    """Prefer repo-relative evidence paths; fall back to the file name.
+
+    An absolute fallback leaks runner-specific filesystem layout into the
+    manifest; the file name alone stays portable while remaining resolvable
+    within the candidate evidence directory.
+    """
     try:
         return str(path.relative_to(REPO_ROOT))
     except ValueError:
-        return str(path)
+        return path.name
 
 
 def build_release_evidence_packet(candidate_sha: str, out_dir: Path) -> Path:
     """Generate the canonical release evidence packet under artifacts/release/<sha>/."""
     out_dir.mkdir(parents=True, exist_ok=True)
     template = yaml.safe_load(RELEASE_EVIDENCE_MANIFEST_TEMPLATE.read_text(encoding="utf-8"))
+    if not isinstance(template, dict):
+        raise SystemExit(
+            f"evidence manifest template {RELEASE_EVIDENCE_MANIFEST_TEMPLATE} must "
+            "parse to a YAML mapping (fail closed)."
+        )
     template["release_candidate_sha"] = candidate_sha
 
     manifest_path = out_dir / "release-evidence-manifest.yaml"
@@ -95,8 +144,58 @@ def build_release_evidence_packet(candidate_sha: str, out_dir: Path) -> Path:
     return packet_dir
 
 
-def build_manifest(candidate_sha: str, out_dir: Path) -> Path:
-    """Assemble artifacts/release/<sha>/candidate-manifest.json from step records."""
+def _sha256_tree(root: Path) -> str:
+    """Deterministic digest over every file under root (relpath + contents)."""
+    digest = hashlib.sha256()
+    files = sorted(p for p in root.rglob("*") if p.is_file())
+    for path in files:
+        digest.update(str(path.relative_to(root)).encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(path.read_bytes())
+        digest.update(b"\0")
+    return f"sha256:{digest.hexdigest()}"
+
+
+def verify_evidence_packet(candidate_sha: str, packet_dir: Path) -> str:
+    """Bind the generated packet to the candidate; return its SHA-256 digest.
+
+    Fails closed when the packet is missing, empty, or records a different
+    release SHA than the candidate being evidenced.
+    """
+    if not packet_dir.is_dir():
+        raise SystemExit(
+            f"evidence packet directory {packet_dir} was not generated (fail closed)."
+        )
+    files = [p for p in packet_dir.rglob("*") if p.is_file()]
+    if not files:
+        raise SystemExit(
+            f"evidence packet directory {packet_dir} is empty (fail closed)."
+        )
+    packet_shas = set()
+    for path in files:
+        if path.suffix not in {".yaml", ".yml", ".json"}:
+            continue
+        try:
+            payload = yaml.safe_load(path.read_text(encoding="utf-8"))
+        except yaml.YAMLError:
+            continue
+        if isinstance(payload, dict):
+            for key in ("release_candidate_sha", "release_sha"):
+                value = payload.get(key)
+                if isinstance(value, str):
+                    packet_shas.add(value)
+    mismatched = {sha for sha in packet_shas if sha != candidate_sha}
+    if mismatched:
+        raise SystemExit(
+            f"evidence packet at {packet_dir} records release sha(s) "
+            f"{sorted(mismatched)} that do not match candidate {candidate_sha}; "
+            "the packet must be bound to the exact immutable candidate "
+            "(fail closed)."
+        )
+    return _sha256_tree(packet_dir)
+
+
+def _certification_record(candidate_sha: str, out_dir: Path) -> dict:
     record_path = out_dir / "certification.json"
     if not record_path.exists():
         raise SystemExit(
@@ -111,6 +210,53 @@ def build_manifest(candidate_sha: str, out_dir: Path) -> Path:
             "the evidence manifest must be bound to the exact immutable candidate "
             "(fail closed)."
         )
+    return record
+
+
+def _image_digests(out_dir: Path) -> list[dict]:
+    """Recorded image digests from the docker-build step, or [] when absent.
+
+    The manifest never invents digests: they exist only when the
+    04b-docker-build step recorded an image-digests.txt file with
+    'image@sha256:<digest>' lines.
+    """
+    digests_file = out_dir / "image-digests.txt"
+    if not digests_file.exists():
+        return []
+    digests = []
+    for line in digests_file.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or "@" not in line:
+            continue
+        image, _, digest = line.rpartition("@")
+        digests.append({"image": image, "digest": digest})
+    return digests
+
+
+def _clean_environment(record: dict, gates: list[dict]) -> bool:
+    """True only with recorded evidence; never assumed.
+
+    Requires the certifier's clean-checkout verification (recorded at run
+    time), no failed gates, and no generated evidence tracked in git.
+    """
+    failed = [
+        g["gate"]
+        for g in gates
+        if g["exit_code"] != 0 and g["exit_code"] != NOT_RUN_EXIT_CODE
+    ]
+    return (
+        bool(record.get("clean_tree_verified"))
+        and not failed
+        and not tracked_generated_artifacts()
+    )
+
+
+def build_manifest(
+    candidate_sha: str, out_dir: Path, packet_digest: str | None = None
+) -> Path:
+    """Assemble artifacts/release/<sha>/candidate-manifest.json from step records."""
+    require_full_sha(candidate_sha)
+    record = _certification_record(candidate_sha, out_dir)
     gates = record["gates"]
     not_run = [g["gate"] for g in gates if g["exit_code"] == NOT_RUN_EXIT_CODE]
     # Any exit other than success or the explicit not-run sentinel is a failure
@@ -127,11 +273,27 @@ def build_manifest(candidate_sha: str, out_dir: Path) -> Path:
     branch = record.get("branch", "")
     if not branch:
         raise SystemExit(
-            f"certification records at {record_path} carry no source branch; "
-            "the manifest must reflect the certified checkout (fail closed)."
+            f"certification records at {out_dir / 'certification.json'} carry no "
+            "source branch; the manifest must reflect the certified checkout "
+            "(fail closed)."
         )
     version_file = REPO_ROOT / "version.txt"
     version = version_file.read_text(encoding="utf-8").strip() if version_file.exists() else ""
+
+    clean_environment = _clean_environment(record, gates)
+    notes = []
+    if not clean_environment:
+        notes.append(
+            "clean environment not evidenced: the manifest records "
+            "clean_environment=false rather than asserting an unverified "
+            "clean checkout"
+        )
+    if certified:
+        note = "All gates passed in a live staging certification."
+    else:
+        note = f"Not certified. failed={failed} not_run={not_run} (fail closed)."
+    if notes:
+        note = f"{note} ({'; '.join(notes)}.)"
 
     manifest = {
         "schema_version": 1,
@@ -140,30 +302,31 @@ def build_manifest(candidate_sha: str, out_dir: Path) -> Path:
             "created_at": utc_now(),
             "source_branch": branch,
             "version": version,
-            "image_digests": [],
+            "image_digests": _image_digests(out_dir),
         },
         "gates": [_manifest_gate(g) for g in gates],
         "evidence": {
             "test_reports": sorted(
                 _repo_relative(p) for p in out_dir.glob("*.log")
             ),
-            "rollback_instructions": "RUNBOOK.md",
+            "rollback_instructions": "docs/runbooks/deployment/rollback-production-release.md",
             "migration_record": (
                 _repo_relative(out_dir / "07-migrations-empty-db.log")
                 if (out_dir / "07-migrations-empty-db.log").exists()
                 else ""
             ),
+            **(
+                {"evidence_packet_digest": packet_digest}
+                if packet_digest is not None
+                else {}
+            ),
         },
         "certification": {
             "status": "certified" if certified else "failed",
             "certifier": "release-certifier",
-            "clean_environment": True,
+            "clean_environment": clean_environment,
             "remediation_during_certification": False,
-            "notes": (
-                "All gates passed in a live staging certification."
-                if certified
-                else f"Not certified. failed={failed} not_run={not_run} (fail closed)."
-            ),
+            "notes": note,
         },
         "authorization": {
             "production_authorized": False,
@@ -183,14 +346,37 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("candidate_sha")
     parser.add_argument("--out-dir", type=Path, default=None)
+    parser.add_argument(
+        "--package-noncertified-diagnostics",
+        action="store_true",
+        help=(
+            "build the diagnostics bundle for an uncertified run and exit 0; "
+            "without this flag any non-certified manifest exits nonzero "
+            "(fail closed)"
+        ),
+    )
     args = parser.parse_args(argv)
 
-    out_dir = args.out_dir or (REPO_ROOT / "artifacts" / "release" / args.candidate_sha)
-    build_release_evidence_packet(args.candidate_sha, out_dir)
-    manifest_path = build_manifest(args.candidate_sha, out_dir)
+    # Validate the candidate identity before ANY side effect (directory
+    # creation, packet generation, manifest writes).
+    candidate_sha = require_full_sha(args.candidate_sha)
+    out_dir = args.out_dir or (REPO_ROOT / "artifacts" / "release" / candidate_sha)
+    _certification_record(candidate_sha, out_dir)
+    packet_dir = build_release_evidence_packet(candidate_sha, out_dir)
+    packet_digest = verify_evidence_packet(candidate_sha, packet_dir)
+    manifest_path = build_manifest(candidate_sha, out_dir, packet_digest=packet_digest)
     status = json.loads(manifest_path.read_text(encoding="utf-8"))["certification"]["status"]
     print(f"Evidence manifest written and schema-validated: {manifest_path}")
     print(f"certification status: {status}")
+    if status != "certified" and not args.package_noncertified_diagnostics:
+        print(
+            "FAIL: candidate is not certified; refusing to report success for "
+            "non-certified packaging (fail closed). Re-run with "
+            "--package-noncertified-diagnostics to build a diagnostics-only "
+            "bundle that exits 0.",
+            file=sys.stderr,
+        )
+        return 1
     return 0
 
 

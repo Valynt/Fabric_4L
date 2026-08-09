@@ -47,13 +47,17 @@
         "additionalProperties": false,
         "required": ["gate", "command", "exit_code", "started_at", "finished_at"],
         "properties": {
-          "gate": { "type": "string", "minLength": 1 },
-          "command": { "type": "string", "minLength": 1 },
-          "exit_code": { "type": "integer" },
-          "started_at": { "type": "string", "format": "date-time" },
-          "finished_at": { "type": "string", "format": "date-time" },
-          "log_path": { "type": "string" }
-        }
+      "gate": { "type": "string", "minLength": 1 },
+      "command": { "type": "string", "minLength": 1 },
+      "exit_code": { "type": "integer" },
+      "started_at": { "type": "string", "format": "date-time" },
+      "finished_at": { "type": "string", "format": "date-time" },
+      "log_path": {
+        "description": "Repo-relative path to the gate log; absolute paths are rejected so the manifest stays portable.",
+        "type": "string",
+        "pattern": "^[^/]"
+      }
+    }
       }
     },
     "evidence": {
@@ -68,7 +72,12 @@
         "rollback_instructions": { "type": "string" },
         "load_test_results": { "type": "array", "items": { "type": "string" } },
         "ai_eval_results": { "type": "array", "items": { "type": "string" } },
-        "backup_restore_record": { "type": "string" }
+        "backup_restore_record": { "type": "string" },
+        "evidence_packet_digest": {
+          "description": "SHA-256 digest over the candidate-scoped release evidence packet files; binds the manifest to the exact packet contents.",
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
       }
     },
     "certification": {

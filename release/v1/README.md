@@ -47,7 +47,7 @@ CI-enforced. `make validate-launch-contract` runs the same suite locally.
 | `make validate-launch-contract` | Validate contract, schemas, tasks, and risk-register reconciliation |
 | `make release-baseline` | Classified baseline of canonical gates from a clean checkout → `artifacts/release/<sha>/baseline.json` |
 | `make certify-release-candidate RELEASE_SHA=<sha>` | Fail-closed certification of an immutable SHA (live steps need `CERTIFY_LIVE=1`) → `artifacts/release/<sha>/` |
-| `make build-release-evidence RELEASE_SHA=<sha>` | Canonical evidence packet + schema-validated candidate manifest |
+| `make build-release-evidence RELEASE_SHA=<sha>` | Canonical evidence packet + schema-validated candidate manifest; fails closed (nonzero exit) unless the candidate is certified — pass `--package-noncertified-diagnostics` to `scripts/release/build_evidence_bundle.py` for a diagnostics-only bundle |
 
 Implementation: `scripts/release/{models,steps,baseline,certify_candidate,build_evidence_bundle,validate_contract}.py`.
 Each step delegates to an existing make/pnpm/pytest command; the orchestrator

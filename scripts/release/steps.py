@@ -79,7 +79,12 @@ CERTIFICATION_STEPS: tuple[Step, ...] = (
         "release evidence",
         unimplemented=True,
     ),
-    Step("06-staging-deploy", ("make", "preflight"), "capacity", live_only=True),
+    Step(
+        "06-staging-preflight",
+        ("make", "preflight"),
+        "capacity: staging deploy preflight only — not a staging deploy certification",
+        live_only=True,
+    ),
     Step(
         "07-migrations-empty-db",
         ("make", "check-migration-postgres-roundtrip"),
@@ -87,22 +92,25 @@ CERTIFICATION_STEPS: tuple[Step, ...] = (
         live_only=True,
     ),
     Step(
-        "08-migrations-from-baseline",
+        "08-migrations-expand-contract-check",
         ("make", "db-migrate-check"),
-        "migration: existing schema -> v1 (expand-contract)",
+        "migration: existing schema -> v1 (expand-contract static compatibility "
+        "check only — not a baseline-schema migration execution)",
         live_only=True,
     ),
     Step(
         "09-critical-browser-journeys",
         ("pnpm", "--dir", "apps/web", "run", "test:e2e"),
-        "critical journeys",
+        "critical journeys: mocked frontend e2e suite only — live golden-path "
+        "certification is V1-GOLDEN-002, not this step",
         live_only=True,
     ),
     Step("10a-security-suite", ("pytest", "tests/security", "-q"), "AI/application security"),
     Step(
-        "10b-dast",
+        "10b-security-readiness-static",
         ("make", "security-readiness-gate"),
-        "AI/application security",
+        "AI/application security: static security readiness only — live DAST "
+        "evidence is a separate tracked requirement",
         live_only=True,
     ),
     Step("11-load-profiles", ("make", "perf-test"), "capacity", live_only=True),
@@ -119,21 +127,23 @@ CERTIFICATION_STEPS: tuple[Step, ...] = (
         "rollback",
     ),
     Step(
-        "14b-rollback-rehearsal",
+        "14b-rollback-script-verification",
         ("python", "scripts/ci/verify_release_rollback.py"),
-        "rollback",
+        "rollback: rollback tooling script verification only — not a staging "
+        "rollback rehearsal",
         live_only=True,
     ),
     Step("15-ai-evaluation", ("make", "evals"), "structured AI output", live_only=True),
     Step(
-        "16-observability-readiness",
+        "16-observability-static-readiness",
         (
             "pytest",
             "tests/release/test_observability_deployment_readiness.py",
             "-q",
             "--no-mandatory-dep-check",
         ),
-        "observability",
+        "observability: static deployment-readiness policy only — not deployed "
+        "dashboard/alert proof",
     ),
 )
 

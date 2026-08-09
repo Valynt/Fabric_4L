@@ -83,3 +83,57 @@ class TestCertificationStepRegistry:
             "unimplemented, not substituted with a nearby static check"
         )
         assert "build-reproducibility-check" not in " ".join(sbom.command)
+
+    def test_step_names_do_not_overclaim_what_the_command_proves(self) -> None:
+        """A step name must describe the evidence its command actually produces.
+
+        Proxy substitutions (a nearby check standing in for the real release
+        operation) are named after what they verify; the real operations are
+        tracked as V1 tasks instead of being silently claimed.
+        """
+        by_name = {s.name: s for s in CERTIFICATION_STEPS}
+        expected = {
+            # make preflight is a pre-deploy checklist, not a staging deploy.
+            "06-staging-preflight": ("make", "preflight"),
+            # pnpm test:e2e is the mocked frontend suite, not live golden-path
+            # certification (that is V1-GOLDEN-002).
+            "09-critical-browser-journeys": (
+                "pnpm",
+                "--dir",
+                "apps/web",
+                "run",
+                "test:e2e",
+            ),
+            # security-readiness-gate is a static readiness gate, not DAST.
+            "10b-security-readiness-static": ("make", "security-readiness-gate"),
+            # db-migrate-check is a static expand/contract compatibility check,
+            # not a baseline-schema migration execution.
+            "08-migrations-expand-contract-check": ("make", "db-migrate-check"),
+            # verify_release_rollback.py verifies rollback tooling, it is not a
+            # staging rollback rehearsal.
+            "14b-rollback-script-verification": (
+                "python",
+                "scripts/ci/verify_release_rollback.py",
+            ),
+            # The observability pytest is a static policy check, not deployed
+            # dashboard/alert proof.
+            "16-observability-static-readiness": (
+                "pytest",
+                "tests/release/test_observability_deployment_readiness.py",
+                "-q",
+                "--no-mandatory-dep-check",
+            ),
+        }
+        for name, command in expected.items():
+            assert name in by_name, f"missing renamed step {name!r}"
+            assert by_name[name].command == command
+        for overclaiming in (
+            "06-staging-deploy",
+            "10b-dast",
+            "08-migrations-from-baseline",
+            "14b-rollback-rehearsal",
+            "16-observability-readiness",
+        ):
+            assert overclaiming not in by_name, (
+                f"step name {overclaiming!r} overclaims what its command proves"
+            )

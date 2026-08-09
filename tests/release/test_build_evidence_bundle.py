@@ -59,8 +59,15 @@ def _step_result(gate: str, exit_code: int, out_dir: Path) -> StepResult:
     )
 
 
-def _write_certification(out_dir: Path, results: list[StepResult]) -> None:
-    record = RunRecord(kind="candidate-certification", sha=FAKE_SHA, branch="main")
+def _write_certification(
+    out_dir: Path, results: list[StepResult], *, clean_tree_verified: bool = False
+) -> None:
+    record = RunRecord(
+        kind="candidate-certification",
+        sha=FAKE_SHA,
+        branch="main",
+        clean_tree_verified=clean_tree_verified,
+    )
     record.results.extend(results)
     record.write(out_dir / "certification.json")
 
@@ -85,7 +92,9 @@ class TestBuildManifest:
             "finished_at",
             "log_path",
         }
-        assert gate["log_path"].endswith("03a-verify.log")
+        # Manifest log paths must be repo-relative even when certification.json
+        # recorded an absolute path (portable evidence, no runner paths leak).
+        assert gate["log_path"] == "03a-verify.log"
         assert manifest["certification"]["status"] == "certified"
 
     def test_not_run_step_fails_closed_and_still_validates(self, tmp_path: Path) -> None:
@@ -128,6 +137,88 @@ class TestBuildManifest:
 
         with pytest.raises(SystemExit, match="not candidate"):
             build_evidence_bundle_module.build_manifest("f" * 40, tmp_path)
+
+    def test_non_sha_candidate_is_rejected(self, tmp_path: Path) -> None:
+        """A short/typo'd ref (e.g. 'abc') must fail before any manifest is built."""
+        _write_certification(tmp_path, [_step_result("03a-verify", 0, tmp_path)])
+
+        with pytest.raises(SystemExit, match="40-character"):
+            build_evidence_bundle_module.build_manifest("abc", tmp_path)
+
+    def test_clean_environment_requires_recorded_evidence(self, tmp_path: Path) -> None:
+        """clean_environment must reflect recorded verification, never hardcoded."""
+        _write_certification(tmp_path, [_step_result("03a-verify", 0, tmp_path)])
+        manifest = json.loads(
+            build_evidence_bundle_module.build_manifest(FAKE_SHA, tmp_path).read_text(
+                encoding="utf-8"
+            )
+        )
+        assert manifest["certification"]["clean_environment"] is False
+        assert "clean environment not evidenced" in manifest["certification"]["notes"]
+
+    def test_clean_environment_true_only_with_recorded_clean_tree(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        _write_certification(
+            tmp_path, [_step_result("03a-verify", 0, tmp_path)], clean_tree_verified=True
+        )
+        monkeypatch.setattr(
+            build_evidence_bundle_module, "tracked_generated_artifacts", lambda: []
+        )
+
+        manifest = json.loads(
+            build_evidence_bundle_module.build_manifest(FAKE_SHA, tmp_path).read_text(
+                encoding="utf-8"
+            )
+        )
+
+        jsonschema.validate(manifest, MANIFEST_SCHEMA)
+        assert manifest["certification"]["clean_environment"] is True
+
+    def test_image_digests_come_only_from_recorded_evidence(self, tmp_path: Path) -> None:
+        _write_certification(tmp_path, [_step_result("03a-verify", 0, tmp_path)])
+        manifest = json.loads(
+            build_evidence_bundle_module.build_manifest(FAKE_SHA, tmp_path).read_text(
+                encoding="utf-8"
+            )
+        )
+        assert manifest["candidate"]["image_digests"] == []
+
+        (tmp_path / "image-digests.txt").write_text(
+            "fabric-4l/web@sha256:" + "1" * 64 + "\n", encoding="utf-8"
+        )
+        manifest = json.loads(
+            build_evidence_bundle_module.build_manifest(FAKE_SHA, tmp_path).read_text(
+                encoding="utf-8"
+            )
+        )
+        jsonschema.validate(manifest, MANIFEST_SCHEMA)
+        assert manifest["candidate"]["image_digests"] == [
+            {"image": "fabric-4l/web", "digest": "sha256:" + "1" * 64}
+        ]
+
+    def test_rollback_instructions_reference_a_real_runbook(self, tmp_path: Path) -> None:
+        _write_certification(tmp_path, [_step_result("03a-verify", 0, tmp_path)])
+        manifest = json.loads(
+            build_evidence_bundle_module.build_manifest(FAKE_SHA, tmp_path).read_text(
+                encoding="utf-8"
+            )
+        )
+        pointer = manifest["evidence"]["rollback_instructions"]
+        assert (REPO_ROOT / pointer).exists(), (
+            f"manifest points at nonexistent runbook: {pointer}"
+        )
+
+    def test_packet_digest_is_recorded_when_provided(self, tmp_path: Path) -> None:
+        _write_certification(tmp_path, [_step_result("03a-verify", 0, tmp_path)])
+        digest = "sha256:" + "0" * 64
+        manifest = json.loads(
+            build_evidence_bundle_module.build_manifest(
+                FAKE_SHA, tmp_path, packet_digest=digest
+            ).read_text(encoding="utf-8")
+        )
+        jsonschema.validate(manifest, MANIFEST_SCHEMA)
+        assert manifest["evidence"]["evidence_packet_digest"] == digest
 
 
 class TestManifestSchemaAuthorization:
@@ -289,3 +380,110 @@ class TestBuildReleaseEvidencePacket:
 
         with pytest.raises(SystemExit, match="release evidence packet generation failed"):
             module.build_release_evidence_packet(candidate_sha, out_dir)
+
+
+class TestVerifyEvidencePacket:
+    def _packet(self, out_dir: Path, sha: str) -> Path:
+        packet_dir = out_dir / "release-evidence-packet"
+        packet_dir.mkdir(parents=True)
+        (packet_dir / "manifest.yaml").write_text(
+            f'release_candidate_sha: "{sha}"\n', encoding="utf-8"
+        )
+        return packet_dir
+
+    def test_missing_packet_dir_fails_closed(self, tmp_path: Path) -> None:
+        module = _load_module()
+        with pytest.raises(SystemExit, match="was not generated"):
+            module.verify_evidence_packet(FAKE_SHA, tmp_path / "nope")
+
+    def test_empty_packet_dir_fails_closed(self, tmp_path: Path) -> None:
+        module = _load_module()
+        packet_dir = tmp_path / "release-evidence-packet"
+        packet_dir.mkdir()
+        with pytest.raises(SystemExit, match="is empty"):
+            module.verify_evidence_packet(FAKE_SHA, packet_dir)
+
+    def test_mismatched_packet_sha_fails_closed(self, tmp_path: Path) -> None:
+        module = _load_module()
+        packet_dir = self._packet(tmp_path, "e" * 40)
+        with pytest.raises(SystemExit, match="do not match candidate"):
+            module.verify_evidence_packet(FAKE_SHA, packet_dir)
+
+    def test_bound_packet_returns_deterministic_digest(self, tmp_path: Path) -> None:
+        module = _load_module()
+        packet_dir = self._packet(tmp_path, FAKE_SHA)
+        digest = module.verify_evidence_packet(FAKE_SHA, packet_dir)
+        assert digest.startswith("sha256:")
+        assert digest == module.verify_evidence_packet(FAKE_SHA, packet_dir)
+
+
+class TestMainExitSemantics:
+    """Packaging a non-certified run must fail closed; diagnostics opt-in."""
+
+    def _setup(self, module, monkeypatch, tmp_path: Path, exit_code: int) -> None:
+        _write_certification(tmp_path, [_step_result("03a-verify", exit_code, tmp_path)])
+        monkeypatch.setattr(
+            module, "build_release_evidence_packet", lambda sha, out: tmp_path
+        )
+        monkeypatch.setattr(
+            module, "verify_evidence_packet", lambda sha, packet: "sha256:" + "0" * 64
+        )
+
+    def test_certified_run_exits_zero(self, monkeypatch, tmp_path: Path) -> None:
+        module = _load_module()
+        self._setup(module, monkeypatch, tmp_path, 0)
+        assert module.main([FAKE_SHA, "--out-dir", str(tmp_path)]) == 0
+
+    def test_non_certified_run_exits_nonzero(self, monkeypatch, tmp_path: Path) -> None:
+        module = _load_module()
+        self._setup(module, monkeypatch, tmp_path, NOT_RUN_EXIT_CODE)
+        assert module.main([FAKE_SHA, "--out-dir", str(tmp_path)]) == 1
+
+    def test_non_certified_diagnostics_bundle_opt_in_exits_zero(
+        self, monkeypatch, tmp_path: Path
+    ) -> None:
+        module = _load_module()
+        self._setup(module, monkeypatch, tmp_path, NOT_RUN_EXIT_CODE)
+        assert (
+            module.main(
+                [
+                    FAKE_SHA,
+                    "--out-dir",
+                    str(tmp_path),
+                    "--package-noncertified-diagnostics",
+                ]
+            )
+            == 0
+        )
+
+    def test_invalid_sha_fails_before_any_side_effect(
+        self, monkeypatch, tmp_path: Path
+    ) -> None:
+        module = _load_module()
+        called: list[str] = []
+        monkeypatch.setattr(
+            module,
+            "build_release_evidence_packet",
+            lambda sha, out: called.append("packet") or tmp_path,
+        )
+
+        with pytest.raises(SystemExit, match="40-character"):
+            module.main(["abc", "--out-dir", str(tmp_path)])
+
+        assert called == [], "packet generation ran before SHA validation"
+
+    def test_missing_certification_fails_before_packet_side_effect(
+        self, monkeypatch, tmp_path: Path
+    ) -> None:
+        module = _load_module()
+        called: list[str] = []
+        monkeypatch.setattr(
+            module,
+            "build_release_evidence_packet",
+            lambda sha, out: called.append("packet") or tmp_path,
+        )
+
+        with pytest.raises(SystemExit, match="no certification step records"):
+            module.main([FAKE_SHA, "--out-dir", str(tmp_path)])
+
+        assert called == [], "packet generation ran before certification record check"

@@ -48,7 +48,13 @@ def main(argv: list[str] | None = None) -> int:
     out_dir = REPO_ROOT / "artifacts" / "release" / sha
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    record = RunRecord(kind="release-baseline", sha=sha, branch=_git("rev-parse", "--abbrev-ref", "HEAD"))
+    record = RunRecord(
+        kind="release-baseline",
+        sha=sha,
+        branch=_git("rev-parse", "--abbrev-ref", "HEAD"),
+        # Verified above: baseline runs only from a clean checkout.
+        clean_tree_verified=True,
+    )
     steps = [s for s in BASELINE_STEPS if not (args.skip_setup and s.name == "setup")]
     print(f"Release baseline for {sha} -> {out_dir}")
     for step in steps:

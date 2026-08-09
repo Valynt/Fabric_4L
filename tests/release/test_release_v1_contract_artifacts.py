@@ -116,6 +116,30 @@ class TestLaunchContract:
         assert contract["release"] == "v1"
         assert contract["status"] == "frozen"
 
+    def test_layer2_5_signal_refinery_has_an_explicit_scope_decision(self) -> None:
+        """services/layer2-5-signal-refinery exists in the repo and is built by
+        `make docker-build`; it must not be implicitly deployed yet absent from
+        the certified path — the launch contract must record an explicit
+        Core-GA in/out decision."""
+        assert (REPO_ROOT / "services" / "layer2-5-signal-refinery").is_dir()
+        contract = _load_yaml(LAUNCH_CONTRACT_PATH)
+        decision = contract["scope_decisions"].get("layer2_5_signal_refinery_in_scope")
+        assert decision is not None, (
+            "launch contract must record an explicit scope decision for "
+            "layer2-5-signal-refinery (in scope -> journeys/invariants/image "
+            "inventory; out of scope -> recorded decision requiring "
+            "server-disabled evidence)"
+        )
+        assert decision["decision"] in {
+            "in-scope-for-core-ga",
+            "out-of-scope-for-core-ga",
+        }
+        if decision["decision"] == "in-scope-for-core-ga":
+            journey = _load_yaml(JOURNEYS_DIR / "j02-core-value-case.yaml")
+            assert "layer2-5-signal-refinery" in json.dumps(journey), (
+                "in-scope layer2-5-signal-refinery must appear in journey j02"
+            )
+
     def test_journey_files_exist_and_are_well_formed(self) -> None:
         contract = _load_yaml(LAUNCH_CONTRACT_PATH)
         journeys = contract["critical_journeys"]

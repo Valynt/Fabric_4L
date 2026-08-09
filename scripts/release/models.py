@@ -63,6 +63,9 @@ class RunRecord:
     branch: str
     generated_at: str = field(default_factory=utc_now)
     results: list[StepResult] = field(default_factory=list)
+    # True only when the harness itself verified a clean working tree during
+    # the run; absent/False means "not verified", never "assumed clean".
+    clean_tree_verified: bool = False
 
     @property
     def failed(self) -> list[StepResult]:
@@ -79,6 +82,7 @@ class RunRecord:
             "sha": self.sha,
             "branch": self.branch,
             "generated_at": self.generated_at,
+            "clean_tree_verified": self.clean_tree_verified,
             "gates": [r.to_dict() for r in self.results],
         }
 

@@ -67,7 +67,13 @@ def main(argv: list[str] | None = None) -> int:
 
     out_dir = REPO_ROOT / "artifacts" / "release" / candidate
     out_dir.mkdir(parents=True, exist_ok=True)
-    record = RunRecord(kind="candidate-certification", sha=candidate, branch=_git("rev-parse", "--abbrev-ref", "HEAD"))
+    record = RunRecord(
+        kind="candidate-certification",
+        sha=candidate,
+        branch=_git("rev-parse", "--abbrev-ref", "HEAD"),
+        # Verified above: HEAD matches the candidate and the tree is clean.
+        clean_tree_verified=True,
+    )
 
     print(f"Certifying candidate {candidate} (live={live}) -> {out_dir}")
     aborted = False

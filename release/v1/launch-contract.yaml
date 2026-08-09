@@ -64,6 +64,19 @@ scope_decisions:
     decision: out-of-scope-for-core-ga
     authority: Identity owner / Product / Release Management
     reference: docs/launch/sso-core-ga-scope-decision.md
+  layer2_5_signal_refinery_in_scope:
+    # Explicit scope decision: the refinery is implicitly deployed (it has a
+    # production Dockerfile and a docker-build entry) but is NOT on the
+    # certified v1 path — it appears in no critical journey, no scoped
+    # AGENTS.md, and no certification expectation.
+    decision: out-of-scope-for-core-ga
+    authority: Platform Architecture + Release Management
+    evidence_requirement: >
+      Server-disabled evidence is required before launch: the refinery must
+      not receive or process tenant traffic in v1 (disabled by deploy
+      configuration), and enabling it post-GA requires a contract change
+      adding it to journey j02, the architecture invariants, V1-GOLDEN-001,
+      the docker image inventory, and a scoped services/layer2-5-signal-refinery/AGENTS.md.
   live_llm_workflows_mandatory:
     decision: pending
     authority: Product + Platform Architecture
