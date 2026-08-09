@@ -314,10 +314,12 @@ jobs:
                       pip-audit -r "$requirements_file" --format=json --output="$audit_output"
                   )
                 else
-                  cd "$dir" && \
-                    pip install -e . --quiet 2>/dev/null; \
-                    pip freeze > "$requirements_file" && \
-                    pip-audit -r "$requirements_file" --format=json --output="$audit_output"
+                  (
+                    cd "$dir" && \
+                      pip install -e . --quiet 2>/dev/null && \
+                      pip freeze > "$requirements_file" && \
+                      pip-audit -r "$requirements_file" --format=json --output="$audit_output"
+                  )
                 fi
               )
               audit_status=$?
