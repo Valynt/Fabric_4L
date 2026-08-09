@@ -1810,6 +1810,12 @@ jobs:
       - name: Run contract and architecture tests
         run: make contract-tests
 
+      - name: Run shared FastAPI PR1 controls and factory guardrails
+        run: |
+          python -m pytest -v --tb=short -n 0 \
+            packages/shared/src/value_fabric/shared/fastapi_framework/tests/test_pr1_controls.py \
+            tests/architecture/test_shared_app_factory_db_session_guardrails.py
+
       - name: Assert contract suite collection is clean
         run: |
           set -euo pipefail

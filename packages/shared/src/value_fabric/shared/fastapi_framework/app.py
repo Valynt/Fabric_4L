@@ -430,21 +430,6 @@ def create_fabric_app(
     validated per service before adoption.
     """
 
-    app = FastAPI(
-        title=title,
-        version=version,
-        description=description,
-        lifespan=lifespan,
-        **fastapi_kwargs,
-    )
-    app.state.service_name = service_name
-    app.state.telemetry_provider = None
-    app.state.enforcement_rollout = enforcement_rollout or EnforcementRolloutConfig()
-    app.state.enforcement_counters = EnforcementCounters()
-    app.state.rate_limit_config = rate_limit
-    app.state.idempotency_config = idempotency
-    app.state.health_probes = list(health_probes) if health_probes else []
-
     # P1-005: Wrap lifespan to start/stop AuditWorker when a DB factory is provided.
     if lifespan is not None and audit_worker_db_factory is not None:
         from contextlib import asynccontextmanager
@@ -467,6 +452,21 @@ def create_fabric_app(
                     worker._task.cancel()
 
         lifespan = _wrapped_lifespan
+
+    app = FastAPI(
+        title=title,
+        version=version,
+        description=description,
+        lifespan=lifespan,
+        **fastapi_kwargs,
+    )
+    app.state.service_name = service_name
+    app.state.telemetry_provider = None
+    app.state.enforcement_rollout = enforcement_rollout or EnforcementRolloutConfig()
+    app.state.enforcement_counters = EnforcementCounters()
+    app.state.rate_limit_config = rate_limit
+    app.state.idempotency_config = idempotency
+    app.state.health_probes = list(health_probes) if health_probes else []
 
     if structured_logging is not None:
         applied = configure_structlog(structured_logging)

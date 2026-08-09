@@ -8,6 +8,8 @@ optional dependencies.
 from __future__ import annotations
 
 import asyncio
+from contextlib import asynccontextmanager
+from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 
@@ -88,8 +90,58 @@ def test_create_fabric_app_signature_includes_all_pr1_params() -> None:
         "health_probes",
         "readiness_path",
         "enforce_tenant_context",
+        "audit_worker_db_factory",
     }
     assert required.issubset(params)
+
+
+def test_create_fabric_app_wraps_lifespan_when_audit_worker_factory_is_provided() -> None:
+    events: list[str] = []
+
+    @asynccontextmanager
+    async def service_lifespan(_app):
+        events.append("service_started")
+        yield
+        events.append("service_stopped")
+
+    class StubAuditWorker:
+        _task = None
+
+        def __init__(self, db_factory) -> None:
+            assert db_factory is audit_worker_db_factory
+
+        def start(self) -> None:
+            events.append("worker_started")
+
+        def stop(self) -> None:
+            events.append("worker_stopped")
+
+    def audit_worker_db_factory():
+        raise AssertionError("the worker must not open a DB session during app bootstrap")
+
+    with patch("value_fabric.shared.audit.worker.AuditWorker", StubAuditWorker):
+        app = create_fabric_app(
+            service_name="audit-worker",
+            title="t",
+            version="1.0.0",
+            description="t",
+            lifespan=service_lifespan,
+            audit_worker_db_factory=audit_worker_db_factory,
+            enforce_tenant_context=False,
+        )
+        asyncio.run(_exercise_lifespan(app))
+
+    assert events == [
+        "worker_started",
+        "service_started",
+        "service_stopped",
+        "worker_stopped",
+    ]
+
+
+async def _exercise_lifespan(app) -> None:
+    async with app.router.lifespan_context(app):
+        pass
 
 
 # ----- /ready endpoint -----------------------------------------------------------
