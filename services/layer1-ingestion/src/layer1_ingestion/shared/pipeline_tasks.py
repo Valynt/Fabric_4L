@@ -88,12 +88,7 @@ __all__ = [
     "execute_pipeline_stage",
 ]
 
-from . import tasks as _compat
-
-_domain_class = _compat._domain_class
-_run_async = _compat._run_async
-_verify_l3_graph_population = _compat._verify_l3_graph_population
-celery_app = _compat.celery_app
+from .tasks import _domain_class, _run_async, _verify_l3_graph_population, celery_app
 
 
 @celery_app.task(
@@ -194,7 +189,7 @@ def process_scraping_job(self, job_id: str, tenant_id: str):
     name="layer1_ingestion.shared.tasks.compliance_check_stage", bind=True, max_retries=3
 )
 def compliance_check_stage(self, job_id: UUID, tenant_id: str):
-    return _run_async(_compat._compliance_check_stage_async(self, job_id, tenant_id))
+    return _run_async(_compliance_check_stage_async(self, job_id, tenant_id))
 
 
 # Expose the async helper on the facade so tests can patch it consistently.
@@ -478,7 +473,7 @@ def _handle_compliance_error(exc, job_id, tenant_uuid, stage_started_at, stage):
 
 @celery_app.task(name="layer1_ingestion.shared.tasks.browser_crawl_stage", bind=True, max_retries=3)
 def browser_crawl_stage(self, prev_result: dict, tenant_id: str):
-    return _run_async(_compat._browser_crawl_stage_async(self, prev_result, tenant_id))
+    return _run_async(_browser_crawl_stage_async(self, prev_result, tenant_id))
 
 
 # Expose the async helper on the facade so tests can patch it consistently.
