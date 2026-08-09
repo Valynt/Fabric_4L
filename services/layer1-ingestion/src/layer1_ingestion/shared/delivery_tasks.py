@@ -32,7 +32,16 @@ __all__ = [
     "dispatch_pipeline_outbox_events",
 ]
 
-from . import tasks as _compat
+class _CompatProxy:
+    """Lazily resolve symbols from .tasks to avoid module import cycles."""
+
+    def __getattr__(self, name):
+        from . import tasks as tasks_module
+
+        return getattr(tasks_module, name)
+
+
+_compat = _CompatProxy()
 
 
 @_compat.celery_app.task(name="layer1_ingestion.shared.tasks.notification_stage", bind=True)
