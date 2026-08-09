@@ -8,7 +8,7 @@ import hashlib
 import os
 import time
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable, Optional
 from urllib.parse import urlparse
 from uuid import UUID, uuid4
 
@@ -19,7 +19,7 @@ from jsonschema import Draft7Validator
 try:
     from value_fabric.shared.identity.jwt import encode_service_jwt
 except ImportError:
-    encode_service_jwt = None  # type: ignore
+    encode_service_jwt: Optional[Callable[..., str]] = None
 
 from ..compliance.pii_scanner import PIIScanner
 from ..compliance.robots_checker import RobotsChecker
