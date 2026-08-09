@@ -183,9 +183,24 @@ celery_app.conf.update(
 # =============================================================================
 
 
-# Import task modules after ``celery_app`` is configured. These re-exports retain
-# the historical ``layer1_ingestion.shared.tasks`` import surface while keeping
-# task implementations grouped by responsibility.
-from .crawl_maintenance_tasks import *  # noqa: E402,F403
-from .delivery_tasks import *  # noqa: E402,F403
-from .pipeline_tasks import *  # noqa: E402,F403
+# Import task modules after ``celery_app`` is configured. These imports register Celery tasks,
+# while attribute access is proxied to keep the historical facade surface without wildcard imports.
+import importlib
+from typing import Any
+
+_TASK_MODULES = (
+    "layer1_ingestion.shared.crawl_maintenance_tasks",
+    "layer1_ingestion.shared.delivery_tasks",
+    "layer1_ingestion.shared.pipeline_tasks",
+)
+
+for _mod in _TASK_MODULES:
+    importlib.import_module(_mod)
+
+
+def __getattr__(name: str) -> Any:  # pragma: no cover
+    for _mod in _TASK_MODULES:
+        module = importlib.import_module(_mod)
+        if hasattr(module, name):
+            return getattr(module, name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
