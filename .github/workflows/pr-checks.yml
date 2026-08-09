@@ -2868,8 +2868,15 @@ jobs:
                 if [[ "${SCOPES[$check]:-}" == "false" ]]; then
                   echo "⏭️  SKIPPED (out of change scope — safe): ${check}"
                   safe_skips+=("$check")
+                elif [[ -z "${SCOPES[$check]:-}" ]]; then
+                  # No scope mapping (or change-scope itself failed): the skip
+                  # cannot be proven safe. If this job is legitimately scoped,
+                  # register it in the SCOPES map above.
+                  echo "⏭️  SKIPPED (no scope mapping — cannot prove safe): ${check}"
+                  skips+=("$check")
+                  failed=1
                 else
-                  echo "⏭️  SKIPPED: ${check}"
+                  echo "⏭️  SKIPPED (scope '${SCOPES[$check]}' did not authorize skip): ${check}"
                   skips+=("$check")
                   failed=1
                 fi

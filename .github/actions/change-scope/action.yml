@@ -54,6 +54,9 @@ runs:
     - name: Detect changed scopes
       if: github.event_name == 'pull_request'
       id: filter
+      # Tag pin matches the two existing tj-actions/changed-files usages in
+      # pr-checks.yml; align all three to a full commit SHA in the next
+      # quarterly "Workflow Action Pin Refresh" PR.
       uses: tj-actions/changed-files@v46
       with:
         files_yaml_from_source_file: .github/paths-filters.yml

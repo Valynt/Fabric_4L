@@ -1169,14 +1169,19 @@ jobs:
           )
           # A skipped gate is acceptable only when its change scope resolved
           # to 'false' (the PR provably cannot affect it); anything else
-          # fails closed.
+          # fails closed. Scope values are compared in bash so unresolved
+          # (empty) values never count as safe.
+          scope_code='${{ needs.change-scope.outputs.code }}'
+          scope_docker='${{ needs.change-scope.outputs.docker }}'
+          scope_deps='${{ needs.change-scope.outputs.deps }}'
+          scope_backend='${{ needs.change-scope.outputs.backend }}'
           declare -A SCOPE_SAFE=(
-            ["dast-api-scan"]="${{ needs.change-scope.outputs.code == 'false' }}"
-            ["sbom-policy"]="${{ needs.change-scope.outputs.docker == 'false' && needs.change-scope.outputs.deps == 'false' }}"
+            ["dast-api-scan"]="$([[ "$scope_code" == "false" ]] && echo true || echo false)"
+            ["sbom-policy"]="$([[ "$scope_docker" == "false" && "$scope_deps" == "false" ]] && echo true || echo false)"
             # mandatory-security-regression is a governed merge control and
             # is never scope-skipped; it must succeed on every PR.
             ["mandatory-security-regression"]="false"
-            ["route-auth-gate"]="${{ needs.change-scope.outputs.backend == 'false' }}"
+            ["route-auth-gate"]="$([[ "$scope_backend" == "false" ]] && echo true || echo false)"
           )
           failed=0
           for check in "${!CHECKS[@]}"; do
