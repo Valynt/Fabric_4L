@@ -74,6 +74,10 @@ def main(argv: list[str] | None = None) -> int:
     for step in CERTIFICATION_STEPS:
         result = run_step(step, out_dir, live=live)
         record.results.append(result)
+        # Not-run results (live-only steps without CERTIFY_LIVE=1, and
+        # unimplemented release operations) do not abort the run — later steps
+        # still produce evidence — but they always leave the candidate
+        # uncertified (fail closed, enforced below and in build_manifest).
         if step.blocking and not result.passed and not result.not_run:
             print(
                 f"❌ certification failed at {step.name}. The certifier may not "
@@ -90,9 +94,11 @@ def main(argv: list[str] | None = None) -> int:
     if aborted or record.failed:
         return 1
     if record.not_run_steps:
+        names = ", ".join(r.gate for r in record.not_run_steps)
         print(
-            "⚠️  Live-only steps were recorded as not-run; the candidate stays "
-            "uncertified (fail closed). Re-run with CERTIFY_LIVE=1 in staging."
+            f"⚠️  Steps recorded as not-run ({names}): live-only steps need "
+            "CERTIFY_LIVE=1 in staging, and unimplemented release operations "
+            "block until they exist. The candidate stays uncertified (fail closed)."
         )
         return 1
     print(f"✅ all certification steps passed for {candidate}")

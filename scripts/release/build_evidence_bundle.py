@@ -122,13 +122,14 @@ def build_manifest(candidate_sha: str, out_dir: Path) -> Path:
     ]
     certified = not failed and not not_run
 
-    branch = subprocess.run(
-        ["git", "rev-parse", "--abbrev-ref", "HEAD"],
-        cwd=REPO_ROOT,
-        capture_output=True,
-        text=True,
-        check=True,
-    ).stdout.strip()
+    # The branch was captured by certify_candidate.py at certification time and
+    # written into the record; do not re-derive it from the current checkout.
+    branch = record.get("branch", "")
+    if not branch:
+        raise SystemExit(
+            f"certification records at {record_path} carry no source branch; "
+            "the manifest must reflect the certified checkout (fail closed)."
+        )
     version_file = REPO_ROOT / "version.txt"
     version = version_file.read_text(encoding="utf-8").strip() if version_file.exists() else ""
 

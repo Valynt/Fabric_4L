@@ -181,9 +181,9 @@ def run_step(step: Step, log_dir: Path, *, live: bool) -> StepResult:
         )
     elapsed = time.monotonic() - t0
     # Signal-terminated processes report negative return codes; normalize to the
-    # shell convention (128 + N) so a signal death can never collide with the
-    # not-run sentinel or be mistaken for anything but a failure.
-    exit_code = proc.returncode if proc.returncode >= 0 else 128 - proc.returncode
+    # shell convention (128 + signal number) so a signal death can never collide
+    # with the not-run sentinel or be mistaken for anything but a failure.
+    exit_code = proc.returncode if proc.returncode >= 0 else 128 + abs(proc.returncode)
     print(f"  {step.name}: exit={exit_code} ({elapsed:.1f}s) log={log_path}")
     return StepResult(
         gate=step.name,
