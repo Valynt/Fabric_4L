@@ -1687,7 +1687,12 @@ jobs:
 
   p0-e2e-gate:
     needs: change-scope
-    if: needs.change-scope.outputs.web == 'true'
+    # Boots the full live backend stack (infra/compose/docker-compose.e2e.yml)
+    # and drives it through the frontend, so it must run for backend, frontend,
+    # contract, and image/infra changes — not just the web surface.
+    if: >-
+      needs.change-scope.outputs.code == 'true'
+      || needs.change-scope.outputs.docker == 'true'
     name: p0-e2e-gate
     runs-on: ubuntu-latest
     timeout-minutes: 45

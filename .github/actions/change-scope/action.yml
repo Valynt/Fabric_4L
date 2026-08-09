@@ -71,6 +71,23 @@ runs:
       shell: bash
       env:
         IS_PR: ${{ github.event_name == 'pull_request' }}
+        # Filter outputs are passed via env (never interpolated into the
+        # script body) so a compromised upstream action emitting shell
+        # metacharacters cannot inject into this step.
+        FILTER_LAYER1: ${{ steps.filter.outputs.layer1_any_changed }}
+        FILTER_LAYER2: ${{ steps.filter.outputs.layer2_any_changed }}
+        FILTER_LAYER3: ${{ steps.filter.outputs.layer3_any_changed }}
+        FILTER_LAYER4: ${{ steps.filter.outputs.layer4_any_changed }}
+        FILTER_LAYER5: ${{ steps.filter.outputs.layer5_any_changed }}
+        FILTER_LAYER6: ${{ steps.filter.outputs.layer6_any_changed }}
+        FILTER_BACKEND: ${{ steps.filter.outputs.backend_any_changed }}
+        FILTER_WEB: ${{ steps.filter.outputs.web_any_changed }}
+        FILTER_CODE: ${{ steps.filter.outputs.code_any_changed }}
+        FILTER_DOCKER: ${{ steps.filter.outputs.docker_any_changed }}
+        FILTER_K8S: ${{ steps.filter.outputs.k8s_any_changed }}
+        FILTER_DEPS: ${{ steps.filter.outputs.deps_any_changed }}
+        FILTER_RELEASE_POLICY: ${{ steps.filter.outputs.release-policy_any_changed }}
+        FILTER_RUNTIME: ${{ steps.filter.outputs.runtime_any_changed }}
       run: |
         set -euo pipefail
         # emit <scope> <pr-detected-value>
@@ -79,23 +96,23 @@ runs:
         emit() {
           local scope="$1"
           local value="${2:-}"
-          if [[ "${IS_PR}" != "true" || -z "${value}" ]]; then
+          if [[ "${IS_PR}" != "true" || "${value}" != "false" ]]; then
             value="true"
           fi
           echo "${scope}=${value}" >> "$GITHUB_OUTPUT"
           echo "scope ${scope}=${value}"
         }
-        emit layer1  "${{ steps.filter.outputs.layer1_any_changed }}"
-        emit layer2  "${{ steps.filter.outputs.layer2_any_changed }}"
-        emit layer3  "${{ steps.filter.outputs.layer3_any_changed }}"
-        emit layer4  "${{ steps.filter.outputs.layer4_any_changed }}"
-        emit layer5  "${{ steps.filter.outputs.layer5_any_changed }}"
-        emit layer6  "${{ steps.filter.outputs.layer6_any_changed }}"
-        emit backend "${{ steps.filter.outputs.backend_any_changed }}"
-        emit web     "${{ steps.filter.outputs.web_any_changed }}"
-        emit code    "${{ steps.filter.outputs.code_any_changed }}"
-        emit docker  "${{ steps.filter.outputs.docker_any_changed }}"
-        emit k8s     "${{ steps.filter.outputs.k8s_any_changed }}"
-        emit deps    "${{ steps.filter.outputs.deps_any_changed }}"
-        emit release-policy "${{ steps.filter.outputs.release-policy_any_changed }}"
-        emit runtime "${{ steps.filter.outputs.runtime_any_changed }}"
+        emit layer1  "${FILTER_LAYER1}"
+        emit layer2  "${FILTER_LAYER2}"
+        emit layer3  "${FILTER_LAYER3}"
+        emit layer4  "${FILTER_LAYER4}"
+        emit layer5  "${FILTER_LAYER5}"
+        emit layer6  "${FILTER_LAYER6}"
+        emit backend "${FILTER_BACKEND}"
+        emit web     "${FILTER_WEB}"
+        emit code    "${FILTER_CODE}"
+        emit docker  "${FILTER_DOCKER}"
+        emit k8s     "${FILTER_K8S}"
+        emit deps    "${FILTER_DEPS}"
+        emit release-policy "${FILTER_RELEASE_POLICY}"
+        emit runtime "${FILTER_RUNTIME}"
