@@ -93,11 +93,11 @@ def test_skills_registry_at_canonical_path() -> None:
 
 
 def test_tasks_py_uses_relative_crawler_imports() -> None:
-    """tasks.py must use relative ``..crawler`` imports for crawler modules."""
+    """Crawl maintenance tasks must use relative ``..crawler`` imports for crawler modules."""
     import ast
 
-    tasks_file = SERVICE_SRC / "layer1_ingestion" / "shared" / "tasks.py"
-    tree = ast.parse(tasks_file.read_text(encoding="utf-8"), filename=str(tasks_file))
+    crawl_file = SERVICE_SRC / "layer1_ingestion" / "shared" / "crawl_maintenance_tasks.py"
+    tree = ast.parse(crawl_file.read_text(encoding="utf-8"), filename=str(crawl_file))
     found = any(
         isinstance(node, ast.ImportFrom)
         and node.level == 2
@@ -106,7 +106,7 @@ def test_tasks_py_uses_relative_crawler_imports() -> None:
         and any(alias.name == "HttpxCrawler" for alias in node.names)
         for node in ast.walk(tree)
     )
-    assert found, "Expected tasks.py to import HttpxCrawler from ..crawler.httpx_crawler"
+    assert found, "Expected crawl_maintenance_tasks.py to import HttpxCrawler from ..crawler.httpx_crawler"
 
 
 def test_value_fabric_layer1_shim_resolves_to_canonical_path() -> None:

@@ -12715,6 +12715,12 @@
       "text": ") -> Generator[Any, None, None]:"
     },
     {
+      "kind": "python-type-ignore",
+      "line": 16,
+      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/pipeline_tasks.py",
+      "text": "encode_service_jwt = None  # type: ignore"
+    },
+    {
       "kind": "python-any",
       "line": 3,
       "path": "services/layer1-ingestion/src/layer1_ingestion/shared/task_contracts.py",
@@ -12896,7 +12902,7 @@
     },
     {
       "kind": "python-type-ignore",
-      "line": 25,
+      "line": 40,
       "path": "services/layer1-ingestion/src/layer1_ingestion/shared/tasks.py",
       "text": "encode_service_jwt = None  # type: ignore"
     },
@@ -41216,13 +41222,13 @@
     },
     {
       "kind": "python-any",
-      "line": 25,
+      "line": 27,
       "path": "tests/integration/test_celery_queue_topology.py",
       "text": "def _yaml_documents(relative_path: str) -> list[Any]:"
     },
     {
       "kind": "python-any",
-      "line": 30,
+      "line": 32,
       "path": "tests/integration/test_celery_queue_topology.py",
       "text": "def _compose_service(relative_path: str, service_name: str) -> dict[str, Any]:"
     },

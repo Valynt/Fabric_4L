@@ -659,23 +659,26 @@ class TestPipelineStageErrorPaths:
         from layer1_ingestion.shared.tasks import execute_pipeline_stage
 
         # Stage constants that execute_pipeline_stage must recognize,
-        # mapped to the actual Celery task name that gets dispatched.
+        # mapped to (module, task_name) where the function looks them up.
+        # Most tasks are referenced from pipeline_tasks module namespace;
+        # notification_stage is accessed via _compat (the tasks module).
         stage_task_map = {
-            "COMPLIANCE_CHECK": "compliance_check_stage",
-            "BROWSER_LAUNCH": "browser_crawl_stage",
-            "NAVIGATION": "browser_crawl_stage",
-            "CONTENT_CAPTURE": "browser_crawl_stage",
-            "AI_EXTRACTION": "ai_extraction_stage",
-            "POST_PROCESSING": "post_processing_stage",
-            "VALIDATION": "validation_stage",
-            "STORAGE": "storage_stage",
-            "NOTIFICATION": "notification_stage",
+            "COMPLIANCE_CHECK": ("pipeline_tasks", "compliance_check_stage"),
+            "BROWSER_LAUNCH": ("pipeline_tasks", "browser_crawl_stage"),
+            "NAVIGATION": ("pipeline_tasks", "browser_crawl_stage"),
+            "CONTENT_CAPTURE": ("pipeline_tasks", "browser_crawl_stage"),
+            "AI_EXTRACTION": ("pipeline_tasks", "ai_extraction_stage"),
+            "POST_PROCESSING": ("pipeline_tasks", "post_processing_stage"),
+            "VALIDATION": ("pipeline_tasks", "validation_stage"),
+            "STORAGE": ("pipeline_tasks", "storage_stage"),
+            "NOTIFICATION": ("tasks", "notification_stage"),
         }
 
-        for stage_const, task_name in stage_task_map.items():
+        for stage_const, (module, task_name) in stage_task_map.items():
             job_id = str(uuid4())
             tenant_id = str(uuid4())
-            with patch(f"layer1_ingestion.shared.tasks.{task_name}") as mock_task:
+            patch_target = f"layer1_ingestion.shared.{module}.{task_name}"
+            with patch(patch_target) as mock_task:
                 mock_task.delay = Mock(return_value=None)
                 try:
                     result = execute_pipeline_stage(job_id, stage_const, tenant_id)
