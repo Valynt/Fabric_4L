@@ -1,7 +1,7 @@
 # Review Queue
 
 **Pending:** 2
-**Oldest staged:** 2026-08-09T17:18:39.304660+00:00
+**Oldest staged:** 2026-08-09T17:27:54.255905+00:00
 
 Run `python .agent/tools/list_candidates.py` for detail, then:
 - `python .agent/tools/graduate.py <id> --rationale "..."` to accept
@@ -10,5 +10,5 @@ Run `python .agent/tools/list_candidates.py` for detail, then:
 
 ## Priority order (top 10)
 
-- **d725ccb2637a** (priority=850.50, size=63, rejections=0) — High-stakes op completed (release): ls /home/runner/work/Fabric_4L/Fabric_4L/.gi
-- **45d3b145a577** (priority=18.00, size=2, rejections=0) — Wrote /home/runner/work/Fabric_4L/Fabric_4L/.github/paths-filters.yml (0 lines)
+- **a6525e969091** (priority=189.00, size=14, rejections=0) — High-stakes op completed (prod): cd /home/runner/work/Fabric_4L/Fabric_4L && gre
+- **494d17f61243** (priority=67.50, size=5, rejections=0) — Edited /home/runner/work/Fabric_4L/Fabric_4L/.github/actions/change-scope/action
