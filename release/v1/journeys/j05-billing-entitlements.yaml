@@ -1,0 +1,28 @@
+schema_version: 1
+id: j05-billing-entitlements
+title: Billing and entitlement
+priority: P0
+
+required_outcome: >
+  Plan, trial, limits, webhook processing, cancellation, and access state are
+  consistent.
+
+steps:
+  - Plan assignment and trial state gate feature access.
+  - Billing webhooks are signature-verified, idempotent, and tenant-mapped.
+  - Cancellation transitions access state without data loss.
+  - Entitlement checks are enforced server-side per tenant.
+
+allowed_behavior:
+  - A tenant on a valid plan uses entitled features; usage is metered to the correct tenant.
+denied_behavior:
+  - Customer, subscription, plan, and entitlement identifiers cannot be substituted across tenants.
+  - Replayed or unsigned webhooks are rejected.
+  - Entitlement enforcement fails closed when billing state is unavailable.
+
+evidence:
+  existing_tests:
+    - tests/billing
+    - tests/tenancy/test_billing_tenant_scope.py
+  gaps:
+    - Billing participation in the executable golden-path certification where promised in v1 (task V1-GOLDEN-001).
