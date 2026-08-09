@@ -708,23 +708,6 @@ updates:
     commit-message:
       prefix: chore(deps)
 
-  - package-ecosystem: docker
-    directory: /tools/ci/security-suite
-    schedule:
-      interval: weekly
-      day: monday
-      time: "05:00"
-      timezone: America/New_York
-    open-pull-requests-limit: 2
-    labels:
-      - dependencies
-      - docker
-      - security
-    reviewers:
-      - value-fabric/sre-leads
-    commit-message:
-      prefix: chore(deps)
-
   # GitHub Actions
   - package-ecosystem: github-actions
     directory: /.github

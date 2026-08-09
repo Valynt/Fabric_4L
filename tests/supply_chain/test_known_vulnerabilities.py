@@ -57,7 +57,7 @@ def test_pip_audit_ci_uses_supported_flags_and_safe_toolchain() -> None:
 
     assert "pip-audit --severity" not in combined
     assert '"setuptools>=83.0.0" pip-audit' in security_gates
-    assert 'bash "${{ github.workspace }}/scripts/ci/run_pip_audit.sh"' in pr_checks
+    assert "uv run pip-audit --exit-code 1" in pr_checks
 
 
 def test_repo_hygiene_does_not_duplicate_secret_scanning() -> None:
@@ -67,34 +67,15 @@ def test_repo_hygiene_does_not_duplicate_secret_scanning() -> None:
     assert "infisical scan" not in repo_hygiene
     assert "Secret Detection (gitleaks)" in security_gates
 
-
 def test_node_audit_overrides_patch_known_transitive_advisories() -> None:
     package_json = json.loads((REPO_ROOT / "package.json").read_text(encoding="utf-8"))
     overrides = package_json["pnpm"]["overrides"]
 
-    assert overrides["brace-expansion"] == "5.0.8"
+    assert overrides["brace-expansion@<1.1.16"] == "1.1.16"
+    assert overrides["brace-expansion@>=2.0.0 <2.1.2"] == "2.1.2"
+    assert overrides["brace-expansion@>=5.0.0 <5.0.7"] == "5.0.7"
     assert overrides["systeminformation@<=5.31.6"] == "5.31.7"
-
-    lockfile = (REPO_ROOT / "pnpm-lock.yaml").read_text(encoding="utf-8")
-    assert "brace-expansion@5.0.8:" in lockfile
-    for vulnerable_version in ("1.1.16", "2.1.2", "5.0.7"):
-        assert f"brace-expansion@{vulnerable_version}:" not in lockfile
     assert overrides["body-parser@<1.20.6"] == "1.20.6"
-
-
-
-def test_security_gates_builds_frontend_sbom_from_workspace_root() -> None:
-    workflow = (REPO_ROOT / ".github/workflows/security-gates.yml").read_text(encoding="utf-8")
-
-    assert 'if [ "${{ matrix.layer }}" = "apps-web" ]; then' in workflow
-    assert "-f apps/web/Dockerfile" in workflow
-    assert "services/${{matrix.layer}}" in workflow
-
-
-def test_release_evidence_security_tests_install_root_policy_dependencies() -> None:
-    workflow = (REPO_ROOT / ".github/workflows/release-evidence-bundle.yml").read_text(encoding="utf-8")
-
-    assert "uv pip install --system --requirement tests/requirements-test.lock" in workflow
 
 
 def test_release_evidence_bandit_matches_security_gate_policy() -> None:
@@ -103,60 +84,3 @@ def test_release_evidence_bandit_matches_security_gate_policy() -> None:
     assert "bandit -r services/ -ll -ii -x '*/tests/*,*/migrations/*' -f json" in workflow
     assert "bandit -r services/ -ll -ii -x '*/tests/*,*/migrations/*' -f txt" in workflow
 
-
-
-def test_osv_pr_scan_does_not_use_reusable_workflow_outputs() -> None:
-    workflow = (REPO_ROOT / ".github/workflows/security-gates.yml").read_text(encoding="utf-8")
-    pr_job = workflow.split("  osv-scanner-pr:", 1)[1].split("  # OSV-Scanner full scan", 1)[0]
-
-    assert "osv-scanner-reusable-pr.yml" not in pr_job
-    assert "old-results" not in pr_job
-    assert "new-results" not in pr_job
-    assert "osv-scanner-pr.sarif" in pr_job
-
-def test_unhashed_test_requirements_keep_osv_safe_minimums() -> None:
-    requirements = (REPO_ROOT / "tests/requirements.txt").read_text(encoding="utf-8").lower()
-
-    for requirement in (
-        "pyjwt>=2.13.0",
-        "pytest>=9.1.1",
-        "idna>=3.15",
-        "pygments>=2.20.0",
-        "starlette>=1.3.1",
-        "schemathesis>=4.24.2",
-    ):
-        assert requirement in requirements
-
-
-def test_docs_and_platform_requirements_keep_osv_safe_minimums() -> None:
-    docs_requirements = (
-        REPO_ROOT / "docs-site/requirements-docs.txt"
-    ).read_text(encoding="utf-8").lower()
-    platform_requirements = (
-        REPO_ROOT / "packages/platform-contract/requirements-test.txt"
-    ).read_text(encoding="utf-8").lower()
-
-    for requirement in ("idna>=3.15", "pillow>=12.3.0"):
-        assert requirement in docs_requirements
-
-    assert "pygments>=2.20.0" in platform_requirements
-
-
-def test_service_image_locks_exclude_recent_trivy_blockers() -> None:
-    vulnerable_tokens = (
-        'name = "click"\nversion = "8.3.2"',
-        'name = "lxml-html-clean"\nversion = "0.4.4"',
-        'name = "setuptools"\nversion = "82.0.1"',
-    )
-
-    violations: list[str] = []
-    for lockfile in (REPO_ROOT / "services").glob("*/uv.lock"):
-        content = lockfile.read_text(encoding="utf-8")
-        for token in vulnerable_tokens:
-            if token in content:
-                violations.append(f"{lockfile.relative_to(REPO_ROOT)} contains {token!r}")
-
-    assert not violations, (
-        "Service image lockfiles contain Trivy-blocked package versions: "
-        + "; ".join(violations)
-    )

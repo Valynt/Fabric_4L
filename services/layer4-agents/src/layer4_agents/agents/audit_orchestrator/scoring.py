@@ -90,7 +90,7 @@ def _adjust_architecture(metrics: dict[str, Any]) -> float:
     if shared_pkg_files > 50:
         deduction += min((shared_pkg_files - 50) * 0.1, 5.0)
 
-    return float(deduction)
+    return deduction
 
 
 def _adjust_code_quality(metrics: dict[str, Any]) -> float:
@@ -132,7 +132,7 @@ def _adjust_code_quality(metrics: dict[str, Any]) -> float:
     todo_count = metrics.get("todo_fixme_count", 0)
     deduction += min(todo_count * 0.3, 4.0)
 
-    return float(deduction)
+    return deduction
 
 
 def _adjust_correctness(metrics: dict[str, Any]) -> float:
@@ -160,7 +160,7 @@ def _adjust_correctness(metrics: dict[str, Any]) -> float:
     migration_issues = metrics.get("migration_issue_count", 0)
     deduction += min(migration_issues * 3.0, 10.0)
 
-    return float(deduction)
+    return deduction
 
 
 def _adjust_testing(metrics: dict[str, Any]) -> float:
@@ -206,7 +206,7 @@ def _adjust_testing(metrics: dict[str, Any]) -> float:
     flaky_tests = metrics.get("flaky_test_count", 0)
     deduction += min(flaky_tests * 1.5, 6.0)
 
-    return float(deduction)
+    return deduction
 
 
 def _adjust_security(metrics: dict[str, Any]) -> float:
@@ -239,7 +239,7 @@ def _adjust_security(metrics: dict[str, Any]) -> float:
     vuln_count = metrics.get("dependency_vulnerability_count", 0)
     deduction += min(vuln_count * 2.0, 10.0)
 
-    return float(deduction)
+    return deduction
 
 
 def _adjust_cicd(metrics: dict[str, Any]) -> float:
@@ -275,7 +275,7 @@ def _adjust_cicd(metrics: dict[str, Any]) -> float:
     missing_checks = metrics.get("missing_required_checks", 0)
     deduction += min(missing_checks * 2.0, 6.0)
 
-    return float(deduction)
+    return deduction
 
 
 def _adjust_reliability(metrics: dict[str, Any]) -> float:
@@ -315,7 +315,7 @@ def _adjust_reliability(metrics: dict[str, Any]) -> float:
     if missing_observability:
         deduction += 4.0
 
-    return float(deduction)
+    return deduction
 
 
 def _adjust_documentation(metrics: dict[str, Any]) -> float:
@@ -355,7 +355,7 @@ def _adjust_documentation(metrics: dict[str, Any]) -> float:
     outdated_docs = metrics.get("outdated_doc_fraction", 0.0)
     deduction += min(outdated_docs * 10.0, 8.0)
 
-    return float(deduction)
+    return deduction
 
 
 def _adjust_agent_readiness(metrics: dict[str, Any]) -> float:
@@ -388,7 +388,7 @@ def _adjust_agent_readiness(metrics: dict[str, Any]) -> float:
     missing_skills = metrics.get("missing_skill_definition_count", 0)
     deduction += min(missing_skills * 1.5, 5.0)
 
-    return float(deduction)
+    return deduction
 
 
 def _adjust_dev_experience(metrics: dict[str, Any]) -> float:

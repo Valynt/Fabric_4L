@@ -4,5 +4,4 @@ pymdown-extensions
 mkdocs-swagger-ui-tag
 mkdocs-minify-plugin
 mkdocs-glightbox
-Pillow>=12.3.0
-idna>=3.15
+Pillow

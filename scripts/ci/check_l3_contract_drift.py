@@ -44,47 +44,6 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_SNAPSHOT = REPO_ROOT / "docs/api/v1_snapshot.yaml"
 DEFAULT_CURRENT = REPO_ROOT / "contracts/openapi/layer3-knowledge.json"
 
-# Explicitly governed Layer 3 legacy-to-canonical path migrations. These paths
-# were renamed during the V2 router split; the current path must exist for the
-# snapshot path to be considered preserved by an approved alias.
-COMPATIBILITY_HIDDEN_PATHS: set[str] = {
-    "/metrics",
-    "/v1/schema/status",
-    "/v1/schema/init",
-    "/v1/schema/statistics",
-}
-
-COMPATIBILITY_PATH_ALIASES: dict[str, str] = {
-    "/graph": "/v1/graph",
-    "/entities/{entity_id}/subgraph": "/v1/entities/{entity_id}/subgraph",
-    "/v1/query": "/v1/query/search",
-    "/v1/v1/entities": "/v1/entities/",
-    "/v1/v1/entities/{entity_id}": "/v1/entities/{entity_id}",
-    "/v1/v1/entities/query": "/v1/entities/query",
-    "/v1/v1/entity/traverse": "/v1/entities/traverse",
-    "/v1/v1/calculators/levers": "/v1/calculators/levers",
-    "/v1/v1/calculators/value-cases": "/v1/calculators/value-cases",
-    "/v1/v1/calculators/value-cases/{case_id}": "/v1/calculators/value-cases/{case_id}",
-}
-
-# Explicit response-code standardizations retained in runtime exception handlers
-# but no longer emitted per-operation in the generated OpenAPI document.
-COMPATIBILITY_RESPONSE_CODES: set[tuple[str, str, str]] = {
-    ("get", "/v1/variables", "401"),
-    ("post", "/v1/variables", "401"),
-    ("get", "/v1/variables/{variable_id}", "401"),
-    ("put", "/v1/variables/{variable_id}", "401"),
-    ("post", "/v1/variables/{variable_id}/resolve", "401"),
-    ("post", "/v1/variables/{variable_id}/validate", "401"),
-    ("get", "/v1/variables/stats", "401"),
-    ("get", "/v1/variables/bindings", "401"),
-    ("get", "/v1/graph/subgraph", "400"),
-    ("get", "/v1/graph/subgraph", "500"),
-    ("get", "/graph", "503"),
-    ("get", "/entities/{entity_id}/subgraph", "404"),
-    ("get", "/entities/{entity_id}/subgraph", "503"),
-}
-
 
 def _load(path: Path) -> dict[str, Any]:
     with path.open() as fh:
@@ -115,15 +74,10 @@ def check_drift(
     for path, snapshot_path_item in snapshot_paths.items():
         # 1. Removed path
         if path not in current_paths:
-            if path in COMPATIBILITY_HIDDEN_PATHS:
-                continue
-            alias_path = COMPATIBILITY_PATH_ALIASES.get(path)
-            if alias_path is None or alias_path not in current_paths:
-                violations.append(f"REMOVED PATH: {path}")
-                continue
-            current_path_item = current_paths[alias_path]
-        else:
-            current_path_item = current_paths[path]
+            violations.append(f"REMOVED PATH: {path}")
+            continue
+
+        current_path_item = current_paths[path]
 
         for method, snapshot_op in snapshot_path_item.items():
             if method.startswith("x-") or method == "parameters":
@@ -142,8 +96,6 @@ def check_drift(
 
             for status_code in snapshot_responses:
                 if status_code not in current_responses:
-                    if (method, path, str(status_code)) in COMPATIBILITY_RESPONSE_CODES:
-                        continue
                     violations.append(
                         f"REMOVED RESPONSE CODE: {method.upper()} {path} → {status_code}"
                     )

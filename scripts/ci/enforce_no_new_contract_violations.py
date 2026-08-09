@@ -1,55 +1,18 @@
 #!/usr/bin/env python3
 import fnmatch
 import json
-import os
 import subprocess
 import sys
 from pathlib import Path
 
 
-def _run_git_name_only(args: list[str]) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(["git", *args], capture_output=True, text=True, check=False)
-
-
-def _changed_file_candidates(base_ref: str) -> list[list[str]]:
-    candidates = [["diff", "--name-only", f"{base_ref}...HEAD"]]
-
-    github_base_ref = os.environ.get("GITHUB_BASE_REF")
-    if github_base_ref:
-        candidates.append(["diff", "--name-only", f"origin/{github_base_ref}...HEAD"])
-
-    candidates.extend(
-        [
-            ["diff", "--name-only", "HEAD~1", "HEAD"],
-            ["diff-tree", "--no-commit-id", "--name-only", "-r", "HEAD"],
-        ]
-    )
-    return candidates
-
-
 def changed_files(base_ref: str) -> list[str]:
-    last_error = ""
-    for args in _changed_file_candidates(base_ref):
-        out = _run_git_name_only(args)
-        if out.returncode == 0:
-            return [line.strip() for line in out.stdout.splitlines() if line.strip()]
-        last_error = out.stderr.strip()
-
-    out = _run_git_name_only(["ls-files"])
-    if out.returncode == 0:
-        print(
-            f"WARNING: unable to determine changed files for {base_ref}; "
-            "scanning all tracked files instead.",
-            file=sys.stderr,
-        )
-        return [line.strip() for line in out.stdout.splitlines() if line.strip()]
-
-    print(
-        f"ERROR: unable to determine files for contract scan. "
-        f"Last git error: {last_error}; ls-files error: {out.stderr.strip()}",
-        file=sys.stderr,
-    )
-    raise SystemExit(2)
+    cmd = ["git", "diff", "--name-only", f"{base_ref}...HEAD"]
+    out = subprocess.run(cmd, capture_output=True, text=True, check=False)
+    if out.returncode != 0:
+        cmd = ["git", "diff", "--name-only", "HEAD~1", "HEAD"]
+        out = subprocess.run(cmd, capture_output=True, text=True, check=True)
+    return [line.strip() for line in out.stdout.splitlines() if line.strip()]
 
 
 def load_cfg(path: Path) -> dict:

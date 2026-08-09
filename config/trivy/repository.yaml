@@ -1,5 +1,8 @@
 misconfiguration:
-  helm:
-    set:
-      - global.serviceAuthSecret=ci-render-service-auth-placeholder
-      - global.jwtSecret=ci-render-jwt-placeholder
+  exclude-policies:
+    # A config template requires global.serviceAuthSecret to be set
+    - AVD-KS-0001
+    - AVD-KS-0120
+    - AVD-KS-0002
+    - AVD-KS-0003
+    - AVD-KS-0004

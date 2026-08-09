@@ -11,15 +11,6 @@ pytestmark = [pytest.mark.integration, pytest.mark.postgres]
 
 
 @pytest.fixture(autouse=True)
-def _clear_dependency_overrides():
-    """Ensure no dependency override leaks out of integration tests."""
-    yield
-    from layer1_ingestion.api.main import app
-
-    app.dependency_overrides.clear()
-
-
-@pytest.fixture(autouse=True)
 def _mock_process_scraping_job(monkeypatch):
     """Mock Celery task delay so batch tests don't fail when broker is unavailable."""
     import layer1_ingestion.api._batch_and_stats as _app_mod
@@ -139,7 +130,6 @@ class TestUpdateTargetStatus:
                 headers={"X-Organization-ID": str(other_org_id)},
             )
             assert resp.status_code == 404
-        app.dependency_overrides.clear()
 
     def test_nonexistent_target_returns_404(self, client, org_id):
         resp = client.put(

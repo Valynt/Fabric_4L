@@ -462,7 +462,7 @@ export class ToolErrorBoundary {
   async execute<T>(
     toolFn: () => Promise<T>,
     toolName: string,
-    scopeKey: string,
+    tenantId: string,
     toolVersion: string,
     traceId: string
   ): Promise<ToolResult<T>> {
@@ -476,7 +476,7 @@ export class ToolErrorBoundary {
         data,
         metadata: {
           execution_time_ms: Date.now() - startTime,
-          tenant_id: scopeKey,
+          tenant_id: tenantId,
           tool_version: toolVersion,
           trace_id: traceId,
         },
@@ -493,7 +493,7 @@ export class ToolErrorBoundary {
         },
         metadata: {
           execution_time_ms: Date.now() - startTime,
-          tenant_id: scopeKey,
+          tenant_id: tenantId,
           tool_version: toolVersion,
           trace_id: traceId,
         },
