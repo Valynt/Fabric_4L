@@ -300,11 +300,14 @@ jobs:
               requirements_file="/tmp/${service_name}-requirements.txt"
               audit_output="${GITHUB_WORKSPACE}/${service_name}-audit.json"
               echo "Auditing $service_name"
-              # Generate requirements from the active CI tools environment, then keep
-              # vulnerability findings advisory while failing scanner/runtime errors.
+              # Install the service's declared dependencies so pip freeze
+              # reflects the service's actual resolution (respecting version
+              # constraints from pyproject.toml / requirements.txt), not
+              # whatever happens to be pre-installed in the CI tools image.
               set +e
               (
                 cd "$dir" && \
+                  pip install -e . --quiet 2>/dev/null; \
                   pip freeze > "$requirements_file" && \
                   pip-audit -r "$requirements_file" --format=json --output="$audit_output"
               )
