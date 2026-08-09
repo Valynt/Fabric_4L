@@ -29,6 +29,35 @@ from steps import REPO_ROOT
 MANIFEST_SCHEMA = REPO_ROOT / "release" / "v1" / "schemas" / "candidate-manifest.schema.json"
 
 
+def _manifest_gate(gate: dict) -> dict:
+    """Project a certification step record onto the manifest gate schema.
+
+    certification.json carries richer internal fields (log, criterion,
+    classification); the manifest schema permits only the deterministic
+    gate identity fields, so anything else must be dropped and the log
+    path renamed (additionalProperties is false).
+    """
+    projected = {
+        "gate": gate["gate"],
+        "command": gate["command"],
+        "exit_code": gate["exit_code"],
+        "started_at": gate["started_at"],
+        "finished_at": gate["finished_at"],
+    }
+    log_path = gate.get("log_path") or gate.get("log")
+    if log_path:
+        projected["log_path"] = log_path
+    return projected
+
+
+def _repo_relative(path: Path) -> str:
+    """Prefer repo-relative evidence paths; fall back to absolute if outside."""
+    try:
+        return str(path.relative_to(REPO_ROOT))
+    except ValueError:
+        return str(path)
+
+
 def build_manifest(candidate_sha: str, out_dir: Path) -> Path:
     """Assemble artifacts/release/<sha>/candidate-manifest.json from step records."""
     record_path = out_dir / "certification.json"
@@ -60,14 +89,14 @@ def build_manifest(candidate_sha: str, out_dir: Path) -> Path:
             "version": version,
             "image_digests": [],
         },
-        "gates": gates,
+        "gates": [_manifest_gate(g) for g in gates],
         "evidence": {
             "test_reports": sorted(
-                str(p.relative_to(REPO_ROOT)) for p in out_dir.glob("*.log")
+                _repo_relative(p) for p in out_dir.glob("*.log")
             ),
             "rollback_instructions": "RUNBOOK.md",
             "migration_record": (
-                str((out_dir / "07-migrations-empty-db.log").relative_to(REPO_ROOT))
+                _repo_relative(out_dir / "07-migrations-empty-db.log")
                 if (out_dir / "07-migrations-empty-db.log").exists()
                 else ""
             ),
@@ -89,11 +118,11 @@ def build_manifest(candidate_sha: str, out_dir: Path) -> Path:
         },
     }
 
-    manifest_path = out_dir / "candidate-manifest.json"
-    manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
-
     schema = json.loads(MANIFEST_SCHEMA.read_text(encoding="utf-8"))
     jsonschema.validate(manifest, schema)
+
+    manifest_path = out_dir / "candidate-manifest.json"
+    manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     return manifest_path
 
 
