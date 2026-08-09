@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-"""Layer 4 FastAPI application factory."""
+"""Canonical v1 release factory for the Layer 4 FastAPI application."""
 import asyncio
 import logging
 
@@ -89,6 +89,8 @@ async def _executor_probe() -> ProbeResult:
 
 
 def create_app() -> FastAPI:
+    """Build the complete release application used by every runtime entrypoint."""
+
     app = create_fabric_app(
         service_name="layer4-agents",
         title="Layer 4: Agentic Workflow Orchestrator",

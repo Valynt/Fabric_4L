@@ -47,7 +47,7 @@ uvicorn layer4_agents.api.main:app --reload
 
 ## Canonical namespace and compatibility timeline
 
-- Runtime/deployment entrypoint remains `uvicorn layer4_agents.api.main:app` (from `services/layer4-agents/src/layer4_agents/api/main.py`).
+- Runtime/deployment entrypoint remains `uvicorn layer4_agents.api.main:app` (from `services/layer4-agents/src/layer4_agents/api/main.py`), which constructs the v1 release application exclusively through `layer4_agents.api.app_factory.create_app()`.
 - Canonical Python import namespace for Layer 4 is `layer4_agents.*`.
 - `services/layer4-agents/src/{api,agents,engine,workflows,services,...}` top-level packages are deprecated compatibility shims only.
 - New code must import `layer4_agents.*`; CI rejects duplicate top-level implementation files via `scripts/ci/check_duplicate_source_trees.py`.
