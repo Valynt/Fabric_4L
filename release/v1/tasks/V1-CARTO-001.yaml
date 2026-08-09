@@ -1,0 +1,44 @@
+id: V1-CARTO-001
+title: Cartography artifacts for current main
+priority: P0
+
+goal: >
+  Produce machine-readable maps of current main: current-state.yaml,
+  dependency-graph.yaml, critical-journey-coverage.yaml, and extensions to
+  risk-register.yaml. Verify or refute, with file-level evidence, the reported
+  resolution of competing ingress, persistence, routing, and orchestration paths.
+
+allowed_paths:
+  - release/v1/**
+
+forbidden_paths:
+  - services/**
+  - apps/**
+  - packages/**
+  - .github/workflows/**
+
+invariants:
+  - Cartographers are read-only over source code; only release/v1 artifacts are written.
+  - Findings must cite file paths and line-level evidence, not prose impressions.
+  - Known issues are seeded from THREAT_MODEL.md, PRODUCTION_READINESS_REPORT.md, and the compatibility-debt registry, not rediscovered.
+
+acceptance_tests:
+  - pytest tests/release/test_release_v1_contract_artifacts.py
+
+negative_cases:
+  - A claimed-resolved duplicate path still exists on disk and must be reported as open.
+  - A journey with no mapped executable test must appear as a coverage gap.
+
+non_goals:
+  - Fixing any discovered issue.
+  - Refactoring or removing duplicate paths.
+
+rollback:
+  strategy: revert_patch
+  data_migration_required: false
+
+completion_evidence:
+  - release/v1/current-state.yaml
+  - release/v1/dependency-graph.yaml
+  - release/v1/critical-journey-coverage.yaml
+  - updated release/v1/risk-register.yaml entries with file-level evidence

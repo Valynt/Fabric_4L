@@ -1,0 +1,51 @@
+id: V1-GOLDEN-001
+title: Executable golden-path backend certification across L1-L6
+priority: P0
+
+goal: >
+  Prove one canonical journey (tenant setup -> L1 ingestion -> L2 extraction ->
+  L3 knowledge projection -> L4 agent workflow -> L5 grounding -> L6 benchmark
+  -> customer-visible output) with a single executable backend-integrated
+  certification on current main, extending the existing live-stack profile.
+
+depends_on:
+  - V1-CARTO-001
+
+allowed_paths:
+  - tests/backend_integrated/**
+  - tests/release/**
+  - Makefile
+  - docs/**
+
+forbidden_paths:
+  - infra/production/**
+  - .github/workflows/**
+  - services/billing/**
+
+invariants:
+  - The certification composes make test-backend-integrated-release-smoke conventions; no parallel gate system.
+  - Every stage carries verified tenant context and fails closed without it.
+  - Stage assertions verify durable state in the authoritative store, not only HTTP 200s.
+  - Existing API contracts remain compatible unless explicitly updated.
+
+acceptance_tests:
+  - make test-backend-integrated-release-smoke
+  - pytest tests/backend_integrated -m "backend_integrated and release_smoke" --collect-only -q
+
+negative_cases:
+  - A stage receiving a payload without tenant context rejects it.
+  - Tenant A's golden-path run cannot observe Tenant B's ingestion, graph, or benchmark data.
+  - A mid-pipeline failure surfaces a structured error, never a silently partial result.
+
+non_goals:
+  - Rewriting layer services.
+  - Frontend browser coverage (V1-GOLDEN-002).
+
+rollback:
+  strategy: revert_patch
+  data_migration_required: false
+
+completion_evidence:
+  - new golden-path certification test files
+  - command and exit-code log from the live-stack run
+  - residual-risk statement
