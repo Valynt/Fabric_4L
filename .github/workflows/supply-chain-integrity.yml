@@ -307,8 +307,12 @@ jobs:
               set +e
               (
                 if [ -f "$dir/uv.lock" ]; then
-                  uv pip compile "$dir/pyproject.toml" --output-file="$requirements_file" --python-version 3.12 --quiet && \
-                    pip-audit -r "$requirements_file" --format=json --output="$audit_output"
+                  (
+                    cd "$dir" && \
+                      uv export --locked --no-dev --no-editable --no-header --output-file="$requirements_file" && \
+                      sed -i '/^\.$/d' "$requirements_file" && \
+                      pip-audit -r "$requirements_file" --format=json --output="$audit_output"
+                  )
                 else
                   cd "$dir" && \
                     pip install -e . --quiet 2>/dev/null; \
