@@ -12,10 +12,8 @@ import os
 from dataclasses import dataclass
 from typing import Any
 
+from value_fabric.shared.audit import audit_log
 from value_fabric.shared.models.typed_dict import TypedDictModel
-from value_fabric.shared.observability.logging import get_logger
-
-audit_log = get_logger(__name__)
 
 
 class ModelRegistryClient_get_fallback_statsResult(TypedDictModel):
@@ -28,7 +26,6 @@ class ModelRegistryClient_get_fallback_statsResult(TypedDictModel):
 @dataclass
 class ModelSpec:
     """Model specification."""
-
     id: str
     source: str  # "registry" or "env_fallback"
     version: str | None = None
@@ -37,7 +34,6 @@ class ModelSpec:
 
 class RegistryUnavailable(Exception):
     """Raised when model registry is unavailable."""
-
     pass
 
 
@@ -102,7 +98,7 @@ class ModelRegistryClient:
                     "model_registry_unavailable_no_fallback",
                     requested_model=model_id,
                     registry_url=self.registry_url,
-                    action="hard_failure",
+                    action="hard_failure"
                 )
                 raise
 
@@ -114,7 +110,7 @@ class ModelRegistryClient:
                 fallback_model=fallback,
                 reason="registry_unavailable",
                 fallback_count=self._fallback_count,
-                action="degraded_mode_activated",
+                action="degraded_mode_activated"
             )
 
             if os.getenv("STRICT_MODE") == "true":
@@ -123,7 +119,7 @@ class ModelRegistryClient:
                     requested_model=model_id,
                     fallback_model=fallback,
                     reason="STRICT_MODE_enabled",
-                    action="blocked_degraded_mode",
+                    action="blocked_degraded_mode"
                 )
                 raise RuntimeError(
                     f"Registry fallback prohibited in STRICT_MODE. "
@@ -133,7 +129,7 @@ class ModelRegistryClient:
             return ModelSpec(
                 id=fallback,
                 source="env_fallback",
-                metadata={"requested": model_id, "fallback_reason": "registry_unavailable"},
+                metadata={"requested": model_id, "fallback_reason": "registry_unavailable"}
             )
 
     def get_fallback_stats(self) -> dict:
@@ -142,11 +138,9 @@ class ModelRegistryClient:
         Returns:
             Dict with fallback count and configuration
         """
-        return ModelRegistryClient_get_fallback_statsResult.model_validate(
-            {
-                "fallback_count": self._fallback_count,
-                "fallback_model": os.getenv("FALLBACK_MODEL"),
-                "strict_mode": os.getenv("STRICT_MODE") == "true",
-                "registry_url": self.registry_url,
-            }
-        )
+        return ModelRegistryClient_get_fallback_statsResult.model_validate({
+            "fallback_count": self._fallback_count,
+            "fallback_model": os.getenv("FALLBACK_MODEL"),
+            "strict_mode": os.getenv("STRICT_MODE") == "true",
+            "registry_url": self.registry_url,
+        })

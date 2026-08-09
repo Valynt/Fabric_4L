@@ -138,8 +138,8 @@ def find_openapi_generator() -> str:
     """Find the openapi-generator-cli executable.
 
     Searches in order:
-        1. Local pnpm/npx install
-        2. Global install (e.g. pnpm add -g)
+        1. Local npm install (npx)
+        2. Global npm install
         3. System PATH
         4. Docker fallback
     """
@@ -159,7 +159,7 @@ def find_openapi_generator() -> str:
 
     raise RuntimeError(
         "openapi-generator-cli not found. Install via:\n"
-        "  pnpm add -g @openapitools/openapi-generator-cli\n"
+        "  npm install -g @openapitools/openapi-generator-cli\n"
         "Or use Docker:\n"
         "  docker pull openapitools/openapi-generator-cli"
     )
@@ -567,11 +567,11 @@ def main() -> int:
 
     output_dir = Path(args.output_dir)
 
-    # Install generator if requested (use pnpm to stay within package-manager policy)
+    # Install generator if requested
     if args.install_generator:
         print("Installing openapi-generator-cli...")
         subprocess.run(
-            ["pnpm", "add", "-g", "@openapitools/openapi-generator-cli"],
+            ["npm", "install", "-g", "@openapitools/openapi-generator-cli"],
             check=True,
         )
 

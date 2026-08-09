@@ -249,12 +249,12 @@ async def create_proxy_pool_endpoint(
 
 async def legacy_health_check():
     """Legacy-compatible health check with dependency status."""
-    from ..shared.database import _new_session, redis_client
+    from ..shared.database import SessionLocal, redis_client
 
     dependencies = []
     overall_status = "healthy"
 
-    db = _new_session()
+    db = SessionLocal()
     try:
         from sqlalchemy import text
 

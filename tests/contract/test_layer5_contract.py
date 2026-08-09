@@ -163,8 +163,8 @@ async def test_freshness_summary_endpoint_exists(client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_health_endpoint_exists(client: AsyncClient):
-    """Verify GET /health is implemented."""
-    response = await client.get("/health")
+    """Verify GET /api/v1/health is implemented."""
+    response = await client.get("/api/v1/health")
     assert response.status_code == 200, \
         f"Health endpoint should return 200, got {response.status_code}"
 

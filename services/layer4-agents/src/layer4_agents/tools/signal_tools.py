@@ -51,9 +51,7 @@ def _require_tool_context(context: RequestContext | None = None) -> RequestConte
     """Resolve the explicit or ambient request context. Fail closed if missing."""
     ctx = context or get_request_context()
     if ctx is None or not getattr(ctx, "tenant_id", None):
-        raise AuthenticationError(
-            message="Tenant-scoped tool execution requires authenticated context"
-        )
+        raise AuthenticationError(message = "Tenant-scoped tool execution requires authenticated context")
     return ctx
 
 
@@ -100,9 +98,7 @@ async def get_account_signals(
     _ctx = _require_tool_context(context)
     ctx = authorize_action("layer4.tool.signals.read", _ctx)
     if not isinstance(ctx, RequestContext) or not getattr(ctx, "tenant_id", None):
-        raise AuthenticationError(
-            message="Tenant-scoped tool execution requires authenticated context"
-        )
+        raise AuthenticationError(message = "Tenant-scoped tool execution requires authenticated context")
     tenant_id = str(ctx.tenant_id)
 
     states = lifecycle_states or ["validated", "promoted"]
@@ -133,9 +129,7 @@ async def get_account_signals(
             return items
         logger.warning(
             "get_account_signals returned %s for account=%s tenant=%s",
-            response.status_code,
-            account_id,
-            tenant_id,
+            response.status_code, account_id, tenant_id,
         )
         return []
     except asyncio.CancelledError:
@@ -202,17 +196,13 @@ async def create_signal(
     _ctx = _require_tool_context(context)
     ctx = authorize_action("layer4.tool.signals.write", _ctx)
     if not isinstance(ctx, RequestContext) or not getattr(ctx, "tenant_id", None):
-        raise AuthenticationError(
-            message="Tenant-scoped tool execution requires authenticated context"
-        )
+        raise AuthenticationError(message = "Tenant-scoped tool execution requires authenticated context")
     tenant_id = str(ctx.tenant_id)
 
     now = datetime.now(UTC).isoformat()
 
-    # Normalize a copy so generating evidence IDs never mutates caller-owned
-    # input dictionaries.
-    normalized_evidence = [dict(item) for item in evidence]
-    for item in normalized_evidence:
+    # Ensure evidence items have IDs
+    for item in evidence:
         if not item.get("id"):
             item["id"] = str(uuid.uuid4())
 
@@ -221,7 +211,7 @@ async def create_signal(
         "type": signal_type,
         "content": content,
         "confidence": confidence,
-        "evidence": normalized_evidence,
+        "evidence": evidence,
         "provenance": {
             "extractor": "ai",
             "method": provenance_method,
@@ -256,15 +246,15 @@ async def create_signal(
             return created
         logger.warning(
             "create_signal returned %s for account=%s tenant=%s",
-            response.status_code,
-            account_id,
-            tenant_id,
+            response.status_code, account_id, tenant_id,
         )
         return None
     except asyncio.CancelledError:
         raise
     except Exception:
-        logger.exception("create_signal failed for account=%s tenant=%s", account_id, tenant_id)
+        logger.exception(
+            "create_signal failed for account=%s tenant=%s", account_id, tenant_id
+        )
         return None
     finally:
         emit_audit_event(

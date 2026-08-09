@@ -200,7 +200,7 @@ def _evaluate_services_availability(env: Mapping[str, str] | None = None) -> tup
     urls_to_check = [
         f"{_get_env_url('LAYER3_API_URL', DEFAULT_LAYER3_URL)}/health",
         f"{_get_env_url('LAYER4_API_URL', DEFAULT_LAYER4_URL)}/health",
-        f"{_get_env_url('LAYER5_API_URL', DEFAULT_LAYER5_URL)}/health",
+        f"{_get_env_url('LAYER5_API_URL', DEFAULT_LAYER5_URL)}/api/v1/health",
     ]
 
     missing_services = []
@@ -302,7 +302,7 @@ async def layer5_client() -> AsyncClient:
     Skips the test if the service is unreachable.
     """
     base_url = _get_env_url("LAYER5_API_URL", DEFAULT_LAYER5_URL)
-    _skip_if_services_unavailable([f"{base_url}/health"])
+    _skip_if_services_unavailable([f"{base_url}/api/v1/health"])
     timeout = float(os.getenv("CONTRACT_TEST_TIMEOUT", DEFAULT_TIMEOUT))
 
     async with AsyncClient(base_url=base_url, timeout=timeout) as client:

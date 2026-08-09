@@ -17,7 +17,7 @@ if ($LASTEXITCODE -ne 0) {
 
 Write-Host "3. Running Contract Tests..."
 # First ensure we have the minimum number of tests
-python scripts/ensure-pytest-collection.py --dir tests/contract --min-tests 330
+python scripts/ensure-pytest-collection.py tests/contract 330
 if ($LASTEXITCODE -ne 0) {
     Write-Error "Test collection failed. Tearing down..."
     docker compose -f infra/compose/docker-compose.contract.yml down -v

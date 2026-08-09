@@ -118,7 +118,7 @@ class AccountService:
             owner_email=owner_email,
             stage=stage,
             segment=segment,
-            tenant_id=UUID(str(tenant_id)),
+            tenant_id=tenant_id,
             sync_status=SyncStatus.PENDING.value,
             opportunities=[],
             contacts=[],
@@ -156,7 +156,7 @@ class AccountService:
         # Apply filters
         filters = []
         if tenant_id:
-            filters.append(Account.tenant_id == UUID(str(tenant_id)))
+            filters.append(Account.tenant_id == tenant_id)
         if provider:
             filters.append(Account.provider == provider.value)
         if stage:
@@ -219,7 +219,7 @@ class AccountService:
 
         filters = []
         if tenant_id:
-            filters.append(Account.tenant_id == UUID(str(tenant_id)))
+            filters.append(Account.tenant_id == tenant_id)
 
         # Text search across name, domain, owner_name
         if query_str:
@@ -279,7 +279,7 @@ class AccountService:
         """Get a single account by ID, optionally scoped to a tenant."""
         filters = [Account.id == account_id]
         if tenant_id:
-            filters.append(Account.tenant_id == UUID(str(tenant_id)))
+            filters.append(Account.tenant_id == tenant_id)
         result = await self.db.execute(select(Account).where(and_(*filters)))
         return result.scalar_one_or_none()
 
@@ -296,7 +296,7 @@ class AccountService:
             Account.provider_record_id == provider_record_id,
         ]
         if tenant_id:
-            filters.append(Account.tenant_id == UUID(str(tenant_id)))
+            filters.append(Account.tenant_id == tenant_id)
         result = await self.db.execute(select(Account).where(and_(*filters)))
         return result.scalar_one_or_none()
 
@@ -486,7 +486,7 @@ class AccountService:
         # Get distinct industries
         industry_result = await self.db.execute(
             select(Account.industry)
-            .where(Account.tenant_id == UUID(str(tenant_id)), Account.industry.isnot(None))
+            .where(Account.tenant_id == tenant_id, Account.industry.isnot(None))
             .distinct()
         )
         industries = [row[0] for row in industry_result.all() if row[0]]
@@ -494,7 +494,7 @@ class AccountService:
         # Get distinct stages
         stage_result = await self.db.execute(
             select(Account.stage)
-            .where(Account.tenant_id == UUID(str(tenant_id)), Account.stage.isnot(None))
+            .where(Account.tenant_id == tenant_id, Account.stage.isnot(None))
             .distinct()
         )
         stages = [row[0] for row in stage_result.all() if row[0]]
@@ -502,7 +502,7 @@ class AccountService:
         # Get distinct regions
         region_result = await self.db.execute(
             select(Account.region)
-            .where(Account.tenant_id == UUID(str(tenant_id)), Account.region.isnot(None))
+            .where(Account.tenant_id == tenant_id, Account.region.isnot(None))
             .distinct()
         )
         regions = [row[0] for row in region_result.all() if row[0]]
@@ -510,7 +510,7 @@ class AccountService:
         # Get distinct segments
         segment_result = await self.db.execute(
             select(Account.segment)
-            .where(Account.tenant_id == UUID(str(tenant_id)), Account.segment.isnot(None))
+            .where(Account.tenant_id == tenant_id, Account.segment.isnot(None))
             .distinct()
         )
         segments = [row[0] for row in segment_result.all() if row[0]]
@@ -518,7 +518,7 @@ class AccountService:
         # Get owners
         owner_result = await self.db.execute(
             select(Account.owner_id, Account.owner_name)
-            .where(Account.tenant_id == UUID(str(tenant_id)), Account.owner_id.isnot(None))
+            .where(Account.tenant_id == tenant_id, Account.owner_id.isnot(None))
             .distinct()
         )
         owners = [

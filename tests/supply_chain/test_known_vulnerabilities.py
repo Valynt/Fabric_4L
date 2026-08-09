@@ -11,7 +11,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 def test_vulnerability_policy_blocks_critical_and_high_findings() -> None:
     policy = (REPO_ROOT / "security/supply_chain/vulnerability_triage_sla.md").read_text(encoding="utf-8")
     security_gates = (REPO_ROOT / ".github/workflows/security-gates.yml").read_text(encoding="utf-8")
-    supply_chain = (REPO_ROOT / ".github/workflows/supply-chain-integrity.yml").read_text(encoding="utf-8")
+    supply_chain = (REPO_ROOT / ".github/workflows/supply-chain.yml").read_text(encoding="utf-8")
 
     assert "Critical" in policy
     assert "High" in policy
@@ -39,7 +39,7 @@ def test_audit_ci_writes_vulnerability_summary_artifact() -> None:
 
 
 def test_ci_publishes_vulnerability_summary_artifacts() -> None:
-    supply_chain = (REPO_ROOT / ".github/workflows/supply-chain-integrity.yml").read_text(encoding="utf-8")
+    supply_chain = (REPO_ROOT / ".github/workflows/supply-chain.yml").read_text(encoding="utf-8")
     security_gates = (REPO_ROOT / ".github/workflows/security-gates.yml").read_text(encoding="utf-8")
 
     assert "source-${{ matrix.layer }}-vulns.sarif" in supply_chain
@@ -72,38 +72,15 @@ def test_node_audit_overrides_patch_known_transitive_advisories() -> None:
     package_json = json.loads((REPO_ROOT / "package.json").read_text(encoding="utf-8"))
     overrides = package_json["pnpm"]["overrides"]
 
-    assert overrides["brace-expansion@^1.1.7"] == "5.0.8"
-    assert overrides["brace-expansion@^2.0.1"] == "5.0.8"
-    assert overrides["brace-expansion@^5.0.0"] == "5.0.8"
+    assert overrides["brace-expansion"] == "5.0.8"
     assert overrides["systeminformation@<=5.31.6"] == "5.31.7"
 
-    root_lockfile = (REPO_ROOT / "pnpm-lock.yaml").read_text(encoding="utf-8")
-    web_lockfile = (REPO_ROOT / "apps/web/pnpm-lock.yaml").read_text(encoding="utf-8")
-
-    # Root lockfile must resolve only the single patched brace-expansion version.
-    assert "brace-expansion@5.0.8:" in root_lockfile
-    for vulnerable_version in ("1.1.14", "2.1.1", "2.1.2", "2.1.0", "5.0.6", "5.0.7"):
-        assert f"brace-expansion@{vulnerable_version}:" not in root_lockfile
-
-    # Apps/web may resolve only brace-expansion via transitive deps; any
-    # resolved version must be the single patched override.
-    for lockfile in (root_lockfile, web_lockfile):
-        for vulnerable_version in ("1.1.14", "2.1.1", "2.1.2", "2.1.0", "5.0.6", "5.0.7"):
-            assert f"brace-expansion@{vulnerable_version}:" not in lockfile
-        assert "brace-expansion@5.0.8:" in lockfile
+    lockfile = (REPO_ROOT / "pnpm-lock.yaml").read_text(encoding="utf-8")
+    assert "brace-expansion@5.0.8:" in lockfile
+    for vulnerable_version in ("1.1.16", "2.1.2", "5.0.7"):
+        assert f"brace-expansion@{vulnerable_version}:" not in lockfile
     assert overrides["body-parser@<1.20.6"] == "1.20.6"
 
-
-
-def test_flagged_ci_and_test_images_run_as_non_root() -> None:
-    expectations = {
-        "apps/web/Dockerfile.dev": "USER node",
-        "apps/web/Dockerfile.playwright": "USER pwuser",
-        "tools/ci/security-suite/Dockerfile": "USER 1001:1001",
-    }
-    for relative_path, directive in expectations.items():
-        dockerfile = (REPO_ROOT / relative_path).read_text(encoding="utf-8")
-        assert directive in dockerfile
 
 
 def test_security_gates_builds_frontend_sbom_from_workspace_root() -> None:

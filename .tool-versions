@@ -4,11 +4,11 @@
 
 # Programming Languages
 python 3.11.10
-nodejs 22.18.0
+nodejs 22.12.0
 
 # Package Managers
-pnpm 10.18.1
-uv 0.11.6
+pnpm 9.12.0
+uv 0.5.0
 
 # Infrastructure
 terraform 1.9.8
@@ -16,12 +16,10 @@ helm 3.16.2
 kubectl 1.31.2
 
 # Security
-cosign 2.5.3
-syft 1.30.0
-grype 0.104.1
+cosign 2.4.0
+syft 1.14.0
 trivy 0.56.2
-semgrep 1.136.0
-pip-audit 2.9.0
+semgrep 1.93.0
 
 # Quality
 pre-commit 4.0.0

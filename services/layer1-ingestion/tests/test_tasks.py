@@ -4,16 +4,14 @@ This test file provides direct coverage for the Celery task pipeline,
 addressing the untested hotspot issue identified in health analysis.
 """
 
-from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 
-from layer1_ingestion.crawler.smart_router import RouteType
 from layer1_ingestion.shared.tasks import (
-    MAX_DISPATCH_ATTEMPTS,
     _domain_class,
+    MAX_DISPATCH_ATTEMPTS,
     celery_app,
 )
 
@@ -111,7 +109,6 @@ class TestRunAsync:
     def test_run_async_with_event_loop(self):
         """Test _run_async when event loop is already running."""
         import asyncio
-
         from layer1_ingestion.shared.tasks import _run_async
 
         async def simple_coro():
@@ -139,7 +136,6 @@ class TestComplianceCheckStage:
         job.tenant_id = uuid4()
         job.target_id = uuid4()
         job.status = "PENDING"
-        job.created_at = datetime.now(UTC)
         job.configuration = {
             "url": "https://example.com",
             "compliance": {
@@ -191,8 +187,8 @@ class TestComplianceCheckStage:
     @pytest.mark.asyncio
     async def test_compliance_check_stage_url_blocked(self, mock_job):
         """Test compliance check stage when URL is blocked."""
-        from layer1_ingestion.compliance.url_safety import URLSafetyError
         from layer1_ingestion.shared.tasks import _compliance_check_stage_async
+        from layer1_ingestion.compliance.url_safety import URLSafetyError
 
         mock_self = MagicMock()
         mock_self.request.id = "test-task-id"
@@ -225,7 +221,6 @@ class TestBrowserCrawlStage:
         job.tenant_id = uuid4()
         job.target_id = uuid4()
         job.status = "VALIDATING"
-        job.created_at = datetime.now(UTC)
         job.configuration = {
             "url": "https://example.com",
             "browser_config": {"headless": True},
@@ -251,13 +246,14 @@ class TestBrowserCrawlStage:
 
         with patch("layer1_ingestion.shared.tasks.get_db_session") as mock_session_ctx:
             mock_session = MagicMock()
-            mock_session.query.return_value.get.side_effect = [mock_job, mock_target]
+            mock_session.query.return_value.get.return_value = mock_job
+            mock_session.query.return_value.filter.return_value.first.return_value = mock_target
             mock_session_ctx.return_value.__enter__.return_value = mock_session
 
             with patch("layer1_ingestion.shared.tasks.SmartRouter") as mock_router_class:
                 mock_router = MagicMock()
                 mock_decision = MagicMock()
-                mock_decision.route = RouteType.FAST
+                mock_decision.route.value = "FAST"
                 mock_decision.reason = "static_content"
                 mock_router.decide.return_value = mock_decision
                 mock_router_class.return_value = mock_router
@@ -325,7 +321,7 @@ class TestProcessScrapingJob:
                         mock_result.id = "chain-task-id"
                         mock_chain.return_value.apply_async.return_value = mock_result
 
-                        result = process_scraping_job.run(str(mock_job.id), str(mock_job.tenant_id))
+                        result = process_scraping_job(mock_self, str(mock_job.id), str(mock_job.tenant_id))
 
                         assert result["success"] is True
                         assert result["job_id"] == str(mock_job.id)
@@ -339,7 +335,7 @@ class TestProcessScrapingJob:
 
         with patch("layer1_ingestion.shared.tasks._check_tenant_kill_switch_sync", return_value=True):
             with patch("layer1_ingestion.shared.tasks._fail_job"):
-                result = process_scraping_job.run(str(mock_job.id), str(mock_job.tenant_id))
+                result = process_scraping_job(mock_self, str(mock_job.id), str(mock_job.tenant_id))
 
                 assert result["success"] is False
                 assert "suspended" in result["error"].lower()
@@ -355,7 +351,6 @@ class TestPipelineStageIdempotency:
         job.id = uuid4()
         job.tenant_id = uuid4()
         job.status = "VALIDATING"
-        job.created_at = datetime.now(UTC)
         job.configuration = {"url": "https://example.com"}
         return job
 
@@ -411,7 +406,7 @@ class TestMetricsRecording:
         mock_job.target_id = uuid4()
         mock_job.status = "PENDING"
         mock_job.configuration = {"url": "https://example.com"}
-        mock_job.created_at = datetime.now(UTC)
+        mock_job.created_at = MagicMock()
 
         mock_self = MagicMock()
         mock_self.request.id = "test-task-id"

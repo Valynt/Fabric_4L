@@ -95,7 +95,7 @@ async def _get_tenant_scoped_account(
     """
     stmt = select(Account).where(
         Account.id == account_id,
-        Account.tenant_id == UUID(str(tenant_id)),
+        Account.tenant_id == tenant_id,
     )
     result = await db.execute(stmt)
     account = result.scalar_one_or_none()

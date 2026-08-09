@@ -43,11 +43,6 @@ class PipelineCoordinator:
         if run.status != IngestionRunStatus.ACCEPTED.value:
             raise ValueError(f"Run must be ACCEPTED to start, got {run.status}")
 
-        # Production sessions disable autoflush. Persist a newly added run before
-        # constructing its first step so the non-null foreign key is available.
-        if run.id is None:
-            self._db.flush([run])
-
         self._state_machine.transition(
             IngestionRunStatus.ACCEPTED.value,
             IngestionRunStatus.VALIDATING_ACCESS.value,

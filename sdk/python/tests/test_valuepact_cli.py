@@ -104,7 +104,7 @@ class FakeClient:
 
 
 class DenyingClient(FakeClient):
-    instances: list[FakeClient] = []
+    instances: list[DenyingClient] = []
 
     def verify_tenant_access(self, tenant_id: str, *, scopes: set[str]) -> dict[str, object]:
         self.calls.append(("verify_tenant_access", {"tenant_id": tenant_id, "scopes": scopes}))
@@ -112,7 +112,7 @@ class DenyingClient(FakeClient):
 
 
 class InterruptingClient(FakeClient):
-    instances: list[FakeClient] = []
+    instances: list[InterruptingClient] = []
 
     def list_workspaces(self, tenant_id: str) -> list[dict[str, str]]:
         assert get_active_execution_context() is not None
@@ -282,9 +282,7 @@ def test_workspace_execute_json_success_with_yes_and_input(
     assert get_active_execution_context() is None
 
 
-def test_missing_token_uses_stable_authentication_exit(
-    valuepact_env: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_missing_token_uses_stable_authentication_exit(valuepact_env: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("VALUEPACT_SERVICE_TOKEN")
 
     result = runner.invoke(cli, ["--json", "workspace", "list"])
@@ -330,9 +328,7 @@ def test_api_adapter_uses_existing_identity_and_workflow_contracts() -> None:
     )
     try:
         identity = client.identity()
-        verification = client.verify_tenant_access(
-            "tenant_123", scopes={"valuepact:workspace:execute"}
-        )
+        verification = client.verify_tenant_access("tenant_123", scopes={"valuepact:workspace:execute"})
         result = client.execute_workspace(
             tenant_id="tenant_123",
             workspace_id="roi_calculator",
@@ -415,7 +411,6 @@ def test_async_contexts_do_not_leak_between_tasks() -> None:
             await asyncio.sleep(0)
             active = get_active_execution_context()
             assert active is not None
-            assert isinstance(active.tenant_id, str)
             return active.tenant_id
 
     first = ExecutionContext(
@@ -436,7 +431,10 @@ def test_async_contexts_do_not_leak_between_tasks() -> None:
     )
 
     async def run() -> list[str]:
-        return list(await asyncio.gather(read_context(first), read_context(second)))
+        return await asyncio.gather(read_context(first), read_context(second))
 
-    assert asyncio.run(run()) == ["tenant_a", "tenant_b"]
+    assert asyncio.run(run()) == [
+        "tenant_a",
+        "tenant_b",
+    ]
     assert get_active_execution_context() is None

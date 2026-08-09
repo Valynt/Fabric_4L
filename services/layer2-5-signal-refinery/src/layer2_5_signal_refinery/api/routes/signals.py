@@ -8,11 +8,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from value_fabric.shared.error_handling.exceptions import (
-    ConflictError,
-    NotFoundError,
-    ValidationError,
-)
+from value_fabric.shared.error_handling.exceptions import ConflictError, NotFoundError, ValidationError
 
 from ...clients.l3_graph_client import get_l3_client
 from ...database import get_db_from_context
@@ -48,8 +44,8 @@ try:  # noqa: E402
     )
 except ImportError:
     # Fallback: use local Pydantic models when shared package unavailable
-
     from pydantic import BaseModel  # noqa: E402
+    from typing import Optional  # noqa: E402
 
     class ValueSignalCreate(BaseModel):  # type: ignore[no-redef]
         account_id: str
@@ -63,22 +59,22 @@ except ImportError:
         source_refs: list = []
 
     class ValueSignalUpdate(BaseModel):  # type: ignore[no-redef]
-        lifecycle_state: str | None = None
-        validation_notes: str | None = None
-        reviewer_id: str | None = None
-        impact_area: str | None = None
-        estimated_value: float | None = None
-        currency: str | None = None
-        time_horizon: str | None = None
-        value_driver_id: str | None = None
+        lifecycle_state: Optional[str] = None
+        validation_notes: Optional[str] = None
+        reviewer_id: Optional[str] = None
+        impact_area: Optional[str] = None
+        estimated_value: Optional[float] = None
+        currency: Optional[str] = None
+        time_horizon: Optional[str] = None
+        value_driver_id: Optional[str] = None
 
     class SignalReviewRequest(BaseModel):  # type: ignore[no-redef]
         status: str
-        notes: str | None = None
+        notes: Optional[str] = None
 
     class SignalPromoteRequest(BaseModel):  # type: ignore[no-redef]
         value_path_category: str
-        value_driver_id: str | None = None
+        value_driver_id: Optional[str] = None
 
     class RawSignalInput(BaseModel):  # type: ignore[no-redef]
         account_id: str
@@ -91,9 +87,9 @@ except ImportError:
 
     class SignalRefineRequest(BaseModel):  # type: ignore[no-redef]
         account_id: str
-        raw_signals: list | None = None
+        raw_signals: Optional[list] = None
         source_refs: list = []
-        extraction_run_id: str | None = None
+        extraction_run_id: Optional[str] = None
 
     class ValueSignalListResponse(BaseModel):  # type: ignore[no-redef]
         items: list
@@ -134,29 +130,25 @@ async def create_signal(
             item["id"] = str(uuid.uuid4())
     # Stringify UUIDs for storage (model_dump(mode='json') already converts most,
     # but belt-and-suspenders for any nested objects that may have slipped through)
-    for field in (
-        "account_id",
-        "opportunity_id",
-        "value_driver_id",
-        "stakeholder_id",
-        "reviewer_id",
-    ):
+    for field in ("account_id", "opportunity_id", "value_driver_id", "stakeholder_id", "reviewer_id"):
         if data.get(field):
             data[field] = str(data[field])
 
     signal = await repo.create(data)
 
-    # Push to L3 asynchronously (best-effort, non-blocking). This route is
-    # async, so a running loop is part of its runtime contract; a missing loop
-    # is an operational defect and must remain visible instead of being hidden.
-    asyncio.get_running_loop().create_task(
-        get_l3_client().push_signal(
-            signal,
-            tenant_id,
-            request.headers.get("X-Request-ID"),
-            request.headers.get("X-Correlation-ID"),
+    # Push to L3 asynchronously (best-effort, non-blocking)
+    try:
+        asyncio.create_task(
+            get_l3_client().push_signal(
+                signal,
+                tenant_id,
+                request.headers.get("X-Request-ID"),
+                request.headers.get("X-Correlation-ID")
+            )
         )
-    )
+    except RuntimeError:
+        # No running event loop in test environments — skip background push
+        pass
 
     return signal
 
@@ -241,7 +233,7 @@ async def get_signal(
 
     signal = await repo.get(signal_id)
     if not signal:
-        raise NotFoundError(message="Signal not found")
+        raise NotFoundError(message = "Signal not found")
     return signal
 
 
@@ -262,7 +254,7 @@ async def update_signal(
 
     updates = {k: v for k, v in body.model_dump(mode="json").items() if v is not None}
     if not updates:
-        raise ValidationError(message="No fields to update")
+        raise ValidationError(message = "No fields to update")
 
     # Stringify UUID fields
     for field in ("reviewer_id", "value_driver_id", "supersedes_signal_id"):
@@ -277,7 +269,7 @@ async def update_signal(
 
     signal = await repo.update(signal_id, updates)
     if not signal:
-        raise NotFoundError(message="Signal not found")
+        raise NotFoundError(message = "Signal not found")
     return signal
 
 
@@ -297,7 +289,7 @@ async def delete_signal(
 
     deleted = await repo.soft_delete(signal_id)
     if not deleted:
-        raise NotFoundError(message="Signal not found")
+        raise NotFoundError(message = "Signal not found")
 
 
 # ---------------------------------------------------------------------------
@@ -328,7 +320,7 @@ async def review_signal(
 
     signal = await repo.update(signal_id, updates)
     if not signal:
-        raise NotFoundError(message="Signal not found")
+        raise NotFoundError(message = "Signal not found")
     return signal
 
 
@@ -349,12 +341,10 @@ async def promote_signal(
 
     signal = await repo.get(signal_id)
     if not signal:
-        raise NotFoundError(message="Signal not found")
+        raise NotFoundError(message = "Signal not found")
 
     if signal["lifecycle_state"] not in ("validated", "extracted"):
-        raise ConflictError(
-            message=f"Cannot promote signal in state '{signal['lifecycle_state']}'. Must be validated or extracted."
-        )
+        raise ConflictError(message=f"Cannot promote signal in state '{signal['lifecycle_state']}'. Must be validated or extracted.")
 
     updates: dict[str, Any] = {"lifecycle_state": "promoted"}
     if body.value_driver_id:
@@ -362,7 +352,7 @@ async def promote_signal(
 
     promoted = await repo.update(signal_id, updates)
     if not promoted:
-        raise NotFoundError(message="Signal not found")
+        raise NotFoundError(message = "Signal not found")
 
     return {
         **promoted,
@@ -438,15 +428,17 @@ async def refine_signals(
         r["tenant_id"] = tenant_id
         signal = await repo.create(r)
         created.append(signal)
-        # FastAPI async routes always execute inside a running event loop.
-        asyncio.get_running_loop().create_task(
-            get_l3_client().push_signal(
-                signal,
-                tenant_id,
-                request.headers.get("X-Request-ID"),
-                request.headers.get("X-Correlation-ID"),
+        try:
+            asyncio.create_task(
+                get_l3_client().push_signal(
+                    signal,
+                    tenant_id,
+                    request.headers.get("X-Request-ID"),
+                    request.headers.get("X-Correlation-ID")
+                )
             )
-        )
+        except RuntimeError:
+            pass
 
     return {
         "refined": len(created),

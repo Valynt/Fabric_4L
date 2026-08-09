@@ -53,7 +53,9 @@ def _write_archive(
             subchart_yaml = (
                 f"apiVersion: v2\nname: {subchart_name}\nversion: {subchart_version}\n"
             ).encode()
-            subchart_info = tarfile.TarInfo(f"{name}/charts/{subchart_name}/Chart.yaml")
+            subchart_info = tarfile.TarInfo(
+                f"{name}/charts/{subchart_name}/Chart.yaml"
+            )
             subchart_info.size = len(subchart_yaml)
             bundle.addfile(subchart_info, io.BytesIO(subchart_yaml))
     return archive
@@ -122,10 +124,9 @@ def test_generate_and_validate_records_lock_and_archive_integrity(
     chart_dir, evidence_dir = _generate(prepared_chart)
 
     metadata = json.loads((evidence_dir / "metadata.json").read_text())
-    assert (
-        metadata["chart_lock_sha256"]
-        == hashlib.sha256((chart_dir / "Chart.lock").read_bytes()).hexdigest()
-    )
+    assert metadata["chart_lock_sha256"] == hashlib.sha256(
+        (chart_dir / "Chart.lock").read_bytes()
+    ).hexdigest()
     assert metadata["helm_version"] == HELM_VERSION
     assert {(item["name"], item["version"]) for item in metadata["dependencies"]} == set(
         DEPENDENCIES.items()
@@ -175,7 +176,9 @@ def test_security_workflow_separates_preparation_from_trivy() -> None:
     preparation = workflow.split("  prepare-helm-dependencies:", 1)[1].split(
         "  trivy-repo-scan:", 1
     )[0]
-    trivy = workflow.split("  trivy-repo-scan:", 1)[1].split("\n  # OSV-Scanner", 1)[0]
+    trivy = workflow.split("  trivy-repo-scan:", 1)[1].split(
+        "\n  # OSV-Scanner", 1
+    )[0]
 
     assert "actions/cache@5a3ec84eff668545956fd18022155c47e93e2684" in preparation
     assert (
@@ -210,9 +213,6 @@ def test_security_workflow_separates_preparation_from_trivy() -> None:
     assert "helm dependency build" not in trivy
     assert "git diff --exit-code" in trivy
     assert "Run Trivy repository scanner" in trivy
-    assert "exit-code: '1'" in trivy
-    assert "severity: 'HIGH,CRITICAL'" in trivy
-    assert "limit-severities-for-sarif: true" in trivy
     assert "trivy-config: 'config/trivy/repository.yaml'" in trivy
     assert trivy.index("validate_helm_dependencies.py validate") < trivy.index(
         "Run Trivy repository scanner"

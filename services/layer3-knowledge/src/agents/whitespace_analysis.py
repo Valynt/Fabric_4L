@@ -10,7 +10,7 @@ Implements gap identification, maturity assessment, and expansion pathway genera
 import logging
 import time
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime
 from enum import Enum
 from typing import Any
 
@@ -444,7 +444,7 @@ class WhitespaceAnalysisAgent(BaseAgent):
             "plan_id": f"plan-{prospect_company.lower().replace(' ', '-')}",
             "prospect_company": prospect_company,
             "prospect_ticker": prospect_ticker,
-            "generated_at": datetime.now(UTC).isoformat(),
+            "generated_at": datetime.utcnow().isoformat(),
             "status": "draft",
             "executive_summary": f"Analysis of {prospect_company} identified {gap_analysis['gaps_identified']} capability gaps",
             "key_insights": insights,

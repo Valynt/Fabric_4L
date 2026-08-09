@@ -5,7 +5,6 @@ frontend route mocks. They are additive to the Playwright validation program and
 must fail closed when services, persistence, tenant boundaries, or audit trails
 are unavailable.
 """
-
 from __future__ import annotations
 
 import asyncio
@@ -17,14 +16,12 @@ from typing import Any, Iterable
 
 import httpx
 import pytest
-from value_fabric.shared.identity.jwt import encode_jwt
 
 DEFAULT_TIMEOUT_SECONDS = float(os.getenv("BACKEND_VALIDATION_HTTP_TIMEOUT", "2.0"))
 TENANT_HEADER = os.getenv("FABRIC_TENANT_HEADER", "X-Tenant-ID")
 USER_HEADER = os.getenv("FABRIC_USER_HEADER", "X-User-ID")
 ROLE_HEADER = os.getenv("FABRIC_ROLE_HEADER", "X-Role")
 RUN_ID = os.getenv("BACKEND_VALIDATION_RUN_ID", f"backend-validation-{uuid.uuid4().hex[:8]}")
-RUN_SLUG_SUFFIX = uuid.uuid5(uuid.NAMESPACE_URL, f"fabric-backend-integrated:{RUN_ID}").hex[:16]
 
 SERVICE_URLS = {
     "l1": os.getenv("LAYER1_API_URL", "http://localhost:8001").rstrip("/"),
@@ -91,23 +88,18 @@ class BackendValidationHarness:
         self.timeout = DEFAULT_TIMEOUT_SECONDS
         self.seed_source_id: str = ""
 
-    def headers(
-        self, tenant_id: str | None = None, user_id: str | None = None, role: str = "super_admin"
-    ) -> dict[str, str]:
+    def headers(self, tenant_id: str | None = None, user_id: str | None = None, role: str = "super_admin") -> dict[str, str]:
         effective_tenant_id = tenant_id or self.seed_ids.tenant_a
         effective_user_id = user_id or self.seed_ids.user_admin
-        token = encode_jwt(
-            uuid.UUID(effective_tenant_id),
-            user_id=effective_user_id,
-            roles=[role],
-        )
         return {
-            "Authorization": f"Bearer {token}",
             TENANT_HEADER: effective_tenant_id,
             USER_HEADER: effective_user_id,
             ROLE_HEADER: role,
             "X-Organization-ID": effective_tenant_id,
             "X-Org-ID": effective_tenant_id,
+            "X-Service-Auth": os.getenv("SERVICE_AUTH_SECRET", "release-smoke-service-auth-secret-with-more-than-32-characters"),
+            "X-Dev-Tenant-ID": effective_tenant_id,
+            "X-Dev-User-ID": effective_user_id,
             "Content-Type": "application/json",
             "X-Validation-Run-ID": RUN_ID,
         }
@@ -130,9 +122,7 @@ class BackendValidationHarness:
         headers = self.headers(tenant_id=tenant_id, user_id=user_id, role=role)
         if extra_headers:
             headers.update(extra_headers)
-        async with httpx.AsyncClient(
-            base_url=base_url, timeout=self.timeout, follow_redirects=False
-        ) as client:
+        async with httpx.AsyncClient(base_url=base_url, timeout=self.timeout, follow_redirects=False) as client:
             try:
                 response = await client.request(
                     method,
@@ -181,11 +171,15 @@ class BackendValidationHarness:
 
     async def create_seed_graph(self) -> dict[str, Any]:
         """Seed the minimum data graph through real service contracts."""
-        auth_seed_payload = {
-            "tenant_id": self.seed_ids.tenant_a,
-            "tenant_name": f"Fabric Backend Validation Tenant {RUN_ID}",
-            "tenant_slug": f"backend-validation-{RUN_SLUG_SUFFIX}-a",
-            "service_account_id": "backend-integrated-validation",
+        suffix = RUN_ID.replace("backend-validation-", "")
+        tenant_payload = {
+            "name": f"Fabric Backend Validation Tenant {RUN_ID}",
+            "slug": f"backend-validation-{suffix}-a",
+            "settings": {
+                "validation_run_id": RUN_ID,
+                "requested_tenant_id": self.seed_ids.tenant_a,
+                "plan": "enterprise",
+            },
         }
         account_payload = {
             "id": self.seed_ids.account_id,
@@ -213,44 +207,15 @@ class BackendValidationHarness:
             "metadata": {"validation_run_id": RUN_ID, "source": "backend-integrated-seed"},
         }
 
-        auth_seed, _ = await self.request(
-            "l4",
-            "POST",
-            "/v1/validation/seed/auth-context",
-            json=auth_seed_payload,
-            expected=(200,),
-            extra_headers={"X-Privileged-Reason": "validation-seed"},
-        )
-        tenant = auth_seed["tenant"]
-        account, account_response = await self.request(
-            "l4", "POST", "/v1/accounts", json=account_payload, expected=(200, 201, 409)
-        )
-        if account_response.status_code == 409:
-            account, _ = await self.request(
-                "l4",
-                "GET",
-                f"/v1/accounts/{self.seed_ids.account_id}",
-                expected=(200,),
-            )
-        source, _ = await self.request(
-            "l1",
-            "POST",
-            "/api/v1/ingestion/sources",
-            json=document_payload,
-            expected=(200, 201, 202, 409),
-        )
-        self.seed_source_id = (
-            source.get("source_id") or source.get("id") or self.seed_ids.document_id
-        )
+        tenant, _ = await self.request("l4", "POST", "/v1/tenants", json=tenant_payload, expected=(200, 201, 409))
+        account, _ = await self.request("l4", "POST", "/v1/accounts", json=account_payload, expected=(200, 201, 409))
+        source, _ = await self.request("l1", "POST", "/api/v1/ingestion/sources", json=document_payload, expected=(200, 201, 202, 409))
+        self.seed_source_id = source.get("source_id") or source.get("id") or self.seed_ids.document_id
         return {"tenant": tenant, "account": account, "source": source}
 
-    async def assert_persisted(
-        self, layer: str, path: str, expected_id: str, *, tenant_id: str | None = None
-    ) -> Any:
+    async def assert_persisted(self, layer: str, path: str, expected_id: str, *, tenant_id: str | None = None) -> Any:
         body, _ = await self.request(layer, "GET", path, tenant_id=tenant_id, expected=(200,))
-        assert str(expected_id) in str(body), (
-            f"Expected persisted id {expected_id!r} in {layer.upper()} {path}: {body!r}"
-        )
+        assert str(expected_id) in str(body), f"Expected persisted id {expected_id!r} in {layer.upper()} {path}: {body!r}"
         return body
 
     async def assert_cross_tenant_denied(self, layer: str, path: str) -> None:
@@ -270,34 +235,23 @@ class BackendValidationHarness:
             f"/v1/audit/logs?action={action}&entity_id={entity_id}",
             expected=(200,),
         )
-        assert action in str(body) and entity_id in str(body), (
-            f"Audit trail must include {action=} and {entity_id=}: {body!r}"
-        )
+        assert action in str(body) and entity_id in str(body), f"Audit trail must include {action=} and {entity_id=}: {body!r}"
         return body
 
     async def assert_job_terminal_or_progressing(self, job_id: str) -> Any:
-        body, _ = await self.request(
-            "l1", "GET", f"/api/v1/ingestion/jobs/{job_id}", expected=(200,)
-        )
+        body, _ = await self.request("l1", "GET", f"/api/v1/ingestion/jobs/{job_id}", expected=(200,))
         status_text = str(body).lower()
-        assert any(
-            state in status_text
-            for state in ("queued", "running", "progress", "failed", "completed", "cancelled")
-        ), body
+        assert any(state in status_text for state in ("queued", "running", "progress", "failed", "completed", "cancelled")), body
         return body
 
-    async def wait_for_job_state(
-        self, layer: str, path: str, desired: set[str], attempts: int = 5
-    ) -> Any:
+    async def wait_for_job_state(self, layer: str, path: str, desired: set[str], attempts: int = 5) -> Any:
         last_body: Any = None
         for _ in range(attempts):
             last_body, _ = await self.request(layer, "GET", path, expected=(200,))
             if any(state in str(last_body).lower() for state in desired):
                 return last_body
             await asyncio.sleep(0.2)
-        raise AssertionError(
-            f"Job state at {layer.upper()} {path} did not reach {desired}; last body={last_body!r}"
-        )
+        raise AssertionError(f"Job state at {layer.upper()} {path} did not reach {desired}; last body={last_body!r}")
 
 
 @pytest.fixture

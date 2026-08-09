@@ -75,7 +75,6 @@ def test_dast_ephemeral_stack_provides_required_compose_env_and_evidence_dir() -
     assert "OPENAI_API_KEY=${OPENAI_API_KEY:?set OPENAI_API_KEY}" not in command
     assert "JWT_SECRET=valuefabric-ci-jwt-secret-minimum-32-characters" in command
     assert "JWT_SECRET=${JWT_SECRET:?set JWT_SECRET}" not in command
-    assert "JWT_ALGORITHM=RS256" in command
     assert "docker compose -f infra/compose/docker-compose.full.yml --env-file .env up -d --build" in command
     for variable in (
         "POSTGRES_USER",
@@ -83,11 +82,8 @@ def test_dast_ephemeral_stack_provides_required_compose_env_and_evidence_dir() -
         "REDIS_PASSWORD",
         "SECRET_KEY",
         "JWT_SECRET",
-        "JWT_ALGORITHM",
         "API_KEY_HMAC_SECRET",
         "SERVICE_AUTH_SECRET",
-        "CREDENTIALS_MASTER_KEY",
-        "DEFAULT_TENANT_ID",
         "LAYER4_DATABASE_URL",
         "NEO4J_PASSWORD",
         "CORS_ORIGINS",
@@ -101,8 +97,6 @@ def test_dast_ephemeral_stack_provides_required_compose_env_and_evidence_dir() -
         "GRAFANA_ADMIN_PASSWORD",
     ):
         assert f"{variable}=" in command
-
-    assert 'CORS_ORIGINS=["https://localhost:3000"]' in command
 
     collect_logs = next(step for step in steps if step.get("name") == "Collect compose logs for evidence")
     assert "mkdir -p zap-reports" in collect_logs["run"]

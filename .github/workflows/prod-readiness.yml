@@ -11,9 +11,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  # Cancel only an obsolete run of this same workflow/ref. A global
-  # feature-branch group lets activity on an unrelated PR cancel required gates.
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: prod-readiness-${{ github.ref }}
   cancel-in-progress: true
 
 env:

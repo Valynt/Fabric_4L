@@ -235,7 +235,7 @@ async def get_tier_api_key_limit(db: AsyncSession, tenant_id: UUID) -> int | Non
     Returns:
         API key limit or None for unlimited
     """
-    from .tiers import get_tier_limit
+    from ...tiers import get_tier_limit
 
     tenant = await get_tenant(db, tenant_id)
     if not tenant:

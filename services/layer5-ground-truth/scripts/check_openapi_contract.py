@@ -16,7 +16,6 @@ def _normalize_json(payload: object) -> str:
 
 
 def _load_runtime_openapi(repo_root: Path, canonical_src: Path) -> object:
-    sys.path.insert(0, str(repo_root / "packages" / "shared" / "src"))
     sys.path.insert(0, str(repo_root))
     sys.path.insert(0, str(canonical_src))
     try:

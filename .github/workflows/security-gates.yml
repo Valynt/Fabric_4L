@@ -17,9 +17,7 @@ on:
     - cron: '0 9 * * 1'
 
 concurrency:
-  # Cancel only an obsolete run of this same workflow/ref. A global
-  # feature-branch group lets activity on an unrelated PR cancel required gates.
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: security-gates-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -375,7 +373,6 @@ jobs:
           ignore-unfixed: true
           vuln-type: 'os,library'
           severity: 'HIGH,CRITICAL'
-          limit-severities-for-sarif: true
           scanners: 'vuln,secret,config'
           skip-dirs: 'archive,docs/archive,node_modules'
           trivy-config: 'config/trivy/repository.yaml'
@@ -656,7 +653,7 @@ jobs:
           severity: 'HIGH,CRITICAL'
 
       - name: Upload SBOM vulnerability SARIF
-        if: always() && hashFiles(format('{0}-sbom-vuln.sarif', matrix.artifact.name)) != ''
+        if: always()
         uses: github/codeql-action/upload-sarif@3ce22a6e336a7fcc318bc58ae1986395bdc83ba7 # v4.35.4
         with:
           sarif_file: '${{matrix.artifact.name}}-sbom-vuln.sarif'
@@ -711,20 +708,17 @@ jobs:
           REDIS_PASSWORD=valuefabric-ci-redis
           SECRET_KEY=valuefabric-ci-secret-key-minimum-32-characters
           JWT_SECRET=valuefabric-ci-jwt-secret-minimum-32-characters
-          JWT_ALGORITHM=RS256
           API_KEY_HMAC_SECRET=valuefabric-ci-api-key-hmac-secret-32chars
           SERVICE_AUTH_SECRET=valuefabric-ci-service-auth-secret-32chars
-          CREDENTIALS_MASTER_KEY=valuefabric-ci-credentials-master-key-32chars
-          DEFAULT_TENANT_ID=00000000-0000-4000-8000-000000000001
-          LAYER4_DATABASE_URL=postgresql+asyncpg://valuefabric:valuefabric-ci-postgres@postgres:5432/layer4_agents
+          LAYER4_DATABASE_URL=postgresql+asyncpg://valuefabric:valuefabric-ci-postgres@postgres:5432/ground_truth
           NEO4J_PASSWORD=valuefabric
-          CORS_ORIGINS=["https://localhost:3000"]
+          CORS_ORIGINS=["http://localhost:3000"]
           AUTH_PROVIDER=layer4
           CLERK_ISSUER=https://ci-clerk.example.test
           CLERK_JWT_AUDIENCE=value-fabric-ci
           CLERK_AUTHORIZED_PARTIES=http://localhost:3000
           CLERK_JWKS_URL=https://ci-clerk.example.test/.well-known/jwks.json
-          CLERK_SECRET_KEY=valuefabric-ci-clerk-secret
+          CLERK_SECRET_KEY=sk_test_valuefabric_ci
           FABRIC_AUTH_ISSUER=value-fabric-ci
           FABRIC_AUTH_AUDIENCE=value-fabric-ci
           FLOWER_PASSWORD=valuefabric-ci-flower
@@ -741,7 +735,7 @@ jobs:
             "http://localhost:8002/health" \
             "http://localhost:8003/health" \
             "http://localhost:8004/health" \
-            "http://localhost:8005/health" \
+            "http://localhost:8005/api/v1/health" \
             "http://localhost:8006/health"; do
             echo "Waiting for $target"
             for _ in $(seq 1 60); do

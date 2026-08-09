@@ -8,7 +8,7 @@ from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
-from sqlalchemy import text
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
@@ -18,7 +18,6 @@ class UsageTrackingService_get_current_month_usageResult(TypedDictModel):
     api_calls: Any
     llm_tokens: Any
     period: str
-
 
 if TYPE_CHECKING:
     pass
@@ -212,35 +211,31 @@ class UsageTrackingService:
     ) -> tuple[int, int, int]:
         """Query audit event counts for all action types in a single query."""
         try:
-            from value_fabric.shared.audit.models import AuditAction
+            from value_fabric.shared.audit.models import AuditAction, AuditEvent
 
             result = await self.db.execute(
-                text(
-                    """
-                    SELECT action, COUNT(*) AS count
-                    FROM audit_events
-                    WHERE tenant_id = :tenant_id
-                      AND timestamp >= :start
-                      AND timestamp <= :end
-                      AND action IN (:api_call, :agent_execution, :llm_usage)
-                    GROUP BY action
-                    """
-                ),
-                {
-                    "tenant_id": str(tenant_id),
-                    "start": start,
-                    "end": end,
-                    "api_call": AuditAction.API_CALL.value,
-                    "agent_execution": AuditAction.AGENT_EXECUTION.value,
-                    "llm_usage": AuditAction.LLM_USAGE.value,
-                },
+                select(
+                    AuditEvent.action,
+                    func.count().label("count"),
+                )
+                .where(AuditEvent.tenant_id == tenant_id)
+                .where(AuditEvent.timestamp >= start)
+                .where(AuditEvent.timestamp <= end)
+                .where(
+                    AuditEvent.action.in_([
+                        AuditAction.API_CALL,
+                        AuditAction.AGENT_EXECUTION,
+                        AuditAction.LLM_USAGE,
+                    ])
+                )
+                .group_by(AuditEvent.action)
             )
 
             counts = {row.action: row.count for row in result.all()}
             return (
-                counts.get(AuditAction.API_CALL.value, 0),
-                counts.get(AuditAction.AGENT_EXECUTION.value, 0),
-                counts.get(AuditAction.LLM_USAGE.value, 0),
+                counts.get(AuditAction.API_CALL, 0),
+                counts.get(AuditAction.AGENT_EXECUTION, 0),
+                counts.get(AuditAction.LLM_USAGE, 0),
             )
 
         except asyncio.CancelledError:
@@ -262,14 +257,12 @@ class UsageTrackingService:
             days=(today - start_of_month).days + 1,
         )
 
-        return UsageTrackingService_get_current_month_usageResult.model_validate(
-            {
-                "api_calls": summary.api_calls_total,
-                "llm_tokens": summary.llm_tokens_input + summary.llm_tokens_output,
-                "agent_executions": summary.agent_executions,
-                "period": "current_month",
-            }
-        )
+        return UsageTrackingService_get_current_month_usageResult.model_validate({
+            "api_calls": summary.api_calls_total,
+            "llm_tokens": summary.llm_tokens_input + summary.llm_tokens_output,
+            "agent_executions": summary.agent_executions,
+            "period": "current_month",
+        })
 
 
 # Convenience functions for one-off usage tracking
@@ -310,7 +303,9 @@ async def record_llm_usage(
         duration_ms: Request duration in milliseconds
     """
     async with UsageTrackingService() as service:
-        await service.record_llm_usage(tenant_id, model, tokens_input, tokens_output, duration_ms)
+        await service.record_llm_usage(
+            tenant_id, model, tokens_input, tokens_output, duration_ms
+        )
 
 
 async def record_agent_execution(

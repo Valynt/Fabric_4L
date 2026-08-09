@@ -106,7 +106,6 @@ CI builds application images for both `linux/amd64` and `linux/arm64` and publis
 
 ## Related Documentation
 
-- [Dev Containers and Cloud Workspaces](./DEV_CONTAINERS.md) - Canonical container rebuild, startup, secrets, persistence, ports, and recovery workflows.
 - [Command Inventory](./COMMANDS.md) - Stable command map, Makefile target categories, and CI-to-local mappings.
 - [Development Discovery Map](./DISCOVERY_MAP.md) - Issue-to-implementation routing by work type, source of truth, drift checks, validation, and evidence.
 - [Contributing](../../CONTRIBUTING.md) - Contributor setup and PR process.

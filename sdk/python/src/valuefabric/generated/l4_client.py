@@ -1,4 +1,4 @@
-"""Generated HTTP client for Layer 4: Agentic Workflow Orchestrator."""
+"""Generated HTTP client for Layer 4: Agentic Workflow Engine."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ import httpx
 
 
 class L4Client:
-    """HTTP client for Layer 4: Agentic Workflow Orchestrator.
+    """HTTP client for Layer 4: Agentic Workflow Engine.
 
     Generated from OpenAPI spec at layer4-agents.json
     """
@@ -50,10 +50,7 @@ class L4Client:
     ) -> dict[str, Any]:
         response = self._sync_client.request(method, path, params=params, json=json)
         response.raise_for_status()
-        payload = response.json()
-        if not isinstance(payload, dict):
-            raise TypeError("Expected a JSON object response")
-        return payload
+        return response.json()
 
     async def _arequest(
         self,
@@ -65,10 +62,7 @@ class L4Client:
     ) -> dict[str, Any]:
         response = await self._async_client.request(method, path, params=params, json=json)
         response.raise_for_status()
-        payload = response.json()
-        if not isinstance(payload, dict):
-            raise TypeError("Expected a JSON object response")
-        return payload
+        return response.json()
 
     def health(self) -> dict[str, Any]:
         """Check API health."""

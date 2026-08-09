@@ -1,74 +1,75 @@
-name: fabric4l-devcontainer
-
-x-runtime: &runtime
-  restart: unless-stopped
-  security_opt:
-    - no-new-privileges:true
-  cap_drop:
-    - ALL
-  logging:
-    driver: json-file
-    options:
-      max-size: 10m
-      max-file: "3"
-
 services:
   dev:
-    <<: *runtime
     build:
-      context: ..
-      dockerfile: .devcontainer/Dockerfile
-      target: development
-    user: vscode
-    init: true
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ..:/workspace:cached
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - DOCKER_BUILDKIT=1
+      - COMPOSE_DOCKER_CLI_BUILD=1
     command: sleep infinity
-    environment:
-      DOCKER_HOST: tcp://docker:2375
-      DOCKER_BUILDKIT: "1"
-      COMPOSE_DOCKER_CLI_BUILD: "1"
-      PNPM_HOME: /home/vscode/.local/share/pnpm
-    volumes:
-      - ..:/workspace/Fabric_4L:cached
-      - dev-pnpm-store:/home/vscode/.local/share/pnpm/store
-      - dev-pip-cache:/home/vscode/.cache/pip
-    depends_on:
-      docker:
-        condition: service_healthy
-    mem_limit: 4g
-    cpus: 2.0
     networks:
-      - devcontainer
+      - dev-network
 
-  docker:
-    <<: *runtime
-    build:
-      context: ..
-      dockerfile: .devcontainer/Dockerfile
-      target: docker-daemon
-    user: vscode
-    command: /workspace-support/start-rootless-docker.sh
+  # Optional: Pre-configured services for development
+  postgres:
+    image: postgres:15-alpine
     environment:
-      DOCKER_HOST: unix:///run/user/1000/docker.sock
-      DOCKER_TLS_CERTDIR: ""
-      XDG_RUNTIME_DIR: /run/user/1000
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ingestion
     volumes:
-      - docker-data:/home/vscode/.local/share/docker
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - dev-network
     healthcheck:
-      test: ["CMD", "docker", "info"]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - dev-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 3s
-      retries: 30
-      start_period: 15s
-    mem_limit: 2g
-    cpus: 1.5
+      retries: 3
+
+  neo4j:
+    image: neo4j:5-community
+    environment:
+      NEO4J_AUTH: neo4j/valuefabric
+      NEO4J_PLUGINS: '["apoc"]'
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    volumes:
+      - neo4j-data:/data
     networks:
-      - devcontainer
+      - dev-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7474"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
 
 volumes:
-  dev-pnpm-store:
-  dev-pip-cache:
-  docker-data:
+  postgres-data:
+  redis-data:
+  neo4j-data:
 
 networks:
-  devcontainer:
+  dev-network:
     driver: bridge

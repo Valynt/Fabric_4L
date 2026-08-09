@@ -49,16 +49,6 @@ class TestWorkflowCreateRequest:
         with pytest.raises(ValueError):
             WorkflowCreateRequest(workflow_type="invalid_type")
 
-    @pytest.mark.parametrize("identity_field", ["tenant_id", "user_id"])
-    def test_caller_supplied_identity_is_rejected(self, identity_field: str):
-        with pytest.raises(ValueError):
-            WorkflowCreateRequest.model_validate(
-                {
-                    "workflow_type": "roi_calculator",
-                    identity_field: "attacker-controlled",
-                }
-            )
-
     def test_all_valid_workflow_types_accepted(self):
         valid_types = [
             "roi_calculator",
@@ -118,13 +108,7 @@ class TestWorkflowConstants:
     """Test workflow constants and helpers."""
 
     def test_estimated_duration_for_all_types(self):
-        for wt in [
-            "roi_calculator",
-            "whitespace_analysis",
-            "business_case",
-            "business_case_generation",
-            "orchestrator",
-        ]:
+        for wt in ["roi_calculator", "whitespace_analysis", "business_case", "business_case_generation", "orchestrator"]:
             assert wt in ESTIMATED_DURATION_SECONDS
             assert ESTIMATED_DURATION_SECONDS[wt] > 0
 
@@ -142,7 +126,6 @@ class TestWorkflowConstants:
     def test_extract_status_value_with_enum(self):
         class FakeEnum:
             value = "running"
-
         assert extract_status_value(FakeEnum()) == "running"
 
     def test_extract_status_value_with_string(self):

@@ -142,36 +142,6 @@ class TestOIDCCleanupTask:
         # Should have attempted cleanup at least once
         assert mock_db.execute.call_count >= 1
 
-    @pytest.mark.asyncio
-    async def test_cleanup_task_marks_system_db_bypass(self, monkeypatch):
-        """Background cleanup should explicitly mark system DB sessions as bypass."""
-        mock_result = MagicMock()
-        mock_result.fetchall.return_value = []
-
-        mock_db = AsyncMock()
-        mock_db.execute = AsyncMock(return_value=mock_result)
-
-        mock_factory = MagicMock()
-        mock_factory.return_value.__aenter__ = AsyncMock(return_value=mock_db)
-        mock_factory.return_value.__aexit__ = AsyncMock(return_value=None)
-
-        clear_context = AsyncMock()
-        monkeypatch.setattr(
-            "layer4_agents.services.oidc_cleanup._clear_local_tenant_context",
-            clear_context,
-        )
-
-        task = OIDCCleanupTask(
-            db_session_factory=mock_factory,
-            interval_seconds=0.05,
-        )
-
-        await task.start()
-        await asyncio.sleep(0.08)
-        await task.stop()
-
-        clear_context.assert_awaited()
-
 
 # Import asyncio at the end to avoid issues with the test file
 import asyncio

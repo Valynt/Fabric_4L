@@ -6,7 +6,7 @@ from __future__ import annotations
 import json
 import os
 import sys
-from datetime import UTC, datetime
+from datetime import datetime
 from pathlib import Path
 
 REGISTER_PATH = Path(__file__).resolve().parents[2] / "docs" / "deprecation_register.json"
@@ -23,7 +23,7 @@ def _date(value: str) -> datetime.date:
 
 
 def main() -> int:
-    today = datetime.now(UTC).date()
+    today = datetime.utcnow().date()
     override_enabled = os.getenv(OVERRIDE_ENV_VAR, "").lower() in {"1", "true", "yes"}
 
     overdue: list[dict[str, str]] = []

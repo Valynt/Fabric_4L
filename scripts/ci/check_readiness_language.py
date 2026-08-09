@@ -41,12 +41,10 @@ APPROVED_QUALIFIERS = (
     r"production readiness is not claimed",
     r"supports production-readiness review",
     r"blocked by the following gates",
-    r"not (?:final )?production ready",
+    r"not production ready",
     r"not claimed",
     r"boundary language",
     r"ADR required",
-    r"if all gates pass(?:ed)?",
-    r"before declaring",
 )
 
 FILE_PATTERNS = (".md", ".txt", ".yml", ".yaml")
@@ -113,7 +111,7 @@ def scan() -> list[Finding]:
     return deduped
 
 
-BASELINE_PATH = REPO_ROOT / "config" / "baselines" / "readiness-language-baseline.json"
+BASELINE_PATH = REPO_ROOT / "docs" / "reference" / "readiness-language-baseline.json"
 
 
 def _load_baseline() -> set[tuple[str, int, str, str]]:

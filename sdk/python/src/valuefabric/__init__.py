@@ -1,7 +1,7 @@
 """Value Fabric Python SDK."""
 
-from .__version__ import __version__
 from .client import ValueFabricClient
+from .__version__ import __version__
 from .errors import (
     APIError,
     AuthenticationError,
@@ -9,7 +9,6 @@ from .errors import (
     ConnectionError,
     NotFoundError,
     RateLimitError,
-    ResponseError,
     ValidationError,
     ValueFabricError,
 )
@@ -24,6 +23,5 @@ __all__ = [
     "ConnectionError",
     "NotFoundError",
     "RateLimitError",
-    "ResponseError",
     "ValidationError",
 ]

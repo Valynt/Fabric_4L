@@ -8,8 +8,10 @@ This migration adds RLS policies to tables created after migration 007
 that have tenant_id columns and need tenant isolation.
 
 Affected tables:
+- account_sync_status
 - api_keys
 - integrations
+- model_promotion_log
 - tenant_isolation_tier_history
 - users
 """
@@ -27,8 +29,10 @@ depends_on: Union[str, Sequence[str], None] = None
 
 # Tables that need RLS policies (have tenant_id but missing from migration 007)
 RLS_TABLES = [
+    "account_sync_status",
     "api_keys",
     "integrations",
+    "model_promotion_log",
     "tenant_isolation_tier_history",
     "users",
 ]
@@ -73,10 +77,7 @@ def downgrade() -> None:
     """Remove RLS policies and disable RLS."""
     # MIGRATION_REVIEW_REQUIRED: REVOKE is destructive — removes all privileges from admin/system roles
     # Community Edition fallback: skip if running on PostgreSQL CE (pre-9.5 or RLS unavailable)
-    _has_rls = (
-        op.execute("SELECT 1 FROM pg_settings WHERE name = 'row_security' AND setting = 'on'")
-        is not None
-    )
+    _has_rls = op.execute("SELECT 1 FROM pg_settings WHERE name = 'row_security' AND setting = 'on'") is not None
     if not _has_rls:
         return  # CE fallback: RLS not available, skip policy operations
     for table in RLS_TABLES:

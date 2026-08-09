@@ -11,9 +11,9 @@ Checks for:
 from __future__ import annotations
 
 import argparse
-import ast
 import json
 import re
+import sys
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
@@ -26,17 +26,7 @@ SCAN_ROOTS = (
     REPO_ROOT / "scripts",
 )
 
-SKIP_DIRS = {
-    "__pycache__",
-    ".venv",
-    ".uv-cache-local",
-    ".venv-verify",
-    ".hypothesis",
-    ".git",
-    "node_modules",
-    ".tmp-local",
-    ".tox",
-}
+SKIP_DIRS = {"__pycache__", ".venv", ".uv-cache-local", ".venv-verify", ".hypothesis", ".git", "node_modules", ".tmp-local", ".tox"}
 
 
 @dataclass(frozen=True)
@@ -50,6 +40,7 @@ class Finding:
 # Pattern definitions
 UTCNOW_RE = re.compile(r"datetime\.utcnow\(")
 PYDANTIC_V1_RE = re.compile(r"\.parse_raw\(|\.parse_obj\(|\.parse_file\(|__root__\s*=")
+REQUEST_TYPE_RESPONSE_RE = re.compile(r"Request\s*\|\s*None")
 BROAD_DEPRECATION_RE = re.compile(
     r"ignore::(?:DeprecationWarning|PendingDeprecationWarning)\s*$",
     re.MULTILINE,
@@ -65,14 +56,13 @@ ALLOWLIST: dict[str, set[tuple[str, int]]] = {
 
 def _iter_source_files():
     import os
-
     for root in SCAN_ROOTS:
         if not root.exists():
             continue
         for dirpath, dirnames, filenames in os.walk(root):
             dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS]
             for fname in filenames:
-                if fname.endswith((".py", ".ini")):
+                if fname.endswith(".py") or fname.endswith(".ini"):
                     yield Path(dirpath) / fname
 
 
@@ -95,82 +85,31 @@ def scan() -> list[Finding]:
 
         if path.suffix == ".py":
             # Helper: skip matches inside regex literal definitions
-            def _in_regex_literal(pos: int, source_text: str = source) -> bool:
-                line_start = source_text.rfind("\n", 0, pos)
-                line_text = source_text[line_start + 1 : pos]
-                return line_text.strip().startswith('r"') or "re.compile(" in line_text
+            def _in_regex_literal(pos: int) -> bool:
+                line_start = source.rfind("\n", 0, pos)
+                line_text = source[line_start + 1 : pos]
+                return line_text.strip().startswith("r\"") or "re.compile(" in line_text
 
             # 1. datetime.utcnow()
             for m in UTCNOW_RE.finditer(source):
                 line_num = source[: m.start()].count("\n") + 1
                 if _in_regex_literal(m.start()):
                     continue
-                findings.append(
-                    Finding(
-                        rel,
-                        line_num,
-                        "utcnow",
-                        "datetime.utcnow() is deprecated in Python 3.12; use datetime.now(UTC)",
-                    )
-                )
+                findings.append(Finding(rel, line_num, "utcnow", "datetime.utcnow() is deprecated in Python 3.12; use datetime.now(UTC)"))
 
             # 2. Pydantic v1 APIs
             for m in PYDANTIC_V1_RE.finditer(source):
                 line_num = source[: m.start()].count("\n") + 1
                 if _in_regex_literal(m.start()):
                     continue
-                findings.append(
-                    Finding(
-                        rel,
-                        line_num,
-                        "pydantic_v1",
-                        "Pydantic v1 API detected; migrate to v2 equivalent",
-                    )
-                )
+                findings.append(Finding(rel, line_num, "pydantic_v1", "Pydantic v1 API detected; migrate to v2 equivalent"))
 
-            # 3. Optional Starlette Request parameters are invalid only on
-            # FastAPI route functions. Internal helpers may legitimately accept
-            # no request when invoked outside HTTP dispatch.
-            try:
-                tree = ast.parse(source)
-            except SyntaxError:
-                tree = None
-            if tree is not None:
-                for node in ast.walk(tree):
-                    if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                        continue
-                    is_route = any(
-                        isinstance(decorator, ast.Call)
-                        and isinstance(decorator.func, ast.Attribute)
-                        and decorator.func.attr
-                        in {"get", "post", "put", "patch", "delete", "options", "head"}
-                        for decorator in node.decorator_list
-                    )
-                    if not is_route:
-                        continue
-                    for argument in (
-                        *node.args.posonlyargs,
-                        *node.args.args,
-                        *node.args.kwonlyargs,
-                    ):
-                        annotation = argument.annotation
-                        if not (
-                            isinstance(annotation, ast.BinOp)
-                            and isinstance(annotation.op, ast.BitOr)
-                            and isinstance(annotation.left, ast.Name)
-                            and annotation.left.id == "Request"
-                            and isinstance(annotation.right, ast.Constant)
-                            and annotation.right.value is None
-                        ):
-                            continue
-                        findings.append(
-                            Finding(
-                                rel,
-                                argument.lineno,
-                                "request_type_response",
-                                "Request | None is not a valid FastAPI route parameter type",
-                            )
-                        )
+            # 3. Request | None as response field type
+            for m in REQUEST_TYPE_RESPONSE_RE.finditer(source):
+                line_num = source[: m.start()].count("\n") + 1
+                if _in_regex_literal(m.start()):
+                    continue
+                findings.append(Finding(rel, line_num, "request_type_response", "Request | None is not a valid Pydantic response field type"))
 
         elif path.suffix == ".ini":
             # 4. broad deprecation suppression
@@ -178,14 +117,7 @@ def scan() -> list[Finding]:
                 line_num = source[: m.start()].count("\n") + 1
                 line_text = lines[line_num - 1] if line_num <= len(lines) else ""
                 if ":" not in line_text.split("#")[0]:
-                    findings.append(
-                        Finding(
-                            rel,
-                            line_num,
-                            "broad_deprecation_suppression",
-                            "blanket deprecation warning suppression in pytest config",
-                        )
-                    )
+                    findings.append(Finding(rel, line_num, "broad_deprecation_suppression", "blanket deprecation warning suppression in pytest config"))
 
     seen = set()
     deduped = []
@@ -198,7 +130,7 @@ def scan() -> list[Finding]:
     return deduped
 
 
-BASELINE_PATH = REPO_ROOT / "config" / "baselines" / "deprecation-drift-baseline.json"
+BASELINE_PATH = REPO_ROOT / "docs" / "reference" / "deprecation-drift-baseline.json"
 
 
 def _load_baseline() -> set[tuple[str, int, str, str]]:
@@ -206,12 +138,7 @@ def _load_baseline() -> set[tuple[str, int, str, str]]:
         return set()
     data = json.loads(BASELINE_PATH.read_text(encoding="utf-8"))
     return {
-        (
-            str(item["path"]).replace("\\", "/"),
-            int(item["line"]),
-            str(item["category"]),
-            str(item["message"]),
-        )
+        (str(item["path"]).replace("\\", "/"), int(item["line"]), str(item["category"]), str(item["message"]))
         for item in data.get("findings", [])
     }
 
@@ -220,8 +147,7 @@ def _subtract_baseline(
     findings: list[Finding], baseline: set[tuple[str, int, str, str]]
 ) -> list[Finding]:
     return [
-        f
-        for f in findings
+        f for f in findings
         if (f.path.replace("\\", "/"), f.line, f.category, f.message) not in baseline
     ]
 

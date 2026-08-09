@@ -2,7 +2,7 @@
 
 import hashlib
 import logging
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import Any
 
 from neo4j import AsyncDriver
@@ -81,7 +81,7 @@ class SyncManager:
         tenant_id: str | None = None,
     ) -> dict:
         """Synchronize an extraction result from Layer 2."""
-        start_time = datetime.now(UTC)
+        start_time = datetime.utcnow()
         validated_tenant_id = validate_ingestion_tenant_id(tenant_id)
 
         if content_hash is None:
@@ -133,8 +133,8 @@ class SyncManager:
                 tenant_id=validated_tenant_id,
             )
 
-            stats["completed_at"] = datetime.now(UTC).isoformat()
-            stats["duration_seconds"] = (datetime.now(UTC) - start_time).total_seconds()
+            stats["completed_at"] = datetime.utcnow().isoformat()
+            stats["duration_seconds"] = (datetime.utcnow() - start_time).total_seconds()
 
             logger.info(
                 "Successfully synced source %s (%s entities, %s relationships)",
@@ -308,7 +308,7 @@ class SyncManager:
             "tenant_id": tenant_id,
             "extraction_job_id": extraction_job_id,
             "content_hash": content_hash,
-            "synced_at": datetime.now(UTC).isoformat(),
+            "synced_at": datetime.utcnow().isoformat(),
             "status": status,
         }
 

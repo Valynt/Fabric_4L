@@ -19,36 +19,17 @@ depends_on: Union[str, Sequence[str], None] = None
 # Tables that have tenant_id and need RLS policies
 RLS_TABLES = [
     "accounts",
+    "account_notes",
+    "crm_sync_states",
     "feature_flags",
     "audit_events",
     "oidc_sessions",
-    "model_versions",
+    "model_registry",
 ]
 
 
 def upgrade() -> None:
     """Enable RLS and create policies for tenant isolation."""
-    # The bypass policies below target non-login roles. Provision them before
-    # policy creation so a clean database can apply the migration chain.
-    op.execute("""
-        DO $$
-        BEGIN
-            CREATE ROLE admin_role NOLOGIN;
-        EXCEPTION WHEN duplicate_object THEN
-            NULL;
-        END
-        $$
-    """)
-    op.execute("""
-        DO $$
-        BEGIN
-            CREATE ROLE system_role NOLOGIN;
-        EXCEPTION WHEN duplicate_object THEN
-            NULL;
-        END
-        $$
-    """)
-
     # Enable RLS on each table
     for table in RLS_TABLES:
         op.execute(f"ALTER TABLE {table} ENABLE ROW LEVEL SECURITY")

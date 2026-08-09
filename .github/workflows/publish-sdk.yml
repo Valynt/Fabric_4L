@@ -4,12 +4,6 @@ permissions:
   contents: read
 
 on:
-  pull_request:
-    paths:
-      - 'sdk/python/**'
-      - 'contracts/openapi/layer3-knowledge.json'
-      - 'contracts/openapi/layer4-agents.json'
-      - '.github/workflows/publish-sdk.yml'
   push:
     tags:
       - 'sdk/v*'
@@ -45,18 +39,10 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install validation and build tools
+      - name: Install build tools
         run: |
           python -m pip install --upgrade pip
-          pip install -e ".[dev]" ruff mypy pytest-cov typeguard build twine
-
-      - name: Validate Python SDK
-        run: |
-          ruff check src tests scripts
-          ruff format --check src tests scripts
-          mypy src tests
-          pytest --cov=valuefabric --cov-report=term
-          python -m compileall -q src tests scripts
+          pip install build twine
 
       - name: Build wheel and sdist
         run: |

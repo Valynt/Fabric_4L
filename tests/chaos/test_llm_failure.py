@@ -8,7 +8,7 @@ Verifies system behavior when OpenAI, Anthropic, or other LLM providers become u
 """
 
 import asyncio
-from datetime import UTC, datetime
+from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
@@ -177,7 +177,7 @@ class TestAgentWorkflowLLMFailure:
                 return {
                     "error": str(e),
                     "trace_id": trace_id,
-                    "timestamp": datetime.now(UTC).isoformat()
+                    "timestamp": datetime.utcnow().isoformat()
                 }
         
         result = await workflow_with_tracing()

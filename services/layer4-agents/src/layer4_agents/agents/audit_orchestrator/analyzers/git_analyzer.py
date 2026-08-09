@@ -47,37 +47,17 @@ class GitAnalyzer(BaseAnalyzer):
         return findings, metrics
 
     def _git_available(self, path: Path) -> bool:
-        """Return True for a repository root or a tracked subtree within one."""
+        """Return True if ``repo_path`` is inside a git repository."""
         try:
             result = subprocess.run(
-                ["git", "rev-parse", "--show-toplevel"],
+                ["git", "rev-parse", "--is-inside-work-tree"],
                 cwd=str(path),
                 capture_output=True,
                 text=True,
                 timeout=10,
                 check=False,
             )
-            if result.returncode != 0:
-                return False
-
-            root = Path(result.stdout.strip()).resolve()
-            if root == path:
-                return True
-
-            try:
-                relative_path = path.relative_to(root)
-            except ValueError:
-                return False
-
-            tracked = subprocess.run(
-                ["git", "ls-files", "--", relative_path.as_posix()],
-                cwd=str(root),
-                capture_output=True,
-                text=True,
-                timeout=10,
-                check=False,
-            )
-            return tracked.returncode == 0 and bool(tracked.stdout.strip())
+            return result.returncode == 0 and result.stdout.strip() == "true"
         except (subprocess.SubprocessError, FileNotFoundError, OSError):
             return False
 

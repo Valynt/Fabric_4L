@@ -106,28 +106,25 @@ from starlette.types import ASGIApp
 
 def _get_app():
     # Patch rate limiting before app import so tests don't get 429 from Redis.
+    from value_fabric.shared.identity import middleware as governance_middleware
     from value_fabric.shared.identity.middleware import GovernanceMiddleware
 
     async def _mock_check_rate_limit(self, request, ctx):
         mock_result = type("_MockResult", (), {"allowed": True, "remaining": 100, "reset_at": 0, "retry_after": None})
         return mock_result()
 
-    async def _mock_enforce_tenant_status(self, ctx):
+    async def _mock_enforce_tenant_status_method(self, ctx):
+        return None
+
+    async def _mock_enforce_tenant_status_function(ctx, **kwargs):
         return None
 
     GovernanceMiddleware._check_rate_limit = _mock_check_rate_limit
-    GovernanceMiddleware._enforce_tenant_status = _mock_enforce_tenant_status
+    GovernanceMiddleware._enforce_tenant_status = _mock_enforce_tenant_status_method
+    governance_middleware.enforce_tenant_status = _mock_enforce_tenant_status_function
     from value_fabric.shared.error_handling.handlers import register_exception_handlers
-    from value_fabric.shared.testing.governance import (
-        patch_governance_middleware_for_tests,
-    )
 
     from layer1_ingestion.api.main import app
-
-    patch_governance_middleware_for_tests(app)
-    # The app may have served earlier tests; rebuild the stack from the updated
-    # middleware specification for this route-level client.
-    app.middleware_stack = None
     register_exception_handlers(app)
     return app
 
@@ -196,10 +193,8 @@ def engine():
 @pytest.fixture(scope="session")
 def _postgres_engine():
     """PostgreSQL engine for integration tests marked with ``postgres``."""
-    # Use the same database name the Layer 1 service default connects to so
-    # integration tests that exercise the live API routes share a schema.
     eng = create_engine(
-        "postgresql+psycopg2://postgres:postgres@localhost:5432/layer1_ingestion",
+        "postgresql+psycopg2://postgres:postgres@localhost:5432/ingestion",
     )
     base = _get_base()
     base.metadata.create_all(eng)
@@ -289,7 +284,7 @@ def pytest_runtest_setup(item):
         from sqlalchemy import create_engine, text
         try:
             engine = create_engine(
-                "postgresql+psycopg2://postgres:postgres@localhost:5432/layer1_ingestion",
+                "postgresql+psycopg2://postgres:postgres@localhost:5432/ingestion",
                 connect_args={"connect_timeout": 2},
             )
             with engine.connect() as conn:

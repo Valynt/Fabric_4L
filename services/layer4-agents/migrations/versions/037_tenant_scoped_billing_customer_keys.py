@@ -44,9 +44,6 @@ def upgrade() -> None:
     op.alter_column("billing_subscriptions", "tenant_id", existing_type=sa.String(length=255), nullable=False)
 
     op.drop_constraint("billing_subscriptions_customer_id_fkey", "billing_subscriptions", type_="foreignkey")
-
-    op.drop_constraint("billing_customers_pkey", "billing_customers", type_="primary")
-    op.create_primary_key("billing_customers_pkey", "billing_customers", ["id", "tenant_id"])
     op.create_foreign_key(
         "fk_billing_subscriptions_tenant_customer",
         "billing_subscriptions",
@@ -87,9 +84,6 @@ def downgrade() -> None:
     op.drop_constraint("fk_billing_invoices_tenant_customer", "billing_invoices", type_="foreignkey")
     op.drop_constraint("fk_billing_usage_events_tenant_customer", "billing_usage_events", type_="foreignkey")
     op.drop_constraint("fk_billing_subscriptions_tenant_customer", "billing_subscriptions", type_="foreignkey")
-
-    op.drop_constraint("billing_customers_pkey", "billing_customers", type_="primary")
-    op.create_primary_key("billing_customers_pkey", "billing_customers", ["id"])
 
     op.create_foreign_key(
         "billing_subscriptions_customer_id_fkey",

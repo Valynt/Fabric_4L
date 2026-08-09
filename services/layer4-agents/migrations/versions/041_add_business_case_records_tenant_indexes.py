@@ -1,7 +1,8 @@
-"""Add the business_case_records tenant/status composite index.
+"""Add business_case_records tenant_id indexes.
 
-Revision 027 already created the single-column tenant index. This revision adds
-only the missing composite index used by tenant-scoped status queries.
+Adds missing single-column and composite indexes on tenant_id for
+the business_case_records table to support tenant-scoped queries
+and RLS performance.
 
 Revision ID: 041_add_business_case_records_tenant_indexes
 Revises: 040_add_billing_data_quality_fields
@@ -20,6 +21,11 @@ depends_on = None
 
 def upgrade() -> None:
     op.create_index(
+        "ix_business_case_records_tenant_id",
+        "business_case_records",
+        ["tenant_id"],
+    )
+    op.create_index(
         "ix_business_case_records_tenant_status",
         "business_case_records",
         ["tenant_id", "status"],
@@ -29,5 +35,9 @@ def upgrade() -> None:
 def downgrade() -> None:
     op.drop_index(
         "ix_business_case_records_tenant_status",
+        table_name="business_case_records",
+    )
+    op.drop_index(
+        "ix_business_case_records_tenant_id",
         table_name="business_case_records",
     )

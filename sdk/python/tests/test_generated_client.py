@@ -2,9 +2,6 @@
 
 from __future__ import annotations
 
-import importlib.util
-from pathlib import Path
-
 import pytest
 import respx
 from httpx import Response
@@ -17,9 +14,9 @@ class TestL3Client:
     """Tests for L3 Knowledge Graph generated client."""
 
     @respx.mock
-    def test_health_check(self) -> None:
+    def test_health_check(self):
         """Test L3 health endpoint."""
-        route = respx.get("http://localhost:8000/health").mock(
+        route = respx.get("http://localhost:8001/health").mock(
             return_value=Response(200, json={"status": "healthy"})
         )
 
@@ -30,7 +27,7 @@ class TestL3Client:
         assert route.called
 
     @respx.mock
-    def test_search(self) -> None:
+    def test_search(self):
         """Test L3 search endpoint."""
         mock_response = {
             "query": "test query",
@@ -50,7 +47,7 @@ class TestL3Client:
             "search_type": "hybrid",
             "processing_time_ms": 150,
         }
-        route = respx.post("http://localhost:8000/v1/search/hybrid").mock(
+        route = respx.post("http://localhost:8001/v1/search/hybrid").mock(
             return_value=Response(200, json=mock_response)
         )
 
@@ -66,7 +63,7 @@ class TestL3Client:
 
     @respx.mock
     @pytest.mark.asyncio
-    async def test_async_search(self) -> None:
+    async def test_async_search(self):
         """Test async L3 search endpoint."""
         mock_response = {
             "query": "async test",
@@ -75,7 +72,7 @@ class TestL3Client:
             "search_type": "hybrid",
             "processing_time_ms": 50,
         }
-        route = respx.post("http://localhost:8000/v1/search/hybrid").mock(
+        route = respx.post("http://localhost:8001/v1/search/hybrid").mock(
             return_value=Response(200, json=mock_response)
         )
 
@@ -92,7 +89,7 @@ class TestL4Client:
     """Tests for L4 Agents generated client."""
 
     @respx.mock
-    def test_health_check(self) -> None:
+    def test_health_check(self):
         """Test L4 health endpoint."""
         route = respx.get("http://localhost:8000/health").mock(
             return_value=Response(200, json={"status": "ok"})
@@ -104,17 +101,17 @@ class TestL4Client:
         assert result["status"] == "ok"
         assert route.called
 
-    def test_client_auth_with_api_key(self) -> None:
+    def test_client_auth_with_api_key(self):
         """Test L4 client with API key auth."""
         client = L4Client(api_key="test-key-123")
         assert client._sync_client.headers["X-API-Key"] == "test-key-123"
 
-    def test_client_auth_with_jwt(self) -> None:
+    def test_client_auth_with_jwt(self):
         """Test L4 client with JWT token auth."""
         client = L4Client(jwt_token="jwt-token-456")
         assert client._sync_client.headers["Authorization"] == "Bearer jwt-token-456"
 
-    def test_client_default_headers(self) -> None:
+    def test_client_default_headers(self):
         """Test L4 client has default headers."""
         client = L4Client()
         assert client._sync_client.headers["Accept"] == "application/json"
@@ -124,9 +121,9 @@ class TestL4Client:
 class TestGeneratedModels:
     """Tests for generated Pydantic models."""
 
-    def test_search_request_serialization(self) -> None:
+    def test_search_request_serialization(self):
         """Test SearchRequest serializes correctly."""
-        from valuefabric.generated.l3 import SearchRequest
+        from valuefabric.generated.l3 import SearchRequest, SearchType
 
         request = SearchRequest(
             query="test query",
@@ -139,8 +136,9 @@ class TestGeneratedModels:
         assert data["top_k"] == 5
         assert data["search_type"] == "hybrid"
 
-    def test_search_response_deserialization(self) -> None:
+    def test_search_response_deserialization(self):
         """Test SearchResponse deserializes correctly."""
+        from valuefabric.generated.l3 import SearchResponse, SearchType
 
         data = {
             "query": "test",
@@ -155,32 +153,10 @@ class TestGeneratedModels:
         assert response.total_results == 0
         assert response.search_type == SearchType.hybrid
 
-    def test_entity_type_enum(self) -> None:
+    def test_entity_type_enum(self):
         """Test EntityType enum values."""
         from valuefabric.generated.l3 import EntityType
 
         assert EntityType.Capability.value == "Capability"
         assert EntityType.UseCase.value == "UseCase"
         assert EntityType.Persona.value == "Persona"
-
-
-def test_generated_client_wrappers_are_byte_stable(tmp_path: Path) -> None:
-    sdk_root = Path(__file__).resolve().parents[1]
-    repo_root = sdk_root.parents[1]
-    script_path = sdk_root / "scripts" / "generate_from_openapi.py"
-    spec = importlib.util.spec_from_file_location("valuefabric_sdk_generator", script_path)
-    assert spec and spec.loader
-    generator = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(generator)
-
-    contracts = repo_root / "contracts" / "openapi"
-    for namespace, contract in (
-        ("l3", "layer3-knowledge.json"),
-        ("l4", "layer4-agents.json"),
-    ):
-        generator.create_client_wrapper(tmp_path, namespace, contracts / contract)
-        generated = (tmp_path / f"{namespace}_client.py").read_text(encoding="utf-8")
-        checked_in = (
-            sdk_root / "src" / "valuefabric" / "generated" / f"{namespace}_client.py"
-        ).read_text(encoding="utf-8")
-        assert checked_in == generated

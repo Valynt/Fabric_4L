@@ -123,7 +123,6 @@ services:
     ports:
       - "8004:8000"
     environment:
-      ALLOW_INSECURE_SERVICE_HTTP_IN_DEVELOPMENT: "true"
       JWT_SECRET: dev-local-secret-do-not-use-in-production-minimum-32-chars
       SERVICE_AUTH_SECRET: dev-local-service-auth-secret-do-not-use-in-production-32c
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@host.docker.internal:5432/layer4_agents
@@ -145,7 +144,7 @@ services:
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       LLM_MODEL: gpt-4o
       LOG_LEVEL: debug
-      PYTHONPATH: /app:/app/src
+      PYTHONPATH: /app
     depends_on:
       postgres:
         condition: service_healthy
@@ -160,7 +159,6 @@ services:
     volumes:
       - ../../services/layer4-agents/src:/app/src:ro
       - ../../packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
-      - ../../packages/platform-contract/src/python/canonical:/app/canonical:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
@@ -210,7 +208,7 @@ services:
     networks:
       - contract-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8005/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8005/api/v1/health"]
       interval: 15s
       timeout: 5s
       retries: 5

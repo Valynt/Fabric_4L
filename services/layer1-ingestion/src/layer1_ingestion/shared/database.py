@@ -23,7 +23,6 @@ import logging
 import os
 from collections.abc import Generator
 from contextlib import contextmanager
-from typing import TYPE_CHECKING, Any, NoReturn
 from urllib.parse import urlparse
 from uuid import UUID
 
@@ -47,7 +46,9 @@ logger = logging.getLogger(__name__)
 _RLS_SUPPORTED_SCHEMES = frozenset(
     {"postgresql", "postgres", "postgresql+asyncpg", "postgresql+psycopg"}
 )
-_RLS_SUPERUSER_NAMES = frozenset({"postgres", "rdsadmin", "cloudsqladmin", "azure_superuser"})
+_RLS_SUPERUSER_NAMES = frozenset(
+    {"postgres", "rdsadmin", "cloudsqladmin", "azure_superuser"}
+)
 _PRIVILEGED_REASON_HEADER = "X-Privileged-Reason"
 _TENANT_CONTEXT_STATE_KEY = "tenant_context_state"
 _TENANT_CONTEXT_VALUE_KEY = "tenant_context_value"
@@ -77,72 +78,24 @@ def _assert_rls_safe_database_url(database_url: str, *, source: str) -> None:
         )
 
 
-def _resolve_sync_database_url() -> str:
-    """Return an SQLAlchemy URL backed by a synchronous PostgreSQL driver."""
-    database_url = (
-        os.getenv("DATABASE_URL_SYNC")
-        or os.getenv("LAYER1_DATABASE_URL_SYNC")
-        or settings.database_url
-    )
-    return database_url.replace("postgresql+asyncpg://", "postgresql://", 1)
-
-
 _assert_rls_safe_database_url(settings.database_url, source="Layer 1 database URL")
-_assert_rls_safe_database_url(
-    _resolve_sync_database_url(), source="Layer 1 synchronous database URL"
+
+# Create engine with configurable pool settings
+# P0-05: Add statement_timeout for query timeout protection (configurable via env var)
+engine = create_engine(
+    settings.database_url,
+    pool_size=DB_POOL_SIZE,
+    max_overflow=DB_MAX_OVERFLOW,
+    pool_pre_ping=True,
+    pool_timeout=DB_POOL_TIMEOUT,
+    echo=settings.debug,
+    connect_args={
+        "options": f"-c statement_timeout={DB_STATEMENT_TIMEOUT_MS}",
+    }
 )
 
-
-def _create_sync_engine():
-    return create_engine(
-        _resolve_sync_database_url(),
-        pool_size=DB_POOL_SIZE,
-        max_overflow=DB_MAX_OVERFLOW,
-        pool_pre_ping=True,
-        pool_timeout=DB_POOL_TIMEOUT,
-        echo=settings.debug,
-        connect_args={
-            "options": f"-c statement_timeout={DB_STATEMENT_TIMEOUT_MS}",
-        },
-    )
-
-
-engine = None
-SessionLocal = sessionmaker(autocommit=False, autoflush=False)
-
-try:
-    engine = _create_sync_engine()
-except ModuleNotFoundError as exc:
-    logger.warning(
-        "Layer 1 sync database engine initialization deferred until first session use: %s",
-        exc,
-    )
-else:
-    SessionLocal.configure(bind=engine)
-
-
-def _ensure_session_factory_bound() -> None:
-    global engine
-
-    session_local_kwargs = getattr(SessionLocal, "kw", None)
-    if session_local_kwargs is None:
-        return
-
-    if session_local_kwargs.get("bind") is not None:
-        return
-
-    engine = _create_sync_engine()
-    SessionLocal.configure(bind=engine)
-
-
-def _new_session() -> Session:
-    try:
-        _ensure_session_factory_bound()
-    except ModuleNotFoundError as exc:
-        raise RuntimeError(
-            "Layer 1 sync database adapter unavailable; install psycopg2 before opening sync database sessions."
-        ) from exc
-    return SessionLocal()
+# Session factory
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
 def close_db() -> None:
@@ -153,24 +106,24 @@ def close_db() -> None:
     global engine
     if engine is not None:
         engine.dispose()
-        engine = None
-        SessionLocal.configure(bind=None)
         logger.info("Layer 1 database engine disposed")
 
-
-def _initialize_redis_clients() -> tuple[Any | None, Any | None, bool]:
-    """Initialize Redis clients, failing closed when Redis is unavailable."""
-    try:
-        sync_client = create_sync_redis_client(settings.redis_url, decode_responses=True)
-        sync_client.ping()
-        async_client = create_async_redis_client(settings.redis_url, decode_responses=True)
-    except Exception:
-        return None, None, False
-    return sync_client, async_client, True
-
-
-# Redis clients used by health checks, Celery, and rate limiting.
-redis_client, redis_client_async, REDIS_AVAILABLE = _initialize_redis_clients()
+# Redis client (used by health checks and Celery)
+redis_client = None
+# Async Redis client (used by rate limiter)
+redis_client_async = None
+REDIS_AVAILABLE = False
+try:
+    _redis_client = create_sync_redis_client(settings.redis_url, decode_responses=True)
+    _redis_client.ping()
+    redis_client = _redis_client
+    redis_client_async = create_async_redis_client(settings.redis_url, decode_responses=True)
+    REDIS_AVAILABLE = True
+except Exception:
+    redis_client = None
+    redis_client_async = None
+    REDIS_AVAILABLE = False
+    pass
 
 
 # SECURITY: Fail-safe mode - require explicit tenant context
@@ -189,13 +142,11 @@ def get_privileged_db_session_metrics() -> dict[str, int]:
 
 
 def reset_privileged_db_session_metrics() -> None:
-    _privileged_db_session_metrics.update(
-        {
-            "activations_total": 0,
-            "denials_total": 0,
-            "missing_reason_total": 0,
-        }
-    )
+    _privileged_db_session_metrics.update({
+        "activations_total": 0,
+        "denials_total": 0,
+        "missing_reason_total": 0,
+    })
 
 
 def validate_tenant_id(tenant_id: UUID | str | None) -> str:
@@ -225,14 +176,18 @@ def validate_tenant_id(tenant_id: UUID | str | None) -> str:
 
     # Fail-safe: empty tenant_id is not allowed
     if not normalized:
-        raise TenantContextError("Empty tenant_id is not allowed. Provide a valid tenant context.")
+        raise TenantContextError(
+            "Empty tenant_id is not allowed. Provide a valid tenant context."
+        )
 
     # Validate UUID format for strict tenant isolation
-    if normalized.lower() not in ("system", "admin", "internal"):
+    if normalized.lower() not in ('system', 'admin', 'internal'):
         try:
             UUID(normalized)
         except ValueError:
-            raise TenantContextError(f"Invalid tenant_id format: {normalized}. Expected UUID.")
+            raise TenantContextError(
+                f"Invalid tenant_id format: {normalized}. Expected UUID."
+            )
 
     return normalized
 
@@ -259,7 +214,10 @@ def set_tenant_context(session: Session, tenant_id: UUID | str | None) -> None:
 
     # Set tenant context for RLS policies
     # Empty string only allowed for admin roles (enforced by RLS policy TO clause)
-    session.execute(text("SET LOCAL app.tenant_id = :tenant_id"), {"tenant_id": normalized_id})
+    session.execute(
+        text("SET LOCAL app.tenant_id = :tenant_id"),
+        {"tenant_id": normalized_id}
+    )
     _mark_session_tenant_context(session, normalized_id)
 
 
@@ -282,9 +240,7 @@ def _record_privileged_db_session_activation(context, *, mode: str, reason: str)
         extra={
             "request_id": getattr(context, "request_id", None),
             "actor_id": getattr(context, "user_id", None) or getattr(context, "api_key_id", None),
-            "tenant_id": str(getattr(context, "tenant_id", None))
-            if getattr(context, "tenant_id", None) is not None
-            else None,
+            "tenant_id": str(getattr(context, "tenant_id", None)) if getattr(context, "tenant_id", None) is not None else None,
             "mode": mode,
             "reason": reason,
         },
@@ -297,22 +253,20 @@ def _record_privileged_db_session_activation(context, *, mode: str, reason: str)
 def _require_privileged_cross_tenant_reason(request: Request, context) -> str:
     if not context.is_super_admin():
         _privileged_db_session_metrics["denials_total"] += 1
-        raise AuthorizationError(message="Cross-tenant database access requires super admin role.")
+        raise AuthorizationError(message = "Cross-tenant database access requires super admin role.")
 
     reason = (request.headers.get(_PRIVILEGED_REASON_HEADER) or "").strip()
     if not reason:
         _privileged_db_session_metrics["missing_reason_total"] += 1
-        raise ValidationError(
-            message=str(
-                f"Cross-tenant database access requires {_PRIVILEGED_REASON_HEADER} header."
-            )
-        )
+        raise ValidationError(message = str(f"Cross-tenant database access requires {_PRIVILEGED_REASON_HEADER} header."))
     return reason
 
 
 @contextmanager
 def get_db_session(
-    tenant_id: UUID | str | None = None, *, require_tenant: bool = True
+    tenant_id: UUID | str | None = None,
+    *,
+    require_tenant: bool = True
 ) -> Generator[Session, None, None]:
     """Get a database session as a context manager.
 
@@ -337,16 +291,16 @@ def get_db_session(
     # If require_tenant=False and tenant_id is None, this is a system-level bypass.
     # Emit metric for observability — all bypass usage must be alertable.
     if not require_tenant:
-        _privileged_db_session_metrics["activations_total"] += 1
         metrics = get_metrics()
         if metrics:
             metrics.increment_privileged_db_session_activation(mode="bypass")
 
-    session = _new_session()
+    session = SessionLocal()
     try:
         if tenant_id is not None:
             session.execute(
-                text("SET LOCAL app.tenant_id = :tenant_id"), {"tenant_id": str(tenant_id)}
+                text("SET LOCAL app.tenant_id = :tenant_id"),
+                {"tenant_id": str(tenant_id)}
             )
             _mark_session_tenant_context(session, str(tenant_id))
         else:
@@ -366,7 +320,7 @@ def get_db() -> Generator[Session, None, None]:
     SECURITY: Use only for health checks or admin operations with proper
     role authentication. All production endpoints should use get_db_with_tenant.
     """
-    session = _new_session()
+    session = SessionLocal()
     try:
         _mark_session_tenant_bypass(session, reason="system_operation")
         yield session
@@ -400,16 +354,19 @@ def get_db_with_tenant(
     """
     ctx = getattr(request.state, "governance_context", None)
     if ctx is None or not getattr(ctx, "tenant_id", None):
-        raise AuthenticationError(message="Authentication required")
+        raise AuthenticationError(message = "Authentication required")
     try:
         tenant_id = validate_tenant_id(ctx.tenant_id)
     except TenantContextError as e:
         logger.warning("Tenant context validation failed: %s", e)
-        raise ValidationError(message="Invalid tenant context") from e
+        raise ValidationError(message = "Invalid tenant context") from e
 
-    session = _new_session()
+    session = SessionLocal()
     try:
-        session.execute(text("SET LOCAL app.tenant_id = :tenant_id"), {"tenant_id": tenant_id})
+        session.execute(
+            text("SET LOCAL app.tenant_id = :tenant_id"),
+            {"tenant_id": tenant_id}
+        )
         yield session
         session.commit()
     except Exception:
@@ -440,16 +397,19 @@ def get_db_from_context(
     """
     ctx = getattr(request.state, "governance_context", None)
     if ctx is None or not getattr(ctx, "tenant_id", None):
-        raise AuthenticationError(message="Authentication required")
+        raise AuthenticationError(message = "Authentication required")
     try:
         tenant_id = validate_tenant_id(ctx.tenant_id)
     except TenantContextError as e:
         logger.warning("Tenant context validation failed: %s", e)
-        raise ValidationError(message="Invalid tenant context") from e
+        raise ValidationError(message = "Invalid tenant context") from e
 
-    session = _new_session()
+    session = SessionLocal()
     try:
-        session.execute(text("SET LOCAL app.tenant_id = :tenant_id"), {"tenant_id": tenant_id})
+        session.execute(
+            text("SET LOCAL app.tenant_id = :tenant_id"),
+            {"tenant_id": tenant_id}
+        )
         yield session
         session.commit()
     except Exception:
@@ -459,7 +419,9 @@ def get_db_from_context(
         session.close()
 
 
-def get_db_with_tenant_from_context(tenant_id: UUID | str) -> Generator[Session, None, None]:
+def get_db_with_tenant_from_context(
+    tenant_id: UUID | str
+) -> Generator[Session, None, None]:
     """
     Context manager for database sessions with RLS tenant context.
     For use outside FastAPI request lifecycle (e.g., background tasks).
@@ -485,31 +447,22 @@ def get_db_with_tenant_from_context(tenant_id: UUID | str) -> Generator[Session,
 # Sprint 5: Context-aware database session for sync layers (Task 5.2.1)
 # ---------------------------------------------------------------------------
 
-if TYPE_CHECKING:
-    from value_fabric.shared.identity.middleware_sync import SyncRequestContext
-else:
-    SyncRequestContext = Any
-
-
-def _missing_sync_request_context() -> NoReturn:
-    raise RuntimeError("shared.identity.middleware_sync required for sync database dependencies")
-
-
 try:
     from value_fabric.shared.identity.middleware_sync import (
+        SyncRequestContext,
         get_request_context_sync,
         require_request_context_sync,
     )
-
     SYNC_IDENTITY_AVAILABLE = True
 except ImportError:
     SYNC_IDENTITY_AVAILABLE = False
-    get_request_context_sync = _missing_sync_request_context
-    require_request_context_sync = _missing_sync_request_context
+    SyncRequestContext = None  # type: ignore
+    get_request_context_sync = None  # type: ignore
+    require_request_context_sync = None  # type: ignore
 
 
 def get_db_from_context_sync(
-    context: SyncRequestContext = Depends(get_request_context_sync),
+    context: "SyncRequestContext" = Depends(get_request_context_sync),  # type: ignore
 ) -> Generator[Session, None, None]:
     """FastAPI dependency for DB session with tenant from RequestContext (Sprint 5).
 
@@ -529,24 +482,27 @@ def get_db_from_context_sync(
        : 400 if tenant context is missing
     """
     if not SYNC_IDENTITY_AVAILABLE:
-        raise RuntimeError("shared.identity.middleware_sync required for get_db_from_context_sync")
+        raise RuntimeError(
+            "shared.identity.middleware_sync required for get_db_from_context_sync"
+        )
 
     if not context or not context.tenant_id:
-        raise ValidationError(
-            message="Tenant context required. Ensure request passed through GovernanceMiddlewareSync."
-        )
+        raise ValidationError(message = "Tenant context required. Ensure request passed through GovernanceMiddlewareSync.")
 
     # Validate tenant ID
     try:
         tenant_id = validate_tenant_id(context.tenant_id)
     except TenantContextError as e:
         logger.warning("Tenant context validation failed: %s", e)
-        raise ValidationError(message="Invalid tenant context") from e
+        raise ValidationError(message = "Invalid tenant context") from e
 
     # Create session with RLS context
-    session = _new_session()
+    session = SessionLocal()
     try:
-        session.execute(text("SET LOCAL app.tenant_id = :tenant_id"), {"tenant_id": tenant_id})
+        session.execute(
+            text("SET LOCAL app.tenant_id = :tenant_id"),
+            {"tenant_id": tenant_id}
+        )
         yield session
         session.commit()
     except Exception:
@@ -558,7 +514,7 @@ def get_db_from_context_sync(
 
 def get_db_with_optional_tenant_sync(
     request: Request,
-    context: SyncRequestContext = Depends(get_request_context_sync),
+    context: "SyncRequestContext" = Depends(get_request_context_sync),  # type: ignore
 ) -> Generator[Session, None, None]:
     """DB session with optional tenant for super-admin operations (Sprint 5).
 
@@ -582,15 +538,18 @@ def get_db_with_optional_tenant_sync(
             "shared.identity.middleware_sync required for get_db_with_optional_tenant_sync"
         )
 
-    session = _new_session()
+    session = SessionLocal()
     try:
         if context.tenant_id:
             try:
                 tenant_id = validate_tenant_id(context.tenant_id)
             except TenantContextError as e:
                 logger.warning("Tenant context validation failed: %s", e)
-                raise ValidationError(message="Invalid tenant context") from e
-            session.execute(text("SET LOCAL app.tenant_id = :tenant_id"), {"tenant_id": tenant_id})
+                raise ValidationError(message = "Invalid tenant context") from e
+            session.execute(
+                text("SET LOCAL app.tenant_id = :tenant_id"),
+                {"tenant_id": tenant_id}
+            )
             _mark_session_tenant_context(session, tenant_id)
         elif context.is_super_admin():
             reason = _require_privileged_cross_tenant_reason(request, context)
@@ -602,9 +561,7 @@ def get_db_with_optional_tenant_sync(
             )
         else:
             _privileged_db_session_metrics["denials_total"] += 1
-            raise AuthorizationError(
-                message="Cross-tenant database access requires super admin role."
-            )
+            raise AuthorizationError(message = "Cross-tenant database access requires super admin role.")
         yield session
         session.commit()
     except Exception:

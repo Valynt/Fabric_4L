@@ -131,7 +131,7 @@ class ToolContractRegistry:
             ToolNotFoundError: if tool doesn't exist or tenant mismatch.
             ApprovalRequiredError: if approval required but not present.
         """
-        from layer4_agents.harness.policies import (
+        from harness.policies import (
             evaluate_tool_invocation_policy,
         )
 

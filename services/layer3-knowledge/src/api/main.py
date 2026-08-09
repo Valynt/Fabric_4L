@@ -245,9 +245,6 @@ async def lifespan(app: FastAPI):
         except Exception as e:
             logger.warning("Error disconnecting cache: %s", e)
     await close_app_state(app)
-    governance_redis_client = getattr(app.state, "governance_redis_client", None)
-    if governance_redis_client is not None:
-        await governance_redis_client.aclose()
 
 
 # ---------------------------------------------------------------------------
@@ -295,24 +292,7 @@ def _post_core_middleware_hook(app: FastAPI) -> None:
         skip_validation_paths={"/health", "/metrics", "/ready", "/live", "/v1/ingest"},
         strict_mode=True,
     )
-    redis_rate_limiter = None
-    try:
-        import redis.asyncio as redis
-        from value_fabric.shared.identity.rate_limiter import RedisRateLimiter
-
-        redis_client = redis.from_url(
-            _settings.cache_redis_url if _settings else "redis://localhost:6379/0",
-            decode_responses=True,
-        )
-        app.state.governance_redis_client = redis_client
-        redis_rate_limiter = RedisRateLimiter(redis_client)
-    except (ImportError, TypeError, ValueError) as exc:
-        logger.error(
-            "Redis-backed governance initialization failed (%s); tenant status "
-            "will fail closed",
-            type(exc).__name__,
-        )
-    add_governance_middleware(app, rate_limiter=redis_rate_limiter)
+    add_governance_middleware(app)
     # Safe defaults: rate limiting is ON when settings cannot be loaded so that
     # a misconfigured production deployment fails closed rather than unprotected.
     add_rate_limiting(

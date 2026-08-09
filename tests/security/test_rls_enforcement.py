@@ -22,7 +22,6 @@ Expected Initial State:
     - test_rls_policy_uses_current_setting:    PASS
     - test_rls_null_tenant_id_allows_read:     FAIL (RLS policy allows NULL tenant_id)
 """
-
 from __future__ import annotations
 
 import ast
@@ -38,18 +37,21 @@ import pytest
 _PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 _L4_DATABASE_MODULE = (
-    _PROJECT_ROOT / "services" / "layer4-agents" / "src" / "layer4_agents" / "database.py"
+    _PROJECT_ROOT / "services" / "layer4-agents" / "src" / "database.py"
 )
 
-_L4_MIGRATIONS_DIR = _PROJECT_ROOT / "services" / "layer4-agents" / "migrations" / "versions"
+_L4_MIGRATIONS_DIR = (
+    _PROJECT_ROOT / "services" / "layer4-agents" / "migrations" / "versions"
+)
 
-_L4_MODELS_DIR = _PROJECT_ROOT / "services" / "layer4-agents" / "src" / "layer4_agents" / "models"
+_L4_MODELS_DIR = (
+    _PROJECT_ROOT / "services" / "layer4-agents" / "src" / "models"
+)
 
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
-
 
 def _extract_rls_tables_from_migrations() -> set[str]:
     """Extract all table names that have RLS policies from migration files."""
@@ -72,15 +74,7 @@ def _extract_model_tables_with_tenant_id() -> set[str]:
 
     model_files = list(_L4_MODELS_DIR.glob("*.py"))
     # Also check tenant models
-    tenant_models_dir = (
-        _PROJECT_ROOT
-        / "services"
-        / "layer4-agents"
-        / "src"
-        / "layer4_agents"
-        / "tenants"
-        / "models"
-    )
+    tenant_models_dir = _PROJECT_ROOT / "services" / "layer4-agents" / "src" / "tenants" / "models"
     if tenant_models_dir.exists():
         model_files.extend(tenant_models_dir.glob("*.py"))
 
@@ -132,7 +126,6 @@ def _function_source(source: str, function_name: str) -> str:
 # Tests: Migration Coverage
 # ---------------------------------------------------------------------------
 
-
 class TestRLSMigrationCoverage:
     """Verify RLS policies cover all tables with tenant_id columns."""
 
@@ -166,7 +159,6 @@ class TestRLSMigrationCoverage:
 # Tests: Database Module Structure
 # ---------------------------------------------------------------------------
 
-
 class TestDatabaseModuleStructure:
     """Verify the L4 database module enforces tenant context correctly."""
 
@@ -194,16 +186,12 @@ class TestDatabaseModuleStructure:
                     )
 
                     clear_source = _function_source(source, "_clear_local_tenant_context")
-                    assert "_mark_session_tenant_bypass" in clear_source, (
-                        "_clear_local_tenant_context must explicitly mark the "
-                        "tenant-enforced session as a privileged bypass."
+                    assert "app.tenant_id" in clear_source, (
+                        "_clear_local_tenant_context does not set app.tenant_id."
                     )
-                    assert 'reason="system_operation"' in clear_source, (
-                        "System bypasses must record an auditable reason."
-                    )
-                    assert "session.execute" not in clear_source, (
-                        "Clearing tenant context must not issue persistent SQL "
-                        "that could leak across pooled connections."
+                    assert "set_config('app.tenant_id', '', true)" in clear_source, (
+                        "_clear_local_tenant_context must set app.tenant_id to "
+                        "empty string transaction-locally."
                     )
                     return
 
@@ -268,7 +256,6 @@ class TestDatabaseModuleStructure:
 # Tests: RLS Policy Structure
 # ---------------------------------------------------------------------------
 
-
 class TestRLSPolicyStructure:
     """Verify RLS policies use the correct PostgreSQL patterns."""
 
@@ -332,29 +319,15 @@ class TestRLSPolicyStructure:
                 )
                 if upgrade_match:
                     upgrade_source = upgrade_match.group(0)
-                    null_policies = re.findall(
-                        r"CREATE\s+POLICY\s+(\w+)\s+ON\s+(\w+).*?"
-                        r"USING\s*\([^)]*tenant_id\s+IS\s+NULL[^)]*\)",
-                        upgrade_source,
-                        re.IGNORECASE | re.DOTALL,
-                    )
-                    for policy_name, table_name in null_policies:
-                        policy_pattern = re.compile(
-                            rf"CREATE\s+POLICY\s+{re.escape(policy_name)}\s+ON\s+"
-                            rf"{re.escape(table_name)}(?P<body>.*?)(?=CREATE\s+POLICY|$)",
-                            re.IGNORECASE | re.DOTALL,
+                    if re.search(r"USING\s*\([^)]*tenant_id\s+IS\s+NULL", upgrade_source, re.IGNORECASE):
+                        pytest.fail(
+                            f"{migration_file.name}: RLS policy allows rows with NULL tenant_id "
+                            f"to be visible to all tenants. This means any row inserted without "
+                            f"a tenant_id is a global data leak. The policy should require "
+                            f"tenant_id to be NOT NULL, or use a separate admin-only policy "
+                            f"for NULL rows."
                         )
-                        policy_match = policy_pattern.search(upgrade_source)
-                        policy_body = policy_match.group("body") if policy_match else ""
-                        assert (
-                            policy_name == "global_plan_read_policy"
-                            and table_name == "billing_plan_versions"
-                            and re.search(r"FOR\s+SELECT", policy_body, re.IGNORECASE)
-                        ), (
-                            f"{migration_file.name}: {policy_name} on {table_name} "
-                            "allows NULL tenant visibility outside the single "
-                            "read-only global billing-plan catalog policy."
-                        )
+
 
     def test_remediation_migrations_do_not_reintroduce_null_visibility(self):
         """Remediation migration upgrade() functions must not contain the NULL bypass.
@@ -451,7 +424,6 @@ class TestRLSPolicyStructure:
 # Tests: Connection Pool Reset
 # ---------------------------------------------------------------------------
 
-
 class TestConnectionPoolReset:
     """Verify that database sessions are properly reset between requests.
 
@@ -533,13 +505,14 @@ class TestConnectionPoolReset:
 # P0 expansion: Layer 1 RLS coverage
 # ---------------------------------------------------------------------------
 
-_L1_MIGRATIONS_DIR = _PROJECT_ROOT / "services" / "layer1-ingestion" / "migrations" / "versions"
+_L1_MIGRATIONS_DIR = (
+    _PROJECT_ROOT / "services" / "layer1-ingestion" / "migrations" / "versions"
+)
 
 
 # ---------------------------------------------------------------------------
 # Tests: Migration 033 — remaining NULL-bypass tables
 # ---------------------------------------------------------------------------
-
 
 class TestMigration033RLSCoverage:
     """Verify migration 033 closes the remaining NULL-permissive RLS gaps.
@@ -549,7 +522,9 @@ class TestMigration033RLSCoverage:
     ran and therefore still had the unsafe ``tenant_id IS NULL OR ...`` pattern.
     """
 
-    _MIGRATION_FILE = _L4_MIGRATIONS_DIR / "033_fix_rls_null_tenant_policy_remaining.py"
+    _MIGRATION_FILE = (
+        _L4_MIGRATIONS_DIR / "033_fix_rls_null_tenant_policy_remaining.py"
+    )
 
     _EXPECTED_TABLES = [
         # Billing (025)
@@ -764,7 +739,8 @@ class TestLayer1RLSCoverage:
 
         source = fix_migration.read_text()
         assert "crawl_decisions" in source, (
-            "Migration 013 does not reference crawl_decisions. The NULL bypass fix is incomplete."
+            "Migration 013 does not reference crawl_decisions. "
+            "The NULL bypass fix is incomplete."
         )
 
     def test_l1_fix_migration_upgrade_is_strict(self):

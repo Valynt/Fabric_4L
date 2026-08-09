@@ -7,7 +7,7 @@ import uuid
 from collections import defaultdict, deque
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from enum import Enum
 from typing import Any, Literal, TypedDict
 
@@ -783,7 +783,7 @@ class SecurityStore:
                 alert_key = f"security:alert:{alert_id.decode() if isinstance(alert_id, bytes) else alert_id}"
                 alert_data = await self.redis_client.get(alert_key)
                 if alert_data:
-                    alerts.append(SecurityAlert.model_validate_json(alert_data))
+                    alerts.append(SecurityAlert.parse_raw(alert_data))
 
             return alerts
 
@@ -801,7 +801,7 @@ class SecurityStore:
             return
 
         try:
-            cutoff_time = datetime.now(UTC) - timedelta(days=retention_days)
+            cutoff_time = datetime.utcnow() - timedelta(days=retention_days)
 
             # Clean up old events
             pattern = "security:event:*"

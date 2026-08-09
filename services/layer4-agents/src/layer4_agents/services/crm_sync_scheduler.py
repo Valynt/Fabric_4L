@@ -46,7 +46,7 @@ class CRMSyncScheduler_get_statusResult(TypedDictModel):
 
 
 class CRMSyncScheduler__execute_syncResult(TypedDictModel):
-    error: str | None = None
+    error: str
     reason: str | None = None
     skipped: bool | None = None
 
@@ -58,13 +58,13 @@ _SYNC_JOBS: dict[str, asyncio.Task[None]] = {}
 class CRMSyncScheduler:
     """Schedules and manages periodic CRM account synchronization.
 
-        Uses TaskScheduler for background execution with BACKGROUND priority
-    to avoid impacting user-facing workflows.
+    Uses TaskScheduler for background execution with BACKGROUND priority
+to avoid impacting user-facing workflows.
 
-        Configuration:
-        - CRM_SYNC_INTERVAL_MINUTES: Default sync interval (default: 60)
-        - CRM_SYNC_BATCH_SIZE: Default records per sync batch (default: 100)
-        - CRM_SYNC_MAX_TENANTS_PER_BATCH: Max tenants to sync in one sweep (default: 100)
+    Configuration:
+    - CRM_SYNC_INTERVAL_MINUTES: Default sync interval (default: 60)
+    - CRM_SYNC_BATCH_SIZE: Default records per sync batch (default: 100)
+    - CRM_SYNC_MAX_TENANTS_PER_BATCH: Max tenants to sync in one sweep (default: 100)
     """
 
     def __init__(self, scheduler: TaskScheduler | None = None):
@@ -195,9 +195,7 @@ class CRMSyncScheduler:
             try:
                 provider = CRMProvider(provider_str)
             except ValueError:
-                logger.warning(
-                    "Skipping invalid provider '%s' for tenant %s", provider_str, tenant_id
-                )
+                logger.warning("Skipping invalid provider '%s' for tenant %s", provider_str, tenant_id)
                 stats["errors"].append(f"invalid_provider:{tenant_id}:{provider_str}")
                 continue
 
@@ -207,9 +205,7 @@ class CRMSyncScheduler:
             except asyncio.CancelledError:
                 raise
             except Exception as e:
-                logger.error(
-                    "Sync failed for tenant=%s provider=%s: %s", tenant_id, provider_str, e
-                )
+                logger.error("Sync failed for tenant=%s provider=%s: %s", tenant_id, provider_str, e)
                 stats["errors"].append(f"sync_failed:{tenant_id}:{provider_str}:{type(e).__name__}")
 
         # Schedule next sweep
@@ -248,9 +244,7 @@ class CRMSyncScheduler:
                 return {"skipped": True, "reason": "not_configured"}
 
             if not integration.enabled:
-                logger.debug(
-                    "Integration disabled for tenant=%s provider=%s", tenant_id, provider.value
-                )
+                logger.debug("Integration disabled for tenant=%s provider=%s", tenant_id, provider.value)
                 return {"skipped": True, "reason": "disabled"}
 
             # Update sync status through the reducer.
@@ -268,9 +262,7 @@ class CRMSyncScheduler:
 
                 if stats.get("failed", 0) > 0:
                     await apply_observation(db, integration, sync_partial())
-                    integration.last_error_message = (
-                        "; ".join(stats.get("errors", [])[:3]) or "Sync failed"
-                    )
+                    integration.last_error_message = "; ".join(stats.get("errors", [])[:3]) or "Sync failed"
                 else:
                     await apply_observation(db, integration, sync_succeeded())
                     integration.last_successful_sync_at = datetime.now(UTC)
@@ -293,7 +285,9 @@ class CRMSyncScheduler:
                 await db.commit()
                 raise
 
-    async def _execute_sync(self, provider_str: str, incremental: bool = True) -> dict[str, Any]:
+    async def _execute_sync(
+        self, provider_str: str, incremental: bool = True
+    ) -> dict[str, Any]:
         """DEPRECATED: Execute sync without tenant context.
 
         This method is kept for backward compatibility but should not be used.
@@ -313,10 +307,7 @@ class CRMSyncScheduler:
         )
 
     async def trigger_sync_now(
-        self,
-        tenant_id: str | None = None,
-        provider: CRMProvider | None = None,
-        incremental: bool = True,
+        self, tenant_id: str | None = None, provider: CRMProvider | None = None, incremental: bool = True
     ) -> dict[str, Any]:
         """Manually trigger a sync immediately.
 
@@ -340,15 +331,13 @@ class CRMSyncScheduler:
         Returns:
             Status dict with configuration and scheduler stats
         """
-        return CRMSyncScheduler_get_statusResult.model_validate(
-            {
-                "running": self._running,
-                "sync_interval_minutes": self._sync_interval_minutes,
-                "batch_size": self._batch_size,
-                "scheduled_tasks": len(self._scheduled_task_ids),
-                "scheduler_stats": self._scheduler.get_stats(),
-            }
-        )
+        return CRMSyncScheduler_get_statusResult.model_validate({
+            "running": self._running,
+            "sync_interval_minutes": self._sync_interval_minutes,
+            "batch_size": self._batch_size,
+            "scheduled_tasks": len(self._scheduled_task_ids),
+            "scheduler_stats": self._scheduler.get_stats(),
+        })
 
 
 # Global scheduler instance for singleton access

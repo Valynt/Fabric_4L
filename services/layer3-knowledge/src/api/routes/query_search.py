@@ -11,7 +11,7 @@ import json
 import logging
 import time
 from dataclasses import asdict
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import Any
 
 from fastapi import Request
@@ -204,7 +204,7 @@ async def graph_rag_query_stream_impl(
                 event_data = {
                     "event_type": event["event_type"],
                     "data": event["data"],
-                    "timestamp": datetime.now(UTC).isoformat(),
+                    "timestamp": datetime.utcnow().isoformat(),
                     "progress_percent": event.get("progress_percent", 0.0),
                 }
                 yield f"data: {json.dumps(event_data)}\\n\\n"
@@ -216,7 +216,7 @@ async def graph_rag_query_stream_impl(
             error_event = {
                 "event_type": "error",
                 "data": {"message": "Streaming query failed"},
-                "timestamp": datetime.now(UTC).isoformat(),
+                "timestamp": datetime.utcnow().isoformat(),
                 "progress_percent": 100.0,
             }
             if trace_id:

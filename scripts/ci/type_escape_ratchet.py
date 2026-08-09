@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-from collections import Counter
 import fnmatch
 import json
 import re
@@ -77,15 +76,11 @@ def scan_file(path: Path, root: Path) -> list[Finding]:
     for line_no, line in enumerate(lines, start=1):
         if path.suffix == ".py":
             if PY_TYPE_IGNORE_RE.search(line):
-                findings.append(
-                    Finding(relative, line_no, "python-type-ignore", line.strip())
-                )
+                findings.append(Finding(relative, line_no, "python-type-ignore", line.strip()))
             if PY_ANY_RE.search(line):
                 findings.append(Finding(relative, line_no, "python-any", line.strip()))
         elif path.suffix in {".ts", ".tsx"} and TS_AS_ANY_RE.search(line):
-            findings.append(
-                Finding(relative, line_no, "typescript-as-any", line.strip())
-            )
+            findings.append(Finding(relative, line_no, "typescript-as-any", line.strip()))
     return findings
 
 
@@ -105,9 +100,7 @@ def load_baseline(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def write_baseline(
-    path: Path, findings: list[Finding], allowlisted_boundary_files: list[str]
-) -> None:
+def write_baseline(path: Path, findings: list[Finding], allowlisted_boundary_files: list[str]) -> None:
     payload = {
         "description": "Generated baseline for approved Python Any/type: ignore and TypeScript as any occurrences. Generated files are excluded by scripts/ci/type_escape_ratchet.py.",
         "excluded_patterns": list(EXCLUDED_PATTERNS),
@@ -115,56 +108,33 @@ def write_baseline(
         "occurrences": [asdict(finding) for finding in findings],
     }
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(
-        json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8"
-    )
-
-
-def compare_occurrences(
-    findings: list[Finding], baseline: dict
-) -> tuple[list[Finding], int]:
-    """Compare occurrence counts without treating line movement as new debt."""
-    approved = Counter(
-        (item["path"], item["kind"]) for item in baseline.get("occurrences", [])
-    )
-    current: Counter[tuple[str, str]] = Counter()
-    new: list[Finding] = []
-    for finding in findings:
-        signature = (finding.path, finding.kind)
-        current[signature] += 1
-        if current[signature] > approved[signature]:
-            new.append(finding)
-
-    stale = sum((approved - current).values())
-    return new, stale
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(
-        description="Fail on net-new unapproved type escapes."
-    )
+    parser = argparse.ArgumentParser(description="Fail on net-new unapproved type escapes.")
     parser.add_argument("--baseline", type=Path, default=DEFAULT_BASELINE)
-    parser.add_argument(
-        "--update", action="store_true", help="Regenerate the checked-in baseline."
-    )
+    parser.add_argument("--update", action="store_true", help="Regenerate the checked-in baseline.")
     args = parser.parse_args(argv)
 
     root = repo_root()
-    baseline_path = (
-        args.baseline if args.baseline.is_absolute() else root / args.baseline
-    )
+    baseline_path = args.baseline if args.baseline.is_absolute() else root / args.baseline
     baseline = load_baseline(baseline_path)
     allowlisted_boundary_files = list(baseline.get("allowlisted_boundary_files", []))
     findings = scan(root, allowlisted_boundary_files)
 
     if args.update:
         write_baseline(baseline_path, findings, allowlisted_boundary_files)
-        print(
-            f"Updated {baseline_path.relative_to(root)} with {len(findings)} approved occurrences."
-        )
+        print(f"Updated {baseline_path.relative_to(root)} with {len(findings)} approved occurrences.")
         return 0
 
-    new, stale = compare_occurrences(findings, baseline)
+    approved = {
+        f"{item['path']}:{item['line']}:{item['kind']}:{item['text'].strip()}"
+        for item in baseline.get("occurrences", [])
+    }
+    current = {finding.key for finding in findings}
+    new = [finding for finding in findings if finding.key not in approved]
+    stale = sorted(approved - current)
 
     if new:
         print("Net-new unapproved type escapes detected:")
@@ -172,20 +142,14 @@ def main(argv: list[str] | None = None) -> int:
             print(f"  {finding.path}:{finding.line}: {finding.kind}: {finding.text}")
         if len(new) > 100:
             print(f"  ... and {len(new) - 100} more")
-        print(
-            "Regenerate the baseline only after approval: python scripts/ci/type_escape_ratchet.py --update"
-        )
+        print("Regenerate the baseline only after approval: python scripts/ci/type_escape_ratchet.py --update")
         return 1
 
     if stale:
-        print(
-            f"Type escape baseline has {stale} stale approved occurrence(s); run with --update after cleanup."
-        )
+        print(f"Type escape baseline has {len(stale)} stale approved occurrence(s); run with --update after cleanup.")
         return 1
 
-    print(
-        f"Type escape ratchet passed: {len(findings)} approved occurrence(s), no net-new escapes."
-    )
+    print(f"Type escape ratchet passed: {len(findings)} approved occurrence(s), no net-new escapes.")
     return 0
 
 

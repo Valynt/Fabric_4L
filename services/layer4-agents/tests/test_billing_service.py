@@ -38,8 +38,6 @@ from layer4_agents.services.billing_service import (
 )
 from layer4_agents.services.stripe_client import StripeError
 
-TEST_TENANT_ID = "550e8400-e29b-41d4-a716-446655440000"
-
 # =============================================================================
 # Fixtures
 # =============================================================================
@@ -63,8 +61,6 @@ def override_app_db_dependency(mock_db):
     from value_fabric.shared.identity.context import RequestContext
     from value_fabric.shared.identity.dependencies import require_authenticated
 
-    from layer4_agents.api.common import db as common_db
-    from layer4_agents.api.routes import billing as billing_route
     from layer4_agents.database import get_db_from_context
 
     async def _override_db():
@@ -72,20 +68,16 @@ def override_app_db_dependency(mock_db):
 
     async def _override_auth():
         return RequestContext(
-            tenant_id=TEST_TENANT_ID,
+            tenant_id="tenant_abc123",
             user_id="user_123",
             roles=["admin"],
             permissions=["billing:read", "billing:write"],
         )
 
     app.dependency_overrides[get_db_from_context] = _override_db
-    app.dependency_overrides[common_db.get_route_db] = _override_db
-    app.dependency_overrides[billing_route.get_route_db] = _override_db
     app.dependency_overrides[require_authenticated] = _override_auth
     yield
     app.dependency_overrides.pop(get_db_from_context, None)
-    app.dependency_overrides.pop(common_db.get_route_db, None)
-    app.dependency_overrides.pop(billing_route.get_route_db, None)
     app.dependency_overrides.pop(require_authenticated, None)
 
 
@@ -99,7 +91,7 @@ def client():
 
     async def _fake_resolve(self, request):
         return RequestContext(
-            tenant_id=TEST_TENANT_ID,
+            tenant_id="tenant_abc123",
             user_id="user_123",
             roles=["admin", "billing:read", "billing:write"],
         )
@@ -126,7 +118,7 @@ def sample_customer():
     """Sample billing customer for tests."""
     return BillingCustomer(
         id="user_123",
-        tenant_id=TEST_TENANT_ID,
+        tenant_id="tenant_abc123",
         stripe_customer_id="cus_test123",
         email="test@example.com",
         name="Test User",
@@ -140,7 +132,7 @@ def sample_subscription():
     """Sample billing subscription for tests."""
     return BillingSubscription(
         id="sub_123",
-        tenant_id=TEST_TENANT_ID,
+        tenant_id="tenant_abc123",
         customer_id="user_123",
         stripe_subscription_id="sub_stripe123",
         plan_id="pro",
@@ -240,7 +232,7 @@ async def test_reconcile_customer_sync_retry_recovers_failed_customer(mock_db):
     """Failed sync should recover via reconciliation retry."""
     customer = BillingCustomer(
         id="user_retry",
-        tenant_id=TEST_TENANT_ID,
+        tenant_id="tenant_abc123",
         stripe_customer_id=None,
         stripe_sync_status="failed",
         stripe_sync_error="timeout",
@@ -789,7 +781,7 @@ async def test_cancel_subscription_at_period_end(mock_db, sample_subscription):
         service = BillingService(mock_db)
         result = await service.cancel_subscription(
             customer_id="user_123",
-            tenant_id=TEST_TENANT_ID,
+            tenant_id="tenant_abc123",
             cancel_immediately=False,
         )
 
@@ -819,7 +811,7 @@ async def test_cancel_subscription_immediately_downgrades_to_free(mock_db, sampl
         service = BillingService(mock_db)
         result = await service.cancel_subscription(
             customer_id="user_123",
-            tenant_id=TEST_TENANT_ID,
+            tenant_id="tenant_abc123",
             cancel_immediately=True,
         )
 
@@ -1146,7 +1138,7 @@ def test_cancel_subscription_endpoint(client, mock_db, sample_subscription):
 
 def test_cancel_subscription_endpoint_not_found_response_does_not_leak_identifiers(client):
     """Cancellation not-found errors must not expose tenant or subscription IDs."""
-    leaked_tenant_id = TEST_TENANT_ID
+    leaked_tenant_id = "tenant_abc123"
     leaked_subscription_id = "sub_secret_123"
     raw_error = (
         "No active subscription found for "
@@ -1222,8 +1214,8 @@ def test_reactivate_subscription_endpoint(client, mock_db):
 async def test_ingest_usage_event_duplicate_returns_existing(mock_db):
     mock_db.flush.side_effect = [IntegrityError("dup", None, None), None]
     existing = BillingUsageEvent(
-        id="usage_550e8400_evt_1",
-        tenant_id=TEST_TENANT_ID,
+        id="usage_tenant_abc123_evt_1",
+        tenant_id="tenant_abc123",
         customer_id="user_123",
         event_id="evt_1",
         event_name="api_call",
@@ -1236,7 +1228,7 @@ async def test_ingest_usage_event_duplicate_returns_existing(mock_db):
     mock_db.execute.return_value = q
     service = BillingService(mock_db)
     result = await service.ingest_usage_event(
-        tenant_id=TEST_TENANT_ID,
+        tenant_id="tenant_abc123",
         customer_id="user_123",
         event_id="evt_1",
         event_name="api_call",
@@ -1251,7 +1243,7 @@ async def test_ingest_usage_event_duplicate_returns_existing(mock_db):
 async def test_reconcile_invoice_usage_mismatch(mock_db):
     invoice = BillingInvoice(
         id="inv_1",
-        tenant_id=TEST_TENANT_ID,
+        tenant_id="tenant_abc123",
         customer_id="user_123",
         invoice_number="INV-1",
         status="open",
@@ -1261,7 +1253,7 @@ async def test_reconcile_invoice_usage_mismatch(mock_db):
     )
     usage = BillingUsageEvent(
         id="usage_1",
-        tenant_id=TEST_TENANT_ID,
+        tenant_id="tenant_abc123",
         customer_id="user_123",
         event_id="evt_2",
         event_name="eval",
@@ -1271,7 +1263,7 @@ async def test_reconcile_invoice_usage_mismatch(mock_db):
     )
     item = BillingInvoiceItem(
         id="item_1",
-        tenant_id=TEST_TENANT_ID,
+        tenant_id="tenant_abc123",
         invoice_id="inv_1",
         type="metered",
         description="tokens",
@@ -1286,5 +1278,5 @@ async def test_reconcile_invoice_usage_mismatch(mock_db):
     r3 = MagicMock(); r3.scalars.return_value.all.return_value = [item]
     mock_db.execute.side_effect = [r1, r2, r3]
     service = BillingService(mock_db)
-    reconciled = await service.reconcile_invoice_usage(TEST_TENANT_ID, "inv_1")
+    reconciled = await service.reconcile_invoice_usage("tenant_abc123", "inv_1")
     assert reconciled["mismatch_count"] == 1

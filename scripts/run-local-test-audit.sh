@@ -6,9 +6,9 @@ echo "Fabric_4L Local Test Audit"
 echo "==========================================================="
 
 echo "1. Checking Pytest Collections..."
-python3 scripts/ensure-pytest-collection.py --dir tests/contract --min-tests 330
-python3 scripts/ensure-pytest-collection.py --dir tests/security --min-tests 600
-python3 scripts/ensure-pytest-collection.py --dir tests/k8s --min-tests 150
+python3 scripts/ensure-pytest-collection.py tests/contract 330
+python3 scripts/ensure-pytest-collection.py tests/security 600
+python3 scripts/ensure-pytest-collection.py tests/k8s 150
 
 echo "2. Running Security Tests..."
 pytest tests/security -v

@@ -1,6 +1,6 @@
-# ==========================================================================
+# =============================================================================
 # docker-compose.e2e.yml — Deterministic E2E Backend for Journey Tests
-# ==========================================================================
+# =============================================================================
 #
 # Purpose:  Provide a fully isolated, repeatable backend stack for the 16
 #           data-dependent Playwright journey tests. No persistent volumes,
@@ -13,15 +13,11 @@
 #   pnpm --filter frontend test:e2e:journeys # run journey tests
 #   docker compose -f infra/compose/docker-compose.e2e.yml down -v
 #
-x-shared-code-volumes: &shared-code-volumes
-  - ../../packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
-  - ../../packages/platform-contract/src/python:/app/packages/platform-contract/src/python:ro
-
 # Environment modes:
 #   Local deterministic  — developer confidence  — this file
 #   CI deterministic     — required gate         — this file
 #   Staging smoke        — deployment confidence — PLAYWRIGHT_BACKEND_URL override
-# ==========================================================================
+# =============================================================================
 
 services:
   # ---------------------------------------------------------------------------
@@ -74,74 +70,11 @@ services:
     networks:
       - e2e-network
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:7474 || exit 1"]
+      test: ["CMD", "curl", "-f", "http://localhost:7474"]
       interval: 10s
       timeout: 5s
       retries: 20
       start_period: 60s
-
-  # ---------------------------------------------------------------------------
-  # Backend — Layer 1 Ingestion API (real target/job boundary for J1)
-  # ---------------------------------------------------------------------------
-  layer1:
-    build:
-      context: ../../services/layer1-ingestion
-      dockerfile: ./Dockerfile
-      args:
-        INSTALL_PLAYWRIGHT_BROWSERS: "false"
-    container_name: vf-e2e-layer1
-    ports:
-      - "8001:8000"
-    environment:
-      - ENVIRONMENT=development
-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/ingestion
-      - DATABASE_URL_SYNC=postgresql://postgres:postgres@postgres:5432/ingestion
-      - REDIS_URL=redis://redis:6379/0
-      - JWT_SECRET=e2e-test-secret-do-not-use-in-production-minimum-32-chars
-      - SERVICE_AUTH_SECRET=${SERVICE_AUTH_SECRET:-test-service-auth-secret-for-validation-seed-1234567890}
-      - CORS_ORIGINS=["http://localhost:3001"]
-      - PYTHONPATH=/app:/app/src:/app/packages/platform-contract/src/python
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      layer1-migrate:
-        condition: service_completed_successfully
-    networks:
-      - e2e-network
-    volumes: *shared-code-volumes
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 20s
-
-  layer1-migrate:
-    build:
-      context: ../../services/layer1-ingestion
-      dockerfile: ./Dockerfile
-      args:
-        INSTALL_PLAYWRIGHT_BROWSERS: "false"
-    container_name: vf-e2e-layer1-migrate
-    environment:
-      - ENVIRONMENT=development
-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/ingestion
-      - DATABASE_URL_SYNC=postgresql://postgres:postgres@postgres:5432/ingestion
-      - REDIS_URL=redis://redis:6379/0
-      - JWT_SECRET=e2e-test-secret-do-not-use-in-production-minimum-32-chars
-      - PYTHONPATH=/app:/app/src:/app/packages/platform-contract/src/python
-    depends_on:
-      postgres:
-        condition: service_healthy
-      migrate:
-        condition: service_completed_successfully
-    networks:
-      - e2e-network
-    volumes: *shared-code-volumes
-    command: /app/.venv/bin/alembic -c /app/alembic.ini upgrade head
-    restart: "no"
 
   # ---------------------------------------------------------------------------
   # Backend — Layer 4 Agents API (primary API surface for frontend)
@@ -176,12 +109,9 @@ services:
       - LAYER3_API_URL=http://layer4:8000
       - LAYER5_GROUND_TRUTH_URL=http://layer4:8000
       - LAYER6_BENCHMARKS_URL=http://layer4:8000
-      - ALLOW_INSECURE_SERVICE_HTTP_IN_DEVELOPMENT=true
       # Logging
       - LOG_LEVEL=warning
-      # PYTHONPATH: include image defaults plus mounted platform-contract code.
-      # /app itself makes value_fabric/shared importable without creating a top-level 'secrets' package.
-      - PYTHONPATH=/app:/app/src:/app/packages/platform-contract/src/python
+      - PYTHONPATH=/app
       # Disable Infisical
       - INFISICAL_CLIENT_ID=
       - INFISICAL_CLIENT_SECRET=
@@ -192,13 +122,10 @@ services:
         condition: service_healthy
       neo4j:
         condition: service_healthy
-      migrate:
-        condition: service_completed_successfully
     networks:
       - e2e-network
-    volumes: *shared-code-volumes
     command: >
-      uvicorn layer4_agents.api.main:app
+      uvicorn src.api.main:app
       --host 0.0.0.0
       --port 8000
       --log-level warning
@@ -219,18 +146,26 @@ services:
     container_name: vf-e2e-migrate
     environment:
       - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/layer4_agents
-      - LAYER4_DATABASE_URL=postgresql+psycopg2://postgres:postgres@postgres:5432/layer4_agents
       - CHECKPOINT_DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/ground_truth
-      # PYTHONPATH: include image defaults plus mounted platform-contract code.
-      # /app itself makes value_fabric/shared importable without creating a top-level 'secrets' package.
-      - PYTHONPATH=/app:/app/src:/app/packages/platform-contract/src/python
+      - PYTHONPATH=/app
     depends_on:
       postgres:
         condition: service_healthy
     networks:
       - e2e-network
-    volumes: *shared-code-volumes
-    command: /app/.venv/bin/alembic -c /app/alembic.ini upgrade head
+    command: >
+      python -c "
+      import asyncio
+      from sqlalchemy.ext.asyncio import create_async_engine
+      from src.database import Base
+      async def run():
+          engine = create_async_engine('postgresql+asyncpg://postgres:postgres@postgres:5432/layer4_agents')
+          async with engine.begin() as conn:
+              await conn.run_sync(Base.metadata.create_all)
+          await engine.dispose()
+          print('E2E migrations complete')
+      asyncio.run(run())
+      "
     restart: "no"
 
 networks:

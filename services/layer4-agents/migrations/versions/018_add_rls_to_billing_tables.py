@@ -4,10 +4,10 @@ Revision ID: 018
 Revises: 017
 Create Date: 2026-04-25
 
-Billing tables available by revision 017 (billing_customers,
-billing_subscriptions, billing_webhook_events, and billing_usage_events) need
-canonical RLS policies. Invoice, invoice-item, and charge tables are created
-later by revision 024 and normalized by revision 025.
+Billing tables (billing_customers, billing_subscriptions, billing_webhook_events,
+billing_usage_events, billing_invoices, billing_invoice_items, billing_charges)
+were added in migrations 009/015/016 with tenant_id columns but without RLS
+policies.  This migration closes that gap (Phase 1, Task 1.6).
 """
 
 from alembic import op
@@ -17,17 +17,15 @@ down_revision = "017"
 branch_labels = None
 depends_on = None
 
-MIGRATION_REVIEW_REQUIRED = (
-    "Security migration intentionally replaces pre-existing billing RLS policies "
-    "with canonical tenant-safe definitions during deterministic upgrades."
-)
-
 # Billing tables that have tenant_id but no RLS policies yet
 RLS_TABLES = [
     "billing_customers",
     "billing_subscriptions",
     "billing_webhook_events",
     "billing_usage_events",
+    "billing_invoices",
+    "billing_invoice_items",
+    "billing_charges",
 ]
 
 
@@ -37,11 +35,6 @@ def upgrade() -> None:
         # Enable RLS
         op.execute(f"ALTER TABLE {table} ENABLE ROW LEVEL SECURITY")
         op.execute(f"ALTER TABLE {table} FORCE ROW LEVEL SECURITY")
-
-        # Earlier billing migrations created policies on subsets of these tables.
-        # Replace them explicitly so a fresh upgrade remains deterministic.
-        op.execute(f"DROP POLICY IF EXISTS tenant_isolation_policy ON {table}")
-        op.execute(f"DROP POLICY IF EXISTS admin_bypass_policy ON {table}")
 
         # Tenant isolation policy — matches the pattern from migration 007/013
         # SECURITY FIX: Removed tenant_id IS NULL check that caused global data leak

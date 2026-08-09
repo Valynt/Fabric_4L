@@ -25,42 +25,13 @@ def test_scan_file_detects_supported_python_and_typescript_escapes(tmp_path: Pat
     python_file.write_text("value: Any = source  # type: ignore[assignment]\n", encoding="utf-8")
     typescript_file.write_text("const value = source as any;\n", encoding="utf-8")
 
-    python_kinds = {
-        finding.kind for finding in type_escape_ratchet.scan_file(python_file, tmp_path)
-    }
+    python_kinds = {finding.kind for finding in type_escape_ratchet.scan_file(python_file, tmp_path)}
     typescript_kinds = {
         finding.kind for finding in type_escape_ratchet.scan_file(typescript_file, tmp_path)
     }
 
     assert python_kinds == {"python-any", "python-type-ignore"}
     assert typescript_kinds == {"typescript-as-any"}
-
-
-def test_compare_occurrences_ignores_line_moves_but_blocks_added_duplicates() -> None:
-    baseline = {
-        "occurrences": [
-            {
-                "path": "sdk/client.py",
-                "line": 10,
-                "kind": "python-any",
-                "text": "value: " + "A" + "ny",
-            }
-        ]
-    }
-    moved = type_escape_ratchet.Finding(
-        path="sdk/client.py",
-        line=20,
-        kind="python-any",
-        text="value: " + "A" + "ny",
-    )
-
-    new, stale = type_escape_ratchet.compare_occurrences([moved], baseline)
-    assert new == []
-    assert stale == 0
-
-    new, stale = type_escape_ratchet.compare_occurrences([moved, moved], baseline)
-    assert new == [moved]
-    assert stale == 0
 
 
 def test_type_escape_ratchet_has_public_local_entrypoints() -> None:

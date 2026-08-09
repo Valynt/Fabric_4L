@@ -23,7 +23,6 @@ WORKDIR /baked
 
 # Copy workspace manifests for pnpm --filter support
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY patches ./patches
 COPY apps/web/package.json ./apps/web/
 COPY packages/eslint-plugin-fabric-contracts/package.json ./packages/eslint-plugin-fabric-contracts/
 COPY packages/config/package.json ./packages/config/
@@ -45,11 +44,7 @@ RUN date +%s > /baked/image-build.timestamp
 WORKDIR /app
 
 COPY apps/web/scripts/playwright-docker-entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh \
-    && mkdir -p /app/node_modules \
-    && chown -R pwuser:pwuser /app /baked /baked-node-modules /entrypoint.sh
-
-USER pwuser
+RUN chmod +x /entrypoint.sh
 
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["pnpm", "exec", "playwright", "test", "--project=contracts"]

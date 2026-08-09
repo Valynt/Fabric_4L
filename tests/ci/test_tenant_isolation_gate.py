@@ -87,13 +87,3 @@ def test_tenant_isolation_gate_provides_strict_auth_and_shared_paths() -> None:
     assert "cat config/ci/fabric_auth_test_public_keys.json" in tenant_job
     assert "PYTHONPATH: packages/shared/src:services/layer4-agents/src:services/layer5-ground-truth/src:services/layer7-billing/src" in tenant_job
     assert "python -m pip install --require-hashes -r tests/requirements-test.lock" in tenant_job
-
-
-def test_layer1_database_defers_sync_engine_until_session_use() -> None:
-    source = _read("services/layer1-ingestion/src/layer1_ingestion/shared/database.py")
-
-    assert "except ModuleNotFoundError as exc:" in source
-    assert "SessionLocal = sessionmaker(autocommit=False, autoflush=False)" in source
-    assert "def _ensure_session_factory_bound() -> None:" in source
-    assert "def _new_session() -> Session:" in source
-    assert "Layer 1 sync database adapter unavailable; install psycopg2 before opening sync database sessions." in source

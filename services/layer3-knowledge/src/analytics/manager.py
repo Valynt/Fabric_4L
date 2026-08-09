@@ -6,7 +6,7 @@ import logging
 import time
 from collections import defaultdict
 from dataclasses import dataclass, field
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from enum import Enum
 from typing import Any, TypedDict
 
@@ -676,7 +676,7 @@ class AnalyticsStore:
             return
 
         try:
-            cutoff_time = datetime.now(UTC) - timedelta(days=retention_days)
+            cutoff_time = datetime.utcnow() - timedelta(days=retention_days)
 
             # Delete old events
             pattern = "analytics:event:*"
@@ -894,8 +894,8 @@ class AnalyticsManager:
             Query results
         """
         # Parse time range
-        start_time = datetime.now(UTC)
-        end_time = datetime.now(UTC)
+        start_time = datetime.utcnow()
+        end_time = datetime.utcnow()
 
         if "hours" in query.time_range:
             start_time = end_time - timedelta(hours=query.time_range["hours"])
@@ -1045,8 +1045,8 @@ class AnalyticsManager:
             elif widget["type"] == "table":
                 if widget["metric"] == "top_endpoints":
                     time_range = widget["time_range"]
-                    start_time = datetime.now(UTC)
-                    end_time = datetime.now(UTC)
+                    start_time = datetime.utcnow()
+                    end_time = datetime.utcnow()
 
                     if "hours" in time_range:
                         start_time = end_time - timedelta(hours=time_range["hours"])
@@ -1059,7 +1059,7 @@ class AnalyticsManager:
         return DashboardDataPayload(
             dashboard=dashboard.dict(),
             data=widget_data,
-            generated_at=datetime.now(UTC).isoformat(),
+            generated_at=datetime.utcnow().isoformat(),
         )
 
 

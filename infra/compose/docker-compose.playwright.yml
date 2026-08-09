@@ -37,8 +37,8 @@
 services:
   playwright:
     build:
-      context: ../..
-      dockerfile: ./apps/web/Dockerfile.playwright
+      context: ../../apps/web
+      dockerfile: Dockerfile.playwright
     container_name: vf-playwright
     working_dir: /app
     volumes:

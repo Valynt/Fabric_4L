@@ -63,7 +63,7 @@ def map_exception(exc: BaseException) -> CliError:
             return CliError("AUTHORIZATION_DENIED", str(exc), EXIT_AUTHORIZATION)
         if exc.status_code == 404:
             return CliError("RESOURCE_NOT_FOUND", str(exc), EXIT_NOT_FOUND)
-        if exc.status_code is not None and exc.status_code >= 500:
+        if exc.status_code >= 500:
             return CliError("SERVICE_UNAVAILABLE", str(exc), EXIT_RETRYABLE, retryable=True)
         return CliError("DOMAIN_CONFLICT", str(exc), EXIT_DOMAIN)
     if isinstance(exc, ValueFabricError):

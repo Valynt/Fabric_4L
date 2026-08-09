@@ -570,7 +570,7 @@ async def _browser_crawl_stage_async(self, prev_result: dict, tenant_id: str):
                 )
 
                 # Persist routing decision
-                await _persist_routing_decision(decision_record, final_path, url, tenant_id)
+                await _persist_routing_decision(decision_record, final_path, url)
                 _update_stage(session, job_id, PipelineStage.BROWSER_LAUNCH, "COMPLETED")
                 _record_stage_metrics(stage_started_at, PipelineStage.BROWSER_LAUNCH)
 
@@ -676,22 +676,22 @@ async def _execute_routing(url: str, browser_config: dict, effective_mode: str, 
     final_path = "unknown"
 
     if routing_decision.route == RouteType.FAST:
-        fast_result, decision_record = await _execute_fast_path_routing(url, fast_result, decision_record)
+        fast_result, decision_record = _execute_fast_path_routing(url, fast_result, decision_record)
         final_path = "fast"
     elif routing_decision.route == RouteType.FAST_WITH_FALLBACK:
         crawl_result, fast_result, decision_record, final_path = await _execute_fast_with_fallback_routing(
             url, browser_config, gate, fast_result, decision_record
         )
     else:  # RouteType.BROWSER
-        crawl_result, decision_record, final_path = await _execute_browser_routing(url, browser_config, decision_record)
+        crawl_result, decision_record, final_path = _execute_browser_routing(url, browser_config, decision_record)
 
     return crawl_result, fast_result, final_path, decision_record
 
 
-async def _execute_fast_path_routing(url: str, fast_result, decision_record):
+def _execute_fast_path_routing(url: str, fast_result, decision_record):
     """Execute fast path routing."""
     logger.info("Using FAST path (HTTPX)", url=url)
-    fast_result = await _execute_fast_path(url)
+    fast_result = asyncio.run(_execute_fast_path(url))
     html_bytes = (fast_result.html or "").encode("utf-8")
     decision_record.final_path = "fast"
     decision_record.status_code = fast_result.status_code
@@ -739,10 +739,10 @@ async def _execute_fast_with_fallback_routing(url: str, browser_config: dict, ga
     return crawl_result, fast_result, decision_record, final_path
 
 
-async def _execute_browser_routing(url: str, browser_config: dict, decision_record):
+def _execute_browser_routing(url: str, browser_config: dict, decision_record):
     """Execute browser routing."""
     logger.info("Using BROWSER path (Playwright)", url=url)
-    crawl_result = await _crawl_browser(url, browser_config)
+    crawl_result = asyncio.run(_crawl_browser(url, browser_config))
     final_path = "browser"
     decision_record.final_path = "browser"
     decision_record.status_code = crawl_result.status_code
@@ -753,10 +753,10 @@ async def _execute_browser_routing(url: str, browser_config: dict, decision_reco
     return crawl_result, decision_record, final_path
 
 
-async def _persist_routing_decision(decision_record, final_path, url, tenant_id):
+async def _persist_routing_decision(decision_record, final_path, url):
     """Persist routing decision and emit path metric."""
     decision_repo = CrawlDecisionRepository()
-    await decision_repo.save(decision_record, trusted_tenant_id=tenant_id)
+    await decision_repo.save(decision_record)
     metrics = get_metrics()
     if metrics:
         metrics.increment_crawl_path(path=final_path, domain_class=_domain_class(url))
@@ -2106,7 +2106,7 @@ async def _acrawl_url_with_routing(
                 decision_record.text_length = browser_result.get("text_length", 0)
     
             # 3. PERSIST CANONICAL DECISION
-            await decision_repo.save(decision_record, trusted_tenant_id=tenant_uuid)
+            await decision_repo.save(decision_record)
     
             logger.info(
                 "Crawl completed with routing",
@@ -2141,7 +2141,7 @@ async def _acrawl_url_with_routing(
                 decision_record.error_type = type(exc).__name__
                 decision_record.error_message = sanitize_log_error(exc)[:500]  # Truncate long messages
                 try:
-                    await decision_repo.save(decision_record, trusted_tenant_id=tenant_uuid)
+                    await decision_repo.save(decision_record)
                 except Exception:
                     pass  # Don't let decision save failure mask original error
     

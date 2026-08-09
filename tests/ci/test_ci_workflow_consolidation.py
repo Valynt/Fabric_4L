@@ -20,7 +20,7 @@ CANONICAL_WORKFLOWS = {
     "dr-drill.yml",
     "k8s-readiness.yml",
     "repo-hygiene.yml",
-    "supply-chain-integrity.yml",
+    "supply-chain.yml",
     "performance-load-tests.yml",
 }
 

@@ -1123,7 +1123,7 @@ check-raw-http-exception-usage: ## Enforce raw HTTPException usage only in bound
 
 secret-scan:
 	@echo "Running secret scan..."
-	infisical scan || python scripts/ci/check_manifest_secret_hygiene.py
+	infisical scan --recursive || python scripts/ci/check_manifest_secret_hygiene.py
 
 pip-audit-all:
 	@echo "Running pip audit..."

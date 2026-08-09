@@ -5,7 +5,7 @@ import logging
 import time
 from collections import defaultdict, deque
 from dataclasses import dataclass, field
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from enum import Enum
 from typing import Any, cast
 
@@ -570,7 +570,7 @@ class RateLimitManager:
                 allowed=True,
                 limit=0,
                 remaining=0,
-                reset_time=datetime.now(UTC) + timedelta(seconds=60),
+                reset_time=datetime.utcnow() + timedelta(seconds=60),
                 metadata={"message": "Rate limiting disabled"},
             )
 
@@ -582,7 +582,7 @@ class RateLimitManager:
                 allowed=True,
                 limit=0,
                 remaining=0,
-                reset_time=datetime.now(UTC) + timedelta(seconds=60),
+                reset_time=datetime.utcnow() + timedelta(seconds=60),
                 metadata={"message": "No applicable rate limits"},
             )
 
@@ -603,7 +603,7 @@ class RateLimitManager:
             allowed=True,
             limit=0,
             remaining=0,
-            reset_time=datetime.now(UTC) + timedelta(seconds=60),
+            reset_time=datetime.utcnow() + timedelta(seconds=60),
             metadata={"message": "Request allowed"},
         )
 
@@ -752,7 +752,7 @@ class RateLimitManager:
                 allowed=True,
                 limit=rule.limit,
                 remaining=int(state["tokens"]),
-                reset_time=datetime.now(UTC) + timedelta(seconds=rule.window_seconds),
+                reset_time=datetime.utcnow() + timedelta(seconds=rule.window_seconds),
                 rule_id=rule.id,
                 metadata={"bucket_tokens": state["tokens"]},
             )
@@ -764,7 +764,7 @@ class RateLimitManager:
                 allowed=False,
                 limit=rule.limit,
                 remaining=0,
-                reset_time=datetime.now(UTC) + timedelta(seconds=retry_after),
+                reset_time=datetime.utcnow() + timedelta(seconds=retry_after),
                 retry_after=retry_after,
                 rule_id=rule.id,
                 action=rule.action,
@@ -792,7 +792,7 @@ class RateLimitManager:
                 allowed=True,
                 limit=rule.limit,
                 remaining=rule.limit - count,
-                reset_time=datetime.now(UTC) + timedelta(seconds=rule.window_seconds),
+                reset_time=datetime.utcnow() + timedelta(seconds=rule.window_seconds),
                 rule_id=rule.id,
                 metadata={"window_count": count},
             )
@@ -808,7 +808,7 @@ class RateLimitManager:
                 allowed=False,
                 limit=rule.limit,
                 remaining=0,
-                reset_time=datetime.now(UTC) + timedelta(seconds=ttl),
+                reset_time=datetime.utcnow() + timedelta(seconds=ttl),
                 retry_after=ttl,
                 rule_id=rule.id,
                 action=rule.action,
@@ -841,7 +841,7 @@ class RateLimitManager:
                 allowed=True,
                 limit=rule.limit,
                 remaining=rule.limit - count,
-                reset_time=datetime.now(UTC) + timedelta(seconds=rule.window_seconds),
+                reset_time=datetime.utcnow() + timedelta(seconds=rule.window_seconds),
                 rule_id=rule.id,
                 metadata={"window_count": count},
             )
@@ -852,7 +852,7 @@ class RateLimitManager:
                 allowed=False,
                 limit=rule.limit,
                 remaining=0,
-                reset_time=datetime.now(UTC) + timedelta(seconds=retry_after),
+                reset_time=datetime.utcnow() + timedelta(seconds=retry_after),
                 retry_after=int(retry_after),
                 rule_id=rule.id,
                 action=rule.action,
@@ -904,7 +904,7 @@ class RateLimitManager:
                 allowed=True,
                 limit=rule.limit,
                 remaining=rule.limit - state["queue_size"],
-                reset_time=datetime.now(UTC) + timedelta(seconds=rule.window_seconds),
+                reset_time=datetime.utcnow() + timedelta(seconds=rule.window_seconds),
                 rule_id=rule.id,
                 metadata={"queue_size": state["queue_size"]},
             )
@@ -916,7 +916,7 @@ class RateLimitManager:
                 allowed=False,
                 limit=rule.limit,
                 remaining=0,
-                reset_time=datetime.now(UTC) + timedelta(seconds=retry_after),
+                reset_time=datetime.utcnow() + timedelta(seconds=retry_after),
                 retry_after=retry_after,
                 rule_id=rule.id,
                 action=rule.action,

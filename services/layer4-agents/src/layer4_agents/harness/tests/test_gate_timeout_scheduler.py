@@ -28,7 +28,6 @@ class _FakeSession:
     def __init__(self, rows, tenant_settings=None):
         self._rows = rows
         self._tenant_settings = tenant_settings or {}
-        self.info = {}
         self.committed = False
 
     async def execute(self, stmt):

@@ -14,9 +14,10 @@
  * Mode: Contract (mocked billing API) + Backend-integrated (real billing if available)
  */
 
-import { journeyTest, expect, tenantScopedPath } from '../helpers/journey-fixture';
+import { journeyTest, expect } from '../helpers/journey-fixture';
 import { expectRouteSupportsWorkflow, expectAnyVisible } from '../helpers/validation-program';
 import { BILLING_SCENARIOS } from '../fixtures/test-data';
+import { MOCK_TENANT_SLUG } from '@/test/mockAuth';
 
 journeyTest.describe('@backend Journey 20: Billing and Entitlement Gates', () => {
   journeyTest.beforeEach(async ({ addMocks }) => {
@@ -41,7 +42,7 @@ journeyTest.describe('@backend Journey 20: Billing and Entitlement Gates', () =>
   journeyTest('BILL-001: enterprise plan users can access all features', async ({ authedPage }) => {
     await expectRouteSupportsWorkflow(
       authedPage,
-      tenantScopedPath('/settings/billing/subscription'),
+      `/t/${MOCK_TENANT_SLUG}/settings/billing/subscription`,
       [/subscription/i, /enterprise/i, /active/i],
       'enterprise plan subscription display',
     );
@@ -73,7 +74,7 @@ journeyTest.describe('@backend Journey 20: Billing and Entitlement Gates', () =>
       },
     ]);
 
-    await authedPage.goto(tenantScopedPath('/settings/billing/subscription'), { waitUntil: 'domcontentloaded' });
+    await authedPage.goto(`/t/${MOCK_TENANT_SLUG}/settings/billing/subscription`, { waitUntil: 'domcontentloaded' });
 
     await expect(authedPage.getByText(/past due|overdue|payment required/i)).toBeVisible({ timeout: 10000 });
   });
@@ -81,7 +82,7 @@ journeyTest.describe('@backend Journey 20: Billing and Entitlement Gates', () =>
   // ── Billing Status Display ────────────────────────────────────────────────
 
   journeyTest('BILL-004: billing status displays accurately on subscription page', async ({ authedPage }) => {
-    await authedPage.goto(tenantScopedPath('/settings/billing/subscription'), { waitUntil: 'domcontentloaded' });
+    await authedPage.goto(`/t/${MOCK_TENANT_SLUG}/settings/billing/subscription`, { waitUntil: 'domcontentloaded' });
 
     await expectAnyVisible(
       authedPage,
@@ -91,7 +92,7 @@ journeyTest.describe('@backend Journey 20: Billing and Entitlement Gates', () =>
   });
 
   journeyTest('BILL-005: usage metrics display correctly on usage page', async ({ authedPage }) => {
-    await authedPage.goto(tenantScopedPath('/settings/billing/usage'), { waitUntil: 'domcontentloaded' });
+    await authedPage.goto(`/t/${MOCK_TENANT_SLUG}/settings/billing/usage`, { waitUntil: 'domcontentloaded' });
 
     await expectAnyVisible(
       authedPage,
@@ -111,7 +112,7 @@ journeyTest.describe('@backend Journey 20: Billing and Entitlement Gates', () =>
       },
     ]);
 
-    await authedPage.goto(tenantScopedPath('/settings/billing/subscription'), { waitUntil: 'domcontentloaded' });
+    await authedPage.goto(`/t/${MOCK_TENANT_SLUG}/settings/billing/subscription`, { waitUntil: 'domcontentloaded' });
 
     // Should show error message or retry option, not crash
     await expect(
@@ -130,7 +131,7 @@ journeyTest.describe('@backend Journey 20: Billing and Entitlement Gates', () =>
       },
     ]);
 
-    await authedPage.goto(tenantScopedPath('/settings/billing/usage'), { waitUntil: 'domcontentloaded' });
+    await authedPage.goto(`/t/${MOCK_TENANT_SLUG}/settings/billing/usage`, { waitUntil: 'domcontentloaded' });
 
     await expect(
       authedPage.getByText(/timeout|unavailable|retry/i)
@@ -142,7 +143,7 @@ journeyTest.describe('@backend Journey 20: Billing and Entitlement Gates', () =>
   // ── Webhook Results in UI ─────────────────────────────────────────────────
 
   journeyTest('BILL-008: webhook configuration is reflected in UI', async ({ authedPage }) => {
-    await authedPage.goto(tenantScopedPath('/settings/integrations'), { waitUntil: 'domcontentloaded' });
+    await authedPage.goto(`/t/${MOCK_TENANT_SLUG}/settings/integrations`, { waitUntil: 'domcontentloaded' });
 
     await expectAnyVisible(
       authedPage,
@@ -152,7 +153,7 @@ journeyTest.describe('@backend Journey 20: Billing and Entitlement Gates', () =>
   });
 
   journeyTest('BILL-009: webhook delivery status is visible', async ({ authedPage }) => {
-    await authedPage.goto(tenantScopedPath('/settings/integrations'), { waitUntil: 'domcontentloaded' });
+    await authedPage.goto(`/t/${MOCK_TENANT_SLUG}/settings/integrations`, { waitUntil: 'domcontentloaded' });
 
     await expectAnyVisible(
       authedPage,
@@ -171,7 +172,7 @@ journeyTest.describe('@backend Journey 20: Billing and Entitlement Gates', () =>
       },
     ]);
 
-    await authedPage.goto(tenantScopedPath('/settings/billing/usage'), { waitUntil: 'domcontentloaded' });
+    await authedPage.goto(`/t/${MOCK_TENANT_SLUG}/settings/billing/usage`, { waitUntil: 'domcontentloaded' });
 
     await expect(
       authedPage.getByText(/limit|over|exceeded|upgrade/i)

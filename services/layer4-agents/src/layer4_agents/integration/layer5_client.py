@@ -157,7 +157,7 @@ class Layer5GroundTruthClient:
     async def ping(self) -> bool:
         """Return True if Layer 5 is reachable and healthy."""
         try:
-            resp = await self._client.get("/health")
+            resp = await self._client.get("/api/v1/health")
             return resp.status_code == 200
         except asyncio.CancelledError:
             raise

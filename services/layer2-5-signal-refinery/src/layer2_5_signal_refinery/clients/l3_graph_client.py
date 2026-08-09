@@ -4,6 +4,7 @@ import logging
 from typing import Any
 
 import httpx
+
 from value_fabric.shared.resilience import CircuitBreaker, CircuitBreakerOpen
 
 from ..config import get_settings

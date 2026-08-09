@@ -9,7 +9,7 @@ Full suite in other test files runs on scheduled workflows.
 """
 
 import time
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from typing import Callable
 
 import jwt as jwt_lib
@@ -59,7 +59,7 @@ def _disable_rate_limiting_for_smoke(monkeypatch):
             allowed=True,
             limit=1000,
             remaining=999,
-            reset_at=datetime.now(UTC) + timedelta(seconds=60),
+            reset_at=datetime.utcnow() + timedelta(seconds=60),
         )
 
     monkeypatch.setattr(TenantRateLimiter, "check_rate_limit", _tenant_always_allow)

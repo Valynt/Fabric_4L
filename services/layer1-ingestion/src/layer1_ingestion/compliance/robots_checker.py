@@ -415,7 +415,7 @@ class RobotsChecker:
                             "fetched_at": cache_entry.fetched_at,
                             "expires_at": cache_entry.expires_at,
                         }
-                    ).model_dump()
+                    )
 
                 return None
 

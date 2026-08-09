@@ -21,13 +21,7 @@ def redact(value: Any) -> Any:
     if isinstance(value, dict):
         redacted: dict[str, Any] = {}
         for key, item in value.items():
-            if key.lower() in {
-                "token",
-                "access_token",
-                "refresh_token",
-                "api_key",
-                "authorization",
-            }:
+            if key.lower() in {"token", "access_token", "refresh_token", "api_key", "authorization"}:
                 redacted[key] = "[REDACTED]"
             else:
                 redacted[key] = redact(item)
@@ -37,12 +31,7 @@ def redact(value: Any) -> Any:
     if isinstance(value, str):
         result = value
         for pattern in SECRET_PATTERNS:
-            result = pattern.sub(
-                lambda match: (
-                    f"{match.group(1)}{match.group(2) if len(match.groups()) > 1 else ''}[REDACTED]"
-                ),
-                result,
-            )
+            result = pattern.sub(lambda match: f"{match.group(1)}{match.group(2) if len(match.groups()) > 1 else ''}[REDACTED]", result)
         return result
     return value
 

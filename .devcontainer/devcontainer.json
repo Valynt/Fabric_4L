@@ -1,31 +1,13 @@
 {
-  "name": "Value Fabric Development Environment",
-  "dockerComposeFile": ["docker-compose.yml"],
-  "service": "dev",
-  "workspaceFolder": "/workspace/Fabric_4L",
-  "remoteUser": "vscode",
+  "name": "Fabric 4L Development Environment",
+  "image": "mcr.microsoft.com/devcontainers/python:3.11",
   "features": {
-    "ghcr.io/devcontainers/features/python@sha256:fbcad6955caeecc5ad3f7886baf652e25cba5225a6c4c2287c536de2e5607511": {
-      "version": "3.11"
-    },
-    "ghcr.io/devcontainers/features/node@sha256:fedd4c11f7adfb64283b578dddc7da906728daa25fa293351c9d913231acf12f": {
-      "version": "22.18.0",
-      "pnpmVersion": "10.18.1"
-    },
-    "ghcr.io/devcontainers/features/github-cli@sha256:d22f50b70ed75339b4eed1ba9ecde3a1791f90e88d37936517e3bace0bbad671": {}
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    "ghcr.io/devcontainers/features/node:1": { "version": "22" },
+    "ghcr.io/devcontainers/features/github-cli:1": {}
   },
-  "postCreateCommand": "/workspace/Fabric_4L/.devcontainer/post-create.sh",
-  "postStartCommand": "/workspace/Fabric_4L/.devcontainer/post-start.sh",
-  "forwardPorts": [3001, 8001, 8002, 8003, 8004, 8005, 8006],
-  "portsAttributes": {
-    "3001": { "label": "Frontend", "onAutoForward": "notify" },
-    "8001": { "label": "Layer 1: Ingestion" },
-    "8002": { "label": "Layer 2: Extraction" },
-    "8003": { "label": "Layer 3: Knowledge" },
-    "8004": { "label": "Layer 4: Agents" },
-    "8005": { "label": "Layer 5: Ground Truth" },
-    "8006": { "label": "Layer 6: Benchmarks" }
-  },
+  "postCreateCommand": "corepack enable && corepack prepare pnpm@10.18.1 --activate && pnpm install --frozen-lockfile && make setup && cp .env.example .env",
+  "postStartCommand": "docker compose -f infra/compose/docker-compose.dev.yml up -d && make migrate",
   "customizations": {
     "vscode": {
       "extensions": [
@@ -37,5 +19,15 @@
         "ms-playwright.playwright"
       ]
     }
+  },
+  "forwardPorts": [5173, 8001, 8002, 8003, 8004, 8005, 8006, 5432, 6379, 7474],
+  "portsAttributes": {
+    "5173": { "label": "Frontend" },
+    "8001": { "label": "Layer 1: Ingestion" },
+    "8002": { "label": "Layer 2: Extraction" },
+    "8003": { "label": "Layer 3: Knowledge" },
+    "8004": { "label": "Layer 4: Agents" },
+    "8005": { "label": "Layer 5: Ground Truth" },
+    "8006": { "label": "Layer 6: Benchmarks" }
   }
 }

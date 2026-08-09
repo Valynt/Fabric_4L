@@ -5,7 +5,7 @@ import logging
 import logging.handlers
 import sys
 import traceback
-from datetime import UTC, datetime
+from datetime import datetime
 
 from value_fabric.shared.security.redaction import install_redaction_filter
 
@@ -45,7 +45,7 @@ class JSONFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
         """Format log record as structured JSON."""
         log_entry = {
-            "timestamp": datetime.now(UTC).strftime(self.timestamp_format),
+            "timestamp": datetime.utcnow().strftime(self.timestamp_format),
             "level": record.levelname,
             "message": record.getMessage(),
             "logger": record.name,

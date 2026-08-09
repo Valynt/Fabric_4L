@@ -370,7 +370,7 @@ class CRMSyncService:
         existing = await self.db.execute(
             select(Account).where(
                 and_(
-                    Account.tenant_id == UUID(str(tenant_id)),
+                    Account.tenant_id == tenant_id,
                     Account.provider == provider.value,
                     Account.provider_record_id == prospect_id,
                 )
@@ -383,7 +383,7 @@ class CRMSyncService:
         if not account:
             # Create new account
             account = Account(
-                tenant_id=UUID(str(tenant_id)),
+                tenant_id=tenant_id,
                 provider=provider.value,
                 provider_record_id=prospect_id,
             )
@@ -453,7 +453,7 @@ class CRMSyncService:
                 select(Account.provider_record_id)
                 .where(
                     and_(
-                        Account.tenant_id == UUID(str(tenant_id)),
+                        Account.tenant_id == tenant_id,
                         Account.provider == provider.value,
                         Account.sync_status.in_(
                             [
@@ -474,7 +474,7 @@ class CRMSyncService:
                 select(Account.provider_record_id)
                 .where(
                     and_(
-                        Account.tenant_id == UUID(str(tenant_id)),
+                        Account.tenant_id == tenant_id,
                         Account.provider == provider.value,
                         Account.sync_status == SyncStatus.SYNCED.value,
                         Account.last_synced_at < day_ago,
@@ -491,7 +491,7 @@ class CRMSyncService:
                 select(Account.provider_record_id)
                 .where(
                     and_(
-                        Account.tenant_id == UUID(str(tenant_id)),
+                        Account.tenant_id == tenant_id,
                         Account.provider == provider.value,
                     )
                 )
@@ -657,7 +657,7 @@ class CRMSyncService:
             select(Account).where(
                 and_(
                     Account.id == account_id,
-                    Account.tenant_id == UUID(str(tenant_id)),
+                    Account.tenant_id == tenant_id,
                 )
             )
         )

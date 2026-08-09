@@ -12,11 +12,11 @@ app = typer.Typer(help="API key management")
 @app.command("list")
 def list_api_keys(
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
-    active_only: bool = typer.Option(True, "--active-only/--all", help="Filter active keys"),
+    enabled_only: bool = typer.Option(True, "--enabled-only/--all", help="Filter enabled keys"),
 ) -> None:
     """List API keys for the current tenant."""
     client = get_client()
-    keys = client.list_api_keys(active_only=active_only)
+    keys = client.list_api_keys(enabled_only=enabled_only)
     rows = [k.model_dump(mode="json") for k in keys]
     print_table(
         rows,

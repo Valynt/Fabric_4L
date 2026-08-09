@@ -14,12 +14,12 @@
 #   - Updated GitHub release notes
 # =============================================================================
 
-name: "API Changelog Automation"
+name: "API Changelog"
 
 permissions:
   contents: read
 
-"on":
+on:
   release:
     types: [published]
   workflow_dispatch:
@@ -52,7 +52,8 @@ jobs:
     name: Generate API Changelog
     runs-on: ubuntu-latest
     permissions:
-      contents: write # Attaches the generated changelog and updates release notes.
+      contents: read
+      releases: write # Attaches the generated changelog and updates release notes.
 
     outputs:
       has_breaking: ${{ steps.changelog.outputs.has_breaking }}

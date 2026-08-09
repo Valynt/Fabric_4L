@@ -207,7 +207,7 @@ def check_container_policy() -> list[str]:
 
 def check_ci_policy() -> list[str]:
     errors: list[str] = []
-    supply_chain = (REPO_ROOT / ".github/workflows/supply-chain-integrity.yml").read_text(encoding="utf-8")
+    supply_chain = (REPO_ROOT / ".github/workflows/supply-chain.yml").read_text(encoding="utf-8")
     security_gates = (REPO_ROOT / ".github/workflows/security-gates.yml").read_text(encoding="utf-8")
 
     required_supply_chain_tokens = (

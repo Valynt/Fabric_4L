@@ -31,13 +31,11 @@ class InvoiceService_get_revenue_summaryResult(TypedDictModel):
     invoices: dict[str, Any] | None = None
     period: dict[str, Any] | None = None
 
-
 class InvoiceService_get_customer_balanceResult(TypedDictModel):
     customer_id: Any | None = None
-    lifetime_paid_cents: int | None = None
+    lifetime_paid_cents: bool | None = None
     lifetime_paid_dollars: Any | None = None
     open_invoices: dict[str, Any] | None = None
-
 
 logger = logging.getLogger(__name__)
 
@@ -280,7 +278,9 @@ class InvoiceService:
         if not self.tenant_id:
             return []
 
-        query = select(BillingInvoice).where(BillingInvoice.tenant_id == self.tenant_id)
+        query = select(BillingInvoice).where(
+            BillingInvoice.tenant_id == self.tenant_id
+        )
 
         if customer_id:
             query = query.where(BillingInvoice.customer_id == customer_id)
@@ -621,27 +621,26 @@ class InvoiceService:
         charge_result = await self.db.execute(charge_query)
         charge_row = charge_result.one()
 
-        return InvoiceService_get_revenue_summaryResult.model_validate(
-            {
-                "period": {
-                    "start": period_start.isoformat(),
-                    "end": period_end.isoformat(),
-                },
-                "invoices": {
-                    "count": invoice_row.count or 0,
-                    "total_cents": invoice_row.total or 0,
-                    "total_dollars": (invoice_row.total or 0) / 100.0,
-                    "paid_cents": invoice_row.paid or 0,
-                    "due_cents": invoice_row.due or 0,
-                },
-                "charges": {
-                    "count": charge_row.count or 0,
-                    "total_cents": charge_row.total or 0,
-                    "total_dollars": (charge_row.total or 0) / 100.0,
-                    "refunded_cents": charge_row.refunded or 0,
-                },
-            }
-        )
+        return InvoiceService_get_revenue_summaryResult.model_validate({
+            "period": {
+                "start": period_start.isoformat(),
+                "end": period_end.isoformat(),
+            },
+            "invoices": {
+                "count": invoice_row.count or 0,
+                "total_cents": invoice_row.total or 0,
+                "total_dollars": (invoice_row.total or 0) / 100.0,
+                "paid_cents": invoice_row.paid or 0,
+                "due_cents": invoice_row.due or 0,
+            },
+            "charges": {
+                "count": charge_row.count or 0,
+                "total_cents": charge_row.total or 0,
+                "total_dollars": (charge_row.total or 0) / 100.0,
+                "refunded_cents": charge_row.refunded or 0,
+            },
+        })
+
 
     async def get_customer_balance(
         self,
@@ -683,15 +682,13 @@ class InvoiceService:
         paid_result = await self.db.execute(paid_query)
         paid_row = paid_result.one()
 
-        return InvoiceService_get_customer_balanceResult.model_validate(
-            {
-                "customer_id": customer_id,
-                "open_invoices": {
-                    "count": open_row.count or 0,
-                    "amount_due_cents": open_row.total_due or 0,
-                    "amount_due_dollars": (open_row.total_due or 0) / 100.0,
-                },
-                "lifetime_paid_cents": paid_row.total_paid or 0,
-                "lifetime_paid_dollars": (paid_row.total_paid or 0) / 100.0,
-            }
-        )
+        return InvoiceService_get_customer_balanceResult.model_validate({
+            "customer_id": customer_id,
+            "open_invoices": {
+                "count": open_row.count or 0,
+                "amount_due_cents": open_row.total_due or 0,
+                "amount_due_dollars": (open_row.total_due or 0) / 100.0,
+            },
+            "lifetime_paid_cents": paid_row.total_paid or 0,
+            "lifetime_paid_dollars": (paid_row.total_paid or 0) / 100.0,
+        })

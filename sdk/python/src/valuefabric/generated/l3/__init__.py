@@ -4,142 +4,108 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Annotated, Any
+from typing import Any
 
-from pydantic import BaseModel, Field, RootModel
-from typing_extensions import TypeAliasType
+from pydantic import BaseModel, Field, confloat, conint, constr
 
 
 class EntityType(Enum):
-    Capability = "Capability"
-    UseCase = "UseCase"
-    Persona = "Persona"
-    ValueDriver = "ValueDriver"
-    ValueMetric = "ValueMetric"
-    Product = "Product"
-    Feature = "Feature"
-    Service = "Service"
-    Solution = "Solution"
-    Technology = "Technology"
-    Organization = "Organization"
-    BusinessUnit = "BusinessUnit"
-    Process = "Process"
-    Activity = "Activity"
-    APQCProcess = "APQCProcess"
-    BIANServiceDomain = "BIANServiceDomain"
-    FIBOEntity = "FIBOEntity"
-    Industry = "Industry"
-    MarketSegment = "MarketSegment"
-    Geography = "Geography"
-    Regulation = "Regulation"
-    DataSource = "DataSource"
-    ExtractionEvent = "ExtractionEvent"
-    ConfidenceScore = "ConfidenceScore"
-
-
-WeightsAdditionalProperty = TypeAliasType(
-    "WeightsAdditionalProperty", Annotated[float, Field(ge=0.0, le=1.0)]
-)
-
-
-class ProcessingTimeMs(RootModel[float]):
-    root: Annotated[
-        float,
-        Field(
-            description="Processing time in milliseconds",
-            ge=0.0,
-            title="Processing Time Ms",
-        ),
-    ]
+    Capability = 'Capability'
+    UseCase = 'UseCase'
+    Persona = 'Persona'
+    ValueDriver = 'ValueDriver'
+    ValueMetric = 'ValueMetric'
+    Product = 'Product'
+    Feature = 'Feature'
+    Service = 'Service'
+    Solution = 'Solution'
+    Technology = 'Technology'
+    Organization = 'Organization'
+    BusinessUnit = 'BusinessUnit'
+    Process = 'Process'
+    Activity = 'Activity'
+    APQCProcess = 'APQCProcess'
+    BIANServiceDomain = 'BIANServiceDomain'
+    FIBOEntity = 'FIBOEntity'
+    Industry = 'Industry'
+    MarketSegment = 'MarketSegment'
+    Geography = 'Geography'
+    Regulation = 'Regulation'
+    DataSource = 'DataSource'
+    ExtractionEvent = 'ExtractionEvent'
+    ConfidenceScore = 'ConfidenceScore'
 
 
 class SearchResult(BaseModel):
-    entity_id: Annotated[
-        str,
-        Field(description="Entity ID", max_length=255, min_length=1, title="Entity Id"),
-    ]
-    entity_type: Annotated[EntityType, Field(description="Entity type")]
-    name: Annotated[
-        str,
-        Field(description="Entity name", max_length=500, min_length=1, title="Name"),
-    ]
-    bm25_score: Annotated[
-        float,
-        Field(description="BM25 keyword similarity score", ge=0.0, title="Bm25 Score"),
-    ]
-    vector_score: Annotated[
-        float,
-        Field(description="Vector similarity score", ge=0.0, title="Vector Score"),
-    ]
-    graph_score: Annotated[
-        float, Field(description="Graph traversal score", ge=0.0, title="Graph Score")
-    ]
-    combined_score: Annotated[
-        float,
-        Field(
-            description="Combined relevance score",
-            ge=0.0,
-            le=1.0,
-            title="Combined Score",
-        ),
-    ]
-    metadata: Annotated[
-        dict[str, Any] | None,
-        Field(description="Additional entity metadata", title="Metadata"),
-    ] = None
-    confidence: Annotated[
-        float,
-        Field(description="Result confidence", ge=0.0, le=1.0, title="Confidence"),
-    ]
+    entity_id: constr(min_length=1, max_length=255) = Field(
+        ..., description='Entity ID', title='Entity Id'
+    )
+    entity_type: EntityType = Field(..., description='Entity type')
+    name: constr(min_length=1, max_length=500) = Field(
+        ..., description='Entity name', title='Name'
+    )
+    bm25_score: confloat(ge=0.0) = Field(
+        ..., description='BM25 keyword similarity score', title='Bm25 Score'
+    )
+    vector_score: confloat(ge=0.0) = Field(
+        ..., description='Vector similarity score', title='Vector Score'
+    )
+    graph_score: confloat(ge=0.0) = Field(
+        ..., description='Graph traversal score', title='Graph Score'
+    )
+    combined_score: confloat(ge=0.0, le=1.0) = Field(
+        ..., description='Combined relevance score', title='Combined Score'
+    )
+    metadata: dict[str, Any] | None = Field(
+        None, description='Additional entity metadata', title='Metadata'
+    )
+    confidence: confloat(ge=0.0, le=1.0) = Field(
+        ..., description='Result confidence', title='Confidence'
+    )
 
 
 class SearchType(Enum):
-    hybrid = "hybrid"
-    vector = "vector"
-    fulltext = "fulltext"
-    graph = "graph"
+    hybrid = 'hybrid'
+    vector = 'vector'
+    fulltext = 'fulltext'
+    graph = 'graph'
 
 
 class SearchRequest(BaseModel):
-    query: Annotated[
-        str,
-        Field(
-            description="Search query string",
-            examples=["real-time analytics"],
-            max_length=500,
-            min_length=1,
-            title="Query",
-        ),
-    ]
-    entity_type: Annotated[EntityType | None, Field(description="Filter by entity type")] = None
-    search_type: Annotated[SearchType | None, Field(description="Search algorithm to use")] = (
-        SearchType.hybrid
+    query: constr(min_length=1, max_length=500) = Field(
+        ...,
+        description='Search query string',
+        examples=['real-time analytics'],
+        title='Query',
     )
-    top_k: Annotated[
-        int | None,
-        Field(description="Number of results to return", ge=1, le=50, title="Top K"),
-    ] = 10
-    weights: Annotated[
-        dict[str, WeightsAdditionalProperty] | None,
-        Field(
-            description="Search weights for hybrid search (bm25, vector, graph)",
-            title="Weights",
-        ),
-    ] = None
-    filters: Annotated[
-        dict[str, Any] | None,
-        Field(description="Additional search filters", title="Filters"),
-    ] = None
+    entity_type: EntityType | None = Field(None, description='Filter by entity type')
+    search_type: SearchType | None = Field(
+        'hybrid', description='Search algorithm to use'
+    )
+    top_k: conint(ge=1, le=50) | None = Field(
+        10, description='Number of results to return', title='Top K'
+    )
+    weights: dict[str, confloat(ge=0.0, le=1.0)] | None = Field(
+        None,
+        description='Search weights for hybrid search (bm25, vector, graph)',
+        title='Weights',
+    )
+    filters: dict[str, Any] | None = Field(
+        None, description='Additional search filters', title='Filters'
+    )
 
 
 class SearchResponse(BaseModel):
-    query: Annotated[str, Field(description="Original search query", max_length=500, title="Query")]
-    results: Annotated[list[SearchResult], Field(description="Search results", title="Results")]
-    total_results: Annotated[
-        int, Field(description="Total results found", ge=0, title="Total Results")
-    ]
-    search_type: Annotated[SearchType, Field(description="Search type used")]
-    processing_time_ms: Annotated[
-        ProcessingTimeMs | None,
-        Field(description="Processing time in milliseconds", title="Processing Time Ms"),
-    ] = None
+    query: constr(max_length=500) = Field(
+        ..., description='Original search query', title='Query'
+    )
+    results: list[SearchResult] = Field(
+        ..., description='Search results', title='Results'
+    )
+    total_results: conint(ge=0) = Field(
+        ..., description='Total results found', title='Total Results'
+    )
+    search_type: SearchType = Field(..., description='Search type used')
+    processing_time_ms: confloat(ge=0.0) | None = Field(
+        None, description='Processing time in milliseconds', title='Processing Time Ms'
+    )

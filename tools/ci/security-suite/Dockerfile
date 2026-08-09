@@ -14,7 +14,7 @@ ARG PNPM_VERSION=10.18.1
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 RUN apt-get update \
-    && apt-get install --no-install-recommends -y ca-certificates curl git xz-utils \
+    && apt-get install --no-install-recommends -y ca-certificates curl git \
     && rm -rf /var/lib/apt/lists/* \
     && test "${TARGETARCH}" = "amd64" \
     && curl --fail --location --silent --show-error \
@@ -37,7 +37,3 @@ RUN apt-get update \
 
 LABEL org.opencontainers.image.source="https://github.com/value-fabric/ci-tools" \
       org.opencontainers.image.description="Pinned Value Fabric supply-chain security toolchain"
-
-# Match the GitHub-hosted runner UID so mounted workspaces remain writable while
-# the security toolchain itself executes without root privileges.
-USER 1001:1001

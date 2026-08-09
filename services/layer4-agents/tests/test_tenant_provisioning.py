@@ -12,7 +12,7 @@ Verifies automated tenant lifecycle management with:
 """
 
 
-from datetime import UTC, datetime
+from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
@@ -104,7 +104,7 @@ class TestTenantProvisioningService:
                 __getitem__=lambda self, key: {
                     0: existing_tenant_id,
                     1: "existing-tenant",
-                    2: datetime.now(UTC),
+                    2: datetime.utcnow(),
                     3: "shared",
                 }.get(key)
             ),
@@ -360,7 +360,7 @@ class TestTenantProvisionResult:
             tenant_id=uuid4(),
             admin_user_id=uuid4(),
             admin_temp_password="SecurePass123!",
-            created_at=datetime.now(UTC),
+            created_at=datetime.utcnow(),
             isolation_tier="shared",
             status="success",
         )
@@ -374,7 +374,7 @@ class TestTenantProvisionResult:
             tenant_id=uuid4(),
             admin_user_id=uuid4(),
             admin_temp_password="SecurePass123!",
-            created_at=datetime.now(UTC),
+            created_at=datetime.utcnow(),
             isolation_tier="schema",
             status="partial",
             errors=["Neo4j constraint setup failed"],

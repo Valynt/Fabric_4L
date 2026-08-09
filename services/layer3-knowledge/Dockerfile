@@ -16,8 +16,7 @@ COPY src/ ./src/
 RUN groupadd -r appgroup && useradd -r -g appgroup -m appuser
 
 # Upgrade base-image setuptools/wheel to remediate known CVEs flagged by Trivy
-RUN pip install --no-cache-dir --upgrade setuptools wheel \
-    && pip uninstall --yes pip
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel
 USER appuser
 EXPOSE 8001
 HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \

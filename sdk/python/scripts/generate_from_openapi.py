@@ -18,7 +18,7 @@ GENERATED_DIR = SDK_ROOT / "src" / "valuefabric" / "generated"
 
 def load_openapi_spec(path: Path) -> dict[str, Any]:
     """Load and validate OpenAPI spec."""
-    with open(path) as f:
+    with open(path, "r") as f:
         return json.load(f)
 
 
@@ -50,8 +50,6 @@ def generate_models(spec_path: Path, output_dir: Path, namespace: str) -> Path:
         "--use-standard-collections",
         "--use-schema-description",
         "--field-constraints",
-        "--use-annotated",
-        "--set-default-enum-member",
         "--snake-case-field",
         "--collapse-root-models",
         "--disable-timestamp",
@@ -166,8 +164,6 @@ def generate_l3_subset(spec_path: Path, output_dir: Path) -> None:
         "--target-python-version",
         "3.10",
         "--use-standard-collections",
-        "--use-annotated",
-        "--set-default-enum-member",
         "--disable-timestamp",
     ]
 
@@ -175,7 +171,7 @@ def generate_l3_subset(spec_path: Path, output_dir: Path) -> None:
     result = subprocess.run(cmd, capture_output=True, text=True)
 
     if result.returncode != 0:
-        print("Error generating L3 models:")
+        print(f"Error generating L3 models:")
         print(result.stderr)
         # Non-fatal - continue without L3 models
         return
@@ -246,10 +242,7 @@ class {namespace.upper()}Client:
     ) -> dict[str, Any]:
         response = self._sync_client.request(method, path, params=params, json=json)
         response.raise_for_status()
-        payload = response.json()
-        if not isinstance(payload, dict):
-            raise TypeError("Expected a JSON object response")
-        return payload
+        return response.json()
 
     async def _arequest(
         self,
@@ -261,10 +254,7 @@ class {namespace.upper()}Client:
     ) -> dict[str, Any]:
         response = await self._async_client.request(method, path, params=params, json=json)
         response.raise_for_status()
-        payload = response.json()
-        if not isinstance(payload, dict):
-            raise TypeError("Expected a JSON object response")
-        return payload
+        return response.json()
 
     def health(self) -> dict[str, Any]:
         """Check API health."""
@@ -275,44 +265,8 @@ class {namespace.upper()}Client:
         return await self._arequest("GET", "/health")
 '''
 
-    if namespace == "l3":
-        content = content.replace(
-            "import httpx\n",
-            "import httpx\n\nfrom .l3 import SearchRequest, SearchResponse\n",
-        )
-        content += """
-    def search(self, request: SearchRequest) -> SearchResponse:
-        \"\"\"Execute canonical hybrid search.\"\"\"
-        payload = self._request(
-            \"POST\",
-            \"/v1/search/hybrid\",
-            json=request.model_dump(mode=\"json\", exclude_none=True),
-        )
-        return SearchResponse.model_validate(payload)
-
-    async def asearch(self, request: SearchRequest) -> SearchResponse:
-        \"\"\"Execute canonical hybrid search asynchronously.\"\"\"
-        payload = await self._arequest(
-            \"POST\",
-            \"/v1/search/hybrid\",
-            json=request.model_dump(mode=\"json\", exclude_none=True),
-        )
-        return SearchResponse.model_validate(payload)
-"""
-
     client_file.write_text(content)
     print(f"✓ Created {client_file}")
-
-
-def format_generated_code(output_dir: Path) -> None:
-    """Apply the repository formatter so regeneration is byte-stable."""
-    cmd = [sys.executable, "-m", "ruff", "format", str(output_dir)]
-    result = subprocess.run(cmd, capture_output=True, text=True)
-    if result.returncode != 0:
-        print("Error formatting generated SDK code:")
-        print(result.stderr)
-        sys.exit(result.returncode)
-    print(f"✓ Formatted generated SDK code in {output_dir}")
 
 
 def main() -> int:
@@ -342,17 +296,13 @@ def main() -> int:
     if l3_spec.exists():
         # For L3, we'll generate a focused subset (search-related models only)
         # to avoid memory issues with the large spec
-        print(
-            f"L3 spec is large ({l3_spec.stat().st_size / 1024 / 1024:.1f} MB), generating focused subset..."
-        )
+        print(f"L3 spec is large ({l3_spec.stat().st_size / 1024 / 1024:.1f} MB), generating focused subset...")
         generate_l3_subset(l3_spec, GENERATED_DIR)
-        create_client_wrapper(GENERATED_DIR, "l3", l3_spec)
     else:
         print(f"Warning: {l3_spec} not found")
 
-    # Create main __init__.py and normalize generated formatting.
+    # Create main __init__.py
     create_generated_init(GENERATED_DIR)
-    format_generated_code(GENERATED_DIR)
 
     print("\n✓ SDK generation complete!")
     print(f"Generated files in: {GENERATED_DIR}")

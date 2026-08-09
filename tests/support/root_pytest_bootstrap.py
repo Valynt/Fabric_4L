@@ -22,10 +22,6 @@ _TEST_ENV = {
     "LAYER6_API_URL": "http://layer6:8006",
     "ALLOW_INSECURE_SERVICE_HTTP_IN_DEVELOPMENT": "true",
     "DATABASE_URL": "postgresql+asyncpg://postgres:postgres@localhost:5432/fabric",
-    "PGUSER": "postgres",
-    "PGPASSWORD": "postgres",
-    "POSTGRES_USER": "postgres",
-    "POSTGRES_PASSWORD": "postgres",
     "JWT_SECRET": "dummy_jwt_secret_for_tests_must_be_32_chars",
     "API_KEY_HMAC_SECRET": "dummy_api_key_secret_for_tests_must_be_32_chars",
     "SERVICE_AUTH_SECRET": "dummy_service_auth_secret_for_tests_32_chars",
@@ -51,6 +47,6 @@ def bootstrap_root_pytest() -> None:
 
 def _install_test_environment() -> None:
     for key, value in _TEST_ENV.items():
-        os.environ.setdefault(key, value)
+        os.environ[key] = value
     for key, value in _FAIL_CLOSED_TEST_DEFAULTS.items():
         os.environ.setdefault(key, value)

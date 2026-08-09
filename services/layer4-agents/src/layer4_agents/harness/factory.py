@@ -65,14 +65,14 @@ async def make_sql_registry(
     All five stores (runs, gates, checkpoints, tools, events) persist
     to the database. State survives process restarts.
     """
-    from layer4_agents.harness.sql_stores import (
+    from harness.sql_stores import (
         SqlCheckpointManager,
         SqlHarnessRegistry,
         SqlHumanGateManager,
         SqlTelemetryEmitter,
         SqlToolContractRegistry,
     )
-    from layer4_agents.harness.validation_hooks import ValidationHook
+    from harness.validation_hooks import ValidationHook
 
     return SqlHarnessRegistry(
         session=session,
@@ -114,15 +114,15 @@ async def make_live_l5_registry(
             downgraded to NEEDS_REVIEW.
         fallback_validator: Optional secondary validator when L5 is unavailable.
     """
-    from layer4_agents.adapters.harness_l5_validation import create_live_l5_claim_validator
-    from layer4_agents.harness.sql_stores import (
+    from harness.sql_stores import (
         SqlCheckpointManager,
         SqlHarnessRegistry,
         SqlHumanGateManager,
         SqlTelemetryEmitter,
         SqlToolContractRegistry,
     )
-    from layer4_agents.harness.validation_hooks import ValidationHook
+    from harness.validation_hooks import ValidationHook
+    from layer4_agents.adapters.harness_l5_validation import create_live_l5_claim_validator
 
     base_url = l5_base_url or os.environ.get("LAYER5_GROUND_TRUTH_URL", "http://layer5-ground-truth:8005")
     service_token = l5_service_token or os.environ.get("LAYER5_SERVICE_TOKEN")

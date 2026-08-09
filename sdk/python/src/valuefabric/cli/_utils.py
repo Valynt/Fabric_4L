@@ -21,7 +21,9 @@ def get_client() -> ValueFabricClient:
     base_url = cfg.get("base_url")
     api_key = cfg.get("api_key")
     if not base_url:
-        raise ConfigurationError("No base_url configured. Run: vf config set-url <url>")
+        raise ConfigurationError(
+            "No base_url configured. Run: vf config set-url <url>"
+        )
     if not api_key:
         raise ConfigurationError(
             "No API key configured. Run: vf auth login or vf config set-api-key"

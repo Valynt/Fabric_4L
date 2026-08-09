@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     )
 
     # API Configuration
-    api_host: str = Field(default="0.0.0.0", alias="API_HOST")  # nosec # Uvicorn in container must bind all interfaces
+    api_host: str = Field(default="0.0.0.0", alias="API_HOST")  # nosec B104
     api_port: int = Field(default=8003, alias="API_PORT")
     api_workers: int = Field(default=1, alias="API_WORKERS")
     log_level: str = Field(default="INFO", alias="LOG_LEVEL")

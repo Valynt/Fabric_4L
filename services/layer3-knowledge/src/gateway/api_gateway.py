@@ -9,7 +9,7 @@ import time
 import urllib.parse
 from collections import defaultdict
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import datetime
 from enum import Enum
 from typing import Any
 
@@ -220,7 +220,7 @@ class CircuitBreaker:
             return True
         elif self.state == CircuitState.OPEN:
             if (
-                datetime.now(UTC) - self.last_failure_time
+                datetime.utcnow() - self.last_failure_time
             ).total_seconds() > self.timeout:
                 self.state = CircuitState.HALF_OPEN
                 self.success_count = 0
@@ -242,7 +242,7 @@ class CircuitBreaker:
     def record_failure(self):
         """Record failed call."""
         self.failure_count += 1
-        self.last_failure_time = datetime.now(UTC)
+        self.last_failure_time = datetime.utcnow()
 
         if (
             self.state == CircuitState.HALF_OPEN
@@ -592,7 +592,7 @@ class APIGateway:
         self.circuit_breakers: dict[str, CircuitBreaker] = {}
         self.stats = GatewayStats()
         self.request_count = 0
-        self.start_time = datetime.now(UTC)
+        self.start_time = datetime.utcnow()
 
     async def start(self):
         """Start API gateway."""
@@ -781,12 +781,12 @@ class APIGateway:
             self.stats.avg_response_time + response_time
         ) / 2
 
-        uptime = (datetime.now(UTC) - self.start_time).total_seconds()
+        uptime = (datetime.utcnow() - self.start_time).total_seconds()
         self.stats.requests_per_second = self.request_count / max(uptime, 1)
 
         self.stats.services_count = len(self.service_registry.local_registry)
         self.stats.routes_count = len(self.route_engine.routes)
-        self.stats.last_updated = datetime.now(UTC)
+        self.stats.last_updated = datetime.utcnow()
 
     def get_stats(self) -> GatewayStats:
         """Get gateway statistics.

@@ -4,38 +4,24 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Annotated, Any, Literal
+from typing import Any
 from uuid import UUID
 
 from pydantic import AwareDatetime, BaseModel, ConfigDict, EmailStr, Field, RootModel
 
 
 class RateLimitPerMinute(RootModel[int]):
-    root: Annotated[int, Field(ge=1, le=10000, title="Rate Limit Per Minute")]
+    root: int = Field(..., ge=1, le=10000, title='Rate Limit Per Minute')
 
 
 class RateLimitPerMinute1(RootModel[int]):
-    root: Annotated[
-        int,
-        Field(
-            description="Per-key override; None inherits tenant limit",
-            ge=1,
-            le=10000,
-            title="Rate Limit Per Minute",
-        ),
-    ]
-
-
-class ActionClass(Enum):
-    """
-    Canonical high-impact action classes requiring human approval.
-    """
-
-    approve_hypotheses = "approve_hypotheses"
-    publish_business_case = "publish_business_case"
-    apply_benchmark_assumptions = "apply_benchmark_assumptions"
-    generate_customer_facing_deliverable = "generate_customer_facing_deliverable"
-    change_account_value_model = "change_account_value_model"
+    root: int = Field(
+        ...,
+        description='Per-key override; None inherits tenant limit',
+        ge=1,
+        le=10000,
+        title='Rate Limit Per Minute',
+    )
 
 
 class ActivityItemSchema(BaseModel):
@@ -43,51 +29,21 @@ class ActivityItemSchema(BaseModel):
     Activity timeline item from fetch_interaction_history tool.
     """
 
-    id: Annotated[str, Field(title="Id")]
-    type: Annotated[str, Field(title="Type")]
-    date: Annotated[str, Field(title="Date")]
-    subject: Annotated[str | None, Field(title="Subject")] = None
-    duration_minutes: Annotated[int | None, Field(title="Duration Minutes")] = None
-    notes: Annotated[str | None, Field(title="Notes")] = None
-    outcome: Annotated[str | None, Field(title="Outcome")] = None
+    id: str = Field(..., title='Id')
+    type: str = Field(..., title='Type')
+    date: str = Field(..., title='Date')
+    subject: str | None = Field(None, title='Subject')
+    duration_minutes: int | None = Field(None, title='Duration Minutes')
+    notes: str | None = Field(None, title='Notes')
+    outcome: str | None = Field(None, title='Outcome')
 
 
 class ActorSummary(BaseModel):
-    user_id: Annotated[str | None, Field(title="User Id")]
-    roles: Annotated[list[str], Field(title="Roles")]
-    permissions: Annotated[list[str], Field(title="Permissions")]
-    api_key_id: Annotated[str | None, Field(title="Api Key Id")]
-    service_account_id: Annotated[str | None, Field(title="Service Account Id")]
-
-
-class AddInvoiceItemRequest(BaseModel):
-    """
-    Request to add an invoice line item.
-    """
-
-    description: Annotated[str, Field(description="Line item description", title="Description")]
-    amount_cents: Annotated[int, Field(description="Amount in cents", ge=0, title="Amount Cents")]
-    quantity: Annotated[float | None, Field(description="Quantity", gt=0.0, title="Quantity")] = 1.0
-    unit_amount_cents: Annotated[
-        int | None,
-        Field(description="Price per unit in cents", title="Unit Amount Cents"),
-    ] = None
-    type: Annotated[str | None, Field(description="Item type", title="Type")] = "one_time"
-    usage_quantity: Annotated[
-        float | None,
-        Field(description="Usage quantity for metered items", title="Usage Quantity"),
-    ] = None
-    usage_metric: Annotated[
-        str | None,
-        Field(description="Usage metric for metered items", title="Usage Metric"),
-    ] = None
-    tax_cents: Annotated[
-        int | None, Field(description="Tax amount in cents", ge=0, title="Tax Cents")
-    ] = 0
-    discount_cents: Annotated[
-        int | None,
-        Field(description="Discount amount in cents", ge=0, title="Discount Cents"),
-    ] = 0
+    user_id: str | None = Field(..., title='User Id')
+    roles: list[str] = Field(..., title='Roles')
+    permissions: list[str] = Field(..., title='Permissions')
+    api_key_id: str | None = Field(..., title='Api Key Id')
+    service_account_id: str | None = Field(..., title='Service Account Id')
 
 
 class AgentGovernanceMetadata(BaseModel):
@@ -95,15 +51,15 @@ class AgentGovernanceMetadata(BaseModel):
     Governance metadata surfaced to RightRail and trace/audit views.
     """
 
-    trace_id: Annotated[str, Field(title="Trace Id")]
-    workflow_id: Annotated[str, Field(title="Workflow Id")]
-    tenant_id: Annotated[str, Field(title="Tenant Id")]
-    tool_name: Annotated[str, Field(title="Tool Name")]
-    audit_event_id: Annotated[str, Field(title="Audit Event Id")]
-    emitted_at: Annotated[str, Field(title="Emitted At")]
-    intent: Annotated[str | None, Field(title="Intent")] = None
-    confidence: Annotated[float | None, Field(title="Confidence")] = None
-    workflow_triggered: Annotated[bool | None, Field(title="Workflow Triggered")] = None
+    trace_id: str = Field(..., title='Trace Id')
+    workflow_id: str = Field(..., title='Workflow Id')
+    tenant_id: str = Field(..., title='Tenant Id')
+    tool_name: str = Field(..., title='Tool Name')
+    audit_event_id: str = Field(..., title='Audit Event Id')
+    emitted_at: str = Field(..., title='Emitted At')
+    intent: str | None = Field(None, title='Intent')
+    confidence: float | None = Field(None, title='Confidence')
+    workflow_triggered: bool | None = Field(None, title='Workflow Triggered')
 
 
 class AgentStreamAccountContext(BaseModel):
@@ -111,30 +67,24 @@ class AgentStreamAccountContext(BaseModel):
     Account/workspace context from frontend.
     """
 
-    account_name: Annotated[
-        str | None,
-        Field(
-            alias="accountName",
-            description="Selected account display name",
-            title="Accountname",
-        ),
-    ] = None
-    account_id: Annotated[
-        str | None,
-        Field(
-            alias="accountId",
-            description="Selected account identifier",
-            title="Accountid",
-        ),
-    ] = None
-    account_tier: Annotated[
-        str | None,
-        Field(
-            alias="accountTier",
-            description="Optional account segment/tier",
-            title="Accounttier",
-        ),
-    ] = None
+    account_name: str | None = Field(
+        None,
+        alias='accountName',
+        description='Selected account display name',
+        title='Accountname',
+    )
+    account_id: str | None = Field(
+        None,
+        alias='accountId',
+        description='Selected account identifier',
+        title='Accountid',
+    )
+    account_tier: str | None = Field(
+        None,
+        alias='accountTier',
+        description='Optional account segment/tier',
+        title='Accounttier',
+    )
 
 
 class AgentStreamMessage(BaseModel):
@@ -142,8 +92,10 @@ class AgentStreamMessage(BaseModel):
     Single chat message compatible with frontend request shape.
     """
 
-    role: Annotated[str, Field(description="Message role (system|user|assistant)", title="Role")]
-    content: Annotated[str, Field(description="Message text", min_length=1, title="Content")]
+    role: str = Field(
+        ..., description='Message role (system|user|assistant)', title='Role'
+    )
+    content: str = Field(..., description='Message text', min_length=1, title='Content')
 
 
 class AgentStreamRequest(BaseModel):
@@ -151,39 +103,36 @@ class AgentStreamRequest(BaseModel):
     Request payload expected by RightRail frontend.
     """
 
-    messages: Annotated[list[AgentStreamMessage], Field(min_length=1, title="Messages")]
-    active_tab: Annotated[
-        str,
-        Field(
-            alias="activeTab",
-            description="Active UI tab key",
-            min_length=1,
-            title="Activetab",
-        ),
-    ]
+    messages: list[AgentStreamMessage] = Field(..., min_length=1, title='Messages')
+    active_tab: str = Field(
+        ...,
+        alias='activeTab',
+        description='Active UI tab key',
+        min_length=1,
+        title='Activetab',
+    )
     account: AgentStreamAccountContext | None = None
-    context_envelope: Annotated[
-        dict[str, Any] | None, Field(alias="contextEnvelope", title="Contextenvelope")
-    ] = None
-    entity_context: Annotated[
-        dict[str, Any] | None, Field(alias="entityContext", title="Entitycontext")
-    ] = None
-    selected_signal_id: Annotated[
-        str | None, Field(alias="selectedSignalId", title="Selectedsignalid")
-    ] = None
-    selected_value_path: Annotated[
-        str | None, Field(alias="selectedValuePath", title="Selectedvaluepath")
-    ] = None
-    selected_driver_tree_id: Annotated[
-        str | None, Field(alias="selectedDriverTreeId", title="Selecteddrivertreeid")
-    ] = None
-    selected_scenario_id: Annotated[
-        str | None, Field(alias="selectedScenarioId", title="Selectedscenarioid")
-    ] = None
-    selected_business_case_id: Annotated[
-        str | None,
-        Field(alias="selectedBusinessCaseId", title="Selectedbusinesscaseid"),
-    ] = None
+    context_envelope: dict[str, Any] | None = Field(
+        None, alias='contextEnvelope', title='Contextenvelope'
+    )
+    entity_context: dict[str, Any] | None = Field(
+        None, alias='entityContext', title='Entitycontext'
+    )
+    selected_signal_id: str | None = Field(
+        None, alias='selectedSignalId', title='Selectedsignalid'
+    )
+    selected_value_path: str | None = Field(
+        None, alias='selectedValuePath', title='Selectedvaluepath'
+    )
+    selected_driver_tree_id: str | None = Field(
+        None, alias='selectedDriverTreeId', title='Selecteddrivertreeid'
+    )
+    selected_scenario_id: str | None = Field(
+        None, alias='selectedScenarioId', title='Selectedscenarioid'
+    )
+    selected_business_case_id: str | None = Field(
+        None, alias='selectedBusinessCaseId', title='Selectedbusinesscaseid'
+    )
 
 
 class AgentStreamResponse(BaseModel):
@@ -191,14 +140,14 @@ class AgentStreamResponse(BaseModel):
     Assistant response payload for RightRail.
     """
 
-    content: Annotated[str, Field(title="Content")]
+    content: str = Field(..., title='Content')
     metadata: AgentGovernanceMetadata
 
 
 class Decision(Enum):
-    approved = "approved"
-    changes_requested = "changes_requested"
-    rejected = "rejected"
+    approved = 'approved'
+    changes_requested = 'changes_requested'
+    rejected = 'rejected'
 
 
 class ArchiveWorkflowResponse(BaseModel):
@@ -206,26 +155,9 @@ class ArchiveWorkflowResponse(BaseModel):
     Archive workflow response.
     """
 
-    workflow_id: Annotated[str, Field(title="Workflow Id")]
-    status: Annotated[str, Field(title="Status")]
-    archived_at: Annotated[str, Field(title="Archived At")]
-
-
-class AuditArea(Enum):
-    """
-    Audit area categories with their descriptions and default weights.
-    """
-
-    a__architecture_and_code_structure = "A: Architecture and Code Structure"
-    b__code_quality_and_maintainability = "B: Code Quality and Maintainability"
-    c__correctness__data_integrity__contracts = "C: Correctness, Data Integrity, Contracts"
-    d__testing_and_verification = "D: Testing and Verification"
-    e__security_and_supply_chain = "E: Security and Supply Chain"
-    f__ci_cd_and_quality_gates = "F: CI/CD and Quality Gates"
-    g__reliability__observability__operations = "G: Reliability, Observability, Operations"
-    h__documentation__decisions__knowledge = "H: Documentation, Decisions, Knowledge"
-    i__ai_agent_readiness__rules__skills = "I: AI-Agent Readiness, Rules, Skills"
-    j__developer_experience_and_velocity = "J: Developer Experience and Velocity"
+    workflow_id: Any = Field(..., title='Workflow Id')
+    status: str = Field(..., title='Status')
+    archived_at: str = Field(..., title='Archived At')
 
 
 class AuditEventInfo(BaseModel):
@@ -233,29 +165,29 @@ class AuditEventInfo(BaseModel):
     Audit event information.
     """
 
-    id: Annotated[str, Field(title="Id")]
-    action: Annotated[str, Field(title="Action")]
-    timestamp: Annotated[str, Field(title="Timestamp")]
-    actor_id: Annotated[str | None, Field(title="Actor Id")]
-    details: Annotated[dict[str, Any] | None, Field(title="Details")]
+    id: str = Field(..., title='Id')
+    action: str = Field(..., title='Action')
+    timestamp: str = Field(..., title='Timestamp')
+    actor_id: str | None = Field(..., title='Actor Id')
+    details: dict[str, Any] | None = Field(..., title='Details')
 
 
 class AuditExportCreateRequest(BaseModel):
-    review_id: Annotated[str, Field(title="Review Id")]
-    correlation_id: Annotated[str, Field(title="Correlation Id")]
-    trace_id: Annotated[str | None, Field(title="Trace Id")] = None
+    review_id: str = Field(..., title='Review Id')
+    correlation_id: str = Field(..., title='Correlation Id')
+    trace_id: str | None = Field(None, title='Trace Id')
 
 
 class Status(Enum):
-    pending = "pending"
-    ready = "ready"
-    failed = "failed"
-    blocked = "blocked"
+    pending = 'pending'
+    ready = 'ready'
+    failed = 'failed'
+    blocked = 'blocked'
 
 
 class Source(Enum):
-    provenance = "provenance"
-    access_log = "access_log"
+    provenance = 'provenance'
+    access_log = 'access_log'
 
 
 class AuditLogEntry(BaseModel):
@@ -263,164 +195,15 @@ class AuditLogEntry(BaseModel):
     Single audit log entry.
     """
 
-    id: Annotated[str, Field(title="Id")]
-    timestamp: Annotated[str, Field(title="Timestamp")]
-    source: Annotated[Source, Field(title="Source")]
-    event_type: Annotated[str, Field(title="Event Type")]
-    entity_id: Annotated[str | None, Field(title="Entity Id")] = None
-    entity_type: Annotated[str | None, Field(title="Entity Type")] = None
-    action: Annotated[str, Field(title="Action")]
-    agent: Annotated[str, Field(title="Agent")]
-    details: Annotated[dict[str, Any], Field(title="Details")]
-
-
-class OverallScore(RootModel[int]):
-    root: Annotated[
-        int,
-        Field(
-            description="Overall score if completed",
-            ge=0,
-            le=100,
-            title="Overall Score",
-        ),
-    ]
-
-
-class AuditRunDetail(BaseModel):
-    """
-    Detailed response for a single audit run including results.
-
-    Returned by the GET /runs/{run_id} endpoint. Contains the full audit
-    run record with its scorecard when available.
-    """
-
-    run_id: Annotated[str, Field(description="Audit run identifier", title="Run Id")]
-    status: Annotated[str, Field(description="Current run status", title="Status")]
-    trigger_type: Annotated[str, Field(description="Trigger source", title="Trigger Type")]
-    repo_name: Annotated[str, Field(description="Repository name", title="Repo Name")]
-    branch: Annotated[str | None, Field(description="Branch audited", title="Branch")] = "main"
-    started_at: Annotated[AwareDatetime, Field(description="Start timestamp", title="Started At")]
-    completed_at: Annotated[
-        AwareDatetime | None,
-        Field(description="Completion timestamp", title="Completed At"),
-    ] = None
-    overall_score: Annotated[
-        OverallScore | None,
-        Field(description="Overall score if completed", title="Overall Score"),
-    ] = None
-    overall_grade: Annotated[
-        str | None,
-        Field(description="Overall grade if completed", title="Overall Grade"),
-    ] = None
-    findings_count: Annotated[
-        int | None,
-        Field(description="Number of findings", ge=0, title="Findings Count"),
-    ] = 0
-    sprints_count: Annotated[
-        int | None,
-        Field(description="Number of planned sprints", ge=0, title="Sprints Count"),
-    ] = 0
-    error_message: Annotated[
-        str | None, Field(description="Error message if failed", title="Error Message")
-    ] = None
-    areas_reanalyzed: Annotated[
-        list[str] | None,
-        Field(description="Areas re-analyzed (incremental)", title="Areas Reanalyzed"),
-    ] = None
-    previous_run_id: Annotated[
-        str | None,
-        Field(
-            description="Previous run ID for incremental tracking",
-            title="Previous Run Id",
-        ),
-    ] = None
-
-
-class AuditRunResponse(BaseModel):
-    """
-    Response returned immediately when an audit is triggered.
-
-    Provides the run ID for polling and a message indicating the run
-    has been accepted for processing.
-    """
-
-    run_id: Annotated[
-        str,
-        Field(description="Unique identifier for the accepted audit run", title="Run Id"),
-    ]
-    status: Annotated[str, Field(description="Initial status: typically 'pending'", title="Status")]
-    message: Annotated[
-        str | None, Field(description="Human-readable status message", title="Message")
-    ] = "Audit run accepted and queued for processing."
-    started_at: Annotated[
-        AwareDatetime | None,
-        Field(description="Timestamp when the run was accepted", title="Started At"),
-    ] = None
-
-
-class OverallScore1(RootModel[int]):
-    root: Annotated[int, Field(description="Overall score", ge=0, le=100, title="Overall Score")]
-
-
-class AuditRunSummary(BaseModel):
-    """
-    Summary of an audit run for listing operations.
-
-    A lightweight representation suitable for the GET /runs list endpoint.
-    """
-
-    run_id: Annotated[str, Field(description="Audit run identifier", title="Run Id")]
-    status: Annotated[str, Field(description="Run status", title="Status")]
-    trigger_type: Annotated[str, Field(description="Trigger source", title="Trigger Type")]
-    repo_name: Annotated[str, Field(description="Repository name", title="Repo Name")]
-    branch: Annotated[str | None, Field(description="Branch audited", title="Branch")] = "main"
-    started_at: Annotated[AwareDatetime, Field(description="Start timestamp", title="Started At")]
-    completed_at: Annotated[
-        AwareDatetime | None,
-        Field(description="Completion timestamp", title="Completed At"),
-    ] = None
-    overall_score: Annotated[
-        OverallScore1 | None, Field(description="Overall score", title="Overall Score")
-    ] = None
-    overall_grade: Annotated[
-        str | None, Field(description="Overall grade", title="Overall Grade")
-    ] = None
-    findings_count: Annotated[
-        int | None,
-        Field(description="Number of findings", ge=0, title="Findings Count"),
-    ] = 0
-
-
-class AuditTriggerRequest(BaseModel):
-    """
-    Request body for triggering a new audit run via the API.
-
-    ``repo_url`` is required; remaining fields use configuration defaults when omitted.
-    """
-
-    repo_url: Annotated[str, Field(description="Repository URL to audit.", title="Repo Url")]
-    branch: Annotated[
-        str | None,
-        Field(description="Branch to audit. Defaults to 'main'.", title="Branch"),
-    ] = None
-    incremental: Annotated[
-        bool | None,
-        Field(description="Override incremental mode for this run.", title="Incremental"),
-    ] = None
-    areas: Annotated[
-        list[AuditArea] | None,
-        Field(
-            description="List of areas to audit. Defaults to all enabled areas.",
-            title="Areas",
-        ),
-    ] = None
-    trigger_type: Annotated[
-        str | None,
-        Field(
-            description="Source of the trigger: manual, scheduled, webhook, post_merge",
-            title="Trigger Type",
-        ),
-    ] = "manual"
+    id: str = Field(..., title='Id')
+    timestamp: str = Field(..., title='Timestamp')
+    source: Source = Field(..., title='Source')
+    event_type: str = Field(..., title='Event Type')
+    entity_id: str | None = Field(None, title='Entity Id')
+    entity_type: str | None = Field(None, title='Entity Type')
+    action: str = Field(..., title='Action')
+    agent: str = Field(..., title='Agent')
+    details: dict[str, Any] = Field(..., title='Details')
 
 
 class AuthSessionResponse(BaseModel):
@@ -428,11 +211,11 @@ class AuthSessionResponse(BaseModel):
     Minimal authenticated session profile for compatibility smoke checks.
     """
 
-    authenticated: Annotated[bool, Field(title="Authenticated")]
-    user_id: Annotated[str, Field(title="User Id")]
-    tenant_id: Annotated[str, Field(title="Tenant Id")]
-    roles: Annotated[list[str], Field(title="Roles")]
-    permissions: Annotated[list[str], Field(title="Permissions")]
+    authenticated: bool = Field(..., title='Authenticated')
+    user_id: str = Field(..., title='User Id')
+    tenant_id: str = Field(..., title='Tenant Id')
+    roles: list[str] = Field(..., title='Roles')
+    permissions: list[str] = Field(..., title='Permissions')
 
 
 class AuthorityWeight(Enum):
@@ -440,30 +223,18 @@ class AuthorityWeight(Enum):
     How authoritative this source is considered.
     """
 
-    high = "high"
-    medium = "medium"
-    low = "low"
-
-
-class AvailableWorkflow(BaseModel):
-    type: Annotated[str, Field(title="Type")]
-    name: Annotated[str, Field(title="Name")]
-    description: Annotated[str, Field(title="Description")]
-
-
-class AvailableWorkflowsResponse(BaseModel):
-    workflows: Annotated[list[AvailableWorkflow], Field(title="Workflows")]
+    high = 'high'
+    medium = 'medium'
+    low = 'low'
 
 
 class BatchEnrichRequest(BaseModel):
-    limit: Annotated[
-        int | None,
-        Field(description="Max accounts to enrich", ge=1, le=500, title="Limit"),
-    ] = 50
-    force: Annotated[
-        bool | None,
-        Field(description="Re-enrich already enriched accounts", title="Force"),
-    ] = False
+    limit: int | None = Field(
+        50, description='Max accounts to enrich', ge=1, le=500, title='Limit'
+    )
+    force: bool | None = Field(
+        False, description='Re-enrich already enriched accounts', title='Force'
+    )
 
 
 class BusinessCaseLifecycleSeedRequest(BaseModel):
@@ -471,10 +242,12 @@ class BusinessCaseLifecycleSeedRequest(BaseModel):
     Non-production deterministic lifecycle seed payload for backend E2E validation.
     """
 
-    account_id: Annotated[UUID, Field(title="Account Id")]
-    draft_case_id: Annotated[str | None, Field(title="Draft Case Id")] = "case-draft"
-    approved_case_id: Annotated[str | None, Field(title="Approved Case Id")] = "case-approved"
-    approved_case_aliases: Annotated[list[str] | None, Field(title="Approved Case Aliases")] = None
+    account_id: UUID = Field(..., title='Account Id')
+    draft_case_id: str | None = Field('case-draft-001', title='Draft Case Id')
+    approved_case_id: str | None = Field(
+        'case-e2e-approved-001', title='Approved Case Id'
+    )
+    approved_case_aliases: list[str] | None = Field(None, title='Approved Case Aliases')
 
 
 class BusinessCaseRequest(BaseModel):
@@ -482,20 +255,19 @@ class BusinessCaseRequest(BaseModel):
     Business case generation request.
     """
 
-    account_id: Annotated[UUID, Field(description="Account UUID identifier", title="Account Id")]
-    opportunity_id: Annotated[str | None, Field(title="Opportunity Id")] = None
-    sections: Annotated[list[str] | None, Field(title="Sections")] = None
-    output_format: Annotated[
-        str | None,
-        Field(description="Output format (pdf, docx, html)", title="Output Format"),
-    ] = "pdf"
-    custom_inputs: Annotated[
-        dict[str, Any] | None,
-        Field(
-            description="Optional custom inputs, including truth_requirements and organization_id",
-            title="Custom Inputs",
-        ),
-    ] = None
+    account_id: UUID = Field(
+        ..., description='Account UUID identifier', title='Account Id'
+    )
+    opportunity_id: str | None = Field(None, title='Opportunity Id')
+    sections: list[str] | None = Field(None, title='Sections')
+    output_format: str | None = Field(
+        'pdf', description='Output format (pdf, docx, html)', title='Output Format'
+    )
+    custom_inputs: dict[str, Any] | None = Field(
+        None,
+        description='Optional custom inputs, including truth_requirements and organization_id',
+        title='Custom Inputs',
+    )
 
 
 class BusinessCaseResponse(BaseModel):
@@ -503,28 +275,32 @@ class BusinessCaseResponse(BaseModel):
     Business case generation response.
     """
 
-    case_id: Annotated[str, Field(title="Case Id")]
-    title: Annotated[str | None, Field(title="Title")] = "Business Case"
-    summary: Annotated[str | None, Field(title="Summary")] = ""
-    total_value: Annotated[float | None, Field(title="Total Value")] = 0.0
-    implementation_cost: Annotated[float | None, Field(title="Implementation Cost")] = 0.0
-    roi_ratio: Annotated[float | None, Field(title="Roi Ratio")] = 0.0
-    payback_months: Annotated[int | None, Field(title="Payback Months")] = 0
-    confidence_score: Annotated[float | None, Field(title="Confidence Score")] = 0.0
-    recommendations: Annotated[list[str] | None, Field(title="Recommendations")] = None
-    status: Annotated[str | None, Field(title="Status")] = "unknown"
-    created_at: Annotated[str | None, Field(title="Created At")] = None
-    document_url: Annotated[str | None, Field(title="Document Url")] = None
-    page_count: Annotated[int | None, Field(title="Page Count")] = 0
-    file_size_bytes: Annotated[int | None, Field(title="File Size Bytes")] = 0
-    truth_references: Annotated[list[dict[str, Any]] | None, Field(title="Truth References")] = None
-    remediation_items: Annotated[list[dict[str, Any]] | None, Field(title="Remediation Items")] = (
-        None
+    case_id: str = Field(..., title='Case Id')
+    title: str | None = Field('Business Case', title='Title')
+    summary: str | None = Field('', title='Summary')
+    total_value: float | None = Field(0.0, title='Total Value')
+    implementation_cost: float | None = Field(0.0, title='Implementation Cost')
+    roi_ratio: float | None = Field(0.0, title='Roi Ratio')
+    payback_months: int | None = Field(0, title='Payback Months')
+    confidence_score: float | None = Field(0.0, title='Confidence Score')
+    recommendations: list[str] | None = Field(None, title='Recommendations')
+    status: str | None = Field('unknown', title='Status')
+    created_at: str | None = Field(None, title='Created At')
+    document_url: str | None = Field(None, title='Document Url')
+    page_count: int | None = Field(0, title='Page Count')
+    file_size_bytes: int | None = Field(0, title='File Size Bytes')
+    truth_references: list[dict[str, Any]] | None = Field(
+        None, title='Truth References'
     )
-    sdes: Annotated[dict[str, Any] | None, Field(title="Sdes")] = None
-    case_metadata: Annotated[dict[str, Any] | None, Field(title="Case Metadata")] = None
-    revision_history: Annotated[list[dict[str, Any]] | None, Field(title="Revision History")] = None
-    diff_summary: Annotated[dict[str, Any] | None, Field(title="Diff Summary")] = None
+    remediation_items: list[dict[str, Any]] | None = Field(
+        None, title='Remediation Items'
+    )
+    sdes: dict[str, Any] | None = Field(None, title='Sdes')
+    case_metadata: dict[str, Any] | None = Field(None, title='Case Metadata')
+    revision_history: list[dict[str, Any]] | None = Field(
+        None, title='Revision History'
+    )
+    diff_summary: dict[str, Any] | None = Field(None, title='Diff Summary')
 
 
 class BuyerRoleInferenceStatus(Enum):
@@ -532,9 +308,9 @@ class BuyerRoleInferenceStatus(Enum):
     Status of buyer role inference.
     """
 
-    complete = "complete"
-    pending = "pending"
-    unavailable = "unavailable"
+    complete = 'complete'
+    pending = 'pending'
+    unavailable = 'unavailable'
 
 
 class C1Message(BaseModel):
@@ -542,10 +318,10 @@ class C1Message(BaseModel):
     Single message in the C1 conversation.
     """
 
-    role: Annotated[
-        str, Field(description="Message role: system, user, or assistant", title="Role")
-    ]
-    content: Annotated[str, Field(description="Message text content", title="Content")]
+    role: str = Field(
+        ..., description='Message role: system, user, or assistant', title='Role'
+    )
+    content: str = Field(..., description='Message text content', title='Content')
 
 
 class C1StreamRequest(BaseModel):
@@ -553,9 +329,9 @@ class C1StreamRequest(BaseModel):
     Request body accepted by ``POST /v1/c1/stream``.
     """
 
-    messages: Annotated[list[C1Message], Field(min_length=1, title="Messages")]
-    business_case_id: Annotated[str, Field(min_length=1, title="Business Case Id")]
-    business_case_data: Annotated[dict[str, Any] | None, Field(title="Business Case Data")] = None
+    messages: list[C1Message] = Field(..., min_length=1, title='Messages')
+    business_case_id: str = Field(..., min_length=1, title='Business Case Id')
+    business_case_data: dict[str, Any] | None = Field(None, title='Business Case Data')
 
 
 class CRMProvider(Enum):
@@ -563,36 +339,26 @@ class CRMProvider(Enum):
     Supported CRM providers.
     """
 
-    salesforce = "salesforce"
-    hubspot = "hubspot"
-    manual = "manual"
+    salesforce = 'salesforce'
+    hubspot = 'hubspot'
+    manual = 'manual'
 
 
 class CRMSyncJobResponse(BaseModel):
-    id: Annotated[str, Field(title="Id")]
-    tenant_id: Annotated[str, Field(title="Tenant Id")]
-    provider: Annotated[str, Field(title="Provider")]
-    status: Annotated[str, Field(title="Status")]
-    requested_by: Annotated[str | None, Field(title="Requested By")] = None
-    queued_at: Annotated[str | None, Field(title="Queued At")] = None
-    started_at: Annotated[str | None, Field(title="Started At")] = None
-    finished_at: Annotated[str | None, Field(title="Finished At")] = None
-    records_synced: Annotated[int | None, Field(title="Records Synced")] = 0
-    records_updated: Annotated[int | None, Field(title="Records Updated")] = 0
-    records_failed: Annotated[int | None, Field(title="Records Failed")] = 0
-    error_summary: Annotated[str | None, Field(title="Error Summary")] = None
-    created_at: Annotated[str | None, Field(title="Created At")] = None
-    updated_at: Annotated[str | None, Field(title="Updated At")] = None
-
-
-class CancelSubscriptionRequest(BaseModel):
-    cancel_immediately: Annotated[
-        bool | None,
-        Field(
-            description="Cancel immediately vs at period end",
-            title="Cancel Immediately",
-        ),
-    ] = False
+    id: str = Field(..., title='Id')
+    tenant_id: str = Field(..., title='Tenant Id')
+    provider: str = Field(..., title='Provider')
+    status: str = Field(..., title='Status')
+    requested_by: str | None = Field(None, title='Requested By')
+    queued_at: str | None = Field(None, title='Queued At')
+    started_at: str | None = Field(None, title='Started At')
+    finished_at: str | None = Field(None, title='Finished At')
+    records_synced: int | None = Field(0, title='Records Synced')
+    records_updated: int | None = Field(0, title='Records Updated')
+    records_failed: int | None = Field(0, title='Records Failed')
+    error_summary: str | None = Field(None, title='Error Summary')
+    created_at: str | None = Field(None, title='Created At')
+    updated_at: str | None = Field(None, title='Updated At')
 
 
 class CaseListItem(BaseModel):
@@ -600,12 +366,12 @@ class CaseListItem(BaseModel):
     Case list response item.
     """
 
-    case_id: Annotated[str, Field(title="Case Id")]
-    account_id: Annotated[str | None, Field(title="Account Id")] = None
-    title: Annotated[str | None, Field(title="Title")] = None
-    status: Annotated[str | None, Field(title="Status")] = "unknown"
-    created_at: Annotated[str | None, Field(title="Created At")] = None
-    updated_at: Annotated[str | None, Field(title="Updated At")] = None
+    case_id: str = Field(..., title='Case Id')
+    account_id: str | None = Field(None, title='Account Id')
+    title: str | None = Field(None, title='Title')
+    status: str | None = Field('unknown', title='Status')
+    created_at: str | None = Field(None, title='Created At')
+    updated_at: str | None = Field(None, title='Updated At')
 
 
 class CaseListResponse(BaseModel):
@@ -613,23 +379,8 @@ class CaseListResponse(BaseModel):
     List of cases for an account.
     """
 
-    items: Annotated[list[CaseListItem], Field(title="Items")]
-    total: Annotated[int, Field(title="Total")]
-
-
-class CheckoutRequest(BaseModel):
-    """
-    Request to create a checkout session.
-    """
-
-    plan_id: Annotated[str, Field(description="Plan to subscribe to", title="Plan Id")]
-    success_url: Annotated[
-        str,
-        Field(description="Redirect URL after successful checkout", title="Success Url"),
-    ]
-    cancel_url: Annotated[
-        str, Field(description="Redirect URL if checkout canceled", title="Cancel Url")
-    ]
+    items: list[CaseListItem] = Field(..., title='Items')
+    total: int = Field(..., title='Total')
 
 
 class CheckpointInfo(BaseModel):
@@ -637,58 +388,48 @@ class CheckpointInfo(BaseModel):
     Information about a single checkpoint.
     """
 
-    checkpoint_id: Annotated[str, Field(title="Checkpoint Id")]
-    thread_id: Annotated[str, Field(description="Workflow thread ID", title="Thread Id")]
-    node_name: Annotated[
-        str,
-        Field(description="Node that completed before this checkpoint", title="Node Name"),
-    ]
-    timestamp: Annotated[str, Field(description="ISO timestamp of checkpoint", title="Timestamp")]
-    step_number: Annotated[
-        int, Field(description="Step number in execution sequence", title="Step Number")
-    ]
-    state_summary: Annotated[
-        dict[str, Any] | None,
-        Field(description="Summary of state at this checkpoint", title="State Summary"),
-    ] = None
-
-
-class ClaimValidationRequest(BaseModel):
-    """
-    A single claim to validate.
-    """
-
-    model_config = ConfigDict(
-        extra="forbid",
+    checkpoint_id: str = Field(..., title='Checkpoint Id')
+    thread_id: str = Field(..., description='Workflow thread ID', title='Thread Id')
+    node_name: str = Field(
+        ..., description='Node that completed before this checkpoint', title='Node Name'
     )
-    claim_id: Annotated[str, Field(title="Claim Id")]
-    claim_text: Annotated[str, Field(title="Claim Text")]
-    evidence_refs: Annotated[list[str] | None, Field(title="Evidence Refs")] = None
-    value_pack_id: Annotated[str | None, Field(title="Value Pack Id")] = None
-    account_id: Annotated[str | None, Field(title="Account Id")] = None
+    timestamp: str = Field(
+        ..., description='ISO timestamp of checkpoint', title='Timestamp'
+    )
+    step_number: int = Field(
+        ..., description='Step number in execution sequence', title='Step Number'
+    )
+    state_summary: dict[str, Any] | None = Field(
+        None, description='Summary of state at this checkpoint', title='State Summary'
+    )
 
 
-class Validator(Enum):
-    agent = "agent"
-    human = "human"
-    policy = "policy"
-    benchmark = "benchmark"
-    unavailable = "unavailable"
+class CheckpointListResponse(BaseModel):
+    """
+    Response containing checkpoint timeline.
+    """
+
+    workflow_id: str = Field(..., title='Workflow Id')
+    checkpoints: list[CheckpointInfo] = Field(..., title='Checkpoints')
+    total_count: int = Field(..., title='Total Count')
+    current_checkpoint_id: str | None = Field(
+        None, description='Most recent checkpoint ID', title='Current Checkpoint Id'
+    )
 
 
 class CommentRecord(BaseModel):
-    id: Annotated[str, Field(title="Id")]
-    account_id: Annotated[str | None, Field(title="Account Id")] = None
-    subject_type: Annotated[str, Field(title="Subject Type")]
-    subject_id: Annotated[str, Field(title="Subject Id")]
-    body: Annotated[str, Field(title="Body")]
-    author: Annotated[str, Field(title="Author")]
-    created_at: Annotated[str, Field(title="Created At")]
-    updated_at: Annotated[str, Field(title="Updated At")]
+    id: str = Field(..., title='Id')
+    account_id: str | None = Field(None, title='Account Id')
+    subject_type: str = Field(..., title='Subject Type')
+    subject_id: str = Field(..., title='Subject Id')
+    body: str = Field(..., title='Body')
+    author: str = Field(..., title='Author')
+    created_at: str = Field(..., title='Created At')
+    updated_at: str = Field(..., title='Updated At')
 
 
 class Website(RootModel[str]):
-    root: Annotated[str, Field(max_length=255, title="Website")]
+    root: str = Field(..., max_length=255, title='Website')
 
 
 class CompanyKnowledgeProfileCreateRequest(BaseModel):
@@ -696,19 +437,16 @@ class CompanyKnowledgeProfileCreateRequest(BaseModel):
     Request to create a draft company knowledge profile.
     """
 
-    model_config = ConfigDict(
-        extra="forbid",
-    )
-    company_name: Annotated[str, Field(max_length=255, min_length=1, title="Company Name")]
-    website: Annotated[Website | None, Field(title="Website")] = None
+    company_name: str = Field(..., max_length=255, min_length=1, title='Company Name')
+    website: Website | None = Field(None, title='Website')
 
 
 class ConfidenceScore(RootModel[float]):
-    root: Annotated[float, Field(ge=0.0, le=1.0, title="Confidence Score")]
+    root: float = Field(..., ge=0.0, le=1.0, title='Confidence Score')
 
 
 class CompanyName(RootModel[str]):
-    root: Annotated[str, Field(max_length=255, min_length=1, title="Company Name")]
+    root: str = Field(..., max_length=255, min_length=1, title='Company Name')
 
 
 class CompanyKnowledgeProfileUpdateRequest(BaseModel):
@@ -716,17 +454,17 @@ class CompanyKnowledgeProfileUpdateRequest(BaseModel):
     Request to update profile sections.
     """
 
-    company_name: Annotated[CompanyName | None, Field(title="Company Name")] = None
-    website: Annotated[Website | None, Field(title="Website")] = None
-    identity: Annotated[dict[str, Any] | None, Field(title="Identity")] = None
-    product_catalog: Annotated[dict[str, Any] | None, Field(title="Product Catalog")] = None
-    target_customer: Annotated[dict[str, Any] | None, Field(title="Target Customer")] = None
-    personas: Annotated[dict[str, Any] | None, Field(title="Personas")] = None
-    use_cases: Annotated[dict[str, Any] | None, Field(title="Use Cases")] = None
-    value_drivers: Annotated[dict[str, Any] | None, Field(title="Value Drivers")] = None
-    proof_points: Annotated[dict[str, Any] | None, Field(title="Proof Points")] = None
-    trust_commercial: Annotated[dict[str, Any] | None, Field(title="Trust Commercial")] = None
-    review_status: Annotated[dict[str, Any] | None, Field(title="Review Status")] = None
+    company_name: CompanyName | None = Field(None, title='Company Name')
+    website: Website | None = Field(None, title='Website')
+    identity: dict[str, Any] | None = Field(None, title='Identity')
+    product_catalog: dict[str, Any] | None = Field(None, title='Product Catalog')
+    target_customer: dict[str, Any] | None = Field(None, title='Target Customer')
+    personas: dict[str, Any] | None = Field(None, title='Personas')
+    use_cases: dict[str, Any] | None = Field(None, title='Use Cases')
+    value_drivers: dict[str, Any] | None = Field(None, title='Value Drivers')
+    proof_points: dict[str, Any] | None = Field(None, title='Proof Points')
+    trust_commercial: dict[str, Any] | None = Field(None, title='Trust Commercial')
+    review_status: dict[str, Any] | None = Field(None, title='Review Status')
 
 
 class ComponentHealthInfo(BaseModel):
@@ -734,24 +472,14 @@ class ComponentHealthInfo(BaseModel):
     Health information for a single component.
     """
 
-    name: Annotated[str, Field(title="Name")]
-    status: Annotated[str, Field(title="Status")]
-    last_checked: Annotated[str, Field(title="Last Checked")]
-    response_time_ms: Annotated[float | None, Field(title="Response Time Ms")]
-    error_message: Annotated[str | None, Field(title="Error Message")]
-    failure_count: Annotated[int, Field(title="Failure Count")]
-    recovery_count: Annotated[int, Field(title="Recovery Count")]
-    metadata: Annotated[dict[str, Any], Field(title="Metadata")]
-
-
-class Confidence(Enum):
-    """
-    Confidence level in a finding or score.
-    """
-
-    high = "high"
-    medium = "medium"
-    low = "low"
+    name: str = Field(..., title='Name')
+    status: str = Field(..., title='Status')
+    last_checked: str = Field(..., title='Last Checked')
+    response_time_ms: float | None = Field(..., title='Response Time Ms')
+    error_message: str | None = Field(..., title='Error Message')
+    failure_count: int = Field(..., title='Failure Count')
+    recovery_count: int = Field(..., title='Recovery Count')
+    metadata: dict[str, Any] = Field(..., title='Metadata')
 
 
 class ConnectionQualityRequest(BaseModel):
@@ -759,14 +487,15 @@ class ConnectionQualityRequest(BaseModel):
     Request to report connection quality from client.
     """
 
-    latency_ms: Annotated[int, Field(title="Latency Ms")]
-    packet_loss_percent: Annotated[
-        float | None, Field(ge=0.0, le=100.0, title="Packet Loss Percent")
-    ] = 0.0
-    connection_type: Annotated[
-        str | None,
-        Field(description="wifi, ethernet, cellular, unknown", title="Connection Type"),
-    ] = "unknown"
+    latency_ms: int = Field(..., title='Latency Ms')
+    packet_loss_percent: float | None = Field(
+        0.0, ge=0.0, le=100.0, title='Packet Loss Percent'
+    )
+    connection_type: str | None = Field(
+        'unknown',
+        description='wifi, ethernet, cellular, unknown',
+        title='Connection Type',
+    )
 
 
 class ConnectionTestResponse(BaseModel):
@@ -774,10 +503,10 @@ class ConnectionTestResponse(BaseModel):
     Connection test result.
     """
 
-    success: Annotated[bool, Field(title="Success")]
-    message: Annotated[str, Field(title="Message")]
-    details: Annotated[dict[str, Any] | None, Field(title="Details")] = None
-    error_code: Annotated[str | None, Field(title="Error Code")] = None
+    success: bool = Field(..., title='Success')
+    message: str = Field(..., title='Message')
+    details: dict[str, Any] | None = Field(None, title='Details')
+    error_code: str | None = Field(None, title='Error Code')
 
 
 class ContactSchema(BaseModel):
@@ -785,13 +514,13 @@ class ContactSchema(BaseModel):
     Contact data embedded in account detail response.
     """
 
-    provider_contact_id: Annotated[str, Field(title="Provider Contact Id")]
-    name: Annotated[str, Field(title="Name")]
-    title: Annotated[str | None, Field(title="Title")] = None
-    email: Annotated[str | None, Field(title="Email")] = None
-    phone: Annotated[str | None, Field(title="Phone")] = None
-    is_primary: Annotated[bool | None, Field(title="Is Primary")] = False
-    last_synced_at: Annotated[AwareDatetime, Field(title="Last Synced At")]
+    provider_contact_id: str = Field(..., title='Provider Contact Id')
+    name: str = Field(..., title='Name')
+    title: str | None = Field(None, title='Title')
+    email: str | None = Field(None, title='Email')
+    phone: str | None = Field(None, title='Phone')
+    is_primary: bool | None = Field(False, title='Is Primary')
+    last_synced_at: AwareDatetime = Field(..., title='Last Synced At')
 
 
 class ContextField(BaseModel):
@@ -799,10 +528,10 @@ class ContextField(BaseModel):
     Single context field with provenance metadata.
     """
 
-    value: Annotated[Any | None, Field(title="Value")] = None
-    inferred: Annotated[bool | None, Field(title="Inferred")] = False
-    needs_confirmation: Annotated[bool | None, Field(title="Needs Confirmation")] = False
-    source: Annotated[str, Field(title="Source")]
+    value: Any | None = Field(None, title='Value')
+    inferred: bool | None = Field(False, title='Inferred')
+    needs_confirmation: bool | None = Field(False, title='Needs Confirmation')
+    source: str = Field(..., title='Source')
 
 
 class CrawlStatus(Enum):
@@ -810,69 +539,66 @@ class CrawlStatus(Enum):
     Progress of a website crawl job.
     """
 
-    pending = "pending"
-    in_progress = "in_progress"
-    complete = "complete"
-    failed = "failed"
+    pending = 'pending'
+    in_progress = 'in_progress'
+    complete = 'complete'
+    failed = 'failed'
 
 
 class ProviderRecordId(RootModel[str]):
-    root: Annotated[
-        str,
-        Field(
-            description="Original CRM record ID. Auto-generated for manual accounts.",
-            max_length=100,
-            min_length=1,
-            title="Provider Record Id",
-        ),
-    ]
+    root: str = Field(
+        ...,
+        description='Original CRM record ID. Auto-generated for manual accounts.',
+        max_length=100,
+        min_length=1,
+        title='Provider Record Id',
+    )
 
 
 class Domain(RootModel[str]):
-    root: Annotated[str, Field(max_length=255, title="Domain")]
+    root: str = Field(..., max_length=255, title='Domain')
 
 
 class Industry(RootModel[str]):
-    root: Annotated[str, Field(max_length=100, title="Industry")]
+    root: str = Field(..., max_length=100, title='Industry')
 
 
 class Region(RootModel[str]):
-    root: Annotated[str, Field(max_length=100, title="Region")]
+    root: str = Field(..., max_length=100, title='Region')
 
 
 class CompanySize(RootModel[int]):
-    root: Annotated[int, Field(ge=0, title="Company Size")]
+    root: int = Field(..., ge=0, title='Company Size')
 
 
 class AnnualRevenue(RootModel[float]):
-    root: Annotated[
-        float,
-        Field(description="Annual revenue in USD", ge=0.0, title="Annual Revenue"),
-    ]
+    root: float = Field(
+        ..., description='Annual revenue in USD', ge=0.0, title='Annual Revenue'
+    )
 
 
 class Headquarters(RootModel[str]):
-    root: Annotated[str, Field(max_length=255, title="Headquarters")]
+    root: str = Field(..., max_length=255, title='Headquarters')
 
 
 class OwnerId(RootModel[str]):
-    root: Annotated[str, Field(max_length=100, title="Owner Id")]
+    root: str = Field(..., max_length=100, title='Owner Id')
 
 
 class OwnerName(RootModel[str]):
-    root: Annotated[str, Field(max_length=255, title="Owner Name")]
+    root: str = Field(..., max_length=255, title='Owner Name')
 
 
 class OwnerEmail(RootModel[str]):
-    root: Annotated[str, Field(max_length=255, title="Owner Email")]
+    root: str = Field(..., max_length=255, title='Owner Email')
 
 
 class Stage(RootModel[str]):
-    root: Annotated[str, Field(max_length=50, title="Stage")]
+    root: str = Field(..., max_length=50, title='Stage')
 
 
 class Segment(RootModel[str]):
-    root: Annotated[str, Field(max_length=100, title="Segment")]
+    root: str = Field(..., max_length=100, title='Segment')
 
 
 class CreateAccountRequest(BaseModel):
@@ -884,37 +610,32 @@ class CreateAccountRequest(BaseModel):
     For manual accounts, provider_record_id is auto-generated if omitted.
     """
 
-    id: Annotated[
-        UUID | None,
-        Field(
-            description="Optional deterministic account UUID for validation seeding",
-            title="Id",
-        ),
-    ] = None
+    id: UUID | None = Field(
+        None,
+        description='Optional deterministic account UUID for validation seeding',
+        title='Id',
+    )
     provider: CRMProvider
-    provider_record_id: Annotated[
-        ProviderRecordId | None,
-        Field(
-            description="Original CRM record ID. Auto-generated for manual accounts.",
-            title="Provider Record Id",
-        ),
-    ] = None
-    name: Annotated[str, Field(max_length=255, min_length=1, title="Name")]
-    domain: Annotated[Domain | None, Field(title="Domain")] = None
-    industry: Annotated[Industry | None, Field(title="Industry")] = None
-    region: Annotated[Region | None, Field(title="Region")] = None
-    company_size: Annotated[CompanySize | None, Field(title="Company Size")] = None
-    annual_revenue: Annotated[
-        AnnualRevenue | None,
-        Field(description="Annual revenue in USD", title="Annual Revenue"),
-    ] = None
-    headquarters: Annotated[Headquarters | None, Field(title="Headquarters")] = None
-    website: Annotated[Website | None, Field(title="Website")] = None
-    owner_id: Annotated[OwnerId | None, Field(title="Owner Id")] = None
-    owner_name: Annotated[OwnerName | None, Field(title="Owner Name")] = None
-    owner_email: Annotated[OwnerEmail | None, Field(title="Owner Email")] = None
-    stage: Annotated[Stage | None, Field(title="Stage")] = None
-    segment: Annotated[Segment | None, Field(title="Segment")] = None
+    provider_record_id: ProviderRecordId | None = Field(
+        None,
+        description='Original CRM record ID. Auto-generated for manual accounts.',
+        title='Provider Record Id',
+    )
+    name: str = Field(..., max_length=255, min_length=1, title='Name')
+    domain: Domain | None = Field(None, title='Domain')
+    industry: Industry | None = Field(None, title='Industry')
+    region: Region | None = Field(None, title='Region')
+    company_size: CompanySize | None = Field(None, title='Company Size')
+    annual_revenue: AnnualRevenue | None = Field(
+        None, description='Annual revenue in USD', title='Annual Revenue'
+    )
+    headquarters: Headquarters | None = Field(None, title='Headquarters')
+    website: Website | None = Field(None, title='Website')
+    owner_id: OwnerId | None = Field(None, title='Owner Id')
+    owner_name: OwnerName | None = Field(None, title='Owner Name')
+    owner_email: OwnerEmail | None = Field(None, title='Owner Email')
+    stage: Stage | None = Field(None, title='Stage')
+    segment: Segment | None = Field(None, title='Segment')
 
 
 class CreateCaseRequest(BaseModel):
@@ -922,15 +643,8 @@ class CreateCaseRequest(BaseModel):
     Create a new case for an account.
     """
 
-    account_id: Annotated[str, Field(description="Account identifier", title="Account Id")]
-    title: Annotated[str | None, Field(description="Case title", title="Title")] = None
-    case_id: Annotated[
-        str | None,
-        Field(
-            description="Optional deterministic case id. Generated if omitted.",
-            title="Case Id",
-        ),
-    ] = None
+    account_id: str = Field(..., description='Account identifier', title='Account Id')
+    title: str | None = Field(None, description='Case title', title='Title')
 
 
 class CreateCaseResponse(BaseModel):
@@ -938,68 +652,43 @@ class CreateCaseResponse(BaseModel):
     Created case response.
     """
 
-    case_id: Annotated[str, Field(title="Case Id")]
-    account_id: Annotated[str, Field(title="Account Id")]
-    title: Annotated[str | None, Field(title="Title")] = None
-    status: Annotated[str | None, Field(title="Status")] = "created"
-    created_at: Annotated[str, Field(title="Created At")]
+    case_id: str = Field(..., title='Case Id')
+    account_id: str = Field(..., title='Account Id')
+    title: str | None = Field(None, title='Title')
+    status: str | None = Field('created', title='Status')
+    created_at: str = Field(..., title='Created At')
 
 
 class CreateCommentRequest(BaseModel):
-    account_id: Annotated[str | None, Field(title="Account Id")] = None
-    subject_type: Annotated[str, Field(max_length=80, min_length=1, title="Subject Type")]
-    subject_id: Annotated[str, Field(max_length=160, min_length=1, title="Subject Id")]
-    body: Annotated[str, Field(max_length=4000, min_length=1, title="Body")]
-
-
-class CreateInvoiceRequest(BaseModel):
-    """
-    Request to create a new invoice.
-    """
-
-    customer_id: Annotated[str, Field(description="Customer being invoiced", title="Customer Id")]
-    period_start: Annotated[
-        AwareDatetime, Field(description="Billing period start", title="Period Start")
-    ]
-    period_end: Annotated[
-        AwareDatetime, Field(description="Billing period end", title="Period End")
-    ]
-    invoice_number: Annotated[
-        str | None, Field(description="Optional invoice number", title="Invoice Number")
-    ] = None
-    subscription_id: Annotated[
-        str | None,
-        Field(description="Optional subscription link", title="Subscription Id"),
-    ] = None
-    currency: Annotated[str | None, Field(description="Currency code", title="Currency")] = "USD"
-    description: Annotated[
-        str | None, Field(description="Invoice description", title="Description")
-    ] = None
+    account_id: str | None = Field(None, title='Account Id')
+    subject_type: str = Field(..., max_length=80, min_length=1, title='Subject Type')
+    subject_id: str = Field(..., max_length=160, min_length=1, title='Subject Id')
+    body: str = Field(..., max_length=4000, min_length=1, title='Body')
 
 
 class CreateNotificationRequest(BaseModel):
-    account_id: Annotated[str | None, Field(title="Account Id")] = None
-    subject_id: Annotated[str | None, Field(title="Subject Id")] = None
-    subject_type: Annotated[str | None, Field(title="Subject Type")] = None
-    type: Annotated[str, Field(max_length=80, min_length=1, title="Type")]
-    title: Annotated[str, Field(max_length=240, min_length=1, title="Title")]
-    message: Annotated[str, Field(max_length=1000, min_length=1, title="Message")]
+    account_id: str | None = Field(None, title='Account Id')
+    subject_id: str | None = Field(None, title='Subject Id')
+    subject_type: str | None = Field(None, title='Subject Type')
+    type: str = Field(..., max_length=80, min_length=1, title='Type')
+    title: str = Field(..., max_length=240, min_length=1, title='Title')
+    message: str = Field(..., max_length=1000, min_length=1, title='Message')
 
 
 class Assignee(RootModel[str]):
-    root: Annotated[str, Field(max_length=160, title="Assignee")]
+    root: str = Field(..., max_length=160, title='Assignee')
 
 
 class Stage1(RootModel[str]):
-    root: Annotated[str, Field(max_length=80, title="Stage")]
+    root: str = Field(..., max_length=80, title='Stage')
 
 
 class CreateTaskRequest(BaseModel):
-    title: Annotated[str, Field(max_length=240, min_length=1, title="Title")]
-    account_id: Annotated[str | None, Field(title="Account Id")] = None
-    assignee: Annotated[Assignee | None, Field(title="Assignee")] = None
-    due_date: Annotated[str | None, Field(title="Due Date")] = None
-    stage: Annotated[Stage1 | None, Field(title="Stage")] = None
+    title: str = Field(..., max_length=240, min_length=1, title='Title')
+    account_id: str | None = Field(None, title='Account Id')
+    assignee: Assignee | None = Field(None, title='Assignee')
+    due_date: str | None = Field(None, title='Due Date')
+    stage: Stage1 | None = Field(None, title='Stage')
 
 
 class CrmMatchStatus(Enum):
@@ -1007,39 +696,30 @@ class CrmMatchStatus(Enum):
     Status of CRM opportunity matching.
     """
 
-    matched = "matched"
-    not_found = "not_found"
-    unavailable = "unavailable"
+    matched = 'matched'
+    not_found = 'not_found'
+    unavailable = 'unavailable'
 
 
 class CurrentTenantSettingsResponse(BaseModel):
-    id: Annotated[str, Field(title="Id")]
-    name: Annotated[str, Field(title="Name")]
-    slug: Annotated[str, Field(title="Slug")]
-    status: Annotated[str, Field(title="Status")]
-    tier_id: Annotated[str, Field(title="Tier Id")]
-    settings: Annotated[dict[str, Any], Field(title="Settings")]
-    created_at: Annotated[str, Field(title="Created At")]
+    id: str = Field(..., title='Id')
+    name: str = Field(..., title='Name')
+    slug: str = Field(..., title='Slug')
+    status: str = Field(..., title='Status')
+    tier_id: str = Field(..., title='Tier Id')
+    settings: dict[str, Any] = Field(..., title='Settings')
+    created_at: str = Field(..., title='Created At')
 
 
 class CurrentTenantSettingsUpdate(BaseModel):
-    settings: Annotated[dict[str, Any] | None, Field(title="Settings")] = None
+    settings: dict[str, Any] | None = Field(None, title='Settings')
 
 
 class CurrentTenantSettingsUpdateResponse(BaseModel):
-    id: Annotated[str, Field(title="Id")]
-    name: Annotated[str, Field(title="Name")]
-    settings: Annotated[dict[str, Any], Field(title="Settings")]
-    updated_at: Annotated[str, Field(title="Updated At")]
-
-
-class CustomerSyncRequest(BaseModel):
-    """
-    Request to sync customer with Stripe.
-    """
-
-    email: Annotated[str, Field(description="Customer email address", title="Email")]
-    name: Annotated[str | None, Field(description="Customer name", title="Name")] = None
+    id: str = Field(..., title='Id')
+    name: str = Field(..., title='Name')
+    settings: dict[str, Any] = Field(..., title='Settings')
+    updated_at: str = Field(..., title='Updated At')
 
 
 class DismissBadgeRequest(BaseModel):
@@ -1047,7 +727,7 @@ class DismissBadgeRequest(BaseModel):
     Request to dismiss a health badge.
     """
 
-    badge_id: Annotated[str, Field(title="Badge Id")]
+    badge_id: str = Field(..., title='Badge Id')
 
 
 class DismissBadgeResponse(BaseModel):
@@ -1055,9 +735,9 @@ class DismissBadgeResponse(BaseModel):
     Response from dismissing a badge.
     """
 
-    success: Annotated[bool, Field(title="Success")]
-    message: Annotated[str, Field(title="Message")]
-    dismissed_badge_id: Annotated[str, Field(title="Dismissed Badge Id")]
+    success: bool = Field(..., title='Success')
+    message: str = Field(..., title='Message')
+    dismissed_badge_id: str = Field(..., title='Dismissed Badge Id')
 
 
 class DocumentExportRequest(BaseModel):
@@ -1065,20 +745,18 @@ class DocumentExportRequest(BaseModel):
     Request for document export via DocumentExportTool.
     """
 
-    document_type: Annotated[
-        str | None,
-        Field(description="Type of document to export", title="Document Type"),
-    ] = "business_case"
-    business_case_id: Annotated[
-        str, Field(description="Business case ID to export", title="Business Case Id")
-    ]
-    format: Annotated[str | None, Field(description="Export format: pdf, html", title="Format")] = (
-        "pdf"
+    document_type: str | None = Field(
+        'business_case', description='Type of document to export', title='Document Type'
     )
-    include_provenance: Annotated[
-        bool | None,
-        Field(description="Include provenance information", title="Include Provenance"),
-    ] = True
+    business_case_id: str = Field(
+        ..., description='Business case ID to export', title='Business Case Id'
+    )
+    format: str | None = Field(
+        'pdf', description='Export format: pdf, html', title='Format'
+    )
+    include_provenance: bool | None = Field(
+        True, description='Include provenance information', title='Include Provenance'
+    )
 
 
 class DocumentExportResponse(BaseModel):
@@ -1086,30 +764,27 @@ class DocumentExportResponse(BaseModel):
     Response from document export.
     """
 
-    success: Annotated[bool, Field(title="Success")]
-    export_id: Annotated[str | None, Field(title="Export Id")] = None
-    download_url: Annotated[str | None, Field(title="Download Url")] = None
-    manifest_url: Annotated[str | None, Field(title="Manifest Url")] = None
-    filename: Annotated[str | None, Field(title="Filename")] = None
-    manifest_filename: Annotated[str | None, Field(title="Manifest Filename")] = None
-    file_size_bytes: Annotated[int | None, Field(title="File Size Bytes")] = None
-    url_expires_at: Annotated[str | None, Field(title="Url Expires At")] = None
-    format: Annotated[str | None, Field(title="Format")] = "pdf"
-    error: Annotated[str | None, Field(title="Error")] = None
+    success: bool = Field(..., title='Success')
+    export_id: str | None = Field(None, title='Export Id')
+    download_url: str | None = Field(None, title='Download Url')
+    manifest_url: str | None = Field(None, title='Manifest Url')
+    filename: str | None = Field(None, title='Filename')
+    manifest_filename: str | None = Field(None, title='Manifest Filename')
+    file_size_bytes: int | None = Field(None, title='File Size Bytes')
+    url_expires_at: str | None = Field(None, title='Url Expires At')
+    format: str | None = Field('pdf', title='Format')
+    error: str | None = Field(None, title='Error')
 
 
 class EnrichAccountRequest(BaseModel):
-    sources: Annotated[
-        list[str] | None,
-        Field(
-            description="Specific sources to use: sec_edgar, web_crawl, domain_lookup, news_scan",
-            title="Sources",
-        ),
-    ] = None
-    force: Annotated[
-        bool | None,
-        Field(description="Re-enrich even if already enriched", title="Force"),
-    ] = False
+    sources: list[str] | None = Field(
+        None,
+        description='Specific sources to use: sec_edgar, web_crawl, domain_lookup, news_scan',
+        title='Sources',
+    )
+    force: bool | None = Field(
+        False, description='Re-enrich even if already enriched', title='Force'
+    )
 
 
 class EnrichmentStatus(Enum):
@@ -1117,21 +792,21 @@ class EnrichmentStatus(Enum):
     Status of enrichment data availability.
     """
 
-    queued = "queued"
-    complete = "complete"
-    unavailable = "unavailable"
-    pending = "pending"
-    degraded = "degraded"
+    queued = 'queued'
+    complete = 'complete'
+    unavailable = 'unavailable'
+    pending = 'pending'
+    degraded = 'degraded'
 
 
 class EnrichmentStatusResponse(BaseModel):
-    total_accounts: Annotated[int, Field(title="Total Accounts")]
-    enriched: Annotated[int, Field(title="Enriched")]
-    pending: Annotated[int, Field(title="Pending")]
-    in_progress: Annotated[int, Field(title="In Progress")]
-    failed: Annotated[int, Field(title="Failed")]
-    stale: Annotated[int, Field(title="Stale")]
-    coverage_pct: Annotated[float, Field(title="Coverage Pct")]
+    total_accounts: int = Field(..., title='Total Accounts')
+    enriched: int = Field(..., title='Enriched')
+    pending: int = Field(..., title='Pending')
+    in_progress: int = Field(..., title='In Progress')
+    failed: int = Field(..., title='Failed')
+    stale: int = Field(..., title='Stale')
+    coverage_pct: float = Field(..., title='Coverage Pct')
 
 
 class ErrorAnalysisResponse(BaseModel):
@@ -1139,14 +814,14 @@ class ErrorAnalysisResponse(BaseModel):
     Analysis of workflow errors.
     """
 
-    workflow_id: Annotated[str, Field(title="Workflow Id")]
-    error_count: Annotated[int, Field(title="Error Count")]
-    errors: Annotated[list[dict[str, Any]], Field(title="Errors")]
-    error_categories: Annotated[dict[str, int], Field(title="Error Categories")]
-    has_critical_errors: Annotated[bool, Field(title="Has Critical Errors")]
-    first_error_at: Annotated[str | None, Field(title="First Error At")]
-    last_error_at: Annotated[str | None, Field(title="Last Error At")]
-    error_pattern: Annotated[str | None, Field(title="Error Pattern")]
+    workflow_id: str = Field(..., title='Workflow Id')
+    error_count: int = Field(..., title='Error Count')
+    errors: list[dict[str, Any]] = Field(..., title='Errors')
+    error_categories: dict[str, int] = Field(..., title='Error Categories')
+    has_critical_errors: bool = Field(..., title='Has Critical Errors')
+    first_error_at: str | None = Field(..., title='First Error At')
+    last_error_at: str | None = Field(..., title='Last Error At')
+    error_pattern: str | None = Field(..., title='Error Pattern')
 
 
 class EvalRunRequest(BaseModel):
@@ -1154,54 +829,47 @@ class EvalRunRequest(BaseModel):
     Request to record an evaluation run against the active model.
     """
 
-    overall_pass_rate: Annotated[
-        float,
-        Field(
-            description="Overall evaluation pass rate",
-            ge=0.0,
-            le=1.0,
-            title="Overall Pass Rate",
-        ),
-    ]
-    total_tests: Annotated[
-        int | None,
-        Field(description="Total number of tests run", ge=0, title="Total Tests"),
-    ] = 0
-    passed_tests: Annotated[
-        int | None,
-        Field(description="Number of passing tests", ge=0, title="Passed Tests"),
-    ] = 0
-    skills_evaluated: Annotated[
-        int | None,
-        Field(description="Number of skills evaluated", ge=0, title="Skills Evaluated"),
-    ] = 0
-    details: Annotated[
-        list[dict[str, Any]] | None,
-        Field(description="Per-skill results", title="Details"),
-    ] = None
+    overall_pass_rate: float = Field(
+        ...,
+        description='Overall evaluation pass rate',
+        ge=0.0,
+        le=1.0,
+        title='Overall Pass Rate',
+    )
+    total_tests: int | None = Field(
+        0, description='Total number of tests run', ge=0, title='Total Tests'
+    )
+    passed_tests: int | None = Field(
+        0, description='Number of passing tests', ge=0, title='Passed Tests'
+    )
+    skills_evaluated: int | None = Field(
+        0, description='Number of skills evaluated', ge=0, title='Skills Evaluated'
+    )
+    details: list[dict[str, Any]] | None = Field(
+        None, description='Per-skill results', title='Details'
+    )
 
 
 class EvidenceDecisionRequest(BaseModel):
-    account_id: Annotated[str, Field(title="Account Id")]
-    case_id: Annotated[str, Field(title="Case Id")]
-    decision: Annotated[str, Field(title="Decision")]
-    decision_note: Annotated[str | None, Field(title="Decision Note")] = None
+    account_id: str = Field(..., title='Account Id')
+    case_id: str = Field(..., title='Case Id')
+    decision: str = Field(
+        ..., description='accepted|rejected|attached_to_driver', title='Decision'
+    )
+    driver_id: str | None = Field(None, title='Driver Id')
+    decision_note: str | None = Field(None, title='Decision Note')
 
 
 class EvidenceDecisionResponse(BaseModel):
-    evidence_id: Annotated[str, Field(title="Evidence Id")]
-    account_id: Annotated[str, Field(title="Account Id")]
-    case_id: Annotated[str, Field(title="Case Id")]
-    decision: Annotated[str, Field(title="Decision")]
-    reviewed_by: Annotated[str, Field(title="Reviewed By")]
-    reviewed_at: Annotated[str, Field(title="Reviewed At")]
-    provenance: Annotated[dict[str, Any] | None, Field(title="Provenance")] = None
-    confidence: Annotated[float | None, Field(title="Confidence")] = None
-
-
-class EvidenceDriverLinkRequest(BaseModel):
-    account_id: Annotated[str, Field(title="Account Id")]
-    case_id: Annotated[str, Field(title="Case Id")]
+    evidence_id: str = Field(..., title='Evidence Id')
+    account_id: str = Field(..., title='Account Id')
+    case_id: str = Field(..., title='Case Id')
+    decision: str = Field(..., title='Decision')
+    driver_id: str | None = Field(None, title='Driver Id')
+    reviewed_by: str | None = Field(None, title='Reviewed By')
+    reviewed_at: str = Field(..., title='Reviewed At')
+    provenance: dict[str, Any] | None = Field(None, title='Provenance')
+    confidence: float | None = Field(0.0, title='Confidence')
 
 
 class ExportAuditRecord(BaseModel):
@@ -1209,16 +877,16 @@ class ExportAuditRecord(BaseModel):
     Audit record for export governance endpoints.
     """
 
-    event_id: Annotated[str, Field(title="Event Id")]
-    action: Annotated[str, Field(title="Action")]
-    case_id: Annotated[str | None, Field(title="Case Id")] = None
-    workflow_id: Annotated[str | None, Field(title="Workflow Id")] = None
-    export_id: Annotated[str | None, Field(title="Export Id")] = None
-    actor_id: Annotated[str | None, Field(title="Actor Id")] = None
-    tenant_id: Annotated[str | None, Field(title="Tenant Id")] = None
-    timestamp: Annotated[str, Field(title="Timestamp")]
-    outcome: Annotated[str, Field(title="Outcome")]
-    details: Annotated[dict[str, Any], Field(title="Details")]
+    event_id: str = Field(..., title='Event Id')
+    action: str = Field(..., title='Action')
+    case_id: str | None = Field(None, title='Case Id')
+    workflow_id: str | None = Field(None, title='Workflow Id')
+    export_id: str | None = Field(None, title='Export Id')
+    actor_id: str | None = Field(None, title='Actor Id')
+    tenant_id: str | None = Field(None, title='Tenant Id')
+    timestamp: str = Field(..., title='Timestamp')
+    outcome: str = Field(..., title='Outcome')
+    details: dict[str, Any] = Field(..., title='Details')
 
 
 class FeatureFlagResponse(BaseModel):
@@ -1226,16 +894,16 @@ class FeatureFlagResponse(BaseModel):
     Feature flag read model.
     """
 
-    id: Annotated[UUID, Field(title="Id")]
-    tenant_id: Annotated[UUID | None, Field(title="Tenant Id")]
-    flag_key: Annotated[str, Field(title="Flag Key")]
-    enabled: Annotated[bool, Field(title="Enabled")]
-    rollout_percentage: Annotated[int, Field(ge=0, le=100, title="Rollout Percentage")]
-    description: Annotated[str | None, Field(title="Description")]
-    metadata: Annotated[dict[str, Any], Field(title="Metadata")]
-    created_at: Annotated[str, Field(title="Created At")]
-    updated_at: Annotated[str, Field(title="Updated At")]
-    updated_by: Annotated[UUID | None, Field(title="Updated By")]
+    id: UUID = Field(..., title='Id')
+    tenant_id: UUID | None = Field(..., title='Tenant Id')
+    flag_key: str = Field(..., title='Flag Key')
+    enabled: bool = Field(..., title='Enabled')
+    rollout_percentage: int = Field(..., ge=0, le=100, title='Rollout Percentage')
+    description: str | None = Field(..., title='Description')
+    metadata: dict[str, Any] = Field(..., title='Metadata')
+    created_at: str = Field(..., title='Created At')
+    updated_at: str = Field(..., title='Updated At')
+    updated_by: UUID | None = Field(..., title='Updated By')
 
 
 class FeatureFlagUpsertRequest(BaseModel):
@@ -1243,10 +911,10 @@ class FeatureFlagUpsertRequest(BaseModel):
     Payload to create or update a feature flag.
     """
 
-    enabled: Annotated[bool, Field(title="Enabled")]
-    rollout_percentage: Annotated[int, Field(ge=0, le=100, title="Rollout Percentage")]
-    description: Annotated[str | None, Field(title="Description")] = None
-    metadata: Annotated[dict[str, Any] | None, Field(title="Metadata")] = None
+    enabled: bool = Field(..., title='Enabled')
+    rollout_percentage: int = Field(..., ge=0, le=100, title='Rollout Percentage')
+    description: str | None = Field(None, title='Description')
+    metadata: dict[str, Any] | None = Field(None, title='Metadata')
 
 
 class FieldInfo(BaseModel):
@@ -1254,107 +922,12 @@ class FieldInfo(BaseModel):
     Information about a state field.
     """
 
-    name: Annotated[str, Field(title="Name")]
-    type: Annotated[str, Field(title="Type")]
-    size_bytes: Annotated[int | None, Field(title="Size Bytes")] = None
-    is_null: Annotated[bool | None, Field(title="Is Null")] = False
-    has_default: Annotated[bool | None, Field(title="Has Default")] = False
-    description: Annotated[str | None, Field(title="Description")] = None
-
-
-class FindingStatus(Enum):
-    """
-    Lifecycle status of an audit finding.
-    """
-
-    open = "open"
-    in_progress = "in_progress"
-    resolved = "resolved"
-    deferred = "deferred"
-    waived = "waived"
-
-
-class TargetSprint(RootModel[int]):
-    root: Annotated[
-        int,
-        Field(
-            description="Optional sprint reassignment (0 = backlog)",
-            ge=0,
-            le=8,
-            title="Target Sprint",
-        ),
-    ]
-
-
-class FindingUpdate(BaseModel):
-    """
-    Request body for updating a finding's status.
-
-    Supports resolving, deferring, or re-opening findings with an
-    optional explanatory note.
-    """
-
-    status: Annotated[FindingStatus, Field(description="New status for the finding")]
-    resolution_note: Annotated[
-        str | None,
-        Field(
-            description="Optional note explaining the status change",
-            title="Resolution Note",
-        ),
-    ] = None
-    owner: Annotated[
-        str | None,
-        Field(description="Optional reassignment of finding owner", title="Owner"),
-    ] = None
-    target_sprint: Annotated[
-        TargetSprint | None,
-        Field(
-            description="Optional sprint reassignment (0 = backlog)",
-            title="Target Sprint",
-        ),
-    ] = None
-
-
-class Decision1(Enum):
-    approved = "approved"
-    rejected = "rejected"
-    modified = "modified"
-    expired = "expired"
-
-
-class GateDecisionRequest(BaseModel):
-    """
-    Request body for POST /v1/harness/gates/{gate_id}/decide.
-    """
-
-    model_config = ConfigDict(
-        extra="forbid",
-    )
-    decision: Annotated[Decision1, Field(title="Decision")]
-    decision_reason: Annotated[str | None, Field(title="Decision Reason")] = None
-
-
-class GateStatus(Enum):
-    """
-    Human gate status.
-    """
-
-    pending = "pending"
-    approved = "approved"
-    rejected = "rejected"
-    modified = "modified"
-    expired = "expired"
-
-
-class GateType(Enum):
-    """
-    Type of human gate.
-    """
-
-    approve_claims = "approve_claims"
-    approve_assumptions = "approve_assumptions"
-    approve_customer_output = "approve_customer_output"
-    resolve_conflict = "resolve_conflict"
+    name: str = Field(..., title='Name')
+    type: str = Field(..., title='Type')
+    size_bytes: int | None = Field(None, title='Size Bytes')
+    is_null: bool | None = Field(False, title='Is Null')
+    has_default: bool | None = Field(False, title='Has Default')
+    description: str | None = Field(None, title='Description')
 
 
 class GenerateHypothesesRequest(BaseModel):
@@ -1362,110 +935,30 @@ class GenerateHypothesesRequest(BaseModel):
     Request to generate value hypotheses for an account.
     """
 
-    account_id: Annotated[
-        str,
-        Field(description="Account ID to generate hypotheses for", title="Account Id"),
-    ]
-    min_confidence: Annotated[float | None, Field(ge=0.0, le=1.0, title="Min Confidence")] = 0.3
-    max_hypotheses: Annotated[int | None, Field(ge=1, le=100, title="Max Hypotheses")] = 20
-    include_evidence: Annotated[bool | None, Field(title="Include Evidence")] = True
-
-
-class Error(BaseModel):
-    code: Annotated[str, Field(description="Machine-readable error code", min_length=1)]
-    message: Annotated[str, Field(description="Human-readable error message")]
-    request_id: Annotated[
-        str, Field(description="Request ID for support correlation", min_length=1)
-    ]
-    details: Annotated[
-        dict[str, Any] | None, Field(description="Optional sanitized error details")
-    ] = None
+    account_id: str = Field(
+        ..., description='Account ID to generate hypotheses for', title='Account Id'
+    )
+    min_confidence: float | None = Field(0.3, ge=0.0, le=1.0, title='Min Confidence')
+    max_hypotheses: int | None = Field(20, ge=1, le=100, title='Max Hypotheses')
+    include_evidence: bool | None = Field(True, title='Include Evidence')
 
 
 class HTTPValidationError(BaseModel):
     """
-    Deprecated compatibility alias for ErrorEnvelope. Use ErrorEnvelope for new clients.
+    Deprecated compatibility alias for ErrorResponse. Use ErrorResponse for new clients.
     """
 
     model_config = ConfigDict(
-        extra="forbid",
+        extra='forbid',
     )
-    error: Error
-
-
-class Status1(Enum):
-    ok = "ok"
-    degraded = "degraded"
-
-
-class HarnessHealthResponse(BaseModel):
-    """
-    Response for GET /v1/harness/health.
-    """
-
-    model_config = ConfigDict(
-        extra="forbid",
+    message: str = Field(..., description='Human-readable error message')
+    code: str = Field(..., description='Machine-readable error code', min_length=1)
+    trace_id: str = Field(
+        ..., description='Request trace ID for support correlation', min_length=1
     )
-    status: Annotated[Status1, Field(title="Status")]
-    validation_available: Annotated[bool, Field(title="Validation Available")]
-    l5_healthy: Annotated[bool, Field(title="L5 Healthy")]
-    db_healthy: Annotated[bool, Field(title="Db Healthy")]
-
-
-class HarnessRunStatus(Enum):
-    """
-    Run status reflects execution disposition.
-    """
-
-    queued = "queued"
-    running = "running"
-    waiting_for_human = "waiting_for_human"
-    failed = "failed"
-    completed = "completed"
-    cancelled = "cancelled"
-
-
-class HarnessState(Enum):
-    """
-    Canonical workflow states.
-
-    State flow (happy path):
-      INIT → RESOLVE_CONTEXT → LOAD_VALUE_PACK → RETRIEVE_KNOWLEDGE
-      → GENERATE_HYPOTHESES → MATCH_EVIDENCE → QUANTIFY_IMPACT
-      → VALIDATE_CLAIMS → HUMAN_REVIEW → PUBLISH_OUTPUT → DONE
-
-    Terminal states: DONE, FAILED, CANCELLED.
-    """
-
-    init = "INIT"
-    resolve_context = "RESOLVE_CONTEXT"
-    load_value_pack = "LOAD_VALUE_PACK"
-    retrieve_knowledge = "RETRIEVE_KNOWLEDGE"
-    generate_hypotheses = "GENERATE_HYPOTHESES"
-    match_evidence = "MATCH_EVIDENCE"
-    quantify_impact = "QUANTIFY_IMPACT"
-    validate_claims = "VALIDATE_CLAIMS"
-    human_review = "HUMAN_REVIEW"
-    publish_output = "PUBLISH_OUTPUT"
-    done = "DONE"
-    failed = "FAILED"
-    cancelled = "CANCELLED"
-
-
-class HarnessWorkflowType(Enum):
-    """
-    Canonical workflow types.
-    """
-
-    signal_extraction = "signal_extraction"
-    account_intelligence = "account_intelligence"
-    value_model_generation = "value_model_generation"
-    evidence_matching = "evidence_matching"
-    value_tree_generation = "value_tree_generation"
-    roi_calculator_generation = "roi_calculator_generation"
-    business_case_generation = "business_case_generation"
-    renewal_risk_analysis = "renewal_risk_analysis"
-    expansion_opportunity_analysis = "expansion_opportunity_analysis"
+    details: dict[str, Any] | None = Field(
+        None, description='Optional sanitized error details'
+    )
 
 
 class HealthBadgeInfo(BaseModel):
@@ -1473,15 +966,15 @@ class HealthBadgeInfo(BaseModel):
     Health badge for UI display.
     """
 
-    badge_id: Annotated[str, Field(title="Badge Id")]
-    title: Annotated[str, Field(title="Title")]
-    message: Annotated[str, Field(title="Message")]
-    status: Annotated[str, Field(title="Status")]
-    icon: Annotated[str, Field(title="Icon")]
-    priority: Annotated[int, Field(title="Priority")]
-    dismissible: Annotated[bool, Field(title="Dismissible")]
-    action_required: Annotated[str | None, Field(title="Action Required")]
-    created_at: Annotated[str, Field(title="Created At")]
+    badge_id: str = Field(..., title='Badge Id')
+    title: str = Field(..., title='Title')
+    message: str = Field(..., title='Message')
+    status: str = Field(..., title='Status')
+    icon: str = Field(..., title='Icon')
+    priority: int = Field(..., title='Priority')
+    dismissible: bool = Field(..., title='Dismissible')
+    action_required: str | None = Field(..., title='Action Required')
+    created_at: str = Field(..., title='Created At')
 
 
 class HealthStatusResponse(BaseModel):
@@ -1489,16 +982,16 @@ class HealthStatusResponse(BaseModel):
     Complete health status response.
     """
 
-    overall_status: Annotated[str, Field(title="Overall Status")]
-    checked_at: Annotated[str, Field(title="Checked At")]
-    components: Annotated[dict[str, ComponentHealthInfo], Field(title="Components")]
-    active_badges: Annotated[list[HealthBadgeInfo], Field(title="Active Badges")]
-    degraded_components: Annotated[list[str], Field(title="Degraded Components")]
-    healthy_components: Annotated[list[str], Field(title="Healthy Components")]
+    overall_status: str = Field(..., title='Overall Status')
+    checked_at: str = Field(..., title='Checked At')
+    components: dict[str, ComponentHealthInfo] = Field(..., title='Components')
+    active_badges: list[HealthBadgeInfo] = Field(..., title='Active Badges')
+    degraded_components: list[str] = Field(..., title='Degraded Components')
+    healthy_components: list[str] = Field(..., title='Healthy Components')
 
 
-class Confidence1(RootModel[float]):
-    root: Annotated[float, Field(ge=0.0, le=1.0, title="Confidence")]
+class Confidence(RootModel[float]):
+    root: float = Field(..., ge=0.0, le=1.0, title='Confidence')
 
 
 class ICPSourceType(Enum):
@@ -1506,21 +999,10 @@ class ICPSourceType(Enum):
     How the ICP was provided.
     """
 
-    upload = "upload"
-    paste = "paste"
-    generated_from_website = "generated_from_website"
-    manual = "manual"
-
-
-class InitiatedBy(Enum):
-    """
-    Who or what initiated the run.
-    """
-
-    user = "user"
-    system = "system"
-    agent = "agent"
-    scheduled_job = "scheduled_job"
+    upload = 'upload'
+    paste = 'paste'
+    generated_from_website = 'generated_from_website'
+    manual = 'manual'
 
 
 class IntegrationCreateRequest(BaseModel):
@@ -1532,25 +1014,23 @@ class IntegrationCreateRequest(BaseModel):
     or internal service mechanisms only.
     """
 
-    enabled: Annotated[
-        bool | None,
-        Field(description="Whether to enable the integration", title="Enabled"),
-    ] = False
-    api_key: Annotated[
-        str | None, Field(description="API key/token for the CRM", title="Api Key")
-    ] = None
-    api_secret: Annotated[
-        str | None, Field(description="API secret (if required)", title="Api Secret")
-    ] = None
-    instance_url: Annotated[
-        str | None, Field(description="CRM instance URL", title="Instance Url")
-    ] = None
-    sync_interval_minutes: Annotated[int | None, Field(title="Sync Interval Minutes")] = 60
-    sync_batch_size: Annotated[int | None, Field(title="Sync Batch Size")] = 100
-    salesforce_org_id: Annotated[
-        str | None,
-        Field(description="Salesforce organization ID", title="Salesforce Org Id"),
-    ] = None
+    enabled: bool | None = Field(
+        False, description='Whether to enable the integration', title='Enabled'
+    )
+    api_key: str | None = Field(
+        None, description='API key/token for the CRM', title='Api Key'
+    )
+    api_secret: str | None = Field(
+        None, description='API secret (if required)', title='Api Secret'
+    )
+    instance_url: str | None = Field(
+        None, description='CRM instance URL', title='Instance Url'
+    )
+    sync_interval_minutes: int | None = Field(60, title='Sync Interval Minutes')
+    sync_batch_size: int | None = Field(100, title='Sync Batch Size')
+    salesforce_org_id: str | None = Field(
+        None, description='Salesforce organization ID', title='Salesforce Org Id'
+    )
 
 
 class IntegrationStatusResponse(BaseModel):
@@ -1558,38 +1038,36 @@ class IntegrationStatusResponse(BaseModel):
     Integration with sync status (response only).
     """
 
-    provider: Annotated[
-        str, Field(description="CRM provider: salesforce or hubspot", title="Provider")
-    ]
-    enabled: Annotated[
-        bool | None, Field(description="Whether integration is active", title="Enabled")
-    ] = False
-    instance_url: Annotated[
-        str | None, Field(description="CRM instance URL", title="Instance Url")
-    ] = None
-    sync_interval_minutes: Annotated[
-        int | None, Field(ge=5, le=1440, title="Sync Interval Minutes")
-    ] = 60
-    sync_batch_size: Annotated[int | None, Field(ge=10, le=500, title="Sync Batch Size")] = 100
-    id: Annotated[str, Field(description="Integration UUID", title="Id")]
-    tenant_id: Annotated[str, Field(description="Tenant identifier", title="Tenant Id")]
-    last_sync_at: Annotated[str | None, Field(title="Last Sync At")] = None
-    last_successful_sync_at: Annotated[str | None, Field(title="Last Successful Sync At")] = None
-    records_synced: Annotated[int | None, Field(title="Records Synced")] = 0
-    records_updated: Annotated[int | None, Field(title="Records Updated")] = 0
-    records_failed: Annotated[int | None, Field(title="Records Failed")] = 0
-    status: Annotated[str | None, Field(title="Status")] = "idle"
-    last_error_message: Annotated[str | None, Field(title="Last Error Message")] = None
-    has_refresh_token: Annotated[bool | None, Field(title="Has Refresh Token")] = False
-    webhook_url: Annotated[
-        str | None,
-        Field(
-            description="Webhook URL with token (shown once on create/update)",
-            title="Webhook Url",
-        ),
-    ] = None
-    created_at: Annotated[str, Field(title="Created At")]
-    updated_at: Annotated[str, Field(title="Updated At")]
+    provider: str = Field(
+        ..., description='CRM provider: salesforce or hubspot', title='Provider'
+    )
+    enabled: bool | None = Field(
+        False, description='Whether integration is active', title='Enabled'
+    )
+    instance_url: str | None = Field(
+        None, description='CRM instance URL', title='Instance Url'
+    )
+    sync_interval_minutes: int | None = Field(
+        60, ge=5, le=1440, title='Sync Interval Minutes'
+    )
+    sync_batch_size: int | None = Field(100, ge=10, le=500, title='Sync Batch Size')
+    id: str = Field(..., description='Integration UUID', title='Id')
+    tenant_id: str = Field(..., description='Tenant identifier', title='Tenant Id')
+    last_sync_at: str | None = Field(None, title='Last Sync At')
+    last_successful_sync_at: str | None = Field(None, title='Last Successful Sync At')
+    records_synced: int | None = Field(0, title='Records Synced')
+    records_updated: int | None = Field(0, title='Records Updated')
+    records_failed: int | None = Field(0, title='Records Failed')
+    status: str | None = Field('idle', title='Status')
+    last_error_message: str | None = Field(None, title='Last Error Message')
+    has_refresh_token: bool | None = Field(False, title='Has Refresh Token')
+    webhook_url: str | None = Field(
+        None,
+        description='Webhook URL with token (shown once on create/update)',
+        title='Webhook Url',
+    )
+    created_at: str = Field(..., title='Created At')
+    updated_at: str = Field(..., title='Updated At')
 
 
 class LineageRef(BaseModel):
@@ -1597,14 +1075,14 @@ class LineageRef(BaseModel):
     Shared immutable lineage carried by L4/L5 governance objects.
     """
 
-    business_case_id: Annotated[str | None, Field(title="Business Case Id")] = None
-    value_model_id: Annotated[str | None, Field(title="Value Model Id")] = None
-    correlation_id: Annotated[str, Field(title="Correlation Id")]
-    trace_id: Annotated[str | None, Field(title="Trace Id")] = None
+    business_case_id: str | None = Field(None, title='Business Case Id')
+    value_model_id: str | None = Field(None, title='Value Model Id')
+    correlation_id: str = Field(..., title='Correlation Id')
+    trace_id: str | None = Field(None, title='Trace Id')
 
 
 class Reason(RootModel[str]):
-    root: Annotated[str, Field(max_length=2000, title="Reason")]
+    root: str = Field(..., max_length=2000, title='Reason')
 
 
 class ModelPromoteRequest(BaseModel):
@@ -1612,18 +1090,18 @@ class ModelPromoteRequest(BaseModel):
     Payload to promote a model to a new stage.
     """
 
-    to_stage: Annotated[
-        str, Field(pattern="^(dev|staging|production|deprecated)$", title="To Stage")
-    ]
-    reason: Annotated[Reason | None, Field(title="Reason")] = None
+    to_stage: str = Field(
+        ..., pattern='^(dev|staging|production|deprecated)$', title='To Stage'
+    )
+    reason: Reason | None = Field(None, title='Reason')
 
 
 class EvalScore(RootModel[float]):
-    root: Annotated[float, Field(ge=0.0, le=1.0, title="Eval Score")]
+    root: float = Field(..., ge=0.0, le=1.0, title='Eval Score')
 
 
 class EvalRunId(RootModel[str]):
-    root: Annotated[str, Field(max_length=100, title="Eval Run Id")]
+    root: str = Field(..., max_length=100, title='Eval Run Id')
 
 
 class ModelRegisterRequest(BaseModel):
@@ -1631,16 +1109,15 @@ class ModelRegisterRequest(BaseModel):
     Payload to register a new model version.
     """
 
-    provider: Annotated[str, Field(max_length=50, min_length=1, title="Provider")]
-    model_name: Annotated[str, Field(max_length=100, min_length=1, title="Model Name")]
-    model_version: Annotated[str, Field(max_length=50, min_length=1, title="Model Version")]
-    stage: Annotated[
-        str | None,
-        Field(pattern="^(dev|staging|production|deprecated)$", title="Stage"),
-    ] = "dev"
-    config: Annotated[dict[str, Any] | None, Field(title="Config")] = None
-    eval_score: Annotated[EvalScore | None, Field(title="Eval Score")] = None
-    eval_run_id: Annotated[EvalRunId | None, Field(title="Eval Run Id")] = None
+    provider: str = Field(..., max_length=50, min_length=1, title='Provider')
+    model_name: str = Field(..., max_length=100, min_length=1, title='Model Name')
+    model_version: str = Field(..., max_length=50, min_length=1, title='Model Version')
+    stage: str | None = Field(
+        'dev', pattern='^(dev|staging|production|deprecated)$', title='Stage'
+    )
+    config: dict[str, Any] | None = Field(None, title='Config')
+    eval_score: EvalScore | None = Field(None, title='Eval Score')
+    eval_run_id: EvalRunId | None = Field(None, title='Eval Run Id')
 
 
 class ModelVersionResponse(BaseModel):
@@ -1648,17 +1125,17 @@ class ModelVersionResponse(BaseModel):
     Read-only model version response.
     """
 
-    id: Annotated[UUID, Field(title="Id")]
-    tenant_id: Annotated[UUID, Field(title="Tenant Id")]
-    provider: Annotated[str, Field(title="Provider")]
-    model_name: Annotated[str, Field(title="Model Name")]
-    model_version: Annotated[str, Field(title="Model Version")]
-    stage: Annotated[str, Field(title="Stage")]
-    promoted_by: Annotated[UUID | None, Field(title="Promoted By")] = None
-    eval_score: Annotated[float | None, Field(title="Eval Score")] = None
-    eval_run_id: Annotated[str | None, Field(title="Eval Run Id")] = None
-    config: Annotated[dict[str, Any], Field(title="Config")]
-    created_at: Annotated[str, Field(title="Created At")]
+    id: UUID = Field(..., title='Id')
+    tenant_id: UUID = Field(..., title='Tenant Id')
+    provider: str = Field(..., title='Provider')
+    model_name: str = Field(..., title='Model Name')
+    model_version: str = Field(..., title='Model Version')
+    stage: str = Field(..., title='Stage')
+    promoted_by: UUID | None = Field(None, title='Promoted By')
+    eval_score: float | None = Field(None, title='Eval Score')
+    eval_run_id: str | None = Field(None, title='Eval Run Id')
+    config: dict[str, Any] = Field(..., title='Config')
+    created_at: str = Field(..., title='Created At')
 
 
 class NarrativeGenerateRequest(BaseModel):
@@ -1667,95 +1144,78 @@ class NarrativeGenerateRequest(BaseModel):
     """
 
     model_config = ConfigDict(
-        extra="forbid",
+        extra='forbid',
     )
-    account_id: Annotated[
-        str, Field(description="Account to generate narrative for", title="Account Id")
-    ]
-    title: Annotated[str | None, Field(max_length=500, title="Title")] = (
-        "Account Intelligence Narrative"
+    account_id: str = Field(
+        ..., description='Account to generate narrative for', title='Account Id'
     )
-    tone: Annotated[
-        str | None,
-        Field(
-            description="Tone: executive, technical, financial, consultative",
-            title="Tone",
-        ),
-    ] = "executive"
-    audience: Annotated[
-        str | None,
-        Field(
-            description="Audience: c_suite, vp_director, technical_buyer, champion, evaluation_committee",
-            title="Audience",
-        ),
-    ] = "c_suite"
-    include_sections: Annotated[
-        list[str] | None,
-        Field(description="Sections to include in the narrative", title="Include Sections"),
-    ] = [
-        "executive_summary",
-        "pain_points",
-        "value_hypotheses",
-        "competitive_positioning",
-        "roi_projection",
-        "evidence",
-        "next_steps",
-    ]
-    ranking_strategy: Annotated[
-        str | None,
-        Field(description="Hypothesis ranking strategy", title="Ranking Strategy"),
-    ] = "balanced"
-    roi_scenario: Annotated[
-        str | None,
-        Field(description="ROI scenario for projections", title="Roi Scenario"),
-    ] = "moderate"
-    roi_time_horizon_months: Annotated[
-        int | None, Field(ge=1, le=120, title="Roi Time Horizon Months")
-    ] = 36
-    top_n_hypotheses: Annotated[int | None, Field(ge=1, le=20, title="Top N Hypotheses")] = 5
-    custom_next_steps: Annotated[list[str] | None, Field(title="Custom Next Steps")] = None
-    account_data: Annotated[
-        dict[str, Any] | None,
-        Field(
-            description="Pre-fetched account data (flagged as unverified)",
-            title="Account Data",
-        ),
-    ] = None
-    signals_data: Annotated[
-        list[dict[str, Any]] | None,
-        Field(
-            description="Pre-fetched signals (flagged as unverified)",
-            title="Signals Data",
-        ),
-    ] = None
-    hypotheses_data: Annotated[
-        list[dict[str, Any]] | None,
-        Field(
-            description="Pre-fetched hypotheses (flagged as unverified)",
-            title="Hypotheses Data",
-        ),
-    ] = None
-    competitive_data: Annotated[
-        dict[str, Any] | None,
-        Field(
-            description="Pre-fetched competitive landscape (flagged as unverified)",
-            title="Competitive Data",
-        ),
-    ] = None
-    roi_data: Annotated[
-        dict[str, Any] | None,
-        Field(
-            description="Pre-fetched ROI results (flagged as unverified)",
-            title="Roi Data",
-        ),
-    ] = None
-    evidence_data: Annotated[
-        list[dict[str, Any]] | None,
-        Field(
-            description="Pre-fetched evidence (flagged as unverified)",
-            title="Evidence Data",
-        ),
-    ] = None
+    title: str | None = Field(
+        'Account Intelligence Narrative', max_length=500, title='Title'
+    )
+    tone: str | None = Field(
+        'executive',
+        description='Tone: executive, technical, financial, consultative',
+        title='Tone',
+    )
+    audience: str | None = Field(
+        'c_suite',
+        description='Audience: c_suite, vp_director, technical_buyer, champion, evaluation_committee',
+        title='Audience',
+    )
+    include_sections: list[str] | None = Field(
+        [
+            'executive_summary',
+            'pain_points',
+            'value_hypotheses',
+            'competitive_positioning',
+            'roi_projection',
+            'evidence',
+            'next_steps',
+        ],
+        description='Sections to include in the narrative',
+        title='Include Sections',
+    )
+    ranking_strategy: str | None = Field(
+        'balanced', description='Hypothesis ranking strategy', title='Ranking Strategy'
+    )
+    roi_scenario: str | None = Field(
+        'moderate', description='ROI scenario for projections', title='Roi Scenario'
+    )
+    roi_time_horizon_months: int | None = Field(
+        36, ge=1, le=120, title='Roi Time Horizon Months'
+    )
+    top_n_hypotheses: int | None = Field(5, ge=1, le=20, title='Top N Hypotheses')
+    custom_next_steps: list[str] | None = Field(None, title='Custom Next Steps')
+    account_data: dict[str, Any] | None = Field(
+        None,
+        description='Pre-fetched account data (flagged as unverified)',
+        title='Account Data',
+    )
+    signals_data: list[dict[str, Any]] | None = Field(
+        None,
+        description='Pre-fetched signals (flagged as unverified)',
+        title='Signals Data',
+    )
+    hypotheses_data: list[dict[str, Any]] | None = Field(
+        None,
+        description='Pre-fetched hypotheses (flagged as unverified)',
+        title='Hypotheses Data',
+    )
+    competitive_data: dict[str, Any] | None = Field(
+        None,
+        description='Pre-fetched competitive landscape (flagged as unverified)',
+        title='Competitive Data',
+    )
+    roi_data: dict[str, Any] | None = Field(
+        None,
+        description='Pre-fetched ROI results (flagged as unverified)',
+        title='Roi Data',
+    )
+    evidence_data: list[dict[str, Any]] | None = Field(
+        None,
+        description='Pre-fetched evidence (flagged as unverified)',
+        title='Evidence Data',
+    )
 
 
 class NodeMetrics(BaseModel):
@@ -1763,39 +1223,39 @@ class NodeMetrics(BaseModel):
     Metrics for a single node execution.
     """
 
-    node_name: Annotated[str, Field(title="Node Name")]
-    execution_count: Annotated[int, Field(title="Execution Count")]
-    total_duration_ms: Annotated[int, Field(title="Total Duration Ms")]
-    avg_duration_ms: Annotated[float, Field(title="Avg Duration Ms")]
-    min_duration_ms: Annotated[int, Field(title="Min Duration Ms")]
-    max_duration_ms: Annotated[int, Field(title="Max Duration Ms")]
-    success_count: Annotated[int, Field(title="Success Count")]
-    error_count: Annotated[int, Field(title="Error Count")]
-    success_rate: Annotated[float, Field(title="Success Rate")]
+    node_name: str = Field(..., title='Node Name')
+    execution_count: int = Field(..., title='Execution Count')
+    total_duration_ms: int = Field(..., title='Total Duration Ms')
+    avg_duration_ms: float = Field(..., title='Avg Duration Ms')
+    min_duration_ms: int = Field(..., title='Min Duration Ms')
+    max_duration_ms: int = Field(..., title='Max Duration Ms')
+    success_count: int = Field(..., title='Success Count')
+    error_count: int = Field(..., title='Error Count')
+    success_rate: float = Field(..., title='Success Rate')
 
 
 class NotificationRecord(BaseModel):
-    id: Annotated[str, Field(title="Id")]
-    account_id: Annotated[str | None, Field(title="Account Id")] = None
-    subject_id: Annotated[str | None, Field(title="Subject Id")] = None
-    subject_type: Annotated[str | None, Field(title="Subject Type")] = None
-    type: Annotated[str, Field(title="Type")]
-    title: Annotated[str, Field(title="Title")]
-    message: Annotated[str, Field(title="Message")]
-    read: Annotated[bool | None, Field(title="Read")] = False
-    created_at: Annotated[str, Field(title="Created At")]
-    updated_at: Annotated[str, Field(title="Updated At")]
+    id: str = Field(..., title='Id')
+    account_id: str | None = Field(None, title='Account Id')
+    subject_id: str | None = Field(None, title='Subject Id')
+    subject_type: str | None = Field(None, title='Subject Type')
+    type: str = Field(..., title='Type')
+    title: str = Field(..., title='Title')
+    message: str = Field(..., title='Message')
+    read: bool | None = Field(False, title='Read')
+    created_at: str = Field(..., title='Created At')
+    updated_at: str = Field(..., title='Updated At')
 
 
 class AverageConfidence(RootModel[float]):
-    root: Annotated[float, Field(ge=0.0, le=1.0, title="Average Confidence")]
+    root: float = Field(..., ge=0.0, le=1.0, title='Average Confidence')
 
 
 class Value(RootModel[str]):
     model_config = ConfigDict(
         regex_engine="python-re",
     )
-    root: Annotated[str, Field(pattern="^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$", title="Value")]
+    root: str = Field(..., pattern='^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$', title='Value')
 
 
 class OpportunitySchema(BaseModel):
@@ -1803,13 +1263,13 @@ class OpportunitySchema(BaseModel):
     Opportunity data embedded in account detail response.
     """
 
-    provider_opportunity_id: Annotated[str, Field(title="Provider Opportunity Id")]
-    name: Annotated[str, Field(title="Name")]
-    stage: Annotated[str, Field(title="Stage")]
-    value: Annotated[Value | None, Field(title="Value")] = None
-    probability: Annotated[float | None, Field(title="Probability")] = None
-    close_date: Annotated[str | None, Field(title="Close Date")] = None
-    last_synced_at: Annotated[AwareDatetime, Field(title="Last Synced At")]
+    provider_opportunity_id: str = Field(..., title='Provider Opportunity Id')
+    name: str = Field(..., title='Name')
+    stage: str = Field(..., title='Stage')
+    value: Value | None = Field(None, title='Value')
+    probability: float | None = Field(None, title='Probability')
+    close_date: str | None = Field(None, title='Close Date')
+    last_synced_at: AwareDatetime = Field(..., title='Last Synced At')
 
 
 class OutputDataInspectorResponse(BaseModel):
@@ -1817,14 +1277,14 @@ class OutputDataInspectorResponse(BaseModel):
     Detailed inspection of output_data field.
     """
 
-    workflow_id: Annotated[str, Field(title="Workflow Id")]
-    output_keys: Annotated[list[str], Field(title="Output Keys")]
-    output_summary: Annotated[dict[str, Any], Field(title="Output Summary")]
-    data_types: Annotated[dict[str, str], Field(title="Data Types")]
-    data_sizes: Annotated[dict[str, int], Field(title="Data Sizes")]
-    nested_depth: Annotated[dict[str, int], Field(title="Nested Depth")]
-    has_large_data: Annotated[bool, Field(title="Has Large Data")]
-    large_data_keys: Annotated[list[str], Field(title="Large Data Keys")]
+    workflow_id: str = Field(..., title='Workflow Id')
+    output_keys: list[str] = Field(..., title='Output Keys')
+    output_summary: dict[str, Any] = Field(..., title='Output Summary')
+    data_types: dict[str, str] = Field(..., title='Data Types')
+    data_sizes: dict[str, int] = Field(..., title='Data Sizes')
+    nested_depth: dict[str, int] = Field(..., title='Nested Depth')
+    has_large_data: bool = Field(..., title='Has Large Data')
+    large_data_keys: list[str] = Field(..., title='Large Data Keys')
 
 
 class PageType(Enum):
@@ -1832,14 +1292,14 @@ class PageType(Enum):
     Classification of a crawled / extracted page.
     """
 
-    product = "product"
-    use_case = "use_case"
-    case_study = "case_study"
-    pricing = "pricing"
-    trust = "trust"
-    blog = "blog"
-    homepage = "homepage"
-    other = "other"
+    product = 'product'
+    use_case = 'use_case'
+    case_study = 'case_study'
+    pricing = 'pricing'
+    trust = 'trust'
+    blog = 'blog'
+    homepage = 'homepage'
+    other = 'other'
 
 
 class PerformanceMetricsResponse(BaseModel):
@@ -1847,12 +1307,12 @@ class PerformanceMetricsResponse(BaseModel):
     Performance metrics for workflow execution.
     """
 
-    workflow_id: Annotated[str, Field(title="Workflow Id")]
-    total_duration_ms: Annotated[int | None, Field(title="Total Duration Ms")]
-    node_metrics: Annotated[list[NodeMetrics], Field(title="Node Metrics")]
-    slowest_node: Annotated[str | None, Field(title="Slowest Node")]
-    fastest_node: Annotated[str | None, Field(title="Fastest Node")]
-    nodes_with_errors: Annotated[list[str], Field(title="Nodes With Errors")]
+    workflow_id: str = Field(..., title='Workflow Id')
+    total_duration_ms: int | None = Field(..., title='Total Duration Ms')
+    node_metrics: list[NodeMetrics] = Field(..., title='Node Metrics')
+    slowest_node: str | None = Field(..., title='Slowest Node')
+    fastest_node: str | None = Field(..., title='Fastest Node')
+    nodes_with_errors: list[str] = Field(..., title='Nodes With Errors')
 
 
 class Permission(Enum):
@@ -1860,38 +1320,26 @@ class Permission(Enum):
     Fine-grained permissions enforced at endpoint level.
     """
 
-    read_health = "read:health"
-    read_metrics = "read:metrics"
-    read_schema = "read:schema"
-    read_search = "read:search"
-    read_graphrag = "read:graphrag"
-    read_benchmarks = "read:benchmarks"
-    read_analytics = "read:analytics"
-    read_ingestion = "read:ingestion"
-    read_agents = "read:agents"
-    read_models = "read:models"
-    write_models = "write:models"
-    admin_models = "admin:models"
-    write_ingestion = "write:ingestion"
-    write_extraction = "write:extraction"
-    write_schema = "write:schema"
-    write_analytics = "write:analytics"
-    write_agents = "write:agents"
-    admin_api_keys = "admin:api_keys"
-    admin_users = "admin:users"
-    admin_tenants = "admin:tenants"
-    admin_system = "admin:system"
-
-
-class PortalRequest(BaseModel):
-    """
-    Request to create a customer portal session.
-    """
-
-    return_url: Annotated[
-        str,
-        Field(description="URL to return to after portal session", title="Return Url"),
-    ]
+    read_health = 'read:health'
+    read_metrics = 'read:metrics'
+    read_schema = 'read:schema'
+    read_search = 'read:search'
+    read_graphrag = 'read:graphrag'
+    read_analytics = 'read:analytics'
+    read_ingestion = 'read:ingestion'
+    read_agents = 'read:agents'
+    read_models = 'read:models'
+    write_models = 'write:models'
+    admin_models = 'admin:models'
+    write_ingestion = 'write:ingestion'
+    write_extraction = 'write:extraction'
+    write_schema = 'write:schema'
+    write_analytics = 'write:analytics'
+    write_agents = 'write:agents'
+    admin_api_keys = 'admin:api_keys'
+    admin_users = 'admin:users'
+    admin_tenants = 'admin:tenants'
+    admin_system = 'admin:system'
 
 
 class ProcessingMetadata(BaseModel):
@@ -1899,13 +1347,13 @@ class ProcessingMetadata(BaseModel):
     Metadata about signal processing.
     """
 
-    extraction_duration_ms: Annotated[int | None, Field(title="Extraction Duration Ms")] = 0
-    enrichment_duration_ms: Annotated[int | None, Field(title="Enrichment Duration Ms")] = 0
-    persistence_duration_ms: Annotated[int | None, Field(title="Persistence Duration Ms")] = 0
-    signals_found: Annotated[int | None, Field(title="Signals Found")] = 0
-    signals_with_evidence: Annotated[int | None, Field(title="Signals With Evidence")] = 0
-    signals_quantified: Annotated[int | None, Field(title="Signals Quantified")] = 0
-    trace_id: Annotated[str | None, Field(title="Trace Id")] = ""
+    extraction_duration_ms: int | None = Field(0, title='Extraction Duration Ms')
+    enrichment_duration_ms: int | None = Field(0, title='Enrichment Duration Ms')
+    persistence_duration_ms: int | None = Field(0, title='Persistence Duration Ms')
+    signals_found: int | None = Field(0, title='Signals Found')
+    signals_with_evidence: int | None = Field(0, title='Signals With Evidence')
+    signals_quantified: int | None = Field(0, title='Signals Quantified')
+    trace_id: str | None = Field('', title='Trace Id')
 
 
 class ProfileApproveRequest(BaseModel):
@@ -1913,7 +1361,7 @@ class ProfileApproveRequest(BaseModel):
     Request to approve a draft profile.
     """
 
-    approved_by: Annotated[UUID, Field(title="Approved By")]
+    approved_by: UUID = Field(..., title='Approved By')
 
 
 class ProfileStatus(Enum):
@@ -1921,10 +1369,10 @@ class ProfileStatus(Enum):
     Lifecycle status of a company knowledge profile.
     """
 
-    draft = "draft"
-    needs_review = "needs_review"
-    approved = "approved"
-    archived = "archived"
+    draft = 'draft'
+    needs_review = 'needs_review'
+    approved = 'approved'
+    archived = 'archived'
 
 
 class PromoteSignalRequest(BaseModel):
@@ -1932,29 +1380,29 @@ class PromoteSignalRequest(BaseModel):
     Request to promote a pain signal to a value hypothesis.
     """
 
-    account_id: Annotated[
-        str, Field(description="Account ID the signal belongs to", title="Account Id")
-    ]
-    signal_id: Annotated[str, Field(description="Pain signal ID to promote", title="Signal Id")]
-    value_path_category: Annotated[
-        str | None,
-        Field(
-            description="Value path classification: revenue_uplift, cost_savings, risk_reduction, blended",
-            title="Value Path Category",
-        ),
-    ] = None
-    product_id: Annotated[str | None, Field(title="Product Id")] = None
-    product_name: Annotated[str | None, Field(title="Product Name")] = None
-    capability_id: Annotated[str | None, Field(title="Capability Id")] = None
-    capability_name: Annotated[str | None, Field(title="Capability Name")] = None
+    account_id: str = Field(
+        ..., description='Account ID the signal belongs to', title='Account Id'
+    )
+    signal_id: str = Field(
+        ..., description='Pain signal ID to promote', title='Signal Id'
+    )
+    value_path_category: str | None = Field(
+        None,
+        description='Value path classification: revenue_uplift, cost_savings, risk_reduction, blended',
+        title='Value Path Category',
+    )
+    product_id: str | None = Field(None, title='Product Id')
+    product_name: str | None = Field(None, title='Product Name')
+    capability_id: str | None = Field(None, title='Capability Id')
+    capability_name: str | None = Field(None, title='Capability Name')
 
 
 class PromoteSignalResponse(BaseModel):
-    status: Annotated[str, Field(title="Status")]
-    hypothesis_id: Annotated[str, Field(title="Hypothesis Id")]
-    signal_id: Annotated[str, Field(title="Signal Id")]
-    account_id: Annotated[str, Field(title="Account Id")]
-    value_path_category: Annotated[str | None, Field(title="Value Path Category")]
+    status: str = Field(..., title='Status')
+    hypothesis_id: str = Field(..., title='Hypothesis Id')
+    signal_id: str = Field(..., title='Signal Id')
+    account_id: str = Field(..., title='Account Id')
+    value_path_category: str | None = Field(..., title='Value Path Category')
 
 
 class PromotionLogResponse(BaseModel):
@@ -1962,15 +1410,15 @@ class PromotionLogResponse(BaseModel):
     Read-only promotion log entry.
     """
 
-    id: Annotated[UUID, Field(title="Id")]
-    model_version_id: Annotated[UUID, Field(title="Model Version Id")]
-    from_stage: Annotated[str, Field(title="From Stage")]
-    to_stage: Annotated[str, Field(title="To Stage")]
-    promoted_by: Annotated[UUID | None, Field(title="Promoted By")] = None
-    reason: Annotated[str | None, Field(title="Reason")] = None
-    eval_score: Annotated[float | None, Field(title="Eval Score")] = None
-    eval_gate_passed: Annotated[bool, Field(title="Eval Gate Passed")]
-    created_at: Annotated[str, Field(title="Created At")]
+    id: UUID = Field(..., title='Id')
+    model_version_id: UUID = Field(..., title='Model Version Id')
+    from_stage: str = Field(..., title='From Stage')
+    to_stage: str = Field(..., title='To Stage')
+    promoted_by: UUID | None = Field(None, title='Promoted By')
+    reason: str | None = Field(None, title='Reason')
+    eval_score: float | None = Field(None, title='Eval Score')
+    eval_gate_passed: bool = Field(..., title='Eval Gate Passed')
+    created_at: str = Field(..., title='Created At')
 
 
 class ProspectContextResponse(BaseModel):
@@ -1978,12 +1426,14 @@ class ProspectContextResponse(BaseModel):
     Composite prospect context (legacy endpoint, kept for compatibility).
     """
 
-    prospect_id: Annotated[str, Field(title="Prospect Id")]
+    prospect_id: str = Field(..., title='Prospect Id')
     company_profile: ContextField
     contact_role: ContextField
     crm_match: ContextField
-    confidence_flags: Annotated[list[dict[str, Any]] | None, Field(title="Confidence Flags")] = None
-    suggested_actions: Annotated[list[str] | None, Field(title="Suggested Actions")] = None
+    confidence_flags: list[dict[str, Any]] | None = Field(
+        None, title='Confidence Flags'
+    )
+    suggested_actions: list[str] | None = Field(None, title='Suggested Actions')
 
 
 class ProspectData(BaseModel):
@@ -1991,36 +1441,35 @@ class ProspectData(BaseModel):
     Prospect setup input data.
     """
 
-    account_id: Annotated[str, Field(description="Account identifier", title="Account Id")]
-    company_name: Annotated[str, Field(description="Company name", title="Company Name")]
-    industry: Annotated[str | None, Field(description="Industry vertical", title="Industry")] = None
-    business_pains: Annotated[
-        list[str] | None,
-        Field(description="Reported business pains", title="Business Pains"),
-    ] = None
-    friction_points: Annotated[
-        list[str] | None,
-        Field(description="Current friction points", title="Friction Points"),
-    ] = None
-    desired_outcomes: Annotated[
-        list[str] | None,
-        Field(description="Desired outcomes", title="Desired Outcomes"),
-    ] = None
-    prompt_text: Annotated[str, Field(description="Freeform prompt text", title="Prompt Text")]
-    prompt_id: Annotated[
-        str | None, Field(description="Optional prompt identifier", title="Prompt Id")
-    ] = None
-    attachments: Annotated[
-        list[dict[str, Any]] | None,
-        Field(description="Attached documents", title="Attachments"),
-    ] = None
+    account_id: str = Field(..., description='Account identifier', title='Account Id')
+    company_name: str = Field(..., description='Company name', title='Company Name')
+    industry: str | None = Field(
+        None, description='Industry vertical', title='Industry'
+    )
+    business_pains: list[str] | None = Field(
+        None, description='Reported business pains', title='Business Pains'
+    )
+    friction_points: list[str] | None = Field(
+        None, description='Current friction points', title='Friction Points'
+    )
+    desired_outcomes: list[str] | None = Field(
+        None, description='Desired outcomes', title='Desired Outcomes'
+    )
+    prompt_text: str = Field(
+        ..., description='Freeform prompt text', title='Prompt Text'
+    )
+    prompt_id: str | None = Field(
+        None, description='Optional prompt identifier', title='Prompt Id'
+    )
+    attachments: list[dict[str, Any]] | None = Field(
+        None, description='Attached documents', title='Attachments'
+    )
 
 
 class ContactTitle(RootModel[str]):
-    root: Annotated[
-        str,
-        Field(description="Contact job title", max_length=255, title="Contact Title"),
-    ]
+    root: str = Field(
+        ..., description='Contact job title', max_length=255, title='Contact Title'
+    )
 
 
 class ProspectSetupData(BaseModel):
@@ -2030,56 +1479,47 @@ class ProspectSetupData(BaseModel):
     Mirrors the fields collected in ProspectSetup.tsx.
     """
 
-    company_name: Annotated[
-        str,
-        Field(
-            description="Company name",
-            max_length=255,
-            min_length=1,
-            title="Company Name",
-        ),
-    ]
-    contact_name: Annotated[
-        str,
-        Field(
-            description="Primary contact name",
-            max_length=255,
-            min_length=1,
-            title="Contact Name",
-        ),
-    ]
-    contact_title: Annotated[
-        ContactTitle | None,
-        Field(description="Contact job title", title="Contact Title"),
-    ] = None
-    primary_objective: Annotated[
-        str | None,
-        Field(
-            description="Primary business objective",
-            examples=[
-                "reduce_costs",
-                "increase_revenue",
-                "improve_efficiency",
-                "mitigate_risk",
-            ],
-            title="Primary Objective",
-        ),
-    ] = None
-    buyer_role_confirmed: Annotated[
-        bool | None,
-        Field(description="Whether buyer role is confirmed", title="Buyer Role Confirmed"),
-    ] = False
-    company_confirmed: Annotated[
-        bool | None,
-        Field(
-            description="Whether company profile is confirmed",
-            title="Company Confirmed",
-        ),
-    ] = False
-    crm_reviewed: Annotated[
-        bool | None,
-        Field(description="Whether CRM match is reviewed", title="Crm Reviewed"),
-    ] = False
+    company_name: str = Field(
+        ...,
+        description='Company name',
+        max_length=255,
+        min_length=1,
+        title='Company Name',
+    )
+    contact_name: str = Field(
+        ...,
+        description='Primary contact name',
+        max_length=255,
+        min_length=1,
+        title='Contact Name',
+    )
+    contact_title: ContactTitle | None = Field(
+        None, description='Contact job title', title='Contact Title'
+    )
+    primary_objective: str | None = Field(
+        None,
+        description='Primary business objective',
+        examples=[
+            'reduce_costs',
+            'increase_revenue',
+            'improve_efficiency',
+            'mitigate_risk',
+        ],
+        title='Primary Objective',
+    )
+    buyer_role_confirmed: bool | None = Field(
+        False,
+        description='Whether buyer role is confirmed',
+        title='Buyer Role Confirmed',
+    )
+    company_confirmed: bool | None = Field(
+        False,
+        description='Whether company profile is confirmed',
+        title='Company Confirmed',
+    )
+    crm_reviewed: bool | None = Field(
+        False, description='Whether CRM match is reviewed', title='Crm Reviewed'
+    )
 
 
 class ProspectSetupRequest(BaseModel):
@@ -2087,14 +1527,12 @@ class ProspectSetupRequest(BaseModel):
     Request to set up a prospect and detect signals.
     """
 
-    prospect_data: Annotated[ProspectData, Field(description="Prospect information")]
-    options: Annotated[
-        dict[str, Any] | None,
-        Field(
-            description="Detection options (include_evidence, quantify_impact)",
-            title="Options",
-        ),
-    ] = None
+    prospect_data: ProspectData = Field(..., description='Prospect information')
+    options: dict[str, Any] | None = Field(
+        None,
+        description='Detection options (include_evidence, quantify_impact)',
+        title='Options',
+    )
 
 
 class ProspectSetupResponse(BaseModel):
@@ -2102,13 +1540,14 @@ class ProspectSetupResponse(BaseModel):
     Response from prospect setup with detected signals.
     """
 
-    success: Annotated[bool, Field(description="Whether detection succeeded", title="Success")]
-    signals: Annotated[
-        list[dict[str, Any]] | None,
-        Field(description="Detected signals", title="Signals"),
-    ] = None
+    success: bool = Field(
+        ..., description='Whether detection succeeded', title='Success'
+    )
+    signals: list[dict[str, Any]] | None = Field(
+        None, description='Detected signals', title='Signals'
+    )
     processing_metadata: ProcessingMetadata | None = None
-    message: Annotated[str | None, Field(description="Status message", title="Message")] = None
+    message: str | None = Field(None, description='Status message', title='Message')
 
 
 class ProvisioningStatusResponse(BaseModel):
@@ -2116,16 +1555,16 @@ class ProvisioningStatusResponse(BaseModel):
     Response for provisioning status query.
     """
 
-    tenant_id: Annotated[str, Field(title="Tenant Id")]
-    status: Annotated[str, Field(title="Status")]
-    current_step: Annotated[str | None, Field(title="Current Step")]
-    completed_steps: Annotated[list[str], Field(title="Completed Steps")]
-    error: Annotated[str | None, Field(title="Error")]
-    retryable: Annotated[bool, Field(title="Retryable")]
-    started_at: Annotated[str | None, Field(title="Started At")]
-    completed_at: Annotated[str | None, Field(title="Completed At")]
-    retry_count: Annotated[int, Field(title="Retry Count")]
-    max_retries: Annotated[int, Field(title="Max Retries")]
+    tenant_id: str = Field(..., title='Tenant Id')
+    status: str = Field(..., title='Status')
+    current_step: str | None = Field(..., title='Current Step')
+    completed_steps: list[str] = Field(..., title='Completed Steps')
+    error: str | None = Field(..., title='Error')
+    retryable: bool = Field(..., title='Retryable')
+    started_at: str | None = Field(..., title='Started At')
+    completed_at: str | None = Field(..., title='Completed At')
+    retry_count: int = Field(..., title='Retry Count')
+    max_retries: int = Field(..., title='Max Retries')
 
 
 class ROIAnalysisRequest(BaseModel):
@@ -2133,22 +1572,20 @@ class ROIAnalysisRequest(BaseModel):
     Quick ROI analysis request.
     """
 
-    prospect_id: Annotated[
-        str | None, Field(description="Prospect identifier", title="Prospect Id")
-    ] = None
-    value_driver_ids: Annotated[
-        list[str] | None,
-        Field(description="Value drivers to calculate", title="Value Driver Ids"),
-    ] = None
-    prospect_data: Annotated[
-        dict[str, float] | None,
-        Field(description="Prospect-specific variables", title="Prospect Data"),
-    ] = None
-    industry_vertical: Annotated[str | None, Field(title="Industry Vertical")] = None
-    company_size: Annotated[str | None, Field(title="Company Size")] = None
-    account_id: Annotated[str | None, Field(title="Account Id")] = None
-    variables: Annotated[dict[str, float] | None, Field(title="Variables")] = None
-    formula_id: Annotated[str | None, Field(title="Formula Id")] = None
+    prospect_id: str | None = Field(
+        None, description='Prospect identifier', title='Prospect Id'
+    )
+    value_driver_ids: list[str] | None = Field(
+        None, description='Value drivers to calculate', title='Value Driver Ids'
+    )
+    prospect_data: dict[str, float] | None = Field(
+        None, description='Prospect-specific variables', title='Prospect Data'
+    )
+    industry_vertical: str | None = Field(None, title='Industry Vertical')
+    company_size: str | None = Field(None, title='Company Size')
+    account_id: str | None = Field(None, title='Account Id')
+    variables: dict[str, float] | None = Field(None, title='Variables')
+    formula_id: str | None = Field(None, title='Formula Id')
 
 
 class ROIAnalysisResponse(BaseModel):
@@ -2156,11 +1593,11 @@ class ROIAnalysisResponse(BaseModel):
     ROI analysis response.
     """
 
-    prospect_id: Annotated[str, Field(title="Prospect Id")]
-    aggregated_roi: Annotated[dict[str, Any], Field(title="Aggregated Roi")]
-    detailed_results: Annotated[list[dict[str, Any]], Field(title="Detailed Results")]
-    benchmark_comparison: Annotated[dict[str, Any] | None, Field(title="Benchmark Comparison")] = (
-        None
+    prospect_id: str = Field(..., title='Prospect Id')
+    aggregated_roi: dict[str, Any] = Field(..., title='Aggregated Roi')
+    detailed_results: list[dict[str, Any]] = Field(..., title='Detailed Results')
+    benchmark_comparison: dict[str, Any] | None = Field(
+        None, title='Benchmark Comparison'
     )
 
 
@@ -2169,40 +1606,12 @@ class RankHypothesesRequest(BaseModel):
     Request to re-rank hypotheses.
     """
 
-    hypothesis_ids: Annotated[
-        list[str], Field(max_length=200, min_length=1, title="Hypothesis Ids")
-    ]
-    strategy: Annotated[str | None, Field(description="Ranking strategy", title="Strategy")] = (
-        "balanced"
+    hypothesis_ids: list[str] = Field(
+        ..., max_length=200, min_length=1, title='Hypothesis Ids'
     )
-
-
-class RecordChargeRequest(BaseModel):
-    """
-    Request to record a charge.
-    """
-
-    customer_id: Annotated[str, Field(description="Customer being charged", title="Customer Id")]
-    amount_cents: Annotated[
-        int, Field(description="Charge amount in cents", gt=0, title="Amount Cents")
-    ]
-    status: Annotated[str | None, Field(description="Charge status", title="Status")] = "succeeded"
-    invoice_id: Annotated[
-        str | None, Field(description="Linked invoice ID", title="Invoice Id")
-    ] = None
-    stripe_charge_id: Annotated[
-        str | None, Field(description="Stripe charge ID", title="Stripe Charge Id")
-    ] = None
-    payment_method_id: Annotated[
-        str | None, Field(description="Payment method ID", title="Payment Method Id")
-    ] = None
-    payment_method_type: Annotated[
-        str | None,
-        Field(description="Payment method type", title="Payment Method Type"),
-    ] = None
-    description: Annotated[
-        str | None, Field(description="Charge description", title="Description")
-    ] = None
+    strategy: str | None = Field(
+        'balanced', description='Ranking strategy', title='Strategy'
+    )
 
 
 class RegenerateBusinessCaseRequest(BaseModel):
@@ -2210,24 +1619,22 @@ class RegenerateBusinessCaseRequest(BaseModel):
     Regenerate request with lineage to an existing case.
     """
 
-    account_id: Annotated[UUID, Field(description="Account UUID identifier", title="Account Id")]
-    opportunity_id: Annotated[str | None, Field(title="Opportunity Id")] = None
-    sections: Annotated[list[str] | None, Field(title="Sections")] = None
-    output_format: Annotated[
-        str | None,
-        Field(description="Output format (pdf, docx, html)", title="Output Format"),
-    ] = "pdf"
-    custom_inputs: Annotated[
-        dict[str, Any] | None,
-        Field(
-            description="Optional custom inputs, including truth_requirements and organization_id",
-            title="Custom Inputs",
-        ),
-    ] = None
-    previous_case_id: Annotated[
-        str,
-        Field(description="Existing case id being regenerated", title="Previous Case Id"),
-    ]
+    account_id: UUID = Field(
+        ..., description='Account UUID identifier', title='Account Id'
+    )
+    opportunity_id: str | None = Field(None, title='Opportunity Id')
+    sections: list[str] | None = Field(None, title='Sections')
+    output_format: str | None = Field(
+        'pdf', description='Output format (pdf, docx, html)', title='Output Format'
+    )
+    custom_inputs: dict[str, Any] | None = Field(
+        None,
+        description='Optional custom inputs, including truth_requirements and organization_id',
+        title='Custom Inputs',
+    )
+    previous_case_id: str = Field(
+        ..., description='Existing case id being regenerated', title='Previous Case Id'
+    )
 
 
 class RegisterTenantResponse(BaseModel):
@@ -2235,22 +1642,13 @@ class RegisterTenantResponse(BaseModel):
     Response from tenant registration.
     """
 
-    message: Annotated[str, Field(title="Message")]
-    tenant_id: Annotated[str, Field(title="Tenant Id")]
-    verification_required: Annotated[bool, Field(title="Verification Required")]
-
-
-class ReportFormat(Enum):
-    """
-    Output format for audit reports.
-    """
-
-    markdown = "markdown"
-    json = "json"
+    message: str = Field(..., title='Message')
+    tenant_id: str = Field(..., title='Tenant Id')
+    verification_required: bool = Field(..., title='Verification Required')
 
 
 class Permissions1(RootModel[list[Permission | str]]):
-    root: Annotated[list[Permission | str], Field(title="Permissions")]
+    root: list[Permission | str] = Field(..., title='Permissions')
 
 
 class RequestContext(BaseModel):
@@ -2263,38 +1661,37 @@ class RequestContext(BaseModel):
     explicit ``auth_source`` field.
     """
 
-    tenant_id: Annotated[UUID | str | None, Field(title="Tenant Id")] = None
-    user_id: Annotated[Any, Field(title="User Id")] = None
-    roles: Annotated[list[str] | None, Field(title="Roles")] = None
-    api_key_id: Annotated[str | None, Field(title="Api Key Id")] = None
-    permissions: Annotated[
-        Permissions1 | list[Permission | str] | None, Field(title="Permissions")
-    ] = None
-    source: Annotated[str | None, Field(title="Source")] = "jwt_claim"
-    raw: Annotated[dict[str, Any] | None, Field(title="Raw")] = None
-    auth_source: Annotated[str | None, Field(title="Auth Source")] = None
-    request_id: Annotated[str | None, Field(title="Request Id")] = None
-    org_id: Annotated[Any, Field(title="Org Id")] = None
-    workspace_id: Annotated[Any, Field(title="Workspace Id")] = None
-    tenant_role: Annotated[str | None, Field(title="Tenant Role")] = None
-    trace_id: Annotated[str | None, Field(title="Trace Id")] = None
-    isolation_tier: Annotated[str | None, Field(title="Isolation Tier")] = "shared"
-    service_account_id: Annotated[str | None, Field(title="Service Account Id")] = None
-    service_account_scopes: Annotated[list[str] | None, Field(title="Service Account Scopes")] = (
-        None
+    tenant_id: UUID | str | None = Field(None, title='Tenant Id')
+    user_id: Any = Field(None, title='User Id')
+    roles: list[str] | None = Field(None, title='Roles')
+    api_key_id: str | None = Field(None, title='Api Key Id')
+    permissions: Permissions1 | list[Permission | str] | None = Field(
+        None, title='Permissions'
     )
-    accessed_tenant_ids: Annotated[list[str] | None, Field(title="Accessed Tenant Ids")] = None
-    privileged_session_start: Annotated[float | None, Field(title="Privileged Session Start")] = (
-        None
+    source: str | None = Field('jwt_claim', title='Source')
+    raw: dict[str, Any] | None = Field(None, title='Raw')
+    auth_source: str | None = Field(None, title='Auth Source')
+    request_id: str | None = Field(None, title='Request Id')
+    org_id: Any = Field(None, title='Org Id')
+    workspace_id: Any = Field(None, title='Workspace Id')
+    tenant_role: str | None = Field(None, title='Tenant Role')
+    isolation_tier: str | None = Field('shared', title='Isolation Tier')
+    service_account_id: str | None = Field(None, title='Service Account Id')
+    service_account_scopes: list[str] | None = Field(
+        None, title='Service Account Scopes'
     )
-    impersonator_id: Annotated[str | None, Field(title="Impersonator Id")] = None
-    field_locked: Annotated[bool | None, Field(alias="_locked", title="Locked")] = False
+    accessed_tenant_ids: list[str] | None = Field(None, title='Accessed Tenant Ids')
+    privileged_session_start: float | None = Field(
+        None, title='Privileged Session Start'
+    )
+    impersonator_id: str | None = Field(None, title='Impersonator Id')
+    field_locked: bool | None = Field(False, alias='_locked', title='Locked')
 
 
 class RequestSummary(BaseModel):
-    request_id: Annotated[str | None, Field(title="Request Id")]
-    auth_source: Annotated[str, Field(title="Auth Source")]
-    isolation_tier: Annotated[str, Field(title="Isolation Tier")]
+    request_id: str | None = Field(..., title='Request Id')
+    auth_source: str = Field(..., title='Auth Source')
+    isolation_tier: str = Field(..., title='Isolation Tier')
 
 
 class ResumeFromCheckpointRequest(BaseModel):
@@ -2303,22 +1700,19 @@ class ResumeFromCheckpointRequest(BaseModel):
     """
 
     model_config = ConfigDict(
-        extra="forbid",
+        extra='forbid',
     )
-    checkpoint_id: Annotated[
-        str, Field(description="Checkpoint to resume from", title="Checkpoint Id")
-    ]
-    resume_data: Annotated[
-        dict[str, Any] | None,
-        Field(
-            description="Optional modifications to state before resume",
-            title="Resume Data",
-        ),
-    ] = None
-    skip_nodes: Annotated[
-        list[str] | None,
-        Field(description="Node IDs to skip on resume", title="Skip Nodes"),
-    ] = None
+    checkpoint_id: str = Field(
+        ..., description='Checkpoint to resume from', title='Checkpoint Id'
+    )
+    resume_data: dict[str, Any] | None = Field(
+        None,
+        description='Optional modifications to state before resume',
+        title='Resume Data',
+    )
+    skip_nodes: list[str] | None = Field(
+        None, description='Node IDs to skip on resume', title='Skip Nodes'
+    )
 
 
 class ResumeFromCheckpointResponse(BaseModel):
@@ -2326,11 +1720,13 @@ class ResumeFromCheckpointResponse(BaseModel):
     Response from checkpoint-based resume.
     """
 
-    workflow_instance_id: Annotated[str, Field(title="Workflow Instance Id")]
-    resumed_from_checkpoint: Annotated[str, Field(title="Resumed From Checkpoint")]
-    resumed_from_node: Annotated[str, Field(title="Resumed From Node")]
-    status: Annotated[str, Field(description="resumed, completed, or failed", title="Status")]
-    message: Annotated[str, Field(title="Message")]
+    workflow_instance_id: str = Field(..., title='Workflow Instance Id')
+    resumed_from_checkpoint: str = Field(..., title='Resumed From Checkpoint')
+    resumed_from_node: str = Field(..., title='Resumed From Node')
+    status: str = Field(
+        ..., description='resumed, completed, or failed', title='Status'
+    )
+    message: str = Field(..., title='Message')
 
 
 class RetryProvisioningResponse(BaseModel):
@@ -2338,31 +1734,31 @@ class RetryProvisioningResponse(BaseModel):
     Response from retry provisioning request.
     """
 
-    message: Annotated[str, Field(title="Message")]
-    tenant_id: Annotated[str, Field(title="Tenant Id")]
-    status: Annotated[str, Field(title="Status")]
+    message: str = Field(..., title='Message')
+    tenant_id: str = Field(..., title='Tenant Id')
+    status: str = Field(..., title='Status')
 
 
-class Status2(Enum):
-    submitted = "submitted"
-    in_review = "in_review"
-    approved = "approved"
-    changes_requested = "changes_requested"
-    rejected = "rejected"
+class Status1(Enum):
+    submitted = 'submitted'
+    in_review = 'in_review'
+    approved = 'approved'
+    changes_requested = 'changes_requested'
+    rejected = 'rejected'
 
 
 class SubjectType(Enum):
-    business_case = "business_case"
-    value_model = "value_model"
+    business_case = 'business_case'
+    value_model = 'value_model'
 
 
 class ReviewRequest(BaseModel):
-    review_id: Annotated[str, Field(title="Review Id")]
-    status: Annotated[Status2, Field(title="Status")]
-    subject_type: Annotated[SubjectType, Field(title="Subject Type")]
-    submitted_at: Annotated[AwareDatetime, Field(title="Submitted At")]
+    review_id: str = Field(..., title='Review Id')
+    status: Status1 = Field(..., title='Status')
+    subject_type: SubjectType = Field(..., title='Subject Type')
+    submitted_at: AwareDatetime = Field(..., title='Submitted At')
     lineage: LineageRef
-    immutable_audit_hash: Annotated[str | None, Field(title="Immutable Audit Hash")] = None
+    immutable_audit_hash: str | None = Field(None, title='Immutable Audit Hash')
 
 
 class ReviewStatus(Enum):
@@ -2370,10 +1766,10 @@ class ReviewStatus(Enum):
     Human review state of an extraction record.
     """
 
-    pending = "pending"
-    accepted = "accepted"
-    rejected = "rejected"
-    modified = "modified"
+    pending = 'pending'
+    accepted = 'accepted'
+    rejected = 'rejected'
+    modified = 'modified'
 
 
 class Role(Enum):
@@ -2386,33 +1782,12 @@ class Role(Enum):
     The ``system`` role is reserved for internal service-to-service calls.
     """
 
-    super_admin = "super_admin"
-    tenant_admin = "tenant_admin"
-    content_admin = "content_admin"
-    analyst = "analyst"
-    read_only = "read_only"
-    system = "system"
-
-
-class RunResponse(BaseModel):
-    """
-    Single run in API responses.
-    """
-
-    model_config = ConfigDict(
-        extra="forbid",
-    )
-    id: Annotated[str, Field(title="Id")]
-    tenant_id: Annotated[str, Field(title="Tenant Id")]
-    account_id: Annotated[str | None, Field(title="Account Id")]
-    workflow_type: HarnessWorkflowType
-    initiated_by: InitiatedBy
-    status: HarnessRunStatus
-    current_state: HarnessState
-    value_pack_id: Annotated[str | None, Field(title="Value Pack Id")]
-    trace_id: Annotated[str, Field(title="Trace Id")]
-    created_at: Annotated[AwareDatetime, Field(title="Created At")]
-    updated_at: Annotated[AwareDatetime, Field(title="Updated At")]
+    super_admin = 'super_admin'
+    tenant_admin = 'tenant_admin'
+    content_admin = 'content_admin'
+    analyst = 'analyst'
+    read_only = 'read_only'
+    system = 'system'
 
 
 class SalesforceOAuthAuthorizeRequest(BaseModel):
@@ -2420,22 +1795,19 @@ class SalesforceOAuthAuthorizeRequest(BaseModel):
     Request to start Salesforce OAuth.
     """
 
-    return_to: Annotated[
-        str | None,
-        Field(
-            description="Relative frontend path to return to after OAuth completes",
-            title="Return To",
-        ),
-    ] = "/context/integrations?provider=salesforce"
+    return_to: str | None = Field(
+        '/context/integrations?provider=salesforce',
+        description='Relative frontend path to return to after OAuth completes',
+        title='Return To',
+    )
 
 
 class SalesforceOAuthAuthorizeResponse(BaseModel):
-    authorization_url: Annotated[str, Field(title="Authorization Url")]
-    authorize_url: Annotated[
-        str | None,
-        Field(description="Deprecated compatibility alias", title="Authorize Url"),
-    ] = None
-    state_expires_at: Annotated[str, Field(title="State Expires At")]
+    authorization_url: str = Field(..., title='Authorization Url')
+    authorize_url: str | None = Field(
+        None, description='Deprecated compatibility alias', title='Authorize Url'
+    )
+    state_expires_at: str = Field(..., title='State Expires At')
 
 
 class SaveScenarioRequest(BaseModel):
@@ -2443,10 +1815,10 @@ class SaveScenarioRequest(BaseModel):
     Persist a business-case what-if scenario.
     """
 
-    name: Annotated[str, Field(max_length=120, min_length=1, title="Name")]
-    adjustments: Annotated[
-        list[dict[str, Any]] | None, Field(max_length=100, title="Adjustments")
-    ] = None
+    name: str = Field(..., max_length=120, min_length=1, title='Name')
+    adjustments: list[dict[str, Any]] | None = Field(
+        None, max_length=100, title='Adjustments'
+    )
 
 
 class SavedScenarioDetail(BaseModel):
@@ -2454,10 +1826,10 @@ class SavedScenarioDetail(BaseModel):
     Full server-side scenario payload.
     """
 
-    id: Annotated[str, Field(title="Id")]
-    name: Annotated[str, Field(title="Name")]
-    created_at: Annotated[str, Field(title="Created At")]
-    adjustments: Annotated[list[dict[str, Any]], Field(title="Adjustments")]
+    id: str = Field(..., title='Id')
+    name: str = Field(..., title='Name')
+    created_at: str = Field(..., title='Created At')
+    adjustments: list[dict[str, Any]] = Field(..., title='Adjustments')
 
 
 class SavedScenarioSummary(BaseModel):
@@ -2465,43 +1837,9 @@ class SavedScenarioSummary(BaseModel):
     Safe scenario metadata returned to the frontend.
     """
 
-    id: Annotated[str, Field(title="Id")]
-    name: Annotated[str, Field(title="Name")]
-    created_at: Annotated[str, Field(title="Created At")]
-
-
-class ScoreHistoryEntry(BaseModel):
-    """
-    A single score history entry.
-
-    Represents a snapshot of a score at a specific point in time.
-    """
-
-    run_id: Annotated[str, Field(description="Audit run identifier", title="Run Id")]
-    score: Annotated[
-        int,
-        Field(description="Score at this point in time", ge=0, le=100, title="Score"),
-    ]
-    grade: Annotated[str, Field(description="Grade at this point in time", title="Grade")]
-    timestamp: Annotated[
-        AwareDatetime,
-        Field(description="Timestamp of the score snapshot", title="Timestamp"),
-    ]
-    findings_count: Annotated[
-        int | None,
-        Field(description="Number of findings at this time", ge=0, title="Findings Count"),
-    ] = 0
-
-
-class Severity(Enum):
-    """
-    Severity level of an audit finding.
-    """
-
-    critical = "critical"
-    high = "high"
-    medium = "medium"
-    low = "low"
+    id: str = Field(..., title='Id')
+    name: str = Field(..., title='Name')
+    created_at: str = Field(..., title='Created At')
 
 
 class SignalListResponse(BaseModel):
@@ -2509,15 +1847,16 @@ class SignalListResponse(BaseModel):
     Response with list of signals for an account.
     """
 
-    account_id: Annotated[str, Field(description="Account identifier", title="Account Id")]
-    signals: Annotated[
-        list[dict[str, Any]] | None, Field(description="Signals", title="Signals")
-    ] = None
-    total_count: Annotated[int, Field(description="Total number of signals", title="Total Count")]
-    category_filter: Annotated[
-        str | None,
-        Field(description="Applied category filter", title="Category Filter"),
-    ] = None
+    account_id: str = Field(..., description='Account identifier', title='Account Id')
+    signals: list[dict[str, Any]] | None = Field(
+        None, description='Signals', title='Signals'
+    )
+    total_count: int = Field(
+        ..., description='Total number of signals', title='Total Count'
+    )
+    category_filter: str | None = Field(
+        None, description='Applied category filter', title='Category Filter'
+    )
 
 
 class SignalReviewRequest(BaseModel):
@@ -2525,21 +1864,17 @@ class SignalReviewRequest(BaseModel):
     Request payload for reviewing a signal.
     """
 
-    account_id: Annotated[
-        str,
-        Field(description="Account identifier for scope validation", title="Account Id"),
-    ]
-    review_status: Annotated[
-        str,
-        Field(
-            description="Review decision status: approved|rejected",
-            title="Review Status",
-        ),
-    ]
-    decision_note: Annotated[
-        str | None,
-        Field(description="Optional reviewer rationale", title="Decision Note"),
-    ] = None
+    account_id: str = Field(
+        ..., description='Account identifier for scope validation', title='Account Id'
+    )
+    review_status: str = Field(
+        ...,
+        description='Review decision status: approved|rejected',
+        title='Review Status',
+    )
+    decision_note: str | None = Field(
+        None, description='Optional reviewer rationale', title='Decision Note'
+    )
 
 
 class SignalReviewResponse(BaseModel):
@@ -2547,12 +1882,12 @@ class SignalReviewResponse(BaseModel):
     Response payload for signal review mutations.
     """
 
-    signal_id: Annotated[str, Field(title="Signal Id")]
-    account_id: Annotated[str, Field(title="Account Id")]
-    review_status: Annotated[str, Field(title="Review Status")]
-    reviewed_by: Annotated[str, Field(title="Reviewed By")]
-    reviewed_at: Annotated[str, Field(title="Reviewed At")]
-    decision_note: Annotated[str | None, Field(title="Decision Note")] = None
+    signal_id: str = Field(..., title='Signal Id')
+    account_id: str = Field(..., title='Account Id')
+    review_status: str = Field(..., title='Review Status')
+    reviewed_by: str = Field(..., title='Reviewed By')
+    reviewed_at: str = Field(..., title='Reviewed At')
+    decision_note: str | None = Field(None, title='Decision Note')
 
 
 class SourceType(Enum):
@@ -2560,32 +1895,10 @@ class SourceType(Enum):
     Origin of a knowledge source.
     """
 
-    website = "website"
-    icp = "icp"
-    upload = "upload"
-    manual = "manual"
-
-
-class ActualEffortDays(RootModel[float]):
-    root: Annotated[
-        float,
-        Field(
-            description="Actual effort in days spent on the sprint",
-            ge=0.0,
-            title="Actual Effort Days",
-        ),
-    ]
-
-
-class SprintStatus(Enum):
-    """
-    Status of a remediation sprint.
-    """
-
-    planned = "planned"
-    in_progress = "in_progress"
-    completed = "completed"
-    deferred = "deferred"
+    website = 'website'
+    icp = 'icp'
+    upload = 'upload'
+    manual = 'manual'
 
 
 class StartAnalysisRequest(BaseModel):
@@ -2595,21 +1908,18 @@ class StartAnalysisRequest(BaseModel):
     Creates or updates prospect record and triggers intelligence workflow.
     """
 
-    prospect_id: Annotated[
-        str | None,
-        Field(description="Existing prospect ID (if updating)", title="Prospect Id"),
-    ] = None
-    setup_data: Annotated[ProspectSetupData, Field(description="Prospect setup form data")]
-    workflow_type: Annotated[
-        str | None,
-        Field(
-            description="Type of workflow to trigger",
-            examples=["prospect_analysis", "whitespace_analysis", "business_case"],
-            title="Workflow Type",
-        ),
-    ] = "prospect_analysis"
-    priority: Annotated[str | None, Field(description="Workflow priority", title="Priority")] = (
-        "NORMAL"
+    prospect_id: str | None = Field(
+        None, description='Existing prospect ID (if updating)', title='Prospect Id'
+    )
+    setup_data: ProspectSetupData = Field(..., description='Prospect setup form data')
+    workflow_type: str | None = Field(
+        'prospect_analysis',
+        description='Type of workflow to trigger',
+        examples=['prospect_analysis', 'whitespace_analysis', 'business_case'],
+        title='Workflow Type',
+    )
+    priority: str | None = Field(
+        'NORMAL', description='Workflow priority', title='Priority'
     )
 
 
@@ -2618,12 +1928,12 @@ class StateDiffRequest(BaseModel):
     Request to compare two checkpoints.
     """
 
-    checkpoint_a_id: Annotated[
-        str, Field(description="First checkpoint to compare", title="Checkpoint A Id")
-    ]
-    checkpoint_b_id: Annotated[
-        str, Field(description="Second checkpoint to compare", title="Checkpoint B Id")
-    ]
+    checkpoint_a_id: str = Field(
+        ..., description='First checkpoint to compare', title='Checkpoint A Id'
+    )
+    checkpoint_b_id: str = Field(
+        ..., description='Second checkpoint to compare', title='Checkpoint B Id'
+    )
 
 
 class StateDiffResponse(BaseModel):
@@ -2631,28 +1941,26 @@ class StateDiffResponse(BaseModel):
     Response containing state differences.
     """
 
-    workflow_id: Annotated[str, Field(title="Workflow Id")]
-    checkpoint_a_id: Annotated[str, Field(title="Checkpoint A Id")]
-    checkpoint_b_id: Annotated[str, Field(title="Checkpoint B Id")]
-    timestamp_a: Annotated[str, Field(title="Timestamp A")]
-    timestamp_b: Annotated[str, Field(title="Timestamp B")]
-    added_fields: Annotated[
-        list[str] | None,
-        Field(description="Fields present in B but not A", title="Added Fields"),
-    ] = None
-    removed_fields: Annotated[
-        list[str] | None,
-        Field(description="Fields present in A but not B", title="Removed Fields"),
-    ] = None
-    modified_fields: Annotated[
-        list[dict[str, Any]] | None,
-        Field(description="Fields with different values", title="Modified Fields"),
-    ] = None
-    unchanged_fields: Annotated[
-        list[str] | None,
-        Field(description="Fields with same values", title="Unchanged Fields"),
-    ] = None
-    summary: Annotated[str, Field(description="Human-readable summary of changes", title="Summary")]
+    workflow_id: str = Field(..., title='Workflow Id')
+    checkpoint_a_id: str = Field(..., title='Checkpoint A Id')
+    checkpoint_b_id: str = Field(..., title='Checkpoint B Id')
+    timestamp_a: str = Field(..., title='Timestamp A')
+    timestamp_b: str = Field(..., title='Timestamp B')
+    added_fields: list[str] | None = Field(
+        None, description='Fields present in B but not A', title='Added Fields'
+    )
+    removed_fields: list[str] | None = Field(
+        None, description='Fields present in A but not B', title='Removed Fields'
+    )
+    modified_fields: list[dict[str, Any]] | None = Field(
+        None, description='Fields with different values', title='Modified Fields'
+    )
+    unchanged_fields: list[str] | None = Field(
+        None, description='Fields with same values', title='Unchanged Fields'
+    )
+    summary: str = Field(
+        ..., description='Human-readable summary of changes', title='Summary'
+    )
 
 
 class StateHistoryEntry(BaseModel):
@@ -2660,11 +1968,11 @@ class StateHistoryEntry(BaseModel):
     Single entry in state history.
     """
 
-    timestamp: Annotated[str, Field(title="Timestamp")]
-    node_name: Annotated[str | None, Field(title="Node Name")]
-    status: Annotated[str, Field(title="Status")]
-    changed_fields: Annotated[list[str], Field(title="Changed Fields")]
-    field_snapshots: Annotated[dict[str, Any], Field(title="Field Snapshots")]
+    timestamp: str = Field(..., title='Timestamp')
+    node_name: str | None = Field(..., title='Node Name')
+    status: str = Field(..., title='Status')
+    changed_fields: list[str] = Field(..., title='Changed Fields')
+    field_snapshots: dict[str, Any] = Field(..., title='Field Snapshots')
 
 
 class StateHistoryResponse(BaseModel):
@@ -2672,10 +1980,10 @@ class StateHistoryResponse(BaseModel):
     History of state changes.
     """
 
-    workflow_id: Annotated[str, Field(title="Workflow Id")]
-    history: Annotated[list[StateHistoryEntry], Field(title="History")]
-    total_changes: Annotated[int, Field(title="Total Changes")]
-    field_change_frequency: Annotated[dict[str, int], Field(title="Field Change Frequency")]
+    workflow_id: str = Field(..., title='Workflow Id')
+    history: list[StateHistoryEntry] = Field(..., title='History')
+    total_changes: int = Field(..., title='Total Changes')
+    field_change_frequency: dict[str, int] = Field(..., title='Field Change Frequency')
 
 
 class StateSchemaResponse(BaseModel):
@@ -2683,12 +1991,14 @@ class StateSchemaResponse(BaseModel):
     State schema with metadata.
     """
 
-    workflow_id: Annotated[str, Field(title="Workflow Id")]
-    state_type: Annotated[str, Field(description="Concrete state class name", title="State Type")]
-    fields: Annotated[list[FieldInfo], Field(title="Fields")]
-    required_fields: Annotated[list[str], Field(title="Required Fields")]
-    computed_fields: Annotated[list[str], Field(title="Computed Fields")]
-    field_count: Annotated[int, Field(title="Field Count")]
+    workflow_id: str = Field(..., title='Workflow Id')
+    state_type: str = Field(
+        ..., description='Concrete state class name', title='State Type'
+    )
+    fields: list[FieldInfo] = Field(..., title='Fields')
+    required_fields: list[str] = Field(..., title='Required Fields')
+    computed_fields: list[str] = Field(..., title='Computed Fields')
+    field_count: int = Field(..., title='Field Count')
 
 
 class StateSnapshotResponse(BaseModel):
@@ -2696,14 +2006,16 @@ class StateSnapshotResponse(BaseModel):
     Full state snapshot at a checkpoint.
     """
 
-    workflow_id: Annotated[str, Field(title="Workflow Id")]
-    checkpoint_id: Annotated[str, Field(title="Checkpoint Id")]
-    timestamp: Annotated[str, Field(title="Timestamp")]
-    node_name: Annotated[str, Field(title="Node Name")]
-    full_state: Annotated[
-        dict[str, Any], Field(description="Complete state object", title="Full State")
-    ]
-    state_schema: Annotated[str, Field(description="Workflow state type", title="State Schema")]
+    workflow_id: str = Field(..., title='Workflow Id')
+    checkpoint_id: str = Field(..., title='Checkpoint Id')
+    timestamp: str = Field(..., title='Timestamp')
+    node_name: str = Field(..., title='Node Name')
+    full_state: dict[str, Any] = Field(
+        ..., description='Complete state object', title='Full State'
+    )
+    state_schema: str = Field(
+        ..., description='Workflow state type', title='State Schema'
+    )
 
 
 class StateValueResponse(BaseModel):
@@ -2711,21 +2023,18 @@ class StateValueResponse(BaseModel):
     Full state value with field-by-field breakdown.
     """
 
-    workflow_id: Annotated[str, Field(title="Workflow Id")]
-    timestamp: Annotated[str, Field(title="Timestamp")]
-    status: Annotated[str, Field(title="Status")]
-    current_node: Annotated[str | None, Field(title="Current Node")]
-    values: Annotated[
-        dict[str, Any],
-        Field(description="Field values keyed by field name", title="Values"),
-    ]
-    value_metadata: Annotated[
-        dict[str, dict[str, Any]] | None,
-        Field(
-            description="Metadata for each field (type, size, etc.)",
-            title="Value Metadata",
-        ),
-    ] = None
+    workflow_id: str = Field(..., title='Workflow Id')
+    timestamp: str = Field(..., title='Timestamp')
+    status: str = Field(..., title='Status')
+    current_node: str | None = Field(..., title='Current Node')
+    values: dict[str, Any] = Field(
+        ..., description='Field values keyed by field name', title='Values'
+    )
+    value_metadata: dict[str, dict[str, Any]] | None = Field(
+        None,
+        description='Metadata for each field (type, size, etc.)',
+        title='Value Metadata',
+    )
 
 
 class StatusChangeRequest(BaseModel):
@@ -2733,17 +2042,14 @@ class StatusChangeRequest(BaseModel):
     Request body for tenant status change endpoints.
     """
 
-    reason: Annotated[
-        str | None,
-        Field(description="Human-readable reason for the status change", title="Reason"),
-    ] = None
-    changed_by: Annotated[
-        str | None,
-        Field(
-            description="User ID or service name initiating the change",
-            title="Changed By",
-        ),
-    ] = None
+    reason: str | None = Field(
+        None, description='Human-readable reason for the status change', title='Reason'
+    )
+    changed_by: str | None = Field(
+        None,
+        description='User ID or service name initiating the change',
+        title='Changed By',
+    )
 
 
 class StatusUpdateRequest(BaseModel):
@@ -2751,10 +2057,11 @@ class StatusUpdateRequest(BaseModel):
     Request to update narrative status.
     """
 
-    status: Annotated[
-        str,
-        Field(description="New status: draft, review, approved, delivered", title="Status"),
-    ]
+    status: str = Field(
+        ...,
+        description='New status: draft, review, approved, delivered',
+        title='Status',
+    )
 
 
 class SyncAccountsRequest(BaseModel):
@@ -2762,21 +2069,17 @@ class SyncAccountsRequest(BaseModel):
     Manual sync trigger request.
     """
 
-    provider: Annotated[
-        CRMProvider | None,
-        Field(description="Specific provider to sync, or null for all"),
-    ] = None
-    account_ids: Annotated[
-        list[str] | None,
-        Field(
-            description="Specific account IDs to sync, or null for all",
-            title="Account Ids",
-        ),
-    ] = None
-    force_refresh: Annotated[
-        bool | None,
-        Field(description="Force re-sync even if data is fresh", title="Force Refresh"),
-    ] = False
+    provider: CRMProvider | None = Field(
+        None, description='Specific provider to sync, or null for all'
+    )
+    account_ids: list[str] | None = Field(
+        None,
+        description='Specific account IDs to sync, or null for all',
+        title='Account Ids',
+    )
+    force_refresh: bool | None = Field(
+        False, description='Force re-sync even if data is fresh', title='Force Refresh'
+    )
 
 
 class SyncAccountsResponse(BaseModel):
@@ -2784,16 +2087,14 @@ class SyncAccountsResponse(BaseModel):
     Sync trigger response.
     """
 
-    sync_id: Annotated[str, Field(description="Unique sync job identifier", title="Sync Id")]
-    status: Annotated[
-        str,
-        Field(
-            description="Sync status: queued, running, completed, failed",
-            title="Status",
-        ),
-    ]
+    sync_id: str = Field(..., description='Unique sync job identifier', title='Sync Id')
+    status: str = Field(
+        ...,
+        description='Sync status: queued, running, completed, failed',
+        title='Status',
+    )
     provider: CRMProvider | None = None
-    message: Annotated[str, Field(title="Message")]
+    message: str = Field(..., title='Message')
 
 
 class SyncStatus(Enum):
@@ -2801,10 +2102,10 @@ class SyncStatus(Enum):
     Account sync status from CRM provider.
     """
 
-    synced = "synced"
-    pending = "pending"
-    failed = "failed"
-    stale = "stale"
+    synced = 'synced'
+    pending = 'pending'
+    failed = 'failed'
+    stale = 'stale'
 
 
 class SyncStatusSchema(BaseModel):
@@ -2813,15 +2114,15 @@ class SyncStatusSchema(BaseModel):
     """
 
     provider: CRMProvider
-    status: Annotated[str, Field(title="Status")]
-    last_sync_at: Annotated[AwareDatetime | None, Field(title="Last Sync At")] = None
-    last_successful_sync_at: Annotated[
-        AwareDatetime | None, Field(title="Last Successful Sync At")
-    ] = None
-    records_synced: Annotated[int, Field(title="Records Synced")]
-    records_updated: Annotated[int, Field(title="Records Updated")]
-    records_failed: Annotated[int, Field(title="Records Failed")]
-    error_message: Annotated[str | None, Field(title="Error Message")] = None
+    status: str = Field(..., title='Status')
+    last_sync_at: AwareDatetime | None = Field(None, title='Last Sync At')
+    last_successful_sync_at: AwareDatetime | None = Field(
+        None, title='Last Successful Sync At'
+    )
+    records_synced: int = Field(..., title='Records Synced')
+    records_updated: int = Field(..., title='Records Updated')
+    records_failed: int = Field(..., title='Records Failed')
+    error_message: str | None = Field(None, title='Error Message')
 
 
 class SyncTriggerResponse(BaseModel):
@@ -2829,17 +2130,17 @@ class SyncTriggerResponse(BaseModel):
     Manual sync trigger response.
     """
 
-    sync_id: Annotated[str, Field(title="Sync Id")]
-    job_id: Annotated[str, Field(title="Job Id")]
-    status: Annotated[str, Field(title="Status")]
-    provider: Annotated[str, Field(title="Provider")]
-    queued_at: Annotated[str | None, Field(title="Queued At")] = None
+    sync_id: str = Field(..., title='Sync Id')
+    job_id: str = Field(..., title='Job Id')
+    status: str = Field(..., title='Status')
+    provider: str = Field(..., title='Provider')
+    queued_at: str | None = Field(None, title='Queued At')
 
 
 class TaskStatus(Enum):
-    open = "open"
-    in_progress = "in_progress"
-    completed = "completed"
+    open = 'open'
+    in_progress = 'in_progress'
+    completed = 'completed'
 
 
 class TenantCreateRequest(BaseModel):
@@ -2847,51 +2148,15 @@ class TenantCreateRequest(BaseModel):
     Payload to create a new tenant (super_admin only).
     """
 
-    name: Annotated[str, Field(max_length=200, min_length=1, title="Name")]
-    slug: Annotated[
-        str,
-        Field(
-            max_length=63,
-            min_length=1,
-            pattern="^[a-z0-9]+(?:-[a-z0-9]+)*$",
-            title="Slug",
-        ),
-    ]
-    settings: Annotated[dict[str, Any] | None, Field(title="Settings")] = None
-
-
-class TenantOverviewItem(BaseModel):
-    """
-    Single tenant entry in the cross-tenant overview.
-    """
-
-    id: Annotated[str, Field(title="Id")]
-    name: Annotated[str, Field(title="Name")]
-    slug: Annotated[str, Field(title="Slug")]
-    status: Annotated[str, Field(title="Status")]
-    tier_id: Annotated[str | None, Field(title="Tier Id")] = "free"
-    created_at: Annotated[str, Field(title="Created At")]
-    user_count: Annotated[
-        int | None, Field(description="Total non-deleted users", title="User Count")
-    ] = 0
-    active_workflow_count: Annotated[
-        int | None,
-        Field(
-            description="Harness runs in non-terminal status",
-            title="Active Workflow Count",
-        ),
-    ] = 0
-
-
-class TenantOverviewResponse(BaseModel):
-    """
-    Paginated cross-tenant overview response.
-    """
-
-    items: Annotated[list[TenantOverviewItem], Field(title="Items")]
-    total: Annotated[int, Field(title="Total")]
-    limit: Annotated[int, Field(title="Limit")]
-    offset: Annotated[int, Field(title="Offset")]
+    name: str = Field(..., max_length=200, min_length=1, title='Name')
+    slug: str = Field(
+        ...,
+        max_length=63,
+        min_length=1,
+        pattern='^[a-z0-9]+(?:-[a-z0-9]+)*$',
+        title='Slug',
+    )
+    settings: dict[str, Any] | None = Field(None, title='Settings')
 
 
 class TenantSettingsUpdateResponse(BaseModel):
@@ -2899,10 +2164,10 @@ class TenantSettingsUpdateResponse(BaseModel):
     Tenant settings update response.
     """
 
-    id: Annotated[str, Field(title="Id")]
-    name: Annotated[str, Field(title="Name")]
-    settings: Annotated[dict[str, Any], Field(title="Settings")]
-    updated_at: Annotated[str, Field(title="Updated At")]
+    id: str = Field(..., title='Id')
+    name: str = Field(..., title='Name')
+    settings: dict[str, Any] = Field(..., title='Settings')
+    updated_at: str = Field(..., title='Updated At')
 
 
 class TenantStatus(Enum):
@@ -2910,22 +2175,22 @@ class TenantStatus(Enum):
     Lifecycle status of a tenant.
     """
 
-    active = "active"
-    suspended = "suspended"
-    deleted = "deleted"
+    active = 'active'
+    suspended = 'suspended'
+    deleted = 'deleted'
 
 
 class TenantSummary(BaseModel):
-    id: Annotated[str, Field(title="Id")]
-    name: Annotated[str, Field(title="Name")]
-    slug: Annotated[str, Field(title="Slug")]
-    status: Annotated[str, Field(title="Status")]
-    tier_id: Annotated[str, Field(title="Tier Id")]
-    settings: Annotated[dict[str, Any], Field(title="Settings")]
+    id: str = Field(..., title='Id')
+    name: str = Field(..., title='Name')
+    slug: str = Field(..., title='Slug')
+    status: str = Field(..., title='Status')
+    tier_id: str = Field(..., title='Tier Id')
+    settings: dict[str, Any] = Field(..., title='Settings')
 
 
 class Name(RootModel[str]):
-    root: Annotated[str, Field(max_length=200, min_length=1, title="Name")]
+    root: str = Field(..., max_length=200, min_length=1, title='Name')
 
 
 class TenantUpdateRequest(BaseModel):
@@ -2933,9 +2198,9 @@ class TenantUpdateRequest(BaseModel):
     Payload to update tenant metadata.
     """
 
-    name: Annotated[Name | None, Field(title="Name")] = None
+    name: Name | None = Field(None, title='Name')
     status: TenantStatus | None = None
-    settings: Annotated[dict[str, Any] | None, Field(title="Settings")] = None
+    settings: dict[str, Any] | None = Field(None, title='Settings')
 
 
 class TenantUserInfo(BaseModel):
@@ -2943,11 +2208,11 @@ class TenantUserInfo(BaseModel):
     User information for tenant listing.
     """
 
-    id: Annotated[str, Field(title="Id")]
-    email: Annotated[str, Field(title="Email")]
-    role: Annotated[str, Field(title="Role")]
-    created_at: Annotated[str, Field(title="Created At")]
-    last_login: Annotated[str | None, Field(title="Last Login")]
+    id: str = Field(..., title='Id')
+    email: str = Field(..., title='Email')
+    role: str = Field(..., title='Role')
+    created_at: str = Field(..., title='Created At')
+    last_login: str | None = Field(..., title='Last Login')
 
 
 class TierInfo(BaseModel):
@@ -2955,11 +2220,11 @@ class TierInfo(BaseModel):
     Tier information for public listing.
     """
 
-    id: Annotated[str, Field(title="Id")]
-    name: Annotated[str, Field(title="Name")]
-    description: Annotated[str, Field(title="Description")]
-    limits: Annotated[dict[str, Any], Field(title="Limits")]
-    features: Annotated[dict[str, Any], Field(title="Features")]
+    id: str = Field(..., title='Id')
+    name: str = Field(..., title='Name')
+    description: str = Field(..., title='Description')
+    limits: dict[str, Any] = Field(..., title='Limits')
+    features: dict[str, Any] = Field(..., title='Features')
 
 
 class ToolCategory(Enum):
@@ -2967,12 +2232,12 @@ class ToolCategory(Enum):
     Categories of tools.
     """
 
-    knowledge = "knowledge"
-    calculation = "calculation"
-    crm = "crm"
-    generation = "generation"
-    integration = "integration"
-    utility = "utility"
+    knowledge = 'knowledge'
+    calculation = 'calculation'
+    crm = 'crm'
+    generation = 'generation'
+    integration = 'integration'
+    utility = 'utility'
 
 
 class ToolCategoryItem(BaseModel):
@@ -2980,8 +2245,8 @@ class ToolCategoryItem(BaseModel):
     Single tool category metadata item.
     """
 
-    id: Annotated[str, Field(title="Id")]
-    name: Annotated[str, Field(title="Name")]
+    id: str = Field(..., title='Id')
+    name: str = Field(..., title='Name')
 
 
 class ToolInvokeRequest(BaseModel):
@@ -2989,11 +2254,10 @@ class ToolInvokeRequest(BaseModel):
     Tool invocation request.
     """
 
-    tool_name: Annotated[str, Field(description="Name of tool to invoke", title="Tool Name")]
-    input_data: Annotated[
-        dict[str, Any] | None,
-        Field(description="Tool input parameters", title="Input Data"),
-    ] = None
+    tool_name: str = Field(..., description='Name of tool to invoke', title='Tool Name')
+    input_data: dict[str, Any] | None = Field(
+        None, description='Tool input parameters', title='Input Data'
+    )
 
 
 class ToolInvokeResponse(BaseModel):
@@ -3001,10 +2265,10 @@ class ToolInvokeResponse(BaseModel):
     Tool invocation response.
     """
 
-    tool_name: Annotated[str, Field(title="Tool Name")]
-    success: Annotated[bool, Field(title="Success")]
-    result: Annotated[dict[str, Any] | None, Field(title="Result")] = None
-    error: Annotated[str | None, Field(title="Error")] = None
+    tool_name: str = Field(..., title='Tool Name')
+    success: bool = Field(..., title='Success')
+    result: dict[str, Any] | None = Field(None, title='Result')
+    error: str | None = Field(None, title='Error')
 
 
 class ToolListResponse(BaseModel):
@@ -3012,11 +2276,11 @@ class ToolListResponse(BaseModel):
     Tool list response.
     """
 
-    name: Annotated[str, Field(title="Name")]
-    category: Annotated[str, Field(title="Category")]
-    description: Annotated[str, Field(title="Description")]
-    timeout_seconds: Annotated[int, Field(title="Timeout Seconds")]
-    requires_auth: Annotated[bool, Field(title="Requires Auth")]
+    name: str = Field(..., title='Name')
+    category: str = Field(..., title='Category')
+    description: str = Field(..., title='Description')
+    timeout_seconds: int = Field(..., title='Timeout Seconds')
+    requires_auth: bool = Field(..., title='Requires Auth')
 
 
 class ToolSchemaExample(BaseModel):
@@ -3024,8 +2288,8 @@ class ToolSchemaExample(BaseModel):
     Single tool example preserving arbitrary JSON-shaped payloads.
     """
 
-    input: Annotated[dict[str, Any] | None, Field(title="Input")] = None
-    output: Annotated[dict[str, Any] | None, Field(title="Output")] = None
+    input: dict[str, Any] | None = Field(None, title='Input')
+    output: dict[str, Any] | None = Field(None, title='Output')
 
 
 class ToolSchemaResponse(BaseModel):
@@ -3033,109 +2297,21 @@ class ToolSchemaResponse(BaseModel):
     Typed response model for a single tool schema.
     """
 
-    name: Annotated[str, Field(title="Name")]
+    name: str = Field(..., title='Name')
     category: ToolCategory
-    description: Annotated[str, Field(title="Description")]
-    input_schema: Annotated[dict[str, Any] | None, Field(title="Input Schema")] = None
-    output_schema: Annotated[dict[str, Any] | None, Field(title="Output Schema")] = None
-    examples: Annotated[list[ToolSchemaExample] | None, Field(title="Examples")] = None
-    timeout_seconds: Annotated[int, Field(title="Timeout Seconds")]
-    requires_auth: Annotated[bool, Field(title="Requires Auth")]
-
-
-class TraceEventResponse(BaseModel):
-    """
-    Trace event emitted on state transitions.
-    """
-
-    model_config = ConfigDict(
-        extra="forbid",
-    )
-    trace_id: Annotated[str, Field(title="Trace Id")]
-    run_id: Annotated[str, Field(title="Run Id")]
-    tenant_id: Annotated[str, Field(title="Tenant Id")]
-    from_state: HarnessState | None
-    to_state: HarnessState | None
-    event_type: Annotated[str, Field(title="Event Type")]
-    timestamp: Annotated[AwareDatetime, Field(title="Timestamp")]
-
-
-class TransitionResponse(BaseModel):
-    """
-    Response for a successful state transition.
-    """
-
-    model_config = ConfigDict(
-        extra="forbid",
-    )
-    run: RunResponse
-    trace_event: TraceEventResponse | None = None
-
-
-class UpdatePlanRequest(BaseModel):
-    plan_id: Annotated[str, Field(description="Target plan (pro, enterprise)", title="Plan Id")]
+    description: str = Field(..., title='Description')
+    input_schema: dict[str, Any] | None = Field(None, title='Input Schema')
+    output_schema: dict[str, Any] | None = Field(None, title='Output Schema')
+    examples: list[ToolSchemaExample] | None = Field(None, title='Examples')
+    timeout_seconds: int = Field(..., title='Timeout Seconds')
+    requires_auth: bool = Field(..., title='Requires Auth')
 
 
 class UpdateTaskRequest(BaseModel):
     status: TaskStatus | None = None
-    assignee: Annotated[Assignee | None, Field(title="Assignee")] = None
-    due_date: Annotated[str | None, Field(title="Due Date")] = None
-    stage: Annotated[Stage1 | None, Field(title="Stage")] = None
-
-
-class Unit(RootModel[str]):
-    root: Annotated[str, Field(description="Unit of measure", max_length=32, title="Unit")]
-
-
-class UsageEventRequest(BaseModel):
-    """
-    Request body for ingesting a single usage event.
-    """
-
-    event_id: Annotated[
-        str,
-        Field(
-            description="Idempotency key",
-            max_length=128,
-            min_length=1,
-            title="Event Id",
-        ),
-    ]
-    customer_id: Annotated[
-        str,
-        Field(
-            description="Customer identifier",
-            max_length=64,
-            min_length=1,
-            title="Customer Id",
-        ),
-    ]
-    event_name: Annotated[
-        str,
-        Field(
-            description="Logical event name",
-            max_length=128,
-            min_length=1,
-            title="Event Name",
-        ),
-    ]
-    metric_name: Annotated[
-        str,
-        Field(
-            description="Metered metric name",
-            max_length=64,
-            min_length=1,
-            title="Metric Name",
-        ),
-    ]
-    quantity: Annotated[float, Field(description="Quantity to record", ge=0.0, title="Quantity")]
-    unit: Annotated[Unit | None, Field(description="Unit of measure", title="Unit")] = None
-    timestamp: Annotated[
-        AwareDatetime, Field(description="Event timestamp (UTC)", title="Timestamp")
-    ]
-    metadata: Annotated[
-        dict[str, Any] | None, Field(description="Optional metadata", title="Metadata")
-    ] = None
+    assignee: Assignee | None = Field(None, title='Assignee')
+    due_date: str | None = Field(None, title='Due Date')
+    stage: Stage1 | None = Field(None, title='Stage')
 
 
 class UsageMetricsResponse(BaseModel):
@@ -3143,27 +2319,11 @@ class UsageMetricsResponse(BaseModel):
     Usage metrics response.
     """
 
-    tenant_id: Annotated[str, Field(title="Tenant Id")]
-    period: Annotated[dict[str, Any], Field(title="Period")]
-    api_calls: Annotated[dict[str, Any], Field(title="Api Calls")]
-    agent_executions: Annotated[dict[str, Any], Field(title="Agent Executions")]
-    llm_usage: Annotated[dict[str, Any], Field(title="Llm Usage")]
-
-
-class UserAcceptInviteRequest(BaseModel):
-    """
-    Accept an invitation by setting a password and activating the account.
-    """
-
-    token: Annotated[
-        str,
-        Field(description="Invitation token from email", min_length=1, title="Token"),
-    ]
-    password: Annotated[
-        str,
-        Field(description="Password for the new account", min_length=12, title="Password"),
-    ]
-    display_name: Annotated[str | None, Field(title="Display Name")] = None
+    tenant_id: str = Field(..., title='Tenant Id')
+    period: dict[str, Any] = Field(..., title='Period')
+    api_calls: dict[str, Any] = Field(..., title='Api Calls')
+    agent_executions: dict[str, Any] = Field(..., title='Agent Executions')
+    llm_usage: dict[str, Any] = Field(..., title='Llm Usage')
 
 
 class UserInviteRequest(BaseModel):
@@ -3171,9 +2331,9 @@ class UserInviteRequest(BaseModel):
     Invite a new user to the tenant (tenant_admin only).
     """
 
-    email: Annotated[str, Field(description="Email to invite", title="Email")]
-    display_name: Annotated[str | None, Field(title="Display Name")] = None
-    role: Role | None = Role.analyst
+    email: str = Field(..., description='Email to invite', title='Email')
+    display_name: str | None = Field(None, title='Display Name')
+    role: Role | None = 'analyst'
 
 
 class UserStatus(Enum):
@@ -3181,9 +2341,9 @@ class UserStatus(Enum):
     Lifecycle status of a user.
     """
 
-    invited = "invited"
-    active = "active"
-    deactivated = "deactivated"
+    invited = 'invited'
+    active = 'active'
+    deactivated = 'deactivated'
 
 
 class UserUpdateRequest(BaseModel):
@@ -3191,20 +2351,9 @@ class UserUpdateRequest(BaseModel):
     Update a user's role or status.
     """
 
-    display_name: Annotated[str | None, Field(title="Display Name")] = None
+    display_name: str | None = Field(None, title='Display Name')
     role: Role | None = None
     status: UserStatus | None = None
-
-
-class ValidateClaimsRequest(BaseModel):
-    """
-    Request body for POST /v1/harness/runs/{run_id}/validate.
-    """
-
-    model_config = ConfigDict(
-        extra="forbid",
-    )
-    claims: Annotated[list[ClaimValidationRequest], Field(title="Claims")]
 
 
 class ValidateHypothesisRequest(BaseModel):
@@ -3212,23 +2361,19 @@ class ValidateHypothesisRequest(BaseModel):
     Request to validate or reject a hypothesis.
     """
 
-    feedback: Annotated[str, Field(max_length=2000, min_length=1, title="Feedback")]
-    new_status: Annotated[
-        str | None,
-        Field(
-            description="New status: validated, rejected, or converted",
-            title="New Status",
-        ),
-    ] = None
-    confidence_adjustment: Annotated[
-        float | None,
-        Field(
-            description="Additive confidence adjustment",
-            ge=-1.0,
-            le=1.0,
-            title="Confidence Adjustment",
-        ),
-    ] = 0.0
+    feedback: str = Field(..., max_length=2000, min_length=1, title='Feedback')
+    new_status: str | None = Field(
+        None,
+        description='New status: validated, rejected, or converted',
+        title='New Status',
+    )
+    confidence_adjustment: float | None = Field(
+        0.0,
+        description='Additive confidence adjustment',
+        ge=-1.0,
+        le=1.0,
+        title='Confidence Adjustment',
+    )
 
 
 class ValidateSlugResponse(BaseModel):
@@ -3236,23 +2381,23 @@ class ValidateSlugResponse(BaseModel):
     Response for slug validation.
     """
 
-    slug: Annotated[str, Field(title="Slug")]
-    available: Annotated[bool, Field(title="Available")]
+    slug: str = Field(..., title='Slug')
+    available: bool = Field(..., title='Available')
 
 
 class ValidateTruthRequest(BaseModel):
-    action: Annotated[str, Field(title="Action")]
-    actor: Annotated[str, Field(title="Actor")]
-    actor_type: Annotated[str | None, Field(title="Actor Type")] = "user"
-    notes: Annotated[str | None, Field(title="Notes")] = None
+    action: str = Field(..., title='Action')
+    actor: str = Field(..., title='Actor')
+    actor_type: str | None = Field('user', title='Actor Type')
+    notes: str | None = Field(None, title='Notes')
 
 
 class ValidationError(BaseModel):
-    loc: Annotated[list[str | int], Field(title="Location")]
-    msg: Annotated[str, Field(title="Message")]
-    type: Annotated[str, Field(title="Error Type")]
-    input: Annotated[Any | None, Field(title="Input")] = None
-    ctx: Annotated[dict[str, Any] | None, Field(title="Context")] = None
+    loc: list[str | int] = Field(..., title='Location')
+    msg: str = Field(..., title='Message')
+    type: str = Field(..., title='Error Type')
+    input: Any | None = Field(None, title='Input')
+    ctx: dict[str, Any] | None = Field(None, title='Context')
 
 
 class ValidationSeededApiKey(BaseModel):
@@ -3261,17 +2406,20 @@ class ValidationSeededApiKey(BaseModel):
     """
 
     model_config = ConfigDict(
-        extra="forbid",
+        extra='forbid',
     )
-    key_id: Annotated[str, Field(max_length=64, min_length=3, title="Key Id")]
-    name: Annotated[str | None, Field(max_length=100, min_length=1, title="Name")] = (
-        "E2E backend-integrated validation service key"
+    key_id: str = Field(..., max_length=64, min_length=3, title='Key Id')
+    name: str | None = Field(
+        'E2E backend-integrated validation service key',
+        max_length=100,
+        min_length=1,
+        title='Name',
     )
-    key_hash: Annotated[str, Field(pattern="^[a-f0-9]{64}$", title="Key Hash")]
-    prefix: Annotated[str, Field(max_length=16, min_length=4, title="Prefix")]
-    role: Annotated[str | None, Field(max_length=30, min_length=1, title="Role")] = "system"
-    permissions: Annotated[list[str] | None, Field(title="Permissions")] = None
-    metadata: Annotated[dict[str, Any] | None, Field(title="Metadata")] = None
+    key_hash: str = Field(..., pattern='^[a-f0-9]{64}$', title='Key Hash')
+    prefix: str = Field(..., max_length=16, min_length=4, title='Prefix')
+    role: str | None = Field('system', max_length=30, min_length=1, title='Role')
+    permissions: list[str] | None = Field(None, title='Permissions')
+    metadata: dict[str, Any] | None = Field(None, title='Metadata')
 
 
 class ValidationSessionRequest(BaseModel):
@@ -3279,41 +2427,13 @@ class ValidationSessionRequest(BaseModel):
     Non-production browser session payload for backend-integrated Playwright validation.
     """
 
-    user_id: Annotated[str | None, Field(min_length=1, title="User Id")] = "e2e-admin-user"
-    email: Annotated[str | None, Field(min_length=3, title="Email")] = "e2e@valuefabric.test"
-    role: Annotated[str | None, Field(min_length=1, title="Role")] = "admin"
-    tenant_slug: Annotated[str | None, Field(min_length=1, title="Tenant Slug")] = "e2e-test"
-    expires_in_seconds: Annotated[
-        int | None, Field(ge=60, le=86400, title="Expires In Seconds")
-    ] = 3600
-
-
-class ValidationState(Enum):
-    """
-    Result of claim validation.
-    """
-
-    passed = "passed"
-    failed = "failed"
-    needs_review = "needs_review"
-    insufficient_evidence = "insufficient_evidence"
-
-
-class ValidationSummaryResponse(BaseModel):
-    """
-    Aggregate publish decision across all validated claims.
-    """
-
-    model_config = ConfigDict(
-        extra="forbid",
+    user_id: str | None = Field('e2e-admin-user', min_length=1, title='User Id')
+    email: str | None = Field('e2e@valuefabric.test', min_length=3, title='Email')
+    role: str | None = Field('admin', min_length=1, title='Role')
+    tenant_slug: str | None = Field('e2e-test', min_length=1, title='Tenant Slug')
+    expires_in_seconds: int | None = Field(
+        3600, ge=60, le=86400, title='Expires In Seconds'
     )
-    total: Annotated[int, Field(title="Total")]
-    passed: Annotated[int, Field(title="Passed")]
-    failed: Annotated[int, Field(title="Failed")]
-    needs_review: Annotated[int, Field(title="Needs Review")]
-    insufficient_evidence: Annotated[int, Field(title="Insufficient Evidence")]
-    can_publish: Annotated[bool, Field(title="Can Publish")]
-    requires_human_review: Annotated[bool, Field(title="Requires Human Review")]
 
 
 class ValueExtractionRecordResponse(BaseModel):
@@ -3321,22 +2441,22 @@ class ValueExtractionRecordResponse(BaseModel):
     Extraction record in API responses.
     """
 
-    id: Annotated[UUID, Field(title="Id")]
-    source_id: Annotated[UUID, Field(title="Source Id")]
-    tenant_id: Annotated[str, Field(title="Tenant Id")]
-    profile_id: Annotated[UUID, Field(title="Profile Id")]
+    id: UUID = Field(..., title='Id')
+    source_id: UUID = Field(..., title='Source Id')
+    tenant_id: str = Field(..., title='Tenant Id')
+    profile_id: UUID = Field(..., title='Profile Id')
     page_type: PageType | None = None
-    extracted: Annotated[dict[str, Any], Field(title="Extracted")]
-    confidence: Annotated[Confidence1 | None, Field(title="Confidence")] = None
-    requires_review: Annotated[bool, Field(title="Requires Review")]
+    extracted: dict[str, Any] = Field(..., title='Extracted')
+    confidence: Confidence | None = Field(None, title='Confidence')
+    requires_review: bool = Field(..., title='Requires Review')
     review_status: ReviewStatus
-    reviewed_by: Annotated[UUID | None, Field(title="Reviewed By")] = None
-    reviewed_at: Annotated[AwareDatetime | None, Field(title="Reviewed At")] = None
-    extraction_version: Annotated[str | None, Field(title="Extraction Version")] = None
-    llm_model: Annotated[str | None, Field(title="Llm Model")] = None
-    trace_span_id: Annotated[str | None, Field(title="Trace Span Id")] = None
-    created_at: Annotated[AwareDatetime, Field(title="Created At")]
-    updated_at: Annotated[AwareDatetime, Field(title="Updated At")]
+    reviewed_by: UUID | None = Field(None, title='Reviewed By')
+    reviewed_at: AwareDatetime | None = Field(None, title='Reviewed At')
+    extraction_version: str | None = Field(None, title='Extraction Version')
+    llm_model: str | None = Field(None, title='Llm Model')
+    trace_span_id: str | None = Field(None, title='Trace Span Id')
+    created_at: AwareDatetime = Field(..., title='Created At')
+    updated_at: AwareDatetime = Field(..., title='Updated At')
 
 
 class ValueExtractionReviewRequest(BaseModel):
@@ -3344,15 +2464,13 @@ class ValueExtractionReviewRequest(BaseModel):
     Request to review an extraction record.
     """
 
-    action: Annotated[ReviewStatus, Field(description="accepted | rejected | modified")]
-    user_edits: Annotated[
-        dict[str, Any] | None,
-        Field(
-            description="Modified extracted fields when action=modified",
-            title="User Edits",
-        ),
-    ] = None
-    notes: Annotated[str | None, Field(title="Notes")] = None
+    action: ReviewStatus = Field(..., description='accepted | rejected | modified')
+    user_edits: dict[str, Any] | None = Field(
+        None,
+        description='Modified extracted fields when action=modified',
+        title='User Edits',
+    )
+    notes: str | None = Field(None, title='Notes')
 
 
 class VerifyEmailRequest(BaseModel):
@@ -3360,7 +2478,7 @@ class VerifyEmailRequest(BaseModel):
     Request to verify email address.
     """
 
-    token: Annotated[str, Field(title="Token")]
+    token: str = Field(..., title='Token')
 
 
 class VerifyEmailResponse(BaseModel):
@@ -3368,37 +2486,37 @@ class VerifyEmailResponse(BaseModel):
     Response from email verification.
     """
 
-    message: Annotated[str, Field(title="Message")]
-    tenant_id: Annotated[str, Field(title="Tenant Id")]
-    status: Annotated[str, Field(title="Status")]
+    message: str = Field(..., title='Message')
+    tenant_id: str = Field(..., title='Tenant Id')
+    status: str = Field(..., title='Status')
 
 
 class VersionDiff(BaseModel):
-    version_id: Annotated[str, Field(title="Version Id")]
-    compare_to_version_id: Annotated[str, Field(title="Compare To Version Id")]
-    changed_fields: Annotated[list[str], Field(title="Changed Fields")]
-    change_count: Annotated[int, Field(title="Change Count")]
+    version_id: str = Field(..., title='Version Id')
+    compare_to_version_id: str = Field(..., title='Compare To Version Id')
+    changed_fields: list[str] = Field(..., title='Changed Fields')
+    change_count: int = Field(..., title='Change Count')
     lineage: LineageRef
 
 
 class VersionStatus(Enum):
-    active = "active"
-    superseded = "superseded"
+    active = 'active'
+    superseded = 'superseded'
 
 
 class ObjectType(Enum):
-    business_case = "business_case"
-    value_model = "value_model"
+    business_case = 'business_case'
+    value_model = 'value_model'
 
 
 class VersionRecord(BaseModel):
-    version_id: Annotated[str, Field(title="Version Id")]
-    version_status: Annotated[VersionStatus, Field(title="Version Status")]
+    version_id: str = Field(..., title='Version Id')
+    version_status: VersionStatus = Field(..., title='Version Status')
     lineage: LineageRef
-    created_at: Annotated[AwareDatetime, Field(title="Created At")]
-    object_type: Annotated[ObjectType | None, Field(title="Object Type")] = ObjectType.business_case
-    snapshot: Annotated[dict[str, Any] | None, Field(title="Snapshot")] = None
-    immutable_audit_hash: Annotated[str | None, Field(title="Immutable Audit Hash")] = None
+    created_at: AwareDatetime = Field(..., title='Created At')
+    object_type: ObjectType | None = Field('business_case', title='Object Type')
+    snapshot: dict[str, Any] | None = Field(None, title='Snapshot')
+    immutable_audit_hash: str | None = Field(None, title='Immutable Audit Hash')
 
 
 class WebSocketStatusResponse(BaseModel):
@@ -3406,23 +2524,20 @@ class WebSocketStatusResponse(BaseModel):
     WebSocket connection status.
     """
 
-    status: Annotated[
-        str, Field(description="connected, disconnected, or connecting", title="Status")
-    ]
-    active_workflows: Annotated[
-        int,
-        Field(
-            description="Number of workflows with active connections",
-            title="Active Workflows",
-        ),
-    ]
-    total_connections: Annotated[int, Field(title="Total Connections")]
-    reconnect_attempts: Annotated[int, Field(title="Reconnect Attempts")]
-    last_event_id: Annotated[str | None, Field(title="Last Event Id")]
-    connection_quality: Annotated[
-        str,
-        Field(description="excellent, good, fair, or poor", title="Connection Quality"),
-    ]
+    status: str = Field(
+        ..., description='connected, disconnected, or connecting', title='Status'
+    )
+    active_workflows: int = Field(
+        ...,
+        description='Number of workflows with active connections',
+        title='Active Workflows',
+    )
+    total_connections: int = Field(..., title='Total Connections')
+    reconnect_attempts: int = Field(..., title='Reconnect Attempts')
+    last_event_id: str | None = Field(..., title='Last Event Id')
+    connection_quality: str = Field(
+        ..., description='excellent, good, fair, or poor', title='Connection Quality'
+    )
 
 
 class WebhookProvisioningResponse(BaseModel):
@@ -3430,10 +2545,10 @@ class WebhookProvisioningResponse(BaseModel):
     Response from webhook provisioning request.
     """
 
-    message: Annotated[str, Field(title="Message")]
-    tenant_id: Annotated[str, Field(title="Tenant Id")]
-    status: Annotated[str, Field(title="Status")]
-    webhook_id: Annotated[str | None, Field(title="Webhook Id")] = None
+    message: str = Field(..., title='Message')
+    tenant_id: str = Field(..., title='Tenant Id')
+    status: str = Field(..., title='Status')
+    webhook_id: str | None = Field(None, title='Webhook Id')
 
 
 class WhitespaceAnalysisRequest(BaseModel):
@@ -3441,19 +2556,20 @@ class WhitespaceAnalysisRequest(BaseModel):
     Whitespace analysis request.
     """
 
-    prospect_id: Annotated[str, Field(description="Prospect identifier", title="Prospect Id")]
-    prospect_needs: Annotated[
-        str,
-        Field(
-            description="Description of prospect needs",
-            min_length=10,
-            title="Prospect Needs",
-        ),
-    ]
-    analysis_depth: Annotated[
-        str | None,
-        Field(description="Analysis depth (quick, standard, deep)", title="Analysis Depth"),
-    ] = "standard"
+    prospect_id: str = Field(
+        ..., description='Prospect identifier', title='Prospect Id'
+    )
+    prospect_needs: str = Field(
+        ...,
+        description='Description of prospect needs',
+        min_length=10,
+        title='Prospect Needs',
+    )
+    analysis_depth: str | None = Field(
+        'standard',
+        description='Analysis depth (quick, standard, deep)',
+        title='Analysis Depth',
+    )
 
 
 class WhitespaceAnalysisResponse(BaseModel):
@@ -3461,16 +2577,11 @@ class WhitespaceAnalysisResponse(BaseModel):
     Whitespace analysis response.
     """
 
-    prospect_id: Annotated[str, Field(title="Prospect Id")]
-    extracted_needs: Annotated[list[str], Field(title="Extracted Needs")]
-    gap_analysis: Annotated[list[dict[str, Any]], Field(title="Gap Analysis")]
-    opportunity_score: Annotated[float, Field(title="Opportunity Score")]
-    recommendations: Annotated[list[str], Field(title="Recommendations")]
-
-
-class WorkflowCancelResponse(BaseModel):
-    workflow_id: Annotated[str, Field(title="Workflow Id")]
-    status: Annotated[Literal["cancelled"], Field(title="Status")]
+    prospect_id: str = Field(..., title='Prospect Id')
+    extracted_needs: list[str] = Field(..., title='Extracted Needs')
+    gap_analysis: list[dict[str, Any]] = Field(..., title='Gap Analysis')
+    opportunity_score: float = Field(..., title='Opportunity Score')
+    recommendations: list[str] = Field(..., title='Recommendations')
 
 
 class WorkflowType(Enum):
@@ -3478,11 +2589,11 @@ class WorkflowType(Enum):
     Type of workflow to run
     """
 
-    business_case_generation = "business_case_generation"
-    business_case = "business_case"
-    roi_calculator = "roi_calculator"
-    whitespace_analysis = "whitespace_analysis"
-    orchestrator = "orchestrator"
+    business_case_generation = 'business_case_generation'
+    business_case = 'business_case'
+    roi_calculator = 'roi_calculator'
+    whitespace_analysis = 'whitespace_analysis'
+    orchestrator = 'orchestrator'
 
 
 class WorkflowCreateResponse(BaseModel):
@@ -3495,12 +2606,11 @@ class WorkflowCreateResponse(BaseModel):
     - estimated_duration_seconds: integer
     """
 
-    workflow_instance_id: Annotated[str, Field(title="Workflow Instance Id")]
-    status: Annotated[str, Field(description="Workflow status", title="Status")]
-    estimated_duration_seconds: Annotated[
-        int | None,
-        Field(description="Estimated execution time", title="Estimated Duration Seconds"),
-    ] = 300
+    workflow_instance_id: str = Field(..., title='Workflow Instance Id')
+    status: str = Field(..., description='Workflow status', title='Status')
+    estimated_duration_seconds: int | None = Field(
+        300, description='Estimated execution time', title='Estimated Duration Seconds'
+    )
 
 
 class WorkflowInputs(BaseModel):
@@ -3508,60 +2618,39 @@ class WorkflowInputs(BaseModel):
     Workflow inputs wrapper per spec.
     """
 
-    prospect_id: Annotated[str | None, Field(title="Prospect Id")] = None
-    prospect_company: Annotated[str | None, Field(title="Prospect Company")] = None
-    use_case_ids: Annotated[list[str] | None, Field(title="Use Case Ids")] = None
-    prospect_metrics: Annotated[dict[str, Any] | None, Field(title="Prospect Metrics")] = None
-    custom_data: Annotated[dict[str, Any] | None, Field(title="Custom Data")] = None
+    prospect_id: str | None = Field(None, title='Prospect Id')
+    prospect_company: str | None = Field(None, title='Prospect Company')
+    use_case_ids: list[str] | None = Field(None, title='Use Case Ids')
+    prospect_metrics: dict[str, Any] | None = Field(None, title='Prospect Metrics')
+    custom_data: dict[str, Any] | None = Field(None, title='Custom Data')
 
 
-class Status3(Enum):
-    pending = "pending"
-    running = "running"
-    paused = "paused"
-    interrupted = "interrupted"
-    completed = "completed"
-    failed = "failed"
-    cancelled = "cancelled"
+class Status2(Enum):
+    pending = 'pending'
+    running = 'running'
+    paused = 'paused'
+    interrupted = 'interrupted'
+    completed = 'completed'
+    failed = 'failed'
+    cancelled = 'cancelled'
 
 
 class WorkflowListItem(BaseModel):
-    id: Annotated[str, Field(title="Id")]
-    name: Annotated[str, Field(title="Name")]
-    workflow_type: Annotated[str, Field(title="Workflow Type")]
-    status: Annotated[Status3, Field(title="Status")]
-    progress: Annotated[float | None, Field(ge=0.0, le=100.0, title="Progress")] = 0.0
-    created_at: Annotated[str | None, Field(title="Created At")] = None
-    updated_at: Annotated[str | None, Field(title="Updated At")] = None
+    id: str = Field(..., title='Id')
+    name: str = Field(..., title='Name')
+    workflow_type: str = Field(..., title='Workflow Type')
+    status: Status2 = Field(..., title='Status')
+    progress: float | None = Field(0.0, ge=0.0, le=100.0, title='Progress')
+    created_at: str | None = Field(None, title='Created At')
+    updated_at: str | None = Field(None, title='Updated At')
 
 
 class WorkflowListResponse(BaseModel):
-    items: Annotated[list[WorkflowListItem], Field(title="Items")]
-    total: Annotated[int, Field(title="Total")]
-    limit: Annotated[int, Field(title="Limit")]
-    offset: Annotated[int, Field(title="Offset")]
-    has_more: Annotated[bool, Field(title="Has More")]
-
-
-class WorkflowOutput(BaseModel):
-    """
-    Structured workflow output envelope for completed workflow results.
-    """
-
-    model_config = ConfigDict(
-        extra="allow",
-    )
-    data: Annotated[Any | None, Field(title="Data")] = None
-    summary: Annotated[str | None, Field(title="Summary")] = None
-    artifacts: Annotated[list[dict[str, Any]] | None, Field(title="Artifacts")] = None
-    metrics: Annotated[dict[str, Any] | None, Field(title="Metrics")] = None
-    reasoning_trace: Annotated[
-        dict[str, Any] | None,
-        Field(
-            description="Structured reasoning trace for agent outputs",
-            title="Reasoning Trace",
-        ),
-    ] = None
+    items: list[WorkflowListItem] = Field(..., title='Items')
+    total: int = Field(..., title='Total')
+    limit: int = Field(..., title='Limit')
+    offset: int = Field(..., title='Offset')
+    has_more: bool = Field(..., title='Has More')
 
 
 class WorkflowPauseRequest(BaseModel):
@@ -3569,9 +2658,9 @@ class WorkflowPauseRequest(BaseModel):
     Request to pause a running workflow.
     """
 
-    user_id: Annotated[str, Field(description="User pausing the workflow", title="User Id")]
-    reason: Annotated[str | None, Field(description="Reason for pausing", title="Reason")] = None
-    tenant_id: Annotated[str | None, Field(title="Tenant Id")] = None
+    user_id: str = Field(..., description='User pausing the workflow', title='User Id')
+    reason: str | None = Field(None, description='Reason for pausing', title='Reason')
+    tenant_id: str | None = Field(None, title='Tenant Id')
 
 
 class WorkflowPauseResponse(BaseModel):
@@ -3579,13 +2668,15 @@ class WorkflowPauseResponse(BaseModel):
     Response from workflow pause.
     """
 
-    workflow_instance_id: Annotated[str, Field(title="Workflow Instance Id")]
-    status: Annotated[str, Field(description="paused", title="Status")]
-    paused_at: Annotated[str, Field(description="ISO timestamp when paused", title="Paused At")]
-    current_node: Annotated[
-        str | None, Field(description="Current node when paused", title="Current Node")
-    ] = None
-    message: Annotated[str, Field(title="Message")]
+    workflow_instance_id: str = Field(..., title='Workflow Instance Id')
+    status: str = Field(..., description='paused', title='Status')
+    paused_at: str = Field(
+        ..., description='ISO timestamp when paused', title='Paused At'
+    )
+    current_node: str | None = Field(
+        None, description='Current node when paused', title='Current Node'
+    )
+    message: str = Field(..., title='Message')
 
 
 class WorkflowProgressActionableState(BaseModel):
@@ -3593,21 +2684,21 @@ class WorkflowProgressActionableState(BaseModel):
     Actionable next state for UI guidance.
     """
 
-    can_retry: Annotated[bool | None, Field(title="Can Retry")] = False
-    can_resume: Annotated[bool | None, Field(title="Can Resume")] = False
-    can_cancel: Annotated[bool | None, Field(title="Can Cancel")] = False
-    requires_user_action: Annotated[bool | None, Field(title="Requires User Action")] = False
-    next_action: Annotated[str | None, Field(title="Next Action")] = None
+    can_retry: bool | None = Field(False, title='Can Retry')
+    can_resume: bool | None = Field(False, title='Can Resume')
+    can_cancel: bool | None = Field(False, title='Can Cancel')
+    requires_user_action: bool | None = Field(False, title='Requires User Action')
+    next_action: str | None = Field(None, title='Next Action')
 
 
-class Status4(Enum):
-    pending = "pending"
-    running = "running"
-    paused = "paused"
-    completed = "completed"
-    failed = "failed"
-    cancelled = "cancelled"
-    unknown = "unknown"
+class Status3(Enum):
+    pending = 'pending'
+    running = 'running'
+    paused = 'paused'
+    completed = 'completed'
+    failed = 'failed'
+    cancelled = 'cancelled'
+    unknown = 'unknown'
 
 
 class WorkflowProgressSchema(BaseModel):
@@ -3615,39 +2706,14 @@ class WorkflowProgressSchema(BaseModel):
     Frontend-facing normalized progress model shared by polling/streaming.
     """
 
-    step_id: Annotated[str | None, Field(title="Step Id")] = None
-    status: Annotated[Status4, Field(title="Status")]
-    percent: Annotated[float | None, Field(ge=0.0, le=100.0, title="Percent")] = 0.0
-    message: Annotated[str, Field(title="Message")]
-    started_at: Annotated[str | None, Field(title="Started At")] = None
-    updated_at: Annotated[str, Field(title="Updated At")]
-    completed_at: Annotated[str | None, Field(title="Completed At")] = None
+    step_id: str | None = Field(None, title='Step Id')
+    status: Status3 = Field(..., title='Status')
+    percent: float | None = Field(0.0, ge=0.0, le=100.0, title='Percent')
+    message: str = Field(..., title='Message')
+    started_at: str | None = Field(None, title='Started At')
+    updated_at: str = Field(..., title='Updated At')
+    completed_at: str | None = Field(None, title='Completed At')
     actionable_next_state: WorkflowProgressActionableState
-
-
-class Status5(Enum):
-    pending = "pending"
-    running = "running"
-    paused = "paused"
-    interrupted = "interrupted"
-    completed = "completed"
-    failed = "failed"
-    cancelled = "cancelled"
-
-
-class WorkflowResultResponse(BaseModel):
-    workflow_id: Annotated[str, Field(title="Workflow Id")]
-    run_id: Annotated[
-        str | None, Field(description="Distinct execution identifier", title="Run Id")
-    ] = None
-    trace_id: Annotated[
-        str | None,
-        Field(description="Cross-layer audit trace identifier", title="Trace Id"),
-    ] = None
-    status: Annotated[Status5, Field(title="Status")]
-    output: WorkflowOutput | None = None
-    errors: Annotated[list[str | dict[str, Any]] | None, Field(title="Errors")] = None
-    completed_at: Annotated[str | None, Field(title="Completed At")] = None
 
 
 class WorkflowResumeRequest(BaseModel):
@@ -3658,12 +2724,11 @@ class WorkflowResumeRequest(BaseModel):
     for user input or approval, then resumes with decision data.
     """
 
-    user_id: Annotated[str, Field(description="User resuming the workflow", title="User Id")]
-    resume_data: Annotated[
-        dict[str, Any] | None,
-        Field(description="Optional user decision/input data", title="Resume Data"),
-    ] = None
-    tenant_id: Annotated[str | None, Field(title="Tenant Id")] = None
+    user_id: str = Field(..., description='User resuming the workflow', title='User Id')
+    resume_data: dict[str, Any] | None = Field(
+        None, description='Optional user decision/input data', title='Resume Data'
+    )
+    tenant_id: str | None = Field(None, title='Tenant Id')
 
 
 class WorkflowResumeResponse(BaseModel):
@@ -3671,16 +2736,17 @@ class WorkflowResumeResponse(BaseModel):
     Response from workflow resume.
     """
 
-    workflow_instance_id: Annotated[str, Field(title="Workflow Instance Id")]
-    status: Annotated[str, Field(description="resumed, completed, or failed", title="Status")]
-    resumed_from_node: Annotated[
-        str | None,
-        Field(description="Node from which execution resumed", title="Resumed From Node"),
-    ] = None
-    message: Annotated[str, Field(title="Message")]
-    estimated_completion_seconds: Annotated[
-        int | None, Field(title="Estimated Completion Seconds")
-    ] = 60
+    workflow_instance_id: str = Field(..., title='Workflow Instance Id')
+    status: str = Field(
+        ..., description='resumed, completed, or failed', title='Status'
+    )
+    resumed_from_node: str | None = Field(
+        None, description='Node from which execution resumed', title='Resumed From Node'
+    )
+    message: str = Field(..., title='Message')
+    estimated_completion_seconds: int | None = Field(
+        60, title='Estimated Completion Seconds'
+    )
 
 
 class WorkflowStartStatus(Enum):
@@ -3688,10 +2754,20 @@ class WorkflowStartStatus(Enum):
     Status of workflow start operation.
     """
 
-    started = "started"
-    pending = "pending"
-    degraded = "degraded"
-    failed = "failed"
+    started = 'started'
+    pending = 'pending'
+    degraded = 'degraded'
+    failed = 'failed'
+
+
+class Status4(Enum):
+    pending = 'pending'
+    running = 'running'
+    paused = 'paused'
+    interrupted = 'interrupted'
+    completed = 'completed'
+    failed = 'failed'
+    cancelled = 'cancelled'
 
 
 class WorkflowStatusResponse(BaseModel):
@@ -3709,283 +2785,57 @@ class WorkflowStatusResponse(BaseModel):
     - results: object
     """
 
-    id: Annotated[str, Field(title="Id")]
-    workflow_type: Annotated[str, Field(title="Workflow Type")]
-    status: Annotated[Status5, Field(title="Status")]
-    current_state: Annotated[str | None, Field(title="Current State")] = None
-    current_node: Annotated[str | None, Field(title="Current Node")] = None
-    progress: Annotated[float | None, Field(ge=0.0, le=100.0, title="Progress")] = 0.0
-    started_at: Annotated[str | None, Field(title="Started At")] = None
-    completed_at: Annotated[str | None, Field(title="Completed At")] = None
-    error_count: Annotated[int | None, Field(title="Error Count")] = 0
-    has_output: Annotated[bool | None, Field(title="Has Output")] = False
-    results: Annotated[dict[str, Any] | None, Field(title="Results")] = None
-    tenant_id: Annotated[str | None, Field(title="Tenant Id")] = None
-    user_id: Annotated[str | None, Field(title="User Id")] = None
-    priority: Annotated[int | None, Field(title="Priority")] = None
-    scheduler_status: Annotated[str | None, Field(title="Scheduler Status")] = None
+    id: str = Field(..., title='Id')
+    workflow_type: str = Field(..., title='Workflow Type')
+    status: Status4 = Field(..., title='Status')
+    current_state: str | None = Field(None, title='Current State')
+    current_node: str | None = Field(None, title='Current Node')
+    progress: float | None = Field(0.0, ge=0.0, le=100.0, title='Progress')
+    started_at: str | None = Field(None, title='Started At')
+    completed_at: str | None = Field(None, title='Completed At')
+    error_count: int | None = Field(0, title='Error Count')
+    has_output: bool | None = Field(False, title='Has Output')
+    results: dict[str, Any] | None = Field(None, title='Results')
+    tenant_id: str | None = Field(None, title='Tenant Id')
+    user_id: str | None = Field(None, title='User Id')
+    priority: int | None = Field(None, title='Priority')
+    scheduler_status: str | None = Field(None, title='Scheduler Status')
     progress_meta: WorkflowProgressSchema | None = None
-    run_id: Annotated[
-        str | None, Field(description="Distinct execution identifier", title="Run Id")
-    ] = None
-    trace_id: Annotated[
-        str | None,
-        Field(description="Cross-layer audit trace identifier", title="Trace Id"),
-    ] = None
 
 
 class WorkspaceEvidenceItem(BaseModel):
-    id: Annotated[str, Field(title="Id")]
-    title: Annotated[str, Field(title="Title")]
-    type: Annotated[str | None, Field(title="Type")] = "evidence"
-    source: Annotated[str | None, Field(title="Source")] = "Unknown"
-    match_score: Annotated[int | None, Field(alias="matchScore", title="Matchscore")] = 0
-    verification: Annotated[str | None, Field(title="Verification")] = "unverified"
-    linked_signals: Annotated[
-        list[str] | None, Field(alias="linkedSignals", title="Linkedsignals")
-    ] = None
-    excerpt: Annotated[str | None, Field(title="Excerpt")] = ""
-    decision_status: Annotated[str | None, Field(title="Decision Status")] = None
-    attached_driver_id: Annotated[str | None, Field(title="Attached Driver Id")] = None
-    provenance_id: Annotated[str | None, Field(title="Provenance Id")] = None
-    confidence: Annotated[float | None, Field(title="Confidence")] = None
-    decision_note: Annotated[str | None, Field(title="Decision Note")] = None
+    id: str = Field(..., title='Id')
+    title: str = Field(..., title='Title')
+    type: str | None = Field('evidence', title='Type')
+    source: str | None = Field('Unknown', title='Source')
+    match_score: int | None = Field(0, alias='matchScore', title='Matchscore')
+    verification: str | None = Field('unverified', title='Verification')
+    linked_signals: list[str] | None = Field(
+        None, alias='linkedSignals', title='Linkedsignals'
+    )
+    excerpt: str | None = Field('', title='Excerpt')
+    decision_status: str | None = Field(None, title='Decision Status')
+    attached_driver_id: str | None = Field(None, title='Attached Driver Id')
+    provenance_id: str | None = Field(None, title='Provenance Id')
+    confidence: float | None = Field(None, title='Confidence')
+    decision_note: str | None = Field(None, title='Decision Note')
 
 
 class WorkspaceEvidenceResponse(BaseModel):
-    evidence: Annotated[list[WorkspaceEvidenceItem] | None, Field(title="Evidence")] = None
-
-
-class AddInvoiceItemResult(BaseModel):
-    model_config = ConfigDict(
-        extra="allow",
-    )
-    amount_cents: Annotated[Any, Field(title="Amount Cents")]
-    amount_dollars: Annotated[Any, Field(title="Amount Dollars")]
-    description: Annotated[Any, Field(title="Description")]
-    id: Annotated[Any, Field(title="Id")]
-    invoice_id: Annotated[Any, Field(title="Invoice Id")]
-    type: Annotated[Any, Field(title="Type")]
-
-
-class CheckFeatureResult(BaseModel):
-    model_config = ConfigDict(
-        extra="allow",
-    )
-    feature_id: Annotated[Any, Field(title="Feature Id")]
-    has_access: Annotated[Any, Field(title="Has Access")]
+    evidence: list[WorkspaceEvidenceItem] | None = Field(None, title='Evidence')
 
 
 class ConvertHypothesisResult(BaseModel):
     model_config = ConfigDict(
-        extra="allow",
+        extra='allow',
     )
-    hypothesis_id: Annotated[str, Field(title="Hypothesis Id")]
-    account_id: Annotated[str, Field(title="Account Id")]
-    tenant_id: Annotated[str, Field(title="Tenant Id")]
-    evidence_ids: Annotated[list[str], Field(title="Evidence Ids")]
-    value_model_id: Annotated[str | None, Field(title="Value Model Id")] = None
-    tree_id: Annotated[str | None, Field(title="Tree Id")] = None
-    status: Annotated[str, Field(title="Status")]
-
-
-class CreateInvoiceResult(BaseModel):
-    model_config = ConfigDict(
-        extra="allow",
-    )
-    created_at: Annotated[Any, Field(title="Created At")]
-    customer_id: Annotated[Any, Field(title="Customer Id")]
-    id: Annotated[Any, Field(title="Id")]
-    invoice_number: Annotated[Any, Field(title="Invoice Number")]
-    status: Annotated[Any, Field(title="Status")]
-    total_cents: Annotated[Any, Field(title="Total Cents")]
-    total_dollars: Annotated[Any, Field(title="Total Dollars")]
-
-
-class DeleteHypothesisResult(BaseModel):
-    model_config = ConfigDict(
-        extra="allow",
-    )
-    hypothesis_id: Annotated[Any, Field(title="Hypothesis Id")]
-    status: Annotated[str, Field(title="Status")]
-
-
-class FinalizeInvoiceResult(BaseModel):
-    model_config = ConfigDict(
-        extra="allow",
-    )
-    amount_due_cents: Annotated[Any, Field(title="Amount Due Cents")]
-    amount_due_dollars: Annotated[Any, Field(title="Amount Due Dollars")]
-    id: Annotated[Any, Field(title="Id")]
-    status: Annotated[Any, Field(title="Status")]
-    total_cents: Annotated[Any, Field(title="Total Cents")]
-    total_dollars: Annotated[Any, Field(title="Total Dollars")]
-
-
-class GenerateHypothesesResult(BaseModel):
-    model_config = ConfigDict(
-        extra="allow",
-    )
-    account_id: Annotated[Any, Field(title="Account Id")]
-    count: Annotated[Any, Field(title="Count")]
-    hypotheses: Annotated[Any, Field(title="Hypotheses")]
-    status: Annotated[str, Field(title="Status")]
-
-
-class GetDailyUsageResult(BaseModel):
-    model_config = ConfigDict(
-        extra="allow",
-    )
-    data: Annotated[Any, Field(title="Data")]
-    days: Annotated[Any, Field(title="Days")]
-    tenant_id: Annotated[Any, Field(title="Tenant Id")]
-
-
-class GetInvoiceResult(BaseModel):
-    model_config = ConfigDict(
-        extra="allow",
-    )
-    amount_due_cents: Annotated[Any, Field(title="Amount Due Cents")]
-    amount_due_dollars: Annotated[Any, Field(title="Amount Due Dollars")]
-    amount_paid_cents: Annotated[Any, Field(title="Amount Paid Cents")]
-    balance_cents: Annotated[Any, Field(title="Balance Cents")]
-    charges: Annotated[Any, Field(title="Charges")]
-    created_at: Annotated[Any, Field(title="Created At")]
-    currency: Annotated[Any, Field(title="Currency")]
-    customer_id: Annotated[Any, Field(title="Customer Id")]
-    description: Annotated[Any, Field(title="Description")]
-    due_date: Annotated[Any, Field(title="Due Date")]
-    hosted_invoice_url: Annotated[Any, Field(title="Hosted Invoice Url")]
-    id: Annotated[Any, Field(title="Id")]
-    invoice_number: Annotated[Any, Field(title="Invoice Number")]
-    invoice_pdf_url: Annotated[Any, Field(title="Invoice Pdf Url")]
-    items: Annotated[Any | None, Field(title="Items")] = None
-    paid_at: Annotated[Any, Field(title="Paid At")]
-    period_end: Annotated[Any, Field(title="Period End")]
-    period_start: Annotated[Any, Field(title="Period Start")]
-    status: Annotated[Any, Field(title="Status")]
-    subtotal_cents: Annotated[Any, Field(title="Subtotal Cents")]
-    tax_cents: Annotated[Any, Field(title="Tax Cents")]
-    total_cents: Annotated[Any, Field(title="Total Cents")]
-    total_dollars: Annotated[Any, Field(title="Total Dollars")]
-
-
-class GetPlanLimitsResult(BaseModel):
-    model_config = ConfigDict(
-        extra="allow",
-    )
-    limits: Annotated[Any, Field(title="Limits")]
-    plan_id: Annotated[Any, Field(title="Plan Id")]
-    plan_name: Annotated[Any, Field(title="Plan Name")]
-
-
-class GetSubscriptionResult(BaseModel):
-    model_config = ConfigDict(
-        extra="allow",
-    )
-    cancel_at_period_end: Annotated[bool, Field(title="Cancel At Period End")]
-    current_period_end: Annotated[Any, Field(title="Current Period End")]
-    current_period_start: Annotated[Any, Field(title="Current Period Start")]
-    id: Annotated[Any, Field(title="Id")]
-    plan_id: Annotated[str, Field(title="Plan Id")]
-    status: Annotated[str, Field(title="Status")]
-
-
-class GetTenantAuditLogResult(BaseModel):
-    model_config = ConfigDict(
-        extra="allow",
-    )
-    events: Annotated[Any, Field(title="Events")]
-    limit: Annotated[Any, Field(title="Limit")]
-    offset: Annotated[Any, Field(title="Offset")]
-    tenant_id: Annotated[Any, Field(title="Tenant Id")]
-    total: Annotated[Any, Field(title="Total")]
-
-
-class GetTenantSettingsResult(BaseModel):
-    model_config = ConfigDict(
-        extra="allow",
-    )
-    created_at: Annotated[Any, Field(title="Created At")]
-    id: Annotated[Any, Field(title="Id")]
-    name: Annotated[Any, Field(title="Name")]
-    settings: Annotated[dict[str, Any], Field(title="Settings")]
-    slug: Annotated[Any, Field(title="Slug")]
-    status: Annotated[Any, Field(title="Status")]
-    tier_id: Annotated[Any, Field(title="Tier Id")]
-    updated_at: Annotated[Any, Field(title="Updated At")]
-
-
-class GetTenantUsageResult(BaseModel):
-    model_config = ConfigDict(
-        extra="allow",
-    )
-    agent_executions: Annotated[dict[str, Any], Field(title="Agent Executions")]
-    api_calls: Annotated[dict[str, Any], Field(title="Api Calls")]
-    llm_usage: Annotated[dict[str, Any], Field(title="Llm Usage")]
-    period: Annotated[dict[str, Any], Field(title="Period")]
-    tenant_id: Annotated[Any, Field(title="Tenant Id")]
-    users: Annotated[dict[str, Any], Field(title="Users")]
-
-
-class GetTierUsageResult(BaseModel):
-    """
-    Response for tier usage endpoint.
-    """
-
-    model_config = ConfigDict(
-        extra="allow",
-    )
-    tier_id: Annotated[str, Field(title="Tier Id")]
-    limits: Annotated[dict[str, Any], Field(title="Limits")]
-    current: Annotated[dict[str, Any], Field(title="Current")]
-    utilization: Annotated[dict[str, Any], Field(title="Utilization")]
-
-
-class GetTopEndpointsResult(BaseModel):
-    model_config = ConfigDict(
-        extra="allow",
-    )
-    days: Annotated[Any, Field(title="Days")]
-    endpoints: Annotated[Any, Field(title="Endpoints")]
-    tenant_id: Annotated[Any, Field(title="Tenant Id")]
-
-
-class GetUsageLimitsResult(BaseModel):
-    model_config = ConfigDict(
-        extra="allow",
-    )
-    all_limits_ok: Annotated[Any, Field(title="All Limits Ok")]
-    customer_id: Annotated[Any, Field(title="Customer Id")]
-    metrics: Annotated[Any, Field(title="Metrics")]
-    plan_id: Annotated[Any, Field(title="Plan Id")]
-    total_overage_cost: Annotated[Any, Field(title="Total Overage Cost")]
-    warnings: Annotated[Any, Field(title="Warnings")]
-
-
-class IngestUsageBatchResult(BaseModel):
-    model_config = ConfigDict(
-        extra="allow",
-    )
-    created: Annotated[Any, Field(title="Created")]
-    duplicates: Annotated[Any, Field(title="Duplicates")]
-    error_details: Annotated[Any, Field(title="Error Details")]
-    errors: Annotated[Any, Field(title="Errors")]
-
-
-class IngestUsageEventResult(BaseModel):
-    model_config = ConfigDict(
-        extra="allow",
-    )
-    created_at: Annotated[Any, Field(title="Created At")]
-    customer_id: Annotated[Any, Field(title="Customer Id")]
-    event_id: Annotated[Any, Field(title="Event Id")]
-    id: Annotated[Any, Field(title="Id")]
-    metric_name: Annotated[Any, Field(title="Metric Name")]
-    quantity: Annotated[Any, Field(title="Quantity")]
-    status: Annotated[Any, Field(title="Status")]
-    tenant_id: Annotated[Any, Field(title="Tenant Id")]
-    timestamp: Annotated[Any, Field(title="Timestamp")]
+    hypothesis_id: str = Field(..., title='Hypothesis Id')
+    account_id: str = Field(..., title='Account Id')
+    tenant_id: str = Field(..., title='Tenant Id')
+    evidence_ids: list[str] = Field(..., title='Evidence Ids')
+    value_model_id: str | None = Field(None, title='Value Model Id')
+    tree_id: str | None = Field(None, title='Tree Id')
+    status: str = Field(..., title='Status')
 
 
 class Layer4AgentsApiRoutesAuditAuditLogResponse(BaseModel):
@@ -3993,24 +2843,10 @@ class Layer4AgentsApiRoutesAuditAuditLogResponse(BaseModel):
     Audit log query response.
     """
 
-    entries: Annotated[list[AuditLogEntry], Field(title="Entries")]
-    total: Annotated[int, Field(title="Total")]
-    page: Annotated[int, Field(title="Page")]
-    per_page: Annotated[int, Field(title="Per Page")]
-
-
-class Layer4AgentsApiRoutesCheckpointsCheckpointListResponse(BaseModel):
-    """
-    Response containing checkpoint timeline.
-    """
-
-    workflow_id: Annotated[str, Field(title="Workflow Id")]
-    checkpoints: Annotated[list[CheckpointInfo], Field(title="Checkpoints")]
-    total_count: Annotated[int, Field(title="Total Count")]
-    current_checkpoint_id: Annotated[
-        str | None,
-        Field(description="Most recent checkpoint ID", title="Current Checkpoint Id"),
-    ] = None
+    entries: list[AuditLogEntry] = Field(..., title='Entries')
+    total: int = Field(..., title='Total')
+    page: int = Field(..., title='Page')
+    per_page: int = Field(..., title='Per Page')
 
 
 class Layer4AgentsApiRoutesFrontendCompatRegisterTenantRequest(BaseModel):
@@ -4018,12 +2854,12 @@ class Layer4AgentsApiRoutesFrontendCompatRegisterTenantRequest(BaseModel):
     Request to register a new tenant.
     """
 
-    name: Annotated[str, Field(title="Name")]
-    slug: Annotated[str, Field(title="Slug")]
-    admin_email: Annotated[str, Field(title="Admin Email")]
-    tier_id: Annotated[str | None, Field(title="Tier Id")] = "free"
-    organization_name: Annotated[str | None, Field(title="Organization Name")] = None
-    phone: Annotated[str | None, Field(title="Phone")] = None
+    name: str = Field(..., title='Name')
+    slug: str = Field(..., title='Slug')
+    admin_email: str = Field(..., title='Admin Email')
+    tier_id: str | None = Field('free', title='Tier Id')
+    organization_name: str | None = Field(None, title='Organization Name')
+    phone: str | None = Field(None, title='Phone')
 
 
 class Layer4AgentsApiRoutesFrontendCompatTenantSettingsResponse(BaseModel):
@@ -4031,13 +2867,13 @@ class Layer4AgentsApiRoutesFrontendCompatTenantSettingsResponse(BaseModel):
     Tenant settings response.
     """
 
-    id: Annotated[str, Field(title="Id")]
-    name: Annotated[str, Field(title="Name")]
-    slug: Annotated[str, Field(title="Slug")]
-    status: Annotated[str, Field(title="Status")]
-    tier_id: Annotated[str, Field(title="Tier Id")]
-    settings: Annotated[dict[str, Any], Field(title="Settings")]
-    created_at: Annotated[str, Field(title="Created At")]
+    id: str = Field(..., title='Id')
+    name: str = Field(..., title='Name')
+    slug: str = Field(..., title='Slug')
+    status: str = Field(..., title='Status')
+    tier_id: str = Field(..., title='Tier Id')
+    settings: dict[str, Any] = Field(..., title='Settings')
+    created_at: str = Field(..., title='Created At')
 
 
 class Layer4AgentsApiRoutesFrontendCompatTenantSettingsUpdate(BaseModel):
@@ -4045,7 +2881,7 @@ class Layer4AgentsApiRoutesFrontendCompatTenantSettingsUpdate(BaseModel):
     Update tenant settings.
     """
 
-    settings: Annotated[dict[str, Any] | None, Field(title="Settings")] = None
+    settings: dict[str, Any] | None = Field(None, title='Settings')
 
 
 class Layer4AgentsTenantsApiRoutesAdminAuditLogResponse(BaseModel):
@@ -4053,10 +2889,10 @@ class Layer4AgentsTenantsApiRoutesAdminAuditLogResponse(BaseModel):
     Audit log response.
     """
 
-    events: Annotated[list[AuditEventInfo], Field(title="Events")]
-    total: Annotated[int, Field(title="Total")]
-    limit: Annotated[int, Field(title="Limit")]
-    offset: Annotated[int, Field(title="Offset")]
+    events: list[AuditEventInfo] = Field(..., title='Events')
+    total: int = Field(..., title='Total')
+    limit: int = Field(..., title='Limit')
+    offset: int = Field(..., title='Offset')
 
 
 class Layer4AgentsTenantsApiRoutesAdminTenantSettingsResponse(BaseModel):
@@ -4064,14 +2900,14 @@ class Layer4AgentsTenantsApiRoutesAdminTenantSettingsResponse(BaseModel):
     Tenant settings response.
     """
 
-    id: Annotated[str, Field(title="Id")]
-    name: Annotated[str, Field(title="Name")]
-    slug: Annotated[str, Field(title="Slug")]
-    status: Annotated[str, Field(title="Status")]
-    tier_id: Annotated[str, Field(title="Tier Id")]
-    settings: Annotated[dict[str, Any], Field(title="Settings")]
-    created_at: Annotated[str, Field(title="Created At")]
-    updated_at: Annotated[str, Field(title="Updated At")]
+    id: str = Field(..., title='Id')
+    name: str = Field(..., title='Name')
+    slug: str = Field(..., title='Slug')
+    status: str = Field(..., title='Status')
+    tier_id: str = Field(..., title='Tier Id')
+    settings: dict[str, Any] = Field(..., title='Settings')
+    created_at: str = Field(..., title='Created At')
+    updated_at: str = Field(..., title='Updated At')
 
 
 class Layer4AgentsTenantsApiRoutesAdminTenantSettingsUpdate(BaseModel):
@@ -4079,27 +2915,8 @@ class Layer4AgentsTenantsApiRoutesAdminTenantSettingsUpdate(BaseModel):
     Update tenant settings.
     """
 
-    name: Annotated[str | None, Field(title="Name")] = None
-    settings: Annotated[dict[str, Any] | None, Field(title="Settings")] = None
-
-
-class Layer4AgentsTenantsApiRoutesAdminDashboardTenantSettingsUpdate(BaseModel):
-    """
-    Request body for updating tenant settings.
-    """
-
-    name: Annotated[str | None, Field(description="Tenant display name", title="Name")] = None
-    branding: Annotated[
-        dict[str, Any] | None,
-        Field(
-            description="Branding settings (logo_url, primary_color, etc.)",
-            title="Branding",
-        ),
-    ] = None
-    notification_preferences: Annotated[
-        dict[str, Any] | None,
-        Field(description="Notification preferences", title="Notification Preferences"),
-    ] = None
+    name: str | None = Field(None, title='Name')
+    settings: dict[str, Any] | None = Field(None, title='Settings')
 
 
 class Layer4AgentsTenantsApiRoutesRegistrationRegisterTenantRequest(BaseModel):
@@ -4107,173 +2924,30 @@ class Layer4AgentsTenantsApiRoutesRegistrationRegisterTenantRequest(BaseModel):
     Request to register a new tenant.
     """
 
-    name: Annotated[str, Field(max_length=200, min_length=2, title="Name")]
-    slug: Annotated[str, Field(max_length=63, min_length=2, title="Slug")]
-    admin_email: Annotated[EmailStr, Field(title="Admin Email")]
-    tier_id: Annotated[str | None, Field(title="Tier Id")] = "free"
-    organization_name: Annotated[str | None, Field(title="Organization Name")] = None
-    phone: Annotated[str | None, Field(title="Phone")] = None
-
-
-class ListChargesResult(BaseModel):
-    model_config = ConfigDict(
-        extra="allow",
-    )
-    charges: Annotated[Any, Field(title="Charges")]
-    pagination: Annotated[dict[str, Any], Field(title="Pagination")]
-
-
-class ListInvoicesResult(BaseModel):
-    model_config = ConfigDict(
-        extra="allow",
-    )
-    invoices: Annotated[Any, Field(title="Invoices")]
-    pagination: Annotated[dict[str, Any], Field(title="Pagination")]
-
-
-class LogoutResult(BaseModel):
-    """
-    Response from logout endpoint.
-    """
-
-    model_config = ConfigDict(
-        extra="allow",
-    )
-    detail: Annotated[str, Field(title="Detail")]
-
-
-class OidcCallbackResult(BaseModel):
-    """
-    Non-secret session metadata returned after a successful OIDC callback.
-
-    The access token is delivered exclusively via the httpOnly ``vf_session``
-    cookie set on this response.  It is intentionally absent from this body so
-    that JavaScript cannot read it.
-    """
-
-    model_config = ConfigDict(
-        extra="allow",
-    )
-    email: Annotated[Any, Field(title="Email")]
-    expires_in: Annotated[int, Field(title="Expires In")]
-    role: Annotated[Any, Field(title="Role")]
-    token_type: Annotated[str, Field(title="Token Type")]
-    user_id: Annotated[Any, Field(title="User Id")]
-
-
-class OidcLoginResult(BaseModel):
-    model_config = ConfigDict(
-        extra="allow",
-    )
-    authorization_url: Annotated[Any, Field(title="Authorization Url")]
-    state: Annotated[Any, Field(title="State")]
-
-
-class OidcMetadataResult(BaseModel):
-    model_config = ConfigDict(
-        extra="allow",
-    )
-    auto_provision_users: Annotated[Any, Field(title="Auto Provision Users")]
-    claim_mapping_keys: Annotated[list[Any], Field(title="Claim Mapping Keys")]
-    default_role: Annotated[Any, Field(title="Default Role")]
-    enabled: Annotated[Any, Field(title="Enabled")]
-    issuer_url: Annotated[Any, Field(title="Issuer Url")]
-    provider_name: Annotated[Any, Field(title="Provider Name")]
-    scopes: Annotated[Any, Field(title="Scopes")]
-
-
-class RankHypothesesResult(BaseModel):
-    model_config = ConfigDict(
-        extra="allow",
-    )
-    count: Annotated[Any, Field(title="Count")]
-    hypotheses: Annotated[Any, Field(title="Hypotheses")]
-    strategy: Annotated[Any, Field(title="Strategy")]
-
-
-class RecordChargeResult(BaseModel):
-    model_config = ConfigDict(
-        extra="allow",
-    )
-    amount_cents: Annotated[Any, Field(title="Amount Cents")]
-    amount_dollars: Annotated[Any, Field(title="Amount Dollars")]
-    created_at: Annotated[Any, Field(title="Created At")]
-    id: Annotated[Any, Field(title="Id")]
-    status: Annotated[Any, Field(title="Status")]
-    stripe_charge_id: Annotated[Any, Field(title="Stripe Charge Id")]
-
-
-class RefreshResult(BaseModel):
-    """
-    Non-secret metadata returned after a successful token refresh.
-    """
-
-    model_config = ConfigDict(
-        extra="allow",
-    )
-    email: Annotated[Any, Field(title="Email")]
-    expires_in: Annotated[int, Field(title="Expires In")]
-    role: Annotated[Any, Field(title="Role")]
-    token_type: Annotated[str, Field(title="Token Type")]
-    user_id: Annotated[Any, Field(title="User Id")]
-
-
-class StripeWebhookResult(BaseModel):
-    model_config = ConfigDict(
-        extra="allow",
-    )
-    received: Annotated[bool, Field(title="Received")]
-
-
-class SyncCustomerResult(BaseModel):
-    model_config = ConfigDict(
-        extra="allow",
-    )
-    email: Annotated[Any, Field(title="Email")]
-    id: Annotated[Any, Field(title="Id")]
-    name: Annotated[Any, Field(title="Name")]
-    stripe_customer_id: Annotated[Any, Field(title="Stripe Customer Id")]
-    tenant_id: Annotated[Any, Field(title="Tenant Id")]
-
-
-class ValidateHypothesisResult(BaseModel):
-    model_config = ConfigDict(
-        extra="allow",
-    )
-    hypothesis: Annotated[Any, Field(title="Hypothesis")]
-    promoted_artifacts: Annotated[Any | None, Field(title="Promoted Artifacts")] = None
-    status: Annotated[str, Field(title="Status")]
-
-
-class VoidInvoiceResult(BaseModel):
-    model_config = ConfigDict(
-        extra="allow",
-    )
-    id: Annotated[Any, Field(title="Id")]
-    status: Annotated[Any, Field(title="Status")]
-    voided_at: Annotated[Any, Field(title="Voided At")]
-
-
-class ErrorEnvelope(BaseModel):
-    model_config = ConfigDict(
-        extra="forbid",
-    )
-    error: Error
+    name: str = Field(..., max_length=200, min_length=2, title='Name')
+    slug: str = Field(..., max_length=63, min_length=2, title='Slug')
+    admin_email: EmailStr = Field(..., title='Admin Email')
+    tier_id: str | None = Field('free', title='Tier Id')
+    organization_name: str | None = Field(None, title='Organization Name')
+    phone: str | None = Field(None, title='Phone')
 
 
 class ErrorResponse(BaseModel):
-    """
-    Deprecated compatibility alias for ErrorEnvelope. Use ErrorEnvelope for new clients.
-    """
-
     model_config = ConfigDict(
-        extra="forbid",
+        extra='forbid',
     )
-    error: Error
+    message: str = Field(..., description='Human-readable error message')
+    code: str = Field(..., description='Machine-readable error code', min_length=1)
+    trace_id: str = Field(
+        ..., description='Request trace ID for support correlation', min_length=1
+    )
+    details: dict[str, Any] | None = Field(
+        None, description='Optional sanitized error details'
+    )
 
 
 class Permissions(RootModel[list[Permission]]):
-    root: Annotated[list[Permission], Field(title="Permissions")]
+    root: list[Permission] = Field(..., title='Permissions')
 
 
 class APIKeyCreateRequest(BaseModel):
@@ -4281,14 +2955,14 @@ class APIKeyCreateRequest(BaseModel):
     Create a new persistent API key (tenant_admin only).
     """
 
-    name: Annotated[str, Field(max_length=100, min_length=1, title="Name")]
-    role: Role | None = Role.analyst
-    permissions: Annotated[Permissions | None, Field(title="Permissions")] = None
-    expires_at: Annotated[AwareDatetime | None, Field(title="Expires At")] = None
-    rate_limit_per_minute: Annotated[
-        RateLimitPerMinute | None, Field(title="Rate Limit Per Minute")
-    ] = None
-    metadata: Annotated[dict[str, Any] | None, Field(title="Metadata")] = None
+    name: str = Field(..., max_length=100, min_length=1, title='Name')
+    role: Role | None = 'analyst'
+    permissions: Permissions | None = Field(None, title='Permissions')
+    expires_at: AwareDatetime | None = Field(None, title='Expires At')
+    rate_limit_per_minute: RateLimitPerMinute | None = Field(
+        None, title='Rate Limit Per Minute'
+    )
+    metadata: dict[str, Any] | None = Field(None, title='Metadata')
 
 
 class APIKeyCreateResponse(BaseModel):
@@ -4296,18 +2970,18 @@ class APIKeyCreateResponse(BaseModel):
     Returned once on key creation — includes the raw secret (shown only once).
     """
 
-    key_id: Annotated[str, Field(title="Key Id")]
-    tenant_id: Annotated[UUID, Field(title="Tenant Id")]
-    name: Annotated[str, Field(title="Name")]
-    api_key: Annotated[
-        str, Field(description="Full key — shown ONCE, store securely", title="Api Key")
-    ]
-    prefix: Annotated[str, Field(title="Prefix")]
+    key_id: str = Field(..., title='Key Id')
+    tenant_id: UUID = Field(..., title='Tenant Id')
+    name: str = Field(..., title='Name')
+    api_key: str = Field(
+        ..., description='Full key — shown ONCE, store securely', title='Api Key'
+    )
+    prefix: str = Field(..., title='Prefix')
     role: Role
-    permissions: Annotated[list[Permission], Field(title="Permissions")]
-    expires_at: Annotated[AwareDatetime | None, Field(title="Expires At")]
-    rate_limit_per_minute: Annotated[int | None, Field(title="Rate Limit Per Minute")]
-    created_at: Annotated[AwareDatetime, Field(title="Created At")]
+    permissions: list[Permission] = Field(..., title='Permissions')
+    expires_at: AwareDatetime | None = Field(..., title='Expires At')
+    rate_limit_per_minute: int | None = Field(..., title='Rate Limit Per Minute')
+    created_at: AwareDatetime = Field(..., title='Created At')
 
 
 class APIKeyModel(BaseModel):
@@ -4315,32 +2989,29 @@ class APIKeyModel(BaseModel):
     Read-only representation of an API key (never returns raw secret).
     """
 
-    key_id: Annotated[str, Field(description="Unique identifier (vf_<uuid>)", title="Key Id")]
-    tenant_id: Annotated[UUID, Field(description="Owning tenant", title="Tenant Id")]
-    user_id: Annotated[
-        UUID | None,
-        Field(description="Issuing user (None for system keys)", title="User Id"),
-    ] = None
-    name: Annotated[str, Field(max_length=100, min_length=1, title="Name")]
-    prefix: Annotated[
-        str,
-        Field(description="First 8 chars of the key for identification", title="Prefix"),
-    ]
+    key_id: str = Field(
+        ..., description='Unique identifier (vf_<uuid>)', title='Key Id'
+    )
+    tenant_id: UUID = Field(..., description='Owning tenant', title='Tenant Id')
+    user_id: UUID | None = Field(
+        None, description='Issuing user (None for system keys)', title='User Id'
+    )
+    name: str = Field(..., max_length=100, min_length=1, title='Name')
+    prefix: str = Field(
+        ..., description='First 8 chars of the key for identification', title='Prefix'
+    )
     role: Role
-    permissions: Annotated[list[Permission], Field(title="Permissions")]
-    enabled: Annotated[bool | None, Field(title="Enabled")] = True
-    revoked_at: Annotated[AwareDatetime | None, Field(title="Revoked At")] = None
-    created_at: Annotated[AwareDatetime | None, Field(title="Created At")] = None
-    expires_at: Annotated[AwareDatetime | None, Field(title="Expires At")] = None
-    last_used_at: Annotated[AwareDatetime | None, Field(title="Last Used At")] = None
-    rate_limit_per_minute: Annotated[
-        RateLimitPerMinute1 | None,
-        Field(
-            description="Per-key override; None inherits tenant limit",
-            title="Rate Limit Per Minute",
-        ),
-    ] = None
-    metadata: Annotated[dict[str, Any] | None, Field(title="Metadata")] = None
+    permissions: list[Permission] = Field(..., title='Permissions')
+    enabled: bool | None = Field(True, title='Enabled')
+    created_at: AwareDatetime | None = Field(None, title='Created At')
+    expires_at: AwareDatetime | None = Field(None, title='Expires At')
+    last_used_at: AwareDatetime | None = Field(None, title='Last Used At')
+    rate_limit_per_minute: RateLimitPerMinute1 | None = Field(
+        None,
+        description='Per-key override; None inherits tenant limit',
+        title='Rate Limit Per Minute',
+    )
+    metadata: dict[str, Any] | None = Field(None, title='Metadata')
 
 
 class AccountActivityResponse(BaseModel):
@@ -4348,10 +3019,10 @@ class AccountActivityResponse(BaseModel):
     Account activity timeline response.
     """
 
-    account_id: Annotated[UUID, Field(title="Account Id")]
-    interactions: Annotated[list[ActivityItemSchema], Field(title="Interactions")]
-    total_count: Annotated[int, Field(title="Total Count")]
-    summary: Annotated[str | None, Field(title="Summary")] = None
+    account_id: UUID = Field(..., title='Account Id')
+    interactions: list[ActivityItemSchema] = Field(..., title='Interactions')
+    total_count: int = Field(..., title='Total Count')
+    summary: str | None = Field(None, title='Summary')
 
 
 class AccountDetailSchema(BaseModel):
@@ -4359,47 +3030,42 @@ class AccountDetailSchema(BaseModel):
     Full account detail response.
     """
 
-    id: Annotated[UUID, Field(title="Id")]
+    id: UUID = Field(..., title='Id')
     provider: CRMProvider
-    provider_record_id: Annotated[str, Field(title="Provider Record Id")]
-    name: Annotated[str, Field(title="Name")]
-    domain: Annotated[str | None, Field(title="Domain")] = None
-    industry: Annotated[str | None, Field(title="Industry")] = None
-    region: Annotated[str | None, Field(title="Region")] = None
-    company_size: Annotated[int | None, Field(title="Company Size")] = None
-    annual_revenue: Annotated[float | None, Field(title="Annual Revenue")] = None
-    headquarters: Annotated[str | None, Field(title="Headquarters")] = None
-    website: Annotated[str | None, Field(title="Website")] = None
-    owner_id: Annotated[str | None, Field(title="Owner Id")] = None
-    owner_name: Annotated[str | None, Field(title="Owner Name")] = None
-    owner_email: Annotated[str | None, Field(title="Owner Email")] = None
-    stage: Annotated[str | None, Field(title="Stage")] = None
-    segment: Annotated[str | None, Field(title="Segment")] = None
-    created_at: Annotated[AwareDatetime, Field(title="Created At")]
-    updated_at: Annotated[AwareDatetime, Field(title="Updated At")]
-    last_synced_at: Annotated[AwareDatetime | None, Field(title="Last Synced At")] = None
+    provider_record_id: str = Field(..., title='Provider Record Id')
+    name: str = Field(..., title='Name')
+    domain: str | None = Field(None, title='Domain')
+    industry: str | None = Field(None, title='Industry')
+    region: str | None = Field(None, title='Region')
+    company_size: int | None = Field(None, title='Company Size')
+    annual_revenue: float | None = Field(None, title='Annual Revenue')
+    headquarters: str | None = Field(None, title='Headquarters')
+    website: str | None = Field(None, title='Website')
+    owner_id: str | None = Field(None, title='Owner Id')
+    owner_name: str | None = Field(None, title='Owner Name')
+    owner_email: str | None = Field(None, title='Owner Email')
+    stage: str | None = Field(None, title='Stage')
+    segment: str | None = Field(None, title='Segment')
+    created_at: AwareDatetime = Field(..., title='Created At')
+    updated_at: AwareDatetime = Field(..., title='Updated At')
+    last_synced_at: AwareDatetime | None = Field(None, title='Last Synced At')
     sync_status: SyncStatus
-    source_attribution: Annotated[
-        str,
-        Field(
-            description="Human-readable sync info: 'Synced from Salesforce 2 hours ago'",
-            title="Source Attribution",
-        ),
-    ]
-    provider_badge: Annotated[
-        str,
-        Field(
-            description="Display badge: 'Salesforce' or 'HubSpot'",
-            title="Provider Badge",
-        ),
-    ]
-    opportunities: Annotated[
-        list[OpportunitySchema] | None,
-        Field(title="Opportunities", validate_default=True),
-    ] = []
-    contacts: Annotated[
-        list[ContactSchema] | None, Field(title="Contacts", validate_default=True)
-    ] = []
+    source_attribution: str = Field(
+        ...,
+        description="Human-readable sync info: 'Synced from Salesforce 2 hours ago'",
+        title='Source Attribution',
+    )
+    provider_badge: str = Field(
+        ...,
+        description="Display badge: 'Salesforce' or 'HubSpot'",
+        title='Provider Badge',
+    )
+    opportunities: list[OpportunitySchema] | None = Field(
+        [], title='Opportunities', validate_default=True
+    )
+    contacts: list[ContactSchema] | None = Field(
+        [], title='Contacts', validate_default=True
+    )
 
 
 class AccountFilterOptionsResponse(BaseModel):
@@ -4407,12 +3073,12 @@ class AccountFilterOptionsResponse(BaseModel):
     Available filter options for account list.
     """
 
-    industries: Annotated[list[str], Field(title="Industries")]
-    stages: Annotated[list[str], Field(title="Stages")]
-    regions: Annotated[list[str], Field(title="Regions")]
-    segments: Annotated[list[str], Field(title="Segments")]
-    providers: Annotated[list[CRMProvider], Field(title="Providers")]
-    owners: Annotated[list[dict[str, str]], Field(title="Owners")]
+    industries: list[str] = Field(..., title='Industries')
+    stages: list[str] = Field(..., title='Stages')
+    regions: list[str] = Field(..., title='Regions')
+    segments: list[str] = Field(..., title='Segments')
+    providers: list[CRMProvider] = Field(..., title='Providers')
+    owners: list[dict[str, str]] = Field(..., title='Owners')
 
 
 class AccountListItemSchema(BaseModel):
@@ -4420,26 +3086,24 @@ class AccountListItemSchema(BaseModel):
     Account item in list response.
     """
 
-    id: Annotated[UUID, Field(title="Id")]
+    id: UUID = Field(..., title='Id')
     provider: CRMProvider
-    name: Annotated[str, Field(title="Name")]
-    domain: Annotated[str | None, Field(title="Domain")] = None
-    industry: Annotated[str | None, Field(title="Industry")] = None
-    region: Annotated[str | None, Field(title="Region")] = None
-    company_size: Annotated[int | None, Field(title="Company Size")] = None
-    owner_name: Annotated[str | None, Field(title="Owner Name")] = None
-    stage: Annotated[str | None, Field(title="Stage")] = None
-    segment: Annotated[str | None, Field(title="Segment")] = None
+    name: str = Field(..., title='Name')
+    domain: str | None = Field(None, title='Domain')
+    industry: str | None = Field(None, title='Industry')
+    region: str | None = Field(None, title='Region')
+    company_size: int | None = Field(None, title='Company Size')
+    owner_name: str | None = Field(None, title='Owner Name')
+    stage: str | None = Field(None, title='Stage')
+    segment: str | None = Field(None, title='Segment')
     sync_status: SyncStatus
-    last_synced_at: Annotated[AwareDatetime | None, Field(title="Last Synced At")] = None
-    updated_at: Annotated[AwareDatetime, Field(title="Updated At")]
-    provider_badge: Annotated[
-        str,
-        Field(
-            description="Display badge: 'Salesforce' or 'HubSpot'",
-            title="Provider Badge",
-        ),
-    ]
+    last_synced_at: AwareDatetime | None = Field(None, title='Last Synced At')
+    updated_at: AwareDatetime = Field(..., title='Updated At')
+    provider_badge: str = Field(
+        ...,
+        description="Display badge: 'Salesforce' or 'HubSpot'",
+        title='Provider Badge',
+    )
 
 
 class AccountListResponse(BaseModel):
@@ -4447,11 +3111,11 @@ class AccountListResponse(BaseModel):
     Paginated account list response.
     """
 
-    items: Annotated[list[AccountListItemSchema], Field(title="Items")]
-    total: Annotated[int, Field(title="Total")]
-    page: Annotated[int, Field(title="Page")]
-    page_size: Annotated[int, Field(title="Page Size")]
-    has_more: Annotated[bool, Field(title="Has More")]
+    items: list[AccountListItemSchema] = Field(..., title='Items')
+    total: int = Field(..., title='Total')
+    page: int = Field(..., title='Page')
+    page_size: int = Field(..., title='Page Size')
+    has_more: bool = Field(..., title='Has More')
 
 
 class AccountSearchRequest(BaseModel):
@@ -4459,95 +3123,68 @@ class AccountSearchRequest(BaseModel):
     Account search request body.
     """
 
-    query: Annotated[
-        str | None,
-        Field(description="Search across name, domain, owner", title="Query"),
-    ] = None
+    query: str | None = Field(
+        None, description='Search across name, domain, owner', title='Query'
+    )
     provider: CRMProvider | None = None
-    stage: Annotated[str | None, Field(title="Stage")] = None
-    industry: Annotated[str | None, Field(title="Industry")] = None
-    region: Annotated[str | None, Field(title="Region")] = None
-    segment: Annotated[str | None, Field(title="Segment")] = None
-    owner_id: Annotated[str | None, Field(title="Owner Id")] = None
+    stage: str | None = Field(None, title='Stage')
+    industry: str | None = Field(None, title='Industry')
+    region: str | None = Field(None, title='Region')
+    segment: str | None = Field(None, title='Segment')
+    owner_id: str | None = Field(None, title='Owner Id')
     sync_status: SyncStatus | None = None
-    page: Annotated[int | None, Field(ge=1, title="Page")] = 1
-    page_size: Annotated[int | None, Field(ge=1, le=100, title="Page Size")] = 20
-    sort_by: Annotated[
-        str | None,
-        Field(pattern="^(name|updated_at|company_size|last_synced_at)$", title="Sort By"),
-    ] = "updated_at"
-    sort_order: Annotated[str | None, Field(pattern="^(asc|desc)$", title="Sort Order")] = "desc"
+    page: int | None = Field(1, ge=1, title='Page')
+    page_size: int | None = Field(20, ge=1, le=100, title='Page Size')
+    sort_by: str | None = Field(
+        'updated_at',
+        pattern='^(name|updated_at|company_size|last_synced_at)$',
+        title='Sort By',
+    )
+    sort_order: str | None = Field('desc', pattern='^(asc|desc)$', title='Sort Order')
 
 
 class ApprovalDecision(BaseModel):
-    decision_id: Annotated[str, Field(title="Decision Id")]
-    review_id: Annotated[str, Field(title="Review Id")]
-    decision: Annotated[Decision, Field(title="Decision")]
-    immutable_audit_hash: Annotated[str, Field(title="Immutable Audit Hash")]
-    decided_at: Annotated[AwareDatetime, Field(title="Decided At")]
+    decision_id: str = Field(..., title='Decision Id')
+    review_id: str = Field(..., title='Review Id')
+    decision: Decision = Field(..., title='Decision')
+    immutable_audit_hash: str = Field(..., title='Immutable Audit Hash')
+    decided_at: AwareDatetime = Field(..., title='Decided At')
     lineage: LineageRef
-
-
-class AreaScore(BaseModel):
-    """
-    Score for a single audit area within a scorecard.
-
-    Represents the computed score, grade, and metadata for one of the ten
-    audit areas defined in :class:`AuditArea`.
-    """
-
-    area: Annotated[AuditArea, Field(description="The audit area being scored")]
-    weight: Annotated[
-        float,
-        Field(
-            description="Weight of this area in overall score calculation, e.g., 0.12 for 12%",
-            ge=0.0,
-            le=1.0,
-            title="Weight",
-        ),
-    ]
-    score: Annotated[
-        int,
-        Field(
-            description="Calculated score for this area (0-100)",
-            ge=0,
-            le=100,
-            title="Score",
-        ),
-    ]
-    grade: Annotated[
-        str,
-        Field(description="Letter grade with +/-, e.g., 'A+', 'B-', 'C'", title="Grade"),
-    ]
-    confidence: Annotated[Confidence, Field(description="Confidence level in this area score")]
-    trend_risk: Annotated[
-        str,
-        Field(
-            description="Trend assessment: Stable, Improving, or Worsening",
-            title="Trend Risk",
-        ),
-    ]
-    diagnosis: Annotated[
-        str,
-        Field(
-            description="One-line diagnosis summarizing the area's health",
-            title="Diagnosis",
-        ),
-    ]
-    findings_count: Annotated[
-        int | None,
-        Field(description="Number of findings in this area", ge=0, title="Findings Count"),
-    ] = 0
 
 
 class AuditExportJob(BaseModel):
-    audit_export_id: Annotated[str, Field(title="Audit Export Id")]
-    review_id: Annotated[str, Field(title="Review Id")]
-    status: Annotated[Status, Field(title="Status")]
-    reason: Annotated[str | None, Field(title="Reason")] = None
+    audit_export_id: str = Field(..., title='Audit Export Id')
+    review_id: str = Field(..., title='Review Id')
+    status: Status = Field(..., title='Status')
+    reason: str | None = Field(None, title='Reason')
     lineage: LineageRef
-    created_at: Annotated[AwareDatetime, Field(title="Created At")]
-    immutable_audit_hash: Annotated[str, Field(title="Immutable Audit Hash")]
+    created_at: AwareDatetime = Field(..., title='Created At')
+    immutable_audit_hash: str = Field(..., title='Immutable Audit Hash')
+
+
+class BodyApiActivateTenantV1TenantsTenantIdActivatePost(BaseModel):
+    body: StatusChangeRequest | None = None
+    context: RequestContext | None = None
+
+
+class BodyApiChangeTenantStatusV1TenantsTenantIdStatusPost(BaseModel):
+    body: StatusChangeRequest | None = None
+    context: RequestContext | None = None
+
+
+class BodyApiCreateKeyV1ApiKeysPost(BaseModel):
+    request: APIKeyCreateRequest
+    context: RequestContext | None = None
+
+
+class BodyApiCreateTenantV1TenantsPost(BaseModel):
+    request: TenantCreateRequest
+    context: RequestContext | None = None
+
+
+class BodyApiInviteUserV1UsersInvitePost(BaseModel):
+    request: UserInviteRequest
+    context: RequestContext | None = None
 
 
 class BodyApiPromoteModelV1ModelsModelIdPromotePost(BaseModel):
@@ -4565,61 +3202,49 @@ class BodyApiRegisterModelV1ModelsPost(BaseModel):
     context: RequestContext | None = None
 
 
+class BodyApiSuspendTenantV1TenantsTenantIdSuspendPost(BaseModel):
+    body: StatusChangeRequest | None = None
+    context: RequestContext | None = None
+
+
+class BodyApiUpdateTenantV1TenantsTenantIdPatch(BaseModel):
+    request: TenantUpdateRequest
+    context: RequestContext | None = None
+
+
+class BodyApiUpdateUserV1UsersUserIdPatch(BaseModel):
+    request: UserUpdateRequest
+    context: RequestContext | None = None
+
+
+class BodyUpdateTenantSettingsV1TenantsTenantIdSettingsPatch(BaseModel):
+    update: Layer4AgentsTenantsApiRoutesAdminTenantSettingsUpdate
+    context: RequestContext | None = None
+
+
+class BodyUpsertFeatureFlagV1FeatureFlagsFlagKeyPut(BaseModel):
+    request: FeatureFlagUpsertRequest
+    context: RequestContext | None = None
+
+
 class BuyerRoleInferenceResult(BaseModel):
     """
     Result of buyer role inference (never fabricated).
     """
 
     status: BuyerRoleInferenceStatus
-    role: Annotated[str | None, Field(title="Role")] = None
-    confidence: Annotated[float | None, Field(title="Confidence")] = None
-    source: Annotated[str | None, Field(title="Source")] = None
+    role: str | None = Field(None, title='Role')
+    confidence: float | None = Field(None, title='Confidence')
+    source: str | None = Field(None, title='Source')
 
 
 class CRMSyncJobListResponse(BaseModel):
-    jobs: Annotated[list[CRMSyncJobResponse], Field(title="Jobs")]
-
-
-class CheckpointResponse(BaseModel):
-    """
-    Single checkpoint in API responses.
-    """
-
-    model_config = ConfigDict(
-        extra="forbid",
-    )
-    id: Annotated[str, Field(title="Id")]
-    run_id: Annotated[str, Field(title="Run Id")]
-    tenant_id: Annotated[str, Field(title="Tenant Id")]
-    state_name: HarnessState
-    input_hash: Annotated[str, Field(title="Input Hash")]
-    output_hash: Annotated[str | None, Field(title="Output Hash")]
-    created_at: Annotated[AwareDatetime, Field(title="Created At")]
-
-
-class ClaimValidationResult(BaseModel):
-    """
-    Result of validating a single claim through L5 or fallback.
-    """
-
-    model_config = ConfigDict(
-        extra="forbid",
-    )
-    id: Annotated[str | None, Field(title="Id")] = None
-    tenant_id: Annotated[str, Field(title="Tenant Id")]
-    claim_id: Annotated[str, Field(title="Claim Id")]
-    validation_state: ValidationState
-    evidence_refs: Annotated[list[str] | None, Field(title="Evidence Refs")] = None
-    confidence: Annotated[float, Field(ge=0.0, le=1.0, title="Confidence")]
-    trust_score: Annotated[float, Field(ge=0.0, le=1.0, title="Trust Score")]
-    validator: Annotated[Validator, Field(title="Validator")]
-    reason: Annotated[str | None, Field(title="Reason")] = ""
-    created_at: Annotated[AwareDatetime | None, Field(title="Created At")] = None
+    jobs: list[CRMSyncJobResponse] = Field(..., title='Jobs')
 
 
 class CommentListResponse(BaseModel):
-    items: Annotated[list[CommentRecord], Field(title="Items")]
-    total: Annotated[int, Field(title="Total")]
+    items: list[CommentRecord] = Field(..., title='Items')
+    total: int = Field(..., title='Total')
 
 
 class CompanyKnowledgeProfileResponse(BaseModel):
@@ -4627,53 +3252,27 @@ class CompanyKnowledgeProfileResponse(BaseModel):
     Full company knowledge profile response.
     """
 
-    id: Annotated[UUID, Field(title="Id")]
-    tenant_id: Annotated[str, Field(title="Tenant Id")]
-    company_name: Annotated[str, Field(title="Company Name")]
-    website: Annotated[str | None, Field(title="Website")] = None
+    id: UUID = Field(..., title='Id')
+    tenant_id: str = Field(..., title='Tenant Id')
+    company_name: str = Field(..., title='Company Name')
+    website: str | None = Field(None, title='Website')
     status: ProfileStatus
-    version: Annotated[int, Field(title="Version")]
-    confidence_score: Annotated[ConfidenceScore | None, Field(title="Confidence Score")] = None
-    identity: Annotated[dict[str, Any] | None, Field(title="Identity")] = None
-    product_catalog: Annotated[dict[str, Any] | None, Field(title="Product Catalog")] = None
-    target_customer: Annotated[dict[str, Any] | None, Field(title="Target Customer")] = None
-    personas: Annotated[dict[str, Any] | None, Field(title="Personas")] = None
-    use_cases: Annotated[dict[str, Any] | None, Field(title="Use Cases")] = None
-    value_drivers: Annotated[dict[str, Any] | None, Field(title="Value Drivers")] = None
-    proof_points: Annotated[dict[str, Any] | None, Field(title="Proof Points")] = None
-    trust_commercial: Annotated[dict[str, Any] | None, Field(title="Trust Commercial")] = None
-    active_source_ids: Annotated[list[str], Field(title="Active Source Ids")]
-    review_status: Annotated[dict[str, Any] | None, Field(title="Review Status")] = None
-    created_at: Annotated[AwareDatetime, Field(title="Created At")]
-    updated_at: Annotated[AwareDatetime, Field(title="Updated At")]
-    approved_at: Annotated[AwareDatetime | None, Field(title="Approved At")] = None
-    approved_by: Annotated[UUID | None, Field(title="Approved By")] = None
-
-
-class CreateGateRequest(BaseModel):
-    """
-    Request body for POST /v1/harness/runs/{run_id}/gates.
-    """
-
-    model_config = ConfigDict(
-        extra="forbid",
-    )
-    gate_type: GateType
-    action_class: ActionClass | None = None
-
-
-class CreateRunRequest(BaseModel):
-    """
-    Request body for POST /v1/harness/runs.
-    """
-
-    model_config = ConfigDict(
-        extra="forbid",
-    )
-    workflow_type: HarnessWorkflowType
-    initiated_by: InitiatedBy | None = InitiatedBy.user
-    account_id: Annotated[str | None, Field(title="Account Id")] = None
-    value_pack_id: Annotated[str | None, Field(title="Value Pack Id")] = None
+    version: int = Field(..., title='Version')
+    confidence_score: ConfidenceScore | None = Field(None, title='Confidence Score')
+    identity: dict[str, Any] | None = Field(None, title='Identity')
+    product_catalog: dict[str, Any] | None = Field(None, title='Product Catalog')
+    target_customer: dict[str, Any] | None = Field(None, title='Target Customer')
+    personas: dict[str, Any] | None = Field(None, title='Personas')
+    use_cases: dict[str, Any] | None = Field(None, title='Use Cases')
+    value_drivers: dict[str, Any] | None = Field(None, title='Value Drivers')
+    proof_points: dict[str, Any] | None = Field(None, title='Proof Points')
+    trust_commercial: dict[str, Any] | None = Field(None, title='Trust Commercial')
+    active_source_ids: list[str] = Field(..., title='Active Source Ids')
+    review_status: dict[str, Any] | None = Field(None, title='Review Status')
+    created_at: AwareDatetime = Field(..., title='Created At')
+    updated_at: AwareDatetime = Field(..., title='Updated At')
+    approved_at: AwareDatetime | None = Field(None, title='Approved At')
+    approved_by: UUID | None = Field(None, title='Approved By')
 
 
 class CrmMatchResult(BaseModel):
@@ -4682,181 +3281,9 @@ class CrmMatchResult(BaseModel):
     """
 
     status: CrmMatchStatus
-    opportunity_id: Annotated[str | None, Field(title="Opportunity Id")] = None
-    confidence: Annotated[float | None, Field(title="Confidence")] = None
-    source: Annotated[str | None, Field(title="Source")] = None
-
-
-class Finding(BaseModel):
-    """
-    A single audit finding representing an issue discovered during analysis.
-
-    Findings are the primary output of analyzers and are tracked across audit
-    runs to support incremental auditing and remediation sprints.
-    """
-
-    id: Annotated[
-        str,
-        Field(
-            description="Unique finding identifier, e.g., 'COR-001', 'ARCH-002'",
-            examples=["COR-001", "ARCH-002"],
-            title="Id",
-        ),
-    ]
-    severity: Annotated[Severity, Field(description="Severity level of the finding")]
-    confidence: Annotated[
-        Confidence, Field(description="Confidence level in the finding's accuracy")
-    ]
-    area: Annotated[AuditArea, Field(description="Audit area this finding belongs to")]
-    evidence: Annotated[
-        str,
-        Field(
-            description="File path and line numbers where the issue was found",
-            examples=["src/app.py:42-56"],
-            title="Evidence",
-        ),
-    ]
-    observed_fact: Annotated[
-        str,
-        Field(
-            description="Description of what was observed during analysis",
-            title="Observed Fact",
-        ),
-    ]
-    inference_risk: Annotated[
-        str,
-        Field(
-            description="Explanation of why the finding matters and what it implies",
-            title="Inference Risk",
-        ),
-    ]
-    business_impact: Annotated[
-        str,
-        Field(
-            description="Business impact if the issue is not addressed",
-            title="Business Impact",
-        ),
-    ]
-    recommended_fix: Annotated[
-        str,
-        Field(description="Recommended remediation approach", title="Recommended Fix"),
-    ]
-    effort: Annotated[
-        str,
-        Field(
-            description="Estimated effort to fix: XS, S, M, L, XL",
-            pattern="^(XS|S|M|L|XL)$",
-            title="Effort",
-        ),
-    ]
-    risk_of_change: Annotated[
-        str,
-        Field(
-            description="Risk associated with implementing the fix: Low, Medium, High",
-            title="Risk Of Change",
-        ),
-    ]
-    owner: Annotated[
-        str,
-        Field(description="Team or individual responsible for remediation", title="Owner"),
-    ]
-    target_sprint: Annotated[
-        int | None,
-        Field(
-            description="Target sprint number (1-8, 0 = backlog)",
-            ge=0,
-            le=8,
-            title="Target Sprint",
-        ),
-    ] = 0
-    status: Annotated[
-        FindingStatus | None,
-        Field(description="Current lifecycle status of the finding"),
-    ] = FindingStatus.open
-    created_at: Annotated[
-        AwareDatetime | None,
-        Field(
-            description="Timestamp when the finding was first created",
-            title="Created At",
-        ),
-    ] = None
-    resolved_at: Annotated[
-        AwareDatetime | None,
-        Field(description="Timestamp when the finding was resolved", title="Resolved At"),
-    ] = None
-    resolution_note: Annotated[
-        str | None,
-        Field(
-            description="Notes explaining how the finding was resolved",
-            title="Resolution Note",
-        ),
-    ] = None
-    first_seen_at: Annotated[
-        AwareDatetime | None,
-        Field(
-            description="Timestamp when the finding was first observed across any run",
-            title="First Seen At",
-        ),
-    ] = None
-    last_seen_at: Annotated[
-        AwareDatetime | None,
-        Field(
-            description="Timestamp when the finding was most recently observed",
-            title="Last Seen At",
-        ),
-    ] = None
-    times_seen: Annotated[
-        int | None,
-        Field(
-            description="Number of audit runs in which this finding has been observed",
-            ge=1,
-            title="Times Seen",
-        ),
-    ] = 1
-    analyzer_type: Annotated[
-        str,
-        Field(
-            description="Type of analyzer that produced this finding: git, code, doc",
-            title="Analyzer Type",
-        ),
-    ]
-    check_command: Annotated[
-        str | None,
-        Field(
-            description="Shell command used to detect this finding",
-            title="Check Command",
-        ),
-    ] = None
-    check_output: Annotated[
-        str | None,
-        Field(
-            description="Raw command output that led to this finding",
-            title="Check Output",
-        ),
-    ] = None
-    tenant_id: Annotated[
-        str | None,
-        Field(description="Tenant that owns this finding", title="Tenant Id"),
-    ] = None
-
-
-class GateResponse(BaseModel):
-    """
-    Single gate in API responses.
-    """
-
-    model_config = ConfigDict(
-        extra="forbid",
-    )
-    id: Annotated[str, Field(title="Id")]
-    run_id: Annotated[str, Field(title="Run Id")]
-    tenant_id: Annotated[str, Field(title="Tenant Id")]
-    gate_type: GateType
-    status: GateStatus
-    decision_by: Annotated[str | None, Field(title="Decision By")]
-    decision_reason: Annotated[str | None, Field(title="Decision Reason")]
-    created_at: Annotated[AwareDatetime, Field(title="Created At")]
-    decided_at: Annotated[AwareDatetime | None, Field(title="Decided At")]
+    opportunity_id: str | None = Field(None, title='Opportunity Id')
+    confidence: float | None = Field(None, title='Confidence')
+    source: str | None = Field(None, title='Source')
 
 
 class ICPProfileCreateRequest(BaseModel):
@@ -4864,26 +3291,28 @@ class ICPProfileCreateRequest(BaseModel):
     Request to create an ICP profile.
     """
 
-    profile_id: Annotated[UUID, Field(title="Profile Id")]
-    industries: Annotated[list[str] | None, Field(title="Industries")] = None
-    company_size: Annotated[list[str] | None, Field(title="Company Size")] = None
-    buyer_personas: Annotated[list[dict[str, Any]] | None, Field(title="Buyer Personas")] = None
-    user_personas: Annotated[list[dict[str, Any]] | None, Field(title="User Personas")] = None
-    pain_points: Annotated[list[str] | None, Field(title="Pain Points")] = None
-    trigger_events: Annotated[list[str] | None, Field(title="Trigger Events")] = None
-    qualification_criteria: Annotated[list[str] | None, Field(title="Qualification Criteria")] = (
-        None
+    profile_id: UUID = Field(..., title='Profile Id')
+    industries: list[str] | None = Field(None, title='Industries')
+    company_size: list[str] | None = Field(None, title='Company Size')
+    buyer_personas: list[dict[str, Any]] | None = Field(None, title='Buyer Personas')
+    user_personas: list[dict[str, Any]] | None = Field(None, title='User Personas')
+    pain_points: list[str] | None = Field(None, title='Pain Points')
+    trigger_events: list[str] | None = Field(None, title='Trigger Events')
+    qualification_criteria: list[str] | None = Field(
+        None, title='Qualification Criteria'
     )
-    disqualification_criteria: Annotated[
-        list[str] | None, Field(title="Disqualification Criteria")
-    ] = None
-    competitive_context: Annotated[dict[str, Any] | None, Field(title="Competitive Context")] = None
-    buying_committee_structure: Annotated[
-        dict[str, Any] | None, Field(title="Buying Committee Structure")
-    ] = None
-    typical_sales_motion: Annotated[str | None, Field(title="Typical Sales Motion")] = None
-    confidence: Annotated[Confidence1 | None, Field(title="Confidence")] = None
-    source_type: ICPSourceType | None = ICPSourceType.manual
+    disqualification_criteria: list[str] | None = Field(
+        None, title='Disqualification Criteria'
+    )
+    competitive_context: dict[str, Any] | None = Field(
+        None, title='Competitive Context'
+    )
+    buying_committee_structure: dict[str, Any] | None = Field(
+        None, title='Buying Committee Structure'
+    )
+    typical_sales_motion: str | None = Field(None, title='Typical Sales Motion')
+    confidence: Confidence | None = Field(None, title='Confidence')
+    source_type: ICPSourceType | None = 'manual'
 
 
 class ICPProfileResponse(BaseModel):
@@ -4891,26 +3320,28 @@ class ICPProfileResponse(BaseModel):
     ICP profile in API responses.
     """
 
-    id: Annotated[UUID, Field(title="Id")]
-    tenant_id: Annotated[str, Field(title="Tenant Id")]
-    profile_id: Annotated[UUID, Field(title="Profile Id")]
-    industries: Annotated[list[str], Field(title="Industries")]
-    company_size: Annotated[list[str], Field(title="Company Size")]
-    buyer_personas: Annotated[list[dict[str, Any]], Field(title="Buyer Personas")]
-    user_personas: Annotated[list[dict[str, Any]], Field(title="User Personas")]
-    pain_points: Annotated[list[str], Field(title="Pain Points")]
-    trigger_events: Annotated[list[str], Field(title="Trigger Events")]
-    qualification_criteria: Annotated[list[str], Field(title="Qualification Criteria")]
-    disqualification_criteria: Annotated[list[str], Field(title="Disqualification Criteria")]
-    competitive_context: Annotated[dict[str, Any] | None, Field(title="Competitive Context")] = None
-    buying_committee_structure: Annotated[
-        dict[str, Any] | None, Field(title="Buying Committee Structure")
-    ] = None
-    typical_sales_motion: Annotated[str | None, Field(title="Typical Sales Motion")] = None
-    confidence: Annotated[Confidence1 | None, Field(title="Confidence")] = None
+    id: UUID = Field(..., title='Id')
+    tenant_id: str = Field(..., title='Tenant Id')
+    profile_id: UUID = Field(..., title='Profile Id')
+    industries: list[str] = Field(..., title='Industries')
+    company_size: list[str] = Field(..., title='Company Size')
+    buyer_personas: list[dict[str, Any]] = Field(..., title='Buyer Personas')
+    user_personas: list[dict[str, Any]] = Field(..., title='User Personas')
+    pain_points: list[str] = Field(..., title='Pain Points')
+    trigger_events: list[str] = Field(..., title='Trigger Events')
+    qualification_criteria: list[str] = Field(..., title='Qualification Criteria')
+    disqualification_criteria: list[str] = Field(..., title='Disqualification Criteria')
+    competitive_context: dict[str, Any] | None = Field(
+        None, title='Competitive Context'
+    )
+    buying_committee_structure: dict[str, Any] | None = Field(
+        None, title='Buying Committee Structure'
+    )
+    typical_sales_motion: str | None = Field(None, title='Typical Sales Motion')
+    confidence: Confidence | None = Field(None, title='Confidence')
     source_type: ICPSourceType
-    created_at: Annotated[AwareDatetime, Field(title="Created At")]
-    updated_at: Annotated[AwareDatetime, Field(title="Updated At")]
+    created_at: AwareDatetime = Field(..., title='Created At')
+    updated_at: AwareDatetime = Field(..., title='Updated At')
 
 
 class ICPProfileUpdateRequest(BaseModel):
@@ -4918,24 +3349,26 @@ class ICPProfileUpdateRequest(BaseModel):
     Request to update an ICP profile.
     """
 
-    industries: Annotated[list[str] | None, Field(title="Industries")] = None
-    company_size: Annotated[list[str] | None, Field(title="Company Size")] = None
-    buyer_personas: Annotated[list[dict[str, Any]] | None, Field(title="Buyer Personas")] = None
-    user_personas: Annotated[list[dict[str, Any]] | None, Field(title="User Personas")] = None
-    pain_points: Annotated[list[str] | None, Field(title="Pain Points")] = None
-    trigger_events: Annotated[list[str] | None, Field(title="Trigger Events")] = None
-    qualification_criteria: Annotated[list[str] | None, Field(title="Qualification Criteria")] = (
-        None
+    industries: list[str] | None = Field(None, title='Industries')
+    company_size: list[str] | None = Field(None, title='Company Size')
+    buyer_personas: list[dict[str, Any]] | None = Field(None, title='Buyer Personas')
+    user_personas: list[dict[str, Any]] | None = Field(None, title='User Personas')
+    pain_points: list[str] | None = Field(None, title='Pain Points')
+    trigger_events: list[str] | None = Field(None, title='Trigger Events')
+    qualification_criteria: list[str] | None = Field(
+        None, title='Qualification Criteria'
     )
-    disqualification_criteria: Annotated[
-        list[str] | None, Field(title="Disqualification Criteria")
-    ] = None
-    competitive_context: Annotated[dict[str, Any] | None, Field(title="Competitive Context")] = None
-    buying_committee_structure: Annotated[
-        dict[str, Any] | None, Field(title="Buying Committee Structure")
-    ] = None
-    typical_sales_motion: Annotated[str | None, Field(title="Typical Sales Motion")] = None
-    confidence: Annotated[Confidence1 | None, Field(title="Confidence")] = None
+    disqualification_criteria: list[str] | None = Field(
+        None, title='Disqualification Criteria'
+    )
+    competitive_context: dict[str, Any] | None = Field(
+        None, title='Competitive Context'
+    )
+    buying_committee_structure: dict[str, Any] | None = Field(
+        None, title='Buying Committee Structure'
+    )
+    typical_sales_motion: str | None = Field(None, title='Typical Sales Motion')
+    confidence: Confidence | None = Field(None, title='Confidence')
     source_type: ICPSourceType | None = None
 
 
@@ -4944,7 +3377,7 @@ class IntegrationListResponse(BaseModel):
     List of integrations response.
     """
 
-    integrations: Annotated[list[IntegrationStatusResponse], Field(title="Integrations")]
+    integrations: list[IntegrationStatusResponse] = Field(..., title='Integrations')
 
 
 class KnowledgeSourceCreateRequest(BaseModel):
@@ -4952,15 +3385,15 @@ class KnowledgeSourceCreateRequest(BaseModel):
     Request to add a new knowledge source.
     """
 
-    profile_id: Annotated[UUID, Field(title="Profile Id")]
+    profile_id: UUID = Field(..., title='Profile Id')
     source_type: SourceType
-    source_url: Annotated[str | None, Field(title="Source Url")] = None
-    document_name: Annotated[str | None, Field(title="Document Name")] = None
-    content_hash: Annotated[str | None, Field(title="Content Hash")] = None
-    raw_storage_path: Annotated[str | None, Field(title="Raw Storage Path")] = None
-    authority_weight: AuthorityWeight | None = AuthorityWeight.medium
+    source_url: str | None = Field(None, title='Source Url')
+    document_name: str | None = Field(None, title='Document Name')
+    content_hash: str | None = Field(None, title='Content Hash')
+    raw_storage_path: str | None = Field(None, title='Raw Storage Path')
+    authority_weight: AuthorityWeight | None = 'medium'
     page_type: PageType | None = None
-    extra_metadata: Annotated[dict[str, Any] | None, Field(title="Extra Metadata")] = None
+    extra_metadata: dict[str, Any] | None = Field(None, title='Extra Metadata')
 
 
 class KnowledgeSourceResponse(BaseModel):
@@ -4968,33 +3401,33 @@ class KnowledgeSourceResponse(BaseModel):
     Knowledge source item in API responses.
     """
 
-    id: Annotated[UUID, Field(title="Id")]
-    tenant_id: Annotated[str, Field(title="Tenant Id")]
-    profile_id: Annotated[UUID, Field(title="Profile Id")]
+    id: UUID = Field(..., title='Id')
+    tenant_id: str = Field(..., title='Tenant Id')
+    profile_id: UUID = Field(..., title='Profile Id')
     source_type: SourceType
-    source_url: Annotated[str | None, Field(title="Source Url")] = None
-    document_name: Annotated[str | None, Field(title="Document Name")] = None
-    content_hash: Annotated[str | None, Field(title="Content Hash")] = None
-    raw_storage_path: Annotated[str | None, Field(title="Raw Storage Path")] = None
+    source_url: str | None = Field(None, title='Source Url')
+    document_name: str | None = Field(None, title='Document Name')
+    content_hash: str | None = Field(None, title='Content Hash')
+    raw_storage_path: str | None = Field(None, title='Raw Storage Path')
     crawl_status: CrawlStatus
     authority_weight: AuthorityWeight
     page_type: PageType | None = None
-    extra_metadata: Annotated[dict[str, Any], Field(title="Extra Metadata")]
-    created_at: Annotated[AwareDatetime, Field(title="Created At")]
-    updated_at: Annotated[AwareDatetime, Field(title="Updated At")]
+    extra_metadata: dict[str, Any] = Field(..., title='Extra Metadata')
+    created_at: AwareDatetime = Field(..., title='Created At')
+    updated_at: AwareDatetime = Field(..., title='Updated At')
 
 
 class LineageResponse(BaseModel):
-    reviews: Annotated[list[ReviewRequest], Field(title="Reviews")]
-    decisions: Annotated[list[ApprovalDecision], Field(title="Decisions")]
-    versions: Annotated[list[VersionRecord], Field(title="Versions")]
-    exports: Annotated[list[AuditExportJob], Field(title="Exports")]
+    reviews: list[ReviewRequest] = Field(..., title='Reviews')
+    decisions: list[ApprovalDecision] = Field(..., title='Decisions')
+    versions: list[VersionRecord] = Field(..., title='Versions')
+    exports: list[AuditExportJob] = Field(..., title='Exports')
 
 
 class NotificationListResponse(BaseModel):
-    items: Annotated[list[NotificationRecord], Field(title="Items")]
-    total: Annotated[int, Field(title="Total")]
-    unread_count: Annotated[int, Field(title="Unread Count")]
+    items: list[NotificationRecord] = Field(..., title='Items')
+    total: int = Field(..., title='Total')
+    unread_count: int = Field(..., title='Unread Count')
 
 
 class OnboardingStatusResponse(BaseModel):
@@ -5002,233 +3435,26 @@ class OnboardingStatusResponse(BaseModel):
     Aggregated onboarding progress for a tenant.
     """
 
-    tenant_id: Annotated[str, Field(title="Tenant Id")]
-    profile_id: Annotated[UUID | None, Field(title="Profile Id")] = None
+    tenant_id: str = Field(..., title='Tenant Id')
+    profile_id: UUID | None = Field(None, title='Profile Id')
     profile_status: ProfileStatus | None = None
-    company_name: Annotated[str | None, Field(title="Company Name")] = None
-    website: Annotated[str | None, Field(title="Website")] = None
-    sources_count: Annotated[int, Field(title="Sources Count")]
-    extractions_count: Annotated[int, Field(title="Extractions Count")]
-    extractions_pending_review: Annotated[int, Field(title="Extractions Pending Review")]
-    extractions_accepted: Annotated[int, Field(title="Extractions Accepted")]
-    extractions_rejected: Annotated[int, Field(title="Extractions Rejected")]
-    average_confidence: Annotated[AverageConfidence | None, Field(title="Average Confidence")] = (
-        None
+    company_name: str | None = Field(None, title='Company Name')
+    website: str | None = Field(None, title='Website')
+    sources_count: int = Field(..., title='Sources Count')
+    extractions_count: int = Field(..., title='Extractions Count')
+    extractions_pending_review: int = Field(..., title='Extractions Pending Review')
+    extractions_accepted: int = Field(..., title='Extractions Accepted')
+    extractions_rejected: int = Field(..., title='Extractions Rejected')
+    average_confidence: AverageConfidence | None = Field(
+        None, title='Average Confidence'
     )
-    icp_present: Annotated[bool, Field(title="Icp Present")]
-    has_approved_profile: Annotated[bool, Field(title="Has Approved Profile")]
-    next_step: Annotated[
-        str,
-        Field(
-            description="Human-readable next action for the onboarding flow",
-            title="Next Step",
-        ),
-    ]
-
-
-class RunListResponse(BaseModel):
-    """
-    Paginated list of runs.
-    """
-
-    model_config = ConfigDict(
-        extra="forbid",
+    icp_present: bool = Field(..., title='Icp Present')
+    has_approved_profile: bool = Field(..., title='Has Approved Profile')
+    next_step: str = Field(
+        ...,
+        description='Human-readable next action for the onboarding flow',
+        title='Next Step',
     )
-    items: Annotated[list[RunResponse], Field(title="Items")]
-    total: Annotated[int, Field(title="Total")]
-    limit: Annotated[int, Field(title="Limit")]
-    offset: Annotated[int, Field(title="Offset")]
-    has_more: Annotated[bool, Field(title="Has More")]
-
-
-class ScoreHistory(BaseModel):
-    """
-    Score history over time for trend analysis.
-
-    Returned by the GET /scorecard/history endpoint. Supports filtering
-    by audit area for area-specific trend charts.
-    """
-
-    repo_name: Annotated[str, Field(description="Repository name", title="Repo Name")]
-    area: Annotated[
-        str | None,
-        Field(description="Audit area filter (None for overall)", title="Area"),
-    ] = None
-    entries: Annotated[
-        list[ScoreHistoryEntry] | None,
-        Field(description="Chronological score entries", title="Entries"),
-    ] = None
-
-
-class Scorecard(BaseModel):
-    """
-    Full repository scorecard summarizing the health of a codebase.
-
-    A scorecard aggregates area scores, overall metrics, and all findings
-    from a single audit run. It serves as the primary output of the audit
-    pipeline.
-    """
-
-    id: Annotated[
-        str | None, Field(description="Unique scorecard identifier (UUID)", title="Id")
-    ] = None
-    repo_name: Annotated[
-        str,
-        Field(
-            description="Repository name, e.g., 'bmsull560/Fabric_4L'",
-            title="Repo Name",
-        ),
-    ]
-    branch: Annotated[
-        str | None, Field(description="Git branch that was audited", title="Branch")
-    ] = "main"
-    commit_sha: Annotated[
-        str | None,
-        Field(description="Git commit SHA at the time of audit", title="Commit Sha"),
-    ] = None
-    version: Annotated[
-        str | None,
-        Field(description="Semantic version of the codebase, if tagged", title="Version"),
-    ] = None
-    overall_score: Annotated[
-        int,
-        Field(
-            description="Weighted overall score (0-100)",
-            ge=0,
-            le=100,
-            title="Overall Score",
-        ),
-    ]
-    overall_grade: Annotated[
-        str,
-        Field(
-            description="Overall letter grade, e.g., 'A+', 'B-', 'C'",
-            title="Overall Grade",
-        ),
-    ]
-    confidence: Annotated[Confidence, Field(description="Overall confidence in the scorecard")]
-    trend: Annotated[
-        str,
-        Field(description="Overall trend: Improving, Stable, or Declining", title="Trend"),
-    ]
-    area_scores: Annotated[
-        list[AreaScore],
-        Field(description="Scores for each of the ten audit areas", title="Area Scores"),
-    ]
-    total_files: Annotated[
-        int | None,
-        Field(
-            description="Total number of files in the repository",
-            ge=0,
-            title="Total Files",
-        ),
-    ] = 0
-    total_directories: Annotated[
-        int | None,
-        Field(
-            description="Total number of directories in the repository",
-            ge=0,
-            title="Total Directories",
-        ),
-    ] = 0
-    total_commits: Annotated[
-        int | None,
-        Field(description="Total number of commits analyzed", ge=0, title="Total Commits"),
-    ] = 0
-    total_contributors: Annotated[
-        int | None,
-        Field(
-            description="Total number of unique contributors",
-            ge=0,
-            title="Total Contributors",
-        ),
-    ] = 0
-    audit_timestamp: Annotated[
-        AwareDatetime | None,
-        Field(
-            description="Timestamp when the audit was completed",
-            title="Audit Timestamp",
-        ),
-    ] = None
-    findings: Annotated[
-        list[Finding] | None,
-        Field(description="All findings from the audit", title="Findings"),
-    ] = None
-    executive_summary: Annotated[
-        str | None,
-        Field(
-            description="Executive summary of the audit results",
-            title="Executive Summary",
-        ),
-    ] = None
-    tenant_id: Annotated[
-        str | None,
-        Field(description="Tenant that owns this scorecard", title="Tenant Id"),
-    ] = None
-
-
-class Sprint(BaseModel):
-    """
-    A remediation sprint from the audit roadmap.
-
-    Sprints group findings into time-boxed remediation periods with
-    defined themes, objectives, and deliverables.
-    """
-
-    id: Annotated[int, Field(description="Sprint number (1-8)", ge=1, le=8, title="Id")]
-    theme: Annotated[
-        str,
-        Field(description="High-level theme or focus area for the sprint", title="Theme"),
-    ]
-    objectives: Annotated[
-        list[str], Field(description="List of sprint objectives", title="Objectives")
-    ]
-    deliverables: Annotated[
-        list[str],
-        Field(description="List of expected deliverables", title="Deliverables"),
-    ]
-    findings_targeted: Annotated[
-        list[str],
-        Field(
-            description="Finding IDs targeted for remediation in this sprint",
-            title="Findings Targeted",
-        ),
-    ]
-    status: Annotated[SprintStatus | None, Field(description="Current status of the sprint")] = (
-        SprintStatus.planned
-    )
-    started_at: Annotated[
-        AwareDatetime | None,
-        Field(description="Timestamp when the sprint started", title="Started At"),
-    ] = None
-    completed_at: Annotated[
-        AwareDatetime | None,
-        Field(description="Timestamp when the sprint was completed", title="Completed At"),
-    ] = None
-    actual_effort_days: Annotated[
-        ActualEffortDays | None,
-        Field(
-            description="Actual effort in days spent on the sprint",
-            title="Actual Effort Days",
-        ),
-    ] = None
-    score_impact_projected: Annotated[
-        int | None,
-        Field(
-            description="Projected score impact from completing this sprint",
-            title="Score Impact Projected",
-        ),
-    ] = 0
-    score_impact_actual: Annotated[
-        int | None,
-        Field(
-            description="Actual score impact after sprint completion",
-            title="Score Impact Actual",
-        ),
-    ] = None
-    tenant_id: Annotated[
-        str | None, Field(description="Tenant that owns this sprint", title="Tenant Id")
-    ] = None
 
 
 class StartAnalysisResponse(BaseModel):
@@ -5239,33 +3465,32 @@ class StartAnalysisResponse(BaseModel):
     explicitly reports its availability status.
     """
 
-    prospect_id: Annotated[
-        str, Field(description="Canonical prospect/account ID", title="Prospect Id")
-    ]
-    workflow_id: Annotated[
-        str | None,
-        Field(description="Created workflow instance ID", title="Workflow Id"),
-    ] = None
-    status: Annotated[WorkflowStartStatus, Field(description="Overall start operation status")]
-    enrichment_status: Annotated[
-        EnrichmentStatus | None,
-        Field(description="Company enrichment data availability"),
-    ] = EnrichmentStatus.unavailable
-    buyer_role_inference: Annotated[
-        BuyerRoleInferenceResult | None,
-        Field(description="Buyer role inference result (never fabricated)"),
-    ] = None
-    crm_match: Annotated[
-        CrmMatchResult | None,
-        Field(description="CRM opportunity match result (never fabricated)"),
-    ] = None
-    next_route_state: Annotated[
-        str | None,
-        Field(description="Recommended frontend route state", title="Next Route State"),
-    ] = "workflow-intelligence"
-    message: Annotated[
-        str | None, Field(description="Human-readable status message", title="Message")
-    ] = None
+    prospect_id: str = Field(
+        ..., description='Canonical prospect/account ID', title='Prospect Id'
+    )
+    workflow_id: str | None = Field(
+        None, description='Created workflow instance ID', title='Workflow Id'
+    )
+    status: WorkflowStartStatus = Field(
+        ..., description='Overall start operation status'
+    )
+    enrichment_status: EnrichmentStatus | None = Field(
+        'unavailable', description='Company enrichment data availability'
+    )
+    buyer_role_inference: BuyerRoleInferenceResult | None = Field(
+        None, description='Buyer role inference result (never fabricated)'
+    )
+    crm_match: CrmMatchResult | None = Field(
+        None, description='CRM opportunity match result (never fabricated)'
+    )
+    next_route_state: str | None = Field(
+        'workflow-intelligence',
+        description='Recommended frontend route state',
+        title='Next Route State',
+    )
+    message: str | None = Field(
+        None, description='Human-readable status message', title='Message'
+    )
 
 
 class SyncStatusListResponse(BaseModel):
@@ -5273,20 +3498,20 @@ class SyncStatusListResponse(BaseModel):
     All providers sync status response.
     """
 
-    providers: Annotated[list[SyncStatusSchema], Field(title="Providers")]
-    overall_status: Annotated[str, Field(title="Overall Status")]
+    providers: list[SyncStatusSchema] = Field(..., title='Providers')
+    overall_status: str = Field(..., title='Overall Status')
 
 
 class TaskRecord(BaseModel):
-    id: Annotated[str, Field(title="Id")]
-    title: Annotated[str, Field(title="Title")]
-    account_id: Annotated[str | None, Field(title="Account Id")] = None
-    assignee: Annotated[str | None, Field(title="Assignee")] = None
-    due_date: Annotated[str | None, Field(title="Due Date")] = None
-    stage: Annotated[str | None, Field(title="Stage")] = None
-    status: TaskStatus | None = TaskStatus.open
-    created_at: Annotated[str, Field(title="Created At")]
-    updated_at: Annotated[str, Field(title="Updated At")]
+    id: str = Field(..., title='Id')
+    title: str = Field(..., title='Title')
+    account_id: str | None = Field(None, title='Account Id')
+    assignee: str | None = Field(None, title='Assignee')
+    due_date: str | None = Field(None, title='Due Date')
+    stage: str | None = Field(None, title='Stage')
+    status: TaskStatus | None = 'open'
+    created_at: str = Field(..., title='Created At')
+    updated_at: str = Field(..., title='Updated At')
 
 
 class TenantContextResponse(BaseModel):
@@ -5300,28 +3525,24 @@ class TenantModel(BaseModel):
     Read-only representation of a tenant (returned by API).
     """
 
-    id: Annotated[UUID | None, Field(description="Tenant UUID (PK)", title="Id")] = None
-    name: Annotated[
-        str,
-        Field(description="Display name", max_length=200, min_length=1, title="Name"),
-    ]
-    slug: Annotated[
-        str,
-        Field(
-            description="URL-safe unique identifier (lowercase kebab-case)",
-            max_length=63,
-            min_length=1,
-            pattern="^[a-z0-9]+(?:-[a-z0-9]+)*$",
-            title="Slug",
-        ),
-    ]
-    status: TenantStatus | None = TenantStatus.active
-    settings: Annotated[
-        dict[str, Any] | None,
-        Field(description="Tenant-level config blob", title="Settings"),
-    ] = None
-    created_at: Annotated[AwareDatetime | None, Field(title="Created At")] = None
-    updated_at: Annotated[AwareDatetime | None, Field(title="Updated At")] = None
+    id: UUID | None = Field(None, description='Tenant UUID (PK)', title='Id')
+    name: str = Field(
+        ..., description='Display name', max_length=200, min_length=1, title='Name'
+    )
+    slug: str = Field(
+        ...,
+        description='URL-safe unique identifier (lowercase kebab-case)',
+        max_length=63,
+        min_length=1,
+        pattern='^[a-z0-9]+(?:-[a-z0-9]+)*$',
+        title='Slug',
+    )
+    status: TenantStatus | None = 'active'
+    settings: dict[str, Any] | None = Field(
+        None, description='Tenant-level config blob', title='Settings'
+    )
+    created_at: AwareDatetime | None = Field(None, title='Created At')
+    updated_at: AwareDatetime | None = Field(None, title='Updated At')
 
 
 class ToolCategoriesResponse(BaseModel):
@@ -5329,39 +3550,7 @@ class ToolCategoriesResponse(BaseModel):
     Typed response model for categories listing.
     """
 
-    categories: Annotated[list[ToolCategoryItem], Field(title="Categories")]
-
-
-class TransitionRequest(BaseModel):
-    """
-    Request body for POST /v1/harness/runs/{run_id}/transition.
-    """
-
-    model_config = ConfigDict(
-        extra="forbid",
-    )
-    to_state: HarnessState
-    human_override: Annotated[bool | None, Field(title="Human Override")] = False
-    state_payload: Annotated[dict[str, Any] | None, Field(title="State Payload")] = None
-    validation_results: Annotated[
-        list[ClaimValidationResult] | None, Field(title="Validation Results")
-    ] = None
-
-
-class UsageBatchRequest(BaseModel):
-    """
-    Request body for batch ingestion of usage events.
-    """
-
-    events: Annotated[
-        list[UsageEventRequest],
-        Field(
-            description="Events to ingest",
-            max_length=1000,
-            min_length=1,
-            title="Events",
-        ),
-    ]
+    categories: list[ToolCategoryItem] = Field(..., title='Categories')
 
 
 class UserModel(BaseModel):
@@ -5369,16 +3558,18 @@ class UserModel(BaseModel):
     Read-only representation of a user (returned by API — no password).
     """
 
-    id: Annotated[UUID | None, Field(title="Id")] = None
-    tenant_id: Annotated[UUID, Field(description="Owning tenant", title="Tenant Id")]
-    email: Annotated[str, Field(description="Email address (unique within tenant)", title="Email")]
-    display_name: Annotated[str | None, Field(title="Display Name")] = None
-    role: Role | None = Role.analyst
-    status: UserStatus | None = UserStatus.invited
-    last_login_at: Annotated[AwareDatetime | None, Field(title="Last Login At")] = None
-    invited_by: Annotated[UUID | None, Field(title="Invited By")] = None
-    created_at: Annotated[AwareDatetime | None, Field(title="Created At")] = None
-    updated_at: Annotated[AwareDatetime | None, Field(title="Updated At")] = None
+    id: UUID | None = Field(None, title='Id')
+    tenant_id: UUID = Field(..., description='Owning tenant', title='Tenant Id')
+    email: str = Field(
+        ..., description='Email address (unique within tenant)', title='Email'
+    )
+    display_name: str | None = Field(None, title='Display Name')
+    role: Role | None = 'analyst'
+    status: UserStatus | None = 'invited'
+    last_login_at: AwareDatetime | None = Field(None, title='Last Login At')
+    invited_by: UUID | None = Field(None, title='Invited By')
+    created_at: AwareDatetime | None = Field(None, title='Created At')
+    updated_at: AwareDatetime | None = Field(None, title='Updated At')
 
 
 class ValidationAuthContextSeedRequest(BaseModel):
@@ -5390,40 +3581,25 @@ class ValidationAuthContextSeedRequest(BaseModel):
     """
 
     model_config = ConfigDict(
-        extra="forbid",
+        extra='forbid',
     )
-    tenant_id: Annotated[UUID | None, Field(title="Tenant Id")] = None
-    tenant_slug: Annotated[str | None, Field(max_length=63, min_length=1, title="Tenant Slug")] = (
-        "tenant-validation"
+    tenant_id: UUID | None = Field(None, title='Tenant Id')
+    tenant_slug: str | None = Field(
+        'tenant-e2e-001', max_length=63, min_length=1, title='Tenant Slug'
     )
-    tenant_name: Annotated[str | None, Field(max_length=200, min_length=1, title="Tenant Name")] = (
-        "Validation Tenant"
+    tenant_name: str | None = Field(
+        'E2E Validation Tenant', max_length=200, min_length=1, title='Tenant Name'
     )
-    service_account_id: Annotated[
-        str | None, Field(max_length=128, min_length=1, title="Service Account Id")
-    ] = "svc-validation-seed"
+    service_account_id: str | None = Field(
+        'svc-playwright-backend-validation',
+        max_length=128,
+        min_length=1,
+        title='Service Account Id',
+    )
     api_key: ValidationSeededApiKey | None = None
-    account_mappings: Annotated[list[dict[str, str]] | None, Field(title="Account Mappings")] = None
-
-
-class ValidationResultResponse(BaseModel):
-    """
-    Single validation result in API responses.
-    """
-
-    model_config = ConfigDict(
-        extra="forbid",
+    account_mappings: list[dict[str, str]] | None = Field(
+        None, title='Account Mappings'
     )
-    id: Annotated[str, Field(title="Id")]
-    tenant_id: Annotated[str, Field(title="Tenant Id")]
-    claim_id: Annotated[str, Field(title="Claim Id")]
-    validation_state: ValidationState
-    evidence_refs: Annotated[list[str], Field(title="Evidence Refs")]
-    confidence: Annotated[float, Field(title="Confidence")]
-    trust_score: Annotated[float, Field(title="Trust Score")]
-    validator: Annotated[str, Field(title="Validator")]
-    reason: Annotated[str, Field(title="Reason")]
-    created_at: Annotated[AwareDatetime, Field(title="Created At")]
 
 
 class ValueExtractionRecordListResponse(BaseModel):
@@ -5431,11 +3607,11 @@ class ValueExtractionRecordListResponse(BaseModel):
     Paginated extraction records.
     """
 
-    total: Annotated[int, Field(title="Total")]
-    page: Annotated[int, Field(title="Page")]
-    page_size: Annotated[int, Field(title="Page Size")]
-    has_more: Annotated[bool, Field(title="Has More")]
-    items: Annotated[list[ValueExtractionRecordResponse], Field(title="Items")]
+    total: int = Field(..., title='Total')
+    page: int = Field(..., title='Page')
+    page_size: int = Field(..., title='Page Size')
+    has_more: bool = Field(..., title='Has More')
+    items: list[ValueExtractionRecordResponse] = Field(..., title='Items')
 
 
 class WorkflowCreateRequest(BaseModel):
@@ -5447,44 +3623,16 @@ class WorkflowCreateRequest(BaseModel):
     - inputs: object
     """
 
-    model_config = ConfigDict(
-        extra="forbid",
+    workflow_type: WorkflowType = Field(
+        ..., description='Type of workflow to run', title='Workflow Type'
     )
-    workflow_type: Annotated[
-        WorkflowType,
-        Field(description="Type of workflow to run", title="Workflow Type"),
-    ]
-    inputs: Annotated[WorkflowInputs | None, Field(description="Workflow inputs")] = None
-    priority: Annotated[str | None, Field(description="Execution priority", title="Priority")] = (
-        "NORMAL"
+    inputs: WorkflowInputs | None = Field(None, description='Workflow inputs')
+    priority: str | None = Field(
+        'NORMAL', description='Execution priority', title='Priority'
     )
-    workflow_id: Annotated[
-        str | None, Field(description="Optional workflow ID", title="Workflow Id")
-    ] = None
-
-
-class Layer4AgentsHarnessApiModelsCheckpointListResponse(BaseModel):
-    """
-    List of checkpoints for a run.
-    """
-
-    model_config = ConfigDict(
-        extra="forbid",
+    workflow_id: str | None = Field(
+        None, description='Optional workflow ID', title='Workflow Id'
     )
-    items: Annotated[list[CheckpointResponse], Field(title="Items")]
-    total: Annotated[int, Field(title="Total")]
-
-
-class GateListResponse(BaseModel):
-    """
-    List of gates for a run.
-    """
-
-    model_config = ConfigDict(
-        extra="forbid",
-    )
-    items: Annotated[list[GateResponse], Field(title="Items")]
-    total: Annotated[int, Field(title="Total")]
 
 
 class KnowledgeSourceListResponse(BaseModel):
@@ -5492,31 +3640,13 @@ class KnowledgeSourceListResponse(BaseModel):
     Paginated knowledge sources.
     """
 
-    total: Annotated[int, Field(title="Total")]
-    page: Annotated[int, Field(title="Page")]
-    page_size: Annotated[int, Field(title="Page Size")]
-    has_more: Annotated[bool, Field(title="Has More")]
-    items: Annotated[list[KnowledgeSourceResponse], Field(title="Items")]
+    total: int = Field(..., title='Total')
+    page: int = Field(..., title='Page')
+    page_size: int = Field(..., title='Page Size')
+    has_more: bool = Field(..., title='Has More')
+    items: list[KnowledgeSourceResponse] = Field(..., title='Items')
 
 
 class TaskListResponse(BaseModel):
-    items: Annotated[list[TaskRecord], Field(title="Items")]
-    total: Annotated[int, Field(title="Total")]
-
-
-class ValidateClaimsResponse(BaseModel):
-    """
-    Response for POST /v1/harness/runs/{run_id}/validate
-    and GET /v1/harness/runs/{run_id}/validation.
-    """
-
-    model_config = ConfigDict(
-        extra="forbid",
-    )
-    results: Annotated[list[ValidationResultResponse], Field(title="Results")]
-    total: Annotated[int, Field(title="Total")]
-    passed: Annotated[int, Field(title="Passed")]
-    failed: Annotated[int, Field(title="Failed")]
-    needs_review: Annotated[int, Field(title="Needs Review")]
-    insufficient_evidence: Annotated[int, Field(title="Insufficient Evidence")]
-    summary: ValidationSummaryResponse | None = None
+    items: list[TaskRecord] = Field(..., title='Items')
+    total: int = Field(..., title='Total')

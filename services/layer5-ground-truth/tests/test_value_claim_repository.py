@@ -1,5 +1,5 @@
 import uuid
-from datetime import UTC, datetime
+from datetime import datetime
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -30,8 +30,8 @@ async def test_create_and_get_claim(db: AsyncSession):
         confidence=Confidence.MEDIUM,
         status=ClaimStatus.DRAFT,
         maturity_level=0,
-        created_at=datetime.now(UTC),
-        updated_at=datetime.now(UTC),
+        created_at=datetime.utcnow(),
+        updated_at=datetime.utcnow(),
     )
     created = await repo.create(claim)
     fetched = await repo.get_by_id(tenant_id, created.id)
@@ -57,8 +57,8 @@ async def test_cross_tenant_isolation(db: AsyncSession):
         confidence=Confidence.LOW,
         status=ClaimStatus.DRAFT,
         maturity_level=0,
-        created_at=datetime.now(UTC),
-        updated_at=datetime.now(UTC),
+        created_at=datetime.utcnow(),
+        updated_at=datetime.utcnow(),
     )
     created = await repo.create(claim)
     assert await repo.get_by_id(tenant_b, created.id) is None
@@ -82,8 +82,8 @@ async def test_list_by_account_filters_by_status(db: AsyncSession):
         confidence=Confidence.MEDIUM,
         status=ClaimStatus.DRAFT,
         maturity_level=0,
-        created_at=datetime.now(UTC),
-        updated_at=datetime.now(UTC),
+        created_at=datetime.utcnow(),
+        updated_at=datetime.utcnow(),
     )
     supported = ValueClaim(
         tenant_id=tenant_id,
@@ -97,8 +97,8 @@ async def test_list_by_account_filters_by_status(db: AsyncSession):
         confidence=Confidence.MEDIUM,
         status=ClaimStatus.SUPPORTED,
         maturity_level=0,
-        created_at=datetime.now(UTC),
-        updated_at=datetime.now(UTC),
+        created_at=datetime.utcnow(),
+        updated_at=datetime.utcnow(),
     )
     await repo.create(draft)
     await repo.create(supported)

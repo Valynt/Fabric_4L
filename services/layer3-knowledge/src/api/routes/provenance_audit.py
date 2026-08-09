@@ -10,7 +10,7 @@ from value_fabric.shared.error_handling.exceptions import (
 import json
 import logging
 import uuid
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
@@ -128,7 +128,7 @@ async def get_provenance(
                 step=s.get("step", i + 1),
                 label=s.get("label", f"Step {i + 1}"),
                 detail=s.get("detail", ""),
-                timestamp=s.get("timestamp", datetime.now(UTC)),
+                timestamp=s.get("timestamp", datetime.utcnow()),
                 agent=s.get("agent"),
                 entity_id=s.get("step_entity_id"),
             )
@@ -141,7 +141,7 @@ async def get_provenance(
                     step=1,
                     label="Entity Created",
                     detail=f"Entity {entity_id} created from source",
-                    timestamp=record.get("created_at", datetime.now(UTC)),
+                    timestamp=record.get("created_at", datetime.utcnow()),
                     agent="ExtractionEngine-v2.1",
                     entity_id=entity_id,
                 )
@@ -151,7 +151,7 @@ async def get_provenance(
             entity_id=record.get("entity_id", entity_id),
             entity_type=record.get("entity_type", "Unknown"),
             entity_name=record.get("entity_name", "Unknown"),
-            created_at=record.get("created_at", datetime.now(UTC)),
+            created_at=record.get("created_at", datetime.utcnow()),
             source=record.get("source", "unknown"),
             extraction_job_id=record.get("extraction_job_id"),
             steps=steps,
@@ -231,7 +231,7 @@ async def list_audit_logs(
                             entries.append(
                                 AuditLogEntry(
                                     id=r.get("id", str(uuid.uuid4())),
-                                    timestamp=r.get("timestamp", datetime.now(UTC)),
+                                    timestamp=r.get("timestamp", datetime.utcnow()),
                                     source="provenance",
                                     event_type=r.get("event_type", "unknown"),
                                     entity_id=r.get("entity_id"),

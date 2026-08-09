@@ -239,9 +239,9 @@ class Account(Base):
     # Multi-Tenancy
     # -----------------------------------------------------------------------
 
-    tenant_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), nullable=False,
-        comment="Tenant UUID for RLS isolation",
+    tenant_id: Mapped[str] = mapped_column(
+        String(100), nullable=False, default="default",
+        comment="Tenant identifier for RLS isolation",
     )
 
     # -----------------------------------------------------------------------

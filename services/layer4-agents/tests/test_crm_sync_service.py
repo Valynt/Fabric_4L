@@ -25,19 +25,17 @@ from value_fabric.shared.models.typed_dict import TypedDictModel
 
 from layer4_agents.api.main import app
 from layer4_agents.api.routes import crm_webhooks
-from layer4_agents.integrations.core.types import CanonicalRecord, CRMModel, SyncCursor
 from layer4_agents.models.account import (
     Account,
     CRMProvider,
     SyncStatus,
 )
+from layer4_agents.integrations.core.types import CanonicalRecord, CRMModel, SyncCursor
 from layer4_agents.services.crm_sync_service import CRMSyncService
-
-TENANT_ID = "550e8400-e29b-41d4-a716-446655440000"
 
 AUTH_HEADERS = {
     "Authorization": "Bearer test-token",
-    "X-Tenant-ID": TENANT_ID,
+    "X-Tenant-ID": "tenant-a",
     "X-User-ID": "user-a",
     "X-Roles": "tenant_admin",
 }
@@ -219,7 +217,7 @@ class TestCRMSyncService:
                 # Act
                 stats = await sync_service.sync_provider(
                     CRMProvider.SALESFORCE,
-                    tenant_id=TENANT_ID,
+                    tenant_id="tenant-a",
                     incremental=True,
                     account_ids=["001TEST123"]
                 )
@@ -258,7 +256,7 @@ class TestCRMSyncService:
                 # Act
                 stats = await sync_service.sync_provider(
                     CRMProvider.SALESFORCE,
-                    tenant_id=TENANT_ID,
+                    tenant_id="tenant-a",
                     incremental=True,
                     account_ids=["001TEST123"]
                 )
@@ -279,7 +277,7 @@ class TestCRMSyncService:
             # Act
             stats = await sync_service.sync_provider(
                 CRMProvider.SALESFORCE,
-                tenant_id=TENANT_ID,
+                tenant_id="tenant-a",
                 incremental=True
             )
             
@@ -312,7 +310,7 @@ class TestCRMSyncService:
                 # Act
                 stats = await sync_service.sync_provider(
                     CRMProvider.HUBSPOT,
-                    tenant_id=TENANT_ID,
+                    tenant_id="tenant-a",
                     incremental=True,
                     account_ids=["123456789"]
                 )
@@ -349,7 +347,7 @@ class TestCRMSyncService:
                 # Act
                 stats = await sync_service.sync_provider(
                     CRMProvider.SALESFORCE,
-                    tenant_id=TENANT_ID,
+                    tenant_id="tenant-a",
                     incremental=True,
                     account_ids=["001TEST123"]
                 )
@@ -382,7 +380,7 @@ class TestCRMSyncService:
                 return_value=MockCRMConnector()
             ):
                 # Act
-                result = await sync_service.refresh_single_account(account_id, tenant_id=TENANT_ID)
+                result = await sync_service.refresh_single_account(account_id, tenant_id="tenant-a")
                 
                 # Assert
                 assert result is not None
@@ -399,7 +397,7 @@ class TestCRMSyncService:
         mock_db.execute.return_value = mock_result
         
         # Act
-        result = await sync_service.refresh_single_account(uuid4(), tenant_id=TENANT_ID)
+        result = await sync_service.refresh_single_account(uuid4(), tenant_id="tenant-a")
         
         # Assert
         assert result is None
@@ -513,7 +511,7 @@ class TestCRMWebhooks:
         }
         
         integration = MagicMock()
-        integration.tenant_id = TENANT_ID
+        integration.tenant_id = "tenant-a"
         integration.provider = CRMProvider.SALESFORCE
         integration.salesforce_org_id = None
         with (
@@ -559,7 +557,7 @@ class TestCRMWebhooks:
         ]
         
         integration = MagicMock()
-        integration.tenant_id = TENANT_ID
+        integration.tenant_id = "tenant-a"
         integration.provider = CRMProvider.HUBSPOT
         with (
             patch('layer4_agents.api.routes.crm_webhooks.CRMSyncService') as mock_sync_class,
@@ -610,7 +608,7 @@ class TestCRMWebhooks:
         ]
         
         integration = MagicMock()
-        integration.tenant_id = TENANT_ID
+        integration.tenant_id = "tenant-a"
         integration.provider = CRMProvider.HUBSPOT
         with (
             patch('layer4_agents.api.routes.crm_webhooks.CRMSyncService') as mock_sync_class,
@@ -678,7 +676,7 @@ class TestSyncFlow:
                 # Act
                 await sync_service.sync_provider(
                     CRMProvider.SALESFORCE,
-                    tenant_id=TENANT_ID,
+                    tenant_id="tenant-a",
                     incremental=True,
                     account_ids=["001TEST123"]
                 )
@@ -715,7 +713,7 @@ class TestAccountServiceIntegration:
             # Act
             result = await account_service.trigger_sync(
                 provider=CRMProvider.SALESFORCE,
-                tenant_id=TENANT_ID,
+                tenant_id="tenant-a",
                 force_refresh=False
             )
             
@@ -751,9 +749,9 @@ class TestAccountServiceIntegration:
             mock_sync_class.return_value = mock_sync
             
             # Act
-            result = await account_service.refresh_account(account_id, tenant_id=TENANT_ID)
+            result = await account_service.refresh_account(account_id, tenant_id="tenant-a")
             
             # Assert
             assert result is not None
             assert result.id == account_id
-            mock_sync.refresh_single_account.assert_called_once_with(account_id, TENANT_ID)
+            mock_sync.refresh_single_account.assert_called_once_with(account_id, "tenant-a")

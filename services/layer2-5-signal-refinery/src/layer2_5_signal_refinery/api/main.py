@@ -1,13 +1,13 @@
 from __future__ import annotations
 
+import structlog
 from contextlib import asynccontextmanager
 from typing import Any
 
-import structlog
 from fastapi import FastAPI
-from value_fabric.shared.fastapi_framework import CallableProbe, ProbeResult, create_fabric_app
-from value_fabric.shared.fastapi_framework.middleware import resolve_cors_policy
 from value_fabric.shared.probes import normalize_probe_payload
+from value_fabric.shared.fastapi_framework import create_fabric_app, CallableProbe, ProbeResult
+from value_fabric.shared.fastapi_framework.middleware import resolve_cors_policy
 from value_fabric.shared.startup import reject_insecure_bypass_in_production
 
 from ..clients.l3_graph_client import get_l3_client
@@ -33,12 +33,9 @@ logger = structlog.get_logger(__name__)
 # Health probes
 # ---------------------------------------------------------------------------
 
-
 async def _probe_database() -> ProbeResult:
     from sqlalchemy import text
-
     from ..database import get_engine
-
     try:
         # Infrastructure connectivity check only — no tenant context. A health
         # probe must not open a tenant-scoped session (db_session_for_context),

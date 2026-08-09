@@ -12,8 +12,9 @@ Covering indexes added for:
 - accounts: (tenant_id, owner_id, created_at) - user's accounts by creation date
 - users: (tenant_id, email) - user lookup by email
 - users: (tenant_id, role, created_at) - user listing by role
-- audit_events: (tenant_id, resource_type, resource_id, timestamp) - entity audit trail
-- feature_flags: (tenant_id, flag_key, enabled) - feature flag lookup
+- audit_events: (tenant_id, entity_type, entity_id, created_at) - entity audit trail
+- feature_flags: (tenant_id, name, is_enabled) - feature flag lookup
+- usage_events: (tenant_id, account_id, event_type, created_at) - usage analytics
 
 These indexes include all columns commonly returned in SELECT statements, allowing
 PostgreSQL to satisfy queries from the index alone without heap access.
@@ -52,30 +53,36 @@ def upgrade() -> None:
     op.execute("""
         CREATE INDEX idx_users_tenant_email_covering
         ON users (tenant_id, email)
-        INCLUDE (display_name, role, created_at, last_login_at)
+        INCLUDE (name, role, created_at, last_login_at)
     """)
     
     # users table - user listing by role
     op.execute("""
         CREATE INDEX idx_users_tenant_role_created_covering
         ON users (tenant_id, role, created_at DESC)
-        INCLUDE (display_name, email, last_login_at, status)
+        INCLUDE (name, email, last_login_at, is_active)
     """)
     
     # audit_events table - entity audit trail
     op.execute("""
         CREATE INDEX idx_audit_events_tenant_entity_created_covering
-        ON audit_events (tenant_id, resource_type, resource_id, timestamp DESC)
-        INCLUDE (action, user_id, details, outcome)
+        ON audit_events (tenant_id, entity_type, entity_id, created_at DESC)
+        INCLUDE (action, actor_id, changes, metadata)
     """)
     
     # feature_flags table - feature flag lookup
     op.execute("""
         CREATE INDEX idx_feature_flags_tenant_name_enabled_covering
-        ON feature_flags (tenant_id, flag_key, enabled)
-        INCLUDE (description, updated_by, created_at, updated_at)
+        ON feature_flags (tenant_id, name, is_enabled)
+        INCLUDE (description, created_by, created_at, updated_at)
     """)
     
+    # usage_events table - usage analytics
+    op.execute("""
+        CREATE INDEX idx_usage_events_tenant_account_event_created_covering
+        ON usage_events (tenant_id, account_id, event_type, created_at DESC)
+        INCLUDE (quantity, unit, metadata, cost_cents)
+    """)
 
 
 def downgrade() -> None:
@@ -87,3 +94,4 @@ def downgrade() -> None:
     op.drop_index('idx_users_tenant_role_created_covering', table_name='users')
     op.drop_index('idx_audit_events_tenant_entity_created_covering', table_name='audit_events')
     op.drop_index('idx_feature_flags_tenant_name_enabled_covering', table_name='feature_flags')
+    op.drop_index('idx_usage_events_tenant_account_event_created_covering', table_name='usage_events')

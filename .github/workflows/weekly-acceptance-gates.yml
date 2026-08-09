@@ -138,7 +138,7 @@ jobs:
 
       - name: Upload weekly gate artifact
         if: always()
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
+        uses: actions/upload-artifact@v4
         with:
           name: weekly-gate-status-${{ env.SPRINT_WEEK }}
           path: artifacts/weekly-gates/weekly-gate-status.json

@@ -63,7 +63,7 @@ class TestRequireTenantFalseAllowlist:
 
             # Some stage tasks are thin wrappers around async internals;
             # include the inner implementation source when present.
-            for inner_name in [f"_{task_name}", f"_{task_name}_async", f"_a{task_name}"]:
+            for inner_name in [f"_{task_name}", f"_a{task_name}"]:
                 if hasattr(tasks, inner_name):
                     source += "\n" + inspect.getsource(getattr(tasks, inner_name))
 

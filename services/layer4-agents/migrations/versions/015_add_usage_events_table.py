@@ -33,58 +33,69 @@ def upgrade() -> None:
 
     # Create the usage events table
     op.create_table(
-        "billing_usage_events",
+        'billing_usage_events',
         # Primary key
-        sa.Column("id", sa.String(100), primary_key=True),
+        sa.Column('id', sa.String(100), primary_key=True),
+
         # Tenant and customer attribution
-        sa.Column("tenant_id", sa.String(255), nullable=False, index=True),
-        sa.Column("customer_id", sa.String(100), nullable=False, index=True),
+        sa.Column('tenant_id', sa.String(255), nullable=False, index=True),
+        sa.Column('customer_id', sa.String(100), nullable=False, index=True),
+
         # Event identification (idempotency)
-        sa.Column("event_id", sa.String(255), nullable=False),
+        sa.Column('event_id', sa.String(255), nullable=False),
+
         # Event type and metric
-        sa.Column("event_name", sa.String(100), nullable=False, index=True),
-        sa.Column("metric_name", sa.String(100), nullable=False, index=True),
+        sa.Column('event_name', sa.String(100), nullable=False, index=True),
+        sa.Column('metric_name', sa.String(100), nullable=False, index=True),
+
         # Quantities
-        sa.Column("quantity", sa.Float(), nullable=False, server_default=sa.text("1.0")),
-        sa.Column("unit", sa.String(50), nullable=True),
+        sa.Column('quantity', sa.Float(), nullable=False, server_default=sa.text('1.0')),
+        sa.Column('unit', sa.String(50), nullable=True),
+
         # Timestamping
-        sa.Column(
-            "timestamp", sa.DateTime(timezone=True), nullable=False, server_default=sa.text("NOW()")
-        ),
+        sa.Column('timestamp', sa.DateTime(timezone=True), nullable=False, server_default=sa.text('NOW()')),
+
         # Processing status
-        sa.Column("status", sa.String(50), nullable=False, server_default=sa.text("'pending'")),
+        sa.Column('status', sa.String(50), nullable=False, server_default=sa.text("'pending'")),
+
         # Flexible metadata
-        sa.Column("metadata", postgresql.JSONB(), nullable=True),
+        sa.Column('metadata', postgresql.JSONB(), nullable=True),
+
         # Audit timestamps
-        sa.Column(
-            "created_at",
-            sa.DateTime(timezone=True),
-            nullable=False,
-            server_default=sa.text("NOW()"),
-        ),
-        sa.Column("processed_at", sa.DateTime(timezone=True), nullable=True),
+        sa.Column('created_at', sa.DateTime(timezone=True), nullable=False, server_default=sa.text('NOW()')),
+        sa.Column('processed_at', sa.DateTime(timezone=True), nullable=True),
     )
 
     # Create indexes for query optimization
     op.create_index(
-        "ix_billing_usage_events_customer_timestamp",
-        "billing_usage_events",
-        ["customer_id", "timestamp"],
+        'ix_billing_usage_events_customer_timestamp',
+        'billing_usage_events',
+        ['customer_id', 'timestamp']
     )
     op.create_index(
-        "ix_billing_usage_events_status_created", "billing_usage_events", ["status", "created_at"]
+        'ix_billing_usage_events_status_created',
+        'billing_usage_events',
+        ['status', 'created_at']
     )
+    op.create_index(
+        'ix_billing_usage_events_event_name',
+        'billing_usage_events',
+        ['event_name']
+    )
+
     # Create unique constraint for idempotency
     op.create_unique_constraint(
-        "uq_billing_usage_events_tenant_event", "billing_usage_events", ["tenant_id", "event_id"]
+        'uq_billing_usage_events_tenant_event',
+        'billing_usage_events',
+        ['tenant_id', 'event_id']
     )
 
     # Create status index with partial index for pending events (optimization)
     op.create_index(
-        "ix_billing_usage_events_pending",
-        "billing_usage_events",
-        ["tenant_id", "customer_id", "metric_name"],
-        postgresql_where=sa.text("status = 'pending'"),
+        'ix_billing_usage_events_pending',
+        'billing_usage_events',
+        ['tenant_id', 'customer_id', 'metric_name'],
+        postgresql_where=sa.text("status = 'pending'")
     )
 
     # Enable Row-Level Security
@@ -116,6 +127,7 @@ def upgrade() -> None:
     op.execute("""
         CREATE INDEX ix_billing_usage_events_recent 
         ON billing_usage_events (tenant_id, created_at DESC)
+        WHERE created_at > NOW() - INTERVAL '7 days'
     """)
 
 
@@ -130,4 +142,4 @@ def downgrade() -> None:
     op.execute("ALTER TABLE billing_usage_events DISABLE ROW LEVEL SECURITY")
 
     # Drop the table
-    op.drop_table("billing_usage_events")
+    op.drop_table('billing_usage_events')

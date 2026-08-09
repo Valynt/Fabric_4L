@@ -14,7 +14,7 @@ import os
 import secrets
 import time
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from enum import Enum
 from typing import Any
 
@@ -569,7 +569,7 @@ class APIKeyManager:
             }
 
         # Recently active keys (used in last 24 hours)
-        recent_cutoff = datetime.now(UTC) - timedelta(hours=24)
+        recent_cutoff = datetime.utcnow() - timedelta(hours=24)
         recently_active = len(
             [k for k in keys if k.last_used_at and k.last_used_at > recent_cutoff]
         )

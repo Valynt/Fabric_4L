@@ -516,7 +516,6 @@ from .main_skill_routes import router as skill_routes
 from .main_target_routes import router as target_routes
 from .routes import compatibility as compatibility_routes
 from .source_routes import register_routes as register_source_routes
-from .validation_seed_routes import router as validation_seed_routes
 
 register_source_routes(router)
 register_consent_routes(router)
@@ -526,7 +525,6 @@ router.include_router(job_routes)
 router.include_router(content_routes)
 router.include_router(compliance_routes)
 router.include_router(admin_routes)
-router.include_router(validation_seed_routes)
 router.include_router(_batch_and_stats.router)
 
 app.include_router(router)

@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import webbrowser
+from datetime import datetime, timezone
+from pathlib import Path
 from urllib.parse import urlencode, urljoin, urlparse, urlunparse
 from uuid import uuid4
 
@@ -12,6 +14,7 @@ import typer
 from rich import print as rich_print
 from rich.prompt import Prompt
 
+from ._utils import get_client
 from .config import CONFIG_DIR, CONFIG_FILE, _load_config, _save_config
 
 app = typer.Typer(help="Authentication management")
@@ -54,7 +57,9 @@ def login(
     base_url: str | None = typer.Option(
         None, "--url", "-u", help="Base URL of the Value Fabric API"
     ),
-    tenant: str | None = typer.Option(None, "--tenant", "-t", help="Tenant ID for OIDC login"),
+    tenant: str | None = typer.Option(
+        None, "--tenant", "-t", help="Tenant ID for OIDC login"
+    ),
     api_key: bool = typer.Option(
         False, "--api-key", "-k", help="Use API key authentication instead of OIDC"
     ),
@@ -74,14 +79,8 @@ def _login_api_key(base_url: str | None) -> None:
     config = _load_config()
 
     if not base_url:
-        base_url = Prompt.ask(
-            "Base URL",
-            default=config.get("profiles", {})
-            .get("default", {})
-            .get("base_url", "https://api.valuefabric.io"),
-        )
+        base_url = Prompt.ask("Base URL", default=config.get("profiles", {}).get("default", {}).get("base_url", "https://api.valuefabric.io"))
 
-    assert base_url is not None
     api_key = Prompt.ask("API Key", password=True)
 
     # Verify the API key works
@@ -89,12 +88,12 @@ def _login_api_key(base_url: str | None) -> None:
         from valuefabric import ValueFabricClient
 
         client = ValueFabricClient(base_url=base_url, api_key=api_key)
-        health = client.health()
-        rich_print("[green]✓ Authenticated successfully[/green]")
-        rich_print(f"[dim]Server version: {health.version}[/dim]")
+        health = client.health_check()
+        rich_print(f"[green]✓ Authenticated successfully[/green]")
+        rich_print(f"[dim]Server version: {health.get('version', 'unknown')}[/dim]")
     except Exception as e:
         rich_print(f"[red]✗ Authentication failed: {e}[/red]")
-        raise typer.Exit(1) from None
+        raise typer.Exit(1)
 
     # Save to config
     config.setdefault("profiles", {}).setdefault("default", {})["base_url"] = base_url
@@ -110,15 +109,11 @@ def _login_oidc(base_url: str | None, tenant: str | None) -> None:
     if not base_url:
         base_url = Prompt.ask(
             "Base URL",
-            default=config.get("profiles", {})
-            .get("default", {})
-            .get("base_url", "https://api.valuefabric.io"),
+            default=config.get("profiles", {}).get("default", {}).get("base_url", "https://api.valuefabric.io")
         )
 
     if not tenant:
         tenant = Prompt.ask("Tenant ID")
-    assert base_url is not None
-    assert tenant is not None
 
     # Generate PKCE verifier and challenge
     code_verifier = _generate_pkce_verifier()
@@ -130,6 +125,7 @@ def _login_oidc(base_url: str | None, tenant: str | None) -> None:
     PKCE_STATE_FILE.write_text(f"{state}:{code_verifier}")
 
     # Build authorization URL
+    auth_url = urljoin(base_url, f"/api/v1/auth/oidc/{tenant}/login")
     params = {
         "response_type": "code",
         "client_id": tenant,
@@ -141,32 +137,23 @@ def _login_oidc(base_url: str | None, tenant: str | None) -> None:
     }
     # Safely construct URL to avoid double query strings
     parsed = urlparse(urljoin(base_url, f"/api/v1/auth/oidc/{tenant}/login"))
-    full_url = urlunparse(
-        (
-            parsed.scheme,
-            parsed.netloc,
-            parsed.path,
-            parsed.params,
-            urlencode(params),
-            parsed.fragment,
-        )
-    )
+    full_url = urlunparse((
+        parsed.scheme, parsed.netloc, parsed.path, parsed.params,
+        urlencode(params), parsed.fragment
+    ))
 
-    rich_print("[dim]Opening browser for authentication...[/dim]")
+    rich_print(f"[dim]Opening browser for authentication...[/dim]")
     webbrowser.open(full_url)
 
     # TODO(VF-SDK-AUTH-DEBT-001): Implement local callback server for automated token capture
     # For now, user manually copies token
-    rich_print("\n[yellow]If browser didn't open, visit:[/yellow]")
+    rich_print(f"\n[yellow]If browser didn't open, visit:[/yellow]")
     rich_print(f"{full_url}")
 
     # Manual token entry fallback
-    token = Prompt.ask(
-        "\nPaste the authorization code or JWT token from the callback", password=True
-    )
+    token = Prompt.ask("\nPaste the authorization code or JWT token from the callback", password=True)
 
     # Exchange code for token or use as-is
-    jwt_token: str | None
     if _is_jwt(token):
         jwt_token = token
     else:
@@ -175,18 +162,18 @@ def _login_oidc(base_url: str | None, tenant: str | None) -> None:
 
     if not jwt_token:
         rich_print("[red]Failed to obtain authentication token[/red]")
-        raise typer.Exit(1) from None
+        raise typer.Exit(1)
 
     # Verify token works
     try:
         from valuefabric import ValueFabricClient
 
         client = ValueFabricClient(base_url=base_url, jwt_token=jwt_token)
-        client.health()
-        rich_print("[green]✓ Authenticated successfully[/green]")
+        health = client.health_check()
+        rich_print(f"[green]✓ Authenticated successfully[/green]")
     except Exception as e:
         rich_print(f"[red]✗ Token validation failed: {e}[/red]")
-        raise typer.Exit(1) from None
+        raise typer.Exit(1)
 
     # Extract token expiration for tracking
     try:
@@ -204,9 +191,7 @@ def _login_oidc(base_url: str | None, tenant: str | None) -> None:
     rich_print(f"[green]Credentials saved to {CONFIG_FILE}[/green]")
 
 
-def _exchange_code_for_token(
-    base_url: str, code: str, code_verifier: str, tenant: str
-) -> str | None:
+def _exchange_code_for_token(base_url: str, code: str, code_verifier: str, tenant: str) -> str | None:
     """Exchange authorization code for access token."""
     token_url = urljoin(base_url, f"/api/v1/auth/oidc/{tenant}/token")
 
@@ -224,10 +209,7 @@ def _exchange_code_for_token(
         )
         response.raise_for_status()
         data = response.json()
-        if not isinstance(data, dict):
-            return None
-        token = data.get("access_token")
-        return token if isinstance(token, str) else None
+        return data.get("access_token")
     except Exception as e:
         rich_print(f"[red]Token exchange failed: {e}[/red]")
         return None
@@ -258,8 +240,7 @@ def status() -> None:
 
     rich_print(f"[bold]Active profile:[/bold] {profile}")
 
-    configured_url = profile_config.get("base_url", "Not set")
-    base_url = configured_url if isinstance(configured_url, str) else "Not set"
+    base_url = profile_config.get("base_url", "Not set")
     rich_print(f"[bold]Base URL:[/bold] {base_url}")
 
     auth_type = None
@@ -280,12 +261,12 @@ def status() -> None:
                 api_key=profile_config.get("api_key"),
                 jwt_token=profile_config.get("jwt_token"),
             )
-            health = client.health()
-            rich_print("[green]✓ Connected to Value Fabric API[/green]")
-            rich_print(f"[dim]  Server version: {health.version}[/dim]")
-            rich_print(f"[dim]  Status: {health.status}[/dim]")
+            health = client.health_check()
+            rich_print(f"[green]✓ Connected to Value Fabric API[/green]")
+            rich_print(f"[dim]  Server version: {health.get('version', 'unknown')}[/dim]")
+            rich_print(f"[dim]  Status: {health.get('status', 'unknown')}[/dim]")
         except Exception as e:
             rich_print(f"[red]✗ Connection failed: {e}[/red]")
     else:
-        rich_print("[bold]Authentication:[/bold] [red]Not configured[/red]")
-        rich_print("[dim]Run 'vf auth login' to authenticate[/dim]")
+        rich_print(f"[bold]Authentication:[/bold] [red]Not configured[/red]")
+        rich_print(f"[dim]Run 'vf auth login' to authenticate[/dim]")
