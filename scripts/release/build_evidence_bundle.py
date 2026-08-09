@@ -259,11 +259,20 @@ def _clean_environment(record: dict, gates: list[dict]) -> bool:
 
 
 def build_manifest(
-    candidate_sha: str, out_dir: Path, packet_digest: str | None = None
+    candidate_sha: str,
+    out_dir: Path,
+    packet_digest: str | None = None,
+    record: dict | None = None,
 ) -> Path:
-    """Assemble artifacts/release/<sha>/candidate-manifest.json from step records."""
+    """Assemble artifacts/release/<sha>/candidate-manifest.json from step records.
+
+    Callers that already validated the certification record (e.g. main(), which
+    fails closed before generating the packet) pass it in so the manifest is
+    built from the exact record that passed pre-side-effect validation.
+    """
     require_full_sha(candidate_sha)
-    record = _certification_record(candidate_sha, out_dir)
+    if record is None:
+        record = _certification_record(candidate_sha, out_dir)
     gates = record["gates"]
     not_run = [g["gate"] for g in gates if g["exit_code"] == NOT_RUN_EXIT_CODE]
     # Any exit other than success or the explicit not-run sentinel is a failure
@@ -314,7 +323,7 @@ def build_manifest(
             f"never ran: not_run={not_run} (fail closed)."
         )
     if notes:
-        note = f"{note} ({'; '.join(notes)}.)"
+        note = f"{note} Note: {'; '.join(notes)}."
 
     manifest = {
         "schema_version": 1,
@@ -382,14 +391,16 @@ def main(argv: list[str] | None = None) -> int:
     # creation, packet generation, manifest writes).
     candidate_sha = require_full_sha(args.candidate_sha)
     out_dir = args.out_dir or (REPO_ROOT / "artifacts" / "release" / candidate_sha)
-    # Pre-flight guard: fail before the packet-generation side effect when the
-    # certification record is missing or bound to another SHA. build_manifest
-    # re-reads the same record internally (single-shot CLI; no concurrent
-    # mutation), so this early call exists purely to preserve side-effect order.
-    _certification_record(candidate_sha, out_dir)
+    # Fail before the packet-generation side effect when the certification
+    # record is missing or bound to another SHA; the same validated record is
+    # passed to build_manifest so the manifest reflects exactly what passed
+    # this pre-side-effect validation.
+    record = _certification_record(candidate_sha, out_dir)
     packet_dir = build_release_evidence_packet(candidate_sha, out_dir)
     packet_digest = verify_evidence_packet(candidate_sha, packet_dir)
-    manifest_path = build_manifest(candidate_sha, out_dir, packet_digest=packet_digest)
+    manifest_path = build_manifest(
+        candidate_sha, out_dir, packet_digest=packet_digest, record=record
+    )
     status = json.loads(manifest_path.read_text(encoding="utf-8"))["certification"]["status"]
     print(f"Evidence manifest written and schema-validated: {manifest_path}")
     print(f"certification status: {status}")
