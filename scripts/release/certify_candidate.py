@@ -89,7 +89,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if aborted or record.failed:
         return 1
-    if record.not_run:
+    if record.not_run_steps:
         print(
             "⚠️  Live-only steps were recorded as not-run; the candidate stays "
             "uncertified (fail closed). Re-run with CERTIFY_LIVE=1 in staging."

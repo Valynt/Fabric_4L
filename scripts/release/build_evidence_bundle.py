@@ -19,6 +19,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import jsonschema
+
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from models import utc_now
@@ -89,8 +91,6 @@ def build_manifest(candidate_sha: str, out_dir: Path) -> Path:
 
     manifest_path = out_dir / "candidate-manifest.json"
     manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
-
-    import jsonschema
 
     schema = json.loads(MANIFEST_SCHEMA.read_text(encoding="utf-8"))
     jsonschema.validate(manifest, schema)

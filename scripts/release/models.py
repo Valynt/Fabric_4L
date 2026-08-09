@@ -68,7 +68,7 @@ class RunRecord:
         return [r for r in self.results if not r.passed and not r.not_run]
 
     @property
-    def not_run(self) -> list[StepResult]:
+    def not_run_steps(self) -> list[StepResult]:
         return [r for r in self.results if r.not_run]
 
     def to_dict(self) -> dict:

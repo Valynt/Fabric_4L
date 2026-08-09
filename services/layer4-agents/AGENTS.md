@@ -12,7 +12,8 @@ agent orchestration. AuditOrchestrator router mounts at `/v1/repo-audit`
 
 `services/layer4-agents/src/layer4_agents/` — all net-new logic lands here
 (see `docs/reference/layer-runtime-path-governance.md`). API routes:
-`services/layer4-agents/src/api/routes/`.
+`services/layer4-agents/src/layer4_agents/api/routes/`
+(`src/api/routes/` contains thin compatibility shims only — do not add logic there).
 
 ## Layer rules
 
