@@ -198,7 +198,7 @@ def compliance_check_stage(self, job_id: UUID, tenant_id: str):
 
 
 # Expose the async helper on the facade so tests can patch it consistently.
-_compat._compliance_check_stage_async = _compliance_check_stage_async  # type: ignore[attr-defined]
+# (assigned after function definition below)
 
 
 async def _compliance_check_stage_async(self, job_id: UUID, tenant_id: str):
@@ -482,7 +482,7 @@ def browser_crawl_stage(self, prev_result: dict, tenant_id: str):
 
 
 # Expose the async helper on the facade so tests can patch it consistently.
-_compat._browser_crawl_stage_async = _browser_crawl_stage_async  # type: ignore[attr-defined]
+# (assigned after function definition below)
 
 
 async def _browser_crawl_stage_async(self, prev_result: dict, tenant_id: str):
@@ -867,7 +867,7 @@ def ai_extraction_stage(self, prev_result: dict, tenant_id: str):
 
 
 # Expose the async helper on the facade so tests can patch it consistently.
-_compat._ai_extraction_stage_async = _ai_extraction_stage_async  # type: ignore[attr-defined]
+# (assigned after function definition below)
 
 
 async def _ai_extraction_stage_async(self, prev_result: dict, tenant_id: str):
@@ -1685,3 +1685,8 @@ def execute_pipeline_stage(job_id: str, stage: str, tenant_id: str):
 # =============================================================================
 # HYBRID ROUTING (Smart Router + HTTPX Fast Path)
 # =============================================================================
+
+# Expose async helpers on the tasks facade for backward-compatible test patching.
+_compat._compliance_check_stage_async = _compliance_check_stage_async  # type: ignore[attr-defined]
+_compat._browser_crawl_stage_async = _browser_crawl_stage_async  # type: ignore[attr-defined]
+_compat._ai_extraction_stage_async = _ai_extraction_stage_async  # type: ignore[attr-defined]
