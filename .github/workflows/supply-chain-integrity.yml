@@ -309,6 +309,8 @@ jobs:
                 if [ -f "$dir/uv.lock" ]; then
                   (
                     cd "$dir" && \
+                      command -v uv >/dev/null 2>&1 || { echo "::error::uv is required in the CI tools image for locked dependency auditing"; exit 2; } && \
+                      uv --version && \
                       uv export --locked --no-dev --no-editable --no-header --output-file="$requirements_file" && \
                       sed -i '/^\.$/d' "$requirements_file" && \
                       pip-audit -r "$requirements_file" --format=json --output="$audit_output"
