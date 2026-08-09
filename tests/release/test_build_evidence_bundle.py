@@ -109,6 +109,90 @@ class TestBuildManifest:
         with pytest.raises(SystemExit):
             build_evidence_bundle_module.build_manifest(FAKE_SHA, tmp_path)
 
+    def test_signal_terminated_gate_is_a_failure_not_certified(self, tmp_path: Path) -> None:
+        """Negative exit codes (signal deaths) must never yield a certified manifest."""
+        _write_certification(tmp_path, [_step_result("03a-verify", -9, tmp_path)])
+
+        manifest = json.loads(
+            build_evidence_bundle_module.build_manifest(FAKE_SHA, tmp_path).read_text(
+                encoding="utf-8"
+            )
+        )
+
+        jsonschema.validate(manifest, MANIFEST_SCHEMA)
+        assert manifest["certification"]["status"] == "failed"
+
+    def test_manifest_is_bound_to_certification_record_sha(self, tmp_path: Path) -> None:
+        """Records produced for a different SHA must be rejected (fail closed)."""
+        _write_certification(tmp_path, [_step_result("03a-verify", 0, tmp_path)])
+
+        with pytest.raises(SystemExit, match="not candidate"):
+            build_evidence_bundle_module.build_manifest("f" * 40, tmp_path)
+
+
+class TestManifestSchemaAuthorization:
+    def _manifest(self, tmp_path: Path) -> dict:
+        _write_certification(tmp_path, [_step_result("03a-verify", 0, tmp_path)])
+        manifest_path = build_evidence_bundle_module.build_manifest(FAKE_SHA, tmp_path)
+        return json.loads(manifest_path.read_text(encoding="utf-8"))
+
+    def test_production_authorization_requires_human_identity(self, tmp_path: Path) -> None:
+        manifest = self._manifest(tmp_path)
+        manifest["authorization"]["production_authorized"] = True
+
+        with pytest.raises(jsonschema.ValidationError):
+            jsonschema.validate(manifest, MANIFEST_SCHEMA)
+
+        manifest["authorization"]["authorized_by"] = "release-director@example"
+        with pytest.raises(jsonschema.ValidationError):
+            jsonschema.validate(manifest, MANIFEST_SCHEMA)
+
+        manifest["authorization"]["authorized_at"] = "2026-01-01T00:00:00Z"
+        jsonschema.validate(manifest, MANIFEST_SCHEMA)
+
+
+class TestRiskRegisterWaiverSchema:
+    SCHEMA = json.loads(
+        (REPO_ROOT / "release" / "v1" / "schemas" / "risk-register.schema.json").read_text(
+            encoding="utf-8"
+        )
+    )
+
+    def _register(self, status: str, waiver: dict | None) -> dict:
+        risk = {
+            "id": "PRR-001",
+            "area": "security",
+            "severity": "P0",
+            "owner": "release-director",
+            "status": status,
+            "risk": "A sufficiently long description of the risk.",
+            "validation": "make verify",
+            "exit_criteria": "All hostile tenant tests pass in staging.",
+        }
+        if waiver is not None:
+            risk["waiver"] = waiver
+        return {"schema_version": 1, "snapshot_date_utc": "2026-01-01", "risks": [risk]}
+
+    def test_waived_risk_without_waiver_is_rejected(self) -> None:
+        with pytest.raises(jsonschema.ValidationError):
+            jsonschema.validate(self._register("WAIVED", None), self.SCHEMA)
+
+    def test_waiver_without_expiry_is_rejected(self) -> None:
+        waiver = {"approved_by": "release-director", "reference": "DEC-042"}
+        with pytest.raises(jsonschema.ValidationError):
+            jsonschema.validate(self._register("WAIVED", waiver), self.SCHEMA)
+
+    def test_signed_expiring_waiver_is_accepted(self) -> None:
+        waiver = {
+            "approved_by": "release-director",
+            "reference": "DEC-042",
+            "expires": "2026-12-31",
+        }
+        jsonschema.validate(self._register("WAIVED", waiver), self.SCHEMA)
+
+    def test_open_risk_without_waiver_is_accepted(self) -> None:
+        jsonschema.validate(self._register("OPEN", None), self.SCHEMA)
+
 
 class TestBuildReleaseEvidencePacket:
     def test_writes_candidate_scoped_manifest(self, monkeypatch, tmp_path: Path) -> None:

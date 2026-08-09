@@ -29,7 +29,7 @@
           "waiver": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["approved_by", "reference"],
+            "required": ["approved_by", "reference", "expires"],
             "properties": {
               "approved_by": { "type": "string", "minLength": 2 },
               "reference": { "type": "string", "minLength": 2 },
@@ -40,6 +40,12 @@
             "type": "array",
             "items": { "type": "string", "pattern": "^V1-[A-Z0-9]+-[0-9]{3}$" }
           }
+        },
+        "if": {
+          "properties": { "status": { "const": "WAIVED" } }
+        },
+        "then": {
+          "required": ["id", "area", "severity", "owner", "status", "risk", "validation", "exit_criteria", "waiver"]
         }
       }
     }

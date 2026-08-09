@@ -102,9 +102,24 @@ def build_manifest(candidate_sha: str, out_dir: Path) -> Path:
         raise SystemExit(
             f"no certification step records at {record_path}; run certify_candidate.py first"
         )
-    gates = json.loads(record_path.read_text(encoding="utf-8"))["gates"]
+    record = json.loads(record_path.read_text(encoding="utf-8"))
+    recorded_sha = record.get("sha", "")
+    if recorded_sha != candidate_sha:
+        raise SystemExit(
+            f"certification records at {record_path} were produced for "
+            f"{recorded_sha or '<missing sha>'}, not candidate {candidate_sha}; "
+            "the evidence manifest must be bound to the exact immutable candidate "
+            "(fail closed)."
+        )
+    gates = record["gates"]
     not_run = [g["gate"] for g in gates if g["exit_code"] == NOT_RUN_EXIT_CODE]
-    failed = [g["gate"] for g in gates if g["exit_code"] > 0]
+    # Any exit other than success or the explicit not-run sentinel is a failure
+    # (including negative codes from signal-terminated processes).
+    failed = [
+        g["gate"]
+        for g in gates
+        if g["exit_code"] != 0 and g["exit_code"] != NOT_RUN_EXIT_CODE
+    ]
     certified = not failed and not not_run
 
     branch = subprocess.run(

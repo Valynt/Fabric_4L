@@ -28,6 +28,7 @@ class Step:
     criterion: str
     blocking: bool = True
     live_only: bool = False  # requires CERTIFY_LIVE=1 (staging infrastructure)
+    unimplemented: bool = False  # real operation does not exist yet; always blocks
 
 
 @dataclass

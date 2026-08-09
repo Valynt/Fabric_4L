@@ -47,6 +47,27 @@ CERTIFICATION_STEPS: tuple[Step, ...] = (
     ),
     Step("03c-tenant-suite", ("pytest", "tests/tenancy", "-q"), "cross-tenant access"),
     Step(
+        "03d-behavior-contract",
+        ("make", "check-behavior-contract"),
+        "behavior contract",
+    ),
+    Step(
+        "03e-behavior-readiness-audit",
+        ("make", "check-behavior-readiness-audit"),
+        "behavior readiness",
+    ),
+    Step(
+        "03f-database-readiness",
+        ("make", "db-production-readiness-gate"),
+        "database readiness",
+    ),
+    Step(
+        "03g-release-smoke",
+        ("make", "test-backend-integrated-release-smoke"),
+        "critical journeys",
+        live_only=True,
+    ),
+    Step(
         "04-production-build",
         ("pnpm", "--dir", "apps/web", "run", "build"),
         "release evidence",
@@ -54,9 +75,9 @@ CERTIFICATION_STEPS: tuple[Step, ...] = (
     Step("04b-docker-build", ("make", "docker-build"), "release evidence", live_only=True),
     Step(
         "05-sbom-provenance",
-        ("bash", "scripts/ci/build-reproducibility-check.sh"),
+        ("make", "generate-sbom-and-provenance"),  # does not exist yet; recorded unimplemented
         "release evidence",
-        live_only=True,
+        unimplemented=True,
     ),
     Step("06-staging-deploy", ("make", "preflight"), "capacity", live_only=True),
     Step(
@@ -121,6 +142,23 @@ def run_step(step: Step, log_dir: Path, *, live: bool) -> StepResult:
     """Execute one step, teeing output to a per-step log. Never remediates."""
     log_path = log_dir / f"{step.name}.log"
     started = utc_now()
+    if step.unimplemented:
+        log_path.write_text(
+            "unimplemented: this release operation does not exist yet; recorded as "
+            "not-run so the candidate stays uncertified (fail closed). A nearby "
+            "static check may NOT be substituted for the live operation.\n",
+            encoding="utf-8",
+        )
+        return StepResult(
+            gate=step.name,
+            command=" ".join(step.command),
+            exit_code=NOT_RUN_EXIT_CODE,
+            started_at=started,
+            finished_at=utc_now(),
+            log=str(log_path),
+            criterion=step.criterion,
+            classification="unimplemented",
+        )
     if step.live_only and not live:
         log_path.write_text(
             "not-run: requires live staging environment (CERTIFY_LIVE=1)\n",
@@ -142,14 +180,18 @@ def run_step(step: Step, log_dir: Path, *, live: bool) -> StepResult:
             step.command, cwd=REPO_ROOT, stdout=log, stderr=subprocess.STDOUT, check=False
         )
     elapsed = time.monotonic() - t0
-    print(f"  {step.name}: exit={proc.returncode} ({elapsed:.1f}s) log={log_path}")
+    # Signal-terminated processes report negative return codes; normalize to the
+    # shell convention (128 + N) so a signal death can never collide with the
+    # not-run sentinel or be mistaken for anything but a failure.
+    exit_code = proc.returncode if proc.returncode >= 0 else 128 - proc.returncode
+    print(f"  {step.name}: exit={exit_code} ({elapsed:.1f}s) log={log_path}")
     return StepResult(
         gate=step.name,
         command=" ".join(step.command),
-        exit_code=proc.returncode,
+        exit_code=exit_code,
         started_at=started,
         finished_at=utc_now(),
         log=str(log_path),
         criterion=step.criterion,
-        classification="pass" if proc.returncode == 0 else "unclassified",
+        classification="pass" if exit_code == 0 else "unclassified",
     )
