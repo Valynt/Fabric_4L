@@ -3,6 +3,26 @@ name: "Supply Chain Integrity Gate"
 "on":
   pull_request:
     branches: [main]
+    # Change-scoping: supply-chain checks are only relevant when the PR can
+    # affect dependencies, container images, or the pipeline itself.
+    # Push-to-main and dispatch/call events still run unscoped.
+    paths:
+      - 'services/**'
+      - 'apps/**'
+      - 'packages/**'
+      - 'infra/**'
+      - '**/Dockerfile*'
+      - '**/package.json'
+      - '**/pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - '**/requirements*.txt'
+      - '**/pyproject.toml'
+      - '**/uv.lock'
+      - '**/poetry.lock'
+      - '.github/**'
+      - 'scripts/**'
+      - 'config/**'
+      - 'Makefile'
   push:
     branches: [main]
   workflow_call:
