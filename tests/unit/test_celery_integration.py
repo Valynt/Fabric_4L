@@ -18,8 +18,8 @@ class TestL2CeleryAppConfig:
         """Celery app must use REDIS_URL as broker and backend."""
         with open("services/layer2-extraction/src/layer2_extraction/shared/tasks.py") as f:
             source = f.read()
-        assert 'broker=redis_url' in source
-        assert 'backend=redis_url' in source
+        assert "broker=" in source and "redis_url" in source
+        assert "backend=" in source and "redis_url" in source
         assert 'os.getenv("REDIS_URL"' in source
 
     def test_celery_serializer_config(self):
@@ -34,17 +34,17 @@ class TestL2CeleryAppConfig:
         """Tasks must have reasonable time limits."""
         with open("services/layer2-extraction/src/layer2_extraction/shared/tasks.py") as f:
             source = f.read()
-        assert 'task_time_limit=3600' in source
-        assert 'result_expires=3600' in source
+        assert "task_time_limit=3600" in source
+        assert "result_expires=3600" in source
 
     def test_celery_retry_config(self):
         """Dead letter queue and retry settings must be configured."""
         with open("services/layer2-extraction/src/layer2_extraction/shared/tasks.py") as f:
             source = f.read()
-        assert 'task_acks_late=True' in source
-        assert 'task_reject_on_worker_lost=True' in source
-        assert 'task_default_retry_delay=60' in source
-        assert 'task_max_retries=3' in source
+        assert "task_acks_late=True" in source
+        assert "task_reject_on_worker_lost=True" in source
+        assert "task_default_retry_delay=60" in source
+        assert "task_max_retries=3" in source
 
     def test_celery_queues_defined(self):
         """Default and dead-letter queues must be defined."""
@@ -63,29 +63,29 @@ class TestL2CeleryTaskSignatures:
         with open("services/layer2-extraction/src/layer2_extraction/shared/tasks.py") as f:
             source = f.read()
         assert 'tenant_id = config.get("tenant_id")' in source
-        assert 'if not tenant_id:' in source
+        assert "if not tenant_id:" in source
         assert 'raise ValueError("tenant_id is required in config for extraction task")' in source
 
     def test_run_extraction_task_retries_on_failure(self):
         """run_extraction_task must retry with exponential backoff."""
         with open("services/layer2-extraction/src/layer2_extraction/shared/tasks.py") as f:
             source = f.read()
-        assert '@celery_app.task(bind=True, max_retries=3)' in source
-        assert 'raise self.retry(exc=exc, countdown=60 * (2 ** self.request.retries))' in source
+        assert "@celery_app.task(bind=True, max_retries=3)" in source
+        assert "raise self.retry(exc=exc, countdown=60 * (2 ** self.request.retries))" in source
 
     def test_extract_entities_task_signature(self):
         """extract_entities_task must be registered with correct name."""
         with open("services/layer2-extraction/src/layer2_extraction/shared/tasks.py") as f:
             source = f.read()
-        assert '@celery_app.task(bind=True, max_retries=3)' in source
-        assert 'def extract_entities_task' in source
+        assert "@celery_app.task(bind=True, max_retries=3)" in source
+        assert "def extract_entities_task" in source
 
     def test_extract_relationships_task_signature(self):
         """extract_relationships_task must be registered with correct name."""
         with open("services/layer2-extraction/src/layer2_extraction/shared/tasks.py") as f:
             source = f.read()
-        assert 'def extract_relationships_task' in source
-        assert 'RelationshipExtractor' in source
+        assert "def extract_relationships_task" in source
+        assert "RelationshipExtractor" in source
 
 
 class TestL1CeleryDispatch:

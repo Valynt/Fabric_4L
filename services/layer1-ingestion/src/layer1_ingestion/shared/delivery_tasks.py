@@ -363,7 +363,9 @@ def _record_dead_letter_metrics():
 # =============================================================================
 
 
-@_compat.celery_app.task(name="layer1_ingestion.shared.tasks.run_pipeline_stage", bind=True, max_retries=3)
+@_compat.celery_app.task(
+    name="layer1_ingestion.shared.tasks.run_pipeline_stage", bind=True, max_retries=3
+)
 def run_pipeline_stage(self, stage_name: str, payload: dict):
     """Execute a single stage of the canonical source ingestion pipeline.
 
