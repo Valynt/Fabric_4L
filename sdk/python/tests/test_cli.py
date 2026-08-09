@@ -345,7 +345,7 @@ class TestHealthCommand:
 
 
 class TestMainCommands:
-    def test_main_configuration_error(self):
+    def test_main_configuration_error(self) -> None:
         from valuefabric.cli.main import main
 
         with (
