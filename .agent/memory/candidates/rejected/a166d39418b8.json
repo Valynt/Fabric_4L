@@ -1,0 +1,51 @@
+{
+  "id": "a166d39418b8",
+  "key": "pattern_fabric_4l_working_edited_a166d3",
+  "name": "pattern_fabric_4l_working_edited_a166d3",
+  "claim": "Edited ?",
+  "conditions": [
+    "agent",
+    "begin",
+    "edit",
+    "edited",
+    "fabric_4l",
+    "file",
+    "home",
+    "memory",
+    "patch",
+    "raw",
+    "review",
+    "runner",
+    "update",
+    "work",
+    "working"
+  ],
+  "evidence_ids": [
+    "2026-08-09T09:01:22.656882+00:00",
+    "2026-08-09T09:11:15.306585+00:00"
+  ],
+  "cluster_size": 2,
+  "canonical_salience": 9.0,
+  "staged_at": "2026-08-09T09:12:35.752427+00:00",
+  "status": "rejected",
+  "decisions": [
+    {
+      "ts": "2026-08-09T09:12:35.752427+00:00",
+      "action": "staged",
+      "reviewer": "auto_dream"
+    },
+    {
+      "ts": "2026-08-09T09:12:35.753253+00:00",
+      "action": "rejected",
+      "reviewer": "heuristic_prefilter",
+      "notes": "claim_too_short, insufficient_content_words_1_of_3",
+      "duplicate_claims": [],
+      "evidence_snapshot": [
+        "2026-08-09T09:01:22.656882+00:00",
+        "2026-08-09T09:11:15.306585+00:00"
+      ],
+      "lessons_sha": "5a313b2f2249"
+    }
+  ],
+  "rejection_count": 1
+}
