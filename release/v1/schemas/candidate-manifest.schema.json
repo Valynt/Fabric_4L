@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://fabric4l.dev/release/v1/candidate-manifest.schema.json",
   "title": "V1 Release Candidate Evidence Manifest",
-  "description": "Immutable release-candidate identity plus the evidence bundle produced by scripts/release/build_evidence_bundle.sh. A candidate is a specific SHA and set of artifact digests; no agent may declare it ready based only on its own assessment.",
+  "description": "Immutable release-candidate identity plus the evidence bundle produced by scripts/release/build_evidence_bundle.py. A candidate is a specific SHA and set of artifact digests; no agent may declare it ready based only on its own assessment.",
   "type": "object",
   "additionalProperties": false,
   "required": [

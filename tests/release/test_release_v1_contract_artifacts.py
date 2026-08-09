@@ -29,15 +29,16 @@ REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 RELEASE_V1 = REPO_ROOT / "release" / "v1"
 MAKEFILE = REPO_ROOT / "Makefile"
 
-TASK_SCHEMA_PATH = RELEASE_V1 / "task.schema.json"
-RESULT_SCHEMA_PATH = RELEASE_V1 / "result.schema.json"
-MANIFEST_SCHEMA_PATH = RELEASE_V1 / "candidate-manifest.schema.json"
+TASK_SCHEMA_PATH = RELEASE_V1 / "schemas" / "task.schema.json"
+RESULT_SCHEMA_PATH = RELEASE_V1 / "schemas" / "result.schema.json"
+MANIFEST_SCHEMA_PATH = RELEASE_V1 / "schemas" / "candidate-manifest.schema.json"
+RISK_SCHEMA_PATH = RELEASE_V1 / "schemas" / "risk-register.schema.json"
 LAUNCH_CONTRACT_PATH = RELEASE_V1 / "launch-contract.yaml"
 INVARIANTS_PATH = RELEASE_V1 / "architecture-invariants.yaml"
-RISK_REGISTER_PATH = RELEASE_V1 / "risk-register.yaml"
-READINESS_PATH = RELEASE_V1 / "release-readiness.yaml"
+RISK_REGISTER_YAML = REPO_ROOT / "production-readiness" / "risk_register.yaml"
+RISK_REGISTER_MD = REPO_ROOT / "production-readiness" / "risk_register.md"
 TASKS_DIR = RELEASE_V1 / "tasks"
-JOURNEYS_DIR = RELEASE_V1 / "critical-journeys"
+JOURNEYS_DIR = RELEASE_V1 / "journeys"
 
 
 def _load_yaml(path: Path) -> dict:
@@ -89,7 +90,7 @@ def _command_references_exist(command: str) -> str | None:
 class TestSchemasAreValid:
     @pytest.mark.parametrize(
         "schema_path",
-        [TASK_SCHEMA_PATH, RESULT_SCHEMA_PATH, MANIFEST_SCHEMA_PATH],
+        [TASK_SCHEMA_PATH, RESULT_SCHEMA_PATH, MANIFEST_SCHEMA_PATH, RISK_SCHEMA_PATH],
         ids=lambda p: p.name,
     )
     def test_schema_is_valid_draft7(self, schema_path: Path) -> None:
@@ -118,7 +119,7 @@ class TestLaunchContract:
     def test_journey_files_exist_and_are_well_formed(self) -> None:
         contract = _load_yaml(LAUNCH_CONTRACT_PATH)
         journeys = contract["critical_journeys"]
-        assert 6 <= len(journeys) <= 8, "launch contract requires 6-8 critical journeys"
+        assert len(journeys) == 5, "launch contract defines exactly 5 v1 journeys (j01-j05)"
         for entry in journeys:
             journey_path = REPO_ROOT / entry["file"]
             assert journey_path.exists(), f"missing journey file: {entry['file']}"
@@ -159,12 +160,32 @@ class TestLaunchContract:
     def test_harness_schemas_and_scripts_exist(self) -> None:
         contract = _load_yaml(LAUNCH_CONTRACT_PATH)
         harness = contract["harness"]
-        for key in ("task_schema", "result_schema", "candidate_manifest_schema", "tasks_dir"):
+        for key in (
+            "task_schema",
+            "result_schema",
+            "candidate_manifest_schema",
+            "risk_register_schema",
+            "tasks_dir",
+        ):
             assert (REPO_ROOT / harness[key]).exists(), f"missing harness path: {harness[key]}"
         for name, script in harness["scripts"].items():
             script_path = REPO_ROOT / script
             assert script_path.exists(), f"missing harness script {name}: {script}"
-            assert script_path.stat().st_mode & 0o111, f"harness script not executable: {script}"
+            assert script_path.suffix == ".py", (
+                f"harness must be the thin Python orchestrator, not shell: {script}"
+            )
+        targets = _make_targets()
+        for name, command in harness["make_targets"].items():
+            parts = command.split()
+            assert parts[0] == "make" and parts[1] in targets, (
+                f"harness make target {name} references missing target: {command!r}"
+            )
+
+    def test_no_shell_harness_remains(self) -> None:
+        strays = sorted((REPO_ROOT / "scripts" / "release").glob("*.sh"))
+        assert not strays, (
+            f"shell harness scripts must be replaced by the Python orchestrator: {strays}"
+        )
 
 
 class TestArchitectureInvariants:
@@ -244,35 +265,76 @@ class TestTaskGraph:
             visit(task_id, ())
 
 
-class TestRiskRegisterAndReadiness:
-    def test_risk_register_entries_are_complete(self) -> None:
-        data = _load_yaml(RISK_REGISTER_PATH)
-        assert data["risks"], "risk register must not be empty"
-        seen: set[str] = set()
-        for risk in data["risks"]:
-            for key in ("id", "title", "severity", "sources", "mitigation", "status"):
-                assert key in risk, f"risk entry missing {key!r}: {risk}"
-            assert risk["id"] not in seen, f"duplicate risk id {risk['id']}"
-            seen.add(risk["id"])
-            assert risk["severity"] in {"P0", "P1", "P2"}
+class TestCanonicalRiskRegister:
+    """production-readiness/risk_register.yaml is the single canonical risk
+    register; the .md file is a human view that must stay reconciled."""
 
-    def test_readiness_proofs_reference_existing_gates_or_tasks(self) -> None:
-        data = _load_yaml(READINESS_PATH)
+    def test_risk_register_conforms_to_schema(self) -> None:
+        schema = json.loads(RISK_SCHEMA_PATH.read_text(encoding="utf-8"))
+        data = _load_yaml(RISK_REGISTER_YAML)
+        errors = sorted(
+            Draft7Validator(schema).iter_errors(data), key=lambda e: list(e.path)
+        )
+        assert not errors, "risk_register.yaml violates risk-register.schema.json: " + "; ".join(
+            e.message for e in errors
+        )
+
+    def test_risk_register_task_links_exist(self) -> None:
+        data = _load_yaml(RISK_REGISTER_YAML)
         task_ids = {path.stem for path in TASKS_DIR.glob("*.yaml")}
-        for requirement in data["requirements"]:
-            proofs = requirement["proof"]
-            assert proofs, f"requirement without proof: {requirement['requirement']!r}"
-            for proof in proofs:
-                if isinstance(proof, dict):
-                    assert proof["task"] in task_ids, (
-                        f"requirement {requirement['requirement']!r} references missing "
-                        f"task {proof['task']!r}"
-                    )
-                elif proof.startswith(("make ", "pytest ", "python ", "bash ")):
-                    error = _command_references_exist(proof)
-                    assert error is None, f"requirement {requirement['requirement']!r}: {error}"
-                else:
-                    assert (REPO_ROOT / proof).exists(), (
-                        f"requirement {requirement['requirement']!r} references missing "
-                        f"path {proof!r}"
-                    )
+        for risk in data["risks"]:
+            for task in risk.get("tasks", []):
+                assert task in task_ids, (
+                    f"risk {risk['id']} references missing task {task!r}"
+                )
+
+    def test_markdown_view_does_not_drift_from_canonical_yaml(self) -> None:
+        data = _load_yaml(RISK_REGISTER_YAML)
+        md_text = RISK_REGISTER_MD.read_text(encoding="utf-8")
+        yaml_ids = {risk["id"] for risk in data["risks"]}
+        md_ids = set(re.findall(r"PRR-\d+", md_text))
+        assert yaml_ids == md_ids, (
+            "risk register drift: PRR ids differ between risk_register.yaml "
+            f"and risk_register.md (yaml-only={sorted(yaml_ids - md_ids)}, "
+            f"md-only={sorted(md_ids - yaml_ids)})"
+        )
+        for risk in data["risks"]:
+            row = next(
+                (line for line in md_text.splitlines() if risk["id"] in line and line.startswith("|")),
+                None,
+            )
+            assert row is not None, f"{risk['id']} missing from markdown table"
+            assert risk["status"] in row, (
+                f"risk register drift: {risk['id']} status {risk['status']!r} "
+                "not reflected in risk_register.md row"
+            )
+            assert risk["severity"] in row, (
+                f"risk register drift: {risk['id']} severity {risk['severity']!r} "
+                "not reflected in risk_register.md row"
+            )
+
+    def test_no_second_risk_register_inside_release_v1(self) -> None:
+        strays = [
+            p
+            for p in RELEASE_V1.rglob("*")
+            if p.is_file() and "risk" in p.name and p.suffix in {".yaml", ".yml", ".md"}
+        ]
+        assert not strays, (
+            "release/v1 must not contain a risk register (canonical register is "
+            f"production-readiness/risk_register.yaml): {strays}"
+        )
+
+    def test_no_committed_generated_state_in_release_v1(self) -> None:
+        contract = _load_yaml(LAUNCH_CONTRACT_PATH)
+        forbidden_names = {
+            "release-readiness.yaml",
+            "current-state.yaml",
+            "dependency-graph.yaml",
+            "journey-coverage.yaml",
+            "candidate-manifest.yaml",
+        }
+        strays = [p for p in RELEASE_V1.rglob("*") if p.name in forbidden_names]
+        assert not strays, (
+            f"generated candidate state must live under artifacts/release/<sha>/, not release/v1: {strays}"
+        )
+        assert "generated_never_committed" in contract["artifact_policy"]

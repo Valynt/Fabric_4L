@@ -4,9 +4,16 @@ priority: P1
 
 goal: >
   Introduce nine stable aggregate PR checks (01-repository-integrity through
-  09-independent-review) as thin fan-in jobs over the existing workflow matrix,
-  make only aggregates required in branch protection, add merge_group triggers
-  to every required workflow, and enable the merge queue on main.
+  09-change-risk-and-approval) as thin fan-in jobs over the existing workflow
+  matrix, using a staged shadow migration. Stage 1: add aggregate fan-in jobs
+  as informational only; all existing required checks stay required. Stage 2:
+  run the aggregates across several representative PRs and merge_group events
+  and verify every required child failure causes the correct aggregate
+  failure. Stage 3: make aggregates required while retaining old checks
+  temporarily. Stage 4: remove direct matrix jobs from branch protection
+  after parity is established, keeping matrix execution and detailed
+  evidence. Add merge_group triggers to every required workflow and enable
+  the merge queue on main.
 
 depends_on:
   - V1-CARTO-001
@@ -26,6 +33,9 @@ single_writer_surfaces:
   - ci-required-check-definitions
 
 invariants:
+  - Aggregate jobs perform no substantive testing; they only summarize the status of existing jobs.
+  - The 09-change-risk-and-approval gate is deterministic policy, not an LLM gate — it verifies a schema-valid independent-review artifact exists, refers to the correct base and head SHAs, has no unresolved P0/P1 findings, that required CODEOWNER/human approval is present for high-risk surfaces, and that the reviewer did not author the patch.
+  - Branch protection changes only after shadow-mode parity is demonstrated (stages 1-2 before stage 3-4).
   - Every required check has a unique, stable name validated by branch-protection-validation.yml.
   - No CI step modifies and recommits repository files.
   - No lowering of test, type, coverage, security, or lint thresholds.

@@ -12,6 +12,23 @@
 schema_version: 1
 
 invariants:
+  # First invariant of the release-factory project: the largest failure mode
+  # of a release factory is building a parallel gate system.
+  - id: INV-FACTORY-001
+    statement: >
+      The release factory is a thin control plane over the existing canonical
+      gates, tests, risk register, and evidence machinery. No parallel gate,
+      readiness, risk, or evidence system may be introduced. Generated
+      candidate state lives only under artifacts/release/<sha>/ and is never
+      committed; production-readiness/risk_register.yaml is the only canonical
+      risk register and its human views must reconcile with it.
+    enforcement: existing
+    checks:
+      - type: pytest
+        path: tests/release/test_release_v1_contract_artifacts.py
+      - type: script
+        path: scripts/release/validate_contract.py
+
   - id: INV-TENANT-001
     statement: Tenant identity is resolved from authenticated backend context and enforced on every data read and write; missing or conflicting tenant context fails closed.
     enforcement: existing

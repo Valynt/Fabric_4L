@@ -1,13 +1,17 @@
 id: V1-EVALS-001
-title: Consolidate AI evaluation into a repo-owned evals harness
+title: Manifest-first AI evaluation coverage (no pre-launch code moves)
 priority: P1
 
 goal: >
-  Create the top-level evals/ structure (datasets, rubrics, adversarial,
-  baselines, results) with a repo-owned runner, consolidate tests/evals and
-  make evals behind it, and enforce deterministic AI gates (schema validity,
-  tool authorization, retrieval isolation, citation presence, cost and latency
-  budgets) in ai-evals-pipeline.yml and the release-candidate readiness profile.
+  Close the actual launch gap — missing evaluation coverage, not folder
+  layout. Start manifest-first: create evals/manifest.yaml plus datasets/,
+  rubrics/, adversarial/, and baselines/, where the manifest references the
+  EXISTING tests/evals runners and make evals. Do not move existing
+  tests/evals code before launch; move implementation only when that movement
+  materially improves the release gate. Enforce deterministic AI gates
+  (schema validity, tool authorization, retrieval isolation, citation
+  presence, cost and latency budgets) in ai-evals-pipeline.yml and the
+  release-candidate readiness profile.
 
 depends_on:
   - V1-CARTO-001
@@ -26,6 +30,7 @@ forbidden_paths:
 
 invariants:
   - No dependency on the OpenAI Evals platform; datasets and runners are repository-owned.
+  - The manifest composes existing runners; existing tests/evals files are not relocated before launch.
   - Deterministic assertions gate schemas, permissions, citations, tool calls, and tenant boundaries; model-graded rubrics are reserved for semantic quality and calibrated against human labels.
   - Adversarial sets cover direct injection, indirect injection, and cross-tenant exfiltration.
   - Prompts and outputs in traces are redacted according to data policy.
@@ -48,6 +53,6 @@ rollback:
   data_migration_required: false
 
 completion_evidence:
-  - evals/ directory with datasets, rubrics, adversarial sets, baselines, runner
+  - evals/manifest.yaml plus datasets, rubrics, adversarial sets, and baselines referencing existing runners
   - passing make evals run log
   - gate wiring diff for ai-evals-pipeline.yml and the release-candidate profile

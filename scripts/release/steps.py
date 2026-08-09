@@ -1,0 +1,155 @@
+"""Step registry and runner for the v1 release-factory harness.
+
+Every step delegates to an EXISTING make target, pnpm script, pytest suite, or
+scripts/ci checker. This module defines no new gates (INV-FACTORY-001); it
+only sequences and records them.
+"""
+
+from __future__ import annotations
+
+import subprocess
+import time
+from pathlib import Path
+
+from models import NOT_RUN_EXIT_CODE, Step, StepResult, utc_now
+
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+
+# Phase 1 baseline gates (clean checkout; validates, never repairs).
+BASELINE_STEPS: tuple[Step, ...] = (
+    Step("setup", ("make", "setup"), "environment"),
+    Step("verify", ("make", "verify"), "local verification"),
+    Step(
+        "production-readiness-gate",
+        ("make", "production-readiness-gate"),
+        "production readiness",
+    ),
+    Step("behavior-contract", ("make", "check-behavior-contract"), "behavior contract"),
+    Step(
+        "behavior-readiness-audit",
+        ("make", "check-behavior-readiness-audit"),
+        "behavior readiness",
+    ),
+)
+
+# Candidate certification sequence (launch-contract.yaml). Steps marked
+# live_only require staging infrastructure and run only with CERTIFY_LIVE=1;
+# otherwise they are recorded as not-run and the candidate stays uncertified
+# (fail closed).
+CERTIFICATION_STEPS: tuple[Step, ...] = (
+    Step("02-install-lockfiles", ("pnpm", "install", "--frozen-lockfile"), "environment"),
+    Step("02b-python-setup", ("make", "setup"), "environment"),
+    Step("03a-verify", ("make", "verify"), "critical journeys"),
+    Step(
+        "03b-production-readiness-gate",
+        ("make", "production-readiness-gate"),
+        "critical journeys",
+    ),
+    Step("03c-tenant-suite", ("pytest", "tests/tenancy", "-q"), "cross-tenant access"),
+    Step(
+        "04-production-build",
+        ("pnpm", "--dir", "apps/web", "run", "build"),
+        "release evidence",
+    ),
+    Step("04b-docker-build", ("make", "docker-build"), "release evidence", live_only=True),
+    Step(
+        "05-sbom-provenance",
+        ("bash", "scripts/ci/build-reproducibility-check.sh"),
+        "release evidence",
+        live_only=True,
+    ),
+    Step("06-staging-deploy", ("make", "preflight"), "capacity", live_only=True),
+    Step(
+        "07-migrations-empty-db",
+        ("make", "check-migration-postgres-roundtrip"),
+        "migration: empty database -> v1",
+        live_only=True,
+    ),
+    Step(
+        "08-migrations-from-baseline",
+        ("make", "db-migrate-check"),
+        "migration: existing schema -> v1 (expand-contract)",
+        live_only=True,
+    ),
+    Step(
+        "09-critical-browser-journeys",
+        ("pnpm", "--dir", "apps/web", "run", "test:e2e"),
+        "critical journeys",
+        live_only=True,
+    ),
+    Step("10a-security-suite", ("pytest", "tests/security", "-q"), "AI/application security"),
+    Step(
+        "10b-dast",
+        ("make", "security-readiness-gate"),
+        "AI/application security",
+        live_only=True,
+    ),
+    Step("11-load-profiles", ("make", "perf-test"), "capacity", live_only=True),
+    Step(
+        "12-provider-failure-drills",
+        ("pytest", "tests/reliability", "-q"),
+        "background jobs",
+        live_only=True,
+    ),
+    Step("13-backup-restore", ("make", "test-backup-drills"), "RPO/RTO", live_only=True),
+    Step(
+        "14-rollback-policy",
+        ("pytest", "tests/release/test_rollback_procedure.py", "-q"),
+        "rollback",
+    ),
+    Step(
+        "14b-rollback-rehearsal",
+        ("python", "scripts/ci/verify_release_rollback.py"),
+        "rollback",
+        live_only=True,
+    ),
+    Step("15-ai-evaluation", ("make", "evals"), "structured AI output", live_only=True),
+    Step(
+        "16-observability-readiness",
+        (
+            "pytest",
+            "tests/release/test_observability_deployment_readiness.py",
+            "-q",
+            "--no-mandatory-dep-check",
+        ),
+        "observability",
+    ),
+)
+
+
+def run_step(step: Step, log_dir: Path, *, live: bool) -> StepResult:
+    """Execute one step, teeing output to a per-step log. Never remediates."""
+    log_path = log_dir / f"{step.name}.log"
+    started = utc_now()
+    if step.live_only and not live:
+        log_path.write_text(
+            "not-run: requires live staging environment (CERTIFY_LIVE=1)\n",
+            encoding="utf-8",
+        )
+        return StepResult(
+            gate=step.name,
+            command=" ".join(step.command),
+            exit_code=NOT_RUN_EXIT_CODE,
+            started_at=started,
+            finished_at=utc_now(),
+            log=str(log_path),
+            criterion=step.criterion,
+            classification="not-run",
+        )
+    t0 = time.monotonic()
+    with log_path.open("w", encoding="utf-8") as log:
+        proc = subprocess.run(
+            step.command, cwd=REPO_ROOT, stdout=log, stderr=subprocess.STDOUT, check=False
+        )
+    elapsed = time.monotonic() - t0
+    print(f"  {step.name}: exit={proc.returncode} ({elapsed:.1f}s) log={log_path}")
+    return StepResult(
+        gate=step.name,
+        command=" ".join(step.command),
+        exit_code=proc.returncode,
+        started_at=started,
+        finished_at=utc_now(),
+        log=str(log_path),
+        criterion=step.criterion,
+        classification="pass" if proc.returncode == 0 else "unclassified",
+    )
