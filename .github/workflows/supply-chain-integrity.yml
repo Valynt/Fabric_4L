@@ -313,7 +313,11 @@ jobs:
                       command -v uv >/dev/null 2>&1 || { echo "::error::uv is required in the CI tools image for locked dependency auditing"; exit 2; } && \
                       uv --version && \
                       uv export --locked --no-dev --no-editable --no-header --output-file="$requirements_file" && \
-                      sed -i '/^\.$/d' "$requirements_file" && \
+                      # uv export emits a standalone '.' line for the local editable root; pip-audit
+                      # cannot parse it, so strip it before auditing. Use a temporary file because
+                      # sed -i is not portable across BSD (macOS) and GNU (Linux) implementations.
+                      grep -v '^\.$' "$requirements_file" > "${requirements_file}.tmp" && \
+                      mv "${requirements_file}.tmp" "$requirements_file" && \
                       pip-audit -r "$requirements_file" --format=json --output="$audit_output"
                   )
                 else
