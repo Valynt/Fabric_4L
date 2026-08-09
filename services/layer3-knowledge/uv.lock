@@ -1016,7 +1016,7 @@ embeddings = [
 requires-dist = [
     { name = "aiocache", specifier = ">=0.12.3" },
     { name = "black", marker = "extra == 'dev'", specifier = ">=24.0" },
-    { name = "cryptography", specifier = ">=48.0.1" },
+    { name = "cryptography", specifier = ">=50.0.0" },
     { name = "fastapi", specifier = ">=0.109" },
     { name = "httpx", specifier = ">=0.26" },
     { name = "infisicalsdk", specifier = ">=1.0.0" },
