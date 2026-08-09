@@ -46,7 +46,8 @@ __all__ = [
     "purge_expired_raw_content",
 ]
 
-from .task_app import _run_async, celery_app
+from . import tasks as _compat
+from .tasks import _run_async, celery_app
 
 
 @celery_app.task(
