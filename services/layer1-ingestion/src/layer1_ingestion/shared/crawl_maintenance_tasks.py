@@ -227,9 +227,17 @@ async def _acrawl_url_with_routing(
                 decision_record.bytes_transferred = browser_result.get("content_length", 0)
                 decision_record.text_length = browser_result.get("text_length", 0)
 
-            # 3. PERSIST CANONICAL DECISION
-            await decision_repo.save(decision_record, trusted_tenant_id=tenant_uuid)
+# 3. PERSIST CANONICAL DECISION
+if routing_decision.route == RouteType.FAST:
+    decision_record.final_path = "fast"
+elif routing_decision.route == RouteType.FAST_WITH_FALLBACK:
+    decision_record.final_path = (
+        "fallback" if decision_record.browser_duration_ms is not None else "fast"
+    )
+else:  # RouteType.BROWSER
+    decision_record.final_path = "browser"
 
+await decision_repo.save(decision_record, trusted_tenant_id=tenant_uuid)
             _compat.logger.info(
                 "Crawl completed with routing",
                 job_id=job_id,
