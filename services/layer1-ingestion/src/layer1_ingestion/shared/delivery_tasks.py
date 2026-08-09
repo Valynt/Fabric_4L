@@ -33,13 +33,9 @@ __all__ = [
 ]
 
 from . import tasks as _compat
-from .tasks import (
-    MAX_DISPATCH_ATTEMPTS,
-    celery_app,
-)
 
 
-@celery_app.task(name="layer1_ingestion.shared.tasks.notification_stage", bind=True)
+@_compat.celery_app.task(name="layer1_ingestion.shared.tasks.notification_stage", bind=True)
 def notification_stage(self, prev_result: dict, tenant_id: str):
     """Stage 9: Notification (webhooks, callbacks).
 
@@ -196,10 +192,10 @@ def notification_stage(self, prev_result: dict, tenant_id: str):
 # =============================================================================
 
 
-@celery_app.task(
+@_compat.celery_app.task(
     name="layer1_ingestion.shared.tasks.dispatch_outbox_event",
     bind=True,
-    max_retries=MAX_DISPATCH_ATTEMPTS,
+    max_retries=_compat.MAX_DISPATCH_ATTEMPTS,
     default_retry_delay=30,
 )
 def dispatch_outbox_event(self, event_id: str, tenant_id: str):
@@ -366,7 +362,7 @@ def _record_dead_letter_metrics():
 # =============================================================================
 
 
-@celery_app.task(name="layer1_ingestion.shared.tasks.run_pipeline_stage", bind=True, max_retries=3)
+@_compat.celery_app.task(name="layer1_ingestion.shared.tasks.run_pipeline_stage", bind=True, max_retries=3)
 def run_pipeline_stage(self, stage_name: str, payload: dict):
     """Execute a single stage of the canonical source ingestion pipeline.
 
@@ -406,7 +402,7 @@ def run_pipeline_stage(self, stage_name: str, payload: dict):
         raise self.retry(exc=exc, countdown=60 * (2**self.request.retries))
 
 
-@celery_app.task(name="layer1_ingestion.shared.tasks.dispatch_pipeline_outbox_events")
+@_compat.celery_app.task(name="layer1_ingestion.shared.tasks.dispatch_pipeline_outbox_events")
 def dispatch_pipeline_outbox_events(max_events: int = 100):
     """Poll and dispatch pending pipeline events from the transactional outbox.
 
