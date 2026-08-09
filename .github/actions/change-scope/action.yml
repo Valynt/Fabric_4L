@@ -44,6 +44,9 @@ outputs:
   deps:
     description: "'true' when dependency manifests or lockfiles changed"
     value: ${{ steps.resolve.outputs.deps }}
+  release-policy:
+    description: "'true' when release governance surfaces (launch contracts, readiness policies, release scripts/tests) changed"
+    value: ${{ steps.resolve.outputs.release-policy }}
   runtime:
     description: "'true' when anything that can affect the running product changed"
     value: ${{ steps.resolve.outputs.runtime }}
@@ -54,10 +57,12 @@ runs:
     - name: Detect changed scopes
       if: github.event_name == 'pull_request'
       id: filter
-      # Tag pin matches the two existing tj-actions/changed-files usages in
-      # pr-checks.yml; align all three to a full commit SHA in the next
-      # quarterly "Workflow Action Pin Refresh" PR.
-      uses: tj-actions/changed-files@v46
+      # SHA-pinned: this action is the scope oracle for the required-check
+      # aggregates, so a mutable tag would let a compromised release emit
+      # all-false scopes and silently skip security gates (cf. the March
+      # 2025 tj-actions/changed-files tag-repointing compromise,
+      # CVE-2025-30066). Keep all usages pinned to a full commit SHA.
+      uses: tj-actions/changed-files@ed68ef82c095e0d48ec87eccea555d944a631a4c # v46.0.5
       with:
         files_yaml_from_source_file: .github/paths-filters.yml
 
@@ -92,4 +97,5 @@ runs:
         emit docker  "${{ steps.filter.outputs.docker_any_changed }}"
         emit k8s     "${{ steps.filter.outputs.k8s_any_changed }}"
         emit deps    "${{ steps.filter.outputs.deps_any_changed }}"
+        emit release-policy "${{ steps.filter.outputs.release-policy_any_changed }}"
         emit runtime "${{ steps.filter.outputs.runtime_any_changed }}"

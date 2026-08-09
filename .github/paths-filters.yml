@@ -167,6 +167,21 @@ deps:
   - 'config/**'
   - 'Makefile'
 
+# Release governance surface: launch contracts, readiness policies, and the
+# scripts/tests that validate them. Gate any release-policy-validating job
+# (e.g. gate-release-policy drift checks) on this scope — NOT on 'runtime' —
+# so a risk_register.yaml-only PR still runs its drift checks.
+release-policy:
+  - 'release/**'
+  - 'production-readiness/**'
+  - 'scripts/release/**'
+  - 'tests/release/**'
+  - '.github/**'
+  - 'scripts/**'
+  - 'config/**'
+  - 'Makefile'
+  - 'pytest.ini'
+
 # Anything that can affect the running product (everything except pure
 # documentation). Used by prod-readiness to decide whether the PR-time
 # readiness jobs are relevant at all.
