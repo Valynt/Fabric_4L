@@ -1,7 +1,7 @@
 # Review Queue
 
 **Pending:** 1
-**Oldest staged:** 2026-08-09T09:52:59.165986+00:00
+**Oldest staged:** 2026-08-09T09:53:59.959369+00:00
 
 Run `python .agent/tools/list_candidates.py` for detail, then:
 - `python .agent/tools/graduate.py <id> --rationale "..."` to accept
@@ -10,4 +10,4 @@ Run `python .agent/tools/list_candidates.py` for detail, then:
 
 ## Priority order (top 10)
 
-- **b7132edf82b6** (priority=1552.50, size=115, rejections=0) — High-stakes op completed (release): cd /home/runner/work/Fabric_4L/Fabric_4L && 
+- **6cc6e47edfbb** (priority=1201.50, size=89, rejections=0) — High-stakes op completed (release): cd /home/runner/work/Fabric_4L/Fabric_4L && 
