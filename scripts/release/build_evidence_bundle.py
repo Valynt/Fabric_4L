@@ -23,7 +23,7 @@ import jsonschema
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from models import utc_now
+from models import NOT_RUN_EXIT_CODE, utc_now
 from steps import REPO_ROOT
 
 MANIFEST_SCHEMA = REPO_ROOT / "release" / "v1" / "schemas" / "candidate-manifest.schema.json"
@@ -66,7 +66,7 @@ def build_manifest(candidate_sha: str, out_dir: Path) -> Path:
             f"no certification step records at {record_path}; run certify_candidate.py first"
         )
     gates = json.loads(record_path.read_text(encoding="utf-8"))["gates"]
-    not_run = [g["gate"] for g in gates if g["exit_code"] == -1]
+    not_run = [g["gate"] for g in gates if g["exit_code"] == NOT_RUN_EXIT_CODE]
     failed = [g["gate"] for g in gates if g["exit_code"] > 0]
     certified = not failed and not not_run
 
