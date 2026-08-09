@@ -1,7 +1,7 @@
 # Review Queue
 
 **Pending:** 1
-**Oldest staged:** 2026-08-09T14:07:14.486468+00:00
+**Oldest staged:** 2026-08-09T17:38:44.921175+00:00
 
 Run `python .agent/tools/list_candidates.py` for detail, then:
 - `python .agent/tools/graduate.py <id> --rationale "..."` to accept
@@ -10,4 +10,4 @@ Run `python .agent/tools/list_candidates.py` for detail, then:
 
 ## Priority order (top 10)
 
-- **384ede0abed7** (priority=67.50, size=5, rejections=0) — High-stakes op completed (release): cd /home/runner/work/Fabric_4L/Fabric_4L && 
+- **7464eec178c1** (priority=40.50, size=3, rejections=0) — Edited /home/runner/work/Fabric_4L/Fabric_4L/.github/actions/change-scope/action
