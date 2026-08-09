@@ -9,6 +9,12 @@ name: Critical Gates
 on:
   pull_request:
     branches: [main]
+    # Change-scoping: every critical gate exercises runtime code, contracts,
+    # or CI scripts; documentation-only PRs are skipped. Push-to-main runs
+    # remain unscoped.
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
   push:
     branches: [main]
 
