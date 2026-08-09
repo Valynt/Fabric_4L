@@ -317,11 +317,12 @@ new dependency — it lands in one of four buckets in this document:
   three within one sprint.
 - **False-positive / out-of-scope** — requires a scanner-config change or
   path-exclusion; record the config change here so it is reviewable.
-
 Do not add findings to the *accepted-risk* bucket without a dated
-rationale. Do not add findings to the *false-positive* bucket without a
-commit that changes the scanner config and a reference to that commit
-here.
+rationale.
+
+For *false-positive* / *out-of-scope* findings, record evidence-backed
+triage here, and (when possible) follow up with a scanner-config change
+or exclusion so the alert volume stays manageable.
 
 ---
 
