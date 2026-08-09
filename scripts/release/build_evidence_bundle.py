@@ -159,8 +159,8 @@ def _sha256_tree(root: Path) -> str:
 def verify_evidence_packet(candidate_sha: str, packet_dir: Path) -> str:
     """Bind the generated packet to the candidate; return its SHA-256 digest.
 
-    Fails closed when the packet is missing, empty, or records a different
-    release SHA than the candidate being evidenced.
+    Fails closed when the packet is missing, empty, records no release SHA,
+    or records a different release SHA than the candidate being evidenced.
     """
     if not packet_dir.is_dir():
         raise SystemExit(
@@ -184,6 +184,13 @@ def verify_evidence_packet(candidate_sha: str, packet_dir: Path) -> str:
                 value = payload.get(key)
                 if isinstance(value, str):
                     packet_shas.add(value)
+    # A packet that records no release SHA cannot be verified as bound to the
+    # candidate; that is indistinguishable from an unbound packet (fail closed).
+    if not packet_shas:
+        raise SystemExit(
+            f"evidence packet at {packet_dir} records no release SHA; the packet "
+            f"cannot be verified as bound to candidate {candidate_sha} (fail closed)."
+        )
     mismatched = {sha for sha in packet_shas if sha != candidate_sha}
     if mismatched:
         raise SystemExit(
@@ -375,6 +382,10 @@ def main(argv: list[str] | None = None) -> int:
     # creation, packet generation, manifest writes).
     candidate_sha = require_full_sha(args.candidate_sha)
     out_dir = args.out_dir or (REPO_ROOT / "artifacts" / "release" / candidate_sha)
+    # Pre-flight guard: fail before the packet-generation side effect when the
+    # certification record is missing or bound to another SHA. build_manifest
+    # re-reads the same record internally (single-shot CLI; no concurrent
+    # mutation), so this early call exists purely to preserve side-effect order.
     _certification_record(candidate_sha, out_dir)
     packet_dir = build_release_evidence_packet(candidate_sha, out_dir)
     packet_digest = verify_evidence_packet(candidate_sha, packet_dir)

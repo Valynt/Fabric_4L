@@ -410,6 +410,15 @@ class TestVerifyEvidencePacket:
         with pytest.raises(SystemExit, match="do not match candidate"):
             module.verify_evidence_packet(FAKE_SHA, packet_dir)
 
+    def test_packet_with_no_recorded_sha_fails_closed(self, tmp_path: Path) -> None:
+        """A packet recording no release SHA cannot be verified as bound."""
+        module = _load_module()
+        packet_dir = tmp_path / "release-evidence-packet"
+        packet_dir.mkdir()
+        (packet_dir / "summary.md").write_text("# packet\n", encoding="utf-8")
+        with pytest.raises(SystemExit, match="records no release SHA"):
+            module.verify_evidence_packet(FAKE_SHA, packet_dir)
+
     def test_bound_packet_returns_deterministic_digest(self, tmp_path: Path) -> None:
         module = _load_module()
         packet_dir = self._packet(tmp_path, FAKE_SHA)
