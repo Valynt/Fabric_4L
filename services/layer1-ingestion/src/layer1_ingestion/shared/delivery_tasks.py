@@ -221,39 +221,40 @@ def dispatch_outbox_event(self, event_id: str, tenant_id: str):
         attributes={"event_id": str(event_id), "tenant_id": str(tenant_uuid)},
     ):
         try:
-            # Set tenant context BEFORE any database queries
+            # Set tenant context BEFORE any database queries; keep the session
+            # open until after the event has been marked DISPATCHED.
             with _compat.get_db_session(tenant_id=tenant_uuid, require_tenant=True) as session:
                 event = session.query(EventOutbox).filter(EventOutbox.id == event_uuid).first()
-            if not event:
-                _compat.logger.warning("EventOutbox row not found", event_id=event_id)
-                return
+                if not event:
+                    _compat.logger.warning("EventOutbox row not found", event_id=event_id)
+                    return
 
-            # Idempotency: skip if already dispatched or dead-lettered.
-            if event.status in (OutboxStatus.DISPATCHED.value, OutboxStatus.DEAD_LETTER.value):
+                # Idempotency: skip if already dispatched or dead-lettered.
+                if event.status in (OutboxStatus.DISPATCHED.value, OutboxStatus.DEAD_LETTER.value):
+                    _compat.logger.info(
+                        "EventOutbox already settled, skipping",
+                        event_id=event_id,
+                        status=event.status,
+                    )
+                    return
+
+                # Deliver to configured sink.
+                # Initial implementation: structured log (no-op delivery).
+                # Future: HTTP adapter, internal service call, etc.
                 _compat.logger.info(
-                    "EventOutbox already settled, skipping",
+                    "Dispatching outbox event",
                     event_id=event_id,
-                    status=event.status,
+                    event_type=event.event_type,
+                    aggregate_type=event.aggregate_type,
+                    aggregate_id=event.aggregate_id,
+                    tenant_id=str(event.tenant_id),
+                    payload=event.payload,
                 )
-                return
 
-            # Deliver to configured sink.
-            # Initial implementation: structured log (no-op delivery).
-            # Future: HTTP adapter, internal service call, etc.
-            _compat.logger.info(
-                "Dispatching outbox event",
-                event_id=event_id,
-                event_type=event.event_type,
-                aggregate_type=event.aggregate_type,
-                aggregate_id=event.aggregate_id,
-                tenant_id=str(event.tenant_id),
-                payload=event.payload,
-            )
-
-            # Mark dispatched.
-            event.status = OutboxStatus.DISPATCHED.value
-            event.dispatched_at = datetime.now(UTC)
-            session.commit()
+                # Mark dispatched.
+                event.status = OutboxStatus.DISPATCHED.value
+                event.dispatched_at = datetime.now(UTC)
+                session.commit()
 
             _compat.logger.info(
                 "EventOutbox dispatched",
@@ -304,7 +305,7 @@ def _handle_dispatch_failure(
             event.attempts = (event.attempts or 0) + 1
             event.last_error = sanitize_log_error(exc)[:200]
 
-            if event.attempts >= MAX_DISPATCH_ATTEMPTS:
+            if event.attempts >= _compat.MAX_DISPATCH_ATTEMPTS:
                 event.status = OutboxStatus.DEAD_LETTER.value
                 event.dead_lettered_at = datetime.now(UTC)
                 _compat.logger.error(

@@ -39,7 +39,6 @@ try:
 except ImportError:
     encode_service_jwt = None  # type: ignore
 
-
 from value_fabric.shared.redis_ha import get_celery_redis_broker_config
 
 from ..shared.config import settings

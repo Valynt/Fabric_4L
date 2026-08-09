@@ -197,6 +197,10 @@ def compliance_check_stage(self, job_id: UUID, tenant_id: str):
     return _run_async(_compat._compliance_check_stage_async(self, job_id, tenant_id))
 
 
+# Expose the async helper on the facade so tests can patch it consistently.
+_compat._compliance_check_stage_async = _compliance_check_stage_async  # type: ignore[attr-defined]
+
+
 async def _compliance_check_stage_async(self, job_id: UUID, tenant_id: str):
     """Stage 1: Compliance Check (robots.txt, rate limits, domain policies).
 
@@ -475,6 +479,10 @@ def _handle_compliance_error(exc, job_id, tenant_uuid, stage_started_at, stage):
 @celery_app.task(name="layer1_ingestion.shared.tasks.browser_crawl_stage", bind=True, max_retries=3)
 def browser_crawl_stage(self, prev_result: dict, tenant_id: str):
     return _run_async(_compat._browser_crawl_stage_async(self, prev_result, tenant_id))
+
+
+# Expose the async helper on the facade so tests can patch it consistently.
+_compat._browser_crawl_stage_async = _browser_crawl_stage_async  # type: ignore[attr-defined]
 
 
 async def _browser_crawl_stage_async(self, prev_result: dict, tenant_id: str):
@@ -856,6 +864,10 @@ async def _capture_raw_content(
 @celery_app.task(name="layer1_ingestion.shared.tasks.ai_extraction_stage", bind=True, max_retries=5)
 def ai_extraction_stage(self, prev_result: dict, tenant_id: str):
     return _run_async(_compat._ai_extraction_stage_async(self, prev_result, tenant_id))
+
+
+# Expose the async helper on the facade so tests can patch it consistently.
+_compat._ai_extraction_stage_async = _ai_extraction_stage_async  # type: ignore[attr-defined]
 
 
 async def _ai_extraction_stage_async(self, prev_result: dict, tenant_id: str):

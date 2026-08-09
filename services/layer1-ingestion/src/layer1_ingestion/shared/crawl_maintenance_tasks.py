@@ -46,10 +46,9 @@ __all__ = [
 ]
 
 from . import tasks as _compat
-from .tasks import (
-    _run_async,
-    celery_app,
-)
+
+celery_app = _compat.celery_app
+_run_async = _compat._run_async
 
 
 @celery_app.task(
@@ -154,7 +153,6 @@ async def _acrawl_url_with_routing(
                 # Direct fast path
                 result = await _compat._execute_fast_path(url)
 
-                decision_record.final_path = "fast"
                 decision_record.status_code = result.status_code
                 decision_record.fast_duration_ms = result.fetch_time_ms
                 decision_record.fetch_time_ms = result.fetch_time_ms
@@ -181,7 +179,6 @@ async def _acrawl_url_with_routing(
 
                 if quality.passed:
                     # Fast path succeeded
-                    decision_record.final_path = "fast"
                     decision_record.status_code = result.status_code
                     decision_record.fetch_time_ms = result.fetch_time_ms
                     decision_record.bytes_transferred = len(result.html.encode("utf-8"))
@@ -206,7 +203,6 @@ async def _acrawl_url_with_routing(
                         url, routing_decision.stagehand_config
                     )
 
-                    decision_record.final_path = "fallback"
                     decision_record.status_code = browser_result.get("status_code")
                     decision_record.browser_duration_ms = browser_result.get("duration_ms", 0)
                     decision_record.fetch_time_ms = result.fetch_time_ms + browser_result.get(
@@ -221,7 +217,6 @@ async def _acrawl_url_with_routing(
                 # Direct browser path
                 browser_result = await _execute_browser_path(url, routing_decision.stagehand_config)
 
-                decision_record.final_path = "browser"
                 decision_record.status_code = browser_result.get("status_code")
                 decision_record.browser_duration_ms = browser_result.get("duration_ms", 0)
                 decision_record.fetch_time_ms = browser_result.get("duration_ms", 0)
