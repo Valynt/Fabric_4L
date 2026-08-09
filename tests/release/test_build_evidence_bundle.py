@@ -111,7 +111,8 @@ class TestBuildManifest:
         )
 
         jsonschema.validate(manifest, MANIFEST_SCHEMA)
-        assert manifest["certification"]["status"] == "failed"
+        assert manifest["certification"]["status"] == "not_certified"
+        assert "inconclusive" in manifest["certification"]["notes"]
         assert manifest["authorization"]["production_authorized"] is False
 
     def test_missing_certification_record_fails_closed(self, tmp_path: Path) -> None:

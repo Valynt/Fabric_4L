@@ -85,7 +85,7 @@
       "additionalProperties": false,
       "required": ["status", "certifier", "clean_environment"],
       "properties": {
-        "status": { "enum": ["certified", "failed", "in_progress"] },
+        "status": { "enum": ["certified", "not_certified", "failed", "in_progress"] },
         "certifier": { "type": "string", "minLength": 1 },
         "clean_environment": { "type": "boolean" },
         "remediation_during_certification": {

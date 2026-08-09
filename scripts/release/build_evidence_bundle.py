@@ -267,6 +267,16 @@ def build_manifest(
         if g["exit_code"] != 0 and g["exit_code"] != NOT_RUN_EXIT_CODE
     ]
     certified = not failed and not not_run
+    # Distinguish a run that FAILED (at least one gate exited nonzero) from an
+    # inconclusive run that is NOT_CERTIFIED (no failures, but required steps
+    # never ran — live-only without CERTIFY_LIVE=1 or unimplemented). Both are
+    # non-certified; neither may ever be presented as certified.
+    if certified:
+        status = "certified"
+    elif failed:
+        status = "failed"
+    else:
+        status = "not_certified"
 
     # The branch was captured by certify_candidate.py at certification time and
     # written into the record; do not re-derive it from the current checkout.
@@ -289,8 +299,13 @@ def build_manifest(
         )
     if certified:
         note = "All gates passed in a live staging certification."
-    else:
+    elif failed:
         note = f"Not certified. failed={failed} not_run={not_run} (fail closed)."
+    else:
+        note = (
+            f"Not certified: inconclusive. No gate failed, but required steps "
+            f"never ran: not_run={not_run} (fail closed)."
+        )
     if notes:
         note = f"{note} ({'; '.join(notes)}.)"
 
@@ -321,7 +336,7 @@ def build_manifest(
             ),
         },
         "certification": {
-            "status": "certified" if certified else "failed",
+            "status": status,
             "certifier": "release-certifier",
             "clean_environment": clean_environment,
             "remediation_during_certification": False,
