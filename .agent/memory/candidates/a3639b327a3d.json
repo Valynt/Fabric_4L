@@ -1,0 +1,42 @@
+{
+  "id": "a3639b327a3d",
+  "key": "pattern_inv-factory-001_release-factory_fabric_4l_a3639b",
+  "name": "pattern_inv-factory-001_release-factory_fabric_4l_a3639b",
+  "claim": "Wrote /home/runner/work/Fabric_4L/Fabric_4L/scripts/release/models.py (0 lines)",
+  "conditions": [
+    "existing",
+    "fabric_4l",
+    "file_text",
+    "gates",
+    "harness",
+    "home",
+    "inv-factory-001",
+    "lines",
+    "nfrom",
+    "records",
+    "release",
+    "release-factory",
+    "runner",
+    "scripts",
+    "step",
+    "work",
+    "write",
+    "wrote"
+  ],
+  "evidence_ids": [
+    "2026-08-09T08:14:28.520662+00:00",
+    "2026-08-09T08:14:51.703639+00:00"
+  ],
+  "cluster_size": 2,
+  "canonical_salience": 9.0,
+  "staged_at": "2026-08-09T08:24:03.791560+00:00",
+  "status": "staged",
+  "decisions": [
+    {
+      "ts": "2026-08-09T08:24:03.791560+00:00",
+      "action": "staged",
+      "reviewer": "auto_dream"
+    }
+  ],
+  "rejection_count": 0
+}

@@ -1,0 +1,47 @@
+{
+  "id": "a6e6c69362ec",
+  "key": "pattern_fabric_4l_file_text_npriority_a6e6c6",
+  "name": "pattern_fabric_4l_file_text_npriority_a6e6c6",
+  "claim": "Wrote /home/runner/work/Fabric_4L/Fabric_4L/release/v1/critical-journeys/user-onboarding.yaml (0 lines)",
+  "conditions": [
+    "fabric_4l",
+    "file_text",
+    "home",
+    "lines",
+    "npriority",
+    "ntitle",
+    "release",
+    "runner",
+    "work",
+    "write",
+    "wrote",
+    "yaml"
+  ],
+  "evidence_ids": [
+    "2026-08-09T07:59:56.971999+00:00",
+    "2026-08-09T07:59:57.023155+00:00",
+    "2026-08-09T07:59:57.077307+00:00",
+    "2026-08-09T07:59:57.128913+00:00",
+    "2026-08-09T07:59:57.179025+00:00",
+    "2026-08-09T07:59:57.230309+00:00",
+    "2026-08-09T08:01:18.912395+00:00",
+    "2026-08-09T08:01:18.962561+00:00",
+    "2026-08-09T08:01:19.071325+00:00",
+    "2026-08-09T08:01:19.119705+00:00",
+    "2026-08-09T08:01:19.020470+00:00",
+    "2026-08-09T08:09:47.252726+00:00",
+    "2026-08-09T08:10:31.918034+00:00"
+  ],
+  "cluster_size": 13,
+  "canonical_salience": 13.5,
+  "staged_at": "2026-08-09T08:24:03.790638+00:00",
+  "status": "staged",
+  "decisions": [
+    {
+      "ts": "2026-08-09T08:24:03.790638+00:00",
+      "action": "staged",
+      "reviewer": "auto_dream"
+    }
+  ],
+  "rejection_count": 0
+}

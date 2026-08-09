@@ -1,0 +1,47 @@
+{
+  "id": "6b1242b51822",
+  "key": "pattern_responsibility_instructions_fabric_4l_6b1242",
+  "name": "pattern_responsibility_instructions_fabric_4l_6b1242",
+  "claim": "Wrote /home/runner/work/Fabric_4L/Fabric_4L/services/layer3-knowledge/AGENTS.md (0 lines)",
+  "conditions": [
+    "agents",
+    "fabric_4l",
+    "file_text",
+    "home",
+    "instructions",
+    "lines",
+    "live",
+    "nscoped",
+    "responsibility",
+    "root",
+    "rules",
+    "runner",
+    "u2014",
+    "universal",
+    "work",
+    "write",
+    "wrote"
+  ],
+  "evidence_ids": [
+    "2026-08-09T08:07:24.890146+00:00",
+    "2026-08-09T08:07:24.942099+00:00",
+    "2026-08-09T08:07:24.993497+00:00",
+    "2026-08-09T08:07:25.046290+00:00",
+    "2026-08-09T08:07:25.102812+00:00",
+    "2026-08-09T08:07:25.156137+00:00",
+    "2026-08-09T08:19:25.461927+00:00",
+    "2026-08-09T08:19:39.089857+00:00"
+  ],
+  "cluster_size": 8,
+  "canonical_salience": 13.5,
+  "staged_at": "2026-08-09T08:24:03.791420+00:00",
+  "status": "staged",
+  "decisions": [
+    {
+      "ts": "2026-08-09T08:24:03.791420+00:00",
+      "action": "staged",
+      "reviewer": "auto_dream"
+    }
+  ],
+  "rejection_count": 0
+}

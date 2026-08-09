@@ -1,0 +1,55 @@
+{
+  "id": "9e80cbc64751",
+  "key": "pattern_nmachine-readable_self-assessment_deterministic_9e80cb",
+  "name": "pattern_nmachine-readable_self-assessment_deterministic_9e80cb",
+  "claim": "Wrote /home/runner/work/Fabric_4L/Fabric_4L/release/v1/README.md (0 lines)",
+  "conditions": [
+    "agent",
+    "artifacts",
+    "constrained",
+    "contract",
+    "correct",
+    "decide",
+    "deterministic",
+    "every",
+    "fabric_4l",
+    "factory",
+    "file_text",
+    "finish",
+    "give",
+    "home",
+    "launch",
+    "line",
+    "lines",
+    "ncommands",
+    "nmachine-readable",
+    "nthese",
+    "readme",
+    "release",
+    "runner",
+    "self-assessment",
+    "task",
+    "u2014",
+    "verifiable",
+    "whether",
+    "work",
+    "write",
+    "wrote"
+  ],
+  "evidence_ids": [
+    "2026-08-09T08:03:46.111439+00:00",
+    "2026-08-09T08:20:04.575817+00:00"
+  ],
+  "cluster_size": 2,
+  "canonical_salience": 9.0,
+  "staged_at": "2026-08-09T08:24:03.791280+00:00",
+  "status": "staged",
+  "decisions": [
+    {
+      "ts": "2026-08-09T08:24:03.791280+00:00",
+      "action": "staged",
+      "reviewer": "auto_dream"
+    }
+  ],
+  "rejection_count": 0
+}
