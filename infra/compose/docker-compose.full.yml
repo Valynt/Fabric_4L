@@ -785,6 +785,8 @@ services:
       - /etc/pgbouncer
       - /var/log/pgbouncer
       - /var/run/pgbouncer
+    volumes:
+      - ../../config/pgbouncer/pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini:ro
     expose:
       - "6432"
     environment:
