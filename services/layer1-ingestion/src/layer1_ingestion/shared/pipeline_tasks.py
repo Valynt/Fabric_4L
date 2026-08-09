@@ -88,8 +88,8 @@ __all__ = [
     "execute_pipeline_stage",
 ]
 
+from . import tasks as _compat
 from .tasks import _domain_class, _run_async, _verify_l3_graph_population, celery_app
-
 
 @celery_app.task(
     name="layer1_ingestion.shared.tasks.process_scraping_job", bind=True, max_retries=3
