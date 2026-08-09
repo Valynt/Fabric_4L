@@ -1649,7 +1649,6 @@ def execute_pipeline_stage(job_id: str, stage: str, tenant_id: str):
     """
     job_id = UUID(job_id)
     stage_enum = PipelineStage(stage)
-    from .delivery_tasks import notification_stage
 
     # Dispatch to appropriate stage task
     stage_tasks = {
@@ -1661,7 +1660,7 @@ def execute_pipeline_stage(job_id: str, stage: str, tenant_id: str):
         PipelineStage.POST_PROCESSING.value: post_processing_stage,
         PipelineStage.VALIDATION.value: validation_stage,
         PipelineStage.STORAGE.value: storage_stage,
-        PipelineStage.NOTIFICATION.value: notification_stage,
+        PipelineStage.NOTIFICATION.value: _compat.notification_stage,
     }
 
     task = stage_tasks.get(stage_enum.value)
