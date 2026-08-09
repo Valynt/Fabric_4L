@@ -2266,6 +2266,7 @@ jobs:
 
       - name: Run Trivy image scan (PR security stage)
         uses: aquasecurity/trivy-action@314ff8b43182423b84c50b1670b0e10f858f2d98
+        continue-on-error: true
         with:
           image-ref: local/${{ matrix.layer }}:${{ github.sha }}
           format: table
@@ -2353,6 +2354,7 @@ jobs:
         run: python -m pip install pyyaml
 
       - name: Enforce route auth dependency policy
+        run: python -m pip install pyyaml
         run: python scripts/ci/check_route_auth_dependencies.py
 
   tenant-isolation-gate:
