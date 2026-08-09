@@ -1145,8 +1145,8 @@ requires-dist = [
     { name = "opentelemetry-instrumentation", specifier = ">=0.42b0" },
     { name = "opentelemetry-sdk", specifier = ">=1.21.0" },
     { name = "playwright", specifier = ">=1.40.0" },
-    { name = "presidio-analyzer", specifier = ">=2.2.0,<2.2.350" },
-    { name = "presidio-anonymizer", specifier = ">=2.2.0,<2.2.350" },
+    { name = "presidio-analyzer", specifier = "==2.2.35" },
+    { name = "presidio-anonymizer", specifier = "==2.2.35" },
     { name = "prometheus-client", specifier = ">=0.19.0" },
     { name = "protego", specifier = ">=0.3.0" },
     { name = "psycopg2-binary", specifier = ">=2.9.9" },
@@ -1942,13 +1942,13 @@ wheels = [
 
 [[package]]
 name = "presidio-anonymizer"
-version = "2.2.341"
+version = "2.2.35"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pycryptodome" },
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/36/02/154134fcaaf1d3d4716736e9a6c8ee3dcb8b5a44b60985db5265afd3138e/presidio_anonymizer-2.2.341-py3-none-any.whl", hash = "sha256:680aa07f405f5b8605d33ca6e84b84fae36a868feb9886f4b88a54790755a723", size = 28723, upload-time = "2023-10-31T21:51:57.7Z" },
+    { url = "https://files.pythonhosted.org/packages/67/02/f09c50a6531db69a3b156f2230986d37e687027f00969ab0ce9488909a11/presidio_anonymizer-2.2.35-py3-none-any.whl", hash = "sha256:4a401144ee5dc04845eb5107c72d9056a33283bf865a893d87095355b60db1c2", size = 28716, upload-time = "2023-10-31T21:59:27.757Z" },
 ]
 
 [[package]]
