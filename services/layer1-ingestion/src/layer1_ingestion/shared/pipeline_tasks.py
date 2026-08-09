@@ -89,12 +89,11 @@ __all__ = [
 ]
 
 from . import tasks as _compat
-from .tasks import (
-    _domain_class,
-    _run_async,
-    _verify_l3_graph_population,
-    celery_app,
-)
+
+_domain_class = _compat._domain_class
+_run_async = _compat._run_async
+_verify_l3_graph_population = _compat._verify_l3_graph_population
+celery_app = _compat.celery_app
 
 
 @celery_app.task(
