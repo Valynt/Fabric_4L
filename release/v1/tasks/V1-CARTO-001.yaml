@@ -1,0 +1,55 @@
+id: V1-CARTO-001
+title: Time-boxed cartography of current main (verify launch-critical claims)
+priority: P0
+
+goal: >
+  Within a hard time-box of 1-2 working days, verify or refute — with
+  file-level evidence — the launch-critical architecture claims for the five
+  v1 journeys and their direct dependencies. The central question: does
+  current main actually execute the architecture that the
+  architecture-convergence work says it executes? Outputs are machine-readable
+  facts written to artifacts/release/<sha>/ (current-state.json,
+  dependency-graph.json, journey-coverage.json) plus proposed
+  production-readiness/risk_register.yaml updates for human decision.
+  Cartography does not rediscover every historical issue.
+
+allowed_paths:
+  - artifacts/release/**
+
+forbidden_paths:
+  - services/**
+  - apps/**
+  - packages/**
+  - release/v1/**
+  - production-readiness/**
+  - .github/workflows/**
+
+invariants:
+  - Cartographers are read-only over source; generated findings live only under artifacts/release/<sha>/ and are never committed.
+  - Each claim is returned in the fixed shape — claim, status (verified | refuted | inconclusive), runtime_entrypoint, callers, authoritative_storage, compatibility_paths, bypass_paths, tests, verification_command, release_impact.
+  - Findings cite file paths and line-level evidence, not prose impressions.
+  - Known issues are seeded from THREAT_MODEL.md, PRODUCTION_READINESS_REPORT.md, and the compatibility-debt registry, not rediscovered.
+  - Scope is limited to v1 journeys and their direct dependencies; no implementation, speculative redesign, or broad documentation rewrite.
+  - Risk-register changes are proposed as findings; only a human risk owner commits changes to production-readiness/risk_register.yaml.
+
+acceptance_tests:
+  - pytest tests/release/test_release_v1_contract_artifacts.py
+
+negative_cases:
+  - A claimed-resolved duplicate path still exists on disk and must be reported as refuted with evidence.
+  - A journey with no mapped executable verification_command must appear as a coverage gap.
+
+non_goals:
+  - Fixing any discovered issue.
+  - Refactoring or removing duplicate paths.
+  - A multi-week architecture audit.
+
+rollback:
+  strategy: revert_patch
+  data_migration_required: false
+
+completion_evidence:
+  - artifacts/release/<sha>/current-state.json
+  - artifacts/release/<sha>/dependency-graph.json
+  - artifacts/release/<sha>/journey-coverage.json
+  - proposed risk_register.yaml updates with file-level evidence, for human review

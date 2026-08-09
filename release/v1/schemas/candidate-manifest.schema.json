@@ -1,0 +1,123 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://fabric4l.dev/release/v1/candidate-manifest.schema.json",
+  "title": "V1 Release Candidate Evidence Manifest",
+  "description": "Immutable release-candidate identity plus the evidence bundle produced by scripts/release/build_evidence_bundle.py. A candidate is a specific SHA and set of artifact digests; no agent may declare it ready based only on its own assessment.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "candidate",
+    "gates",
+    "evidence",
+    "certification",
+    "authorization"
+  ],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sha", "created_at", "source_branch"],
+      "properties": {
+        "sha": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        "created_at": { "type": "string", "format": "date-time" },
+        "source_branch": { "type": "string", "minLength": 1 },
+        "version": { "type": "string" },
+        "image_digests": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["image", "digest"],
+            "properties": {
+              "image": { "type": "string", "minLength": 1 },
+              "digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
+            }
+          }
+        }
+      }
+    },
+    "gates": {
+      "description": "Deterministic gate results. Every entry records the exact command and exit code; exit code zero is the only passing state.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["gate", "command", "exit_code", "started_at", "finished_at"],
+        "properties": {
+          "gate": { "type": "string", "minLength": 1 },
+          "command": { "type": "string", "minLength": 1 },
+          "exit_code": { "type": "integer" },
+          "started_at": { "type": "string", "format": "date-time" },
+          "finished_at": { "type": "string", "format": "date-time" },
+          "log_path": {
+            "description": "Repo-relative path to the gate log; absolute paths are rejected so the manifest stays portable.",
+            "type": "string",
+            "pattern": "^[^/]"
+          }
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "test_reports": { "type": "array", "items": { "type": "string" } },
+        "sbom": { "type": "string" },
+        "provenance": { "type": "string" },
+        "scan_results": { "type": "array", "items": { "type": "string" } },
+        "migration_record": { "type": "string" },
+        "rollback_instructions": { "type": "string" },
+        "load_test_results": { "type": "array", "items": { "type": "string" } },
+        "ai_eval_results": { "type": "array", "items": { "type": "string" } },
+        "backup_restore_record": { "type": "string" },
+        "evidence_packet_digest": {
+          "description": "SHA-256 digest over the candidate-scoped release evidence packet files; binds the manifest to the exact packet contents.",
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
+    "certification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "certifier", "clean_environment"],
+      "properties": {
+        "status": { "enum": ["certified", "not_certified", "failed", "in_progress"] },
+        "certifier": { "type": "string", "minLength": 1 },
+        "clean_environment": { "type": "boolean" },
+        "remediation_during_certification": {
+          "description": "Must be false: the certifier may not remediate failures during certification.",
+          "type": "boolean",
+          "const": false
+        },
+        "notes": { "type": "string" }
+      }
+    },
+    "authorization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["production_authorized", "authorized_by"],
+      "properties": {
+        "production_authorized": { "type": "boolean" },
+        "authorized_by": {
+          "description": "Human production authority. Empty string only while production_authorized is false.",
+          "type": "string"
+        },
+        "authorized_at": { "type": "string", "format": "date-time" }
+      },
+      "if": {
+        "properties": { "production_authorized": { "const": true } }
+      },
+      "then": {
+        "required": ["production_authorized", "authorized_by", "authorized_at"],
+        "properties": {
+          "authorized_by": { "type": "string", "minLength": 2 },
+          "authorized_at": { "type": "string", "format": "date-time", "minLength": 20 }
+        }
+      }
+    }
+  }
+}
