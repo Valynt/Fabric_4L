@@ -93,6 +93,7 @@ def dispatch_outbox_event(self, event_id: str, tenant_id: str):
                     return
                 event_db.status = OutboxStatus.DISPATCHED.value
                 event_db.dispatched_at = datetime.now(UTC)
+                session.commit()
 
             logger.info(
                 "EventOutbox dispatched",
@@ -300,7 +301,7 @@ def _enumerate_authorized_tenants_for_cleanup() -> list[UUID]:
     return tenant_ids
 
 
-def cleanup_old_content(days: int = 30, tenant_id: str = None):
+def cleanup_old_content(days: int = 30, tenant_id: str | None = None):
     """Clean up raw content older than specified days.
 
     This function implements tenant-by-tenant cleanup under RLS by default.

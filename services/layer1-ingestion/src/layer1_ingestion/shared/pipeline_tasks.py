@@ -629,7 +629,6 @@ async def _execute_routing(
 
     crawl_result = None
     fast_result = None
-    final_path = "unknown"
 
     if routing_decision.route == RouteType.FAST:
         fast_result, decision_record = await _execute_fast_path_routing(
@@ -1675,9 +1674,11 @@ def execute_pipeline_stage(job_id: str, stage: str, tenant_id: str):
     job_id = UUID(job_id)
     stage_enum = PipelineStage(stage)
 
-    # Dispatch to appropriate stage task
-    stage_tasks = {
-        PipelineStage.COMPLIANCE_CHECK.value: compliance_check_stage,
+    # Stages that accept (job_id, tenant_id) directly.
+    compliance_stages = {PipelineStage.COMPLIANCE_CHECK.value}
+
+    # Stages that accept (prev_result, tenant_id) where prev_result carries job_id.
+    prev_result_stages = {
         PipelineStage.BROWSER_LAUNCH.value: browser_crawl_stage,
         PipelineStage.NAVIGATION.value: browser_crawl_stage,
         PipelineStage.CONTENT_CAPTURE.value: browser_crawl_stage,
@@ -1688,12 +1689,18 @@ def execute_pipeline_stage(job_id: str, stage: str, tenant_id: str):
         PipelineStage.NOTIFICATION.value: notification_stage,
     }
 
-    task = stage_tasks.get(stage_enum.value)
-    if task:
+    if stage_enum.value in compliance_stages:
         # SECURITY: propagate trusted tenant_id from dispatch envelope
-        return task.delay(str(job_id), tenant_id)
-    else:
-        raise ValueError(f"Unknown stage: {stage}")
+        return compliance_check_stage.delay(str(job_id), tenant_id)
+
+    task = prev_result_stages.get(stage_enum.value)
+    if task:
+        # Build a minimal prev_result dict so the stage task can locate the job.
+        # SECURITY: propagate trusted tenant_id from dispatch envelope
+        prev_result = {"job_id": str(job_id), "success": True}
+        return task.delay(prev_result, tenant_id)
+
+    raise ValueError(f"Unknown stage: {stage}")
 
 
 # =============================================================================
