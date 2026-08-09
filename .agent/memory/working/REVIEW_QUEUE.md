@@ -1,6 +1,6 @@
 # Review Queue
 
-**Pending:** 9
+**Pending:** 10
 **Oldest staged:** 2026-08-09T07:50:57.055800+00:00
 
 Run `python .agent/tools/list_candidates.py` for detail, then:
@@ -11,6 +11,7 @@ Run `python .agent/tools/list_candidates.py` for detail, then:
 ## Priority order (top 10)
 
 - **e91c42f335ae** (priority=1282.50, size=95, rejections=0) — High-stakes op completed (release): cd /home/runner/work/Fabric_4L/Fabric_4L; gr
+- **7dac35714600** (priority=297.00, size=22, rejections=0) — Edited /home/runner/work/Fabric_4L/Fabric_4L/scripts/release/build_evidence_bund
 - **a6e6c69362ec** (priority=175.50, size=13, rejections=0) — Wrote /home/runner/work/Fabric_4L/Fabric_4L/release/v1/critical-journeys/user-on
 - **6b1242b51822** (priority=108.00, size=8, rejections=0) — Wrote /home/runner/work/Fabric_4L/Fabric_4L/services/layer3-knowledge/AGENTS.md 
 - **10705392ea63** (priority=81.00, size=6, rejections=0) — Wrote /home/runner/work/Fabric_4L/Fabric_4L/release/v1/tasks/V1-EVALS-001.yaml (
