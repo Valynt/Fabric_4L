@@ -20,6 +20,7 @@ import sys
 from pathlib import Path
 
 import jsonschema
+import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
@@ -27,6 +28,9 @@ from models import NOT_RUN_EXIT_CODE, utc_now
 from steps import REPO_ROOT
 
 MANIFEST_SCHEMA = REPO_ROOT / "release" / "v1" / "schemas" / "candidate-manifest.schema.json"
+RELEASE_EVIDENCE_MANIFEST_TEMPLATE = (
+    REPO_ROOT / "docs" / "launch" / "evidence-manifest.example.yaml"
+)
 
 
 def _manifest_gate(gate: dict) -> dict:
@@ -56,6 +60,39 @@ def _repo_relative(path: Path) -> str:
         return str(path.relative_to(REPO_ROOT))
     except ValueError:
         return str(path)
+
+
+def build_release_evidence_packet(candidate_sha: str, out_dir: Path) -> Path:
+    """Generate the canonical release evidence packet under artifacts/release/<sha>/."""
+    out_dir.mkdir(parents=True, exist_ok=True)
+    template = yaml.safe_load(RELEASE_EVIDENCE_MANIFEST_TEMPLATE.read_text(encoding="utf-8"))
+    template["release_candidate_sha"] = candidate_sha
+
+    manifest_path = out_dir / "release-evidence-manifest.yaml"
+    manifest_path.write_text(yaml.safe_dump(template, sort_keys=False), encoding="utf-8")
+
+    packet_dir = out_dir / "release-evidence-packet"
+    try:
+        subprocess.run(
+            [
+                sys.executable,
+                str(REPO_ROOT / "scripts" / "ci" / "generate_release_evidence_packet.py"),
+                "--manifest",
+                str(manifest_path),
+                "--output-dir",
+                str(packet_dir),
+                "--release-sha",
+                candidate_sha,
+            ],
+            cwd=REPO_ROOT,
+            check=True,
+        )
+    except subprocess.CalledProcessError as exc:
+        raise SystemExit(
+            "release evidence packet generation failed for "
+            f"{candidate_sha} (exit {exc.returncode})"
+        ) from exc
+    return packet_dir
 
 
 def build_manifest(candidate_sha: str, out_dir: Path) -> Path:
@@ -133,6 +170,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     out_dir = args.out_dir or (REPO_ROOT / "artifacts" / "release" / args.candidate_sha)
+    build_release_evidence_packet(args.candidate_sha, out_dir)
     manifest_path = build_manifest(args.candidate_sha, out_dir)
     status = json.loads(manifest_path.read_text(encoding="utf-8"))["certification"]["status"]
     print(f"Evidence manifest written and schema-validated: {manifest_path}")

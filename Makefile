@@ -864,7 +864,7 @@ certify-release-candidate: ## Fail-closed certification of RELEASE_SHA (live ste
 	@test -n "$(RELEASE_SHA)" || { echo "usage: make certify-release-candidate RELEASE_SHA=<sha>"; exit 2; }
 	$(PYTHON) scripts/release/certify_candidate.py $(RELEASE_SHA)
 
-build-release-evidence: release-evidence-packet ## Compose the canonical evidence packet plus the candidate manifest for RELEASE_SHA
+build-release-evidence: ## Compose the candidate-scoped release evidence packet plus the candidate manifest for RELEASE_SHA
 	@test -n "$(RELEASE_SHA)" || { echo "usage: make build-release-evidence RELEASE_SHA=<sha>"; exit 2; }
 	$(PYTHON) scripts/release/build_evidence_bundle.py $(RELEASE_SHA)
 
