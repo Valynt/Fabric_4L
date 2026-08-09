@@ -300,16 +300,21 @@ jobs:
               requirements_file="/tmp/${service_name}-requirements.txt"
               audit_output="${GITHUB_WORKSPACE}/${service_name}-audit.json"
               echo "Auditing $service_name"
-              # Install the service's declared dependencies so pip freeze
-              # reflects the service's actual resolution (respecting version
-              # constraints from pyproject.toml / requirements.txt), not
-              # whatever happens to be pre-installed in the CI tools image.
+              # Use the locked dependency set as the source of truth for auditing.
+              # uv.lock is the canonical resolution; pip install -e . can drift
+              # due to newly published transitive pins and produces non-reproducible
+              # audit results.
               set +e
               (
-                cd "$dir" && \
-                  pip install -e . --quiet 2>/dev/null; \
-                  pip freeze > "$requirements_file" && \
-                  pip-audit -r "$requirements_file" --format=json --output="$audit_output"
+                if [ -f "$dir/uv.lock" ]; then
+                  uv pip compile "$dir/pyproject.toml" --output-file="$requirements_file" --python-version 3.12 --quiet && \
+                    pip-audit -r "$requirements_file" --format=json --output="$audit_output"
+                else
+                  cd "$dir" && \
+                    pip install -e . --quiet 2>/dev/null; \
+                    pip freeze > "$requirements_file" && \
+                    pip-audit -r "$requirements_file" --format=json --output="$audit_output"
+                fi
               )
               audit_status=$?
               set -e
