@@ -47,17 +47,17 @@
         "additionalProperties": false,
         "required": ["gate", "command", "exit_code", "started_at", "finished_at"],
         "properties": {
-      "gate": { "type": "string", "minLength": 1 },
-      "command": { "type": "string", "minLength": 1 },
-      "exit_code": { "type": "integer" },
-      "started_at": { "type": "string", "format": "date-time" },
-      "finished_at": { "type": "string", "format": "date-time" },
-      "log_path": {
-        "description": "Repo-relative path to the gate log; absolute paths are rejected so the manifest stays portable.",
-        "type": "string",
-        "pattern": "^[^/]"
-      }
-    }
+          "gate": { "type": "string", "minLength": 1 },
+          "command": { "type": "string", "minLength": 1 },
+          "exit_code": { "type": "integer" },
+          "started_at": { "type": "string", "format": "date-time" },
+          "finished_at": { "type": "string", "format": "date-time" },
+          "log_path": {
+            "description": "Repo-relative path to the gate log; absolute paths are rejected so the manifest stays portable.",
+            "type": "string",
+            "pattern": "^[^/]"
+          }
+        }
       }
     },
     "evidence": {

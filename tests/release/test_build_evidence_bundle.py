@@ -154,7 +154,7 @@ class TestBuildManifest:
             )
         )
         assert manifest["certification"]["clean_environment"] is False
-        assert "clean environment not evidenced" in manifest["certification"]["notes"]
+        assert "clean_environment=false" in manifest["certification"]["notes"]
 
     def test_clean_environment_true_only_with_recorded_clean_tree(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch

@@ -284,9 +284,8 @@ def build_manifest(
     notes = []
     if not clean_environment:
         notes.append(
-            "clean environment not evidenced: the manifest records "
-            "clean_environment=false rather than asserting an unverified "
-            "clean checkout"
+            "the manifest records clean_environment=false rather than "
+            "asserting an unverified clean checkout"
         )
     if certified:
         note = "All gates passed in a live staging certification."
