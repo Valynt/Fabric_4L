@@ -121,8 +121,9 @@ def sample_run(sample_scorecard: Any) -> AuditRun:
     return run
 
 
+from collections.abc import AsyncGenerator
 @pytest.fixture
-async def db_manager(tmp_path: Path) -> PersistenceManager:
+async def db_manager(tmp_path: Path) -> AsyncGenerator[PersistenceManager, None]:
     """Return a PersistenceManager backed by an in-memory SQLite database."""
     clear_engine_cache()
     manager = PersistenceManager(
@@ -130,7 +131,9 @@ async def db_manager(tmp_path: Path) -> PersistenceManager:
         fallback_dir=tmp_path / "fallback",
     )
     await manager.create_schema()
-    return manager
+    yield manager
+    if manager._engine is not None:
+        await manager._engine.dispose()
 
 
 @pytest.fixture

@@ -1567,6 +1567,7 @@ def _make_prompt_registry_mock():
 
 
 class TestSignalDetectionHelpers:
+    pytestmark = pytest.mark.asyncio
     """Group H2 — _create_pain_signal, _enrich_with_evidence, _quantify_impact,
     _persist_signal, and _execute_llm_layer."""
 
