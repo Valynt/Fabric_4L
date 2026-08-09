@@ -59,46 +59,40 @@ def dispatch_outbox_event(self, event_id: str, tenant_id: str):
             # Set tenant context BEFORE any database queries
             with get_db_session(tenant_id=tenant_uuid, require_tenant=True) as session:
                 event = session.query(EventOutbox).filter(EventOutbox.id == event_uuid).first()
-            if not event:
-                logger.warning("EventOutbox row not found", event_id=event_id)
-                return
-
-            # Idempotency: skip if already dispatched or dead-lettered.
-            if event.status in (OutboxStatus.DISPATCHED.value, OutboxStatus.DEAD_LETTER.value):
-                logger.info(
-                    "EventOutbox already settled, skipping",
-                    event_id=event_id,
-                    status=event.status,
-                )
-                return
-
-            # Deliver to configured sink.
-            # Initial implementation: structured log (no-op delivery).
-            # Future: HTTP adapter, internal service call, etc.
-            logger.info(
-                "Dispatching outbox event",
-                event_id=event_id,
-                event_type=event.event_type,
-                aggregate_type=event.aggregate_type,
-                aggregate_id=event.aggregate_id,
-                tenant_id=str(event.tenant_id),
-                payload=event.payload,
-            )
-
-            # Mark dispatched.
-            with get_db_session(tenant_id=tenant_uuid, require_tenant=True) as session:
-                event_db = session.query(EventOutbox).filter(EventOutbox.id == event_uuid).first()
-                if event_db is None:
+                if not event:
                     logger.warning("EventOutbox row not found", event_id=event_id)
                     return
-                event_db.status = OutboxStatus.DISPATCHED.value
-                event_db.dispatched_at = datetime.now(UTC)
+
+                # Idempotency: skip if already dispatched or dead-lettered.
+                if event.status in (OutboxStatus.DISPATCHED.value, OutboxStatus.DEAD_LETTER.value):
+                    logger.info(
+                        "EventOutbox already settled, skipping",
+                        event_id=event_id,
+                        status=event.status,
+                    )
+                    return
+
+                # Deliver to configured sink.
+                # Initial implementation: structured log (no-op delivery).
+                # Future: HTTP adapter, internal service call, etc.
+                logger.info(
+                    "Dispatching outbox event",
+                    event_id=event_id,
+                    event_type=event.event_type,
+                    aggregate_type=event.aggregate_type,
+                    aggregate_id=event.aggregate_id,
+                    tenant_id=str(event.tenant_id),
+                    payload=event.payload,
+                )
+
+                # Mark dispatched.
+                event.status = OutboxStatus.DISPATCHED.value
+                event.dispatched_at = datetime.now(UTC)
                 session.commit()
 
             logger.info(
                 "EventOutbox dispatched",
                 event_id=event_id,
-                event_type=event.event_type,
             )
 
         except Exception as exc:
