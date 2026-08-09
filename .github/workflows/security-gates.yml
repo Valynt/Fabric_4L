@@ -1173,7 +1173,9 @@ jobs:
           declare -A SCOPE_SAFE=(
             ["dast-api-scan"]="${{ needs.change-scope.outputs.code == 'false' }}"
             ["sbom-policy"]="${{ needs.change-scope.outputs.docker == 'false' && needs.change-scope.outputs.deps == 'false' }}"
-            ["mandatory-security-regression"]="${{ needs.change-scope.outputs.code == 'false' }}"
+            # mandatory-security-regression is a governed merge control and
+            # is never scope-skipped; it must succeed on every PR.
+            ["mandatory-security-regression"]="false"
             ["route-auth-gate"]="${{ needs.change-scope.outputs.backend == 'false' }}"
           )
           failed=0
@@ -1265,9 +1267,10 @@ jobs:
       - name: Enforce route auth dependency policy
         run: python scripts/ci/check_route_auth_dependencies.py
 
+  # Governed merge control (config/ci/mandatory-security-regression-contract.json):
+  # this job must run unconditionally on every PR — no change-scope gating,
+  # no path filters, no job-level condition.
   mandatory-security-regression:
-    needs: change-scope
-    if: needs.change-scope.outputs.code == 'true'
     name: mandatory-security-regression
     runs-on: ubuntu-latest
     timeout-minutes: 45
