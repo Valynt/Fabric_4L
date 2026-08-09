@@ -8,10 +8,11 @@ from uuid import UUID, uuid4
 
 from ..compliance.url_safety import (
     enforce_rebinding_protection,
+    validate_url_safety,
 )
 from ..crawler.decision_store import CrawlDecisionRecord
 from ..crawler.httpx_crawler import HttpxCrawler
-from ..crawler.playwright_crawler import CrawlResult
+from ..crawler.playwright_crawler import CrawlResult, PlaywrightCrawler
 from ..crawler.smart_router import RouteType
 
 if TYPE_CHECKING:
@@ -45,10 +46,7 @@ __all__ = [
     "purge_expired_raw_content",
 ]
 
-from . import tasks as _compat
-
-celery_app = _compat.celery_app
-_run_async = _compat._run_async
+from .task_app import _run_async, celery_app
 
 
 @celery_app.task(
@@ -290,7 +288,7 @@ async def _execute_fast_path(url: str) -> "FastPathResult":
     Returns:
         FastPathResult with content and metadata
     """
-    result = _compat.validate_url_safety(url)
+    result = validate_url_safety(url)
     enforce_rebinding_protection(result.normalized_url, result.resolved_ips)
     async with HttpxCrawler() as crawler:
         return await crawler.fetch(result.normalized_url)
@@ -309,9 +307,9 @@ async def _crawl_browser(url: str, browser_config: dict) -> "CrawlResult":
     from ..crawler.crawler_config import CrawlerConfig
 
     cfg = CrawlerConfig(headless=browser_config.get("headless", True))
-    result = _compat.validate_url_safety(url)
+    result = validate_url_safety(url)
     enforce_rebinding_protection(result.normalized_url, result.resolved_ips)
-    async with _compat.PlaywrightCrawler(config=cfg) as crawler:
+    async with PlaywrightCrawler(config=cfg) as crawler:
         return await crawler.crawl_url(
             url=result.normalized_url,
             wait_for_selector=browser_config.get("wait_for_selector"),
