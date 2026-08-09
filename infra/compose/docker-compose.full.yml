@@ -779,6 +779,12 @@ services:
       context: ../..
       dockerfile: ./services/pgbouncer/Dockerfile
     <<: *process-hardening
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /etc/pgbouncer
+      - /var/log/pgbouncer
+      - /var/run/pgbouncer
     expose:
       - "6432"
     environment:

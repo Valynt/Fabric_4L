@@ -71,14 +71,18 @@ def tracked_generated_artifacts() -> list[str]:
     return [line for line in proc.stdout.splitlines() if line]
 
 
-def _manifest_gate(gate: dict) -> dict:
+def _manifest_gate(gate: dict, out_dir: Path | None = None) -> dict:
     """Project a certification step record onto the manifest gate schema.
 
     certification.json carries richer internal fields (log, criterion,
     classification); the manifest schema permits only the deterministic
     gate identity fields, so anything else must be dropped and the log
-    path renamed and normalized to a repo-relative path
+    path renamed and normalized to a portable path
     (additionalProperties is false).
+
+    When *out_dir* is given, log paths inside that directory are stored as
+    bare file names so that the manifest stays portable regardless of where
+    the evidence directory lives on the runner filesystem.
     """
     projected = {
         "gate": gate["gate"],
@@ -89,8 +93,18 @@ def _manifest_gate(gate: dict) -> dict:
     }
     log_path = gate.get("log_path") or gate.get("log")
     if log_path:
-        projected["log_path"] = _repo_relative(Path(log_path))
+        projected["log_path"] = _portable_log_path(Path(log_path), out_dir)
     return projected
+
+
+def _portable_log_path(log_path: Path, out_dir: Path | None = None) -> str:
+    """Return a portable log path: basename when inside *out_dir*, else repo-relative."""
+    if out_dir is not None:
+        try:
+            return str(log_path.relative_to(out_dir))
+        except ValueError:
+            pass
+    return _repo_relative(log_path)
 
 
 def _repo_relative(path: Path) -> str:
@@ -334,7 +348,7 @@ def build_manifest(
             "version": version,
             "image_digests": _image_digests(out_dir),
         },
-        "gates": [_manifest_gate(g) for g in gates],
+        "gates": [_manifest_gate(g, out_dir) for g in gates],
         "evidence": {
             "test_reports": sorted(
                 _repo_relative(p) for p in out_dir.glob("*.log")
