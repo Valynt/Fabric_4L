@@ -1,0 +1,57 @@
+id: V1-TENANCY-010
+title: Tenant isolation for queue payloads and asynchronous workers
+priority: P0
+
+goal: >
+  Ensure every queued job carries verified tenant context and cannot read,
+  mutate, cache, publish, or observe data belonging to another tenant; workers
+  reject missing or conflicting context.
+
+allowed_paths:
+  - services/layer1-ingestion/**
+  - services/layer2-extraction/**
+  - packages/shared/**
+  - tests/tenancy/**
+  - docs/**
+
+forbidden_paths:
+  - infra/production/**
+  - .github/workflows/**
+  - services/layer7-billing/**
+
+single_writer_surfaces:
+  - tenant-resolution-middleware
+
+invariants:
+  - Tenant identity must originate from verified backend context.
+  - Missing tenant context must fail closed.
+  - Queue payload tenant IDs must not override authenticated tenant context.
+  - Cache keys, logs, metrics, and traces must not expose another tenant.
+  - Existing API contracts must remain compatible unless explicitly updated.
+
+acceptance_tests:
+  - pytest tests/tenancy/test_worker_tenant_scope.py
+  - pytest tests/tenancy -m tenant_boundary
+  - make check-behavior-contract
+
+negative_cases:
+  - Tenant A submits a job referencing Tenant B data.
+  - A worker receives a job without tenant context.
+  - A forged queue payload contains a different tenant ID.
+  - A retried job executes after an organization switch.
+  - A cache entry exists for the same object ID in another tenant.
+
+non_goals:
+  - Rewriting the queue system.
+  - Changing the public extraction API.
+  - General logging refactoring.
+
+rollback:
+  strategy: revert_patch
+  data_migration_required: false
+
+completion_evidence:
+  - changed-file list
+  - command and exit-code log
+  - new or updated hostile tenant-negative tests
+  - residual-risk statement

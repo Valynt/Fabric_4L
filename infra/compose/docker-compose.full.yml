@@ -42,7 +42,7 @@ services:
       - DATABASE_URL=postgresql://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/ingestion
       - REDIS_URL=redis://:${REDIS_PASSWORD:?REDIS_PASSWORD is required}@redis:6379/0
       - DEBUG=false
-      - ENVIRONMENT=production
+      - ENVIRONMENT=development
       - TESTING=false
       - SECRET_KEY=${SECRET_KEY:?SECRET_KEY is required}
       - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
@@ -70,7 +70,12 @@ services:
       - FABRIC_AUTH_ISSUER=${FABRIC_AUTH_ISSUER}
       - FABRIC_AUTH_AUDIENCE=${FABRIC_AUTH_AUDIENCE}
       - FABRIC_AUTH_ENVELOPE_TTL_SECONDS=${FABRIC_AUTH_ENVELOPE_TTL_SECONDS}
-      - PYTHONPATH=/app
+      - PYTHONPATH=/app/src:/app
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
+      - API_KEY_HMAC_SECRET=${API_KEY_HMAC_SECRET:?API_KEY_HMAC_SECRET is required}
+      - SERVICE_AUTH_SECRET=${SERVICE_AUTH_SECRET:?SERVICE_AUTH_SECRET is required}
+      - JWT_ISSUER=${JWT_ISSUER:-value-fabric-internal}
+      - JWT_AUDIENCE=${JWT_AUDIENCE:-value-fabric-services}
     depends_on:
       postgres:
         condition: service_healthy
@@ -113,6 +118,11 @@ services:
       - INFISICAL_HOST=${INFISICAL_HOST:-}
       - INFISICAL_SECRET_PATH=${INFISICAL_SECRET_PATH:-/}
       - INFISICAL_OVERWRITE=${INFISICAL_OVERWRITE:-false}
+      - DATABASE_URL_SYNC=postgresql+psycopg2://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/layer6_benchmarks
+      - API_KEY_HMAC_SECRET=${API_KEY_HMAC_SECRET:?API_KEY_HMAC_SECRET is required}
+      - SERVICE_AUTH_SECRET=${SERVICE_AUTH_SECRET:?SERVICE_AUTH_SECRET is required}
+      - LAYER3_API_KEY=${LAYER3_API_KEY:-layer3-test-api-key-32chars-long}
+      - LAYER5_API_KEY=${LAYER5_API_KEY:-layer5-test-api-key-32chars}
     volumes:
       - ../../raw-content:/app/raw-content
     depends_on:
@@ -163,6 +173,11 @@ services:
       - INFISICAL_HOST=${INFISICAL_HOST:-}
       - INFISICAL_SECRET_PATH=${INFISICAL_SECRET_PATH:-/}
       - INFISICAL_OVERWRITE=${INFISICAL_OVERWRITE:-false}
+      - DATABASE_URL_SYNC=postgresql+psycopg2://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/layer6_benchmarks
+      - API_KEY_HMAC_SECRET=${API_KEY_HMAC_SECRET:?API_KEY_HMAC_SECRET is required}
+      - SERVICE_AUTH_SECRET=${SERVICE_AUTH_SECRET:?SERVICE_AUTH_SECRET is required}
+      - LAYER3_API_KEY=${LAYER3_API_KEY:-layer3-test-api-key-32chars-long}
+      - LAYER5_API_KEY=${LAYER5_API_KEY:-layer5-test-api-key-32chars}
     volumes:
       - rdf-output:/app/rdf-output
     depends_on:
@@ -270,6 +285,11 @@ services:
       - INFISICAL_HOST=${INFISICAL_HOST:-}
       - INFISICAL_SECRET_PATH=${INFISICAL_SECRET_PATH:-/}
       - INFISICAL_OVERWRITE=${INFISICAL_OVERWRITE:-false}
+      - DATABASE_URL_SYNC=postgresql+psycopg2://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/layer6_benchmarks
+      - API_KEY_HMAC_SECRET=${API_KEY_HMAC_SECRET:?API_KEY_HMAC_SECRET is required}
+      - SERVICE_AUTH_SECRET=${SERVICE_AUTH_SECRET:?SERVICE_AUTH_SECRET is required}
+      - LAYER3_API_KEY=${LAYER3_API_KEY:-layer3-test-api-key-32chars-long}
+      - LAYER5_API_KEY=${LAYER5_API_KEY:-layer5-test-api-key-32chars}
     depends_on:
       neo4j:
         condition: service_healthy
@@ -327,6 +347,11 @@ services:
       - INFISICAL_HOST=${INFISICAL_HOST:-}
       - INFISICAL_SECRET_PATH=${INFISICAL_SECRET_PATH:-/}
       - INFISICAL_OVERWRITE=${INFISICAL_OVERWRITE:-false}
+      - DATABASE_URL_SYNC=postgresql+psycopg2://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/layer6_benchmarks
+      - API_KEY_HMAC_SECRET=${API_KEY_HMAC_SECRET:?API_KEY_HMAC_SECRET is required}
+      - SERVICE_AUTH_SECRET=${SERVICE_AUTH_SECRET:?SERVICE_AUTH_SECRET is required}
+      - LAYER3_API_KEY=${LAYER3_API_KEY:-layer3-test-api-key-32chars-long}
+      - LAYER5_API_KEY=${LAYER5_API_KEY:-layer5-test-api-key-32chars}
     depends_on:
       redis:
         condition: service_healthy
@@ -379,6 +404,11 @@ services:
       - INFISICAL_HOST=${INFISICAL_HOST:-}
       - INFISICAL_SECRET_PATH=${INFISICAL_SECRET_PATH:-/}
       - INFISICAL_OVERWRITE=${INFISICAL_OVERWRITE:-false}
+      - DATABASE_URL_SYNC=postgresql+psycopg2://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/layer6_benchmarks
+      - API_KEY_HMAC_SECRET=${API_KEY_HMAC_SECRET:?API_KEY_HMAC_SECRET is required}
+      - SERVICE_AUTH_SECRET=${SERVICE_AUTH_SECRET:?SERVICE_AUTH_SECRET is required}
+      - LAYER3_API_KEY=${LAYER3_API_KEY:-layer3-test-api-key-32chars-long}
+      - LAYER5_API_KEY=${LAYER5_API_KEY:-layer5-test-api-key-32chars}
     depends_on:
       postgres:
         condition: service_healthy
@@ -458,6 +488,11 @@ services:
       - INFISICAL_HOST=${INFISICAL_HOST:-}
       - INFISICAL_SECRET_PATH=${INFISICAL_SECRET_PATH:-/}
       - INFISICAL_OVERWRITE=${INFISICAL_OVERWRITE:-false}
+      - DATABASE_URL_SYNC=postgresql+psycopg2://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/layer6_benchmarks
+      - API_KEY_HMAC_SECRET=${API_KEY_HMAC_SECRET:?API_KEY_HMAC_SECRET is required}
+      - SERVICE_AUTH_SECRET=${SERVICE_AUTH_SECRET:?SERVICE_AUTH_SECRET is required}
+      - LAYER3_API_KEY=${LAYER3_API_KEY:-layer3-test-api-key-32chars-long}
+      - LAYER5_API_KEY=${LAYER5_API_KEY:-layer5-test-api-key-32chars}
     depends_on:
       layer4-agents:
         condition: service_healthy
@@ -499,6 +534,11 @@ services:
       - INFISICAL_HOST=${INFISICAL_HOST:-}
       - INFISICAL_SECRET_PATH=${INFISICAL_SECRET_PATH:-/}
       - INFISICAL_OVERWRITE=${INFISICAL_OVERWRITE:-false}
+      - DATABASE_URL_SYNC=postgresql+psycopg2://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/layer6_benchmarks
+      - API_KEY_HMAC_SECRET=${API_KEY_HMAC_SECRET:?API_KEY_HMAC_SECRET is required}
+      - SERVICE_AUTH_SECRET=${SERVICE_AUTH_SECRET:?SERVICE_AUTH_SECRET is required}
+      - LAYER3_API_KEY=${LAYER3_API_KEY:-layer3-test-api-key-32chars-long}
+      - LAYER5_API_KEY=${LAYER5_API_KEY:-layer5-test-api-key-32chars}
     depends_on:
       postgres:
         condition: service_healthy
@@ -551,7 +591,12 @@ services:
       - REDIS_URL=redis://:${REDIS_PASSWORD:?REDIS_PASSWORD is required}@redis:6379/0
       - LAYER1_REDIS_URL=redis://:${REDIS_PASSWORD:?REDIS_PASSWORD is required}@redis:6379/0
       - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
-      - PYTHONPATH=/app
+      - PYTHONPATH=/app/src:/app
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
+      - API_KEY_HMAC_SECRET=${API_KEY_HMAC_SECRET:?API_KEY_HMAC_SECRET is required}
+      - SERVICE_AUTH_SECRET=${SERVICE_AUTH_SECRET:?SERVICE_AUTH_SECRET is required}
+      - JWT_ISSUER=${JWT_ISSUER:-value-fabric-internal}
+      - JWT_AUDIENCE=${JWT_AUDIENCE:-value-fabric-services}
     depends_on:
       postgres:
         condition: service_healthy
@@ -581,7 +626,12 @@ services:
       - REDIS_URL=redis://:${REDIS_PASSWORD:?REDIS_PASSWORD is required}@redis:6379/0
       - LAYER1_REDIS_URL=redis://:${REDIS_PASSWORD:?REDIS_PASSWORD is required}@redis:6379/0
       - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
-      - PYTHONPATH=/app
+      - PYTHONPATH=/app/src:/app
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
+      - API_KEY_HMAC_SECRET=${API_KEY_HMAC_SECRET:?API_KEY_HMAC_SECRET is required}
+      - SERVICE_AUTH_SECRET=${SERVICE_AUTH_SECRET:?SERVICE_AUTH_SECRET is required}
+      - JWT_ISSUER=${JWT_ISSUER:-value-fabric-internal}
+      - JWT_AUDIENCE=${JWT_AUDIENCE:-value-fabric-services}
     depends_on:
       postgres:
         condition: service_healthy
@@ -614,7 +664,12 @@ services:
       - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
       - FLOWER_USER=${FLOWER_USER:-admin}
       - FLOWER_PASSWORD=${FLOWER_PASSWORD:?FLOWER_PASSWORD is required}
-      - PYTHONPATH=/app
+      - PYTHONPATH=/app/src:/app
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
+      - API_KEY_HMAC_SECRET=${API_KEY_HMAC_SECRET:?API_KEY_HMAC_SECRET is required}
+      - SERVICE_AUTH_SECRET=${SERVICE_AUTH_SECRET:?SERVICE_AUTH_SECRET is required}
+      - JWT_ISSUER=${JWT_ISSUER:-value-fabric-internal}
+      - JWT_AUDIENCE=${JWT_AUDIENCE:-value-fabric-services}
     <<: *app-hardening
     expose:
       - "5555"
@@ -720,9 +775,18 @@ services:
   # NOTE: userlist.txt must be generated from environment variables before starting
   # For production, use ExternalSecrets Operator to sync from Vault (see k8s/external-secrets/pgbouncer-secrets.yaml)
   pgbouncer:
-    image: pgbouncer/pgbouncer:latest
-    container_name: value-fabric-pgbouncer
+    build:
+      context: ../..
+      dockerfile: ./services/pgbouncer/Dockerfile
     <<: *process-hardening
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /etc/pgbouncer
+      - /var/log/pgbouncer
+      - /var/run/pgbouncer
+    volumes:
+      - ../../config/pgbouncer/pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini:ro
     expose:
       - "6432"
     environment:

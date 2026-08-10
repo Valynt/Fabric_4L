@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import uuid
+from collections.abc import Mapping
 from datetime import UTC, datetime
 from typing import Any
 
@@ -191,7 +192,7 @@ class SignalRepository:
         }
     )
 
-    async def update(self, signal_id: str, updates: dict[str, Any]) -> dict[str, Any] | None:
+    async def update(self, signal_id: str, updates: Mapping[str, Any]) -> dict[str, Any] | None:
         """Partial update of a signal. Returns updated dict or None if not found.
 
         Only columns present in _UPDATABLE_COLUMNS are applied — unknown keys

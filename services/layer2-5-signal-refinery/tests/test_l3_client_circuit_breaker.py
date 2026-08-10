@@ -3,9 +3,10 @@
 from unittest.mock import AsyncMock
 
 import pytest
-
-from layer2_5_signal_refinery.clients.l3_graph_client import L3GraphClient, _l3_circuit_breaker
-from value_fabric.shared.resilience import CircuitBreakerOpen
+from layer2_5_signal_refinery.clients.l3_graph_client import (
+    L3GraphClient,
+    _l3_circuit_breaker,
+)
 
 
 @pytest.fixture(autouse=True)
