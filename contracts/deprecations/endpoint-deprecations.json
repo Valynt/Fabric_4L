@@ -11,7 +11,9 @@
       "removal_target": "2026-07-01",
       "replacement": "/v1/tenants/register",
       "owner": "layer4-agents",
-      "description": "DEPRECATED frontend-compat alias for POST /v1/tenants/register (services/layer4-agents/src/layer4_agents/api/routes/frontend_compat.py). Deprecated since 2026-05-29 per x-deprecated-since; planned removal 2026-07-01 per x-deprecated-removal-date."
+      "description": "DEPRECATED frontend-compat alias for POST /v1/tenants/register (services/layer4-agents/src/layer4_agents/api/routes/frontend_compat.py). Deprecated since 2026-05-29 per x-deprecated-since; planned removal 2026-07-01 per x-deprecated-removal-date. REMOVED 2026-08-10 (#1256): alias deleted from frontend_compat.py after its 2026-07-01 removal target passed.",
+      "status": "removed",
+      "removed_date": "2026-08-10"
     }
   ]
 }
