@@ -297,6 +297,7 @@ async def update_target(
             ),
         )
         .count()
+    )
 
     if active_jobs > 0:
         raise ConflictError(
