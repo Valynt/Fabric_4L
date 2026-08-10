@@ -107,9 +107,6 @@ def _domain_class(url: str) -> str:
 
 
 
-
-
-
 logger = structlog.get_logger()
 
 
@@ -243,11 +240,17 @@ def process_scraping_job(self, job_id: str, tenant_id: str):
     job_id = UUID(job_id)
     tenant_uuid = UUID(tenant_id)
 
-    if _check_tenant_kill_switch_sync(tenant_id):
-        _fail_job(job_id, tenant_id, "Tenant suspended", PipelineStage.INIT)
-        return process_scraping_jobResult.model_validate(
-            {"success": False, "job_id": str(job_id), "error": "Tenant suspended", "task_id": None}
-        ).model_dump()
+    try:
+        if _check_tenant_kill_switch_sync(tenant_id):
+            _fail_job(job_id, tenant_id, "Tenant suspended", PipelineStage.INIT)
+            return process_scraping_jobResult.model_validate(
+                {"success": False, "job_id": str(job_id), "error": "Tenant suspended", "task_id": None}
+            ).model_dump()
+    except TenantKillSwitchUnavailable as exc:
+        # Unknown suspension state is not allow: retry with backoff instead of
+        # processing tenant-owned work (fail-safe and recoverable, unlike the
+        # previous stub which always returned "not suspended").
+        raise self.retry(exc=exc, countdown=30)
 
     logger.info("Starting scraping job pipeline", job_id=str(job_id), tenant_id=str(tenant_uuid))
 
@@ -324,11 +327,15 @@ async def _compliance_check_stage_async(self, job_id: UUID, tenant_id: str):
     """
     tenant_uuid = UUID(tenant_id)
 
-    if _check_tenant_kill_switch_sync(tenant_id):
-        _fail_job(job_id, tenant_id, "Tenant suspended", PipelineStage.COMPLIANCE_CHECK)
-        return compliance_check_stageResult.model_validate(
-            {"success": False, "job_id": str(job_id), "error": "Tenant suspended"}
-        ).model_dump()
+    try:
+        if _check_tenant_kill_switch_sync(tenant_id):
+            _fail_job(job_id, tenant_id, "Tenant suspended", PipelineStage.COMPLIANCE_CHECK)
+            return compliance_check_stageResult.model_validate(
+                {"success": False, "job_id": str(job_id), "error": "Tenant suspended"}
+            ).model_dump()
+    except TenantKillSwitchUnavailable as exc:
+        # Unknown suspension state is not allow: retry with backoff (fail-safe).
+        raise self.retry(exc=exc, countdown=30)
 
     stage_started_at = time.monotonic()
 
@@ -987,7 +994,6 @@ async def _ai_extraction_stage_async(self, prev_result: dict, tenant_id: str):
                         # Wait for result with timeout
                         extraction_result = result.get(timeout=300)
                         tokens_consumed = extraction_result.get("tokens_consumed", 0)
-
                         logger.info("L2 Celery extract-and-ingest completed", job_id=str(job_id), task_id=result.id)
 
                     except Exception as e:
@@ -1881,13 +1887,37 @@ def _update_stage(
             stage_detail.error_message = error_message
 
 
+class TenantKillSwitchUnavailable(RuntimeError):
+    """Tenant kill-switch state cannot be determined (no Redis or lookup error).
+
+    UNKNOWN is not ALLOW: a worker must not process tenant-owned work without a
+    definitive suspension answer (same tri-state doctrine as the async API).
+    """
+
+
 def _check_tenant_kill_switch_sync(tenant_id: str) -> bool:
     """Check whether the tenant kill-switch is active.
 
     Returns True when the tenant is suspended and all work must fail closed.
+    Raises TenantKillSwitchUnavailable when the state cannot be determined.
     """
-    # No kill-switch implementation yet; default to not suspended.
-    return False
+    from value_fabric.shared.tenant_kill_switch import (
+        SUSPENDED_TENANTS_SET,
+        get_kill_switch,
+    )
+
+    kill_switch = get_kill_switch()
+    redis_client = getattr(kill_switch, "_redis", None)
+    if redis_client is None:
+        raise TenantKillSwitchUnavailable(
+            f"Tenant kill-switch state unknown (no Redis client) for tenant {tenant_id}"
+        )
+    try:
+        return bool(redis_client.sismember(SUSPENDED_TENANTS_SET, str(tenant_id)))
+    except Exception as exc:
+        raise TenantKillSwitchUnavailable(
+            f"Tenant kill-switch check failed for tenant {tenant_id}: {exc}"
+        ) from exc
 
 
 def _fail_job(job_id: UUID, tenant_id: str, error: str, stage: PipelineStage):
