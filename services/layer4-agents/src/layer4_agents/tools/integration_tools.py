@@ -86,7 +86,9 @@ class SendNotificationTool(BaseTool):
             }
 
             payload = {
-                "personalizations": [{"to": [{"email": input_data.recipient}]}],
+                "personalizations": [
+                    {"to": [{"email": recipient} for recipient in input_data.recipients]}
+                ],
                 "from": {"email": self.from_email},
                 "subject": input_data.subject,
                 "content": [{"type": "text/plain", "value": input_data.message}],
@@ -116,7 +118,7 @@ class SendNotificationTool(BaseTool):
             headers = {"Authorization": f"Bearer {self.slack_bot_token}"}
 
             payload = {
-                "channel": input_data.recipient,
+                "channel": input_data.recipients[0],
                 "text": f"*{input_data.subject}*\n{input_data.message}",
             }
 
@@ -233,7 +235,9 @@ class CreateTaskTool(BaseTool):
                 error=None,
             )
         else:
-            return CreateTaskOutput(task_id="", success=False, url="", error=data.get("errors"))
+            return CreateTaskOutput(
+                task_id="", success=False, url="", error=str(data.get("errors"))
+            )
 
     async def _create_monday_task(
         self, client: httpx.AsyncClient, input_data: CreateTaskInput
@@ -339,7 +343,11 @@ class ScheduleMeetingTool(BaseTool):
         except Exception as e:
             logger.error(f"Meeting scheduling failed: {e}")
             return ScheduleMeetingOutput(
-                meeting_id="", scheduled_time="", calendar_link="", success=False, error="MEETING_SCHEDULE_ERROR"
+                meeting_id="",
+                scheduled_time="",
+                calendar_link="",
+                success=False,
+                error="MEETING_SCHEDULE_ERROR",
             )
 
     async def _schedule_google_meeting(
@@ -350,14 +358,18 @@ class ScheduleMeetingTool(BaseTool):
 
         # Parse duration
         duration_minutes = input_data.duration_minutes or 30
-        start_time = input_data.preferred_time or datetime.now(UTC).isoformat()
+        start_time = (
+            input_data.preferred_times[0]
+            if input_data.preferred_times
+            else datetime.now(UTC).isoformat()
+        )
 
         end_time = datetime.fromisoformat(start_time.replace("Z", "+00:00")) + timedelta(
             minutes=duration_minutes
         )
 
         payload = {
-            "summary": input_data.subject,
+            "summary": input_data.title,
             "description": input_data.description,
             "start": {"dateTime": start_time, "timeZone": "UTC"},
             "end": {"dateTime": end_time.isoformat(), "timeZone": "UTC"},
@@ -394,13 +406,17 @@ class ScheduleMeetingTool(BaseTool):
         url = "https://graph.microsoft.com/v1.0/me/events"
 
         duration_minutes = input_data.duration_minutes or 30
-        start_time = input_data.preferred_time or datetime.now(UTC).isoformat()
+        start_time = (
+            input_data.preferred_times[0]
+            if input_data.preferred_times
+            else datetime.now(UTC).isoformat()
+        )
         end_time = datetime.fromisoformat(start_time.replace("Z", "+00:00")) + timedelta(
             minutes=duration_minutes
         )
 
         payload = {
-            "subject": input_data.subject,
+            "subject": input_data.title,
             "body": {"contentType": "text", "content": input_data.description},
             "start": {"dateTime": start_time, "timeZone": "UTC"},
             "end": {"dateTime": end_time.isoformat(), "timeZone": "UTC"},
@@ -473,7 +489,9 @@ class ExportToCRMTool(BaseTool):
             raise
         except Exception as e:
             logger.error(f"CRM export failed: {e}")
-            return ExportToCRMOutput(crm_record_id="", success=False, url="", error="CRM_EXPORT_ERROR")
+            return ExportToCRMOutput(
+                crm_record_id="", success=False, url="", error="CRM_EXPORT_ERROR"
+            )
 
     async def _export_to_salesforce(
         self, client: httpx.AsyncClient, input_data: ExportToCRMInput
@@ -489,7 +507,7 @@ class ExportToCRMTool(BaseTool):
                 "Title": input_data.entity_data.get("title", "Note from Value Fabric"),
                 "Body": input_data.entity_data.get("content", ""),
             }
-        elif entity_type == "task":
+        elif entity_type == "activity":
             url = f"{self.instance_url}/services/data/v58.0/sobjects/Task"
             payload = {
                 "WhatId": prospect_id,
@@ -537,7 +555,7 @@ class ExportToCRMTool(BaseTool):
                 "associations": {"companyIds": [prospect_id]},
                 "metadata": {"body": input_data.entity_data.get("content", "")},
             }
-        elif entity_type == "task":
+        elif entity_type == "activity":
             url = "https://api.hubapi.com/engagements/v1/engagements"
             payload = {
                 "engagement": {

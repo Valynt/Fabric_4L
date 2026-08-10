@@ -38,6 +38,11 @@ router.add_api_route(
     target_handlers.update_target,
     methods=["PUT"],
     response_model=ScrapingTargetDetail,
+    responses={
+        401: {"description": "Authentication required"},
+        404: {"description": "Target not found for the authenticated tenant"},
+        409: {"description": "Requested target state conflicts with current state"},
+    },
 )
 router.add_api_route(
     "/targets/{target_id}",

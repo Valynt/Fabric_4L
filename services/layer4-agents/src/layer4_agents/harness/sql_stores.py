@@ -50,6 +50,7 @@ from .repositories import (
     HumanGateRepository,
     ToolContractRepository,
     TraceEventRepository,
+    _event_to_row,
 )
 from .telemetry import EventHandler
 
@@ -60,6 +61,28 @@ logger = logging.getLogger(__name__)
 # SqlHumanGateManager
 # ---------------------------------------------------------------------------
 
+
+
+
+# ---------------------------------------------------------------------------
+# Transaction helpers
+# ---------------------------------------------------------------------------
+
+
+@asynccontextmanager
+async def _begin_or_nested(session: AsyncSession):
+    """Start a transaction, using a savepoint if already inside one.
+
+    Prevents ``InvalidRequestError: a transaction is already begun`` when
+    nested store calls run inside an existing session transaction (common
+    in test fixtures and orchestrator-level transactions).
+    """
+    if session.in_transaction():
+        async with session.begin_nested():
+            yield
+    else:
+        async with session.begin():
+            yield
 
 class SqlHumanGateManager:
     """SQL-backed HumanGate lifecycle manager.
@@ -78,7 +101,10 @@ class SqlHumanGateManager:
             return False
         sqlstate = getattr(getattr(exc, "orig", None), "pgcode", None) or getattr(exc, "sqlstate", None)
         # 40P01 = deadlock_detected, 55P03 = lock_not_available, 57014 = query_canceled/timeout
-        return sqlstate in {"40P01", "55P03", "57014"}
+        if sqlstate in {"40P01", "55P03", "57014"}:
+            return True
+        msg = str(exc).lower()
+        return "database is locked" in msg or "lock" in msg
 
     @asynccontextmanager
     async def _transaction_with_retry(self, max_attempts: int = 3):
@@ -86,7 +112,7 @@ class SqlHumanGateManager:
         while True:
             attempt += 1
             try:
-                async with self._session.begin():
+                async with _begin_or_nested(self._session):
                     yield
                 return
             except asyncio.CancelledError:
@@ -333,7 +359,7 @@ class SqlToolContractRegistry:
         return await self._repo.register(tool, tenant_id)
 
     async def get_tool(self, tool_id: str, tenant_id: str | None = None) -> ToolContract:
-        from harness.tool_contracts import ToolNotFoundError
+        from layer4_agents.harness.tool_contracts import ToolNotFoundError
 
         if tenant_id is None:
             raise ToolNotFoundError(
@@ -347,7 +373,7 @@ class SqlToolContractRegistry:
         layer: str | None = None,
         risk_level: ToolRiskLevel | None = None,
     ) -> list[ToolContract]:
-        from harness.tool_contracts import ToolNotFoundError
+        from layer4_agents.harness.tool_contracts import ToolNotFoundError
 
         if tenant_id is None:
             raise ToolNotFoundError("list_tools requires tenant_id in SQL registry")
@@ -360,7 +386,7 @@ class SqlToolContractRegistry:
         has_approval: bool = False,
         account_context_present: bool = False,
     ) -> ToolContract:
-        from harness.policies import evaluate_tool_invocation_policy
+        from layer4_agents.harness.policies import evaluate_tool_invocation_policy
 
         tool = await self._repo.get(tool_id, tenant_id)
         evaluate_tool_invocation_policy(
@@ -612,11 +638,16 @@ class SqlTelemetryEmitter:
 
         self._events.append(event)
 
-        # Schedule DB write as a fire-and-forget task after the current
-        # call stack unwinds (avoids Session.add() inside an active flush).
+        # Add the trace row to the current session so the caller's transaction
+        # flush persists it.  If the session is actively flushing, defer via a
+        # background task to avoid re-entrant flush errors; otherwise keep DB
+        # writes in the same transaction/connection as the orchestrator.
         try:
-            loop = asyncio.get_running_loop()
-            loop.call_soon(lambda: loop.create_task(self._persist(event)))
+            if getattr(self._repo._session, "_flushing", False):
+                loop = asyncio.get_running_loop()
+                loop.call_soon(lambda: loop.create_task(self._persist(event)))
+            else:
+                self._repo._session.add(_event_to_row(event))
         except RuntimeError:
             # No running event loop — skip DB write (sync test context).
             pass
@@ -694,8 +725,8 @@ class SqlHarnessRegistry:
         telemetry: SqlTelemetryEmitter | None = None,
         validation_hook=None,
     ) -> None:
-        from harness.state_machine import StateMachine
-        from harness.validation_hooks import ValidationHook
+        from layer4_agents.harness.state_machine import StateMachine
+        from layer4_agents.harness.validation_hooks import ValidationHook
 
         self._run_repo = HarnessRunRepository(session)
         self._sm = state_machine or StateMachine()
@@ -745,58 +776,68 @@ class SqlHarnessRegistry:
         human_override: bool = False,
         state_payload: dict[str, Any] | None = None,
     ) -> tuple[HarnessRun, HarnessTraceEvent]:
-        from harness.registry import TransitionConflictError
+        from layer4_agents.harness.registry import TransitionConflictError
 
-        baseline = await self._run_repo.get(run_id, tenant_id)
+        attempt = 0
+        while True:
+            attempt += 1
+            try:
+                baseline = await self._run_repo.get(run_id, tenant_id)
 
-        validation_state: ValidationState | None = None
-        if validation_results is not None:
-            states = [vr.validation_state for vr in validation_results]
-            if ValidationState.FAILED in states:
-                validation_state = ValidationState.FAILED
-            elif ValidationState.INSUFFICIENT_EVIDENCE in states:
-                validation_state = ValidationState.INSUFFICIENT_EVIDENCE
-            elif ValidationState.NEEDS_REVIEW in states:
-                validation_state = ValidationState.NEEDS_REVIEW
-            elif states and all(s == ValidationState.PASSED for s in states):
-                validation_state = ValidationState.PASSED
+                validation_state: ValidationState | None = None
+                if validation_results is not None:
+                    states = [vr.validation_state for vr in validation_results]
+                    if ValidationState.FAILED in states:
+                        validation_state = ValidationState.FAILED
+                    elif ValidationState.INSUFFICIENT_EVIDENCE in states:
+                        validation_state = ValidationState.INSUFFICIENT_EVIDENCE
+                    elif ValidationState.NEEDS_REVIEW in states:
+                        validation_state = ValidationState.NEEDS_REVIEW
+                    elif states and all(s == ValidationState.PASSED for s in states):
+                        validation_state = ValidationState.PASSED
 
-        async with self._run_repo._session.begin():
-            locked = await self._run_repo.get_for_update(run_id, tenant_id)
-            # Re-validate optimistic preconditions after lock acquisition.
-            if (
-                locked.current_state != baseline.current_state
-                or locked.status != baseline.status
-                or locked.updated_at != baseline.updated_at
-            ):
-                raise TransitionConflictError(
-                    f"Transition conflict for run '{run_id}': run changed before lock acquisition"
-                )
+                async with _begin_or_nested(self._run_repo._session):
+                    locked = await self._run_repo.get_for_update(run_id, tenant_id)
+                    # Re-validate optimistic preconditions after lock acquisition.
+                    if (
+                        locked.current_state != baseline.current_state
+                        or locked.status != baseline.status
+                        or locked.updated_at != baseline.updated_at
+                        or locked.current_state == to_state
+                    ):
+                        raise TransitionConflictError(
+                            f"Transition conflict for run '{run_id}': run changed before lock acquisition"
+                        )
 
-            updated, event = self._sm.transition(
-                run=locked,
-                to_state=to_state,
-                validation_state=validation_state,
-                human_override=human_override,
-            )
+                    updated, event = self._sm.transition(
+                        run=locked,
+                        to_state=to_state,
+                        validation_state=validation_state,
+                        human_override=human_override,
+                    )
 
-            self._telemetry.emit_transition_event(
-                run=updated,
-                from_state=locked.current_state,
-                to_state=to_state,
-            )
+                    self._telemetry.emit_transition_event(
+                        run=updated,
+                        from_state=locked.current_state,
+                        to_state=to_state,
+                    )
 
-            await self._run_repo.update(updated, expected_updated_at=baseline.updated_at)
+                    await self._run_repo.update(updated, expected_updated_at=baseline.updated_at)
 
-            if state_payload is not None:
-                await self._checkpoints.create_checkpoint(
-                    run_id=run_id,
-                    tenant_id=tenant_id,
-                    state_name=to_state,
-                    state_payload=state_payload,
-                )
+                    if state_payload is not None:
+                        await self._checkpoints.create_checkpoint(
+                            run_id=run_id,
+                            tenant_id=tenant_id,
+                            state_name=to_state,
+                            state_payload=state_payload,
+                        )
 
-        return updated, event
+                return updated, event
+            except (OperationalError, DBAPIError) as exc:
+                if attempt >= 5 or not SqlHumanGateManager._is_retryable_lock_error(exc):
+                    raise
+                await self._run_repo._session.rollback()
+                await asyncio.sleep(0.05 * attempt)
 
     # ---- Human Gates ----
 
@@ -823,7 +864,7 @@ class SqlHarnessRegistry:
         decision_by: str,
         decision_reason: str | None = None,
     ) -> HumanGate:
-        from harness.registry import HarnessRegistryError
+        from layer4_agents.harness.registry import HarnessRegistryError
 
         if decision == GateStatus.APPROVED:
             gate, event = await self._gates.approve_gate(gate_id, tenant_id, decision_by, decision_reason)
@@ -869,8 +910,8 @@ class SqlHarnessRegistry:
         written to harness_claim_validation_results so the GET /validation
         endpoint can return them without re-running validation.
         """
-        from harness.registry import HarnessRegistryError
-        from harness.validation_hooks import ClaimValidationRequest
+        from layer4_agents.harness.registry import HarnessRegistryError
+        from layer4_agents.harness.validation_hooks import ClaimValidationRequest
 
         mismatched = [
             r.claim_id

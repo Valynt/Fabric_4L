@@ -23,7 +23,7 @@ from collections.abc import AsyncGenerator
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 from typing import Any
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import psycopg  # noqa: F401 — mandatory dep; install via layer4-agents[dev] (psycopg[binary])
 import pytest_asyncio
@@ -44,11 +44,14 @@ from layer4_agents.api.routes.analysis import router as analysis_router
 from layer4_agents.database import Base, _mark_session_tenant_context, get_db_from_context
 from layer4_agents.models.account import Account, AccountSyncStatus, CRMProvider, SyncStatus
 from layer4_agents.models.business_case_record import BusinessCaseRecord
+from layer4_agents.tenants.models.tenant import Tenant
 
 test_app = FastAPI()
 register_exception_handlers(test_app)
 test_app.include_router(accounts_router, prefix="/v1", tags=["Accounts"])
 test_app.include_router(analysis_router, prefix="/v1", tags=["Analysis"])
+
+TEST_TENANT_ID = UUID("00000000-0000-4000-8000-000000000301")
 
 
 class mock_sync_providerResult(TypedDictModel):
@@ -81,7 +84,17 @@ async def test_db(postgres_container) -> AsyncGenerator[AsyncSession, None]:
 
     async with async_session() as session:
         # Mark session with tenant context to avoid TenantContextError
-        _mark_session_tenant_context(session, "test-tenant-accounts")
+        _mark_session_tenant_context(session, str(TEST_TENANT_ID))
+        session.add(
+            Tenant(
+                id=TEST_TENANT_ID,
+                name="Accounts API Test Tenant",
+                slug="accounts-api-test",
+                status="active",
+                settings={"isolation_tier": "shared"},
+            )
+        )
+        await session.commit()
         yield session
 
     async with engine.begin() as conn:
@@ -97,7 +110,7 @@ async def client(test_db) -> AsyncGenerator[AsyncClient, None]:
 
     async def override_auth():
         return RequestContext(
-            tenant_id="test-tenant-accounts",
+            tenant_id=str(TEST_TENANT_ID),
             user_id=str(uuid4()),
             roles=[Role.TENANT_ADMIN.value],
             permissions=frozenset({Permission.WRITE_AGENTS.value, Permission.READ_AGENTS.value}),
@@ -119,7 +132,7 @@ async def sample_account(test_db) -> Account:
     """Create a sample account for testing."""
     account = Account(
         id=uuid4(),
-        tenant_id="test-tenant-accounts",
+        tenant_id=TEST_TENANT_ID,
         provider=CRMProvider.SALESFORCE.value,
         provider_record_id="sf-acc-001",
         name="Acme Corporation",
@@ -170,7 +183,7 @@ async def sample_hubspot_account(test_db) -> Account:
     """Create a sample HubSpot account for testing."""
     account = Account(
         id=uuid4(),
-        tenant_id="test-tenant-accounts",
+        tenant_id=TEST_TENANT_ID,
         provider=CRMProvider.HUBSPOT.value,
         provider_record_id="hs-company-001",
         name="TechCorp Inc",
@@ -192,7 +205,7 @@ async def sample_hubspot_account(test_db) -> Account:
 async def sample_sync_status(test_db) -> AccountSyncStatus:
     """Create sample sync status for testing."""
     sync_status = AccountSyncStatus(
-        tenant_id="test-tenant-accounts",
+        tenant_id=str(TEST_TENANT_ID),
         provider=CRMProvider.SALESFORCE.value,
         status="idle",
         last_sync_at=datetime.now(UTC) - timedelta(hours=1),
@@ -360,7 +373,7 @@ async def test_list_accounts_pagination(client: AsyncClient, test_db: AsyncSessi
     for i in range(5):
         account = Account(
             id=uuid4(),
-            tenant_id="test-tenant-accounts",
+            tenant_id=TEST_TENANT_ID,
             provider=CRMProvider.SALESFORCE.value,
             provider_record_id=f"sf-acc-{i:03d}",
             name=f"Company {i}",
@@ -387,7 +400,7 @@ async def test_list_accounts_sorting(client: AsyncClient, test_db: AsyncSession)
     for name in ["Beta Corp", "Alpha Inc", "Gamma Ltd"]:
         account = Account(
             id=uuid4(),
-            tenant_id="test-tenant-accounts",
+            tenant_id=TEST_TENANT_ID,
             provider=CRMProvider.SALESFORCE.value,
             provider_record_id=f"sf-{name.lower().replace(' ', '-')}",
             name=name,
@@ -471,7 +484,7 @@ async def test_search_accounts_with_filters(client: AsyncClient, test_db: AsyncS
     accounts = [
         Account(
             id=uuid4(),
-            tenant_id="test-tenant-accounts",
+            tenant_id=TEST_TENANT_ID,
             provider=CRMProvider.SALESFORCE.value,
             provider_record_id="sf-001",
             name="TechCorp Alpha",
@@ -480,7 +493,7 @@ async def test_search_accounts_with_filters(client: AsyncClient, test_db: AsyncS
         ),
         Account(
             id=uuid4(),
-            tenant_id="test-tenant-accounts",
+            tenant_id=TEST_TENANT_ID,
             provider=CRMProvider.HUBSPOT.value,
             provider_record_id="hs-001",
             name="TechCorp Beta",
