@@ -8,6 +8,7 @@ ARG SYFT_VERSION=1.30.0
 ARG COSIGN_VERSION=2.5.3
 ARG PIP_AUDIT_VERSION=2.9.0
 ARG PIP_LICENSES_VERSION=5.0.0
+ARG UV_VERSION=0.11.6
 ARG NODE_VERSION=22.17.0
 ARG PNPM_VERSION=10.18.1
 
@@ -32,6 +33,7 @@ RUN apt-get update \
     && pip install --no-cache-dir \
       "pip-audit==${PIP_AUDIT_VERSION}" \
       "pip-licenses==${PIP_LICENSES_VERSION}" \
+      "uv==${UV_VERSION}" \
     && corepack enable \
     && corepack prepare "pnpm@${PNPM_VERSION}" --activate
 
