@@ -53,7 +53,7 @@ from ..shared.models import (
 
 try:
     from value_fabric.shared.error_handling.exceptions import ConflictError, ValidationError
-    from value_fabric.shared.llm_safety import InjectionSeverity, PromptGuard
+    from value_fabric.shared.llm_safety import PromptGuard
     from value_fabric.shared.observability.logging import get_logger
 except ImportError as e:
     raise ImportError(
