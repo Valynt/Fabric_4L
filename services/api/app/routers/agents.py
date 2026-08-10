@@ -4,16 +4,22 @@ import json
 from datetime import UTC, datetime
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
-from value_fabric.shared.error_handling.exceptions import NotFoundError
+from value_fabric.shared.error_handling.exceptions import ConflictError, NotFoundError
+from value_fabric.shared.identity.context import get_request_context
 
 from app.core.database import db
 from app.core.tenant_context import tenant_required
 from app.models.schemas import AgentRun, WorkflowResponse
-from app.services.agent_orchestrator import orchestrator
+from app.services.agent_orchestrator import ERR_RUN_NOT_FOUND, orchestrator
 
 router = APIRouter(prefix="/agents", tags=["Agents"])
+
+
+def _current_user_id() -> str | None:
+    ctx = get_request_context()
+    return str(ctx.user_id) if ctx is not None and ctx.user_id else None
 
 
 def _json_safe(value: Any) -> Any:
@@ -71,13 +77,14 @@ async def create_agent_run(payload: dict[str, Any], tenant_id: str = Depends(ten
         workflow_type=payload.get("workflow_type", "unknown"),
         account_id=payload.get("account_id"),
         input_data=payload.get("input"),
+        user_id=_current_user_id(),
     )
     return run
 
 
 @router.get("/runs/{run_id}", response_model=AgentRun)
 async def get_agent_run(run_id: str, tenant_id: str = Depends(tenant_required)):
-    run = db.agent_runs.get(run_id, tenant_id=tenant_id)
+    run = orchestrator.get_run(run_id, tenant_id=tenant_id)
     if not run:
         raise NotFoundError(message="Agent run not found")
     return run
@@ -85,18 +92,22 @@ async def get_agent_run(run_id: str, tenant_id: str = Depends(tenant_required)):
 
 @router.post("/runs/{run_id}/resume", response_model=AgentRun)
 async def resume_agent_run(run_id: str, tenant_id: str = Depends(tenant_required)):
-    run = db.agent_runs.get(run_id, tenant_id=tenant_id)
-    if not run:
-        raise NotFoundError(message="Agent run not found")
-    return orchestrator.resume_run(run_id, tenant_id=tenant_id)
+    try:
+        return orchestrator.resume_run(run_id, tenant_id=tenant_id, user_id=_current_user_id())
+    except ValueError as exc:
+        if str(exc) == ERR_RUN_NOT_FOUND:
+            raise NotFoundError(message="Agent run not found")
+        raise
 
 
 @router.post("/runs/{run_id}/cancel", response_model=AgentRun)
 async def cancel_agent_run(run_id: str, tenant_id: str = Depends(tenant_required)):
-    run = db.agent_runs.get(run_id, tenant_id=tenant_id)
-    if not run:
-        raise NotFoundError(message="Agent run not found")
-    return orchestrator.cancel_run(run_id, tenant_id=tenant_id)
+    try:
+        return orchestrator.cancel_run(run_id, tenant_id=tenant_id)
+    except ValueError as exc:
+        if str(exc) == ERR_RUN_NOT_FOUND:
+            raise NotFoundError(message="Agent run not found")
+        raise
 
 
 @router.post("/workflows", response_model=WorkflowResponse, status_code=201)
@@ -106,6 +117,7 @@ async def create_workflow(payload: dict[str, Any], tenant_id: str = Depends(tena
         workflow_type=payload.get("workflow_type", "unknown"),
         account_id=payload.get("account_id"),
         input_data=payload.get("inputs"),
+        user_id=_current_user_id(),
     )
     return _run_to_workflow_payload(run)
 
@@ -114,13 +126,18 @@ async def create_workflow(payload: dict[str, Any], tenant_id: str = Depends(tena
 async def list_active_workflows(tenant_id: str = Depends(tenant_required)):
     active_like_statuses = {"pending", "running", "paused", "interrupted"}
     runs = db.agent_runs.list(tenant_id=tenant_id)
-    workflows = [_run_to_workflow_payload(run) for run in runs if run.status in active_like_statuses]
-    return workflows
+    active_runs = [run for run in runs if run.status in active_like_statuses]
+    refreshed: list[AgentRun] = []
+    for run in active_runs:
+        refreshed_run = orchestrator.get_run(run.id, tenant_id=tenant_id)
+        if refreshed_run and refreshed_run.status in active_like_statuses:
+            refreshed.append(refreshed_run)
+    return [_run_to_workflow_payload(r) for r in refreshed]
 
 
 @router.get("/workflows/{id}", response_model=WorkflowResponse)
 async def get_workflow(id: str, tenant_id: str = Depends(tenant_required)):
-    run = db.agent_runs.get(id, tenant_id=tenant_id)
+    run = orchestrator.get_run(id, tenant_id=tenant_id)
     if not run:
         raise NotFoundError(message="Workflow not found")
     return _run_to_workflow_payload(run)
@@ -128,36 +145,42 @@ async def get_workflow(id: str, tenant_id: str = Depends(tenant_required)):
 
 @router.delete("/workflows/{id}", response_model=WorkflowResponse)
 async def cancel_workflow(id: str, tenant_id: str = Depends(tenant_required)):
-    run = db.agent_runs.get(id, tenant_id=tenant_id)
-    if not run:
-        raise NotFoundError(message="Workflow not found")
-    cancelled = orchestrator.cancel_run(id, tenant_id=tenant_id)
+    try:
+        cancelled = orchestrator.cancel_run(id, tenant_id=tenant_id)
+    except ValueError as exc:
+        if str(exc) == ERR_RUN_NOT_FOUND:
+            raise NotFoundError(message="Workflow not found")
+        raise
     return _run_to_workflow_payload(cancelled)
 
 
 @router.post("/workflows/{id}/pause", response_model=WorkflowResponse)
 async def pause_workflow(id: str, tenant_id: str = Depends(tenant_required)):
-    run = db.agent_runs.get(id, tenant_id=tenant_id)
+    run = orchestrator.get_run(id, tenant_id=tenant_id)
     if not run:
         raise NotFoundError(message="Workflow not found")
-    if run.status == "running":
-        db.agent_runs.update(id, tenant_id=tenant_id, status="paused")
-        run = db.agent_runs.get(id, tenant_id=tenant_id)
-    return _run_to_workflow_payload(run)
+    if run.status not in {"pending", "running", "interrupted"}:
+        raise ConflictError(
+            message=f"Workflow is {run.status} and cannot be paused",
+        )
+    paused = orchestrator.pause_run(id, tenant_id=tenant_id, user_id=_current_user_id())
+    return _run_to_workflow_payload(paused)
 
 
 @router.post("/workflows/{id}/resume", response_model=WorkflowResponse)
 async def resume_workflow(id: str, tenant_id: str = Depends(tenant_required)):
-    run = db.agent_runs.get(id, tenant_id=tenant_id)
-    if not run:
-        raise NotFoundError(message="Workflow not found")
-    resumed = orchestrator.resume_run(id, tenant_id=tenant_id)
+    try:
+        resumed = orchestrator.resume_run(id, tenant_id=tenant_id, user_id=_current_user_id())
+    except ValueError as exc:
+        if str(exc) == ERR_RUN_NOT_FOUND:
+            raise NotFoundError(message="Workflow not found")
+        raise
     return _run_to_workflow_payload(resumed)
 
 
 @router.get("/workflows/{id}/events")
 async def workflow_events(id: str, tenant_id: str = Depends(tenant_required)):
-    run = db.agent_runs.get(id, tenant_id=tenant_id)
+    run = orchestrator.get_run(id, tenant_id=tenant_id)
     if not run:
         raise NotFoundError(message="Workflow not found")
 
