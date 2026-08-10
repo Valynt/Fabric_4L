@@ -203,7 +203,9 @@ app = create_fabric_app(
     ),
     idempotency=FrameworkIdempotencyConfig(
         mode=EnforcementMode.ENFORCE,
-        service_factory=lambda: __import__("value_fabric.shared.idempotency.core", fromlist=["IdempotencyService"]).IdempotencyService.create_from_env(),
+        service_factory=lambda: __import__(
+            "value_fabric.shared.idempotency.core", fromlist=["IdempotencyService"]
+        ).IdempotencyService.create_from_env(),
         methods=frozenset({"POST", "PUT", "PATCH", "DELETE"}),
     ),
 )
