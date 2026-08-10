@@ -41,3 +41,35 @@ Current defaults used by the web app:
 
 - OpenAPI contract tests in `apps/web/src/api/__tests__/contract/` enforce base-path expectations against checked-in fixtures in `contracts/openapi/`.
 - When a layer changes externally visible path versioning (`/v1` vs `/api/v1`), update this file first, then update service READMEs, frontend config comments, and contract tests in the same change.
+
+## Gateway delegation table
+
+The API gateway (`services/api`) registers a thin delegation router **last** so
+product-domain routers (accounts, hypotheses, agents/workflows, benchmarks, …)
+keep precedence. The delegation router serves only paths no product router owns,
+forwarding the caller's verified identity verbatim. The owning layer re-verifies
+authentication, tenant, and authorization (defense in depth, fail-closed).
+
+Implementation: `services/api/app/routers/layer_delegation.py`
+
+| Segment | Owning layer | Settings attr | Added prefix | Frontend hook convention |
+|---|---|---|---|---|
+| `agents` | Layer 4 | `layer4_api_base_url` | _(none)_ | Hooks embed `/v1` (e.g. `apiGet('l4', '/v1/enrichment/...')`) |
+| `ingest` | Layer 1 | `layer1_api_base_url` | `/api/v1/ingestion` | Hooks pass bare paths (e.g. `apiGet('l1', '/jobs')`) |
+| `extract` | Layer 2 | `layer2_api_base_url` | `/v1` | Hooks pass bare paths |
+| `graph` | Layer 3 | `layer3_api_base_url` | _(none)_ | Hooks embed `/v1` (e.g. `apiGet('l3', '/v1/calculators/...')`) |
+| `truths` | Layer 5 | `layer5_api_base_url` | `/api/v1` | Hooks pass bare paths (e.g. `apiGet('l5', '/academy/pillars')`) |
+
+`benchmarks` is intentionally absent — it is owned by `routers/benchmarks.py`
+with a typed Layer 6 client.
+
+### Full path trace (L3 example)
+
+1. Hook: `apiGet('l3', '/v1/calculators/levers')`
+2. Client (`client.ts`): `API_VERSION_PREFIX` + `LAYER_PREFIXES.l3` + path
+   = `/api/v1` + `/graph` + `/v1/calculators/levers`
+   = `/api/v1/graph/v1/calculators/levers`
+3. Vite proxy: rewrites `/api/v1` → `/v1`, sends to gateway
+   = `/v1/graph/v1/calculators/levers`
+4. Gateway delegation: catches `/v1/graph/{path}` where path = `v1/calculators/levers`
+5. Target: `http://l3:8003/v1/calculators/levers` (no added prefix)
