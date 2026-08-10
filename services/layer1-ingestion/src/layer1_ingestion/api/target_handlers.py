@@ -297,7 +297,6 @@ async def update_target(
             ),
         )
         .count()
-    )
 
     if active_jobs > 0:
         raise ConflictError(
@@ -470,10 +469,42 @@ async def execute_target(
         priority=request.priority,
         triggered_by=TriggeredBy.API,
         correlation_id=correlation_id,
+        idempotency_key=request.idempotency_key,
     )
 
     db.add(job)
-    db.commit()
+    try:
+        db.commit()
+    except sqlalchemy.exc.IntegrityError:
+        db.rollback()
+        # Durable dedup backstop: idx_scraping_jobs_tenant_idempotency
+        # (tenant_id, idempotency_key) fired — a concurrent request created the
+        # job first. Redis-only dedup can lose entries on a flush; the database
+        # is the authoritative idempotency boundary (V1-TENANCY-010 / S-2).
+        existing_job = None
+        if request.idempotency_key:
+            existing_job = (
+                db.query(ScrapingJob)
+                .filter(
+                    ScrapingJob.tenant_id == org_id,
+                    ScrapingJob.idempotency_key == request.idempotency_key,
+                )
+                .first()
+            )
+        if existing_job is not None:
+            logger.info(
+                "Idempotency key hit at database boundary, returning existing job",
+                idempotency_key=request.idempotency_key,
+                job_id=str(existing_job.id),
+            )
+            return ExecuteTargetResponse(
+                job_id=existing_job.id,
+                status=existing_job.status,
+                estimated_start_time=existing_job.started_at,
+                queue_position=None,
+                queue_position_metadata=None,
+            )
+        raise
     db.refresh(job)
 
     if request.idempotency_key:
