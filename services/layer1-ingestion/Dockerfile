@@ -1,102 +1,95 @@
-# Multi-stage build for Layer 1: Data Ingestion Service
-# Stage 1: Builder - installs dependencies and Playwright browsers
-FROM python:3.11.15-slim-bookworm AS builder
+```dockerfile
+# syntax=docker/dockerfile:1.6
+# -----------------------------------------------------------------------------
+# Layer 1: Data Ingestion Service — Enterprise Hardened
+# -----------------------------------------------------------------------------
+
+# Stage 1: Builder
+FROM python@sha256:28255a3ace7eb4c48bc1b57b90af29e1bc82b4fd6c60614a8e3dce61b87ff941 AS builder
 
 WORKDIR /app
 
-# Install build dependencies
-RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
-    gcc \
-    libpq-dev \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+RUN set -eux; \
+    apt-get update; \
+    apt-get upgrade -y; \
+    apt-get install -y --no-install-recommends gcc libpq-dev curl; \
+    rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/* /tmp/* /var/tmp/*
 
-# Install uv from official image
 RUN pip install --no-cache-dir uv==0.11.6
 
-# Copy dependency files
-COPY pyproject.toml .
-COPY uv.lock .
-
-# Install dependencies using uv (creates .venv)
+COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-install-project
 
-# Make venv available for subsequent commands in builder stage
 ENV PATH="/app/.venv/bin:$PATH"
 
-# Install Playwright browsers by default. Release-smoke builds can set
-# INSTALL_PLAYWRIGHT_BROWSERS=false to keep the image lightweight when the
-# validation path only needs the API process and health endpoints.
 ARG INSTALL_PLAYWRIGHT_BROWSERS=true
-RUN if [ "$INSTALL_PLAYWRIGHT_BROWSERS" = "true" ]; then \
-        python -m playwright install chromium && \
+RUN set -eux; \
+    if [ "$INSTALL_PLAYWRIGHT_BROWSERS" = "true" ]; then \
+        python -m playwright install chromium; \
         python -m playwright install-deps chromium; \
     else \
         mkdir -p /root/.cache/ms-playwright; \
     fi
 
-# Stage 2: Runtime - minimal image with only runtime dependencies
-FROM python:3.11.15-slim-bookworm AS runtime
+# Stage 2: Runtime
+FROM python@sha256:28255a3ace7eb4c48bc1b57b90af29e1bc82b4fd6c60614a8e3dce61b87ff941 AS runtime
 
-# Install runtime dependencies (Playwright libs + curl for healthcheck)
-RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
-    libglib2.0-0 \
-    libnss3 \
-    libnspr4 \
-    libatk1.0-0 \
-    libatk-bridge2.0-0 \
-    libcups2 \
-    libdrm2 \
-    libdbus-1-3 \
-    libxkbcommon0 \
-    libxcomposite1 \
-    libxdamage1 \
-    libxfixes3 \
-    libxrandr2 \
-    libgbm1 \
-    libasound2 \
-    libpango-1.0-0 \
-    libcairo2 \
-    libatspi2.0-0 \
-    poppler-utils \
-    tesseract-ocr \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+RUN set -eux; \
+    apt-get update; \
+    apt-get upgrade -y; \
+    apt-get install -y --no-install-recommends \
+        libglib2.0-0 libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 \
+        libcups2 libdrm2 libdbus-1-3 libxkbcommon0 libxcomposite1 \
+        libxdamage1 libxfixes3 libxrandr2 libgbm1 libasound2 \
+        libpango-1.0-0 libcairo2 libatspi2.0-0 poppler-utils \
+        tesseract-ocr tini; \
+    rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/* /tmp/* /var/tmp/*
 
-# Create non-root user with home directory
-RUN groupadd -r appgroup && useradd -r -g appgroup -m appuser
-
-# Upgrade base-image setuptools/wheel to remediate known CVEs flagged by Trivy
-RUN pip install --no-cache-dir --upgrade pip setuptools wheel
+RUN set -eux; \
+    groupadd -r -g 1000 appgroup; \
+    useradd -r -u 1000 -g appgroup -m -s /usr/sbin/nologin appuser
 
 WORKDIR /app
 
-# Copy uv virtual environment from builder
-COPY --from=builder /app/.venv /app/.venv
-ENV PATH="/app/.venv/bin:$PATH"
-ENV PYTHONPATH=/app/src
+COPY --from=builder --chown=root:root /app/.venv /app/.venv
+ENV PATH="/app/.venv/bin:$PATH" \
+    PYTHONPATH=/app/src \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PLAYWRIGHT_BROWSERS_PATH=/home/appuser/.cache/ms-playwright
 
-# Copy Playwright browsers from builder
-COPY --from=builder /root/.cache/ms-playwright /home/appuser/.cache/ms-playwright
-ENV PLAYWRIGHT_BROWSERS_PATH=/home/appuser/.cache/ms-playwright
+COPY --from=builder --chown=appuser:appgroup /root/.cache/ms-playwright /home/appuser/.cache/ms-playwright
 
-# Copy application code
-COPY src/ ./src/
-COPY alembic.ini .
-COPY migrations/ ./migrations/
+COPY --chown=root:root src/ ./src/
+COPY --chown=root:root alembic.ini .
+COPY --chown=root:root migrations/ ./migrations/
 
-# Change ownership
-RUN chown -R appuser:appgroup /app /home/appuser
+RUN set -eux; \
+    find /app/src /app/migrations -type d -exec chmod 755 {} +; \
+    find /app/src /app/migrations -type f -exec chmod 644 {} +; \
+    chmod 644 /app/alembic.ini; \
+    chown -R root:root /app; \
+    chown -R appuser:appgroup /home/appuser/.cache; \
+    chmod 700 /home/appuser/.cache; \
+    pip install --no-cache-dir --upgrade setuptools wheel; \
+    pip uninstall --yes pip; \
+    rm -rf /usr/local/lib/python*/ensurepip; \
+    rm -rf /usr/local/lib/python*/dist-packages/pip*; \
+    rm -rf /usr/local/lib/python*/site-packages/pip*; \
+    rm -f /usr/local/bin/pip*; \
+    find / -perm /6000 -type f -exec chmod a-s {} + 2>/dev/null || true; \
+    rm -rf /root/.cache/pip /root/.local /tmp/* /var/tmp/*
 
-# Switch to non-root user
-USER appuser
+USER appuser:appgroup
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
+ENTRYPOINT ["/usr/bin/tini", "--"]
 
-# Expose port
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=5)" || exit 1
+
 EXPOSE 8000
 
-# Default command
 CMD ["uvicorn", "layer1_ingestion.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+```

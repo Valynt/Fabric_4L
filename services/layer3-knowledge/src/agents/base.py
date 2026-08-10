@@ -7,7 +7,7 @@ Reason: Base agent class for Value Fabric agent framework.
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
 
@@ -37,7 +37,7 @@ class BaseAgent(ABC):
         """
         self.agent_id = f"{agent_type}-{uuid4().hex[:8]}"
         self.agent_type = agent_type
-        self.created_at = datetime.utcnow()
+        self.created_at = datetime.now(UTC)
 
     @abstractmethod
     async def execute(self, context: dict[str, Any]) -> AgentResult:
@@ -75,12 +75,12 @@ class BaseAgent(ABC):
             status=status,
             output=output,
             execution_time_ms=execution_time_ms,
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(UTC),
             provenance={
                 "agent_type": self.agent_type,
                 "agent_id": self.agent_id,
                 "created_at": self.created_at.isoformat(),
-                "executed_at": datetime.utcnow().isoformat(),
+                "executed_at": datetime.now(UTC).isoformat(),
             },
             errors=errors or [],
         )

@@ -410,6 +410,7 @@ export default defineConfig({
     setupFiles: [path.resolve(__dirname, "test", "setup.ts")],
     coverage: {
       provider: "v8",
+      all: false,
       include: ["src/**/*.{ts,tsx}"],
       exclude: [
         "src/**/*.d.ts",

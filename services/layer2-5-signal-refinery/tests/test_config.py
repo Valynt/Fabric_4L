@@ -2,12 +2,9 @@
 
 from __future__ import annotations
 
-import os
-
 import pytest
-from pydantic import ValidationError
-
 from layer2_5_signal_refinery.config import Settings
+from pydantic import ValidationError
 
 
 class TestJWTSecret:

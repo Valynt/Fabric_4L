@@ -1,0 +1,153 @@
+# V1 Architecture Invariants — Fabric_4L
+#
+# Machine-checkable transcription of the invariants documented in
+# docs/contract.md, docs/reference/layer-runtime-path-governance.md,
+# AGENTS.md, and SECURITY.md. Each invariant maps to an existing enforcement
+# mechanism (a scripts/ci checker, a Makefile gate, or a pytest suite), or is
+# flagged enforcement: task with the release/v1/tasks entry that will build it.
+#
+# Validated by tests/release/test_release_v1_contract_artifacts.py, which
+# asserts every referenced checker/gate/test path exists on disk.
+
+schema_version: 1
+
+invariants:
+  # First invariant of the release-factory project: the largest failure mode
+  # of a release factory is building a parallel gate system.
+  - id: INV-FACTORY-001
+    statement: >
+      The release factory is a thin control plane over the existing canonical
+      gates, tests, risk register, and evidence machinery. No parallel gate,
+      readiness, risk, or evidence system may be introduced. Generated
+      candidate state lives only under artifacts/release/<sha>/ and is never
+      committed; production-readiness/risk_register.yaml is the only canonical
+      risk register and its human views must reconcile with it.
+    enforcement: existing
+    checks:
+      - type: pytest
+        path: tests/release/test_release_v1_contract_artifacts.py
+      - type: script
+        path: scripts/release/validate_contract.py
+
+  - id: INV-TENANT-001
+    statement: Tenant identity is resolved from authenticated backend context and enforced on every data read and write; missing or conflicting tenant context fails closed.
+    enforcement: existing
+    checks:
+      - type: pytest
+        path: tests/tenancy
+      - type: pytest
+        path: tests/test_cross_tenant_hostile.py
+      - type: make
+        target: check-behavior-contract
+
+  - id: INV-TENANT-002
+    statement: Request-body tenant IDs never override authenticated tenant context.
+    enforcement: existing
+    checks:
+      - type: pytest
+        path: tests/tenancy/test_api_tenant_scope.py
+      - type: pytest
+        path: tests/tenancy/test_worker_tenant_scope.py
+
+  - id: INV-PATH-001
+    statement: Net-new runtime logic lands only in canonical runtime paths per the layer runtime path governance matrix; archived and compatibility-only paths receive no new logic.
+    enforcement: existing
+    checks:
+      - type: script
+        path: scripts/ci/boundary_check.py
+      - type: script
+        path: scripts/ci/check_deprecated_namespace_imports.py
+    reference: docs/reference/layer-runtime-path-governance.md
+
+  - id: INV-PATH-002
+    statement: No net-new runtime compatibility wrapper or shim merges under canonical runtime roots without recorded Platform Architecture approval (launch freeze).
+    enforcement: existing
+    checks:
+      - type: script
+        path: scripts/ci/check_compatibility_launch_freeze.py
+      - type: script
+        path: scripts/ci/check_compatibility_shims.py
+    reference: docs/governance/compatibility-debt-registry.md
+
+  - id: INV-DATA-001
+    statement: Durable business data lives only in approved authoritative systems; PostgreSQL is authoritative, graph projections are rebuildable, Redis state is transient, object storage is governed.
+    enforcement: existing
+    checks:
+      - type: make
+        target: db-production-readiness-gate
+      - type: pytest
+        path: tests/data_lifecycle
+
+  - id: INV-CONTRACT-001
+    statement: API response shapes never change silently; generated contracts are regenerated from their source of truth and drift fails CI.
+    enforcement: existing
+    checks:
+      - type: pytest
+        path: tests/contract
+      - type: workflow
+        path: .github/workflows/generated-api-freshness.yml
+      - type: workflow
+        path: .github/workflows/contract-compliance.yml
+
+  - id: INV-CI-001
+    statement: CI validates repository state and never silently repairs or commits it; drift is reported, not auto-fixed.
+    enforcement: existing
+    checks:
+      - type: workflow
+        path: .github/workflows/drift-check.yml
+
+  - id: INV-CI-002
+    statement: Tests, coverage thresholds, security checks, and type checks may not be weakened to get green; pytest skips are governed by allowlist and waiver.
+    enforcement: existing
+    checks:
+      - type: script
+        path: scripts/ci/assert_no_pytest_skips.py
+      - type: script
+        path: scripts/ci/behavior_readiness_audit.py
+
+  - id: INV-AGENT-001
+    statement: Core Layer 4 orchestration remains provider-agnostic; provider-specific logic lives in adapters and agent outputs are schema-validated.
+    enforcement: existing
+    checks:
+      - type: make
+        target: check-layer4-boundaries
+      - type: script
+        path: scripts/ci/check_agent_registry.py
+
+  - id: INV-SEC-001
+    statement: Dev auth bypass flags are never enabled in production-like environments; startup fails closed.
+    enforcement: existing
+    checks:
+      - type: script
+        path: scripts/ci/check_auth_bypass.py
+      - type: script
+        path: scripts/ci/check-dev-auth-bypass.sh
+
+  - id: INV-MIGRATE-001
+    statement: Schema changes ship with migrations that survive upgrade, downgrade -1, and re-upgrade against PostgreSQL, preserving tenant fields.
+    enforcement: existing
+    checks:
+      - type: make
+        target: check-migration-postgres-roundtrip
+      - type: pytest
+        path: tests/release/test_database_migration_rollback.py
+
+  - id: INV-GOLDEN-001
+    statement: One canonical golden path (tenant setup -> L1 ingestion -> L2 extraction -> L3 knowledge -> L4 agents -> L5 grounding -> L6 benchmarks -> customer-visible output) is proven by a single executable certification, not inferred from per-layer test totals.
+    enforcement: task
+    task: V1-GOLDEN-001
+
+  - id: INV-TENANT-003
+    statement: Queue payload tenant context is verified; workers reject missing or conflicting tenant context; object-storage signed URLs, exports, graph/vector retrieval, and AI context/traces are tenant-scoped.
+    enforcement: task
+    task: V1-TENANCY-010
+
+  - id: INV-CI-003
+    statement: Required PR checks are a small stable set of aggregate release contracts with unique names, running on both pull_request and merge_group events; main is linear and merges only through the merge queue.
+    enforcement: task
+    task: V1-CI-001
+
+  - id: INV-AI-001
+    statement: AI outputs are gated deterministically where possible (schema validity, tool authorization, retrieval isolation, citation presence, cost and latency budgets) with repo-owned datasets and runners.
+    enforcement: task
+    task: V1-EVALS-001
