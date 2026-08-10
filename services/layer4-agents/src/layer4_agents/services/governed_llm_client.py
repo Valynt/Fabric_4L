@@ -27,7 +27,25 @@ from typing import TYPE_CHECKING, Any
 
 import yaml
 
-from .llm_output_parser import parse_llm_json
+from .llm_output_parser import parse_llm_json, validate_llm_output_schema
+
+
+class LLMOutputValidationError(RuntimeError):
+    """Raised when a structured LLM call fails schema validation (ADR-031).
+
+    Carries the model task, call id, and the first validation errors so the
+    failure is typed and observable instead of a silent empty payload.
+    """
+
+    def __init__(self, *, model_task: str, call_id: str | None, errors: list[str]) -> None:
+        preview = "; ".join(errors[:5])
+        super().__init__(
+            f"structured LLM output failed schema validation for {model_task!r}"
+            f" (call_id={call_id!r}): {preview}"
+        )
+        self.model_task = model_task
+        self.call_id = call_id
+        self.errors = errors
 
 if TYPE_CHECKING:
     from layer4_agents.harness.models import HarnessRun
@@ -301,7 +319,22 @@ class GovernedLLMClient:
             response_format={"type": "json_object"},
             call_id=call_id,
         )
-        parsed = parse_llm_json(result.content, call_site="governed_llm_client.call_structured")
+        parsed = parse_llm_json(
+            result.content,
+            call_site="governed_llm_client.call_structured",
+            strict=True,
+        )
+        errors = validate_llm_output_schema(
+            parsed,
+            schema,
+            call_site="governed_llm_client.call_structured",
+        )
+        if errors:
+            raise LLMOutputValidationError(
+                model_task=model_task,
+                call_id=call_id,
+                errors=errors,
+            )
         return parsed, result
 
     # ------------------------------------------------------------------
