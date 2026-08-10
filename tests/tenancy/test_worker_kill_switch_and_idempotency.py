@@ -30,8 +30,8 @@ class TestKillSwitchWiring:
         text = L1_TASKS.read_text(encoding="utf-8")
         assert "No kill-switch implementation yet" not in text, "stub must be gone"
         assert "class TenantKillSwitchUnavailable(RuntimeError)" in text
-        assert "SUSPENDED_TENANTS_SET" in text
-        assert "sismember" in text
+        assert "check_status_sync" in text
+        assert 'getattr(kill_switch, "_redis", None)' not in text
 
     def test_both_call_sites_retry_on_unknown_state(self) -> None:
         text = L1_TASKS.read_text(encoding="utf-8")
@@ -71,7 +71,7 @@ class TestKillSwitchBehavior:
         redis = self._fake_redis(members={tenant})
         switch = TenantKillSwitch(redis)
         assert redis.sismember(SUSPENDED_TENANTS_SET, tenant) is True
-        assert switch.is_suspended_sync(tenant) is True
+        assert switch.check_status_sync(tenant).value == "suspended"
 
     def test_active_tenant_not_detected(self) -> None:
         import sys
@@ -82,13 +82,28 @@ class TestKillSwitchBehavior:
         redis = self._fake_redis()
         tenant = "22222222-2222-2222-2222-222222222222"
         assert redis.sismember(SUSPENDED_TENANTS_SET, tenant) is False
-        assert TenantKillSwitch(redis).is_suspended_sync(tenant) is False
+        assert TenantKillSwitch(redis).check_status_sync(tenant).value == "active"
+
+    def test_unavailable_status_is_unknown(self) -> None:
+        import sys
+
+        sys.path.insert(0, str(REPO_ROOT / "packages" / "shared" / "src"))
+        from value_fabric.shared.tenant_kill_switch import TenantKillSwitch
+
+        tenant = "33333333-3333-3333-3333-333333333333"
+        assert TenantKillSwitch(None).check_status_sync(tenant).value == "unknown"
+        assert (
+            TenantKillSwitch(self._fake_redis(fail=True))
+            .check_status_sync(tenant)
+            .value
+            == "unknown"
+        )
 
 
 class TestDurableIdempotency:
     def test_idempotency_key_passed_to_job_factory(self) -> None:
         text = L1_TARGET_HANDLERS.read_text(encoding="utf-8")
-        assert "idempotency_key=request.idempotency_key" in text, (
+        assert "idempotency_key=idempotency_key" in text, (
             "execute_target must populate the durable idempotency column"
         )
 
@@ -96,5 +111,5 @@ class TestDurableIdempotency:
         text = L1_TARGET_HANDLERS.read_text(encoding="utf-8")
         assert "except sqlalchemy.exc.IntegrityError:" in text
         assert "db.rollback()" in text
-        assert "ScrapingJob.idempotency_key == request.idempotency_key" in text
+        assert "ScrapingJob.idempotency_key == idempotency_key" in text
         assert "return ExecuteTargetResponse(" in text

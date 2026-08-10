@@ -1902,22 +1902,16 @@ def _check_tenant_kill_switch_sync(tenant_id: str) -> bool:
     Raises TenantKillSwitchUnavailable when the state cannot be determined.
     """
     from value_fabric.shared.tenant_kill_switch import (
-        SUSPENDED_TENANTS_SET,
+        TenantSuspensionStatus,
         get_kill_switch,
     )
 
-    kill_switch = get_kill_switch()
-    redis_client = getattr(kill_switch, "_redis", None)
-    if redis_client is None:
+    status = get_kill_switch().check_status_sync(tenant_id)
+    if status == TenantSuspensionStatus.UNKNOWN:
         raise TenantKillSwitchUnavailable(
-            f"Tenant kill-switch state unknown (no Redis client) for tenant {tenant_id}"
+            f"Tenant kill-switch state unknown for tenant {tenant_id}"
         )
-    try:
-        return bool(redis_client.sismember(SUSPENDED_TENANTS_SET, str(tenant_id)))
-    except Exception as exc:
-        raise TenantKillSwitchUnavailable(
-            f"Tenant kill-switch check failed for tenant {tenant_id}: {exc}"
-        ) from exc
+    return status == TenantSuspensionStatus.SUSPENDED
 
 
 def _fail_job(job_id: UUID, tenant_id: str, error: str, stage: PipelineStage):
