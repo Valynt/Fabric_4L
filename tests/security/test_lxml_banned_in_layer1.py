@@ -65,11 +65,9 @@ class TestLxmlBannedInLayer1:
             if isinstance(node, ast.Call):
                 # Check if this is a BeautifulSoup call
                 func = node.func
-                is_bs4_call = False
-                if isinstance(func, ast.Name) and func.id == "BeautifulSoup":
-                    is_bs4_call = True
-                elif isinstance(func, ast.Attribute) and func.attr == "BeautifulSoup":
-                    is_bs4_call = True
+                is_bs4_call = (
+                    isinstance(func, ast.Name) and func.id == "BeautifulSoup"
+                ) or (isinstance(func, ast.Attribute) and func.attr == "BeautifulSoup")
 
                 if is_bs4_call and len(node.args) >= 2:
                     # Second arg is the parser
