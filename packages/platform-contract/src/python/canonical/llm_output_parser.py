@@ -82,7 +82,7 @@ def parse_llm_json(
     """
     tag = f" [{call_site}]" if call_site else ""
 
-    def _total_failure() -> dict[str, Any]:
+    def _total_failure() -> dict[str, object]:
         if strict:
             raise LLMOutputParseError(
                 f"parse_llm_json{tag}: could not extract JSON from response",
@@ -92,7 +92,7 @@ def parse_llm_json(
         logger.warning("parse_llm_json%s: could not extract JSON from response: %r", tag, content[:200])
         return {}
 
-    def _check_required(result: dict[str, Any]) -> dict[str, Any]:
+    def _check_required(result: dict[str, object]) -> dict[str, object]:
         if required_keys:
             missing = [key for key in required_keys if key not in result]
             if missing:
@@ -135,7 +135,7 @@ def parse_llm_json(
     return _total_failure()
 
 
-def validate_llm_output_schema(parsed: dict[str, Any], schema: dict[str, Any], *, call_site: str = "") -> list[str]:
+def validate_llm_output_schema(parsed: dict[str, object], schema: dict[str, object], *, call_site: str = "") -> list[str]:
     """Validate a parsed LLM output dict against a JSON Schema.
 
     Returns a list of human-readable validation errors (empty when valid).
@@ -143,13 +143,14 @@ def validate_llm_output_schema(parsed: dict[str, Any], schema: dict[str, Any], *
     check so a missing optional dependency can never silently skip validation.
     """
     try:
-        import jsonschema  # type: ignore
+        import jsonschema
 
         validator = jsonschema.Draft202012Validator(schema)
         return [
             f"{list(error.absolute_path)}: {error.message}" for error in validator.iter_errors(parsed)
         ][:25]
     except ImportError:
-        required = schema.get("required", []) if isinstance(schema, dict) else []
-        missing = [key for key in required if key not in parsed]
+        required_value = schema.get("required", [])
+        required = required_value if isinstance(required_value, list) else []
+        missing = [key for key in required if isinstance(key, str) and key not in parsed]
         return [f"required key missing: {key}" for key in missing]
