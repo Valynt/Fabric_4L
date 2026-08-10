@@ -9,7 +9,7 @@ related: ["../../explanations/adr/ADR-006-langgraph-for-agent-orchestration", ".
 
 # ADR-037: Separation of Workflow State, Context, and Orchestration
 
-**Status:** Proposed
+**Status:** Accepted
 
 **Date:** 2026-07-20
 

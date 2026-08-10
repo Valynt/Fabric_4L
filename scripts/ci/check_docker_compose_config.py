@@ -53,6 +53,7 @@ SAFE_REQUIRED_ENV_DEFAULTS = {
     "API_KEY_HMAC_SECRET": "compose-contract-api-key-hmac-secret-32chars",
     "SERVICE_AUTH_SECRET": "compose-contract-service-auth-secret-32chars",
     "CREDENTIALS_MASTER_KEY": "compose-contract-credentials-master-key-32chars",
+    "DEFAULT_TENANT_ID": "00000000-0000-4000-8000-000000000001",
     "LAYER4_DATABASE_URL": "postgresql+asyncpg://compose_contract_user:compose-contract-postgres-password@postgres:5432/layer4_agents",
 }
 
@@ -103,6 +104,8 @@ FULL_COMPOSE_REQUIRED_ENV_KEYS = {
     "GRAFANA_ADMIN_PASSWORD",
     "API_KEY_HMAC_SECRET",
     "SERVICE_AUTH_SECRET",
+    "CREDENTIALS_MASTER_KEY",
+    "DEFAULT_TENANT_ID",
 }
 
 FRONTEND_REQUIRED_ENV_KEYS = {

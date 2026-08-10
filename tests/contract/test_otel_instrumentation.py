@@ -199,7 +199,8 @@ def test_all_services_have_otel_env_references() -> None:
             continue
         for pattern in patterns:
             for path in root.rglob(pattern):
-                if any(part in skip_dirs for part in path.parts):
+                relative_parts = path.relative_to(root).parts
+                if any(part in skip_dirs for part in relative_parts):
                     continue
                 try:
                     text = path.read_text(encoding="utf-8")

@@ -5,9 +5,9 @@ Removal/migration target: 2026-09-30
 Reason: Pydantic models for Layer 3 knowledge API.
 """
 
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import Enum
-from typing import Annotated, Any, Literal
+from typing import Annotated, Literal
 
 from pydantic import (
     BaseModel,
@@ -22,6 +22,7 @@ from value_fabric.shared.contracts.layer3_statuses import (
     IngestStatus,
     SyncStatus,
 )
+from value_fabric.shared.models import JSONDict
 
 from ..services import compat_policy
 from ..services.compat_metrics import record_deprecated_field_usage
@@ -51,7 +52,7 @@ class DependencyStatus(BaseModel):
         max_length=500,
         description="Machine-readable reason for dependency failure (RED/health contract)",
     )
-    details: dict[str, Any] = Field(
+    details: JSONDict = Field(
         default_factory=dict, description="Additional status details"
     )
 
@@ -82,16 +83,16 @@ class HealthResponse(BaseModel):
         ..., description="Overall service status"
     )
     service: str = Field(..., min_length=1, description="Service name")
-    readiness: dict[str, Any] = Field(..., description="Readiness envelope")
+    readiness: JSONDict = Field(..., description="Readiness envelope")
     version: str = Field(..., min_length=1, max_length=20, description="API version")
     timestamp: datetime = Field(
-        default_factory=datetime.utcnow, description="Health check timestamp"
+        default_factory=lambda: datetime.now(UTC), description="Health check timestamp"
     )
     uptime_seconds: float = Field(..., ge=0, description="Service uptime in seconds")
     dependencies: list[DependencyStatus] = Field(..., description="Dependency statuses")
     metrics: ServiceMetrics = Field(..., description="Service metrics")
-    neo4j: dict[str, Any] = Field(..., description="Neo4j health information")
-    schema_status: dict[str, Any] = Field(..., description="Database schema status")
+    neo4j: JSONDict = Field(..., description="Neo4j health information")
+    schema_status: JSONDict = Field(..., description="Database schema status")
 
 
 class DetailedHealthResponse(BaseModel):
@@ -102,15 +103,15 @@ class DetailedHealthResponse(BaseModel):
     )
     version: str = Field(..., min_length=1, max_length=20, description="API version")
     timestamp: datetime = Field(
-        default_factory=datetime.utcnow, description="Health check timestamp"
+        default_factory=lambda: datetime.now(UTC), description="Health check timestamp"
     )
     uptime_seconds: float = Field(..., ge=0, description="Service uptime in seconds")
     dependencies: list[DependencyStatus] = Field(..., description="Dependency statuses")
     metrics: ServiceMetrics = Field(..., description="Service metrics")
-    neo4j: dict[str, Any] = Field(..., description="Neo4j health information")
-    schema_status: dict[str, Any] = Field(..., description="Database schema status")
-    system_info: dict[str, Any] = Field(..., description="System information")
-    configuration: dict[str, Any] = Field(
+    neo4j: JSONDict = Field(..., description="Neo4j health information")
+    schema_status: JSONDict = Field(..., description="Database schema status")
+    system_info: JSONDict = Field(..., description="System information")
+    configuration: JSONDict = Field(
         ..., description="Non-sensitive configuration"
     )
 
@@ -196,6 +197,24 @@ class SyncStatusResponse(BaseModel):
     )
 
 
+# Ground Truth Node Models (Layer 5 compatibility)
+class GroundTruthNodeRequest(BaseModel):
+    """Ground Truth node creation request from Layer 5.
+    
+    Matches the payload format used by Layer 5's Layer3Client.sync_truth_object().
+    """
+    node_type: str = Field(..., description="Node type (expected: 'GroundTruth')")
+    properties: JSONDict = Field(..., description="Node properties")
+    merge_keys: list[str] = Field(default_factory=list, description="Keys for MERGE operation")
+
+
+class GroundTruthNodeResponse(BaseModel):
+    """Ground Truth node creation response."""
+    node_id: str = Field(..., description="Created node ID")
+    status: Literal["created", "updated"] = Field(..., description="Whether node was created or updated")
+    message: str = Field(default="", description="Additional message")
+
+
 # Query Models
 class EntityType(str, Enum):
     """Supported entity types for filtering (aligned with ontology schema spec)."""
@@ -277,15 +296,15 @@ class GraphRAGResponse(BaseModel):
     """Response from graph-based question answering."""
 
     query: str = Field(..., max_length=1000, description="Original query")
-    entities: list[dict[str, Any]] = Field(
+    entities: list[JSONDict] = Field(
         ...,
         description="Relevant entities found. Typed as dict for flexibility until GraphRAG engine normalizes to GraphNode.",
     )
-    relationships: list[dict[str, Any]] = Field(
+    relationships: list[JSONDict] = Field(
         ...,
         description="Relevant relationships found. Typed as dict for flexibility until GraphRAG engine normalizes to GraphEdge.",
     )
-    context_graph: ContextGraph | dict[str, Any] = Field(
+    context_graph: ContextGraph | JSONDict = Field(
         ..., description="Context graph structure"
     )
     confidence_score: float = Field(
@@ -317,7 +336,7 @@ class SearchRequest(BaseModel):
     weights: dict[str, Annotated[float, Field(ge=0.0, le=1.0)]] | None = Field(
         None, description="Search weights for hybrid search (bm25, vector, graph)"
     )
-    filters: dict[str, Any] | None = Field(
+    filters: JSONDict | None = Field(
         None, description="Additional search filters"
     )
 
@@ -348,7 +367,7 @@ class SearchResult(BaseModel):
     combined_score: float = Field(
         ..., ge=0.0, le=1.0, description="Combined relevance score"
     )
-    metadata: dict[str, Any] = Field(
+    metadata: JSONDict = Field(
         default_factory=dict, description="Additional entity metadata"
     )
     confidence: float = Field(..., ge=0.0, le=1.0, description="Result confidence")
@@ -384,9 +403,9 @@ class GraphRAGStreamEvent(BaseModel):
     """Individual streaming event from GraphRAG query."""
 
     event_type: StreamEventType = Field(..., description="Type of streaming event")
-    data: dict[str, Any] = Field(default_factory=dict, description="Event payload")
+    data: JSONDict = Field(default_factory=dict, description="Event payload")
     timestamp: datetime = Field(
-        default_factory=datetime.utcnow, description="Event timestamp"
+        default_factory=lambda: datetime.now(UTC), description="Event timestamp"
     )
     progress_percent: float | None = Field(
         None, ge=0, le=100, description="Query progress percentage"
@@ -397,9 +416,9 @@ class SearchStreamEvent(BaseModel):
     """Individual streaming event from search query."""
 
     event_type: StreamEventType = Field(..., description="Type of streaming event")
-    data: dict[str, Any] = Field(default_factory=dict, description="Event payload")
+    data: JSONDict = Field(default_factory=dict, description="Event payload")
     timestamp: datetime = Field(
-        default_factory=datetime.utcnow, description="Event timestamp"
+        default_factory=lambda: datetime.now(UTC), description="Event timestamp"
     )
     progress_percent: float | None = Field(
         None, ge=0, le=100, description="Search progress percentage"
@@ -427,12 +446,12 @@ class EntityContextRequest(BaseModel):
 
 class EntityContextResponse(BaseModel):
     entity_id: str
-    center: dict[str, Any]
-    neighbors: list[dict[str, Any]]
-    relationships: list[dict[str, Any]]
+    center: JSONDict
+    neighbors: list[JSONDict]
+    relationships: list[JSONDict]
     entity_count: int
     relationship_count: int
-    pagination: dict[str, Any] | None = Field(
+    pagination: JSONDict | None = Field(
         None, description="Pagination info: {has_more, next_cursor, returned_count}"
     )
 
@@ -493,7 +512,7 @@ class EntitySummary(BaseModel):
 
     @model_validator(mode="before")
     @classmethod
-    def derive_confidence_and_status(cls, data: Any) -> Any:
+    def derive_confidence_and_status(cls, data: JSONDict) -> JSONDict:
         """Derive confidence_label and status from confidence score if not provided."""
         if isinstance(data, dict):
             confidence = data.get("confidence", 0.0)
@@ -551,7 +570,7 @@ class ProvenanceEvent(BaseModel):
     actor: str = Field(
         ..., min_length=1, max_length=255, description="User ID, system component, or job ID that performed the action"
     )
-    details: dict[str, Any] = Field(
+    details: JSONDict = Field(
         default_factory=dict, description="Additional event-specific data"
     )
 
@@ -582,7 +601,7 @@ class EntityDetail(BaseModel):
 
     @model_validator(mode="before")
     @classmethod
-    def derive_confidence_and_status(cls, data: Any) -> Any:
+    def derive_confidence_and_status(cls, data: JSONDict) -> JSONDict:
         """Derive confidence_label and status from confidence score if not provided."""
         if isinstance(data, dict):
             confidence = data.get("confidence", 0.0)
@@ -622,7 +641,7 @@ class EntityDetail(BaseModel):
     )
 
     # Raw properties (for advanced inspection)
-    properties: dict[str, Any] = Field(
+    properties: JSONDict = Field(
         default_factory=dict, description="Raw extracted properties (internal use)"
     )
 
@@ -673,6 +692,9 @@ class EntityFilterRequest(BaseModel):
     extraction_job_ids: list[Annotated[str, Field(max_length=255)]] | None = Field(
         None, description="Filter by originating extraction job"
     )
+    source_version_ids: list[Annotated[str, Field(max_length=255)]] | None = Field(
+        None, description="Filter by source version ID for graph population verification"
+    )
 
     # Time range
     updated_after: datetime | None = Field(None, description="Updated after this time")
@@ -722,7 +744,7 @@ class ValueTreeTraversal(BaseModel):
 class ValueTreeResponse(BaseModel):
     start_entity_id: str
     direction: str
-    paths: list[dict[str, Any]]
+    paths: list[JSONDict]
     path_count: int
 
 
@@ -739,7 +761,7 @@ class CommunityDetectionRequest(BaseModel):
 class Community(BaseModel):
     id: int
     size: int
-    members: list[dict[str, Any]]
+    members: list[JSONDict]
 
 
 class CommunityDetectionResponse(BaseModel):
@@ -807,18 +829,18 @@ class EntityComparisonRequest(BaseModel):
 
 
 class EntityComparisonResponse(BaseModel):
-    entity1: dict[str, Any]
-    entity2: dict[str, Any]
+    entity1: JSONDict
+    entity2: JSONDict
     same_type: bool
     jaccard_similarity: float
     common_neighbors: int
-    path_info: dict[str, Any]
+    path_info: JSONDict
 
 
 # Schema Models
 class SchemaStatus(BaseModel):
-    constraints: dict[str, Any]
-    indexes: dict[str, Any]
+    constraints: JSONDict
+    indexes: JSONDict
     valid: bool
 
 
@@ -865,7 +887,7 @@ class AuditLogEntry(BaseModel):
     entity_type: str | None = Field(None, description="Entity type")
     action: str = Field(..., description="Action performed")
     agent: str = Field(..., description="Agent (user, system, or AI)")
-    details: dict[str, Any] = Field(
+    details: JSONDict = Field(
         default_factory=dict, description="Additional details"
     )
 
@@ -929,7 +951,7 @@ class BatchEntityOperation(BaseModel):
     entity_type: EntityType | None = Field(
         None, description="Entity type (required for create)"
     )
-    properties: dict[str, Any] | None = Field(None, description="Entity properties")
+    properties: JSONDict | None = Field(None, description="Entity properties")
 
 
 class BatchEntityRequest(BaseModel):
@@ -986,7 +1008,7 @@ class BatchAnalyticsResult(BaseModel):
 
     entity_id: str = Field(..., description="Entity ID")
     success: bool = Field(..., description="Whether analysis succeeded")
-    metrics: dict[str, Any] | None = None
+    metrics: JSONDict | None = None
     error: str | None = None
 
 
@@ -999,7 +1021,7 @@ class BatchAnalyticsResponse(BaseModel):
     results: list[BatchAnalyticsResult] = Field(
         ..., description="Individual analysis results"
     )
-    aggregate_metrics: dict[str, Any] | None = Field(
+    aggregate_metrics: JSONDict | None = Field(
         None, description="Aggregated metrics across all analyses"
     )
 
@@ -1023,13 +1045,13 @@ class GraphNode(BaseModel):
     confidence_score: float = Field(
         default=0.8, ge=0.0, le=1.0, description="Confidence score"
     )
-    properties: dict[str, Any] = Field(
+    properties: JSONDict = Field(
         default_factory=dict, description="Additional node properties"
     )
 
     @model_validator(mode="before")
     @classmethod
-    def normalize_and_validate_legacy_aliases(cls, data: Any) -> Any:
+    def normalize_and_validate_legacy_aliases(cls, data: JSONDict) -> JSONDict:
         """Allow legacy aliases only when canonical fields are absent or equal."""
         if not isinstance(data, dict):
             return data
@@ -1065,7 +1087,7 @@ class GraphNode(BaseModel):
         """Deprecated alias for 'confidence_score'."""
         return self.confidence_score
 
-    def model_dump(self, **kwargs: Any) -> dict[str, Any]:
+    def model_dump(self, **kwargs: object) -> JSONDict:
         """Override to remove aliases when the deprecation window closes."""
         api_version = kwargs.pop("api_version", "v2.3")
         data = super().model_dump(**kwargs)
@@ -1111,13 +1133,13 @@ class GraphEdge(BaseModel):
     target: str = Field(..., description="Target node ID")
     type: str = Field(..., description="Relationship type/label")
     weight: float = Field(default=1.0, ge=0.0, description="Edge weight/strength")
-    properties: dict[str, Any] = Field(
+    properties: JSONDict = Field(
         default_factory=dict, description="Additional edge properties"
     )
 
     @model_validator(mode="before")
     @classmethod
-    def normalize_and_validate_legacy_aliases(cls, data: Any) -> Any:
+    def normalize_and_validate_legacy_aliases(cls, data: JSONDict) -> JSONDict:
         if not isinstance(data, dict):
             return data
         for alias, canonical in GraphEdgeAliasMap.items():
@@ -1136,7 +1158,7 @@ class GraphEdge(BaseModel):
         """Deprecated alias for 'type'."""
         return self.type
 
-    def model_dump(self, **kwargs: Any) -> dict[str, Any]:
+    def model_dump(self, **kwargs: object) -> JSONDict:
         """Override to remove aliases when the deprecation window closes."""
         api_version = kwargs.pop("api_version", "v2.3")
         data = super().model_dump(**kwargs)

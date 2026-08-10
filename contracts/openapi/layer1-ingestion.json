@@ -713,6 +713,15 @@
               }
             }
           },
+          "401": {
+            "description": "Authentication required"
+          },
+          "404": {
+            "description": "Target not found for the authenticated tenant"
+          },
+          "409": {
+            "description": "Requested target state conflicts with current state"
+          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -2924,6 +2933,9 @@
     },
     "/health": {
       "get": {
+        "tags": [
+          "health"
+        ],
         "summary": "Legacy Health Check",
         "description": "Legacy-compatible health check with dependency status.",
         "operationId": "legacy_health_check_health_get",

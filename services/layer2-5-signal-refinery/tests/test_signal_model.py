@@ -3,18 +3,15 @@
 from __future__ import annotations
 
 import uuid
-from datetime import UTC, datetime
 
 import pytest
-
 from layer2_5_signal_refinery.services.signal_refinery import (
     classify_signal_type,
     compute_evidence_quality,
     compute_trust_score,
-    refine_signal,
     refine_batch,
+    refine_signal,
 )
-
 
 # ---------------------------------------------------------------------------
 # compute_evidence_quality
