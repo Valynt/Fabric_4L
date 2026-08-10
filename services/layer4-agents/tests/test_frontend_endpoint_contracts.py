@@ -63,14 +63,15 @@ def test_overdue_frontend_aliases_removed() -> None:
     """The overdue compat aliases (removal targets 2026-07-01 and 2026-08-01)
     are removed from the router source; the canonical L4 paths remain."""
     from pathlib import Path
+    import re
 
     source = (
         Path(__file__).resolve().parents[1]
         / "src" / "layer4_agents" / "api" / "routes" / "frontend_compat.py"
     ).read_text(encoding="utf-8")
-    assert '"/auth/register"' not in source
-    assert '"/tenant/settings"' not in source
-    assert '"/auth/session"' in source
+    assert re.search(r"@router\.[a-z_]+\(\s*['\"]/auth/register['\"]", source) is None
+    assert re.search(r"@router\.[a-z_]+\(\s*['\"]/tenant/settings['\"]", source) is None
+    assert re.search(r"@router\.[a-z_]+\(\s*['\"]/auth/session['\"]", source) is not None
 
     # Canonical targets still exist in the published contract.
     _operation("/v1/tenants/current/settings", "get")
