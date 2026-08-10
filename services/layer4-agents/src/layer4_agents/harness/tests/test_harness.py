@@ -1504,17 +1504,9 @@ class TestAPIBehavior:
 
 def test_adr_content() -> None:
     """ADR document exists and contains key decisions."""
-    # Navigate from tests/ up to the service root (parents[4]) then walk toward repo root
-    # to locate the canonical ADR. This handles both service-root and monorepo-root docs placements.
-    start = Path(__file__).resolve().parents[4]
-    adr_filename = "ADR-001-fabric-harness-as-the-governed-execution-spine-for-agentic-value-workflows.md"
-    adr_path = None
-    for base in [start, *start.parents]:
-        candidate = base / "docs" / "explanations" / "adr" / adr_filename
-        if candidate.exists():
-            adr_path = candidate
-            break
-    assert adr_path is not None, f"ADR document should exist (searched from {start})"
+    # Navigate from tests/ to repo root: tests -> harness -> src -> layer4-agents -> services -> output
+    adr_path = Path(__file__).parent.parent.parent.parent.parent.parent / "docs" / "architecture" / "ADR-001-fabric-harness-as-the-governed-execution-spine-for-agentic-value-workflows.md"
+    assert adr_path.exists(), f"ADR document should exist at {adr_path}"
     content = adr_path.read_text()
     assert "L4 remains the orchestration layer" in content
     assert "L5 remains the ground-truth and validation layer" in content

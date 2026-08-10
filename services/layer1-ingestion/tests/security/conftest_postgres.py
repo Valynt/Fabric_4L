@@ -52,7 +52,7 @@ def _get_postgres_url():
     # Priority: env var > docker-compose dev stack default
     return os.environ.get(
         "TEST_DATABASE_URL",
-        "postgresql+psycopg2://postgres:postgres@localhost:5432/layer1_ingestion"
+        "postgresql+psycopg2://postgres:postgres@localhost:5432/ingestion"
     )
 
 

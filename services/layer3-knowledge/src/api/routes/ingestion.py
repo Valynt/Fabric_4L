@@ -8,16 +8,14 @@ exclusively from authenticated request context (never from X-Tenant-ID).
 from __future__ import annotations
 
 import logging
-from typing import Literal
+from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, Request
-from pydantic import BaseModel, Field
 from value_fabric.shared.error_handling.exceptions import (
     AuthenticationError,
     NotFoundError,
     ServiceUnavailableError,
 )
-from value_fabric.shared.models import JSONDict
 
 from ...api.dependencies import get_sync_manager
 from ...api.models import IngestRequest, IngestResponse, SyncStatusResponse
@@ -29,73 +27,6 @@ from ...api.models import IngestRequest, IngestResponse, SyncStatusResponse
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/v1", tags=["Ingestion"])
-
-
-class GroundTruthNodeRequest(BaseModel):
-    """Ground Truth node creation request from Layer 5.
-    
-    Matches the payload format used by Layer 5's Layer3Client.sync_truth_object().
-    """
-    node_type: str = Field(..., description="Node type (expected: 'GroundTruth')")
-    properties: JSONDict = Field(..., description="Node properties")
-    merge_keys: list[str] = Field(default_factory=list, description="Keys for MERGE operation")
-
-
-class GroundTruthNodeResponse(BaseModel):
-    """Ground Truth node creation response."""
-    node_id: str = Field(..., description="Created node ID")
-    status: Literal["created", "updated"] = Field(..., description="Whether node was created or updated")
-    message: str = Field(default="", description="Additional message")
-
-
-@router.post("/nodes", response_model=GroundTruthNodeResponse)
-async def create_ground_truth_node(
-    request: GroundTruthNodeRequest,
-    fastapi_request: Request,
-    sync_manager=Depends(get_sync_manager),
-) -> GroundTruthNodeResponse:
-    """Create or update a GroundTruth node from Layer 5.
-    
-    This endpoint is called by Layer 5's Layer3Client.sync_truth_object()
-    to persist validated TruthObjects as :GroundTruth nodes in the Knowledge Graph.
-    """
-    ctx = getattr(fastapi_request.state, "governance_context", None) or getattr(fastapi_request.state, "context", None)
-    tenant_id = str(ctx.tenant_id) if ctx and getattr(ctx, "tenant_id", None) else None
-    if not tenant_id:
-        raise AuthenticationError(message="Authenticated tenant context required for Ground Truth sync")
-
-    if request.node_type != "GroundTruth":
-        raise ServiceUnavailableError(message="Only GroundTruth node type is supported")
-
-    props = request.properties
-    truth_object_id = props.get("truth_object_id")
-    if not truth_object_id:
-        raise ServiceUnavailableError(message="truth_object_id is required in properties")
-
-    # Ensure tenant_id is in properties for merge
-    props["tenant_id"] = tenant_id
-
-    # For now, delegate to the sync manager's node creation
-    # This creates a :GroundTruth node with the provided properties
-    from ...services.kg_sync import get_sync_manager as get_kg_sync_manager
-    kg_sync = get_kg_sync_manager()
-    
-    try:
-        # Create or update the GroundTruth node
-        node_id = await kg_sync.upsert_ground_truth_node(
-            truth_object_id=truth_object_id,
-            tenant_id=tenant_id,
-            properties=props,
-        )
-        
-        return GroundTruthNodeResponse(
-            node_id=node_id,
-            status="created",
-            message=f"GroundTruth node synced for truth_object_id={truth_object_id}"
-        )
-    except Exception as e:
-        logger.error("Ground Truth node creation failed: %s", e)
-        raise ServiceUnavailableError(message="Ground Truth sync failed")
 
 
 @router.post("/ingest", response_model=IngestResponse)
@@ -179,7 +110,7 @@ async def delete_source(
     source_id: str,
     fastapi_request: Request,
     sync_manager=Depends(get_sync_manager),
-) -> JSONDict:
+) -> dict[str, Any]:
     """Delete all data for a source."""
     ctx = getattr(fastapi_request.state, "governance_context", None) or getattr(fastapi_request.state, "context", None)
     tenant_id = str(ctx.tenant_id) if ctx and getattr(ctx, "tenant_id", None) else None

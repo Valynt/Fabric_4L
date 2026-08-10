@@ -149,9 +149,7 @@ def _resolve_profile(ctx: click.Context) -> tuple[str, dict[str, Any]]:
     return name, get_profile(name)
 
 
-def _resolve_value(
-    ctx: click.Context, key: str, env_name: str, profile: dict[str, Any]
-) -> str | None:
+def _resolve_value(ctx: click.Context, key: str, env_name: str, profile: dict[str, Any]) -> str | None:
     explicit = _global(ctx, key)
     if explicit:
         return str(explicit)
@@ -194,9 +192,7 @@ def _emit_error(ctx: click.Context, error: CliError, *, request_id: str | None =
         click.echo(f"{error.code}: {error.message}", err=True)
 
 
-def _handle_failure(
-    ctx: click.Context, exc: BaseException, *, request_id: str | None = None
-) -> None:
+def _handle_failure(ctx: click.Context, exc: BaseException, *, request_id: str | None = None) -> None:
     error = map_exception(exc)
     _emit_error(ctx, error, request_id=request_id)
     raise click.exceptions.Exit(error.exit_code)
@@ -245,9 +241,7 @@ def _protected_context(
     )
 
 
-def protected_command(
-    required_scopes: set[str],
-) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+def protected_command(required_scopes: set[str]) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
         @wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> None:
@@ -263,9 +257,7 @@ def protected_command(
                 )
                 request_id = execution_context.request_id
                 with bind_execution_context(execution_context):
-                    data = func(
-                        *args, api_client=client, execution_context=execution_context, **kwargs
-                    )
+                    data = func(*args, api_client=client, execution_context=execution_context, **kwargs)
                 if _global(ctx, "json_output"):
                     emit_json(success_envelope(_as_payload(data), context=execution_context))
                 elif not _global(ctx, "quiet") and data is not None:
@@ -492,9 +484,7 @@ def context_show(ctx: click.Context) -> None:
             "profile": profile_name,
             "tenant_id": _resolve_value(ctx, "tenant_id", "VALUEPACT_TENANT_ID", profile),
             "environment": _resolve_value(ctx, "environment", "VALUEPACT_ENVIRONMENT", profile),
-            "api_url": _resolve_api_url(ctx, profile)
-            if (profile.get("api_url") or os.environ.get("VALUEPACT_API_URL"))
-            else None,
+            "api_url": _resolve_api_url(ctx, profile) if (profile.get("api_url") or os.environ.get("VALUEPACT_API_URL")) else None,
         }
         if _global(ctx, "json_output"):
             emit_json(success_envelope(data))
@@ -558,11 +548,7 @@ def tenant_show(
     execution_context: ExecutionContext,
 ) -> Any:
     if tenant_id != execution_context.tenant_id:
-        raise CliError(
-            "TENANT_CONTEXT_MISMATCH",
-            "Requested tenant does not match active context.",
-            EXIT_INVALID,
-        )
+        raise CliError("TENANT_CONTEXT_MISMATCH", "Requested tenant does not match active context.", EXIT_INVALID)
     return api_client.get_tenant(tenant_id)
 
 
@@ -609,11 +595,7 @@ def workspace_execute(
 ) -> Any:
     if not yes and not dry_run:
         if _global(click.get_current_context(), "json_output"):
-            raise CliError(
-                "INVALID_ARGUMENT",
-                "Mutating JSON command requires --yes or --dry-run.",
-                EXIT_INVALID,
-            )
+            raise CliError("INVALID_ARGUMENT", "Mutating JSON command requires --yes or --dry-run.", EXIT_INVALID)
         emit_human_mapping(
             {
                 "tenant_id": execution_context.tenant_id,
@@ -698,18 +680,10 @@ def execution_cancel(
     execution_context: ExecutionContext,
 ) -> Any:
     if dry_run:
-        return {
-            "execution_id": execution_id,
-            "status": "dry_run",
-            "tenant_id": execution_context.tenant_id,
-        }
+        return {"execution_id": execution_id, "status": "dry_run", "tenant_id": execution_context.tenant_id}
     if not yes:
         if _global(click.get_current_context(), "json_output"):
-            raise CliError(
-                "INVALID_ARGUMENT",
-                "Mutating JSON command requires --yes or --dry-run.",
-                EXIT_INVALID,
-            )
+            raise CliError("INVALID_ARGUMENT", "Mutating JSON command requires --yes or --dry-run.", EXIT_INVALID)
         emit_human_mapping(
             {
                 "tenant_id": execution_context.tenant_id,

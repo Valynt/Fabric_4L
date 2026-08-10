@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 import uuid
-from collections.abc import Mapping
 from datetime import UTC, datetime
 from typing import Any
 
@@ -47,9 +46,7 @@ def _row_to_dict(row: ValueSignalRow) -> dict[str, Any]:
         "reviewer_id": str(row.reviewer_id) if row.reviewer_id else None,
         "expires_at": row.expires_at.isoformat() if row.expires_at else None,
         "supersedes_signal_id": str(row.supersedes_signal_id) if row.supersedes_signal_id else None,
-        "related_signal_ids": [str(x) for x in row.related_signal_ids]
-        if row.related_signal_ids
-        else None,
+        "related_signal_ids": [str(x) for x in row.related_signal_ids] if row.related_signal_ids else None,
         "created_at": row.created_at.isoformat(),
         "updated_at": row.updated_at.isoformat(),
         "reviewed_at": row.reviewed_at.isoformat() if row.reviewed_at else None,
@@ -170,29 +167,15 @@ class SignalRepository:
         return _row_to_dict(row)
 
     # Columns that exist on ValueSignalRow and are safe to update
-    _UPDATABLE_COLUMNS = frozenset(
-        {
-            "lifecycle_state",
-            "validation_notes",
-            "reviewer_id",
-            "impact_area",
-            "estimated_value",
-            "currency",
-            "time_horizon",
-            "value_driver_id",
-            "expires_at",
-            "supersedes_signal_id",
-            "related_signal_ids",
-            "opportunity_id",
-            "stakeholder_id",
-            "persona",
-            "industry",
-            "reviewed_at",
-            "updated_at",
-        }
-    )
+    _UPDATABLE_COLUMNS = frozenset({
+        "lifecycle_state", "validation_notes", "reviewer_id", "impact_area",
+        "estimated_value", "currency", "time_horizon", "value_driver_id",
+        "expires_at", "supersedes_signal_id", "related_signal_ids",
+        "opportunity_id", "stakeholder_id", "persona", "industry",
+        "reviewed_at", "updated_at",
+    })
 
-    async def update(self, signal_id: str, updates: Mapping[str, Any]) -> dict[str, Any] | None:
+    async def update(self, signal_id: str, updates: dict[str, Any]) -> dict[str, Any] | None:
         """Partial update of a signal. Returns updated dict or None if not found.
 
         Only columns present in _UPDATABLE_COLUMNS are applied — unknown keys

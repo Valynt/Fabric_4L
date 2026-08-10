@@ -80,8 +80,6 @@ module.exports = {
   parserOptions: {
     ecmaVersion: 2020,
     sourceType: "module",
-    project: ["./tsconfig.json"],
-    tsconfigRootDir: __dirname,
     ecmaFeatures: {
       jsx: true,
     },
@@ -187,7 +185,6 @@ module.exports = {
     "**/*.d.ts",
     "**/*.config.ts",
     "**/*.config.js",
-    "src/api/generated/**",
   ],
   settings: {
     react: {

@@ -6,7 +6,7 @@ Pydantic validation, serialization, and the public API contract stay unchanged.
 """
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import TYPE_CHECKING, Any, Protocol
 
 if TYPE_CHECKING:
@@ -24,7 +24,7 @@ class APIKeyExpirationMixin:
         """Check if API key is expired."""
         if self.expires_at is None:
             return False
-        return datetime.now(UTC) > self.expires_at
+        return datetime.utcnow() > self.expires_at
 
 
 class _APIKeyIPValidationProtocol(Protocol):
@@ -65,5 +65,5 @@ class APIKeyUsageMixin:
 
     def update_usage(self: _APIKeyUsageProtocol) -> None:
         """Update usage statistics."""
-        self.last_used_at = datetime.now(UTC)
+        self.last_used_at = datetime.utcnow()
         self.usage_count += 1

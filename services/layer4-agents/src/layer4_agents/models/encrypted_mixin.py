@@ -39,7 +39,7 @@ from typing import Any, ClassVar, cast
 
 from sqlalchemy import Column, String, event
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import Mapped, Mapper, declared_attr, mapped_column
+from sqlalchemy.orm import Mapper, declared_attr
 from value_fabric.shared.crypto import EncryptedString, blind_index
 
 logger = logging.getLogger(__name__)
@@ -111,14 +111,15 @@ class PIIMixin:
 
     @declared_attr.directive
     @classmethod
-    def pii_key_version(cls) -> Mapped[str]:
+    def pii_key_version(cls) -> Column[str]:
         """Track the encryption key version used for the most recent write.
 
         Enables deterministic re-encryption when rotating keys: select rows
         where ``pii_key_version < ENCRYPTION_KEY_VERSION`` and re-write.
         """
-        return mapped_column(String(8), nullable=True, default="1")
+        return Column("pii_key_version", String(8), nullable=True, default="1")
 
+    @declared_attr.directive
     @classmethod
     def __declare_last__(cls) -> None:
         """Late-binding hook to validate PII configuration after mapper init."""
@@ -187,7 +188,6 @@ class PIIMixin:
         def _make_getter(enc_name: str) -> Any:
             def getter(self: Any) -> str | None:
                 return getattr(self, enc_name, None)
-
             return getter
 
         def _make_setter(enc_name: str, hash_name: str, is_searchable: bool) -> Any:
@@ -203,7 +203,6 @@ class PIIMixin:
                 key_ver = os.getenv(_KEY_VERSION_ENV_VAR, "1").strip()
                 if key_ver:
                     self.pii_key_version = key_ver
-
             return setter
 
         setattr(
@@ -240,8 +239,7 @@ class PIIMixin:
     def searchable_pii_fields(cls) -> list[str]:
         """Return PII fields that have a blind index for exact-match queries."""
         return [
-            f
-            for f, cfg in getattr(cls, "__pii_config__", {}).items()
+            f for f, cfg in getattr(cls, "__pii_config__", {}).items()
             if cfg.get("searchable", DEFAULT_PII_FIELDS.get(f, {}).get("searchable", False))
         ]
 
@@ -271,7 +269,6 @@ class PIIMixin:
 # SQLAlchemy event listener: auto-populate blind indexes on INSERT/UPDATE
 # ---------------------------------------------------------------------------
 
-
 @event.listens_for(PIIMixin, "before_insert", propagate=True)
 @event.listens_for(PIIMixin, "before_update", propagate=True)
 def _pii_auto_populate_hash(mapper: Mapper[PIIMixin], connection: Any, target: PIIMixin) -> None:
@@ -295,7 +292,6 @@ def _pii_auto_populate_hash(mapper: Mapper[PIIMixin], connection: Any, target: P
                 # Attempt to decrypt and re-index (best-effort)
                 try:
                     from value_fabric.shared.crypto.encrypted_column import _get_fernet
-
                     fernet = _get_fernet()
                     if fernet is not None:
                         plaintext = fernet.decrypt(encrypted_value.encode("ascii")).decode("utf-8")

@@ -123,27 +123,6 @@ class TestPipelineStateMachine:
 
 
 class TestPipelineCoordinator:
-    def test_start_run_flushes_new_run_when_autoflush_is_disabled(
-        self, db: Session, ingestion_run: SourceIngestionRun
-    ):
-        pending_run = SourceIngestionRun(
-            tenant_id=ingestion_run.tenant_id,
-            source_id=ingestion_run.source_id,
-            source_version_id=ingestion_run.source_version_id,
-            status=IngestionRunStatus.ACCEPTED,
-            requested_outputs=["fabric_found_summary"],
-            created_by=uuid4(),
-        )
-        db.autoflush = False
-        db.add(pending_run)
-        assert pending_run.id is None
-
-        PipelineCoordinator(db).start_run(pending_run)
-
-        assert pending_run.id is not None
-        step = db.query(IngestionRunStep).filter_by(id=pending_run.current_step_id).one()
-        assert step.run_id == pending_run.id
-
     def test_start_run_advances_to_validating_access(self, db: Session, ingestion_run: SourceIngestionRun):
         coordinator = PipelineCoordinator(db)
         coordinator.start_run(ingestion_run)

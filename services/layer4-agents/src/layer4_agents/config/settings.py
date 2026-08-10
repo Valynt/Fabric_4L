@@ -196,11 +196,6 @@ class Settings(BillingSettingsMixin, RuntimeSettingsMixin, BaseSettings):
         validation_alias=AliasChoices("LAYER4_LAYER5_API_URL", "LAYER5_API_URL", "LAYER5_GROUND_TRUTH_URL"),
         description="Layer 5 Ground Truth API URL"
     )
-    layer6_api_base_url: str = Field(
-        default="",
-        validation_alias=AliasChoices("LAYER4_LAYER6_API_BASE_URL", "LAYER6_API_BASE_URL", "LAYER6_BENCHMARKS_URL"),
-        description="Layer 6 Benchmarks API URL"
-    )
     neo4j_uri: str = Field(
         default="bolt://localhost:7687",
         validation_alias=AliasChoices("LAYER4_NEO4J_URI", "NEO4J_URI"),
@@ -536,22 +531,17 @@ class Settings(BillingSettingsMixin, RuntimeSettingsMixin, BaseSettings):
             )
         return v
 
-    @field_validator("layer1_api_url", "layer2_api_url", "layer3_api_url", "layer5_api_url", "layer6_api_base_url")
+    @field_validator("layer1_api_url", "layer2_api_url", "layer3_api_url", "layer5_api_url")
     @classmethod
     def validate_layer_endpoint_url(cls, v: str, info: ValidationInfo) -> str:
-        """Validate Layer 1/2/3/5/6 endpoint URLs with environment-aware transport rules."""
+        """Validate Layer 1/2/3/5 endpoint URLs with environment-aware transport rules."""
         if not info.field_name:
             raise ValueError("field_name is required for URL validation")
         field_name = info.field_name.upper()
-
-        # The field defaults are intentionally empty strings. When a value is
-        # not configured (empty / whitespace-only), skip format validation —
-        # the production-readiness gates already verify that every required
-        # endpoint URL is populated before deploy. This lets Settings be
-        # constructed for unit tests and non-production tooling without
-        # forcing every layer endpoint to be wired.
         if not v or not v.strip():
-            return v
+            raise ValueError(
+                f"FATAL: {field_name} is required. Configure an explicit service endpoint."
+            )
 
         endpoint = v.strip()
         parsed = urlparse(endpoint)

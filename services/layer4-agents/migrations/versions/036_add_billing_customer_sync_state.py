@@ -13,16 +13,8 @@ down_revision = "035_add_billing_plan_versions"
 branch_labels = None
 depends_on = None
 
-MIGRATION_REVIEW_REQUIRED = (
-    "Widens Alembic's internal revision identifier column before this and later "
-    "revision IDs exceed the default 32-character limit."
-)
-
 
 def upgrade() -> None:
-    op.execute(
-        "ALTER TABLE alembic_version ALTER COLUMN version_num TYPE VARCHAR(255)"
-    )
     op.add_column("billing_customers", sa.Column("stripe_sync_status", sa.String(length=20), nullable=False, server_default="pending"))
     op.add_column("billing_customers", sa.Column("stripe_sync_error", sa.Text(), nullable=True))
     op.add_column("billing_customers", sa.Column("stripe_sync_attempted_at", sa.DateTime(timezone=True), nullable=True))

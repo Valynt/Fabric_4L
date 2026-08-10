@@ -263,7 +263,7 @@ class TestRobotsCheckerGlobalCacheAccess:
         checker = RobotsChecker(tenant_id=tenant_id)
         
         # Should access global cache successfully
-        cached = checker._get_cached_robots_txt("checker.com")
+        cached = await checker._get_cached_robots_txt("checker.com")
         
         assert cached is not None
         assert cached["rules"]["*"]["crawl_delay"] == 5.0
@@ -291,7 +291,7 @@ class TestRobotsCheckerGlobalCacheAccess:
         checker = RobotsChecker(tenant_id=None)
         
         # Should access global cache successfully
-        cached = checker._get_cached_robots_txt("notenant.com")
+        cached = await checker._get_cached_robots_txt("notenant.com")
         
         assert cached is not None
         assert cached["rules"]["*"]["crawl_delay"] is None
@@ -302,7 +302,7 @@ class TestRobotsCheckerGlobalCacheAccess:
         checker = RobotsChecker(tenant_id="invalid-uuid")
         
         with pytest.raises(InvalidTenantContextError) as exc_info:
-            checker._get_cached_robots_txt("example.com")
+            await checker._get_cached_robots_txt("example.com")
         
         assert "Invalid tenant_id format" in str(exc_info.value)
 
@@ -313,13 +313,13 @@ class TestRobotsCheckerGlobalCacheAccess:
         from layer1_ingestion.shared.database import get_db_session
         from unittest.mock import patch
         
-        with patch('layer1_ingestion.compliance.robots_checker.get_db_session') as mock_session:
+        with patch('layer1_ingestion.shared.database.get_db_session') as mock_session:
             mock_session.side_effect = Exception("Database connection failed")
             
             checker = RobotsChecker(tenant_id=str(uuid4()))
             
             with pytest.raises(RobotsCacheError) as exc_info:
-                checker._get_cached_robots_txt("error.com")
+                await checker._get_cached_robots_txt("error.com")
             
             assert "Failed to retrieve cached robots.txt" in str(exc_info.value)
             assert exc_info.value.domain == "error.com"

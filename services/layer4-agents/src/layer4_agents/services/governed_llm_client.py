@@ -30,8 +30,8 @@ import yaml
 from .llm_output_parser import parse_llm_json
 
 if TYPE_CHECKING:
-    from layer4_agents.harness.models import HarnessRun
-    from layer4_agents.harness.telemetry import TelemetryEmitter
+    from harness.models import HarnessRun
+    from harness.telemetry import TelemetryEmitter
 
     from .llm_provider import LLMProvider
 
@@ -309,7 +309,7 @@ class GovernedLLMClient:
     # ------------------------------------------------------------------
 
     def _resolve_model(self, model_task: str) -> str:
-        """Resolve model name from layer4_agents.harness.runtime.yaml for the active provider."""
+        """Resolve model name from harness.runtime.yaml for the active provider."""
         llm_cfg = self._config.get("llm", {})
         provider = os.getenv("LAYER4_LLM_PROVIDER", llm_cfg.get("provider", self._provider_name))
         models = llm_cfg.get("models", {}).get(provider, {})
@@ -438,7 +438,7 @@ class GovernedLLMClient:
             logger.debug("LLM trace [%s]: %s", event_type, metadata)
             return
         try:
-            from layer4_agents.harness.models import HarnessTraceEvent
+            from harness.models import HarnessTraceEvent
 
             event = HarnessTraceEvent(
                 trace_id=self._run.trace_id,

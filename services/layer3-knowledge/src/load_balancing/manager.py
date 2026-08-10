@@ -7,7 +7,7 @@ import statistics
 import time
 from collections import deque
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import datetime
 from enum import Enum
 from typing import Any
 
@@ -240,7 +240,7 @@ class CircuitBreaker:
             return True
         elif self.state == "open":
             if (
-                datetime.now(UTC) - self.last_failure_time
+                datetime.utcnow() - self.last_failure_time
             ).total_seconds() > self.timeout:
                 self.state = "half-open"
                 return True
@@ -257,7 +257,7 @@ class CircuitBreaker:
     def record_failure(self):
         """Record failed call."""
         self.failure_count += 1
-        self.last_failure_time = datetime.now(UTC)
+        self.last_failure_time = datetime.utcnow()
 
         if self.failure_count >= self.failure_threshold:
             self.state = "open"
@@ -451,17 +451,17 @@ class LoadBalancer:
 
             if response.status_code == 200:
                 backend.health_status = HealthStatus.HEALTHY
-                backend.last_health_check = datetime.now(UTC)
+                backend.last_health_check = datetime.utcnow()
             else:
                 backend.health_status = HealthStatus.UNHEALTHY
-                backend.last_health_check = datetime.now(UTC)
+                backend.last_health_check = datetime.utcnow()
                 logger.warning(
                     f"Backend {backend.id} health check failed: {response.status_code}"
                 )
 
         except Exception as e:
             backend.health_status = HealthStatus.UNHEALTHY
-            backend.last_health_check = datetime.now(UTC)
+            backend.last_health_check = datetime.utcnow()
             logger.error(f"Backend {backend.id} health check error: {e}")
 
     def get_stats(self) -> LoadBalancerStats:
@@ -484,7 +484,7 @@ class LoadBalancer:
             ),
             healthy_backends=healthy_backends,
             total_backends=total_backends,
-            last_updated=datetime.now(UTC),
+            last_updated=datetime.utcnow(),
         )
 
     async def close(self):
@@ -712,7 +712,7 @@ class AutoScaler:
             return True
 
         cooldown_passed = (
-            datetime.now(UTC) - last_scale
+            datetime.utcnow() - last_scale
         ).total_seconds() > self.config.scale_up_cooldown
         return cooldown_passed
 
@@ -727,7 +727,7 @@ class AutoScaler:
             return True
 
         cooldown_passed = (
-            datetime.now(UTC) - last_scale
+            datetime.utcnow() - last_scale
         ).total_seconds() > self.config.scale_down_cooldown
         return cooldown_passed
 
@@ -760,12 +760,12 @@ class AutoScaler:
         )
 
         self.load_balancer.add_backend(new_backend)
-        self.last_scale_time["up"] = datetime.now(UTC)
+        self.last_scale_time["up"] = datetime.utcnow()
 
         # Record scaling event
         self.scaling_history.append(
             {
-                "timestamp": datetime.now(UTC),
+                "timestamp": datetime.utcnow(),
                 "action": "scale_up",
                 "instances_before": metrics["current_instances"],
                 "instances_after": metrics["current_instances"] + 1,
@@ -809,12 +809,12 @@ class AutoScaler:
 
         # Remove backend
         self.load_balancer.remove_backend(backend_to_remove.id)
-        self.last_scale_time["down"] = datetime.now(UTC)
+        self.last_scale_time["down"] = datetime.utcnow()
 
         # Record scaling event
         self.scaling_history.append(
             {
-                "timestamp": datetime.now(UTC),
+                "timestamp": datetime.utcnow(),
                 "action": "scale_down",
                 "instances_before": metrics["current_instances"],
                 "instances_after": metrics["current_instances"] - 1,
@@ -891,7 +891,7 @@ class LoadBalancingSystem:
         self.load_balancer = LoadBalancer(load_balancer_config)
         self.auto_scaler = AutoScaler(auto_scaling_config, self.load_balancer)
         self.request_count = 0
-        self.start_time = datetime.now(UTC)
+        self.start_time = datetime.utcnow()
 
     async def start(self):
         """Start load balancing system."""
@@ -945,7 +945,7 @@ class LoadBalancingSystem:
             System statistics
         """
         lb_stats = self.load_balancer.get_stats()
-        uptime = (datetime.now(UTC) - self.start_time).total_seconds()
+        uptime = (datetime.utcnow() - self.start_time).total_seconds()
 
         return LoadBalancingSystem_get_system_statsResult.model_validate({
             "load_balancer": lb_stats.dict(),

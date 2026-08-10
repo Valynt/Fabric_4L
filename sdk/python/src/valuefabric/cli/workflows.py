@@ -20,11 +20,11 @@ def list_workflows(
     """List workflow types or active workflows."""
     client = get_client()
     if active:
-        page = client.list_active_workflows()
-        rows = [w.model_dump(mode="json") for w in page.items]
-        cols = ["id", "workflow_type", "status", "progress"]
+        workflows = client.list_active_workflows()
+        rows = [w.model_dump(mode="json") for w in workflows]
+        cols = ["workflow_instance_id", "workflow_type", "status", "progress_percentage"]
     else:
-        workflows = client.list_workflow_types()
+        workflows = client.list_workflows()
         rows = [w.model_dump(mode="json") for w in workflows]
         cols = ["type", "name", "description"]
     print_table(rows, columns=cols, json_output=json_output)
@@ -33,6 +33,8 @@ def list_workflows(
 @app.command("execute")
 def execute_workflow(
     workflow_type: str,
+    tenant_id: str = typer.Option(..., "--tenant-id", help="Tenant ID"),
+    user_id: str = typer.Option(..., "--user-id", help="User ID"),
     inputs: str | None = typer.Option(None, "--inputs", help="JSON inputs string"),
     priority: str = typer.Option("NORMAL", "--priority", "-p", help="Execution priority"),
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
@@ -44,10 +46,12 @@ def execute_workflow(
     client = get_client()
     result = client.execute_workflow(
         workflow_type=workflow_type,
+        tenant_id=tenant_id,
+        user_id=user_id,
         inputs=parsed_inputs,
         priority=priority,
     )
-    print_object(result.model_dump(mode="json"), json_output=json_output)
+    print_object(result, json_output=json_output)
 
 
 @app.command("get")

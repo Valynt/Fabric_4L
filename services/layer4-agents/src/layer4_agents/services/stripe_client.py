@@ -14,20 +14,18 @@ from value_fabric.shared.models.typed_dict import TypedDictModel
 
 
 class report_meter_eventResult(TypedDictModel):
-    event_name: Any | None = None
-    id: Any | None = None
+    event_name: Any
+    id: Any
     reason: str | None = None
     skipped: bool | None = None
-    status: Any | None = None
-    stripe_customer_id: Any | None = None
-
+    status: Any
+    stripe_customer_id: Any
 
 class sync_usage_to_stripeResult(TypedDictModel):
-    error: Any | None = None
+    error: Any
     stripe_response: Any | None = None
     synced: int
     total_quantity: int
-
 
 class get_billing_meterResult(TypedDictModel):
     display_name: Any
@@ -35,13 +33,11 @@ class get_billing_meterResult(TypedDictModel):
     id: Any
     status: Any
 
-
 logger = logging.getLogger(__name__)
 
 # Optional stripe import for environments where it's not installed
 try:
     import stripe
-
     _stripe_available = True
 except ImportError:
     stripe = None  # type: ignore
@@ -66,13 +62,11 @@ VALID_PLANS = {"pro", "enterprise"}
 
 class StripeNotConfiguredError(Exception):
     """Raised when Stripe is not properly configured."""
-
     pass
 
 
 class StripeError(Exception):
     """Raised when a Stripe API call fails."""
-
     pass
 
 
@@ -86,7 +80,7 @@ def get_stripe() -> Any:
         raise StripeNotConfiguredError(
             "Stripe module not installed. Install with: pip install stripe"
         )
-    if not getattr(stripe, "api_key", None):
+    if not getattr(stripe, 'api_key', None):
         raise StripeNotConfiguredError(
             "Stripe is not configured. Set STRIPE_SECRET_KEY environment variable."
         )
@@ -120,9 +114,7 @@ def get_price_id(plan_id: str) -> str | None:
 
 # MeterEvents configuration for usage-based billing
 STRIPE_METER_API_KEY = os.environ.get("STRIPE_METER_API_KEY", "")  # Can be separate from main key
-STRIPE_METER_EVENTS_ENABLED = (
-    os.environ.get("STRIPE_METER_EVENTS_ENABLED", "false").lower() == "true"
-)
+STRIPE_METER_EVENTS_ENABLED = os.environ.get("STRIPE_METER_EVENTS_ENABLED", "false").lower() == "true"
 
 # Map internal metric names to Stripe event names
 STRIPE_METER_EVENT_MAP = {
@@ -136,7 +128,6 @@ STRIPE_METER_EVENT_MAP = {
 
 class StripeMeterEventError(Exception):
     """Raised when a Stripe MeterEvent call fails."""
-
     pass
 
 
@@ -199,14 +190,13 @@ def report_meter_event(
         logger.debug(
             f"MeterEvent reported: {stripe_event_name}={quantity} for {stripe_customer_id}"
         )
-        return report_meter_eventResult.model_validate(
-            {  # type: ignore[no-any-return]
-                "id": meter_event.id,
-                "event_name": meter_event.event_name,
-                "status": meter_event.status,
-                "stripe_customer_id": stripe_customer_id,
-            }
-        )
+        return report_meter_eventResult.model_validate({  # type: ignore[no-any-return]
+            "id": meter_event.id,
+            "event_name": meter_event.event_name,
+            "status": meter_event.status,
+            "stripe_customer_id": stripe_customer_id,
+        })
+
 
     except asyncio.CancelledError:
         raise
@@ -236,14 +226,13 @@ def get_billing_meter(
     try:
         if meter_id:
             meter = stripe.billing.meter.retrieve(meter_id)
-            return get_billing_meterResult.model_validate(
-                {  # type: ignore[no-any-return]
-                    "id": meter.id,
-                    "display_name": meter.display_name,
-                    "event_name": meter.event_name,
-                    "status": meter.status,
-                }
-            )
+            return get_billing_meterResult.model_validate({  # type: ignore[no-any-return]
+                "id": meter.id,
+                "display_name": meter.display_name,
+                "event_name": meter.event_name,
+                "status": meter.status,
+            })
+
 
         else:
             # List meters
@@ -308,9 +297,7 @@ async def sync_usage_to_stripe(
     event_count = row.count or 0
 
     if total_quantity <= 0:
-        return sync_usage_to_stripeResult.model_validate(
-            {"synced": 0, "total_quantity": 0, "stripe_response": None}
-        )  # type: ignore[no-any-return]
+        return sync_usage_to_stripeResult.model_validate({"synced": 0, "total_quantity": 0, "stripe_response": None})  # type: ignore[no-any-return]
 
     # Report to Stripe
     try:
@@ -338,16 +325,13 @@ async def sync_usage_to_stripe(
 
         await db_session.flush()
 
-        return sync_usage_to_stripeResult.model_validate(
-            {  # type: ignore[no-any-return]
-                "synced": event_count,
-                "total_quantity": total_quantity,
-                "stripe_response": stripe_response,
-            }
-        )
+        return sync_usage_to_stripeResult.model_validate({  # type: ignore[no-any-return]
+            "synced": event_count,
+            "total_quantity": total_quantity,
+            "stripe_response": stripe_response,
+        })
+
 
     except StripeMeterEventError as e:
         logger.error(f"Failed to sync usage to Stripe: {e}")
-        return sync_usage_to_stripeResult.model_validate(
-            {"synced": 0, "total_quantity": total_quantity, "error": "STRIPE_SYNC_ERROR"}
-        )  # type: ignore[no-any-return]
+        return sync_usage_to_stripeResult.model_validate({"synced": 0, "total_quantity": total_quantity, "error": "STRIPE_SYNC_ERROR"})  # type: ignore[no-any-return]

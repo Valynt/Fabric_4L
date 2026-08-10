@@ -26,7 +26,6 @@ class UsageService_ingest_batchResult(TypedDictModel):
     error_details: Any
     errors: Any
 
-
 class UsageService_get_usage_summaryResult(TypedDictModel):
     customer_id: Any
     event_count: int
@@ -37,20 +36,17 @@ class UsageService_get_usage_summaryResult(TypedDictModel):
     period_start: Any
     total_quantity: Any
 
-
 class UsageService_sync_to_stripeResult(TypedDictModel):
     customer_id: Any | None = None
-    details: Any | None = None
+    details: Any
     error: str | None = None
     message: str | None = None
     metrics: Any | None = None
     stripe_customer_id: Any | None = None
     synced: int
 
-
 class UsageService__report_to_stripeResult(TypedDictModel):
     error: Any
-
 
 logger = logging.getLogger(__name__)
 
@@ -148,20 +144,9 @@ class UsageService:
             return None
         except StripeMeterEventError as e:
             logger.warning(f"Failed to report meter event: {e}")
-            return UsageService__report_to_stripeResult.model_validate(
-                {"error": "STRIPE_METER_ERROR"}
-            )
+            return UsageService__report_to_stripeResult.model_validate({"error": "STRIPE_METER_ERROR"})
         except (ConnectionError, TimeoutError, RuntimeError) as e:
-            logger.error(
-                "Stripe reporting infrastructure failure",
-                extra={
-                    "customer_id": customer_id,
-                    "metric_name": metric_name,
-                    "event_id": event_id,
-                    "error_type": type(e).__name__,
-                },
-                exc_info=True,
-            )
+            logger.error("Stripe reporting infrastructure failure", extra={"customer_id": customer_id, "metric_name": metric_name, "event_id": event_id, "error_type": type(e).__name__}, exc_info=True)
             return None
 
     async def ingest_event(
@@ -197,26 +182,19 @@ class UsageService:
         # Validate tenant context
         if not self.tenant_id:
             raise UsageValidationError(
-                "tenant_id is required for usage event ingestion", field="tenant_id"
+                "tenant_id is required for usage event ingestion",
+                field="tenant_id"
             )
 
         # Validate required fields
         if not event_id or len(event_id) > 255:
-            raise UsageValidationError(
-                "event_id is required and must be <= 255 chars", field="event_id"
-            )
+            raise UsageValidationError("event_id is required and must be <= 255 chars", field="event_id")
         if not customer_id or len(customer_id) > 100:
-            raise UsageValidationError(
-                "customer_id is required and must be <= 100 chars", field="customer_id"
-            )
+            raise UsageValidationError("customer_id is required and must be <= 100 chars", field="customer_id")
         if not event_name or len(event_name) > 100:
-            raise UsageValidationError(
-                "event_name is required and must be <= 100 chars", field="event_name"
-            )
+            raise UsageValidationError("event_name is required and must be <= 100 chars", field="event_name")
         if not metric_name or len(metric_name) > 100:
-            raise UsageValidationError(
-                "metric_name is required and must be <= 100 chars", field="metric_name"
-            )
+            raise UsageValidationError("metric_name is required and must be <= 100 chars", field="metric_name")
         if quantity < 0:
             raise UsageValidationError("quantity must be non-negative", field="quantity")
 
@@ -273,15 +251,7 @@ class UsageService:
         except SQLAlchemyError as exc:
             # Rollback database errors to prevent partial writes
             await self.db.rollback()
-            logger.error(
-                "Usage ingest database failure",
-                extra={
-                    "tenant_id": self.tenant_id,
-                    "event_id": event_id,
-                    "error_type": type(exc).__name__,
-                },
-                exc_info=True,
-            )
+            logger.error("Usage ingest database failure", extra={"tenant_id": self.tenant_id, "event_id": event_id, "error_type": type(exc).__name__}, exc_info=True)
             raise
 
     async def _get_existing_event_ids(
@@ -327,12 +297,14 @@ class UsageService:
         """
         if len(events) > self.MAX_BATCH_SIZE:
             raise UsageValidationError(
-                f"Batch size {len(events)} exceeds maximum {self.MAX_BATCH_SIZE}", field="events"
+                f"Batch size {len(events)} exceeds maximum {self.MAX_BATCH_SIZE}",
+                field="events"
             )
 
         if not self.tenant_id:
             raise UsageValidationError(
-                "tenant_id is required for batch ingestion", field="tenant_id"
+                "tenant_id is required for batch ingestion",
+                field="tenant_id"
             )
 
         errors = 0
@@ -349,46 +321,34 @@ class UsageService:
 
             try:
                 if not event_id or len(event_id) > 255:
-                    raise UsageValidationError(
-                        "event_id is required and must be <= 255 chars", field="event_id"
-                    )
+                    raise UsageValidationError("event_id is required and must be <= 255 chars", field="event_id")
                 if not customer_id or len(customer_id) > 100:
-                    raise UsageValidationError(
-                        "customer_id is required and must be <= 100 chars", field="customer_id"
-                    )
+                    raise UsageValidationError("customer_id is required and must be <= 100 chars", field="customer_id")
                 if not event_name or len(event_name) > 100:
-                    raise UsageValidationError(
-                        "event_name is required and must be <= 100 chars", field="event_name"
-                    )
+                    raise UsageValidationError("event_name is required and must be <= 100 chars", field="event_name")
                 if not metric_name or len(metric_name) > 100:
-                    raise UsageValidationError(
-                        "metric_name is required and must be <= 100 chars", field="metric_name"
-                    )
+                    raise UsageValidationError("metric_name is required and must be <= 100 chars", field="metric_name")
                 if quantity < 0:
                     raise UsageValidationError("quantity must be non-negative", field="quantity")
 
                 valid_events.append(event_data)
             except UsageValidationError as e:
                 errors += 1
-                error_details.append(
-                    {
-                        "index": idx,
-                        "event_id": event_id or "unknown",
-                        "error": e.message,
-                        "field": e.field,
-                    }
-                )
+                error_details.append({
+                    "index": idx,
+                    "event_id": event_id or "unknown",
+                    "error": e.message,
+                    "field": e.field,
+                })
                 logger.warning(f"Validation error for event at index {idx}: {e.message}")
 
         if not valid_events:
-            return UsageService_ingest_batchResult.model_validate(
-                {
-                    "created": 0,
-                    "duplicates": 0,
-                    "errors": errors,
-                    "error_details": error_details,
-                }
-            )
+            return UsageService_ingest_batchResult.model_validate({
+                "created": 0,
+                "duplicates": 0,
+                "errors": errors,
+                "error_details": error_details,
+            })
 
         # Phase 2: single idempotency lookup for the whole batch
         candidate_ids = [e["event_id"] for e in valid_events]
@@ -475,14 +435,13 @@ class UsageService:
                             extra={"tenant_id": self.tenant_id, "event_id": event_id},
                         )
 
-        return UsageService_ingest_batchResult.model_validate(
-            {
-                "created": created,
-                "duplicates": duplicates,
-                "errors": errors,
-                "error_details": error_details if errors > 0 else None,
-            }
-        )
+        return UsageService_ingest_batchResult.model_validate({
+            "created": created,
+            "duplicates": duplicates,
+            "errors": errors,
+            "error_details": error_details if errors > 0 else None,
+        })
+
 
     async def get_usage_summary(
         self,
@@ -527,18 +486,17 @@ class UsageService:
         result = await self.db.execute(query)
         row = result.one()
 
-        return UsageService_get_usage_summaryResult.model_validate(
-            {
-                "customer_id": customer_id,
-                "metric_name": metric_name,
-                "period_start": start.isoformat(),
-                "period_end": end.isoformat(),
-                "total_quantity": float(row.total_quantity or 0),
-                "event_count": row.event_count or 0,
-                "first_event": row.first_event.isoformat() if row.first_event else None,
-                "last_event": row.last_event.isoformat() if row.last_event else None,
-            }
-        )
+        return UsageService_get_usage_summaryResult.model_validate({
+            "customer_id": customer_id,
+            "metric_name": metric_name,
+            "period_start": start.isoformat(),
+            "period_end": end.isoformat(),
+            "total_quantity": float(row.total_quantity or 0),
+            "event_count": row.event_count or 0,
+            "first_event": row.first_event.isoformat() if row.first_event else None,
+            "last_event": row.last_event.isoformat() if row.last_event else None,
+        })
+
 
     async def list_customer_usage(
         self,
@@ -685,27 +643,22 @@ class UsageService:
             # Get Stripe customer ID
             stripe_customer_id = await self._get_stripe_customer_id(customer_id)
             if not stripe_customer_id:
-                return UsageService_sync_to_stripeResult.model_validate(
-                    {
-                        "synced": 0,
-                        "error": f"No Stripe customer ID found for {customer_id}",
-                    }
-                )
+                return UsageService_sync_to_stripeResult.model_validate({
+                    "synced": 0,
+                    "error": f"No Stripe customer ID found for {customer_id}",
+                })
+
 
             # Build query for pending events
-            query = (
-                select(
-                    BillingUsageEvent.metric_name,
-                    func.sum(BillingUsageEvent.quantity).label("total_quantity"),
-                    func.count(BillingUsageEvent.id).label("event_count"),
-                )
-                .where(
-                    BillingUsageEvent.tenant_id == self.tenant_id,
-                    BillingUsageEvent.customer_id == customer_id,
-                    BillingUsageEvent.status == UsageEventStatus.PENDING,
-                )
-                .group_by(BillingUsageEvent.metric_name)
-            )
+            query = select(
+                BillingUsageEvent.metric_name,
+                func.sum(BillingUsageEvent.quantity).label("total_quantity"),
+                func.count(BillingUsageEvent.id).label("event_count"),
+            ).where(
+                BillingUsageEvent.tenant_id == self.tenant_id,
+                BillingUsageEvent.customer_id == customer_id,
+                BillingUsageEvent.status == UsageEventStatus.PENDING,
+            ).group_by(BillingUsageEvent.metric_name)
 
             if metric_name:
                 query = query.where(BillingUsageEvent.metric_name == metric_name)
@@ -714,9 +667,7 @@ class UsageService:
             metrics_to_sync = result.all()
 
             if not metrics_to_sync:
-                return UsageService_sync_to_stripeResult.model_validate(
-                    {"synced": 0, "message": "No pending events to sync"}
-                )
+                return UsageService_sync_to_stripeResult.model_validate({"synced": 0, "message": "No pending events to sync"})
 
             sync_results = []
             total_synced = 0
@@ -752,42 +703,36 @@ class UsageService:
 
                     await self.db.flush()
 
-                    sync_results.append(
-                        {
-                            "metric": metric,
-                            "quantity": quantity,
-                            "events": count,
-                            "stripe_status": stripe_response.get("status", "unknown"),
-                        }
-                    )
+                    sync_results.append({
+                        "metric": metric,
+                        "quantity": quantity,
+                        "events": count,
+                        "stripe_status": stripe_response.get("status", "unknown"),
+                    })
                     total_synced += count
 
                 except StripeMeterEventError:
-                    sync_results.append(
-                        {
-                            "metric": metric,
-                            "quantity": quantity,
-                            "events": count,
-                            "error": "STRIPE_METER_ERROR",
-                        }
-                    )
+                    sync_results.append({
+                        "metric": metric,
+                        "quantity": quantity,
+                        "events": count,
+                        "error": "STRIPE_METER_ERROR",
+                    })
                 except StripeNotConfiguredError:
-                    return UsageService_sync_to_stripeResult.model_validate(
-                        {
-                            "synced": 0,
-                            "error": "Stripe not configured",
-                            "details": "STRIPE_NOT_CONFIGURED",
-                        }
-                    )
+                    return UsageService_sync_to_stripeResult.model_validate({
+                        "synced": 0,
+                        "error": "Stripe not configured",
+                        "details": "STRIPE_NOT_CONFIGURED",
+                    })
 
-            return UsageService_sync_to_stripeResult.model_validate(
-                {
-                    "synced": total_synced,
-                    "customer_id": customer_id,
-                    "stripe_customer_id": stripe_customer_id,
-                    "metrics": sync_results,
-                }
-            )
+
+            return UsageService_sync_to_stripeResult.model_validate({
+                "synced": total_synced,
+                "customer_id": customer_id,
+                "stripe_customer_id": stripe_customer_id,
+                "metrics": sync_results,
+            })
+
 
         except asyncio.CancelledError:
             raise

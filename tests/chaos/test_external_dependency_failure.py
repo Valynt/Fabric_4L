@@ -9,7 +9,7 @@ third-party APIs become unavailable:
 """
 
 import asyncio
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
@@ -124,7 +124,7 @@ class TestExternalAPIFailure:
                 "data": primary_data,
                 "enrichment_status": "failed" if enrichment_failed else "success",
                 "completeness": "partial" if enrichment_failed else "full",
-                "timestamp": datetime.now(UTC).isoformat()
+                "timestamp": datetime.utcnow().isoformat()
             }
         
         result = await ingestion_with_external_source()

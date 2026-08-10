@@ -6,32 +6,11 @@ permissions:
 on:
   pull_request:
     branches: [main]
-    # Change-scoping: zero-trust static checks inspect runtime code, infra
-    # manifests, and the check scripts themselves. Docs-only PRs skip; the
-    # nightly schedule and push-to-main runs remain unscoped as the safety
-    # net (cadence gates belong on the calendar, not the per-PR path).
-    paths:
-      - 'services/**'
-      - 'apps/**'
-      - 'packages/**'
-      - 'k8s/**'
-      - 'infra/**'
-      - 'monitoring/**'
-      - '.github/**'
-      - 'scripts/**'
-      - 'config/**'
-      - 'Makefile'
   push:
     branches: [main]
   schedule:
     - cron: '0 3 * * *' # Nightly at 03:00 UTC
   workflow_dispatch:
-
-concurrency:
-  # Cancel only an obsolete run of this same workflow/ref. A global
-  # feature-branch group lets activity on an unrelated PR cancel required gates.
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
 
 env:
   # Opt into Node.js 24 for GitHub Actions

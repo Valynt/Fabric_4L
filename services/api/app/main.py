@@ -32,7 +32,6 @@ from app.routers import (
     hypotheses,
     intelligence,
     jobs,
-    layer_proxy,
     privacy,
     product_endpoints,
     realization,
@@ -242,9 +241,6 @@ app.include_router(versioning.router, prefix="/v1")
 app.include_router(realization.router, prefix="/v1")
 app.include_router(agents.router, prefix="/v1")
 app.include_router(privacy.router, prefix="/v1")
-
-# Layer proxy routes - delegate to underlying layer services
-app.include_router(layer_proxy.router, prefix="/v1")
 
 # Clerk webhook handler is mounted unconditionally; the handler itself
 # returns 503 when CLERK_WEBHOOK_SECRET is not configured. Network policy

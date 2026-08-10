@@ -25,6 +25,27 @@
       "deprecation_status": "active"
     },
     {
+      "path": ".github/workflows/api-changelog.yml",
+      "name": "API Changelog",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "release",
+        "workflow_dispatch"
+      ],
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
+      "required_secrets": [
+        "GITHUB_TOKEN",
+        "SLACK_WEBHOOK_URL_API_CHANGES"
+      ],
+      "produced_artifacts": [
+        "${{ steps.changelog.outputs.output_path }}"
+      ],
+      "runtime_budget_minutes": 30,
+      "local_validation_command": "make check-workflow-references",
+      "deprecation_status": "active"
+    },
+    {
       "path": ".github/workflows/api-key-rotation.yml",
       "name": "API Key Rotation",
       "owner": "@value-fabric/sre-leads",
@@ -811,7 +832,6 @@
       "name": "Publish SDK",
       "owner": "@value-fabric/sre-leads",
       "trigger": [
-        "pull_request",
         "push",
         "workflow_dispatch"
       ],
@@ -822,27 +842,6 @@
       ],
       "produced_artifacts": [
         "sdk/python/dist/"
-      ],
-      "runtime_budget_minutes": 30,
-      "local_validation_command": "make check-workflow-references",
-      "deprecation_status": "active"
-    },
-    {
-      "path": ".github/workflows/release-api-changelog.yml",
-      "name": "API Changelog Automation",
-      "owner": "@value-fabric/sre-leads",
-      "trigger": [
-        "release",
-        "workflow_dispatch"
-      ],
-      "trigger_purpose": "CI/CD",
-      "blocking": false,
-      "required_secrets": [
-        "GITHUB_TOKEN",
-        "SLACK_WEBHOOK_URL_API_CHANGES"
-      ],
-      "produced_artifacts": [
-        "${{ steps.changelog.outputs.output_path }}"
       ],
       "runtime_budget_minutes": 30,
       "local_validation_command": "make check-workflow-references",
@@ -948,8 +947,12 @@
       ],
       "trigger_purpose": "CI/CD",
       "blocking": false,
-      "required_secrets": [],
-      "produced_artifacts": [],
+      "required_secrets": [
+        "GITHUB_TOKEN"
+      ],
+      "produced_artifacts": [
+        "${{ env.SBOM_OUTPUT_DIR }}/"
+      ],
       "runtime_budget_minutes": 30,
       "local_validation_command": "make check-workflow-references",
       "deprecation_status": "active"
@@ -1042,8 +1045,8 @@
       "deprecation_status": "active"
     },
     {
-      "path": ".github/workflows/supply-chain-integrity.yml",
-      "name": "Supply Chain Integrity Gate",
+      "path": ".github/workflows/supply-chain.yml",
+      "name": "Supply Chain Integrity",
       "owner": "@value-fabric/sre-leads",
       "trigger": [
         "pull_request",
@@ -1062,7 +1065,6 @@
         "${{ matrix.layer }}-vulns.sarif",
         "*-audit.json",
         "*.intoto.jsonl",
-        ".dependency-findings",
         "license-reports/",
         "source-${{ matrix.layer }}-sbom.cdx.json",
         "source-${{ matrix.layer }}-vulns.sarif",
@@ -1143,7 +1145,6 @@
       "required_secrets": [],
       "produced_artifacts": [
         "apps/web/dist",
-        "apps/web/e2e/visual/**/*-snapshots/*.png",
         "apps/web/e2e/visual/**/*.actual.png",
         "apps/web/e2e/visual/**/*.diff.png",
         "apps/web/e2e/visual/**/*.expected.png",

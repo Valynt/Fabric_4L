@@ -8,7 +8,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 WORKFLOWS = [
     ROOT / ".github/workflows/build-deploy.yml",
-    ROOT / ".github/workflows/supply-chain-integrity.yml",
+    ROOT / ".github/workflows/supply-chain.yml",
     ROOT / ".github/workflows/pr-checks.yml",
     ROOT / ".github/workflows/critical-gates.yml",
 ]

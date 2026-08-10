@@ -87,7 +87,7 @@ class Layer6Settings(BaseSettings):
     jwt_fallback_to_query_param: bool = Field(default=False, alias="JWT_FALLBACK_TO_QUERY_PARAM")
     allow_ephemeral_encryption: bool = Field(default=False, alias="ALLOW_EPHEMERAL_ENCRYPTION")
 
-    api_host: str = Field(default="0.0.0.0", alias="API_HOST")  # nosec # Uvicorn in container must bind all interfaces
+    api_host: str = Field(default="0.0.0.0", alias="API_HOST")  # nosec B104
     api_port: int = Field(default=8006, alias="API_PORT", ge=1, le=65535)
     port: int = Field(default=8006, alias="PORT", ge=1, le=65535)
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = Field(

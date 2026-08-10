@@ -50,7 +50,7 @@ to an existing canonical workflow.
 | `vault-integration.yml` | Reusable Vault/OIDC secret injection workflow | `workflow_call` |
 | `penetration-testing.yml` | Penetration test workflow | `schedule`, `workflow_dispatch` |
 | `zero-trust-validation.yml` | Zero-trust/security policy checks | `pull_request`, `push`, `schedule`, `workflow_dispatch` |
-| `supply-chain-integrity.yml` | Supply-chain integrity and provenance checks | `pull_request`, `push`, `workflow_call`, `workflow_dispatch` |
+| `supply-chain.yml` | Supply-chain integrity and provenance checks | `pull_request`, `push`, `workflow_call`, `workflow_dispatch` |
 | `test-reporting.yml` | Unified test result aggregation/reporting | `pull_request`, `workflow_run` |
 | `publish-ci-tools.yml` | Publishes the pinned supply-chain security tools image with provenance and SBOM | `push`, `workflow_dispatch` |
 | `publish-sdk.yml` | SDK publish workflow | `push`, `workflow_dispatch` |

@@ -267,19 +267,13 @@ class TestSystemMaintenanceBypassAttempts:
 class TestDatabaseSessionBypassAttempts:
     """Test that database session cannot be bypassed."""
 
-    def test_require_tenant_false_marks_privileged_system_session(self):
-        """The internal system-operation mode must be explicit and observable."""
-        from layer1_ingestion.shared.database import (
-            get_privileged_db_session_metrics,
-            reset_privileged_db_session_metrics,
-        )
-
-        reset_privileged_db_session_metrics()
-        with get_db_session(tenant_id=None, require_tenant=False) as session:
-            assert session.info["tenant_context_state"] == "bypass"
-            assert session.info["tenant_context_bypass_reason"] == "system_operation"
-
-        assert get_privileged_db_session_metrics()["activations_total"] == 1
+    def test_require_tenant_false_without_authorization_fails(self):
+        """Test that require_tenant=False fails without proper context."""
+        # This should fail in production code
+        with pytest.raises(Exception):
+            with get_db_session(tenant_id=None, require_tenant=False) as session:
+                # Should not reach here without proper authorization
+                session.query(ScrapingJob).all()
 
     def test_direct_sql_injection_prevented(self, postgres_db):
         """Test that direct SQL injection is prevented."""

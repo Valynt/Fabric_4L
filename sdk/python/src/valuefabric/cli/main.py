@@ -49,7 +49,6 @@ def main_callback(
     """Value Fabric SDK CLI - Manage workflows, models, and feature flags."""
     pass
 
-
 app.add_typer(auth_app, name="auth", help="Authentication management")
 app.add_typer(config_app, name="config", help="Manage CLI configuration")
 app.add_typer(tenants_app, name="tenants", help="Tenant management")

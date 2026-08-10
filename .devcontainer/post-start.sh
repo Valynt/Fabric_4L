@@ -1,19 +1,24 @@
-#!/usr/bin/env bash
-set -euo pipefail
+#!/bin/bash
+# Post-start script - runs each time the container starts
 
-cd /workspace/Fabric_4L
+set -e
 
-if docker info >/dev/null 2>&1; then
-  docker_status=ready
+echo "🚀 Devcontainer started!"
+
+# Check if docker daemon is accessible
+if docker info &>/dev/null; then
+    echo "✅ Docker-in-Docker is ready"
 else
-  docker_status="not ready; inspect: docker compose -f .devcontainer/docker-compose.yml logs docker"
+    echo "⚠️  Docker daemon not yet available (this is normal on first start)"
 fi
 
-printf 'Value Fabric Dev Container started (Docker: %s).\n' "$docker_status"
-cat <<'EOF'
-Nothing was migrated or started automatically.
-  .devcontainer/dev-stack.sh infra     # lightweight data infrastructure
-  .devcontainer/dev-stack.sh full      # production-parity stack
-  .devcontainer/dev-stack.sh migrate   # explicit migrations
-  .devcontainer/dev-stack.sh frontend  # Vite on port 3001
-EOF
+# Display current branch and status
+cd /workspace
+if [ -d ".git" ]; then
+    echo ""
+    echo "📁 Repository status:"
+    git status -sb 2>/dev/null || true
+fi
+
+echo ""
+echo "💡 Tip: Run 'make dev-up' to start the development services"

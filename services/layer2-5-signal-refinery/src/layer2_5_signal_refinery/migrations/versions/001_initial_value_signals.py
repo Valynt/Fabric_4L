@@ -54,9 +54,7 @@ def upgrade() -> None:
 
     op.create_index("ix_value_signals_tenant_account", "value_signals", ["tenant_id", "account_id"])
     op.create_index("ix_value_signals_tenant_type", "value_signals", ["tenant_id", "type"])
-    op.create_index(
-        "ix_value_signals_tenant_lifecycle", "value_signals", ["lifecycle_state", "tenant_id"]
-    )
+    op.create_index("ix_value_signals_tenant_lifecycle", "value_signals", ["lifecycle_state", "tenant_id"])
 
     # PostgreSQL RLS — skipped on SQLite (used in tests)
     bind = op.get_bind()

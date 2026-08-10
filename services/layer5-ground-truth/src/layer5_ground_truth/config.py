@@ -83,7 +83,7 @@ class Settings(BaseSettings):
     app_env: str | None = Field(default=None, alias="APP_ENV")
 
     # API Configuration
-    api_host: str = Field(default="0.0.0.0", alias="API_HOST")  # nosec # Uvicorn in container must bind all interfaces
+    api_host: str = Field(default="0.0.0.0", alias="API_HOST")  # nosec B104
     api_port: int = Field(default=8005, alias="API_PORT")
     api_workers: int = Field(default=1, alias="API_WORKERS")
     api_version: str = Field(default="v1", alias="API_VERSION")

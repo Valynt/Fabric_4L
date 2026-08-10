@@ -1,8 +1,9 @@
 """Tests for L2.5 health probe safety (P1-011)."""
 
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
+
 from layer2_5_signal_refinery.api.main import _probe_database, _probe_l3_client
 
 

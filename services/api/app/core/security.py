@@ -434,9 +434,7 @@ def _extract_token(
 def require_authenticated(
     request: Request,
     bearer: HTTPAuthorizationCredentials | None = Depends(_bearer_scheme),
-    vf_session: str | None = Cookie(
-        default=None, alias=_SESSION_COOKIE, description="Session cookie for authenticated requests"
-    ),
+    vf_session: str | None = Cookie(default=None, alias=_SESSION_COOKIE),
 ) -> TokenPayload:
     """FastAPI dependency: require a valid JWT from Bearer header or session cookie.
 

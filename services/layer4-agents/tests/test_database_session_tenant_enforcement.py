@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from types import SimpleNamespace
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from sqlalchemy import text
@@ -11,7 +10,6 @@ from layer4_agents.database import (
     TenantContextError,
     TenantEnforcedAsyncSession,
     _mark_session_tenant_context,
-    _set_local_tenant_context,
     get_engine,
 )
 
@@ -34,23 +32,6 @@ async def test_tenant_enforced_session_allows_statement_after_context_set() -> N
 
     assert result == "ok"
     mocked_execute.assert_awaited_once()
-
-
-@pytest.mark.asyncio
-async def test_local_tenant_context_marks_sqlite_session_without_postgres_sql() -> None:
-    session = MagicMock()
-    session.info = {}
-    session.execute = AsyncMock()
-    session.get_bind.return_value = SimpleNamespace(dialect=SimpleNamespace(name="sqlite"))
-
-    await _set_local_tenant_context(
-        session,
-        "550e8400-e29b-41d4-a716-446655440000",
-    )
-
-    session.execute.assert_not_awaited()
-    assert session.info["tenant_context_state"] == "set"
-    assert session.info["tenant_context_value"] == "550e8400-e29b-41d4-a716-446655440000"
 
 
 def test_get_engine_rejects_rls_disabled_database_in_protected_environment(monkeypatch) -> None:

@@ -48,36 +48,6 @@
       "owner": "api-gateway"
     },
     {
-      "path": "/v1/accounts/{account_id}/hypotheses*",
-      "method": "*",
-      "owner": "api-gateway"
-    },
-    {
-      "path": "/v1/accounts/{account_id}/evidence*",
-      "method": "*",
-      "owner": "api-gateway"
-    },
-    {
-      "path": "/v1/accounts/{account_id}/scenarios*",
-      "method": "*",
-      "owner": "api-gateway"
-    },
-    {
-      "path": "/v1/accounts/{account_id}/calculator*",
-      "method": "*",
-      "owner": "api-gateway"
-    },
-    {
-      "path": "/v1/accounts/{account_id}/roi*",
-      "method": "*",
-      "owner": "api-gateway"
-    },
-    {
-      "path": "/v1/accounts/{account_id}/value-cases*",
-      "method": "*",
-      "owner": "api-gateway"
-    },
-    {
       "path": "/v1/intelligence*",
       "method": "*",
       "owner": "api-gateway"
@@ -163,74 +133,9 @@
       "owner": "api-gateway-auth"
     },
     {
-      "path": "/v1/ingestion*",
-      "method": "*",
-      "owner": "api-gateway"
-    },
-    {
-      "path": "/v1/extract*",
-      "method": "*",
-      "owner": "api-gateway"
-    },
-    {
-      "path": "/v1/query*",
-      "method": "*",
-      "owner": "api-gateway"
-    },
-    {
-      "path": "/v1/search*",
-      "method": "*",
-      "owner": "api-gateway"
-    },
-    {
-      "path": "/v1/value-trees*",
-      "method": "*",
-      "owner": "api-gateway"
-    },
-    {
-      "path": "/v1/graphrag*",
-      "method": "*",
-      "owner": "api-gateway"
-    },
-    {
       "path": "/v1/workflows*",
       "method": "*",
-      "owner": "api-gateway"
-    },
-    {
-      "path": "/v1/hypotheses*",
-      "method": "*",
-      "owner": "api-gateway"
-    },
-    {
-      "path": "/v1/analysis*",
-      "method": "*",
-      "owner": "api-gateway"
-    },
-    {
-      "path": "/v1/narratives*",
-      "method": "*",
-      "owner": "api-gateway"
-    },
-    {
-      "path": "/v1/truths*",
-      "method": "*",
-      "owner": "api-gateway"
-    },
-    {
-      "path": "/v1/maturity-ladder*",
-      "method": "*",
-      "owner": "api-gateway"
-    },
-    {
-      "path": "/v1/extractions*",
-      "method": "*",
-      "owner": "api-gateway"
-    },
-    {
-      "path": "/v1/ingestion/sources*",
-      "method": "*",
-      "owner": "api-gateway"
+      "owner": "layer4-agents"
     },
     {
       "path": "/v1/agents*",
@@ -595,71 +500,6 @@
       "path": "/v1/clerk*",
       "method": "POST",
       "reason": "Clerk webhook ingress"
-    },
-    {
-      "path": "/v1/ingestion*",
-      "method": "*",
-      "reason": "Layer 1 ingestion catalog and runs via gateway"
-    },
-    {
-      "path": "/v1/extract*",
-      "method": "*",
-      "reason": "Layer 2 extraction via gateway"
-    },
-    {
-      "path": "/v1/query*",
-      "method": "*",
-      "reason": "Layer 3 knowledge graph queries via gateway"
-    },
-    {
-      "path": "/v1/search*",
-      "method": "*",
-      "reason": "Layer 3 hybrid search via gateway"
-    },
-    {
-      "path": "/v1/value-trees*",
-      "method": "*",
-      "reason": "Layer 3 value trees via gateway"
-    },
-    {
-      "path": "/v1/graphrag*",
-      "method": "*",
-      "reason": "Layer 3 GraphRAG queries via gateway"
-    },
-    {
-      "path": "/v1/workflows*",
-      "method": "*",
-      "reason": "Layer 4 workflows via gateway"
-    },
-    {
-      "path": "/v1/hypotheses*",
-      "method": "*",
-      "reason": "Layer 4 hypotheses via gateway"
-    },
-    {
-      "path": "/v1/analysis*",
-      "method": "*",
-      "reason": "Layer 4 analysis/ROI via gateway"
-    },
-    {
-      "path": "/v1/narratives*",
-      "method": "*",
-      "reason": "Layer 4 narratives via gateway"
-    },
-    {
-      "path": "/v1/truths*",
-      "method": "*",
-      "reason": "Layer 5 Ground Truth via gateway"
-    },
-    {
-      "path": "/v1/maturity-ladder*",
-      "method": "*",
-      "reason": "Layer 5 maturity ladder via gateway"
-    },
-    {
-      "path": "/v1/extractions*",
-      "method": "*",
-      "reason": "Layer 2 extraction jobs via gateway"
     }
   ],
   "internal_routes": [
@@ -822,76 +662,6 @@
       "path": "/webhook/github",
       "method": "POST",
       "reason": "Layer 4 audit orchestrator GitHub webhook; canonical mount is POST /v1/repo-audit/webhook/github via register_routers() and documented in contracts/openapi/layer4-agents.json. Unprefixed path is a static-scan artifact."
-    },
-    {
-      "path": "/v1/ingestion*",
-      "method": "*",
-      "reason": "Gateway proxy to Layer 1 ingestion service"
-    },
-    {
-      "path": "/v1/extract*",
-      "method": "*",
-      "reason": "Gateway proxy to Layer 2 extraction service"
-    },
-    {
-      "path": "/v1/query*",
-      "method": "*",
-      "reason": "Gateway proxy to Layer 3 knowledge graph queries"
-    },
-    {
-      "path": "/v1/search*",
-      "method": "*",
-      "reason": "Gateway proxy to Layer 3 hybrid search"
-    },
-    {
-      "path": "/v1/value-trees*",
-      "method": "*",
-      "reason": "Gateway proxy to Layer 3 value trees"
-    },
-    {
-      "path": "/v1/graphrag*",
-      "method": "*",
-      "reason": "Gateway proxy to Layer 3 GraphRAG"
-    },
-    {
-      "path": "/v1/workflows*",
-      "method": "*",
-      "reason": "Gateway proxy to Layer 4 workflows"
-    },
-    {
-      "path": "/v1/hypotheses*",
-      "method": "*",
-      "reason": "Gateway proxy to Layer 4 hypotheses"
-    },
-    {
-      "path": "/v1/analysis*",
-      "method": "*",
-      "reason": "Gateway proxy to Layer 4 analysis/ROI"
-    },
-    {
-      "path": "/v1/narratives*",
-      "method": "*",
-      "reason": "Gateway proxy to Layer 4 narratives"
-    },
-    {
-      "path": "/v1/truths*",
-      "method": "*",
-      "reason": "Gateway proxy to Layer 5 Ground Truth"
-    },
-    {
-      "path": "/v1/maturity-ladder*",
-      "method": "*",
-      "reason": "Gateway proxy to Layer 5 maturity ladder"
-    },
-    {
-      "path": "/v1/extractions*",
-      "method": "*",
-      "reason": "Gateway proxy to Layer 2 extraction jobs"
-    },
-    {
-      "path": "/v1/nodes",
-      "method": "POST",
-      "reason": "Layer 3 Ground Truth node sync from Layer 5"
     },
     {
       "path": "/jobs/batch",

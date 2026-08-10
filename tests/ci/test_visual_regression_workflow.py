@@ -17,8 +17,6 @@ EXPECTED_FRONTEND_ROUTE_ENV = {
     "VITE_L5_PREFIX": "/truths",
     "VITE_L6_PREFIX": "/benchmarks",
     "VITE_L7_PREFIX": "/billing",
-    "VITE_AUTH_PROVIDER": "legacy",
-    "VITE_ENABLE_MOCK_AUTH": "true",
 }
 
 

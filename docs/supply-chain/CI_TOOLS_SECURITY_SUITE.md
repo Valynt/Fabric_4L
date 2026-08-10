@@ -20,6 +20,7 @@ The trusted publisher is the `value-fabric/ci-tools` repository workflow
 | pip-licenses | 5.0.0 |
 | Python | 3.12.10 |
 | Node.js | 22.17.0 |
+| uv | 0.11.6 |
 | pnpm | 10.18.1 |
 
 ## Digest lookup and verification
@@ -49,7 +50,7 @@ cosign verify-attestation \
 Use a token with `read:packages` only when the package is private. GitHub Actions in
 this repository uses `${{ github.token }}` and the workflow-level `packages: read`
 permission. The `ci-tools-preflight` job pulls the exact digest, checks `RepoDigests`,
-and asserts all eight tool/runtime versions before container-dependent jobs start.
+and asserts all nine tool/runtime versions before container-dependent jobs start.
 
 ## Rotation
 
@@ -58,7 +59,7 @@ and asserts all eight tool/runtime versions before container-dependent jobs star
 2. Review upstream release notes and security advisories.
 3. Merge in the trusted publisher repository and run `Publish CI Tools Security Suite`.
 4. Download its digest record, authenticate with package-read access, pull by digest,
-   verify provenance, inspect `RepoDigests`, and execute the eight version checks.
+   verify provenance, inspect `RepoDigests`, and execute the nine version checks.
 5. Replace `CI_TOOLS_IMAGE` with that verified digest-qualified reference. Never add a
    tag-only or `latest` fallback.
 6. Run `python -m pytest tests/ci/test_supply_chain_ci_tools_policy.py

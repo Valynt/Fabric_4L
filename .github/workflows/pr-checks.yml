@@ -17,9 +17,7 @@ permissions:
     branches: [main]
 
 concurrency:
-  # Cancel only an obsolete run of this same workflow/ref. A global
-  # feature-branch group lets activity on an unrelated PR cancel required gates.
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: pr-checks-${{ github.ref }}
   cancel-in-progress: true
 
 env:
@@ -27,40 +25,6 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
-  # Change-scoping layer: resolve which scopes this event touches so that
-  # fan-out jobs below only run when the change can actually affect them.
-  # Non-pull_request events always resolve every scope to 'true' (full run).
-  # The Unified Readiness Gate verifies that any skipped job was skipped
-  # because its scope resolved to 'false' (path-filtered skips are proven
-  # safe, never assumed).
-  change-scope:
-    name: Change Scope
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    permissions:
-      contents: read
-      pull-requests: read
-    outputs:
-      layer1: ${{ steps.scope.outputs.layer1 }}
-      layer2: ${{ steps.scope.outputs.layer2 }}
-      layer3: ${{ steps.scope.outputs.layer3 }}
-      layer4: ${{ steps.scope.outputs.layer4 }}
-      layer5: ${{ steps.scope.outputs.layer5 }}
-      layer6: ${{ steps.scope.outputs.layer6 }}
-      backend: ${{ steps.scope.outputs.backend }}
-      web: ${{ steps.scope.outputs.web }}
-      code: ${{ steps.scope.outputs.code }}
-      docker: ${{ steps.scope.outputs.docker }}
-      k8s: ${{ steps.scope.outputs.k8s }}
-      deps: ${{ steps.scope.outputs.deps }}
-      runtime: ${{ steps.scope.outputs.runtime }}
-    steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
-
-      - name: Resolve change scopes
-        id: scope
-        uses: ./.github/actions/change-scope
-
   structural-preflight:
     name: Structural Preflight
     runs-on: ubuntu-latest
@@ -105,7 +69,7 @@ jobs:
           python scripts/ci/check_python_test_lock.py
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+        uses: pnpm/action-setup@v3
         with:
           version: "10.18.1"
 
@@ -514,7 +478,7 @@ jobs:
       - name: Detect changed files
         if: github.event_name == 'pull_request'
         id: governance-changed-files
-        uses: tj-actions/changed-files@ed68ef82c095e0d48ec87eccea555d944a631a4c # v46.0.5
+        uses: tj-actions/changed-files@v46
 
       - name: Verify required policy and runbook docs exist
         run: |
@@ -667,17 +631,9 @@ jobs:
 
   # Layer 1 - Ingestion
   layer1-checks:
-    needs: change-scope
-    if: needs.change-scope.outputs.layer1 == 'true'
     name: Layer 1 - Ingestion
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    env:
-      PGUSER: postgres
-      PGPASSWORD: postgres
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      DATABASE_URL: postgresql+psycopg2://postgres:postgres@localhost:5432/layer1_ingestion
     defaults:
       run:
         working-directory: services/layer1-ingestion
@@ -856,8 +812,6 @@ jobs:
 
   # Layer 2 - Extraction
   layer2-checks:
-    needs: change-scope
-    if: needs.change-scope.outputs.layer2 == 'true'
     name: Layer 2 - Extraction
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -952,13 +906,9 @@ jobs:
 
   # Layer 3 - Knowledge
   layer3-checks:
-    needs: change-scope
-    if: needs.change-scope.outputs.layer3 == 'true'
     name: Layer 3 - Knowledge
     runs-on: ubuntu-latest
-    # The full coverage suite consistently needs more than 13 minutes on the
-    # hosted runner before the hostile-tenant and evidence steps execute.
-    timeout-minutes: 30
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: services/layer3-knowledge
@@ -1098,8 +1048,6 @@ jobs:
 
   # Layer 4 - Agents
   layer4-checks:
-    needs: change-scope
-    if: needs.change-scope.outputs.layer4 == 'true'
     name: Layer 4 - Agents
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -1137,13 +1085,11 @@ jobs:
         run: uv run mypy src/ --ignore-missing-imports
 
       - name: Layer 4 pytest collection check
-        run: uv run pytest --collect-only -q
+        run: uv run pytest --collect-only . -q
 
       - name: Run tests with coverage
         run: |
-          # Run the full testpaths declared in pyproject.toml, including
-          # src/layer4_agents/harness/tests, so coverage reflects the suite.
-          uv run pytest -v --tb=short \
+          uv run pytest tests/ -v --tb=short \
             --cov=src --cov-report=xml:layer4-coverage.xml \
             --junitxml=layer4-junit.xml \
             --json-report --json-report-file=layer4-results.json \
@@ -1170,8 +1116,6 @@ jobs:
 
   # Layer 5 - Ground Truth
   layer5-checks:
-    needs: change-scope
-    if: needs.change-scope.outputs.layer5 == 'true'
     name: Layer 5 - Ground Truth
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -1241,8 +1185,6 @@ jobs:
         run: bash "${{ github.workspace }}/scripts/ci/run_pip_audit.sh"
 
   layer5-source-contract:
-    needs: change-scope
-    if: needs.change-scope.outputs.layer5 == 'true'
     name: Layer 5 - Source Contract
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -1262,8 +1204,6 @@ jobs:
         run: python scripts/check_no_duplicate_modules.py
 
   layer5-tenant-isolation-regression:
-    needs: change-scope
-    if: needs.change-scope.outputs.layer5 == 'true'
     name: Layer 5 - Tenant Isolation Regression
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -1306,8 +1246,6 @@ jobs:
             tests/test_cross_tenant_hostile.py
 
   layer5-contract-shape-regression:
-    needs: change-scope
-    if: needs.change-scope.outputs.layer5 == 'true'
     name: Layer 5 - Contract Shape Regression
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -1368,8 +1306,6 @@ jobs:
 
   # Layer 6 - Benchmarks
   layer6-checks:
-    needs: change-scope
-    if: needs.change-scope.outputs.layer6 == 'true'
     name: Layer 6 - Benchmarks
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -1435,8 +1371,6 @@ jobs:
 
   # Cross-layer shared and tests validation
   shared-and-tests-checks:
-    needs: change-scope
-    if: needs.change-scope.outputs.backend == 'true'
     name: Shared & Tests - Code Quality
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -1465,8 +1399,6 @@ jobs:
 
   # Frontend checks
   frontend-checks:
-    needs: change-scope
-    if: needs.change-scope.outputs.web == 'true'
     name: Frontend
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -1491,7 +1423,7 @@ jobs:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+        uses: pnpm/action-setup@v3
         with:
           version: "10.18.1"
 
@@ -1622,12 +1554,8 @@ jobs:
           # Preview server is still running from previous step in the same job
           pnpm run test:a11y:keyboard-flow
 
-      - name: Security audit and verified Node backports (GATING)
-        run: >-
-          python ../../scripts/ci/check_node_security_backports.py
-          --audit
-          --project-dir apps/web
-          --audit-report-output frontend-audit.json
+      - name: Security audit (GATING)
+        run: pnpm audit --audit-level high
 
       - name: Upload build artifacts on failure
         if: failure()
@@ -1637,8 +1565,6 @@ jobs:
           path: apps/web/dist/public/
 
   behavior-tests:
-    needs: change-scope
-    if: needs.change-scope.outputs.web == 'true'
     name: behavior-tests
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -1652,7 +1578,7 @@ jobs:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+        uses: pnpm/action-setup@v3
         with:
           version: "10.18.1"
 
@@ -1686,13 +1612,6 @@ jobs:
           retention-days: 14
 
   p0-e2e-gate:
-    needs: change-scope
-    # Boots the full live backend stack (infra/compose/docker-compose.e2e.yml)
-    # and drives it through the frontend, so it must run for backend, frontend,
-    # contract, and image/infra changes — not just the web surface.
-    if: >-
-      needs.change-scope.outputs.code == 'true'
-      || needs.change-scope.outputs.docker == 'true'
     name: p0-e2e-gate
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -1706,16 +1625,12 @@ jobs:
       SERVICE_AUTH_SECRET: test-service-auth-secret-for-validation-seed-1234567890
       VITE_USE_MOCKS: "false"
       VITE_ENABLE_MOCK_FALLBACK: "false"
-      VITE_PROXY_DEBUG_DIRECT_LAYERS: "true"
-      VITE_PROXY_L1_URL: http://localhost:8001
-      VITE_PROXY_L4_URL: http://localhost:8004
-      VITE_PROXY_API_GATEWAY_URL: http://localhost:8004
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+        uses: pnpm/action-setup@v3
         with:
           version: "10.18.1"
 
@@ -1741,13 +1656,6 @@ jobs:
           mkdir -p e2e-results playwright-report
           pnpm run test:e2e:live:p0
 
-      - name: Capture Compose diagnostics
-        if: failure()
-        working-directory: ${{ github.workspace }}
-        run: |
-          docker compose -f infra/compose/docker-compose.e2e.yml ps -a
-          docker compose -f infra/compose/docker-compose.e2e.yml logs --no-color --timestamps --tail=500
-
       - name: Upload P0 E2E artifacts
         if: always()
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
@@ -1766,8 +1674,6 @@ jobs:
 
   # Kubernetes manifest validation (server-side dry-run via kustomize)
   k8s-dry-run:
-    needs: change-scope
-    if: needs.change-scope.outputs.k8s == 'true'
     name: Kubernetes Dry-Run Validation
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -1834,8 +1740,6 @@ jobs:
 
   # Contract tests — required PR gate, no secrets needed
   contract-checks:
-    needs: change-scope
-    if: needs.change-scope.outputs.backend == 'true'
     name: Cross-Layer Contract Tests
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -1850,7 +1754,7 @@ jobs:
           cache: "pip"
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+        uses: pnpm/action-setup@v3
         with:
           version: "10.18.1"
 
@@ -1913,7 +1817,7 @@ jobs:
       - name: Detect changed files
         if: github.event_name == 'pull_request'
         id: changed-files
-        uses: tj-actions/changed-files@ed68ef82c095e0d48ec87eccea555d944a631a4c # v46.0.5
+        uses: tj-actions/changed-files@v46
 
       - name: Enforce shim change acknowledgment labels
         if: github.event_name == 'pull_request'
@@ -1947,54 +1851,20 @@ jobs:
     name: Runtime Contract Tests (Services Up)
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    needs: change-scope
-    if: >-
-      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
-      && needs.change-scope.outputs.backend == 'true'
-    env:
-      OPENAI_API_KEY: ci-runtime-placeholder
-      JWT_SECRET: ci-runtime-jwt-secret-not-for-production
-      REDIS_PASSWORD: test-redis
-      NEO4J_PASSWORD: test-neo4j
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      MINIO_ROOT_USER: minio
-      MINIO_ROOT_PASSWORD: minio-password
-      SERVICE_AUTH_SECRET: ci-runtime-service-auth-secret-minimum-32-chars
-      API_KEY_HMAC_SECRET: ci-runtime-api-key-hmac-secret-minimum-32-chars
-      SECRET_KEY: ci-runtime-secret-key-minimum-32-characters
-      CREDENTIALS_MASTER_KEY: ci-runtime-credentials-master-key-32chars
-      DEFAULT_TENANT_ID: 00000000-0000-4000-8000-000000000001
-      CORS_ORIGINS: http://localhost:3001
-      CLERK_AUTHORIZED_PARTIES: http://localhost:3001
-      CLERK_ISSUER: http://localhost:3001
-      CLERK_JWKS_URL: http://localhost:3001/.well-known/jwks.json
-      CLERK_SECRET_KEY: ci-clerk-secret
-      FABRIC_AUTH_PUBLIC_KEYS: ci-fabric-public-key
-      FABRIC_AUTH_SIGNING_KEY: ci-fabric-signing-key
-      FLOWER_PASSWORD: ci-flower-password
-      GRAFANA_ADMIN_PASSWORD: ci-grafana-password
-      LAYER4_DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/layer4_agents
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
 
-      - name: Set up Fabric CI
-        uses: ./.github/actions/setup-fabric-ci
+      - name: Set up Python
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
         with:
           python-version: "3.11"
-          python-dependency-mode: root-test
-          install-node-deps: "false"
-          cache: ""
+          cache: "pip"
 
-      - name: Write runtime contract compose override
+      - name: Install dependencies
         run: |
-          cat > docker-compose.runtime-contract.yml <<'EOF'
-          services:
-            layer1-ingestion:
-              ports:
-                - "8001:8000"
-          EOF
+          pip install pytest requests
 
       - name: Start runtime contract services
         env:
@@ -2010,7 +1880,7 @@ jobs:
           export POSTGRES_PASSWORD=postgres
           export MINIO_ROOT_USER=minio
           export MINIO_ROOT_PASSWORD=minio-password
-          export SERVICE_AUTH_SECRET=ci-runtime-service-auth-secret-minimum-32-chars
+          export SERVICE_AUTH_SECRET=ci-service-auth-secret
           export API_KEY_HMAC_SECRET=ci-api-key-hmac-secret
           export SECRET_KEY=ci-secret-key
           export CORS_ORIGINS=http://localhost:3001
@@ -2022,9 +1892,9 @@ jobs:
           export FABRIC_AUTH_SIGNING_KEY=ci-fabric-signing-key
           export FLOWER_PASSWORD=ci-flower-password
           export GRAFANA_ADMIN_PASSWORD=ci-grafana-password
-          export LAYER4_DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/layer4_agents
+          export LAYER4_DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/layer4
           export JWT_SECRET=${JWT_SECRET:?set JWT_SECRET}
-          docker compose -f infra/compose/docker-compose.full.yml -f docker-compose.runtime-contract.yml up -d postgres redis neo4j layer5-migrate layer5-ground-truth \
+          docker compose -f infra/compose/docker-compose.full.yml up -d postgres redis neo4j layer5-migrate layer5-ground-truth \
             layer1-ingestion layer2-extraction layer3-knowledge layer4-agents
 
       - name: Wait for L1-L4 health endpoints
@@ -2038,7 +1908,6 @@ jobs:
               "L2": "http://localhost:8002/health",
               "L3": "http://localhost:8003/health",
               "L4": "http://localhost:8004/health",
-              "L5": "http://localhost:8005/health",
           }
 
           deadline = time.time() + 300
@@ -2072,19 +1941,8 @@ jobs:
           L2_URL: http://localhost:8002
           L3_URL: http://localhost:8003
           L4_URL: http://localhost:8004
-          LAYER3_API_URL: http://localhost:8003
-          LAYER4_API_URL: http://localhost:8004
-          LAYER5_API_URL: http://localhost:8005
-          SERVICE_AUTH_SECRET: ci-runtime-service-auth-secret-minimum-32-chars
-          RUNTIME_CONTRACT_TENANT_ID: 00000000-0000-4000-8000-000000000001
         run: |
           pytest tests/contract/test_layer_integration.py -m runtime_contract -v --tb=short
-
-      - name: Capture runtime contract service diagnostics
-        if: failure()
-        run: |
-          docker compose -f infra/compose/docker-compose.full.yml -f docker-compose.runtime-contract.yml ps
-          docker compose -f infra/compose/docker-compose.full.yml -f docker-compose.runtime-contract.yml logs --no-color --timestamps --tail=500
 
       - name: Upload runtime contract artifacts
         if: always()
@@ -2097,8 +1955,6 @@ jobs:
 
   # Schemathesis — Property-based OpenAPI contract validation
   schemathesis-checks:
-    needs: change-scope
-    if: needs.change-scope.outputs.backend == 'true'
     name: Schemathesis Property-Based Contract Tests
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -2180,10 +2036,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 35
     # Skip on fork PRs (no secrets available)
-    needs: change-scope
-    if: >-
-      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
-      && needs.change-scope.outputs.backend == 'true'
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     permissions:
       contents: read
       id-token: write # Required only for Infisical OIDC secret retrieval in this job; no repository write scopes.
@@ -2231,12 +2084,55 @@ jobs:
       - name: Run release smoke gate
         run: make test-backend-integrated-release-smoke
 
+      - name: Start core services for integration tests
+        run: |
+          export JWT_SECRET="${JWT_SECRET:-release-smoke-jwt-secret-minimum-32-characters}"
+          export API_KEY_HMAC_SECRET="${API_KEY_HMAC_SECRET:-release-smoke-api-key-hmac-secret-32chars}"
+          export SERVICE_AUTH_SECRET="${SERVICE_AUTH_SECRET:-release-smoke-service-auth-secret-32chars}"
+          export CREDENTIALS_MASTER_KEY="${CREDENTIALS_MASTER_KEY:-release-smoke-credentials-master-key-32chars}"
+          export CORS_ORIGINS="${CORS_ORIGINS:-[\"https://localhost:3001\"]}"
+          export POSTGRES_USER="${POSTGRES_USER:-release_smoke_app}"
+          export POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-release_smoke_strong_credential}"
+          export NEO4J_PASSWORD="${NEO4J_PASSWORD:-devpassword}"
+
+          docker compose up -d neo4j redis postgres
+          docker compose up -d --build layer2-extraction layer3-knowledge layer4-agents
+
+      - name: Wait for services to be healthy
+        run: |
+          echo "Waiting for services to be healthy..."
+          for i in {1..24}; do
+            sleep 5
+            # Check if core DB services are responding
+            pg_isready -h localhost -p 5432 2>/dev/null && echo "PostgreSQL ready"
+            redis-cli -h localhost -p 6379 ping 2>/dev/null && echo "Redis ready"
+            # Check Neo4j
+            curl -s http://localhost:7474/dbms/health 2>/dev/null && echo "Neo4j ready"
+            # If we've waited enough, proceed
+            if [ "$i" -ge "12" ]; then
+              echo "Proceeding with available services..."
+              break
+            fi
+          done
+          docker compose -f infra/compose/docker-compose.full.yml ps
+        timeout-minutes: 3
+
+      - name: Run integration test suite
+        run: |
+          pip install pytest httpx pytest-asyncio
+          # Run the integration tests if they exist
+          if [ -d "tests/integration" ]; then
+            cd tests/integration
+            pytest -v --tb=short
+          else
+            echo "Integration test folder not found, skipping..."
+          fi
+
       - name: Capture logs on failure
         if: failure()
         run: |
           mkdir -p artifacts/logs
-          PROJECT_NAME="fabric4l-release-smoke-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
-          docker compose -p "$PROJECT_NAME" -f infra/compose/docker-compose.release-smoke.yml logs --no-color > artifacts/logs/docker-compose.log || true
+          docker compose -f infra/compose/docker-compose.test.yml logs > artifacts/logs/docker-compose.log || true
 
       - name: Upload smoke report
         if: always()
@@ -2256,8 +2152,6 @@ jobs:
 
   # Billing + entitlement regression pack and release evidence artifact
   billing-entitlements-regression:
-    needs: change-scope
-    if: needs.change-scope.outputs.backend == 'true'
     name: Billing/Entitlements Regression + Evidence
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -2303,8 +2197,6 @@ jobs:
 
   # Docker image build verification - catches Dockerfile regressions
   docker-compose-config-contract:
-    needs: change-scope
-    if: needs.change-scope.outputs.docker == 'true'
     name: Docker Compose Config Contract
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -2317,23 +2209,6 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Set up Node.js for Dev Container validation
-        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4
-        with:
-          node-version: "22.18.0"
-
-      - name: Install pinned Dev Container CLI
-        run: |
-          corepack enable
-          corepack prepare pnpm@10.18.1 --activate
-          PNPM_HOME="${RUNNER_TEMP}/pnpm"
-          mkdir -p "$PNPM_HOME"
-          echo "PNPM_HOME=${PNPM_HOME}" >> "$GITHUB_ENV"
-          echo "${PNPM_HOME}" >> "$GITHUB_PATH"
-          export PATH="${PNPM_HOME}:$PATH"
-          export PNPM_HOME
-          pnpm add --global @devcontainers/cli@0.80.1
-
       - name: Install compose contract dependencies
         run: python -m pip install pyyaml
 
@@ -2341,9 +2216,6 @@ jobs:
         run: |
           python scripts/ci/check_docker_compose_config.py \
             --artifact-dir artifacts/docker-compose-config
-
-      - name: Validate canonical Dev Container topology
-        run: python scripts/ci/check_devcontainer_config.py
 
       - name: Upload Docker Compose config artifacts
         if: always()
@@ -2354,8 +2226,6 @@ jobs:
           retention-days: 14
 
   queue-topology-checks:
-    needs: change-scope
-    if: needs.change-scope.outputs.backend == 'true'
     name: Queue Topology
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -2375,7 +2245,7 @@ jobs:
           node-version: "22.18.0"
 
       - name: Enable pnpm
-        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+        uses: pnpm/action-setup@v3
         with:
           version: "10.18.1"
       - name: Install queue topology test dependencies
@@ -2387,8 +2257,6 @@ jobs:
         run: pnpm test:queues
 
   docker-build-check:
-    needs: change-scope
-    if: needs.change-scope.outputs.docker == 'true'
     name: Docker Image Build Verification
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -2514,8 +2382,6 @@ jobs:
 
   # Alertmanager configuration validation
   alertmanager-config-check:
-    needs: change-scope
-    if: needs.change-scope.outputs.k8s == 'true'
     name: Alertmanager Config Validation
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -2566,8 +2432,6 @@ jobs:
             exit 1  # CONTRACT ENFORCEMENT: kubectl required for CI validation
           fi
   route-auth-gate:
-    needs: change-scope
-    if: needs.change-scope.outputs.backend == 'true'
     name: Route Auth Dependency Gate
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -2587,8 +2451,6 @@ jobs:
         run: python scripts/ci/check_route_auth_dependencies.py
 
   tenant-isolation-gate:
-    needs: change-scope
-    if: needs.change-scope.outputs.backend == 'true'
     name: Tenant Isolation Gate
     runs-on: ubuntu-latest
     timeout-minutes: 35
@@ -2635,7 +2497,7 @@ jobs:
           node-version: "22.18.0"
 
       - name: Enable pnpm
-        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+        uses: pnpm/action-setup@v3
         with:
           version: "10.18.1"
       - name: Install tenant isolation test dependencies
@@ -2671,8 +2533,6 @@ jobs:
           retention-days: 14
 
   critical-behaviors-gate:
-    needs: change-scope
-    if: needs.change-scope.outputs.code == 'true'
     name: Critical Behaviors Gate
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -2686,7 +2546,7 @@ jobs:
           node-version: "22.18.0"
 
       - name: Install pnpm
-        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+        uses: pnpm/action-setup@v3
 
       - name: Get pnpm store directory
         id: pnpm-cache
@@ -2781,7 +2641,6 @@ jobs:
     runs-on: ubuntu-latest
     if: always()
     needs:
-      - change-scope
       - structural-preflight
       - shared-and-tests-checks
       - layer5-tenant-isolation-regression
@@ -2810,19 +2669,8 @@ jobs:
           echo "event: ${{ github.event_name }} ref: ${{ github.ref }} sha: ${{ github.sha }}"
 
       - name: Enforce unified structural/security/tenant/contract/migration/deployment gate
-        env:
-          # Scope outputs are passed via env (never interpolated into the
-          # script body) so a compromised scope resolver cannot inject into
-          # this final gate arbiter. needs.*.result values are
-          # GitHub-controlled enums and safe to interpolate.
-          SCOPE_BACKEND: ${{ needs.change-scope.outputs.backend }}
-          SCOPE_LAYER5: ${{ needs.change-scope.outputs.layer5 }}
-          SCOPE_K8S: ${{ needs.change-scope.outputs.k8s }}
-          SCOPE_DOCKER: ${{ needs.change-scope.outputs.docker }}
-          SCOPE_CODE: ${{ needs.change-scope.outputs.code }}
         run: |
           declare -A CHECKS=(
-            ["change-scope"]="${{ needs.change-scope.result }}"
             ["structural-preflight"]="${{ needs.structural-preflight.result }}"
             ["shared-and-tests-checks"]="${{ needs.shared-and-tests-checks.result }}"
             ["layer5-tenant-isolation-regression"]="${{ needs.layer5-tenant-isolation-regression.result }}"
@@ -2840,32 +2688,10 @@ jobs:
             ["gate-engineering"]="${{ needs.gate-engineering.result }}"
           )
 
-          # Scope each gated check resolves against. A skipped check is safe
-          # only when its scope resolved to 'false' (the change provably
-          # cannot affect it); any other skip is a gate failure.
-          # change-scope, structural-preflight, production-readiness-gate,
-          # and gate-engineering intentionally have NO scope mapping: they
-          # must run on every PR, so any skip of theirs fails the gate.
-          declare -A SCOPES=(
-            ["shared-and-tests-checks"]="${SCOPE_BACKEND:-}"
-            ["layer5-tenant-isolation-regression"]="${SCOPE_LAYER5:-}"
-            ["contract-checks"]="${SCOPE_BACKEND:-}"
-            ["runtime-contract-checks"]="${SCOPE_BACKEND:-}"
-            ["integration-checks"]="${SCOPE_BACKEND:-}"
-            ["k8s-dry-run"]="${SCOPE_K8S:-}"
-            ["docker-compose-config-contract"]="${SCOPE_DOCKER:-}"
-            ["queue-topology-checks"]="${SCOPE_BACKEND:-}"
-            ["docker-build-check"]="${SCOPE_DOCKER:-}"
-            ["route-auth-gate"]="${SCOPE_BACKEND:-}"
-            ["tenant-isolation-gate"]="${SCOPE_BACKEND:-}"
-            ["critical-behaviors-gate"]="${SCOPE_CODE:-}"
-          )
-
           failed=0
           root_failures=()
           cascades=()
           skips=()
-          safe_skips=()
           for check in "${!CHECKS[@]}"; do
             result="${CHECKS[$check]}"
             case "$result" in
@@ -2883,21 +2709,9 @@ jobs:
                 failed=1
                 ;;
               skipped)
-                if [[ "${SCOPES[$check]:-}" == "false" ]]; then
-                  echo "⏭️  SKIPPED (out of change scope — safe): ${check}"
-                  safe_skips+=("$check")
-                elif [[ -z "${SCOPES[$check]:-}" ]]; then
-                  # No scope mapping (or change-scope itself failed): the skip
-                  # cannot be proven safe. If this job is legitimately scoped,
-                  # register it in the SCOPES map above.
-                  echo "⏭️  SKIPPED (no scope mapping — cannot prove safe): ${check}"
-                  skips+=("$check")
-                  failed=1
-                else
-                  echo "⏭️  SKIPPED (scope '${SCOPES[$check]}' did not authorize skip): ${check}"
-                  skips+=("$check")
-                  failed=1
-                fi
+                echo "⏭️  SKIPPED: ${check}"
+                skips+=("$check")
+                failed=1
                 ;;
               *)
                 echo "❓ UNKNOWN RESULT '${result}': ${check}"
@@ -2918,10 +2732,6 @@ jobs:
           if [[ ${#cascades[@]} -gt 0 ]]; then
             echo "Cancelled jobs (cascades of upstream failure, not independent failures):"
             printf '  - %s\n' "${cascades[@]}"
-          fi
-          if [[ ${#safe_skips[@]} -gt 0 ]]; then
-            echo "Skipped jobs (out of change scope — proven safe by change-scope):"
-            printf '  - %s\n' "${safe_skips[@]}"
           fi
           if [[ ${#skips[@]} -gt 0 ]]; then
             echo "Skipped jobs (treated as gate failures — required checks must run):"

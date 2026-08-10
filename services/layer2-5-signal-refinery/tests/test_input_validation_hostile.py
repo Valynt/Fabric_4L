@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import pytest
 
-from .conftest import make_signal_payload
+from .conftest import ACCOUNT_A, make_signal_payload
 
 pytestmark = pytest.mark.asyncio
 
@@ -49,7 +49,7 @@ async def test_create_signal_rejects_xss_in_evidence_excerpt(client):
         data = response.json()
         for ev in data.get("evidence", []):
             assert "<img" not in ev.get("excerpt", "").lower(), (
-                "XSS in evidence excerpt stored unsanitized"
+                f"XSS in evidence excerpt stored unsanitized"
             )
 
 

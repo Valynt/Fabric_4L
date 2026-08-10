@@ -21,21 +21,10 @@ STRICT_PREFIX = "packages/shared/src/value_fabric/shared/"
 
 ALLOWLIST: dict[str, str] = {
     "Makefile": "High-frequency operational updates are expected and low-risk.",
+    "sdk/python/tests/**": "SDK test files frequently overlap when adding coverage.",
     "docs/**": "Documentation churn is expected and should not block delivery.",
     "docs/reliability/**": "Release/readiness docs often change together across PRs.",
     ".github/workflows/**": "Workflow maintenance can legitimately overlap in coordinated release windows.",
-    # Dependency manifests and lockfiles change together by design whenever a
-    # dependency is bumped (package.json + lockfile, requirements.txt + .lock, and
-    # the base-image digest pinned across sibling Dockerfiles). Overlap here is the
-    # normal, low-risk shape of a dependency update and should not trip the guard
-    # (RC-13: this was failing every dependabot PR that touched a manifest another
-    # recently-merged bump also touched).
-    "**/package.json": "Dependency manifest bumps legitimately overlap across PRs.",
-    "**/pnpm-lock.yaml": "Lockfile regeneration overlaps on every shared dependency bump.",
-    "**/requirements*.txt": "Python requirement pins overlap across dependency updates.",
-    "**/requirements*.lock": "Locked requirement files overlap across dependency updates.",
-    "**/uv.lock": "uv lockfiles overlap across dependency updates.",
-    "**/Dockerfile*": "Base-image digest pins are updated together across services.",
 }
 
 

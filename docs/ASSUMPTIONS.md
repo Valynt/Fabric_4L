@@ -17,7 +17,7 @@ This document records consequential inferred decisions made while working autono
 ## 3. Code quality gates
 
 - The canonical CI gates are `make lint`, `make typecheck`, `make contract-tests`, and `pnpm --dir apps/web run test` (plus the backend-integrated suites).
-- `make verify` is the final gate. The Definition of Done is not met until every required gate completes successfully.
+- `make verify` is the final gate. The Definition of Done is not met until all gates pass.
 - The IDE's pyright warnings are noted but not treated as CI blockers unless they correspond to `make typecheck` errors.
 
 ## 4. Security and compliance

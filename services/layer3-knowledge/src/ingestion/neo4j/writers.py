@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from collections.abc import Callable
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import Any
 
 from ...db.audited_mutation import AuditedGraphMutation
@@ -54,7 +54,7 @@ class EntityBatchWriter:
             entity["tenant_id"] = validated_tenant_id
             entity["source_id"] = source_id
             entity["extraction_job_id"] = extraction_job_id
-            entity["loaded_at"] = datetime.now(UTC).isoformat()
+            entity["loaded_at"] = datetime.utcnow().isoformat()
 
         mutation = self._mutation_gateway(
             tenant_id=validated_tenant_id,
@@ -107,7 +107,7 @@ class RelationshipBatchWriter:
             rel["tenant_id"] = validated_tenant_id
 
         by_type: dict[str, list[dict[str, Any]]] = defaultdict(list)
-        loaded_at = datetime.now(UTC).isoformat()
+        loaded_at = datetime.utcnow().isoformat()
         for rel in all_relationships:
             predicate = self._normalize_predicate(rel.get("predicate", ""))
             if predicate in RELATIONSHIP_TYPES:
@@ -185,7 +185,7 @@ class RelationshipBatchWriter:
                 )
 
         total_loaded = 0
-        loaded_at = datetime.now(UTC).isoformat()
+        loaded_at = datetime.utcnow().isoformat()
         mutation = self._mutation_gateway(
             tenant_id=validated_tenant_id,
             session=session,

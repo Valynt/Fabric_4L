@@ -11,7 +11,7 @@ Verifies:
 """
 
 
-from datetime import UTC, datetime
+from datetime import datetime
 from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
@@ -62,7 +62,7 @@ class TestProvisionTenantEndpoint:
             tenant_id=uuid4(),
             admin_user_id=uuid4(),
             admin_temp_password="TempPass123!",
-            created_at=datetime.now(UTC),
+            created_at=datetime.utcnow(),
             isolation_tier="shared",
             status="success",
         )
@@ -119,7 +119,7 @@ class TestProvisionTenantEndpoint:
             tenant_id=uuid4(),
             admin_user_id=uuid4(),
             admin_temp_password="TempPass123!",
-            created_at=datetime.now(UTC),
+            created_at=datetime.utcnow(),
             isolation_tier="shared",
             status="success",
         )
@@ -139,7 +139,7 @@ class TestProvisionTenantEndpoint:
             tenant_id=existing_tenant_id,
             admin_user_id=uuid4(),
             admin_temp_password=None,
-            created_at=datetime.now(UTC),
+            created_at=datetime.utcnow(),
             isolation_tier="shared",
             status="success",
             errors=["Tenant already exists - idempotent operation"],
@@ -172,7 +172,7 @@ class TestProvisionTenantEndpoint:
             tenant_id=uuid4(),
             admin_user_id=uuid4(),
             admin_temp_password="TempPass123!",
-            created_at=datetime.now(UTC),
+            created_at=datetime.utcnow(),
             isolation_tier="schema",
             status="partial",
             errors=["Neo4j constraint setup failed"],
@@ -259,7 +259,7 @@ class TestTenantAPIModels:
             tenant_id=uuid4(),
             admin_user_id=uuid4(),
             admin_temp_password="TempPass123!",
-            created_at=datetime.now(UTC).isoformat(),
+            created_at=datetime.utcnow().isoformat(),
             isolation_tier="shared",
             status="success",
             message="Tenant provisioned successfully",
@@ -276,7 +276,7 @@ class TestTenantAPIModels:
             tenant_id=uuid4(),
             tenant_name="test-tenant",
             isolation_tier="shared",
-            created_at=datetime.now(UTC).isoformat(),
+            created_at=datetime.utcnow().isoformat(),
             user_count=5,
             entity_count=100,
         )

@@ -1,4 +1,19 @@
+# -----------------------------------------------------------------------------
+# SBOM Generation & Attestation Pipeline — Fabric 4L
+#
+# Generates CycloneDX + SPDX SBOMs on every release, signs with Sigstore
+# cosign, and attaches attestation to the GitHub release.
+#
+# Triggers:
+#   - release: published   (primary — full pipeline)
+#   - workflow_dispatch    (manual — specify tag)
+#   - push: tags: 'v*'     (pre-release validation)
+# -----------------------------------------------------------------------------
+
 name: SBOM Generation & Attestation
+
+permissions:
+  contents: read
 
 on:
   release:
@@ -6,29 +21,192 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Release image tag to certify
+        description: "Release tag to generate SBOM for"
         required: true
         type: string
   push:
     tags:
       - "v*"
 
-permissions:
-  contents: read
+env:
+  COSIGN_EXPERIMENTAL: "1"
+  SBOM_OUTPUT_DIR: sbom
 
-# Release SBOM generation has one implementation. The reusable supply-chain
-# workflow owns the digest-pinned tool image, image naming, CycloneDX/SPDX
-# outputs, Grype enforcement, signature verification, and artifact retention.
 jobs:
-  certify-release-artifacts:
+  # ---------------------------------------------------------------------------
+  # Job 1: Generate & Sign SBOMs
+  # ---------------------------------------------------------------------------
+  generate-sbom:
+    name: Generate & Sign SBOMs
+    runs-on: ubuntu-latest
     permissions:
-      contents: read
-      packages: read
-      security-events: write
-      actions: read
-      id-token: write
-    uses: ./.github/workflows/supply-chain-integrity.yml
-    with:
-      image_tag: ${{ inputs.tag || github.event.release.tag_name || github.ref_name }}
-      certify_images: true
-    secrets: inherit
+      contents: write      # Uploads generated SBOM files to the release.
+      id-token: write      # Obtains the Sigstore OIDC token for keyless signing.
+      attestations: write  # Publishes provenance to the GitHub attestation store.
+
+    steps:
+      # -----------------------------------------------------------------------
+      # 1. Checkout
+      # -----------------------------------------------------------------------
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for accurate attribution
+
+      # -----------------------------------------------------------------------
+      # 2. Setup Python
+      # -----------------------------------------------------------------------
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # -----------------------------------------------------------------------
+      # 3. Setup Node.js (for pnpm / Node SBOM)
+      # -----------------------------------------------------------------------
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
+
+      # -----------------------------------------------------------------------
+      # 4. Install Python tooling
+      # -----------------------------------------------------------------------
+      - name: Install CycloneDX Python
+        run: pip install cyclonedx-bom
+
+      # -----------------------------------------------------------------------
+      # 5. Install Syft (universal SBOM generator)
+      # -----------------------------------------------------------------------
+      - name: Install Syft
+        uses: anchore/sbom-action/download-syft@v0
+
+      # -----------------------------------------------------------------------
+      # 6. Install Cosign (Sigstore signing)
+      # -----------------------------------------------------------------------
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3
+        with:
+          cosign-release: "v2.2.0"
+
+      # -----------------------------------------------------------------------
+      # 7. Install pnpm dependencies (for accurate Node SBOM)
+      # -----------------------------------------------------------------------
+      - name: Install Node.js dependencies
+        run: |
+          for dir in frontend/web frontend/admin; do
+            if [ -f "$dir/pnpm-lock.yaml" ]; then
+              cd "$dir" && pnpm install --frozen-lockfile && cd ../..
+            fi
+          done
+
+      # -----------------------------------------------------------------------
+      # 8. Determine release tag
+      # -----------------------------------------------------------------------
+      - name: Set release tag
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "release" ]; then
+            echo "tag=${{ github.event.release.tag_name }}" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      # -----------------------------------------------------------------------
+      # 9. Generate SBOMs
+      # -----------------------------------------------------------------------
+      - name: Generate unified SBOM
+        run: |
+          python scripts/ci/generate_sbom.py \
+            --format json xml \
+            --output ${{ env.SBOM_OUTPUT_DIR }} \
+            --sign
+        env:
+          RELEASE_VERSION: ${{ steps.tag.outputs.tag }}
+
+      # -----------------------------------------------------------------------
+      # 10. Upload SBOM artifacts (for workflow debugging)
+      # -----------------------------------------------------------------------
+      - name: Upload SBOM artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-${{ steps.tag.outputs.tag }}
+          path: ${{ env.SBOM_OUTPUT_DIR }}/
+          retention-days: 90
+
+      # -----------------------------------------------------------------------
+      # 11. Sign SBOMs with Sigstore (keyless)
+      # -----------------------------------------------------------------------
+      - name: Sign SBOMs with Sigstore
+        run: |
+          for sbom in ${{ env.SBOM_OUTPUT_DIR }}/*/*-sbom.json; do
+            echo "Signing $sbom..."
+            cosign sign-blob \
+              --yes \
+              --output-certificate "${sbom}.cert" \
+              --output-signature "${sbom}.sig" \
+              "$sbom"
+          done
+
+      # -----------------------------------------------------------------------
+      # 12. Upload to GitHub Release
+      # -----------------------------------------------------------------------
+      - name: Upload SBOMs to GitHub release
+        if: github.event_name == 'release' || github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python scripts/ci/generate_sbom.py \
+            --format json xml \
+            --output ${{ env.SBOM_OUTPUT_DIR }} \
+            --upload-release ${{ steps.tag.outputs.tag }}
+
+      # -----------------------------------------------------------------------
+      # 13. Create GitHub Attestation
+      # -----------------------------------------------------------------------
+      - name: Attest SBOM to GitHub
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-path: |
+            ${{ env.SBOM_OUTPUT_DIR }}/**/fabric4l-unified-sbom.json
+            ${{ env.SBOM_OUTPUT_DIR }}/**/fabric4l-unified-sbom.xml
+
+      # -----------------------------------------------------------------------
+      # 14. Verify signatures
+      # -----------------------------------------------------------------------
+      - name: Verify SBOM signatures
+        run: |
+          for sbom in ${{ env.SBOM_OUTPUT_DIR }}/*/*-sbom.json; do
+            echo "Verifying $sbom..."
+            cosign verify-blob \
+              --signature "${sbom}.sig" \
+              --certificate "${sbom}.cert" \
+              --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+              --certificate-identity-regexp "^https://github.com/${{ github.repository }}" \
+              "$sbom"
+          done
+
+      # -----------------------------------------------------------------------
+      # 15. Summary
+      # -----------------------------------------------------------------------
+      - name: Generate summary
+        run: |
+          echo "## SBOM Generation Results" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Artifact | Size |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|----------|------|" >> "$GITHUB_STEP_SUMMARY"
+          for f in ${{ env.SBOM_OUTPUT_DIR }}/*/*; do
+            if [ -f "$f" ]; then
+              size=$(du -h "$f" | cut -f1)
+              echo "| $(basename $f) | $size |" >> "$GITHUB_STEP_SUMMARY"
+            fi
+          done
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "✅ All SBOMs signed with Sigstore cosign" >> "$GITHUB_STEP_SUMMARY"

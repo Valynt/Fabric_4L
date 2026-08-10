@@ -20,7 +20,6 @@
 	db-production-readiness-gate architecture-readiness-gate security-readiness-gate gate-all \
 	gate-production gate-production-core tier0-production-safety-gate tier1-beta-readiness-gate tier2-enterprise-readiness-gate production-readiness-gate \
 	release-evidence-packet collect-95-plus-evidence collect-95-plus-evidence-focused \
-	validate-launch-contract release-baseline certify-release-candidate build-release-evidence \
 	platform-contract-lint setup-hooks check-ui-duplicates check-readiness-consistency \
 	check-pytest-skip-governance check-type-escape-ratchet check-conflict-markers check-legacy-debt check-reports-evidence-policy check-no-nul-bytes check-migration-entrypoints check-migration-heads check-migration-status-artifacts \
 	check-migration-rollback-policy check-migration-runtime-consistency check-database-governance-docs check-migration-postgres-roundtrip gate-database gate-database-live db-production-readiness-gate \
@@ -51,11 +50,6 @@ DB_MIGRATION_DATABASE_URL ?=
 
 PYTHON_BOOTSTRAP ?= python
 PYTHON ?= $(shell $(PYTHON_BOOTSTRAP) scripts/ci/resolve_python.py)
-# If a local venv exists, prefer its binaries (ruff, alembic, pytest, mypy, ...).
-# This is scoped to this make invocation — it does not mutate the user's shell.
-ifneq ($(wildcard .venv/bin),)
-export PATH := $(CURDIR)/.venv/bin:$(PATH)
-endif
 PIP    := $(PYTHON) -m pip install -e
 PNPM ?= corepack pnpm
 # Use python -m pytest to ensure pytest is available via the selected Python 3.11+ interpreter.
@@ -392,12 +386,6 @@ test-backend-integrated-validation: ## Backend milestone: run direct release-pol
 test-backend-integrated-release-smoke: ## Backend milestone: boot full L1-L6 release stack and run release-environment smoke validation
 	bash scripts/ci/run_release_smoke.sh
 
-certify-production-path: ## Production path certification: execute end-to-end production path verification
-	@echo "→ Starting Production Path Certification..."
-	@echo "  Commit: $$(git rev-parse HEAD)"
-	@echo "  Timestamp: $$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-	python scripts/certify_production_path.py
-
 seed-e2e: ## Seed deterministic E2E fixture data into the local backend (requires running stack)
 	@echo "→ Seeding E2E test data..."
 	npx tsx scripts/db/seed-e2e-data.ts
@@ -526,15 +514,7 @@ test-layer3-live: ## Run Layer 3 live Neo4j/vector integration tests
 	cd services/layer3-knowledge && $(PYTEST) --basetemp=../../.tmp/pytest-layer3-live -m "integration or requires_neo4j or vector" tests/
 
 test-layer4: ## Run Layer 4 local tests
-	# Run with TMPDIR pointing outside the repo so pytest's ``tmp_path``
-	# lands in /tmp, not in ``.tmp/pytest-layer4`` inside the work tree.
-	# Tests that assert "no git repo" behaviour depend on this: if
-	# ``tmp_path`` is inside the repo, the filesystem walk for ``.git``
-	# correctly finds the repo's own ``.git`` and the test's premise
-	# collapses. We drop the explicit ``--basetemp`` so ``TMPDIR`` is
-	# honoured; the cache dir stays inside the repo (it is just pytest
-	# metadata and does not affect ``tmp_path``).
-	cd services/layer4-agents && TMPDIR=/tmp $(PYTEST) -o cache_dir=../../.tmp/pytest-cache-layer4 -o tmp_path_retention_count=0 -m "not postgres and not requires_postgres and not docker and not integration and not e2e" tests/
+	cd services/layer4-agents && $(PYTEST) --basetemp=../../.tmp/pytest-layer4 -o cache_dir=../../.tmp/pytest-cache-layer4 -m "not postgres and not requires_postgres and not docker and not integration and not e2e" tests/
 
 test-layer4-live: ## Run Layer 4 live Docker/PostgreSQL/integration tests
 	cd services/layer4-agents && $(PYTEST) --basetemp=../../.tmp/pytest-layer4-live -o cache_dir=../../.tmp/pytest-cache-layer4-live -m "postgres or requires_postgres or docker or integration or e2e" tests/
@@ -852,22 +832,6 @@ db-production-readiness-gate: ## Gate: PostgreSQL-only database production readi
 release-evidence-packet: ## Generate the canonical release evidence packet
 	$(PYTHON) scripts/ci/generate_release_evidence_packet.py --allow-placeholder-sha
 
-# ─── V1 Release Factory (thin control plane over existing gates) ─────────────
-
-validate-launch-contract: ## Validate release/v1 launch contract, schemas, tasks, and risk-register reconciliation
-	$(PYTHON) scripts/release/validate_contract.py
-
-release-baseline: ## Run canonical gates from a clean checkout; write classified baseline to artifacts/release/<sha>/
-	$(PYTHON) scripts/release/baseline.py
-
-certify-release-candidate: ## Fail-closed certification of RELEASE_SHA (live steps need CERTIFY_LIVE=1); evidence to artifacts/release/<sha>/
-	@test -n "$(RELEASE_SHA)" || { echo "usage: make certify-release-candidate RELEASE_SHA=<sha>"; exit 2; }
-	$(PYTHON) scripts/release/certify_candidate.py $(RELEASE_SHA)
-
-build-release-evidence: ## Compose the candidate-scoped release evidence packet plus the candidate manifest for RELEASE_SHA
-	@test -n "$(RELEASE_SHA)" || { echo "usage: make build-release-evidence RELEASE_SHA=<sha>"; exit 2; }
-	$(PYTHON) scripts/release/build_evidence_bundle.py $(RELEASE_SHA)
-
 collect-95-plus-evidence-focused: release-evidence-packet ## Compatibility alias: canonical release evidence packet replaces focused 95+ evidence collection
 	@echo "✅  collect-95-plus-evidence-focused alias completed (canonical: release-evidence-packet)"
 
@@ -1159,7 +1123,7 @@ check-raw-http-exception-usage: ## Enforce raw HTTPException usage only in bound
 
 secret-scan:
 	@echo "Running secret scan..."
-	infisical scan || python scripts/ci/check_manifest_secret_hygiene.py
+	infisical scan --recursive || python scripts/ci/check_manifest_secret_hygiene.py
 
 pip-audit-all:
 	@echo "Running pip audit..."

@@ -17,7 +17,7 @@ import re
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime
 from enum import Enum
 from typing import Any, ClassVar, cast
 
@@ -254,8 +254,8 @@ class NarrativeSynthesisAgent(BaseAgent):
                 variables=[],  # Would be extracted from template
                 styles={},
                 created_by="system",
-                created_at=datetime.now(UTC),
-                updated_at=datetime.now(UTC),
+                created_at=datetime.utcnow(),
+                updated_at=datetime.utcnow(),
             )
 
         return templates
@@ -349,7 +349,7 @@ class NarrativeSynthesisAgent(BaseAgent):
                 "risks": data.get("risk_assessment", {}).get("risks", []),
             },
             "template_used": template_id,
-            "generated_at": datetime.now(UTC).isoformat(),
+            "generated_at": datetime.utcnow().isoformat(),
         }).model_dump()
 
 
@@ -398,7 +398,7 @@ class NarrativeSynthesisAgent(BaseAgent):
             "slide_count": len(slides),
             "slides": slides,
             "template_used": template_id,
-            "generated_at": datetime.now(UTC).isoformat(),
+            "generated_at": datetime.utcnow().isoformat(),
         }).model_dump()
 
 
@@ -434,7 +434,7 @@ class NarrativeSynthesisAgent(BaseAgent):
                 "approval_threshold": self._determine_approval_threshold(data),
             },
             "template_used": template_id,
-            "generated_at": datetime.now(UTC).isoformat(),
+            "generated_at": datetime.utcnow().isoformat(),
         }).model_dump()
 
 

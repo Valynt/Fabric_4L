@@ -69,7 +69,7 @@ class FormulaDependency:
     source_formula_id: str
     target_formula_id: str
     dependency_type: str  # "uses", "extends", "validates"
-    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    created_at: datetime = field(default_factory=datetime.now(UTC))
 
 
 @dataclass

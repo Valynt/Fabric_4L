@@ -10,7 +10,7 @@ Verifies:
 - Middleware integration
 """
 
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
@@ -232,7 +232,7 @@ class TestRateLimitResult:
             allowed=True,
             limit=100,
             remaining=50,
-            reset_at=datetime.now(UTC),
+            reset_at=datetime.utcnow(),
         )
         
         assert result.allowed is True
@@ -244,7 +244,7 @@ class TestRateLimitResult:
             allowed=False,
             limit=100,
             remaining=0,
-            reset_at=datetime.now(UTC),
+            reset_at=datetime.utcnow(),
             retry_after_seconds=30,
         )
         
@@ -294,7 +294,7 @@ class TestTenantRateLimitMiddleware:
                 allowed=True,
                 limit=100,
                 remaining=99,
-                reset_at=datetime.now(UTC),
+                reset_at=datetime.utcnow(),
             )
         )
         app.add_middleware(

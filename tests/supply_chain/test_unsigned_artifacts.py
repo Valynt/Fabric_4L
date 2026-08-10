@@ -9,7 +9,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 def test_release_workflow_verifies_signatures_and_provenance() -> None:
-    supply_chain = (REPO_ROOT / ".github/workflows/supply-chain-integrity.yml").read_text(encoding="utf-8")
+    supply_chain = (REPO_ROOT / ".github/workflows/supply-chain.yml").read_text(encoding="utf-8")
     deploy = (REPO_ROOT / ".github/workflows/deploy.yml").read_text(encoding="utf-8")
 
     assert "verify-signatures:" in supply_chain

@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import os
+from typing import Any
 
 import httpx
 from fastapi import HTTPException
-from value_fabric.shared.models import JSONDict
 
 from app.core.config import get_settings
 
@@ -30,8 +30,8 @@ class Layer4Client:
         method: str,
         path: str,
         tenant_id: str,
-        json: JSONDict | None = None,
-    ) -> JSONDict:
+        json: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         url = f"{self.base_url}{path}"
         async with httpx.AsyncClient(timeout=self.timeout) as client:
             response = await client.request(
@@ -49,8 +49,8 @@ class Layer4Client:
         self,
         tenant_id: str,
         workflow_type: str,
-        inputs: JSONDict,
-    ) -> JSONDict:
+        inputs: dict[str, Any],
+    ) -> dict[str, Any]:
         return await self._request(
             "POST",
             "/v1/workflows",
@@ -58,33 +58,33 @@ class Layer4Client:
             json={"workflow_type": workflow_type, "inputs": inputs},
         )
 
-    async def get_workflow(self, tenant_id: str, workflow_id: str) -> JSONDict:
+    async def get_workflow(self, tenant_id: str, workflow_id: str) -> dict[str, Any]:
         return await self._request("GET", f"/v1/workflows/{workflow_id}", tenant_id)
 
     async def get_workflow_result(
         self, tenant_id: str, workflow_id: str
-    ) -> JSONDict:
+    ) -> dict[str, Any]:
         return await self._request(
             "GET", f"/v1/workflows/{workflow_id}/result", tenant_id
         )
 
     async def generate_narrative(
-        self, tenant_id: str, payload: JSONDict
-    ) -> JSONDict:
+        self, tenant_id: str, payload: dict[str, Any]
+    ) -> dict[str, Any]:
         return await self._request(
             "POST", "/v1/narratives/generate", tenant_id, json=payload
         )
 
     async def generate_hypotheses(
-        self, tenant_id: str, payload: JSONDict
-    ) -> JSONDict:
+        self, tenant_id: str, payload: dict[str, Any]
+    ) -> dict[str, Any]:
         return await self._request(
             "POST", "/v1/hypotheses/generate", tenant_id, json=payload
         )
 
     async def run_roi_analysis(
-        self, tenant_id: str, payload: JSONDict
-    ) -> JSONDict:
+        self, tenant_id: str, payload: dict[str, Any]
+    ) -> dict[str, Any]:
         return await self._request(
             "POST", "/v1/analysis/roi", tenant_id, json=payload
         )

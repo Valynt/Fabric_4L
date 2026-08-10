@@ -1,5 +1,5 @@
 import logging
-from datetime import UTC, datetime
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
@@ -137,7 +137,7 @@ async def create_value_case(
     """Create a new value case with scenarios and calculations."""
     tenant_id = context.tenant_id
     
-    case_id = f"case_{datetime.now(UTC).strftime('%Y%m%d%H%M%S')}"
+    case_id = f"case_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
     
     async with await create_neo4j_tenant_session(tenant_id) as neo4j:
         query = """
@@ -171,8 +171,8 @@ async def create_value_case(
             return ValueCaseResponse(
                 case_id=case_id,
                 account_id=case_data.account_id,
-                created_at=datetime.now(UTC).isoformat(),
-                updated_at=datetime.now(UTC).isoformat(),
+                created_at=datetime.utcnow().isoformat(),
+                updated_at=datetime.utcnow().isoformat(),
                 levers=case_data.levers,
                 scenarios=case_data.scenarios,
                 metadata=case_data.metadata,

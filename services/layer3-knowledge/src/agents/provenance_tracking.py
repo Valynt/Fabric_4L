@@ -12,7 +12,7 @@ import re
 import time
 import uuid
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime
 from enum import Enum
 from typing import Any
 from uuid import UUID
@@ -590,7 +590,7 @@ class ProvenanceTrackingAgent(BaseAgent):
             workflow_instance_id=workflow_instance_id,
             output_type=output_type,
             output_id=output_id,
-            created_at=datetime.now(UTC),
+            created_at=datetime.utcnow(),
             completed_at=None,
             steps=[],
             tenant_id=tenant_id,
@@ -602,7 +602,7 @@ class ProvenanceTrackingAgent(BaseAgent):
                 step_id=step_data.get("step_id", f"step-{i + 1}"),
                 step_type=step_data.get("step_type", "processing"),
                 step_number=i + 1,
-                timestamp=datetime.now(UTC),
+                timestamp=datetime.utcnow(),
                 description=step_data.get("description", ""),
                 input_refs=step_data.get("input_refs", []),
                 output_refs=step_data.get("output_refs", []),
@@ -615,7 +615,7 @@ class ProvenanceTrackingAgent(BaseAgent):
             )
             decision_trace.steps.append(step)
 
-        decision_trace.completed_at = datetime.now(UTC)
+        decision_trace.completed_at = datetime.utcnow()
 
         # Store in database
         if self._driver:
@@ -813,7 +813,7 @@ class ProvenanceTrackingAgent(BaseAgent):
             predicate=predicate,
             object=object,
             annotations=annotations,
-            created_at=datetime.now(UTC),
+            created_at=datetime.utcnow(),
         )
 
     def build_provenance_record(
@@ -843,7 +843,7 @@ class ProvenanceTrackingAgent(BaseAgent):
             },
             "generation": {
                 "activity": generated_by,
-                "timestamp": datetime.now(UTC).isoformat(),
+                "timestamp": datetime.utcnow().isoformat(),
             },
             "usage": {
                 "used_entities": used_entities,

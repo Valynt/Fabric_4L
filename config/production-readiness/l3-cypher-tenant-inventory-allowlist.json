@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "owner": "platform-security",
-  "generated_at": "2026-08-08T02:19:14.268183+00:00",
+  "generated_at": "2026-06-25T03:53:27.914790+00:00",
   "allowlist": [
     {
       "finding_key": "services/layer3-knowledge/src/api/dependencies_tenant_secured.py::execute_query::243::self.run::run-call-unresolved",
@@ -9,24 +9,24 @@
       "justification": "Seeded baseline for existing L3 Cypher tenant-inventory findings; must be remediated or re-reviewed before expiry."
     },
     {
-      "finding_key": "services/layer3-knowledge/src/api/routes/entities.py::get_entity_context_route::479::neo4j.execute_query::run-call-unresolved",
+      "finding_key": "services/layer3-knowledge/src/api/routes/entities.py::get_entity_context_route::475::neo4j.execute_query::run-call-unresolved",
       "expires_on": "2026-12-31",
-      "justification": "Re-allowlisted after rebase onto main (commit 44f547867) shifted line numbers in entities.py. The underlying calls remain tenant-scoped via the query builder (custom_tenant_query); only the static finding_key shifted. Must be remediated or re-reviewed before 2026-12-31."
+      "justification": "Seeded baseline for existing L3 Cypher tenant-inventory findings; must be remediated or re-reviewed before expiry."
     },
     {
-      "finding_key": "services/layer3-knowledge/src/api/routes/entities.py::list_entities::191::neo4j.execute_query::run-call-unresolved",
+      "finding_key": "services/layer3-knowledge/src/api/routes/entities.py::list_entities::190::neo4j.execute_query::run-call-unresolved",
       "expires_on": "2026-12-31",
-      "justification": "Re-allowlisted after rebase onto main (commit 44f547867) shifted line numbers in entities.py. The underlying calls remain tenant-scoped via the query builder (custom_tenant_query); only the static finding_key shifted. Must be remediated or re-reviewed before 2026-12-31."
+      "justification": "Seeded baseline for existing L3 Cypher tenant-inventory findings; must be remediated or re-reviewed before expiry."
     },
     {
-      "finding_key": "services/layer3-knowledge/src/api/routes/entities.py::query_entities::344::neo4j.execute_query::run-call-unresolved",
+      "finding_key": "services/layer3-knowledge/src/api/routes/entities.py::query_entities::341::neo4j.execute_query::run-call-unresolved",
       "expires_on": "2026-12-31",
-      "justification": "Re-allowlisted after rebase onto main (commit 44f547867) shifted line numbers in entities.py. The underlying calls remain tenant-scoped via the query builder (custom_tenant_query); only the static finding_key shifted. Must be remediated or re-reviewed before 2026-12-31."
+      "justification": "Seeded baseline for existing L3 Cypher tenant-inventory findings; must be remediated or re-reviewed before expiry."
     },
     {
-      "finding_key": "services/layer3-knowledge/src/api/routes/entities.py::query_entities::371::neo4j.execute_query::run-call-unresolved",
+      "finding_key": "services/layer3-knowledge/src/api/routes/entities.py::query_entities::367::neo4j.execute_query::run-call-unresolved",
       "expires_on": "2026-12-31",
-      "justification": "Re-allowlisted after rebase onto main (commit 44f547867) shifted line numbers in entities.py. The underlying calls remain tenant-scoped via the query builder (custom_tenant_query); only the static finding_key shifted. Must be remediated or re-reviewed before 2026-12-31."
+      "justification": "Seeded baseline for existing L3 Cypher tenant-inventory findings; must be remediated or re-reviewed before expiry."
     },
     {
       "finding_key": "services/layer3-knowledge/src/api/routes/models_router.py::_ensure_constraints::176::neo4j.execute_query::run-call",

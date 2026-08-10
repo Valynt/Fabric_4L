@@ -314,16 +314,13 @@ class Settings(BaseSettings):
     )
 
     # API settings
-    api_host: str = Field(default="0.0.0.0", description="API server host")  # nosec # Uvicorn in container must bind all interfaces
+    api_host: str = Field(default="0.0.0.0", description="API server host")  # nosec B104
     api_port: int = Field(default=8000, description="API server port")
 
     # Layer 2 integration
     layer2_api_url: str = Field(default="http://layer2:8000", description="Layer 2 extraction API URL")
     layer2_celery_broker_url: str = Field(default="redis://redis:6379/0", description="Layer 2 Celery broker URL for task dispatch")
     use_celery_for_l2: bool = Field(default=True, description="Use Celery for L2 dispatch instead of HTTP")
-    
-    # Layer 3 integration
-    layer3_api_url: str = Field(default="http://layer3-knowledge:8003", description="Layer 3 knowledge graph API URL")
 
     # LLM Providers (for AI_LLM extraction method)
     openai_api_key: str | None = Field(default=None, description="OpenAI API key")

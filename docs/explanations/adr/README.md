@@ -76,7 +76,7 @@ An ADR is ready for review only when it includes:
 | [ADR-019](./ADR-019-replayability-event-envelope-and-layer-4-replay-harness.md) | Replayability Event Envelope and Layer 4 Replay Harness | ✅ Accepted | — |
 | [ADR-020](./ADR-020-layer-2-5-signal-refinery.md) | Layer 2.5 Signal Refinery | ✅ Accepted | 2026-05-22 |
 | [ADR-021](./ADR-021-layer-3-canonical-runtime-path.md) | Layer 3 Canonical Runtime Path | ✅ Accepted | 2026-05-13 |
-| [ADR-022](./ADR-022-layer4-internal-decomposition.md) | Layer 4 Internal Decomposition | ✅ Accepted | 2026-05-22 |
+| [ADR-022](./ADR-022-layer4-internal-decomposition.md) | Layer 4 Internal Decomposition | Proposed | 2026-05-22 |
 | [ADR-023](./ADR-023-billing-service-extraction.md) | Billing Service Extraction | Superseded by Layer 7 ownership rationalization | 2026-05-29 |
 | [ADR-024](./ADR-024-circuit-breaker-inventory.md) | Circuit Breaker Inventory | ✅ Accepted | 2026-05-27 |
 | [ADR-025](./ADR-025-layer-25-signal-refinery.md) | Layer 2.5 Signal Refinery as Official Architecture Extension | ✅ Accepted | 2026-06-10 |
@@ -90,13 +90,9 @@ An ADR is ready for review only when it includes:
 | [ADR-033](./ADR-033-tool-boundary-ratification.md) | Tool Invocation Boundary Contract Ratification | ✅ Accepted | 2026-07-10 |
 | [ADR-034](./ADR-034-request-context-contract.md) | RequestContext Contract Definition | ✅ Accepted | 2026-05-25 |
 | [ADR-035](./ADR-035-verified-tenant-context-boundary.md) | Verified Tenant Context Boundary | Accepted — partially implemented | 2026-07-20 |
-| [ADR-036](./ADR-036-tenant-bound-graph-query-execution.md) | Tenant-Bound Graph Query Execution | ✅ Accepted | 2026-07-20 |
-| [ADR-037](./ADR-037-separation-of-workflow-state-context-and-orchestration.md) | Separation of Workflow State, Context, and Orchestration | ✅ Accepted | 2026-07-20 |
+| [ADR-036](./ADR-036-tenant-bound-graph-query-execution.md) | Tenant-Bound Graph Query Execution | Proposed | 2026-07-20 |
+| [ADR-037](./ADR-037-separation-of-workflow-state-context-and-orchestration.md) | Separation of Workflow State, Context, and Orchestration | Proposed | 2026-07-20 |
 | [ADR-038](./ADR-038-externalized-secret-management-and-automated-detection.md) | Externalized Secret Management and Automated Secret Detection | Accepted — partially implemented | 2026-07-20 |
-| [ADR-039](./ADR-039-canonical-public-api-shape.md) | Canonical Public API Shape and Route Contract | ✅ Accepted | 2026-07-29 |
-| [ADR-040](./ADR-040-data-ownership-system-of-record.md) | Data Ownership and System of Record | ✅ Accepted | 2026-07-29 |
-| [ADR-041](./ADR-041-canonical-layer1-ingestion-path.md) | Canonical Layer 1 Ingestion Path | ✅ Accepted | 2026-07-29 |
-| [ADR-042](./ADR-042-claim-benchmark-taxonomy-alignment.md) | Claim Type and Benchmark Taxonomy Alignment | ✅ Accepted | 2026-07-29 |
 
 ---
 

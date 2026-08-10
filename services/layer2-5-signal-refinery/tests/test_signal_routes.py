@@ -12,8 +12,10 @@ Tests cover:
 from __future__ import annotations
 
 import pytest
+import pytest_asyncio
 
-from .conftest import ACCOUNT_A, TENANT_A, make_signal_payload
+from .conftest import ACCOUNT_A, ACCOUNT_B, TENANT_A, make_signal_payload
+
 
 pytestmark = pytest.mark.asyncio
 

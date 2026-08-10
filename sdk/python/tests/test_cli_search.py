@@ -3,28 +3,19 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Iterator
-from pathlib import Path
-from typing import cast
 from unittest.mock import MagicMock, patch
 
 import pytest
 from typer.testing import CliRunner
 
 from valuefabric.cli.main import app
-from valuefabric.generated.l3 import (
-    EntityType,
-    ProcessingTimeMs,
-    SearchResponse,
-    SearchResult,
-    SearchType,
-)
+from valuefabric.generated.l3 import EntityType, SearchResponse, SearchResult, SearchType
 
 runner = CliRunner()
 
 
 @pytest.fixture(autouse=True)
-def mock_config(tmp_path: Path) -> Iterator[None]:
+def mock_config(tmp_path):
     """Provide a temporary CLI config so commands can load credentials."""
     config = {
         "active_profile": "default",
@@ -45,25 +36,20 @@ def mock_config(tmp_path: Path) -> Iterator[None]:
 class TestSearchCommands:
     """Tests for vf search command."""
 
-    def test_search_missing_query(self, mock_config: None) -> None:
+    def test_search_missing_query(self, mock_config):
         """Test that search without query shows error."""
         result = runner.invoke(app, ["search"])
         # Typer/Click returns exit code 2 for missing required arguments
         assert result.exit_code == 2
-        assert (
-            "Usage:" in result.output
-            or "Missing" in result.output
-            or "required" in result.output.lower()
-            or "Argument" in result.output
-        )
+        assert "Usage:" in result.output or "Missing" in result.output or "required" in result.output.lower() or "Argument" in result.output
 
-    def test_search_success(self, mock_config: None) -> None:
+    def test_search_success(self, mock_config):
         """Test successful search returns results."""
         mock_response = SearchResponse(
             query="AI platform",
             total_results=2,
             search_type=SearchType.hybrid,
-            processing_time_ms=cast(ProcessingTimeMs, 150),
+            processing_time_ms=150,
             results=[
                 SearchResult(
                     entity_id="entity-1",
@@ -100,13 +86,13 @@ class TestSearchCommands:
             assert "Predictive Analytics" in result.output
             assert "2 total" in result.output
 
-    def test_search_json_output(self, mock_config: None) -> None:
+    def test_search_json_output(self, mock_config):
         """Test search with --json flag returns valid JSON."""
         mock_response = SearchResponse(
             query="test",
             total_results=1,
             search_type=SearchType.hybrid,
-            processing_time_ms=cast(ProcessingTimeMs, 100),
+            processing_time_ms=100,
             results=[
                 SearchResult(
                     entity_id="entity-1",
@@ -134,13 +120,13 @@ class TestSearchCommands:
             assert data["total_results"] == 1
             assert len(data["results"]) == 1
 
-    def test_search_with_entity_type_filter(self, mock_config: None) -> None:
+    def test_search_with_entity_type_filter(self, mock_config):
         """Test search with --type filter."""
         mock_response = SearchResponse(
             query="AI",
             total_results=1,
             search_type=SearchType.hybrid,
-            processing_time_ms=cast(ProcessingTimeMs, 120),
+            processing_time_ms=120,
             results=[
                 SearchResult(
                     entity_id="entity-1",
@@ -167,19 +153,19 @@ class TestSearchCommands:
             call_args = mock_client.search.call_args[0][0]
             assert call_args.entity_type == EntityType.Capability
 
-    def test_search_invalid_entity_type(self, mock_config: None) -> None:
+    def test_search_invalid_entity_type(self, mock_config):
         """Test search with invalid entity type shows error."""
         result = runner.invoke(app, ["search", "query", "--type", "InvalidType"])
         assert result.exit_code == 1
         assert "Invalid entity type" in result.output
 
-    def test_search_no_results(self, mock_config: None) -> None:
+    def test_search_no_results(self, mock_config):
         """Test search with no results shows appropriate message."""
         mock_response = SearchResponse(
             query="nonexistent",
             total_results=0,
             search_type=SearchType.hybrid,
-            processing_time_ms=cast(ProcessingTimeMs, 50),
+            processing_time_ms=50,
             results=[],
         )
 
@@ -193,7 +179,7 @@ class TestSearchCommands:
             assert result.exit_code == 0
             assert "No results found" in result.output
 
-    def test_search_api_error(self, mock_config: None) -> None:
+    def test_search_api_error(self, mock_config):
         """Test search handles API errors gracefully."""
         with patch("valuefabric.cli.search.L3Client") as mock_client_class:
             mock_client = MagicMock()
@@ -205,13 +191,13 @@ class TestSearchCommands:
             assert result.exit_code == 1
             assert "Search failed" in result.output
 
-    def test_search_with_limit(self, mock_config: None) -> None:
+    def test_search_with_limit(self, mock_config):
         """Test search with --limit option."""
         mock_response = SearchResponse(
             query="test",
             total_results=5,
             search_type=SearchType.hybrid,
-            processing_time_ms=cast(ProcessingTimeMs, 100),
+            processing_time_ms=100,
             results=[],
         )
 
@@ -226,7 +212,7 @@ class TestSearchCommands:
             call_args = mock_client.search.call_args[0][0]
             assert call_args.top_k == 5
 
-    def test_search_help(self, mock_config: None) -> None:
+    def test_search_help(self, mock_config):
         """Test search --help shows usage information."""
         result = runner.invoke(app, ["search", "--help"])
         assert result.exit_code == 0

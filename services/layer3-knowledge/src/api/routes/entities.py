@@ -16,12 +16,11 @@ These endpoints have been refactored from main.py as part of the
 architectural decomposition effort (Weakness #3).
 """
 
-from collections.abc import Mapping
+from typing import Any
 
 from fastapi import APIRouter, Depends, Query
 from value_fabric.shared.identity import RequestContext, require_authenticated
 from value_fabric.shared.identity.isolation import TenantScopedCypher
-from value_fabric.shared.models import JSONDict
 
 from src.logging_config import get_logger
 
@@ -86,7 +85,7 @@ _HOP_RANGE_CLAUSES: dict[int, str] = {
 _RELATIONSHIP_TYPE_FILTER = "AND ALL(r IN relationships(path) WHERE type(r) IN $relationship_types)"
 
 
-def _map_results_to_summaries(results: list[JSONDict]) -> list[EntitySummary]:
+def _map_results_to_summaries(results: list[dict[str, Any]]) -> list[EntitySummary]:
     """Map raw Cypher result rows to canonical EntitySummary objects."""
     return [
         EntitySummary(
@@ -101,7 +100,7 @@ def _map_results_to_summaries(results: list[JSONDict]) -> list[EntitySummary]:
     ]
 
 
-def _serialize_context_node(node: Mapping[str, object]) -> JSONDict:
+def _serialize_context_node(node: Any) -> dict[str, Any]:
     """Serialize a Neo4j node into the canonical entity context shape."""
     data = dict(node)
     return {
@@ -116,7 +115,7 @@ def _serialize_context_node(node: Mapping[str, object]) -> JSONDict:
 
 def _error_context(
     _ctx: RequestContext, endpoint: str, operation: str
-) -> JSONDict:
+) -> dict[str, Any]:
     """Build a consistent logging context for entity route errors."""
     return {
         "tenant": getattr(_ctx, "tenant_id", "unknown"),
@@ -148,7 +147,7 @@ async def list_entities(
         # Single query: count and paginated data in one round-trip.
         # The CALL {} subquery is evaluated independently; the outer MATCH
         # returns paginated rows each carrying the pre-computed total.
-        params: JSONDict = {
+        params: dict[str, Any] = {
             "search_text": search_text,
             "entity_types": entity_types,
             "confidence_min": confidence_min,
@@ -319,11 +318,10 @@ async def query_entities(
     and custom sorting.
     """
     try:
-        params: JSONDict = {"limit": request.limit or 20, "offset": request.offset or 0}
+        params: dict[str, Any] = {"limit": request.limit or 20, "offset": request.offset or 0}
         params["entity_types"] = request.entity_types
         params["confidence_min"] = request.min_confidence
         params["confidence_max"] = request.max_confidence
-        params["source_version_ids"] = request.source_version_ids
         builder = TenantScopedCypher(neo4j.tenant_id or "")
         scoped_count = builder.custom_tenant_query(
             """
@@ -332,7 +330,6 @@ async def query_entities(
               AND ($entity_types IS NULL OR e.entity_type IN $entity_types)
               AND ($confidence_min IS NULL OR e.confidence_score >= $confidence_min)
               AND ($confidence_max IS NULL OR e.confidence_score <= $confidence_max)
-              AND ($source_version_ids IS NULL OR e.source_version_id IN $source_version_ids)
             RETURN count(e) as total
         """,
             params={k: v for k, v in params.items() if k not in ("limit", "offset")},
@@ -352,7 +349,6 @@ async def query_entities(
               AND ($entity_types IS NULL OR e.entity_type IN $entity_types)
               AND ($confidence_min IS NULL OR e.confidence_score >= $confidence_min)
               AND ($confidence_max IS NULL OR e.confidence_score <= $confidence_max)
-              AND ($source_version_ids IS NULL OR e.source_version_id IN $source_version_ids)
             RETURN e.id as id,
                    e.name as name,
                    e.description as description,
@@ -448,7 +444,7 @@ async def get_entity_context_route(
         # raw user input.
         hop_clause = _HOP_RANGE_CLAUSES[hops]
 
-        params: JSONDict = {
+        params: dict[str, Any] = {
             "entity_id": entity_id,
             "min_confidence": min_confidence,
         }
@@ -489,7 +485,7 @@ async def get_entity_context_route(
         serialized_neighbors = [_serialize_context_node(n) for n in neighbor_nodes]
         center = _serialize_context_node(center_node)
 
-        relationships: list[JSONDict] = []
+        relationships: list[dict[str, Any]] = []
         for rel_group in record.get("all_rels", []):
             group = rel_group if isinstance(rel_group, list) else [rel_group]
             for rel in group:

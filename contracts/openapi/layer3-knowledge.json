@@ -6336,48 +6336,6 @@
         }
       }
     },
-    "/v1/nodes": {
-      "post": {
-        "tags": [
-          "Ingestion"
-        ],
-        "summary": "Create Ground Truth Node",
-        "description": "Create or update a GroundTruth node from Layer 5.\n\nThis endpoint is called by Layer 5's Layer3Client.sync_truth_object()\nto persist validated TruthObjects as :GroundTruth nodes in the Knowledge Graph.",
-        "operationId": "create_ground_truth_node_v1_nodes_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/GroundTruthNodeRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GroundTruthNodeResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/v1/ingest": {
       "post": {
         "tags": [
@@ -10591,22 +10549,6 @@
             "title": "Extraction Job Ids",
             "description": "Filter by originating extraction job"
           },
-          "source_version_ids": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string",
-                  "maxLength": 255
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Source Version Ids",
-            "description": "Filter by source version ID for graph population verification"
-          },
           "updated_after": {
             "anyOf": [
               {
@@ -12039,67 +11981,6 @@
         ],
         "title": "GraphStats",
         "description": "Statistics for the knowledge graph."
-      },
-      "GroundTruthNodeRequest": {
-        "properties": {
-          "node_type": {
-            "type": "string",
-            "title": "Node Type",
-            "description": "Node type (expected: 'GroundTruth')"
-          },
-          "properties": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Properties",
-            "description": "Node properties"
-          },
-          "merge_keys": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Merge Keys",
-            "description": "Keys for MERGE operation"
-          }
-        },
-        "type": "object",
-        "required": [
-          "node_type",
-          "properties"
-        ],
-        "title": "GroundTruthNodeRequest",
-        "description": "Ground Truth node creation request from Layer 5.\n\nMatches the payload format used by Layer 5's Layer3Client.sync_truth_object()."
-      },
-      "GroundTruthNodeResponse": {
-        "properties": {
-          "node_id": {
-            "type": "string",
-            "title": "Node Id",
-            "description": "Created node ID"
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "created",
-              "updated"
-            ],
-            "title": "Status",
-            "description": "Whether node was created or updated"
-          },
-          "message": {
-            "type": "string",
-            "title": "Message",
-            "description": "Additional message",
-            "default": ""
-          }
-        },
-        "type": "object",
-        "required": [
-          "node_id",
-          "status"
-        ],
-        "title": "GroundTruthNodeResponse",
-        "description": "Ground Truth node creation response."
       },
       "HTTPValidationError": {
         "type": "object",

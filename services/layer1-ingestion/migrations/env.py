@@ -10,11 +10,11 @@ from sqlalchemy import engine_from_config, pool
 # Add paths so imports match Docker layout:
 # - shared.* -> packages/shared/src/value_fabric/shared
 # - layer1_ingestion.* -> layer1-ingestion/src/layer1_ingestion
-layer1_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-value_fabric_root = os.path.abspath(os.path.join(layer1_root, ".."))
+layer1_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+value_fabric_root = os.path.abspath(os.path.join(layer1_root, '..'))
 
 # Add layer1-ingestion/src so canonical imports work
-layer1_src = os.path.join(layer1_root, "src")
+layer1_src = os.path.join(layer1_root, 'src')
 if layer1_src not in sys.path:
     sys.path.insert(0, layer1_src)
 
@@ -29,12 +29,8 @@ from layer1_ingestion.shared.models import Base
 # this is the Alembic Config object
 config = context.config
 
-# Alembic is synchronous even when the runtime API uses asyncpg. Prefer the
-# explicit sync URL and normalize the async fallback for local environments.
-database_url_sync = (
-    os.getenv("DATABASE_URL_SYNC") or os.getenv("LAYER1_DATABASE_URL_SYNC") or settings.database_url
-).replace("postgresql+asyncpg://", "postgresql://", 1)
-config.set_main_option("sqlalchemy.url", database_url_sync)
+# Override sqlalchemy.url with environment variable
+config.set_main_option('sqlalchemy.url', settings.database_url)
 
 # Interpret the config file for Python logging
 if config.config_file_name is not None:
@@ -67,7 +63,10 @@ def run_migrations_online() -> None:
     )
 
     with connectable.connect() as connection:
-        context.configure(connection=connection, target_metadata=target_metadata)
+        context.configure(
+            connection=connection,
+            target_metadata=target_metadata
+        )
 
         with context.begin_transaction():
             context.run_migrations()

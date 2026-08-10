@@ -10,7 +10,8 @@ from __future__ import annotations
 
 import pytest
 
-from .conftest import ACCOUNT_A, ACCOUNT_B, TENANT_A, make_signal_payload
+from .conftest import ACCOUNT_A, ACCOUNT_B, TENANT_A, TENANT_B, make_signal_payload
+
 
 pytestmark = pytest.mark.asyncio
 
@@ -135,8 +136,8 @@ async def test_tenant_a_cannot_promote_tenant_b_signal(client, client_b):
 async def test_missing_tenant_context_fails_closed(engine):
     """A request without X-Tenant-ID must be rejected."""
     from httpx import ASGITransport, AsyncClient
-    from layer2_5_signal_refinery import database as db_mod
     from layer2_5_signal_refinery.api.main import create_app
+    from layer2_5_signal_refinery import database as db_mod
     from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
     app = create_app()

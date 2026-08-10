@@ -5,11 +5,11 @@
  * major page routes in the Fabric_4L application.
  *
  * Coverage:
- *   - Authenticated home cockpit
- *   - Account portfolio
- *   - Context Engine
- *   - Governance workspace
- *   - Personal settings
+ *   - Homepage (marketing landing)
+ *   - Dashboard (authenticated app shell)
+ *   - Workflows list
+ *   - Knowledge Graph explorer
+ *   - Tenant Admin
  *
  * DESIGN.md § Testing: "Playwright smoke tests for critical user flows"
  * DESIGN.md § Quality: Visual regression must be gated in CI before merge.
@@ -35,16 +35,29 @@ interface PageDefinition {
 }
 
 const PAGES: PageDefinition[] = [
+  { path: "/", name: "homepage", readySelector: "[data-testid='hero-section']" },
   {
-    path: "/home",
-    name: "home",
-    readySelector: "main",
+    path: "/dashboard",
+    name: "dashboard",
+    readySelector: "[data-testid='dashboard-layout']",
     extraViewport: { width: 1440, height: 900 },
   },
-  { path: "/t/demo/accounts", name: "accounts", readySelector: "main" },
-  { path: "/t/demo/context", name: "context", readySelector: "main" },
-  { path: "/t/demo/governance", name: "governance", readySelector: "main" },
-  { path: "/settings/profile", name: "settings-profile", readySelector: "main" },
+  {
+    path: "/workflows",
+    name: "workflows",
+    readySelector: "[data-testid='workflows-list']",
+  },
+  {
+    path: "/knowledge-graph",
+    name: "knowledge-graph",
+    readySelector: "[data-testid='graph-canvas']",
+    extraViewport: { width: 1440, height: 900 },
+  },
+  {
+    path: "/tenant-admin",
+    name: "tenant-admin",
+    readySelector: "[data-testid='tenant-admin-layout']",
+  },
 ];
 
 // ---------------------------------------------------------------------------
@@ -153,6 +166,34 @@ for (const pageDef of PAGES) {
       maxDiffPixels: 150,
       threshold: 0.25,
       animations: "disabled",
+    });
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Component-level visual regression
+// ---------------------------------------------------------------------------
+
+/**
+ * Isolated component stories rendered via Storybook (or inline) for
+ * granular visual regression without full-page navigation.
+ */
+const COMPONENT_STORIES: Array<{ name: string; path: string }> = [
+  { name: "button-variants", path: "/storybook/iframe.html?id=ui-button--all-variants" },
+  { name: "card-composition", path: "/storybook/iframe.html?id=ui-card--composition" },
+];
+
+for (const story of COMPONENT_STORIES) {
+  test(`component: ${story.name} @visual`, async ({ page }) => {
+    await page.goto(story.path);
+    await page.waitForLoadState("networkidle");
+    await page.waitForTimeout(200);
+
+    await expect(page).toHaveScreenshot(`component-${story.name}.png`, {
+      maxDiffPixels: 50,
+      threshold: 0.15,
+      animations: "disabled",
+      fullPage: false,
     });
   });
 }

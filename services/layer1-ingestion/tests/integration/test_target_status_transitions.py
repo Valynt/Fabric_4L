@@ -123,10 +123,10 @@ class TestUpdateTargetStatus:
     def test_cross_tenant_returns_404(self, db, org_id, other_org_id, user_id):
         from fastapi.testclient import TestClient
 
+        from layer1_ingestion.api.main import app
         from layer1_ingestion.shared.database import get_db_from_context_sync
-        from tests.conftest import _InjectGovernanceMiddleware, _get_app
+        from tests.conftest import _InjectGovernanceMiddleware
 
-        app = _get_app()
         target = _make_target(db, org_id, user_id, "ACTIVE")
 
         # Create a client authenticated as other_org_id

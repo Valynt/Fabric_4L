@@ -13,7 +13,7 @@ Migrated from app_monolith.py as part of ARCH-L3-011 (Sprint 3 cutover).
 
 
 import logging
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -176,7 +176,7 @@ async def agent_workflow(
                 {
                     "operation": "create_decision_trace",
                     "workflow_id": "whitespace_analysis_v1",
-                    "workflow_instance_id": f"ws-{datetime.now(UTC).timestamp()}",
+                    "workflow_instance_id": f"ws-{datetime.utcnow().timestamp()}",
                     "output_type": "account_plan",
                     "output_id": plan_result.output.get("plan_id", "unknown"),
                     "steps": results,
@@ -207,7 +207,7 @@ async def agent_workflow(
                 {
                     "operation": "create_decision_trace",
                     "workflow_id": "business_case_v1",
-                    "workflow_instance_id": f"bc-{datetime.now(UTC).timestamp()}",
+                    "workflow_instance_id": f"bc-{datetime.utcnow().timestamp()}",
                     "output_type": "business_case",
                     "output_id": narrative_result.output.get("narrative_id", "unknown"),
                     "steps": results,

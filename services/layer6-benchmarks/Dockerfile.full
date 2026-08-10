@@ -37,7 +37,6 @@ COPY services/layer6-benchmarks/src/ ./src/
 COPY packages/shared/src/value_fabric/ ./value_fabric/
 COPY packages/shared/src/value_fabric/shared/ ./value_fabric/shared/
 COPY services/layer6-benchmarks/src/ ./value_fabric/layer6/
-COPY contracts/observability/layer6-metrics.json /contracts/observability/layer6-metrics.json
 
 RUN chown -R appuser:appgroup /app
 USER appuser

@@ -14,7 +14,7 @@ import logging
 import re
 import time
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import Any
 from uuid import UUID
 
@@ -439,5 +439,5 @@ class ValueTreeProjectionAgent(BaseAgent):
                 p["nodes"][-1]["id"] for p in traversal_paths if p.get("nodes")
             ],
             confidence=confidence,
-            projection_timestamp=datetime.now(UTC).isoformat(),
+            projection_timestamp=datetime.utcnow().isoformat(),
         )

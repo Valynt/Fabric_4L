@@ -34,9 +34,6 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install Python test dependencies
-        run: python -m pip install --require-hashes -r tests/requirements-test.lock
-
       - name: Validate Layer6 wrappers are shim-only
         run: python scripts/ci/check_layer6_wrapper_drift.py
 

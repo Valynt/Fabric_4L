@@ -4,12 +4,9 @@ Provides a Pydantic BaseModel subclass used across the codebase
 for type-safe dictionary-like response models.
 """
 
-from pydantic import BaseModel, ConfigDict
+from typing import Any
 
-# Canonical dynamic JSON dictionary type.
-# ``object`` is the statically-correct top type for arbitrary JSON values
-# and is Pydantic-compatible, unlike a recursive ForwardRef alias.
-JSONDict = dict[str, object]
+from pydantic import BaseModel, ConfigDict
 
 
 class TypedDictModel(BaseModel):
@@ -29,19 +26,19 @@ class TypedDictModel(BaseModel):
         strict=False,
     )
 
-    def __getitem__(self, key: str) -> object:
+    def __getitem__(self, key: str) -> Any:
         try:
             return getattr(self, key)
         except AttributeError as exc:
             raise KeyError(key) from exc
 
-    def __setitem__(self, key: str, value: object) -> None:
+    def __setitem__(self, key: str, value: Any) -> None:
         setattr(self, key, value)
 
     def __contains__(self, key: str) -> bool:
         return hasattr(self, key)
 
-    def get(self, key: str, default: object = None) -> object:
+    def get(self, key: str, default: Any = None) -> Any:
         """Return the value for ``key`` if it exists, else ``default``."""
         return getattr(self, key, default)
 

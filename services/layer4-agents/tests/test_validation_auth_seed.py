@@ -12,14 +12,10 @@ from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 from value_fabric.shared.error_handling import register_exception_handlers
 
-os.environ.setdefault(
-    "API_KEY_HMAC_SECRET", "test-api-key-hmac-secret-for-validation-seed-1234567890"
-)
+os.environ.setdefault("API_KEY_HMAC_SECRET", "test-api-key-hmac-secret-for-validation-seed-1234567890")
 os.environ.setdefault("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/test")
 os.environ.setdefault("JWT_SECRET", "test-jwt-secret-for-validation-seed-1234567890")
-os.environ.setdefault(
-    "SERVICE_AUTH_SECRET", "test-service-auth-secret-for-validation-seed-1234567890"
-)
+os.environ.setdefault("SERVICE_AUTH_SECRET", "test-service-auth-secret-for-validation-seed-1234567890")
 
 from value_fabric.shared.identity.context import RequestContext
 
@@ -133,11 +129,7 @@ async def test_validation_auth_seed_rejects_cross_tenant_payload(
 
     response = await _post_auth_seed(
         app,
-        body={
-            "tenant_id": os.environ.get(
-                "BACKEND_E2E_TENANT_BETA_ID", "00000000-0000-4000-e2e0-000000000002"
-            )
-        },
+        body={"tenant_id": os.environ.get("BACKEND_E2E_TENANT_BETA_ID", "00000000-0000-4000-e2e0-000000000002")},
     )
 
     assert response.status_code == 403
@@ -182,30 +174,3 @@ async def test_validation_auth_seed_disabled_in_production(
     response = await _post_auth_seed(app)
 
     assert response.status_code == 403
-
-
-@pytest.mark.asyncio
-async def test_validation_session_issues_canonical_cookies(
-    validation_app: tuple[FastAPI, FakeDb],
-) -> None:
-    app, _ = validation_app
-
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-        response = await client.post(
-            "/v1/validation/session",
-            json={
-                "tenant_id": str(TENANT_ID),
-                "user_id": "e2e-admin-user",
-                "email": "e2e-admin@valuefabric.test",
-                "name": "E2E Validation Admin",
-                "role": "super_admin",
-                "tenant_slug": "e2e-validation",
-            },
-            headers={"X-Privileged-Reason": analysis.SEED_PRIVILEGED_REASON},
-        )
-
-    assert response.status_code == 200
-    assert response.json()["tenant_id"] == str(TENANT_ID)
-    cookies = response.headers.get_list("set-cookie")
-    assert any(cookie.startswith("vf_session=") for cookie in cookies)
-    assert any(cookie.startswith("vf_csrf_token=") for cookie in cookies)

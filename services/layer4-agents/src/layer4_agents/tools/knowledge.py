@@ -32,6 +32,7 @@ class ConfigurationError(ValueError):
 
 _NEO4J_URI = os.getenv("NEO4J_URI", "bolt://localhost:7687")
 _NEO4J_USER = os.getenv("NEO4J_USER", "neo4j")
+_NEO4J_PASSWORD = os.environ.get("NEO4J_PASSWORD") or get_settings().neo4j_password
 _NEO4J_DATABASE = os.getenv("NEO4J_DATABASE", "valuefabric")
 _DRIVER = None
 
@@ -46,25 +47,12 @@ def _resolve_password() -> str:
     return password
 
 
-# Module-level password handle. The static check asserts this never equals the
-# insecure literal "password"; resolution is deferred to first use of
-# `_get_driver()` (or an explicit caller of `_resolve_password()`). The value
-# is re-bound lazily below so test monkeypatches to the environment take
-# effect without requiring a module reload.
-_NEO4J_PASSWORD: str = os.environ.get("NEO4J_PASSWORD") or ""
-try:
-    if not _NEO4J_PASSWORD:
-        _NEO4J_PASSWORD = get_settings().neo4j_password or ""
-except Exception:
-    _NEO4J_PASSWORD = ""
-
-
 def _get_driver():
     """Lazy initialize Neo4j driver."""
-    global _DRIVER, _NEO4J_PASSWORD
+    global _DRIVER
     if _DRIVER is None:
-        _NEO4J_PASSWORD = _resolve_password()
-        _DRIVER = AsyncGraphDatabase.driver(_NEO4J_URI, auth=(_NEO4J_USER, _NEO4J_PASSWORD))
+        password = _resolve_password()
+        _DRIVER = AsyncGraphDatabase.driver(_NEO4J_URI, auth=(_NEO4J_USER, password))
     return _DRIVER
 
 

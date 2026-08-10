@@ -26,8 +26,6 @@ RUN uv pip install "email-validator>=2.1.0"
 COPY src/ ./src/
 # Copy versioned prompt templates used by the workflow engine
 COPY prompts/ ./src/prompts/
-COPY migrations/ ./migrations/
-COPY alembic.ini ./alembic.ini
 # value_fabric is mounted as a volume in docker-compose.dev.yml
 
 # Stage 2: Runtime - minimal image with only runtime libraries
@@ -42,8 +40,7 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-reco
 RUN groupadd -r appgroup && useradd -r -g appgroup -m appuser
 
 # Upgrade base-image setuptools/wheel to remediate known CVEs flagged by Trivy
-RUN pip install --no-cache-dir --upgrade setuptools wheel \
-    && pip uninstall --yes pip
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel
 
 WORKDIR /app
 
@@ -56,8 +53,6 @@ ENV PYTHONPATH=/app:/app/src
 COPY --from=builder /app/src ./src/
 # Copy versioned prompt templates used by the workflow engine
 COPY --from=builder /app/src/prompts ./src/prompts/
-COPY --from=builder /app/migrations ./migrations/
-COPY --from=builder /app/alembic.ini ./alembic.ini
 # value_fabric is mounted as a volume in docker-compose.dev.yml
 
 # Change ownership

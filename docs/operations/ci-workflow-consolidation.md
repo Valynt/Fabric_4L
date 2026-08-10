@@ -17,7 +17,7 @@ now at most 55 workflow YAML files in `.github/workflows/`, enforced by
 | Chaos and operational drills | `chaos-testing.yml`, `dr-drill.yml` | Chaos smoke, restore verification, and game-day evidence are represented by canonical operational evidence workflows. |
 | Kubernetes readiness | `k8s-readiness.yml` | Kubernetes validation remains under one readiness workflow. |
 | Repository hygiene | `repo-hygiene.yml` | Branch cleanup, stale PR, CI backlog, README sync, and KPI reporting are consolidated as repository hygiene/reporting concerns. |
-| Supply chain and SDK | `supply-chain-integrity.yml`, `publish-sdk.yml` | Package policy, signing, and SDK generation coverage stays with supply-chain and publish workflows. |
+| Supply chain and SDK | `supply-chain.yml`, `publish-sdk.yml` | Package policy, signing, and SDK generation coverage stays with supply-chain and publish workflows. |
 | Performance | `performance-load-tests.yml` | Baseline and PR performance gate coverage stays with the load-test workflow family. |
 
 ## Retired workflow files
@@ -62,7 +62,7 @@ not use) are **deliberately not configured**. Do not add them:
 
 | Template family | Existing coverage |
 | --- | --- |
-| SLSA Generic generator (OpenSSF) | `supply-chain-integrity.yml` (slsa-framework generator, SHA-pinned), `sbom.yml`, `release-evidence-bundle.yml` |
+| SLSA Generic generator (OpenSSF) | `supply-chain.yml` (slsa-framework generator, SHA-pinned), `sbom.yml`, `release-evidence-bundle.yml` |
 | Python application / package / Pylint | `pr-checks.yml` per-layer ruff, mypy, pytest jobs; black via pre-commit |
 | Node.js / Webpack | `pr-checks.yml` frontend jobs (Vite build, Vitest, ESLint); templates would also violate the pnpm-only policy (`scripts/ci/check_package_manager_policy.mjs`) |
 | Docker image / Publish Docker Container | `build-deploy.yml`, `deploy.yml` |

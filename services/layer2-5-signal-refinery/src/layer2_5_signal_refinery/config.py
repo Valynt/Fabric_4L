@@ -54,9 +54,7 @@ class Settings(BaseSettings):
         data = info.data
         env = str(data.get("environment", "development")).lower()
         if env in PRODUCTION_LIKE_ENVIRONMENTS and v.upper() == "HS256":
-            raise ValueError(
-                "jwt_algorithm must not be HS256 in production-like environments; use RS256 or stronger"
-            )
+            raise ValueError("jwt_algorithm must not be HS256 in production-like environments; use RS256 or stronger")
         return v
 
     @property

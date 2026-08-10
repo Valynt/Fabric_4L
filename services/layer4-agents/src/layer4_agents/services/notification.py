@@ -181,14 +181,10 @@ class NotificationService:
         Raises:
             ValueError: If quiet hours configuration is invalid
         """
-        # Validate quiet hours if configured. A partial range is ambiguous and
-        # must not silently disable quiet-hour enforcement.
-        if (preference.quiet_hours_start is None) != (preference.quiet_hours_end is None):
-            raise ValueError("Quiet hours start and end must be configured together")
+        # Validate quiet hours if configured
         if preference.quiet_hours_start is not None and preference.quiet_hours_end is not None:
-            if not (
-                0 <= preference.quiet_hours_start <= 23 and 0 <= preference.quiet_hours_end <= 23
-            ):
+            # Ensure both are set if either is set
+            if not (0 <= preference.quiet_hours_start <= 23 and 0 <= preference.quiet_hours_end <= 23):
                 raise ValueError(
                     f"Quiet hours must be between 0-23, got "
                     f"start={preference.quiet_hours_start}, end={preference.quiet_hours_end}"
@@ -320,12 +316,7 @@ class NotificationService:
             return [NotificationChannel.IN_APP]
 
         # Filter channels based on severity threshold
-        severity_rank = {
-            PauseSeverity.INFO: 0,
-            PauseSeverity.WARNING: 1,
-            PauseSeverity.CRITICAL: 2,
-        }
-        if severity_rank[severity] < severity_rank[prefs.pause_severity_threshold]:
+        if severity.value < prefs.pause_severity_threshold.value:
             # Below threshold - only in-app
             return [NotificationChannel.IN_APP]
 
@@ -367,7 +358,7 @@ class NotificationService:
             # Queue is full — apply drop policy based on priority
             if event.priority == NotificationPriority.URGENT:
                 # Try to drop oldest LOW priority event to make room
-                dropped = self._drop_oldest_by_priority(NotificationPriority.LOW)
+                dropped = await self._drop_oldest_by_priority(NotificationPriority.LOW)
                 if dropped:
                     try:
                         self._event_queue.put_nowait(event)
@@ -408,13 +399,10 @@ class NotificationService:
             while not self._event_queue.empty():
                 try:
                     event = self._event_queue.get_nowait()
-                    self._event_queue.task_done()
                     if not dropped and event.priority == priority:
                         # Drop this one (don't re-add)
                         dropped = True
-                        logger.debug(
-                            f"Evicted {priority.value} event {event.event_id} to make room"
-                        )
+                        logger.debug(f"Evicted {priority.value} event {event.event_id} to make room")
                     else:
                         temp_events.append(event)
                 except asyncio.QueueEmpty:
@@ -455,15 +443,19 @@ class NotificationService:
     async def _batch_processor(self) -> None:
         """Background task to process notification queue."""
         while True:
-            event: NotificationEvent | None = None
             try:
                 # Use timeout to allow periodic checks for cancellation
-                event = await asyncio.wait_for(self._event_queue.get(), timeout=1.0)
+                event = await asyncio.wait_for(
+                    self._event_queue.get(),
+                    timeout=1.0
+                )
 
                 # Check event age (drop stale events)
                 age = (datetime.now(UTC) - event.created_at).total_seconds()
                 if age > self._max_event_age_seconds:
-                    logger.debug(f"Dropped stale notification {event.event_id} (age={age:.0f}s)")
+                    logger.debug(
+                        f"Dropped stale notification {event.event_id} (age={age:.0f}s)"
+                    )
                     continue
 
                 await self._process_notification(event)
@@ -474,9 +466,6 @@ class NotificationService:
                 break
             except Exception as e:
                 logger.error(f"Error processing notification: {e}")
-            finally:
-                if event is not None:
-                    self._event_queue.task_done()
 
     async def _process_notification(self, event: NotificationEvent) -> None:
         """Process a single notification event across all channels."""

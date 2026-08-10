@@ -314,7 +314,7 @@ class Settings(BaseSettings):
     )
 
     # API settings
-    api_host: str = Field(default="0.0.0.0", description="API server host")  # nosec # Uvicorn in container must bind all interfaces
+    api_host: str = Field(default="0.0.0.0", description="API server host")  # nosec B104
     api_port: int = Field(default=8000, description="API server port")
 
     # Layer 2 integration

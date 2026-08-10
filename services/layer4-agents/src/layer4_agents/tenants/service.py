@@ -57,7 +57,6 @@ except ImportError as e:
 from typing import Any
 
 from sqlalchemy import func, select
-from sqlalchemy.exc import DBAPIError, OperationalError
 from sqlalchemy.ext.asyncio import AsyncSession
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
@@ -236,7 +235,7 @@ async def get_tier_api_key_limit(db: AsyncSession, tenant_id: UUID) -> int | Non
     Returns:
         API key limit or None for unlimited
     """
-    from .tiers import get_tier_limit
+    from ...tiers import get_tier_limit
 
     tenant = await get_tenant(db, tenant_id)
     if not tenant:
@@ -256,20 +255,9 @@ async def get_tenant_settings(db: AsyncSession, tenant_id: UUID) -> dict | None:
         tenant_id: Tenant UUID
 
     Returns:
-        Tenant settings dict, empty dict if tenant is unknown, or ``None`` if
-        the database is unreachable. Returning ``None`` (rather than raising)
-        lets the middleware rate limiter degrade gracefully — unit tests run
-        against an un-migrated SQLite schema where the ``tenants`` table does
-        not exist, and production should not 500 a request just because the
-        per-tenant rate-limit lookup failed.
+        Tenant settings dict or None if tenant not found
     """
-    if not isinstance(tenant_id, UUID):
-        tenant_id = uuid.UUID(str(tenant_id))
-    try:
-        result = await db.execute(select(Tenant.settings).where(Tenant.id == tenant_id))
-    except (OperationalError, DBAPIError):
-        # Database unavailable or schema missing — degrade gracefully.
-        return None
+    result = await db.execute(select(Tenant.settings).where(Tenant.id == tenant_id))
     settings = result.scalar_one_or_none()
     return settings if settings else {}
 

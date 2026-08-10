@@ -25,7 +25,7 @@ def test_backend_integrated_reproducibility_workflow_invokes_hardened_runner():
     assert "python scripts/ci/run_backend_integrated_reproducibility.py" in content
     assert "--environment ci" in content
     assert '--release-candidate-sha "$RELEASE_CANDIDATE_SHA"' in content
-    assert "--compose-file infra/compose/docker-compose.live.yml" in content
+    assert "--compose-file docker-compose.live.yml" in content
     assert "--compose-file .tmp/docker-compose.backend-integrated-ci.override.yml" in content
     assert "--retry-classification" in content
 

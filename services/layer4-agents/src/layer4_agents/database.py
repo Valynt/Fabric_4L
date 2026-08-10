@@ -71,15 +71,13 @@ def get_tenant_validation_metrics() -> dict[str, int]:
 
 def reset_tenant_validation_metrics() -> None:
     """Reset tenant validation metrics. Used for testing."""
-    _tenant_validation_metrics.update(
-        {
-            "validations_total": 0,
-            "validation_failures": 0,
-            "uuid_format_errors": 0,
-            "missing_context_errors": 0,
-            "empty_tenant_errors": 0,
-        }
-    )
+    _tenant_validation_metrics.update({
+        "validations_total": 0,
+        "validation_failures": 0,
+        "uuid_format_errors": 0,
+        "missing_context_errors": 0,
+        "empty_tenant_errors": 0,
+    })
 
 
 def get_privileged_db_session_metrics() -> dict[str, int]:
@@ -87,19 +85,16 @@ def get_privileged_db_session_metrics() -> dict[str, int]:
 
 
 def reset_privileged_db_session_metrics() -> None:
-    _privileged_db_session_metrics.update(
-        {
-            "activations_total": 0,
-            "denials_total": 0,
-            "missing_reason_total": 0,
-        }
-    )
+    _privileged_db_session_metrics.update({
+        "activations_total": 0,
+        "denials_total": 0,
+        "missing_reason_total": 0,
+    })
 
 
 try:
     from value_fabric.shared.identity.context import RequestContext
     from value_fabric.shared.identity.dependencies import get_current_context as get_request_context
-
     SHARED_IDENTITY_AVAILABLE = True
 except ImportError:
     SHARED_IDENTITY_AVAILABLE = False
@@ -114,7 +109,6 @@ try:
         TenantContextSetDetails,
         emit_audit_event,
     )
-
     AUDIT_AVAILABLE = True
 except ImportError:
     AUDIT_AVAILABLE = False
@@ -186,9 +180,7 @@ _TENANT_CONTEXT_STATE_KEY = "tenant_context_state"
 _TENANT_CONTEXT_VALUE_KEY = "tenant_context_value"
 _TENANT_BYPASS_REASON_KEY = "tenant_context_bypass_reason"
 _PRIVILEGED_REASON_HEADER = "X-Privileged-Reason"
-_RLS_SUPPORTED_SCHEMES = frozenset(
-    {"postgresql", "postgres", "postgresql+asyncpg", "postgresql+psycopg"}
-)
+_RLS_SUPPORTED_SCHEMES = frozenset({"postgresql", "postgres", "postgresql+asyncpg", "postgresql+psycopg"})
 _RLS_SUPERUSER_NAMES = frozenset({"postgres", "rdsadmin", "cloudsqladmin", "azure_superuser"})
 
 
@@ -356,7 +348,6 @@ def get_engine() -> AsyncEngine:
                 except Exception:
                     logger.debug("DB pool wait metric emission failed", exc_info=True)
             _record_pool_state(_engine)
-
     return _engine
 
 
@@ -394,7 +385,6 @@ async def close_db() -> None:
 
 class TenantContextError(Exception):
     """Raised when tenant context is missing or invalid in fail-safe mode."""
-
     pass
 
 
@@ -403,7 +393,7 @@ class TenantContextError(Exception):
 FAIL_SAFE_MODE = True
 
 # Reserved tenant keywords for system/admin operations
-RESERVED_TENANT_KEYWORDS = frozenset({"system", "admin", "internal"})
+RESERVED_TENANT_KEYWORDS = frozenset({'system', 'admin', 'internal'})
 
 
 def _is_test_environment() -> bool:
@@ -437,7 +427,6 @@ def _allow_compat_only_db_dependency(dep_name: str) -> None:
         "Set L4_ALLOW_DEPRECATED_DB_DEPENDENCIES=true only for temporary compatibility migration."
     )
 
-
 # Try to import shared tenant validation
 try:
     from value_fabric.shared.database import (
@@ -446,7 +435,6 @@ try:
     from value_fabric.shared.database import (
         validate_tenant_id as shared_validate_tenant_id,
     )
-
     SHARED_TENANT_VALIDATION_AVAILABLE = True
 except ImportError:
     SHARED_TENANT_VALIDATION_AVAILABLE = False
@@ -521,7 +509,9 @@ def validate_tenant_id(tenant_id: UUID | str | None) -> str:
     if not normalized:
         _tenant_validation_metrics["empty_tenant_errors"] += 1
         _tenant_validation_metrics["validation_failures"] += 1
-        raise TenantContextError("Empty tenant_id is not allowed. Provide a valid tenant context.")
+        raise TenantContextError(
+            "Empty tenant_id is not allowed. Provide a valid tenant context."
+        )
 
     # Validate UUID format for strict tenant isolation
     if normalized.lower() not in RESERVED_TENANT_KEYWORDS:
@@ -539,24 +529,7 @@ def validate_tenant_id(tenant_id: UUID | str | None) -> str:
 
 
 async def _set_local_tenant_context(session: AsyncSession, tenant_id: str) -> None:
-    """Set tenant context, using PostgreSQL RLS when the dialect supports it.
-
-    ``set_config`` is a PostgreSQL-only function. Unit tests exercise this path
-    against SQLite (which has no equivalent transaction-local variable
-    mechanism), so we skip the SQL statement for non-PostgreSQL dialects and
-    only record the tenant mark on the session object. Production always runs
-    against PostgreSQL and is additionally protected by
-    ``_is_production_like_runtime``, which refuses to boot on a non-PostgreSQL
-    dialect.
-    """
-    bind = session.get_bind() if hasattr(session, "get_bind") else getattr(session, "bind", None)
-    dialect_name = getattr(getattr(bind, "dialect", None), "name", "") if bind is not None else ""
-    if dialect_name != "postgresql":
-        if _is_production_like_runtime():
-            raise RuntimeError("Tenant RLS context requires PostgreSQL in protected environments.")
-        _mark_session_tenant_context(session, tenant_id)
-        return
-
+    """Set the transaction-local tenant context using an asyncpg-safe statement."""
     await session.execute(
         text("SELECT set_config('app.tenant_id', :tenant_id, true)"),
         {"tenant_id": tenant_id},
@@ -609,16 +582,12 @@ def _require_privileged_cross_tenant_reason(
     """Require explicit super-admin context plus an audited reason for cross-tenant DB access."""
     if not context.is_super_admin():
         _privileged_db_session_metrics["denials_total"] += 1
-        raise AuthorizationError(message="Cross-tenant database access requires super admin role.")
+        raise AuthorizationError(message = "Cross-tenant database access requires super admin role.")
 
     reason = (request.headers.get(_PRIVILEGED_REASON_HEADER) or "").strip()
     if not reason:
         _privileged_db_session_metrics["missing_reason_total"] += 1
-        raise ValidationError(
-            message=str(
-                f"Cross-tenant database access requires {_PRIVILEGED_REASON_HEADER} header."
-            )
-        )
+        raise ValidationError(message = str(f"Cross-tenant database access requires {_PRIVILEGED_REASON_HEADER} header."))
     return reason
 
 
@@ -722,16 +691,14 @@ async def get_db_from_context(
         raise RuntimeError("shared.identity package required for get_db_from_context")
 
     if not context or not context.tenant_id:
-        raise ValidationError(
-            message="Tenant context required. Ensure request has passed through GovernanceMiddleware."
-        )
+        raise ValidationError(message = "Tenant context required. Ensure request has passed through GovernanceMiddleware.")
 
     # SECURITY: Fail-safe validation via validate_tenant_id
     try:
         tenant_id = validate_tenant_id(context.tenant_id)
     except TenantContextError as e:
         logger.warning("tenant_context_error", extra={"error_code": "TENANT_CONTEXT_ERROR"})
-        raise ValidationError(message="Invalid tenant context") from e
+        raise ValidationError(message = "Invalid tenant context") from e
 
     factory = get_session_factory()
     async with factory() as session:
@@ -816,7 +783,7 @@ async def get_db_with_optional_tenant(
                 effective_tenant_id = validate_tenant_id(context.tenant_id)
             except TenantContextError as e:
                 logger.warning("tenant_context_error", extra={"error_code": "TENANT_CONTEXT_ERROR"})
-                raise ValidationError(message="Invalid tenant context") from e
+                raise ValidationError(message = "Invalid tenant context") from e
             await _set_local_tenant_context(session, effective_tenant_id)
         elif context.is_super_admin():
             bypass_reason = _require_privileged_cross_tenant_reason(request, context)
@@ -829,9 +796,7 @@ async def get_db_with_optional_tenant(
             )
         else:
             _privileged_db_session_metrics["denials_total"] += 1
-            raise AuthorizationError(
-                message="Cross-tenant database access requires super admin role."
-            )
+            raise AuthorizationError(message = "Cross-tenant database access requires super admin role.")
 
         # Task 3.1: Emit tenant context set audit event (with bypass flag for super-admin)
         await _emit_tenant_context_set_audit(
@@ -931,9 +896,7 @@ async def get_tiered_db_session(
         )
 
     else:
-        raise ValidationError(
-            message=str(f"Unknown isolation tier: {isolation_tier!r}. Supported: 'shared'.")
-        )
+        raise ValidationError(message = str(f"Unknown isolation tier: {isolation_tier!r}. Supported: 'shared'."))
 
 
 # ---------------------------------------------------------------------------
@@ -943,7 +906,9 @@ async def get_tiered_db_session(
 
 @asynccontextmanager
 async def db_session(
-    tenant_id: UUID | str | None = None, *, require_tenant: bool = True
+    tenant_id: UUID | str | None = None,
+    *,
+    require_tenant: bool = True
 ) -> AsyncGenerator[AsyncSession, None]:
     """Async context manager for use outside of FastAPI request lifecycle.
 

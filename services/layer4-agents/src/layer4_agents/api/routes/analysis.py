@@ -40,11 +40,6 @@ from value_fabric.shared.identity.jwt import encode_jwt
 from value_fabric.shared.identity.policy_registry import authorize_action
 
 from ...config.settings import get_settings
-
-# Module-level settings reference. Tests monkeypatch `analysis.settings` to
-# flip the environment flag; exposing the cached settings instance at module
-# scope keeps that seam alive.
-settings = get_settings()
 from ...engine.executor import WorkflowExecutor
 from ...models.agent_state import (
     BusinessCaseAgentState,
@@ -93,6 +88,7 @@ get_db_from_context = get_route_db
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+settings = get_settings()
 
 from ...test_support.seed_runtime_config import (
     SEED_AUTH_SOURCE,
@@ -319,10 +315,6 @@ async def _require_tenant_account(db: AsyncSession, account_id: UUID, context: R
 
 def _require_validation_seed_allowed(http_request: Request, context: RequestContext) -> None:
     """Fail closed unless this is an authenticated, non-production seed request."""
-    # Read the module-level `settings` so tests can flip the environment flag
-    # via `monkeypatch.setattr(analysis.settings, "environment", ...)`. Using
-    # `get_settings()` would bypass the monkeypatch because it returns the
-    # pydantic-settings cached singleton.
     if settings.environment == "production":
         raise AuthorizationError(message = "Validation seeding is disabled in production")
     if not context.tenant_id:

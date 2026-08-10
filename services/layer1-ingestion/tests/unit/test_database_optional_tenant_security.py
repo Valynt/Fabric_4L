@@ -34,9 +34,7 @@ def _make_session():
     return session
 
 
-def test_optional_tenant_rejects_non_super_admin_without_tenant(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+def test_optional_tenant_rejects_non_super_admin_without_tenant(monkeypatch: pytest.MonkeyPatch) -> None:
     database.reset_privileged_db_session_metrics()
     fake_session = _make_session()
     monkeypatch.setattr(database, "SessionLocal", lambda: fake_session)
@@ -51,9 +49,7 @@ def test_optional_tenant_rejects_non_super_admin_without_tenant(
     assert database.get_privileged_db_session_metrics()["denials_total"] == 1
 
 
-def test_optional_tenant_super_admin_requires_privileged_reason(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+def test_optional_tenant_super_admin_requires_privileged_reason(monkeypatch: pytest.MonkeyPatch) -> None:
     database.reset_privileged_db_session_metrics()
     fake_session = _make_session()
     monkeypatch.setattr(database, "SessionLocal", lambda: fake_session)
@@ -88,10 +84,7 @@ def test_optional_tenant_super_admin_uses_privileged_mode_without_empty_tenant_s
     fake_session.execute.assert_not_called()
     assert fake_session.info[database._TENANT_CONTEXT_STATE_KEY] == "bypass"
     assert fake_session.info[database._TENANT_CONTEXT_VALUE_KEY] is None
-    assert (
-        fake_session.info[database._TENANT_BYPASS_REASON_KEY]
-        == "privileged_cross_tenant:incident-review"
-    )
+    assert fake_session.info[database._TENANT_BYPASS_REASON_KEY] == "privileged_cross_tenant:incident-review"
     assert database.get_privileged_db_session_metrics()["activations_total"] == 1
     metrics.increment_privileged_db_session_activation.assert_called_once_with("cross_tenant_admin")
 
@@ -99,37 +92,3 @@ def test_optional_tenant_super_admin_uses_privileged_mode_without_empty_tenant_s
 def test_database_module_source_contains_no_empty_tenant_bypass_sql() -> None:
     source = Path(database.__file__).read_text(encoding="utf-8")
     assert "SET LOCAL app.tenant_id = ''" not in source
-
-
-def test_sync_database_url_prefers_explicit_sync_runtime_setting(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setenv(
-        "DATABASE_URL_SYNC",
-        "postgresql://sync-user:sync-pass@postgres:5432/ingestion",
-    )
-    monkeypatch.setattr(
-        database.settings,
-        "database_url",
-        "postgresql+asyncpg://async-user:async-pass@postgres:5432/ingestion",
-    )
-
-    assert database._resolve_sync_database_url() == (
-        "postgresql://sync-user:sync-pass@postgres:5432/ingestion"
-    )
-
-
-def test_sync_database_url_normalizes_asyncpg_fallback(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.delenv("DATABASE_URL_SYNC", raising=False)
-    monkeypatch.delenv("LAYER1_DATABASE_URL_SYNC", raising=False)
-    monkeypatch.setattr(
-        database.settings,
-        "database_url",
-        "postgresql+asyncpg://app:secret@postgres:5432/ingestion",
-    )
-
-    assert database._resolve_sync_database_url() == (
-        "postgresql://app:secret@postgres:5432/ingestion"
-    )

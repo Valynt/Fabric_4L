@@ -3,11 +3,7 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Iterator
-from datetime import datetime
-from pathlib import Path
 from unittest.mock import patch
-from uuid import UUID
 
 import pytest
 from typer.testing import CliRunner
@@ -22,7 +18,6 @@ from valuefabric.models import (
     ModelVersion,
     Tenant,
     User,
-    WorkflowCreateResponse,
     WorkflowTypeInfo,
 )
 
@@ -30,7 +25,7 @@ runner = CliRunner()
 
 
 @pytest.fixture(autouse=True)
-def mock_config(tmp_path: Path) -> Iterator[None]:
+def mock_config(tmp_path):
     """Provide a temporary CLI config so commands can load credentials."""
     config = {
         "active_profile": "default",
@@ -49,7 +44,7 @@ def mock_config(tmp_path: Path) -> Iterator[None]:
 
 
 class TestConfigCommands:
-    def test_token_expiration_warns_for_expired_timestamp(self) -> None:
+    def test_token_expiration_warns_for_expired_timestamp(self):
         from valuefabric.cli.config import _check_token_expiration
 
         with patch("valuefabric.cli.config.rich_print") as mock_print:
@@ -60,7 +55,7 @@ class TestConfigCommands:
         assert "JWT token for profile 'default' has expired" in warning
         assert "vf auth login" in warning
 
-    def test_token_expiration_does_not_warn_for_future_timestamp(self) -> None:
+    def test_token_expiration_does_not_warn_for_future_timestamp(self):
         from valuefabric.cli.config import _check_token_expiration
 
         with patch("valuefabric.cli.config.rich_print") as mock_print:
@@ -77,9 +72,7 @@ class TestConfigCommands:
             {"jwt_expires_at": "not-a-timestamp"},
         ],
     )
-    def test_token_expiration_ignores_missing_or_invalid_timestamp(
-        self, profile_config: dict[str, str | None]
-    ) -> None:
+    def test_token_expiration_ignores_missing_or_invalid_timestamp(self, profile_config):
         from valuefabric.cli.config import _check_token_expiration
 
         with patch("valuefabric.cli.config.rich_print") as mock_print:
@@ -87,31 +80,31 @@ class TestConfigCommands:
 
         mock_print.assert_not_called()
 
-    def test_show_config(self, mock_config: None) -> None:
+    def test_show_config(self, mock_config):
         result = runner.invoke(app, ["config", "show"])
         assert result.exit_code == 0
         assert "Active profile" in result.output
 
-    def test_set_url(self, mock_config: None) -> None:
+    def test_set_url(self, mock_config):
         result = runner.invoke(app, ["config", "set-url", "https://new.example.com"])
         assert result.exit_code == 0
         assert "Base URL set" in result.output
 
-    def test_use_profile(self, mock_config: None) -> None:
+    def test_use_profile(self, mock_config):
         result = runner.invoke(app, ["config", "use-profile", "prod"])
         assert result.exit_code == 0
         assert "Active profile set to 'prod'" in result.output
 
 
 class TestTenantCommands:
-    def test_list_tenants(self, mock_config: None) -> None:
+    def test_list_tenants(self, mock_config):
         tenant = Tenant(
-            id=UUID("11111111-1111-1111-1111-111111111111"),
+            id="11111111-1111-1111-1111-111111111111",
             name="Acme",
             slug="acme",
             status="active",
-            created_at=datetime.fromisoformat("2024-01-01T00:00:00+00:00"),
-            updated_at=datetime.fromisoformat("2024-01-01T00:00:00+00:00"),
+            created_at="2024-01-01T00:00:00Z",
+            updated_at="2024-01-01T00:00:00Z",
         )
         with patch("valuefabric.cli.tenants.get_client") as mock_client_factory:
             mock_client = mock_client_factory.return_value
@@ -120,14 +113,14 @@ class TestTenantCommands:
             assert result.exit_code == 0
             assert "Acme" in result.output
 
-    def test_get_tenant_json(self, mock_config: None) -> None:
+    def test_get_tenant_json(self, mock_config):
         tenant = Tenant(
-            id=UUID("11111111-1111-1111-1111-111111111111"),
+            id="11111111-1111-1111-1111-111111111111",
             name="Acme",
             slug="acme",
             status="active",
-            created_at=datetime.fromisoformat("2024-01-01T00:00:00+00:00"),
-            updated_at=datetime.fromisoformat("2024-01-01T00:00:00+00:00"),
+            created_at="2024-01-01T00:00:00Z",
+            updated_at="2024-01-01T00:00:00Z",
         )
         with patch("valuefabric.cli.tenants.get_client") as mock_client_factory:
             mock_client = mock_client_factory.return_value
@@ -141,15 +134,15 @@ class TestTenantCommands:
 
 
 class TestUserCommands:
-    def test_list_users(self, mock_config: None) -> None:
+    def test_list_users(self, mock_config):
         user = User(
-            id=UUID("22222222-2222-2222-2222-222222222222"),
-            tenant_id=UUID("11111111-1111-1111-1111-111111111111"),
+            id="22222222-2222-2222-2222-222222222222",
+            tenant_id="11111111-1111-1111-1111-111111111111",
             email="alice@example.com",
             role="analyst",
             status="active",
-            created_at=datetime.fromisoformat("2024-01-01T00:00:00+00:00"),
-            updated_at=datetime.fromisoformat("2024-01-01T00:00:00+00:00"),
+            created_at="2024-01-01T00:00:00Z",
+            updated_at="2024-01-01T00:00:00Z",
         )
         with patch("valuefabric.cli.users.get_client") as mock_client_factory:
             mock_client = mock_client_factory.return_value
@@ -158,35 +151,37 @@ class TestUserCommands:
             assert result.exit_code == 0
             assert "alice@examp" in result.output
 
-    def test_invite_user(self, mock_config: None) -> None:
+    def test_invite_user(self, mock_config):
         user = User(
-            id=UUID("33333333-3333-3333-3333-333333333333"),
-            tenant_id=UUID("11111111-1111-1111-1111-111111111111"),
+            id="33333333-3333-3333-3333-333333333333",
+            tenant_id="11111111-1111-1111-1111-111111111111",
             email="bob@example.com",
             role="analyst",
             status="invited",
-            created_at=datetime.fromisoformat("2024-01-01T00:00:00+00:00"),
-            updated_at=datetime.fromisoformat("2024-01-01T00:00:00+00:00"),
+            created_at="2024-01-01T00:00:00Z",
+            updated_at="2024-01-01T00:00:00Z",
         )
         with patch("valuefabric.cli.users.get_client") as mock_client_factory:
             mock_client = mock_client_factory.return_value
             mock_client.invite_user.return_value = user
-            result = runner.invoke(app, ["users", "invite", "bob@example.com", "--role", "analyst"])
+            result = runner.invoke(
+                app, ["users", "invite", "bob@example.com", "--role", "analyst"]
+            )
             assert result.exit_code == 0
             assert "bob@example.com" in result.output
 
 
 class TestApiKeyCommands:
-    def test_list_api_keys(self, mock_config: None) -> None:
+    def test_list_api_keys(self, mock_config):
         key = APIKey(
             key_id="vf_abc",
-            tenant_id=UUID("11111111-1111-1111-1111-111111111111"),
+            tenant_id="11111111-1111-1111-1111-111111111111",
             name="test-key",
             prefix="vf_ab",
             role="analyst",
             permissions=frozenset(),
             enabled=True,
-            created_at=datetime.fromisoformat("2024-01-01T00:00:00+00:00"),
+            created_at="2024-01-01T00:00:00Z",
         )
         with patch("valuefabric.cli.api_keys.get_client") as mock_client_factory:
             mock_client = mock_client_factory.return_value
@@ -195,16 +190,16 @@ class TestApiKeyCommands:
             assert result.exit_code == 0
             assert "test-key" in result.output
 
-    def test_create_api_key(self, mock_config: None) -> None:
+    def test_create_api_key(self, mock_config):
         result_obj = APIKeyCreateResult(
             key_id="vf_def",
-            tenant_id=UUID("11111111-1111-1111-1111-111111111111"),
+            tenant_id="11111111-1111-1111-1111-111111111111",
             name="new-key",
             api_key="vf_def_secret",
             prefix="vf_de",
             role="analyst",
             permissions=frozenset(),
-            created_at=datetime.fromisoformat("2024-01-01T00:00:00+00:00"),
+            created_at="2024-01-01T00:00:00Z",
         )
         with patch("valuefabric.cli.api_keys.get_client") as mock_client_factory:
             mock_client = mock_client_factory.return_value
@@ -215,7 +210,7 @@ class TestApiKeyCommands:
 
 
 class TestWorkflowCommands:
-    def test_list_workflows(self, mock_config: None) -> None:
+    def test_list_workflows(self, mock_config):
         wf = WorkflowTypeInfo(
             type="roi_calculator",
             name="ROI Calculator",
@@ -223,23 +218,28 @@ class TestWorkflowCommands:
         )
         with patch("valuefabric.cli.workflows.get_client") as mock_client_factory:
             mock_client = mock_client_factory.return_value
-            mock_client.list_workflow_types.return_value = [wf]
+            mock_client.list_workflows.return_value = [wf]
             result = runner.invoke(app, ["workflows", "list"])
             assert result.exit_code == 0
             assert "roi_calculator" in result.output
 
-    def test_execute_workflow(self, mock_config: None) -> None:
+    def test_execute_workflow(self, mock_config):
         with patch("valuefabric.cli.workflows.get_client") as mock_client_factory:
             mock_client = mock_client_factory.return_value
-            mock_client.execute_workflow.return_value = WorkflowCreateResponse(
-                workflow_instance_id="wf-2", status="scheduled"
-            )
+            mock_client.execute_workflow.return_value = {
+                "workflow_instance_id": "wf-2",
+                "status": "scheduled",
+            }
             result = runner.invoke(
                 app,
                 [
                     "workflows",
                     "execute",
                     "roi_calculator",
+                    "--tenant-id",
+                    "t1",
+                    "--user-id",
+                    "u1",
                 ],
             )
             assert result.exit_code == 0
@@ -247,10 +247,10 @@ class TestWorkflowCommands:
 
 
 class TestModelCommands:
-    def test_list_models(self, mock_config: None) -> None:
+    def test_list_models(self, mock_config):
         model = ModelVersion(
-            id=UUID("44444444-4444-4444-4444-444444444444"),
-            tenant_id=UUID("11111111-1111-1111-1111-111111111111"),
+            id="44444444-4444-4444-4444-444444444444",
+            tenant_id="11111111-1111-1111-1111-111111111111",
             provider="openai",
             model_name="gpt-4",
             model_version="1.0",
@@ -265,10 +265,10 @@ class TestModelCommands:
             assert result.exit_code == 0
             assert "gpt-4" in result.output
 
-    def test_promote_model(self, mock_config: None) -> None:
+    def test_promote_model(self, mock_config):
         model = ModelVersion(
-            id=UUID("44444444-4444-4444-4444-444444444444"),
-            tenant_id=UUID("11111111-1111-1111-1111-111111111111"),
+            id="44444444-4444-4444-4444-444444444444",
+            tenant_id="11111111-1111-1111-1111-111111111111",
             provider="openai",
             model_name="gpt-4",
             model_version="1.0",
@@ -280,17 +280,16 @@ class TestModelCommands:
             mock_client = mock_client_factory.return_value
             mock_client.promote_model.return_value = model
             result = runner.invoke(
-                app,
-                ["models", "promote", "44444444-4444-4444-4444-444444444444", "--to", "staging"],
+                app, ["models", "promote", "44444444-4444-4444-4444-444444444444", "--to", "staging"]
             )
             assert result.exit_code == 0
             assert "staging" in result.output
 
 
 class TestFeatureFlagCommands:
-    def test_list_flags(self, mock_config: None) -> None:
+    def test_list_flags(self, mock_config):
         flag = FeatureFlag(
-            id=UUID("55555555-5555-5555-5555-555555555555"),
+            id="55555555-5555-5555-5555-555555555555",
             flag_key="new_ui",
             enabled=True,
             rollout_percentage=100,
@@ -305,9 +304,9 @@ class TestFeatureFlagCommands:
             assert result.exit_code == 0
             assert "new_ui" in result.output
 
-    def test_set_flag(self, mock_config: None) -> None:
+    def test_set_flag(self, mock_config):
         flag = FeatureFlag(
-            id=UUID("55555555-5555-5555-5555-555555555555"),
+            id="55555555-5555-5555-5555-555555555555",
             flag_key="new_ui",
             enabled=False,
             rollout_percentage=0,
@@ -326,7 +325,7 @@ class TestFeatureFlagCommands:
 
 
 class TestHealthCommand:
-    def test_health(self, mock_config: None) -> None:
+    def test_health(self, mock_config):
         health = HealthResponse(
             status="healthy",
             service="layer4-agents",

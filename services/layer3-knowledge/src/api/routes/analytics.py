@@ -18,7 +18,7 @@ via the shared TenantScopedCypher utility.
 
 import logging
 import uuid
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import Any
 
 import neo4j
@@ -246,7 +246,7 @@ async def _create_entity(
         properties["entity_type"] = (
             operation.entity_type.value if operation.entity_type else "Unknown"
         )
-        properties["created_at"] = datetime.now(UTC).isoformat()
+        properties["created_at"] = datetime.utcnow().isoformat()
 
         async with driver.session() as session:
             mutation = AuditedGraphMutation(

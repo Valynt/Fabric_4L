@@ -6,7 +6,7 @@ from __future__ import annotations
 import json
 import os
 import sys
-from datetime import UTC, datetime
+from datetime import datetime
 from pathlib import Path
 
 REGISTER_PATH = Path(__file__).resolve().parents[2] / "docs" / "deprecation_register.json"
@@ -23,21 +23,14 @@ def _date(value: str) -> datetime.date:
 
 
 def main() -> int:
-    today = datetime.now(UTC).date()
+    today = datetime.utcnow().date()
     override_enabled = os.getenv(OVERRIDE_ENV_VAR, "").lower() in {"1", "true", "yes"}
 
     overdue: list[dict[str, str]] = []
     for item in _load_register():
         removal = item.get("target_removal")
-        if not removal or _date(removal) >= today:
-            continue
-        # Explicit deferrals carry a non-empty ``rationale`` and ``status`` set
-        # to ``"deferred"``. These have been reviewed by governance and are not
-        # failures — they are documented extensions. Items without a rationale
-        # are still treated as overdue so the gate retains its teeth.
-        if item.get("status") == "deferred" and item.get("rationale"):
-            continue
-        overdue.append(item)
+        if removal and _date(removal) < today:
+            overdue.append(item)
 
     if not overdue:
         print(f"Deprecation check passed: no overdue items as of {today.isoformat()}.")

@@ -66,6 +66,7 @@ from ..shared.models import AccountIntelligencePacket, SourceCorpus
 from .admin_handlers import (
     create_proxy_pool_endpoint,
     health_check,
+    legacy_health_check,
     legacy_metrics,
     metrics_endpoint,
     trigger_cleanup,
@@ -515,7 +516,6 @@ from .main_skill_routes import router as skill_routes
 from .main_target_routes import router as target_routes
 from .routes import compatibility as compatibility_routes
 from .source_routes import register_routes as register_source_routes
-from .validation_seed_routes import router as validation_seed_routes
 
 register_source_routes(router)
 register_consent_routes(router)
@@ -525,24 +525,15 @@ router.include_router(job_routes)
 router.include_router(content_routes)
 router.include_router(compliance_routes)
 router.include_router(admin_routes)
-router.include_router(validation_seed_routes)
 router.include_router(_batch_and_stats.router)
 
 app.include_router(router)
 app.include_router(compatibility_routes.router)
 
 
-# Canonical observability routes. Mounted at the app root so they are reachable
-# at ``/health`` and ``/metrics`` regardless of the prefixed API router.
-#
-# ``/health`` uses the legacy handler: the canonical ``health_check`` depends on
-# a DB session (auth-gated), but observability probes must be callable by
-# orchestrators without credentials. The legacy handler is the documented
-# migration path in the deprecation register; once callers have moved off it,
-# the route and its handler can both be removed.
-from .admin_handlers import legacy_health_check
-
-app.get("/health", tags=["health"])(legacy_health_check)
+# Legacy compatibility routes (redirect to new endpoints)
+app.get("/health")(legacy_health_check)
+app.get("/health/live", include_in_schema=False)(legacy_health_check)
 app.get("/metrics", include_in_schema=False)(legacy_metrics)
 
 

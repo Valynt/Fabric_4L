@@ -30,7 +30,6 @@ RUN npm install --global pnpm@10.18.1
 
 # Copy workspace manifests for pnpm --filter support
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY patches ./patches
 COPY scripts/enforce-package-manager.cjs ./scripts/enforce-package-manager.cjs
 COPY apps/web/package.json ./apps/web/
 COPY apps/web/scripts/enforce-package-manager.cjs ./apps/web/scripts/enforce-package-manager.cjs
@@ -58,7 +57,6 @@ RUN npm install --global pnpm@10.18.1
 
 # Copy workspace manifests for pnpm --filter support
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY patches ./patches
 COPY scripts/enforce-package-manager.cjs ./scripts/enforce-package-manager.cjs
 COPY apps/web/package.json ./apps/web/
 COPY apps/web/scripts/enforce-package-manager.cjs ./apps/web/scripts/enforce-package-manager.cjs

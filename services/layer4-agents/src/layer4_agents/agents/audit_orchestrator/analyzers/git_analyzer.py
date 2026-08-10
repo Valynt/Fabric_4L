@@ -47,35 +47,19 @@ class GitAnalyzer(BaseAnalyzer):
         return findings, metrics
 
     def _git_available(self, path: Path) -> bool:
-        """Return True if ``repo_path`` is inside a git working tree.
-
-        Implementation is deliberately filesystem-based rather than shelling
-        out to ``git``. Earlier revisions invoked ``git rev-parse`` with a
-        scrubbed environment, but this was still vulnerable to ambient state
-        (ambient ``GIT_*`` vars, parent-process working directory, plugin
-        fixtures) that caused unit tests running against a pristine
-        ``tmp_path`` to report the host repo as available. Walking the
-        filesystem directly answers the question "is there a ``.git``
-        directory at or above this path?" without any subprocess involvement.
-        """
+        """Return True if ``repo_path`` is inside a git repository."""
         try:
-            current = path.resolve()
-        except (OSError, RuntimeError):
+            result = subprocess.run(
+                ["git", "rev-parse", "--is-inside-work-tree"],
+                cwd=str(path),
+                capture_output=True,
+                text=True,
+                timeout=10,
+                check=False,
+            )
+            return result.returncode == 0 and result.stdout.strip() == "true"
+        except (subprocess.SubprocessError, FileNotFoundError, OSError):
             return False
-        # Walk upward looking for a ``.git`` directory. Stop at the filesystem
-        # root. ``.git`` may be a directory (standard repo) or a file
-        # (worktree / submodule gitdir pointer); both count as "inside a repo".
-        while True:
-            candidate = current / ".git"
-            try:
-                if candidate.exists():
-                    return True
-            except OSError:
-                return False
-            parent = current.parent
-            if parent == current:
-                return False
-            current = parent
 
     def _git_cmd(self, path: Path, args: list[str]) -> str:
         """Run a git command safely and return stdout, or an empty string on failure."""

@@ -256,7 +256,7 @@ class SecurityConfig(BaseModel):
 class APIConfig(BaseModel):
     """API configuration."""
 
-    host: str = Field(default="0.0.0.0", description="API host")  # nosec # Uvicorn in container must bind all interfaces
+    host: str = Field(default="0.0.0.0", description="API host")  # nosec B104
     port: int = Field(default=8003, description="API port")
     workers: int = Field(default=1, description="Number of workers")
     reload: bool = Field(default=False, description="Enable auto-reload")

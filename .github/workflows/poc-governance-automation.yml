@@ -14,13 +14,6 @@ name: PoC — Governance Automation (Composite + Profile Selection)
 "on":
   pull_request:
     branches: [main]
-    # Change-scoping: this PoC only demonstrates the CI composites and
-    # profile selection; run it only when those surfaces change.
-    paths:
-      - '.github/actions/**'
-      - '.github/workflows/poc-governance-automation.yml'
-      - 'scripts/ci/**'
-      - 'config/ci/**'
   push:
     branches:
       - main

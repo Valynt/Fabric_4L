@@ -29,9 +29,6 @@ x-common-env: &common-env
   FABRIC_TENANT_HEADER: X-Tenant-ID
   FABRIC_USER_HEADER: X-User-ID
   FABRIC_ROLE_HEADER: X-Role
-  # Release smoke uses plain HTTP between ephemeral containers; this flag is
-  # intentionally scoped to non-production test environments only.
-  ALLOW_INSECURE_SERVICE_HTTP_IN_DEVELOPMENT: "true"
   OPENAI_API_KEY: ""
   ANTHROPIC_API_KEY: ""
   INFISICAL_CLIENT_ID: ""
@@ -122,7 +119,6 @@ services:
       LAYER1_S3_SECRET_KEY: release-smoke-secret-key-with-more-than-32-characters
       LAYER1_RELEASE_SMOKE_LIGHT_HEALTH: "true"
     volumes: *shared-code-volumes
-    command: ["sh", "-c", "alembic upgrade head && exec uvicorn layer1_ingestion.api.main:app --host 0.0.0.0 --port 8000"]
     depends_on:
       postgres:
         condition: service_healthy
@@ -236,10 +232,7 @@ services:
       NEO4J_PASSWORD: devpassword123
       LAYER3_API_KEY: release-smoke-layer3-key-min-16chars
       LAYER5_API_KEY: release-smoke-layer5-key-min-16chars
-    volumes:
-      - ../../packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
-      - ../../packages/platform-contract/src/python:/app/packages/platform-contract/src/python:ro
-      - ../../contracts/observability/layer6-metrics.json:/contracts/observability/layer6-metrics.json:ro
+    volumes: *shared-code-volumes
     depends_on:
       postgres:
         condition: service_healthy

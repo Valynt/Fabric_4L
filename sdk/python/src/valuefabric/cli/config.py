@@ -18,8 +18,6 @@ CONFIG_FILE = CONFIG_DIR / "config.toml"
 
 DEFAULT_PROFILE = "default"
 
-ConfigData = dict[str, Any]
-
 
 def _parse_toml_value(raw: str) -> Any:
     value = raw.strip()
@@ -46,7 +44,7 @@ def _parse_toml_value(raw: str) -> Any:
 def _load_profile_toml(text: str) -> dict[str, Any]:
     data: dict[str, Any] = {}
     current_profile: dict[str, Any] | None = None
-    for line_number, raw_line in enumerate(text.splitlines(), start=1):
+    for raw_line in text.splitlines():
         line = raw_line.strip()
         if not line or line.startswith("#"):
             continue
@@ -54,18 +52,18 @@ def _load_profile_toml(text: str) -> dict[str, Any]:
             profile_name = line[len("[profiles.") : -1].strip('"')
             profiles = data.setdefault("profiles", {})
             if not isinstance(profiles, dict):
-                raise ValueError(f"profiles must be a table at line {line_number}")
+                raise ValueError("profiles must be a table")
             current_profile = profiles.setdefault(profile_name, {})
             continue
         if "=" not in line:
-            raise ValueError(f"invalid syntax at line {line_number}")
+            raise ValueError(f"invalid line: {line}")
         key, raw_value = line.split("=", 1)
         target = current_profile if current_profile is not None else data
         target[key.strip()] = _parse_toml_value(raw_value)
     return data
 
 
-def _format_toml_value(value: object) -> str:
+def _format_toml_value(value: Any) -> str:
     if isinstance(value, bool):
         return "true" if value else "false"
     if isinstance(value, (int, float)):
@@ -94,7 +92,7 @@ def _dump_profile_toml(config: dict[str, Any]) -> str:
     return "\n".join(lines).rstrip() + "\n"
 
 
-def _check_token_expiration(profile_config: ConfigData, profile_name: str) -> None:
+def _check_token_expiration(profile_config: dict, profile_name: str) -> None:
     """Check if JWT token is expired and warn user.
 
     Args:
@@ -115,7 +113,7 @@ def _check_token_expiration(profile_config: ConfigData, profile_name: str) -> No
             pass
 
 
-def _load_config() -> ConfigData:
+def _load_config() -> dict:
     if not CONFIG_FILE.exists():
         return {}
     try:
@@ -128,30 +126,21 @@ def _load_config() -> ConfigData:
         ) from e
 
 
-def _save_config(config: ConfigData) -> None:
+def _save_config(config: dict) -> None:
     CONFIG_DIR.mkdir(parents=True, exist_ok=True)
     CONFIG_FILE.write_text(_dump_profile_toml(config), encoding="utf-8")
 
 
 def get_active_profile() -> str:
     config = _load_config()
-    active = config.get("active_profile", DEFAULT_PROFILE)
-    return active if isinstance(active, str) else DEFAULT_PROFILE
+    return config.get("active_profile", DEFAULT_PROFILE)
 
 
-def get_profile_config(profile: str | None = None) -> ConfigData:
+def get_profile_config(profile: str | None = None) -> dict:
     config = _load_config()
-    configured_profile = config.get("active_profile", DEFAULT_PROFILE)
-    profile_name = profile or (
-        configured_profile if isinstance(configured_profile, str) else DEFAULT_PROFILE
-    )
-    profiles = config.get("profiles", {})
-    if not isinstance(profiles, dict):
-        return {}
-    profile_config = profiles.get(profile_name, {})
-    if not isinstance(profile_config, dict):
-        return {}
-    _check_token_expiration(profile_config, profile_name)
+    profile = profile or config.get("active_profile", DEFAULT_PROFILE)
+    profile_config = config.get("profiles", {}).get(profile, {})
+    _check_token_expiration(profile_config, profile)
     return profile_config
 
 

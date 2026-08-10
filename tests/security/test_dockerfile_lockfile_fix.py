@@ -60,36 +60,3 @@ def test_dockerfile_production_uses_frozen_lockfile_in_both_stages():
         assert "--frozen-lockfile" in line, (
             f"pnpm install missing --frozen-lockfile: {line.strip()}"
         )
-
-
-@pytest.mark.security
-@pytest.mark.contract_static
-@pytest.mark.parametrize("dockerfile", DOCKERFILES, ids=[p.name for p in DOCKERFILES])
-def test_dockerfile_copies_patched_dependencies_before_each_install(
-    dockerfile: Path,
-) -> None:
-    """Each install stage must receive patch files declared by package.json."""
-    stages = [
-        stage
-        for stage in dockerfile.read_text(encoding="utf-8").split("\nFROM ")
-        if "pnpm install" in stage
-    ]
-    assert stages, f"{dockerfile.name} has no pnpm install stage"
-
-    for stage in stages:
-        patch_copy = stage.find("COPY patches ./patches")
-        install = stage.find("pnpm install")
-        assert 0 <= patch_copy < install, (
-            f"{dockerfile.name} must copy canonical patch files before pnpm install"
-        )
-
-
-@pytest.mark.security
-@pytest.mark.contract_static
-def test_playwright_compose_uses_repository_root_build_context() -> None:
-    compose = (
-        REPO_ROOT / "infra" / "compose" / "docker-compose.playwright.yml"
-    ).read_text(encoding="utf-8")
-
-    assert "context: ../.." in compose
-    assert "dockerfile: ./apps/web/Dockerfile.playwright" in compose

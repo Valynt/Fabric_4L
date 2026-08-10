@@ -1,9 +1,5 @@
-ignore-unfixed: true
-vuln-type: os,library
-severity: HIGH,CRITICAL
-scanners: vuln,misconfig,secret
-skip-dirs:
-  - archive
-  - docs/archive
-  - node_modules
-  - apps/web/node_modules
+misconfiguration:
+  helm:
+    set:
+      - global.serviceAuthSecret=ci-render-service-auth-placeholder
+      - global.jwtSecret=ci-render-jwt-placeholder

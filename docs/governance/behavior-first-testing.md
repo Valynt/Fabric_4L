@@ -130,7 +130,7 @@ Before merging a production-critical capability:
 
 ---
 
-## Readiness Ladder: From Static Resolution to `Production Ready`
+## Readiness Ladder: From Static Resolution to Production Ready
 
 "Ready" is **not** a single boolean. It is a four-stage ladder. Each stage is a
 strictly stronger claim than the one below it, and **no stage may be skipped**.
@@ -142,7 +142,7 @@ Critically, **a passing static contract (Stage 1) does not by itself authorize a
 | 1. Static contract resolved | Every capability *maps to* an allowed + denied test that exists | `scripts/ci/check_behavior_contract.py` (static, no pytest) | `make check-behavior-contract` |
 | 2. Behavior tests executed | Those tests *actually run and pass* (not just resolve on paper) | pytest JUnit run of the critical-behavior suites | `pnpm run test:critical-behaviors` |
 | 3. Readiness audit passed | Executed results are aggregated, **skips/xfails are controlled**, and a GREEN/YELLOW/RED status is emitted | `scripts/ci/behavior_readiness_audit.py` | `make check-behavior-readiness-audit` / `make gate-behavior-readiness` |
-| 4. `Production ready` | The full canonical production gate passes **with** the behavior readiness audit wired in | policy-driven release gate + production readiness | `make production-readiness-gate` (profiles include `behavior-readiness`) |
+| 4. Production ready | The full canonical production gate passes **with** the behavior readiness audit wired in | policy-driven release gate + production readiness | `make production-readiness-gate` (profiles include `behavior-readiness`) |
 
 ### Why each stage is necessary
 

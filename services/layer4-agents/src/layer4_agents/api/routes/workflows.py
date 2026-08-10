@@ -44,9 +44,7 @@ from ..schemas.workflow_progress import WorkflowProgressSchema, normalize_workfl
 JsonObject = dict[str, Any]
 
 
-WorkflowStatusValue = Literal[
-    "pending", "running", "paused", "interrupted", "completed", "failed", "cancelled"
-]
+WorkflowStatusValue = Literal["pending", "running", "paused", "interrupted", "completed", "failed", "cancelled"]
 
 WorkflowErrorValue = str | JsonObject
 
@@ -118,7 +116,7 @@ PAUSABLE_STATUSES = {"pending", "running", "scheduled"}
 
 def extract_status_value(status_obj) -> str:
     """Extract string value from WorkflowStatus enum or string."""
-    if hasattr(status_obj, "value"):
+    if hasattr(status_obj, 'value'):
         return str(status_obj.value)
     return str(status_obj)
 
@@ -155,8 +153,6 @@ class WorkflowCreateRequest(BaseModel):
     - inputs: object
     """
 
-    model_config = ConfigDict(extra="forbid")
-
     workflow_type: str = Field(
         ...,
         description="Type of workflow to run",
@@ -170,9 +166,7 @@ class WorkflowCreateRequest(BaseModel):
     @classmethod
     def _validate_workflow_type(cls, v: str) -> str:
         if v not in VALID_WORKFLOW_TYPES:
-            raise ValueError(
-                f"Invalid workflow_type: {v!r}. Must be one of: {', '.join(VALID_WORKFLOW_TYPES)}"
-            )
+            raise ValueError(f"Invalid workflow_type: {v!r}. Must be one of: {', '.join(VALID_WORKFLOW_TYPES)}")
         return v
 
 
@@ -225,7 +219,6 @@ class WorkflowStatusResponse(BaseModel):
     run_id: str | None = Field(default=None, description="Distinct execution identifier")
     trace_id: str | None = Field(default=None, description="Cross-layer audit trace identifier")
 
-
 class WorkflowListItem(BaseModel):
     id: str
     name: str
@@ -259,12 +252,8 @@ class WorkflowEvent(BaseModel):
     timestamp: str
     message: str
     payload: JsonObject | None = None
-    trace_id: str | None = Field(
-        default=None, description="Canonical lineage key for cross-layer audit correlation"
-    )
-    correlation_id: str | None = Field(
-        default=None, description="Deprecated alias of trace_id; when present must match trace_id"
-    )
+    trace_id: str | None = Field(default=None, description="Canonical lineage key for cross-layer audit correlation")
+    correlation_id: str | None = Field(default=None, description="Deprecated alias of trace_id; when present must match trace_id")
 
 
 class WorkflowEventPayload(BaseModel):
@@ -273,9 +262,7 @@ class WorkflowEventPayload(BaseModel):
     progress: float = Field(default=0.0, ge=0.0, le=100.0)
     current_node: str | None = None
     normalized_progress: JsonObject | None = None
-    trace_id: str | None = Field(
-        default=None, description="Canonical lineage key for the workflow lifecycle"
-    )
+    trace_id: str | None = Field(default=None, description="Canonical lineage key for the workflow lifecycle")
     correlation_id: str | None = Field(default=None, description="Deprecated alias of trace_id")
 
 
@@ -330,7 +317,7 @@ def get_executor() -> OrchestrationController:
     from ..startup import runtime_state
 
     if runtime_state.workflow_executor is None:
-        raise ServiceUnavailableError(message="Workflow executor not initialized")
+        raise ServiceUnavailableError(message = "Workflow executor not initialized")
     return runtime_state.workflow_executor
 
 
@@ -362,7 +349,7 @@ async def create_workflow(
 
     # Validate tenant_id is required
     if not tenant_id:
-        raise ValidationError(message="tenant_id is required")
+        raise ValidationError(message = "tenant_id is required")
 
     try:
         # Map priority string to enum
@@ -425,6 +412,7 @@ async def create_workflow(
         )
 
 
+
 async def _filter_and_paginate_workflows(
     executor: OrchestrationController,
     tenant_id: str,
@@ -439,7 +427,8 @@ async def _filter_and_paginate_workflows(
 
     if not include_completed:
         workflows = [
-            w for w in workflows if str(w.get("status", "")).lower() not in TERMINAL_STATUSES
+            w for w in workflows
+            if str(w.get("status", "")).lower() not in TERMINAL_STATUSES
         ]
 
     if status:
@@ -451,18 +440,14 @@ async def _filter_and_paginate_workflows(
         workflows = [w for w in workflows if w.get("workflow_type", "").lower() == type_lower]
 
     total = len(workflows)
-    paginated_raw = workflows[offset : offset + limit]
+    paginated_raw = workflows[offset:offset + limit]
     paginated = [
         WorkflowListItem(
             id=str(w.get("workflow_id") or w.get("id") or ""),
             name=str(w.get("name") or w.get("workflow_type") or "workflow"),
             workflow_type=str(w.get("workflow_type") or "unknown"),
             status=str(w.get("status") or "pending"),  # type: ignore[arg-type]
-            progress=float(
-                w.get("progress")
-                if w.get("progress") is not None
-                else (w.get("progress_percentage") or 0)
-            ),  # type: ignore[arg-type]
+            progress=float(w.get("progress") if w.get("progress") is not None else (w.get("progress_percentage") or 0)),  # type: ignore[arg-type]
             created_at=w.get("created_at") or w.get("started_at"),
             updated_at=w.get("updated_at") or w.get("completed_at"),
         )
@@ -483,20 +468,11 @@ async def _filter_and_paginate_workflows(
 @router.get("/workflows", response_model=WorkflowListResponse)
 async def list_workflows(
     request: Request,
-    limit: int = Query(
-        default=50, ge=1, le=100, description="Maximum number of workflows to return"
-    ),
+    limit: int = Query(default=50, ge=1, le=100, description="Maximum number of workflows to return"),
     offset: int = Query(default=0, ge=0, description="Number of workflows to skip"),
-    status: str | None = Query(
-        default=None,
-        description="Filter by status (pending, running, completed, failed, cancelled)",
-    ),
-    type: str | None = Query(
-        default=None, description="Filter by workflow type (e.g. business_case)"
-    ),
-    include_completed: bool = Query(
-        default=False, description="Include terminal workflows in the list response"
-    ),
+    status: str | None = Query(default=None, description="Filter by status (pending, running, completed, failed, cancelled)"),
+    type: str | None = Query(default=None, description="Filter by workflow type (e.g. business_case)"),
+    include_completed: bool = Query(default=False, description="Include terminal workflows in the list response"),
     _ctx: RequestContext = Depends(require_authenticated),
     executor: OrchestrationController = Depends(get_executor),
 ) -> WorkflowListResponse:
@@ -513,17 +489,10 @@ async def list_workflows(
 @router.get("/workflows/active", response_model=WorkflowListResponse)
 async def list_active_workflows(
     request: Request,
-    limit: int = Query(
-        default=50, ge=1, le=100, description="Maximum number of workflows to return"
-    ),
+    limit: int = Query(default=50, ge=1, le=100, description="Maximum number of workflows to return"),
     offset: int = Query(default=0, ge=0, description="Number of workflows to skip"),
-    status: str | None = Query(
-        default=None,
-        description="Filter by status (pending, running, completed, failed, cancelled)",
-    ),
-    workflow_type: str | None = Query(
-        default=None, description="Filter by workflow type (e.g. business_case)"
-    ),
+    status: str | None = Query(default=None, description="Filter by status (pending, running, completed, failed, cancelled)"),
+    workflow_type: str | None = Query(default=None, description="Filter by workflow type (e.g. business_case)"),
     _ctx: RequestContext = Depends(require_authenticated),
     executor: OrchestrationController = Depends(get_executor),
 ) -> WorkflowListResponse:
@@ -542,15 +511,12 @@ async def list_available_workflows() -> AvailableWorkflowsResponse:
     """List available workflow types."""
     types = list_workflow_types()
 
-    return AvailableWorkflowsResponse.model_validate(
-        {
-            "workflows": [
-                {"type": key, "name": info["name"], "description": info["description"]}
-                for key, info in types.items()
-            ]
-        }
-    )
-
+    return AvailableWorkflowsResponse.model_validate({
+        "workflows": [
+            {"type": key, "name": info["name"], "description": info["description"]}
+            for key, info in types.items()
+        ]
+    })
 
 @router.get("/workflows/{workflow_id}", response_model=WorkflowStatusResponse)
 async def get_workflow_status(
@@ -568,14 +534,12 @@ async def get_workflow_status(
     status = await executor.get_workflow_status(workflow_id)
 
     if not status:
-        raise NotFoundError(message=str(f"Workflow {workflow_id} not found"))
+        raise NotFoundError(message = str(f"Workflow {workflow_id} not found"))
 
     # Enforce tenant isolation
     workflow_tenant = status.get("tenant_id")
     if workflow_tenant and str(workflow_tenant) != str(_ctx.tenant_id):
-        raise AuthorizationError(
-            message=str(f"Workflow {workflow_id} does not belong to the current tenant")
-        )
+        raise AuthorizationError(message = str(f"Workflow {workflow_id} does not belong to the current tenant"))
 
     return WorkflowStatusResponse(
         id=status.get("workflow_id", workflow_id),
@@ -609,39 +573,33 @@ async def get_workflow_result(
     status = await executor.get_workflow_status(workflow_id)
 
     if not status:
-        raise NotFoundError(message=str(f"Workflow {workflow_id} not found"))
+        raise NotFoundError(message = str(f"Workflow {workflow_id} not found"))
 
     # Enforce tenant isolation
     workflow_tenant = status.get("tenant_id")
     if workflow_tenant and str(workflow_tenant) != str(_ctx.tenant_id):
-        raise AuthorizationError(
-            message=str(f"Workflow {workflow_id} does not belong to the current tenant")
-        )
+        raise AuthorizationError(message = str(f"Workflow {workflow_id} does not belong to the current tenant"))
 
     if status.get("status") not in TERMINAL_STATUSES:
-        raise ValidationError(
-            message=str(f"Workflow {workflow_id} not complete (status: {status.get('status')})")
-        )
+        raise ValidationError(message = str(f"Workflow {workflow_id} not complete (status: {status.get('status')})"))
 
     result = await executor.get_result(workflow_id)
     if not result:
-        raise NotFoundError(message=str(f"Workflow {workflow_id} result not found"))
+        raise NotFoundError(message = str(f"Workflow {workflow_id} result not found"))
 
     output_data = result.get("output") or {}
-    response = WorkflowResultResponse.model_validate(
-        {
-            "workflow_id": workflow_id,
-            "run_id": result.get("run_id"),
-            "trace_id": result.get("trace_id"),
-            "status": status.get("status"),
-            "output": {
-                "data": output_data,
-                "reasoning_trace": output_data.get("reasoning_trace"),
-            },
-            "errors": status.get("errors", []),
-            "completed_at": status.get("completed_at"),
-        }
-    )
+    response = WorkflowResultResponse.model_validate({
+        "workflow_id": workflow_id,
+        "run_id": result.get("run_id"),
+        "trace_id": result.get("trace_id"),
+        "status": status.get("status"),
+        "output": {
+            "data": output_data,
+            "reasoning_trace": output_data.get("reasoning_trace"),
+        },
+        "errors": status.get("errors", []),
+        "completed_at": status.get("completed_at"),
+    })
     return response
 
 
@@ -655,19 +613,17 @@ async def cancel_workflow(
     status = await executor.get_workflow_status(workflow_id)
 
     if not status:
-        raise NotFoundError(message=str(f"Workflow {workflow_id} not found"))
+        raise NotFoundError(message = str(f"Workflow {workflow_id} not found"))
 
     # Enforce tenant isolation
     workflow_tenant = status.get("tenant_id")
     if workflow_tenant and str(workflow_tenant) != str(_ctx.tenant_id):
-        raise AuthorizationError(
-            message=str(f"Workflow {workflow_id} does not belong to the current tenant")
-        )
+        raise AuthorizationError(message = str(f"Workflow {workflow_id} does not belong to the current tenant"))
 
     cancelled = await executor.cancel_workflow(workflow_id)
 
     if not cancelled:
-        raise ValidationError(message=str(f"Workflow {workflow_id} could not be cancelled"))
+        raise ValidationError(message = str(f"Workflow {workflow_id} could not be cancelled"))
 
     # Audit: workflow cancelled
     try:
@@ -717,26 +673,20 @@ async def resume_workflow(
     """
     # Verify checkpointing is available
     if executor.checkpoint_saver is None:
-        raise ServiceUnavailableError(
-            message="Checkpointing not configured - cannot resume workflows"
-        )
+        raise ServiceUnavailableError(message = "Checkpointing not configured - cannot resume workflows")
 
     # Check current status
     status = await executor.get_workflow_status(workflow_id)
     if not status:
-        raise NotFoundError(message=str(f"Workflow {workflow_id} not found"))
+        raise NotFoundError(message = str(f"Workflow {workflow_id} not found"))
 
     # Enforce tenant isolation
     workflow_tenant = status.get("tenant_id")
     if workflow_tenant and str(workflow_tenant) != str(_ctx.tenant_id):
-        raise AuthorizationError(
-            message=str(f"Workflow {workflow_id} does not belong to the current tenant")
-        )
+        raise AuthorizationError(message = str(f"Workflow {workflow_id} does not belong to the current tenant"))
 
     if status.get("status") in TERMINAL_STATUSES:
-        raise ValidationError(
-            message=str(f"Workflow {workflow_id} is {status.get('status')} and cannot be resumed")
-        )
+        raise ValidationError(message = str(f"Workflow {workflow_id} is {status.get('status')} and cannot be resumed"))
 
     # Resume execution
     try:
@@ -782,7 +732,7 @@ async def resume_workflow(
     except Exception as exc:
         if isinstance(exc, ValueError):
             logger.warning("workflow_resume_value_error", extra={"error_type": type(exc).__name__})
-            raise NotFoundError(message="Workflow not found")
+            raise NotFoundError(message = "Workflow not found")
         if isinstance(exc, CheckpointConflictError):
             raise_normalized_with_log(
                 exc,
@@ -840,23 +790,19 @@ async def pause_workflow(
     # Check current status
     status = await executor.get_workflow_status(workflow_id)
     if not status:
-        raise NotFoundError(message=str(f"Workflow {workflow_id} not found"))
+        raise NotFoundError(message = str(f"Workflow {workflow_id} not found"))
 
     # Enforce tenant isolation
     workflow_tenant = status.get("tenant_id")
     if workflow_tenant and str(workflow_tenant) != str(_ctx.tenant_id):
-        raise AuthorizationError(
-            message=str(f"Workflow {workflow_id} does not belong to the current tenant")
-        )
+        raise AuthorizationError(message = str(f"Workflow {workflow_id} does not belong to the current tenant"))
 
     current_status = status.get("status")
     if current_status in TERMINAL_STATUSES:
-        raise ValidationError(
-            message=str(f"Workflow {workflow_id} is {current_status} and cannot be paused")
-        )
+        raise ValidationError(message = str(f"Workflow {workflow_id} is {current_status} and cannot be paused"))
 
     if current_status == "paused":
-        raise ValidationError(message=str(f"Workflow {workflow_id} is already paused"))
+        raise ValidationError(message = str(f"Workflow {workflow_id} is already paused"))
 
     # Pause execution
     try:
@@ -895,7 +841,7 @@ async def pause_workflow(
     except Exception as exc:
         if isinstance(exc, ValueError):
             logger.warning("workflow_pause_value_error", extra={"error_type": type(exc).__name__})
-            raise NotFoundError(message="Workflow not found")
+            raise NotFoundError(message = "Workflow not found")
         raise_normalized_with_log(
             exc,
             status_code=500,
@@ -904,6 +850,8 @@ async def pause_workflow(
             logger=logger,
             log_message=f"Unexpected error pausing workflow {workflow_id}",
         )
+
+
 
 
 @router.get("/workflows/{workflow_id}/events")
@@ -925,13 +873,11 @@ async def get_workflow_events(
     # Enforce tenant isolation before streaming
     status = await executor.get_workflow_status(workflow_id)
     if not status:
-        raise NotFoundError(message=str(f"Workflow {workflow_id} not found"))
+        raise NotFoundError(message = str(f"Workflow {workflow_id} not found"))
 
     workflow_tenant = status.get("tenant_id")
     if workflow_tenant and str(workflow_tenant) != str(_ctx.tenant_id):
-        raise AuthorizationError(
-            message=str(f"Workflow {workflow_id} does not belong to the current tenant")
-        )
+        raise AuthorizationError(message = str(f"Workflow {workflow_id} does not belong to the current tenant"))
 
     async def event_generator():
         """Generate SSE events for workflow."""
@@ -1020,20 +966,18 @@ async def archive_workflow(
     """
     status = await executor.get_workflow_status(workflow_id)
     if not status:
-        raise NotFoundError(message=str(f"Workflow {workflow_id} not found"))
+        raise NotFoundError(message = str(f"Workflow {workflow_id} not found"))
 
     # Enforce tenant isolation
     workflow_tenant = status.get("tenant_id")
     if workflow_tenant and str(workflow_tenant) != str(_ctx.tenant_id):
-        raise AuthorizationError(
-            message=str(f"Workflow {workflow_id} does not belong to the current tenant")
-        )
+        raise AuthorizationError(message = str(f"Workflow {workflow_id} does not belong to the current tenant"))
 
     try:
         result = await executor.archive_workflow(workflow_id, tenant_id=_ctx.tenant_id)
     except PermissionError as e:
         logger.warning("workflow_archive_permission_denied", extra={"error": repr(e)})
-        raise AuthorizationError(message="Permission denied to archive workflow")
+        raise AuthorizationError(message = "Permission denied to archive workflow")
 
     if result is None:
         raise ServiceUnavailableError(message=f"Failed to archive workflow {workflow_id}")

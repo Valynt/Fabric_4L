@@ -1,13 +1,6 @@
 """Shared models package for Value Fabric."""
 
-from .claim import (
-    Claim,
-    ClaimCreate,
-    ClaimOverride,
-    ClaimStatus,
-    ClaimUpdate,
-    EvidenceStrength,
-)
+from .claim import Claim, ClaimCreate, ClaimOverride, ClaimStatus, ClaimUpdate, EvidenceStrength
 from .fabric_found_summary import (
     FabricFoundSummary,
     FabricFoundSummaryProjectionRequest,
@@ -21,11 +14,11 @@ from .parameter_manifest import (
     ParameterManifestCreate,
     ParameterStatus,
     ParameterType,
-    ParameterValidationRule,
     ParameterValue,
     ParameterValueCreate,
+    ParameterValidationRule,
 )
-from .typed_dict import JSONDict, TypedDictModel
+from .typed_dict import TypedDictModel
 from .value_signal import (
     ProvenanceExtractor,
     RawSignalInput,
@@ -44,6 +37,7 @@ from .value_signal import (
 )
 
 __all__ = [
+    "TypedDictModel",
     "Claim",
     "ClaimCreate",
     "ClaimOverride",
@@ -52,25 +46,23 @@ __all__ = [
     "EvidenceStrength",
     "FabricFoundSummary",
     "FabricFoundSummaryProjectionRequest",
-    "JSONDict",
+    "SummaryItem",
+    "SummaryItemStatus",
+    "SummarySection",
     "ParameterEvidenceRequirement",
     "ParameterManifest",
     "ParameterManifestCreate",
     "ParameterStatus",
     "ParameterType",
-    "ParameterValidationRule",
     "ParameterValue",
     "ParameterValueCreate",
+    "ParameterValidationRule",
     "ProvenanceExtractor",
     "RawSignalInput",
     "SignalImpactArea",
     "SignalPromoteRequest",
     "SignalRefineRequest",
     "SignalReviewRequest",
-    "SummaryItem",
-    "SummaryItemStatus",
-    "SummarySection",
-    "TypedDictModel",
     "ValueSignal",
     "ValueSignalCreate",
     "ValueSignalEvidence",

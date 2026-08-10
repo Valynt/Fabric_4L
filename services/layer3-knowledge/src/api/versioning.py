@@ -9,7 +9,7 @@ Reason: API versioning and backward compatibility utilities.
 
 import inspect
 from collections.abc import Awaitable, Callable
-from datetime import UTC, datetime
+from datetime import datetime
 from enum import Enum
 from typing import Any, Union
 
@@ -449,7 +449,7 @@ class VersionCompatibility:
             data=transformed_data,
             metadata={
                 "endpoint": endpoint,
-                "timestamp": datetime.now(UTC).isoformat(),
+                "timestamp": datetime.utcnow().isoformat(),
                 "supported_versions": self.supported_versions,
                 "latest_version": self.get_latest_version(),
             },

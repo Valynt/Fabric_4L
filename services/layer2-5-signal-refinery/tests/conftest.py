@@ -19,11 +19,13 @@ import os
 import uuid
 from collections.abc import AsyncGenerator
 
+import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import (
     AsyncConnection,
     AsyncSession,
+    async_sessionmaker,
     create_async_engine,
 )
 
@@ -35,14 +37,14 @@ os.environ["JWT_SECRET"] = "test-secret-32-chars-long-ok-yes"
 os.environ["TESTING"] = "true"
 # P0-008: Dev auth bypass flags removed — no longer needed
 
-from layer2_5_signal_refinery import database as db_module
-from layer2_5_signal_refinery.api.main import create_app
-from layer2_5_signal_refinery.models.db_models import Base
-from value_fabric.shared.identity.context import (
+from layer2_5_signal_refinery import database as db_module  # noqa: E402
+from layer2_5_signal_refinery.api.main import create_app  # noqa: E402
+from layer2_5_signal_refinery.models.db_models import Base  # noqa: E402
+from value_fabric.shared.identity.context import (  # noqa: E402
     RequestContext,
     set_request_context,
 )
-from value_fabric.shared.testing.governance import (
+from value_fabric.shared.testing.governance import (  # noqa: E402
     patch_governance_middleware_for_tests,
 )
 

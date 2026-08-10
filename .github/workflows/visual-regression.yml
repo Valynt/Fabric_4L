@@ -60,8 +60,6 @@ jobs:
       VITE_L5_PREFIX: /truths
       VITE_L6_PREFIX: /benchmarks
       VITE_L7_PREFIX: /billing
-      VITE_AUTH_PROVIDER: legacy
-      VITE_ENABLE_MOCK_AUTH: "true"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -145,8 +143,6 @@ jobs:
           VITE_L5_PREFIX: /truths
           VITE_L6_PREFIX: /benchmarks
           VITE_L7_PREFIX: /billing
-          VITE_AUTH_PROVIDER: legacy
-          VITE_ENABLE_MOCK_AUTH: "true"
 
       - name: Wait for server
         run: npx wait-on http://localhost:4173 --timeout 30000
@@ -180,15 +176,6 @@ jobs:
             apps/web/e2e/visual/**/*.diff.png
             apps/web/e2e/visual/**/*.actual.png
             apps/web/e2e/visual/**/*.expected.png
-          retention-days: 7
-
-      - name: Upload generated baseline screenshots
-        uses: actions/upload-artifact@v4
-        if: github.event_name == 'workflow_dispatch' && inputs.update_snapshots
-        with:
-          name: visual-baselines-${{ matrix.project }}
-          path: apps/web/e2e/visual/**/*-snapshots/*.png
-          if-no-files-found: error
           retention-days: 7
 
       - name: Fail on test failure

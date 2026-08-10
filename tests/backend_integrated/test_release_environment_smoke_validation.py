@@ -8,14 +8,6 @@ import pytest
 pytestmark = [pytest.mark.backend_integrated, pytest.mark.integration, pytest.mark.release_smoke]
 
 
-def test_release_seed_tenant_slug_respects_server_limit():
-    from tests.backend_integrated.conftest import RUN_SLUG_SUFFIX
-
-    slug = f"backend-validation-{RUN_SLUG_SUFFIX}-a"
-    assert len(slug) <= 63
-    assert slug.isascii() and slug.replace("-", "").isalnum()
-
-
 @pytest.mark.asyncio
 async def test_release_environment_health_endpoints(backend):
     health = {}

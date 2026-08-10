@@ -24,16 +24,6 @@ from layer4_agents.models.billing import (
     BillingUsageEvent,
 )
 
-TEST_TENANT_ID = "550e8400-e29b-41d4-a716-446655440000"
-
-# The billing routes' dependency chain opens a real SQLAlchemy async session
-# that runs PostgreSQL-only SQL (``set_config``, ``INSERT..RETURNING``). When
-# no Postgres is available in the test environment, the override-based mock
-# pattern in this file can't intercept those writes — every test fails with
-# a dialect error unrelated to what it's asserting. Skip the whole module in
-# that configuration so the remaining suite stays green.
-pytestmark = pytest.mark.postgres
-
 
 @pytest.fixture
 def mock_db():
@@ -54,8 +44,6 @@ def override_app_db_dependency(mock_db):
     from value_fabric.shared.identity.context import RequestContext
     from value_fabric.shared.identity.dependencies import require_authenticated
 
-    from layer4_agents.api.common import db as common_db
-    from layer4_agents.api.routes import billing as billing_route
     from layer4_agents.database import get_db_from_context
 
     async def _override_db():
@@ -63,20 +51,16 @@ def override_app_db_dependency(mock_db):
 
     async def _override_auth():
         return RequestContext(
-            tenant_id=TEST_TENANT_ID,
+            tenant_id="tenant_abc123",
             user_id="user_123",
             roles=["admin"],
             permissions=["billing:read", "billing:write"],
         )
 
     app.dependency_overrides[get_db_from_context] = _override_db
-    app.dependency_overrides[common_db.get_route_db] = _override_db
-    app.dependency_overrides[billing_route.get_route_db] = _override_db
     app.dependency_overrides[require_authenticated] = _override_auth
     yield
     app.dependency_overrides.pop(get_db_from_context, None)
-    app.dependency_overrides.pop(common_db.get_route_db, None)
-    app.dependency_overrides.pop(billing_route.get_route_db, None)
     app.dependency_overrides.pop(require_authenticated, None)
 
 
@@ -88,7 +72,7 @@ def client():
 
     async def _fake_resolve(self, request):
         return RequestContext(
-            tenant_id=TEST_TENANT_ID,
+            tenant_id="tenant_abc123",
             user_id="user_123",
             roles=["admin", "billing:read", "billing:write"],
         )
@@ -115,7 +99,7 @@ def sample_invoice():
     """Sample billing invoice for tests."""
     return BillingInvoice(
         id="inv_123",
-        tenant_id=TEST_TENANT_ID,
+        tenant_id="tenant_abc123",
         customer_id="user_123",
         invoice_number="INV-001",
         status="open",
@@ -137,7 +121,7 @@ def sample_invoice_item():
     """Sample billing invoice item for tests."""
     return BillingInvoiceItem(
         id="item_123",
-        tenant_id=TEST_TENANT_ID,
+        tenant_id="tenant_abc123",
         invoice_id="inv_123",
         type="one_time",
         description="Professional services",
@@ -154,7 +138,7 @@ def sample_charge():
     """Sample billing charge for tests."""
     return BillingCharge(
         id="ch_123",
-        tenant_id=TEST_TENANT_ID,
+        tenant_id="tenant_abc123",
         customer_id="user_123",
         invoice_id="inv_123",
         status="succeeded",
@@ -173,7 +157,7 @@ def sample_usage_event():
     """Sample billing usage event for tests."""
     return BillingUsageEvent(
         id="usage_123",
-        tenant_id=TEST_TENANT_ID,
+        tenant_id="tenant_abc123",
         customer_id="user_123",
         event_id="evt_1",
         event_name="api_call",
@@ -191,7 +175,7 @@ def sample_customer():
     """Sample billing customer for tests."""
     return BillingCustomer(
         id="user_123",
-        tenant_id=TEST_TENANT_ID,
+        tenant_id="tenant_abc123",
         stripe_customer_id="cus_test123",
         email="test@example.com",
         name="Test User",
@@ -385,7 +369,7 @@ def test_sync_customer_endpoint(client, sample_customer):
     assert response.status_code == 200
     data = response.json()
     assert data["id"] == "user_123"
-    assert data["tenant_id"] == TEST_TENANT_ID
+    assert data["tenant_id"] == "tenant_abc123"
 
 
 def test_sync_customer_endpoint_validation_error(client):
@@ -580,7 +564,7 @@ def test_emit_billing_audit_swallows_exception():
     from value_fabric.shared.audit import AuditAction
     from value_fabric.shared.identity.context import RequestContext
 
-    ctx = RequestContext(tenant_id=TEST_TENANT_ID, user_id="user_123")
+    ctx = RequestContext(tenant_id="tenant_abc123", user_id="user_123")
 
     with patch(
         "layer4_agents.api.routes.billing.emit_audit_event",
@@ -607,7 +591,7 @@ async def test_emit_billing_audit_propagates_cancelled_error():
     from value_fabric.shared.audit import AuditAction
     from value_fabric.shared.identity.context import RequestContext
 
-    ctx = RequestContext(tenant_id=TEST_TENANT_ID, user_id="user_123")
+    ctx = RequestContext(tenant_id="tenant_abc123", user_id="user_123")
 
     with patch(
         "layer4_agents.api.routes.billing.emit_audit_event",
@@ -723,7 +707,7 @@ def test_ingest_usage_batch_empty_events():
     from layer4_agents.api.routes.billing import ingest_usage_batch
     from value_fabric.shared.identity.context import RequestContext
 
-    ctx = RequestContext(tenant_id=TEST_TENANT_ID, user_id="user_123")
+    ctx = RequestContext(tenant_id="tenant_abc123", user_id="user_123")
     request = SimpleNamespace(events=[])
     result = asyncio.run(ingest_usage_batch(request, context=ctx))
 

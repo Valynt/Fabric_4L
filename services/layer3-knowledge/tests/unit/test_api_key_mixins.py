@@ -1,6 +1,6 @@
 """Regression tests for APIKey mixin behavior."""
 
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 
 import pytest
 
@@ -27,11 +27,11 @@ class TestAPIKeyExpirationMixin:
         assert key.is_expired() is False
 
     def test_not_expired_when_expires_at_is_future(self):
-        key = _make_key(expires_at=datetime.now(UTC) + timedelta(hours=1))
+        key = _make_key(expires_at=datetime.utcnow() + timedelta(hours=1))
         assert key.is_expired() is False
 
     def test_expired_when_expires_at_is_past(self):
-        key = _make_key(expires_at=datetime.now(UTC) - timedelta(hours=1))
+        key = _make_key(expires_at=datetime.utcnow() - timedelta(hours=1))
         assert key.is_expired() is True
 
 

@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-SEED_PRIVILEGED_REASON = "validation-seed"
+SEED_PRIVILEGED_REASON = "playwright-backend-validation-seed"
 SEED_DRAFT_CASE_ID = "case-draft-001"
 SEED_APPROVED_CASE_ID = "case-e2e-approved-001"
 SEED_APPROVED_CASE_ALIASES = ["case-meridian-e2e-001"]

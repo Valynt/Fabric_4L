@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import Any, Literal
 
 LoadStatsActionType = Literal[
@@ -23,7 +23,7 @@ class LoadStatsAction:
 
     @classmethod
     def start(cls) -> LoadStatsAction:
-        return cls(type="start", timestamp=datetime.now(UTC).isoformat())
+        return cls(type="start", timestamp=datetime.utcnow().isoformat())
 
     @classmethod
     def entities_loaded(cls, count: int) -> LoadStatsAction:
@@ -43,7 +43,7 @@ class LoadStatsAction:
 
     @classmethod
     def finish(cls) -> LoadStatsAction:
-        return cls(type="finish", timestamp=datetime.now(UTC).isoformat())
+        return cls(type="finish", timestamp=datetime.utcnow().isoformat())
 
 
 @dataclass(frozen=True)

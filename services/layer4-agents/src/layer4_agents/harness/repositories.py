@@ -253,7 +253,7 @@ class HarnessRunRepository:
         return run
 
     async def get(self, run_id: str, tenant_id: str) -> HarnessRun:
-        from layer4_agents.harness.registry import RunNotFoundError
+        from harness.registry import RunNotFoundError
 
         result = await self._session.execute(
             select(HarnessRunRow).where(
@@ -267,7 +267,7 @@ class HarnessRunRepository:
         return _row_to_run(row)
 
     async def update(self, run: HarnessRun, expected_updated_at: datetime | None = None) -> HarnessRun:
-        from layer4_agents.harness.registry import HarnessRegistryError, TransitionConflictError
+        from harness.registry import HarnessRegistryError, TransitionConflictError
 
         stmt = (
             update(HarnessRunRow)
@@ -294,7 +294,7 @@ class HarnessRunRepository:
 
     async def get_for_update(self, run_id: str, tenant_id: str) -> HarnessRun:
         """Fetch a run row using a row lock while preserving tenant isolation."""
-        from layer4_agents.harness.registry import RunNotFoundError
+        from harness.registry import RunNotFoundError
 
         result = await self._session.execute(
             select(HarnessRunRow)
@@ -353,7 +353,7 @@ class HumanGateRepository:
         return gate
 
     async def get(self, gate_id: str, tenant_id: str) -> HumanGate:
-        from layer4_agents.harness.human_gates import GateNotFoundError
+        from harness.human_gates import GateNotFoundError
 
         result = await self._session.execute(
             select(HumanGateRow).where(
@@ -368,9 +368,8 @@ class HumanGateRepository:
 
     async def get_for_update(self, gate_id: str, tenant_id: str) -> HumanGate:
         """Fetch a gate row using a row lock while preserving tenant isolation."""
-        from layer4_agents.harness.human_gates import GateNotFoundError
+        from harness.human_gates import GateNotFoundError
 
-        self._session.expire_all()
         result = await self._session.execute(
             select(HumanGateRow)
             .where(
@@ -385,37 +384,22 @@ class HumanGateRepository:
         return _row_to_gate(row)
 
     async def update(self, gate: HumanGate) -> HumanGate:
-        from sqlalchemy import update
-
-        from layer4_agents.harness.human_gates import GateDecisionError, GateNotFoundError
+        from harness.human_gates import GateNotFoundError
 
         result = await self._session.execute(
-            update(HumanGateRow)
-            .where(
+            select(HumanGateRow).where(
                 HumanGateRow.id == gate.id,
                 HumanGateRow.tenant_id == gate.tenant_id,
-                HumanGateRow.status == GateStatus.PENDING.value,
-            )
-            .values(
-                status=gate.status.value,
-                decision_by=gate.decision_by,
-                decision_reason=gate.decision_reason,
-                decided_at=gate.decided_at,
             )
         )
-        if result.rowcount == 0:
-            exists = (
-                await self._session.execute(
-                    select(HumanGateRow.id).where(
-                        HumanGateRow.id == gate.id,
-                        HumanGateRow.tenant_id == gate.tenant_id,
-                    )
-                )
-            ).scalar_one_or_none()
-            if exists is None:
-                raise GateNotFoundError(f"Gate '{gate.id}' not found for update")
-            raise GateDecisionError(f"Gate '{gate.id}' has already been decided")
+        row = result.scalar_one_or_none()
+        if row is None:
+            raise GateNotFoundError(f"Gate '{gate.id}' not found for update")
 
+        row.status = gate.status.value
+        row.decision_by = gate.decision_by
+        row.decision_reason = gate.decision_reason
+        row.decided_at = gate.decided_at
         await self._session.flush()
         return gate
 
@@ -442,7 +426,7 @@ class CheckpointRepository:
         return checkpoint
 
     async def get(self, checkpoint_id: str, run_id: str, tenant_id: str) -> HarnessCheckpoint:
-        from layer4_agents.harness.checkpoints import CheckpointError, CheckpointTenantError
+        from harness.checkpoints import CheckpointError, CheckpointTenantError
 
         result = await self._session.execute(
             select(HarnessCheckpointRow).where(HarnessCheckpointRow.id == checkpoint_id)
@@ -496,7 +480,7 @@ class ToolContractRepository:
         self._session = session
 
     async def register(self, tool: ToolContract, tenant_id: str) -> ToolContract:
-        from layer4_agents.harness.tool_contracts import ToolRegistrationError
+        from harness.tool_contracts import ToolRegistrationError
 
         # Enforce: high-risk tools need approval policy
         if tool.risk_level in (ToolRiskLevel.HIGH, ToolRiskLevel.CRITICAL):
@@ -522,7 +506,7 @@ class ToolContractRepository:
         return tool
 
     async def get(self, tool_id: str, tenant_id: str) -> ToolContract:
-        from layer4_agents.harness.tool_contracts import ToolNotFoundError
+        from harness.tool_contracts import ToolNotFoundError
 
         result = await self._session.execute(
             select(ToolContractRow).where(
@@ -550,7 +534,7 @@ class ToolContractRepository:
         return [_row_to_tool(row) for row in result.scalars().all()]
 
     async def delete(self, tool_id: str, tenant_id: str) -> None:
-        from layer4_agents.harness.tool_contracts import ToolNotFoundError
+        from harness.tool_contracts import ToolNotFoundError
 
         result = await self._session.execute(
             select(ToolContractRow).where(

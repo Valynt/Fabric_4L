@@ -376,19 +376,6 @@ services:
     assert module.validate_compose_contract(compose, tmp_path) == []
 
 
-def test_devcontainer_compose_inherits_dockerfile_healthcheck():
-    module = load_module()
-    compose = REPO_ROOT / ".devcontainer" / "docker-compose.yml"
-
-    failures = module.validate_compose_contract(compose, REPO_ROOT)
-
-    assert not any(
-        failure.service == "dev"
-        and "has no compose healthcheck or Dockerfile HEALTHCHECK" in failure.message
-        for failure in failures
-    ), failures
-
-
 def test_required_env_defaults_are_safe_and_do_not_use_real_env(monkeypatch):
     module = load_module()
     for key in module.SAFE_REQUIRED_ENV_DEFAULTS:
@@ -403,7 +390,6 @@ def test_required_env_defaults_are_safe_and_do_not_use_real_env(monkeypatch):
                 "compose-contract",
                 "compose_contract",
                 "composecontract",
-                "00000000-0000-4000-8000-000000000001",
                 "http://localhost",
                 "https://compose-contract.",
                 "postgresql+asyncpg://compose_contract_",

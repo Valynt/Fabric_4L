@@ -7,18 +7,7 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import (
-    JSON,
-    Boolean,
-    DateTime,
-    Float,
-    ForeignKey,
-    ForeignKeyConstraint,
-    Index,
-    String,
-    Text,
-    UniqueConstraint,
-)
+from sqlalchemy import JSON, Boolean, DateTime, Float, ForeignKey, Index, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -98,7 +87,6 @@ class ModelVersion(Base):
     )
 
     __table_args__ = (
-        UniqueConstraint("id", "tenant_id", name="uq_model_versions_id_tenant_id"),
         Index("ix_model_versions_tenant_id", "tenant_id"),
         Index("ix_model_versions_stage", "stage"),
         Index("ix_model_versions_tenant_provider_stage", "tenant_id", "provider", "stage"),
@@ -120,12 +108,6 @@ class ModelPromotionLog(Base):
         UUID(as_uuid=True),
         primary_key=True,
         default=uuid.uuid4,
-    )
-
-    tenant_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
-        ForeignKey("tenants.id", ondelete="CASCADE"),
-        nullable=False,
     )
 
     model_version_id: Mapped[uuid.UUID] = mapped_column(
@@ -172,16 +154,7 @@ class ModelPromotionLog(Base):
         default=lambda: datetime.now(UTC),
     )
 
-    __table_args__ = (
-        ForeignKeyConstraint(
-            ["model_version_id", "tenant_id"],
-            ["model_versions.id", "model_versions.tenant_id"],
-            name="fk_model_promotion_log_model_tenant",
-            ondelete="CASCADE",
-        ),
-        Index("ix_model_promotion_log_model_version_id", "model_version_id"),
-        Index("ix_model_promotion_log_tenant_id", "tenant_id"),
-    )
+    __table_args__ = (Index("ix_model_promotion_log_model_version_id", "model_version_id"),)
 
     def __repr__(self) -> str:
         return (

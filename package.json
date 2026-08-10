@@ -58,8 +58,8 @@
     "dev:layer2": "infisical run --env=dev --path=/shared --path=/infra --path=/layer2-extraction -- uvicorn services.layer2-extraction.src.api.main:app --reload",
     "dev:layer3": "infisical run --env=dev --path=/shared --path=/infra --path=/layer3-knowledge -- uvicorn services.layer3-knowledge.src.api.main:app --reload",
     "dev:layer4": "infisical run --env=dev --path=/shared --path=/infra --path=/layer4-agents -- uvicorn services.layer4-agents.src.layer4_agents.api.main:app --reload",
-    "dev:layer5": "infisical run --env=dev --path=/shared --path=/infra --path=/layer5-ground-truth -- uvicorn services.layer5-ground-truth.src.layer5_ground_truth.api.main:app --reload",
-    "dev:layer6": "infisical run --env=dev --path=/shared --path=/infra --path=/layer6-benchmarks -- uvicorn services.layer6-benchmarks.src.layer6_benchmarks.api.main:app --reload",
+    "dev:layer5": "infisical run --env=dev --path=/shared --path=/infra --path=/layer5-ground-truth -- uvicorn services.layer5-ground-truth.src.api.main:app --reload",
+    "dev:layer6": "infisical run --env=dev --path=/shared --path=/infra --path=/layer6-benchmarks -- uvicorn services.layer6-benchmarks.src.api.main:app --reload",
     "env:dev": "infisical export --env=dev --path=/shared --path=/infra --path=/layer1-ingestion --path=/layer2-extraction --path=/layer2-5-signal-refinery --path=/layer3-knowledge --path=/layer4-agents --path=/layer5-ground-truth --path=/layer6-benchmarks --path=/apps/web --format=dotenv --output-file=.env.generated",
     "compose:dev": "pnpm env:dev && docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated up",
     "contract:breaking": "python scripts/ci/openapi_breaking_change_gate.py",
@@ -86,12 +86,10 @@
   "pnpm": {
     "overrides": {
       "minimatch@>=9.0.0 <9.0.7": "9.0.9",
-      "brace-expansion@^1.1.7": "5.0.9",
-      "brace-expansion@^2.0.1": "5.0.9",
-      "brace-expansion@^5.0.0": "5.0.9",
       "mermaid": ">=11.15.0 <12.0.0",
-      "fast-uri@<=3.1.4": "3.1.5",
-      "tailwindcss>nanoid": "3.3.17",
+      "fast-uri@<=3.1.4": "3.1.4",
+      "brace-expansion": "5.0.8",
+      "tailwindcss>nanoid": "3.3.7",
       "systeminformation@<=5.31.6": "5.31.7",
       "body-parser@<1.20.6": "1.20.6",
       "tmp": ">=0.2.6",
@@ -103,29 +101,12 @@
       "@babel/core": "^7.26.0",
       "uuid": ">=11.1.1",
       "qs": ">=6.15.2",
-      "js-yaml": "^4.2.0",
-      "undici@^7.0.0": "7.29.0",
-      "nanoid@^5.0.0": "5.1.16",
-      "nanoid@^3.0.0": "3.3.17"
+      "js-yaml": "^4.2.0"
     },
     "onlyBuiltDependencies": [
-      "@clerk/shared",
       "@tailwindcss/oxide",
-      "bufferutil",
-      "core-js",
-      "cypress",
       "esbuild",
-      "msw",
-      "utf-8-validate"
-    ],
-    "auditConfig": {
-      "ignoreCves": [
-        "CVE-2026-14257",
-        "GHSA-qwww-vcr4-c8h2"
-      ]
-    },
-    "patchedDependencies": {
-      "brace-expansion@5.0.9": "patches/brace-expansion@5.0.9.patch"
-    }
+      "msw"
+    ]
   }
 }

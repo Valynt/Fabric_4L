@@ -4,7 +4,6 @@ RUN npm install -g corepack@latest && corepack enable
 
 # Copy workspace manifests for pnpm --filter support
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY patches ./patches
 COPY apps/web/package.json ./apps/web/
 COPY packages/eslint-plugin-fabric-contracts/package.json ./packages/eslint-plugin-fabric-contracts/
 COPY packages/config/package.json ./packages/config/
@@ -13,10 +12,7 @@ COPY scripts/enforce-package-manager.cjs ./scripts/
 # Install from workspace root
 # --ignore-scripts: skip package prepare/build lifecycle scripts (e.g. eslint-plugin-fabric-contracts
 # runs `tsc`, whose source is not copied into this dev image). Vite dev does not need them.
-RUN pnpm install --frozen-lockfile --ignore-scripts \
-    && chown -R node:node /workspace
-
-USER node
+RUN pnpm install --frozen-lockfile --ignore-scripts
 
 # Copy frontend source into its workspace location. Staying at the workspace path keeps
 # pnpm's relative symlinks (../../node_modules/.pnpm/...) valid against /workspace/node_modules,

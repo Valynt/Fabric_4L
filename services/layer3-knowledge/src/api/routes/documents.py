@@ -15,7 +15,7 @@ Migrated from app_monolith.py as part of ARCH-L3-011 (Sprint 3 cutover).
 import logging
 import os
 import uuid
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -100,7 +100,7 @@ async def export_document(
                     download_url=gen_data.get("download_url"),
                     format=request.format,
                     expires_at=(
-                        datetime.now(UTC) + timedelta(hours=24)
+                        datetime.utcnow() + timedelta(hours=24)
                         if gen_data.get("success")
                         else None
                     ),
@@ -116,7 +116,7 @@ async def export_document(
                 status="completed",
                 download_url=l4_data.get("document_url"),
                 format=request.format,
-                expires_at=datetime.now(UTC) + timedelta(hours=24),
+                expires_at=datetime.utcnow() + timedelta(hours=24),
                 message="Document ready for download",
             )
 

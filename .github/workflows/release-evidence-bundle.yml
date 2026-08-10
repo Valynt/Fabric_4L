@@ -5,26 +5,6 @@ on:
     branches:
       - main
       - 'release/**'
-    # Change-scoping: evidence bundles cover runtime images, contracts, and
-    # deployment surfaces; docs-only PRs skip. Tag/push runs stay unscoped.
-    paths:
-      - 'services/**'
-      - 'apps/**'
-      - 'packages/**'
-      - 'contracts/**'
-      - 'infra/**'
-      - 'k8s/**'
-      - 'monitoring/**'
-      - '**/Dockerfile*'
-      - '**/package.json'
-      - '**/pnpm-lock.yaml'
-      - 'pnpm-workspace.yaml'
-      - '**/requirements*.txt'
-      - '**/pyproject.toml'
-      - '.github/**'
-      - 'scripts/**'
-      - 'config/**'
-      - 'Makefile'
   push:
     tags:
       - 'v*'
@@ -37,12 +17,6 @@ on:
         description: 'Release tag to attach evidence bundle to'
         required: true
         type: string
-
-concurrency:
-  # Cancel only an obsolete run of this same workflow/ref. A global
-  # feature-branch group lets activity on an unrelated PR cancel required gates.
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
 
 permissions:
   contents: write
@@ -111,7 +85,7 @@ jobs:
           docker build \
             --build-arg BASE_IMAGE="${BASE_IMAGE:-}" \
             --build-arg BUILDER_BASE_IMAGE="${BUILDER_BASE_IMAGE:-}" \
-            -t ${{ env.REGISTRY }}/${{ github.repository_owner }}/fabric_4l/${{ matrix.service }}:${{ github.sha }} \
+            -t ${{ env.REGISTRY }}/fabric_4l/${{ matrix.service }}:${{ github.sha }} \
             -t ${{ matrix.service }}:local-${{ github.sha }} \
             ./services/${{ matrix.service }}
 
@@ -121,26 +95,26 @@ jobs:
 
       - name: Push image
         if: steps.mode.outputs.publish == 'true'
-        run: docker push ${{ env.REGISTRY }}/${{ github.repository_owner }}/fabric_4l/${{ matrix.service }}:${{ github.sha }}
+        run: docker push ${{ env.REGISTRY }}/fabric_4l/${{ matrix.service }}:${{ github.sha }}
 
       - name: Trivy vulnerability scan
         uses: aquasecurity/trivy-action@314ff8b43182423b84c50b1670b0e10f858f2d98 # master (post-v0.36.0)
         with:
-          image-ref: ${{ steps.mode.outputs.publish == 'true' && format('{0}/{1}/fabric_4l/{2}:{3}', env.REGISTRY, github.repository_owner, matrix.service, github.sha) || format('{0}:local-{1}', matrix.service, github.sha) }}
+          image-ref: ${{ steps.mode.outputs.publish == 'true' && format('{0}/fabric_4l/{1}:{2}', env.REGISTRY, matrix.service, github.sha) || format('{0}:local-{1}', matrix.service, github.sha) }}
           format: sarif
           output: trivy-${{ matrix.service }}.sarif
 
       - name: Trivy JSON report
         uses: aquasecurity/trivy-action@314ff8b43182423b84c50b1670b0e10f858f2d98 # master (post-v0.36.0)
         with:
-          image-ref: ${{ steps.mode.outputs.publish == 'true' && format('{0}/{1}/fabric_4l/{2}:{3}', env.REGISTRY, github.repository_owner, matrix.service, github.sha) || format('{0}:local-{1}', matrix.service, github.sha) }}
+          image-ref: ${{ steps.mode.outputs.publish == 'true' && format('{0}/fabric_4l/{1}:{2}', env.REGISTRY, matrix.service, github.sha) || format('{0}:local-{1}', matrix.service, github.sha) }}
           format: json
           output: trivy-${{ matrix.service }}.json
 
       - name: Generate SBOM (CycloneDX)
         uses: anchore/sbom-action@v0
         with:
-          image: ${{ steps.mode.outputs.publish == 'true' && format('{0}/{1}/fabric_4l/{2}:{3}', env.REGISTRY, github.repository_owner, matrix.service, github.sha) || format('{0}:local-{1}', matrix.service, github.sha) }}
+          image: ${{ steps.mode.outputs.publish == 'true' && format('{0}/fabric_4l/{1}:{2}', env.REGISTRY, matrix.service, github.sha) || format('{0}:local-{1}', matrix.service, github.sha) }}
           format: cyclonedx-json
           output-file: sbom-${{ matrix.service }}-${{ github.sha }}.cdx.json
 
@@ -151,7 +125,7 @@ jobs:
       - name: Sign image (keyless OIDC)
         if: steps.mode.outputs.publish == 'true'
         run: |
-          cosign sign --yes ${{ env.REGISTRY }}/${{ github.repository_owner }}/fabric_4l/${{ matrix.service }}:${{ github.sha }}
+          cosign sign --yes ${{ env.REGISTRY }}/fabric_4l/${{ matrix.service }}:${{ github.sha }}
 
       - name: Attest SBOM to registry
         if: steps.mode.outputs.publish == 'true'
@@ -159,7 +133,7 @@ jobs:
           cosign attest --yes \
             --type cyclonedx \
             --predicate sbom-${{ matrix.service }}-${{ github.sha }}.cdx.json \
-            ${{ env.REGISTRY }}/${{ github.repository_owner }}/fabric_4l/${{ matrix.service }}:${{ github.sha }}
+            ${{ env.REGISTRY }}/fabric_4l/${{ matrix.service }}:${{ github.sha }}
 
       - name: Verify image signature metadata
         if: steps.mode.outputs.publish == 'true'
@@ -167,7 +141,7 @@ jobs:
           cosign verify \
             --certificate-identity-regexp "https://github.com/${{ github.repository }}/.github/workflows/release-evidence-bundle.yml@.*" \
             --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
-            ${{ env.REGISTRY }}/${{ github.repository_owner }}/fabric_4l/${{ matrix.service }}:${{ github.sha }} > signing-${{ matrix.service }}-${{ github.sha }}.json
+            ${{ env.REGISTRY }}/fabric_4l/${{ matrix.service }}:${{ github.sha }} > signing-${{ matrix.service }}-${{ github.sha }}.json
 
       - name: Verify attestation metadata
         if: steps.mode.outputs.publish == 'true'
@@ -176,7 +150,7 @@ jobs:
             --certificate-identity-regexp "https://github.com/${{ github.repository }}/.github/workflows/release-evidence-bundle.yml@.*" \
             --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
             --type cyclonedx \
-            ${{ env.REGISTRY }}/${{ github.repository_owner }}/fabric_4l/${{ matrix.service }}:${{ github.sha }} > attestation-${{ matrix.service }}-${{ github.sha }}.json
+            ${{ env.REGISTRY }}/fabric_4l/${{ matrix.service }}:${{ github.sha }} > attestation-${{ matrix.service }}-${{ github.sha }}.json
 
       - name: Sign SBOM with Cosign
         if: steps.mode.outputs.publish == 'true'
@@ -345,7 +319,7 @@ jobs:
           subject-path: ${{ steps.bundle.outputs.path }}
 
       - name: Upload release-candidate evidence bundle artifact
-        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/tags/v'))
+        if: github.event_name == 'pull_request' || startsWith(github.ref, 'refs/heads/release/') || github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
         uses: actions/upload-artifact@v4
         with:
           name: evidence-bundle-${{ github.sha }}

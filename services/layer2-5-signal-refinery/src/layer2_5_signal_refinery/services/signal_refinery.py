@@ -93,7 +93,9 @@ def compute_trust_score(
 ) -> float:
     """Compute composite trust score (0–1)."""
     evidence_quality = compute_evidence_quality(evidence)
-    provenance_weight = _PROVENANCE_WEIGHTS.get(provenance.get("extractor", "system"), 0.5)
+    provenance_weight = _PROVENANCE_WEIGHTS.get(
+        provenance.get("extractor", "system"), 0.5
+    )
     lifecycle_bonus = _LIFECYCLE_BONUS.get(lifecycle_state, 0.0)
 
     raw = (
@@ -133,9 +135,7 @@ def refine_signal(raw: dict[str, Any]) -> dict[str, Any]:
             item["id"] = str(uuid.uuid4())
 
     # Compute trust score
-    provenance = raw.get(
-        "provenance", {"extractor": "system", "method": "unknown", "extracted_at": now}
-    )
+    provenance = raw.get("provenance", {"extractor": "system", "method": "unknown", "extracted_at": now})
     confidence = float(raw.get("confidence", 0.0))
     lifecycle_state = "extracted"
 

@@ -1888,29 +1888,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/nodes": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Create Ground Truth Node
-         * @description Create or update a GroundTruth node from Layer 5.
-         *
-         *     This endpoint is called by Layer 5's Layer3Client.sync_truth_object()
-         *     to persist validated TruthObjects as :GroundTruth nodes in the Knowledge Graph.
-         */
-        post: operations["create_ground_truth_node_v1_nodes_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/v1/ingest": {
         parameters: {
             query?: never;
@@ -3897,11 +3874,6 @@ export interface components {
              */
             extraction_job_ids?: string[] | null;
             /**
-             * Source Version Ids
-             * @description Filter by source version ID for graph population verification
-             */
-            source_version_ids?: string[] | null;
-            /**
              * Updated After
              * @description Updated after this time
              */
@@ -4736,54 +4708,6 @@ export interface components {
              * @default 0
              */
             density: number;
-        };
-        /**
-         * GroundTruthNodeRequest
-         * @description Ground Truth node creation request from Layer 5.
-         *
-         *     Matches the payload format used by Layer 5's Layer3Client.sync_truth_object().
-         */
-        GroundTruthNodeRequest: {
-            /**
-             * Node Type
-             * @description Node type (expected: 'GroundTruth')
-             */
-            node_type: string;
-            /**
-             * Properties
-             * @description Node properties
-             */
-            properties: {
-                [key: string]: unknown;
-            };
-            /**
-             * Merge Keys
-             * @description Keys for MERGE operation
-             */
-            merge_keys?: string[];
-        };
-        /**
-         * GroundTruthNodeResponse
-         * @description Ground Truth node creation response.
-         */
-        GroundTruthNodeResponse: {
-            /**
-             * Node Id
-             * @description Created node ID
-             */
-            node_id: string;
-            /**
-             * Status
-             * @description Whether node was created or updated
-             * @enum {string}
-             */
-            status: "created" | "updated";
-            /**
-             * Message
-             * @description Additional message
-             * @default
-             */
-            message: string;
         };
         /**
          * HTTPValidationError
@@ -11919,39 +11843,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AuditLogResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    create_ground_truth_node_v1_nodes_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["GroundTruthNodeRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["GroundTruthNodeResponse"];
                 };
             };
             /** @description Validation Error */

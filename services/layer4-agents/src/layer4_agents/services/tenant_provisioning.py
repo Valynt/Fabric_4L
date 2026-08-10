@@ -16,7 +16,7 @@ import os
 import re
 import secrets
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -188,7 +188,7 @@ class TenantProvisioningService:
                 tenant_id=tenant_id,
                 admin_user_id=admin_user_id,
                 admin_temp_password=admin_temp_password,
-                created_at=datetime.now(UTC),
+                created_at=datetime.utcnow(),
                 isolation_tier=request.isolation_tier,
                 password_change_required=True,
                 status=status,

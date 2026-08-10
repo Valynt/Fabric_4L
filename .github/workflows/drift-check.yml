@@ -34,13 +34,13 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python -m pip install --require-hashes -r tests/requirements-test.lock
+          pip install fastapi uvicorn pydantic neo4j psycopg2-binary pytest
           # Install layer dependencies for proper export
-          pip install -e services/layer1-ingestion/ --no-deps
-          pip install -e services/layer2-extraction/ --no-deps
-          pip install -e services/layer3-knowledge/ --no-deps
-          pip install -e services/layer4-agents/ --no-deps
-          pip install -e services/layer5-ground-truth/ --no-deps
+          pip install -e services/layer1-ingestion/
+          pip install -e services/layer2-extraction/
+          pip install -e services/layer3-knowledge/
+          pip install -e services/layer4-agents/
+          pip install -e services/layer5-ground-truth/
 
       - name: Check Layer 3 app_monolith shim drift
         run: |

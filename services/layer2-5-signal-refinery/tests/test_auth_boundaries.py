@@ -11,9 +11,9 @@ from __future__ import annotations
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from .conftest import ACCOUNT_A, make_signal_payload
+from .conftest import ACCOUNT_A, TENANT_A, make_signal_payload
 
 pytestmark = pytest.mark.asyncio
 
@@ -29,8 +29,8 @@ async def no_auth_client(connection):
 
     Simulates a request that bypasses GovernanceMiddleware.
     """
-    from layer2_5_signal_refinery import database as db_mod
     from layer2_5_signal_refinery.api.main import create_app
+    from layer2_5_signal_refinery import database as db_mod
 
     app = create_app()
 
@@ -55,8 +55,8 @@ async def no_auth_client(connection):
 @pytest_asyncio.fixture
 async def empty_auth_client(connection):
     """HTTP client with empty/invalid auth context."""
-    from layer2_5_signal_refinery import database as db_mod
     from layer2_5_signal_refinery.api.main import create_app
+    from layer2_5_signal_refinery import database as db_mod
     from value_fabric.shared.identity.context import RequestContext, set_request_context
 
     app = create_app()

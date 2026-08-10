@@ -6,19 +6,17 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 LAYER6_SRC = REPO_ROOT / "services" / "layer6-benchmarks" / "src"
-# The runtime package lives under src/layer6_benchmarks. The Docker CMD is
-# `uvicorn layer6_benchmarks.api.main:app`, so the test asserts the canonical
-# package layout rather than a compatibility shim.
-LAYER6_PACKAGE = LAYER6_SRC / "layer6_benchmarks"
 REQUIRED_WRAPPERS = [
-    LAYER6_PACKAGE / "__init__.py",
-    LAYER6_PACKAGE / "api" / "__init__.py",
-    LAYER6_PACKAGE / "api" / "main.py",
-    LAYER6_PACKAGE / "api" / "deps.py",
-    LAYER6_PACKAGE / "api" / "schemas.py",
-    LAYER6_PACKAGE / "api" / "routes" / "__init__.py",
-    LAYER6_PACKAGE / "database.py",
-    LAYER6_PACKAGE / "shared_bootstrap.py",
+    LAYER6_SRC / "__init__.py",
+    LAYER6_SRC / "api" / "__init__.py",
+    LAYER6_SRC / "api" / "main.py",
+    LAYER6_SRC / "api" / "deps.py",
+    LAYER6_SRC / "api" / "schemas.py",
+    LAYER6_SRC / "api" / "routes" / "__init__.py",
+    LAYER6_SRC / "api" / "routes" / "benchmarks.py",
+    LAYER6_SRC / "api" / "routes" / "system.py",
+    LAYER6_SRC / "database.py",
+    LAYER6_SRC / "shared_bootstrap.py",
 ]
 
 
@@ -27,7 +25,7 @@ def test_layer6_service_src_directory_exists() -> None:
 
 
 def test_layer6_service_entrypoint_exists() -> None:
-    entrypoint = LAYER6_PACKAGE / "api" / "main.py"
+    entrypoint = LAYER6_SRC / "api" / "main.py"
     assert entrypoint.is_file(), f"Missing Layer 6 API entrypoint required by Docker CMD: {entrypoint}"
 
 

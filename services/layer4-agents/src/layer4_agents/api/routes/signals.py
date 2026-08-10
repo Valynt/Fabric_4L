@@ -45,7 +45,7 @@ router = APIRouter()
 async def _tenant_owns_prospect(*, prospect_id: str, tenant_id: str) -> bool:
     """Return True when the tenant owns the prospect/account identifier."""
     filters = [
-        Account.tenant_id == UUID(str(tenant_id)),
+        Account.tenant_id == tenant_id,
         Account.provider_record_id == prospect_id,
     ]
     try:

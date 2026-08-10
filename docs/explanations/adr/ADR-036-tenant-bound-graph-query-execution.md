@@ -9,8 +9,10 @@ related: ["../../explanations/adr/ADR-010-postgresql-rls-for-multi-tenancy", "..
 
 # ADR-036: Tenant-Bound Graph Query Execution
 
-**Status:** Accepted
+**Status:** Proposed
+
 **Date:** 2026-07-20
+
 **Deciders:** Platform Engineering, Security Team
 
 ---

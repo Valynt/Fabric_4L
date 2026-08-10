@@ -26375,7 +26375,6 @@
             "description": "Optional workflow ID"
           }
         },
-        "additionalProperties": false,
         "type": "object",
         "required": [
           "workflow_type"

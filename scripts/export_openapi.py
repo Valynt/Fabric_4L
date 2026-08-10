@@ -27,7 +27,7 @@ import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from types import ModuleType
-from typing import Any, Self
+from typing import Any
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
@@ -114,8 +114,6 @@ EXPORT_ENV: dict[str, str] = {
     "LAYER4_API_URL": "http://localhost:8004",
     "LAYER5_GROUND_TRUTH_URL": "http://localhost:8005",
     "LAYER6_API_URL": "http://localhost:8006",
-    "LAYER6_API_BASE_URL": "http://localhost:8006",
-    "LAYER6_BENCHMARKS_URL": "http://localhost:8006",
     "LAYER7_DATABASE_URL": "postgresql+asyncpg://fabric_export:fabric_export_secret@localhost:5432/layer7_billing",
 }
 
@@ -260,7 +258,7 @@ def _install_protego_shim() -> None:
 
     class _MockProtegoRules:
         @classmethod
-        def parse(cls, content: str) -> Self:
+        def parse(cls, content: str) -> "_MockProtegoRules":
             # content is intentionally unused; always returns a permissive instance for schema export
             return cls()
 
@@ -321,13 +319,13 @@ def _install_playwright_shim() -> None:
         pass
 
     class _MockAsyncPlaywright:
-        async def start(self) -> Self:
+        async def start(self) -> "_MockAsyncPlaywright":
             return self
 
-        async def __aenter__(self) -> Self:
+        async def __aenter__(self) -> "_MockAsyncPlaywright":
             return self
 
-        async def __aexit__(self, *args: object) -> None:
+        async def __aexit__(self, *args: Any) -> None:
             return None
 
     _module_stub("playwright", __package_stub__=True)
@@ -579,8 +577,8 @@ def _export_service_in_process(spec: OpenApiExportSpec) -> bool:
         _atomic_write_json(app.openapi(), output_path)
         logger.info("[OK] %s exported: %s", spec.label, output_path)
         return True
-    except Exception:
-        logger.exception("[%s] Export failed", spec.label)
+    except Exception as exc:
+        logger.error("[%s] Export failed: %s", spec.label, exc, exc_info=True)
         return False
 
 

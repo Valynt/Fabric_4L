@@ -36,16 +36,20 @@ depends_on: Union[str, Sequence[str], None] = None
 # Tables from migration 007 with unsafe NULL pattern
 MIGRATION_007_TABLES = [
     "accounts",
+    "account_notes",
+    "crm_sync_states",
     "feature_flags",
     "audit_events",
     "oidc_sessions",
-    "model_versions",
+    "model_registry",
 ]
 
 # Tables from migration 013 with unsafe NULL pattern
 MIGRATION_013_TABLES = [
+    "account_sync_status",
     "api_keys",
     "integrations",
+    "model_promotion_log",
     "tenant_isolation_tier_history",
     "users",
 ]
@@ -57,12 +61,16 @@ ALL_TABLES = MIGRATION_007_TABLES + MIGRATION_013_TABLES
 # test scanner in test_rls_enforcement.py can parse it.
 RLS_TABLES = [
     "accounts",
+    "account_notes",
+    "crm_sync_states",
     "feature_flags",
     "audit_events",
     "oidc_sessions",
-    "model_versions",
+    "model_registry",
+    "account_sync_status",
     "api_keys",
     "integrations",
+    "model_promotion_log",
     "tenant_isolation_tier_history",
     "users",
 ]
@@ -77,7 +85,9 @@ def upgrade() -> None:
 
     for table in ALL_TABLES:
         # MIGRATION_REVIEW_REQUIRED: DROP POLICY removes existing tenant isolation
-        op.execute(f"DROP POLICY IF EXISTS tenant_isolation_policy ON {table}")
+        op.execute(
+            f"DROP POLICY IF EXISTS tenant_isolation_policy ON {table}"
+        )
 
         # MIGRATION_REVIEW_REQUIRED: FORCE ROW LEVEL SECURITY affects all access paths
         op.execute(f"ALTER TABLE {table} FORCE ROW LEVEL SECURITY")
@@ -105,7 +115,9 @@ def downgrade() -> None:
 
     for table in ALL_TABLES:
         # MIGRATION_REVIEW_REQUIRED: DROP POLICY removes strict tenant isolation
-        op.execute(f"DROP POLICY IF EXISTS tenant_isolation_policy ON {table}")
+        op.execute(
+            f"DROP POLICY IF EXISTS tenant_isolation_policy ON {table}"
+        )
 
         # MIGRATION_REVIEW_REQUIRED: restoring NULL-permissive policy creates data leak vector
         op.execute(f"""

@@ -81,17 +81,13 @@ def upgrade() -> None:
 
     # Drop the broken policies that reference app.current_tenant
     for table in BROKEN_POLICY_TABLES:
-        op.execute(f"DROP POLICY IF EXISTS tenant_isolation_{table} ON {table}")
+        op.execute(
+            f"DROP POLICY IF EXISTS tenant_isolation_{table} ON {table}"
+        )
 
     # Add FORCE ROW LEVEL SECURITY (missing from 016)
     for table in BROKEN_POLICY_TABLES:
         op.execute(f"ALTER TABLE {table} FORCE ROW LEVEL SECURITY")
-
-    # Migration 018 used the canonical names on these tables; replace those
-    # policies as well as the older table-specific names from migration 016.
-    for table in BROKEN_POLICY_TABLES:
-        op.execute(f"DROP POLICY IF EXISTS tenant_isolation_policy ON {table}")
-        op.execute(f"DROP POLICY IF EXISTS admin_bypass_policy ON {table}")
 
     # Create correct policies using app.tenant_id
     for table in BROKEN_POLICY_TABLES:
@@ -122,7 +118,9 @@ def upgrade() -> None:
 
     # Drop the unsafe policies that allow tenant_id IS NULL to match all
     for table in UNSAFE_NULL_TABLES:
-        op.execute(f"DROP POLICY IF EXISTS tenant_isolation_policy ON {table}")
+        op.execute(
+            f"DROP POLICY IF EXISTS tenant_isolation_policy ON {table}"
+        )
 
     # Recreate with strict matching (no NULL bypass)
     # NULL tenant_id rows are only visible to admin/system roles
@@ -147,8 +145,12 @@ def downgrade() -> None:
     # Revert Part 1: Restore broken 016 policies
     # ================================================================
     for table in BROKEN_POLICY_TABLES:
-        op.execute(f"DROP POLICY IF EXISTS tenant_isolation_policy ON {table}")
-        op.execute(f"DROP POLICY IF EXISTS admin_bypass_policy ON {table}")
+        op.execute(
+            f"DROP POLICY IF EXISTS tenant_isolation_policy ON {table}"
+        )
+        op.execute(
+            f"DROP POLICY IF EXISTS admin_bypass_policy ON {table}"
+        )
 
     for table in BROKEN_POLICY_TABLES:
         op.execute(f"""
@@ -162,7 +164,9 @@ def downgrade() -> None:
     # Revert Part 2: Restore unsafe 014 policies
     # ================================================================
     for table in UNSAFE_NULL_TABLES:
-        op.execute(f"DROP POLICY IF EXISTS tenant_isolation_policy ON {table}")
+        op.execute(
+            f"DROP POLICY IF EXISTS tenant_isolation_policy ON {table}"
+        )
 
     for table in UNSAFE_NULL_TABLES:
         op.execute(f"""

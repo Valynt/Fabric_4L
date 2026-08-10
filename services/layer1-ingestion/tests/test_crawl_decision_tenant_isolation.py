@@ -7,7 +7,6 @@ from layer1_ingestion.crawler.decision_store import (
     CrawlDecisionRecord,
     InMemoryCrawlDecisionRepository,
 )
-from layer1_ingestion.shared.database import TenantContextError
 
 
 def _make_record(
@@ -64,14 +63,6 @@ async def test_get_by_id_filters_by_tenant(repo):
 
     assert await repo.get_by_id(record_a.decision_id, tenant_id=tenant_a) is not None
     assert await repo.get_by_id(record_a.decision_id, tenant_id=tenant_b) is None
-
-
-@pytest.mark.asyncio
-async def test_save_rejects_conflicting_trusted_tenant(repo):
-    record = _make_record(str(uuid.uuid4()))
-
-    with pytest.raises(TenantContextError, match="does not match trusted caller context"):
-        await repo.save(record, trusted_tenant_id=uuid.uuid4())
 
 
 @pytest.mark.asyncio

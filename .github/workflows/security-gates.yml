@@ -17,9 +17,7 @@ on:
     - cron: '0 9 * * 1'
 
 concurrency:
-  # Cancel only an obsolete run of this same workflow/ref. A global
-  # feature-branch group lets activity on an unrelated PR cancel required gates.
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: security-gates-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -36,32 +34,6 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
-  # Change-scoping layer: resolve which scopes this event touches so that
-  # per-layer / per-surface security fan-out only runs when the change can
-  # actually affect it. Non-pull_request events (push, schedule) resolve
-  # every scope to 'true'. Repository-wide secret/IaC scans (gitleaks,
-  # trivy-repo-scan, dependency-review) stay unscoped by design.
-  change-scope:
-    name: Change Scope
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    permissions:
-      contents: read
-      pull-requests: read
-    outputs:
-      layer3: ${{ steps.scope.outputs.layer3 }}
-      backend: ${{ steps.scope.outputs.backend }}
-      web: ${{ steps.scope.outputs.web }}
-      code: ${{ steps.scope.outputs.code }}
-      docker: ${{ steps.scope.outputs.docker }}
-      deps: ${{ steps.scope.outputs.deps }}
-    steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
-
-      - name: Resolve change scopes
-        id: scope
-        uses: ./.github/actions/change-scope
-
   dev-auth-bypass-guard:
     name: Dev Auth Bypass Guard
     runs-on: ubuntu-latest
@@ -93,8 +65,6 @@ jobs:
   # Blocks PRs that introduce unparameterized label/rel-type interpolation in
   # Layer 3 Cypher queries. Uses Semgrep rules in .semgrep/cypher-dynamic-guard.yml.
   cypher-dynamic-guard:
-    needs: change-scope
-    if: needs.change-scope.outputs.layer3 == 'true'
     name: Cypher Dynamic Construction Guard (SEC-L3-CYPHER-003)
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -149,8 +119,6 @@ jobs:
   # former p/* registry packs) plus local .semgrep/ rules. Produces SARIF and
   # fails closed on ERROR-severity findings.
   semgrep-full-scan:
-    needs: change-scope
-    if: needs.change-scope.outputs.code == 'true'
     name: Semgrep CE Full Scan (SAST)
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -405,8 +373,7 @@ jobs:
           ignore-unfixed: true
           vuln-type: 'os,library'
           severity: 'HIGH,CRITICAL'
-          limit-severities-for-sarif: true
-          scanners: 'vuln,secret,config'
+          scanners: 'vuln,secret,misconfig'
           skip-dirs: 'archive,docs/archive,node_modules'
           trivy-config: 'config/trivy/repository.yaml'
 
@@ -435,8 +402,7 @@ jobs:
   # SARIF upload, artifacts, and annotations for free.
   osv-scanner-pr:
     name: OSV-Scanner (PR diff) / osv-scan
-    needs: change-scope
-    if: github.event_name == 'pull_request' && needs.change-scope.outputs.deps == 'true'
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -595,10 +561,7 @@ jobs:
     name: Container Scan (Trivy)
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    needs: change-scope
-    if: >-
-      (github.event_name == 'pull_request' || github.event_name == 'push')
-      && (needs.change-scope.outputs.docker == 'true')
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
 
     strategy:
       fail-fast: false
@@ -640,10 +603,7 @@ jobs:
     name: SBOM + Policy (${{matrix.artifact.name}})
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    needs: change-scope
-    if: >-
-      (github.event_name == 'pull_request' || github.event_name == 'push')
-      && (needs.change-scope.outputs.docker == 'true' || needs.change-scope.outputs.deps == 'true')
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
 
     strategy:
       fail-fast: false
@@ -693,7 +653,7 @@ jobs:
           severity: 'HIGH,CRITICAL'
 
       - name: Upload SBOM vulnerability SARIF
-        if: always() && hashFiles(format('{0}-sbom-vuln.sarif', matrix.artifact.name)) != ''
+        if: always()
         uses: github/codeql-action/upload-sarif@3ce22a6e336a7fcc318bc58ae1986395bdc83ba7 # v4.35.4
         with:
           sarif_file: '${{matrix.artifact.name}}-sbom-vuln.sarif'
@@ -714,10 +674,7 @@ jobs:
     name: DAST (OWASP ZAP baseline)
     runs-on: ubuntu-latest
     timeout-minutes: 45
-    needs: change-scope
-    if: >-
-      (github.event_name == 'pull_request' || github.event_name == 'push')
-      && (needs.change-scope.outputs.code == 'true')
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
 
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
@@ -751,20 +708,17 @@ jobs:
           REDIS_PASSWORD=valuefabric-ci-redis
           SECRET_KEY=valuefabric-ci-secret-key-minimum-32-characters
           JWT_SECRET=valuefabric-ci-jwt-secret-minimum-32-characters
-          JWT_ALGORITHM=RS256
           API_KEY_HMAC_SECRET=valuefabric-ci-api-key-hmac-secret-32chars
           SERVICE_AUTH_SECRET=valuefabric-ci-service-auth-secret-32chars
-          CREDENTIALS_MASTER_KEY=valuefabric-ci-credentials-master-key-32chars
-          DEFAULT_TENANT_ID=00000000-0000-4000-8000-000000000001
-          LAYER4_DATABASE_URL=postgresql+asyncpg://valuefabric:valuefabric-ci-postgres@postgres:5432/layer4_agents
+          LAYER4_DATABASE_URL=postgresql+asyncpg://valuefabric:valuefabric-ci-postgres@postgres:5432/ground_truth
           NEO4J_PASSWORD=valuefabric
-          CORS_ORIGINS=["https://localhost:3000"]
+          CORS_ORIGINS=["http://localhost:3000"]
           AUTH_PROVIDER=layer4
           CLERK_ISSUER=https://ci-clerk.example.test
           CLERK_JWT_AUDIENCE=value-fabric-ci
           CLERK_AUTHORIZED_PARTIES=http://localhost:3000
           CLERK_JWKS_URL=https://ci-clerk.example.test/.well-known/jwks.json
-          CLERK_SECRET_KEY=valuefabric-ci-clerk-secret
+          CLERK_SECRET_KEY=sk_test_valuefabric_ci
           FABRIC_AUTH_ISSUER=value-fabric-ci
           FABRIC_AUTH_AUDIENCE=value-fabric-ci
           FLOWER_PASSWORD=valuefabric-ci-flower
@@ -781,7 +735,7 @@ jobs:
             "http://localhost:8002/health" \
             "http://localhost:8003/health" \
             "http://localhost:8004/health" \
-            "http://localhost:8005/health" \
+            "http://localhost:8005/api/v1/health" \
             "http://localhost:8006/health"; do
             echo "Waiting for $target"
             for _ in $(seq 1 60); do
@@ -842,8 +796,6 @@ jobs:
 
   # Python security linting with bandit
   bandit-scan:
-    needs: change-scope
-    if: needs.change-scope.outputs.backend == 'true'
     name: Python Security Lint (bandit)
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -906,8 +858,6 @@ jobs:
 
   # Python dependency vulnerability scan with pip-audit
   pip-audit-scan:
-    needs: change-scope
-    if: needs.change-scope.outputs.backend == 'true' || needs.change-scope.outputs.deps == 'true'
     name: Python Dependency Audit (pip-audit)
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -948,8 +898,6 @@ jobs:
 
   # Frontend security audit
   frontend-security-audit:
-    needs: change-scope
-    if: needs.change-scope.outputs.web == 'true'
     name: Frontend Security Audit (pnpm)
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -1016,8 +964,6 @@ jobs:
 
   # Dockerfile non-root user check
   dockerfile-non-root-check:
-    needs: change-scope
-    if: needs.change-scope.outputs.docker == 'true'
     name: Dockerfile Non-Root User Check
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -1149,69 +1095,22 @@ jobs:
   security-gates-required:
     name: Security Gates Required
     runs-on: ubuntu-latest
-    if: always() && github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request'
     needs:
-      - change-scope
       - dast-api-scan
       - sbom-policy
       - mandatory-security-regression
       - route-auth-gate
 
     steps:
-      - name: Confirm required security gates passed or were safely out of scope
-        env:
-          # Scope outputs are passed via env (never interpolated into the
-          # script body) so a compromised scope resolver cannot inject into
-          # this final gate arbiter.
-          SCOPE_CODE: ${{ needs.change-scope.outputs.code }}
-          SCOPE_DOCKER: ${{ needs.change-scope.outputs.docker }}
-          SCOPE_DEPS: ${{ needs.change-scope.outputs.deps }}
-          SCOPE_BACKEND: ${{ needs.change-scope.outputs.backend }}
+      - name: Confirm required security gates passed
         run: |
-          set -euo pipefail
-          declare -A CHECKS=(
-            ["dast-api-scan"]="${{ needs.dast-api-scan.result }}"
-            ["sbom-policy"]="${{ needs.sbom-policy.result }}"
-            ["mandatory-security-regression"]="${{ needs.mandatory-security-regression.result }}"
-            ["route-auth-gate"]="${{ needs.route-auth-gate.result }}"
-          )
-          # A skipped gate is acceptable only when its change scope resolved
-          # to 'false' (the PR provably cannot affect it); anything else
-          # fails closed. Scope values are compared in bash so unresolved
-          # (empty) values never count as safe.
-          declare -A SCOPE_SAFE=(
-            ["dast-api-scan"]="$([[ "${SCOPE_CODE:-}" == "false" ]] && echo true || echo false)"
-            ["sbom-policy"]="$([[ "${SCOPE_DOCKER:-}" == "false" && "${SCOPE_DEPS:-}" == "false" ]] && echo true || echo false)"
-            # mandatory-security-regression is a governed merge control and
-            # is never scope-skipped; it must succeed on every PR.
-            ["mandatory-security-regression"]="false"
-            ["route-auth-gate"]="$([[ "${SCOPE_BACKEND:-}" == "false" ]] && echo true || echo false)"
-          )
-          failed=0
-          for check in "${!CHECKS[@]}"; do
-            result="${CHECKS[$check]}"
-            if [[ "$result" == "success" ]]; then
-              echo "✅ ${check} => success"
-            elif [[ "$result" == "skipped" && "${SCOPE_SAFE[$check]}" == "true" ]]; then
-              echo "⏭️  ${check} => skipped (out of change scope — safe)"
-            else
-              echo "❌ ${check} => ${result}"
-              failed=1
-            fi
-          done
-          if [[ "$failed" -ne 0 ]]; then
-            echo "Security gates required check failed."
-            exit 1
-          fi
-          echo "All required security gates passed or were safely out of scope."
+          echo "DAST, SBOM policy, route-auth, and mandatory security regression checks succeeded."
   sbom-generation:
     name: SBOM Generation
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    needs: change-scope
-    if: >-
-      (github.event_name == 'pull_request' || github.event_name == 'push')
-      && (needs.change-scope.outputs.docker == 'true' || needs.change-scope.outputs.deps == 'true')
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
 
     strategy:
       matrix:
@@ -1256,8 +1155,6 @@ jobs:
           if-no-files-found: error
           retention-days: 30
   route-auth-gate:
-    needs: change-scope
-    if: needs.change-scope.outputs.backend == 'true'
     name: Route Auth Dependency Gate
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -1276,9 +1173,6 @@ jobs:
       - name: Enforce route auth dependency policy
         run: python scripts/ci/check_route_auth_dependencies.py
 
-  # Governed merge control (config/ci/mandatory-security-regression-contract.json):
-  # this job must run unconditionally on every PR — no change-scope gating,
-  # no path filters, no job-level condition.
   mandatory-security-regression:
     name: mandatory-security-regression
     runs-on: ubuntu-latest

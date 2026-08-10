@@ -7,7 +7,7 @@ import json
 import os
 import uuid
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import datetime
 from enum import Enum
 from pathlib import Path
 from typing import Any
@@ -585,7 +585,7 @@ class BackupManager:
         Returns:
             Backup response
         """
-        start_time = datetime.now(UTC)
+        start_time = datetime.utcnow()
         backup_id = f"backup_{int(start_time.timestamp())}_{uuid.uuid4().hex[:8]}"
 
         # Create backup metadata
@@ -662,7 +662,7 @@ class BackupManager:
 
             # Update metadata
             metadata.status = BackupStatus.COMPLETED
-            metadata.completed_at = datetime.now(UTC)
+            metadata.completed_at = datetime.utcnow()
 
             # Move to history
             self.backup_history.append(metadata)
@@ -672,7 +672,7 @@ class BackupManager:
             if self.config.auto_cleanup:
                 await self._cleanup_old_backups()
 
-            duration = (datetime.now(UTC) - start_time).total_seconds()
+            duration = (datetime.utcnow() - start_time).total_seconds()
 
             logger.info(f"Backup completed: {backup_id} ({metadata.backup_type.value})")
 
@@ -689,11 +689,11 @@ class BackupManager:
 
         except PermissionError:
             metadata.status = BackupStatus.FAILED
-            metadata.completed_at = datetime.now(UTC)
+            metadata.completed_at = datetime.utcnow()
             raise
         except Exception as e:
             metadata.status = BackupStatus.FAILED
-            metadata.completed_at = datetime.now(UTC)
+            metadata.completed_at = datetime.utcnow()
 
             logger.error(f"Backup failed: {backup_id} - {e}")
 
@@ -811,7 +811,7 @@ class BackupManager:
 
             backup_data = {
                 "type": "full",
-                "timestamp": datetime.now(UTC).isoformat(),
+                "timestamp": datetime.utcnow().isoformat(),
                 "entities": entities,
                 "relationships": relationships,
                 "schema": schema_info,
@@ -833,7 +833,7 @@ class BackupManager:
             last_backup = self._get_last_full_backup_id()
             backup_data = {
                 "type": "incremental",
-                "timestamp": datetime.now(UTC).isoformat(),
+                "timestamp": datetime.utcnow().isoformat(),
                 "base_backup": last_backup,
                 "changes": [],  # Would need timestamp tracking for true incremental
                 "metadata": {"version": "1.0.0", "source": "value-fabric-layer3"},
@@ -860,7 +860,7 @@ class BackupManager:
 
             backup_data = {
                 "type": "schema",
-                "timestamp": datetime.now(UTC).isoformat(),
+                "timestamp": datetime.utcnow().isoformat(),
                 "schema": schema_info,
                 "constraints": schema_info["constraints"],
                 "indexes": schema_info["indexes"],
@@ -909,7 +909,7 @@ class BackupManager:
                 "event_type": "platform_admin_global_backup_export",
                 "stage": stage,
                 "backup_type": backup_type.value,
-                "occurred_at": datetime.now(UTC).isoformat(),
+                "occurred_at": datetime.utcnow().isoformat(),
                 "immutability_required": True,
                 "actor_id": admin_capability.actor_id,
                 "reason_code": admin_capability.reason_code,
@@ -991,7 +991,7 @@ class BackupManager:
         Returns:
             Restore response
         """
-        start_time = datetime.now(UTC)
+        start_time = datetime.utcnow()
 
         try:
             # Retrieve backup data
@@ -1019,10 +1019,10 @@ class BackupManager:
                 return RestoreResponse(
                     backup_id=request.backup_id,
                     status="dry_run_completed",
-                    restored_at=datetime.now(UTC),
+                    restored_at=datetime.utcnow(),
                     entities_restored=entities_count,
                     relationships_restored=relationships_count,
-                    duration_seconds=(datetime.now(UTC) - start_time).total_seconds(),
+                    duration_seconds=(datetime.utcnow() - start_time).total_seconds(),
                     warnings=["Dry run - no actual restore performed"],
                 )
 
@@ -1044,14 +1044,14 @@ class BackupManager:
                     backup_json.get("schema", {}), request.target_database
                 )
 
-            duration = (datetime.now(UTC) - start_time).total_seconds()
+            duration = (datetime.utcnow() - start_time).total_seconds()
 
             logger.info(f"Restore completed: {request.backup_id}")
 
             return RestoreResponse(
                 backup_id=request.backup_id,
                 status="completed",
-                restored_at=datetime.now(UTC),
+                restored_at=datetime.utcnow(),
                 entities_restored=entities_restored,
                 relationships_restored=relationships_restored,
                 duration_seconds=duration,
@@ -1064,7 +1064,7 @@ class BackupManager:
             return RestoreResponse(
                 backup_id=request.backup_id,
                 status="failed",
-                restored_at=datetime.now(UTC),
+                restored_at=datetime.utcnow(),
                 error="backup_failed",
             )
 
@@ -1311,7 +1311,7 @@ class BackupManager:
             Number of backups deleted
         """
         deleted_count = 0
-        now = datetime.now(UTC)
+        now = datetime.utcnow()
 
         for backup in self.backup_history.copy():
             # Check retention period
