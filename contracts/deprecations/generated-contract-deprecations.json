@@ -116,9 +116,11 @@
       "method": "GET",
       "introduction_version": "2026-05-23",
       "removal_target": "2026-08-01",
-      "replacement": "none",
+      "replacement": "/v1/tenants/current/settings",
       "owner": "platform-team",
-      "description": "DEPRECATED alias for GET /v1/tenants/current/settings. Planned removal: 2026-08-01."
+      "status": "removed",
+      "removed_date": "2026-08-10",
+      "description": "DEPRECATED alias for GET /v1/tenants/current/settings (services/layer4-agents/src/layer4_agents/api/routes/frontend_compat.py). Planned removal: 2026-08-01. REMOVED 2026-08-10 (#1267): alias deleted from frontend_compat.py after its 2026-08-01 removal target passed."
     },
     {
       "key": "PATCH /v1/tenant/settings",
@@ -127,9 +129,11 @@
       "method": "PATCH",
       "introduction_version": "2026-05-23",
       "removal_target": "2026-08-01",
-      "replacement": "none",
+      "replacement": "/v1/tenants/current/settings",
       "owner": "platform-team",
-      "description": "DEPRECATED alias for PATCH /v1/tenants/current/settings. Planned removal: 2026-08-01."
+      "status": "removed",
+      "removed_date": "2026-08-10",
+      "description": "DEPRECATED alias for PATCH /v1/tenants/current/settings (services/layer4-agents/src/layer4_agents/api/routes/frontend_compat.py). Planned removal: 2026-08-01. REMOVED 2026-08-10 (#1267): alias deleted from frontend_compat.py after its 2026-08-01 removal target passed."
     },
     {
       "key": "POST /v1/auth/register",
@@ -138,9 +142,11 @@
       "method": "POST",
       "introduction_version": "2026-05-23",
       "removal_target": "2026-07-01",
-      "replacement": "none",
+      "replacement": "/v1/tenants/register",
       "owner": "platform-team",
-      "description": "DEPRECATED alias for POST /v1/tenants/register. Planned removal: 2026-07-01."
+      "status": "removed",
+      "removed_date": "2026-08-10",
+      "description": "DEPRECATED alias for POST /v1/tenants/register (services/layer4-agents/src/layer4_agents/api/routes/frontend_compat.py). Planned removal: 2026-07-01. REMOVED 2026-08-10 (#1267): alias deleted from frontend_compat.py after its 2026-07-01 removal target passed."
     },
     {
       "key": "GET /readiness",

@@ -71,6 +71,8 @@ def test_overdue_frontend_aliases_removed() -> None:
     ).read_text(encoding="utf-8")
     assert re.search(r"@router\.[a-z_]+\(\s*['\"]/auth/register['\"]", source) is None
     assert re.search(r"@router\.[a-z_]+\(\s*['\"]/tenant/settings['\"]", source) is None
+    # Quote-style agnostic guard: match the canonical /auth/session alias regardless
+    # of single or double quotes and ensure it is a route decorator (not a docstring).
     assert re.search(r"@router\.[a-z_]+\(\s*['\"]/auth/session['\"]", source) is not None
 
     # Canonical targets still exist in the published contract.
