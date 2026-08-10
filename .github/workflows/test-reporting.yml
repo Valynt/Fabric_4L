@@ -9,6 +9,11 @@ on:
       - completed
   pull_request:
     types: [opened, synchronize, reopened]
+    # Change-scoping: test reporting summarizes code test runs; skip on
+    # documentation-only PRs.
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
 
 permissions:
   contents: read
