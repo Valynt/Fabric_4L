@@ -75,4 +75,4 @@ def test_overdue_frontend_aliases_removed() -> None:
 
     # Canonical targets still exist in the published contract.
     _operation("/v1/tenants/current/settings", "get")
-    _operation("/v1/tenants", "post")
+    _operation("/v1/tenants/register", "post")
