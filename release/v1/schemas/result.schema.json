@@ -1,0 +1,68 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://fabric4l.dev/release/v1/result.schema.json",
+  "title": "V1 Release Factory Worker Result",
+  "description": "Required shape of every worker agent run result. The release harness independently re-runs acceptance commands before trusting status=complete.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "task_id",
+    "status",
+    "summary",
+    "changed_files",
+    "commands",
+    "acceptance_criteria",
+    "invariants_checked",
+    "risks",
+    "follow_up_tasks",
+    "ready_for_independent_review"
+  ],
+  "properties": {
+    "task_id": { "type": "string", "pattern": "^V1-[A-Z0-9]+-[0-9]{3}$" },
+    "status": { "enum": ["complete", "partial", "blocked", "abandoned"] },
+    "summary": { "type": "string", "minLength": 10 },
+    "changed_files": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "commands": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["command", "exit_code"],
+        "properties": {
+          "command": { "type": "string", "minLength": 1 },
+          "exit_code": { "type": "integer" },
+          "duration_seconds": { "type": "number", "minimum": 0 }
+        }
+      }
+    },
+    "acceptance_criteria": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["criterion", "status", "evidence"],
+        "properties": {
+          "criterion": { "type": "string", "minLength": 5 },
+          "status": { "enum": ["passed", "failed", "not_applicable"] },
+          "evidence": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "invariants_checked": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 5 }
+    },
+    "risks": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 5 }
+    },
+    "follow_up_tasks": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 5 }
+    },
+    "ready_for_independent_review": { "type": "boolean" }
+  }
+}

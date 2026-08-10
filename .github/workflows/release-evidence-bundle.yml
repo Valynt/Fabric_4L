@@ -5,6 +5,26 @@ on:
     branches:
       - main
       - 'release/**'
+    # Change-scoping: evidence bundles cover runtime images, contracts, and
+    # deployment surfaces; docs-only PRs skip. Tag/push runs stay unscoped.
+    paths:
+      - 'services/**'
+      - 'apps/**'
+      - 'packages/**'
+      - 'contracts/**'
+      - 'infra/**'
+      - 'k8s/**'
+      - 'monitoring/**'
+      - '**/Dockerfile*'
+      - '**/package.json'
+      - '**/pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - '**/requirements*.txt'
+      - '**/pyproject.toml'
+      - '.github/**'
+      - 'scripts/**'
+      - 'config/**'
+      - 'Makefile'
   push:
     tags:
       - 'v*'

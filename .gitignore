@@ -184,6 +184,10 @@ services/layer4-agents/collect_out*.txt
 
 # Generated agent operational memory — not reproducible, not source code
 .agent/memory/episodic/
+# Staged candidate lessons are host-agent operational state (absolute runner
+# paths, session timestamps); they are not durable repository knowledge.
+.agent/memory/candidates/*.json
+!.agent/memory/candidates/graduated/
 
 # Temporary drift/migration baseline files
 tmp_*_findings.json

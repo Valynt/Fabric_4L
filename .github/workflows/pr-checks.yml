@@ -27,6 +27,40 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
+  # Change-scoping layer: resolve which scopes this event touches so that
+  # fan-out jobs below only run when the change can actually affect them.
+  # Non-pull_request events always resolve every scope to 'true' (full run).
+  # The Unified Readiness Gate verifies that any skipped job was skipped
+  # because its scope resolved to 'false' (path-filtered skips are proven
+  # safe, never assumed).
+  change-scope:
+    name: Change Scope
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      layer1: ${{ steps.scope.outputs.layer1 }}
+      layer2: ${{ steps.scope.outputs.layer2 }}
+      layer3: ${{ steps.scope.outputs.layer3 }}
+      layer4: ${{ steps.scope.outputs.layer4 }}
+      layer5: ${{ steps.scope.outputs.layer5 }}
+      layer6: ${{ steps.scope.outputs.layer6 }}
+      backend: ${{ steps.scope.outputs.backend }}
+      web: ${{ steps.scope.outputs.web }}
+      code: ${{ steps.scope.outputs.code }}
+      docker: ${{ steps.scope.outputs.docker }}
+      k8s: ${{ steps.scope.outputs.k8s }}
+      deps: ${{ steps.scope.outputs.deps }}
+      runtime: ${{ steps.scope.outputs.runtime }}
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+
+      - name: Resolve change scopes
+        id: scope
+        uses: ./.github/actions/change-scope
+
   structural-preflight:
     name: Structural Preflight
     runs-on: ubuntu-latest
@@ -480,7 +514,7 @@ jobs:
       - name: Detect changed files
         if: github.event_name == 'pull_request'
         id: governance-changed-files
-        uses: tj-actions/changed-files@v46
+        uses: tj-actions/changed-files@ed68ef82c095e0d48ec87eccea555d944a631a4c # v46.0.5
 
       - name: Verify required policy and runbook docs exist
         run: |
@@ -633,6 +667,8 @@ jobs:
 
   # Layer 1 - Ingestion
   layer1-checks:
+    needs: change-scope
+    if: needs.change-scope.outputs.layer1 == 'true'
     name: Layer 1 - Ingestion
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -820,6 +856,8 @@ jobs:
 
   # Layer 2 - Extraction
   layer2-checks:
+    needs: change-scope
+    if: needs.change-scope.outputs.layer2 == 'true'
     name: Layer 2 - Extraction
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -914,6 +952,8 @@ jobs:
 
   # Layer 3 - Knowledge
   layer3-checks:
+    needs: change-scope
+    if: needs.change-scope.outputs.layer3 == 'true'
     name: Layer 3 - Knowledge
     runs-on: ubuntu-latest
     # The full coverage suite consistently needs more than 13 minutes on the
@@ -1058,6 +1098,8 @@ jobs:
 
   # Layer 4 - Agents
   layer4-checks:
+    needs: change-scope
+    if: needs.change-scope.outputs.layer4 == 'true'
     name: Layer 4 - Agents
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -1128,6 +1170,8 @@ jobs:
 
   # Layer 5 - Ground Truth
   layer5-checks:
+    needs: change-scope
+    if: needs.change-scope.outputs.layer5 == 'true'
     name: Layer 5 - Ground Truth
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -1197,6 +1241,8 @@ jobs:
         run: bash "${{ github.workspace }}/scripts/ci/run_pip_audit.sh"
 
   layer5-source-contract:
+    needs: change-scope
+    if: needs.change-scope.outputs.layer5 == 'true'
     name: Layer 5 - Source Contract
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -1216,6 +1262,8 @@ jobs:
         run: python scripts/check_no_duplicate_modules.py
 
   layer5-tenant-isolation-regression:
+    needs: change-scope
+    if: needs.change-scope.outputs.layer5 == 'true'
     name: Layer 5 - Tenant Isolation Regression
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -1258,6 +1306,8 @@ jobs:
             tests/test_cross_tenant_hostile.py
 
   layer5-contract-shape-regression:
+    needs: change-scope
+    if: needs.change-scope.outputs.layer5 == 'true'
     name: Layer 5 - Contract Shape Regression
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -1318,6 +1368,8 @@ jobs:
 
   # Layer 6 - Benchmarks
   layer6-checks:
+    needs: change-scope
+    if: needs.change-scope.outputs.layer6 == 'true'
     name: Layer 6 - Benchmarks
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -1383,6 +1435,8 @@ jobs:
 
   # Cross-layer shared and tests validation
   shared-and-tests-checks:
+    needs: change-scope
+    if: needs.change-scope.outputs.backend == 'true'
     name: Shared & Tests - Code Quality
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -1411,6 +1465,8 @@ jobs:
 
   # Frontend checks
   frontend-checks:
+    needs: change-scope
+    if: needs.change-scope.outputs.web == 'true'
     name: Frontend
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -1581,6 +1637,8 @@ jobs:
           path: apps/web/dist/public/
 
   behavior-tests:
+    needs: change-scope
+    if: needs.change-scope.outputs.web == 'true'
     name: behavior-tests
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -1628,6 +1686,13 @@ jobs:
           retention-days: 14
 
   p0-e2e-gate:
+    needs: change-scope
+    # Boots the full live backend stack (infra/compose/docker-compose.e2e.yml)
+    # and drives it through the frontend, so it must run for backend, frontend,
+    # contract, and image/infra changes — not just the web surface.
+    if: >-
+      needs.change-scope.outputs.code == 'true'
+      || needs.change-scope.outputs.docker == 'true'
     name: p0-e2e-gate
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -1701,6 +1766,8 @@ jobs:
 
   # Kubernetes manifest validation (server-side dry-run via kustomize)
   k8s-dry-run:
+    needs: change-scope
+    if: needs.change-scope.outputs.k8s == 'true'
     name: Kubernetes Dry-Run Validation
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -1767,6 +1834,8 @@ jobs:
 
   # Contract tests — required PR gate, no secrets needed
   contract-checks:
+    needs: change-scope
+    if: needs.change-scope.outputs.backend == 'true'
     name: Cross-Layer Contract Tests
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -1844,7 +1913,7 @@ jobs:
       - name: Detect changed files
         if: github.event_name == 'pull_request'
         id: changed-files
-        uses: tj-actions/changed-files@v46
+        uses: tj-actions/changed-files@ed68ef82c095e0d48ec87eccea555d944a631a4c # v46.0.5
 
       - name: Enforce shim change acknowledgment labels
         if: github.event_name == 'pull_request'
@@ -1878,7 +1947,10 @@ jobs:
     name: Runtime Contract Tests (Services Up)
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    needs: change-scope
+    if: >-
+      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+      && needs.change-scope.outputs.backend == 'true'
     env:
       OPENAI_API_KEY: ci-runtime-placeholder
       JWT_SECRET: ci-runtime-jwt-secret-not-for-production
@@ -2025,6 +2097,8 @@ jobs:
 
   # Schemathesis — Property-based OpenAPI contract validation
   schemathesis-checks:
+    needs: change-scope
+    if: needs.change-scope.outputs.backend == 'true'
     name: Schemathesis Property-Based Contract Tests
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -2106,7 +2180,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 35
     # Skip on fork PRs (no secrets available)
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    needs: change-scope
+    if: >-
+      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+      && needs.change-scope.outputs.backend == 'true'
     permissions:
       contents: read
       id-token: write # Required only for Infisical OIDC secret retrieval in this job; no repository write scopes.
@@ -2179,6 +2256,8 @@ jobs:
 
   # Billing + entitlement regression pack and release evidence artifact
   billing-entitlements-regression:
+    needs: change-scope
+    if: needs.change-scope.outputs.backend == 'true'
     name: Billing/Entitlements Regression + Evidence
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -2224,6 +2303,8 @@ jobs:
 
   # Docker image build verification - catches Dockerfile regressions
   docker-compose-config-contract:
+    needs: change-scope
+    if: needs.change-scope.outputs.docker == 'true'
     name: Docker Compose Config Contract
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -2273,6 +2354,8 @@ jobs:
           retention-days: 14
 
   queue-topology-checks:
+    needs: change-scope
+    if: needs.change-scope.outputs.backend == 'true'
     name: Queue Topology
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -2304,6 +2387,8 @@ jobs:
         run: pnpm test:queues
 
   docker-build-check:
+    needs: change-scope
+    if: needs.change-scope.outputs.docker == 'true'
     name: Docker Image Build Verification
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -2429,6 +2514,8 @@ jobs:
 
   # Alertmanager configuration validation
   alertmanager-config-check:
+    needs: change-scope
+    if: needs.change-scope.outputs.k8s == 'true'
     name: Alertmanager Config Validation
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -2479,6 +2566,8 @@ jobs:
             exit 1  # CONTRACT ENFORCEMENT: kubectl required for CI validation
           fi
   route-auth-gate:
+    needs: change-scope
+    if: needs.change-scope.outputs.backend == 'true'
     name: Route Auth Dependency Gate
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -2498,6 +2587,8 @@ jobs:
         run: python scripts/ci/check_route_auth_dependencies.py
 
   tenant-isolation-gate:
+    needs: change-scope
+    if: needs.change-scope.outputs.backend == 'true'
     name: Tenant Isolation Gate
     runs-on: ubuntu-latest
     timeout-minutes: 35
@@ -2580,6 +2671,8 @@ jobs:
           retention-days: 14
 
   critical-behaviors-gate:
+    needs: change-scope
+    if: needs.change-scope.outputs.code == 'true'
     name: Critical Behaviors Gate
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -2688,6 +2781,7 @@ jobs:
     runs-on: ubuntu-latest
     if: always()
     needs:
+      - change-scope
       - structural-preflight
       - shared-and-tests-checks
       - layer5-tenant-isolation-regression
@@ -2716,8 +2810,19 @@ jobs:
           echo "event: ${{ github.event_name }} ref: ${{ github.ref }} sha: ${{ github.sha }}"
 
       - name: Enforce unified structural/security/tenant/contract/migration/deployment gate
+        env:
+          # Scope outputs are passed via env (never interpolated into the
+          # script body) so a compromised scope resolver cannot inject into
+          # this final gate arbiter. needs.*.result values are
+          # GitHub-controlled enums and safe to interpolate.
+          SCOPE_BACKEND: ${{ needs.change-scope.outputs.backend }}
+          SCOPE_LAYER5: ${{ needs.change-scope.outputs.layer5 }}
+          SCOPE_K8S: ${{ needs.change-scope.outputs.k8s }}
+          SCOPE_DOCKER: ${{ needs.change-scope.outputs.docker }}
+          SCOPE_CODE: ${{ needs.change-scope.outputs.code }}
         run: |
           declare -A CHECKS=(
+            ["change-scope"]="${{ needs.change-scope.result }}"
             ["structural-preflight"]="${{ needs.structural-preflight.result }}"
             ["shared-and-tests-checks"]="${{ needs.shared-and-tests-checks.result }}"
             ["layer5-tenant-isolation-regression"]="${{ needs.layer5-tenant-isolation-regression.result }}"
@@ -2735,10 +2840,32 @@ jobs:
             ["gate-engineering"]="${{ needs.gate-engineering.result }}"
           )
 
+          # Scope each gated check resolves against. A skipped check is safe
+          # only when its scope resolved to 'false' (the change provably
+          # cannot affect it); any other skip is a gate failure.
+          # change-scope, structural-preflight, production-readiness-gate,
+          # and gate-engineering intentionally have NO scope mapping: they
+          # must run on every PR, so any skip of theirs fails the gate.
+          declare -A SCOPES=(
+            ["shared-and-tests-checks"]="${SCOPE_BACKEND:-}"
+            ["layer5-tenant-isolation-regression"]="${SCOPE_LAYER5:-}"
+            ["contract-checks"]="${SCOPE_BACKEND:-}"
+            ["runtime-contract-checks"]="${SCOPE_BACKEND:-}"
+            ["integration-checks"]="${SCOPE_BACKEND:-}"
+            ["k8s-dry-run"]="${SCOPE_K8S:-}"
+            ["docker-compose-config-contract"]="${SCOPE_DOCKER:-}"
+            ["queue-topology-checks"]="${SCOPE_BACKEND:-}"
+            ["docker-build-check"]="${SCOPE_DOCKER:-}"
+            ["route-auth-gate"]="${SCOPE_BACKEND:-}"
+            ["tenant-isolation-gate"]="${SCOPE_BACKEND:-}"
+            ["critical-behaviors-gate"]="${SCOPE_CODE:-}"
+          )
+
           failed=0
           root_failures=()
           cascades=()
           skips=()
+          safe_skips=()
           for check in "${!CHECKS[@]}"; do
             result="${CHECKS[$check]}"
             case "$result" in
@@ -2756,9 +2883,21 @@ jobs:
                 failed=1
                 ;;
               skipped)
-                echo "⏭️  SKIPPED: ${check}"
-                skips+=("$check")
-                failed=1
+                if [[ "${SCOPES[$check]:-}" == "false" ]]; then
+                  echo "⏭️  SKIPPED (out of change scope — safe): ${check}"
+                  safe_skips+=("$check")
+                elif [[ -z "${SCOPES[$check]:-}" ]]; then
+                  # No scope mapping (or change-scope itself failed): the skip
+                  # cannot be proven safe. If this job is legitimately scoped,
+                  # register it in the SCOPES map above.
+                  echo "⏭️  SKIPPED (no scope mapping — cannot prove safe): ${check}"
+                  skips+=("$check")
+                  failed=1
+                else
+                  echo "⏭️  SKIPPED (scope '${SCOPES[$check]}' did not authorize skip): ${check}"
+                  skips+=("$check")
+                  failed=1
+                fi
                 ;;
               *)
                 echo "❓ UNKNOWN RESULT '${result}': ${check}"
@@ -2779,6 +2918,10 @@ jobs:
           if [[ ${#cascades[@]} -gt 0 ]]; then
             echo "Cancelled jobs (cascades of upstream failure, not independent failures):"
             printf '  - %s\n' "${cascades[@]}"
+          fi
+          if [[ ${#safe_skips[@]} -gt 0 ]]; then
+            echo "Skipped jobs (out of change scope — proven safe by change-scope):"
+            printf '  - %s\n' "${safe_skips[@]}"
           fi
           if [[ ${#skips[@]} -gt 0 ]]; then
             echo "Skipped jobs (treated as gate failures — required checks must run):"

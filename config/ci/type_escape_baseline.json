@@ -8552,6 +8552,12 @@
     },
     {
       "kind": "python-any",
+      "line": 292,
+      "path": "scripts/release/build_evidence_bundle.py",
+      "text": "# Any exit other than success or the explicit not-run sentinel is a failure"
+    },
+    {
+      "kind": "python-any",
       "line": 13,
       "path": "scripts/reports/generate_repo_maturity_scorecard.py",
       "text": "from typing import Any"

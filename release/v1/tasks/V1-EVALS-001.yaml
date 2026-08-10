@@ -1,0 +1,58 @@
+id: V1-EVALS-001
+title: Manifest-first AI evaluation coverage (no pre-launch code moves)
+priority: P1
+
+goal: >
+  Close the actual launch gap — missing evaluation coverage, not folder
+  layout. Start manifest-first: create evals/manifest.yaml plus datasets/,
+  rubrics/, adversarial/, and baselines/, where the manifest references the
+  EXISTING tests/evals runners and make evals. Do not move existing
+  tests/evals code before launch; move implementation only when that movement
+  materially improves the release gate. Enforce deterministic AI gates
+  (schema validity, tool authorization, retrieval isolation, citation
+  presence, cost and latency budgets) in ai-evals-pipeline.yml and the
+  release-candidate readiness profile.
+
+depends_on:
+  - V1-CARTO-001
+
+allowed_paths:
+  - evals/**
+  - tests/evals/**
+  - Makefile
+  - .github/workflows/ai-evals-pipeline.yml
+  - .fabric/prod-gates.policy.yaml
+  - docs/**
+
+forbidden_paths:
+  - services/**
+  - apps/**
+
+invariants:
+  - No dependency on the OpenAI Evals platform; datasets and runners are repository-owned.
+  - The manifest composes existing runners; existing tests/evals files are not relocated before launch.
+  - Deterministic assertions gate schemas, permissions, citations, tool calls, and tenant boundaries; model-graded rubrics are reserved for semantic quality and calibrated against human labels.
+  - Adversarial sets cover direct injection, indirect injection, and cross-tenant exfiltration.
+  - Prompts and outputs in traces are redacted according to data policy.
+
+acceptance_tests:
+  - make evals
+  - pytest tests/release/test_no_placeholder_gates.py
+
+negative_cases:
+  - A schema-invalid model output fails the gate.
+  - An eval case where retrieval returns another tenant's content fails the gate.
+  - An adversarial document instructing a tool call outside policy fails the gate.
+
+non_goals:
+  - Model or prompt quality improvements.
+  - New agent capabilities.
+
+rollback:
+  strategy: revert_patch
+  data_migration_required: false
+
+completion_evidence:
+  - evals/manifest.yaml plus datasets, rubrics, adversarial sets, and baselines referencing existing runners
+  - passing make evals run log
+  - gate wiring diff for ai-evals-pipeline.yml and the release-candidate profile

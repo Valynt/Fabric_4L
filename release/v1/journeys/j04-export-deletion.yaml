@@ -1,0 +1,28 @@
+schema_version: 1
+id: j04-export-deletion
+title: Deliverable and export
+priority: P0
+
+required_outcome: >
+  A user produces, accesses, and downloads the primary customer-facing output;
+  export artifacts, links, and notifications are tenant-scoped and expire.
+
+steps:
+  - A user requests the primary deliverable (business case / value report).
+  - The export job runs tenant-scoped in the background and is resumable.
+  - The user downloads the artifact through an expiring tenant-scoped link.
+  - Tenant data export and deletion follow the stated product policy.
+
+allowed_behavior:
+  - The owning tenant's authorized user downloads the deliverable before link expiry.
+denied_behavior:
+  - Another tenant cannot access the export by ID, link, or storage path.
+  - Expired links are rejected.
+  - Export jobs without verified tenant context fail closed.
+
+evidence:
+  existing_tests:
+    - tests/tenancy/test_file_storage_tenant_scope.py
+    - tests/data_lifecycle
+  gaps:
+    - Export expiry and signed-URL tenant-scope hostile tests (task V1-TENANCY-011).

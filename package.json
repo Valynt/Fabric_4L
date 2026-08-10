@@ -86,12 +86,12 @@
   "pnpm": {
     "overrides": {
       "minimatch@>=9.0.0 <9.0.7": "9.0.9",
-      "brace-expansion@^1.1.7": "5.0.8",
-      "brace-expansion@^2.0.1": "5.0.8",
-      "brace-expansion@^5.0.0": "5.0.8",
+      "brace-expansion@^1.1.7": "5.0.9",
+      "brace-expansion@^2.0.1": "5.0.9",
+      "brace-expansion@^5.0.0": "5.0.9",
       "mermaid": ">=11.15.0 <12.0.0",
-      "fast-uri@<=3.1.4": "3.1.4",
-      "tailwindcss>nanoid": "3.3.7",
+      "fast-uri@<=3.1.4": "3.1.5",
+      "tailwindcss>nanoid": "3.3.17",
       "systeminformation@<=5.31.6": "5.31.7",
       "body-parser@<1.20.6": "1.20.6",
       "tmp": ">=0.2.6",
@@ -103,7 +103,10 @@
       "@babel/core": "^7.26.0",
       "uuid": ">=11.1.1",
       "qs": ">=6.15.2",
-      "js-yaml": "^4.2.0"
+      "js-yaml": "^4.2.0",
+      "undici@^7.0.0": "7.29.0",
+      "nanoid@^5.0.0": "5.1.16",
+      "nanoid@^3.0.0": "3.3.17"
     },
     "onlyBuiltDependencies": [
       "@clerk/shared",
@@ -122,8 +125,7 @@
       ]
     },
     "patchedDependencies": {
-      "brace-expansion@5.0.8": "patches/brace-expansion@5.0.8.patch",
-      "react-router@7.18.0": "patches/react-router@7.18.0.patch"
+      "brace-expansion@5.0.9": "patches/brace-expansion@5.0.9.patch"
     }
   }
 }

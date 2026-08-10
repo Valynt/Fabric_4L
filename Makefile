@@ -20,6 +20,7 @@
 	db-production-readiness-gate architecture-readiness-gate security-readiness-gate gate-all \
 	gate-production gate-production-core tier0-production-safety-gate tier1-beta-readiness-gate tier2-enterprise-readiness-gate production-readiness-gate \
 	release-evidence-packet collect-95-plus-evidence collect-95-plus-evidence-focused \
+	validate-launch-contract release-baseline certify-release-candidate build-release-evidence \
 	platform-contract-lint setup-hooks check-ui-duplicates check-readiness-consistency \
 	check-pytest-skip-governance check-type-escape-ratchet check-conflict-markers check-legacy-debt check-reports-evidence-policy check-no-nul-bytes check-migration-entrypoints check-migration-heads check-migration-status-artifacts \
 	check-migration-rollback-policy check-migration-runtime-consistency check-database-governance-docs check-migration-postgres-roundtrip gate-database gate-database-live db-production-readiness-gate \
@@ -850,6 +851,22 @@ db-production-readiness-gate: ## Gate: PostgreSQL-only database production readi
 
 release-evidence-packet: ## Generate the canonical release evidence packet
 	$(PYTHON) scripts/ci/generate_release_evidence_packet.py --allow-placeholder-sha
+
+# ─── V1 Release Factory (thin control plane over existing gates) ─────────────
+
+validate-launch-contract: ## Validate release/v1 launch contract, schemas, tasks, and risk-register reconciliation
+	$(PYTHON) scripts/release/validate_contract.py
+
+release-baseline: ## Run canonical gates from a clean checkout; write classified baseline to artifacts/release/<sha>/
+	$(PYTHON) scripts/release/baseline.py
+
+certify-release-candidate: ## Fail-closed certification of RELEASE_SHA (live steps need CERTIFY_LIVE=1); evidence to artifacts/release/<sha>/
+	@test -n "$(RELEASE_SHA)" || { echo "usage: make certify-release-candidate RELEASE_SHA=<sha>"; exit 2; }
+	$(PYTHON) scripts/release/certify_candidate.py $(RELEASE_SHA)
+
+build-release-evidence: ## Compose the candidate-scoped release evidence packet plus the candidate manifest for RELEASE_SHA
+	@test -n "$(RELEASE_SHA)" || { echo "usage: make build-release-evidence RELEASE_SHA=<sha>"; exit 2; }
+	$(PYTHON) scripts/release/build_evidence_bundle.py $(RELEASE_SHA)
 
 collect-95-plus-evidence-focused: release-evidence-packet ## Compatibility alias: canonical release evidence packet replaces focused 95+ evidence collection
 	@echo "✅  collect-95-plus-evidence-focused alias completed (canonical: release-evidence-packet)"

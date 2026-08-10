@@ -1,0 +1,50 @@
+id: V1-TENANCY-012
+title: Tenant isolation for graph, vector retrieval, and AI context
+priority: P0
+
+goal: >
+  Prove Neo4j traversals, search indexes, vector retrieval, AI retrieval
+  context, prompts, memory, tools, and traces cannot cross tenants; adversarial
+  content cannot exfiltrate cross-tenant data through the agent layer.
+
+allowed_paths:
+  - services/layer3-knowledge/**
+  - services/layer4-agents/**
+  - packages/shared/**
+  - tests/tenancy/**
+  - tests/security/**
+  - docs/**
+
+forbidden_paths:
+  - infra/production/**
+  - .github/workflows/**
+
+invariants:
+  - Graph queries and vector searches always carry tenant filters; missing filters fail closed.
+  - AI retrieval, prompt assembly, memory, and traces are tenant-scoped.
+  - Unauthorized tool invocations are rejected and audited.
+  - Timing, cache hits, and error messages do not leak cross-tenant existence.
+
+acceptance_tests:
+  - pytest tests/tenancy -m tenant_boundary
+  - pytest tests/test_cross_tenant_hostile.py
+  - make check-behavior-contract
+
+negative_cases:
+  - A graph traversal seeded from Tenant A reaches a Tenant B node.
+  - A vector query returns a chunk originating from another tenant's document.
+  - Indirect prompt injection in a retrieved document requests another tenant's data.
+  - An agent tool call attempts a tenant ID substitution in its arguments.
+
+non_goals:
+  - Retrieval quality tuning.
+  - New agent capabilities.
+
+rollback:
+  strategy: revert_patch
+  data_migration_required: false
+
+completion_evidence:
+  - new hostile retrieval and tool-authorization tests
+  - command and exit-code log
+  - residual-risk statement

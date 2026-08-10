@@ -37,6 +37,8 @@ RUN mkdir -p /workspace/Fabric_4L /workspace-support /run/user/1000 /var/tmp \
 
 ENV PYTHONPATH=/workspace/Fabric_4L/services/layer1-ingestion/src:/workspace/Fabric_4L/services/layer2-extraction/src:/workspace/Fabric_4L/services/layer2-5-signal-refinery/src:/workspace/Fabric_4L/services/layer3-knowledge/src:/workspace/Fabric_4L/services/layer4-agents/src:/workspace/Fabric_4L/services/layer5-ground-truth/src:/workspace/Fabric_4L/services/layer6-benchmarks/src
 WORKDIR /workspace/Fabric_4L
+HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
+    CMD bash -lc 'test -d /workspace/Fabric_4L && test -w /var/tmp'
 
 FROM toolchain AS development
 USER vscode
