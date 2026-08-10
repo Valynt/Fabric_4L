@@ -23,9 +23,22 @@ env:
 jobs:
   determine-profile:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
     outputs:
       profile: ${{steps.profile.outputs.profile}}
+      # 'true' when the change can affect the running product (anything
+      # except pure documentation). PR-time readiness jobs skip when false;
+      # push/release/dispatch events always resolve to 'true'.
+      runtime: ${{steps.scope.outputs.runtime}}
     steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+
+      - name: Resolve change scopes
+        id: scope
+        uses: ./.github/actions/change-scope
+
       - id: profile
         run: |
           if [[ "${GITHUB_REF}" == refs/heads/main ]]; then
@@ -38,6 +51,7 @@ jobs:
 
   setup:
     runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || needs.determine-profile.outputs.runtime == 'true'
     needs: [determine-profile]
     steps:
       - uses: actions/checkout@v4
@@ -63,6 +77,7 @@ jobs:
 
   arch-conformance:
     runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || needs.determine-profile.outputs.runtime == 'true'
     needs: [determine-profile, setup]
     steps:
       - uses: actions/checkout@v4
@@ -84,6 +99,7 @@ jobs:
 
   security-isolation:
     runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || needs.determine-profile.outputs.runtime == 'true'
     needs: [determine-profile, setup]
     steps:
       - uses: actions/checkout@v4
@@ -198,6 +214,7 @@ jobs:
 
   agent-provenance:
     runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || needs.determine-profile.outputs.runtime == 'true'
     needs: [determine-profile, setup]
     steps:
       - uses: actions/checkout@v4
@@ -219,6 +236,7 @@ jobs:
 
   state-consistency:
     runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || needs.determine-profile.outputs.runtime == 'true'
     needs: [determine-profile, setup]
     steps:
       - uses: actions/checkout@v4
@@ -240,6 +258,7 @@ jobs:
 
   db-production-readiness-gate:
     runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || needs.determine-profile.outputs.runtime == 'true'
     needs: [determine-profile, setup]
     services:
       postgres:

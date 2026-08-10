@@ -1,0 +1,64 @@
+id: V1-GOLDEN-001
+title: Executable golden-path backend certification across L1-L6
+priority: P0
+
+goal: >
+  Prove the canonical customer journey with a single executable
+  backend-integrated certification on current main, extending the existing
+  live-stack profile and the launch register's deterministic clickpath
+  (account -> signals -> evidence -> driver -> calculator -> business case)
+  backward through ingestion/knowledge and forward through persistence and
+  export. Concrete flow: create Tenant A -> provision admin and standard user
+  -> authenticate and select workspace -> create account/prospect -> ingest
+  source documents (L1 source version + ingestion state) -> L2 extraction with
+  provenance and source linkage -> project into L3 (tenant-scoped graph and
+  retrieval) -> execute the L4 value workflow (value model + value-driver
+  tree) -> ground evidence through L5 -> benchmark context through L6 ->
+  calculate the value case -> generate the business case -> persist, reload,
+  and export it -> verify audit, metrics, traces, and job history. The SAME
+  run creates Tenant B and attempts hostile access to Tenant A's accounts,
+  sources, extractions, graph objects, evidence, calculations, business
+  cases, exports, cache entries, and async jobs — cross-tenant denial is part
+  of the golden path, not a separate suite.
+
+depends_on:
+  - V1-CARTO-001
+
+allowed_paths:
+  - tests/backend_integrated/**
+  - tests/release/**
+  - Makefile
+  - docs/**
+
+forbidden_paths:
+  - infra/production/**
+  - .github/workflows/**
+  - services/billing/**
+
+invariants:
+  - The certification composes make test-backend-integrated-release-smoke conventions; no parallel gate system.
+  - Every stage carries verified tenant context and fails closed without it.
+  - Stage assertions verify durable state in the authoritative store, not only HTTP 200s.
+  - Existing API contracts remain compatible unless explicitly updated.
+
+acceptance_tests:
+  - make test-backend-integrated-release-smoke
+  - pytest tests/backend_integrated -m "backend_integrated and release_smoke" --collect-only -q
+
+negative_cases:
+  - A stage receiving a payload without tenant context rejects it.
+  - Tenant B (created in the same run) is denied access to every Tenant A object touched by the journey — accounts, sources, extractions, graph objects, evidence, calculations, business cases, exports, cache entries, and async jobs.
+  - Retried and duplicate submissions are idempotent; a mid-pipeline failure surfaces a structured error, never a silently partial result.
+
+non_goals:
+  - Rewriting layer services.
+  - Frontend browser coverage (V1-GOLDEN-002).
+
+rollback:
+  strategy: revert_patch
+  data_migration_required: false
+
+completion_evidence:
+  - new golden-path certification test files
+  - command and exit-code log from the live-stack run
+  - residual-risk statement

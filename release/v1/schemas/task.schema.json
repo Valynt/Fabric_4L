@@ -1,0 +1,97 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://fabric4l.dev/release/v1/task.schema.json",
+  "title": "V1 Release Factory Task",
+  "description": "Bounded, machine-readable task contract handed to an isolated worker agent. The harness, not the worker, decides whether completion is believable.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "title",
+    "priority",
+    "goal",
+    "allowed_paths",
+    "forbidden_paths",
+    "invariants",
+    "acceptance_tests",
+    "negative_cases",
+    "non_goals",
+    "rollback",
+    "completion_evidence"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^V1-[A-Z0-9]+-[0-9]{3}$"
+    },
+    "title": { "type": "string", "minLength": 8 },
+    "priority": { "enum": ["P0", "P1", "P2"] },
+    "goal": { "type": "string", "minLength": 20 },
+    "depends_on": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^V1-[A-Z0-9]+-[0-9]{3}$" },
+      "uniqueItems": true
+    },
+    "allowed_paths": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "minItems": 1
+    },
+    "forbidden_paths": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "single_writer_surfaces": {
+      "description": "High-risk surfaces this task touches; only one agent at a time may modify each.",
+      "type": "array",
+      "items": {
+        "enum": [
+          "auth-and-authorization",
+          "tenant-resolution-middleware",
+          "database-schema-and-migrations",
+          "shared-api-contracts",
+          "ci-required-check-definitions",
+          "billing-and-entitlements",
+          "production-infrastructure"
+        ]
+      },
+      "uniqueItems": true
+    },
+    "invariants": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 10 },
+      "minItems": 1
+    },
+    "acceptance_tests": {
+      "description": "Deterministic commands that must all exit zero for the task to be complete.",
+      "type": "array",
+      "items": { "type": "string", "minLength": 3 },
+      "minItems": 1
+    },
+    "negative_cases": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 10 },
+      "minItems": 1
+    },
+    "non_goals": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 5 },
+      "minItems": 1
+    },
+    "rollback": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["strategy", "data_migration_required"],
+      "properties": {
+        "strategy": { "enum": ["revert_patch", "feature_flag", "forward_fix", "migration_rollback"] },
+        "data_migration_required": { "type": "boolean" },
+        "notes": { "type": "string" }
+      }
+    },
+    "completion_evidence": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 5 },
+      "minItems": 1
+    }
+  }
+}
