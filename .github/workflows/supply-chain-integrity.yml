@@ -107,7 +107,12 @@ jobs:
           assert_line "uv --version | awk '{print \$1, \$2}'" "uv 0.11.6"
           assert_line "python --version" "Python 3.12.10"
           assert_line "node --version" "v22.17.0"
-          assert_line "pnpm --version" "10.18.1"
+          # pnpm runs through a corepack shim; the container user cannot write
+          # corepack's default cache ($HOME/.cache/node, with HOME=/), so the
+          # probe dies with EACCES unless COREPACK_HOME points at a writable
+          # path. Observed: COMMAND FAILED: pnpm --version, exit 1,
+          # "EACCES: permission denied, mkdir '/.cache/node/corepack/v1'".
+          assert_line "COREPACK_HOME=/tmp/corepack pnpm --version" "10.18.1"
 
   # ============================================
   # Source-Level SBOM Scan (runs on every PR/push)
