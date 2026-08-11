@@ -1460,55 +1460,55 @@
     },
     {
       "kind": "python-any",
-      "line": 38,
+      "line": 44,
       "path": "packages/shared/src/value_fabric/shared/error_handling/helpers.py",
       "text": "extra: dict[str, Any] | None = None,"
     },
     {
       "kind": "python-any",
-      "line": 39,
+      "line": 45,
       "path": "packages/shared/src/value_fabric/shared/error_handling/helpers.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 41,
+      "line": 47,
       "path": "packages/shared/src/value_fabric/shared/error_handling/helpers.py",
       "text": "payload: dict[str, Any] = {"
     },
     {
       "kind": "python-any",
-      "line": 55,
+      "line": 61,
       "path": "packages/shared/src/value_fabric/shared/error_handling/helpers.py",
       "text": "details: Optional[dict[str, Any]] = None,"
     },
     {
       "kind": "python-any",
-      "line": 72,
+      "line": 78,
       "path": "packages/shared/src/value_fabric/shared/error_handling/helpers.py",
       "text": "details: Optional[dict[str, Any]] = None,"
     },
     {
       "kind": "python-any",
-      "line": 88,
+      "line": 94,
       "path": "packages/shared/src/value_fabric/shared/error_handling/helpers.py",
       "text": "details: Optional[dict[str, Any]] = None,"
     },
     {
       "kind": "python-any",
-      "line": 104,
+      "line": 110,
       "path": "packages/shared/src/value_fabric/shared/error_handling/helpers.py",
       "text": "details: Optional[dict[str, Any]] = None,"
     },
     {
       "kind": "python-any",
-      "line": 126,
+      "line": 132,
       "path": "packages/shared/src/value_fabric/shared/error_handling/helpers.py",
       "text": "details: Optional[dict[str, Any]] = None,"
     },
     {
       "kind": "python-any",
-      "line": 143,
+      "line": 149,
       "path": "packages/shared/src/value_fabric/shared/error_handling/helpers.py",
       "text": "details: Optional[dict[str, Any]] = None,"
     },
@@ -4862,7 +4862,7 @@
     },
     {
       "kind": "python-any",
-      "line": 205,
+      "line": 225,
       "path": "packages/shared/src/value_fabric/shared/tenant_kill_switch.py",
       "text": "def get_kill_switch(redis_client: Any | None = None) -> TenantKillSwitch:"
     },
@@ -11510,121 +11510,121 @@
     },
     {
       "kind": "python-any",
-      "line": 657,
+      "line": 696,
       "path": "services/layer1-ingestion/src/layer1_ingestion/api/target_handlers.py",
       "text": "def _decode_redis_value(value: Any) -> str | None:"
     },
     {
       "kind": "python-any",
-      "line": 667,
+      "line": 706,
       "path": "services/layer1-ingestion/src/layer1_ingestion/api/target_handlers.py",
       "text": "target: ScrapingTarget, override_config: dict[str, Any] | None"
     },
     {
       "kind": "python-any",
-      "line": 668,
+      "line": 707,
       "path": "services/layer1-ingestion/src/layer1_ingestion/api/target_handlers.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-type-ignore",
-      "line": 775,
+      "line": 814,
       "path": "services/layer1-ingestion/src/layer1_ingestion/api/target_handlers.py",
       "text": "id=target.id,  # type: ignore[arg-type]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 776,
+      "line": 815,
       "path": "services/layer1-ingestion/src/layer1_ingestion/api/target_handlers.py",
       "text": "tenant_id=target.tenant_id,  # type: ignore[arg-type]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 777,
+      "line": 816,
       "path": "services/layer1-ingestion/src/layer1_ingestion/api/target_handlers.py",
       "text": "name=target.name,  # type: ignore[arg-type]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 778,
+      "line": 817,
       "path": "services/layer1-ingestion/src/layer1_ingestion/api/target_handlers.py",
       "text": "description=target.description,  # type: ignore[arg-type]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 779,
+      "line": 818,
       "path": "services/layer1-ingestion/src/layer1_ingestion/api/target_handlers.py",
       "text": "url=target.url,  # type: ignore[arg-type]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 780,
+      "line": 819,
       "path": "services/layer1-ingestion/src/layer1_ingestion/api/target_handlers.py",
       "text": "url_pattern=target.url_pattern,  # type: ignore[arg-type]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 781,
+      "line": 820,
       "path": "services/layer1-ingestion/src/layer1_ingestion/api/target_handlers.py",
       "text": "target_type=target.target_type,  # type: ignore[arg-type]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 782,
+      "line": 821,
       "path": "services/layer1-ingestion/src/layer1_ingestion/api/target_handlers.py",
       "text": "source_category=target.source_category,  # type: ignore[arg-type]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 784,
+      "line": 823,
       "path": "services/layer1-ingestion/src/layer1_ingestion/api/target_handlers.py",
       "text": "status=target.status,  # type: ignore[arg-type]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 793,
+      "line": 832,
       "path": "services/layer1-ingestion/src/layer1_ingestion/api/target_handlers.py",
       "text": "created_at=target.created_at,  # type: ignore[arg-type]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 794,
+      "line": 833,
       "path": "services/layer1-ingestion/src/layer1_ingestion/api/target_handlers.py",
       "text": "updated_at=target.updated_at,  # type: ignore[arg-type]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 795,
+      "line": 834,
       "path": "services/layer1-ingestion/src/layer1_ingestion/api/target_handlers.py",
       "text": "created_by=target.created_by,  # type: ignore[arg-type]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 796,
+      "line": 835,
       "path": "services/layer1-ingestion/src/layer1_ingestion/api/target_handlers.py",
       "text": "last_success_at=target.last_success_at,  # type: ignore[arg-type]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 797,
+      "line": 836,
       "path": "services/layer1-ingestion/src/layer1_ingestion/api/target_handlers.py",
       "text": "last_error_at=target.last_error_at,  # type: ignore[arg-type]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 798,
+      "line": 837,
       "path": "services/layer1-ingestion/src/layer1_ingestion/api/target_handlers.py",
       "text": "success_count=target.success_count,  # type: ignore[arg-type]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 799,
+      "line": 838,
       "path": "services/layer1-ingestion/src/layer1_ingestion/api/target_handlers.py",
       "text": "error_count=target.error_count,  # type: ignore[arg-type]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 800,
+      "line": 839,
       "path": "services/layer1-ingestion/src/layer1_ingestion/api/target_handlers.py",
       "text": "average_execution_time_ms=target.average_execution_time_ms,  # type: ignore[arg-type]"
     },
@@ -12926,7 +12926,7 @@
     },
     {
       "kind": "python-any",
-      "line": 1998,
+      "line": 2022,
       "path": "services/layer1-ingestion/src/layer1_ingestion/shared/tasks.py",
       "text": "def record_dead_lettered_task(envelope: dict[str, Any]) -> dict[str, Any]:"
     },
@@ -13646,13 +13646,13 @@
     },
     {
       "kind": "python-any",
-      "line": 1078,
+      "line": 1093,
       "path": "services/layer2-extraction/src/layer2_extraction/api/main.py",
       "text": "all_entities: dict[str, list[Any]] = {"
     },
     {
       "kind": "python-any",
-      "line": 1863,
+      "line": 1878,
       "path": "services/layer2-extraction/src/layer2_extraction/api/main.py",
       "text": "event_data: dict[str, Any] = {"
     },
@@ -40153,72 +40153,6 @@
       "text": "for n in tree.body  # type: ignore[attr-defined]"
     },
     {
-      "kind": "python-any",
-      "line": 16,
-      "path": "tests/backend_integrated/conftest.py",
-      "text": "from typing import Any, Iterable"
-    },
-    {
-      "kind": "python-any",
-      "line": 124,
-      "path": "tests/backend_integrated/conftest.py",
-      "text": "json: dict[str, Any] | None = None,"
-    },
-    {
-      "kind": "python-any",
-      "line": 127,
-      "path": "tests/backend_integrated/conftest.py",
-      "text": ") -> tuple[Any, httpx.Response]:"
-    },
-    {
-      "kind": "python-any",
-      "line": 172,
-      "path": "tests/backend_integrated/conftest.py",
-      "text": "async def first_healthy(self, layer: str) -> tuple[str, Any]:"
-    },
-    {
-      "kind": "python-any",
-      "line": 182,
-      "path": "tests/backend_integrated/conftest.py",
-      "text": "async def create_seed_graph(self) -> dict[str, Any]:"
-    },
-    {
-      "kind": "python-any",
-      "line": 249,
-      "path": "tests/backend_integrated/conftest.py",
-      "text": ") -> Any:"
-    },
-    {
-      "kind": "python-any",
-      "line": 266,
-      "path": "tests/backend_integrated/conftest.py",
-      "text": "async def assert_audit_event(self, action: str, entity_id: str) -> Any:"
-    },
-    {
-      "kind": "python-any",
-      "line": 278,
-      "path": "tests/backend_integrated/conftest.py",
-      "text": "async def assert_job_terminal_or_progressing(self, job_id: str) -> Any:"
-    },
-    {
-      "kind": "python-any",
-      "line": 291,
-      "path": "tests/backend_integrated/conftest.py",
-      "text": ") -> Any:"
-    },
-    {
-      "kind": "python-any",
-      "line": 292,
-      "path": "tests/backend_integrated/conftest.py",
-      "text": "last_body: Any = None"
-    },
-    {
-      "kind": "python-any",
-      "line": 309,
-      "path": "tests/backend_integrated/conftest.py",
-      "text": "def validation_seed_plan(seed_ids: SeedIds) -> dict[str, Any]:"
-    },
-    {
       "kind": "python-type-ignore",
       "line": 15,
       "path": "tests/backend_integrated/test_api_contract_validation.py",
@@ -40253,6 +40187,108 @@
       "line": 159,
       "path": "tests/cache/test_redis_tenant_isolation.py",
       "text": "tenant_id=None,  # type: ignore[arg-type]"
+    },
+    {
+      "kind": "python-any",
+      "line": 25,
+      "path": "tests/certification/harness.py",
+      "text": "from typing import Any, Iterable"
+    },
+    {
+      "kind": "python-any",
+      "line": 85,
+      "path": "tests/certification/harness.py",
+      "text": "context: dict[str, Any] = field(default_factory=dict)"
+    },
+    {
+      "kind": "python-any",
+      "line": 160,
+      "path": "tests/certification/harness.py",
+      "text": "json_body: dict[str, Any] | None = None,"
+    },
+    {
+      "kind": "python-any",
+      "line": 162,
+      "path": "tests/certification/harness.py",
+      "text": ") -> tuple[Any, httpx.Response]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 192,
+      "path": "tests/certification/harness.py",
+      "text": "**kwargs: Any,"
+    },
+    {
+      "kind": "python-any",
+      "line": 193,
+      "path": "tests/certification/harness.py",
+      "text": ") -> tuple[Any, httpx.Response]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 203,
+      "path": "tests/certification/harness.py",
+      "text": "async def gateway_healthy(self) -> tuple[str, Any]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 213,
+      "path": "tests/certification/harness.py",
+      "text": "async def stage(self, name: str, coro: Any) -> Any:"
+    },
+    {
+      "kind": "python-any",
+      "line": 19,
+      "path": "tests/certification/test_meridian_production_path.py",
+      "text": "from typing import Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 57,
+      "path": "tests/certification/test_meridian_production_path.py",
+      "text": ") -> Any:"
+    },
+    {
+      "kind": "python-any",
+      "line": 58,
+      "path": "tests/certification/test_meridian_production_path.py",
+      "text": "last: Any = None"
+    },
+    {
+      "kind": "python-any",
+      "line": 78,
+      "path": "tests/certification/test_meridian_production_path.py",
+      "text": "ctx: dict[str, Any] = cert_recorder.context"
+    },
+    {
+      "kind": "python-any",
+      "line": 82,
+      "path": "tests/certification/test_meridian_production_path.py",
+      "text": "async def run_stage(name: str, coro: Any) -> Any:"
+    },
+    {
+      "kind": "python-any",
+      "line": 171,
+      "path": "tests/certification/test_meridian_production_path.py",
+      "text": "async def fetch_run() -> Any:"
+    },
+    {
+      "kind": "python-any",
+      "line": 197,
+      "path": "tests/certification/test_meridian_production_path.py",
+      "text": "async def fetch_entities() -> Any:"
+    },
+    {
+      "kind": "python-any",
+      "line": 257,
+      "path": "tests/certification/test_meridian_production_path.py",
+      "text": "async def fetch_workflow() -> Any:"
+    },
+    {
+      "kind": "python-any",
+      "line": 307,
+      "path": "tests/certification/test_meridian_production_path.py",
+      "text": "async def fetch_graph_truth() -> Any:"
     },
     {
       "kind": "python-type-ignore",
@@ -41867,6 +41903,66 @@
       "line": 28,
       "path": "tests/shared/identity/test_hostile_api_key_resolver.py",
       "text": "from typing import Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 17,
+      "path": "tests/shared/live_harness.py",
+      "text": "from typing import Any, Iterable"
+    },
+    {
+      "kind": "python-any",
+      "line": 125,
+      "path": "tests/shared/live_harness.py",
+      "text": "json: dict[str, Any] | None = None,"
+    },
+    {
+      "kind": "python-any",
+      "line": 128,
+      "path": "tests/shared/live_harness.py",
+      "text": ") -> tuple[Any, httpx.Response]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 173,
+      "path": "tests/shared/live_harness.py",
+      "text": "async def first_healthy(self, layer: str) -> tuple[str, Any]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 183,
+      "path": "tests/shared/live_harness.py",
+      "text": "async def create_seed_graph(self) -> dict[str, Any]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 250,
+      "path": "tests/shared/live_harness.py",
+      "text": ") -> Any:"
+    },
+    {
+      "kind": "python-any",
+      "line": 267,
+      "path": "tests/shared/live_harness.py",
+      "text": "async def assert_audit_event(self, action: str, entity_id: str) -> Any:"
+    },
+    {
+      "kind": "python-any",
+      "line": 279,
+      "path": "tests/shared/live_harness.py",
+      "text": "async def assert_job_terminal_or_progressing(self, job_id: str) -> Any:"
+    },
+    {
+      "kind": "python-any",
+      "line": 292,
+      "path": "tests/shared/live_harness.py",
+      "text": ") -> Any:"
+    },
+    {
+      "kind": "python-any",
+      "line": 293,
+      "path": "tests/shared/live_harness.py",
+      "text": "last_body: Any = None"
     },
     {
       "kind": "python-type-ignore",
