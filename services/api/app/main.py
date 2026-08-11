@@ -32,6 +32,7 @@ from app.routers import (
     hypotheses,
     intelligence,
     jobs,
+    layer_delegation,
     layer_proxy,
     privacy,
     product_endpoints,
@@ -278,6 +279,12 @@ async def _layer4_dependency_handler(request, exc: Layer4DependencyError):
         },
     )
 
+
+# Layer-segment delegation (decision D1/D2): registered last so the
+# product-domain routers and layer_proxy above keep precedence. Serves
+# frontend-generated /v1/{agents,ingest,extract,graph,truths}/* paths no
+# other router owns.
+app.include_router(layer_delegation.router, prefix="/v1")
 
 # Clerk webhook handler is mounted unconditionally; the handler itself
 # returns 503 when CLERK_WEBHOOK_SECRET is not configured. Network policy

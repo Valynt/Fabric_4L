@@ -105,18 +105,19 @@ class Settings(BaseSettings):
     llm_provider: str = "layer4"
     llm_model: str | None = None
     allow_mock_llm: bool = False
-    layer4_api_base_url: str = "http://localhost:8004"
-    layer4_timeout_seconds: float = 10.0
-    layer6_api_base_url: str = "http://localhost:8006"
-    layer6_timeout_seconds: float = 10.0
     layer1_api_base_url: str = "http://localhost:8001"
     layer1_timeout_seconds: float = 30.0
     layer2_api_base_url: str = "http://localhost:8002"
     layer2_timeout_seconds: float = 30.0
     layer3_api_base_url: str = "http://localhost:8003"
     layer3_timeout_seconds: float = 10.0
+    layer4_api_base_url: str = "http://localhost:8004"
+    layer4_timeout_seconds: float = 10.0
     layer5_api_base_url: str = "http://localhost:8005"
     layer5_timeout_seconds: float = 10.0
+    layer6_api_base_url: str = "http://localhost:8006"
+    layer6_timeout_seconds: float = 10.0
+    delegation_timeout_seconds: float = 30.0
     seed_demo_data: bool = False
     # Empty list = no cross-origin requests allowed by default (fail-closed).
     # Development get_settings() supplies localhost defaults only after warning.
