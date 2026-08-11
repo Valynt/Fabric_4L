@@ -4013,17 +4013,6 @@
     },
     {
       "source": "layer4-agents",
-      "method": "POST",
-      "path": "/v1/auth/register",
-      "status": "unmapped",
-      "lastReviewed": "2026-07-25",
-      "metadata": {
-        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
-      },
-      "operationId": "register_tenant_frontend_alias_v1_auth_register_post"
-    },
-    {
-      "source": "layer4-agents",
       "method": "GET",
       "path": "/v1/auth/session",
       "status": "unmapped",
@@ -5792,28 +5781,6 @@
         "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
       },
       "operationId": "get_tenant_context_v1_tenant_context_get"
-    },
-    {
-      "source": "layer4-agents",
-      "method": "GET",
-      "path": "/v1/tenant/settings",
-      "status": "unmapped",
-      "lastReviewed": "2026-07-25",
-      "metadata": {
-        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
-      },
-      "operationId": "get_current_tenant_settings_v1_tenant_settings_get"
-    },
-    {
-      "source": "layer4-agents",
-      "method": "PATCH",
-      "path": "/v1/tenant/settings",
-      "status": "unmapped",
-      "lastReviewed": "2026-07-25",
-      "metadata": {
-        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
-      },
-      "operationId": "update_current_tenant_settings_v1_tenant_settings_patch"
     },
     {
       "source": "layer4-agents",

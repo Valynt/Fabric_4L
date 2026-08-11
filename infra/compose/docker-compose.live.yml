@@ -21,7 +21,7 @@ services:
       resources:
         limits:
           cpus: '0.5'
-          memory: '1GiB'
+          memory: 1Gi
   redis:
     extends:
       file: ./docker-compose.base.yml
@@ -35,7 +35,7 @@ services:
       resources:
         limits:
           cpus: '0.25'
-          memory: '512MiB'
+          memory: 512Mi
 
   neo4j:
     extends:
@@ -55,7 +55,7 @@ services:
       resources:
         limits:
           cpus: '0.75'
-          memory: '2GiB'
+          memory: 2Gi
 
   minio:
     extends:
@@ -73,13 +73,13 @@ services:
       resources:
         limits:
           cpus: '0.25'
-          memory: '512MiB'
+          memory: 512Mi
 
   minio-init:
     image: minio/mc:latest
     container_name: vf-live-minio-init
     entrypoint: "/bin/sh -c \" until /usr/bin/mc config host add myminio http://minio:9000\
-      \ ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD}; do\n  echo 'waiting for minio';\n\
+      \ ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD}; do\n  echo 'waiting for minio';\
       \  sleep 2;\ndone; /usr/bin/mc mb myminio/layer1-raw-html || true; /usr/bin/mc\
       \ anonymous set none myminio/layer1-raw-html || true; exit 0; \"\n"
     networks:
@@ -112,7 +112,7 @@ services:
     ports:
       - 8080:8080
     networks:
-      - live-network
+    - live-network
     healthcheck:
       test:
         - CMD
@@ -127,7 +127,7 @@ services:
       resources:
         limits:
           cpus: '0.5'
-          memory: '1GiB'
+          memory: 1Gi
 
   layer1:
     build:
@@ -173,7 +173,7 @@ services:
       resources:
         limits:
           cpus: '0.5'
-          memory: '1GiB'
+          memory: 1Gi
 
   layer1-worker:
     build:
@@ -207,7 +207,7 @@ services:
       resources:
         limits:
           cpus: '1.0'
-          memory: '1.5GiB'
+          memory: 1.5Gi
 
   # ---------------------------------------------------------------------------
   # Layer 2: Extraction Service (internal container port 8000)
@@ -252,7 +252,7 @@ services:
       resources:
         limits:
           cpus: '1.0'
-          memory: '2GiB'
+          memory: 2Gi
 
   # ---------------------------------------------------------------------------
   # Layer 3: Knowledge Graph Service (internal container port 8001)
@@ -289,7 +289,7 @@ services:
       resources:
         limits:
           cpus: '0.5'
-          memory: '2GiB'
+          memory: 2Gi
 
   layer3-neo4j-migrate:
     build:
@@ -304,7 +304,7 @@ services:
     - -lc
     - "attempts=0\nuntil /app/.venv/bin/python /app/src/migrations/030_neo4j_tenant_id_constraints_and_indexes.py;\
       \ do\n  attempts=$$((attempts + 1))\n  if [ \"$$attempts\" -ge 24 ]; then\n\
-      \    echo \"layer3 neo4j migration 030 failed after $${attempts} attempts\"\n\
+      \    echo \"layer3 neo4j migration 030 failed after $${attempts} attempts\"\
       \    exit 1\n  fi\n  echo \"waiting for neo4j ($${attempts}/24)\"\n  sleep 5\n\
       done\n"
     environment:
@@ -318,7 +318,7 @@ services:
       resources:
         limits:
           cpus: '0.25'
-          memory: '512MiB'
+          memory: 512MiB
 
   # ---------------------------------------------------------------------------
   # Layer 4: Agents Service (public host port 8004)
@@ -336,6 +336,10 @@ services:
       API_KEY_HMAC_SECRET: ${API_KEY_HMAC_SECRET}
       SERVICE_AUTH_SECRET: ${SERVICE_AUTH_SECRET}
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/layer4_agents
+      # Alembic runs require an explicit sync DSN targeting the layer4_agents
+      # database (env.py fails closed without it; CHECKPOINT_DATABASE_URL is
+      # never a migration fallback).
+      LAYER4_DATABASE_URL_SYNC: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/layer4_agents
       CHECKPOINT_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/ground_truth
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
       NEO4J_URI: bolt://neo4j:7687
@@ -375,7 +379,7 @@ services:
       resources:
         limits:
           cpus: '1.5'
-          memory: '2GiB'
+          memory: 2Gi
 
   # ---------------------------------------------------------------------------
   # Layer 5: Ground Truth Service (internal container port 8005)
@@ -415,7 +419,7 @@ services:
       resources:
         limits:
           cpus: '0.5'
-          memory: '1GiB'
+          memory: 1Gi
 
   layer5-migrate:
     build:
@@ -442,7 +446,7 @@ services:
       resources:
         limits:
           cpus: '0.25'
-          memory: '512MiB'
+          memory: 512MiB
 
   # ---------------------------------------------------------------------------
   # Layer 6: Benchmarks Service (internal container port 8006)
@@ -486,7 +490,7 @@ services:
       resources:
         limits:
           cpus: '0.5'
-          memory: '1GiB'
+          memory: 1GiB
 
   api-gateway:
     build:
@@ -548,7 +552,7 @@ services:
       resources:
         limits:
           cpus: '0.5'
-          memory: '1GiB'
+          memory: 1Gi
 
   # ---------------------------------------------------------------------------
   # Frontend — Live Workflow Validation UI (public host port 3001)
@@ -585,7 +589,7 @@ services:
       resources:
         limits:
           cpus: '0.25'
-          memory: '512MiB'
+          memory: 512MiB
     volumes:
     - ../../apps/web:/workspace/apps/web
     - /workspace/apps/web/node_modules
