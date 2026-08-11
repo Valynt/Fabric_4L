@@ -246,6 +246,39 @@ app.include_router(privacy.router, prefix="/v1")
 # Layer proxy routes - delegate to underlying layer services
 app.include_router(layer_proxy.router, prefix="/v1")
 
+# Fail-closed mapping for Layer 4 delegation failures (decision D2): the
+# gateway never returns record-only success when the owning service is down.
+from app.services.agent_orchestrator import (  # noqa: E402
+    Layer4DependencyError,
+    Layer4UnavailableError,
+)
+
+
+@app.exception_handler(Layer4UnavailableError)
+async def _layer4_unavailable_handler(request, exc: Layer4UnavailableError):
+    from fastapi.responses import JSONResponse as _JSONResponse
+
+    return _JSONResponse(
+        status_code=503,
+        content={"detail": "layer4_unavailable", "code": exc.code},
+    )
+
+
+@app.exception_handler(Layer4DependencyError)
+async def _layer4_dependency_handler(request, exc: Layer4DependencyError):
+    from fastapi.responses import JSONResponse as _JSONResponse
+
+    status = 404 if exc.status_code == 404 else 502
+    return _JSONResponse(
+        status_code=status,
+        content={
+            "detail": "layer4_dependency_error",
+            "code": exc.code,
+            "upstream_status": exc.status_code,
+        },
+    )
+
+
 # Clerk webhook handler is mounted unconditionally; the handler itself
 # returns 503 when CLERK_WEBHOOK_SECRET is not configured. Network policy
 # is responsible for restricting public access to /internal/*.
