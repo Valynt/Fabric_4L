@@ -26,10 +26,10 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import yaml
-
 from value_fabric.shared.llm_safety import PromptGuard
 
 from .llm_output_parser import parse_llm_json, validate_llm_output_schema
+
 
 class LLMOutputValidationError(RuntimeError):
     """Raised when a structured LLM call fails schema validation (ADR-031).
