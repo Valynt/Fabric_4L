@@ -229,7 +229,7 @@ async function runBackendPreflight(): Promise<boolean> {
     await probeBackendEndpoint('Backend health', 'GET', '/health', [200], true),
     await probeBackendEndpoint('Account read route', 'GET', `/v1/accounts/${MERIDIAN_BACKEND_ACCOUNT_UUID}`, [200, 404], true),
     await probeBackendEndpoint('Case list route', 'GET', `/v1/cases?account_id=${MERIDIAN_BACKEND_ACCOUNT_UUID}`, [200], true),
-    await probeBackendEndpoint('Tenant settings route', 'GET', '/v1/tenant/settings', [200, 404, 405], false),
+    await probeBackendEndpoint('Tenant settings route', 'GET', '/v1/tenants/current/settings', [200, 404, 405], false),
   ];
 
   for (const probe of probes) {
@@ -729,7 +729,7 @@ async function main() {
 
   // Step 6: Seed platform settings
   console.log('\n[6/9] Seeding platform settings...');
-  const settingsResult = await api('PATCH', '/v1/tenant/settings', MERIDIAN_FIXTURE.settings);
+  const settingsResult = await api('PATCH', '/v1/tenants/current/settings', MERIDIAN_FIXTURE.settings);
   if (settingsResult.status >= 200 && settingsResult.status < 300) {
     console.log('  ✓ Platform settings seeded');
   } else {
@@ -738,7 +738,7 @@ async function main() {
   recordSeed({
     seedArea: 'Tenant settings / value-pack-adjacent governance',
     recordsCreated: '1 tenant settings payload',
-    method: 'API /v1/tenant/settings',
+    method: 'API /v1/tenants/current/settings',
     persistenceVerified: settingsResult.status >= 200 && settingsResult.status < 300 ? 'yes' : `status ${settingsResult.status}`,
     status: settingsResult.status >= 200 && settingsResult.status < 300 ? 'present' : 'partial',
     required: false,

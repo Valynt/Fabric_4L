@@ -59,15 +59,22 @@ def test_frontend_settings_response_contract_fields() -> None:
     assert {"id", "name", "slug", "status", "tier_id", "settings", "created_at"}.issubset(props.keys())
 
 
-def test_frontend_alias_routes_marked_deprecated_with_removal_dates() -> None:
-    get_alias = _operation("/v1/tenant/settings", "get")
-    patch_alias = _operation("/v1/tenant/settings", "patch")
-    post_alias = _operation("/v1/auth/register", "post")
+def test_overdue_frontend_aliases_removed() -> None:
+    """The overdue compat aliases (removal targets 2026-07-01 and 2026-08-01)
+    are removed from the router source; the canonical L4 paths remain."""
+    from pathlib import Path
+    import re
 
-    assert get_alias["deprecated"] is True
-    assert patch_alias["deprecated"] is True
-    assert post_alias["deprecated"] is True
+    source = (
+        Path(__file__).resolve().parents[1]
+        / "src" / "layer4_agents" / "api" / "routes" / "frontend_compat.py"
+    ).read_text(encoding="utf-8")
+    assert re.search(r"@router\.[a-z_]+\(\s*['\"]/auth/register['\"]", source) is None
+    assert re.search(r"@router\.[a-z_]+\(\s*['\"]/tenant/settings['\"]", source) is None
+    # Quote-style agnostic guard: match the canonical /auth/session alias regardless
+    # of single or double quotes and ensure it is a route decorator (not a docstring).
+    assert re.search(r"@router\.[a-z_]+\(\s*['\"]/auth/session['\"]", source) is not None
 
-    assert get_alias["x-deprecated-removal-date"] == "2026-08-01"
-    assert patch_alias["x-deprecated-removal-date"] == "2026-08-01"
-    assert post_alias["x-deprecated-removal-date"] == "2026-07-01"
+    # Canonical targets still exist in the published contract.
+    _operation("/v1/tenants/current/settings", "get")
+    _operation("/v1/tenants/register", "post")
