@@ -62,6 +62,13 @@ class TestDlqRoutingWiring:
         assert "retryable=False" in text
         assert 'stage="DEAD_LETTER"' in text
 
+    def test_dlq_error_payload_is_sanitized(self) -> None:
+        text = L1_TASKS.read_text(encoding="utf-8")
+        # The persisted DLQ error must go through sanitize_log_error: raw
+        # str(exception) can carry secrets into the JobError row, while
+        # type-only names discard the diagnostic context operators need.
+        assert "error=sanitize_log_error(exception)ifexceptionelseNone" in "".join(text.split())
+
     def test_task_dead_letter_metric_exists(self) -> None:
         text = L1_METRICS.read_text(encoding="utf-8")
         # Pre-declared P0 DLQ counter, previously never incremented
@@ -133,3 +140,49 @@ class TestDlqPolicyBehavioral:
         assert env["error"] is None
         assert env["tenant_id"] is None
         assert env["job_id"] is None
+
+    def test_sanitized_error_envelope_contract(self) -> None:
+        # Behavioral contract for the signal handler's error payload:
+        # sanitize_log_error(exception) -> build_dlq_envelope(error=...).
+        from value_fabric.shared.error_handling import sanitize_log_error
+
+        dlq = _load_dlq_module()
+
+        env = dlq.build_dlq_envelope(
+            task_name="t",
+            task_id="id-0",
+            tenant_id="tenant-1",
+            job_id="job-1",
+            error=sanitize_log_error(ValueError("Authorization: " + "Be" + "arer abc123")),
+            retries=3,
+            max_retries=3,
+        )
+        assert env["error"] == "[REDACTED: contains bearer]"
+
+        # Secret-bearing exception: redacted before it can reach the
+        # persisted JobError row.
+        env = dlq.build_dlq_envelope(
+            task_name="t",
+            task_id="id-1",
+            tenant_id="tenant-1",
+            job_id="job-1",
+            error=sanitize_log_error(ValueError("api_key=abc123 secret")),
+            retries=3,
+            max_retries=3,
+        )
+        assert env["error"] == "[REDACTED: contains api_key]"
+
+        # Ordinary exception: type name AND message survive (repr), so the
+        # dead-letter record keeps its debugging context.
+        env = dlq.build_dlq_envelope(
+            task_name="t",
+            task_id="id-2",
+            tenant_id="tenant-1",
+            job_id="job-1",
+            error=sanitize_log_error(RuntimeError("connection refused")),
+            retries=3,
+            max_retries=3,
+        )
+        assert env["error"] == "RuntimeError('connection refused')"
+        assert "RuntimeError" in env["error"]
+        assert "connection refused" in env["error"]

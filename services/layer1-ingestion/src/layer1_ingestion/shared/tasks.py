@@ -265,7 +265,7 @@ def route_exhausted_task_to_dlq(
         task_id=task_id,
         tenant_id=tenant_id,
         job_id=job_id,
-        error=type(exception).__name__ if exception else None,
+        error=sanitize_log_error(exception) if exception else None,
         retries=retries,
         max_retries=max_retries,
     )
