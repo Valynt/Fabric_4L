@@ -6861,7 +6861,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/layer4_agents__tenants__api__routes__registration__RegisterTenantRequest"
+                "$ref": "#/components/schemas/RegisterTenantRequest"
               }
             }
           },
@@ -7194,7 +7194,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/layer4_agents__tenants__api__routes__admin__TenantSettingsResponse"
+                  "$ref": "#/components/schemas/TenantSettingsResponse"
                 }
               }
             }
@@ -11957,193 +11957,6 @@
             }
           }
         }
-      }
-    },
-    "/v1/tenant/settings": {
-      "get": {
-        "tags": [
-          "Frontend Compatibility"
-        ],
-        "summary": "Get Current Tenant Settings",
-        "description": "DEPRECATED alias for GET /v1/tenants/current/settings. Planned removal: 2026-08-01.",
-        "operationId": "get_current_tenant_settings_v1_tenant_settings_get",
-        "deprecated": true,
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/layer4_agents__api__routes__frontend_compat__TenantSettingsResponse"
-                }
-              }
-            }
-          }
-        },
-        "x-deprecated-since": "2026-05-29",
-        "x-deprecated-removal-date": "2026-08-01",
-        "x-deprecation-owner": "layer4-agents",
-        "x-canonical-path": "/v1/tenants/current/settings"
-      },
-      "patch": {
-        "tags": [
-          "Frontend Compatibility"
-        ],
-        "summary": "Update Current Tenant Settings",
-        "description": "DEPRECATED alias for PATCH /v1/tenants/current/settings. Planned removal: 2026-08-01.",
-        "operationId": "update_current_tenant_settings_v1_tenant_settings_patch",
-        "deprecated": true,
-        "parameters": [
-          {
-            "name": "X-CSRF-Token",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Csrf-Token"
-            }
-          },
-          {
-            "name": "vf_csrf_token",
-            "in": "cookie",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Vf Csrf Token"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/layer4_agents__api__routes__frontend_compat__TenantSettingsUpdate"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TenantSettingsUpdateResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "x-deprecated-since": "2026-05-29",
-        "x-deprecated-removal-date": "2026-08-01",
-        "x-deprecation-owner": "layer4-agents",
-        "x-canonical-path": "/v1/tenants/current/settings"
-      }
-    },
-    "/v1/auth/register": {
-      "post": {
-        "tags": [
-          "Frontend Compatibility"
-        ],
-        "summary": "Register Tenant Frontend Alias",
-        "description": "DEPRECATED alias for POST /v1/tenants/register. Planned removal: 2026-07-01.",
-        "operationId": "register_tenant_frontend_alias_v1_auth_register_post",
-        "deprecated": true,
-        "parameters": [
-          {
-            "name": "X-CSRF-Token",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Csrf-Token"
-            }
-          },
-          {
-            "name": "vf_csrf_token",
-            "in": "cookie",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Vf Csrf Token"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/layer4_agents__api__routes__frontend_compat__RegisterTenantRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "202": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RegisterTenantResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "x-deprecated-since": "2026-05-29",
-        "x-deprecated-removal-date": "2026-07-01",
-        "x-deprecation-owner": "layer4-agents",
-        "x-canonical-path": "/v1/tenants/register"
       }
     },
     "/v1/prospects/{prospect_id}/context": {
@@ -22242,6 +22055,62 @@
         "title": "RegenerateBusinessCaseRequest",
         "description": "Regenerate request with lineage to an existing case."
       },
+      "RegisterTenantRequest": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 2,
+            "title": "Name"
+          },
+          "slug": {
+            "type": "string",
+            "maxLength": 63,
+            "minLength": 2,
+            "title": "Slug"
+          },
+          "admin_email": {
+            "type": "string",
+            "format": "email",
+            "title": "Admin Email"
+          },
+          "tier_id": {
+            "type": "string",
+            "title": "Tier Id",
+            "default": "free"
+          },
+          "organization_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Organization Name"
+          },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phone"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "slug",
+          "admin_email"
+        ],
+        "title": "RegisterTenantRequest",
+        "description": "Request to register a new tenant."
+      },
       "RegisterTenantResponse": {
         "properties": {
           "message": {
@@ -24417,6 +24286,56 @@
         ],
         "title": "TenantOverviewResponse",
         "description": "Paginated cross-tenant overview response."
+      },
+      "TenantSettingsResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "slug": {
+            "type": "string",
+            "title": "Slug"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "tier_id": {
+            "type": "string",
+            "title": "Tier Id"
+          },
+          "settings": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Settings"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "status",
+          "tier_id",
+          "settings",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "TenantSettingsResponse",
+        "description": "Tenant settings response."
       },
       "TenantSettingsUpdateResponse": {
         "properties": {
@@ -28047,121 +27966,6 @@
         "title": "CheckpointListResponse",
         "description": "Response containing checkpoint timeline."
       },
-      "layer4_agents__api__routes__frontend_compat__RegisterTenantRequest": {
-        "properties": {
-          "name": {
-            "type": "string",
-            "title": "Name"
-          },
-          "slug": {
-            "type": "string",
-            "title": "Slug"
-          },
-          "admin_email": {
-            "type": "string",
-            "title": "Admin Email"
-          },
-          "tier_id": {
-            "type": "string",
-            "title": "Tier Id",
-            "default": "free"
-          },
-          "organization_name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Organization Name"
-          },
-          "phone": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Phone"
-          }
-        },
-        "type": "object",
-        "required": [
-          "name",
-          "slug",
-          "admin_email"
-        ],
-        "title": "RegisterTenantRequest",
-        "description": "Request to register a new tenant."
-      },
-      "layer4_agents__api__routes__frontend_compat__TenantSettingsResponse": {
-        "properties": {
-          "id": {
-            "type": "string",
-            "title": "Id"
-          },
-          "name": {
-            "type": "string",
-            "title": "Name"
-          },
-          "slug": {
-            "type": "string",
-            "title": "Slug"
-          },
-          "status": {
-            "type": "string",
-            "title": "Status"
-          },
-          "tier_id": {
-            "type": "string",
-            "title": "Tier Id"
-          },
-          "settings": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Settings"
-          },
-          "created_at": {
-            "type": "string",
-            "title": "Created At"
-          }
-        },
-        "type": "object",
-        "required": [
-          "id",
-          "name",
-          "slug",
-          "status",
-          "tier_id",
-          "settings",
-          "created_at"
-        ],
-        "title": "TenantSettingsResponse",
-        "description": "Tenant settings response."
-      },
-      "layer4_agents__api__routes__frontend_compat__TenantSettingsUpdate": {
-        "properties": {
-          "settings": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Settings"
-          }
-        },
-        "type": "object",
-        "title": "TenantSettingsUpdate",
-        "description": "Update tenant settings."
-      },
       "layer4_agents__harness__api_models__CheckpointListResponse": {
         "properties": {
           "items": {
@@ -28216,56 +28020,6 @@
         ],
         "title": "AuditLogResponse",
         "description": "Audit log response."
-      },
-      "layer4_agents__tenants__api__routes__admin__TenantSettingsResponse": {
-        "properties": {
-          "id": {
-            "type": "string",
-            "title": "Id"
-          },
-          "name": {
-            "type": "string",
-            "title": "Name"
-          },
-          "slug": {
-            "type": "string",
-            "title": "Slug"
-          },
-          "status": {
-            "type": "string",
-            "title": "Status"
-          },
-          "tier_id": {
-            "type": "string",
-            "title": "Tier Id"
-          },
-          "settings": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Settings"
-          },
-          "created_at": {
-            "type": "string",
-            "title": "Created At"
-          },
-          "updated_at": {
-            "type": "string",
-            "title": "Updated At"
-          }
-        },
-        "type": "object",
-        "required": [
-          "id",
-          "name",
-          "slug",
-          "status",
-          "tier_id",
-          "settings",
-          "created_at",
-          "updated_at"
-        ],
-        "title": "TenantSettingsResponse",
-        "description": "Tenant settings response."
       },
       "layer4_agents__tenants__api__routes__admin__TenantSettingsUpdate": {
         "properties": {
@@ -28341,62 +28095,6 @@
         "type": "object",
         "title": "TenantSettingsUpdate",
         "description": "Request body for updating tenant settings."
-      },
-      "layer4_agents__tenants__api__routes__registration__RegisterTenantRequest": {
-        "properties": {
-          "name": {
-            "type": "string",
-            "maxLength": 200,
-            "minLength": 2,
-            "title": "Name"
-          },
-          "slug": {
-            "type": "string",
-            "maxLength": 63,
-            "minLength": 2,
-            "title": "Slug"
-          },
-          "admin_email": {
-            "type": "string",
-            "format": "email",
-            "title": "Admin Email"
-          },
-          "tier_id": {
-            "type": "string",
-            "title": "Tier Id",
-            "default": "free"
-          },
-          "organization_name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Organization Name"
-          },
-          "phone": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Phone"
-          }
-        },
-        "type": "object",
-        "required": [
-          "name",
-          "slug",
-          "admin_email"
-        ],
-        "title": "RegisterTenantRequest",
-        "description": "Request to register a new tenant."
       },
       "list_chargesResult": {
         "properties": {

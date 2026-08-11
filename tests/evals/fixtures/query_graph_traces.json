@@ -12,7 +12,8 @@
         }
       },
       "assertions": {
-        "row_count": 2
+        "row_count": 2,
+        "requires_tenant_scope": true
       }
     }
   ]

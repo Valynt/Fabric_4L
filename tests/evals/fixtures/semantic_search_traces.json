@@ -7,14 +7,17 @@
       "description": "Predictive analytics query returns Capability entities with high similarity",
       "input": {
         "query": "predictive analytics for demand forecasting",
-        "entity_types": ["Capability"],
+        "entity_types": [
+          "Capability"
+        ],
         "top_k": 5,
         "similarity_threshold": 0.7
       },
       "assertions": {
         "min_results": 1,
         "all_type": "Capability",
-        "min_similarity": 0.7
+        "min_similarity": 0.7,
+        "requires_tenant_scope": true
       }
     },
     {
@@ -26,7 +29,8 @@
         "similarity_threshold": 0.95
       },
       "assertions": {
-        "max_results": 0
+        "max_results": 0,
+        "requires_tenant_scope": true
       }
     },
     {
@@ -34,13 +38,20 @@
       "description": "Multi-type search returns mixed entity types",
       "input": {
         "query": "reduce costs for supply chain operations",
-        "entity_types": ["Capability", "ValueDriver"],
+        "entity_types": [
+          "Capability",
+          "ValueDriver"
+        ],
         "top_k": 10,
         "similarity_threshold": 0.6
       },
       "assertions": {
         "min_results": 1,
-        "allowed_types": ["Capability", "ValueDriver"]
+        "allowed_types": [
+          "Capability",
+          "ValueDriver"
+        ],
+        "requires_tenant_scope": true
       }
     }
   ]

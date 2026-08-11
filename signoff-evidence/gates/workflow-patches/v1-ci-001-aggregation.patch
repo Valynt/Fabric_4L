@@ -1,0 +1,1082 @@
+diff --git a/.github/workflows/WORKFLOW_REGISTRY.md b/.github/workflows/WORKFLOW_REGISTRY.md
+index d66294f..03f59be 100644
+--- a/.github/workflows/WORKFLOW_REGISTRY.md
++++ b/.github/workflows/WORKFLOW_REGISTRY.md
+@@ -47,7 +47,7 @@ The repository currently contains **54** GitHub Actions workflow files.
+ | `.github/workflows/chaos-testing.yml` | `@value-fabric/sre-leads` | no | `schedule, workflow_call, workflow_dispatch` | `make check-workflow-references` |
+ | `.github/workflows/cleanup-repo.yml` | `@value-fabric/sre-leads` | no | `push, workflow_dispatch` | `make check-workflow-references` |
+ | `.github/workflows/codeql.yml` | `@value-fabric/sre-leads` | no | `pull_request, push, schedule` | `make check-workflow-references` |
+-| `.github/workflows/contract-compliance.yml` | `@value-fabric/sre-leads` | no | `pull_request, push, schedule, workflow_dispatch` | `make check-workflow-references` |
++| `.github/workflows/contract-compliance.yml` | `@value-fabric/sre-leads` | no | `merge_group, pull_request, push, schedule, workflow_dispatch` | `make check-workflow-references` |
+ | `.github/workflows/contract-rfc-enforcer.yml` | `@value-fabric/sre-leads` | no | `pull_request` | `make check-workflow-references` |
+ | `.github/workflows/critical-gates.yml` | `@value-fabric/sre-leads` | no | `pull_request, push` | `make check-workflow-references` |
+ | `.github/workflows/dependency-scan.yml` | `@value-fabric/sre-leads` | no | `pull_request, push, schedule, workflow_dispatch` | `make check-workflow-references` |
+@@ -70,21 +70,21 @@ The repository currently contains **54** GitHub Actions workflow files.
+ | `.github/workflows/performance-load-tests.yml` | `@value-fabric/sre-leads` | no | `push, schedule, workflow_dispatch` | `make check-workflow-references` |
+ | `.github/workflows/poc-governance-automation.yml` | `@value-fabric/sre-leads` | no | `pull_request, push, workflow_dispatch` | `make check-workflow-references` |
+ | `.github/workflows/pr-backlog-health.yml` | `@value-fabric/sre-leads` | no | `schedule, workflow_dispatch` | `make check-workflow-references` |
+-| `.github/workflows/pr-checks.yml` | `@value-fabric/sre-leads` | no | `pull_request, push` | `make check-workflow-references` |
+-| `.github/workflows/prod-readiness.yml` | `@value-fabric/sre-leads` | no | `pull_request, push, workflow_dispatch` | `make check-workflow-references` |
++| `.github/workflows/pr-checks.yml` | `@value-fabric/sre-leads` | no | `merge_group, pull_request, push` | `make check-workflow-references` |
++| `.github/workflows/prod-readiness.yml` | `@value-fabric/sre-leads` | no | `merge_group, pull_request, push, workflow_dispatch` | `make check-workflow-references` |
+ | `.github/workflows/public-docs.yml` | `@value-fabric/sre-leads` | no | `pull_request, push` | `make check-workflow-references` |
+ | `.github/workflows/publish-ci-tools.yml` | `@value-fabric/sre-leads` | no | `push, workflow_dispatch` | `make check-workflow-references` |
+ | `.github/workflows/publish-sdk.yml` | `@value-fabric/sre-leads` | no | `pull_request, push, workflow_dispatch` | `make check-workflow-references` |
+ | `.github/workflows/release-api-changelog.yml` | `@value-fabric/sre-leads` | no | `release, workflow_dispatch` | `make check-workflow-references` |
+-| `.github/workflows/release-evidence-bundle.yml` | `@value-fabric/sre-leads` | no | `pull_request, push, workflow_dispatch` | `make check-workflow-references` |
++| `.github/workflows/release-evidence-bundle.yml` | `@value-fabric/sre-leads` | no | `merge_group, pull_request, push, workflow_dispatch` | `make check-workflow-references` |
+ | `.github/workflows/repo-hygiene.yml` | `@value-fabric/sre-leads` | no | `pull_request, push, schedule, workflow_dispatch` | `make check-workflow-references` |
+ | `.github/workflows/repro-seed-validation.yml` | `@value-fabric/sre-leads` | no | `pull_request, push` | `make check-workflow-references` |
+ | `.github/workflows/runbook-validation.yml` | `@value-fabric/sre-leads` | no | `pull_request, push` | `make check-workflow-references` |
+ | `.github/workflows/sbom.yml` | `@value-fabric/sre-leads` | no | `push, release, workflow_dispatch` | `make check-workflow-references` |
+ | `.github/workflows/sdk-generation.yml` | `@value-fabric/sre-leads` | no | `push, schedule, workflow_dispatch` | `make check-workflow-references` |
+ | `.github/workflows/secret-rotation.yml` | `@value-fabric/sre-leads` | no | `schedule, workflow_dispatch` | `make check-workflow-references` |
+-| `.github/workflows/security-gates.yml` | `@value-fabric/sre-leads` | no | `pull_request, push, schedule` | `make check-workflow-references` |
+-| `.github/workflows/supply-chain-integrity.yml` | `@value-fabric/sre-leads` | no | `pull_request, push, workflow_call, workflow_dispatch` | `make check-workflow-references` |
++| `.github/workflows/security-gates.yml` | `@value-fabric/sre-leads` | no | `merge_group, pull_request, push, schedule` | `make check-workflow-references` |
++| `.github/workflows/supply-chain-integrity.yml` | `@value-fabric/sre-leads` | no | `merge_group, pull_request, push, workflow_call, workflow_dispatch` | `make check-workflow-references` |
+ | `.github/workflows/terraform-cd.yml` | `@value-fabric/sre-leads` | no | `pull_request, push, workflow_dispatch` | `make check-workflow-references` |
+ | `.github/workflows/test-reporting.yml` | `@value-fabric/sre-leads` | no | `pull_request, workflow_run` | `make check-workflow-references` |
+ | `.github/workflows/vault-integration.yml` | `@value-fabric/sre-leads` | no | `workflow_call` | `make check-workflow-references` |
+diff --git a/.github/workflows/contract-compliance.yml b/.github/workflows/contract-compliance.yml
+index 7ce6a9f..95f2523 100644
+--- a/.github/workflows/contract-compliance.yml
++++ b/.github/workflows/contract-compliance.yml
+@@ -24,6 +24,9 @@ on:
+   # push/schedule where it does not gate merges.
+   pull_request:
+     branches: [main, develop]
++  # V1-CI-001: merge queue support (Stage 1 shadow; aggregates become
++  # required at Stage 3).
++  merge_group:
+   push:
+     branches:
+       - main
+@@ -890,3 +893,37 @@ jobs:
+           echo "- **UI State**: no-imperative-navigation, no-url-concatenation" >> $GITHUB_STEP_SUMMARY
+           echo "- **Public API**: no-private-imports, no-circular-dependencies" >> $GITHUB_STEP_SUMMARY
+           echo "- **OpenAPI Drift**: Auto-detection via spec comparison" >> $GITHUB_STEP_SUMMARY
++
++
++  # ---------------------------------------------------------------------------
++  # V1-CI-001 Stage 1 (shadow): stable aggregate contract check. Informational
++  # until Stage 3. Summarizes existing jobs only (scripts/ci/aggregate_gate.py).
++  # All fanned-in jobs run unconditionally on pull_request (the trigger is
++  # intentionally unscoped; see the note on the pull_request trigger above), so
++  # any skip fails the aggregate closed.
++  # ---------------------------------------------------------------------------
++  aggregate-03-contract-compliance:
++    name: 03-contract-compliance
++    runs-on: ubuntu-latest
++    timeout-minutes: 5
++    if: always()
++    needs:
++      - contract-compliance
++      - plugin-tests
++      - validate-dependabot-coverage
++      - lint-frontend
++      - validate-canonical
++      - platform-contract-tests
++      - python-lint
++      - generate-openapi
++      - detect-drift
++      - openapi-contract-tests
++      - contract-shape-regression
++      - validate-deprecations
++      - contract-scorecard
++    steps:
++      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
++      - name: Summarize contract-compliance gates
++        env:
++          NEEDS_JSON: ${{ toJSON(needs) }}
++        run: python3 scripts/ci/aggregate_gate.py --needs-json "$NEEDS_JSON"
+diff --git a/.github/workflows/pr-checks.yml b/.github/workflows/pr-checks.yml
+index 8717552..c897f00 100644
+--- a/.github/workflows/pr-checks.yml
++++ b/.github/workflows/pr-checks.yml
+@@ -15,6 +15,9 @@ permissions:
+     branches: [main]
+   push:
+     branches: [main]
++  # V1-CI-001: merge queue support (Stage 1 shadow; aggregates become
++  # required at Stage 3).
++  merge_group:
+ 
+ concurrency:
+   # Cancel only an obsolete run of this same workflow/ref. A global
+@@ -2932,3 +2935,125 @@ jobs:
+             exit 1
+           fi
+           echo "Unified readiness gate passed."
++
++
++  # ---------------------------------------------------------------------------
++  # V1-CI-001 Stage 1 (shadow): stable aggregate PR checks. Aggregate jobs
++  # perform no substantive testing; they only summarize the results of the
++  # existing jobs they fan in from (scripts/ci/aggregate_gate.py). They are
++  # informational until Stage 3 makes them required after shadow parity.
++  # A 'skipped' child only passes when the skip is explicitly confirmed safe
++  # via a SKIPSAFE_* env expression (change-scope output resolved to 'false'
++  # or the job's event gate does not apply to this event).
++  # ---------------------------------------------------------------------------
++  aggregate-01-repository-integrity:
++    name: 01-repository-integrity
++    runs-on: ubuntu-latest
++    timeout-minutes: 5
++    if: always()
++    needs:
++      - change-scope
++      - structural-preflight
++      - pr-overlap-guard
++      - governance-docs-check
++      - gate-engineering
++    steps:
++      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
++      - name: Summarize repository-integrity gates
++        env:
++          NEEDS_JSON: ${{ toJSON(needs) }}
++          # pr-overlap-guard only runs on pull_request events; on push and
++          # merge_group there is no overlapping PR to guard against.
++          SKIPSAFE_PR_OVERLAP_GUARD: ${{ github.event_name != 'pull_request' }}
++        run: |
++          python3 scripts/ci/aggregate_gate.py \
++            --needs-json "$NEEDS_JSON" \
++            --skip-safe pr-overlap-guard=SKIPSAFE_PR_OVERLAP_GUARD
++
++  aggregate-02-code-quality-and-tests:
++    name: 02-code-quality-and-tests
++    runs-on: ubuntu-latest
++    timeout-minutes: 5
++    if: always()
++    needs:
++      - change-scope
++      - layer1-checks
++      - layer2-checks
++      - layer3-checks
++      - layer4-checks
++      - layer5-checks
++      - layer6-checks
++      - shared-and-tests-checks
++      - frontend-checks
++    steps:
++      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
++      - name: Summarize code-quality and test gates
++        env:
++          NEEDS_JSON: ${{ toJSON(needs) }}
++          SKIPSAFE_LAYER1: ${{ needs.change-scope.outputs.layer1 == 'false' }}
++          SKIPSAFE_LAYER2: ${{ needs.change-scope.outputs.layer2 == 'false' }}
++          SKIPSAFE_LAYER3: ${{ needs.change-scope.outputs.layer3 == 'false' }}
++          SKIPSAFE_LAYER4: ${{ needs.change-scope.outputs.layer4 == 'false' }}
++          SKIPSAFE_LAYER5: ${{ needs.change-scope.outputs.layer5 == 'false' }}
++          SKIPSAFE_LAYER6: ${{ needs.change-scope.outputs.layer6 == 'false' }}
++          SKIPSAFE_BACKEND: ${{ needs.change-scope.outputs.backend == 'false' }}
++          SKIPSAFE_WEB: ${{ needs.change-scope.outputs.web == 'false' }}
++        run: |
++          python3 scripts/ci/aggregate_gate.py \
++            --needs-json "$NEEDS_JSON" \
++            --skip-safe layer1-checks=SKIPSAFE_LAYER1 \
++            --skip-safe layer2-checks=SKIPSAFE_LAYER2 \
++            --skip-safe layer3-checks=SKIPSAFE_LAYER3 \
++            --skip-safe layer4-checks=SKIPSAFE_LAYER4 \
++            --skip-safe layer5-checks=SKIPSAFE_LAYER5 \
++            --skip-safe layer6-checks=SKIPSAFE_LAYER6 \
++            --skip-safe shared-and-tests-checks=SKIPSAFE_BACKEND \
++            --skip-safe frontend-checks=SKIPSAFE_WEB
++
++  aggregate-05-tenant-isolation-and-behavior:
++    name: 05-tenant-isolation-and-behavior
++    runs-on: ubuntu-latest
++    timeout-minutes: 5
++    if: always()
++    needs:
++      - change-scope
++      - behavior-tests
++      - tenant-isolation-gate
++      - route-auth-gate
++      - layer5-source-contract
++      - layer5-tenant-isolation-regression
++      - layer5-contract-shape-regression
++      - critical-behaviors-gate
++    steps:
++      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
++      - name: Summarize tenant-isolation and behavior gates
++        env:
++          NEEDS_JSON: ${{ toJSON(needs) }}
++          SKIPSAFE_WEB: ${{ needs.change-scope.outputs.web == 'false' }}
++          SKIPSAFE_BACKEND: ${{ needs.change-scope.outputs.backend == 'false' }}
++          SKIPSAFE_LAYER5: ${{ needs.change-scope.outputs.layer5 == 'false' }}
++          SKIPSAFE_CODE: ${{ needs.change-scope.outputs.code == 'false' }}
++        run: |
++          python3 scripts/ci/aggregate_gate.py \
++            --needs-json "$NEEDS_JSON" \
++            --skip-safe behavior-tests=SKIPSAFE_WEB \
++            --skip-safe tenant-isolation-gate=SKIPSAFE_BACKEND \
++            --skip-safe route-auth-gate=SKIPSAFE_BACKEND \
++            --skip-safe layer5-source-contract=SKIPSAFE_LAYER5 \
++            --skip-safe layer5-tenant-isolation-regression=SKIPSAFE_LAYER5 \
++            --skip-safe layer5-contract-shape-regression=SKIPSAFE_LAYER5 \
++            --skip-safe critical-behaviors-gate=SKIPSAFE_CODE
++
++  # 09-change-risk-and-approval is deterministic policy, not an LLM gate and
++  # not a fan-in summary: it verifies that a schema-valid independent-review
++  # artifact exists for the exact base/head SHAs under review, has no
++  # unresolved P0/P1 findings, records CODEOWNER/human approval for every
++  # high-risk surface touched, and that the reviewer did not author the patch.
++  aggregate-09-change-risk-and-approval:
++    name: 09-change-risk-and-approval
++    runs-on: ubuntu-latest
++    timeout-minutes: 5
++    steps:
++      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
++      - name: Verify independent-review and change-risk policy
++        run: python3 scripts/ci/check_change_risk_approval.py
+diff --git a/.github/workflows/prod-readiness.yml b/.github/workflows/prod-readiness.yml
+index 19c0881..1a4d828 100644
+--- a/.github/workflows/prod-readiness.yml
++++ b/.github/workflows/prod-readiness.yml
+@@ -8,6 +8,9 @@ on:
+     branches: [main]
+   push:
+     branches: [main, "release/**"]
++  # V1-CI-001: merge queue support (Stage 1 shadow; aggregates become
++  # required at Stage 3).
++  merge_group:
+   workflow_dispatch:
+ 
+ concurrency:
+@@ -661,3 +664,52 @@ jobs:
+       - name: Publish summary
+         if: needs.determine-profile.outputs.profile != 'pr-fast'
+         run: cat artifacts/release/summary.md >> $GITHUB_STEP_SUMMARY
++
++
++  # ---------------------------------------------------------------------------
++  # V1-CI-001 Stage 1 (shadow): stable aggregate production-readiness check.
++  # Informational until Stage 3. Summarizes existing jobs only
++  # (scripts/ci/aggregate_gate.py).
++  # ---------------------------------------------------------------------------
++  aggregate-06-production-readiness:
++    name: 06-production-readiness
++    runs-on: ubuntu-latest
++    if: always()
++    needs:
++      - determine-profile
++      - arch-conformance
++      - security-isolation
++      - dependency-chaos
++      - cross-domain-smoke
++      - agent-provenance
++      - state-consistency
++      - db-production-readiness-gate
++      - observability-readiness
++      - repo-maturity-scorecard
++      - readiness-10
++      - gate-engineering
++      - release-policy
++    steps:
++      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
++      - name: Summarize production-readiness gates
++        env:
++          NEEDS_JSON: ${{ toJSON(needs) }}
++          # Runtime-gated jobs skip on documentation-only PRs (runtime=false).
++          SKIPSAFE_RUNTIME: ${{ github.event_name == 'pull_request' && needs.determine-profile.outputs.runtime == 'false' }}
++          # Profile-gated jobs skip on the fast PR profile by design.
++          SKIPSAFE_PROFILE: ${{ needs.determine-profile.outputs.profile == 'pr-fast' }}
++        run: |
++          python3 scripts/ci/aggregate_gate.py \
++            --needs-json "$NEEDS_JSON" \
++            --skip-safe arch-conformance=SKIPSAFE_RUNTIME \
++            --skip-safe security-isolation=SKIPSAFE_RUNTIME \
++            --skip-safe agent-provenance=SKIPSAFE_RUNTIME \
++            --skip-safe state-consistency=SKIPSAFE_RUNTIME \
++            --skip-safe db-production-readiness-gate=SKIPSAFE_RUNTIME \
++            --skip-safe dependency-chaos=SKIPSAFE_PROFILE \
++            --skip-safe cross-domain-smoke=SKIPSAFE_PROFILE \
++            --skip-safe observability-readiness=SKIPSAFE_PROFILE \
++            --skip-safe repo-maturity-scorecard=SKIPSAFE_PROFILE \
++            --skip-safe readiness-10=SKIPSAFE_PROFILE \
++            --skip-safe gate-engineering=SKIPSAFE_PROFILE \
++            --skip-safe release-policy=SKIPSAFE_PROFILE
+diff --git a/.github/workflows/release-evidence-bundle.yml b/.github/workflows/release-evidence-bundle.yml
+index 8c09e33..9e277c8 100644
+--- a/.github/workflows/release-evidence-bundle.yml
++++ b/.github/workflows/release-evidence-bundle.yml
+@@ -25,6 +25,9 @@ on:
+       - 'scripts/**'
+       - 'config/**'
+       - 'Makefile'
++  # V1-CI-001: merge queue support (Stage 1 shadow; aggregates become
++  # required at Stage 3).
++  merge_group:
+   push:
+     tags:
+       - 'v*'
+@@ -375,3 +378,28 @@ jobs:
+           path: |
+             ${{ steps.bundle.outputs.path }}
+             artifacts/evidence/*.summary.json
++
++
++  # ---------------------------------------------------------------------------
++  # V1-CI-001 Stage 1 (shadow): stable aggregate release-evidence check.
++  # Informational until Stage 3. Summarizes existing jobs only
++  # (scripts/ci/aggregate_gate.py). All fanned-in jobs run on every trigger of
++  # this workflow, so any skip fails the aggregate closed.
++  # ---------------------------------------------------------------------------
++  aggregate-08-release-evidence:
++    name: 08-release-evidence
++    runs-on: ubuntu-latest
++    if: always()
++    needs:
++      - release-readiness-gate
++      - build-and-scan
++      - supply-chain-policy-check
++      - sast-and-tests
++      - live-stack-evidence
++      - consolidate-bundle
++    steps:
++      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
++      - name: Summarize release-evidence gates
++        env:
++          NEEDS_JSON: ${{ toJSON(needs) }}
++        run: python3 scripts/ci/aggregate_gate.py --needs-json "$NEEDS_JSON"
+diff --git a/.github/workflows/security-gates.yml b/.github/workflows/security-gates.yml
+index b47eb0a..0ba47d1 100644
+--- a/.github/workflows/security-gates.yml
++++ b/.github/workflows/security-gates.yml
+@@ -12,6 +12,9 @@ on:
+     branches: [main, develop, staging, production]
+   push:
+     branches: [main, develop, staging, production]
++  # V1-CI-001: merge queue support (Stage 1 shadow; aggregates become
++  # required at Stage 3).
++  merge_group:
+   schedule:
+     # Run weekly on Mondays at 9 AM UTC
+     - cron: '0 9 * * 1'
+@@ -1343,3 +1346,68 @@ jobs:
+             .fabric/audit/security_regression_gate/
+           if-no-files-found: error
+           retention-days: ${{env.SECURITY_ARTIFACT_RETENTION_DAYS}}
++
++
++  # ---------------------------------------------------------------------------
++  # V1-CI-001 Stage 1 (shadow): stable aggregate security check. Informational
++  # until Stage 3. Summarizes existing jobs only (scripts/ci/aggregate_gate.py).
++  # ---------------------------------------------------------------------------
++  aggregate-04-security-gates:
++    name: 04-security-gates
++    runs-on: ubuntu-latest
++    timeout-minutes: 5
++    if: always()
++    needs:
++      - change-scope
++      - dev-auth-bypass-guard
++      - gitleaks-scan
++      - cypher-dynamic-guard
++      - semgrep-full-scan
++      - trivy-repo-scan
++      - osv-scanner-pr
++      - trivy-image-scan
++      - sbom-policy
++      - dast-api-scan
++      - bandit-scan
++      - pip-audit-scan
++      - frontend-security-audit
++      - dockerfile-non-root-check
++      - dependency-review
++      - mandatory-security-regression
++      - route-auth-gate
++    steps:
++      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
++      - name: Summarize security gates
++        env:
++          NEEDS_JSON: ${{ toJSON(needs) }}
++          SKIPSAFE_LAYER3: ${{ needs.change-scope.outputs.layer3 == 'false' }}
++          SKIPSAFE_CODE: ${{ needs.change-scope.outputs.code == 'false' }}
++          SKIPSAFE_DEPS: ${{ needs.change-scope.outputs.deps == 'false' }}
++          SKIPSAFE_BACKEND: ${{ needs.change-scope.outputs.backend == 'false' }}
++          SKIPSAFE_WEB: ${{ needs.change-scope.outputs.web == 'false' }}
++          SKIPSAFE_DOCKER: ${{ needs.change-scope.outputs.docker == 'false' }}
++          SKIPSAFE_NOT_PR: ${{ github.event_name != 'pull_request' }}
++          # Several scan jobs are gated on pull_request/push events; on
++          # merge_group they skip and their coverage was already proven on the
++          # PR head (Stage 3 follow-up widens their `if:` to merge_group).
++          SKIPSAFE_NOT_PR_OR_PUSH: ${{ github.event_name != 'pull_request' && github.event_name != 'push' }}
++          SKIPSAFE_OSV_PR: ${{ needs.change-scope.outputs.deps == 'false' || github.event_name != 'pull_request' }}
++          SKIPSAFE_TRIVY_IMAGE: ${{ needs.change-scope.outputs.docker == 'false' || (github.event_name != 'pull_request' && github.event_name != 'push') }}
++          SKIPSAFE_SBOM_POLICY: ${{ (needs.change-scope.outputs.docker == 'false' && needs.change-scope.outputs.deps == 'false') || (github.event_name != 'pull_request' && github.event_name != 'push') }}
++          SKIPSAFE_DAST: ${{ needs.change-scope.outputs.code == 'false' || (github.event_name != 'pull_request' && github.event_name != 'push') }}
++          SKIPSAFE_PIP_AUDIT: ${{ needs.change-scope.outputs.backend == 'false' && needs.change-scope.outputs.deps == 'false' }}
++        run: |
++          python3 scripts/ci/aggregate_gate.py \
++            --needs-json "$NEEDS_JSON" \
++            --skip-safe cypher-dynamic-guard=SKIPSAFE_LAYER3 \
++            --skip-safe semgrep-full-scan=SKIPSAFE_CODE \
++            --skip-safe osv-scanner-pr=SKIPSAFE_OSV_PR \
++            --skip-safe trivy-image-scan=SKIPSAFE_TRIVY_IMAGE \
++            --skip-safe sbom-policy=SKIPSAFE_SBOM_POLICY \
++            --skip-safe dast-api-scan=SKIPSAFE_DAST \
++            --skip-safe bandit-scan=SKIPSAFE_BACKEND \
++            --skip-safe pip-audit-scan=SKIPSAFE_PIP_AUDIT \
++            --skip-safe frontend-security-audit=SKIPSAFE_WEB \
++            --skip-safe dockerfile-non-root-check=SKIPSAFE_DOCKER \
++            --skip-safe dependency-review=SKIPSAFE_NOT_PR \
++            --skip-safe route-auth-gate=SKIPSAFE_BACKEND
+diff --git a/.github/workflows/supply-chain-integrity.yml b/.github/workflows/supply-chain-integrity.yml
+index 8dd3ac6..5d6bc92 100644
+--- a/.github/workflows/supply-chain-integrity.yml
++++ b/.github/workflows/supply-chain-integrity.yml
+@@ -25,6 +25,9 @@ name: "Supply Chain Integrity Gate"
+       - 'Makefile'
+   push:
+     branches: [main]
++  # V1-CI-001: merge queue support (Stage 1 shadow; aggregates become
++  # required at Stage 3).
++  merge_group:
+   workflow_call:
+     inputs:
+       image_tag:
+@@ -577,3 +580,38 @@ jobs:
+           echo "| SBOM Generation | ${{ needs.sbom-scan.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
+           echo "| SLSA Provenance | ${{ needs.provenance.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
+           echo "| Dependency Audit | ${{ needs.dependency-audit.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
++
++
++  # ---------------------------------------------------------------------------
++  # V1-CI-001 Stage 1 (shadow): stable aggregate supply-chain check.
++  # Informational until Stage 3. Summarizes existing jobs only
++  # (scripts/ci/aggregate_gate.py).
++  # ---------------------------------------------------------------------------
++  aggregate-07-supply-chain-integrity:
++    name: 07-supply-chain-integrity
++    runs-on: ubuntu-latest
++    timeout-minutes: 5
++    if: always()
++    needs:
++      - ci-tools-preflight
++      - source-sbom-scan
++      - sbom-scan
++      - provenance
++      - verify-signatures
++      - dependency-audit
++      - license-check
++    steps:
++      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
++      - name: Summarize supply-chain gates
++        env:
++          NEEDS_JSON: ${{ toJSON(needs) }}
++          # sbom-scan/provenance/verify-signatures certify release images; they
++          # only run on dispatch or when certify_images is requested. On PR and
++          # merge_group events no release image exists, so the skip is safe.
++          SKIPSAFE_IMAGE_CERT: ${{ !(inputs.certify_images || github.event_name == 'workflow_dispatch') }}
++        run: |
++          python3 scripts/ci/aggregate_gate.py \
++            --needs-json "$NEEDS_JSON" \
++            --skip-safe sbom-scan=SKIPSAFE_IMAGE_CERT \
++            --skip-safe provenance=SKIPSAFE_IMAGE_CERT \
++            --skip-safe verify-signatures=SKIPSAFE_IMAGE_CERT
+diff --git a/.github/workflows/workflow-registry.json b/.github/workflows/workflow-registry.json
+index f8f3351..5c01e8f 100644
+--- a/.github/workflows/workflow-registry.json
++++ b/.github/workflows/workflow-registry.json
+@@ -215,6 +215,7 @@
+       "name": "Contract Compliance",
+       "owner": "@value-fabric/sre-leads",
+       "trigger": [
++        "merge_group",
+         "pull_request",
+         "push",
+         "schedule",
+@@ -659,6 +660,7 @@
+       "name": "PR Checks",
+       "owner": "@value-fabric/sre-leads",
+       "trigger": [
++        "merge_group",
+         "pull_request",
+         "push"
+       ],
+@@ -742,6 +744,7 @@
+       "name": "Prod Readiness Gates",
+       "owner": "@value-fabric/sre-leads",
+       "trigger": [
++        "merge_group",
+         "pull_request",
+         "push",
+         "workflow_dispatch"
+@@ -853,6 +856,7 @@
+       "name": "Release Evidence Bundle",
+       "owner": "@value-fabric/sre-leads",
+       "trigger": [
++        "merge_group",
+         "pull_request",
+         "push",
+         "workflow_dispatch"
+@@ -1004,6 +1008,7 @@
+       "name": "Security Gates",
+       "owner": "@value-fabric/sre-leads",
+       "trigger": [
++        "merge_group",
+         "pull_request",
+         "push",
+         "schedule"
+@@ -1046,6 +1051,7 @@
+       "name": "Supply Chain Integrity Gate",
+       "owner": "@value-fabric/sre-leads",
+       "trigger": [
++        "merge_group",
+         "pull_request",
+         "push",
+         "workflow_call",
+diff --git a/docs/development/CI_GATES.md b/docs/development/CI_GATES.md
+index 66d2800..0e6d66a 100644
+--- a/docs/development/CI_GATES.md
++++ b/docs/development/CI_GATES.md
+@@ -27,7 +27,7 @@ The owner is the first-response triage contact. Start with the local command, th
+ | `chaos-testing.yml` | reusable automation | `schedule, workflow_call, workflow_dispatch` | `@value-fabric/sre-leads` | `make check-workflow-references` | none | chaos-results/, chaos-results/${{ matrix.stress_type }}-stress/, chaos-results/autoscaler/, chaos-results/network-partition/, chaos-results/pod-delete/, chaos-results/pre-chaos-health.json | 25 min |
+ | `cleanup-repo.yml` | delivery / continuous automation | `push, workflow_dispatch` | `@value-fabric/sre-leads` | `make check-workflow-references` | GITHUB_TOKEN | none | 30 min |
+ | `codeql.yml` | pull request validation | `pull_request, push, schedule` | `@value-fabric/sre-leads` | `make check-workflow-references` | none | none | 30 min |
+-| `contract-compliance.yml` | pull request validation | `pull_request, push, schedule, workflow_dispatch` | `@value-fabric/sre-leads` | `make check-workflow-references` | none | .pytest_cache/, apps/web/.eslintcache, apps/web/eslint-report.json, artifacts/canonical-import-drift.txt, artifacts/contract-breaking/openapi-breaking-report.json, artifacts/contract-breaking/openapi-breaking-report.md, contract-scorecard.json, deprecation-debt-report-enforced.json, deprecation-debt-report.json, docs/governance/deprecation-debt-registry.json, docs/governance/deprecations.json, services/${{matrix.layer}}/generated-openapi.json, test-results.xml | 15 min |
++| `contract-compliance.yml` | pull request validation | `merge_group, pull_request, push, schedule, workflow_dispatch` | `@value-fabric/sre-leads` | `make check-workflow-references` | none | .pytest_cache/, apps/web/.eslintcache, apps/web/eslint-report.json, artifacts/canonical-import-drift.txt, artifacts/contract-breaking/openapi-breaking-report.json, artifacts/contract-breaking/openapi-breaking-report.md, contract-scorecard.json, deprecation-debt-report-enforced.json, deprecation-debt-report.json, docs/governance/deprecation-debt-registry.json, docs/governance/deprecations.json, services/${{matrix.layer}}/generated-openapi.json, test-results.xml | 15 min |
+ | `contract-rfc-enforcer.yml` | pull request validation | `pull_request` | `@value-fabric/sre-leads` | `make check-workflow-references` | none | none | 30 min |
+ | `critical-gates.yml` | pull request validation | `pull_request, push` | `@value-fabric/sre-leads` | `make check-workflow-references` | none | artifacts/critical-gates/ | 30 min |
+ | `dependency-scan.yml` | pull request validation | `pull_request, push, schedule, workflow_dispatch` | `@value-fabric/sre-leads` | `make check-workflow-references` | none | apps/${{ matrix.frontend }}/pnpm-audit-base.json, apps/${{ matrix.frontend }}/pnpm-audit.json, artifacts/pip-audit-base/${{ matrix.service }}/diagnostic.json, artifacts/pip-audit-base/${{ matrix.service }}/report.json, artifacts/pip-audit-base/${{ matrix.service }}/report.sarif, artifacts/pip-audit-base/${{ matrix.service }}/requirements.txt, artifacts/pip-audit/${{ matrix.service }}/diagnostic.json, artifacts/pip-audit/${{ matrix.service }}/report.json, artifacts/pip-audit/${{ matrix.service }}/report.sarif, artifacts/pip-audit/${{ matrix.service }}/requirements.txt, sbom-vuln-track.json | 30 min |
+@@ -50,21 +50,21 @@ The owner is the first-response triage contact. Start with the local command, th
+ | `performance-load-tests.yml` | delivery / continuous automation | `push, schedule, workflow_dispatch` | `@value-fabric/sre-leads` | `make check-workflow-references` | none | artifacts/performance/k6-summary.json, artifacts/performance/logs/, artifacts/performance/slo-evaluation.json, artifacts/performance/slo-report.md, artifacts/performance/slo-window-history.json | 40 min |
+ | `poc-governance-automation.yml` | pull request validation | `pull_request, push, workflow_dispatch` | `@value-fabric/sre-leads` | `make check-workflow-references` | none | none | 10 min |
+ | `pr-backlog-health.yml` | scheduled assurance | `schedule, workflow_dispatch` | `@value-fabric/sre-leads` | `make check-workflow-references` | GITHUB_TOKEN | none | 10 min |
+-| `pr-checks.yml` | pull request validation | `pull_request, push` | `@value-fabric/sre-leads` | `make check-workflow-references` | GITHUB_TOKEN, INFISICAL_IDENTITY_ID | .pytest_cache/, .schemathesis/, apps/web/coverage/, apps/web/dist/public/, apps/web/dist/stats.html, apps/web/e2e-results/**, apps/web/frontend-junit.xml, apps/web/playwright-report/**, artifacts/compatibility-debt/, artifacts/critical-behaviors-gate/result.json, artifacts/docker-compose-config/**, artifacts/docs-validation/docs-validation-evidence.json, artifacts/docs-validation/docs-validation-summary.md, artifacts/docs-validation/stale-documents.json, artifacts/duplicate-source-trees.json, artifacts/l3-contract-drift.json, artifacts/layer-quality-scorecard.md, artifacts/layer3-audited-mutation-violations.json, artifacts/layer3-cypher-scope-audit.json, artifacts/layer3-query-entrypoint-matrix.json, artifacts/layer3-source-mirror.txt, artifacts/legacy-debt-report.json, artifacts/logs/, artifacts/observability/**, artifacts/production-readiness/**, artifacts/pytest-collection.txt, artifacts/pytest-skip-governance.json, artifacts/python-contract-lint.json, artifacts/readiness/behavior-readiness-audit.json, artifacts/release-evidence/billing-entitlements-junit.xml, artifacts/release-evidence/billing-entitlements-summary.json, artifacts/release-evidence/billing-entitlements-summary.md, artifacts/release_smoke/**, artifacts/route-tenant-propagation.json, artifacts/route-tenant-propagation.md, artifacts/shared-imports-runtime.json, artifacts/structural-preflight.json, artifacts/tenant-isolation/summary.json, artifacts/test-skip-governance.json, artifacts/violation-diff-summary.json, artifacts/violation-diff-summary.md, artifacts/webhook-security-matrix.md, sbom-${{ matrix.layer }}-${{ github.sha }}.spdx.json, services/layer1-ingestion/layer1-coverage.xml, services/layer1-ingestion/layer1-junit.xml, services/layer1-ingestion/layer1-results.json, services/layer2-extraction/layer2-coverage.xml, services/layer2-extraction/layer2-junit.xml, services/layer2-extraction/layer2-results.json, services/layer3-knowledge/artifacts/layer3-tenancy/, services/layer3-knowledge/layer3-coverage.xml, services/layer3-knowledge/layer3-junit.xml, services/layer3-knowledge/layer3-results.json, services/layer4-agents/layer4-coverage.xml, services/layer4-agents/layer4-junit.xml, services/layer4-agents/layer4-results.json, services/layer5-ground-truth/contract-diff/, services/layer5-ground-truth/layer5-coverage.xml, services/layer5-ground-truth/layer5-junit.xml, services/layer5-ground-truth/layer5-results.json, services/layer6-benchmarks/layer6-coverage.xml, services/layer6-benchmarks/layer6-junit.xml, services/layer6-benchmarks/layer6-results.json | 45 min |
+-| `prod-readiness.yml` | pull request validation | `pull_request, push, workflow_dispatch` | `@value-fabric/sre-leads` | `make check-workflow-references` | none | artifacts/, artifacts/agent/, artifacts/arch/, artifacts/chaos/, artifacts/database/**, artifacts/obs/, artifacts/readiness-10/**, artifacts/readiness/, artifacts/release/, artifacts/release/gate-*.json, artifacts/release/release-readiness-report.json, artifacts/release/release-readiness-report.md, artifacts/security/, artifacts/smoke/, artifacts/state/, reports/scorecards/repo-maturity.json, reports/scorecards/repo-maturity.schema.json | 30 min |
++| `pr-checks.yml` | pull request validation | `merge_group, pull_request, push` | `@value-fabric/sre-leads` | `make check-workflow-references` | GITHUB_TOKEN, INFISICAL_IDENTITY_ID | .pytest_cache/, .schemathesis/, apps/web/coverage/, apps/web/dist/public/, apps/web/dist/stats.html, apps/web/e2e-results/**, apps/web/frontend-junit.xml, apps/web/playwright-report/**, artifacts/compatibility-debt/, artifacts/critical-behaviors-gate/result.json, artifacts/docker-compose-config/**, artifacts/docs-validation/docs-validation-evidence.json, artifacts/docs-validation/docs-validation-summary.md, artifacts/docs-validation/stale-documents.json, artifacts/duplicate-source-trees.json, artifacts/l3-contract-drift.json, artifacts/layer-quality-scorecard.md, artifacts/layer3-audited-mutation-violations.json, artifacts/layer3-cypher-scope-audit.json, artifacts/layer3-query-entrypoint-matrix.json, artifacts/layer3-source-mirror.txt, artifacts/legacy-debt-report.json, artifacts/logs/, artifacts/observability/**, artifacts/production-readiness/**, artifacts/pytest-collection.txt, artifacts/pytest-skip-governance.json, artifacts/python-contract-lint.json, artifacts/readiness/behavior-readiness-audit.json, artifacts/release-evidence/billing-entitlements-junit.xml, artifacts/release-evidence/billing-entitlements-summary.json, artifacts/release-evidence/billing-entitlements-summary.md, artifacts/release_smoke/**, artifacts/route-tenant-propagation.json, artifacts/route-tenant-propagation.md, artifacts/shared-imports-runtime.json, artifacts/structural-preflight.json, artifacts/tenant-isolation/summary.json, artifacts/test-skip-governance.json, artifacts/violation-diff-summary.json, artifacts/violation-diff-summary.md, artifacts/webhook-security-matrix.md, sbom-${{ matrix.layer }}-${{ github.sha }}.spdx.json, services/layer1-ingestion/layer1-coverage.xml, services/layer1-ingestion/layer1-junit.xml, services/layer1-ingestion/layer1-results.json, services/layer2-extraction/layer2-coverage.xml, services/layer2-extraction/layer2-junit.xml, services/layer2-extraction/layer2-results.json, services/layer3-knowledge/artifacts/layer3-tenancy/, services/layer3-knowledge/layer3-coverage.xml, services/layer3-knowledge/layer3-junit.xml, services/layer3-knowledge/layer3-results.json, services/layer4-agents/layer4-coverage.xml, services/layer4-agents/layer4-junit.xml, services/layer4-agents/layer4-results.json, services/layer5-ground-truth/contract-diff/, services/layer5-ground-truth/layer5-coverage.xml, services/layer5-ground-truth/layer5-junit.xml, services/layer5-ground-truth/layer5-results.json, services/layer6-benchmarks/layer6-coverage.xml, services/layer6-benchmarks/layer6-junit.xml, services/layer6-benchmarks/layer6-results.json | 45 min |
++| `prod-readiness.yml` | pull request validation | `merge_group, pull_request, push, workflow_dispatch` | `@value-fabric/sre-leads` | `make check-workflow-references` | none | artifacts/, artifacts/agent/, artifacts/arch/, artifacts/chaos/, artifacts/database/**, artifacts/obs/, artifacts/readiness-10/**, artifacts/readiness/, artifacts/release/, artifacts/release/gate-*.json, artifacts/release/release-readiness-report.json, artifacts/release/release-readiness-report.md, artifacts/security/, artifacts/smoke/, artifacts/state/, reports/scorecards/repo-maturity.json, reports/scorecards/repo-maturity.schema.json | 30 min |
+ | `public-docs.yml` | pull request validation | `pull_request, push` | `@value-fabric/sre-leads` | `make check-workflow-references` | none | none | 30 min |
+ | `publish-ci-tools.yml` | delivery / continuous automation | `push, workflow_dispatch` | `@value-fabric/sre-leads` | `make check-workflow-references` | none | security-suite-digest.txt | 30 min |
+ | `publish-sdk.yml` | pull request validation | `pull_request, push, workflow_dispatch` | `@value-fabric/sre-leads` | `make check-workflow-references` | GITHUB_TOKEN | sdk/python/dist/ | 30 min |
+ | `release-api-changelog.yml` | delivery / continuous automation | `release, workflow_dispatch` | `@value-fabric/sre-leads` | `make check-workflow-references` | GITHUB_TOKEN, SLACK_WEBHOOK_URL_API_CHANGES | ${{ steps.changelog.outputs.output_path }} | 30 min |
+-| `release-evidence-bundle.yml` | pull request validation | `pull_request, push, workflow_dispatch` | `@value-fabric/sre-leads` | `make check-workflow-references` | GITHUB_TOKEN | ${{ steps.bundle.outputs.path }}, artifacts/evidence/*.summary.json, artifacts/release/release-safety.json, attestation-${{ matrix.service }}-${{ github.sha }}.json, bandit-report.*, prompt-injection-tests.xml, report_*.html, report_*.json, sbom-${{ matrix.service }}-${{ github.sha }}.*, security-tests.xml, signing-${{ matrix.service }}-${{ github.sha }}.json, stack-health.json, trivy-${{ matrix.service }}.* | 30 min |
++| `release-evidence-bundle.yml` | pull request validation | `merge_group, pull_request, push, workflow_dispatch` | `@value-fabric/sre-leads` | `make check-workflow-references` | GITHUB_TOKEN | ${{ steps.bundle.outputs.path }}, artifacts/evidence/*.summary.json, artifacts/release/release-safety.json, attestation-${{ matrix.service }}-${{ github.sha }}.json, bandit-report.*, prompt-injection-tests.xml, report_*.html, report_*.json, sbom-${{ matrix.service }}-${{ github.sha }}.*, security-tests.xml, signing-${{ matrix.service }}-${{ github.sha }}.json, stack-health.json, trivy-${{ matrix.service }}.* | 30 min |
+ | `repo-hygiene.yml` | pull request validation | `pull_request, push, schedule, workflow_dispatch` | `@value-fabric/sre-leads` | `make check-workflow-references` | GITHUB_TOKEN | artifacts/repo-hygiene.json | 5 min |
+ | `repro-seed-validation.yml` | pull request validation | `pull_request, push` | `@value-fabric/sre-leads` | `make check-workflow-references` | none | none | 30 min |
+ | `runbook-validation.yml` | pull request validation | `pull_request, push` | `@value-fabric/sre-leads` | `make check-workflow-references` | GITHUB_TOKEN | none | 30 min |
+ | `sbom.yml` | delivery / continuous automation | `push, release, workflow_dispatch` | `@value-fabric/sre-leads` | `make check-workflow-references` | none | none | 30 min |
+ | `sdk-generation.yml` | delivery / continuous automation | `push, schedule, workflow_dispatch` | `@value-fabric/sre-leads` | `make check-workflow-references` | GITHUB_TOKEN, NPM_TOKEN, PYPI_API_TOKEN | sdk/python/, sdk/typescript/ | 30 min |
+ | `secret-rotation.yml` | scheduled assurance | `schedule, workflow_dispatch` | `@value-fabric/sre-leads` | `make check-workflow-references` | GITHUB_TOKEN, INFISICAL_IDENTITY_ID | rotation-audit.log | 30 min |
+-| `security-gates.yml` | pull request validation | `pull_request, push, schedule` | `@value-fabric/sre-leads` | `make check-workflow-references` | GITHUB_TOKEN | ${{matrix.artifact.name}}-sbom-vuln.sarif, ${{matrix.artifact.name}}-sbom.cdx.json, .fabric/audit/security_regression_gate/, apps/web/pnpm-audit-report.json, artifacts/helm-dependencies/checksums.sha256, artifacts/helm-dependencies/metadata.json, artifacts/helm-preparation-diagnostics/, artifacts/mandatory_security/, infra/helm/fabric-chart/charts/, osv-pr-base.json, osv-pr-head.json, osv-scanner-pr.sarif, sbom-${{matrix.layer}}.cdx.json, scorecard-results.sarif, security-evidence/, semgrep-cypher-errors.json, semgrep-cypher-warnings.json, semgrep-full.sarif, services/${{matrix.layer}}/bandit-report.json, services/${{matrix.layer}}/pip-audit-report.json, trivy-repo.sarif, zap-reports/ | 45 min |
+-| `supply-chain-integrity.yml` | pull request validation | `pull_request, push, workflow_call, workflow_dispatch` | `@value-fabric/sre-leads` | `make check-workflow-references` | GITHUB_TOKEN | ${{ matrix.layer }}-sbom.cdx.json, ${{ matrix.layer }}-sbom.spdx.json, ${{ matrix.layer }}-vulns.sarif, *-audit.json, *.intoto.jsonl, .dependency-findings, license-reports/, source-${{ matrix.layer }}-sbom.cdx.json, source-${{ matrix.layer }}-vulns.sarif, supply-chain-report.md | 30 min |
++| `security-gates.yml` | pull request validation | `merge_group, pull_request, push, schedule` | `@value-fabric/sre-leads` | `make check-workflow-references` | GITHUB_TOKEN | ${{matrix.artifact.name}}-sbom-vuln.sarif, ${{matrix.artifact.name}}-sbom.cdx.json, .fabric/audit/security_regression_gate/, apps/web/pnpm-audit-report.json, artifacts/helm-dependencies/checksums.sha256, artifacts/helm-dependencies/metadata.json, artifacts/helm-preparation-diagnostics/, artifacts/mandatory_security/, infra/helm/fabric-chart/charts/, osv-pr-base.json, osv-pr-head.json, osv-scanner-pr.sarif, sbom-${{matrix.layer}}.cdx.json, scorecard-results.sarif, security-evidence/, semgrep-cypher-errors.json, semgrep-cypher-warnings.json, semgrep-full.sarif, services/${{matrix.layer}}/bandit-report.json, services/${{matrix.layer}}/pip-audit-report.json, trivy-repo.sarif, zap-reports/ | 45 min |
++| `supply-chain-integrity.yml` | pull request validation | `merge_group, pull_request, push, workflow_call, workflow_dispatch` | `@value-fabric/sre-leads` | `make check-workflow-references` | GITHUB_TOKEN | ${{ matrix.layer }}-sbom.cdx.json, ${{ matrix.layer }}-sbom.spdx.json, ${{ matrix.layer }}-vulns.sarif, *-audit.json, *.intoto.jsonl, .dependency-findings, license-reports/, source-${{ matrix.layer }}-sbom.cdx.json, source-${{ matrix.layer }}-vulns.sarif, supply-chain-report.md | 30 min |
+ | `terraform-cd.yml` | pull request validation | `pull_request, push, workflow_dispatch` | `@value-fabric/sre-leads` | `make check-workflow-references` | AWS_TERRAFORM_ROLE_ARN | infra/terraform/environments/${{ matrix.environment }}/tfplan-${{ matrix.environment }} | 15 min |
+ | `test-reporting.yml` | pull request validation | `pull_request, workflow_run` | `@value-fabric/sre-leads` | `make check-workflow-references` | none | none | 30 min |
+ | `vault-integration.yml` | reusable automation | `workflow_call` | `@value-fabric/sre-leads` | `make check-workflow-references` | VAULT_ADDR, VAULT_ROLE, VAULT_ROLE_STAGING, outputs | none | 30 min |
+diff --git a/docs/governance/branch-protection-required-checks.yml b/docs/governance/branch-protection-required-checks.yml
+index ce832c6..86b5b7c 100644
+--- a/docs/governance/branch-protection-required-checks.yml
++++ b/docs/governance/branch-protection-required-checks.yml
+@@ -17,6 +17,16 @@ protected_branch_patterns:
+ 
+ informational_status_checks:
+   - chaos-testing
++  # V1-CI-001 Stage 1 shadow aggregates (informational until Stage 3 parity).
++  - 01-repository-integrity
++  - 02-code-quality-and-tests
++  - 03-contract-compliance
++  - 04-security-gates
++  - 05-tenant-isolation-and-behavior
++  - 06-production-readiness
++  - 07-supply-chain-integrity
++  - 08-release-evidence
++  - 09-change-risk-and-approval
+ promotion_policy:
+   chaos_smoke:
+     current_mode: informational
+diff --git a/scripts/ci/aggregate_gate.py b/scripts/ci/aggregate_gate.py
+new file mode 100644
+index 0000000..191e88a
+--- /dev/null
++++ b/scripts/ci/aggregate_gate.py
+@@ -0,0 +1,98 @@
++#!/usr/bin/env python3
++"""Aggregate gate arbiter for the V1-CI-001 staged check consolidation.
++
++An aggregate check (``01-repository-integrity`` .. ``08-release-evidence``)
++performs no substantive testing; it only summarizes the results of the
++existing jobs it fans in from. This script is the shared arbiter every
++aggregate job calls.
++
++Input is the invoking job's ``needs`` context as JSON. A child job result of
++``success`` passes. A result of ``failure`` or ``cancelled`` fails the
++aggregate (a failing child must fail its aggregate). A result of ``skipped``
++is only acceptable when the skip was explicitly confirmed safe via a
++``--skip-safe JOB=ENV_VAR`` policy entry: the named environment variable
++(typically a composed change-scope expression passed in via ``env:``) must be
++exactly the string ``true``. Jobs without a policy entry must succeed — any
++skip or failure of those jobs fails the aggregate closed.
++"""
++from __future__ import annotations
++
++import argparse
++import json
++import os
++import sys
++
++
++def main(argv: list[str] | None = None) -> int:
++    parser = argparse.ArgumentParser(
++        description="Fail unless every fanned-in child job succeeded or was confirmed safe to skip."
++    )
++    parser.add_argument(
++        "--needs-json",
++        required=True,
++        help="JSON serialization of the calling job's `needs` context.",
++    )
++    parser.add_argument(
++        "--skip-safe",
++        action="append",
++        default=[],
++        metavar="JOB=ENV_VAR",
++        help=(
++            "A 'skipped' result for JOB is safe only when environment variable "
++            "ENV_VAR is exactly 'true'. Repeatable. Jobs without an entry must succeed."
++        ),
++    )
++    args = parser.parse_args(argv)
++
++    try:
++        needs = json.loads(args.needs_json)
++    except json.JSONDecodeError as exc:
++        print(f"aggregate gate: --needs-json is not valid JSON: {exc}", file=sys.stderr)
++        return 1
++    if not isinstance(needs, dict) or not needs:
++        print("aggregate gate: --needs-json must decode to a non-empty mapping", file=sys.stderr)
++        return 1
++
++    skip_policy: dict[str, str] = {}
++    for entry in args.skip_safe:
++        job, sep, env_var = entry.partition("=")
++        if not sep or not job or not env_var:
++            print(
++                f"aggregate gate: malformed --skip-safe entry {entry!r} (expected JOB=ENV_VAR)",
++                file=sys.stderr,
++            )
++            return 1
++        skip_policy[job] = env_var
++
++    failed: list[tuple[str, str]] = []
++    for job in sorted(needs):
++        payload = needs[job]
++        result = payload.get("result", "unknown") if isinstance(payload, dict) else "unknown"
++        if result == "success":
++            print(f"PASS {job}: success")
++        elif result == "skipped":
++            env_var = skip_policy.get(job)
++            if env_var is not None and os.environ.get(env_var) == "true":
++                print(f"SKIP {job}: skipped — confirmed safe ({env_var}=true)")
++            else:
++                failed.append((job, result))
++                print(f"FAIL {job}: skipped without an explicit safe-skip confirmation")
++        else:
++            failed.append((job, result))
++            print(f"FAIL {job}: {result}")
++
++    total = len(needs)
++    if failed:
++        print(
++            f"aggregate gate FAILED: {len(failed)}/{total} child job(s) failed, "
++            "cancelled, or skipped without confirmation: "
++            + ", ".join(f"{job}={result}" for job, result in failed),
++            file=sys.stderr,
++        )
++        return 1
++    print(f"aggregate gate PASSED: all {total} child job(s) succeeded or were confirmed safe to skip")
++    return 0
++
++
++if __name__ == "__main__":
++    sys.exit(main())
+diff --git a/scripts/ci/check_change_risk_approval.py b/scripts/ci/check_change_risk_approval.py
+new file mode 100644
+index 0000000..494235a
+--- /dev/null
++++ b/scripts/ci/check_change_risk_approval.py
+@@ -0,0 +1,215 @@
++#!/usr/bin/env python3
++"""Deterministic change-risk and approval policy gate (V1-CI-001 aggregate 09).
++
++This is a deterministic policy check, not an LLM gate and not substantive
++testing. It verifies that an independent-review artifact exists for the
++change under review and that it satisfies the merge policy:
++
++1. The artifact is schema-valid (required fields, correct types).
++2. Its base and head SHAs match the SHAs of the triggering event
++   (``pull_request`` or ``merge_group``).
++3. It records no unresolved P0/P1 findings.
++4. Every high-risk surface recorded as touched has a CODEOWNER/human
++   approval recorded in the artifact.
++5. The reviewer did not author the patch.
++
++Artifact location: ``signoff-evidence/reviews/<head_sha>.json`` relative to
++the repository root (override with ``--artifact-dir``). Schema (version 1)::
++
++    {
++      "schema_version": 1,
++      "base_sha": "<40-hex>",
++      "head_sha": "<40-hex>",
++      "author": "<github-login>",
++      "reviewer": "<github-login>",
++      "high_risk_surfaces_touched": ["<surface>", ...],
++      "codeowner_approvals": [{"surface": "<surface>", "approver": "<login>"}, ...],
++      "findings": [{"id": "...", "severity": "P0|P1|P2|P3",
++                    "status": "open|resolved|wontfix"}, ...]
++    }
++"""
++from __future__ import annotations
++
++import argparse
++import json
++import os
++import re
++import sys
++from pathlib import Path
++from typing import Any
++
++REPO_ROOT = Path(__file__).resolve().parents[2]
++DEFAULT_ARTIFACT_DIR = REPO_ROOT / "signoff-evidence" / "reviews"
++
++SHA_RE = re.compile(r"^[0-9a-f]{40}$")
++UNRESOLVED_STATUSES = {"open", "triaged", "in_progress"}
++BLOCKING_SEVERITIES = {"P0", "P1"}
++
++
++def _fail(errors: list[str], message: str) -> None:
++    errors.append(message)
++    print(f"POLICY FAIL: {message}", file=sys.stderr)
++
++
++def _event_shas(event_name: str, event: dict[str, Any], errors: list[str]) -> tuple[str, str] | None:
++    if event_name == "pull_request":
++        pr = event.get("pull_request")
++        if not isinstance(pr, dict):
++            _fail(errors, "pull_request event payload missing 'pull_request' object")
++            return None
++        base = pr.get("base", {}).get("sha")
++        head = pr.get("head", {}).get("sha")
++    elif event_name == "merge_group":
++        group = event.get("merge_group")
++        if not isinstance(group, dict):
++            _fail(errors, "merge_group event payload missing 'merge_group' object")
++            return None
++        base = group.get("base_sha")
++        head = group.get("head_sha")
++    else:
++        _fail(errors, f"unsupported event {event_name!r}; expected pull_request or merge_group")
++        return None
++    if not (isinstance(base, str) and SHA_RE.match(base)):
++        _fail(errors, f"event base SHA missing or malformed: {base!r}")
++        return None
++    if not (isinstance(head, str) and SHA_RE.match(head)):
++        _fail(errors, f"event head SHA missing or malformed: {head!r}")
++        return None
++    return base, head
++
++
++def _validate_artifact(
++    artifact: Any,
++    expected_base: str,
++    expected_head: str,
++    errors: list[str],
++) -> None:
++    if not isinstance(artifact, dict):
++        _fail(errors, "artifact must be a JSON object")
++        return
++    if artifact.get("schema_version") != 1:
++        _fail(errors, f"unsupported schema_version: {artifact.get('schema_version')!r}")
++
++    base = artifact.get("base_sha")
++    head = artifact.get("head_sha")
++    if not (isinstance(base, str) and SHA_RE.match(base)):
++        _fail(errors, "artifact base_sha missing or malformed")
++    elif base != expected_base:
++        _fail(errors, f"artifact base_sha {base} does not match event base SHA {expected_base}")
++    if not (isinstance(head, str) and SHA_RE.match(head)):
++        _fail(errors, "artifact head_sha missing or malformed")
++    elif head != expected_head:
++        _fail(errors, f"artifact head_sha {head} does not match event head SHA {expected_head}")
++
++    author = artifact.get("author")
++    reviewer = artifact.get("reviewer")
++    if not isinstance(author, str) or not author:
++        _fail(errors, "artifact author missing or not a string")
++    if not isinstance(reviewer, str) or not reviewer:
++        _fail(errors, "artifact reviewer missing or not a string")
++    if isinstance(author, str) and isinstance(reviewer, str) and author == reviewer:
++        _fail(errors, f"reviewer {reviewer!r} authored the patch; independent review required")
++
++    findings = artifact.get("findings")
++    if not isinstance(findings, list):
++        _fail(errors, "artifact findings missing or not a list")
++        findings = []
++    for finding in findings:
++        if not isinstance(finding, dict):
++            _fail(errors, f"finding entry is not an object: {finding!r}")
++            continue
++        severity = finding.get("severity")
++        status = finding.get("status")
++        if severity not in {"P0", "P1", "P2", "P3"}:
++            _fail(errors, f"finding {finding.get('id')!r} has invalid severity {severity!r}")
++        if not isinstance(status, str):
++            _fail(errors, f"finding {finding.get('id')!r} has missing status")
++        if severity in BLOCKING_SEVERITIES and status in UNRESOLVED_STATUSES:
++            _fail(errors, f"unresolved {severity} finding: {finding.get('id')!r} (status={status!r})")
++
++    surfaces = artifact.get("high_risk_surfaces_touched")
++    if not isinstance(surfaces, list) or not all(isinstance(s, str) for s in surfaces):
++        _fail(errors, "artifact high_risk_surfaces_touched missing or not a string list")
++        surfaces = []
++    approvals = artifact.get("codeowner_approvals")
++    if not isinstance(approvals, list):
++        _fail(errors, "artifact codeowner_approvals missing or not a list")
++        approvals = []
++    approved_surfaces: dict[str, str] = {}
++    for approval in approvals:
++        if not isinstance(approval, dict) or not isinstance(approval.get("surface"), str):
++            _fail(errors, f"codeowner_approvals entry malformed: {approval!r}")
++            continue
++        approver = approval.get("approver")
++        if not isinstance(approver, str) or not approver:
++            _fail(errors, f"codeowner approval for {approval['surface']!r} missing approver")
++            continue
++        approved_surfaces[approval["surface"]] = approver
++    for surface in surfaces:
++        approver = approved_surfaces.get(surface)
++        if approver is None:
++            _fail(errors, f"high-risk surface {surface!r} has no recorded CODEOWNER/human approval")
++        elif isinstance(author, str) and approver == author:
++            _fail(errors, f"high-risk surface {surface!r} approved by patch author {author!r}")
++
++
++def main(argv: list[str] | None = None) -> int:
++    parser = argparse.ArgumentParser(
++        description="Deterministic independent-review / change-risk policy gate."
++    )
++    parser.add_argument(
++        "--artifact-dir",
++        type=Path,
++        default=DEFAULT_ARTIFACT_DIR,
++        help="Directory containing <head_sha>.json independent-review artifacts.",
++    )
++    parser.add_argument(
++        "--event-path",
++        type=Path,
++        default=Path(os.environ.get("GITHUB_EVENT_PATH", "/dev/null")),
++        help="Path to the GitHub event payload JSON (default: GITHUB_EVENT_PATH).",
++    )
++    args = parser.parse_args(argv)
++
++    event_name = os.environ.get("GITHUB_EVENT_NAME", "")
++    errors: list[str] = []
++
++    try:
++        event = json.loads(args.event_path.read_text(encoding="utf-8"))
++    except (OSError, json.JSONDecodeError) as exc:
++        print(f"POLICY FAIL: cannot read event payload {args.event_path}: {exc}", file=sys.stderr)
++        return 1
++
++    shas = _event_shas(event_name, event, errors)
++    if shas is None:
++        return 1
++    expected_base, expected_head = shas
++
++    artifact_path = args.artifact_dir / f"{expected_head}.json"
++    if not artifact_path.is_file():
++        print(
++            f"POLICY FAIL: no independent-review artifact for head {expected_head} "
++            f"(expected {artifact_path})",
++            file=sys.stderr,
++        )
++        return 1
++    try:
++        artifact = json.loads(artifact_path.read_text(encoding="utf-8"))
++    except json.JSONDecodeError as exc:
++        print(f"POLICY FAIL: artifact {artifact_path} is not valid JSON: {exc}", file=sys.stderr)
++        return 1
++
++    _validate_artifact(artifact, expected_base, expected_head, errors)
++
++    if errors:
++        print(f"09-change-risk-and-approval FAILED with {len(errors)} policy violation(s)", file=sys.stderr)
++        return 1
++    print(
++        "09-change-risk-and-approval PASSED: schema-valid independent-review artifact, "
++        "SHAs match, no unresolved P0/P1, high-risk approvals present, reviewer != author"
++    )
++    return 0
++
++
++if __name__ == "__main__":
++    sys.exit(main())
+diff --git a/tests/ci/test_aggregate_gates.py b/tests/ci/test_aggregate_gates.py
+new file mode 100644
+index 0000000..48677aa
+--- /dev/null
++++ b/tests/ci/test_aggregate_gates.py
+@@ -0,0 +1,160 @@
++from __future__ import annotations
++
++import json
++import sys
++from importlib.util import module_from_spec, spec_from_file_location
++from pathlib import Path
++
++SCRIPTS_DIR = Path(__file__).resolve().parents[2] / "scripts" / "ci"
++
++
++def _load_module(name: str):
++    spec = spec_from_file_location(name, SCRIPTS_DIR / f"{name}.py")
++    module = module_from_spec(spec)
++    sys.modules[spec.name] = module
++    assert spec.loader is not None
++    spec.loader.exec_module(module)
++    return module
++
++
++aggregate_gate = _load_module("aggregate_gate")
++change_risk = _load_module("check_change_risk_approval")
++
++BASE_SHA = "a" * 40
++HEAD_SHA = "b" * 40
++
++
++def _needs(**results: str) -> str:
++    return json.dumps({job: {"result": result} for job, result in results.items()})
++
++
++# --- aggregate_gate: intended allowed behavior ---
++
++
++def test_aggregate_gate_passes_when_all_children_succeed() -> None:
++    assert aggregate_gate.main(["--needs-json", _needs(a="success", b="success")]) == 0
++
++
++def test_aggregate_gate_passes_confirmed_safe_skip(monkeypatch) -> None:
++    monkeypatch.setenv("SCOPE_SAFE_A", "true")
++    assert (
++        aggregate_gate.main(
++            ["--needs-json", _needs(a="skipped", b="success"), "--skip-safe", "a=SCOPE_SAFE_A"]
++        )
++        == 0
++    )
++
++
++# --- aggregate_gate: intended denied behavior ---
++
++
++def test_aggregate_gate_fails_when_child_fails() -> None:
++    assert aggregate_gate.main(["--needs-json", _needs(a="success", b="failure")]) == 1
++
++
++def test_aggregate_gate_fails_when_child_cancelled() -> None:
++    assert aggregate_gate.main(["--needs-json", _needs(a="cancelled")]) == 1
++
++
++def test_aggregate_gate_fails_on_skip_without_confirmation() -> None:
++    assert aggregate_gate.main(["--needs-json", _needs(a="skipped")]) == 1
++
++
++def test_aggregate_gate_fails_on_skip_when_confirmation_env_not_true(monkeypatch) -> None:
++    monkeypatch.setenv("SCOPE_SAFE_A", "false")
++    assert (
++        aggregate_gate.main(["--needs-json", _needs(a="skipped"), "--skip-safe", "a=SCOPE_SAFE_A"])
++        == 1
++    )
++
++
++# --- check_change_risk_approval helpers ---
++
++
++def _event_payload(tmp_path: Path, name: str = "pull_request") -> Path:
++    if name == "pull_request":
++        payload = {"pull_request": {"base": {"sha": BASE_SHA}, "head": {"sha": HEAD_SHA}}}
++    else:
++        payload = {"merge_group": {"base_sha": BASE_SHA, "head_sha": HEAD_SHA}}
++    path = tmp_path / "event.json"
++    path.write_text(json.dumps(payload), encoding="utf-8")
++    return path
++
++
++def _artifact(
++    tmp_path: Path,
++    *,
++    head_sha: str = HEAD_SHA,
++    base_sha: str = BASE_SHA,
++    author: str = "alice",
++    reviewer: str = "bob",
++    findings: list | None = None,
++    surfaces: list[str] | None = None,
++    approvals: list | None = None,
++) -> Path:
++    artifact_dir = tmp_path / "reviews"
++    artifact_dir.mkdir(exist_ok=True)
++    artifact = {
++        "schema_version": 1,
++        "base_sha": base_sha,
++        "head_sha": head_sha,
++        "author": author,
++        "reviewer": reviewer,
++        "high_risk_surfaces_touched": surfaces if surfaces is not None else [],
++        "codeowner_approvals": approvals if approvals is not None else [],
++        "findings": findings if findings is not None else [],
++    }
++    (artifact_dir / f"{head_sha}.json").write_text(json.dumps(artifact), encoding="utf-8")
++    return artifact_dir
++
++
++def _run(tmp_path: Path, monkeypatch, artifact_dir: Path, event_name: str = "pull_request") -> int:
++    monkeypatch.setenv("GITHUB_EVENT_NAME", event_name)
++    return change_risk.main(
++        ["--artifact-dir", str(artifact_dir), "--event-path", str(_event_payload(tmp_path, event_name))]
++    )
++
++
++# --- check_change_risk_approval: intended allowed behavior ---
++
++
++def test_change_risk_gate_accepts_valid_artifact(tmp_path, monkeypatch) -> None:
++    artifact_dir = _artifact(
++        tmp_path,
++        findings=[{"id": "F-1", "severity": "P2", "status": "open"}],
++        surfaces=[".github/workflows/**"],
++        approvals=[{"surface": ".github/workflows/**", "approver": "carol"}],
++    )
++    assert _run(tmp_path, monkeypatch, artifact_dir) == 0
++
++
++def test_change_risk_gate_accepts_merge_group_event(tmp_path, monkeypatch) -> None:
++    artifact_dir = _artifact(tmp_path)
++    assert _run(tmp_path, monkeypatch, artifact_dir, event_name="merge_group") == 0
++
++
++# --- check_change_risk_approval: intended denied behavior ---
++
++
++def test_change_risk_gate_fails_closed_when_artifact_missing(tmp_path, monkeypatch) -> None:
++    assert _run(tmp_path, monkeypatch, tmp_path / "reviews") == 1
++
++
++def test_change_risk_gate_rejects_unresolved_p0(tmp_path, monkeypatch) -> None:
++    artifact_dir = _artifact(tmp_path, findings=[{"id": "F-9", "severity": "P0", "status": "open"}])
++    assert _run(tmp_path, monkeypatch, artifact_dir) == 1
++
++
++def test_change_risk_gate_rejects_reviewer_who_authored_patch(tmp_path, monkeypatch) -> None:
++    artifact_dir = _artifact(tmp_path, author="alice", reviewer="alice")
++    assert _run(tmp_path, monkeypatch, artifact_dir) == 1
++
++
++def test_change_risk_gate_rejects_sha_mismatch(tmp_path, monkeypatch) -> None:
++    artifact_dir = _artifact(tmp_path, base_sha="c" * 40)
++    assert _run(tmp_path, monkeypatch, artifact_dir) == 1
++
++
++def test_change_risk_gate_rejects_unapproved_high_risk_surface(tmp_path, monkeypatch) -> None:
++    artifact_dir = _artifact(tmp_path, surfaces=["k8s/**"], approvals=[])
++    assert _run(tmp_path, monkeypatch, artifact_dir) == 1

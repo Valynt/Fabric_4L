@@ -30,8 +30,27 @@ from ..handlers import (
 from ..sanitizer import sanitize_error_message
 from ..middleware import RequestIDMiddleware, get_request_id
 from ..models import ErrorCode, ErrorResponse, ErrorEnvelope, ErrorDetail
+from starlette.middleware.base import BaseHTTPMiddleware
 from value_fabric.shared.models.typed_dict import TypedDictModel
 from value_fabric.shared.observability.request_context import logging_context_dict
+
+
+class _FakeTrustedAuthMiddleware(BaseHTTPMiddleware):
+    """Test double for the production auth layer.
+
+    RequestIDMiddleware reads tenant context from ``request.state.tenant_id``
+    — populated by trusted authentication middleware — and deliberately never
+    from client-controlled headers. Added after RequestIDMiddleware so it
+    runs first (Starlette applies later-added middleware outermost).
+    """
+
+    def __init__(self, app, tenant_id: str):
+        super().__init__(app)
+        self._tenant_id = tenant_id
+
+    async def dispatch(self, request, call_next):
+        request.state.tenant_id = self._tenant_id
+        return await call_next(request)
 
 
 class TestRequestIDMiddleware_test_endpointResult(TypedDictModel):
@@ -371,14 +390,21 @@ class TestRequestIDMiddleware:
         assert len(resp.headers["X-Request-ID"]) <= 200
 
     def test_custom_generator(self):
+        # Contract: generator output is normalized to the canonical trace-ID
+        # shape — `req_` prefix is added unless already present
+        # (test_trace_id_sanitization_regression.py governs this).
         client = TestClient(self._make_app(generator=lambda: "custom-id"))
         resp = client.get("/test")
-        assert resp.headers["X-Request-ID"] == "custom-id"
+        assert resp.headers["X-Request-ID"] == "req_custom-id"
 
     def test_emits_structured_access_log(self, caplog):
+        app = self._make_app()
+        # Tenant context comes from trusted auth state, never from headers:
+        # the spoofed X-Tenant-ID below must NOT win.
+        app.add_middleware(_FakeTrustedAuthMiddleware, tenant_id="tenant-123")
         with caplog.at_level("INFO", logger="fabric.access"):
-            client = TestClient(self._make_app())
-            resp = client.get("/test", headers={"X-Tenant-ID": "tenant-123"})
+            client = TestClient(app)
+            resp = client.get("/test", headers={"X-Tenant-ID": "tenant-spoof"})
         assert resp.status_code == 200
         access_records = [r for r in caplog.records if r.name == "fabric.access"]
         assert len(access_records) == 1

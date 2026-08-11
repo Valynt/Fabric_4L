@@ -2,7 +2,7 @@
 title: "Dev Containers and Cloud Workspaces"
 category: "how-to"
 audience: "contributors"
-last-reviewed: "2026-07-31"
+last-reviewed: "2026-08-09"
 freshness: "current"
 related: ["./BUILD_SYSTEM", "./COMMANDS", "../../.devcontainer/devcontainer.json"]
 ---
@@ -71,12 +71,12 @@ canonical production/full Compose files.
 
 ## Ports and visibility
 
-The editor forwards frontend port `3001` and application ports `8001` through
-`8006`. Dev Container clients decide whether forwarded ports are private,
-organization-visible, or public; keep them private unless a test explicitly
-requires broader access. Database and Docker daemon ports are not forwarded by
-the Dev Container configuration. Never expose Docker TCP port `2375` outside
-the internal Compose network.
+The editor forwards frontend port `3001`, application ports `8001` through
+`8006`, and Layer 2.5 Signal Refinery on `8007`. Dev Container clients decide
+whether forwarded ports are private, organization-visible, or public; keep them
+private unless a test explicitly requires broader access. Database and Docker
+daemon ports are not forwarded by the Dev Container configuration. Never expose
+Docker TCP port `2375` outside the internal Compose network.
 
 ## Persistence and disk use
 
@@ -118,6 +118,8 @@ the host Docker daemon and is not supported in hosted cloud workspaces.
 1. If Docker is unavailable, inspect the sidecar from the host with
    `docker compose -f .devcontainer/docker-compose.yml logs docker` and rebuild.
 2. If dependency bootstrap was interrupted, rerun `.devcontainer/post-create.sh`.
+   The script is idempotent and skips the pnpm activation step when pnpm is
+   already on `PATH`.
 3. If Infisical authentication expired, run `infisical login`; do not create an
    untracked environment file unless deliberately choosing the legacy flow.
 4. If service health checks fail, inspect the canonical stack with
