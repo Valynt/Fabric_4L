@@ -104,7 +104,7 @@ prometheus-client>=0.17.0
 opentelemetry-api>=1.25.0
 opentelemetry-sdk>=1.25.0
 opentelemetry-exporter-otlp-proto-http>=1.25.0
-structlog>=23.0.0
+structlog>=26.1.0
 
 # ---------------------------------------------------------------------------
 # CI / workflow scripting
@@ -118,7 +118,7 @@ mypy>=1.13.0
 # Schema / contract testing
 # ---------------------------------------------------------------------------
 schemathesis>=3.38.0
-hypothesis>=6.122.0
+hypothesis>=6.165.1
 jsonschema>=4.23.0
 jsondiff>=2.2.1
 protobuf>=5.0.0,<7.0.0  # Compatible with the OpenTelemetry protobuf runtime used by service locks

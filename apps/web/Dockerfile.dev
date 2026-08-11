@@ -1,4 +1,4 @@
-FROM node@sha256:926d6cafec97f338577041890465522f70fe74aa6fe4b021a4fd7f87a5996b25
+FROM node@sha256:bde0dae02f2b12d2bce5ee72b2432f0e511767b7b2dc4dd3b064df11ae422fee
 WORKDIR /workspace
 RUN npm install -g corepack@latest && corepack enable
 
