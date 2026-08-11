@@ -28,16 +28,22 @@ from layer4_agents.database import Base
 config = context.config
 
 # Override sqlalchemy.url from environment variable if set
-# Priority: LAYER4_DATABASE_URL > CHECKPOINT_DATABASE_URL
-# NOTE: No fallback - explicit configuration required for security
+# Priority: LAYER4_DATABASE_URL_SYNC > LAYER4_DATABASE_URL
+# NOTE: No fallback - explicit configuration required for security.
+# CHECKPOINT_DATABASE_URL is deliberately NOT a fallback: it targets the
+# ground_truth database (LangGraph checkpoint storage, owned by Layer 5).
+# Falling back to it would silently apply the Layer 4 revision chain to a
+# database Layer 4 does not own.
 database_url_sync = os.environ.get(
-    "LAYER4_DATABASE_URL",
-    os.environ.get("CHECKPOINT_DATABASE_URL"),
+    "LAYER4_DATABASE_URL_SYNC",
+    os.environ.get("LAYER4_DATABASE_URL"),
 )
 
 if not database_url_sync:
     raise ValueError(
-        "Database URL not configured. Set LAYER4_DATABASE_URL or CHECKPOINT_DATABASE_URL environment variable."
+        "Database URL not configured. Set LAYER4_DATABASE_URL_SYNC or "
+        "LAYER4_DATABASE_URL. CHECKPOINT_DATABASE_URL is not an accepted "
+        "fallback: it targets the Layer 5 ground_truth database."
     )
 config.set_main_option("sqlalchemy.url", database_url_sync)
 

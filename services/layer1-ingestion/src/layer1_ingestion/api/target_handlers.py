@@ -453,8 +453,9 @@ async def execute_target(
     if target.status != TargetStatus.ACTIVE.value:
         raise ConflictError(message=f"Target is not active (status: {target.status})")
 
+    idempotency_key = request.idempotency_key or None
     existing_response, placeholder = await _check_idempotency_key(
-        request.idempotency_key, org_id, target_id, db
+        idempotency_key, org_id, target_id, db
     )
     if existing_response:
         return existing_response
@@ -470,14 +471,52 @@ async def execute_target(
         priority=request.priority,
         triggered_by=TriggeredBy.API,
         correlation_id=correlation_id,
+        idempotency_key=idempotency_key,
     )
 
     db.add(job)
-    db.commit()
+    try:
+        db.commit()
+    except sqlalchemy.exc.IntegrityError:
+        db.rollback()
+        # Durable dedup backstop: idx_scraping_jobs_tenant_idempotency
+        # (tenant_id, idempotency_key) fired — a concurrent request created the
+        # job first. Redis-only dedup can lose entries on a flush; the database
+        # is the authoritative idempotency boundary (V1-TENANCY-010 / S-2).
+        existing_job = None
+        if idempotency_key:
+            existing_job = (
+                db.query(ScrapingJob)
+                .filter(
+                    ScrapingJob.tenant_id == org_id,
+                    ScrapingJob.idempotency_key == idempotency_key,
+                )
+                .first()
+            )
+        if existing_job is not None:
+            if existing_job.target_id != target_id:
+                if placeholder:
+                    _delete_idempotency_key(org_id, target_id, idempotency_key)
+                raise ConflictError(
+                    message="Idempotency key is already in use for another target"
+                )
+            logger.info(
+                "Idempotency key hit at database boundary, returning existing job",
+                idempotency_key=idempotency_key,
+                job_id=str(existing_job.id),
+            )
+            return ExecuteTargetResponse(
+                job_id=existing_job.id,
+                status=existing_job.status,
+                estimated_start_time=existing_job.started_at,
+                queue_position=None,
+                queue_position_metadata=None,
+            )
+        raise
     db.refresh(job)
 
-    if request.idempotency_key:
-        _update_idempotency_key(org_id, target_id, request.idempotency_key, job.id)
+    if idempotency_key:
+        _update_idempotency_key(org_id, target_id, idempotency_key, job.id)
 
     try:
         _initialize_pipeline_stages(job.id, org_id, db)
@@ -498,8 +537,8 @@ async def execute_target(
         # Remove the placeholder so the caller can retry; if we leave it, the
         # short TTL will still expire within 60 seconds, but explicit cleanup
         # gives a faster recovery path.
-        if request.idempotency_key and placeholder:
-            _delete_idempotency_key(org_id, target_id, request.idempotency_key)
+        if idempotency_key and placeholder:
+            _delete_idempotency_key(org_id, target_id, idempotency_key)
         raise HTTPException(
             status_code=503,
             detail={

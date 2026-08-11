@@ -1,0 +1,20 @@
+diff --git a/.github/workflows/ai-evals-pipeline.yml b/.github/workflows/ai-evals-pipeline.yml
+index 7c44708..daf590a 100644
+--- a/.github/workflows/ai-evals-pipeline.yml
++++ b/.github/workflows/ai-evals-pipeline.yml
+@@ -415,8 +415,13 @@ jobs:
+                   sys.exit(1)
+ 
+           except FileNotFoundError:
+-              print("⚠️ No golden trace results found")
+-              set_output("passed", "true")  # Skip if no traces
++              # Fail closed: no results file means the golden-trace suite did
++              # not run (e.g., tests/evals/test_golden_traces.py missing), so
++              # there is no evidence to evaluate. A missing gate must never
++              # read as a pass (anti-vacuous-gate doctrine, cf. #1254).
++              print("❌ No golden trace results found — failing closed (no evidence is not a pass)")
++              set_output("passed", "false")
++              sys.exit(1)
+           except Exception as e:
+               print(f"❌ Error analyzing results: {e}")
+               sys.exit(1)
