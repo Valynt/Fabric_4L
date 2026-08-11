@@ -67,7 +67,7 @@ class TestDlqRoutingWiring:
         # The persisted DLQ error must go through sanitize_log_error: raw
         # str(exception) can carry secrets into the JobError row, while
         # type-only names discard the diagnostic context operators need.
-assert "error=sanitize_log_error(exception)ifexceptionelseNone" in "".join(text.split())
+        assert "error=sanitize_log_error(exception)ifexceptionelseNone" in "".join(text.split())
 
     def test_task_dead_letter_metric_exists(self) -> None:
         text = L1_METRICS.read_text(encoding="utf-8")
