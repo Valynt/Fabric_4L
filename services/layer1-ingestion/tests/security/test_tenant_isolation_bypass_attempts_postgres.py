@@ -364,7 +364,18 @@ class TestTaskSecurityValidation:
             stage_func = getattr(tasks, stage_name)
 
             # Mock get_db_session to simulate tenant validation failure
-            with patch('layer1_ingestion.shared.tasks.get_db_session') as mock_session:
+            # The kill switch is not this test's subject: patch it to a
+            # definitive not-suspended answer so the tenant-context check
+            # (get_db_session with require_tenant=True) is what each stage
+            # actually reaches. The switch's own fail-closed paths are
+            # governed by dedicated kill-switch tests.
+            with (
+                patch('layer1_ingestion.shared.tasks.get_db_session') as mock_session,
+                patch(
+                    'layer1_ingestion.shared.tasks._check_tenant_kill_switch_sync',
+                    return_value=False,
+                ),
+            ):
                 mock_session.side_effect = TenantContextError("Invalid tenant")
 
                 with pytest.raises(TenantContextError):

@@ -42,6 +42,24 @@ def _maintenance_audit_patch():
     return patch("layer1_ingestion.shared.tasks.maintenance_audit_log", return_value=context)
 
 
+@pytest.fixture(autouse=True)
+def _kill_switch_definitively_not_suspended():
+    """Default unit-test tenant state: kill switch answered, not suspended.
+
+    tasks.py fails closed with TenantKillSwitchUnavailable when the
+    kill-switch state is UNKNOWN (there is no Redis in unit tests), so
+    task-behavior tests need the seam to return a definitive "not
+    suspended". The suspended and fail-closed paths keep dedicated tests
+    (test_*_blocks_suspended_tenant), which patch the seam explicitly and
+    therefore override this fixture inside their own `with` blocks.
+    """
+    with patch(
+        "layer1_ingestion.shared.tasks._check_tenant_kill_switch_sync",
+        return_value=False,
+    ):
+        yield
+
+
 # Note: Path setup and environment variables are handled by:
 # - tests/conftest.py (sys.path manipulation)
 # - pyproject.toml [tool.pytest.ini_options] pythonpath = ["src", ".."]
