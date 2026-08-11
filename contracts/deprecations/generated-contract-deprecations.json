@@ -110,39 +110,6 @@
       "description": "Deprecated compatibility alias for the old OAuth start route."
     },
     {
-      "key": "GET /v1/tenant/settings",
-      "type": "endpoint",
-      "path": "/v1/tenant/settings",
-      "method": "GET",
-      "introduction_version": "2026-05-23",
-      "removal_target": "2026-08-01",
-      "replacement": "none",
-      "owner": "platform-team",
-      "description": "DEPRECATED alias for GET /v1/tenants/current/settings. Planned removal: 2026-08-01."
-    },
-    {
-      "key": "PATCH /v1/tenant/settings",
-      "type": "endpoint",
-      "path": "/v1/tenant/settings",
-      "method": "PATCH",
-      "introduction_version": "2026-05-23",
-      "removal_target": "2026-08-01",
-      "replacement": "none",
-      "owner": "platform-team",
-      "description": "DEPRECATED alias for PATCH /v1/tenants/current/settings. Planned removal: 2026-08-01."
-    },
-    {
-      "key": "POST /v1/auth/register",
-      "type": "endpoint",
-      "path": "/v1/auth/register",
-      "method": "POST",
-      "introduction_version": "2026-05-23",
-      "removal_target": "2026-07-01",
-      "replacement": "none",
-      "owner": "platform-team",
-      "description": "DEPRECATED alias for POST /v1/tenants/register. Planned removal: 2026-07-01."
-    },
-    {
       "key": "GET /readiness",
       "type": "endpoint",
       "path": "/readiness",
@@ -154,5 +121,5 @@
       "description": "Deprecated readiness alias; use /ready as the canonical readiness route."
     }
   ],
-  "last_synced": "2026-07-17T22:07:30.024088+00:00"
+  "last_synced": "2026-08-10T23:06:07.408270+00:00"
 }

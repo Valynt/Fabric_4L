@@ -16,7 +16,7 @@
   },
   "postCreateCommand": "/workspace/Fabric_4L/.devcontainer/post-create.sh",
   "postStartCommand": "/workspace/Fabric_4L/.devcontainer/post-start.sh",
-  "forwardPorts": [3001, 8001, 8002, 8003, 8004, 8005, 8006],
+  "forwardPorts": [3001, 8001, 8002, 8003, 8004, 8005, 8006, 8007],
   "portsAttributes": {
     "3001": { "label": "Frontend", "onAutoForward": "notify" },
     "8001": { "label": "Layer 1: Ingestion" },
@@ -24,18 +24,28 @@
     "8003": { "label": "Layer 3: Knowledge" },
     "8004": { "label": "Layer 4: Agents" },
     "8005": { "label": "Layer 5: Ground Truth" },
-    "8006": { "label": "Layer 6: Benchmarks" }
+    "8006": { "label": "Layer 6: Benchmarks" },
+    "8007": { "label": "Layer 2.5: Signal Refinery" }
   },
   "customizations": {
     "vscode": {
       "extensions": [
         "ms-python.python",
         "ms-python.vscode-pylance",
+        "charliermarsh.ruff",
         "dbaeumer.vscode-eslint",
         "esbenp.prettier-vscode",
         "bradlc.vscode-tailwindcss",
         "ms-playwright.playwright"
-      ]
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/python/current/bin/python",
+        "python.terminal.activateEnvironment": false,
+        "eslint.workingDirectories": [{ "mode": "auto" }],
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "[python]": { "editor.defaultFormatter": "charliermarsh.ruff" }
+      }
     }
   }
 }

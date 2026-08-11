@@ -13,7 +13,7 @@ RUN apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
       build-essential docker.io uidmap dbus-user-session slirp4netns fuse-overlayfs \
       pipx make jq curl ca-certificates gnupg \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 RUN arch="$(dpkg --print-architecture)" \
     && case "$arch" in amd64|arm64) ;; *) echo "Unsupported architecture: $arch" >&2; exit 1 ;; esac \
@@ -35,13 +35,15 @@ RUN mkdir -p /workspace/Fabric_4L /workspace-support /run/user/1000 /var/tmp \
     && chmod 0700 /run/user/1000 \
     && chmod 1777 /var/tmp
 
-ENV PYTHONPATH=/workspace/Fabric_4L/services/layer1-ingestion/src:/workspace/Fabric_4L/services/layer2-extraction/src:/workspace/Fabric_4L/services/layer2-5-signal-refinery/src:/workspace/Fabric_4L/services/layer3-knowledge/src:/workspace/Fabric_4L/services/layer4-agents/src:/workspace/Fabric_4L/services/layer5-ground-truth/src:/workspace/Fabric_4L/services/layer6-benchmarks/src
+ENV PYTHONPATH=/workspace/Fabric_4L/packages/shared/src:/workspace/Fabric_4L/services/api:/workspace/Fabric_4L/services/layer1-ingestion/src:/workspace/Fabric_4L/services/layer2-extraction/src:/workspace/Fabric_4L/services/layer2-5-signal-refinery/src:/workspace/Fabric_4L/services/layer3-knowledge/src:/workspace/Fabric_4L/services/layer4-agents/src:/workspace/Fabric_4L/services/layer5-ground-truth/src:/workspace/Fabric_4L/services/layer6-benchmarks/src:/workspace/Fabric_4L/services/layer7-billing/src
 WORKDIR /workspace/Fabric_4L
 HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
     CMD bash -lc 'test -d /workspace/Fabric_4L && test -w /var/tmp'
 
 FROM toolchain AS development
 USER vscode
+ENV PNPM_HOME=/home/vscode/.local/share/pnpm
+ENV PATH="${PNPM_HOME}:${PATH}"
 
 FROM toolchain AS docker-daemon
 COPY --chown=vscode:vscode .devcontainer/start-rootless-docker.sh /workspace-support/start-rootless-docker.sh

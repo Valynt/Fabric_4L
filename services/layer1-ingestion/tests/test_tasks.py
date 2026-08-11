@@ -18,6 +18,24 @@ from layer1_ingestion.shared.tasks import (
 )
 
 
+@pytest.fixture(autouse=True)
+def _kill_switch_definitively_not_suspended():
+    """Default tenant state for these tests: kill switch answered, not suspended.
+
+    Pipeline stages fail closed with TenantKillSwitchUnavailable when the
+    switch state is UNKNOWN (no Redis in unit tests). Tests that exercise
+    stage behavior patch the seam to a definitive answer, matching
+    tests/unit/test_celery_tasks.py; the suspended/unknown paths are governed
+    by dedicated kill-switch tests there and in
+    tests/tenancy/test_worker_kill_switch_and_idempotency.py.
+    """
+    with patch(
+        "layer1_ingestion.shared.tasks._check_tenant_kill_switch_sync",
+        return_value=False,
+    ):
+        yield
+
+
 class TestDomainClass:
     """Tests for _domain_class helper function."""
 

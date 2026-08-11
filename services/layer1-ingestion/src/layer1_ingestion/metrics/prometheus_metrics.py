@@ -318,6 +318,16 @@ class PrometheusMetrics:
         if self.config.enabled:
             self._metrics["outbox_dead_lettered_total"].inc()
 
+    def increment_task_dead_lettered(self, original_task: str = "unknown") -> None:
+        """Count a task dead-lettered after exhausting retries (P0-02 DLQ wiring).
+
+        Uses the pre-declared ``dlq_tasks_total`` counter (label ``task_name``),
+        which existed but was never incremented until V1-QUEUE-001 wired the
+        task_failure -> layer1_dlq route.
+        """
+        if self.config.enabled:
+            self._metrics["dlq_tasks_total"].labels(task_name=original_task).inc()
+
     def increment_maintenance_tenant_enumeration(self) -> None:
         if self.config.enabled:
             self._metrics["maintenance_tenant_enumerations_total"].inc()
