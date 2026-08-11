@@ -286,7 +286,7 @@ class AgentOrchestrator:
                 exc.code,
                 exc.body,
             )
-raise
+            raise
         except Layer4UnavailableError as exc:
             logger.warning(
                 "Layer 4 unavailable for run %s refresh: code=%s status=%s",
