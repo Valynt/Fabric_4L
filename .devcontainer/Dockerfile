@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1.7
-FROM mcr.microsoft.com/devcontainers/base@sha256:1a00517e89d3075f8c9dc8d9911404de0ff8991a4d71c62068573e9b016a89da AS toolchain
+FROM mcr.microsoft.com/devcontainers/base@sha256:025b74bb5f7ac53edd77e01aa7188c359aab100e23a2f6220bde50bbb9fd31dd AS toolchain
 
 ARG COMPOSE_VERSION=v2.35.1
 ARG KUBECTL_VERSION=v1.29.15
