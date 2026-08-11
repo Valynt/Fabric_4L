@@ -79,10 +79,18 @@ jobs:
           repo_digests="$(docker image inspect --format '{{json .RepoDigests}}' "$image")"
           grep -Fq "@${expected_digest}" <<<"$repo_digests"
 
+          # assert_line must survive `set -e`: a failing container command would
+          # otherwise abort the script at the command substitution, before any
+          # diagnostic is printed. Capture the exit status explicitly and report
+          # execution failures separately from output mismatches.
           assert_line() {
-            local command="$1" expected="$2"
-            local output
-            output=$(docker run --rm "$image" bash -o pipefail -c "$command" 2>&1)
+            local command="$1" expected="$2" docker_opts="${3:-}"
+            local output status=0
+            output=$(docker run --rm $docker_opts "$image" bash -o pipefail -c "$command" 2>&1) || status=$?
+            if (( status != 0 )); then
+              printf 'COMMAND FAILED: %s\nExit status: %s\nOutput:\n%s\n' "$command" "$status" "$output" >&2
+              return 1
+            fi
             if ! grep -Fxq -- "$expected" <<<"$output"; then
               printf 'ASSERTION FAILED: %s\nExpected: %s\nGot:\n%s\n' "$command" "$expected" "$output" >&2
               return 1
@@ -99,7 +107,15 @@ jobs:
           assert_line "uv --version | awk '{print \$1, \$2}'" "uv 0.11.6"
           assert_line "python --version" "Python 3.12.10"
           assert_line "node --version" "v22.17.0"
-          assert_line "pnpm --version" "10.18.1"
+          # pnpm runs through a corepack shim. The image bakes pnpm 10.18.1 into
+          # root's corepack cache at build time (corepack prepare --activate)
+          # but executes as USER 1001, whose HOME (/) is unwritable — observed:
+          # EACCES mkdir '/.cache/node/corepack/v1'. A fresh writable
+          # COREPACK_HOME is NOT the fix: with no activated default in it,
+          # corepack resolves its built-in latest (observed: pnpm 11.21.0)
+          # instead of the baked pin. Probe as root so the activated 10.18.1
+          # cache answers offline — this asserts the image's baked content.
+          assert_line "pnpm --version" "10.18.1" "--user root"
 
   # ============================================
   # Source-Level SBOM Scan (runs on every PR/push)
