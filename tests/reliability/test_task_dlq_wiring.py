@@ -148,6 +148,17 @@ class TestDlqPolicyBehavioral:
 
         dlq = _load_dlq_module()
 
+        env = dlq.build_dlq_envelope(
+            task_name="t",
+            task_id="id-0",
+            tenant_id="tenant-1",
+            job_id="job-1",
+            error=sanitize_log_error(ValueError("Authorization: " + "Be" + "arer abc123")),
+            retries=3,
+            max_retries=3,
+        )
+        assert env["error"] == "[REDACTED: contains bearer]"
+
         # Secret-bearing exception: redacted before it can reach the
         # persisted JobError row.
         env = dlq.build_dlq_envelope(
