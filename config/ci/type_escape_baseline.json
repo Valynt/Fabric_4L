@@ -1034,15 +1034,15 @@
     },
     {
       "kind": "python-any",
-      "line": 21,
+      "line": 25,
       "path": "packages/platform-contract/src/python/canonical/llm_output_parser.py",
-      "text": "from typing import Any"
+      "text": "from typing import Any, Iterable"
     },
     {
       "kind": "python-any",
-      "line": 45,
+      "line": 67,
       "path": "packages/platform-contract/src/python/canonical/llm_output_parser.py",
-      "text": "def parse_llm_json(content: str, *, call_site: str = \"\") -> dict[str, Any]:"
+      "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
@@ -11276,85 +11276,85 @@
     },
     {
       "kind": "python-any",
-      "line": 98,
+      "line": 99,
       "path": "services/layer1-ingestion/src/layer1_ingestion/api/source_routes.py",
       "text": "metadata: dict[str, Any] = Field(default_factory=dict)"
     },
     {
       "kind": "python-any",
-      "line": 159,
+      "line": 160,
       "path": "services/layer1-ingestion/src/layer1_ingestion/api/source_routes.py",
       "text": "stage_metadata: dict[str, Any]"
     },
     {
       "kind": "python-any",
-      "line": 181,
+      "line": 182,
       "path": "services/layer1-ingestion/src/layer1_ingestion/api/source_routes.py",
       "text": "stage_metadata=cast(dict[str, Any], run.stage_metadata or {}),"
     },
     {
       "kind": "python-any",
-      "line": 208,
+      "line": 216,
       "path": "services/layer1-ingestion/src/layer1_ingestion/api/source_routes.py",
       "text": "metadata: dict[str, Any],"
     },
     {
       "kind": "python-any",
-      "line": 209,
+      "line": 217,
       "path": "services/layer1-ingestion/src/layer1_ingestion/api/source_routes.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 217,
+      "line": 246,
       "path": "services/layer1-ingestion/src/layer1_ingestion/api/source_routes.py",
       "text": "normalized: dict[str, Any] = {"
     },
     {
       "kind": "python-any",
-      "line": 235,
+      "line": 270,
       "path": "services/layer1-ingestion/src/layer1_ingestion/api/source_routes.py",
       "text": "current_section: dict[str, Any] | None = None"
     },
     {
       "kind": "python-any",
-      "line": 275,
+      "line": 310,
       "path": "services/layer1-ingestion/src/layer1_ingestion/api/source_routes.py",
       "text": "def _chunk_content(content: str, max_chars: int = 800, overlap: int = 80) -> list[dict[str, Any]]:"
     },
     {
       "kind": "python-any",
-      "line": 277,
+      "line": 312,
       "path": "services/layer1-ingestion/src/layer1_ingestion/api/source_routes.py",
       "text": "chunks: list[dict[str, Any]] = []"
     },
     {
       "kind": "python-any",
-      "line": 311,
+      "line": 346,
       "path": "services/layer1-ingestion/src/layer1_ingestion/api/source_routes.py",
       "text": "external_identity: dict[str, Any] | None = None,"
     },
     {
       "kind": "python-type-ignore",
-      "line": 478,
+      "line": 513,
       "path": "services/layer1-ingestion/src/layer1_ingestion/api/source_routes.py",
       "text": "source.consent_id = consent_id  # type: ignore[assignment]"
     },
     {
       "kind": "python-any",
-      "line": 512,
+      "line": 547,
       "path": "services/layer1-ingestion/src/layer1_ingestion/api/source_routes.py",
       "text": "source.latest_version_number = cast(Any, version_number)"
     },
     {
       "kind": "python-type-ignore",
-      "line": 713,
+      "line": 748,
       "path": "services/layer1-ingestion/src/layer1_ingestion/api/source_routes.py",
       "text": "run.status = IngestionRunStatus.CANCELLED.value  # type: ignore[assignment]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 714,
+      "line": 749,
       "path": "services/layer1-ingestion/src/layer1_ingestion/api/source_routes.py",
       "text": "run.completed_at = datetime.now(UTC)  # type: ignore[assignment]"
     },
@@ -12662,6 +12662,24 @@
     },
     {
       "kind": "python-any",
+      "line": 17,
+      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/dlq.py",
+      "text": "from typing import Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 36,
+      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/dlq.py",
+      "text": "def extract_failure_context(args: Any, kwargs: Any) -> tuple[str | None, str | None]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 76,
+      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/dlq.py",
+      "text": ") -> dict[str, Any]:"
+    },
+    {
+      "kind": "python-any",
       "line": 32,
       "path": "services/layer1-ingestion/src/layer1_ingestion/shared/maintenance.py",
       "text": "from typing import Any"
@@ -12895,10 +12913,22 @@
       "text": "job_id: Any"
     },
     {
+      "kind": "python-any",
+      "line": 12,
+      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/tasks.py",
+      "text": "from typing import TYPE_CHECKING, Any"
+    },
+    {
       "kind": "python-type-ignore",
-      "line": 25,
+      "line": 34,
       "path": "services/layer1-ingestion/src/layer1_ingestion/shared/tasks.py",
       "text": "encode_service_jwt = None  # type: ignore"
+    },
+    {
+      "kind": "python-any",
+      "line": 1998,
+      "path": "services/layer1-ingestion/src/layer1_ingestion/shared/tasks.py",
+      "text": "def record_dead_lettered_task(envelope: dict[str, Any]) -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
@@ -32252,43 +32282,43 @@
     },
     {
       "kind": "python-any",
-      "line": 78,
+      "line": 97,
       "path": "services/layer4-agents/src/layer4_agents/services/governed_llm_client.py",
       "text": "metadata: dict[str, Any] = field(default_factory=dict)"
     },
     {
       "kind": "python-any",
-      "line": 136,
+      "line": 155,
       "path": "services/layer4-agents/src/layer4_agents/services/governed_llm_client.py",
       "text": "response_format: dict[str, Any] | None = None,"
     },
     {
       "kind": "python-any",
-      "line": 269,
+      "line": 289,
       "path": "services/layer4-agents/src/layer4_agents/services/governed_llm_client.py",
       "text": "schema: dict[str, Any],"
     },
     {
       "kind": "python-any",
-      "line": 273,
+      "line": 293,
       "path": "services/layer4-agents/src/layer4_agents/services/governed_llm_client.py",
       "text": ") -> tuple[dict[str, Any], LLMCallResult]:"
     },
     {
       "kind": "python-any",
-      "line": 435,
+      "line": 505,
       "path": "services/layer4-agents/src/layer4_agents/services/governed_llm_client.py",
       "text": "def _emit_raw(self, event_type: str, metadata: dict[str, Any]) -> None:"
     },
     {
       "kind": "python-any",
-      "line": 463,
+      "line": 533,
       "path": "services/layer4-agents/src/layer4_agents/services/governed_llm_client.py",
       "text": "def _load_runtime_config(path: Path) -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 473,
+      "line": 543,
       "path": "services/layer4-agents/src/layer4_agents/services/governed_llm_client.py",
       "text": "def _build_cost_calculator() -> Any | None:"
     },
@@ -35456,67 +35486,67 @@
     },
     {
       "kind": "python-any",
-      "line": 613,
+      "line": 622,
       "path": "services/layer4-agents/src/layer4_agents/tools/registry.py",
       "text": "tool_action: Any,"
     },
     {
       "kind": "python-any",
-      "line": 614,
+      "line": 623,
       "path": "services/layer4-agents/src/layer4_agents/tools/registry.py",
       "text": "request_context: Any,"
     },
     {
       "kind": "python-any",
-      "line": 615,
+      "line": 624,
       "path": "services/layer4-agents/src/layer4_agents/tools/registry.py",
       "text": "tenant_id: Any,"
     },
     {
       "kind": "python-any",
-      "line": 617,
+      "line": 626,
       "path": "services/layer4-agents/src/layer4_agents/tools/registry.py",
       "text": "trace_id: Any,"
     },
     {
       "kind": "python-any",
-      "line": 671,
+      "line": 680,
       "path": "services/layer4-agents/src/layer4_agents/tools/registry.py",
       "text": "input_dict: dict[str, Any],"
     },
     {
       "kind": "python-any",
-      "line": 672,
+      "line": 681,
       "path": "services/layer4-agents/src/layer4_agents/tools/registry.py",
       "text": "request_context: Any,"
     },
     {
       "kind": "python-any",
-      "line": 747,
+      "line": 756,
       "path": "services/layer4-agents/src/layer4_agents/tools/registry.py",
       "text": "input_dict: dict[str, Any],"
     },
     {
       "kind": "python-any",
-      "line": 748,
+      "line": 757,
       "path": "services/layer4-agents/src/layer4_agents/tools/registry.py",
       "text": "request_context: Any,"
     },
     {
       "kind": "python-any",
-      "line": 795,
+      "line": 804,
       "path": "services/layer4-agents/src/layer4_agents/tools/registry.py",
       "text": "async def execute(self, tool_name: str, input_dict: dict[str, Any]) -> ToolResult:"
     },
     {
       "kind": "python-any",
-      "line": 1057,
+      "line": 1066,
       "path": "services/layer4-agents/src/layer4_agents/tools/registry.py",
       "text": "def get_global_registry(redis_client: Any | None = None) -> ToolRegistry:"
     },
     {
       "kind": "python-any",
-      "line": 1107,
+      "line": 1116,
       "path": "services/layer4-agents/src/layer4_agents/tools/registry.py",
       "text": "async def execute(self, input_data: Any) -> Any:"
     },
