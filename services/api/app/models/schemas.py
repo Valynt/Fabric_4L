@@ -612,7 +612,7 @@ class AccountShareRevokeResponse(BaseModel):
 
 
 class OntologyMatchResponse(BaseModel):
-    account: Account
+    account_id: str
     matched_pack: ValuePack | None = None
     confidence: float = 0.0
     gaps: list[str] = Field(default_factory=list)

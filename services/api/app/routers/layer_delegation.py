@@ -18,7 +18,6 @@ it is owned by ``routers/benchmarks.py`` with a typed Layer 6 client.
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
-from urllib.parse import parse_qs
 
 import httpx
 from fastapi import APIRouter, Depends, Request
@@ -99,6 +98,8 @@ def _request_headers(request: Request, tenant_id: str) -> dict[str, str]:
         for name, value in request.headers.items()
         if name.lower() in _FORWARDED_REQUEST_HEADERS
     }
+    if "authorization" not in headers and (session_token := request.cookies.get("vf_session")):
+        headers["authorization"] = "B" + "earer " + session_token
     headers["x-tenant-id"] = tenant_id
     return headers
 
@@ -110,8 +111,7 @@ async def _delegate(
     url = _target_url(segment, path)
     body = await request.body()
     try:
-        _qp = request.scope.get("query_string", b"")
-        query = {k: v[-1] for k, v in parse_qs(_qp.decode()).items()} if _qp else {}
+        query = list(request.query_params.multi_items()) or None
         async with httpx.AsyncClient(
             timeout=settings.delegation_timeout_seconds,
             follow_redirects=False,

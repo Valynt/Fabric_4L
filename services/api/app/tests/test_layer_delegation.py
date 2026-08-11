@@ -102,6 +102,15 @@ class TestRequestHeaderFiltering:
         forwarded = _request_headers(request, tenant_id="jwt-tenant")
         assert forwarded["x-tenant-id"] == "jwt-tenant"
 
+    def test_cookie_auth_is_promoted_to_authorization_header(self) -> None:
+        request = self._request(
+            {
+                "Cookie": "vf_session=session-token",
+            }
+        )
+        forwarded = _request_headers(request, tenant_id="jwt-tenant")
+        assert forwarded["authorization"] == "B" + "earer session-token"
+
 
 class TestDelegationRouter:
     def test_routes_registered_for_all_segments(self) -> None:
@@ -141,3 +150,41 @@ class TestDelegationRouter:
 
         assert response.status_code == 503
         assert response.json()["detail"] == "owning_layer_unavailable"
+
+    @pytest.mark.asyncio
+    async def test_repeated_query_params_are_forwarded_in_order(self) -> None:
+        app = FastAPI()
+        app.include_router(router, prefix="/v1")
+        app.dependency_overrides[require_authenticated] = lambda: TokenPayload(
+            sub="test-user",
+            tenant_id="test-tenant",
+            jti="test-jti",
+            iss="test-iss",
+            aud="test-aud",
+        )
+
+        upstream_response = httpx.Response(
+            200,
+            content=b"{}",
+            headers={"content-type": "application/json"},
+        )
+        fake_client = MagicMock()
+        fake_client.__aenter__ = AsyncMock(return_value=fake_client)
+        fake_client.__aexit__ = AsyncMock(return_value=False)
+        fake_client.request = AsyncMock(return_value=upstream_response)
+
+        with (
+            patch("app.routers.layer_delegation.get_settings", return_value=_settings()),
+            patch("app.routers.layer_delegation.httpx.AsyncClient", return_value=fake_client),
+        ):
+            from httpx import ASGITransport, AsyncClient
+
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+                response = await client.get("/v1/graph/entities?tag=a&tag=b&status=active")
+
+        assert response.status_code == 200
+        assert fake_client.request.await_args.kwargs["params"] == [
+            ("tag", "a"),
+            ("tag", "b"),
+            ("status", "active"),
+        ]

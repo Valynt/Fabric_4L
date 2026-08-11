@@ -2,19 +2,21 @@
 
 ## Current task
 
-No active task.
+Address the actionable Copilot review feedback from PR #1252 with the smallest safe changes.
 
 ## Status
 
-Complete. Issue #1191 was localized to the missing Dockerfile `HEALTHCHECK` in `/home/runner/work/Fabric_4L/Fabric_4L/.devcontainer/Dockerfile`, fixed in the shared toolchain stage, and covered by a regression test against `/home/runner/work/Fabric_4L/Fabric_4L/.devcontainer/docker-compose.yml`.
+In progress.
+
+## Active hypotheses
+
+- The remaining review feedback is caused by contract drift in gateway settings/response models plus incomplete delegation compatibility handling.
 
 ## What was done
 
-- Reproduced the static compose-contract failure for the `dev` service before the fix.
-- Added a generic Dockerfile `HEALTHCHECK` to the shared devcontainer toolchain image.
-- Added a regression test asserting the checked-in devcontainer compose file inherits Dockerfile health coverage.
-- Validated the fix with the compose-contract module and Python syntax checks.
+- Retrieved review 4905593798 and identified the actionable Copilot feedback items.
+- Inspected the affected gateway config, delegation, agents, and intelligence files plus related tests.
 
 ## Next step
 
-No active task.
+Patch the targeted files and add or update narrow regression coverage before re-running focused tests.

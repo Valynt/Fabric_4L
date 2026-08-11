@@ -5,6 +5,14 @@ import pytest
 from app.core.config import Settings
 
 
+def test_settings_keep_legacy_per_layer_timeout_fields():
+    settings = Settings()
+    assert settings.layer1_timeout_seconds == 10.0
+    assert settings.layer2_timeout_seconds == 10.0
+    assert settings.layer3_timeout_seconds == 10.0
+    assert settings.layer5_timeout_seconds == 10.0
+
+
 def test_production_like_environment_rejects_mock_persistence_and_mock_llm():
     with pytest.raises(Exception, match="Unsafe production configuration"):
         Settings(

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 from datetime import UTC, datetime
 from typing import Any
@@ -129,7 +130,11 @@ async def list_active_workflows(tenant_id: str = Depends(tenant_required)):
     active_runs = [run for run in runs if run.status in active_like_statuses]
     refreshed: list[AgentRun] = []
     for run in active_runs:
-        refreshed_run = orchestrator.get_run(run.id, tenant_id=tenant_id)
+        refreshed_run = await asyncio.to_thread(
+            orchestrator.get_run,
+            run.id,
+            tenant_id=tenant_id,
+        )
         if refreshed_run and refreshed_run.status in active_like_statuses:
             refreshed.append(refreshed_run)
     return [_run_to_workflow_payload(r) for r in refreshed]
