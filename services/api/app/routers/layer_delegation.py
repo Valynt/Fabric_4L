@@ -95,11 +95,11 @@ def _target_url(segment: str, path: str) -> str:
 
 def _request_headers(request: Request, tenant_id: str) -> dict[str, str]:
     headers = {
-        name: value
+        name.lower(): value
         for name, value in request.headers.items()
         if name.lower() in _FORWARDED_REQUEST_HEADERS
     }
-    headers["X-Tenant-ID"] = tenant_id
+    headers["x-tenant-id"] = tenant_id
     return headers
 
 
