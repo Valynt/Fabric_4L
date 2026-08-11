@@ -53,6 +53,7 @@ from ..shared.models import (
 
 try:
     from value_fabric.shared.error_handling.exceptions import ConflictError, ValidationError
+    from value_fabric.shared.llm_safety import PromptGuard
     from value_fabric.shared.observability.logging import get_logger
 except ImportError as e:
     raise ImportError(
@@ -202,6 +203,13 @@ MEDIA_TYPES: dict[SourceType, str] = {
 }
 
 
+def _is_production_env() -> bool:
+    """True only for the exact production environment (fail-closed doctrine)."""
+    import os
+
+    return os.getenv("ENVIRONMENT", os.getenv("ENV", os.getenv("APP_ENV", ""))).strip().lower() == "production"
+
+
 def _normalize_source(
     source_type: SourceType,
     content: str,
@@ -214,6 +222,27 @@ def _normalize_source(
     the simple branches over time.
     """
     media_type = MEDIA_TYPES.get(source_type, "text/plain")
+
+    # Indirect prompt-injection screening (V1-AI-001): every ingested document
+    # is scanned at the intake boundary. The detection is recorded on the
+    # immutable normalized document so downstream layers (L2 extraction, L4
+    # prompts) can see it; in production-like environments definite or strong
+    # injections are rejected at intake instead of entering the pipeline.
+    injection_result = PromptGuard().check(
+        content,
+        context={
+            "tenant_id": metadata.get("tenant_id"),
+            "external_reference": metadata.get("external_reference"),
+        },
+    )
+    if injection_result.is_injection and _is_production_env():
+        raise ValidationError(
+            message=(
+                f"Source content rejected: prompt injection detected "
+                f"({injection_result.severity.value}: {', '.join(injection_result.matched_patterns)})"
+            )
+        )
+
     normalized: dict[str, Any] = {
         "media_type": media_type,
         "language": "en",
@@ -224,6 +253,12 @@ def _normalize_source(
             "source_type": source_type.value,
             "external_reference": metadata.get("external_reference"),
             "title": metadata.get("title"),
+            "prompt_injection": {
+                "is_injection": injection_result.is_injection,
+                "severity": injection_result.severity.value,
+                "matched_patterns": injection_result.matched_patterns,
+                "confidence": injection_result.confidence,
+            },
         },
         "normalizer_version": "1.0.0",
         "chunks": [],

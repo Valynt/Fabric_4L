@@ -75,7 +75,7 @@ class TenantKillSwitch:
         kill_switch = TenantKillSwitch(redis_client)
         kill_switch.suspend_sync(tenant_id)
         kill_switch.unsuspend_sync(tenant_id)
-        is_suspended = kill_switch.is_suspended_sync(tenant_id)
+        status = kill_switch.check_status_sync(tenant_id)
     """
 
     def __init__(self, redis_client: Any | None = None) -> None:
@@ -185,16 +185,36 @@ class TenantKillSwitch:
         except Exception as exc:
             logger.warning("Kill switch unsuspend_sync failed: %s", exc)
 
-    def is_suspended_sync(self, tenant_id: str) -> bool:
-        """Synchronous version for Celery tasks."""
+    def check_status_sync(self, tenant_id: str) -> TenantSuspensionStatus:
+        """Return the tri-state suspension status for a tenant synchronously."""
         if self._redis is None:
-            return False
+            logger.warning(
+                "kill_switch_no_redis",
+                extra={"event": "kill_switch_no_redis", "tenant_id": str(tenant_id)},
+            )
+            return TenantSuspensionStatus.UNKNOWN
         try:
             result = self._redis.sismember(SUSPENDED_TENANTS_SET, str(tenant_id))
-            return bool(result)
+            return (
+                TenantSuspensionStatus.SUSPENDED
+                if bool(result)
+                else TenantSuspensionStatus.ACTIVE
+            )
         except Exception as exc:
-            logger.warning("Kill switch check_sync failed: %s", exc)
-            return False
+            logger.warning(
+                "kill_switch_check_failed",
+                extra={
+                    "event": "kill_switch_check_failed",
+                    "tenant_id": str(tenant_id),
+                    "error": str(exc),
+                    "error_type": type(exc).__name__,
+                },
+            )
+            return TenantSuspensionStatus.UNKNOWN
+
+    def is_suspended_sync(self, tenant_id: str) -> bool:
+        """Synchronous version for Celery tasks."""
+        return self.check_status_sync(tenant_id) == TenantSuspensionStatus.SUSPENDED
 
 
 # ----------------------------------------------------------------------

@@ -1,5 +1,26 @@
 # Disaster Recovery Policy
 
+> ## Current Implementation Status (2026-08-10, issue #1264)
+>
+> **This document states TARGET objectives. Several are not yet implemented.**
+> Until each item is marked IMPLEMENTED with evidence, no statement below is a
+> capability claim (launch contract: no unsupported availability claims).
+>
+> | Policy statement | Status @ main | Evidence |
+> |---|---|---|
+> | Continuous WAL archiving (RPO ≤ 15 min) | **NOT IMPLEMENTED** | `k8s/base/postgres-backup-cronjob.yaml`: `ENABLE_WALG_BACKUP: "false"`, gated by `scripts/ci/check_walg_enablement_gate.py` on missing evidence file |
+> | Nightly full snapshot | PARTIAL | Daily 02:00 UTC `pg_dump` to in-cluster PVC — **no off-cluster copy** |
+> | Weekly immutable copy in secondary region | **NOT IMPLEMENTED** | No producer of S3/immutable artifacts exists |
+> | Retention 35d/12w/12mo | **NOT IMPLEMENTED** | Active retention is 7 days (PVC) |
+> | PITR restore via wal-g | **UNVERIFIED** | `.github/workflows/dr-drill.yml` verifies artifacts the disabled WAL-G path never produces |
+> | Backup of every production database | PARTIAL | Backup CronJob DB list uses k8s names; compose-named DBs are silently SKIPPED |
+> | Rollback: previous version recoverable without data loss | **UNMET (as of 2026-06-13)** | `signoff-evidence/p0-rollback-20260613.json`: drill FAILED; re-rehearsal pending |
+> | Redis RDB/AOF snapshotting | NOT VERIFIED in this pass | — |
+>
+> Remediation is tracked in issue #1257 (V1-DR-001): WAL-G enablement with
+> restore-drill evidence, dr-drill alignment to the real backup path, backup
+> DB-name reconciliation, and rollback rehearsal.
+
 ## Purpose
 
 This policy defines disaster recovery objectives, backup standards, restore validation cadence, and accountability for critical Value Fabric services.

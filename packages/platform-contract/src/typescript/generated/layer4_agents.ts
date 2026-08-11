@@ -4663,53 +4663,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/tenant/settings": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Current Tenant Settings
-         * @deprecated
-         * @description DEPRECATED alias for GET /v1/tenants/current/settings. Planned removal: 2026-08-01.
-         */
-        get: operations["get_current_tenant_settings_v1_tenant_settings_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /**
-         * Update Current Tenant Settings
-         * @deprecated
-         * @description DEPRECATED alias for PATCH /v1/tenants/current/settings. Planned removal: 2026-08-01.
-         */
-        patch: operations["update_current_tenant_settings_v1_tenant_settings_patch"];
-        trace?: never;
-    };
-    "/v1/auth/register": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Register Tenant Frontend Alias
-         * @deprecated
-         * @description DEPRECATED alias for POST /v1/tenants/register. Planned removal: 2026-07-01.
-         */
-        post: operations["register_tenant_frontend_alias_v1_auth_register_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/v1/prospects/{prospect_id}/context": {
         parameters: {
             query?: never;
@@ -9024,6 +8977,30 @@ export interface components {
             previous_case_id: string;
         };
         /**
+         * RegisterTenantRequest
+         * @description Request to register a new tenant.
+         */
+        RegisterTenantRequest: {
+            /** Name */
+            name: string;
+            /** Slug */
+            slug: string;
+            /**
+             * Admin Email
+             * Format: email
+             */
+            admin_email: string;
+            /**
+             * Tier Id
+             * @default free
+             */
+            tier_id: string;
+            /** Organization Name */
+            organization_name?: string | null;
+            /** Phone */
+            phone?: string | null;
+        };
+        /**
          * RegisterTenantResponse
          * @description Response from tenant registration.
          */
@@ -10132,6 +10109,30 @@ export interface components {
             limit: number;
             /** Offset */
             offset: number;
+        };
+        /**
+         * TenantSettingsResponse
+         * @description Tenant settings response.
+         */
+        TenantSettingsResponse: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Slug */
+            slug: string;
+            /** Status */
+            status: string;
+            /** Tier Id */
+            tier_id: string;
+            /** Settings */
+            settings: {
+                [key: string]: unknown;
+            };
+            /** Created At */
+            created_at: string;
+            /** Updated At */
+            updated_at: string;
         };
         /**
          * TenantSettingsUpdateResponse
@@ -11850,59 +11851,6 @@ export interface components {
             current_checkpoint_id?: string | null;
         };
         /**
-         * RegisterTenantRequest
-         * @description Request to register a new tenant.
-         */
-        layer4_agents__api__routes__frontend_compat__RegisterTenantRequest: {
-            /** Name */
-            name: string;
-            /** Slug */
-            slug: string;
-            /** Admin Email */
-            admin_email: string;
-            /**
-             * Tier Id
-             * @default free
-             */
-            tier_id: string;
-            /** Organization Name */
-            organization_name?: string | null;
-            /** Phone */
-            phone?: string | null;
-        };
-        /**
-         * TenantSettingsResponse
-         * @description Tenant settings response.
-         */
-        layer4_agents__api__routes__frontend_compat__TenantSettingsResponse: {
-            /** Id */
-            id: string;
-            /** Name */
-            name: string;
-            /** Slug */
-            slug: string;
-            /** Status */
-            status: string;
-            /** Tier Id */
-            tier_id: string;
-            /** Settings */
-            settings: {
-                [key: string]: unknown;
-            };
-            /** Created At */
-            created_at: string;
-        };
-        /**
-         * TenantSettingsUpdate
-         * @description Update tenant settings.
-         */
-        layer4_agents__api__routes__frontend_compat__TenantSettingsUpdate: {
-            /** Settings */
-            settings?: {
-                [key: string]: unknown;
-            } | null;
-        };
-        /**
          * CheckpointListResponse
          * @description List of checkpoints for a run.
          */
@@ -11925,30 +11873,6 @@ export interface components {
             limit: number;
             /** Offset */
             offset: number;
-        };
-        /**
-         * TenantSettingsResponse
-         * @description Tenant settings response.
-         */
-        layer4_agents__tenants__api__routes__admin__TenantSettingsResponse: {
-            /** Id */
-            id: string;
-            /** Name */
-            name: string;
-            /** Slug */
-            slug: string;
-            /** Status */
-            status: string;
-            /** Tier Id */
-            tier_id: string;
-            /** Settings */
-            settings: {
-                [key: string]: unknown;
-            };
-            /** Created At */
-            created_at: string;
-            /** Updated At */
-            updated_at: string;
         };
         /**
          * TenantSettingsUpdate
@@ -11986,30 +11910,6 @@ export interface components {
             notification_preferences?: {
                 [key: string]: unknown;
             } | null;
-        };
-        /**
-         * RegisterTenantRequest
-         * @description Request to register a new tenant.
-         */
-        layer4_agents__tenants__api__routes__registration__RegisterTenantRequest: {
-            /** Name */
-            name: string;
-            /** Slug */
-            slug: string;
-            /**
-             * Admin Email
-             * Format: email
-             */
-            admin_email: string;
-            /**
-             * Tier Id
-             * @default free
-             */
-            tier_id: string;
-            /** Organization Name */
-            organization_name?: string | null;
-            /** Phone */
-            phone?: string | null;
         };
         /** list_chargesResult */
         list_chargesResult: {
@@ -16577,7 +16477,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["layer4_agents__tenants__api__routes__registration__RegisterTenantRequest"];
+                "application/json": components["schemas"]["RegisterTenantRequest"];
             };
         };
         responses: {
@@ -16800,7 +16700,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["layer4_agents__tenants__api__routes__admin__TenantSettingsResponse"];
+                    "application/json": components["schemas"]["TenantSettingsResponse"];
                 };
             };
             /** @description Validation Error */
@@ -19749,100 +19649,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AuthSessionResponse"];
-                };
-            };
-        };
-    };
-    get_current_tenant_settings_v1_tenant_settings_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["layer4_agents__api__routes__frontend_compat__TenantSettingsResponse"];
-                };
-            };
-        };
-    };
-    update_current_tenant_settings_v1_tenant_settings_patch: {
-        parameters: {
-            query?: never;
-            header?: {
-                "X-CSRF-Token"?: string | null;
-            };
-            path?: never;
-            cookie?: {
-                vf_csrf_token?: string | null;
-            };
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["layer4_agents__api__routes__frontend_compat__TenantSettingsUpdate"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TenantSettingsUpdateResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    register_tenant_frontend_alias_v1_auth_register_post: {
-        parameters: {
-            query?: never;
-            header?: {
-                "X-CSRF-Token"?: string | null;
-            };
-            path?: never;
-            cookie?: {
-                vf_csrf_token?: string | null;
-            };
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["layer4_agents__api__routes__frontend_compat__RegisterTenantRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            202: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RegisterTenantResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

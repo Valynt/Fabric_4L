@@ -46,7 +46,7 @@ name: "Supply Chain Integrity Gate"
 env:
   REGISTRY: ghcr.io
   # Publisher, versions, digest verification, and rotation: docs/supply-chain/CI_TOOLS_SECURITY_SUITE.md
-  CI_TOOLS_IMAGE: ghcr.io/${{ github.repository_owner }}/ci-tools/security-suite@sha256:24a75a644c16e625723872badc4555de8db6c6db3afe3ea354dae072966e9b3d
+  CI_TOOLS_IMAGE: ghcr.io/${{ github.repository_owner }}/ci-tools/security-suite@sha256:08955de6704e6a9d4536fff1ccd6d0e0a4b3f6fe3ce5b5a28435368d8bd0fe9a
   IMAGE_TAG: ${{ github.sha }}
 
 permissions:
@@ -79,10 +79,18 @@ jobs:
           repo_digests="$(docker image inspect --format '{{json .RepoDigests}}' "$image")"
           grep -Fq "@${expected_digest}" <<<"$repo_digests"
 
+          # assert_line must survive `set -e`: a failing container command would
+          # otherwise abort the script at the command substitution, before any
+          # diagnostic is printed. Capture the exit status explicitly and report
+          # execution failures separately from output mismatches.
           assert_line() {
-            local command="$1" expected="$2"
-            local output
-            output=$(docker run --rm "$image" bash -o pipefail -c "$command" 2>&1)
+            local command="$1" expected="$2" docker_opts="${3:-}"
+            local output status=0
+            output=$(docker run --rm $docker_opts "$image" bash -o pipefail -c "$command" 2>&1) || status=$?
+            if (( status != 0 )); then
+              printf 'COMMAND FAILED: %s\nExit status: %s\nOutput:\n%s\n' "$command" "$status" "$output" >&2
+              return 1
+            fi
             if ! grep -Fxq -- "$expected" <<<"$output"; then
               printf 'ASSERTION FAILED: %s\nExpected: %s\nGot:\n%s\n' "$command" "$expected" "$output" >&2
               return 1
@@ -93,9 +101,21 @@ jobs:
           assert_line "cosign version | awk -F: '/GitVersion/{gsub(/^[[:space:]]+|[[:space:]]+$/,\"\",\$2); print \$2}'" "v2.5.3"
           assert_line "pip-audit --version" "pip-audit 2.9.0"
           assert_line "pip-licenses --version" "pip-licenses 5.0.0"
+          # uv appends a platform suffix ("uv 0.11.6 (x86_64-unknown-linux-gnu)"), so
+          # compare only the tool name and version fields, mirroring the awk extraction
+          # already used for grype/syft/cosign above.
+          assert_line "uv --version | awk '{print \$1, \$2}'" "uv 0.11.6"
           assert_line "python --version" "Python 3.12.10"
           assert_line "node --version" "v22.17.0"
-          assert_line "pnpm --version" "10.18.1"
+          # pnpm runs through a corepack shim. The image bakes pnpm 10.18.1 into
+          # root's corepack cache at build time (corepack prepare --activate)
+          # but executes as USER 1001, whose HOME (/) is unwritable — observed:
+          # EACCES mkdir '/.cache/node/corepack/v1'. A fresh writable
+          # COREPACK_HOME is NOT the fix: with no activated default in it,
+          # corepack resolves its built-in latest (observed: pnpm 11.21.0)
+          # instead of the baked pin. Probe as root so the activated 10.18.1
+          # cache answers offline — this asserts the image's baked content.
+          assert_line "pnpm --version" "10.18.1" "--user root"
 
   # ============================================
   # Source-Level SBOM Scan (runs on every PR/push)
@@ -156,7 +176,7 @@ jobs:
       IMAGE_TAG: ${{ inputs.image_tag || github.sha }}
     needs: ci-tools-preflight
     container:
-      image: ghcr.io/${{ github.repository_owner }}/ci-tools/security-suite@sha256:24a75a644c16e625723872badc4555de8db6c6db3afe3ea354dae072966e9b3d
+      image: ghcr.io/${{ github.repository_owner }}/ci-tools/security-suite@sha256:08955de6704e6a9d4536fff1ccd6d0e0a4b3f6fe3ce5b5a28435368d8bd0fe9a
     name: SBOM + Vulnerability Scan
     if: inputs.certify_images || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
@@ -268,7 +288,7 @@ jobs:
       IMAGE_TAG: ${{ inputs.image_tag || github.sha }}
     needs: ci-tools-preflight
     container:
-      image: ghcr.io/${{ github.repository_owner }}/ci-tools/security-suite@sha256:24a75a644c16e625723872badc4555de8db6c6db3afe3ea354dae072966e9b3d
+      image: ghcr.io/${{ github.repository_owner }}/ci-tools/security-suite@sha256:08955de6704e6a9d4536fff1ccd6d0e0a4b3f6fe3ce5b5a28435368d8bd0fe9a
     name: Verify Image Signatures
     if: inputs.certify_images || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
@@ -300,7 +320,7 @@ jobs:
   dependency-audit:
     needs: ci-tools-preflight
     container:
-      image: ghcr.io/${{ github.repository_owner }}/ci-tools/security-suite@sha256:24a75a644c16e625723872badc4555de8db6c6db3afe3ea354dae072966e9b3d
+      image: ghcr.io/${{ github.repository_owner }}/ci-tools/security-suite@sha256:08955de6704e6a9d4536fff1ccd6d0e0a4b3f6fe3ce5b5a28435368d8bd0fe9a
     name: Dependency Audit
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -320,16 +340,33 @@ jobs:
               requirements_file="/tmp/${service_name}-requirements.txt"
               audit_output="${GITHUB_WORKSPACE}/${service_name}-audit.json"
               echo "Auditing $service_name"
-              # Install the service's declared dependencies so pip freeze
-              # reflects the service's actual resolution (respecting version
-              # constraints from pyproject.toml / requirements.txt), not
-              # whatever happens to be pre-installed in the CI tools image.
+              # Use the locked dependency set as the source of truth for auditing.
+              # uv.lock is the canonical resolution; pip install -e . can drift
+              # due to newly published transitive pins and produces non-reproducible
+              # audit results.
               set +e
               (
-                cd "$dir" && \
-                  pip install -e . --quiet 2>/dev/null; \
-                  pip freeze > "$requirements_file" && \
-                  pip-audit -r "$requirements_file" --format=json --output="$audit_output"
+                if [ -f "$dir/uv.lock" ]; then
+                  (
+                    cd "$dir" && \
+                      command -v uv >/dev/null 2>&1 || { echo "::error::uv is required in the CI tools image for locked dependency auditing"; exit 2; } && \
+                      uv --version && \
+                      uv export --locked --no-dev --no-editable --no-header --output-file="$requirements_file" && \
+                      # uv export emits a standalone '.' line for the local editable root; pip-audit
+                      # cannot parse it, so strip it before auditing. Use a temporary file because
+                      # sed -i is not portable across BSD (macOS) and GNU (Linux) implementations.
+                      grep -v '^\.$' "$requirements_file" > "${requirements_file}.tmp" && \
+                      mv "${requirements_file}.tmp" "$requirements_file" && \
+                      pip-audit -r "$requirements_file" --format=json --output="$audit_output"
+                  )
+                else
+                  (
+                    cd "$dir" && \
+                      pip install -e . --quiet 2>/dev/null && \
+                      pip freeze > "$requirements_file" && \
+                      pip-audit -r "$requirements_file" --format=json --output="$audit_output"
+                  )
+                fi
               )
               audit_status=$?
               set -e
@@ -400,7 +437,7 @@ jobs:
   license-check:
     needs: ci-tools-preflight
     container:
-      image: ghcr.io/${{ github.repository_owner }}/ci-tools/security-suite@sha256:24a75a644c16e625723872badc4555de8db6c6db3afe3ea354dae072966e9b3d
+      image: ghcr.io/${{ github.repository_owner }}/ci-tools/security-suite@sha256:08955de6704e6a9d4536fff1ccd6d0e0a4b3f6fe3ce5b5a28435368d8bd0fe9a
     name: License Compliance
     runs-on: ubuntu-latest
     timeout-minutes: 15
