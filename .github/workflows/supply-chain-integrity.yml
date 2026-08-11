@@ -84,9 +84,9 @@ jobs:
           # diagnostic is printed. Capture the exit status explicitly and report
           # execution failures separately from output mismatches.
           assert_line() {
-            local command="$1" expected="$2"
+            local command="$1" expected="$2" docker_opts="${3:-}"
             local output status=0
-            output=$(docker run --rm "$image" bash -o pipefail -c "$command" 2>&1) || status=$?
+            output=$(docker run --rm $docker_opts "$image" bash -o pipefail -c "$command" 2>&1) || status=$?
             if (( status != 0 )); then
               printf 'COMMAND FAILED: %s\nExit status: %s\nOutput:\n%s\n' "$command" "$status" "$output" >&2
               return 1
@@ -107,12 +107,15 @@ jobs:
           assert_line "uv --version | awk '{print \$1, \$2}'" "uv 0.11.6"
           assert_line "python --version" "Python 3.12.10"
           assert_line "node --version" "v22.17.0"
-          # pnpm runs through a corepack shim; the container user cannot write
-          # corepack's default cache ($HOME/.cache/node, with HOME=/), so the
-          # probe dies with EACCES unless COREPACK_HOME points at a writable
-          # path. Observed: COMMAND FAILED: pnpm --version, exit 1,
-          # "EACCES: permission denied, mkdir '/.cache/node/corepack/v1'".
-          assert_line "COREPACK_HOME=/tmp/corepack pnpm --version" "10.18.1"
+          # pnpm runs through a corepack shim. The image bakes pnpm 10.18.1 into
+          # root's corepack cache at build time (corepack prepare --activate)
+          # but executes as USER 1001, whose HOME (/) is unwritable — observed:
+          # EACCES mkdir '/.cache/node/corepack/v1'. A fresh writable
+          # COREPACK_HOME is NOT the fix: with no activated default in it,
+          # corepack resolves its built-in latest (observed: pnpm 11.21.0)
+          # instead of the baked pin. Probe as root so the activated 10.18.1
+          # cache answers offline — this asserts the image's baked content.
+          assert_line "pnpm --version" "10.18.1" "--user root"
 
   # ============================================
   # Source-Level SBOM Scan (runs on every PR/push)
