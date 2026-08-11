@@ -9,6 +9,11 @@
       "title": "AgentResponseEnvelope"
     },
     {
+      "path": "contracts/jsonschema/claim-types.v1.json",
+      "id": "https://valuefabric.ai/contracts/jsonschema/claim-types.v1.json",
+      "title": "Canonical Claim Type Taxonomy v1"
+    },
+    {
       "path": "contracts/jsonschema/billing-domain.schema.json",
       "id": "https://valuefabric/contracts/billing-domain.schema.json",
       "title": "Billing Domain Contracts"
@@ -93,7 +98,7 @@
     {
       "path": "contracts/openapi/layer5-ground-truth.json",
       "id": "openapi:contracts/openapi/layer5-ground-truth.json",
-      "title": "Value Fabric \u2014 Ground Truth Layer (L5)"
+      "title": "Value Fabric\u2014 Ground Truth Layer (L5)"
     },
     {
       "path": "contracts/openapi/layer6-benchmarks.json",
