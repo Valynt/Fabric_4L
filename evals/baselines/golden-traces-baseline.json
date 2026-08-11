@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "purpose": "Frozen golden-trace baseline for regression comparison (V1-EVALS-001). Regenerate only together with an intentional fixture change, in the same PR.",
+  "fixtures": {
+    "analyze_competition": {
+      "trace_count": 1,
+      "sha256": "3a4ed5d5af9cbd5d50f4312af5d243112f78c509226e0f6b5e7f796989f17fc6"
+    },
+    "calculate_roi": {
+      "trace_count": 1,
+      "sha256": "255c430003dc8b78190f59c88474f8b988a8aa02e6a19b5f72db191cf2ebe560"
+    },
+    "create_task": {
+      "trace_count": 1,
+      "sha256": "b6eec2e484757ac220e7f66b8c6fb0c35194a314c7871b73d8dfd47702cf1e78"
+    },
+    "evaluate_formula": {
+      "trace_count": 3,
+      "sha256": "c649c80f4bef4ab753ec148b49eb39137fe91614a5baced07e3605063e49338a"
+    },
+    "format_currency": {
+      "trace_count": 2,
+      "sha256": "a3fd2adae9f05d2f2403f16885090805c01473fa9bbd74838fc8f9af7d61eef6"
+    },
+    "generate_section": {
+      "trace_count": 1,
+      "sha256": "06783171eb4127806dabc74b438f8a6412c32675d3a0804ad5d5b2ceee914d72"
+    },
+    "get_prospect_data": {
+      "trace_count": 1,
+      "sha256": "1429dcbd7a5d3223515b9d2dacbfbd332be5b814f8370076830ee7cd2de4cf79"
+    },
+    "query_graph": {
+      "trace_count": 1,
+      "sha256": "eb5eeacc16bbc7c5dd9ea4dc6f53696c9426bddef6255ee472f12da9e6d74a82"
+    },
+    "schedule_meeting": {
+      "trace_count": 1,
+      "sha256": "e1e7aad1e7b982c0cfa8baaac4932ac18f4669052addd9fada5353a8538f260f"
+    },
+    "semantic_search": {
+      "trace_count": 3,
+      "sha256": "3617523f5051ec800da2e7153e84208ccb709fa663609163a5aa5a467738a4a7"
+    },
+    "send_notification": {
+      "trace_count": 1,
+      "sha256": "b46c3e572d3cdf8cac0516368cefccbd68892e8320985c2a86ed4f84fdd59359"
+    },
+    "validate_input": {
+      "trace_count": 1,
+      "sha256": "16ea3ae05cb79190091f96023ddb6247194103151ddc018054c6404f0de3bd1b"
+    }
+  }
+}

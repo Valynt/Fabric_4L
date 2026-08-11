@@ -141,7 +141,7 @@ class TestTraceIdSanitizationRegression:
         
         # Verify the regenerated ID uses the custom generator
         # (not the default UUID generator)
-        assert result.trace_id == "custom-gen-123"
+        assert result.trace_id == "req_custom-gen-123"
         assert result.source_header == "X-Request-ID"
 
     def test_generator_parameter_used_on_empty_id(self):
@@ -154,20 +154,25 @@ class TestTraceIdSanitizationRegression:
         result = resolve_trace_context(headers, generator=custom_generator)
         
         # Verify the regenerated ID uses the custom generator
-        assert result.trace_id == "empty-gen-456"
+        assert result.trace_id == "req_empty-gen-456"
 
-    def test_generator_parameter_used_on_too_long_id(self):
-        """Verify generator parameter is used when too-long ID triggers regeneration."""
+    def test_too_long_valid_id_is_truncated_not_regenerated(self):
+        """Too-long but pattern-valid IDs are truncated, not regenerated.
+
+        The generator is only used when regeneration actually triggers
+        (empty or invalid characters); length alone is handled by
+        truncation to MAX_TRACE_ID_LENGTH. Governs the same path as
+        test_trace_id_truncation_respects_max_length.
+        """
         def custom_generator():
             return "long-gen-789"
-        
-        # Test with trace ID exceeding max length
+
         long_id = "a" * 200
         headers = {"X-Request-ID": long_id}
         result = resolve_trace_context(headers, generator=custom_generator)
-        
-        # Verify the regenerated ID uses the custom generator
-        assert result.trace_id == "long-gen-789"
+
+        from value_fabric.shared.observability.trace_context import MAX_TRACE_ID_LENGTH
+        assert result.trace_id == "a" * MAX_TRACE_ID_LENGTH
 
     def test_sanitize_trace_id_receives_generator(self):
         """Verify sanitize_trace_id receives generator parameter when needed.
@@ -183,7 +188,7 @@ class TestTraceIdSanitizationRegression:
         result = sanitize_trace_id(invalid_id, generator=custom_generator)
         
         # Verify custom generator was used
-        assert result == "unit-test-gen"
+        assert result == "req_unit-test-gen"
 
     def test_valid_trace_id_uses_generator_only_when_needed(self):
         """Verify generator is NOT used when trace ID is already valid."""

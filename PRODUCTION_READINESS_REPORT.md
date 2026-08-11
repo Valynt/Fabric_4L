@@ -2,9 +2,27 @@
 
 **Date:** June 25, 2026
 **Target Version:** v1.2.0
-**Status:** **READY FOR PRODUCTION (GREEN)**
+**Status:** **HISTORICAL AUDIT RECORD — NOT A CURRENT READINESS CLAIM**
 
-This report summarizes the comprehensive production readiness uplift performed on the `Fabric_4L` codebase. All critical verification gates, security checks, and tenant isolation policies have been strictly enforced and are now passing at 100%.
+> **Correction (2026-08-10, issue #1264):** This document's original status line
+> ("READY FOR PRODUCTION (GREEN), all gates 100% clean") was an unsupported
+> claim: the cited gate results exist only as uncommitted local logs, and the
+> canonical production-readiness risk register
+> (`production-readiness/risk_register.yaml`) records a materially different
+> posture — 6 of 10 risks ACCEPTED pending countersignature, P0-001/P0-002
+> environment-dependent, and "live production readiness: not yet claimed"
+> (`docs/launch/launch-blocker-register.md`). Independent discovery on
+> 2026-08-10 additionally found: golden-path certification still pending
+> (INV-GOLDEN-001), DR posture contradicting the 15-minute RPO target
+> (WAL-G disabled; daily pg_dump to PVC), and a failed rollback drill
+> (`signoff-evidence/p0-rollback-20260613.json`).
+>
+> **The narrative below is retained as a historical record of the June 2026
+> audit-and-repair work only.** Current readiness is governed exclusively by:
+> `production-readiness/risk_register.yaml`, `release/v1/launch-contract.yaml`,
+> and candidate evidence under `artifacts/release/<sha>/`.
+
+This report summarizes the comprehensive production readiness uplift performed on the `Fabric_4L` codebase in June 2026.
 
 ## 1. Executive Summary
 
@@ -67,4 +85,4 @@ The React frontend (`apps/web`) had 6 failing Vitest suites related to the `useR
 
 The `Fabric_4L` codebase is now in a pristine state. All technical debt identified during the audit has been resolved, and the platform strictly adheres to its architectural boundaries and security contracts. 
 
-The successful execution of the `make production-readiness-gate` confirms that the platform is ready for the v1.2.0 production release.
+The June 2026 execution of `make production-readiness-gate` confirmed the audit's repair scope at that time. It does NOT constitute a release certification: v1 certification requires the golden-path, DR, rollback, and candidate evidence defined in `release/v1/launch-contract.yaml` and remains in progress as of 2026-08-10.

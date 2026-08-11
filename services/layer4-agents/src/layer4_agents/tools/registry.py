@@ -486,7 +486,16 @@ class ToolRegistry:
         # approval for irreversible CRM/INTEGRATION tools by setting
         # LAYER4_AUTO_APPROVE_IRREVERSIBLE_TOOLS=true.  This must never be enabled
         # in production-like environments.
-        if os.getenv("LAYER4_AUTO_APPROVE_IRREVERSIBLE_TOOLS", "").lower() in ("true", "1", "yes"):
+        auto_approve = os.getenv("LAYER4_AUTO_APPROVE_IRREVERSIBLE_TOOLS", "").lower() in ("true", "1", "yes")
+        if auto_approve:
+            environment = os.getenv("ENVIRONMENT", os.getenv("ENV", os.getenv("APP_ENV", ""))).strip().lower()
+            if environment == "production":
+                raise RuntimeError(
+                    "unsafe_production_configuration: "
+                    "LAYER4_AUTO_APPROVE_IRREVERSIBLE_TOOLS must never be enabled in "
+                    "production-like environments (tool approval bypass; same "
+                    "fail-closed doctrine as INV-SEC-001 dev auth bypass flags)"
+                )
             self._approval_required_categories: set[ToolCategory] = set()
         else:
             self._approval_required_categories = {

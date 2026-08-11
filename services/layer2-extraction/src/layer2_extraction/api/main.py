@@ -940,7 +940,10 @@ async def run_extraction(
 
     if not await job_store.exists(job_id):
         # P1-3: MANDATORY VALIDATION GATE before job store persistence
-        # PipelineJob is validated via tenant_id check in run_extraction
+        # PipelineJob is validated via tenant_id check in run_extraction.
+        # The job is bound to the authenticated tenant at creation so a forged
+        # queue payload carrying another tenant's job_id + tenant_id is
+        # rejected by the mismatch check below (V1-TENANCY-010 / T-4).
         await job_store.set(
             PipelineJob(
                 job_id=job_id,
@@ -953,8 +956,20 @@ async def run_extraction(
                 last_error=None,
                 next_retry_at=None,
                 completed_at=None,
+                tenant_id=tenant_id,
             )
         )
+    else:
+        # Explicit forged-payload rejection: a job existing under a DIFFERENT
+        # tenant must not be processed under this one. Previously this was
+        # rejected only implicitly (tenant-scoped lookup miss). Fail closed
+        # and non-retryable — a tenant mismatch is never transient.
+        existing_job = await job_store.get(job_id, tenant_id=tenant_id)
+        if existing_job is None:
+            raise AuthorizationError(message="Request failed", details={
+                "code": "tenant_context_mismatch",
+                "message": "Extraction job tenant does not match the authenticated tenant context.",
+            })
 
     await _set_pipeline_job(job_id, extraction_status="running")
     
