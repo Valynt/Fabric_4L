@@ -1,5 +1,18 @@
 {
   "schemaVersion": "1.0",
   "description": "Approved RFC/deprecation exceptions for the OpenAPI breaking-change gate. Entries must reference an approved Contract Change RFC or deprecation record before CI may allow a breaking OpenAPI contract change.",
-  "exceptions": []
+  "exceptions": [
+    {
+      "id": "V1-PROVISION-001-alias-removal",
+      "status": "approved",
+      "approvedBy": "bmsull560 (repo owner) via issue #1256 and the curated deprecation register; removal targets 2026-07-01 and 2026-08-01 passed before removal on 2026-08-10",
+      "deprecationRecord": "contracts/deprecations/endpoint-deprecations.json (entries POST /auth/register, GET /tenant/settings, PATCH /tenant/settings; status=removed, removed_date=2026-08-10)",
+      "fingerprints": [
+        "6d0c887a05545faf",
+        "11c1b1ff36999a5a"
+      ],
+      "reason": "Removal of overdue frontend-compat aliases (/v1/auth/register, /v1/tenant/settings) from layer4-agents.json per V1-PROVISION-001. Canonical replacements (/v1/tenants/register, /v1/tenants/current/settings) are unchanged. Frontend migration to canonical paths completed before the register's removal targets.",
+      "expiresOn": "2026-12-31T00:00:00Z"
+    }
+  ]
 }

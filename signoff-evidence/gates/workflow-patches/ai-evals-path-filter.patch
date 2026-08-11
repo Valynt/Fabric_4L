@@ -1,0 +1,106 @@
+diff --git a/.github/workflows/ai-evals-pipeline.yml b/.github/workflows/ai-evals-pipeline.yml
+index 7c44708..ad968b2 100644
+--- a/.github/workflows/ai-evals-pipeline.yml
++++ b/.github/workflows/ai-evals-pipeline.yml
+@@ -6,23 +6,31 @@ name: AI Evaluation Pipeline
+ "on":
+   pull_request:
+     paths:
+-      - "layer4-agents/skills/**"
+-      - "layer4-agents/agents/**"
+-      - "layer4-agents/prompts/**"
+-      - "layer4-agents/src/registry/**"
+-      - "layer2-extraction/src/integration/model_registry_client.py"
+-      - "layer2-extraction/src/shared/llm_client.py"
++      - "services/layer4-agents/skills/**"
++      - "services/layer4-agents/prompts/**"
++      - "services/layer4-agents/src/layer4_agents/agents/**"
++      - "services/layer4-agents/src/layer4_agents/skills/**"
++      - "services/layer4-agents/src/layer4_agents/registry/**"
++      - "services/layer4-agents/src/layer4_agents/model_registry_client.py"
++      - "services/layer2-extraction/src/layer2_extraction/shared/llm_client.py"
++      - "packages/shared/src/value_fabric/shared/llm_safety/**"
++      - "evals/**"
+       - "tests/evals/**"
++      - ".github/workflows/ai-evals-pipeline.yml"
+   push:
+     branches: [main]
+     paths:
+-      - "layer4-agents/skills/**"
+-      - "layer4-agents/agents/**"
+-      - "layer4-agents/prompts/**"
+-      - "layer4-agents/src/registry/**"
+-      - "layer2-extraction/src/integration/model_registry_client.py"
+-      - "layer2-extraction/src/shared/llm_client.py"
++      - "services/layer4-agents/skills/**"
++      - "services/layer4-agents/prompts/**"
++      - "services/layer4-agents/src/layer4_agents/agents/**"
++      - "services/layer4-agents/src/layer4_agents/skills/**"
++      - "services/layer4-agents/src/layer4_agents/registry/**"
++      - "services/layer4-agents/src/layer4_agents/model_registry_client.py"
++      - "services/layer2-extraction/src/layer2_extraction/shared/llm_client.py"
++      - "packages/shared/src/value_fabric/shared/llm_safety/**"
++      - "evals/**"
+       - "tests/evals/**"
++      - ".github/workflows/ai-evals-pipeline.yml"
+   workflow_dispatch:
+     inputs:
+       eval_target:
+@@ -74,9 +82,9 @@ jobs:
+           fi
+ 
+           # Find changed skill files
+-          CHANGED_SKILLS=$(git diff --name-only $BASE_SHA $HEAD_SHA | grep -E '^layer4-agents/skills/.*\.md$' || true)
+-          CHANGED_AGENTS=$(git diff --name-only $BASE_SHA $HEAD_SHA | grep -E '^layer4-agents/agents/.*\.md$' || true)
+-          CHANGED_PROMPTS=$(git diff --name-only $BASE_SHA $HEAD_SHA | grep -E '^layer4-agents/prompts/.*\.md$' || true)
++          CHANGED_SKILLS=$(git diff --name-only $BASE_SHA $HEAD_SHA | grep -E '^services/layer4-agents/skills/.*\.md$' || true)
++          CHANGED_AGENTS=$(git diff --name-only $BASE_SHA $HEAD_SHA | grep -E '^services/layer4-agents/src/layer4_agents/agents/.*\.md$' || true)
++          CHANGED_PROMPTS=$(git diff --name-only $BASE_SHA $HEAD_SHA | grep -E '^services/layer4-agents/prompts/.*\.md$' || true)
+ 
+           echo "Changed skills: $CHANGED_SKILLS"
+           echo "Changed agents: $CHANGED_AGENTS"
+@@ -135,7 +143,7 @@ jobs:
+       - name: Install dependencies
+         run: |
+           # Install layer4-agents dependencies
+-          cd layer4-agents
++          cd services/layer4-agents
+           pip install -e .
+ 
+           # Install evaluation framework
+@@ -200,7 +208,7 @@ jobs:
+ 
+       - name: Install dependencies
+         run: |
+-          cd layer4-agents
++          cd services/layer4-agents
+           pip install -e . --quiet
+           pip install pytest pytest-asyncio --quiet
+ 
+@@ -223,7 +231,7 @@ jobs:
+             # Run basic skill validation
+             python3 << 'EOF'
+           import sys
+-          sys.path.insert(0, 'layer4-agents/src')
++          sys.path.insert(0, 'services/layer4-agents/src')
+ 
+           skill_name = "${{ matrix.skill }}"
+ 
+@@ -298,7 +306,7 @@ jobs:
+ 
+       - name: Install dependencies
+         run: |
+-          cd layer4-agents
++          cd services/layer4-agents
+           pip install -e . --quiet
+ 
+       # once Infisical project is fully populated and CI validation passes.
+@@ -344,7 +352,7 @@ jobs:
+ 
+       - name: Install dependencies
+         run: |
+-          cd layer4-agents
++          cd services/layer4-agents
+           pip install -e . --quiet
+           pip install pytest --quiet
+ 

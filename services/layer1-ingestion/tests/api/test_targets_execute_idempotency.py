@@ -10,9 +10,13 @@ Tests verify that /targets/{id}/execute supports idempotency keys and replay sem
 
 from __future__ import annotations
 
+from types import SimpleNamespace
+from unittest.mock import AsyncMock, MagicMock
 from uuid import UUID, uuid4
 
 import pytest
+from sqlalchemy.exc import IntegrityError
+from value_fabric.shared.error_handling.exceptions import ConflictError
 
 
 class _FakeRedis:
@@ -141,6 +145,77 @@ class TestIdempotencyKeyBehavior:
         job = db.query(ScrapingJob).get(UUID(job_id))
         assert job is not None
         assert job.target_id == target.id
+
+    def test_empty_idempotency_key_is_not_persisted(
+        self, client, db, org_id, make_target
+    ):
+        """An empty key has the same semantics as an omitted key."""
+        target = make_target(org_id, status="ACTIVE")
+
+        resp = client.post(
+            f"/api/v1/ingestion/targets/{target.id}/execute",
+            json={"idempotency_key": ""},
+        )
+
+        assert resp.status_code == 202
+        from layer1_ingestion.shared.models import ScrapingJob
+
+        job = db.query(ScrapingJob).get(UUID(resp.json()["job_id"]))
+        assert job.idempotency_key is None
+
+    @pytest.mark.asyncio
+    async def test_cross_target_collision_returns_conflict_and_cleans_placeholder(
+        self,
+        monkeypatch,
+        org_id,
+    ):
+        """A tenant-wide DB collision must not return another target's job."""
+        from layer1_ingestion.api import target_handlers
+        from layer1_ingestion.api.schemas.target_schemas import ExecuteTargetRequest
+
+        requested_target_id = uuid4()
+        existing_target_id = uuid4()
+        target = SimpleNamespace(id=requested_target_id, status="ACTIVE")
+        existing_job = SimpleNamespace(
+            id=uuid4(),
+            target_id=existing_target_id,
+            status="QUEUED",
+            started_at=None,
+        )
+        target_query = MagicMock()
+        target_query.filter.return_value.first.return_value = target
+        existing_query = MagicMock()
+        existing_query.filter.return_value.first.return_value = existing_job
+        db = MagicMock()
+        db.query.side_effect = [target_query, existing_query]
+        db.commit.side_effect = IntegrityError("duplicate", {}, Exception())
+
+        monkeypatch.setattr(
+            target_handlers,
+            "_check_idempotency_key",
+            AsyncMock(return_value=(None, "placeholder:owned")),
+        )
+        monkeypatch.setattr(target_handlers, "_build_job_configuration", lambda *_: {})
+        monkeypatch.setattr(
+            target_handlers,
+            "create_scraping_job",
+            lambda **_: SimpleNamespace(id=uuid4()),
+        )
+        delete_key = MagicMock()
+        monkeypatch.setattr(target_handlers, "_delete_idempotency_key", delete_key)
+
+        with pytest.raises(ConflictError):
+            await target_handlers.execute_target(
+                requested_target_id,
+                ExecuteTargetRequest(idempotency_key="reused-key"),
+                org_id,
+                uuid4(),
+                db,
+            )
+
+        delete_key.assert_called_once_with(
+            org_id, requested_target_id, "reused-key"
+        )
 
     def test_idempotency_key_scope_per_tenant(
         self, client, db, org_id, other_org_id, make_target
