@@ -138,7 +138,7 @@ class CertificationHarness(BackendValidationHarness):
 
     def __init__(self, seed_ids: SeedIds, recorder: CertificationRecorder) -> None:
         super().__init__(seed_ids)
-        self.timeout = CERT_HTTP_TIMEOUT
+        self.cert_timeout = CERT_HTTP_TIMEOUT
         self.recorder = recorder
 
     @property
