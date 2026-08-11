@@ -8,6 +8,10 @@ Direct ``json.loads`` on LLM content is a Contract §2.5 violation — use
 ``parse_llm_json`` instead.
 """
 
-from canonical.llm_output_parser import parse_llm_json  # noqa: F401
+from canonical.llm_output_parser import (  # noqa: F401
+    LLMOutputParseError,
+    parse_llm_json,
+    validate_llm_output_schema,
+)
 
-__all__ = ["parse_llm_json"]
+__all__ = ["LLMOutputParseError", "parse_llm_json", "validate_llm_output_schema"]

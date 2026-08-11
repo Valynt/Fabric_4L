@@ -27,6 +27,7 @@ services:
       DOCKER_BUILDKIT: "1"
       COMPOSE_DOCKER_CLI_BUILD: "1"
       PNPM_HOME: /home/vscode/.local/share/pnpm
+      PATH: /home/vscode/.local/share/pnpm:${PATH}
     volumes:
       - ..:/workspace/Fabric_4L:cached
       - dev-pnpm-store:/home/vscode/.local/share/pnpm/store

@@ -90,7 +90,7 @@ async function main() {
 
   // Step 3: Reset platform settings to defaults
   console.log('\n[3/3] Resetting platform settings...');
-  const resetSettings = await api('PATCH', '/v1/tenant/settings', {
+  const resetSettings = await api('PATCH', '/v1/tenants/current/settings', {
     features: {},
     notifications: { email: false, slack: false },
     branding: {},

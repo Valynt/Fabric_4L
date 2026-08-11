@@ -26,8 +26,27 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import yaml
+from value_fabric.shared.llm_safety import PromptGuard
 
-from .llm_output_parser import parse_llm_json
+from .llm_output_parser import parse_llm_json, validate_llm_output_schema
+
+
+class LLMOutputValidationError(RuntimeError):
+    """Raised when a structured LLM call fails schema validation (ADR-031).
+
+    Carries the model task, call id, and the first validation errors so the
+    failure is typed and observable instead of a silent empty payload.
+    """
+
+    def __init__(self, *, model_task: str, call_id: str | None, errors: list[str]) -> None:
+        preview = "; ".join(errors[:5])
+        super().__init__(
+            f"structured LLM output failed schema validation for {model_task!r}"
+            f" (call_id={call_id!r}): {preview}"
+        )
+        self.model_task = model_task
+        self.call_id = call_id
+        self.errors = errors
 
 if TYPE_CHECKING:
     from layer4_agents.harness.models import HarnessRun
@@ -192,6 +211,7 @@ class GovernedLLMClient:
         for attempt in range(1, max_attempts + 1):
             t0 = time.monotonic()
             try:
+                self._scan_for_prompt_injection(messages, model_task=model_task, model=model, call_id=call_id)
                 response = await self._provider.complete_text(
                     model=model,
                     messages=messages,
@@ -301,7 +321,22 @@ class GovernedLLMClient:
             response_format={"type": "json_object"},
             call_id=call_id,
         )
-        parsed = parse_llm_json(result.content, call_site="governed_llm_client.call_structured")
+        parsed = parse_llm_json(
+            result.content,
+            call_site="governed_llm_client.call_structured",
+            strict=True,
+        )
+        errors = validate_llm_output_schema(
+            parsed,
+            schema,
+            call_site="governed_llm_client.call_structured",
+        )
+        if errors:
+            raise LLMOutputValidationError(
+                model_task=model_task,
+                call_id=call_id,
+                errors=errors,
+            )
         return parsed, result
 
     # ------------------------------------------------------------------
@@ -431,6 +466,41 @@ class GovernedLLMClient:
         if call_id:
             meta["call_id"] = call_id
         self._emit_raw("llm_call_failed", meta)
+
+    def _scan_for_prompt_injection(
+        self,
+        messages: list[dict[str, str]],
+        *,
+        model_task: str,
+        model: str,
+        call_id: str | None,
+    ) -> None:
+        """Screen non-system message content for prompt injection (V1-AI-001).
+
+        System prompts are trusted (repository-authored). User-role content is
+        where retrieved documents and caller input land. Definite injections
+        (CRITICAL/HIGH per PromptGuard) raise ``PromptInjectionError`` and emit
+        ``llm_call_failed`` so the trace event chain stays closed; weaker
+        signals are logged by the guard and allowed through unless the
+        environment escalates via ``LLM_SAFETY_FAIL_CLOSED``.
+        """
+        guard = PromptGuard(fail_closed=True)
+        tenant_id = getattr(self._run, "tenant_id", None) if self._run else None
+        for message in messages:
+            if not isinstance(message, dict) or message.get("role") == "system":
+                continue
+            content = message.get("content")
+            if not isinstance(content, str) or not content:
+                continue
+            result = guard.check(
+                content,
+                context={"tenant_id": tenant_id, "call_id": call_id, "model_task": model_task},
+            )
+            if result.is_injection:
+                self._emit_call_failed(model_task, model, "prompt_injection_detected", call_id)
+                # PromptGuard(fail_closed=True) already raised above; this is
+                # unreachable but keeps the control flow explicit.
+                raise AssertionError("unreachable")
 
     def _emit_raw(self, event_type: str, metadata: dict[str, Any]) -> None:
         """Emit a trace event if a run + telemetry emitter are available."""
