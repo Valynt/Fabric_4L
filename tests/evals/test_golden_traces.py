@@ -25,7 +25,6 @@ import hashlib
 import json
 import re
 from pathlib import Path
-from typing import Any
 
 import pytest
 
@@ -56,12 +55,12 @@ def _fixture_files() -> list[Path]:
     return sorted(FIXTURES_DIR.glob("*_traces.json"))
 
 
-def _load(path: Path) -> dict[str, Any]:
+def _load(path: Path) -> dict:
     with open(path, encoding="utf-8") as f:
         return json.load(f)
 
 
-def _canonical_hash(payload: dict[str, Any]) -> str:
+def _canonical_hash(payload: dict) -> str:
     return hashlib.sha256(
         json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
     ).hexdigest()
