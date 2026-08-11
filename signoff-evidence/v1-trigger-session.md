@@ -1,6 +1,6 @@
 # V1.0.0 Trigger Session — Human Checklist
 
-- **UTC:** 2026-08-11T05:05:00Z
+- **UTC:** 2026-08-11T05:30:00Z
 - **Purpose:** the exact ordered checklist that ships v1.0.0. Every step references its packet by post-merge main URL (links resolve once the packets PR merges — see the PR for the pre-merge view).
 - **Kept current:** re-validated against repo state on every goal turn.
 
@@ -8,7 +8,7 @@ Base URL: `https://github.com/bmsull560/Fabric_4L/blob/main/`
 
 ## Execution order
 
-1. **Publisher merges #1267** (V1-PROVISION-001) — required checks all SUCCESS on head `228f73470` (verified 2026-08-11T04:55Z); #1256 already closed by the repo owner with the staged-fix evidence comment. — [publisher-runbook.md](https://github.com/bmsull560/Fabric_4L/blob/main/signoff-evidence/gates/publisher-runbook.md) Step 1.
+1. ~~**Publisher merges #1267** (V1-PROVISION-001)~~ — **DONE** 2026-08-11T05:25:59Z, merge commit `1388e683e`. All 8 required contexts SUCCESS on gates head `6e1d32c5328e9c89a8906d43c7a72a78a03edfdc` (verified 2026-08-11T05:27Z): Structural Preflight, contract-compliance, prod-readiness, mandatory-security-regression, behavior-tests, Layer 5 - Source Contract, Layer 5 - Tenant Isolation Regression, Layer 5 - Contract Shape Regression. #1256 closed by the repo owner with the staged-fix evidence comment. — [publisher-runbook.md](https://github.com/bmsull560/Fabric_4L/blob/main/signoff-evidence/gates/publisher-runbook.md) merged-table row 9.
 2. **Publisher applies workflow patch 1 of 4** (one command): `git apply signoff-evidence/gates/workflow-patches/ci-tools-preflight-uv-version.patch`, human-opened PR, CODEOWNERS platform/security approval, merge. Unblocks CI Tools Image Preflight + Supply Chain Summary on all PRs. — [ci-tools-preflight-uv-version.md](https://github.com/bmsull560/Fabric_4L/blob/main/signoff-evidence/gates/workflow-patches/ci-tools-preflight-uv-version.md).
 3. **Publisher applies workflow patches 2 and 3 of 4** (same workflow, disjoint hunks): `git apply signoff-evidence/gates/workflow-patches/ai-evals-path-filter.patch` and `git apply signoff-evidence/gates/workflow-patches/ai-evals-golden-traces-fail-closed.patch`, human-opened PR, merge; then close #1259 per its issue comment. Note: the fail-closed patch makes the missing golden-trace suite visible — author the suite (V1-EVALS-001) or the workflow owner re-scopes the job. — [ai-evals-path-filter.md](https://github.com/bmsull560/Fabric_4L/blob/main/signoff-evidence/gates/workflow-patches/ai-evals-path-filter.md), [ai-evals-golden-traces-fail-closed.md](https://github.com/bmsull560/Fabric_4L/blob/main/signoff-evidence/gates/workflow-patches/ai-evals-golden-traces-fail-closed.md).
 4. **Author decomposes #1252** per the review packet's 4-PR split (claim-type taxonomy → gateway orchestration delegation → delegation router → Meridian suite); Publisher merges each after independent review. Do NOT merge #1252 as-is (blocking defects F-1/F-2). — [v1-routing-001-decomposition-review.md](https://github.com/bmsull560/Fabric_4L/blob/main/signoff-evidence/v1-routing-001-decomposition-review.md).
