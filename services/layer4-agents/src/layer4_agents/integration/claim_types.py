@@ -4,7 +4,7 @@ Layer 5 (Ground Truth) owns the claim taxonomy. This module is Layer 4's
 single source for that taxonomy and for mapping Layer 4's internal claim
 vocabulary onto it. It must stay in lockstep with:
 
-- ``services/layer5-ground-truth/src/layer5_ground_truth/models/schemas.py``
+- ``services/layer5-ground-truth/src/layer5_ground_truth/models/truth_object.py``
   (``ClaimType`` enum — the runtime authority), and
 - ``contracts/jsonschema/claim-types.v1.json`` (the published contract).
 
