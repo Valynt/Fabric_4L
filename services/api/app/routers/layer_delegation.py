@@ -109,7 +109,7 @@ async def _delegate(
 ) -> Response:
     settings = get_settings()
     url = _target_url(segment, path)
-    if query_string := (request.scope.get("query_string") or b"").decode():
+    if query_string := (request.scope.get("query_string") or b"").decode("latin-1"):
         url = f"{url}?{query_string}"
     body = await request.body()
     try:

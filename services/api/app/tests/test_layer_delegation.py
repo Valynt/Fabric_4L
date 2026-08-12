@@ -196,4 +196,7 @@ class TestDelegationRouter:
                 response = await client.get("/v1/graph/entities?tag=a&tag=b&status=active")
 
         assert response.status_code == 200
-        assert request_mock.await_args.args[1] == "http://l3:8003/entities?tag=a&tag=b&status=active"
+        assert request_mock.await_args.args[:2] == (
+            "GET",
+            "http://l3:8003/entities?tag=a&tag=b&status=active",
+        )
