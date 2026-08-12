@@ -109,9 +109,10 @@ async def _delegate(
 ) -> Response:
     settings = get_settings()
     url = _target_url(segment, path)
+    if query_string := (request.scope.get("query_string") or b"").decode():
+        url = f"{url}?{query_string}"
     body = await request.body()
     try:
-        query = (request.scope.get("query_string") or b"").decode() or None
         async with httpx.AsyncClient(
             timeout=settings.delegation_timeout_seconds,
             follow_redirects=False,
@@ -119,7 +120,6 @@ async def _delegate(
             upstream = await client.request(
                 request.method,
                 url,
-                params=query,
                 content=body if body else None,
                 headers=_request_headers(request, tenant_id),
             )

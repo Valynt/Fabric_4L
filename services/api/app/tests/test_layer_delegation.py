@@ -6,8 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
 import pytest
 from fastapi import FastAPI, Request
-from httpx import ASGITransport as ASGITransport
-from httpx import AsyncClient as TransportClient
+from httpx import ASGITransport, AsyncClient
 
 from app.core.security import TokenPayload, require_authenticated
 from app.routers.layer_delegation import (
@@ -169,7 +168,7 @@ class TestDelegationRouter:
             patch("app.routers.layer_delegation.get_settings", return_value=_settings()),
             patch("app.routers.layer_delegation.httpx.AsyncClient", return_value=failing_client),
         ):
-            async with TransportClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
                 response = await client.get("/v1/agents/v1/accounts")
 
         assert response.status_code == 503
@@ -193,8 +192,8 @@ class TestDelegationRouter:
             patch("app.routers.layer_delegation.get_settings", return_value=_settings()),
             patch("app.routers.layer_delegation.httpx.AsyncClient", return_value=fake_client),
         ):
-            async with TransportClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
                 response = await client.get("/v1/graph/entities?tag=a&tag=b&status=active")
 
         assert response.status_code == 200
-        assert request_mock.await_args.kwargs["params"] == "tag=a&tag=b&status=active"
+        assert request_mock.await_args.args[1] == "http://l3:8003/entities?tag=a&tag=b&status=active"
