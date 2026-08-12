@@ -118,9 +118,20 @@ class TestRequestHeaderFiltering:
         assert forwarded["x-tenant-id"] == "verified-t1"
         assert forwarded["x-user-id"] == "u1"
         assert forwarded["x-request-id"] == "r1"
-        assert forwarded["x-service-auth"] == "secret"
+        # Caller-supplied service auth must never be forwarded: layers trust
+        # X-Tenant-ID only alongside a valid X-Service-Auth, so relaying a
+        # client value would let callers spoof service-to-service identity.
+        assert "x-service-auth" not in forwarded
         assert "cookie" not in forwarded
         assert "x-forwarded-for" not in forwarded
+
+    def test_service_auth_is_injected_from_server_config(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("SERVICE_AUTH_SECRET", "server-side-secret")
+        request = self._request({"X-Service-Auth": "client-spoof-attempt"})
+        forwarded = _request_headers(request, tenant_id="verified-t1")
+        assert forwarded["x-service-auth"] == "server-side-secret"
 
     def test_tenant_id_is_injected_not_forwarded(self) -> None:
         request = self._request(

@@ -19,6 +19,8 @@ from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
 
+import os
+
 import httpx
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse, Response
@@ -100,6 +102,13 @@ def _request_headers(request: Request, tenant_id: str) -> dict[str, str]:
     if "authorization" not in headers and (session_token := request.cookies.get("vf_session")):
         headers["authorization"] = "B" + "earer " + session_token
     headers["x-tenant-id"] = tenant_id
+    # Service-to-service auth is injected server-side, never forwarded from the
+    # caller: layers accept X-Tenant-ID only with a valid X-Service-Auth (see
+    # value_fabric.shared.identity.resolvers.resolve_service_to_service), and a
+    # client-supplied value must never reach upstream (spoofing). Matches the
+    # gateway service clients (e.g. services/agent_orchestrator.py).
+    if service_secret := os.environ.get("SERVICE_AUTH_SECRET", ""):
+        headers["x-service-auth"] = service_secret
     return headers
 
 
