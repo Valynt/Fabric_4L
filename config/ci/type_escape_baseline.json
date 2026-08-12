@@ -10100,43 +10100,43 @@
     },
     {
       "kind": "python-any",
-      "line": 5,
+      "line": 6,
       "path": "services/api/app/routers/agents.py",
       "text": "from typing import Any"
     },
     {
       "kind": "python-any",
-      "line": 19,
+      "line": 26,
       "path": "services/api/app/routers/agents.py",
       "text": "def _json_safe(value: Any) -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 38,
+      "line": 45,
       "path": "services/api/app/routers/agents.py",
       "text": "def _sse_frame(payload: dict[str, Any]) -> str:"
     },
     {
       "kind": "python-any",
-      "line": 46,
+      "line": 53,
       "path": "services/api/app/routers/agents.py",
       "text": "def _run_to_workflow_payload(run: AgentRun) -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 68,
+      "line": 75,
       "path": "services/api/app/routers/agents.py",
       "text": "async def create_agent_run(payload: dict[str, Any], tenant_id: str = Depends(tenant_required)):"
     },
     {
       "kind": "python-any",
-      "line": 103,
+      "line": 115,
       "path": "services/api/app/routers/agents.py",
       "text": "async def create_workflow(payload: dict[str, Any], tenant_id: str = Depends(tenant_required)):"
     },
     {
       "kind": "python-any",
-      "line": 164,
+      "line": 192,
       "path": "services/api/app/routers/agents.py",
       "text": "async def stream() -> Any:"
     },
@@ -10256,25 +10256,103 @@
     },
     {
       "kind": "python-any",
-      "line": 4,
+      "line": 19,
       "path": "services/api/app/services/agent_orchestrator.py",
       "text": "from typing import Any"
     },
     {
       "kind": "python-any",
-      "line": 56,
+      "line": 108,
       "path": "services/api/app/services/agent_orchestrator.py",
-      "text": "def execute_step(self, *, tenant_id: str, run_id: str, step_name: str, tool_name: str | None) -> dict[str, Any]:"
+      "text": "json_body: dict[str, Any] | None = None,"
     },
     {
       "kind": "python-any",
-      "line": 108,
+      "line": 109,
+      "path": "services/api/app/services/agent_orchestrator.py",
+      "text": ") -> dict[str, Any]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 147,
+      "path": "services/api/app/services/agent_orchestrator.py",
+      "text": "input_data: dict[str, Any] | None,"
+    },
+    {
+      "kind": "python-any",
+      "line": 149,
+      "path": "services/api/app/services/agent_orchestrator.py",
+      "text": ") -> dict[str, Any]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 150,
+      "path": "services/api/app/services/agent_orchestrator.py",
+      "text": "inputs: dict[str, Any] = {\"custom_data\": input_data or {}}"
+    },
+    {
+      "kind": "python-any",
+      "line": 161,
+      "path": "services/api/app/services/agent_orchestrator.py",
+      "text": "def get_workflow(self, *, tenant_id: str, workflow_id: str) -> dict[str, Any]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 168,
+      "path": "services/api/app/services/agent_orchestrator.py",
+      "text": ") -> dict[str, Any]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 175,
+      "path": "services/api/app/services/agent_orchestrator.py",
+      "text": ") -> dict[str, Any]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 190,
+      "path": "services/api/app/services/agent_orchestrator.py",
+      "text": "resume_data: dict[str, Any] | None = None,"
+    },
+    {
+      "kind": "python-any",
+      "line": 191,
+      "path": "services/api/app/services/agent_orchestrator.py",
+      "text": ") -> dict[str, Any]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 204,
+      "path": "services/api/app/services/agent_orchestrator.py",
+      "text": "def cancel_workflow(self, *, tenant_id: str, workflow_id: str) -> dict[str, Any]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 210,
+      "path": "services/api/app/services/agent_orchestrator.py",
+      "text": "def _map_status(status: Any, *, default: str) -> str:"
+    },
+    {
+      "kind": "python-any",
+      "line": 236,
       "path": "services/api/app/services/agent_orchestrator.py",
       "text": "input_data: dict[str, Any] | None = None,"
     },
     {
+      "kind": "python-any",
+      "line": 320,
+      "path": "services/api/app/services/agent_orchestrator.py",
+      "text": "resume_data: dict[str, Any] | None = None,"
+    },
+    {
+      "kind": "python-any",
+      "line": 345,
+      "path": "services/api/app/services/agent_orchestrator.py",
+      "text": "self, run: AgentRun, delegated: dict[str, Any], *, default_status: str | None = None"
+    },
+    {
       "kind": "python-type-ignore",
-      "line": 225,
+      "line": 396,
       "path": "services/api/app/services/agent_orchestrator.py",
       "text": "orchestrator: AgentOrchestrator = _LazyOrchestrator()  # type: ignore[assignment]"
     },

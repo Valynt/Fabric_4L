@@ -1,12 +1,37 @@
 import json
+from datetime import UTC, datetime
+from unittest.mock import AsyncMock, patch
 
+import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.models.schemas import AgentRun
+from app.services.agent_orchestrator import AgentOrchestrator
 
 from .conftest import TENANT_ALPHA, auth_headers
+from .test_agent_orchestrator import FakeLayer4Client
 
 HEADERS = auth_headers(TENANT_ALPHA)
+
+
+@pytest.fixture(autouse=True)
+def _in_memory_layer4(monkeypatch):
+    """Back the router's orchestrator with an in-memory L4 client.
+
+    These tests exercise the gateway's delegation contract, not L4
+    availability: since the orchestration delegation change (V1-ROUTING-001),
+    the router fails closed (503/502) when L4 is unreachable, which is what a
+    bare TestClient would otherwise hit. L4-down behavior is covered by
+    test_agent_orchestrator.py; here the delegation path must run end to end.
+    """
+    import app.routers.agents as agents_router
+
+    monkeypatch.setattr(
+        agents_router,
+        "orchestrator",
+        AgentOrchestrator(layer4_client=FakeLayer4Client()),
+    )
 
 
 def test_create_agent_run():
@@ -127,3 +152,35 @@ def test_workflow_events_sse_json_serialization_and_shape():
         assert second_payload["workflow_id"] == workflow_id
         assert second_payload["status"] in {"pending", "running", "paused", "completed", "failed", "cancelled"}
         assert isinstance(second_payload["updated_at"], str)
+
+
+def test_workflow_active_route_offloads_refresh_to_threadpool():
+    run = AgentRun(
+        id="wf-threadpool",
+        tenant_id=TENANT_ALPHA,
+        account_id="acc-allego",
+        workflow_type="hypothesis_generation",
+        status="running",
+        input={"prompt": "Generate hypotheses"},
+        created_at=datetime.now(UTC).isoformat(),
+        updated_at=datetime.now(UTC).isoformat(),
+    )
+
+    with TestClient(app) as client:
+        with (
+            patch("app.routers.agents.db.agent_runs.list", return_value=[run]),
+            patch("app.routers.agents.orchestrator.get_run") as get_run,
+            patch(
+                "app.routers.agents.asyncio.to_thread",
+                new=AsyncMock(return_value=run),
+            ) as to_thread,
+        ):
+            response = client.get("/v1/agents/workflows/active", headers=HEADERS)
+
+    assert response.status_code == 200
+    assert response.json()[0]["workflow_id"] == run.id
+    # assert_any_await, not assert_awaited_once: the patched asyncio.to_thread
+    # is the stdlib module attribute, so the JWT decode in the auth resolver
+    # registers an await on the same mock. What this test proves is that the
+    # active-runs refresh itself is offloaded to the threadpool.
+    to_thread.assert_any_await(get_run, run.id, tenant_id=TENANT_ALPHA)
