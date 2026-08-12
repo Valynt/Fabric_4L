@@ -1,0 +1,30 @@
+# Development-only adjustments layered onto docker-compose.full.yml ONLY,
+# after docker-compose.cloud.yml. These services do not exist in
+# docker-compose.prod.yml, so their overrides cannot live in the shared
+# cloud override (an override entry without a base service has neither
+# image nor build and renders the project invalid).
+x-cloud-runtime: &cloud-runtime
+  restart: unless-stopped
+  mem_limit: 1g
+  cpus: 1.0
+  logging:
+    driver: json-file
+    options:
+      max-size: 10m
+      max-file: "3"
+
+x-data-dependencies: &data-dependencies
+  postgres:
+    condition: service_healthy
+  redis:
+    condition: service_healthy
+  neo4j:
+    condition: service_healthy
+
+services:
+  layer2-5-signal-refinery:
+    <<: *cloud-runtime
+    depends_on: *data-dependencies
+  layer7-billing:
+    <<: *cloud-runtime
+    depends_on: *data-dependencies
