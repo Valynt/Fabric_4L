@@ -5,6 +5,19 @@ import pytest
 from app.core.config import Settings
 
 
+def test_settings_keep_legacy_per_layer_timeout_fields():
+    # The layer{1,2,3,5}_timeout_seconds fields must remain on Settings:
+    # app/clients/layer{1,2,3,5}_client.py read them at construction time
+    # (review finding F-1). L1/L2 keep their 30s defaults — crawling and
+    # LLM extraction legitimately exceed 10s; the delegation router uses
+    # delegation_timeout_seconds instead.
+    settings = Settings()
+    assert settings.layer1_timeout_seconds == 30.0
+    assert settings.layer2_timeout_seconds == 30.0
+    assert settings.layer3_timeout_seconds == 10.0
+    assert settings.layer5_timeout_seconds == 10.0
+
+
 def test_production_like_environment_rejects_mock_persistence_and_mock_llm():
     with pytest.raises(Exception, match="Unsafe production configuration"):
         Settings(

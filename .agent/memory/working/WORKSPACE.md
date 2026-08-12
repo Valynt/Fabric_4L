@@ -6,14 +6,19 @@ No active task.
 
 ## Status
 
-Complete. Issue #1191 was localized to the missing Dockerfile `HEALTHCHECK` in `/home/runner/work/Fabric_4L/Fabric_4L/.devcontainer/Dockerfile`, fixed in the shared toolchain stage, and covered by a regression test against `/home/runner/work/Fabric_4L/Fabric_4L/.devcontainer/docker-compose.yml`.
+Complete. Structural Preflight failed because the API gateway delegation router accessed `request.query_params`, which is banned by the tenant-boundary runtime rule enforced in CI.
 
 ## What was done
 
-- Reproduced the static compose-contract failure for the `dev` service before the fix.
-- Added a generic Dockerfile `HEALTHCHECK` to the shared devcontainer toolchain image.
-- Added a regression test asserting the checked-in devcontainer compose file inherits Dockerfile health coverage.
-- Validated the fix with the compose-contract module and Python syntax checks.
+- Retrieved GitHub Actions logs for job `94011676563` and isolated the first hard failure.
+- Traced the failure to `services/api/app/routers/layer_delegation.py`.
+- Replaced `request.query_params` usage with raw ASGI `query_string` forwarding appended to the delegated URL.
+- Hardened query decoding with `latin-1` and updated the regression test to assert the delegated method and URL preserve duplicate query params in order.
+- Verified `python scripts/ci/structural_preflight.py --strict --json` passes, compiled touched files, and scanned them for secrets.
+
+## Active hypotheses
+
+None.
 
 ## Next step
 
