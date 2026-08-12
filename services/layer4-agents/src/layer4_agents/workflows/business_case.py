@@ -20,6 +20,7 @@ from value_fabric.shared.models.typed_dict import TypedDictModel
 
 from ..agents.base import AgentResult
 from ..harness.prompt_registry import get_prompt_registry
+from ..integration.claim_types import to_layer5_claim_type
 from ..interfaces.business_case_ground_truth import (
     BusinessCaseGroundTruthClientFactory,
     BusinessCaseGroundTruthPort,
@@ -37,21 +38,9 @@ from ..services.llm_provider import get_llm_provider
 from ..tools.registry import ToolRegistry, ToolResult
 from .base import BaseWorkflow
 
-LAYER4_TO_LAYER5_CLAIM_TYPE: dict[str, str] = {
-    "metric": "value_driver_metric",
-    "roi_assumption": "cost_savings_baseline",
-    "outcome": "customer_outcome",
-    "benchmark": "market_benchmark",
-    "risk": "risk_reduction",
-}
-
-
-def _to_layer5_claim_type(claim_type: Any) -> str:
-    normalized = str(claim_type or "metric").strip().lower()
-    try:
-        return LAYER4_TO_LAYER5_CLAIM_TYPE[normalized]
-    except KeyError as exc:
-        raise ValueError(f"Unmapped Layer 4 claim_type for Layer 5 promotion: {claim_type!r}") from exc
+# Backwards-compatible alias: the canonical implementation lives in
+# layer4_agents.integration.claim_types.
+_to_layer5_claim_type = to_layer5_claim_type
 
 
 def _unwrap_tool_data(result: Any) -> dict[str, Any]:
