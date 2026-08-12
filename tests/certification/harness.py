@@ -165,7 +165,7 @@ class CertificationHarness(BackendValidationHarness):
         headers = self.headers(tenant_id=tenant_id, user_id=user_id, role=role)
         headers.update(self.trace_headers)
         async with httpx.AsyncClient(
-            base_url=GATEWAY_URL, timeout=self.timeout, follow_redirects=False
+            base_url=GATEWAY_URL, timeout=self.cert_timeout, follow_redirects=False
         ) as client:
             try:
                 response = await client.request(
