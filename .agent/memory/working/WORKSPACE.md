@@ -2,23 +2,24 @@
 
 ## Current task
 
-Fix the failing Structural Preflight GitHub Actions job for run/job 31563885396/94011676563.
+No active task.
 
 ## Status
 
-Testing the hypothesis that replacing `request.query_params` with raw ASGI query bytes resolves the boundary failure without changing delegation behavior.
+Complete. Structural Preflight failed because the API gateway delegation router accessed `request.query_params`, which is banned by the tenant-boundary runtime rule enforced in CI.
 
 ## What was done
 
-- Loaded agent memory, permissions, and relevant lessons.
-- Retrieved the failing Structural Preflight job logs and recent workflow runs.
-- Isolated the first hard failure to `services/api/app/routers/layer_delegation.py:114`.
-- Patched the router to forward raw `query_string` bytes and updated the regression test accordingly.
+- Retrieved GitHub Actions logs for job `94011676563` and isolated the first hard failure.
+- Traced the failure to `services/api/app/routers/layer_delegation.py`.
+- Replaced `request.query_params` usage with raw ASGI `query_string` forwarding appended to the delegated URL.
+- Hardened query decoding with `latin-1` and updated the regression test to assert the delegated method and URL preserve duplicate query params in order.
+- Verified `python scripts/ci/structural_preflight.py --strict --json` passes, compiled touched files, and scanned them for secrets.
 
 ## Active hypotheses
 
-- The only structural-preflight failure is the banned `request.query_params` access in the delegation router.
+None.
 
 ## Next step
 
-Run the strict boundary gate and the focused layer delegation test to verify the fix.
+No active task.
