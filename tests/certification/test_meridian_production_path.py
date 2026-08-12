@@ -324,11 +324,7 @@ async def test_meridian_production_path_journey(
         datasets, _ = await h.frontend_path_request(
             "l6", "GET", "/datasets", expected=(200,)
         )
-        items = (
-            datasets.get("items") or datasets.get("datasets") or datasets
-            if isinstance(datasets, dict)
-            else datasets
-        )
+        items = (datasets.get("items") or datasets.get("datasets") or []) if isinstance(datasets, dict) else datasets
         assert items, (
             "no governed benchmark datasets available; certification requires "
             "a pre-existing dataset (decision D7)"
