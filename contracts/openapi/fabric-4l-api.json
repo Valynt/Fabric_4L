@@ -9321,6 +9321,7 @@
               "pending",
               "running",
               "paused",
+              "interrupted",
               "completed",
               "failed",
               "cancelled"
@@ -13323,6 +13324,7 @@
               "pending",
               "running",
               "paused",
+              "interrupted",
               "completed",
               "failed",
               "cancelled"

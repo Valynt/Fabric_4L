@@ -2446,7 +2446,7 @@ export interface components {
              * @default pending
              * @enum {string}
              */
-            status: "pending" | "running" | "paused" | "completed" | "failed" | "cancelled";
+            status: "pending" | "running" | "paused" | "interrupted" | "completed" | "failed" | "cancelled";
             /** Current Step */
             current_step?: string | null;
             /** Checkpoint Id */
@@ -4007,7 +4007,7 @@ export interface components {
              * @default pending
              * @enum {string}
              */
-            status: "pending" | "running" | "paused" | "completed" | "failed" | "cancelled";
+            status: "pending" | "running" | "paused" | "interrupted" | "completed" | "failed" | "cancelled";
             /**
              * Progress
              * @default 0
