@@ -21,7 +21,7 @@ services:
       resources:
         limits:
           cpus: '0.5'
-          memory: 1Gi
+          memory: 1g
   redis:
     extends:
       file: ./docker-compose.base.yml
@@ -35,7 +35,7 @@ services:
       resources:
         limits:
           cpus: '0.25'
-          memory: 512Mi
+          memory: 512m
 
   neo4j:
     extends:
@@ -55,7 +55,7 @@ services:
       resources:
         limits:
           cpus: '0.75'
-          memory: 2Gi
+          memory: 2g
 
   minio:
     extends:
@@ -73,7 +73,7 @@ services:
       resources:
         limits:
           cpus: '0.25'
-          memory: 512Mi
+          memory: 512m
 
   minio-init:
     image: minio/mc:latest
@@ -88,7 +88,7 @@ services:
       resources:
         limits:
           cpus: '0.25'
-          memory: 256MiB
+          memory: 256m
 
   # ---------------------------------------------------------------------------
   # Keycloak: local SSO/OIDC surrogate for development and E2E validation
@@ -127,7 +127,7 @@ services:
       resources:
         limits:
           cpus: '0.5'
-          memory: 1Gi
+          memory: 1g
 
   layer1:
     build:
@@ -173,7 +173,7 @@ services:
       resources:
         limits:
           cpus: '0.5'
-          memory: 1Gi
+          memory: 1g
 
   layer1-worker:
     build:
@@ -207,7 +207,7 @@ services:
       resources:
         limits:
           cpus: '1.0'
-          memory: 1.5Gi
+          memory: 1536m
 
   # ---------------------------------------------------------------------------
   # Layer 2: Extraction Service (internal container port 8000)
@@ -252,7 +252,7 @@ services:
       resources:
         limits:
           cpus: '1.0'
-          memory: 2Gi
+          memory: 2g
 
   # ---------------------------------------------------------------------------
   # Layer 3: Knowledge Graph Service (internal container port 8001)
@@ -289,7 +289,7 @@ services:
       resources:
         limits:
           cpus: '0.5'
-          memory: 2Gi
+          memory: 2g
 
   layer3-neo4j-migrate:
     build:
@@ -318,7 +318,7 @@ services:
       resources:
         limits:
           cpus: '0.25'
-          memory: 512MiB
+          memory: 512m
 
   # ---------------------------------------------------------------------------
   # Layer 4: Agents Service (public host port 8004)
@@ -379,7 +379,7 @@ services:
       resources:
         limits:
           cpus: '1.5'
-          memory: 2Gi
+          memory: 2g
 
   # ---------------------------------------------------------------------------
   # Layer 5: Ground Truth Service (internal container port 8005)
@@ -419,7 +419,7 @@ services:
       resources:
         limits:
           cpus: '0.5'
-          memory: 1Gi
+          memory: 1g
 
   layer5-migrate:
     build:
@@ -446,7 +446,7 @@ services:
       resources:
         limits:
           cpus: '0.25'
-          memory: 512MiB
+          memory: 512m
 
   # ---------------------------------------------------------------------------
   # Layer 6: Benchmarks Service (internal container port 8006)
@@ -490,7 +490,7 @@ services:
       resources:
         limits:
           cpus: '0.5'
-          memory: 1GiB
+          memory: 1g
 
   api-gateway:
     build:
@@ -552,7 +552,7 @@ services:
       resources:
         limits:
           cpus: '0.5'
-          memory: 1Gi
+          memory: 1g
 
   # ---------------------------------------------------------------------------
   # Frontend — Live Workflow Validation UI (public host port 3001)
@@ -589,7 +589,7 @@ services:
       resources:
         limits:
           cpus: '0.25'
-          memory: 512MiB
+          memory: 512m
     volumes:
     - ../../apps/web:/workspace/apps/web
     - /workspace/apps/web/node_modules
