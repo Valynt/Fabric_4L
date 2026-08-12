@@ -26,6 +26,8 @@ from tenacity import (
 )
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
+from .claim_types import require_canonical_claim_type
+
 
 class Layer5GroundTruthClient_sync_validated_truthsResult(TypedDictModel):
     detail: Any | None = None
@@ -280,8 +282,13 @@ class Layer5GroundTruthClient:
 
         Args:
             claim: Human-readable factual statement.
-            claim_type: One of ``capability``, ``outcome``, ``metric``,
-                ``benchmark``, ``roi_assumption``, ``competitive``.
+            claim_type: Canonical Layer 5 taxonomy value
+                (``contracts/jsonschema/claim-types.v1.json``), e.g.
+                ``cost_savings_baseline``, ``value_driver_metric``,
+                ``customer_outcome``, ``market_benchmark``,
+                ``risk_reduction``. Layer 4 internal vocabulary must be
+                mapped via ``integration.claim_types.to_layer5_claim_type``
+                before calling this method.
             confidence: 0.0–1.0 extraction confidence.
             organization_id: Tenant UUID (query-param fallback).
             value: Optional numeric value associated with the claim.
@@ -295,7 +302,12 @@ class Layer5GroundTruthClient:
 
         Returns:
             Created TruthObject dict, or ``{"error": ...}`` on failure.
+
+        Raises:
+            ValueError: When ``claim_type`` is not in the canonical Layer 5
+                taxonomy (caller bug; fail fast instead of a remote 422).
         """
+        claim_type = require_canonical_claim_type(claim_type)
         body: dict[str, Any] = {
             "claim": claim,
             "claim_type": claim_type,

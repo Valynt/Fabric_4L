@@ -58,23 +58,26 @@ def test_create_llm_provider_rejects_mock_provider_in_production_like_environmen
     class FakeLayer4Client:
         provider_name = "layer4"
 
-        def execute_step(self, *, tenant_id, run_id, step_name, tool_name):
+        def create_workflow(self, *, tenant_id, workflow_type, account_id, input_data, user_id=None):
             calls.update({
                 "tenant_id": tenant_id,
-                "run_id": run_id,
-                "step_name": step_name,
-                "tool_name": tool_name,
+                "workflow_type": workflow_type,
             })
-            return {"delegated": True}
+            return {"workflow_instance_id": "wf-1", "status": "pending"}
+
+        def get_workflow(self, *, tenant_id, workflow_id):
+            return {"id": workflow_id, "status": "running"}
 
     orchestrator = agent_orchestrator.AgentOrchestrator(layer4_client=FakeLayer4Client())
     run = orchestrator.create_run(tenant_id="aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", workflow_type="roi")
 
-    updated = orchestrator.execute_step(run.id, "draft", tenant_id="aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
+    refreshed = orchestrator.get_run(run.id, tenant_id="aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
 
-    assert calls["run_id"] == run.id
-    assert updated.output["provider"] == "layer4"
-    assert updated.output["layer4"] == {"delegated": True}
+    assert calls["tenant_id"] == "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+    assert run.id == "wf-1"
+    assert refreshed is not None
+    assert refreshed.status == "running"
+    assert refreshed.output["provider"] == "layer4"
 
 
 def test_layer4_client_raises_unavailable_on_transport_error(monkeypatch):
@@ -91,11 +94,11 @@ def test_layer4_client_raises_unavailable_on_transport_error(monkeypatch):
         def __exit__(self, *args):
             return False
 
-        def post(self, *args, **kwargs):
+        def request(self, *args, **kwargs):
             raise httpx.ConnectError("boom")
 
     monkeypatch.setattr(httpx, "Client", FakeClient)
 
     client = Layer4OrchestrationClient(base_url="http://layer4")
     with pytest.raises(Layer4UnavailableError):
-        client.execute_step(tenant_id="t", run_id="r", step_name="s", tool_name=None)
+        client.get_workflow(tenant_id="t", workflow_id="wf-1")
