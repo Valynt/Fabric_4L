@@ -74,7 +74,6 @@ _FORWARDED_REQUEST_HEADERS = frozenset(
         "x-correlation-id",
         "x-trace-id",
         "x-validation-run-id",
-        "x-service-auth",
         "content-type",
         "accept",
         "idempotency-key",
