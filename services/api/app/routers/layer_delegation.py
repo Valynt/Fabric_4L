@@ -111,7 +111,7 @@ async def _delegate(
     url = _target_url(segment, path)
     body = await request.body()
     try:
-        query = list(request.query_params.multi_items()) or None
+        query = request.scope.get("query_string") or None
         async with httpx.AsyncClient(
             timeout=settings.delegation_timeout_seconds,
             follow_redirects=False,

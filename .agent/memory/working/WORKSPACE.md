@@ -2,19 +2,23 @@
 
 ## Current task
 
-No active task.
+Fix the failing Structural Preflight GitHub Actions job for run/job 31563885396/94011676563.
 
 ## Status
 
-Complete. Issue #1191 was localized to the missing Dockerfile `HEALTHCHECK` in `/home/runner/work/Fabric_4L/Fabric_4L/.devcontainer/Dockerfile`, fixed in the shared toolchain stage, and covered by a regression test against `/home/runner/work/Fabric_4L/Fabric_4L/.devcontainer/docker-compose.yml`.
+Testing the hypothesis that replacing `request.query_params` with raw ASGI query bytes resolves the boundary failure without changing delegation behavior.
 
 ## What was done
 
-- Reproduced the static compose-contract failure for the `dev` service before the fix.
-- Added a generic Dockerfile `HEALTHCHECK` to the shared devcontainer toolchain image.
-- Added a regression test asserting the checked-in devcontainer compose file inherits Dockerfile health coverage.
-- Validated the fix with the compose-contract module and Python syntax checks.
+- Loaded agent memory, permissions, and relevant lessons.
+- Retrieved the failing Structural Preflight job logs and recent workflow runs.
+- Isolated the first hard failure to `services/api/app/routers/layer_delegation.py:114`.
+- Patched the router to forward raw `query_string` bytes and updated the regression test accordingly.
+
+## Active hypotheses
+
+- The only structural-preflight failure is the banned `request.query_params` access in the delegation router.
 
 ## Next step
 
-No active task.
+Run the strict boundary gate and the focused layer delegation test to verify the fix.
