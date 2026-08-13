@@ -115,6 +115,24 @@ def build_lifespan(
         }
         tool_registry = create_default_registry(config=tool_config, redis_client=startup_redis_client)
 
+        # Graph-backed routes (value hypotheses, narratives, agent context)
+        # read request.app.state.neo4j_driver; provision it from the same
+        # NEO4J_* env used by the tool registry. Without this, those routes
+        # fail at runtime with a None driver.
+        neo4j_uri = os.getenv("NEO4J_URI")
+        neo4j_password = os.getenv("NEO4J_PASSWORD")
+        if neo4j_uri and neo4j_password:
+            from neo4j import AsyncGraphDatabase
+
+            app.state.neo4j_driver = AsyncGraphDatabase.driver(
+                neo4j_uri,
+                auth=(os.getenv("NEO4J_USER", "neo4j"), neo4j_password),
+            )
+            logger.info("L4: Neo4j driver initialized for graph-backed routes")
+        else:
+            app.state.neo4j_driver = None
+            logger.warning("L4: NEO4J_URI/NEO4J_PASSWORD unset; graph-backed routes will fail closed")
+
         redis_status = await check_redis_ready(getattr(runtime_state.state_manager, "redis_client", None))
         if not redis_status.ok:
             raise RuntimeError(f"Redis connectivity failed - cannot start without cache: {redis_status.detail}")
@@ -190,6 +208,9 @@ def build_lifespan(
                 pass
         if runtime_state.checkpoint_saver:
             await CheckpointConfig.close_saver(runtime_state.checkpoint_saver)
+        neo4j_driver = getattr(app.state, "neo4j_driver", None)
+        if neo4j_driver is not None:
+            await neo4j_driver.close()
         if runtime_state.state_manager and getattr(runtime_state.state_manager, "redis_client", None):
             redis_client = runtime_state.state_manager.redis_client
             if redis_client is not None:

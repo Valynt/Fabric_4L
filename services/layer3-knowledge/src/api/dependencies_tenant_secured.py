@@ -195,7 +195,19 @@ class Neo4jTenantSessionSecured:
                 self._session.run,
                 query.cypher,
                 params,
-                TenantExecutionContext(tenant_id=self._tenant_id, allow_system_query=allow_system_query),
+                # ScopedQuery is produced by the canonical TenantScopedCypher
+                # builder, which is exactly the "validated runtime wrapper"
+                # class the multi-clause guard allows to opt in. The executor
+                # still enforces explicit tenant predicates on every
+                # tenant-owned label before honoring the opt-in, so
+                # CALL {}/multi-MATCH shapes from the builder (e.g. the
+                # entity-list count+page query) execute while unscoped or
+                # predicate-less queries remain rejected.
+                TenantExecutionContext(
+                    tenant_id=self._tenant_id,
+                    allow_system_query=allow_system_query,
+                    allow_multi_clause_tenant_query=True,
+                ),
             )
 
         query_text = str(query)
@@ -290,16 +302,28 @@ async def get_neo4j_secured(
         try:
             from .dependencies import get_neo4j_driver
 
-            driver = get_neo4j_driver()
+            # get_neo4j_driver requires the active request (it reads the
+            # driver from application state); calling it without one raised
+            # TypeError and surfaced as a false 503 (observed via the
+            # Meridian certification journey, 2026-08-12).
+            driver = get_neo4j_driver(request)
         except Exception as exc:
             logger.error("Failed to create Neo4j session: %s", exc)
             raise ServiceUnavailableError(message = "Neo4j service unavailable") from exc
     
-    return Neo4jTenantSessionSecured(
+    session = Neo4jTenantSessionSecured(
         driver=driver,
         tenant_id=str(context.tenant_id),
         strict_validation=True,
     )
+    # The wrapper lazily creates the underlying driver session in __aenter__;
+    # dependencies return (not yield) this object, so initialize eagerly or
+    # the first run() fails with HTTP 500 "Neo4j session not initialized"
+    # (observed via the Meridian certification journey, 2026-08-12).
+    # TODO(lifecycle): per-request cleanup is not wired; sessions are returned
+    # to the driver pool on close(), which callers do not currently invoke.
+    await session.__aenter__()
+    return session
 
 
 async def create_neo4j_tenant_session(tenant_id: str | None) -> Neo4jTenantSessionSecured:
@@ -315,11 +339,14 @@ async def create_neo4j_tenant_session(tenant_id: str | None) -> Neo4jTenantSessi
     from ..db.driver import get_driver
 
     driver = await get_driver()
-    return Neo4jTenantSessionSecured(
+    session = Neo4jTenantSessionSecured(
         driver=driver,
         tenant_id=str(tenant_id),
         strict_validation=True,
     )
+    # Same eager-initialization requirement as get_neo4j_secured above.
+    await session.__aenter__()
+    return session
 
 
 async def get_neo4j_with_tenant(

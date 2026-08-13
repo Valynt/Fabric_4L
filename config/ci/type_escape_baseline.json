@@ -40225,72 +40225,6 @@
       "text": "for n in tree.body  # type: ignore[attr-defined]"
     },
     {
-      "kind": "python-any",
-      "line": 16,
-      "path": "tests/backend_integrated/conftest.py",
-      "text": "from typing import Any, Iterable"
-    },
-    {
-      "kind": "python-any",
-      "line": 124,
-      "path": "tests/backend_integrated/conftest.py",
-      "text": "json: dict[str, Any] | None = None,"
-    },
-    {
-      "kind": "python-any",
-      "line": 127,
-      "path": "tests/backend_integrated/conftest.py",
-      "text": ") -> tuple[Any, httpx.Response]:"
-    },
-    {
-      "kind": "python-any",
-      "line": 172,
-      "path": "tests/backend_integrated/conftest.py",
-      "text": "async def first_healthy(self, layer: str) -> tuple[str, Any]:"
-    },
-    {
-      "kind": "python-any",
-      "line": 182,
-      "path": "tests/backend_integrated/conftest.py",
-      "text": "async def create_seed_graph(self) -> dict[str, Any]:"
-    },
-    {
-      "kind": "python-any",
-      "line": 249,
-      "path": "tests/backend_integrated/conftest.py",
-      "text": ") -> Any:"
-    },
-    {
-      "kind": "python-any",
-      "line": 266,
-      "path": "tests/backend_integrated/conftest.py",
-      "text": "async def assert_audit_event(self, action: str, entity_id: str) -> Any:"
-    },
-    {
-      "kind": "python-any",
-      "line": 278,
-      "path": "tests/backend_integrated/conftest.py",
-      "text": "async def assert_job_terminal_or_progressing(self, job_id: str) -> Any:"
-    },
-    {
-      "kind": "python-any",
-      "line": 291,
-      "path": "tests/backend_integrated/conftest.py",
-      "text": ") -> Any:"
-    },
-    {
-      "kind": "python-any",
-      "line": 292,
-      "path": "tests/backend_integrated/conftest.py",
-      "text": "last_body: Any = None"
-    },
-    {
-      "kind": "python-any",
-      "line": 309,
-      "path": "tests/backend_integrated/conftest.py",
-      "text": "def validation_seed_plan(seed_ids: SeedIds) -> dict[str, Any]:"
-    },
-    {
       "kind": "python-type-ignore",
       "line": 15,
       "path": "tests/backend_integrated/test_api_contract_validation.py",
@@ -40325,6 +40259,108 @@
       "line": 159,
       "path": "tests/cache/test_redis_tenant_isolation.py",
       "text": "tenant_id=None,  # type: ignore[arg-type]"
+    },
+    {
+      "kind": "python-any",
+      "line": 25,
+      "path": "tests/certification/harness.py",
+      "text": "from typing import Any, Iterable"
+    },
+    {
+      "kind": "python-any",
+      "line": 85,
+      "path": "tests/certification/harness.py",
+      "text": "context: dict[str, Any] = field(default_factory=dict)"
+    },
+    {
+      "kind": "python-any",
+      "line": 160,
+      "path": "tests/certification/harness.py",
+      "text": "json_body: dict[str, Any] | None = None,"
+    },
+    {
+      "kind": "python-any",
+      "line": 162,
+      "path": "tests/certification/harness.py",
+      "text": ") -> tuple[Any, httpx.Response]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 192,
+      "path": "tests/certification/harness.py",
+      "text": "**kwargs: Any,"
+    },
+    {
+      "kind": "python-any",
+      "line": 193,
+      "path": "tests/certification/harness.py",
+      "text": ") -> tuple[Any, httpx.Response]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 203,
+      "path": "tests/certification/harness.py",
+      "text": "async def gateway_healthy(self) -> tuple[str, Any]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 213,
+      "path": "tests/certification/harness.py",
+      "text": "async def stage(self, name: str, coro: Any) -> Any:"
+    },
+    {
+      "kind": "python-any",
+      "line": 19,
+      "path": "tests/certification/test_meridian_production_path.py",
+      "text": "from typing import Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 57,
+      "path": "tests/certification/test_meridian_production_path.py",
+      "text": ") -> Any:"
+    },
+    {
+      "kind": "python-any",
+      "line": 58,
+      "path": "tests/certification/test_meridian_production_path.py",
+      "text": "last: Any = None"
+    },
+    {
+      "kind": "python-any",
+      "line": 78,
+      "path": "tests/certification/test_meridian_production_path.py",
+      "text": "ctx: dict[str, Any] = cert_recorder.context"
+    },
+    {
+      "kind": "python-any",
+      "line": 82,
+      "path": "tests/certification/test_meridian_production_path.py",
+      "text": "async def run_stage(name: str, coro: Any) -> Any:"
+    },
+    {
+      "kind": "python-any",
+      "line": 171,
+      "path": "tests/certification/test_meridian_production_path.py",
+      "text": "async def fetch_run() -> Any:"
+    },
+    {
+      "kind": "python-any",
+      "line": 197,
+      "path": "tests/certification/test_meridian_production_path.py",
+      "text": "async def fetch_entities() -> Any:"
+    },
+    {
+      "kind": "python-any",
+      "line": 257,
+      "path": "tests/certification/test_meridian_production_path.py",
+      "text": "async def fetch_workflow() -> Any:"
+    },
+    {
+      "kind": "python-any",
+      "line": 307,
+      "path": "tests/certification/test_meridian_production_path.py",
+      "text": "async def fetch_graph_truth() -> Any:"
     },
     {
       "kind": "python-type-ignore",
@@ -41939,6 +41975,66 @@
       "line": 28,
       "path": "tests/shared/identity/test_hostile_api_key_resolver.py",
       "text": "from typing import Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 17,
+      "path": "tests/shared/live_harness.py",
+      "text": "from typing import Any, Iterable"
+    },
+    {
+      "kind": "python-any",
+      "line": 125,
+      "path": "tests/shared/live_harness.py",
+      "text": "json: dict[str, Any] | None = None,"
+    },
+    {
+      "kind": "python-any",
+      "line": 128,
+      "path": "tests/shared/live_harness.py",
+      "text": ") -> tuple[Any, httpx.Response]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 173,
+      "path": "tests/shared/live_harness.py",
+      "text": "async def first_healthy(self, layer: str) -> tuple[str, Any]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 183,
+      "path": "tests/shared/live_harness.py",
+      "text": "async def create_seed_graph(self) -> dict[str, Any]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 250,
+      "path": "tests/shared/live_harness.py",
+      "text": ") -> Any:"
+    },
+    {
+      "kind": "python-any",
+      "line": 267,
+      "path": "tests/shared/live_harness.py",
+      "text": "async def assert_audit_event(self, action: str, entity_id: str) -> Any:"
+    },
+    {
+      "kind": "python-any",
+      "line": 279,
+      "path": "tests/shared/live_harness.py",
+      "text": "async def assert_job_terminal_or_progressing(self, job_id: str) -> Any:"
+    },
+    {
+      "kind": "python-any",
+      "line": 292,
+      "path": "tests/shared/live_harness.py",
+      "text": ") -> Any:"
+    },
+    {
+      "kind": "python-any",
+      "line": 293,
+      "path": "tests/shared/live_harness.py",
+      "text": "last_body: Any = None"
     },
     {
       "kind": "python-type-ignore",

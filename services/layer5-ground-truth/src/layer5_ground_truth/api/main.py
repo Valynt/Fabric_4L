@@ -412,6 +412,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         # Validate connection before using for rate limiting
         await redis_client.ping()
         app.state.redis_rate_limiter = RedisRateLimiter(redis_client)
+        # The tenant-status kill-switch middleware reads app.state.redis_client;
+        # without this assignment every tenant-checked request fails closed
+        # with 503 tenant_status_unavailable even when Redis is healthy.
+        app.state.redis_client = redis_client
         logger.info("L5: Redis rate limiter initialized")
     except Exception as e:
         env = settings.effective_environment

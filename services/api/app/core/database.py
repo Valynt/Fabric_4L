@@ -12,6 +12,7 @@ import builtins
 import json
 import os
 import threading
+import uuid
 from collections.abc import Callable
 from datetime import UTC, datetime
 from typing import Any, Generic, TypeVar
@@ -28,6 +29,7 @@ except ImportError:
 
 from app.core.config import get_settings
 from app.models.api_key import APIKeyRecord
+from app.models.usage_event import UsageEventRecord
 from app.models.schemas import (
     Account,
     AccountVersionSnapshot,
@@ -323,7 +325,7 @@ class SQLiteTable(Generic[T]):
             else:
                 query += " AND tenant_id = ?"
                 params.append(normalized_tenant_id)
-        query += " ORDER BY id"
+        query += " ORDER BY record_key"
         with self._lock:
             rows = self._connection.execute(query, params).fetchall()
         items = [self._deserialize(row[0]) for row in rows]
@@ -428,10 +430,14 @@ def _close_psycopg_pool() -> None:
 class PostgreSQLTable(Generic[T]):
     """Durable JSONB table backed by PostgreSQL with RLS support.
 
-    Each record is stored as a JSONB payload with a composite primary key of
-    ``(table_name, tenant_id, id)``.  Tenant isolation is enforced both by
-    explicit query predicates (fail-closed in code) and by Row-Level Security
-    policies that reference the ``app.tenant_id`` GUC set on every operation.
+    Each record is stored as a JSONB payload keyed by the migrated
+    ``fabric_api_records`` schema (see services/api/migrations revision
+    2be6428bc79b): ``record_type`` carries this table's logical name and
+    ``record_key`` carries the caller-supplied record id, with uniqueness on
+    ``(tenant_id, record_type, record_key)``.  Tenant isolation is enforced
+    both by explicit query predicates (fail-closed in code) and by Row-Level
+    Security policies that reference the ``app.tenant_id`` GUC set on every
+    operation.
     """
 
     def __init__(
@@ -484,20 +490,20 @@ class PostgreSQLTable(Generic[T]):
             with conn.cursor() as cur:
                 cur.execute(
                     """
-                    INSERT INTO fabric_api_records (table_name, id, tenant_id, payload, created_at, updated_at)
-                    VALUES (%s, %s, %s, %s, %s, %s)
-                    ON CONFLICT (table_name, tenant_id, id) DO UPDATE SET
+                    INSERT INTO fabric_api_records (id, tenant_id, record_type, record_key, payload, created_at, updated_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    ON CONFLICT (tenant_id, record_type, record_key) DO UPDATE SET
                         payload = EXCLUDED.payload,
                         updated_at = EXCLUDED.updated_at
                     """,
-                    (self.name, id, tenant_id, Jsonb(payload), now, now),
+                    (uuid.uuid4().hex, tenant_id, self.name, id, Jsonb(payload), now, now),
                 )
             conn.commit()
         return obj
 
     def get(self, id: str, tenant_id: str | None = None) -> T | None:
         normalized_tenant_id = self._require_tenant_scope(tenant_id, operation="get")
-        query = "SELECT payload FROM fabric_api_records WHERE table_name = %s AND id = %s"
+        query = "SELECT payload FROM fabric_api_records WHERE record_type = %s AND record_key = %s"
         params: list[Any] = [self.name, id]
         if _is_tenant_scoped_field(self.tenant_field):
             query += " AND tenant_id = %s"
@@ -522,7 +528,7 @@ class PostgreSQLTable(Generic[T]):
         offset: int | None = None,
     ) -> builtins.list[T]:
         normalized_tenant_id = self._require_tenant_scope(tenant_id, operation="list")
-        query = "SELECT payload FROM fabric_api_records WHERE table_name = %s"
+        query = "SELECT payload FROM fabric_api_records WHERE record_type = %s"
         params: list[Any] = [self.name]
         if _is_tenant_scoped_field(self.tenant_field):
             if allow_system_scope and normalized_tenant_id in RESERVED_TENANT_KEYWORDS:
@@ -530,7 +536,7 @@ class PostgreSQLTable(Generic[T]):
             else:
                 query += " AND tenant_id = %s"
                 params.append(normalized_tenant_id)
-        query += " ORDER BY id"
+        query += " ORDER BY record_key"
         if limit is not None:
             query += " LIMIT %s"
             params.append(int(limit))
@@ -556,7 +562,7 @@ class PostgreSQLTable(Generic[T]):
         allow_system_scope: bool = False,
     ) -> int:
         normalized_tenant_id = self._require_tenant_scope(tenant_id, operation="count")
-        query = "SELECT COUNT(*) FROM fabric_api_records WHERE table_name = %s"
+        query = "SELECT COUNT(*) FROM fabric_api_records WHERE record_type = %s"
         params: list[Any] = [self.name]
         if _is_tenant_scoped_field(self.tenant_field):
             if allow_system_scope and normalized_tenant_id in RESERVED_TENANT_KEYWORDS:
@@ -601,7 +607,7 @@ class PostgreSQLTable(Generic[T]):
         obj = self.get(id, tenant_id=tenant_id)
         if obj is None:
             return False
-        query = "DELETE FROM fabric_api_records WHERE table_name = %s AND id = %s"
+        query = "DELETE FROM fabric_api_records WHERE record_type = %s AND record_key = %s"
         params: list[Any] = [self.name, id]
         if _is_tenant_scoped_field(self.tenant_field):
             query += " AND tenant_id = %s"
@@ -700,7 +706,7 @@ class PostgreSQLDatabase:
         self.dsar_requests = AsyncPostgreSQLTable("dsar_requests", pool, tenant_field="tenant_id")
         self.dsar_packages = AsyncPostgreSQLTable("dsar_packages", pool, tenant_field="tenant_id")
         self.api_keys = PostgreSQLTable("api_keys", pool, model_cls=APIKeyRecord, tenant_field="key_id")
-        self.usage_events = AppendOnlyPostgreSQLTable("usage_events", pool, tenant_field="tenant_id")
+        self.usage_events = AppendOnlyPostgreSQLTable("usage_events", pool, model_cls=UsageEventRecord, tenant_field="tenant_id")
 
 
 class InMemoryDatabase:

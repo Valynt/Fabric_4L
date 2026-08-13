@@ -319,6 +319,8 @@ def run_external_validation(root: Path, errors: list[str]) -> None:
             "infra/compose/docker-compose.full.yml",
             "-f",
             ".devcontainer/docker-compose.cloud.yml",
+            "-f",
+            ".devcontainer/docker-compose.cloud.full.yml",
         ],
     }
     render_env = os.environ.copy()

@@ -40,9 +40,6 @@ services:
   layer2-extraction:
     <<: *cloud-runtime
     depends_on: *data-dependencies
-  layer2-5-signal-refinery:
-    <<: *cloud-runtime
-    depends_on: *data-dependencies
   layer3-knowledge:
     <<: *cloud-runtime
     depends_on: *data-dependencies
@@ -53,9 +50,6 @@ services:
     <<: *cloud-runtime
     depends_on: *data-dependencies
   layer6-benchmarks:
-    <<: *cloud-runtime
-    depends_on: *data-dependencies
-  layer7-billing:
     <<: *cloud-runtime
     depends_on: *data-dependencies
 

@@ -78,7 +78,9 @@ class UsageService:
 
     def __init__(self, db: AsyncSession, tenant_id: str | None = None):
         self.db = db
-        self.tenant_id = tenant_id
+        # See OverageService: normalize UUID-typed tenant context to str for
+        # String-typed billing columns under asyncpg.
+        self.tenant_id = str(tenant_id) if tenant_id is not None else None
 
     async def _get_stripe_customer_id(self, customer_id: str) -> str | None:
         """Get Stripe customer ID for internal customer.

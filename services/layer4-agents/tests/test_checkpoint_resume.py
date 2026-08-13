@@ -337,6 +337,9 @@ class TestCheckpointConfiguration:
         # Create a mock AsyncPostgresSaver class that mimics the real one
         mock_saver_cls = MagicMock()
         mock_saver = MagicMock()
+        # create_saver awaits setup() (LangGraph table provisioning); the mock
+        # must support being awaited.
+        mock_saver.setup = AsyncMock()
         mock_saver_cls.return_value = mock_saver
 
         with patch("psycopg.AsyncConnection.connect", new_callable=AsyncMock) as mock_connect:
