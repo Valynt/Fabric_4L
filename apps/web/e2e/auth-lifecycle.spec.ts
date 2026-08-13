@@ -538,7 +538,7 @@ test.describe('Authentication Lifecycle', () => {
       await expect(page.getByRole('link', { name: /users/i })).not.toBeVisible();
     });
 
-    test('should show tier badge for advanced mode users', async ({ page }) => {
+    test('advanced presentation preference never changes verified role access', async ({ page }) => {
       await page.goto('/');
       await page.evaluate(() => {
         localStorage.setItem('accessToken', 'valid-jwt-token');
@@ -547,19 +547,27 @@ test.describe('Authentication Lifecycle', () => {
           JSON.stringify({
             id: 'user-123',
             email: 'test@example.com',
-            role: 'analyst',
+            role: 'read_only',
             tenantId: 'tenant-123',
             tenantSlug: 'test-tenant',
           }),
         );
-        // Enable advanced mode
-        localStorage.setItem('userTier', JSON.stringify({ tier: 'advanced' }));
+        localStorage.setItem('user-tier-storage', JSON.stringify({
+          state: {
+            currentTier: 'standard',
+            userRole: 'read_only',
+            isAdvancedModeEnabled: true,
+          },
+          version: 0,
+        }));
       });
 
       await page.reload();
 
-      // Advanced tier badge should be visible
-      await expect(page.getByText(/advanced/i)).toBeVisible();
+      await page.goto('/discover/extraction');
+      await expect(page).not.toHaveURL(/\/discover\/extraction/);
+      await page.goto('/admin/content/formulas');
+      await expect(page).not.toHaveURL(/\/admin\/content\/formulas/);
     });
   });
 });

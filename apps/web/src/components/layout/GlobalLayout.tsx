@@ -132,8 +132,12 @@ export function GlobalLayout() {
   const rawTier = useUserTierStore(state => state.currentTier);
   const { currentTenantSlug } = useAuthContext();
   const currentTier: UserTier = rawTier === "unknown" ? "standard" : rawTier;
-  const setCurrentTier = useUserTierStore(state => state.setTier);
-  const [isAdvancedModeEnabled, setIsAdvancedModeEnabled] = useState(false);
+  const isAdvancedModeEnabled = useUserTierStore(
+    state => state.isAdvancedModeEnabled
+  );
+  const toggleAdvancedMode = useUserTierStore(
+    state => state.toggleAdvancedMode
+  );
   const [agentMode, setAgentMode] = useState<AgentChatMode>("closed");
 
   const toggleLeftNav = useCallback(() => {
@@ -181,9 +185,8 @@ export function GlobalLayout() {
 
       <MobileNavigation
         currentTier={currentTier}
-        onTierChange={setCurrentTier}
         isAdvancedModeEnabled={isAdvancedModeEnabled}
-        onAdvancedModeToggle={setIsAdvancedModeEnabled}
+        onAdvancedModeToggle={toggleAdvancedMode}
       />
 
       <div className="flex min-w-0 flex-col overflow-hidden">

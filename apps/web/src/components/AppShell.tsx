@@ -59,7 +59,8 @@ const AppShell = memo(function AppShell({
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   
   const currentTier = externalCurrentTier || internalMode;
-  const effectiveTier = externalEffectiveTier || (isAdvancedMode && internalMode === "standard" ? "advanced" : internalMode);
+  // Advanced mode controls presentation only; it never elevates authorization.
+  const effectiveTier = externalEffectiveTier || currentTier;
   
   const handleTierChange = useCallback((tier: UserTier) => {
     if (!externalCurrentTier) {
