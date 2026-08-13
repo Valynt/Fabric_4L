@@ -77,3 +77,68 @@ def test_create_database_fails_closed_in_production_without_url():
         mock_settings.return_value.database_url = None
         with pytest.raises(ProductionPersistenceNotConfigured):
             create_database()
+
+
+def _make_table_with_cursor():
+    mock_pool = MagicMock()
+    mock_conn = MagicMock()
+    mock_cur = MagicMock()
+    mock_conn.cursor.return_value.__enter__ = lambda s, *a, **k: mock_cur
+    mock_conn.cursor.return_value.__exit__ = lambda s, *a, **k: None
+    mock_pool.connection.return_value.__enter__ = lambda s, *a, **k: mock_conn
+    mock_pool.connection.return_value.__exit__ = lambda s, *a, **k: None
+    return mock_pool, mock_cur
+
+
+def test_postgresql_table_uses_migrated_record_columns():
+    """Regression: fabric_api_records SQL must match the migrated schema
+    (revision 2be6428bc79b: record_type/record_key, unique on
+    (tenant_id, record_type, record_key)). The code previously queried
+    table_name/id, which do not exist post-migration, 500-ing every gateway
+    route backed by this store (observed via the Meridian certification
+    journey, 2026-08-12).
+    """
+    mock_pool, mock_cur = _make_table_with_cursor()
+    table = PostgreSQLTable("accounts", mock_pool)
+
+    table.get("rec-1", tenant_id="11111111-1111-4111-8111-111111111111")
+    get_sql = mock_cur.execute.call_args[0][0]
+    assert "record_type" in get_sql and "record_key" in get_sql
+    assert "table_name" not in get_sql
+
+    mock_cur.reset_mock()
+    mock_cur.fetchone.return_value = None
+    table.delete("rec-1", tenant_id="11111111-1111-4111-8111-111111111111")
+    delete_sql = mock_cur.execute.call_args[0][0]
+    assert "record_type" in delete_sql and "record_key" in delete_sql
+    assert "table_name" not in delete_sql
+
+
+def test_postgresql_table_insert_targets_migration_unique_constraint():
+    """Insert must upsert on the migration's UNIQUE (tenant_id, record_type,
+    record_key) constraint."""
+    mock_pool, mock_cur = _make_table_with_cursor()
+    table = PostgreSQLTable("accounts", mock_pool)
+
+    table.insert("rec-1", {"id": "rec-1", "tenant_id": "11111111-1111-4111-8111-111111111111", "name": "x"})
+    insert_sql = mock_cur.execute.call_args[0][0]
+    assert "record_type" in insert_sql and "record_key" in insert_sql
+    assert "ON CONFLICT (tenant_id, record_type, record_key)" in insert_sql
+    assert "table_name" not in insert_sql
+
+
+def test_usage_events_table_deserializes_to_model():
+    """Regression: usage_events must deserialize JSONB payloads to
+    UsageEventRecord (like api_keys does with APIKeyRecord); otherwise
+    QuotaService crashes with AttributeError on dict payloads (observed via
+    the Meridian certification journey benchmark stage, 2026-08-13).
+    """
+    mock_pool, mock_cur = _make_table_with_cursor()
+    mock_cur.fetchall.return_value = [
+        ({"event_id": "e1", "tenant_id": "t1", "api_key_id": None,
+          "endpoint": "/v1/benchmarks/compare", "method": "POST",
+          "product_code": "benchmarks", "quantity": 1.0, "unit": "request"},)
+    ]
+    db = PostgreSQLDatabase(pool=mock_pool)
+    events = db.usage_events.list(tenant_id="system", allow_system_scope=True)
+    assert events and events[0].product_code == "benchmarks"
