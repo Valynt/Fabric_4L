@@ -59,7 +59,7 @@ interface AuthorizationSnapshot {
 }
 ```
 
-Exact wire naming will follow repository conventions and be mapped at the frontend boundary. Arrays are deduplicated and stable. Role values are a closed contract enum. Unknown, absent, or malformed roles invalidate the entire snapshot; they must never normalize to `standard` or any other access-bearing default.
+Exact wire naming will follow repository conventions and be mapped at the frontend boundary. Arrays are deduplicated and deterministically ordered (roles by enum order; permissions lexicographically; entitlements by `key` then `expiresAt`). Role values are a closed contract enum and MUST be explicitly enumerated in the OpenAPI/platform contract (and mirrored in this design doc) before implementation. Unknown, absent, or malformed roles invalidate the entire snapshot; they must never normalize to `standard` or any other access-bearing default.
 
 `sessionDiscriminator` is an opaque, non-secret identifier suitable only for equality and cache binding. The frontend must not decode it or assume it equals a Clerk session ID. The server derives it from the verified session. The frontend validates it against a trusted discriminator made available for the current session by the authentication integration; it never accepts a discriminator from URL or local storage.
 
