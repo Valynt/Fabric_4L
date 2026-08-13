@@ -36,15 +36,20 @@ ARTIFACT_DIR = Path(
     os.getenv("CERTIFICATION_ARTIFACT_DIR", "artifacts/certification")
 )
 
-# Gateway paths exactly as the frontend generates them: the browser calls
-# /api/v1{segment}{path}; the dev proxy strips /api/v1, so the gateway sees
-# /v1{segment}{path}. The certification journey must enter through these
-# same paths (decision D1).
+# Gateway paths exactly as the canonical gateway contract defines them
+# (contracts/openapi/fabric-4l-api.json, contracts/route-contracts.json):
+# the browser calls /api/v1{segment}{path}; the dev proxy strips /api/v1,
+# so the gateway sees /v1{segment}{path}. The certification journey must
+# enter through these same paths (decision D1). Segments below are the
+# canonical ones: L4 account/hypothesis/workflow routes live directly
+# under /v1 (no "/agents" prefix — "/agents" exists only for agent-run
+# routes such as /v1/agents/workflows), and L1 source submission is
+# /v1/ingestion/sources, not /v1/ingest/sources.
 FRONTEND_SEGMENTS = {
-    "l1": "/ingest",
+    "l1": "/ingestion",
     "l2": "/extract",
     "l3": "/graph",
-    "l4": "/agents",
+    "l4": "",
     "l5": "/truths",
     "l6": "/benchmarks",
 }
@@ -193,9 +198,10 @@ class CertificationHarness(BackendValidationHarness):
     ) -> tuple[Any, httpx.Response]:
         """Call the gateway using the exact route shape the frontend generates.
 
-        ``apiGet("l4", "/hypotheses/generate")`` becomes ``/v1/agents/...``
-        at the gateway after the dev proxy strips ``/api/v1`` — this method
-        reproduces that same resolved path.
+        ``apiGet("l4", "/hypotheses/generate")`` becomes
+        ``/v1/hypotheses/generate`` at the gateway after the dev proxy
+        strips ``/api/v1`` — this method reproduces that same resolved
+        path using the canonical segment map above.
         """
         segment = FRONTEND_SEGMENTS[layer]
         return await self.gateway_request(method, f"/v1{segment}{path}", **kwargs)

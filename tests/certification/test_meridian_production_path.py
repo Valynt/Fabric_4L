@@ -96,26 +96,33 @@ async def test_meridian_production_path_journey(
 
     await run_stage("service_readiness", stage_readiness())
 
-    # -- Stage 2: seed both tenants (sanctioned validation seed route) -----
+    # -- Stage 2: seed tenant A (sanctioned validation seed route) ----------
     async def stage_seed() -> None:
-        for tenant_id, slug in (
-            (h.seed_ids.tenant_a, "cert-tenant-a"),
-            (h.seed_ids.tenant_b, "cert-tenant-b"),
-        ):
-            await h.request(
-                "l4",
-                "POST",
-                "/v1/validation/seed/auth-context",
-                tenant_id=tenant_id,
-                json={
-                    "tenant_id": tenant_id,
-                    "tenant_name": f"Certification {slug} {cert_recorder.run_id}",
-                    "tenant_slug": f"{slug}-{cert_recorder.run_id}",
-                    "service_account_id": "production-path-certification",
-                },
-                expected=(200,),
-                extra_headers={"X-Privileged-Reason": "production-path-certification"},
-            )
+        # Canonical pattern (tests/shared/live_harness.py create_seed_graph +
+        # assert_cross_tenant_denied): only tenant A is provisioned through
+        # the seed route; tenant B stays an unprovisioned context and every
+        # cross-tenant access with it must fail closed (401/403/404).
+        # Tenant B cannot be seeded through this route: the route upserts a
+        # FIXED validation user set (VALIDATION_USERS, constant UUIDs) that
+        # can belong to exactly one tenant — a second seed raises 409 by
+        # design (fail-closed, verified live).
+        await h.request(
+            "l4",
+            "POST",
+            "/v1/validation/seed/auth-context",
+            tenant_id=h.seed_ids.tenant_a,
+            json={
+                "tenant_id": h.seed_ids.tenant_a,
+                "tenant_name": f"Certification cert-tenant-a {cert_recorder.run_id}",
+                "tenant_slug": f"cert-tenant-a-{cert_recorder.run_id}",
+                "service_account_id": "production-path-certification",
+            },
+            expected=(200,),
+            # Canonical privileged reason expected by the L4 validation
+            # seed route (layer4_agents.test_support.seed_runtime_config
+            # SEED_PRIVILEGED_REASON, default "validation-seed").
+            extra_headers={"X-Privileged-Reason": "validation-seed"},
+        )
         ctx["tenant_a"] = h.seed_ids.tenant_a
         ctx["tenant_b"] = h.seed_ids.tenant_b
 
@@ -127,7 +134,12 @@ async def test_meridian_production_path_journey(
             "l4",
             "POST",
             "/accounts",
-            json_body={**MERIDIAN_ACCOUNT, "id": h.seed_ids.account_id},
+            json_body={
+                **MERIDIAN_ACCOUNT,
+                "id": h.seed_ids.account_id,
+                # Canonical Account schema requires tenant_id in the body.
+                "tenant_id": h.seed_ids.tenant_a,
+            },
             expected=(200, 201, 409),
         )
         ctx["account_id"] = str(body.get("id") or h.seed_ids.account_id)
@@ -198,7 +210,7 @@ async def test_meridian_production_path_journey(
             body, _ = await h.request(
                 "l3",
                 "GET",
-                f"/v1/entities?q={marker}",
+                f"/v1/entities/?search_text={marker}",
                 expected=(200,),
             )
             return body
@@ -238,18 +250,33 @@ async def test_meridian_production_path_journey(
             "POST",
             "/v1/workflows",
             json={
-                "workflow_type": "value_case_generation",
+                # Canonical executable type: the API enum
+                # (contracts/openapi/layer4-agents.json WorkflowCreateRequest)
+                # lists five values, but the executor registry
+                # (layer4_agents.workflows.WORKFLOW_TYPES) implements three;
+                # of those, only roi_calculator is reachable through the API
+                # input schema (business_case requires a top-level account_id
+                # that WorkflowInputs silently drops). roi_calculator is the
+                # value-model step of the certification journey.
+                "workflow_type": "roi_calculator",
                 "inputs": {
+                    "prospect_id": ctx.get("account_id", h.seed_ids.account_id),
+                    "use_case_ids": ["meridian-cert-value-driver"],
                     "custom_data": {
                         "account_id": ctx.get("account_id", h.seed_ids.account_id),
                         "certification_marker": marker,
-                    }
+                    },
                 },
             },
             expected=(200, 201, 202),
         )
         workflow_id = str(
-            body.get("workflow_id") or body.get("id") or body.get("run_id")
+            # Canonical response field per WorkflowCreateResponse is
+            # workflow_instance_id; keep legacy aliases for tolerance.
+            body.get("workflow_instance_id")
+            or body.get("workflow_id")
+            or body.get("id")
+            or body.get("run_id")
         )
         assert workflow_id and workflow_id != "None", f"no workflow id in {body!r}"
         ctx["workflow_id"] = workflow_id
@@ -297,6 +324,25 @@ async def test_meridian_production_path_journey(
         )
         ctx["truth_id"] = str(body.get("id") or body.get("truth_id"))
 
+        # Canonical lifecycle: KG sync only fires for VALIDATED truths
+        # (L5 router: sync requires status == "validated"). The journey must
+        # perform the validation transition (ValidateRequest action
+        # "validate", requires evidence + actor) — submission alone leaves
+        # the claim PROPOSED and unsynced.
+        truth_id = ctx["truth_id"]
+        await h.request(
+            "l5",
+            "POST",
+            f"/api/v1/truths/{truth_id}/validate",
+            json={
+                "action": "validate",
+                "actor": "production-path-certification",
+                "actor_type": "service",
+                "notes": f"Certification validation {cert_recorder.run_id}",
+            },
+            expected=(200, 201),
+        )
+
     await run_stage("ground_truth_submission", stage_truth())
 
     # -- Stage 10: approved truth reachable from the graph path ------------
@@ -306,7 +352,7 @@ async def test_meridian_production_path_journey(
 
         async def fetch_graph_truth() -> Any:
             body, _ = await h.request(
-                "l3", "GET", f"/v1/entities?q={marker}", expected=(200,)
+                "l3", "GET", f"/v1/entities/?search_text={marker}", expected=(200,)
             )
             return body
 
@@ -322,7 +368,7 @@ async def test_meridian_production_path_journey(
     # -- Stage 11: benchmark participation through the gateway -------------
     async def stage_benchmarks() -> None:
         datasets, _ = await h.frontend_path_request(
-            "l6", "GET", "/datasets", expected=(200,)
+            "l6", "GET", "", expected=(200,)
         )
         items = (datasets.get("items") or datasets.get("datasets") or []) if isinstance(datasets, dict) else datasets
         assert items, (
@@ -332,14 +378,25 @@ async def test_meridian_production_path_journey(
         dataset = items[0]
         dataset_id = str(dataset.get("id") or dataset.get("dataset_id"))
         ctx["benchmark_dataset_id"] = dataset_id
+        # The compare contract 404s on metrics absent from the dataset; use
+        # the dataset's own first metric (canonical list field) rather than
+        # assuming a metric name.
+        dataset_metrics = dataset.get("metrics") or []
+        assert dataset_metrics, f"dataset {dataset_id} exposes no metrics"
+        metric = str(dataset_metrics[0])
         comparison, _ = await h.frontend_path_request(
             "l6",
             "POST",
             "/compare",
             json_body={
+                # Canonical ComparisonRequestPayload (layer6-benchmarks.json):
+                # requires dataset_id, metric, company_value (string),
+                # industry — not a metrics/subject envelope.
                 "dataset_id": dataset_id,
-                "metrics": {"cycle_time_reduction": 0.18},
-                "subject": {"account_id": ctx.get("account_id")},
+                "metric": metric,
+                "company_value": "0.18",
+                "industry": MERIDIAN_ACCOUNT["industry"],
+                "segment": MERIDIAN_ACCOUNT["segment"],
             },
             expected=(200, 201),
         )
@@ -391,7 +448,7 @@ async def test_meridian_production_path_journey(
         entities, _ = await h.request(
             "l3",
             "GET",
-            f"/v1/entities?q={marker}",
+            f"/v1/entities/?search_text={marker}",
             tenant_id=h.seed_ids.tenant_b,
             expected=(200, 401, 403, 404),
         )

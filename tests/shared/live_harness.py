@@ -101,6 +101,11 @@ class BackendValidationHarness:
             uuid.UUID(effective_tenant_id),
             user_id=effective_user_id,
             roles=[role],
+            # The API gateway (services/api decode_token) requires a jti
+            # claim for revocation checks; layers ignore it. Without it the
+            # gateway fail-closes with 401 "Invalid token." on otherwise
+            # valid harness tokens.
+            extra_claims={"jti": uuid.uuid4().hex},
         )
         return {
             "Authorization": f"Bearer {token}",
