@@ -132,11 +132,12 @@ export function GlobalLayout() {
   const rawTier = useUserTierStore(state => state.currentTier);
   const { currentTenantSlug } = useAuthContext();
   const currentTier: UserTier = rawTier === "unknown" ? "standard" : rawTier;
-  const isAdvancedModeEnabled = useUserTierStore(
-    state => state.isAdvancedModeEnabled
-  );
-  const toggleAdvancedMode = useUserTierStore(
-    state => state.toggleAdvancedMode
+  const isAdvancedModeEnabled = useUserTierStore(state => state.isAdvancedModeEnabled);
+  const enableAdvancedMode = useUserTierStore(state => state.enableAdvancedMode);
+  const disableAdvancedMode = useUserTierStore(state => state.disableAdvancedMode);
+  const toggleAdvancedMode = useCallback(
+    (enabled: boolean) => (enabled ? enableAdvancedMode() : disableAdvancedMode()),
+    [enableAdvancedMode, disableAdvancedMode]
   );
   const [agentMode, setAgentMode] = useState<AgentChatMode>("closed");
 
