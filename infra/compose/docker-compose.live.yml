@@ -232,6 +232,8 @@ services:
       NEO4J_PASSWORD: ${NEO4J_PASSWORD}
       LAYER3_API_URL: http://layer3:8001
       LAYER2_HEALTH_SKIP_LAYER3: 'true'
+      JWT_SECRET: ${JWT_SECRET}
+      SERVICE_AUTH_SECRET: ${SERVICE_AUTH_SECRET}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       LLM_MODEL: gpt-4o
       LOG_LEVEL: info
@@ -271,6 +273,9 @@ services:
       NEO4J_PASSWORD: ${NEO4J_PASSWORD}
       NEO4J_AUTH: neo4j/${NEO4J_PASSWORD}
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
+      CACHE_REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
+      JWT_SECRET: ${JWT_SECRET}
+      SERVICE_AUTH_SECRET: ${SERVICE_AUTH_SECRET}
       LOG_LEVEL: info
     volumes:
     - ../../packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
@@ -477,6 +482,16 @@ services:
     - ../../contracts:/contracts:ro
     networks:
     - live-network
+    # L6's benchmark store init has a short retry budget (~15s); fresh Neo4j
+    # takes ~60-90s to become healthy, so without this ordering L6 starts
+    # permanently degraded (observed via the Meridian certification journey).
+    depends_on:
+      neo4j:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
     healthcheck:
       test:
       - CMD
@@ -506,10 +521,17 @@ services:
       ENVIRONMENT: development
       TESTING: 'false'
       SECRET_KEY: ${SECRET_KEY:-${JWT_SECRET}}
+      JWT_SECRET: ${JWT_SECRET}
+      SERVICE_AUTH_SECRET: ${SERVICE_AUTH_SECRET}
       JWT_ALGORITHM: ${JWT_ALGORITHM}
       ALGORITHM: ${JWT_ALGORITHM}
       CORS_ORIGINS: ${CORS_ORIGINS}
       LAYER4_API_BASE_URL: http://layer4:8000
+      LAYER1_API_BASE_URL: http://layer1:8000
+      LAYER2_API_BASE_URL: http://layer2:8000
+      LAYER3_API_BASE_URL: http://layer3:8001
+      LAYER5_API_BASE_URL: http://layer5:8005
+      LAYER6_API_BASE_URL: http://layer6:8006
       AUTH_PROVIDER: ${AUTH_PROVIDER}
       CLERK_ISSUER: ${CLERK_ISSUER}
       CLERK_JWT_AUDIENCE: ${CLERK_JWT_AUDIENCE}
