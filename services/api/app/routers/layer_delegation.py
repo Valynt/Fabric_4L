@@ -106,7 +106,7 @@ def _request_headers(request: Request, tenant_id: str) -> dict[str, str]:
     # caller: layers accept X-Tenant-ID only with a valid X-Service-Auth (see
     # value_fabric.shared.identity.resolvers.resolve_service_to_service), and a
     # client-supplied value must never reach upstream (spoofing). Matches the
-    # gateway service clients (e.g. services/agent_orchestrator.py).
+    # gateway service clients (e.g. app/services/agent_orchestrator.py).
     if service_secret := os.environ.get("SERVICE_AUTH_SECRET", ""):
         headers["x-service-auth"] = service_secret
     return headers
