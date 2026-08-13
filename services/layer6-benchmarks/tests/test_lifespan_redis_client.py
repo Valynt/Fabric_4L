@@ -12,7 +12,6 @@ set REDIS_URL and import the module fresh.
 
 from __future__ import annotations
 
-import importlib
 import sys
 from types import ModuleType
 from unittest.mock import MagicMock
