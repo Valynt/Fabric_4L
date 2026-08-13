@@ -1,6 +1,6 @@
 # Backend-Authoritative Authorization Snapshot Design
 
-**Status:** approved for implementation  
+**Status:** Approved for implementation.
 **Date:** 2026-08-13  
 **Scope:** API gateway authorization contract, platform contract, and frontend authentication and routing domains
 
