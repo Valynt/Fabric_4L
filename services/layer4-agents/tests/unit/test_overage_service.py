@@ -318,3 +318,21 @@ class TestCheckAllLimits:
         assert response.all_limits_ok is True
         assert response.total_overage_cost == 0.0
         assert response.warnings == []
+
+
+def test_overage_service_normalizes_uuid_tenant_id():
+    """Regression: RequestContext.tenant_id may be a UUID object; billing
+    columns are String, and asyncpg refuses varchar = uuid binds (observed
+    via the Meridian certification journey: POST /v1/billing/events 500,
+    'operator does not exist: character varying = uuid')."""
+    import uuid
+
+    from layer4_agents.services.overage_service import OverageService
+    from layer4_agents.services.plan_version_service import PlanVersionService
+    from layer4_agents.services.usage_service import UsageService
+
+    tid = uuid.UUID("11111111-1111-4111-8111-111111111111")
+    for cls in (OverageService, UsageService, PlanVersionService):
+        svc = cls(db=None, tenant_id=tid)
+        assert svc.tenant_id == str(tid)
+        assert isinstance(svc.tenant_id, str)
