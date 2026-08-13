@@ -199,11 +199,11 @@ describe("useUserTierStore", () => {
       expect(state.canAccessRoute("admin")).toBe(false);
     });
 
-    it("standard user with advanced mode can access advanced routes", () => {
+    it("advanced mode never grants a standard user advanced route access", () => {
       useUserTierStore.getState().enableAdvancedMode();
       const state = useUserTierStore.getState();
       expect(state.canAccessRoute("standard")).toBe(true);
-      expect(state.canAccessRoute("advanced")).toBe(true);
+      expect(state.canAccessRoute("advanced")).toBe(false);
       expect(state.canAccessRoute("admin")).toBe(false);
     });
 
@@ -241,22 +241,47 @@ describe("useUserTierStore", () => {
       }
     });
 
-    it("denies advanced route for standard user without advanced mode", () => {
+    it("denies advanced route for standard user", () => {
       const decision = useUserTierStore
         .getState()
         .canAccessRouteWithReason("advanced");
       expect(isDenied(decision)).toBe(true);
       if (isDenied(decision)) {
-        expect(decision.reason).toBe("ADVANCED_ROUTE_REQUIRES_ADVANCED_MODE");
+        expect(decision.reason).toBe("ADVANCED_ROUTE_REQUIRES_ADVANCED_TIER");
       }
     });
 
-    it("allows advanced route for standard user with advanced mode", () => {
+    it("denies advanced route for standard user with advanced mode", () => {
       useUserTierStore.getState().enableAdvancedMode();
       const decision = useUserTierStore
         .getState()
         .canAccessRouteWithReason("advanced");
-      expect(decision).toEqual({ allowed: true });
+      expect(decision).toEqual({
+        allowed: false,
+        reason: "ADVANCED_ROUTE_REQUIRES_ADVANCED_TIER",
+      });
+    });
+
+    it("advanced mode never changes role, tier, permissions, or privilege", () => {
+      const before = useUserTierStore.getState();
+      const authorization = {
+        currentTier: before.currentTier,
+        userRole: before.userRole,
+        permissions: before.permissions,
+        effectiveTier: before.effectiveTier,
+        isPrivileged: before.isPrivileged,
+      };
+
+      before.enableAdvancedMode();
+      const after = useUserTierStore.getState();
+
+      expect({
+        currentTier: after.currentTier,
+        userRole: after.userRole,
+        permissions: after.permissions,
+        effectiveTier: after.effectiveTier,
+        isPrivileged: after.isPrivileged,
+      }).toEqual(authorization);
     });
 
     it("fails closed for invalid user tier state", () => {
