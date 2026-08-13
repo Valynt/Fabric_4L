@@ -123,7 +123,7 @@ the host Docker daemon and is not supported in hosted cloud workspaces.
 3. If Infisical authentication expired, run `infisical login`; do not create an
    untracked environment file unless deliberately choosing the legacy flow.
 4. If service health checks fail, inspect the canonical stack with
-   `docker compose -p fabric4l-cloud -f infra/compose/docker-compose.full.yml -f .devcontainer/docker-compose.cloud.yml ps`.
+   `docker compose -p fabric4l-cloud -f infra/compose/docker-compose.full.yml -f .devcontainer/docker-compose.cloud.yml -f .devcontainer/docker-compose.cloud.full.yml ps`.
 5. Remove named volumes only when data loss is acceptable.
 
 ## Known differences from production

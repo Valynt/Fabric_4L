@@ -7783,6 +7783,303 @@
         "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
       },
       "operationId": "signal_stream_websocket"
+    },
+    {
+      "source": "fabric-4l-api",
+      "method": "GET",
+      "path": "/v1/extractions/{job_id}",
+      "status": "unmapped",
+      "lastReviewed": "2026-08-12",
+      "metadata": {
+        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
+      },
+      "operationId": "get_extraction_status_v1_extractions__job_id__get"
+    },
+    {
+      "source": "fabric-4l-api",
+      "method": "GET",
+      "path": "/v1/ingestion/runs/{run_id}",
+      "status": "unmapped",
+      "lastReviewed": "2026-08-12",
+      "metadata": {
+        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
+      },
+      "operationId": "get_ingestion_run_v1_ingestion_runs__run_id__get"
+    },
+    {
+      "source": "fabric-4l-api",
+      "method": "GET",
+      "path": "/v1/ingestion/sources",
+      "status": "unmapped",
+      "lastReviewed": "2026-08-12",
+      "metadata": {
+        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
+      },
+      "operationId": "list_sources_v1_ingestion_sources_get"
+    },
+    {
+      "source": "fabric-4l-api",
+      "method": "GET",
+      "path": "/v1/maturity-ladder",
+      "status": "unmapped",
+      "lastReviewed": "2026-08-12",
+      "metadata": {
+        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
+      },
+      "operationId": "get_maturity_ladder_v1_maturity_ladder_get"
+    },
+    {
+      "source": "fabric-4l-api",
+      "method": "GET",
+      "path": "/v1/query/entities",
+      "status": "unmapped",
+      "lastReviewed": "2026-08-12",
+      "metadata": {
+        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
+      },
+      "operationId": "query_entities_v1_query_entities_get"
+    },
+    {
+      "source": "fabric-4l-api",
+      "method": "GET",
+      "path": "/v1/truths",
+      "status": "unmapped",
+      "lastReviewed": "2026-08-12",
+      "metadata": {
+        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
+      },
+      "operationId": "list_truths_v1_truths_get"
+    },
+    {
+      "source": "fabric-4l-api",
+      "method": "GET",
+      "path": "/v1/truths/freshness-summary",
+      "status": "unmapped",
+      "lastReviewed": "2026-08-12",
+      "metadata": {
+        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
+      },
+      "operationId": "get_freshness_summary_v1_truths_freshness_summary_get"
+    },
+    {
+      "source": "fabric-4l-api",
+      "method": "GET",
+      "path": "/v1/truths/{truth_id}",
+      "status": "unmapped",
+      "lastReviewed": "2026-08-12",
+      "metadata": {
+        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
+      },
+      "operationId": "get_truth_v1_truths__truth_id__get"
+    },
+    {
+      "source": "fabric-4l-api",
+      "method": "GET",
+      "path": "/v1/value-trees/{tree_id}",
+      "status": "unmapped",
+      "lastReviewed": "2026-08-12",
+      "metadata": {
+        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
+      },
+      "operationId": "get_value_tree_v1_value_trees__tree_id__get"
+    },
+    {
+      "source": "fabric-4l-api",
+      "method": "GET",
+      "path": "/v1/workflows/{workflow_id}",
+      "status": "unmapped",
+      "lastReviewed": "2026-08-12",
+      "metadata": {
+        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
+      },
+      "operationId": "get_workflow_v1_workflows__workflow_id__get"
+    },
+    {
+      "source": "fabric-4l-api",
+      "method": "GET",
+      "path": "/v1/workflows/{workflow_id}/result",
+      "status": "unmapped",
+      "lastReviewed": "2026-08-12",
+      "metadata": {
+        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
+      },
+      "operationId": "get_workflow_result_v1_workflows__workflow_id__result_get"
+    },
+    {
+      "source": "fabric-4l-api",
+      "method": "POST",
+      "path": "/v1/analysis/roi",
+      "status": "unmapped",
+      "lastReviewed": "2026-08-12",
+      "metadata": {
+        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
+      },
+      "operationId": "run_roi_analysis_v1_analysis_roi_post"
+    },
+    {
+      "source": "fabric-4l-api",
+      "method": "POST",
+      "path": "/v1/extract",
+      "status": "unmapped",
+      "lastReviewed": "2026-08-12",
+      "metadata": {
+        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
+      },
+      "operationId": "extract_v1_extract_post"
+    },
+    {
+      "source": "fabric-4l-api",
+      "method": "POST",
+      "path": "/v1/extract-and-ingest",
+      "status": "unmapped",
+      "lastReviewed": "2026-08-12",
+      "metadata": {
+        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
+      },
+      "operationId": "extract_and_ingest_v1_extract_and_ingest_post"
+    },
+    {
+      "source": "fabric-4l-api",
+      "method": "POST",
+      "path": "/v1/hypotheses/generate",
+      "status": "unmapped",
+      "lastReviewed": "2026-08-12",
+      "metadata": {
+        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
+      },
+      "operationId": "generate_hypotheses_v1_hypotheses_generate_post"
+    },
+    {
+      "source": "fabric-4l-api",
+      "method": "POST",
+      "path": "/v1/ingest",
+      "status": "unmapped",
+      "lastReviewed": "2026-08-12",
+      "metadata": {
+        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
+      },
+      "operationId": "ingest_rdf_v1_ingest_post"
+    },
+    {
+      "source": "fabric-4l-api",
+      "method": "POST",
+      "path": "/v1/ingestion/runs",
+      "status": "unmapped",
+      "lastReviewed": "2026-08-12",
+      "metadata": {
+        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
+      },
+      "operationId": "create_ingestion_run_v1_ingestion_runs_post"
+    },
+    {
+      "source": "fabric-4l-api",
+      "method": "POST",
+      "path": "/v1/ingestion/sources",
+      "status": "unmapped",
+      "lastReviewed": "2026-08-12",
+      "metadata": {
+        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
+      },
+      "operationId": "create_source_v1_ingestion_sources_post"
+    },
+    {
+      "source": "fabric-4l-api",
+      "method": "POST",
+      "path": "/v1/ingestion/sources/{source_id}/versions",
+      "status": "unmapped",
+      "lastReviewed": "2026-08-12",
+      "metadata": {
+        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
+      },
+      "operationId": "create_source_version_v1_ingestion_sources__source_id__versions_post"
+    },
+    {
+      "source": "fabric-4l-api",
+      "method": "POST",
+      "path": "/v1/narratives/generate",
+      "status": "unmapped",
+      "lastReviewed": "2026-08-12",
+      "metadata": {
+        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
+      },
+      "operationId": "generate_narrative_v1_narratives_generate_post"
+    },
+    {
+      "source": "fabric-4l-api",
+      "method": "POST",
+      "path": "/v1/query/graphrag",
+      "status": "unmapped",
+      "lastReviewed": "2026-08-12",
+      "metadata": {
+        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
+      },
+      "operationId": "query_graphrag_v1_query_graphrag_post"
+    },
+    {
+      "source": "fabric-4l-api",
+      "method": "POST",
+      "path": "/v1/search",
+      "status": "unmapped",
+      "lastReviewed": "2026-08-12",
+      "metadata": {
+        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
+      },
+      "operationId": "search_knowledge_graph_v1_search_post"
+    },
+    {
+      "source": "fabric-4l-api",
+      "method": "POST",
+      "path": "/v1/truths",
+      "status": "unmapped",
+      "lastReviewed": "2026-08-12",
+      "metadata": {
+        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
+      },
+      "operationId": "submit_truth_v1_truths_post"
+    },
+    {
+      "source": "fabric-4l-api",
+      "method": "POST",
+      "path": "/v1/truths/sync-kg",
+      "status": "unmapped",
+      "lastReviewed": "2026-08-12",
+      "metadata": {
+        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
+      },
+      "operationId": "sync_knowledge_graph_v1_truths_sync_kg_post"
+    },
+    {
+      "source": "fabric-4l-api",
+      "method": "POST",
+      "path": "/v1/truths/{truth_id}/validate",
+      "status": "unmapped",
+      "lastReviewed": "2026-08-12",
+      "metadata": {
+        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
+      },
+      "operationId": "validate_truth_v1_truths__truth_id__validate_post"
+    },
+    {
+      "source": "fabric-4l-api",
+      "method": "POST",
+      "path": "/v1/workflows",
+      "status": "unmapped",
+      "lastReviewed": "2026-08-12",
+      "metadata": {
+        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
+      },
+      "operationId": "submit_workflow_v1_workflows_post"
+    },
+    {
+      "source": "layer3-knowledge",
+      "method": "POST",
+      "path": "/v1/nodes",
+      "status": "unmapped",
+      "lastReviewed": "2026-08-12",
+      "metadata": {
+        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
+      },
+      "operationId": "create_ground_truth_node_v1_nodes_post"
     }
   ]
 }

@@ -12,7 +12,9 @@ from ..models.billing import BillingPlanVersion, BillingSubscription
 class PlanVersionService:
     def __init__(self, db: AsyncSession, tenant_id: str | None = None) -> None:
         self.db = db
-        self.tenant_id = tenant_id
+        # Normalize UUID-typed tenant context to str for String-typed billing
+        # columns under asyncpg (see OverageService note).
+        self.tenant_id = str(tenant_id) if tenant_id is not None else None
 
     async def get_effective_plan_version(self, plan_id: str, at_time: datetime) -> BillingPlanVersion | None:
         query = (

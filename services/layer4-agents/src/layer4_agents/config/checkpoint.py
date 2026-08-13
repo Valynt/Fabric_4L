@@ -112,6 +112,11 @@ class CheckpointConfig:
             url, row_factory=psycopg.rows.dict_row, autocommit=True, prepare_threshold=0
         )
         saver = AsyncPostgresSaver(conn)
+        # LangGraph requires setup() once per database to provision the
+        # checkpoints/checkpoint_writes/... tables. It is idempotent and
+        # cheap, so run it on every startup connection rather than relying
+        # on an external provisioning step that does not exist.
+        await saver.setup()
         # Store connection reference for cleanup only if the saver does not
         # already expose it via a public attribute.
         if not hasattr(saver, "conn"):

@@ -4,9 +4,9 @@
   "generated_at": "2026-08-08T02:19:14.268183+00:00",
   "allowlist": [
     {
-      "finding_key": "services/layer3-knowledge/src/api/dependencies_tenant_secured.py::execute_query::243::self.run::run-call-unresolved",
+      "finding_key": "services/layer3-knowledge/src/api/dependencies_tenant_secured.py::execute_query::255::self.run::run-call-unresolved",
       "expires_on": "2026-12-31",
-      "justification": "Seeded baseline for existing L3 Cypher tenant-inventory findings; must be remediated or re-reviewed before expiry."
+      "justification": "Seeded baseline for existing L3 Cypher tenant-inventory finding (execute_query dispatches through self.run, which injects the tenant predicate); line refreshed after the 2026-08-13 session-init fix above it; must be remediated or re-reviewed before expiry."
     },
     {
       "finding_key": "services/layer3-knowledge/src/api/routes/entities.py::get_entity_context_route::479::neo4j.execute_query::run-call-unresolved",

@@ -69,8 +69,13 @@ class OverageService:
 
     def __init__(self, db: AsyncSession, tenant_id: str | None = None):
         self.db = db
-        self.tenant_id = tenant_id
-        self.plan_versions = PlanVersionService(db, tenant_id=tenant_id)
+        # RequestContext.tenant_id may arrive as a UUID object; billing
+        # columns are String, and asyncpg refuses varchar = uuid binds.
+        # Normalize once at the boundary (observed via the Meridian
+        # certification journey: POST /v1/billing/events 500,
+        # "operator does not exist: character varying = uuid").
+        self.tenant_id = str(tenant_id) if tenant_id is not None else None
+        self.plan_versions = PlanVersionService(db, tenant_id=self.tenant_id)
 
     def _get_period_dates(self, period: str) -> tuple[datetime, datetime]:
         """Get start and end dates for a billing period.

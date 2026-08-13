@@ -7,6 +7,7 @@
         check-env check-env-backend check-env-frontend validate-env-contract \
         preflight up down logs check-deprecations test-backup-drills db-production-readiness-gate \
 	test-backend-integrated-validation test-backend-integrated-release-smoke \
+	certify-meridian-journey \
 	check-workflow-matrix check-workflow-registry check-workflow-references \
 	gate-mandatory-security-regression gate-security gate-security-broad gate-state gate-arch gate-config gate-local gate-local-production-subset \
 	gate-chaos gate-smoke gate-agent gate-obs gate-release-policy \
@@ -391,6 +392,9 @@ test-backend-integrated-validation: ## Backend milestone: run direct release-pol
 
 test-backend-integrated-release-smoke: ## Backend milestone: boot full L1-L6 release stack and run release-environment smoke validation
 	bash scripts/ci/run_release_smoke.sh
+
+certify-meridian-journey: ## Certification: run the Meridian L1-L6 production-path journey through the live gateway (requires the running stack)
+	$(PYTEST) tests/certification -m certification -v
 
 certify-production-path: ## Production path certification: execute end-to-end production path verification
 	@echo "→ Starting Production Path Certification..."
