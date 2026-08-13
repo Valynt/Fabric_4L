@@ -565,9 +565,9 @@ test.describe('Authentication Lifecycle', () => {
       await page.reload();
 
       await page.goto('/discover/extraction');
-      await expect(page).not.toHaveURL(/\/discover\/extraction/);
+      await expect(page).toHaveURL(/\/home/);
       await page.goto('/admin/content/formulas');
-      await expect(page).not.toHaveURL(/\/admin\/content\/formulas/);
+      await expect(page).toHaveURL(/\/home/);
     });
   });
 });
