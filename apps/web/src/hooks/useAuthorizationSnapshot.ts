@@ -102,6 +102,11 @@ export function useAuthorizationSnapshot(
   const auth = useAuthContext();
   const activeTenant = tenantSlug ?? auth.currentTenantSlug ?? undefined;
   const refreshAttempted = useRef(false);
+
+  useEffect(() => {
+    refreshAttempted.current = false;
+  }, [activeTenant]);
+
   const query = useQuery({
     queryKey: ["authz", "snapshot", activeTenant ?? null],
     queryFn: async () => {
