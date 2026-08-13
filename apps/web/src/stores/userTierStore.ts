@@ -422,7 +422,7 @@ export const useUserTierStore = create<UserTierState>()(
         // Normalize backend-canonical role to UI tier
         const tier = normalizeRoleToTier(role);
         if (!tier) {
-          set({ permissions: getDefaultPermissions("unknown") });
+          set({ currentTier: "unknown", permissions: getDefaultPermissions("unknown") });
           return;
         }
         set({
