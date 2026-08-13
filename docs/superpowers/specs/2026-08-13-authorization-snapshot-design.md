@@ -79,7 +79,7 @@ The backend sets `issuedAt` to the generation time and `expiresAt` to the earlie
 2. authorization-policy TTL;
 3. the earliest relevant entitlement expiry.
 
-The backend must never intentionally issue a snapshot that is expired at issuance. If no positive lifetime remains, it returns a denial/error response instead. Timestamps are UTC RFC 3339 values. The frontend rejects invalid ordering, invalid timestamps, future-skewed `issuedAt` beyond the documented tolerance, or elapsed `expiresAt`.
+The backend must never intentionally issue a snapshot that is expired at issuance. If no positive lifetime remains, it returns a denial/error response instead. Timestamps are UTC RFC 3339 values. The frontend rejects invalid ordering, invalid timestamps, future-skewed `issuedAt` beyond a small bounded tolerance (e.g., 5 minutes), or elapsed `expiresAt`.
 
 ## Backend Resolution and Failure Behavior
 
