@@ -193,3 +193,38 @@ def test_settings_normalize_mixed_environment_sources_consistently(monkeypatch: 
 
     assert settings.effective_environment == "development"
     assert settings.is_production_like is False
+
+
+@pytest.mark.asyncio
+async def test_startup_exposes_redis_client_on_app_state_for_tenant_kill_switch(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Regression: the tenant-status kill-switch middleware reads
+    ``app.state.redis_client``. The lifespan previously stored only
+    ``redis_rate_limiter``, so every tenant-checked request failed closed with
+    503 tenant_status_unavailable even when Redis was healthy (observed via
+    the Meridian certification journey, 2026-08-12).
+    """
+    from layer5_ground_truth.api import main
+
+    _clear_env(monkeypatch)
+    monkeypatch.setenv("ENVIRONMENT", "development")
+    monkeypatch.setenv("APP_ENV", "development")
+    monkeypatch.setenv("JWT_SECRET", VALID_JWT_SECRET)
+    monkeypatch.setenv("ALLOW_INSECURE_DEV_AUTH_BYPASS", "true")
+    monkeypatch.setenv("DATABASE_URL", "sqlite+aiosqlite:///:memory:")
+    monkeypatch.setenv("DATABASE_URL_SYNC", "sqlite:///:memory:")
+    _install_fake_redis(monkeypatch, ping_error=None)
+
+    monkeypatch.setattr(main, "validate_production_safety", lambda: None)
+    monkeypatch.setattr(main, "init_db", AsyncMock())
+    monkeypatch.setattr(main, "close_db", AsyncMock())
+    monkeypatch.setattr(main, "is_vault_healthy", None)
+
+    app = _build_test_app()
+    async with main.lifespan(app):
+        assert app.state.redis_client is not None, (
+            "lifespan must expose app.state.redis_client so the tenant "
+            "kill-switch can evaluate suspension status instead of failing closed"
+        )
+        assert app.state.redis_rate_limiter is not None

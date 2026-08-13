@@ -202,6 +202,16 @@ async def lifespan(app: FastAPI):
     if app.state.telemetry_provider is not None:
         logger.info("L6: OpenTelemetry tracing initialized")
 
+    # Validate the module-level Redis client (created for the governance
+    # middleware above) so an unavailable Redis is logged at startup; the
+    # tenant kill-switch fails closed either way.
+    if _l6_redis_client is not None:
+        try:
+            await _l6_redis_client.ping()
+            logger.info("L6: Redis client initialized for tenant kill-switch")
+        except Exception:
+            logger.warning("L6: Redis unavailable; tenant status checks will fail closed", exc_info=True)
+
     metrics = getattr(app.state, "metrics", None)
     if metrics is not None:
         logger.info("Prometheus metrics initialized")
@@ -269,6 +279,7 @@ _security_config_l6 = SecurityConfig.from_env(
 add_security_middleware(app, config=_security_config_l6)
 
 # Register global exception handlers to prevent stack traces and sensitive data leaks
+_l6_redis_client = None  # set below when GovernanceMiddleware wiring succeeds
 try:
     from value_fabric.shared.error_handling import register_exception_handlers
 
@@ -279,8 +290,27 @@ except ImportError:
 try:
     from value_fabric.shared.identity.api_key_stub import reject_api_key_unsupported
     from value_fabric.shared.identity.middleware import GovernanceMiddleware
+    from value_fabric.shared.identity.rate_limiter import RedisRateLimiter
 
-    app.add_middleware(GovernanceMiddleware, api_key_resolver=reject_api_key_unsupported)
+    # The GovernanceMiddleware tenant kill-switch reads its Redis handle only
+    # from the rate_limiter argument; without it every tenant-checked request
+    # fails closed with 503 even when Redis is healthy (observed via the
+    # Meridian certification journey, 2026-08-12). redis.from_url is lazy
+    # (no connection at construction); the lifespan pings it and exposes it
+    # on app.state.
+    _l6_redis_url = os.getenv("REDIS_URL")
+    _l6_redis_client = None
+    if _l6_redis_url:
+        import redis.asyncio as _redis_asyncio
+
+        _l6_redis_client = _redis_asyncio.from_url(_l6_redis_url, decode_responses=True)
+
+    app.add_middleware(
+        GovernanceMiddleware,
+        api_key_resolver=reject_api_key_unsupported,
+        rate_limiter=RedisRateLimiter(_l6_redis_client) if _l6_redis_client is not None else None,
+    )
+    app.state.redis_client = _l6_redis_client
 except ImportError as _gov_import_err:
     raise RuntimeError(
         "GovernanceMiddleware is required in all environments — "
