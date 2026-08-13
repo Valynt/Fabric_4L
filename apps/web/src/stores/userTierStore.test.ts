@@ -97,8 +97,11 @@ describe("normalizeRoleToTier", () => {
     expect(normalizeRoleToTier("system")).toBe("standard");
   });
 
-  it("fails safe to standard for unknown roles", () => {
-    expect(normalizeRoleToTier("unknown_role")).toBe("standard");
+  it("leaves unknown and absent roles unresolved", () => {
+    expect(normalizeRoleToTier("unknown_role")).toBeUndefined();
+    expect(normalizeRoleToTier("")).toBeUndefined();
+    expect(normalizeRoleToTier(undefined)).toBeUndefined();
+    expect(normalizeRoleToTier({ role: "admin" })).toBeUndefined();
   });
 });
 

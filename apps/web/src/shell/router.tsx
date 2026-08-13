@@ -253,14 +253,14 @@ function AccountOverviewRedirect() {
 
 const authPolicy = { requiresAuth: false, tenantScoped: false, fallbackRoute: "/sign-in", analyticsRouteId: "auth" } as const;
 const homePolicy = { requiresAuth: true, tenantScoped: false, fallbackRoute: "/sign-in", analyticsRouteId: "home" } as const;
-const tenantStdPolicy = (id: string) => ({ requiresAuth: true, tenantScoped: true, requiredTier: "standard" as const, fallbackRoute: "/home", analyticsRouteId: id });
-const tenantAdvPolicy = (id: string) => ({ requiresAuth: true, tenantScoped: true, requiredTier: "advanced" as const, fallbackRoute: "/home", analyticsRouteId: id });
-const tenantAdminPolicy = (id: string) => ({ requiresAuth: true, tenantScoped: true, requiredTier: "admin" as const, fallbackRoute: "/home", analyticsRouteId: id });
-const accountStdPolicy = (id: string) => ({ requiresAuth: true, tenantScoped: true, accountScoped: true, requiredTier: "standard" as const, fallbackRoute: "/home", analyticsRouteId: id });
+const tenantStdPolicy = (id: string) => ({ requiresAuth: true, tenantScoped: true, requiredPermissions: ["tenant:read"], fallbackRoute: "/home", analyticsRouteId: id });
+const tenantAdvPolicy = (id: string) => ({ requiresAuth: true, tenantScoped: true, requiredPermissions: ["tenant:read", "formulas:write"], fallbackRoute: "/home", analyticsRouteId: id });
+const tenantAdminPolicy = (id: string) => ({ requiresAuth: true, tenantScoped: true, requiredPermissions: ["tenant:read", "governance:read"], fallbackRoute: "/home", analyticsRouteId: id });
+const accountStdPolicy = (id: string) => ({ requiresAuth: true, tenantScoped: true, accountScoped: true, requiredPermissions: ["tenant:read", "account:read"], fallbackRoute: "/home", analyticsRouteId: id });
 // TODO(VF-FE-ROUTER-DEBT-001): accountAdvPolicy is reserved for future advanced account-scoped gating.
 // No routes currently use it. When advanced account access is implemented,
 // update affected routes (e.g. studio build, value-model detail) to use this policy.
-const accountAdvPolicy = (id: string) => ({ requiresAuth: true, tenantScoped: true, accountScoped: true, requiredTier: "advanced" as const, fallbackRoute: "/home", analyticsRouteId: id });
+const accountAdvPolicy = (id: string) => ({ requiresAuth: true, tenantScoped: true, accountScoped: true, requiredPermissions: ["tenant:read", "account:read", "formulas:write"], fallbackRoute: "/home", analyticsRouteId: id });
 
 export const router = createBrowserRouter([
   {

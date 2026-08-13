@@ -15,8 +15,6 @@ export type RouteAccessPolicy = {
   tenantScoped: boolean;
   /** Whether the route is scoped to a specific account. */
   accountScoped?: boolean;
-  /** Minimum user tier required. */
-  requiredTier?: Exclude<UserTier, "unknown">;
   /** Permission strings required (e.g., ['account:read', 'intelligence:read']). */
   requiredPermissions?: string[];
   /** Feature flag keys that must be enabled. */

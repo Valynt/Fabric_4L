@@ -1,6 +1,6 @@
 /**
  * TargetsAdmin — Context Engine / Targets
- * Route: /context/targets  (requiredTier: admin)
+ * Route: /context/targets (requires governance permission)
  */
 import { useState, useCallback } from 'react';
 import {

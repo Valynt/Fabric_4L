@@ -18,8 +18,7 @@ export type UserTier = "standard" | "advanced" | "admin" | "unknown";
 
 /** Security result type distinguishing explicit deny from evaluation failure */
 export type AccessDecision =
-  | { allowed: true }
-  | { allowed: false; reason: string };
+  { allowed: true } | { allowed: false; reason: string };
 
 /**
  * Type guard to check if access decision is denied.
@@ -138,12 +137,16 @@ const getDefaultPermissions = (tier: UserTier): UserPermissions => {
  * - analyst, editor, advanced → advanced
  * - read_only, viewer, user, standard → standard
  *
- * SECURITY: Unknown roles fail-safe to 'standard' (lowest tier)
+ * SECURITY: This compatibility mapping is presentation-only. Unknown roles
+ * remain unresolved and must never be used to infer authorization grants.
  *
  * @param role - Backend-canonical role or frontend tier
  * @returns Normalized UI tier for feature gating
  */
-export const normalizeRoleToTier = (role: string): UserTier => {
+export const normalizeRoleToTier = (role: unknown): UserTier | undefined => {
+  if (typeof role !== "string" || role.trim() === "") {
+    return undefined;
+  }
   const normalizedRole = role.toLowerCase().trim();
 
   const roleToTierMap: Record<string, UserTier> = {
@@ -171,9 +174,8 @@ export const normalizeRoleToTier = (role: string): UserTier => {
   const tier = roleToTierMap[normalizedRole];
 
   if (!tier) {
-    // SECURITY: Fail-safe to standard tier for unknown roles
-    log.warn(`Unknown role "${role}" - defaulting to standard tier`);
-    return "standard";
+    log.warn(`Unknown role "${role}" - leaving display tier unresolved`);
+    return undefined;
   }
 
   return tier;
@@ -419,6 +421,10 @@ export const useUserTierStore = create<UserTierState>()(
         set({ userRole: role });
         // Normalize backend-canonical role to UI tier
         const tier = normalizeRoleToTier(role);
+        if (!tier) {
+          set({ permissions: getDefaultPermissions("unknown") });
+          return;
+        }
         set({
           currentTier: tier,
           permissions: getDefaultPermissions(tier),

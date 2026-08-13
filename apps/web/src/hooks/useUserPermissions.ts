@@ -1,55 +1,45 @@
-/**
- * useUserPermissions — Check if the current user has the required permissions.
- *
- * Maps user role/tier to permission grants. Backend remains authoritative;
- * this is a frontend convenience for UI gating.
- */
-
 import { useMemo } from "react";
-import { useUserTierStore } from "@/stores/userTierStore";
+import {
+  useAuthorizationSnapshot,
+  type AuthorizationSnapshotState,
+} from "@/hooks/useAuthorizationSnapshot";
 
-const TIER_PERMISSIONS: Record<string, string[]> = {
-  standard: ["account:read", "intelligence:read", "signals:read"],
-  advanced: [
-    "account:read",
-    "intelligence:read",
-    "signals:read",
-    "formulas:read",
-    "formulas:write",
-    "ontology:read",
-  ],
-  admin: [
-    "account:read",
-    "intelligence:read",
-    "signals:read",
-    "formulas:read",
-    "formulas:write",
-    "ontology:read",
-    "user:manage",
-    "billing:manage",
-    "integration:manage",
-    "api_key:manage",
-    "governance:read",
-    "audit:read",
-  ],
-};
+export type AuthorizationDecision =
+  | { status: "loading" }
+  | { status: "allowed" }
+  | { status: "denied"; reason: string }
+  | { status: "expired"; reason: string };
 
-export function useUserPermissions(requiredPermissions: string[]) {
-  const currentTier = useUserTierStore((state) => state.currentTier);
+export function decideUserPermissions(
+  snapshot: AuthorizationSnapshotState,
+  requiredPermissions: readonly string[]
+): AuthorizationDecision {
+  if (snapshot.status === "loading") return { status: "loading" };
+  if (snapshot.status === "expired")
+    return { status: "expired", reason: snapshot.reason };
+  if (snapshot.status === "denied")
+    return { status: "denied", reason: snapshot.reason };
+  const grants = new Set(snapshot.permissions);
+  return requiredPermissions.every(permission => grants.has(permission))
+    ? { status: "allowed" }
+    : { status: "denied", reason: "missing_permission" };
+}
 
-  const grantedPermissions = useMemo(() => {
-    return TIER_PERMISSIONS[currentTier] ?? TIER_PERMISSIONS.standard;
-  }, [currentTier]);
-
-  const hasPermissions = useMemo(() => {
-    if (requiredPermissions.length === 0) return true;
-    const grantedSet = new Set(grantedPermissions);
-    return requiredPermissions.every((p) => grantedSet.has(p));
-  }, [requiredPermissions, grantedPermissions]);
-
+export function useUserPermissions(
+  requiredPermissions: string[],
+  tenantSlug?: string
+) {
+  const snapshot = useAuthorizationSnapshot(tenantSlug);
+  const decision = useMemo(
+    () => decideUserPermissions(snapshot, requiredPermissions),
+    [requiredPermissions, snapshot]
+  );
   return {
-    hasPermissions,
-    isLoading: false,
-    grantedPermissions,
+    snapshot,
+    decision,
+    hasPermissions: decision.status === "allowed",
+    isLoading: decision.status === "loading",
+    grantedPermissions:
+      snapshot.status === "verified" ? snapshot.permissions : [],
   };
 }
