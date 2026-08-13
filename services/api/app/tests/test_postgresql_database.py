@@ -83,10 +83,10 @@ def _make_table_with_cursor():
     mock_pool = MagicMock()
     mock_conn = MagicMock()
     mock_cur = MagicMock()
-    mock_conn.cursor.return_value.__enter__ = lambda s, *a, **k: mock_cur
-    mock_conn.cursor.return_value.__exit__ = lambda s, *a, **k: None
-    mock_pool.connection.return_value.__enter__ = lambda s, *a, **k: mock_conn
-    mock_pool.connection.return_value.__exit__ = lambda s, *a, **k: None
+    mock_conn.cursor.return_value.__enter__.return_value = mock_cur
+    mock_conn.cursor.return_value.__exit__.return_value = None
+    mock_pool.connection.return_value.__enter__.return_value = mock_conn
+    mock_pool.connection.return_value.__exit__.return_value = None
     return mock_pool, mock_cur
 
 
