@@ -93,7 +93,7 @@ One authorization service operation will:
 6. Resolve entitlements and their expirations from the authoritative billing/policy source.
 7. Compute the bounded lifetime and issue the snapshot atomically.
 
-Missing authentication returns 401. Tenant mismatch, membership denial, conflicting identity sources, invalid account scope, inaccessible account, malformed authoritative role data, or policy denial returns a structured 403 or safe contract-aligned error. Internal dependency failure returns a non-success response and never a partial snapshot. Logs and audit events record safe reason codes, request IDs, principal identifiers, and scope without exposing tokens or raw Clerk claims.
+Missing authentication returns 401 with the canonical error envelope. Tenant mismatch, membership denial, conflicting identity sources, invalid account scope, inaccessible account, malformed authoritative role data, or policy denial returns a structured 403 with the canonical error envelope (including a stable `error.code`) and no snapshot. Internal dependency failure returns a non-success response in the same canonical envelope and never a partial snapshot. Logs and audit events record safe reason codes, request IDs, principal identifiers, and scope without exposing tokens or raw Clerk claims.
 
 ## Frontend Authentication Domain
 
