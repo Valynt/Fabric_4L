@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
 import pytest
+import yaml
 from fastapi import FastAPI, Request
 from httpx import ASGITransport, AsyncClient
 
@@ -100,7 +102,10 @@ class TestRequestHeaderFiltering:
         }
         return Request(scope)
 
-    def test_forwards_identity_and_trace_headers(self) -> None:
+    def test_forwards_identity_and_trace_headers(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.delenv("SERVICE_AUTH_SECRET", raising=False)
         request = self._request(
             {
                 "Authorization": "Bearer token",
@@ -118,9 +123,45 @@ class TestRequestHeaderFiltering:
         assert forwarded["x-tenant-id"] == "verified-t1"
         assert forwarded["x-user-id"] == "u1"
         assert forwarded["x-request-id"] == "r1"
-        assert forwarded["x-service-auth"] == "secret"
+        # Caller-supplied service auth must never be forwarded: layers trust
+        # X-Tenant-ID only alongside a valid X-Service-Auth, so relaying a
+        # client value would let callers spoof service-to-service identity.
+        assert "x-service-auth" not in forwarded
         assert "cookie" not in forwarded
         assert "x-forwarded-for" not in forwarded
+
+    def test_service_auth_is_injected_from_server_config(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("SERVICE_AUTH_SECRET", "server-side-secret")
+        request = self._request({"X-Service-Auth": "client-spoof-attempt"})
+        forwarded = _request_headers(request, tenant_id="verified-t1")
+        assert forwarded["x-service-auth"] == "server-side-secret"
+
+    @pytest.mark.parametrize(
+        ("compose_path", "expected_setting"),
+        [
+            (
+                "infra/compose/docker-compose.dev.yml",
+                "SERVICE_AUTH_SECRET=dev-local-service-auth-secret-32-chars",
+            ),
+            (
+                "infra/compose/docker-compose.live.yml",
+                "SERVICE_AUTH_SECRET=${SERVICE_AUTH_SECRET}",
+            ),
+        ],
+    )
+    def test_gateway_deployments_receive_service_auth_secret(
+        self, compose_path: str, expected_setting: str
+    ) -> None:
+        compose = yaml.safe_load(Path(compose_path).read_text(encoding="utf-8"))
+        environment = compose["services"]["api-gateway"]["environment"]
+        settings = (
+            environment
+            if isinstance(environment, list)
+            else [f"{name}={value}" for name, value in environment.items()]
+        )
+        assert expected_setting in settings
 
     def test_tenant_id_is_injected_not_forwarded(self) -> None:
         request = self._request(
