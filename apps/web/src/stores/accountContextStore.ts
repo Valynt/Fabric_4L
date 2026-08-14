@@ -1,76 +1,93 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-import { getActiveClerkOrgId } from "@/auth/clerkSession";
+import {
+  ACCOUNT_CONTEXT_STORAGE_KEY,
+  ACCOUNT_CONTEXT_STORAGE_VERSION,
+  type AccountContextState,
+  type PersistedAccountContext,
+} from "@fabric/platform-contract/stores";
 
-export interface AccountContextState {
-  selectedAccountId: string | null;
-  /** Tenant ID captured at last write — used to detect cross-tenant stale data. */
-  _persistedTenantId: string | null;
-  setSelectedAccountId: (accountId: string | null) => void;
-  clearSelectedAccountId: () => void;
-  /**
-   * Call this whenever the active tenant may have changed (e.g. in ClerkAuthBridge
-   * after `setActiveClerkOrgId`).  Clears persisted account selection if the
-   * tenant has switched so stale data from a previous tenant is never exposed.
-   */
-  syncTenant: () => void;
-}
-
-export function loadAccountContextForTenant(tenantId: string): void {
+function removePersistedContext(): void {
   try {
-    const raw = sessionStorage.getItem(`fabric-account-context-${tenantId}`);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      useAccountContextStore.setState({
-        selectedAccountId: parsed.selectedAccountId ?? null,
-      });
-    } else {
-      useAccountContextStore.setState({ selectedAccountId: null });
-    }
+    sessionStorage.removeItem(ACCOUNT_CONTEXT_STORAGE_KEY);
   } catch {
-    useAccountContextStore.setState({ selectedAccountId: null });
+    // Browser storage is untrusted and may be unavailable; memory still clears.
   }
 }
 
-export function saveAccountContextForTenant(tenantId: string): void {
+function readPersistedContext(): PersistedAccountContext | null {
   try {
-    const state = useAccountContextStore.getState();
-    sessionStorage.setItem(
-      `fabric-account-context-${tenantId}`,
-      JSON.stringify({ selectedAccountId: state.selectedAccountId })
-    );
+    const raw: unknown = JSON.parse(sessionStorage.getItem(ACCOUNT_CONTEXT_STORAGE_KEY) ?? "null");
+    if (!raw || typeof raw !== "object") return null;
+    const envelope = raw as { state?: unknown; version?: unknown };
+    if (envelope.version !== ACCOUNT_CONTEXT_STORAGE_VERSION) return null;
+    if (!envelope.state || typeof envelope.state !== "object") return null;
+    const state = envelope.state as Record<string, unknown>;
+    if (
+      Object.keys(state).some(key => key !== "fabricTenantId" && key !== "selectedAccountId") ||
+      typeof state.fabricTenantId !== "string" ||
+      (state.selectedAccountId !== null && typeof state.selectedAccountId !== "string")
+    ) return null;
+    return {
+      fabricTenantId: state.fabricTenantId,
+      selectedAccountId: state.selectedAccountId as string | null,
+    };
   } catch {
-    // Ignore storage errors (e.g. private mode)
+    return null;
   }
+}
+
+function clearedState(): Pick<AccountContextState, "fabricTenantId" | "selectedAccountId" | "authorizationStatus"> {
+  return { fabricTenantId: null, selectedAccountId: null, authorizationStatus: "unverified" };
 }
 
 export const useAccountContextStore = create<AccountContextState>()(
   persist(
     (set, get) => ({
-      selectedAccountId: null,
-      _persistedTenantId: null,
-      setSelectedAccountId: accountId =>
-        set({ selectedAccountId: accountId, _persistedTenantId: getActiveClerkOrgId() }),
-      clearSelectedAccountId: () => set({ selectedAccountId: null, _persistedTenantId: null }),
-      syncTenant: () => {
-        const currentTenantId = getActiveClerkOrgId();
-        if (get()._persistedTenantId !== currentTenantId) {
-          // Tenant changed — clear any persisted account selection to prevent
-          // cross-tenant data leakage.
-          set({ selectedAccountId: null, _persistedTenantId: currentTenantId });
+      ...clearedState(),
+      setSelectedAccountId: accountId => {
+        const state = get();
+        if (state.authorizationStatus !== "verified" || !state.fabricTenantId) return;
+        set({ selectedAccountId: accountId });
+      },
+      clearSelectedAccountId: () => {
+        if (get().authorizationStatus !== "verified") {
+          set(clearedState());
+          removePersistedContext();
+          return;
         }
+        set({ selectedAccountId: null });
+      },
+      authorizationIdentityChanged: () => {
+        set(clearedState());
+        removePersistedContext();
+      },
+      authorizationVerified: fabricTenantId => {
+        const persisted = readPersistedContext();
+        if (persisted?.fabricTenantId !== fabricTenantId) removePersistedContext();
+        set({
+          fabricTenantId,
+          selectedAccountId:
+            persisted?.fabricTenantId === fabricTenantId ? persisted.selectedAccountId : null,
+          authorizationStatus: "verified",
+        });
+      },
+      authorizationUnavailable: () => {
+        set(clearedState());
+        removePersistedContext();
       },
     }),
     {
-      name: "fabric-account-context",
-      // Use sessionStorage so data is automatically cleared when the tab closes.
-      // This limits the blast radius of any residual cross-tenant leakage to the
-      // current browser tab / session.
+      name: ACCOUNT_CONTEXT_STORAGE_KEY,
+      version: ACCOUNT_CONTEXT_STORAGE_VERSION,
       storage: createJSONStorage(() => sessionStorage),
       partialize: state => ({
+        fabricTenantId: state.fabricTenantId,
         selectedAccountId: state.selectedAccountId,
-        _persistedTenantId: state._persistedTenantId,
       }),
+      skipHydration: true,
     }
   )
 );
+
+export type { AccountContextState } from "@fabric/platform-contract/stores";
