@@ -195,7 +195,7 @@ test.describe('Navigation & Access Control', () => {
       await expect(page.getByRole('link', { name: /^Model$/i })).toBeHidden();
     });
 
-    test('enabling advanced mode reveals Model section', async ({ page }) => {
+    test('enabling advanced mode does not reveal unauthorized navigation', async ({ page }) => {
       await page.goto('/home');
 
       // Initially Model is hidden
@@ -204,23 +204,23 @@ test.describe('Navigation & Access Control', () => {
       // Enable advanced mode
       await enableAdvancedMode(page);
 
-      // Model section should now be visible
-      await expect(page.getByRole('link', { name: /^Model$/i })).toBeVisible();
+      // Presentation preferences cannot reveal unauthorized route affordances.
+      await expect(page.getByRole('link', { name: /^Model$/i })).toBeHidden();
     });
 
-    test('enabling advanced mode allows access to advanced routes', async ({ page }) => {
+    test('enabling advanced mode never grants advanced route access', async ({ page }) => {
       await page.goto('/home');
 
       // Enable advanced mode
       await enableAdvancedMode(page);
 
-      // Should be able to access extraction engine
+      // Verified authorization remains standard.
       await page.goto('/discover/extraction');
-      await expect(page).toHaveURL(/\/discover\/extraction/);
+      await expect(page).not.toHaveURL(/\/discover\/extraction/);
 
       // Should be able to access graph explorer
       await page.goto('/discover/knowledge/graph');
-      await expect(page).toHaveURL(/\/discover\/knowledge\/graph/);
+      await expect(page).not.toHaveURL(/\/discover\/knowledge\/graph/);
     });
 
     test('disabling advanced mode hides advanced navigation', async ({ page }) => {
@@ -228,7 +228,7 @@ test.describe('Navigation & Access Control', () => {
 
       // Enable then disable advanced mode
       await enableAdvancedMode(page);
-      await expect(page.getByRole('link', { name: /^Model$/i })).toBeVisible();
+      await expect(page.getByRole('link', { name: /^Model$/i })).toBeHidden();
 
       await disableAdvancedMode(page);
 

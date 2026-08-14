@@ -1,9 +1,9 @@
 /**
- * User Tier Store — Role-based access control and progressive disclosure state
+ * User tier authorization plus presentation-preference state.
  *
  * Manages:
  * - User tier/role (standard, advanced, admin)
- * - Advanced mode toggle state
+ * - Advanced presentation toggle state (disclosure only; never authorization)
  * - Route protection permissions
  * - Tier-specific feature flags
  */
@@ -45,7 +45,8 @@ export interface UserTierState {
   // Current tier
   currentTier: UserTier;
 
-  // Advanced mode toggle (for standard users to temporarily access advanced features)
+  // Presentation preference for denser/explanatory advanced UI. This is never
+  // consulted by route, action, role, permission, or entitlement authorization.
   isAdvancedModeEnabled: boolean;
 
   // User role from backend
@@ -445,7 +446,7 @@ export const useUserTierStore = create<UserTierState>()(
           return { allowed: false, reason: "INVALID_TIER_PARAMETER" };
         }
 
-        const { currentTier, isAdvancedModeEnabled } = get();
+        const { currentTier } = get();
 
         // Validate current tier is valid
         if (!VALID_TIERS.includes(currentTier)) {
@@ -465,19 +466,16 @@ export const useUserTierStore = create<UserTierState>()(
           return { allowed: false, reason: "ADMIN_ROUTE_REQUIRES_ADMIN_TIER" };
         }
 
-        // Standard users can access standard routes
-        // And advanced routes if advanced mode is enabled
+        // Standard users can access standard routes only. Advanced mode is a
+        // presentation preference and cannot elevate the verified tier.
         if (currentTier === "standard") {
           if (validatedTier === "standard") {
             return { allowed: true };
           }
-          if (validatedTier === "advanced" && isAdvancedModeEnabled) {
-            return { allowed: true };
-          }
-          if (validatedTier === "advanced" && !isAdvancedModeEnabled) {
+          if (validatedTier === "advanced") {
             return {
               allowed: false,
-              reason: "ADVANCED_ROUTE_REQUIRES_ADVANCED_MODE",
+              reason: "ADVANCED_ROUTE_REQUIRES_ADVANCED_TIER",
             };
           }
           return { allowed: false, reason: "ADMIN_ROUTE_REQUIRES_ADMIN_TIER" };
@@ -497,11 +495,7 @@ export const useUserTierStore = create<UserTierState>()(
 
       // Computed properties
       get effectiveTier() {
-        const { currentTier, isAdvancedModeEnabled } = get();
-        if (currentTier === "standard" && isAdvancedModeEnabled) {
-          return "advanced";
-        }
-        return currentTier;
+        return get().currentTier;
       },
 
       get isPrivileged() {
@@ -538,12 +532,7 @@ export const useUserTierStore = create<UserTierState>()(
           canAccessRouteWithReason: currentState.canAccessRouteWithReason,
           canAccessFeature: currentState.canAccessFeature,
           get effectiveTier() {
-            const { currentTier, isAdvancedModeEnabled } =
-              useUserTierStore.getState();
-            if (currentTier === "standard" && isAdvancedModeEnabled) {
-              return "advanced";
-            }
-            return currentTier;
+            return useUserTierStore.getState().currentTier;
           },
           get isPrivileged() {
             const tier = useUserTierStore.getState().effectiveTier;

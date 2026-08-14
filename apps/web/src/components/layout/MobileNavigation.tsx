@@ -7,14 +7,14 @@ import { useAuthContext } from "@/contexts/AuthContext";
 
 interface MobileNavigationProps {
   currentTier: UserTier;
-  onTierChange: (tier: UserTier) => void;
+  onTierChange?: (tier: UserTier) => void;
   isAdvancedModeEnabled?: boolean;
   onAdvancedModeToggle?: (enabled: boolean) => void;
 }
 
 export function MobileNavigation({
   currentTier,
-  onTierChange,
+  onTierChange = () => {},
   isAdvancedModeEnabled = false,
   onAdvancedModeToggle = () => {},
 }: MobileNavigationProps) {
@@ -32,7 +32,7 @@ export function MobileNavigation({
     <div className="flex md:hidden">
       <MobilePersistentSidebar
         currentTier={currentTier}
-        effectiveTier={currentTier === "standard" && isAdvancedModeEnabled ? "advanced" : currentTier}
+        effectiveTier={currentTier}
         onTierChange={onTierChange}
         isAdvancedModeEnabled={isAdvancedModeEnabled}
         onAdvancedModeToggle={onAdvancedModeToggle}

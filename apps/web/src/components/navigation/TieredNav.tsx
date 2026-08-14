@@ -43,7 +43,6 @@ import {
   ChevronDown,
   ChevronRight,
   Eye,
-  Lock,
   Crown,
   Wrench,
   Lightbulb,
@@ -351,7 +350,6 @@ interface TierSwitcherProps {
 
 function TierSwitcher({
   currentTier,
-  onTierChange,
   isAdvancedModeEnabled,
   onAdvancedModeToggle,
 }: TierSwitcherProps) {
@@ -415,54 +413,10 @@ function TierSwitcher({
             </button>
           </div>
 
-          <div className="space-y-1">
-            {(Object.keys(TIER_LABELS) as UserTier[]).map(tier => (
-              <button type="button"
-                key={tier}
-                onClick={() => {
-                  onTierChange(tier);
-                  setIsExpanded(false);
-                }}
-                disabled={tier === "admin"}
-                className={cn(
-                  "w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium transition-colors",
-                  currentTier === tier
-                    ? tier === "standard"
-                      ? "bg-primary/10 text-primary"
-                      : tier === "advanced"
-                        ? "bg-accent/10 text-accent"
-                        : "bg-destructive/10 text-destructive"
-                    : "text-muted-foreground hover:bg-muted",
-                  tier === "admin" && "opacity-50 cursor-not-allowed"
-                )}
-              >
-                <span
-                  className={cn(
-                    "w-5 h-5 rounded flex items-center justify-center",
-                    tier === "standard"
-                      ? "bg-primary/10 text-primary"
-                      : tier === "advanced"
-                        ? "bg-accent/10 text-accent"
-                        : "bg-destructive/10 text-destructive"
-                  )}
-                >
-                  {tier === "standard" ? (
-                    <Eye size={10} />
-                  ) : tier === "advanced" ? (
-                    <Wrench size={10} />
-                  ) : (
-                    <Lock size={10} />
-                  )}
-                </span>
-                <span className="flex-1 text-left">
-                  {TIER_LABELS[tier].label}
-                </span>
-                {tier === "admin" && (
-                  <Lock size={10} className="text-muted-foreground" />
-                )}
-              </button>
-            ))}
-          </div>
+          <p className="px-2 text-xs text-muted-foreground">
+            Advanced mode changes presentation only. Access remains based on
+            your verified role and permissions.
+          </p>
         </div>
       )}
     </div>
@@ -478,17 +432,9 @@ export function TieredNav({
   onAdvancedModeToggle = () => {},
   headerSlot,
 }: TieredNavProps) {
-  const effectiveTier = useMemo<UserTier>(
-    () =>
-      currentTier === "standard" && isAdvancedModeEnabled
-        ? "advanced"
-        : currentTier,
-    [currentTier, isAdvancedModeEnabled]
-  );
-
   const visibleNavItems = useMemo(
-    () => NAV_SPINE.filter(item => isItemVisible(item, effectiveTier)),
-    [effectiveTier]
+    () => NAV_SPINE.filter(item => isItemVisible(item, currentTier)),
+    [currentTier]
   );
 
   return (
