@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
+import { isClerkAuthEnabled } from "@/auth/clerkConfig";
 import {
   ACCOUNT_CONTEXT_STORAGE_KEY,
   ACCOUNT_CONTEXT_STORAGE_VERSION,
@@ -47,10 +48,18 @@ export const useAccountContextStore = create<AccountContextState>()(
       ...clearedState(),
       setSelectedAccountId: accountId => {
         const state = get();
+        if (!isClerkAuthEnabled()) {
+          set({ selectedAccountId: accountId });
+          return;
+        }
         if (state.authorizationStatus !== "verified" || !state.fabricTenantId) return;
         set({ selectedAccountId: accountId });
       },
       clearSelectedAccountId: () => {
+        if (!isClerkAuthEnabled()) {
+          set({ selectedAccountId: null });
+          return;
+        }
         if (get().authorizationStatus !== "verified") {
           set(clearedState());
           removePersistedContext();

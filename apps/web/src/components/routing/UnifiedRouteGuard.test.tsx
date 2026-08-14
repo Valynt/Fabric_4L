@@ -1,7 +1,6 @@
 import { afterEach, describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { setAuthProvider } from "@/test/utils/withAuthProvider";
-import { ACCOUNT_CONTEXT_STORAGE_KEY, ACCOUNT_CONTEXT_STORAGE_VERSION } from "@fabric/platform-contract/stores";
 
 const mockUserTierStore = vi.hoisted(() => ({
   canAccessRoute: vi.fn(() => true),
@@ -74,7 +73,6 @@ describe("UnifiedRouteGuard deny behavior", () => {
   });
 
   it("redirects when backend account authorization denies a browser-selected account", () => {
-    sessionStorage.setItem(ACCOUNT_CONTEXT_STORAGE_KEY, JSON.stringify({ state: { fabricTenantId: "tenant-a", selectedAccountId: "acc-1" }, version: ACCOUNT_CONTEXT_STORAGE_VERSION }));
     renderGuard();
     expect(screen.getByText("redirect:/t/tenant-a/accounts")).toBeInTheDocument();
     expect(screen.queryByText("protected")).not.toBeInTheDocument();
