@@ -17,7 +17,25 @@ const exactVersion: 1 = ACCOUNT_CONTEXT_STORAGE_VERSION;
 const selector: StoreSelector<AccountContextState, string | null> = (state) =>
   state.selectedAccountId;
 
-const accountState = null as unknown as AccountContextState;
+const accountState = {
+  selectedAccountId: null,
+  authorizationVerified: (_tenantId: string) => {
+    // no-op contract-test stub
+  },
+  setSelectedAccountId: (_accountId: string) => {
+    // no-op contract-test stub
+  },
+  clearSelectedAccountId: () => {
+    // no-op contract-test stub
+  },
+  authorizationIdentityChanged: () => {
+    // no-op contract-test stub
+  },
+  authorizationUnavailable: () => {
+    // no-op contract-test stub
+  },
+} as unknown as AccountContextState;
+
 accountState.authorizationVerified("tenant-1");
 accountState.setSelectedAccountId("acc-1");
 accountState.clearSelectedAccountId();
