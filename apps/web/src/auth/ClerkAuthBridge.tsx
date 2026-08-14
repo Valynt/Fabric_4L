@@ -23,6 +23,7 @@
 import {
   Fragment,
   useEffect,
+  useLayoutEffect,
   useRef,
   type ReactElement,
   type ReactNode,
@@ -36,21 +37,43 @@ import { isClerkAuthEnabled } from "@/auth/clerkConfig";
 import clerkDefaults from "@fabric/platform-contract/clerk-defaults";
 
 const FABRIC_AUTH_TEMPLATE_NAME =
-  (import.meta.env.VITE_CLERK_JWT_TEMPLATE ?? clerkDefaults.clerk.jwtTemplate).toString().trim() || undefined;
+  (import.meta.env.VITE_CLERK_JWT_TEMPLATE ?? clerkDefaults.clerk.jwtTemplate)
+    .toString()
+    .trim() || undefined;
 
-function OrgSync({ syncTenant }: { syncTenant: () => void }): null {
+function OrgSync({
+  resetAccountContext,
+}: {
+  resetAccountContext: () => void;
+}): null {
   // OrgSync is only rendered from <ClerkAuthBridge> after its isClerkAuthEnabled()
   // gate and an isSignedIn check, so <ClerkProvider> is guaranteed to be mounted
   // and the hook may be called unconditionally.
-  const { organization } = useOrganization();
+  const { isLoaded, organization } = useOrganization();
   const queryClient = useQueryClient();
 
-  const syncTenantRef = useRef(syncTenant);
-  syncTenantRef.current = syncTenant;
+  const resetAccountContextRef = useRef(resetAccountContext);
+  resetAccountContextRef.current = resetAccountContext;
+  const previousOrgIdRef = useRef<string | null | undefined>(undefined);
 
-  useEffect(() => {
-    setActiveClerkOrgId(organization?.id ?? null);
-    syncTenantRef.current();
+  useLayoutEffect(() => {
+    if (!isLoaded) return;
+    
+    const nextOrgId = organization?.id ?? null;
+    
+    if (previousOrgIdRef.current === undefined) {
+      previousOrgIdRef.current = nextOrgId;
+      setActiveClerkOrgId(nextOrgId);
+      return () => {
+        setActiveClerkOrgId(null);
+      };
+    }
+
+    if (previousOrgIdRef.current !== nextOrgId) {
+      resetAccountContextRef.current();
+      previousOrgIdRef.current = nextOrgId;
+    }
+    setActiveClerkOrgId(nextOrgId);
     // Tenant/org switch: do not reuse any cached account or tenant-scoped data
     // from the previous organization. The gateway is the authority, but this
     // prevents the frontend from momentarily displaying stale data.
@@ -58,7 +81,7 @@ function OrgSync({ syncTenant }: { syncTenant: () => void }): null {
     return () => {
       setActiveClerkOrgId(null);
     };
-  }, [organization?.id, queryClient]);
+  }, [isLoaded, organization?.id, queryClient]);
 
   return null;
 }
@@ -84,7 +107,17 @@ function ClerkAuthBridgeClerk({
   children = null,
 }: ClerkAuthBridgeProps): ReactElement | null {
   const { isLoaded: authLoaded, isSignedIn, getToken } = useAuth();
-  const syncTenant = useAccountContextStore(s => s.syncTenant);
+  const authorizationIdentityChanged = useAccountContextStore(
+    s => s.authorizationIdentityChanged
+  );
+  const previousSignedInRef = useRef(isSignedIn);
+
+  useLayoutEffect(() => {
+    if (previousSignedInRef.current !== isSignedIn) {
+      authorizationIdentityChanged();
+      previousSignedInRef.current = isSignedIn;
+    }
+  }, [authLoaded, isSignedIn, authorizationIdentityChanged]);
 
   // Stable ref that always points at the latest Clerk getToken closure.
   // The registered token getter reads through this ref, so identity churn
@@ -112,7 +145,7 @@ function ClerkAuthBridgeClerk({
     }
 
     // Register the new getter immediately
-    setClerkTokenGetter(async (options) => {
+    setClerkTokenGetter(async options => {
       const template = options?.template ?? FABRIC_AUTH_TEMPLATE_NAME;
       // Read the latest getToken via ref so re-renders never see a stale
       // closure and we never deregister mid-flight.
@@ -134,15 +167,15 @@ function ClerkAuthBridgeClerk({
   // 2) Track active org only when signed in to avoid Clerk useOrganization
   //    dev warning on the sign-in page. Clear on unmount so HMR / layout
   //    swaps do not leak a stale org id into the module-scope bridge state.
-  //    Also call syncTenant so the accountContextStore purges any persisted
-  //    account selection that belongs to a different tenant (P1-010).
+  //    Account context is synchronously invalidated before replacement tenant
+  //    authorization resolves, so presentation state cannot cross identities.
   if (!authLoaded || !isSignedIn) {
     return <>{children}</>;
   }
 
   return (
     <Fragment>
-      <OrgSync syncTenant={syncTenant} />
+      <OrgSync resetAccountContext={authorizationIdentityChanged} />
       {children}
     </Fragment>
   );

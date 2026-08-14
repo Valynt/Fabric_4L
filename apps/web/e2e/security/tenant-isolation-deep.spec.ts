@@ -9,6 +9,7 @@
  * Priority: P0 production gate — Security tests must never be skipped.
  */
 import { journeyTest, expect } from '../helpers/journey-fixture';
+import { ACCOUNT_CONTEXT_STORAGE_KEY } from '@fabric/platform-contract/stores';
 import {
   expectRouteSupportsWorkflow,
   expectAnyVisible,
@@ -206,9 +207,9 @@ journeyTest.describe('Security Deep: Tenant Isolation and Access Control', () =>
     await authedPage.goto('/accounts', { waitUntil: 'domcontentloaded' });
 
     // Remove all tenant context
-    await authedPage.evaluate(() => {
+    await authedPage.evaluate(storageKey => {
       localStorage.removeItem('tenantId');
-      localStorage.removeItem('fabric-account-context');
+      sessionStorage.removeItem(storageKey);
       const sessionMeta = sessionStorage.getItem('vf.auth.session.meta');
       if (sessionMeta) {
         try {
@@ -217,7 +218,7 @@ journeyTest.describe('Security Deep: Tenant Isolation and Access Control', () =>
           sessionStorage.setItem('vf.auth.session.meta', JSON.stringify(parsed));
         } catch { /* ignore */ }
       }
-    });
+    }, ACCOUNT_CONTEXT_STORAGE_KEY);
 
     await authedPage.reload({ waitUntil: 'domcontentloaded' });
 
