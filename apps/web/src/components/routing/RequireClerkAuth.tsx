@@ -24,7 +24,7 @@ import { useNavigation } from "@/hooks/useNavigation";
 import { useLayoutEffect, useRef, type ReactNode } from "react";
 
 import { getClerkUrls, isClerkAuthEnabled } from "@/auth/clerkConfig";
-import { useResolvedTenant } from "@/hooks/useResolvedTenant";
+import { useAuthorizationSnapshot } from "@/auth/AuthorizationProvider";
 
 interface RequireClerkAuthProps {
   children: ReactNode;
@@ -68,7 +68,7 @@ function RequireClerkAuthOrgCheck({
   // guarantees Clerk is enabled and <ClerkProvider> is mounted. Hooks may be
   // called unconditionally here.
   const { isLoaded: orgLoaded, organization } = useOrganization();
-  const { isLoading: tenantLoading, error: tenantError } = useResolvedTenant();
+  const authorization = useAuthorizationSnapshot();
   const hasNavigated = useRef(false);
 
   // All hooks must run on every render before any conditional return, so the
@@ -93,30 +93,26 @@ function RequireClerkAuthOrgCheck({
   ]);
 
   useLayoutEffect(() => {
-    if (!tenantError || hasNavigated.current) {
+    if (
+      !requireOrganization ||
+      !orgLoaded ||
+      !organization ||
+      authorization.status !== "denied" ||
+      hasNavigated.current
+    ) {
       return;
     }
-    const status = (tenantError as { status?: number }).status;
-    if (status === 401) {
-      hasNavigated.current = true;
-      const safeCurrentPath = buildSafeRedirectPath(
-        location.pathname,
-        location.search
-      );
-      const redirectTo = `${urls.signInUrl}?redirect_url=${encodeURIComponent(
-        safeCurrentPath
-      )}`;
-      navigateTo(redirectTo, { replace: true });
-    } else if (status === 403) {
-      hasNavigated.current = true;
-      navigateTo("forbidden", undefined, { query: { wfStep: "0" }, replace: true });
-    }
+    hasNavigated.current = true;
+    navigateTo("forbidden", undefined, {
+      query: { wfStep: "0" },
+      replace: true,
+    });
   }, [
-    tenantError,
+    authorization.status,
+    orgLoaded,
+    organization,
+    requireOrganization,
     navigateTo,
-    urls.signInUrl,
-    location.pathname,
-    location.search,
   ]);
 
   if (requireOrganization && !orgLoaded) {
@@ -129,12 +125,12 @@ function RequireClerkAuthOrgCheck({
     return null;
   }
 
-  if (requireOrganization && tenantLoading) {
-    // Render nothing while the backend resolves the tenant mapping.
+  if (requireOrganization && authorization.status === "loading") {
+    // Render nothing while the backend resolves the authorization snapshot.
     return null;
   }
 
-  if (requireOrganization && tenantError) {
+  if (requireOrganization && authorization.status !== "verified") {
     // Redirect in progress; the effect above decides the destination.
     return null;
   }

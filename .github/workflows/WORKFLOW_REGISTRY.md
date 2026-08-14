@@ -70,7 +70,7 @@ The repository currently contains **54** GitHub Actions workflow files.
 | `.github/workflows/performance-load-tests.yml` | `@value-fabric/sre-leads` | no | `push, schedule, workflow_dispatch` | `make check-workflow-references` |
 | `.github/workflows/poc-governance-automation.yml` | `@value-fabric/sre-leads` | no | `pull_request, push, workflow_dispatch` | `make check-workflow-references` |
 | `.github/workflows/pr-backlog-health.yml` | `@value-fabric/sre-leads` | no | `schedule, workflow_dispatch` | `make check-workflow-references` |
-| `.github/workflows/pr-checks.yml` | `@value-fabric/sre-leads` | no | `pull_request, push` | `make check-workflow-references` |
+| `.github/workflows/pr-checks.yml` | `@value-fabric/sre-leads` | no | `merge_group, pull_request, push` | `make check-workflow-references` |
 | `.github/workflows/prod-readiness.yml` | `@value-fabric/sre-leads` | no | `pull_request, push, workflow_dispatch` | `make check-workflow-references` |
 | `.github/workflows/public-docs.yml` | `@value-fabric/sre-leads` | no | `pull_request, push` | `make check-workflow-references` |
 | `.github/workflows/publish-ci-tools.yml` | `@value-fabric/sre-leads` | no | `push, workflow_dispatch` | `make check-workflow-references` |

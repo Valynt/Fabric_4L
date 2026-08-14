@@ -1534,6 +1534,103 @@
         }
       }
     },
+    "/v1/auth/authorization-snapshot": {
+      "get": {
+        "tags": [
+          "Authorization"
+        ],
+        "summary": "Get Authorization Snapshot",
+        "description": "Issue one non-cacheable candidate from the canonical authorization projection.",
+        "operationId": "get_authorization_snapshot_v1_auth_authorization_snapshot_get",
+        "parameters": [
+          {
+            "name": "X-Account-ID",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Account-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/HTTPAuthorizationCredentials"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Credentials"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthorizationSnapshot"
+                }
+              }
+            },
+            "headers": {
+              "Cache-Control": {
+                "description": "Always `private, no-store`; snapshots must not be cached by intermediaries.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Authorization or account scope denied. Nonexistent, foreign-tenant, and inaccessible accounts all use `account_scope_denied`.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Always `private, no-store`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication is missing, invalid, or expired.",
+            "headers": {
+              "Cache-Control": {
+                "description": "Always `private, no-store`.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/accounts/{account_id}/signals": {
       "get": {
         "tags": [
@@ -9577,6 +9674,72 @@
         "type": "object",
         "title": "AuditMeta"
       },
+      "AuthorizationSnapshot": {
+        "properties": {
+          "schemaVersion": {
+            "type": "string",
+            "const": "1",
+            "title": "Schemaversion",
+            "default": "1"
+          },
+          "source": {
+            "type": "string",
+            "const": "backend",
+            "title": "Source",
+            "default": "backend"
+          },
+          "identity": {
+            "$ref": "#/components/schemas/SnapshotIdentity"
+          },
+          "tenant": {
+            "$ref": "#/components/schemas/SnapshotTenant"
+          },
+          "accountScope": {
+            "$ref": "#/components/schemas/SnapshotAccountScope"
+          },
+          "roles": {
+            "items": {
+              "$ref": "#/components/schemas/CanonicalAuthorizationRole"
+            },
+            "type": "array",
+            "title": "Roles"
+          },
+          "permissions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Permissions"
+          },
+          "entitlements": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Entitlements"
+          },
+          "issuedAt": {
+            "type": "string",
+            "title": "Issuedat"
+          },
+          "expiresAt": {
+            "type": "string",
+            "title": "Expiresat"
+          }
+        },
+        "type": "object",
+        "required": [
+          "identity",
+          "tenant",
+          "accountScope",
+          "roles",
+          "permissions",
+          "entitlements",
+          "issuedAt",
+          "expiresAt"
+        ],
+        "title": "AuthorizationSnapshot"
+      },
       "BusinessCase": {
         "properties": {
           "id": {
@@ -9723,6 +9886,16 @@
           "value_model"
         ],
         "title": "CFONarrativeGenerateRequest"
+      },
+      "CanonicalAuthorizationRole": {
+        "type": "string",
+        "enum": [
+          "tenant_admin",
+          "content_admin",
+          "analyst",
+          "read_only"
+        ],
+        "title": "CanonicalAuthorizationRole"
       },
       "ClerkTenantResponse": {
         "properties": {
@@ -12243,6 +12416,35 @@
         ],
         "title": "SignupRequest"
       },
+      "SnapshotAccountScope": {
+        "properties": {
+          "scopeType": {
+            "type": "string",
+            "enum": [
+              "tenant",
+              "account"
+            ],
+            "title": "Scopetype"
+          },
+          "accountId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accountid"
+          }
+        },
+        "type": "object",
+        "required": [
+          "scopeType",
+          "accountId"
+        ],
+        "title": "SnapshotAccountScope"
+      },
       "SnapshotDiffChange": {
         "properties": {
           "field": {
@@ -12298,6 +12500,70 @@
           "created_at_compare"
         ],
         "title": "SnapshotDiffResponse"
+      },
+      "SnapshotIdentity": {
+        "properties": {
+          "clerkUserId": {
+            "type": "string",
+            "title": "Clerkuserid"
+          },
+          "fabricUserId": {
+            "type": "string",
+            "title": "Fabricuserid"
+          },
+          "sessionDiscriminator": {
+            "type": "string",
+            "title": "Sessiondiscriminator"
+          }
+        },
+        "type": "object",
+        "required": [
+          "clerkUserId",
+          "fabricUserId",
+          "sessionDiscriminator"
+        ],
+        "title": "SnapshotIdentity"
+      },
+      "SnapshotTenant": {
+        "properties": {
+          "fabricTenantId": {
+            "type": "string",
+            "title": "Fabrictenantid"
+          },
+          "clerkOrganizationId": {
+            "type": "string",
+            "title": "Clerkorganizationid"
+          },
+          "tenantSlug": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tenantslug"
+          },
+          "membershipId": {
+            "type": "string",
+            "title": "Membershipid"
+          },
+          "membershipStatus": {
+            "type": "string",
+            "const": "active",
+            "title": "Membershipstatus"
+          }
+        },
+        "type": "object",
+        "required": [
+          "fabricTenantId",
+          "clerkOrganizationId",
+          "tenantSlug",
+          "membershipId",
+          "membershipStatus"
+        ],
+        "title": "SnapshotTenant"
       },
       "Stakeholder": {
         "properties": {

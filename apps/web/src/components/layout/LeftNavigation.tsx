@@ -18,6 +18,7 @@ import { useAuthContext } from "@/contexts/AuthContext";
 import { useAccounts } from "@/hooks";
 import { useAccountContextStore } from "@/stores/accountContextStore";
 import type { UserTier } from "@/hooks";
+import { useAuthorizationSnapshot } from "@/auth/AuthorizationProvider";
 
 interface LeftNavigationProps {
   collapsed: boolean;
@@ -75,6 +76,7 @@ export function LeftNavigation({
   const selectedAccountId = useAccountContextStore(state => state.selectedAccountId);
   const setSelectedAccountId = useAccountContextStore(state => state.setSelectedAccountId);
   const { isAuthenticated, isLoading: authLoading } = useAuthContext();
+  const authorization = useAuthorizationSnapshot();
 
   const accountId = urlAccountId ?? null;
   const resolvedTenantSlug = tenantSlug ?? currentTenantSlug ?? undefined;
@@ -86,7 +88,7 @@ export function LeftNavigation({
   const accounts = accountsData?.items ?? [];
 
   const navItems = NAV_SCHEMA.reduce((acc, item) => {
-    if (isItemVisible(item.tier, currentTier)) {
+    if (isItemVisible(item.tier, currentTier) && authorization.hasEveryPermission([`tier:${item.tier}:access`])) {
       acc.push({ ...item, path: resolveNavPath(item.path, resolvedTenantSlug, accountId) });
     }
     return acc;
@@ -151,7 +153,7 @@ export function LeftNavigation({
 
           const visibleChildren = sectionActive
             ? (item.children ?? []).reduce((acc, child) => {
-                if (isItemVisible(child.tier, currentTier)) {
+                if (isItemVisible(child.tier, currentTier) && authorization.hasEveryPermission([`tier:${child.tier}:access`])) {
                   acc.push({ ...child, path: resolveNavPath(child.path, tenantSlug, accountId) });
                 }
                 return acc;

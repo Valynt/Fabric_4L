@@ -20,22 +20,6 @@ const standardPermissions = {
   canManageUsers: false,
 };
 
-const advancedPermissions = {
-  ...standardPermissions,
-  canAccessAdvanced: true,
-  canEditFormulas: true,
-};
-
-const adminPermissions = {
-  canAccessAdvanced: true,
-  canAccessAdmin: true,
-  canEditFormulas: true,
-  canManageBenchmarks: true,
-  canManageVariables: true,
-  canManagePacks: true,
-  canManageUsers: true,
-};
-
 function resetStore() {
   useUserTierStore.setState({
     currentTier: "standard" as UserTier,
@@ -111,11 +95,11 @@ describe("useUserTierStore", () => {
   });
 
   describe("actions", () => {
-    it("setTier updates current tier and permissions", () => {
+    it("setTier updates presentation tier without granting permissions", () => {
       useUserTierStore.getState().setTier("advanced");
       const state = useUserTierStore.getState();
       expect(state.currentTier).toBe("advanced");
-      expect(state.permissions).toEqual(advancedPermissions);
+      expect(state.permissions).toEqual(standardPermissions);
     });
 
     it("setTier fails closed for unknown tier", () => {
@@ -125,12 +109,12 @@ describe("useUserTierStore", () => {
       expect(state.permissions).toEqual(standardPermissions);
     });
 
-    it("setUserRole normalizes role and updates tier and permissions", () => {
+    it("setUserRole normalizes presentation tier without granting permissions", () => {
       useUserTierStore.getState().setUserRole("tenant_admin");
       const state = useUserTierStore.getState();
       expect(state.userRole).toBe("tenant_admin");
       expect(state.currentTier).toBe("admin");
-      expect(state.permissions).toEqual(adminPermissions);
+      expect(state.permissions).toEqual(standardPermissions);
     });
 
     it("setUserRole fails safe for unknown roles", () => {
@@ -297,18 +281,18 @@ describe("useUserTierStore", () => {
   });
 
   describe("canAccessFeature", () => {
-    it("reflects tier-based permissions", () => {
+    it("never derives feature privileges from presentation tiers", () => {
       useUserTierStore.getState().setTier("admin");
       expect(
         useUserTierStore.getState().canAccessFeature("canManageUsers")
-      ).toBe(true);
+      ).toBe(false);
       expect(
         useUserTierStore.getState().canAccessFeature("canEditFormulas")
-      ).toBe(true);
+      ).toBe(false);
       useUserTierStore.getState().setTier("advanced");
       expect(
         useUserTierStore.getState().canAccessFeature("canEditFormulas")
-      ).toBe(true);
+      ).toBe(false);
       expect(
         useUserTierStore.getState().canAccessFeature("canManageUsers")
       ).toBe(false);
