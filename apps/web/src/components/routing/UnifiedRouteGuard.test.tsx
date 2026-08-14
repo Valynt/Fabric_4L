@@ -1,50 +1,69 @@
-import { afterEach, describe, it, expect, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { AuthContext } from "@/contexts/AuthContext";
 import { setAuthProvider } from "@/test/utils/withAuthProvider";
 
-const mockUserTierStore = vi.hoisted(() => ({
-  canAccessRoute: vi.fn(() => true),
-  isRehydrated: true,
-  persist: {
-    hasHydrated: vi.fn(() => true),
-  },
+const state = vi.hoisted(() => ({
+  authz: "loading" as "loading" | "verified" | "denied" | "expired",
+  signedIn: true,
 }));
-const mockUseParams = vi.fn(() => ({ tenantSlug: "tenant-a", accountId: "acc-1" }));
-const mockUseMatches = vi.fn(() => [{ handle: { accessPolicy: { requiresAuth: true, fallbackRoute: "/home", tenantScoped: true, accountScoped: true, requiredEntitlements: ["feature.a"] } } }]);
-const mockClerkAuth = {
-  isLoaded: true,
-  isSignedIn: true,
-};
-
 vi.mock("react-router-dom", () => ({
-  Navigate: ({ to }: { to: string }) => <div>redirect:{to}</div>,
-  useLocation: () => ({ pathname: "/t/tenant-a/a/acc-1", search: "" }),
-  useParams: () => mockUseParams(),
-  useMatches: () => mockUseMatches(),
+  Navigate: ({
+    to,
+    state: navState,
+  }: {
+    to: string;
+    state?: { from?: string };
+  }) => (
+    <div>
+      redirect:{to}:{navState?.from}
+    </div>
+  ),
+  useLocation: () => ({ pathname: "/t/tenant-a/accounts", search: "?tab=all" }),
+  useParams: () => ({ tenantSlug: "tenant-a" }),
+  useMatches: () => [
+    {
+      handle: {
+        accessPolicy: {
+          requiresAuth: true,
+          tenantScoped: true,
+          fallbackRoute: "/home",
+          analyticsRouteId: "accounts",
+        },
+      },
+    },
+  ],
 }));
-vi.mock("@clerk/react", () => ({ useAuth: () => mockClerkAuth }));
-vi.mock("@/hooks/useTenantMembership", () => ({
-  useTenantMembershipClerk: () => ({ isMemberOfTenant: true, isLoading: false }),
-  useTenantMembershipLegacy: () => ({ isMemberOfTenant: true, isLoading: false }),
+vi.mock("@clerk/react", () => ({
+  useAuth: () => ({ isLoaded: true, isSignedIn: state.signedIn }),
 }));
-vi.mock("@/hooks/useAccountAccess", () => ({ useAccountAccess: () => ({ hasAccountAccess: false, isLoading: false, isError: false }) }));
-vi.mock("@/hooks/useUserPermissions", () => ({ useUserPermissions: () => ({ hasPermissions: true, isLoading: false }) }));
-vi.mock("@/hooks/useFeatureFlags", () => ({ useFeatureFlags: () => ({ flagsEnabled: true, isLoading: false }) }));
-vi.mock("@/hooks/useEntitlements", () => ({ useEntitlements: () => ({ entitlementsMet: false, isLoading: false, isError: false }) }));
-vi.mock("@/stores", () => ({
-  useUserTierStore: Object.assign(() => mockUserTierStore, {
-    persist: mockUserTierStore.persist,
-  }),
+vi.mock("@/hooks/useFeatureFlags", () => ({
+  useFeatureFlags: () => ({ flagsEnabled: true }),
+}));
+vi.mock("@/hooks/useAuthorizationSnapshot", () => ({
+  useAuthorizationSnapshot: () =>
+    state.authz === "verified"
+      ? {
+          status: "verified",
+          permissions: [],
+          entitlements: [],
+          snapshot: {
+            tenantMember: true,
+            accountIds: [],
+            permissions: [],
+            entitlements: [],
+          },
+        }
+      : { status: state.authz, permissions: [], entitlements: [] },
 }));
 
 import { UnifiedRouteGuard } from "./UnifiedRouteGuard";
-import { AuthContext } from "@/contexts/AuthContext";
 
-function renderGuard() {
+function renderGuard(fallback?: React.ReactNode, authenticated = true) {
   return render(
     <AuthContext.Provider
       value={{
-        isAuthenticated: true,
+        isAuthenticated: authenticated,
         isLoading: false,
         user: null,
         currentTenantSlug: "tenant-a",
@@ -55,128 +74,55 @@ function renderGuard() {
         refreshToken: vi.fn(async () => true),
       }}
     >
-      <UnifiedRouteGuard><div>protected</div></UnifiedRouteGuard>
+      <UnifiedRouteGuard fallback={fallback}>
+        <div>protected</div>
+      </UnifiedRouteGuard>
     </AuthContext.Provider>
   );
 }
 
-describe("UnifiedRouteGuard deny behavior", () => {
+describe("UnifiedRouteGuard", () => {
   afterEach(() => {
-    window.localStorage.clear();
+    state.authz = "loading";
+    state.signedIn = true;
     setAuthProvider("legacy");
-    mockClerkAuth.isLoaded = true;
-    mockClerkAuth.isSignedIn = true;
-    mockUserTierStore.canAccessRoute.mockReturnValue(true);
-    mockUserTierStore.isRehydrated = true;
-    mockUserTierStore.persist.hasHydrated.mockReturnValue(true);
-    mockUseMatches.mockReturnValue([{ handle: { accessPolicy: { requiresAuth: true, fallbackRoute: "/home", tenantScoped: true, accountScoped: true, requiredEntitlements: ["feature.a"] } } }]);
   });
-
-  it("redirects when account acl denies", () => {
+  it("renders verification without protected children while loading", () => {
     renderGuard();
-    expect(screen.getByText("redirect:/t/tenant-a/accounts")).toBeInTheDocument();
-  });
-
-  it("waits for tier-store rehydration before evaluating protected route access", () => {
-    window.localStorage.setItem(
-      "user-tier-storage",
-      JSON.stringify({ state: { currentTier: "admin" }, version: 0 }),
-    );
-    mockUserTierStore.isRehydrated = false;
-    mockUserTierStore.persist.hasHydrated.mockReturnValue(false);
-    mockUserTierStore.canAccessRoute.mockReturnValue(false);
-    mockUseMatches.mockReturnValue([{ handle: { accessPolicy: { requiresAuth: true, fallbackRoute: "/home", requiredTier: "admin" } } }]);
-
-    renderGuard();
-
     expect(screen.getByText("Verifying access...")).toBeInTheDocument();
-    expect(screen.queryByText("redirect:/home")).not.toBeInTheDocument();
     expect(screen.queryByText("protected")).not.toBeInTheDocument();
   });
-
-  it("does not wait for advanced-tier rehydration when an admin route will remain denied", () => {
-    window.localStorage.setItem(
-      "user-tier-storage",
-      JSON.stringify({ state: { currentTier: "advanced" }, version: 0 }),
-    );
-    mockUserTierStore.isRehydrated = false;
-    mockUserTierStore.persist.hasHydrated.mockReturnValue(false);
-    mockUserTierStore.canAccessRoute.mockReturnValue(false);
-    mockUseMatches.mockReturnValue([{ handle: { accessPolicy: { requiresAuth: true, fallbackRoute: "/home", requiredTier: "admin" } } }]);
-
+  it("renders children only when allowed", () => {
+    state.authz = "verified";
     renderGuard();
-
-    expect(screen.getByText("redirect:/home")).toBeInTheDocument();
-    expect(screen.queryByText("Verifying access...")).not.toBeInTheDocument();
-    expect(screen.queryByText("protected")).not.toBeInTheDocument();
-  });
-
-  it("waits for advanced-tier rehydration before evaluating advanced routes", () => {
-    window.localStorage.setItem(
-      "user-tier-storage",
-      JSON.stringify({ state: { currentTier: "advanced" }, version: 0 }),
-    );
-    mockUserTierStore.isRehydrated = false;
-    mockUserTierStore.persist.hasHydrated.mockReturnValue(false);
-    mockUserTierStore.canAccessRoute.mockReturnValue(false);
-    mockUseMatches.mockReturnValue([{ handle: { accessPolicy: { requiresAuth: true, fallbackRoute: "/home", requiredTier: "advanced" } } }]);
-
-    renderGuard();
-
-    expect(screen.getByText("Verifying access...")).toBeInTheDocument();
-    expect(screen.queryByText("redirect:/home")).not.toBeInTheDocument();
-  });
-
-  it("uses Clerk signed-in state in Clerk mode instead of stale legacy-compatible context", () => {
-    setAuthProvider("clerk");
-    mockClerkAuth.isLoaded = true;
-    mockClerkAuth.isSignedIn = true;
-    mockUseMatches.mockReturnValue([{ handle: { accessPolicy: { requiresAuth: true, fallbackRoute: "/home", tenantScoped: false } } }]);
-
-    render(
-      <AuthContext.Provider
-        value={{
-          isAuthenticated: false,
-          isLoading: false,
-          user: null,
-          currentTenantSlug: null,
-          accessToken: null,
-          initiateLogin: vi.fn(),
-          handleCallback: vi.fn(async () => true),
-          logout: vi.fn(),
-          refreshToken: vi.fn(async () => true),
-        }}
-      >
-        <UnifiedRouteGuard><div>protected</div></UnifiedRouteGuard>
-      </AuthContext.Provider>
-    );
-
     expect(screen.getByText("protected")).toBeInTheDocument();
-    expect(screen.queryByText("redirect:/sign-in")).not.toBeInTheDocument();
   });
-
-  it("fails closed for guarded routes without access policy metadata", () => {
-    mockUseMatches.mockReturnValue([{ handle: {} }]);
-
-    render(
-      <AuthContext.Provider
-        value={{
-          isAuthenticated: false,
-          isLoading: false,
-          user: null,
-          currentTenantSlug: null,
-          accessToken: null,
-          initiateLogin: vi.fn(),
-          handleCallback: vi.fn(async () => true),
-          logout: vi.fn(),
-          refreshToken: vi.fn(async () => true),
-        }}
-      >
-        <UnifiedRouteGuard><div>protected</div></UnifiedRouteGuard>
-      </AuthContext.Provider>
-    );
-
-    expect(screen.getByText("redirect:/sign-in")).toBeInTheDocument();
+  it("renders supplied fallback on denial", () => {
+    state.authz = "denied";
+    renderGuard(<div>fallback</div>);
+    expect(screen.getByText("fallback")).toBeInTheDocument();
+  });
+  it("renders in-place denial and preserves attempted URL", () => {
+    state.authz = "denied";
+    const view = renderGuard();
+    expect(screen.getByText("Access denied")).toBeInTheDocument();
+    expect(
+      view.container.querySelector(
+        '[data-attempted-url="/t/tenant-a/accounts?tab=all"]'
+      )
+    ).toBeTruthy();
+  });
+  it("renders expired session without protected children", () => {
+    state.authz = "expired";
+    renderGuard();
+    expect(screen.getByText("Session expired")).toBeInTheDocument();
+    expect(screen.queryByText("protected")).not.toBeInTheDocument();
+  });
+  it("redirects unauthenticated users with return URL", () => {
+    renderGuard(undefined, false);
+    expect(
+      screen.getByText("redirect:/sign-in:/t/tenant-a/accounts?tab=all")
+    ).toBeInTheDocument();
     expect(screen.queryByText("protected")).not.toBeInTheDocument();
   });
 });

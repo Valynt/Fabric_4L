@@ -505,6 +505,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/authz/snapshot": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Authorization Snapshot */
+        get: operations["get_authorization_snapshot_v1_authz_snapshot_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/repo-audit/run": {
         parameters: {
             query?: never;
@@ -6080,6 +6097,28 @@ export interface components {
          * @enum {string}
          */
         AuthorityWeight: "high" | "medium" | "low";
+        /** AuthorizationSnapshot */
+        AuthorizationSnapshot: {
+            /** Tenantid */
+            tenantId: string;
+            /** Tenantslug */
+            tenantSlug: string;
+            /** Role */
+            role: string;
+            /**
+             * Expiresat
+             * Format: date-time
+             */
+            expiresAt: string;
+            /** Permissions */
+            permissions: string[];
+            /** Entitlements */
+            entitlements: string[];
+            /** Tenantmember */
+            tenantMember: boolean;
+            /** Accountids */
+            accountIds: string[];
+        };
         /** AvailableWorkflow */
         AvailableWorkflow: {
             /** Type */
@@ -12776,6 +12815,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["layer4_agents__api__routes__audit__AuditLogResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_authorization_snapshot_v1_authz_snapshot_get: {
+        parameters: {
+            query?: {
+                tenant_slug?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthorizationSnapshot"];
                 };
             };
             /** @description Validation Error */

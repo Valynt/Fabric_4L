@@ -1,31 +1,40 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
-import type { ReactNode } from "react";
-import { describe, expect, it, vi, beforeEach } from "vitest";
-import { apiGet } from "@/api/typedClient";
+import type { AuthorizationResolution } from "@/auth/authorizationSnapshot";
+import { renderHook } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+const resolution = vi.hoisted(() => ({
+  current: {
+    status: "denied",
+    permissions: [],
+    entitlements: [],
+  } as AuthorizationResolution,
+}));
+vi.mock("./useAuthorizationSnapshot", () => ({
+  useAuthorizationSnapshot: () => resolution.current,
+}));
+vi.mock("@/contexts/AuthContext", () => ({
+  useAuthContext: () => ({ currentTenantSlug: "tenant-a" }),
+}));
 import { useEntitlements } from "./useEntitlements";
 
-vi.mock("@/api/typedClient", () => ({ apiGet: vi.fn() }));
-
-const wrapper = ({ children }: { children: ReactNode }) => (
-  <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>{children}</QueryClientProvider>
-);
-
-describe("useEntitlements", () => {
-  beforeEach(() => vi.clearAllMocks());
-
-  it("denies by default on network error", async () => {
-    vi.mocked(apiGet).mockRejectedValueOnce(new Error("boom"));
-    const { result } = renderHook(() => useEntitlements(["feature.a"]), { wrapper });
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
-    expect(result.current.entitlementsMet).toBe(false);
-    expect(result.current.isError).toBe(true);
-  });
-
-  it("denies when a required entitlement is missing or false", async () => {
-    vi.mocked(apiGet).mockResolvedValueOnce({ data: { decisions: { "feature.a": { allowed: true, reason: "ok" } } } } as never);
-    const { result } = renderHook(() => useEntitlements(["feature.a", "feature.b"]), { wrapper });
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
-    expect(result.current.entitlementsMet).toBe(false);
+describe("snapshot entitlements", () => {
+  it("requires every entitlement from a verified snapshot", () => {
+    resolution.current = {
+      status: "verified",
+      permissions: [],
+      entitlements: ["a"],
+      snapshot: {
+        tenantMember: true,
+        permissions: [],
+        entitlements: ["a"],
+        accountIds: [],
+      },
+    };
+    expect(
+      renderHook(() => useEntitlements(["a"])).result.current.entitlementsMet
+    ).toBe(true);
+    expect(
+      renderHook(() => useEntitlements(["a", "b"])).result.current
+        .entitlementsMet
+    ).toBe(false);
   });
 });

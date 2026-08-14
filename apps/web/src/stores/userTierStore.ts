@@ -18,8 +18,7 @@ export type UserTier = "standard" | "advanced" | "admin" | "unknown";
 
 /** Security result type distinguishing explicit deny from evaluation failure */
 export type AccessDecision =
-  | { allowed: true }
-  | { allowed: false; reason: string };
+  { allowed: true } | { allowed: false; reason: string };
 
 /**
  * Type guard to check if access decision is denied.
@@ -104,29 +103,8 @@ const getDefaultPermissions = (tier: UserTier): UserPermissions => {
     canManageUsers: false,
   };
 
-  switch (tier) {
-    case "standard":
-      return base;
-    case "advanced":
-      return {
-        ...base,
-        canAccessAdvanced: true,
-        canEditFormulas: true,
-      };
-    case "admin":
-      return {
-        canAccessAdvanced: true,
-        canAccessAdmin: true,
-        canEditFormulas: true,
-        canManageBenchmarks: true,
-        canManageVariables: true,
-        canManagePacks: true,
-        canManageUsers: true,
-      };
-    default:
-      // SECURITY: Unknown tier gets no permissions (fail-closed)
-      return base;
-  }
+  void tier;
+  return base;
 };
 
 /**
@@ -139,12 +117,13 @@ const getDefaultPermissions = (tier: UserTier): UserPermissions => {
  * - analyst, editor, advanced → advanced
  * - read_only, viewer, user, standard → standard
  *
- * SECURITY: Unknown roles fail-safe to 'standard' (lowest tier)
+ * SECURITY: Unknown roles resolve to 'unknown' and clear stale display tiers.
  *
  * @param role - Backend-canonical role or frontend tier
- * @returns Normalized UI tier for feature gating
+ * @returns Normalized UI tier for display compatibility only
  */
-export const normalizeRoleToTier = (role: string): UserTier => {
+export const normalizeRoleToTier = (role: unknown): UserTier => {
+  if (typeof role !== "string" || !role.trim()) return "unknown";
   const normalizedRole = role.toLowerCase().trim();
 
   const roleToTierMap: Record<string, UserTier> = {
@@ -172,9 +151,8 @@ export const normalizeRoleToTier = (role: string): UserTier => {
   const tier = roleToTierMap[normalizedRole];
 
   if (!tier) {
-    // SECURITY: Fail-safe to standard tier for unknown roles
-    log.warn(`Unknown role "${role}" - defaulting to standard tier`);
-    return "standard";
+    log.warn(`Unknown role "${role}" - clearing compatibility tier`);
+    return "unknown";
   }
 
   return tier;
@@ -422,7 +400,7 @@ export const useUserTierStore = create<UserTierState>()(
         const tier = normalizeRoleToTier(role);
         set({
           currentTier: tier,
-          permissions: getDefaultPermissions(tier),
+          permissions: getDefaultPermissions("unknown"),
         });
       },
 
@@ -446,43 +424,7 @@ export const useUserTierStore = create<UserTierState>()(
           return { allowed: false, reason: "INVALID_TIER_PARAMETER" };
         }
 
-        const { currentTier } = get();
-
-        // Validate current tier is valid
-        if (!VALID_TIERS.includes(currentTier)) {
-          return { allowed: false, reason: "INVALID_USER_TIER_STATE" };
-        }
-
-        // Admin can access everything
-        if (currentTier === "admin") {
-          return { allowed: true };
-        }
-
-        // Advanced users can access standard and advanced routes
-        if (currentTier === "advanced") {
-          if (validatedTier === "standard" || validatedTier === "advanced") {
-            return { allowed: true };
-          }
-          return { allowed: false, reason: "ADMIN_ROUTE_REQUIRES_ADMIN_TIER" };
-        }
-
-        // Standard users can access standard routes only. Advanced mode is a
-        // presentation preference and cannot elevate the verified tier.
-        if (currentTier === "standard") {
-          if (validatedTier === "standard") {
-            return { allowed: true };
-          }
-          if (validatedTier === "advanced") {
-            return {
-              allowed: false,
-              reason: "ADVANCED_ROUTE_REQUIRES_ADVANCED_TIER",
-            };
-          }
-          return { allowed: false, reason: "ADMIN_ROUTE_REQUIRES_ADMIN_TIER" };
-        }
-
-        // Fail closed - should never reach here but explicit deny
-        return { allowed: false, reason: "TIER_EVALUATION_FAILED" };
+        return { allowed: false, reason: "TIER_AUTHORIZATION_REMOVED" };
       },
 
       canAccessRoute: routeTier => {
@@ -490,7 +432,8 @@ export const useUserTierStore = create<UserTierState>()(
       },
 
       canAccessFeature: feature => {
-        return get().permissions[feature];
+        void feature;
+        return false;
       },
 
       // Computed properties

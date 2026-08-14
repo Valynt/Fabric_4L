@@ -37,6 +37,7 @@ from .routes import (
     workflows,
 )
 from .routes import audit as audit_router
+from .routes.authz import router as authz_router
 from .routes.billing import router as billing_router
 from .routes.c1 import router as c1_router
 from .routes.checkpoints import checkpoint_router
@@ -63,9 +64,8 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(workflows.router, prefix="/v1", tags=["workflows"])
     app.include_router(tools.router, prefix="/v1", tags=["tools"])
     app.include_router(audit_router.router, prefix="/v1", tags=["audit"])
-    app.include_router(
-        audit_orchestrator_router, prefix="/v1/repo-audit", tags=["repo-audit"]
-    )
+    app.include_router(authz_router, prefix="/v1")
+    app.include_router(audit_orchestrator_router, prefix="/v1/repo-audit", tags=["repo-audit"])
     app.include_router(analysis.router, prefix="/v1", tags=["analysis"])
     app.include_router(accounts.router, prefix="/v1", tags=["Accounts"])
     app.include_router(signals.router, prefix="/v1", tags=["signals"])
