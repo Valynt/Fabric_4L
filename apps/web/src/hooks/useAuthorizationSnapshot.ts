@@ -1,26 +1,10 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import { apiGet } from "@/api/typedClient";
 import { useAuthContext } from "@/contexts/AuthContext";
 
 const EMPTY_GRANTS = [] as const;
-const KNOWN_CLERK_ROLES = new Set([
-  "org:admin",
-  "org:member",
-  "admin",
-  "super_admin",
-  "tenant_admin",
-  "content_admin",
-  "analyst",
-  "editor",
-  "advanced",
-  "read_only",
-  "viewer",
-  "user",
-  "standard",
-]);
-
 const snapshotSchema = z.object({
   tenantId: z.string().min(1),
   tenantSlug: z.string().min(1),
@@ -82,8 +66,6 @@ export function parseAuthorizationSnapshot(
   if (!expectedTenantSlug) return noGrants("denied", "missing_tenant");
   const parsed = snapshotSchema.safeParse(value);
   if (!parsed.success) return noGrants("denied", "malformed_snapshot");
-  if (!KNOWN_CLERK_ROLES.has(parsed.data.role))
-    return noGrants("denied", "unknown_role");
   if (parsed.data.tenantSlug !== expectedTenantSlug)
     return noGrants("denied", "tenant_mismatch");
   if (Date.parse(parsed.data.expiresAt) <= now)
@@ -102,6 +84,7 @@ export function useAuthorizationSnapshot(
   const auth = useAuthContext();
   const activeTenant = tenantSlug ?? auth.currentTenantSlug ?? undefined;
   const refreshAttempted = useRef(false);
+  const [expiryTick, setExpiryTick] = useState(0);
 
   useEffect(() => {
     refreshAttempted.current = false;
@@ -134,7 +117,18 @@ export function useAuthorizationSnapshot(
     query.data,
     query.isError,
     query.isLoading,
+    expiryTick,
   ]);
+
+  useEffect(() => {
+    if (state.status !== "verified") return;
+    const expiresAt = Date.parse(state.snapshot.expiresAt);
+    const timeout = window.setTimeout(
+      () => setExpiryTick((tick) => tick + 1),
+      Math.max(0, expiresAt - Date.now() + 1)
+    );
+    return () => window.clearTimeout(timeout);
+  }, [state]);
 
   useEffect(() => {
     if (state.status === "expired" && !refreshAttempted.current) {
