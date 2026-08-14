@@ -77,7 +77,7 @@ describe("UnifiedRouteGuard deny behavior", () => {
     expect(screen.getByText("redirect:/t/tenant-a/accounts")).toBeInTheDocument();
   });
 
-  it("waits for tier-store rehydration before evaluating protected route access", () => {
+  it("does not wait for tier-store hydration when no security data is persisted", () => {
     window.localStorage.setItem(
       "user-tier-storage",
       JSON.stringify({ state: { currentTier: "admin" }, version: 0 }),
@@ -89,12 +89,12 @@ describe("UnifiedRouteGuard deny behavior", () => {
 
     renderGuard();
 
-    expect(screen.getByText("Verifying access...")).toBeInTheDocument();
-    expect(screen.queryByText("redirect:/home")).not.toBeInTheDocument();
+    expect(screen.getByText("redirect:/home")).toBeInTheDocument();
+    expect(screen.queryByText("Verifying access...")).not.toBeInTheDocument();
     expect(screen.queryByText("protected")).not.toBeInTheDocument();
   });
 
-  it("does not wait for advanced-tier rehydration when an admin route will remain denied", () => {
+  it("does not wait for tier-store hydration when no security data is persisted (advanced user case)", () => {
     window.localStorage.setItem(
       "user-tier-storage",
       JSON.stringify({ state: { currentTier: "advanced" }, version: 0 }),
@@ -111,7 +111,7 @@ describe("UnifiedRouteGuard deny behavior", () => {
     expect(screen.queryByText("protected")).not.toBeInTheDocument();
   });
 
-  it("waits for advanced-tier rehydration before evaluating advanced routes", () => {
+  it("does not wait for tier-store hydration when no security data is persisted (advanced route case)", () => {
     window.localStorage.setItem(
       "user-tier-storage",
       JSON.stringify({ state: { currentTier: "advanced" }, version: 0 }),
@@ -123,7 +123,8 @@ describe("UnifiedRouteGuard deny behavior", () => {
 
     renderGuard();
 
-    expect(screen.getByText("Verifying access...")).toBeInTheDocument();
+    expect(screen.getByText("protected")).toBeInTheDocument();
+    expect(screen.queryByText("Verifying access...")).not.toBeInTheDocument();
     expect(screen.queryByText("redirect:/home")).not.toBeInTheDocument();
   });
 

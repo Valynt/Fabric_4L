@@ -11,11 +11,9 @@ Provides endpoints for:
 - Compliance auditing (/compliance)
 """
 
-import json
 import os
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
-from pathlib import Path
 from typing import Any, NoReturn
 
 import sqlalchemy.exc
@@ -37,11 +35,17 @@ try:
         ProbeResult,
         RedisHealthProbe,
     )
+    from value_fabric.shared.governance.deprecation_register import (
+        DeprecationItem,
+        DeprecationRegisterError,
+    )
+    from value_fabric.shared.governance.deprecation_register import (
+        load_items as load_deprecation_items,
+    )
     from value_fabric.shared.identity.api_key_stub import reject_api_key_unsupported
     from value_fabric.shared.identity.middleware import GovernanceMiddleware
     from value_fabric.shared.identity.rate_limiter import RedisRateLimiter
     from value_fabric.shared.identity.vault_check import is_vault_healthy
-    from value_fabric.shared.models.typed_dict import TypedDictModel
     from value_fabric.shared.security import (
         SecurityConfig,
         add_security_middleware,
@@ -258,57 +262,54 @@ def _url_safety_error_payload(reason_code: str) -> dict[str, str]:
 # =============================================================================
 
 
-class _load_deprecation_registerResult(TypedDictModel):
-    deprecations: list[Any]
+def _load_deprecation_register() -> list[DeprecationItem]:
+    """Load the canonical deprecation register via the shared loader.
 
-
-def _load_deprecation_register() -> dict:
-    """Load deprecation register from docs/deprecation_register.json."""
+    The register lives at ``docs/deprecation_register.json`` and is keyed by
+    ``items``; the shared loader owns path resolution and schema validation so
+    runtime headers, startup warnings, and the CI gate cannot drift apart.
+    A missing or malformed register is surfaced as an explicit error log rather
+    than being silently replaced with an empty register.
+    """
     try:
-        repo_root = Path(__file__).parent.parent.parent.parent.parent
-        register_path = repo_root / "docs" / "deprecation_register.json"
-        if register_path.exists():
-            with open(register_path, encoding="utf-8") as f:
-                return json.load(f)
-    except Exception as e:
-        logger.warning(
-            "Failed to load deprecation register",
+        return load_deprecation_items()
+    except DeprecationRegisterError as e:
+        logger.error(
+            "Deprecation register unavailable",
             error_code="DEPRECATION_LOAD_ERROR",
             error=repr(e),
         )
-    return _load_deprecation_registerResult.model_validate(
-        {"deprecations": []}
-    ).model_dump()
+        return []
 
 
-def _check_deprecation_warnings(register: dict) -> None:
+def _check_deprecation_warnings(items: list[DeprecationItem]) -> None:
     """Log warnings for overdue or upcoming deprecations."""
     now = datetime.now(UTC)
-    for item in register.get("deprecations", []):
-        target_removal = item.get("target_removal")
-        if not target_removal:
-            continue
+    for item in items:
         try:
-            removal_date = datetime.fromisoformat(target_removal.replace("Z", "+00:00"))
-            if removal_date <= now:
-                logger.warning(
-                    "Deprecation overdue",
-                    feature=item.get("feature"),
-                    target_removal=target_removal,
-                    owner=item.get("owner"),
-                    path=item.get("path"),
-                )
-            else:
-                days_until = (removal_date - now).days
-                if days_until <= 7:
-                    logger.warning(
-                        "Deprecation expiring soon",
-                        feature=item.get("feature"),
-                        days_until=days_until,
-                        target_removal=target_removal,
-                    )
+            removal_date = datetime.fromisoformat(
+                item.target_removal.replace("Z", "+00:00")
+            ).replace(tzinfo=UTC)
         except ValueError:
             continue
+        if removal_date <= now:
+            logger.warning(
+                "Deprecation overdue",
+                feature=item.feature,
+                target_removal=item.target_removal,
+                owner=item.owner,
+                path=item.path,
+                deferred=item.is_deferred,
+            )
+        else:
+            days_until = (removal_date - now).days
+            if days_until <= 7:
+                logger.warning(
+                    "Deprecation expiring soon",
+                    feature=item.feature,
+                    days_until=days_until,
+                    target_removal=item.target_removal,
+                )
 
 
 # Load deprecation register at startup
@@ -318,20 +319,16 @@ _check_deprecation_warnings(_deprecation_register)
 
 def _add_deprecation_headers(response: Response, endpoint_path: str) -> None:
     """Add deprecation headers if endpoint matches a deprecated feature."""
-    for item in _deprecation_register.get("deprecations", []):
-        if endpoint_path in item.get("path", ""):
-            deprecated_since = item.get("deprecated_since", "")
-            target_removal = item.get("target_removal", "")
-            owner = item.get("owner", "")
-
-            if deprecated_since:
-                response.headers["X-Deprecated-Since"] = deprecated_since
-            if target_removal:
-                response.headers["X-Target-Removal-Date"] = target_removal
-            if owner:
-                response.headers["X-Deprecation-Owner"] = owner
+    for item in _deprecation_register:
+        if endpoint_path in item.path:
+            if item.deprecated_since:
+                response.headers["X-Deprecated-Since"] = item.deprecated_since
+            if item.target_removal:
+                response.headers["X-Target-Removal-Date"] = item.target_removal
+            if item.owner:
+                response.headers["X-Deprecation-Owner"] = item.owner
             # RFC 7234 Warning header
-            response.headers["Warning"] = f'299 - "Deprecated since {deprecated_since}"'
+            response.headers["Warning"] = f'299 - "Deprecated since {item.deprecated_since}"'
             break
 
 
@@ -344,7 +341,7 @@ metrics = initialize_metrics()
 
 # Vault health check error message
 _VAULT_UNREACHABLE_ERROR = (
-    "Vault unreachable â€” cannot start in production without secrets backend"
+    "Vault unreachable — cannot start in production without secrets backend"
 )
 
 
@@ -423,7 +420,7 @@ app = create_fabric_app(
 #   MetricsMiddleware (innermost, via app.middleware("http"))
 # DB engine/session lifecycle remains service-owned.
 
-# SecurityMiddleware â€” input validation and security headers (mandatory)
+# SecurityMiddleware — input validation and security headers (mandatory)
 _security_config_l1 = SecurityConfig.from_env(
     # P1-14 FIX: Removed /v1/ingest paths from skip list
     # All untrusted input must pass through SecurityMiddleware validation
@@ -446,7 +443,7 @@ from value_fabric.shared.identity.fabric_auth import (
 
 register_fabric_auth_from_env(app, service_name="layer1-ingestion")
 
-# GovernanceMiddleware â€” verifies JWTs and resolves tenant/user context (mandatory)
+# GovernanceMiddleware — verifies JWTs and resolves tenant/user context (mandatory)
 redis_rate_limiter = None
 try:
     from ..shared.database import redis_client_async
@@ -472,7 +469,7 @@ app.add_middleware(
     rate_limiter=redis_rate_limiter,
 )
 
-# Add metrics middleware if available â€” INNERMOST
+# Add metrics middleware if available — INNERMOST
 if metrics:
     metrics_middleware = MetricsMiddleware(metrics)
     app.middleware("http")(metrics_middleware)

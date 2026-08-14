@@ -192,6 +192,32 @@ services:
         initialDelaySeconds: 10
         periodSeconds: 5
 
+  api:
+    enabled: true
+    replicaCount: 2
+    port: 8000
+    resources:
+      limits:
+        cpu: 1000m
+        memory: 2Gi
+      requests:
+        cpu: 250m
+        memory: 512Mi
+    env:
+      OTEL_SERVICE_NAME: api-gateway
+      OTEL_SAMPLE_RATIO: "0.01"
+      DATABASE_URL: ""
+      REDIS_URL: ""
+    probes:
+      liveness:
+        path: /health
+        initialDelaySeconds: 30
+        periodSeconds: 10
+      readiness:
+        path: /ready
+        initialDelaySeconds: 10
+        periodSeconds: 5
+
   billing:
     enabled: true
     replicaCount: 2

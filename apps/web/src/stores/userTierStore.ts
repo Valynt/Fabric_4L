@@ -507,9 +507,8 @@ export const useUserTierStore = create<UserTierState>()(
       name: "user-tier-storage",
       storage: createJSONStorage(() => localStorage),
       partialize: state => ({
-        currentTier: state.currentTier,
+        // Only persist presentation preferences, not security-relevant data
         isAdvancedModeEnabled: state.isAdvancedModeEnabled,
-        userRole: state.userRole,
       }),
       merge: (persistedState, currentState) => {
         const typedState = getPersistedTierSnapshot(persistedState);

@@ -61,6 +61,17 @@ services:
       requests:
         cpu: 500m
         memory: 1Gi
+
+  api:
+    replicaCount: 3
+    resources:
+      limits:
+        cpu: 2000m
+        memory: 4Gi
+      requests:
+        cpu: 500m
+        memory: 1Gi
+
   billing:
     replicaCount: 3
     resources:

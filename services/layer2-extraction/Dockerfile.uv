@@ -1,6 +1,6 @@
 # Multi-stage build for Layer 2: Extraction Service (uv edition)
 
-ARG BASE_IMAGE=python@sha256:f5cf0344c9886ff24d34797578d5d7dd6e8911ae0fe5962bb55d0f89603ec361
+ARG BASE_IMAGE=python:3.11-slim@sha256:f5cf0344c9886ff24d34797578d5d7dd6e8911ae0fe5962bb55d0f89603ec361
 FROM ${BASE_IMAGE} AS builder
 
 # Install build dependencies
@@ -20,7 +20,7 @@ COPY pyproject.toml uv.lock ./
 RUN uv pip sync uv.lock --target /app/venv
 
 # Stage 2: Runtime
-ARG BASE_IMAGE=python@sha256:f5cf0344c9886ff24d34797578d5d7dd6e8911ae0fe5962bb55d0f89603ec361
+ARG BASE_IMAGE=python:3.11-slim@sha256:f5cf0344c9886ff24d34797578d5d7dd6e8911ae0fe5962bb55d0f89603ec361
 FROM ${BASE_IMAGE} AS runtime
 
 # Install system dependencies

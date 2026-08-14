@@ -1,0 +1,70 @@
+{
+  "python": [
+    {
+      "name": "api",
+      "path": "services/api"
+    },
+    {
+      "name": "layer1-ingestion",
+      "path": "services/layer1-ingestion"
+    },
+    {
+      "name": "layer2-5-signal-refinery",
+      "path": "services/layer2-5-signal-refinery"
+    },
+    {
+      "name": "layer2-extraction",
+      "path": "services/layer2-extraction"
+    },
+    {
+      "name": "layer3-knowledge",
+      "path": "services/layer3-knowledge"
+    },
+    {
+      "name": "layer4-agents",
+      "path": "services/layer4-agents"
+    },
+    {
+      "name": "layer5-ground-truth",
+      "path": "services/layer5-ground-truth"
+    },
+    {
+      "name": "layer6-benchmarks",
+      "path": "services/layer6-benchmarks"
+    },
+    {
+      "name": "layer7-billing",
+      "path": "services/layer7-billing"
+    },
+    {
+      "name": "platform-contract",
+      "path": "packages/platform-contract/src/python"
+    },
+    {
+      "name": "sdk",
+      "path": "sdk/python"
+    },
+    {
+      "name": "shared",
+      "path": "packages/shared/src"
+    }
+  ],
+  "node": [
+    {
+      "name": "config",
+      "path": "packages/config"
+    },
+    {
+      "name": "eslint-plugin-fabric-contracts",
+      "path": "packages/eslint-plugin-fabric-contracts"
+    },
+    {
+      "name": "value-studio",
+      "path": "services/value-studio"
+    },
+    {
+      "name": "web",
+      "path": "apps/web"
+    }
+  ]
+}

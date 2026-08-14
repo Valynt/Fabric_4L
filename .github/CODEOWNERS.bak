@@ -81,20 +81,6 @@ services/layer6-benchmarks/ @value-fabric/backend-leads @value-fabric/qa-leads
 packages/shared/src/value_fabric/shared/ @value-fabric/backend-leads @value-fabric/architects
 
 # ============================================
-# Layer 2.5: Signal Refinery
-services/layer2-5-signal-refinery/ @value-fabric/backend-leads @value-fabric/ai-ml-leads
-
-# Layer 7: Billing
-services/layer7-billing/ @value-fabric/backend-leads @value-fabric/qa-leads
-
-# Legacy Billing (Compatibility)
-services/billing/ @value-fabric/backend-leads @value-fabric/maintainers
-
-# Value Studio Domain
-services/value-studio/ @value-fabric/backend-leads @value-fabric/architects
-
-# PgBouncer Infrastructure
-services/pgbouncer/ @value-fabric/sre-leads @value-fabric/infrastructure-leads
 # FRONTEND PATHS
 # Require frontend leads + UX review
 # ============================================
@@ -190,14 +176,7 @@ AGENTS.md @value-fabric/maintainers @value-fabric/architects
 **/*.gen.py @value-fabric/bot-auto-merge
 **/openapi.json @value-fabric/bot-auto-merge
 
-# Documentation typo fixes (low risk) - but exclude protected directories
-!docs/explanations/adr/ @value-fabric/tech-writers
-!docs/security/ @value-fabric/tech-writers
-!docs/compliance/ @value-fabric/tech-writers
-!docs/operations/ @value-fabric/tech-writers
-!contracts/ @value-fabric/tech-writers
-!contracts/openapi/ @value-fabric/tech-writers
-!contracts/jsonschema/ @value-fabric/tech-writers
+# Documentation typo fixes (low risk)
 *.md @value-fabric/tech-writers
 
 # Mandatory security merge-control governance. These explicit entries are last

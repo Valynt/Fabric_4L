@@ -25,7 +25,6 @@ on:
       - "**/setup.py"
       - "**/package.json"
       - "**/pnpm-lock.yaml"
-      - "**/package-lock.json"
       - "**/Dockerfile"
       - ".github/workflows/dependency-scan.yml"
   push:
@@ -58,6 +57,43 @@ env:
 
 jobs:
   # =========================================================================
+  # CHECK MANIFEST REGISTRY
+  # =========================================================================
+  check-manifests:
+    name: Check Manifest Registry
+    runs-on: ubuntu-latest
+    outputs:
+      python_matrix: ${{ steps.set_matrix.outputs.python_matrix }}
+      node_matrix: ${{ steps.set_matrix.outputs.node_matrix }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate manifest registry
+        id: generate
+        run: |
+          python scripts/ci/generate_manifest_registry.py > /tmp/generated.json
+
+      - name: Compare with checked-in registry
+        run: |
+          if ! diff -u .github/manifests.json /tmp/generated.json; then
+            echo "Manifest registry is out of date."
+            echo "Please run `python scripts/ci/generate_manifest_registry.py > .github/manifests.json` and commit the changes."
+            exit 1
+          fi
+
+      - name: Set matrix outputs
+        id: set_matrix
+        run: |
+          # Read the checked-in manifests.json (which we know is up-to-date)
+          python_matrix=$(python -c "import json, sys; data=json.load(open('.github/manifests.json')); print(json.dumps([{'service': item['name']} for item in data['python']]))")
+          node_matrix=$(python -c "import json, sys; data=json.load(open('.github/manifests.json')); print(json.dumps([{'frontend': item['name']} for item in data['node']]))")
+          echo "python_matrix=$python_matrix" >> $GITHUB_OUTPUT
+          echo "node_matrix=$node_matrix" >> $GITHUB_OUTPUT
+
+  # =========================================================================
   # PYTHON DEPENDENCY SCAN
   # =========================================================================
   scan-python:
@@ -66,18 +102,12 @@ jobs:
     permissions:
       contents: read
       security-events: write # Uploads dependency scan SARIF to code scanning.
+    needs: check-manifests
 
     strategy:
       fail-fast: false
       matrix:
-        service:
-          - api
-          - layer1-ingestion
-          - layer2-extraction
-          - layer3-knowledge
-          - layer4-agents
-          - layer5-ground-truth
-          - layer6-benchmarks
+        python: ${{ fromJson(needs.check-manifests.outputs.python_matrix) }}
 
     steps:
       - name: Checkout code
@@ -98,15 +128,33 @@ jobs:
       - name: Install pinned pip-audit
         run: uv tool install pip-audit==2.9.0
 
+      - name: Determine service directory
+        id: service-dir
+        run: |
+          case "${{ matrix.python.service }}" in
+            shared)
+              echo "dir=packages/shared/src" >> "$GITHUB_OUTPUT"
+              ;;
+            platform-contract)
+              echo "dir=packages/platform-contract/src/python" >> "$GITHUB_OUTPUT"
+              ;;
+            sdk)
+              echo "dir=sdk/python" >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "dir=services/${{ matrix.python.service }}" >> "$GITHUB_OUTPUT"
+              ;;
+          esac
+
       - name: Run dependency audit
         id: audit
         env:
-          ARTIFACT_DIR: artifacts/pip-audit/${{ matrix.service }}
+          ARTIFACT_DIR: artifacts/pip-audit/${{ matrix.python.service }}
         run: |
           set +e
           python scripts/ci/run_pip_audit.py scan \
-            --service-name "${{ matrix.service }}" \
-            --service-dir "services/${{ matrix.service }}" \
+            --service-name "${{ matrix.python.service }}" \
+            --service-dir "${{ steps.service-dir.outputs.dir }}" \
             --artifact-dir "$ARTIFACT_DIR"
           status=$?
           set -e
@@ -118,7 +166,7 @@ jobs:
         id: base_audit
         if: github.event_name == 'pull_request'
         env:
-          BASE_ARTIFACT_DIR: artifacts/pip-audit-base/${{ matrix.service }}
+          BASE_ARTIFACT_DIR: artifacts/pip-audit-base/${{ matrix.python.service }}
           BASE_REF: ${{ github.base_ref }}
         run: |
           set -euo pipefail
@@ -127,10 +175,27 @@ jobs:
           rm -rf "$base_worktree"
           git worktree add --detach "$base_worktree" "origin/$BASE_REF"
           echo "worktree=$base_worktree" >> "$GITHUB_OUTPUT"
+          
+          # Determine base service directory
+          case "${{ matrix.python.service }}" in
+            shared)
+              BASE_SERVICE_DIR="$base_worktree/packages/shared/src"
+              ;;
+            platform-contract)
+              BASE_SERVICE_DIR="$base_worktree/packages/platform-contract/src/python"
+              ;;
+            sdk)
+              BASE_SERVICE_DIR="$base_worktree/sdk/python"
+              ;;
+            *)
+              BASE_SERVICE_DIR="$base_worktree/services/${{ matrix.python.service }}"
+              ;;
+          esac
+          
           set +e
           python scripts/ci/run_pip_audit.py scan \
-            --service-name "${{ matrix.service }}" \
-            --service-dir "$base_worktree/services/${{ matrix.service }}" \
+            --service-name "${{ matrix.python.service }}" \
+            --service-dir "$BASE_SERVICE_DIR" \
             --artifact-dir "$BASE_ARTIFACT_DIR"
           status=$?
           set -e
@@ -142,12 +207,12 @@ jobs:
         if: always()
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
         with:
-          name: pip-audit-${{ matrix.service }}
+          name: pip-audit-${{ matrix.python.service }}
           path: |
-            artifacts/pip-audit/${{ matrix.service }}/requirements.txt
-            artifacts/pip-audit/${{ matrix.service }}/report.json
-            artifacts/pip-audit/${{ matrix.service }}/report.sarif
-            artifacts/pip-audit/${{ matrix.service }}/diagnostic.json
+            artifacts/pip-audit/${{ matrix.python.service }}/requirements.txt
+            artifacts/pip-audit/${{ matrix.python.service }}/report.json
+            artifacts/pip-audit/${{ matrix.python.service }}/report.sarif
+            artifacts/pip-audit/${{ matrix.python.service }}/diagnostic.json
           if-no-files-found: error
           retention-days: 30
 
@@ -155,19 +220,19 @@ jobs:
         if: always()
         uses: github/codeql-action/upload-sarif@f58f0d11ebf5dedd870fab2f999275f7602cfa46 # codeql-bundle-v2.26.0
         with:
-          sarif_file: artifacts/pip-audit/${{ matrix.service }}/report.sarif
-          category: pip-audit-${{ matrix.service }}
+          sarif_file: artifacts/pip-audit/${{ matrix.python.service }}/report.sarif
+          category: pip-audit-${{ matrix.python.service }}
 
       - name: Upload base dependency-audit evidence
         if: always() && github.event_name == 'pull_request'
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
         with:
-          name: pip-audit-base-${{ matrix.service }}
+          name: pip-audit-base-${{ matrix.python.service }}
           path: |
-            artifacts/pip-audit-base/${{ matrix.service }}/requirements.txt
-            artifacts/pip-audit-base/${{ matrix.service }}/report.json
-            artifacts/pip-audit-base/${{ matrix.service }}/report.sarif
-            artifacts/pip-audit-base/${{ matrix.service }}/diagnostic.json
+            artifacts/pip-audit-base/${{ matrix.python.service }}/requirements.txt
+            artifacts/pip-audit-base/${{ matrix.python.service }}/report.json
+            artifacts/pip-audit-base/${{ matrix.python.service }}/report.sarif
+            artifacts/pip-audit-base/${{ matrix.python.service }}/diagnostic.json
           if-no-files-found: error
           retention-days: 30
 
@@ -176,13 +241,13 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             python scripts/ci/run_pip_audit.py compare \
-              --current-diagnostic "artifacts/pip-audit/${{ matrix.service }}/diagnostic.json" \
+              --current-diagnostic "artifacts/pip-audit/${{ matrix.python.service }}/diagnostic.json" \
               --current-expected-status '${{ steps.audit.outputs.status }}' \
-              --baseline-diagnostic "artifacts/pip-audit-base/${{ matrix.service }}/diagnostic.json" \
+              --baseline-diagnostic "artifacts/pip-audit-base/${{ matrix.python.service }}/diagnostic.json" \
               --baseline-expected-status '${{ steps.base_audit.outputs.status }}'
           else
             python scripts/ci/run_pip_audit.py enforce \
-              --diagnostic "artifacts/pip-audit/${{ matrix.service }}/diagnostic.json" \
+              --diagnostic "artifacts/pip-audit/${{ matrix.python.service }}/diagnostic.json" \
               --expected-status '${{ steps.audit.outputs.status }}'
           fi
 
@@ -199,12 +264,12 @@ jobs:
     permissions:
       contents: read
       security-events: write # Uploads dependency scan SARIF to code scanning.
+    needs: check-manifests
 
     strategy:
       fail-fast: false
       matrix:
-        frontend:
-          - web
+        frontend: ${{ fromJson(needs.check-manifests.outputs.node_matrix) }}
 
     steps:
       # -----------------------------------------------------------------------
@@ -238,8 +303,24 @@ jobs:
       # 4. pnpm audit
       # -----------------------------------------------------------------------
       - name: pnpm audit ${{ matrix.frontend }}
-        working-directory: apps/${{ matrix.frontend }}
+        id: pnpm-audit
         run: |
+          # Determine working directory based on matrix value
+          case "${{ matrix.frontend }}" in
+            value-studio)
+              WD="services/value-studio"
+              ;;
+            config)
+              WD="packages/config"
+              ;;
+            eslint-plugin-fabric-contracts)
+              WD="packages/eslint-plugin-fabric-contracts"
+              ;;
+            *)
+              WD="apps/${{ matrix.frontend }}"
+              ;;
+          esac
+          
           BASE_REF="${GITHUB_BASE_REF:-main}"
           BASE_WORKTREE="${RUNNER_TEMP}/pnpm-audit-base-${{ matrix.frontend }}"
           git fetch --no-tags --prune origin "${BASE_REF}"
@@ -249,15 +330,15 @@ jobs:
 
           git worktree add --detach "${BASE_WORKTREE}" "origin/${BASE_REF}"
           (
-            cd "${BASE_WORKTREE}/apps/${{ matrix.frontend }}"
+            cd "${BASE_WORKTREE}/${WD}"
             pnpm install --frozen-lockfile
-            pnpm audit --json --audit-level ${{ env.FAIL_THRESHOLD }} > "${GITHUB_WORKSPACE}/apps/${{ matrix.frontend }}/pnpm-audit-base.json" || true
+            pnpm audit --json --audit-level ${{ env.FAIL_THRESHOLD }} > "${GITHUB_WORKSPACE}/${WD}/pnpm-audit-base.json" || true
           )
 
           node <<'NODE'
           const fs = require('fs');
           const current = JSON.parse(fs.readFileSync('pnpm-audit.json', 'utf8'));
-          const baseline = JSON.parse(fs.readFileSync('pnpm-audit-base.json', 'utf8'));
+          const baseline = JSON.parse(fs.readFileSync('${{ github.workspace }}/${WD}/pnpm-audit-base.json', 'utf8'));
           const sevMap = {low: 0, moderate: 1, high: 2, critical: 3};
           const threshold = sevMap[process.env.FAIL_THRESHOLD] ?? 1;
 
@@ -306,9 +387,16 @@ jobs:
         with:
           name: node-audit-${{ matrix.frontend }}
           path: |
-            apps/${{ matrix.frontend }}/pnpm-audit.json
-            apps/${{ matrix.frontend }}/pnpm-audit-base.json
+            ${{ github.workspace }}/services/value-studio/pnpm-audit.json
+            ${{ github.workspace }}/services/value-studio/pnpm-audit-base.json
+            ${{ github.workspace }}/packages/config/pnpm-audit.json
+            ${{ github.workspace }}/packages/config/pnpm-audit-base.json
+            ${{ github.workspace }}/packages/eslint-plugin-fabric-contracts/pnpm-audit.json
+            ${{ github.workspace }}/packages/eslint-plugin-fabric-contracts/pnpm-audit-base.json
+            apps/web/pnpm-audit.json
+            apps/web/pnpm-audit-base.json
           retention-days: 30
+        # Use always() to ensure upload happens even if previous steps fail
 
   # =========================================================================
   # CONTAINER IMAGE SCAN
@@ -392,24 +480,24 @@ jobs:
     steps:
       - name: Generate summary
         run: |
-          echo "## 🔒 Dependency Vulnerability Scan Results" >> "$GITHUB_STEP_SUMMARY"
+          echo "## �� 🔒 Dependency Vulnerability Scan Results" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "| Component | Status |" >> "$GITHUB_STEP_SUMMARY"
           echo "|-----------|--------|" >> "$GITHUB_STEP_SUMMARY"
 
           # Python services
           for svc in api layer1-ingestion layer2-extraction layer3-knowledge layer4-agents layer5-ground-truth layer6-benchmarks; do
-            status="⏭️ Skipped"
-            if [ "${{ needs.scan-python.result }}" = "success" ]; then status="✅ Pass"; fi
-            if [ "${{ needs.scan-python.result }}" = "failure" ]; then status="❌ Fail"; fi
+            status="��⏭��️ Skipped"
+            if [ "${{ needs.scan-python.result }}" = "success" ]; then status="��✅ Pass"; fi
+            if [ "${{ needs.scan-python.result }}" = "failure" ]; then status="��❌ Fail"; fi
             echo "| Python: $svc | $status |" >> "$GITHUB_STEP_SUMMARY"
           done
 
           # Node frontends
           for fe in web; do
-            status="⏭️ Skipped"
-            if [ "${{ needs.scan-node.result }}" = "success" ]; then status="✅ Pass"; fi
-            if [ "${{ needs.scan-node.result }}" = "failure" ]; then status="❌ Fail"; fi
+            status="��⏭��️ Skipped"
+            if [ "${{ needs.scan-node.result }}" = "success" ]; then status="��✅ Pass"; fi
+            if [ "${{ needs.scan-node.result }}" = "failure" ]; then status="��❌ Fail"; fi
             echo "| Node.js: $fe | $status |" >> "$GITHUB_STEP_SUMMARY"
           done
 

@@ -979,7 +979,7 @@ class CrawlDecision(Base):
     # - UUID = tenant-scoped decision
     # RLS policy intentionally allows all tenants to read NULL-tenant rows
     # (global routing rules, Smart Router observability data)
-    tenant_id = Column(UUID(as_uuid=True), nullable=True, index=True)  # no FK â€” tenant table is in Layer 4
+    tenant_id = Column(UUID(as_uuid=True), nullable=True, index=True)  # no FK — tenant table is in Layer 4
 
     # Request context
     url = Column(Text, nullable=False)

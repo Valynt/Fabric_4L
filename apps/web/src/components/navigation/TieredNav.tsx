@@ -1,14 +1,14 @@
-﻿/**
- * TieredNav â€” Progressive Synthesis Navigation
+/**
+ * TieredNav — Progressive Synthesis Navigation
  *
  * 7-Domain Left Rail (Navigation Architecture Specification):
- *   1. Accounts     â€” Entry point: select or create a prospect account
- *   2. Intelligence â€” Discovery workspace: Signals â†’ Drivers â†’ Evidence â†’ Stakeholders
- *   3. Value Studio â€” Synthesis workspace: Action Plan â†’ Value Model â†’ Narrative
- *   4. Context Engine â€” Vendor knowledge base: Value Packs, Models, Formulas, Agents
- *   5. Deliverables â€” Activation layer: packaged outputs for sharing
- *   6. Governance   â€” Trust layer: audit, provenance, compliance
- *   7. Settings     â€” Tenant configuration, integrations, user management
+ *   1. Accounts     — Entry point: select or create a prospect account
+ *   2. Intelligence — Discovery workspace: Signals † Drivers † Evidence † Stakeholders
+ *   3. Value Studio — Synthesis workspace: Action Plan † Value Model † Narrative
+ *   4. Context Engine — Vendor knowledge base: Value Packs, Models, Formulas, Agents
+ *   5. Deliverables — Activation layer: packaged outputs for sharing
+ *   6. Governance   — Trust layer: audit, provenance, compliance
+ *   7. Settings     — Tenant configuration, integrations, user management
  *
  * Three-Layer Model:
  *   Left rail  = Global navigation (this component)
@@ -49,7 +49,7 @@ import {
   FileText,
 } from "lucide-react";
 
-// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// --- Types ---------------------------------------------------------------------
 
 
 

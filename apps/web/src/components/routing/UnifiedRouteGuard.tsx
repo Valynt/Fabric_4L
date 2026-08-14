@@ -36,36 +36,7 @@ interface RouteGuardAuthState {
 
 type PrivilegedPersistedTier = "advanced" | "admin";
 
-function getPrivilegedPersistedTier(): PrivilegedPersistedTier | null {
-  if (typeof window === "undefined") {
-    return null;
-  }
 
-  try {
-    const raw = window.localStorage.getItem("user-tier-storage");
-    if (!raw) {
-      return null;
-    }
-    const parsed = JSON.parse(raw) as { state?: { currentTier?: unknown } };
-    const currentTier = parsed.state?.currentTier;
-    return currentTier === "advanced" || currentTier === "admin" ? currentTier : null;
-  } catch {
-    return null;
-  }
-}
-
-function shouldWaitForTierHydration(requiredTier?: RouteAccessPolicy["requiredTier"]): boolean {
-  const persistedTier = getPrivilegedPersistedTier();
-  if (!persistedTier || !requiredTier) {
-    return false;
-  }
-
-  if (persistedTier === "admin") {
-    return requiredTier === "advanced" || requiredTier === "admin";
-  }
-
-  return requiredTier === "advanced";
-}
 
 function UnifiedRouteGuardInner({
   children,
@@ -129,12 +100,7 @@ function UnifiedRouteGuardInner({
     return <RouteGuardSkeleton />;
   }
 
-  // Wait for persisted tier to be restored before making access decisions.
-  // This prevents a one-render flash where a stored admin/advanced user is
-  // evaluated as the default 'standard' tier and redirected incorrectly.
-  if (!tierStoreHydrated && shouldWaitForTierHydration(policy.requiredTier)) {
-    return <RouteGuardSkeleton />;
-  }
+
 
   // 1. Authentication guard
   if (policy.requiresAuth && !isAuthenticated) {

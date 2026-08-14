@@ -7,6 +7,7 @@ addressing the untested hotspot issue identified in health analysis.
 import asyncio
 import os
 from typing import Any
+from contextvars import Token
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import UUID, uuid4
 
@@ -23,7 +24,10 @@ from value_fabric.shared.identity.constants import (
     SESSION_COOKIE_NAME,
     TENANT_ID_HEADER,
 )
-from value_fabric.shared.identity.middleware import GovernanceMiddleware
+from value_fabric.shared.identity.middleware import (
+    GovernanceMiddleware,
+    _current_context,
+)
 from value_fabric.shared.identity.permissions import Permission, Role
 
 
@@ -173,7 +177,7 @@ class TestResolveIdentityRefactoring:
         ctx = await middleware._resolve_api_key(mock_request)
         assert ctx is not None
         assert ctx.tenant_id == tenant_id
-        assert ctx.user_id == user_id
+        assert ctx.user_id == str(user_id)
         assert ctx.api_key_id == "key-123"
 
     @pytest.mark.asyncio
@@ -232,7 +236,7 @@ class TestResolveIdentityRefactoring:
             "X-Service-Auth": "wrong-secret",
         }
         with patch.dict(
-            os.environ, {"SERVICE_AUTH_SECRET": "correct-secret-32chars-min"}
+            os.environ, {"SERVICE_AUTH_SECRET": "correct-secret-32chars-minimum-32-chars"}
         ):
             ctx = await middleware._resolve_service_to_service(mock_request)
             assert ctx is None
@@ -243,10 +247,10 @@ class TestResolveIdentityRefactoring:
         tenant_id = str(uuid4())
         mock_request.headers = {
             TENANT_ID_HEADER: tenant_id,
-            "X-Service-Auth": "correct-secret-32chars-min",
+            "X-Service-Auth": "correct-secret-32chars-minimum-32-chars",
         }
         with patch.dict(
-            os.environ, {"SERVICE_AUTH_SECRET": "correct-secret-32chars-min"}
+            os.environ, {"SERVICE_AUTH_SECRET": "correct-secret-32chars-minimum-32-chars"}
         ):
             ctx = await middleware._resolve_service_to_service(mock_request)
             assert ctx is not None
@@ -268,7 +272,9 @@ class TestDispatchRefactoring:
         assert ctx is None
 
     @pytest.mark.asyncio
-    async def test_handle_authentication_returns_none_when_disabled(self, mock_request):
+    async def test_handle_authentication_returns_none_when_disabled(
+        self, middleware, mock_request
+    ):
         """Test that disabled authentication returns None."""
         middleware._enforce_authentication = False
         ctx = await middleware._handle_authentication(mock_request)
@@ -496,15 +502,34 @@ class TestBuildContextFromClaims:
 class TestSetRequestContext:
     """Tests for _set_request_context helper method."""
 
-    def test_set_request_context_updates_token(self, middleware, sample_context):
-        """Test that request context is set and token is updated."""
-        old_token = MagicMock()
-        with patch(
-            "value_fabric.shared.identity.middleware.set_request_context",
-            return_value="new-token",
-        ):
-            new_token = middleware._set_request_context(sample_context, old_token)
-            assert new_token == "new-token"
+    def test_set_request_context_resets_prior_token_and_sets_new_context(
+        self, middleware, sample_context
+    ):
+        """The prior token is reset and the new context becomes current."""
+        # A ContextVar Token can only be produced by ContextVar.set, so obtain a
+        # real one instead of faking it.
+        token = _current_context.set(None)
+        try:
+            new_token = middleware._set_request_context(sample_context, token)
+
+            assert isinstance(new_token, Token)
+            assert _current_context.get() is sample_context
+        finally:
+            _current_context.set(None)
+
+    def test_set_request_context_returns_token_from_set_request_context(
+        self, middleware, sample_context
+    ):
+        """The returned token comes from the canonical set_request_context helper."""
+        token = _current_context.set(None)
+        try:
+            with patch(
+                "value_fabric.shared.identity.middleware.set_request_context",
+                return_value="new-token",
+            ):
+                assert middleware._set_request_context(sample_context, token) == "new-token"
+        finally:
+            _current_context.set(None)
 
 
 class TestExternalAuthBootstrapAllowlist:

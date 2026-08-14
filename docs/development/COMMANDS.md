@@ -195,6 +195,7 @@ Public Makefile targets are targets with `##` help text and are exposed by `make
 | `test-layer4-live` | Run Layer 4 live Docker/PostgreSQL/integration tests. |
 | `test-layer5` | Run Layer 5 tests. |
 | `test-layer6` | Run Layer 6 tests. |
+| `test-shared` | Run the shared-package suite (`packages/shared/tests`) with identity/governance/rate-limiting coverage. Changes here fan out to every layer plus the gateway. |
 | `test-frontend` | Run frontend unit tests. |
 | `test-e2e` | Run Playwright E2E tests. |
 | `test-e2e-contracts` | Run isolated Playwright contract tests. |

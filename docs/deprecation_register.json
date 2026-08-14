@@ -9,15 +9,17 @@
       "status": "deferred",
       "rationale": "Observability contract requires an unauthenticated /health probe. Canonical admin_handlers.health_check is DB-session-gated and cannot yet serve orchestrator probes. Legacy handler remains mounted; callers should migrate to /ready and the per-service canonical health endpoints before this route is removed.",
       "owner": "layer1-ingestion",
-      "path": "value-fabric/layer1-ingestion/src/api/main.py:/health"
+      "path": "services/layer1-ingestion/src/layer1_ingestion/api/main.py:/health"
     },
     {
       "feature": "l1.api.x_organization_id_header_fallback",
       "introduced": "2025-09-10",
       "deprecated_since": "2026-04-14",
       "target_removal": "2026-09-01",
+      "status": "removed",
+      "rationale": "The X-Organization-Id header fallback was removed from the Layer 1 request path; no Python consumer of get_organization_id remains. Retained as a removed-status record so the register keeps the historical entry.",
       "owner": "layer1-ingestion",
-      "path": "value-fabric/layer1-ingestion/src/api/main.py:get_organization_id"
+      "path": "services/layer1-ingestion/src/layer1_ingestion/api/main.py:get_organization_id"
     },
     {
       "feature": "l3.retrieval.hybrid_search_legacy_dict_format",
@@ -25,7 +27,7 @@
       "deprecated_since": "2026-04-14",
       "target_removal": "2026-10-01",
       "owner": "layer3-knowledge",
-      "path": "value-fabric/layer3-knowledge/src/retrieval/hybrid_search.py"
+      "path": "services/layer3-knowledge/src/retrieval/hybrid_search.py"
     },
     {
       "feature": "docs.semantic_contract.legacy_value_category_aliases",
@@ -42,6 +44,18 @@
       "target_removal": "2026-09-30",
       "owner": "layer3-knowledge",
       "path": "services/layer3-knowledge/src/api/dependencies_tenant.py"
+    },
+    {
+      "feature": "l1.api.short_ingest_compatibility_boundary",
+      "introduced": "2025-09-10",
+      "deprecated_since": "2026-04-14",
+      "target_removal": "2026-10-01",
+      "status": "deferred",
+      "rationale": "The /v1/ingest boundary route already fails closed with 503 and only exists to emit deprecation telemetry for legacy callers. Removal is deferred until the compatibility-usage telemetry shows zero callers for a full release window; the route performs no ingestion work in the meantime.",
+      "owner": "layer1-ingestion",
+      "successor": "/api/v1/ingestion",
+      "telemetry": "legacy_route_deprecation_usage",
+      "path": "services/layer1-ingestion/src/layer1_ingestion/api/routes/compatibility.py:/v1/ingest"
     }
   ]
 }

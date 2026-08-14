@@ -42,6 +42,10 @@ const REPO_ROOT = path.resolve(WEB_ROOT, '../..');
 
 export default defineConfig({
   testDir: "./e2e",
+  testIgnore: [
+    '**/debug-*',
+    '**/*.debug.*',
+  ],
 
   /* Run tests in files in parallel where safe */
   fullyParallel: !CI,
