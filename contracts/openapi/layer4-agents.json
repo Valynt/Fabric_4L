@@ -13354,6 +13354,50 @@
           }
         }
       }
+    },
+    "/v1/authz/snapshot": {
+      "get": {
+        "tags": [
+          "authorization"
+        ],
+        "summary": "Get Authorization Snapshot",
+        "description": "Return grants derived only from the authenticated, tenant-bound context.",
+        "operationId": "get_authorization_snapshot_v1_authz_snapshot_get",
+        "parameters": [
+          {
+            "name": "tenant_slug",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "title": "Tenant Slug"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthorizationSnapshotResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -28500,6 +28544,76 @@
           }
         },
         "description": "Deprecated compatibility alias for ErrorEnvelope. Use ErrorEnvelope for new clients."
+      },
+      "AuthorizationSnapshot": {
+        "properties": {
+          "tenantId": {
+            "type": "string",
+            "title": "Tenantid"
+          },
+          "tenantSlug": {
+            "type": "string",
+            "title": "Tenantslug"
+          },
+          "role": {
+            "type": "string",
+            "title": "Role"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Expiresat"
+          },
+          "permissions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Permissions"
+          },
+          "entitlements": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Entitlements"
+          },
+          "tenantMember": {
+            "type": "boolean",
+            "title": "Tenantmember"
+          },
+          "accountIds": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Accountids"
+          }
+        },
+        "type": "object",
+        "required": [
+          "tenantId",
+          "tenantSlug",
+          "role",
+          "expiresAt",
+          "permissions",
+          "entitlements",
+          "tenantMember",
+          "accountIds"
+        ],
+        "title": "AuthorizationSnapshot"
+      },
+      "AuthorizationSnapshotResponse": {
+        "properties": {
+          "snapshot": {
+            "$ref": "#/components/schemas/AuthorizationSnapshot"
+          }
+        },
+        "type": "object",
+        "required": [
+          "snapshot"
+        ],
+        "title": "AuthorizationSnapshotResponse"
       }
     }
   }

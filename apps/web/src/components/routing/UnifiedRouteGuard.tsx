@@ -1,23 +1,14 @@
-import { Navigate, useLocation, useParams, useMatches } from "react-router-dom";
+import { Navigate, useLocation, useMatches, useParams } from "react-router-dom";
 import { useAuth as useClerkAuth } from "@clerk/react";
 import { isClerkAuthEnabled } from "@/auth/clerkConfig";
 import { useAuthContext } from "@/contexts/AuthContext";
-import {
-  useTenantMembershipClerk,
-  useTenantMembershipLegacy,
-  type TenantMembership,
-} from "@/hooks/useTenantMembership";
-import { useAccountAccess } from "@/hooks/useAccountAccess";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
 import { useFeatureFlags } from "@/hooks/useFeatureFlags";
-import { useEntitlements } from "@/hooks/useEntitlements";
-import { useUserTierStore } from "@/stores";
 import { type RouteAccessPolicy } from "@/routes/types";
 import { ErrorBoundary } from "@/components";
 import { createFeatureLogger } from "@/lib/telemetry";
 
 const log = createFeatureLogger("route-guard");
-
 const FAIL_CLOSED_ACCESS_POLICY: RouteAccessPolicy = {
   requiresAuth: true,
   tenantScoped: false,
@@ -27,6 +18,7 @@ const FAIL_CLOSED_ACCESS_POLICY: RouteAccessPolicy = {
 
 interface UnifiedRouteGuardProps {
   children: React.ReactNode;
+  fallback?: React.ReactNode;
 }
 
 interface RouteGuardAuthState {
@@ -34,196 +26,74 @@ interface RouteGuardAuthState {
   isLoading: boolean;
 }
 
-type PrivilegedPersistedTier = "advanced" | "admin";
-
-function getPrivilegedPersistedTier(): PrivilegedPersistedTier | null {
-  if (typeof window === "undefined") {
-    return null;
-  }
-
-  try {
-    const raw = window.localStorage.getItem("user-tier-storage");
-    if (!raw) {
-      return null;
-    }
-    const parsed = JSON.parse(raw) as { state?: { currentTier?: unknown } };
-    const currentTier = parsed.state?.currentTier;
-    return currentTier === "advanced" || currentTier === "admin" ? currentTier : null;
-  } catch {
-    return null;
-  }
-}
-
-function shouldWaitForTierHydration(requiredTier?: RouteAccessPolicy["requiredTier"]): boolean {
-  const persistedTier = getPrivilegedPersistedTier();
-  if (!persistedTier || !requiredTier) {
-    return false;
-  }
-
-  if (persistedTier === "admin") {
-    return requiredTier === "advanced" || requiredTier === "admin";
-  }
-
-  return requiredTier === "advanced";
-}
-
 function UnifiedRouteGuardInner({
   children,
+  fallback,
   authStateOverride,
-  tenantMembershipOverride,
-}: UnifiedRouteGuardProps & {
-  authStateOverride?: RouteGuardAuthState;
-  tenantMembershipOverride?: TenantMembership;
-}) {
+}: UnifiedRouteGuardProps & { authStateOverride?: RouteGuardAuthState }) {
   const location = useLocation();
   const params = useParams();
   const matches = useMatches();
-
-  // Derive auth state from the app's AuthContext, which is the single source of
-  // truth for both Clerk and mock/dev mode (VITE_ENABLE_MOCK_AUTH). Calling Clerk's
-  // useAuth() directly here would hang on "Verifying access..." in mock mode because
-  // Clerk never finishes loading without a real publishable key/session.
   const authContext = useAuthContext();
   const { isAuthenticated, isLoading } = authStateOverride ?? authContext;
-  const loginPath = "/sign-in";
+  const policy =
+    matches
+      .flatMap(match => {
+        const candidate = (match.handle as Record<string, unknown> | undefined)
+          ?.accessPolicy as RouteAccessPolicy | undefined;
+        return candidate ? [candidate] : [];
+      })
+      .pop() ?? FAIL_CLOSED_ACCESS_POLICY;
 
-  // Walk up the match tree to find the most specific access policy
-  const policy = matches
-    .flatMap((m) => {
-      const p = (m.handle as Record<string, unknown> | undefined)?.accessPolicy as RouteAccessPolicy | undefined;
-      return p ? [p] : [];
-    })
-    .pop() ?? FAIL_CLOSED_ACCESS_POLICY;
-
-  // ALL hooks must be called before any conditional return (Rules of Hooks).
-  // Use optional chaining so hooks are unconditionally invoked even when policy
-  // is undefined; the conditional guard logic below still short-circuits safely.
-  const { canAccessRoute, isRehydrated } = useUserTierStore();
-  const tierStoreHydrated = isRehydrated || useUserTierStore.persist.hasHydrated();
-
-  const tenantSlug = params.tenantSlug;
-  // Legacy (AuthContext) membership is always resolved here; in Clerk mode the
-  // outer ClerkUnifiedRouteGuard supplies a Clerk-derived override, mirroring
-  // authStateOverride, so Clerk hooks never run without <ClerkProvider>.
-  const legacyTenantMembership = useTenantMembershipLegacy(tenantSlug);
-  const { isMemberOfTenant, isLoading: tenantLoading } =
-    tenantMembershipOverride ?? legacyTenantMembership;
-
-  const accountId = params.accountId;
-  const { hasAccountAccess, isLoading: accountLoading } =
-    useAccountAccess(accountId, tenantSlug);
-
-  const { hasPermissions, isLoading: permLoading } = useUserPermissions(
-    policy?.requiredPermissions ?? []
+  const permissionResult = useUserPermissions(
+    policy.requiredPermissions ?? [],
+    params.tenantSlug
   );
+  const { flagsEnabled } = useFeatureFlags(policy.requiredFeatureFlags ?? []);
+  const { decision, snapshot } = permissionResult;
 
-  const { flagsEnabled } = useFeatureFlags(
-    policy?.requiredFeatureFlags ?? []
-  );
-
-  const { entitlementsMet, isLoading: entitlementsLoading } = useEntitlements(
-    policy?.requiredEntitlements ?? []
-  );
-
-  if (isLoading) {
-    return <RouteGuardSkeleton />;
-  }
-
-  // Wait for persisted tier to be restored before making access decisions.
-  // This prevents a one-render flash where a stored admin/advanced user is
-  // evaluated as the default 'standard' tier and redirected incorrectly.
-  if (!tierStoreHydrated && shouldWaitForTierHydration(policy.requiredTier)) {
-    return <RouteGuardSkeleton />;
-  }
-
-  // 1. Authentication guard
+  if (isLoading) return <RouteGuardSkeleton />;
   if (policy.requiresAuth && !isAuthenticated) {
     return (
       <Navigate
-        to={loginPath}
+        to="/sign-in"
         state={{ from: location.pathname + location.search }}
         replace
       />
     );
   }
-
-  // 2. Tier guard
-  if (policy.requiredTier && !canAccessRoute(policy.requiredTier)) {
-    log.warn("Tier access denied", {
-      requiredTier: policy.requiredTier,
+  if (decision.status === "loading") return <RouteGuardSkeleton />;
+  if (decision.status === "expired") return <ExpiredAuthorizationState />;
+  if (decision.status === "denied") {
+    log.warn("Snapshot authorization denied", {
+      reason: decision.reason,
       path: location.pathname,
     });
-    return <Navigate to={policy.fallbackRoute} replace />;
+    return <>{fallback ?? <AccessDeniedState />}</>;
   }
 
-  // 3. Tenant membership guard
-  if (policy.tenantScoped && tenantSlug) {
-    if (tenantLoading) return <RouteGuardSkeleton />;
-    if (!isMemberOfTenant) {
-      log.warn("Tenant access denied", {
-        tenantSlug,
-        path: location.pathname,
-      });
-      return <Navigate to="/home" replace />;
-    }
-  }
+  // All route scope and entitlement checks use the same verified snapshot.
+  if (snapshot.status !== "verified")
+    return <>{fallback ?? <AccessDeniedState />}</>;
+  const authorized =
+    (!policy.tenantScoped || snapshot.snapshot.tenantMember) &&
+    (!policy.accountScoped ||
+      (Boolean(params.accountId) &&
+        snapshot.snapshot.accountIds.includes(params.accountId ?? ""))) &&
+    (policy.requiredEntitlements ?? []).every(key =>
+      snapshot.entitlements.includes(key)
+    );
 
-  // 4. Account access guard
-  if (policy.accountScoped && accountId) {
-    if (accountLoading) return <RouteGuardSkeleton />;
-    if (!hasAccountAccess) {
-      log.warn("Account access denied", { accountId, path: location.pathname });
-      return (
-        <Navigate to={`/t/${tenantSlug}/accounts`} replace />
-      );
-    }
+  // Feature flags are deliberately separate and may only further restrict a
+  // snapshot-authorized route: featureEnabled && snapshotAuthorized.
+  if (!authorized || !flagsEnabled) {
+    return <>{fallback ?? <AccessDeniedState />}</>;
   }
-
-  // 5. Role/permission guard
-  if (policy.requiredPermissions && policy.requiredPermissions.length > 0) {
-    if (permLoading) return <RouteGuardSkeleton />;
-    if (!hasPermissions) {
-      log.warn("Permission denied", {
-        permissions: policy.requiredPermissions,
-        path: location.pathname,
-      });
-      return <Navigate to={policy.fallbackRoute} replace />;
-    }
-  }
-
-  // 6. Feature flag guard
-  if (policy.requiredFeatureFlags && policy.requiredFeatureFlags.length > 0) {
-    if (!flagsEnabled) {
-      log.warn("Feature not enabled", {
-        flags: policy.requiredFeatureFlags,
-        path: location.pathname,
-      });
-      return <Navigate to={policy.fallbackRoute} replace />;
-    }
-  }
-
-  // 7. Plan/entitlement guard
-  if (policy.requiredEntitlements && policy.requiredEntitlements.length > 0) {
-    if (entitlementsLoading) return <RouteGuardSkeleton />;
-    if (!entitlementsMet) {
-      log.warn("Entitlement not met", {
-        entitlements: policy.requiredEntitlements,
-        path: location.pathname,
-      });
-      return <Navigate to="/home" replace />;
-    }
-  }
-
   return <ErrorBoundary>{children}</ErrorBoundary>;
 }
 
 function ClerkUnifiedRouteGuard(props: UnifiedRouteGuardProps) {
   const { isLoaded, isSignedIn } = useClerkAuth();
-  // Only rendered when Clerk is enabled and <ClerkProvider> is mounted (see
-  // UnifiedRouteGuard below), so the Clerk membership hook is safe here.
-  const { tenantSlug } = useParams();
-  const tenantMembership = useTenantMembershipClerk(tenantSlug);
-
   return (
     <UnifiedRouteGuardInner
       {...props}
@@ -231,25 +101,62 @@ function ClerkUnifiedRouteGuard(props: UnifiedRouteGuardProps) {
         isLoading: !isLoaded,
         isAuthenticated: isLoaded && !!isSignedIn,
       }}
-      tenantMembershipOverride={tenantMembership}
     />
   );
 }
 
 export function UnifiedRouteGuard(props: UnifiedRouteGuardProps) {
-  if (isClerkAuthEnabled()) {
-    return <ClerkUnifiedRouteGuard {...props} />;
-  }
-
-  return <UnifiedRouteGuardInner {...props} />;
+  return isClerkAuthEnabled() ? (
+    <ClerkUnifiedRouteGuard {...props} />
+  ) : (
+    <UnifiedRouteGuardInner {...props} />
+  );
 }
 
 function RouteGuardSkeleton() {
   return (
-    <div className="flex h-full min-h-[400px] items-center justify-center">
+    <div
+      className="flex h-full min-h-[400px] items-center justify-center"
+      role="status"
+    >
       <div className="flex flex-col items-center gap-3">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-border border-t-primary" />
         <p className="text-sm text-muted-foreground">Verifying access...</p>
+      </div>
+    </div>
+  );
+}
+
+function AccessDeniedState() {
+  return (
+    <div className="flex min-h-[400px] items-center justify-center px-6">
+      <div className="max-w-md text-center">
+        <h1 className="text-xl font-semibold text-foreground">Access denied</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Your verified access does not include this resource. Contact your
+          workspace administrator if you believe this is an error.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function ExpiredAuthorizationState() {
+  return (
+    <div className="flex min-h-[400px] items-center justify-center px-6">
+      <div className="max-w-md text-center">
+        <h1 className="text-xl font-semibold text-foreground">
+          Session verification expired
+        </h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          We could not refresh your access. Sign in again to continue.
+        </p>
+        <a
+          className="mt-4 inline-flex text-sm font-medium text-primary underline-offset-4 hover:underline"
+          href="/sign-in"
+        >
+          Sign in again
+        </a>
       </div>
     </div>
   );

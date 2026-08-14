@@ -37,6 +37,7 @@ from .routes import (
     workflows,
 )
 from .routes import audit as audit_router
+from .routes.authorization_snapshot import router as authorization_snapshot_router
 from .routes.billing import router as billing_router
 from .routes.c1 import router as c1_router
 from .routes.checkpoints import checkpoint_router
@@ -79,6 +80,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(health_badges_router, prefix="/v1", tags=["health"])
     app.include_router(integrations_router, prefix="/v1")
     app.include_router(tenant_context_router, prefix="/v1")
+    app.include_router(authorization_snapshot_router, prefix="/v1")
     app.include_router(websocket_router, prefix="/v1")
     app.include_router(tenants_router, prefix="/v1")
     app.include_router(users_router, prefix="/v1")
