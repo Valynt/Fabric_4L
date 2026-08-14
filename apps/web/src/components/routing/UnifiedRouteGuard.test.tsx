@@ -8,6 +8,7 @@ const authorization = vi.hoisted(() => ({
   hasTenantMembership: vi.fn(() => true),
   hasAccountAccess: vi.fn(() => true),
 }));
+
 const matches = vi.hoisted(() =>
   vi.fn(() => [
     {
@@ -19,24 +20,35 @@ const matches = vi.hoisted(() =>
         },
       },
     },
-  ])
+  ]),
 );
 
 vi.mock("react-router-dom", () => ({
   Navigate: ({ to }: { to: string }) => <div>redirect:{to}</div>,
-  useLocation: () => ({ pathname: "/admin", search: "" }),
-  useParams: () => ({ tenantSlug: "tenant-a", accountId: "acc-1" }),
+  useLocation: () => ({
+    pathname: "/admin",
+    search: "",
+  }),
+  useParams: () => ({
+    tenantSlug: "tenant-a",
+    accountId: "acc-1",
+  }),
   useMatches: () => matches(),
 }));
+
 vi.mock("@/auth/AuthorizationProvider", () => ({
   useAuthorizationSnapshot: () => authorization,
 }));
+
 vi.mock("@/hooks/useFeatureFlags", () => ({
-  useFeatureFlags: () => ({ flagsEnabled: true, isLoading: false }),
+  useFeatureFlags: () => ({
+    flagsEnabled: true,
+    isLoading: false,
+  }),
 }));
 
-import { UnifiedRouteGuard } from "./UnifiedRouteGuard";
 import { AuthContext } from "@/contexts/AuthContext";
+import { UnifiedRouteGuard } from "./UnifiedRouteGuard";
 
 function renderGuard() {
   return render(
@@ -56,33 +68,63 @@ function renderGuard() {
       <UnifiedRouteGuard>
         <div>protected</div>
       </UnifiedRouteGuard>
-    </AuthContext.Provider>
+    </AuthContext.Provider>,
   );
 }
 
 describe("UnifiedRouteGuard snapshot authorization", () => {
   afterEach(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+
     authorization.status = "verified";
+    authorization.hasEveryPermission.mockReset();
+    authorization.hasEveryEntitlement.mockReset();
+    authorization.hasTenantMembership.mockReset();
+    authorization.hasAccountAccess.mockReset();
+
     authorization.hasEveryPermission.mockReturnValue(true);
     authorization.hasEveryEntitlement.mockReturnValue(true);
     authorization.hasTenantMembership.mockReturnValue(true);
     authorization.hasAccountAccess.mockReturnValue(true);
+
+    matches.mockReset();
+    matches.mockReturnValue([
+      {
+        handle: {
+          accessPolicy: {
+            requiresAuth: true,
+            fallbackRoute: "/home",
+            requiredTier: "admin",
+          },
+        },
+      },
+    ]);
   });
 
   it("never lets persisted admin presentation state grant a route", () => {
     localStorage.setItem(
       "user-tier-storage",
-      JSON.stringify({ state: { currentTier: "admin" } })
+      JSON.stringify({
+        state: {
+          currentTier: "admin",
+        },
+      }),
     );
+
     authorization.hasEveryPermission.mockReturnValue(false);
+
     renderGuard();
+
     expect(screen.getByText("redirect:/home")).toBeInTheDocument();
     expect(screen.queryByText("protected")).not.toBeInTheDocument();
   });
 
   it("does not render protected content while the snapshot is loading", () => {
     authorization.status = "loading";
+
     renderGuard();
+
     expect(screen.getByText("Verifying access...")).toBeInTheDocument();
     expect(screen.queryByText("protected")).not.toBeInTheDocument();
   });
@@ -100,10 +142,14 @@ describe("UnifiedRouteGuard snapshot authorization", () => {
         },
       },
     ]);
+
     authorization.hasAccountAccess.mockReturnValue(false);
+
     renderGuard();
+
     expect(
-      screen.getByText("redirect:/t/tenant-a/accounts")
+      screen.getByText("redirect:/t/tenant-a/accounts"),
     ).toBeInTheDocument();
+    expect(screen.queryByText("protected")).not.toBeInTheDocument();
   });
 });
