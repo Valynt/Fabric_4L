@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ClerkAuthBridge } from "@/auth/ClerkAuthBridge";
+import { AuthorizationProvider } from "@/auth/AuthorizationProvider";
 import { router } from "./shell/router";
 
 export default function App() {
@@ -18,8 +19,10 @@ export default function App() {
             <TooltipProvider>
               <OfflineBanner />
               <ClerkAuthBridge>
-                <Toaster />
-                <RouterProvider router={router} />
+                <AuthorizationProvider>
+                  <Toaster />
+                  <RouterProvider router={router} />
+                </AuthorizationProvider>
               </ClerkAuthBridge>
             </TooltipProvider>
           </AuthProvider>

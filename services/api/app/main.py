@@ -228,6 +228,7 @@ app.include_router(jobs.router, prefix="/v1")
 # to a legacy mode and keeps the API surface consistent with runtime config.
 if os.getenv("AUTH_PROVIDER", "clerk").strip().lower() == AUTH_PROVIDER_CLERK:
     app.include_router(clerk_auth.router, prefix="/v1")
+    app.include_router(clerk_auth.authorization_router, prefix="/v1")
 
 app.include_router(intelligence.router, prefix="/v1")
 app.include_router(intelligence.legacy_router, prefix="/v1")

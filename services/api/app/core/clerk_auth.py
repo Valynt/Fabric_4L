@@ -7,6 +7,7 @@ This module deliberately does NOT modify legacy auth in any way — flipping
 ``AUTH_PROVIDER=clerk`` swaps the dependency at the route layer without
 touching unrelated code paths. That keeps the rollout surgical.
 """
+
 from __future__ import annotations
 
 import logging
@@ -157,4 +158,7 @@ async def require_clerk_authenticated(
         ) from exc
 
     request.state.auth = auth
+    # Preserve verified external claims for endpoints that must bind output to
+    # the exact Clerk session. These claims are never accepted from headers.
+    request.state.clerk_claims = claims.raw
     return auth

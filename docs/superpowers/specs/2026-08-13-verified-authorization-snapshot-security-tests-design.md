@@ -45,29 +45,71 @@ type AuthorizationResolution =
   | { status: "expired"; snapshot: null; reason: "expired" };
 ```
 
-`AuthorizationSnapshot` contains:
+The backend returns an untrusted candidate with this versioned shape. Resolution
+status belongs exclusively to the frontend provider and is not serialized by the
+endpoint:
 
-- `principalId`: authenticated backend principal.
-- `sessionDiscriminator`: opaque value binding the snapshot to the current login session.
-- `tenantId`: exact active tenant.
-- Verified organization membership for `tenantId`.
-- `accountScope`: either tenant-wide or one exact account.
-- `roles`: resolved backend roles.
-- `permissions`: resolved backend permissions.
-- `entitlements`: resolved backend entitlements.
-- `source: "backend"`.
-- `issuedAt`: issuance instant.
-- `expiresAt`: expiry instant.
+```ts
+interface AuthorizationSnapshot {
+  schemaVersion: "1";
+  source: "backend";
+  identity: {
+    clerkUserId: string;
+    fabricUserId: string;
+    sessionDiscriminator: string;
+  };
+  tenant: {
+    fabricTenantId: string;
+    clerkOrganizationId: string;
+    tenantSlug: string | null;
+    membershipId: string;
+    membershipStatus: "active";
+  };
+  accountScope:
+    | { scopeType: "tenant"; accountId: null }
+    | { scopeType: "account"; accountId: string };
+  roles: CanonicalAuthorizationRole[];
+  permissions: string[];
+  entitlements: string[];
+  issuedAt: string;
+  expiresAt: string;
+}
+```
+
+`CanonicalAuthorizationRole` is a closed OpenAPI enum. Unknown roles fail
+candidate validation rather than being normalized by the frontend. Clerk
+establishes only `clerkUserId`, `clerkOrganizationId`, the exact session
+discriminator, and session/token expiry. The backend resolves Fabric identity,
+tenant, membership, roles, permissions, entitlements, and account access from
+canonical authorization data.
 
 The resolved account scope is a discriminated union, not an account list:
 
 ```ts
 type AuthorizationAccountScope =
-  | { kind: "tenant" }
-  | { kind: "account"; accountId: string };
+  | { scopeType: "tenant"; accountId: null }
+  | { scopeType: "account"; accountId: string };
 ```
 
-When the request includes `X-Account-ID`, a verified response must echo that exact account as `{ kind: "account", accountId }`. A missing echo, tenant-wide response, or different account is malformed for that request and is denied. Tenant-wide scope is valid only when the request and route do not select an account and the backend deliberately resolves tenant-wide access.
+When the request includes `X-Account-ID`, a verified response must echo that exact
+normalized account as `{ scopeType: "account", accountId }`. The header is an
+untrusted selector and never establishes tenant or identity. Nonexistent,
+foreign-tenant, and inaccessible accounts all return the same `403
+account_scope_denied` status, code, and public body shape. A missing echo,
+tenant-wide response, or different account is malformed for that request and is
+denied. Tenant-wide scope is valid only when no account is selected.
+
+Snapshot issuance uses one versioned/materialized authorization projection. The
+development adapter reads identity, membership, entitlements, and account grants
+under one projection lock and returns the observed version; a production adapter
+must materialize the same record from canonical authorization tables. The service
+may not fan out to independent authorization endpoints or stores. Unavailable or
+stale projection data fails closed.
+
+The maximum snapshot TTL is five minutes. `expiresAt` is the earliest of the
+Clerk session/token expiry, issuance plus five minutes, membership validity,
+permission-policy validity, and entitlement validity. Backend operations still
+enforce current authorization independently.
 
 `AuthorizationDenialReason` will be a closed set that distinguishes authentication/authorization denial, tenant or account mismatch, malformed response, unknown role, and transport failure without exposing sensitive backend details.
 
@@ -76,17 +118,22 @@ When the request includes `X-Account-ID`, a verified response must echo that exa
 One TanStack Query fetches and validates `GET /auth/authorization-snapshot`. Its key includes all identities that affect authorization:
 
 ```text
-["authorization-snapshot", principalId, sessionDiscriminator, tenantId, accountScope]
+["authorization-snapshot", "1", sessionDiscriminator, clerkOrganizationId, normalizedAccountScope]
 ```
 
-The request sends the selected account through `X-Account-ID` when account-scoped. Tenant and principal/session identity come from authenticated context, not attacker-controlled request data.
+The provider knows the exact Clerk session discriminator, active Clerk
+organization ID, and normalized requested account scope before fetching. It does
+not make a second tenant-resolution request to construct the key. The request
+sends the selected account through `X-Account-ID` only when account-scoped.
+Previous data is cleared synchronously and is never reused when any query-key
+identity changes.
 
 The boundary accepts `verified` only if:
 
 1. The response matches the runtime schema.
 2. `source` is exactly `backend`.
-3. Principal, session discriminator, and tenant match the active authenticated context.
-4. Organization membership is verified for the exact tenant.
+3. Clerk user, session discriminator, and Clerk organization match the active Clerk context.
+4. Fabric identity, Fabric tenant, and organization membership are structurally valid and bind tenant-scoped presentation state only after verification.
 5. The returned account scope matches the request, including the exact `X-Account-ID` echo.
 6. `issuedAt` and `expiresAt` are valid instants and the snapshot is not expired.
 7. Roles, permissions, and entitlements are correctly typed and roles are recognized.

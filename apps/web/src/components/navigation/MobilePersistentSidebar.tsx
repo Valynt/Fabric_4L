@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import type { NavItem, UserTier } from "@/navigation/navigationService";
 import type { Account } from "@/hooks/useAccounts";
+import { useAuthorizationSnapshot } from "@/auth/AuthorizationProvider";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -69,6 +70,7 @@ interface MobileNavItemProps {
 }
 
 function MobileNavItem({ item, currentTier, accountId, depth = 0 }: MobileNavItemProps) {
+  const authorization = useAuthorizationSnapshot();
   const location = useLocation().pathname;
   const { tenantSlug } = useParams<{ tenantSlug: string }>();
   const resolvedPath = useMemo(() => resolveWorkspacePath(item.path, accountId, tenantSlug), [item.path, accountId, tenantSlug]);
@@ -77,8 +79,8 @@ function MobileNavItem({ item, currentTier, accountId, depth = 0 }: MobileNavIte
   useEffect(() => { setOpen(isActive); }, [isActive]);
 
   const visibleChildren = useMemo(
-    () => item.children?.filter(child => isItemVisible(child, currentTier)),
-    [item.children, currentTier]
+    () => item.children?.filter(child => isItemVisible(child, currentTier) && authorization.hasEveryPermission([`tier:${child.tier}:access`])),
+    [authorization, item.children, currentTier]
   );
   const hasVisibleChildren = visibleChildren && visibleChildren.length > 0;
 
@@ -159,11 +161,12 @@ export function MobilePersistentSidebar({
   user,
   onSignOut,
 }: MobilePersistentSidebarProps) {
+  const authorization = useAuthorizationSnapshot();
   const prefersReducedMotion = usePrefersReducedMotion();
 
   const visibleNavItems = useMemo(
-    () => navItems.filter(item => isItemVisible(item, effectiveTier)),
-    [navItems, effectiveTier]
+    () => navItems.filter(item => isItemVisible(item, effectiveTier) && authorization.hasEveryPermission([`tier:${item.tier}:access`])),
+    [authorization, navItems, effectiveTier]
   );
 
   const handleAdvancedToggle = useCallback(() => {
@@ -259,4 +262,3 @@ export function MobilePersistentSidebar({
 }
 
 export default MobilePersistentSidebar;
-
