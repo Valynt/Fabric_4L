@@ -258,23 +258,28 @@ import { useLocation } from 'wouter';
 const [, navigate] = useLocation();
 navigate(/intelligence//signals);
 
-// Global UI state (Zustand)
-import { create } from 'zustand';
+// Global presentation state (Zustand)
+import {
+  ACCOUNT_CONTEXT_STORAGE_KEY,     // 'fabric-account-context-v1'
+  ACCOUNT_CONTEXT_STORAGE_VERSION, // 1
+  type PersistedAccountContext,
+} from '@fabric/platform-contract/stores';
 
-interface AccountContextState {
-  selectedAccountId: string | null;
-  setSelectedAccountId: (id: string) => void;
-}
+const accountContext: PersistedAccountContext = {
+  fabricTenantId: 'backend-verified-fabric-tenant-id',
+  selectedAccountId: null,
+};
 
-export const useAccountContextStore = create<AccountContextState>()(
-  persist(
-    (set) => ({
-      selectedAccountId: null,
-      setSelectedAccountId: (id) => set({ selectedAccountId: id }),
-    }),
-    { name: 'fabric-account-context', partialize: (s) => ({ selectedAccountId: s.selectedAccountId }) }
-  )
-);
+// Automatic hydration is disabled. Clear memory and the versioned session key
+// synchronously whenever the Clerk session or active organization changes.
+// Restore only after a verified backend snapshot exactly matches fabricTenantId.
+// Denied, expired, and unauthenticated resolution clears memory and storage.
+// Browser values are untrusted navigation/presentation input: an exact-account
+// backend authorization snapshot is still required before exposing account
+// data, routes, controls, or actions.
+void ACCOUNT_CONTEXT_STORAGE_KEY;
+void ACCOUNT_CONTEXT_STORAGE_VERSION;
+void accountContext;
 
 // Server state (TanStack Query)
 import { useQuery } from '@tanstack/react-query';

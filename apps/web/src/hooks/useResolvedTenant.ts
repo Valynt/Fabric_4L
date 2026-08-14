@@ -21,7 +21,12 @@ import { useAuth, useOrganization } from "@clerk/react";
 
 import { apiGet } from "@/api/typedClient";
 import { fabric } from "@/api/generated";
-import { withApiError, BaseApiError, STALE_TIME, RETRY_CONFIG } from "./useApiShared";
+import {
+  withApiError,
+  BaseApiError,
+  STALE_TIME,
+  RETRY_CONFIG,
+} from "./useApiShared";
 import { QK } from "./queryKeys";
 import { useAccountContextStore } from "@/stores/accountContextStore";
 import { isClerkAuthEnabled } from "@/auth/clerkConfig";
@@ -75,11 +80,16 @@ export function useResolvedTenant(): UseResolvedTenantResult {
   const { isLoaded: orgLoaded, organization } = useOrganization();
 
   const clerkEnabled = isClerkAuthEnabled();
-  const canFetch = clerkEnabled && authLoaded && isSignedIn && orgLoaded && organization != null;
+  const canFetch =
+    clerkEnabled &&
+    authLoaded &&
+    isSignedIn &&
+    orgLoaded &&
+    organization != null;
   const activeOrgId = organization?.id;
 
-  // Track previous tenant ID to optimize cache invalidation
   const previousTenantId = useRef<string | null>(null);
+  const previousOrgId = useRef<string | null | undefined>(undefined);
 
   const query = useQuery<ResolvedTenant, BaseApiError>({
     queryKey: TENANT_QUERY_KEY(activeOrgId),
@@ -101,27 +111,48 @@ export function useResolvedTenant(): UseResolvedTenantResult {
   // data changes, so stale data from one tenant/organization is never exposed
   // after a switch.
   useEffect(() => {
-    if (!activeOrgId) {
+    if (!clerkEnabled || !authLoaded) return;
+    if (!isSignedIn) {
+      useAccountContextStore.getState().authorizationUnavailable();
       return;
     }
-    useAccountContextStore.getState().clearSelectedAccountId();
+    if (!orgLoaded) return;
+    if (!activeOrgId) {
+      useAccountContextStore.getState().authorizationUnavailable();
+      return;
+    }
+    
+    if (previousOrgId.current === undefined) {
+      previousOrgId.current = activeOrgId;
+      return;
+    }
+    
+    if (previousOrgId.current !== activeOrgId) {
+      useAccountContextStore.getState().authorizationIdentityChanged();
+      previousOrgId.current = activeOrgId;
+    }
     queryClient.invalidateQueries({ queryKey: QK.accounts.all });
-  }, [activeOrgId, queryClient]);
+  }, [activeOrgId, authLoaded, clerkEnabled, isSignedIn, orgLoaded, queryClient]);
 
   // Only invalidate cache when the actual tenant ID changes, not on every data refresh
   useEffect(() => {
     if (!query.data) {
+      if (!query.isLoading && (query.isError || canFetch)) {
+        useAccountContextStore.getState().authorizationUnavailable();
+      }
       return;
     }
     const currentTenantId = query.data.fabricTenantId;
+    if (query.data.status !== "active") {
+      useAccountContextStore.getState().authorizationUnavailable();
+      return;
+    }
+    useAccountContextStore.getState().authorizationVerified(currentTenantId);
     if (previousTenantId.current !== currentTenantId) {
-      const accountContext = useAccountContextStore.getState();
-      accountContext.syncTenant();
-      accountContext.clearSelectedAccountId();
       queryClient.invalidateQueries({ queryKey: QK.accounts.all });
       previousTenantId.current = currentTenantId;
     }
-  }, [query.data, queryClient]);
+  }, [canFetch, query.data, query.isError, query.isLoading, queryClient]);
 
   return {
     tenant: query.data ?? null,

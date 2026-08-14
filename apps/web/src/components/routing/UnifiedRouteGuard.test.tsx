@@ -72,9 +72,10 @@ describe("UnifiedRouteGuard deny behavior", () => {
     mockUseMatches.mockReturnValue([{ handle: { accessPolicy: { requiresAuth: true, fallbackRoute: "/home", tenantScoped: true, accountScoped: true, requiredEntitlements: ["feature.a"] } } }]);
   });
 
-  it("redirects when account acl denies", () => {
+  it("redirects when backend account authorization denies a browser-selected account", () => {
     renderGuard();
     expect(screen.getByText("redirect:/t/tenant-a/accounts")).toBeInTheDocument();
+    expect(screen.queryByText("protected")).not.toBeInTheDocument();
   });
 
   it("does not wait for tier-store hydration when no security data is persisted", () => {

@@ -1,36 +1,23 @@
-/**
- * Canonical Zustand store patterns for Fabric 4L frontend.
- *
- * Rules:
- * - All stores are typed with interfaces.
- * - Server state lives in React Query, NOT Zustand.
- * - persist() is used only for client-side UI state.
- * - No 'any' in store definitions.
- */
+/** Canonical client-side presentation-store contracts. */
 
-import { create } from "zustand";
-import { persist, PersistOptions } from "zustand/middleware";
+export const ACCOUNT_CONTEXT_STORAGE_KEY = "fabric-account-context-v1" as const;
+export const ACCOUNT_CONTEXT_STORAGE_VERSION = 1 as const;
 
-/** Example: Account context store (canonical pattern) */
-export interface AccountContextState {
+/** Untrusted session payload. It never represents an authorization grant. */
+export interface PersistedAccountContext {
+  fabricTenantId: string | null;
   selectedAccountId: string | null;
-  setSelectedAccountId: (id: string) => void;
-  clearSelectedAccountId: () => void;
 }
 
-export const useAccountContextStore = create<AccountContextState>()(
-  persist(
-    (set) => ({
-      selectedAccountId: null,
-      setSelectedAccountId: (id) => set({ selectedAccountId: id }),
-      clearSelectedAccountId: () => set({ selectedAccountId: null }),
-    }),
-    {
-      name: "fabric-account-context",
-      partialize: (state) => ({ selectedAccountId: state.selectedAccountId }),
-    } as PersistOptions<AccountContextState>
-  )
-);
+export type AccountAuthorizationStatus = "unverified" | "verified";
 
-/** Helper type for typed store selectors */
+export interface AccountContextState extends PersistedAccountContext {
+  authorizationStatus: AccountAuthorizationStatus;
+  setSelectedAccountId: (id: string | null) => void;
+  clearSelectedAccountId: () => void;
+  authorizationIdentityChanged: () => void;
+  authorizationVerified: (fabricTenantId: string) => void;
+  authorizationUnavailable: () => void;
+}
+
 export type StoreSelector<T, R> = (state: T) => R;
