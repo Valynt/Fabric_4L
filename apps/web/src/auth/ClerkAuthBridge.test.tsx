@@ -25,6 +25,8 @@ import {
   getClerkSessionToken,
 } from "@/auth/clerkSession";
 import { setAuthProvider } from "@/test/utils/withAuthProvider";
+import { useAccountContextStore } from "@/stores/accountContextStore";
+import { ACCOUNT_CONTEXT_STORAGE_KEY } from "@fabric/platform-contract/stores";
 
 // ─────────────────────────────────────────────────────────────────────────
 // Mock Clerk. The mock state object is mutable; tests flip values and
@@ -112,6 +114,8 @@ describe("<ClerkAuthBridge />", () => {
     resetMockClerk();
     _resetClerkSessionForTests();
     setAuthProvider("clerk");
+    sessionStorage.clear();
+    useAccountContextStore.getState().authorizationUnavailable();
   });
 
   afterEach(() => {
@@ -197,6 +201,22 @@ describe("<ClerkAuthBridge />", () => {
     await expect(getClerkSessionToken()).resolves.toBeNull();
   });
 
+  it("synchronously clears account context when the Clerk session changes", async () => {
+    mockClerkState.isSignedIn = true;
+    mockClerkState.organization = { id: "org_a" };
+    const { rerender } = render(<ClerkAuthBridge />, { wrapper: Wrapper });
+    useAccountContextStore.getState().authorizationVerified("tenant-a");
+    useAccountContextStore.getState().setSelectedAccountId("acct-a");
+
+    await act(async () => {
+      mockClerkState.isSignedIn = false;
+      rerender(<ClerkAuthBridge />);
+    });
+
+    expect(useAccountContextStore.getState().selectedAccountId).toBeNull();
+    expect(sessionStorage.getItem(ACCOUNT_CONTEXT_STORAGE_KEY)).toBeNull();
+  });
+
   it("clears the active org id when organization becomes null", async () => {
     mockClerkState.isSignedIn = true;
     mockClerkState.organization = { id: "org_initial" };
@@ -230,10 +250,32 @@ describe("<ClerkAuthBridge />", () => {
     expect(getActiveClerkOrgId()).toBe("org_b");
   });
 
+  it("synchronously clears account context before a replacement organization resolves", async () => {
+    mockClerkState.isSignedIn = true;
+    mockClerkState.organization = { id: "org_a" };
+    const { rerender } = render(<ClerkAuthBridge />, { wrapper: Wrapper });
+    useAccountContextStore.getState().authorizationVerified("tenant-a");
+    useAccountContextStore.getState().setSelectedAccountId("acct-a");
+
+    await act(async () => {
+      mockClerkState.organization = { id: "org_b" };
+      rerender(<ClerkAuthBridge />);
+    });
+
+    expect(useAccountContextStore.getState()).toMatchObject({
+      fabricTenantId: null,
+      selectedAccountId: null,
+      authorizationStatus: "unverified",
+    });
+    expect(sessionStorage.getItem(ACCOUNT_CONTEXT_STORAGE_KEY)).toBeNull();
+  });
+
   it("invalidates React Query cache when the active organization switches", async () => {
     mockClerkState.isSignedIn = true;
     mockClerkState.organization = { id: "org_a" };
-    testQueryClient.setQueryData(["tenant-scoped", "data"], { tenant: "org_a" });
+    testQueryClient.setQueryData(["tenant-scoped", "data"], {
+      tenant: "org_a",
+    });
 
     const { rerender } = render(<ClerkAuthBridge />, { wrapper: Wrapper });
     await act(async () => {
@@ -241,7 +283,9 @@ describe("<ClerkAuthBridge />", () => {
       rerender(<ClerkAuthBridge />);
     });
 
-    const staleQuery = testQueryClient.getQueryCache().find({ queryKey: ["tenant-scoped", "data"] });
+    const staleQuery = testQueryClient
+      .getQueryCache()
+      .find({ queryKey: ["tenant-scoped", "data"] });
     expect(staleQuery?.state.isInvalidated).toBe(true);
   });
 
@@ -281,7 +325,7 @@ describe("<ClerkAuthBridge />", () => {
       <StrictMode>
         <ClerkAuthBridge />
       </StrictMode>,
-      { wrapper: Wrapper },
+      { wrapper: Wrapper }
     );
 
     // Under StrictMode the effect's cleanup fires during the simulated
@@ -298,7 +342,7 @@ describe("<ClerkAuthBridge />", () => {
       <StrictMode>
         <ClerkAuthBridge />
       </StrictMode>,
-      { wrapper: Wrapper },
+      { wrapper: Wrapper }
     );
 
     expect(getActiveClerkOrgId()).toBe("org_strict");
@@ -313,7 +357,7 @@ describe("<ClerkAuthBridge />", () => {
       <ClerkAuthBridge>
         <div>protected app</div>
       </ClerkAuthBridge>,
-      { wrapper: Wrapper },
+      { wrapper: Wrapper }
     );
 
     expect(screen.getByText("protected app")).toBeInTheDocument();
@@ -324,7 +368,7 @@ describe("<ClerkAuthBridge />", () => {
       rerender(
         <ClerkAuthBridge>
           <div>protected app</div>
-        </ClerkAuthBridge>,
+        </ClerkAuthBridge>
       );
     });
 

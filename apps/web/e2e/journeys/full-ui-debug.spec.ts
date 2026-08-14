@@ -6,6 +6,7 @@
  */
 import { test, expect, type ConsoleMessage, type Page } from '../fixtures/contract-test';
 import { setUserTier, seedAuthState, clearUserTier, clearAuthState } from '../fixtures';
+import { ACCOUNT_CONTEXT_STORAGE_KEY, ACCOUNT_CONTEXT_STORAGE_VERSION } from '@fabric/platform-contract/stores';
 
 type RouteStatus = 'ok' | '404' | 'error' | 'redirect' | 'timeout' | 'crash';
 
@@ -65,12 +66,11 @@ async function diagnoseRoute(page: Page, route: typeof ALL_ROUTES[number]): Prom
   }
 
   if (route.scoped) {
-    await page.evaluate(() => {
+    await page.evaluate(({ storageKey, storageVersion }) => {
       try {
-        localStorage.setItem('fabric-account-context',
-          JSON.stringify({ state: { selectedAccountId: 'acc-debug-001' }, version: 0 }));
+        sessionStorage.setItem(storageKey, JSON.stringify({ state: { fabricTenantId: 'tenant-debug', selectedAccountId: 'acc-debug-001' }, version: storageVersion }));
       } catch {}
-    });
+    }, { storageKey: ACCOUNT_CONTEXT_STORAGE_KEY, storageVersion: ACCOUNT_CONTEXT_STORAGE_VERSION });
   }
 
   let status: RouteResult['status'] = 'ok';

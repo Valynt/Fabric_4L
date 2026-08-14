@@ -7,12 +7,13 @@
  * the workspace tabs become accessible.
  *
  * Contract: The accountContextStore is a zustand store persisted
- *           to sessionStorage under the key 'fabric-account-context'.
+ *           to the canonical versioned sessionStorage key.
  *
  * IMPORTANT: All storage operations require the page to be on a
  * same-origin URL first. These helpers ensure that.
  */
 import { Page } from '@playwright/test';
+import { ACCOUNT_CONTEXT_STORAGE_KEY, ACCOUNT_CONTEXT_STORAGE_VERSION } from '@fabric/platform-contract/stores';
 
 export interface TestAccount {
   id: string;
@@ -64,17 +65,19 @@ async function ensureSameOrigin(page: Page): Promise<void> {
 export async function setSelectedAccount(page: Page, account: TestAccount): Promise<void> {
   await ensureSameOrigin(page);
 
-  await page.evaluate((acct: TestAccount) => {
+  await page.evaluate(({ acct, storageKey, storageVersion }) => {
+    const authMeta = JSON.parse(sessionStorage.getItem('vf.auth.session.meta') ?? '{}');
+    const fabricTenantId = authMeta.tenantId;
+    if (typeof fabricTenantId !== 'string' || !fabricTenantId) throw new Error('verified Fabric tenant fixture required');
     // Must match zustand persist shape: only selectedAccountId is partialised
     const storeState = {
       state: {
-        selectedAccountId: acct.id,
-        _persistedTenantId: null,
+        fabricTenantId, selectedAccountId: acct.id,
       },
-      version: 0,
+      version: storageVersion,
     };
-    sessionStorage.setItem('fabric-account-context', JSON.stringify(storeState));
-  }, account);
+    sessionStorage.setItem(storageKey, JSON.stringify(storeState));
+  }, { acct: account, storageKey: ACCOUNT_CONTEXT_STORAGE_KEY, storageVersion: ACCOUNT_CONTEXT_STORAGE_VERSION });
 }
 
 /**
@@ -82,9 +85,7 @@ export async function setSelectedAccount(page: Page, account: TestAccount): Prom
  */
 export async function clearSelectedAccount(page: Page): Promise<void> {
   try {
-    await page.evaluate(() => {
-      sessionStorage.removeItem('fabric-account-context');
-    });
+    await page.evaluate(storageKey => sessionStorage.removeItem(storageKey), ACCOUNT_CONTEXT_STORAGE_KEY);
   } catch {
     // Page may already be closed — safe to ignore
   }
@@ -94,8 +95,8 @@ export async function clearSelectedAccount(page: Page): Promise<void> {
  * Get the currently selected account ID from the store.
  */
 export async function getSelectedAccountId(page: Page): Promise<string | null> {
-  return page.evaluate(() => {
-    const raw = sessionStorage.getItem('fabric-account-context');
+  return page.evaluate(storageKey => {
+    const raw = sessionStorage.getItem(storageKey);
     if (!raw) return null;
     try {
       const parsed = JSON.parse(raw);
@@ -103,7 +104,7 @@ export async function getSelectedAccountId(page: Page): Promise<string | null> {
     } catch {
       return null;
     }
-  });
+  }, ACCOUNT_CONTEXT_STORAGE_KEY);
 }
 
 /**
@@ -118,16 +119,18 @@ export async function switchAccount(page: Page, fromAccount: TestAccount, toAcco
     ? currentUrl.replaceAll(encodeURIComponent(fromAccount.id), encodeURIComponent(toAccount.id)).replaceAll(fromAccount.id, toAccount.id)
     : null;
 
-  await page.evaluate((acct: TestAccount) => {
+  await page.evaluate(({ acct, storageKey, storageVersion }) => {
+    const authMeta = JSON.parse(sessionStorage.getItem('vf.auth.session.meta') ?? '{}');
+    const fabricTenantId = authMeta.tenantId;
+    if (typeof fabricTenantId !== 'string' || !fabricTenantId) throw new Error('verified Fabric tenant fixture required');
     const storeState = {
       state: {
-        selectedAccountId: acct.id,
-        _persistedTenantId: null,
+        fabricTenantId, selectedAccountId: acct.id,
       },
-      version: 0,
+      version: storageVersion,
     };
-    sessionStorage.setItem('fabric-account-context', JSON.stringify(storeState));
-  }, toAccount);
+    sessionStorage.setItem(storageKey, JSON.stringify(storeState));
+  }, { acct: toAccount, storageKey: ACCOUNT_CONTEXT_STORAGE_KEY, storageVersion: ACCOUNT_CONTEXT_STORAGE_VERSION });
 
   // Trigger navigation/reload to simulate the context switch. When already on
   // an account-scoped route, keep the same workspace tab but replace the
@@ -154,15 +157,15 @@ export async function verifyAccountContext(page: Page, expectedAccount: TestAcco
  */
 export async function clearAccountData(page: Page): Promise<void> {
   try {
-    await page.evaluate(() => {
-      sessionStorage.removeItem('fabric-account-context');
+    await page.evaluate(storageKey => {
+      sessionStorage.removeItem(storageKey);
       // Clear any cached account-specific data
       Object.keys(localStorage).forEach((key) => {
         if (key.startsWith('account-') || key.startsWith('acct-')) {
           localStorage.removeItem(key);
         }
       });
-    });
+    }, ACCOUNT_CONTEXT_STORAGE_KEY);
   } catch {
     // Page may already be closed — safe to ignore
   }
