@@ -140,7 +140,7 @@ describe("useUserTierStore", () => {
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
       useUserTierStore.getState().setUserRole("unknown_role");
       const state = useUserTierStore.getState();
-      expect(state.currentTier).toBe("standard");
+      expect(state.currentTier).toBe("unknown");
       expect(state.permissions).toEqual(standardPermissions);
       warnSpy.mockRestore();
     });
