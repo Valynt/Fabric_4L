@@ -108,8 +108,9 @@ describe('useResolvedTenant', () => {
     localResetClerkMocks();
     sessionStorage.clear();
     useAccountContextStore.setState({
+      fabricTenantId: null,
       selectedAccountId: null,
-      _persistedTenantId: null,
+      authorizationStatus: 'unverified',
     });
   });
 
@@ -303,6 +304,7 @@ describe('useResolvedTenant', () => {
     expect(result.current.error?.name).toBe('BaseApiError');
     expect(result.current.error?.message).toContain('401');
     expect(result.current.error?.statusCode).toBe(401);
+    expect(useAccountContextStore.getState().selectedAccountId).toBeNull();
   });
 
   it('exposes 403 errors for unmapped org or inactive tenant', async () => {
@@ -321,5 +323,6 @@ describe('useResolvedTenant', () => {
     expect(result.current.error).toBeDefined();
     expect(result.current.error).toBeInstanceOf(BaseApiError);
     expect(result.current.error?.statusCode).toBe(403);
+    expect(useAccountContextStore.getState().selectedAccountId).toBeNull();
   });
 });
