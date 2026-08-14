@@ -89,7 +89,7 @@ export function useResolvedTenant(): UseResolvedTenantResult {
   const activeOrgId = organization?.id;
 
   const previousTenantId = useRef<string | null>(null);
-  const previousOrgId = useRef<string | null | undefined>(activeOrgId);
+  const previousOrgId = useRef<string | null | undefined>(undefined);
 
   const query = useQuery<ResolvedTenant, BaseApiError>({
     queryKey: TENANT_QUERY_KEY(activeOrgId),
@@ -111,16 +111,28 @@ export function useResolvedTenant(): UseResolvedTenantResult {
   // data changes, so stale data from one tenant/organization is never exposed
   // after a switch.
   useEffect(() => {
-    if (!clerkEnabled || !authLoaded || !isSignedIn || !activeOrgId) {
+    if (!clerkEnabled || !authLoaded) return;
+    if (!isSignedIn) {
       useAccountContextStore.getState().authorizationUnavailable();
       return;
     }
+    if (!orgLoaded) return;
+    if (!activeOrgId) {
+      useAccountContextStore.getState().authorizationUnavailable();
+      return;
+    }
+    
+    if (previousOrgId.current === undefined) {
+      previousOrgId.current = activeOrgId;
+      return;
+    }
+    
     if (previousOrgId.current !== activeOrgId) {
       useAccountContextStore.getState().authorizationIdentityChanged();
       previousOrgId.current = activeOrgId;
     }
     queryClient.invalidateQueries({ queryKey: QK.accounts.all });
-  }, [activeOrgId, authLoaded, clerkEnabled, isSignedIn, queryClient]);
+  }, [activeOrgId, authLoaded, clerkEnabled, isSignedIn, orgLoaded, queryClient]);
 
   // Only invalidate cache when the actual tenant ID changes, not on every data refresh
   useEffect(() => {
