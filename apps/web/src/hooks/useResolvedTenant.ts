@@ -111,7 +111,13 @@ export function useResolvedTenant(): UseResolvedTenantResult {
   // data changes, so stale data from one tenant/organization is never exposed
   // after a switch.
   useEffect(() => {
-    if (!clerkEnabled || !authLoaded || !isSignedIn || !activeOrgId) {
+    if (!clerkEnabled) {
+      return;
+    }
+    if (!authLoaded || (isSignedIn && !orgLoaded)) {
+      return;
+    }
+    if (!isSignedIn || !activeOrgId) {
       useAccountContextStore.getState().authorizationUnavailable();
       return;
     }
@@ -120,7 +126,7 @@ export function useResolvedTenant(): UseResolvedTenantResult {
       previousOrgId.current = activeOrgId;
     }
     queryClient.invalidateQueries({ queryKey: QK.accounts.all });
-  }, [activeOrgId, authLoaded, clerkEnabled, isSignedIn, queryClient]);
+  }, [activeOrgId, authLoaded, clerkEnabled, isSignedIn, orgLoaded, queryClient]);
 
   // Only invalidate cache when the actual tenant ID changes, not on every data refresh
   useEffect(() => {
