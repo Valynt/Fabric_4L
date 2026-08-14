@@ -49,19 +49,20 @@ function OrgSync({
   // OrgSync is only rendered from <ClerkAuthBridge> after its isClerkAuthEnabled()
   // gate and an isSignedIn check, so <ClerkProvider> is guaranteed to be mounted
   // and the hook may be called unconditionally.
-  const { organization } = useOrganization();
+  const { isLoaded, organization } = useOrganization();
   const queryClient = useQueryClient();
 
   const resetAccountContextRef = useRef(resetAccountContext);
   resetAccountContextRef.current = resetAccountContext;
-  const previousOrgIdRef = useRef(organization?.id ?? null);
+  const previousOrgIdRef = useRef<string | null | undefined>(undefined);
 
   useLayoutEffect(() => {
+    if (!isLoaded) return;
     const nextOrgId = organization?.id ?? null;
-    if (previousOrgIdRef.current !== nextOrgId) {
+    if (previousOrgIdRef.current !== undefined && previousOrgIdRef.current !== nextOrgId) {
       resetAccountContextRef.current();
-      previousOrgIdRef.current = nextOrgId;
     }
+    previousOrgIdRef.current = nextOrgId;
     setActiveClerkOrgId(nextOrgId);
     // Tenant/org switch: do not reuse any cached account or tenant-scoped data
     // from the previous organization. The gateway is the authority, but this
@@ -70,7 +71,7 @@ function OrgSync({
     return () => {
       setActiveClerkOrgId(null);
     };
-  }, [organization?.id, queryClient]);
+  }, [isLoaded, organization?.id, queryClient]);
 
   return null;
 }
