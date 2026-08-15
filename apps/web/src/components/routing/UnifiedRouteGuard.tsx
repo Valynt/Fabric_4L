@@ -60,8 +60,9 @@ export function UnifiedRouteGuard({ children }: UnifiedRouteGuardProps) {
     );
   }
 
+  // Authentication is AuthContext. Authorization grants come only from a
+  // verified backend snapshot. requireAuth-only routes do not invent grants.
   const requiresVerifiedAuthorization =
-    policy.requiresAuth ||
     policy.tenantScoped ||
     policy.accountScoped ||
     !!policy.requiredTier ||
