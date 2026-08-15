@@ -24,7 +24,10 @@ import { useNavigation } from "@/hooks/useNavigation";
 import { useLayoutEffect, useRef, type ReactNode } from "react";
 
 import { getClerkUrls, isClerkAuthEnabled } from "@/auth/clerkConfig";
-import { useAuthorizationSnapshot } from "@/auth/AuthorizationProvider";
+import {
+  AuthorizationProvider,
+  useAuthorizationSnapshot,
+} from "@/auth/AuthorizationProvider";
 
 interface RequireClerkAuthProps {
   children: ReactNode;
@@ -190,8 +193,13 @@ function RequireClerkAuthInner({
 
 export function RequireClerkAuth(props: RequireClerkAuthProps) {
   // No-op under legacy auth — let downstream <ProtectedRoute /> own the gate.
-  if (!isClerkAuthEnabled()) {
-    return <>{props.children}</>;
-  }
-  return <RequireClerkAuthInner {...props} />;
+  return (
+    <AuthorizationProvider>
+      {isClerkAuthEnabled() ? (
+        <RequireClerkAuthInner {...props} />
+      ) : (
+        <>{props.children}</>
+      )}
+    </AuthorizationProvider>
+  );
 }

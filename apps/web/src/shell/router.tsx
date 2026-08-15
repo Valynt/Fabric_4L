@@ -5,7 +5,6 @@ import { useAuthContext } from "@/contexts/AuthContext";
 import { useAccountContextStore } from "@/stores/accountContextStore";
 import { GlobalLayout } from "@/components/layout/GlobalLayout";
 import { UnifiedRouteGuard } from "@/components/routing/UnifiedRouteGuard";
-import { AuthorizationProvider } from "@/auth/AuthorizationProvider";
 import { RequireClerkAuth } from "@/components/routing/RequireClerkAuth";
 import { RootAuthStateAdapter } from "@/auth/rootAuthStateAdapter";
 import { isClerkAuthEnabled } from "@/auth/clerkConfig";
@@ -333,9 +332,7 @@ export const router = createBrowserRouter([
   {
     element: (
       <RequireClerkAuth requireOrganization={false}>
-        <AuthorizationProvider>
-          <GlobalLayout />
-        </AuthorizationProvider>
+        <GlobalLayout />
       </RequireClerkAuth>
     ),
     children: [

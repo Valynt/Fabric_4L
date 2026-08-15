@@ -60,6 +60,9 @@ vi.mock("@clerk/react", () => ({
 }));
 
 vi.mock("@/auth/AuthorizationProvider", () => ({
+  AuthorizationProvider: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="authorization-provider">{children}</div>
+  ),
   useAuthorizationSnapshot: () => ({
     status: mockTenantState.isLoading
       ? "loading"
@@ -129,6 +132,19 @@ describe("<RequireClerkAuth />", () => {
     mockTenantState.tenant = null;
     mockTenantState.isLoading = false;
     mockTenantState.error = null;
+  });
+
+  it("mounts authorization context above the organization guard", () => {
+    setAuthProvider("clerk");
+    mockClerkState.isSignedIn = true;
+    mockClerkState.organization = { id: "org_1" };
+    mockTenantState.tenant = { fabricTenantId: "tenant_1" };
+
+    renderAt("/protected");
+
+    expect(screen.getByTestId("authorization-provider")).toContainElement(
+      screen.getByText(PROTECTED_CONTENT)
+    );
   });
 
   afterEach(() => {

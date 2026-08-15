@@ -8,7 +8,7 @@ import {
 } from "react";
 import { useOrganization, useSession, useUser } from "@clerk/react";
 import { useQuery } from "@tanstack/react-query";
-import { useParams } from "react-router-dom";
+import { useMatches } from "react-router-dom";
 import { apiGet } from "@/api/typedClient";
 import { isClerkAuthEnabled } from "@/auth/clerkConfig";
 import { useAuthContext } from "@/contexts/AuthContext";
@@ -41,6 +41,64 @@ const AuthorizationContext = createContext<AuthorizationContextValue | null>(
   null
 );
 const empty = (): readonly string[] => [];
+
+type RouteMatchWithParams = {
+  params: Record<string, string | undefined>;
+};
+
+type AccountAuthorizationActions = Pick<
+  ReturnType<typeof useAccountContextStore.getState>,
+  "authorizationVerified" | "authorizationUnavailable"
+>;
+
+type AccountAuthorizationResolution =
+  | {
+      status: "verified";
+      snapshot: { tenant: { fabricTenantId: string } };
+    }
+  | {
+      status: "loading" | "denied" | "expired";
+      snapshot: null;
+    };
+
+export function resolveRouteAccountId(
+  matches: readonly RouteMatchWithParams[],
+  selectedAccountId: string | null
+): string | null {
+  for (let index = matches.length - 1; index >= 0; index -= 1) {
+    const accountId = matches[index]?.params.accountId?.trim();
+    if (accountId) return accountId;
+  }
+  return selectedAccountId?.trim() || null;
+}
+
+export function shouldHoldAuthorizationLoading({
+  ready,
+  identityReady,
+  isPending,
+  isFetching,
+}: {
+  ready: boolean;
+  identityReady: boolean;
+  isPending: boolean;
+  isFetching: boolean;
+}): boolean {
+  return !ready || (identityReady && (isPending || isFetching));
+}
+
+export function synchronizeAccountAuthorization(
+  resolution: AccountAuthorizationResolution,
+  actions: AccountAuthorizationActions
+): void {
+  if (resolution.status === "verified") {
+    actions.authorizationVerified(resolution.snapshot.tenant.fabricTenantId);
+  } else if (
+    resolution.status === "denied" ||
+    resolution.status === "expired"
+  ) {
+    actions.authorizationUnavailable();
+  }
+}
 
 export function authorizationSnapshotQueryKey(
   sessionDiscriminator: string | null,
@@ -113,7 +171,8 @@ function valueFor(
 
 function LegacyAuthorizationProvider({ children }: { children: ReactNode }) {
   const auth = useAuthContext();
-  const { accountId } = useParams<{ accountId: string }>();
+  const matches = useMatches();
+  const accountId = resolveRouteAccountId(matches, null);
   const isAdmin = auth.user?.role === "admin" || auth.user?.role === "tenant_admin";
   const value = valueFor({
     status: "legacy",
@@ -138,8 +197,8 @@ function ClerkAuthorizationProvider({ children }: { children: ReactNode }) {
   const selectedAccountId = useAccountContextStore(
     state => state.selectedAccountId
   );
-  const { accountId: routeAccountId } = useParams<{ accountId: string }>();
-  const accountId = routeAccountId?.trim() || selectedAccountId?.trim() || null;
+  const matches = useMatches();
+  const accountId = resolveRouteAccountId(matches, selectedAccountId);
   const ready = userLoaded && sessionLoaded && organizationLoaded;
   const identityReady = ready && !!user && !!session && !!organization;
   const query = useQuery({
@@ -182,7 +241,14 @@ function ClerkAuthorizationProvider({ children }: { children: ReactNode }) {
   }, [query.data, query.refetch]);
 
   const resolution = useMemo<AuthorizationResolution>(() => {
-    if (!ready || (identityReady && query.isPending))
+    if (
+      shouldHoldAuthorizationLoading({
+        ready,
+        identityReady,
+        isPending: query.isPending,
+        isFetching: query.isFetching,
+      })
+    )
       return { status: "loading", snapshot: null };
     if (!identityReady)
       return { status: "denied", snapshot: null, reason: "unauthenticated" };
@@ -201,12 +267,25 @@ function ClerkAuthorizationProvider({ children }: { children: ReactNode }) {
     organization,
     query.data,
     query.isError,
+    query.isFetching,
     query.isPending,
     ready,
     accountId,
     session,
     user,
   ]);
+
+  useEffect(() => {
+    useAccountContextStore.getState().authorizationIdentityChanged();
+  }, [session?.id, organization?.id, user?.id]);
+
+  useEffect(() => {
+    synchronizeAccountAuthorization(
+      resolution,
+      useAccountContextStore.getState()
+    );
+  }, [resolution]);
+
   const value = useMemo(() => valueFor(resolution), [resolution]);
   return (
     <AuthorizationContext.Provider value={value}>
