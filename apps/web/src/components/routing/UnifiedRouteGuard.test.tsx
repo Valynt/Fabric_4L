@@ -1,5 +1,7 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import type { ReactNode } from "react";
 import { render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
 import { AuthContext } from "@/contexts/AuthContext";
 import { setAuthProvider } from "@/test/utils/withAuthProvider";
 
@@ -7,6 +9,7 @@ const state = vi.hoisted(() => ({
   authz: "loading" as "loading" | "verified" | "denied" | "expired",
   signedIn: true,
 }));
+
 vi.mock("react-router-dom", () => ({
   Navigate: ({
     to,
@@ -19,8 +22,13 @@ vi.mock("react-router-dom", () => ({
       redirect:{to}:{navState?.from}
     </div>
   ),
-  useLocation: () => ({ pathname: "/t/tenant-a/accounts", search: "?tab=all" }),
-  useParams: () => ({ tenantSlug: "tenant-a" }),
+  useLocation: () => ({
+    pathname: "/t/tenant-a/accounts",
+    search: "?tab=all",
+  }),
+  useParams: () => ({
+    tenantSlug: "tenant-a",
+  }),
   useMatches: () => [
     {
       handle: {
@@ -34,12 +42,20 @@ vi.mock("react-router-dom", () => ({
     },
   ],
 }));
+
 vi.mock("@clerk/react", () => ({
-  useAuth: () => ({ isLoaded: true, isSignedIn: state.signedIn }),
+  useAuth: () => ({
+    isLoaded: true,
+    isSignedIn: state.signedIn,
+  }),
 }));
+
 vi.mock("@/hooks/useFeatureFlags", () => ({
-  useFeatureFlags: () => ({ flagsEnabled: true }),
+  useFeatureFlags: () => ({
+    flagsEnabled: true,
+  }),
 }));
+
 vi.mock("@/hooks/useAuthorizationSnapshot", () => ({
   useAuthorizationSnapshot: () =>
     state.authz === "verified"
@@ -54,12 +70,16 @@ vi.mock("@/hooks/useAuthorizationSnapshot", () => ({
             entitlements: [],
           },
         }
-      : { status: state.authz, permissions: [], entitlements: [] },
+      : {
+          status: state.authz,
+          permissions: [],
+          entitlements: [],
+        },
 }));
 
 import { UnifiedRouteGuard } from "./UnifiedRouteGuard";
 
-function renderGuard(fallback?: React.ReactNode, authenticated = true) {
+function renderGuard(fallback?: ReactNode, authenticated = true) {
   return render(
     <AuthContext.Provider
       value={{
@@ -77,7 +97,7 @@ function renderGuard(fallback?: React.ReactNode, authenticated = true) {
       <UnifiedRouteGuard fallback={fallback}>
         <div>protected</div>
       </UnifiedRouteGuard>
-    </AuthContext.Provider>
+    </AuthContext.Provider>,
   );
 }
 
@@ -87,41 +107,59 @@ describe("UnifiedRouteGuard", () => {
     state.signedIn = true;
     setAuthProvider("legacy");
   });
+
   it("renders verification without protected children while loading", () => {
     renderGuard();
+
     expect(screen.getByText("Verifying access...")).toBeInTheDocument();
     expect(screen.queryByText("protected")).not.toBeInTheDocument();
   });
+
   it("renders children only when allowed", () => {
     state.authz = "verified";
+
     renderGuard();
+
     expect(screen.getByText("protected")).toBeInTheDocument();
   });
+
   it("renders supplied fallback on denial", () => {
     state.authz = "denied";
+
     renderGuard(<div>fallback</div>);
+
     expect(screen.getByText("fallback")).toBeInTheDocument();
+    expect(screen.queryByText("protected")).not.toBeInTheDocument();
   });
+
   it("renders in-place denial and preserves attempted URL", () => {
     state.authz = "denied";
+
     const view = renderGuard();
+
     expect(screen.getByText("Access denied")).toBeInTheDocument();
     expect(
       view.container.querySelector(
-        '[data-attempted-url="/t/tenant-a/accounts?tab=all"]'
-      )
+        '[data-attempted-url="/t/tenant-a/accounts?tab=all"]',
+      ),
     ).toBeTruthy();
+    expect(screen.queryByText("protected")).not.toBeInTheDocument();
   });
+
   it("renders expired session without protected children", () => {
     state.authz = "expired";
+
     renderGuard();
+
     expect(screen.getByText("Session expired")).toBeInTheDocument();
     expect(screen.queryByText("protected")).not.toBeInTheDocument();
   });
+
   it("redirects unauthenticated users with return URL", () => {
     renderGuard(undefined, false);
+
     expect(
-      screen.getByText("redirect:/sign-in:/t/tenant-a/accounts?tab=all")
+      screen.getByText("redirect:/sign-in:/t/tenant-a/accounts?tab=all"),
     ).toBeInTheDocument();
     expect(screen.queryByText("protected")).not.toBeInTheDocument();
   });

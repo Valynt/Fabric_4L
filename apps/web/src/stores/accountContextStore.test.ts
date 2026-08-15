@@ -1,87 +1,129 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from "vitest";
 import {
-  loadAccountContextForTenant,
-  saveAccountContextForTenant,
-  useAccountContextStore,
-} from './accountContextStore';
-import {
-  _resetClerkSessionForTests,
-  setActiveClerkOrgId,
-} from '@/auth/clerkSession';
+  ACCOUNT_CONTEXT_STORAGE_KEY,
+  ACCOUNT_CONTEXT_STORAGE_VERSION,
+} from "@fabric/platform-contract/stores";
+import { useAccountContextStore } from "./accountContextStore";
 
-describe('accountContextStore', () => {
+function seed(state: unknown, version = ACCOUNT_CONTEXT_STORAGE_VERSION): void {
+  sessionStorage.setItem(
+    ACCOUNT_CONTEXT_STORAGE_KEY,
+    JSON.stringify({ state, version })
+  );
+}
+
+describe("accountContextStore authorization lifecycle", () => {
   beforeEach(() => {
     sessionStorage.clear();
-    _resetClerkSessionForTests();
-    useAccountContextStore.setState({
-      selectedAccountId: null,
-      _persistedTenantId: null,
+    useAccountContextStore.getState().authorizationUnavailable();
+  });
+
+  it("does not expose or persist a selected account before verification", () => {
+    useAccountContextStore.getState().setSelectedAccountId("acct_untrusted");
+    expect(useAccountContextStore.getState().selectedAccountId).toBeNull();
+    expect(sessionStorage.getItem(ACCOUNT_CONTEXT_STORAGE_KEY)).toBeNull();
+  });
+
+  it("persists only the verified Fabric tenant and selected account", () => {
+    useAccountContextStore.getState().authorizationVerified("fabric-tenant-a");
+    useAccountContextStore.getState().setSelectedAccountId("acct_a");
+
+    expect(
+      JSON.parse(sessionStorage.getItem(ACCOUNT_CONTEXT_STORAGE_KEY)!)
+    ).toEqual({
+      state: { fabricTenantId: "fabric-tenant-a", selectedAccountId: "acct_a" },
+      version: ACCOUNT_CONTEXT_STORAGE_VERSION,
+  });
+  });
+
+  it("restores only after an exact verified Fabric tenant match", () => {
+    seed({ fabricTenantId: "fabric-tenant-a", selectedAccountId: "acct_a" });
+    expect(useAccountContextStore.getState().selectedAccountId).toBeNull();
+
+    useAccountContextStore.getState().authorizationVerified("fabric-tenant-a");
+    expect(useAccountContextStore.getState().selectedAccountId).toBe("acct_a");
+  });
+
+  it("rejects tenant-switched and tampered storage", () => {
+    seed({
+      fabricTenantId: "fabric-tenant-a",
+      selectedAccountId: "acct_a",
+      clerkOrgId: "org-b",
+  });
+    useAccountContextStore.getState().authorizationVerified("fabric-tenant-b");
+
+    expect(useAccountContextStore.getState().selectedAccountId).toBeNull();
+    expect(
+      JSON.parse(sessionStorage.getItem(ACCOUNT_CONTEXT_STORAGE_KEY)!)
+    ).toEqual({
+      state: { fabricTenantId: "fabric-tenant-b", selectedAccountId: null },
+      version: ACCOUNT_CONTEXT_STORAGE_VERSION,
     });
   });
 
-  it('has expected initial state', () => {
+  it.each([
+    ["malformed JSON", "{bad-json"],
+    [
+      "wrong version",
+      JSON.stringify({
+        state: {
+          fabricTenantId: "fabric-tenant-a",
+          selectedAccountId: "acct_a",
+        },
+        version: 999,
+      }),
+    ],
+    [
+      "invalid fields",
+      JSON.stringify({
+        state: { fabricTenantId: 7, selectedAccountId: { id: "acct_a" } },
+        version: ACCOUNT_CONTEXT_STORAGE_VERSION,
+      }),
+    ],
+  ])("fails closed for %s", (_label, raw) => {
+    sessionStorage.setItem(ACCOUNT_CONTEXT_STORAGE_KEY, raw);
+    useAccountContextStore.getState().authorizationVerified("fabric-tenant-a");
     expect(useAccountContextStore.getState().selectedAccountId).toBeNull();
-  });
-
-  it('sets and clears selected account', () => {
-    const store = useAccountContextStore.getState();
-    store.setSelectedAccountId('acct_123');
-    expect(useAccountContextStore.getState().selectedAccountId).toBe('acct_123');
-
-    store.clearSelectedAccountId();
-    expect(useAccountContextStore.getState().selectedAccountId).toBeNull();
-  });
-
-  it('supports explicit null payload as clear flow', () => {
-    useAccountContextStore.getState().setSelectedAccountId('acct_123');
-    useAccountContextStore.getState().setSelectedAccountId(null);
-    expect(useAccountContextStore.getState().selectedAccountId).toBeNull();
-  });
-
-  it('loads tenant-scoped account context from session storage', () => {
-    sessionStorage.setItem(
-      'fabric-account-context-tenant-a',
-      JSON.stringify({ selectedAccountId: 'acct_a' })
-    );
-
-    loadAccountContextForTenant('tenant-a');
-
-    expect(useAccountContextStore.getState().selectedAccountId).toBe('acct_a');
-  });
-
-  it('clears account context when tenant storage is missing or malformed', () => {
-    useAccountContextStore.setState({ selectedAccountId: 'acct_previous' });
-    loadAccountContextForTenant('tenant-without-context');
-    expect(useAccountContextStore.getState().selectedAccountId).toBeNull();
-
-    sessionStorage.setItem('fabric-account-context-tenant-b', '{not-json');
-    useAccountContextStore.setState({ selectedAccountId: 'acct_previous' });
-    loadAccountContextForTenant('tenant-b');
-    expect(useAccountContextStore.getState().selectedAccountId).toBeNull();
-  });
-
-  it('saves selected account context under the active tenant key', () => {
-    useAccountContextStore.setState({ selectedAccountId: 'acct_123' });
-
-    saveAccountContextForTenant('tenant-a');
-
     expect(
-      JSON.parse(sessionStorage.getItem('fabric-account-context-tenant-a') ?? '{}')
-    ).toEqual({ selectedAccountId: 'acct_123' });
-    expect(sessionStorage.getItem('fabric-account-context-tenant-b')).toBeNull();
+      JSON.parse(sessionStorage.getItem(ACCOUNT_CONTEXT_STORAGE_KEY)!)
+    ).toEqual({
+      state: { fabricTenantId: "fabric-tenant-a", selectedAccountId: null },
+      version: ACCOUNT_CONTEXT_STORAGE_VERSION,
+    });
   });
 
-  it('syncTenant clears stale selection on active org switch and keeps matching tenant state', () => {
-    setActiveClerkOrgId('org_a');
-    useAccountContextStore.getState().setSelectedAccountId('acct_a');
+  it("clears memory and storage synchronously on session or organization change", () => {
+    useAccountContextStore.getState().authorizationVerified("fabric-tenant-a");
+    useAccountContextStore.getState().setSelectedAccountId("acct_a");
 
-    useAccountContextStore.getState().syncTenant();
-    expect(useAccountContextStore.getState().selectedAccountId).toBe('acct_a');
+    useAccountContextStore.getState().authorizationIdentityChanged();
 
-    setActiveClerkOrgId('org_b');
-    useAccountContextStore.getState().syncTenant();
+    expect(useAccountContextStore.getState()).toMatchObject({
+      fabricTenantId: null,
+      selectedAccountId: null,
+      authorizationStatus: "unverified",
+    });
+    expect(sessionStorage.getItem(ACCOUNT_CONTEXT_STORAGE_KEY)).toBeNull();
+  });
 
+  it.each(["denied", "expired", "unauthenticated"])(
+    "clears memory and storage when authorization is %s",
+    () => {
+      useAccountContextStore
+        .getState()
+        .authorizationVerified("fabric-tenant-a");
+      useAccountContextStore.getState().setSelectedAccountId("acct_a");
+      useAccountContextStore.getState().authorizationUnavailable();
+      expect(useAccountContextStore.getState().selectedAccountId).toBeNull();
+      expect(sessionStorage.getItem(ACCOUNT_CONTEXT_STORAGE_KEY)).toBeNull();
+    }
+  );
+
+  it("cannot restore through delayed Zustand hydration after an identity reset", async () => {
+    seed({ fabricTenantId: "fabric-tenant-a", selectedAccountId: "acct_a" });
+    useAccountContextStore.getState().authorizationIdentityChanged();
+    await useAccountContextStore.persist.rehydrate();
     expect(useAccountContextStore.getState().selectedAccountId).toBeNull();
-    expect(useAccountContextStore.getState()._persistedTenantId).toBe('org_b');
+    expect(sessionStorage.getItem(ACCOUNT_CONTEXT_STORAGE_KEY)).toBeNull();
   });
 });
