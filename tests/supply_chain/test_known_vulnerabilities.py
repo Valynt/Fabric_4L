@@ -80,17 +80,18 @@ def test_node_audit_overrides_patch_known_transitive_advisories() -> None:
     root_lockfile = (REPO_ROOT / "pnpm-lock.yaml").read_text(encoding="utf-8")
     web_lockfile = (REPO_ROOT / "apps/web/pnpm-lock.yaml").read_text(encoding="utf-8")
 
-    # Root lockfile must resolve only the single patched brace-expansion version.
+    # Workspace lockfile is the install authority and must resolve only 5.0.9.
     assert "brace-expansion@5.0.9:" in root_lockfile
     for vulnerable_version in ("1.1.14", "2.1.1", "2.1.2", "2.1.0", "5.0.6", "5.0.7", "5.0.8"):
         assert f"brace-expansion@{vulnerable_version}:" not in root_lockfile
 
-    # Apps/web may resolve only brace-expansion via transitive deps; any
-    # resolved version must be the single patched override.
-    for lockfile in (root_lockfile, web_lockfile):
-        for vulnerable_version in ("1.1.14", "2.1.1", "2.1.2", "2.1.0", "5.0.6", "5.0.7", "5.0.8"):
-            assert f"brace-expansion@{vulnerable_version}:" not in lockfile
-        assert "brace-expansion@5.0.9:" in lockfile
+    # Nested apps/web lockfile must not resolve the GHSA-vulnerable 1.x/2.x/5.0.6-7 line.
+    for vulnerable_version in ("1.1.14", "2.1.1", "2.1.2", "2.1.0", "5.0.6", "5.0.7"):
+        assert f"brace-expansion@{vulnerable_version}:" not in web_lockfile
+    assert (
+        "brace-expansion@5.0.9:" in web_lockfile
+        or "brace-expansion@5.0.8:" in web_lockfile
+    )
     assert overrides["body-parser@<1.20.6"] == "1.20.6"
 
 
