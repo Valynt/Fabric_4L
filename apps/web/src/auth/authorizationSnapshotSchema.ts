@@ -55,6 +55,7 @@ interface ExpectedAuthorizationContext {
   clerkUserId: string;
   sessionDiscriminator: string;
   clerkOrganizationId: string;
+  fabricTenantId: string;
   accountId: string | null;
   now?: Date;
 }
@@ -77,6 +78,7 @@ export function parseAuthorizationCandidate(
     snapshot.identity.clerkUserId !== expected.clerkUserId ||
     snapshot.identity.sessionDiscriminator !== expected.sessionDiscriminator ||
     snapshot.tenant.clerkOrganizationId !== expected.clerkOrganizationId ||
+    snapshot.tenant.fabricTenantId !== expected.fabricTenantId ||
     !expectedScope
   )
     return { status: "denied", snapshot: null, reason: "mismatch" };
@@ -92,6 +94,6 @@ export function parseAuthorizationCandidate(
     return { status: "denied", snapshot: null, reason: "malformed" };
   }
   if (expiresAt <= now)
-    return { status: "expired", snapshot: null, expiredAt: snapshot.expiresAt };
+    return { status: "expired", snapshot: null; expiredAt: snapshot.expiresAt };
   return { status: "verified", snapshot };
 }
