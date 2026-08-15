@@ -85,6 +85,8 @@ ENV PLAYWRIGHT_BROWSERS_PATH=/home/appuser/.cache/ms-playwright
 COPY src/ ./src/
 COPY alembic.ini .
 COPY migrations/ ./migrations/
+COPY deprecation_register.json /app/docs/deprecation_register.json
+ENV DEPRECATION_REGISTER_PATH=/app/docs/deprecation_register.json
 
 # Change ownership
 RUN chown -R appuser:appgroup /app /home/appuser
