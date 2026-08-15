@@ -5,7 +5,11 @@ import type { RouteAccessPolicy } from "@/routes/types";
 const authorization = vi.hoisted(() => ({
   status: "verified" as "loading" | "verified" | "denied" | "expired",
   reason: undefined as
-    "malformed" | "mismatch" | "unavailable" | "unauthenticated" | undefined,
+    | "malformed"
+    | "mismatch"
+    | "unavailable"
+    | "unauthenticated"
+    | undefined,
   hasEveryPermission: vi.fn(() => true),
   hasEveryEntitlement: vi.fn(() => true),
   hasTenantMembership: vi.fn(() => true),
@@ -114,7 +118,7 @@ describe("UnifiedRouteGuard verified authorization", () => {
 
   it("hides protected content while the snapshot is loading", () => {
     authorization.status = "loading";
-    renderGuard();
+    renderGuard(policy({ requiredTier: "admin" }));
 
     expect(screen.getByRole("status")).toHaveTextContent("Verifying access...");
     expectProtectedContentHidden();
@@ -125,7 +129,7 @@ describe("UnifiedRouteGuard verified authorization", () => {
     status => {
       authorization.status = status;
       authorization.reason = status === "denied" ? "mismatch" : undefined;
-      renderGuard();
+      renderGuard(policy({ requiredTier: "admin" }));
 
       expect(
         screen.getByText("redirect:/explicit-fallback")
@@ -134,10 +138,18 @@ describe("UnifiedRouteGuard verified authorization", () => {
     }
   );
 
+  it("does not treat a requireAuth-only route as a snapshot grant", () => {
+    authorization.status = "denied";
+    authorization.hasAnyRole.mockReturnValue(false);
+    renderGuard(policy({ requiresAuth: true }));
+
+    expect(screen.getByText("protected")).toBeInTheDocument();
+  });
+
   it("distinguishes snapshot verification errors from access denial", () => {
     authorization.status = "denied";
     authorization.reason = "unavailable";
-    renderGuard();
+    renderGuard(policy({ requiredTier: "admin" }));
 
     expect(screen.getByRole("alert")).toHaveTextContent(
       "Unable to verify access. Please try again."
