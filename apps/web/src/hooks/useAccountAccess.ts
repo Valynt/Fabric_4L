@@ -9,7 +9,7 @@ export function useAccountAccess(
   return {
     hasAccountAccess: authorization.hasAccountAccess(accountId),
     denyReason:
-      authorization.status === "verified" || authorization.status === "legacy"
+      authorization.status === "verified"
         ? undefined
         : authorization.status,
     isLoading: authorization.status === "loading",

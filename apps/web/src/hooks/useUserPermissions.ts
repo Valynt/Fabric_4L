@@ -10,8 +10,6 @@ export function useUserPermissions(requiredPermissions: string[]) {
     grantedPermissions:
       authorization.status === "verified"
         ? authorization.snapshot.permissions
-        : authorization.status === "legacy"
-          ? [...authorization.permissions]
-          : [],
+        : [],
   };
 }
