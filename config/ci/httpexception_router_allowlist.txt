@@ -8,14 +8,14 @@
 # Format: <repo-relative-posix-path>:<line-no>
 services/api/app/routers/benchmarks.py:34
 services/api/app/routers/benchmarks.py:47
-services/api/app/routers/clerk_auth.py:47
-services/api/app/routers/clerk_auth.py:56
+services/api/app/routers/clerk_auth.py:50
+services/api/app/routers/clerk_auth.py:59
 services/api/app/routers/intelligence.py:38
 services/api/app/routers/jobs.py:29
 services/api/app/routers/product_endpoints.py:40
 services/billing/src/billing/api/main.py:236
 services/billing/src/billing/api/main.py:88
-services/layer1-ingestion/src/layer1_ingestion/api/main.py:213
+services/layer1-ingestion/src/layer1_ingestion/api/main.py:217
 services/layer4-agents/src/layer4_agents/tenants/api/routes/admin_dashboard.py:453
 services/layer4-agents/src/layer4_agents/tenants/api/routes/admin_dashboard.py:462
 services/layer7-billing/src/layer7_billing/api/main.py:337
