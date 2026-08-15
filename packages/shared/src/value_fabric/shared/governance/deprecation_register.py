@@ -67,6 +67,11 @@ class DeprecationItem:
         """True when governance has explicitly deferred removal with a rationale."""
         return self.status == "deferred" and bool(self.rationale)
 
+    @property
+    def is_removed(self) -> bool:
+        """True when the compatibility surface is already gone."""
+        return self.status == "removed"
+
     @classmethod
     def from_mapping(cls, payload: JsonObject) -> DeprecationItem:
         missing = [field for field in _REQUIRED_ITEM_FIELDS if not payload.get(field)]
@@ -205,7 +210,7 @@ def overdue_items(
     return [
         item
         for item in resolved
-        if item.removal_date < reference and not item.is_deferred
+        if item.removal_date < reference and not item.is_deferred and not item.is_removed
     ]
 
 
