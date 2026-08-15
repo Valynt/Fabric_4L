@@ -31,6 +31,7 @@ describe("parseAuthorizationCandidate", () => {
         clerkUserId: "user_1",
         sessionDiscriminator: "sess_1",
         clerkOrganizationId: "org_1",
+        fabricTenantId: "ten_1",
         accountId: "acc_1",
         now: new Date("2026-08-14T00:01:00.000Z"),
       }).status
@@ -50,12 +51,20 @@ describe("parseAuthorizationCandidate", () => {
       "account mismatch",
       { ...candidate, accountScope: { scopeType: "tenant", accountId: null } },
     ],
+    [
+      "fabric tenant mismatch",
+      {
+        ...candidate,
+        tenant: { ...candidate.tenant, fabricTenantId: "other_tenant" },
+      },
+    ],
   ])("denies %s", (_name, value) => {
     expect(
       parseAuthorizationCandidate(value, {
         clerkUserId: "user_1",
         sessionDiscriminator: "sess_1",
         clerkOrganizationId: "org_1",
+        fabricTenantId: "ten_1",
         accountId: "acc_1",
         now: new Date("2026-08-14T00:01:00.000Z"),
       }).status
@@ -67,6 +76,7 @@ describe("parseAuthorizationCandidate", () => {
       clerkUserId: "user_1",
       sessionDiscriminator: "sess_1",
       clerkOrganizationId: "org_1",
+      fabricTenantId: "ten_1",
       accountId: "acc_1",
       now: new Date("2026-08-14T00:06:00.000Z"),
     });
