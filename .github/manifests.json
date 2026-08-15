@@ -35,18 +35,6 @@
     {
       "name": "layer7-billing",
       "path": "services/layer7-billing"
-    },
-    {
-      "name": "platform-contract",
-      "path": "packages/platform-contract/src/python"
-    },
-    {
-      "name": "sdk",
-      "path": "sdk/python"
-    },
-    {
-      "name": "shared",
-      "path": "packages/shared/src"
     }
   ],
   "node": [
