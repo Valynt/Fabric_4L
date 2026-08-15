@@ -91,10 +91,10 @@ def find_manifests():
         # Check for Python manifests
         pyproject = root_path / "pyproject.toml"
         setup_py = root_path / "setup.py"
-        req_txt = root_path / "requirements.txt"
-        # We'll consider a directory as a Python project if it has pyproject.toml or setup.py
-        # and optionally a lock file (uv.lock, requirements.txt, etc.)
-        if pyproject.is_file() or setup_py.is_file():
+        uv_lock = root_path / "uv.lock"
+        # pip-audit requires both a project manifest and uv.lock. Skip
+        # libraries that only have pyproject.toml (shared, sdk, platform-contract).
+        if (pyproject.is_file() or setup_py.is_file()) and uv_lock.is_file():
             # Determine service name
             service_name = None
             # Get the relative path from REPO_ROOT
@@ -117,7 +117,6 @@ def find_manifests():
 
         # Check for Node manifests
         package_json = root_path / "package.json"
-        pnpm_lock = root_path / "pnpm-lock.yaml"
         if package_json.is_file():
             service_name = None
             try:
@@ -160,6 +159,7 @@ def main():
         except ValueError:
             # Should not happen
             rel_dir = directory
+        rel_dir = Path(rel_dir).as_posix()
         if service_name not in seen_python:
             seen_python.add(service_name)
             registry["python"].append({
@@ -177,6 +177,7 @@ def main():
             rel_dir = os.path.relpath(directory, REPO_ROOT)
         except ValueError:
             rel_dir = directory
+        rel_dir = Path(rel_dir).as_posix()
         if service_name not in seen_node:
             seen_node.add(service_name)
             registry["node"].append({
