@@ -13,8 +13,8 @@ from datetime import UTC, datetime, timedelta
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
 from value_fabric.shared.identity.fabric_auth import AuthContext
-from services.api.app.main import app
-from services.api.src.authorization_snapshot.router import (
+from app.main import app
+from app.routers.authorization_snapshot import (
     AuthorizationSnapshotResponse,
     AccountScopeRequest,
 )
@@ -78,17 +78,17 @@ class TestAuthorizationSnapshotContract:
         mock_auth.kid = "test-key"
 
         # Mock the tenant context
-        with patch("services.api.app.routers.authorization_snapshot.get_request_context") as mock_get_ctx:
+        with patch("app.routers.authorization_snapshot.get_request_context") as mock_get_ctx:
             mock_ctx = Mock()
             mock_ctx.tenant_id = "tenant-123"
             mock_get_ctx.return_value = mock_ctx
 
             # Mock tenant_required dependency
-            with patch("services.api.app.routers.authorization_snapshot.tenant_required") as mock_tenant:
+            with patch("app.routers.authorization_snapshot.tenant_required") as mock_tenant:
                 mock_tenant.return_value = "tenant-123"
 
                 # Mock the actual endpoint function to return a valid snapshot
-                with patch("services.api.app.routers.authorization_snapshot.get_authorization_snapshot") as mock_endpoint:
+                with patch("app.routers.authorization_snapshot.get_authorization_snapshot") as mock_endpoint:
                     mock_endpoint.return_value = AuthorizationSnapshotResponse(
                         principalId="user-456",
                         sessionDiscriminator="session-123",

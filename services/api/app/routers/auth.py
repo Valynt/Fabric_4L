@@ -34,11 +34,6 @@ from app.core.security import (
 from app.models.schemas import AuditLogEvent, Tenant, User
 from app.repositories.session_store import ImpersonationSessionRepository
 from app.services.distributed_store import StorePayloadError, StoreUnavailableError, get_distributed_store
-from value_fabric.shared.identity.fabric_auth import AuthContext
-from app.core.clerk_auth import require_clerk_authenticated
-
-from services.api.src.authorization_snapshot.service import build_authorization_snapshot
-
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 logger = structlog.get_logger(__name__)
 
@@ -542,4 +537,3 @@ async def get_me(user: User = Depends(get_current_user)) -> UserResponse:
         tenant_id=user.tenant_id,
         status=user.status,
     )
-

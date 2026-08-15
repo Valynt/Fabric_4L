@@ -43,8 +43,7 @@ from app.routers import (
     versioning,
 )
 
-# Authorization snapshot router (canonical backend endpoint)
-from services.api.src.authorization_snapshot.router import router as authorization_snapshot_router
+from app.routers.authorization_snapshot import router as authorization_snapshot_router
 from app.services.distributed_store import (
     StorePayloadError,
     StoreUnavailableError,

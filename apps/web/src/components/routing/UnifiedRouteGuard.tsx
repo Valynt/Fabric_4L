@@ -15,6 +15,18 @@ const FAIL_CLOSED_ACCESS_POLICY: RouteAccessPolicy = {
   analyticsRouteId: "route.unclassified",
 };
 
+const VERIFIED_ROLES_BY_TIER = {
+  standard: [
+    "member",
+    "analyst",
+    "account_admin",
+    "tenant_admin",
+    "platform_admin",
+  ],
+  advanced: ["account_admin", "tenant_admin", "platform_admin"],
+  admin: ["tenant_admin", "platform_admin"],
+} as const;
+
 interface UnifiedRouteGuardProps {
   children: React.ReactNode;
 }
@@ -59,6 +71,7 @@ export function UnifiedRouteGuard({ children }: UnifiedRouteGuardProps) {
   const requiresVerifiedAuthorization =
     policy.tenantScoped ||
     policy.accountScoped ||
+    !!policy.requiredTier ||
     !!policy.requiredPermissions?.length ||
     !!policy.requiredEntitlements?.length;
 
@@ -98,6 +111,17 @@ export function UnifiedRouteGuard({ children }: UnifiedRouteGuardProps) {
   ) {
     log.warn("Account scope denied", {
       accountId,
+      path: location.pathname,
+    });
+    return <Navigate to={policy.fallbackRoute} replace />;
+  }
+
+  if (
+    policy.requiredTier &&
+    !authorization.hasAnyRole([...VERIFIED_ROLES_BY_TIER[policy.requiredTier]])
+  ) {
+    log.warn("Verified role denied", {
+      requiredTier: policy.requiredTier,
       path: location.pathname,
     });
     return <Navigate to={policy.fallbackRoute} replace />;

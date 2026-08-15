@@ -14,6 +14,7 @@ const authorization = vi.hoisted(() => ({
   hasEveryEntitlement: vi.fn(() => true),
   hasTenantMembership: vi.fn(() => true),
   hasAccountAccess: vi.fn(() => true),
+  hasAnyRole: vi.fn(() => true),
 }));
 const authState = vi.hoisted(() => ({
   isAuthenticated: true,
@@ -83,6 +84,7 @@ describe("UnifiedRouteGuard verified authorization", () => {
     authorization.hasEveryEntitlement.mockReset().mockReturnValue(true);
     authorization.hasTenantMembership.mockReset().mockReturnValue(true);
     authorization.hasAccountAccess.mockReset().mockReturnValue(true);
+    authorization.hasAnyRole.mockReset().mockReturnValue(true);
     routeState.params = { tenantSlug: "tenant-a", accountId: "acc-1" };
     routeState.matches = [];
     featureFlags.flagsEnabled = true;
@@ -146,18 +148,20 @@ describe("UnifiedRouteGuard verified authorization", () => {
     expectProtectedContentHidden();
   });
 
-  it("does not check requiredTier from route policy (A1 authorization snapshot only)", () => {
+  it("requires verified backend roles for a tier-protected route", () => {
     localStorage.setItem(
       "user-tier-storage",
       JSON.stringify({ state: { currentTier: "admin" } })
     );
-    renderGuard(policy({ requiredTier: "admin" }));
+    authorization.hasAnyRole.mockReturnValue(false);
+    renderGuard(policy({ requiredTier: "admin", tenantScoped: true }));
 
-    expect(screen.queryByText(/redirect:/)).not.toBeInTheDocument();
-    expect(screen.getByText("protected")).toBeInTheDocument();
-    expect(authorization.hasEveryPermission).not.toHaveBeenCalledWith([
-      "tier:admin:access",
+    expect(authorization.hasAnyRole).toHaveBeenCalledWith([
+      "tenant_admin",
+      "platform_admin",
     ]);
+    expect(screen.getByText("redirect:/explicit-fallback")).toBeInTheDocument();
+    expectProtectedContentHidden();
   });
 
   it("uses verified tenant and exact account scope", () => {
