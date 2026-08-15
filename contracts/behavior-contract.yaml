@@ -258,10 +258,10 @@ capabilities:
     expected_failure_mode: "isMemberOfTenant=false; isLoading=false"
     allowed:
       file: apps/web/src/hooks/useTenantMembership.behavior.test.ts
-      test: "user with matching legacy tenant slug is confirmed as member"
+      test: "allows the exact tenant asserted by the verified snapshot"
     denied:
       file: apps/web/src/hooks/useTenantMembership.behavior.test.ts
-      test: "user with mismatched legacy tenant slug is denied membership"
+      test: "denies a tenant not asserted by the verified snapshot"
 
   - id: tenant_isolation.frontend-context-contract
     domain: tenant_isolation
@@ -364,10 +364,10 @@ capabilities:
     expected_failure_mode: "entitlementsMet=false; isError=true on network failure"
     allowed:
       file: apps/web/src/hooks/useEntitlements.behavior.test.tsx
-      test: "user with all required entitlements is allowed access"
+      test: "allows a verified snapshot with all required entitlements"
     denied:
       file: apps/web/src/hooks/useEntitlements.behavior.test.tsx
-      test: "user with missing required entitlement is denied access"
+      test: "denies a verified snapshot missing a required entitlement"
 
   - id: frontend_user_flows.billing
     domain: frontend_user_flows

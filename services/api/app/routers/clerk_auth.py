@@ -21,7 +21,7 @@ from app.core.clerk_auth import require_clerk_authenticated
 from app.services.authorization_snapshot import AuthorizationSnapshot, AuthorizationSnapshotService
 
 router = APIRouter(prefix="/auth/clerk", tags=["Clerk Authentication"])
-authorization_router = APIRouter(prefix="/auth", tags=["Authorization"])
+authorization_router = APIRouter(prefix="/auth", tags=["Platform", "Authorization"])
 
 
 class ClerkTenantResponse(BaseModel):
@@ -129,7 +129,11 @@ async def get_clerk_tenant(
 async def get_authorization_snapshot(
     request: Request,
     response: Response,
-    x_account_id: str | None = Header(default=None, alias="X-Account-ID"),
+    x_account_id: str | None = Header(
+        default=None,
+        alias="X-Account-ID",
+        description="Optional exact Fabric account identifier to bind into the issued authorization scope.",
+    ),
     auth: AuthContext = Depends(require_clerk_authenticated),
     directory: AuthDirectory = Depends(get_auth_directory),
 ) -> AuthorizationSnapshot:

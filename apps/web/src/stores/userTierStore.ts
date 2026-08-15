@@ -18,8 +18,7 @@ export type UserTier = "standard" | "advanced" | "admin" | "unknown";
 
 /** Security result type distinguishing explicit deny from evaluation failure */
 export type AccessDecision =
-  | { allowed: true }
-  | { allowed: false; reason: string };
+  { allowed: true } | { allowed: false; reason: string };
 
 /**
  * Type guard to check if access decision is denied.
@@ -519,10 +518,16 @@ export const useUserTierStore = create<UserTierState>()(
       merge: (persistedState, currentState) => {
         const preferences = getPersistedTierSnapshot(persistedState);
         const mergedState: UserTierState = {
-          ...currentState,
+          // Do not spread currentState here: it contains computed getters whose
+          // evaluation reads the store before Zustand has finished creating it.
+          // Evaluating those getters during initial hydration aborts hydration
+          // and silently drops the presentation preference.
+          currentTier: currentState.currentTier,
           isAdvancedModeEnabled:
             preferences.isAdvancedModeEnabled ??
             currentState.isAdvancedModeEnabled,
+          userRole: currentState.userRole,
+          permissions: currentState.permissions,
           isRehydrated: true,
           setRehydrated: currentState.setRehydrated,
           setTier: currentState.setTier,

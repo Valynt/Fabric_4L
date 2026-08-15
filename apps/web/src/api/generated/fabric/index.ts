@@ -2570,32 +2570,55 @@ export interface components {
              */
             source: string;
         };
-        /** AuthorizationSnapshot */
+        /**
+         * AuthorizationSnapshot
+         * @description Short-lived backend authority for frontend access-control decisions.
+         */
         AuthorizationSnapshot: {
             /**
              * Schemaversion
+             * @description Authorization snapshot contract version.
              * @default 1
              * @constant
              */
             schemaVersion: "1";
             /**
              * Source
+             * @description Authority source; always the verified backend.
              * @default backend
              * @constant
              */
             source: "backend";
+            /** @description Verified principal and session binding. */
             identity: components["schemas"]["SnapshotIdentity"];
+            /** @description Verified active tenant membership. */
             tenant: components["schemas"]["SnapshotTenant"];
+            /** @description Backend-resolved tenant or exact-account scope. */
             accountScope: components["schemas"]["SnapshotAccountScope"];
-            /** Roles */
+            /**
+             * Roles
+             * @description Canonical roles granted by the active membership.
+             */
             roles: components["schemas"]["CanonicalAuthorizationRole"][];
-            /** Permissions */
+            /**
+             * Permissions
+             * @description Permission identifiers derived by the backend from the verified canonical membership role.
+             */
             permissions: string[];
-            /** Entitlements */
+            /**
+             * Entitlements
+             * @description Active tenant entitlement identifiers.
+             */
             entitlements: string[];
-            /** Issuedat */
+            /**
+             * Issuedat
+             * @description UTC timestamp when the snapshot was issued.
+             */
             issuedAt: string;
-            /** Expiresat */
+            /**
+             * Expiresat
+             * @description UTC timestamp after which the snapshot is unusable.
+             */
             expiresAt: string;
         };
         /** BusinessCase */
@@ -2654,6 +2677,7 @@ export interface components {
         };
         /**
          * CanonicalAuthorizationRole
+         * @description Canonical backend roles accepted in browser authorization snapshots.
          * @enum {string}
          */
         CanonicalAuthorizationRole: "tenant_admin" | "content_admin" | "analyst" | "read_only";
@@ -3629,14 +3653,21 @@ export interface components {
             /** Tenant Name */
             tenant_name: string;
         };
-        /** SnapshotAccountScope */
+        /**
+         * SnapshotAccountScope
+         * @description Tenant-wide or exact-account authorization scope.
+         */
         SnapshotAccountScope: {
             /**
              * Scopetype
+             * @description Scope kind resolved by the backend authorization projection.
              * @enum {string}
              */
             scopeType: "tenant" | "account";
-            /** Accountid */
+            /**
+             * Accountid
+             * @description Exact authorized account identifier for account scope; null for tenant scope.
+             */
             accountId: string | null;
         };
         /** SnapshotDiffChange */
@@ -3661,27 +3692,55 @@ export interface components {
             /** Created At Compare */
             created_at_compare: string;
         };
-        /** SnapshotIdentity */
+        /**
+         * SnapshotIdentity
+         * @description Verified principal and session identity bound to a snapshot.
+         */
         SnapshotIdentity: {
-            /** Clerkuserid */
+            /**
+             * Clerkuserid
+             * @description Verified Clerk user identifier.
+             */
             clerkUserId: string;
-            /** Fabricuserid */
+            /**
+             * Fabricuserid
+             * @description Canonical Fabric principal identifier.
+             */
             fabricUserId: string;
-            /** Sessiondiscriminator */
+            /**
+             * Sessiondiscriminator
+             * @description Opaque verified Clerk session identifier that prevents cross-session replay.
+             */
             sessionDiscriminator: string;
         };
-        /** SnapshotTenant */
+        /**
+         * SnapshotTenant
+         * @description Active tenant membership resolved by the backend identity directory.
+         */
         SnapshotTenant: {
-            /** Fabrictenantid */
+            /**
+             * Fabrictenantid
+             * @description Canonical Fabric tenant identifier.
+             */
             fabricTenantId: string;
-            /** Clerkorganizationid */
+            /**
+             * Clerkorganizationid
+             * @description Verified Clerk organization identifier.
+             */
             clerkOrganizationId: string;
-            /** Tenantslug */
+            /**
+             * Tenantslug
+             * @description Canonical tenant URL slug when configured.
+             */
             tenantSlug: string | null;
-            /** Membershipid */
+            /**
+             * Membershipid
+             * @description Verified Clerk organization-membership identifier.
+             */
             membershipId: string;
             /**
              * Membershipstatus
+             * @description Membership status; snapshots are issued only for active membership.
              * @constant
              */
             membershipStatus: "active";
@@ -5215,6 +5274,7 @@ export interface operations {
         parameters: {
             query?: never;
             header?: {
+                /** @description Optional exact Fabric account identifier to bind into the issued authorization scope. */
                 "X-Account-ID"?: string | null;
             };
             path?: never;

@@ -298,6 +298,11 @@
       "title": "Fabric4L Internal AuthContext Envelope (v1)"
     },
     {
+      "path": "contracts/auth/authorization-snapshot.schema.json",
+      "id": "https://contracts.fabric4l/auth/authorization-snapshot.schema.json",
+      "title": "AuthorizationSnapshot"
+    },
+    {
       "path": "contracts/config-policy/config_policy.yml",
       "id": "contract:contracts/config-policy/config_policy.yml"
     },

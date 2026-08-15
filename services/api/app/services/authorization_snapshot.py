@@ -8,7 +8,7 @@ from enum import StrEnum
 from typing import Literal
 
 from fastapi import HTTPException, status
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from value_fabric.shared.identity.fabric_auth import AuthContext
 
 from app.core.auth_context_builder import normalize_clerk_role
@@ -24,6 +24,8 @@ _ACCOUNT_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
 
 
 class CanonicalAuthorizationRole(StrEnum):
+    """Canonical backend roles accepted in browser authorization snapshots."""
+
     TENANT_ADMIN = "tenant_admin"
     CONTENT_ADMIN = "content_admin"
     ANALYST = "analyst"
@@ -62,35 +64,61 @@ class _CamelModel(BaseModel):
 
 
 class SnapshotIdentity(_CamelModel):
-    clerk_user_id: str
-    fabric_user_id: str
-    session_discriminator: str
+    """Verified principal and session identity bound to a snapshot."""
+
+    clerk_user_id: str = Field(description="Verified Clerk user identifier.")
+    fabric_user_id: str = Field(description="Canonical Fabric principal identifier.")
+    session_discriminator: str = Field(
+        description="Opaque verified Clerk session identifier that prevents cross-session replay."
+    )
 
 
 class SnapshotTenant(_CamelModel):
-    fabric_tenant_id: str
-    clerk_organization_id: str
-    tenant_slug: str | None
-    membership_id: str
-    membership_status: Literal["active"]
+    """Active tenant membership resolved by the backend identity directory."""
+
+    fabric_tenant_id: str = Field(description="Canonical Fabric tenant identifier.")
+    clerk_organization_id: str = Field(description="Verified Clerk organization identifier.")
+    tenant_slug: str | None = Field(description="Canonical tenant URL slug when configured.")
+    membership_id: str = Field(description="Verified Clerk organization-membership identifier.")
+    membership_status: Literal["active"] = Field(
+        description="Membership status; snapshots are issued only for active membership."
+    )
 
 
 class SnapshotAccountScope(_CamelModel):
-    scope_type: Literal["tenant", "account"]
-    account_id: str | None
+    """Tenant-wide or exact-account authorization scope."""
+
+    scope_type: Literal["tenant", "account"] = Field(
+        description="Scope kind resolved by the backend authorization projection."
+    )
+    account_id: str | None = Field(
+        description="Exact authorized account identifier for account scope; null for tenant scope."
+    )
 
 
 class AuthorizationSnapshot(_CamelModel):
-    schema_version: Literal["1"] = "1"
-    source: Literal["backend"] = "backend"
-    identity: SnapshotIdentity
-    tenant: SnapshotTenant
-    account_scope: SnapshotAccountScope
-    roles: list[CanonicalAuthorizationRole]
-    permissions: list[str]
-    entitlements: list[str]
-    issued_at: str
-    expires_at: str
+    """Short-lived backend authority for frontend access-control decisions."""
+
+    schema_version: Literal["1"] = Field(
+        default="1", description="Authorization snapshot contract version."
+    )
+    source: Literal["backend"] = Field(
+        default="backend", description="Authority source; always the verified backend."
+    )
+    identity: SnapshotIdentity = Field(description="Verified principal and session binding.")
+    tenant: SnapshotTenant = Field(description="Verified active tenant membership.")
+    account_scope: SnapshotAccountScope = Field(
+        description="Backend-resolved tenant or exact-account scope."
+    )
+    roles: list[CanonicalAuthorizationRole] = Field(
+        description="Canonical roles granted by the active membership."
+    )
+    permissions: list[str] = Field(
+        description="Permission identifiers derived by the backend from the verified canonical membership role."
+    )
+    entitlements: list[str] = Field(description="Active tenant entitlement identifiers.")
+    issued_at: str = Field(description="UTC timestamp when the snapshot was issued.")
+    expires_at: str = Field(description="UTC timestamp after which the snapshot is unusable.")
 
 
 def _deny_account(request_id: str) -> HTTPException:

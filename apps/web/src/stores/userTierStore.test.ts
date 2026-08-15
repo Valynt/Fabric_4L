@@ -185,6 +185,16 @@ describe("useUserTierStore", () => {
     });
 
     it("rehydrates preferences without restoring legacy authorization state", async () => {
+      useUserTierStore.setState({
+        currentTier: "unknown",
+        userRole: null,
+        permissions: { ...standardPermissions },
+        isAdvancedModeEnabled: false,
+        isRehydrated: false,
+      });
+      // Seed the simulated prior-session value after resetting in-memory
+      // state. Zustand persists every setState call, so seeding first would be
+      // overwritten by the reset and would not model a page reload.
       localStorage.setItem(
         "user-tier-storage",
         JSON.stringify({
@@ -199,14 +209,6 @@ describe("useUserTierStore", () => {
           version: 0,
         })
       );
-
-      useUserTierStore.setState({
-        currentTier: "unknown",
-        userRole: null,
-        permissions: { ...standardPermissions },
-        isAdvancedModeEnabled: false,
-        isRehydrated: false,
-      });
       await useUserTierStore.persist.rehydrate();
 
       const state = useUserTierStore.getState();

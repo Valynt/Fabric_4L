@@ -813,6 +813,17 @@
     {
       "source": "fabric-4l-api",
       "method": "GET",
+      "path": "/v1/auth/authorization-snapshot",
+      "status": "unmapped",
+      "lastReviewed": "2026-08-15",
+      "metadata": {
+        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
+      },
+      "operationId": "get_authorization_snapshot_v1_auth_authorization_snapshot_get"
+    },
+    {
+      "source": "fabric-4l-api",
+      "method": "GET",
       "path": "/v1/auth/clerk/tenant",
       "status": "unmapped",
       "lastReviewed": "2026-07-25",

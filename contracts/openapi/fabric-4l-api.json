@@ -1537,6 +1537,7 @@
     "/v1/auth/authorization-snapshot": {
       "get": {
         "tags": [
+          "Platform",
           "Authorization"
         ],
         "summary": "Get Authorization Snapshot",
@@ -1556,8 +1557,10 @@
                   "type": "null"
                 }
               ],
+              "description": "Optional exact Fabric account identifier to bind into the issued authorization scope.",
               "title": "X-Account-Id"
-            }
+            },
+            "description": "Optional exact Fabric account identifier to bind into the issued authorization scope."
           }
         ],
         "requestBody": {
@@ -9680,51 +9683,61 @@
             "type": "string",
             "const": "1",
             "title": "Schemaversion",
+            "description": "Authorization snapshot contract version.",
             "default": "1"
           },
           "source": {
             "type": "string",
             "const": "backend",
             "title": "Source",
+            "description": "Authority source; always the verified backend.",
             "default": "backend"
           },
           "identity": {
-            "$ref": "#/components/schemas/SnapshotIdentity"
+            "$ref": "#/components/schemas/SnapshotIdentity",
+            "description": "Verified principal and session binding."
           },
           "tenant": {
-            "$ref": "#/components/schemas/SnapshotTenant"
+            "$ref": "#/components/schemas/SnapshotTenant",
+            "description": "Verified active tenant membership."
           },
           "accountScope": {
-            "$ref": "#/components/schemas/SnapshotAccountScope"
+            "$ref": "#/components/schemas/SnapshotAccountScope",
+            "description": "Backend-resolved tenant or exact-account scope."
           },
           "roles": {
             "items": {
               "$ref": "#/components/schemas/CanonicalAuthorizationRole"
             },
             "type": "array",
-            "title": "Roles"
+            "title": "Roles",
+            "description": "Canonical roles granted by the active membership."
           },
           "permissions": {
             "items": {
               "type": "string"
             },
             "type": "array",
-            "title": "Permissions"
+            "title": "Permissions",
+            "description": "Permission identifiers derived by the backend from the verified canonical membership role."
           },
           "entitlements": {
             "items": {
               "type": "string"
             },
             "type": "array",
-            "title": "Entitlements"
+            "title": "Entitlements",
+            "description": "Active tenant entitlement identifiers."
           },
           "issuedAt": {
             "type": "string",
-            "title": "Issuedat"
+            "title": "Issuedat",
+            "description": "UTC timestamp when the snapshot was issued."
           },
           "expiresAt": {
             "type": "string",
-            "title": "Expiresat"
+            "title": "Expiresat",
+            "description": "UTC timestamp after which the snapshot is unusable."
           }
         },
         "type": "object",
@@ -9738,7 +9751,8 @@
           "issuedAt",
           "expiresAt"
         ],
-        "title": "AuthorizationSnapshot"
+        "title": "AuthorizationSnapshot",
+        "description": "Short-lived backend authority for frontend access-control decisions."
       },
       "BusinessCase": {
         "properties": {
@@ -9895,7 +9909,8 @@
           "analyst",
           "read_only"
         ],
-        "title": "CanonicalAuthorizationRole"
+        "title": "CanonicalAuthorizationRole",
+        "description": "Canonical backend roles accepted in browser authorization snapshots."
       },
       "ClerkTenantResponse": {
         "properties": {
@@ -12424,7 +12439,8 @@
               "tenant",
               "account"
             ],
-            "title": "Scopetype"
+            "title": "Scopetype",
+            "description": "Scope kind resolved by the backend authorization projection."
           },
           "accountId": {
             "anyOf": [
@@ -12435,7 +12451,8 @@
                 "type": "null"
               }
             ],
-            "title": "Accountid"
+            "title": "Accountid",
+            "description": "Exact authorized account identifier for account scope; null for tenant scope."
           }
         },
         "type": "object",
@@ -12443,7 +12460,8 @@
           "scopeType",
           "accountId"
         ],
-        "title": "SnapshotAccountScope"
+        "title": "SnapshotAccountScope",
+        "description": "Tenant-wide or exact-account authorization scope."
       },
       "SnapshotDiffChange": {
         "properties": {
@@ -12505,15 +12523,18 @@
         "properties": {
           "clerkUserId": {
             "type": "string",
-            "title": "Clerkuserid"
+            "title": "Clerkuserid",
+            "description": "Verified Clerk user identifier."
           },
           "fabricUserId": {
             "type": "string",
-            "title": "Fabricuserid"
+            "title": "Fabricuserid",
+            "description": "Canonical Fabric principal identifier."
           },
           "sessionDiscriminator": {
             "type": "string",
-            "title": "Sessiondiscriminator"
+            "title": "Sessiondiscriminator",
+            "description": "Opaque verified Clerk session identifier that prevents cross-session replay."
           }
         },
         "type": "object",
@@ -12522,17 +12543,20 @@
           "fabricUserId",
           "sessionDiscriminator"
         ],
-        "title": "SnapshotIdentity"
+        "title": "SnapshotIdentity",
+        "description": "Verified principal and session identity bound to a snapshot."
       },
       "SnapshotTenant": {
         "properties": {
           "fabricTenantId": {
             "type": "string",
-            "title": "Fabrictenantid"
+            "title": "Fabrictenantid",
+            "description": "Canonical Fabric tenant identifier."
           },
           "clerkOrganizationId": {
             "type": "string",
-            "title": "Clerkorganizationid"
+            "title": "Clerkorganizationid",
+            "description": "Verified Clerk organization identifier."
           },
           "tenantSlug": {
             "anyOf": [
@@ -12543,16 +12567,19 @@
                 "type": "null"
               }
             ],
-            "title": "Tenantslug"
+            "title": "Tenantslug",
+            "description": "Canonical tenant URL slug when configured."
           },
           "membershipId": {
             "type": "string",
-            "title": "Membershipid"
+            "title": "Membershipid",
+            "description": "Verified Clerk organization-membership identifier."
           },
           "membershipStatus": {
             "type": "string",
             "const": "active",
-            "title": "Membershipstatus"
+            "title": "Membershipstatus",
+            "description": "Membership status; snapshots are issued only for active membership."
           }
         },
         "type": "object",
@@ -12563,7 +12590,8 @@
           "membershipId",
           "membershipStatus"
         ],
-        "title": "SnapshotTenant"
+        "title": "SnapshotTenant",
+        "description": "Active tenant membership resolved by the backend identity directory."
       },
       "Stakeholder": {
         "properties": {
