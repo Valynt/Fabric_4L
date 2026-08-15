@@ -72,6 +72,8 @@ COPY packages/shared/src/value_fabric/ ./value_fabric/
 COPY packages/shared/src/value_fabric/shared/ ./value_fabric/shared/
 COPY services/layer1-ingestion/alembic.ini ./
 COPY services/layer1-ingestion/migrations/ ./migrations/
+COPY docs/deprecation_register.json /app/docs/deprecation_register.json
+ENV DEPRECATION_REGISTER_PATH=/app/docs/deprecation_register.json
 
 RUN chown -R appuser:appgroup /app /home/appuser
 
