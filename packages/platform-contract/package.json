@@ -6,6 +6,7 @@
   "exports": {
     ".": "./src/typescript/index.ts",
     "./agent-result": "./src/typescript/agent-result.ts",
+    "./authorization-snapshot": "./src/typescript/authorization-snapshot.ts",
     "./stores": "./src/typescript/stores.ts",
     "./routing": "./src/typescript/routing.ts",
     "./agent-contracts": "./src/typescript/agent-contracts/index.ts",

@@ -42,6 +42,9 @@ from app.routers import (
     value_cases,
     versioning,
 )
+
+# Authorization snapshot router (canonical backend endpoint)
+from services.api.src.authorization_snapshot.router import router as authorization_snapshot_router
 from app.services.distributed_store import (
     StorePayloadError,
     StoreUnavailableError,
@@ -217,6 +220,7 @@ add_gateway_governance_middleware(app, rate_limiter=None)
 
 app.include_router(accounts.router, prefix="/v1")
 app.include_router(auth.router, prefix="/v1")
+app.include_router(authorization_snapshot_router, prefix="/v1")
 app.include_router(api_keys.router, prefix="/v1")
 app.include_router(benchmarks.router, prefix="/v1")
 app.include_router(usage.router, prefix="/v1")

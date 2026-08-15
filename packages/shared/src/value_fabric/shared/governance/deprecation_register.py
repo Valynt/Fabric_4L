@@ -19,7 +19,11 @@ import os
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from pathlib import Path
-from typing import Any
+from typing import TypeAlias
+
+JsonScalar: TypeAlias = str | int | float | bool | None
+JsonValue: TypeAlias = JsonScalar | list["JsonValue"] | dict[str, "JsonValue"]
+JsonObject: TypeAlias = dict[str, JsonValue]
 
 REGISTER_RELATIVE_PATH = Path("docs") / "deprecation_register.json"
 """Location of the register relative to the repository root."""
@@ -64,14 +68,22 @@ class DeprecationItem:
         return self.status == "deferred" and bool(self.rationale)
 
     @classmethod
-    def from_mapping(cls, payload: dict[str, Any]) -> DeprecationItem:
+    def from_mapping(cls, payload: JsonObject) -> DeprecationItem:
         missing = [field for field in _REQUIRED_ITEM_FIELDS if not payload.get(field)]
         if missing:
             raise DeprecationRegisterError(
                 f"Deprecation register item is missing required field(s) {missing}: {payload!r}"
             )
-        known = {field.name for field in cls.__dataclass_fields__.values()}  # type: ignore[attr-defined]
-        return cls(**{key: value for key, value in payload.items() if key in known})
+
+        values: dict[str, str] = {}
+        for field in cls.__dataclass_fields__:
+            value = payload.get(field, "")
+            if not isinstance(value, str):
+                raise DeprecationRegisterError(
+                    f"Deprecation register item field {field!r} must be a string: {payload!r}"
+                )
+            values[field] = value
+        return cls(**values)
 
 
 def resolve_register_path(start: Path | None = None) -> Path:
@@ -98,7 +110,7 @@ def resolve_register_path(start: Path | None = None) -> Path:
     return Path.cwd().resolve() / REGISTER_RELATIVE_PATH
 
 
-def load_register(start: Path | None = None) -> dict[str, Any]:
+def load_register(start: Path | None = None) -> JsonObject:
     """Load and validate the raw register payload.
 
     Raises:
@@ -114,7 +126,7 @@ def load_register(start: Path | None = None) -> dict[str, Any]:
         ) from exc
 
     try:
-        payload = json.loads(raw)
+        payload: JsonValue = json.loads(raw)
     except json.JSONDecodeError as exc:
         raise DeprecationRegisterError(
             f"Deprecation register at {register_path} is not valid JSON: {exc}"
@@ -134,7 +146,20 @@ def load_register(start: Path | None = None) -> dict[str, Any]:
 def load_items(start: Path | None = None) -> list[DeprecationItem]:
     """Load the register and return typed items."""
     payload = load_register(start)
-    return [DeprecationItem.from_mapping(item) for item in payload[ITEMS_KEY]]
+    raw_items = payload[ITEMS_KEY]
+    if not isinstance(raw_items, list):
+        raise DeprecationRegisterError(
+            f"Deprecation register must contain an {ITEMS_KEY!r} array"
+        )
+
+    items: list[DeprecationItem] = []
+    for raw_item in raw_items:
+        if not isinstance(raw_item, dict):
+            raise DeprecationRegisterError(
+                f"Deprecation register item must be a JSON object: {raw_item!r}"
+            )
+        items.append(DeprecationItem.from_mapping(raw_item))
+    return items
 
 
 def find_item(

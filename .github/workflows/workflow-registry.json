@@ -4,20 +4,6 @@
   "workflows": [
     {
       "path": ".github/workflows/ai-evals-pipeline.yml",
-},
-    {
-      "path": ".github/workflows/merge-group.yml",
-      "name": "Merge Group",
-      "owner": "@value-fabric/sre-leads",
-      "trigger": ["merge_group"],
-      "trigger_purpose": "CI/CD",
-      "blocking": false,
-      "required_secrets": ["GITHUB_TOKEN", "INFISICAL_IDENTITY_ID"],
-      "produced_artifacts": [],
-      "runtime_budget_minutes": 30,
-      "local_validation_command": "make check-workflow-references",
-      "deprecation_status": "active"
-    },
       "name": "AI Evaluation Pipeline",
       "owner": "@value-fabric/sre-leads",
       "trigger": [
@@ -303,16 +289,22 @@
       "blocking": false,
       "required_secrets": [],
       "produced_artifacts": [
-        "apps/${{ matrix.frontend }}/pnpm-audit-base.json",
-        "apps/${{ matrix.frontend }}/pnpm-audit.json",
-        "artifacts/pip-audit-base/${{ matrix.service }}/diagnostic.json",
-        "artifacts/pip-audit-base/${{ matrix.service }}/report.json",
-        "artifacts/pip-audit-base/${{ matrix.service }}/report.sarif",
-        "artifacts/pip-audit-base/${{ matrix.service }}/requirements.txt",
-        "artifacts/pip-audit/${{ matrix.service }}/diagnostic.json",
-        "artifacts/pip-audit/${{ matrix.service }}/report.json",
-        "artifacts/pip-audit/${{ matrix.service }}/report.sarif",
-        "artifacts/pip-audit/${{ matrix.service }}/requirements.txt",
+        "${{ github.workspace }}/packages/config/pnpm-audit-base.json",
+        "${{ github.workspace }}/packages/config/pnpm-audit.json",
+        "${{ github.workspace }}/packages/eslint-plugin-fabric-contracts/pnpm-audit-base.json",
+        "${{ github.workspace }}/packages/eslint-plugin-fabric-contracts/pnpm-audit.json",
+        "${{ github.workspace }}/services/value-studio/pnpm-audit-base.json",
+        "${{ github.workspace }}/services/value-studio/pnpm-audit.json",
+        "apps/web/pnpm-audit-base.json",
+        "apps/web/pnpm-audit.json",
+        "artifacts/pip-audit-base/${{ matrix.python.service }}/diagnostic.json",
+        "artifacts/pip-audit-base/${{ matrix.python.service }}/report.json",
+        "artifacts/pip-audit-base/${{ matrix.python.service }}/report.sarif",
+        "artifacts/pip-audit-base/${{ matrix.python.service }}/requirements.txt",
+        "artifacts/pip-audit/${{ matrix.python.service }}/diagnostic.json",
+        "artifacts/pip-audit/${{ matrix.python.service }}/report.json",
+        "artifacts/pip-audit/${{ matrix.python.service }}/report.sarif",
+        "artifacts/pip-audit/${{ matrix.python.service }}/requirements.txt",
         "sbom-vuln-track.json"
       ],
       "runtime_budget_minutes": 30,
@@ -557,6 +549,21 @@
       "deprecation_status": "active"
     },
     {
+      "path": ".github/workflows/merge-group.yml",
+      "name": "Merge Group",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "merge_group"
+      ],
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
+      "required_secrets": [],
+      "produced_artifacts": [],
+      "runtime_budget_minutes": 10,
+      "local_validation_command": "make check-workflow-references",
+      "deprecation_status": "active"
+    },
+    {
       "path": ".github/workflows/monthly-debt-burndown.yml",
       "name": "monthly-debt-burndown",
       "owner": "@value-fabric/sre-leads",
@@ -745,7 +752,9 @@
         "services/layer5-ground-truth/layer5-results.json",
         "services/layer6-benchmarks/layer6-coverage.xml",
         "services/layer6-benchmarks/layer6-junit.xml",
-        "services/layer6-benchmarks/layer6-results.json"
+        "services/layer6-benchmarks/layer6-results.json",
+        "shared-coverage.xml",
+        "shared-junit.xml"
       ],
       "runtime_budget_minutes": 45,
       "local_validation_command": "make check-workflow-references",

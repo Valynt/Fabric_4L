@@ -62,7 +62,7 @@ monitoring/ @value-fabric/sre-leads @value-fabric/backend-leads
 # Layer 1: Ingestion
 services/layer1-ingestion/ @value-fabric/backend-leads @value-fabric/data-engineering
 
-# Layer 2: Extraction  
+# Layer 2: Extraction
 services/layer2-extraction/ @value-fabric/backend-leads @value-fabric/ai-ml-leads
 
 # Layer 3: Knowledge Graph

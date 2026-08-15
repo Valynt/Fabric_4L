@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.fabric4l/auth/authorization-snapshot.schema.json",
+  "title": "AuthorizationSnapshot",
+  "description": "Backend-issued authorization facts bound to one authenticated principal, session, tenant, and account scope. Only a contract-valid success response is usable; all errors and malformed responses fail closed.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "principalId",
+    "sessionDiscriminator",
+    "tenant",
+    "accountScope",
+    "roles",
+    "permissions",
+    "entitlements",
+    "source",
+    "issuedAt",
+    "expiresAt"
+  ],
+  "properties": {
+    "principalId": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "sessionDiscriminator": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "tenant": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "slug"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "slug": { "type": "string", "minLength": 1, "maxLength": 128 }
+      }
+    },
+    "accountScope": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind"],
+          "properties": { "kind": { "const": "tenant" } }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "accountId"],
+          "properties": {
+            "kind": { "const": "account" },
+            "accountId": { "type": "string", "minLength": 1, "maxLength": 128 }
+          }
+        }
+      ]
+    },
+    "roles": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "enum": ["member", "analyst", "account_admin", "tenant_admin", "platform_admin"]
+      }
+    },
+    "permissions": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1, "maxLength": 256 }
+    },
+    "entitlements": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["key"],
+        "properties": {
+          "key": { "type": "string", "minLength": 1, "maxLength": 256 },
+          "expiresAt": { "type": "string", "format": "date-time" }
+        }
+      }
+    },
+    "source": { "const": "backend" },
+    "issuedAt": { "type": "string", "format": "date-time" },
+    "expiresAt": { "type": "string", "format": "date-time" }
+  }
+}

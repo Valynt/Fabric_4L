@@ -161,6 +161,7 @@ jobs:
 
       - name: Enforce legacy tenant access shim lifecycle (phase-controlled)
         run: |
+          mkdir -p artifacts
           pip install pyyaml
           python scripts/ci/check_legacy_tenant_access.py \
             --allowlist config/ci/legacy_tenant_access_shim_allowlist.yaml \
@@ -177,6 +178,7 @@ jobs:
 
       - name: Run structural preflight
         run: |
+          mkdir -p artifacts
           python scripts/ci/structural_preflight.py --strict --json | tee artifacts/structural-preflight.json
           exit ${PIPESTATUS[0]}
 
@@ -227,6 +229,7 @@ jobs:
 
       - name: Run Python contract lint
         run: |
+          mkdir -p artifacts
           python scripts/ci/python_contract_lint.py --strict --json | tee artifacts/python-contract-lint.json
           exit ${PIPESTATUS[0]}
 

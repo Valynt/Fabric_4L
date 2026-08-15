@@ -1,59 +1,39 @@
-# Merge Group
-# Validates that the merge_group event triggers the correct aggregate checks
-# for both pull_request and merge_group events.
-#
-# CONTRACT.md §4.2 - Merge Group CI Enforcement Strategy
-#
-# This workflow consolidates:
-# - merge_group checks for both pull_request and merge_group
-# - Ensures concurrency so a later merge does not cancel the current main verification run
-#
-# §3.3 - Trigger Configuration
-on:
-  # Trigger on merge_group events
+name: Merge Group
+
+"on":
   merge_group:
+    types: [checks_requested]
     branches: [main]
-  # Concurrency guard - fail if a later merge cancels the current main run
-  cancel-in-progress: false
 
 permissions:
   contents: read
 
-"on":
-  pull_request:
-    branches: [main]
-  push:
-    branches: [main]
-
 concurrency:
-  # Cancel only an obsolete run of this same workflow/ref. A global
-  # feature-branch group lets activity on an unrelated PR cancel required gates.
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 env:
-  # Opt into Node.js 24 for GitHub Actions
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
-  # Change-scoping layer: resolve which scopes this event touches so that
-  # fan-out jobs below only run when the change can actually affect them.
-  # Non-pull_request events always resolve every scope to 'true' (full run).
-  # The Unified Readiness Gate verifies that any skipped job was skipped
-  # because its scope resolved to 'false' (path-filtered skips are proven
-  # safe, never assumed).
-  change-scope:
-    name: Change Scope
+  aggregate-checks:
+    name: Merge Group Aggregate Checks
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
 
-steps:
-  - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
-
-      - name: Fetch base branch for diff-aware policy checks
-        run: |
-          git fetch --no-tags --prune origin "${{ github.base_ref || 'main' }}"
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
 
       - name: Set up Python
         uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
         with:
+          python-version: "3.11"
+
+      - name: Install workflow validation dependencies
+        run: python -m pip install --require-hashes -r tests/requirements-test.lock
+
+      - name: Validate workflow target and artifact references
+        run: make check-workflow-references
+
+      - name: Validate workflow ownership registry
+        run: make check-workflow-registry

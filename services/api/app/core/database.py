@@ -707,6 +707,9 @@ class PostgreSQLDatabase:
         self.dsar_packages = AsyncPostgreSQLTable("dsar_packages", pool, tenant_field="tenant_id")
         self.api_keys = PostgreSQLTable("api_keys", pool, model_cls=APIKeyRecord, tenant_field="key_id")
         self.usage_events = AppendOnlyPostgreSQLTable("usage_events", pool, model_cls=UsageEventRecord, tenant_field="tenant_id")
+        # Authorization snapshot tables
+        self.account_memberships = PostgreSQLTable("account_memberships", pool, tenant_field="tenant_id")
+        self.tenant_entitlements = PostgreSQLTable("tenant_entitlements", pool, tenant_field="tenant_id")
 
 
 class InMemoryDatabase:
@@ -740,6 +743,9 @@ class InMemoryDatabase:
         self.dsar_packages = AsyncInMemoryTable("dsar_packages", "tenant_id")
         self.api_keys = InMemoryTable("api_keys", tenant_field="key_id")
         self.usage_events = AppendOnlyInMemoryTable("usage_events", tenant_field="tenant_id")
+        # Authorization snapshot tables
+        self.account_memberships = InMemoryTable("account_memberships", "tenant_id")
+        self.tenant_entitlements = InMemoryTable("tenant_entitlements", "tenant_id")
 
 
 class AsyncInMemoryTable(InMemoryTable[T]):

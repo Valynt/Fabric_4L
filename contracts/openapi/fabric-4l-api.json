@@ -6,6 +6,76 @@
     "version": "0.1.0"
   },
   "paths": {
+    "/auth/authorization-snapshot": {
+      "get": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Get Authorization Snapshot",
+        "description": "Returns backend-authoritative authorization facts bound to the authenticated principal, session, tenant, and selected account. Any authentication, policy, scope, or dependency failure returns no snapshot and fails closed.",
+        "operationId": "get_authorization_snapshot_auth_authorization_snapshot_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "X-Account-ID",
+            "in": "header",
+            "required": false,
+            "description": "Optional account selector. The backend validates tenant ownership and echoes the canonical account ID in accountScope; it is never trusted as tenant authority.",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current verified authorization snapshot",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthorizationSnapshot"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication missing or invalid; no snapshot is returned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Tenant, account, membership, role, or policy validation denied; no snapshot is returned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "An authorization dependency is unavailable; no partial snapshot is returned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/ready": {
       "get": {
         "tags": [
@@ -13498,6 +13568,146 @@
           }
         },
         "description": "Deprecated compatibility alias for ErrorEnvelope. Use ErrorEnvelope for new clients."
+      },
+      "AuthorizationSnapshot": {
+        "title": "AuthorizationSnapshot",
+        "description": "Backend-issued authorization facts bound to one authenticated principal, session, tenant, and account scope. Only a contract-valid success response is usable; all errors and malformed responses fail closed.",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "principalId",
+          "sessionDiscriminator",
+          "tenant",
+          "accountScope",
+          "roles",
+          "permissions",
+          "entitlements",
+          "source",
+          "issuedAt",
+          "expiresAt"
+        ],
+        "properties": {
+          "principalId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "sessionDiscriminator": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "tenant": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "slug"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64
+              },
+              "slug": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              }
+            }
+          },
+          "accountScope": {
+            "oneOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "kind"
+                ],
+                "properties": {
+                  "kind": {
+                    "const": "tenant"
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "kind",
+                  "accountId"
+                ],
+                "properties": {
+                  "kind": {
+                    "const": "account"
+                  },
+                  "accountId": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  }
+                }
+              }
+            ]
+          },
+          "roles": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "enum": [
+                "member",
+                "analyst",
+                "account_admin",
+                "tenant_admin",
+                "platform_admin"
+              ]
+            }
+          },
+          "permissions": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          },
+          "entitlements": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "key"
+              ],
+              "properties": {
+                "key": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                "expiresAt": {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              }
+            }
+          },
+          "source": {
+            "const": "backend"
+          },
+          "issuedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
       }
     },
     "securitySchemes": {

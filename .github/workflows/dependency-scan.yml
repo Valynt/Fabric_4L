@@ -175,7 +175,7 @@ jobs:
           rm -rf "$base_worktree"
           git worktree add --detach "$base_worktree" "origin/$BASE_REF"
           echo "worktree=$base_worktree" >> "$GITHUB_OUTPUT"
-          
+
           # Determine base service directory
           case "${{ matrix.python.service }}" in
             shared)
@@ -191,7 +191,7 @@ jobs:
               BASE_SERVICE_DIR="$base_worktree/services/${{ matrix.python.service }}"
               ;;
           esac
-          
+
           set +e
           python scripts/ci/run_pip_audit.py scan \
             --service-name "${{ matrix.python.service }}" \
@@ -320,7 +320,7 @@ jobs:
               WD="apps/${{ matrix.frontend }}"
               ;;
           esac
-          
+
           BASE_REF="${GITHUB_BASE_REF:-main}"
           BASE_WORKTREE="${RUNNER_TEMP}/pnpm-audit-base-${{ matrix.frontend }}"
           git fetch --no-tags --prune origin "${BASE_REF}"

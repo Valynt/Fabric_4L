@@ -10,6 +10,7 @@ const TEST_SHIMS = path.join(ROOT, "src/typescript/test-shims.d.ts");
 const EXPECTED_EXPORTS = {
   ".": "./src/typescript/index.ts",
   "./agent-result": "./src/typescript/agent-result.ts",
+  "./authorization-snapshot": "./src/typescript/authorization-snapshot.ts",
   "./routing": "./src/typescript/routing.ts",
   "./stores": "./src/typescript/stores.ts",
 };
@@ -34,6 +35,13 @@ const NEGATIVE_CASES = [
   {
     file: "src/typescript/negative/missing-subpath-export.ts",
     expectedSubstrings: ["has no exported member 'MissingRoutingExport'"],
+  },
+  {
+    file: "src/typescript/negative/invalid-authorization-snapshot.ts",
+    expectedSubstrings: [
+      '"unknown_role"',
+      "Type 'AuthorizationSnapshot' is not assignable to type 'null'",
+    ],
   },
 ];
 
