@@ -1,107 +1,67 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
-import type { ReactNode } from "react";
-import { describe, expect, it, vi, beforeEach } from "vitest";
-import { apiGet } from "@/api/typedClient";
+import { renderHook } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const authorization = vi.hoisted(() => ({
+  status: "verified" as "verified" | "loading" | "denied" | "expired",
+  granted: new Set<string>(),
+  hasEveryEntitlement: (required: string[]) =>
+    authorization.status === "verified" &&
+    required.every(value => authorization.granted.has(value)),
+}));
+
+vi.mock("@/auth/AuthorizationProvider", () => ({
+  useAuthorizationSnapshot: () => authorization,
+}));
+
 import { useEntitlements } from "./useEntitlements";
 
-vi.mock("@/api/typedClient", () => ({ apiGet: vi.fn() }));
-
-const wrapper = ({ children }: { children: ReactNode }) => (
-  <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
-    {children}
-  </QueryClientProvider>
-);
-
 describe("useEntitlements behavior invariants", () => {
-  beforeEach(() => vi.clearAllMocks());
-
-  // ───────────────────────────────────────────────────────────────────────────
-  // Allowed behavior
-  // ───────────────────────────────────────────────────────────────────────────
-  it("user with all required entitlements is allowed access", async () => {
-    vi.mocked(apiGet).mockResolvedValueOnce({
-      data: {
-        decisions: {
-          "feature.a": { allowed: true, reason: "ok" },
-          "feature.b": { allowed: true, reason: "ok" },
-        },
-      },
-    } as never);
-
-    const { result } = renderHook(() => useEntitlements(["feature.a", "feature.b"]), { wrapper });
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
-
-    expect(result.current.entitlementsMet).toBe(true);
-    expect(result.current.isError).toBe(false);
+  beforeEach(() => {
+    authorization.status = "verified";
+    authorization.granted = new Set(["feature.a", "feature.b"]);
   });
 
-  it("user with single required entitlement is allowed access", async () => {
-    vi.mocked(apiGet).mockResolvedValueOnce({
-      data: {
-        decisions: {
-          "feature.a": { allowed: true, reason: "ok" },
-        },
-      },
-    } as never);
-
-    const { result } = renderHook(() => useEntitlements(["feature.a"]), { wrapper });
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
-
-    expect(result.current.entitlementsMet).toBe(true);
+  it("allows a verified snapshot with all required entitlements", () => {
+    expect(
+      renderHook(() => useEntitlements(["feature.a", "feature.b"])).result
+        .current.entitlementsMet
+    ).toBe(true);
   });
 
-  // ───────────────────────────────────────────────────────────────────────────
-  // Denied behavior
-  // ───────────────────────────────────────────────────────────────────────────
-  it("user with missing required entitlement is denied access", async () => {
-    vi.mocked(apiGet).mockResolvedValueOnce({
-      data: {
-        decisions: {
-          "feature.a": { allowed: true, reason: "ok" },
-        },
-      },
-    } as never);
-
-    const { result } = renderHook(() => useEntitlements(["feature.a", "feature.b"]), { wrapper });
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
-
-    expect(result.current.entitlementsMet).toBe(false);
+  it("allows a verified snapshot with one required entitlement", () => {
+    expect(
+      renderHook(() => useEntitlements(["feature.a"])).result.current
+        .entitlementsMet
+    ).toBe(true);
   });
 
-  it("user with explicitly denied entitlement is denied access", async () => {
-    vi.mocked(apiGet).mockResolvedValueOnce({
-      data: {
-        decisions: {
-          "feature.a": { allowed: false, reason: "plan_limit" },
-        },
-      },
-    } as never);
-
-    const { result } = renderHook(() => useEntitlements(["feature.a"]), { wrapper });
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
-
-    expect(result.current.entitlementsMet).toBe(false);
+  it("denies a verified snapshot missing a required entitlement", () => {
+    expect(
+      renderHook(() => useEntitlements(["missing"])).result.current
+        .entitlementsMet
+    ).toBe(false);
   });
 
-  // ───────────────────────────────────────────────────────────────────────────
-  // Failure mode
-  // ───────────────────────────────────────────────────────────────────────────
-  it("network error fails closed with denied access", async () => {
-    vi.mocked(apiGet).mockRejectedValueOnce(new Error("network failure"));
-
-    const { result } = renderHook(() => useEntitlements(["feature.a"]), { wrapper });
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
-
-    expect(result.current.entitlementsMet).toBe(false);
-    expect(result.current.isError).toBe(true);
+  it("denies while authorization is loading", () => {
+    authorization.status = "loading";
+    expect(
+      renderHook(() => useEntitlements(["feature.a"])).result.current
+        .entitlementsMet
+    ).toBe(false);
   });
 
-  it("empty entitlement list defaults to allowed without API call", async () => {
-    const { result } = renderHook(() => useEntitlements([]), { wrapper });
+  it("denies when snapshot resolution fails", () => {
+    authorization.status = "denied";
+    const result = renderHook(() => useEntitlements(["feature.a"])).result
+      .current;
+    expect(result.entitlementsMet).toBe(false);
+    expect(result.isError).toBe(true);
+  });
 
-    expect(result.current.isLoading).toBe(false);
-    expect(result.current.entitlementsMet).toBe(true);
-    expect(apiGet).not.toHaveBeenCalled();
+  it("requires a verified snapshot even when no entitlements are requested", () => {
+    authorization.status = "expired";
+    expect(
+      renderHook(() => useEntitlements([])).result.current.entitlementsMet
+    ).toBe(false);
   });
 });

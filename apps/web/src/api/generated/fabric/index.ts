@@ -547,6 +547,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/auth/authorization-snapshot": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Authorization Snapshot
+         * @description Issue one non-cacheable candidate from the canonical authorization projection.
+         */
+        get: operations["get_authorization_snapshot_v1_auth_authorization_snapshot_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/accounts/{account_id}/signals": {
         parameters: {
             query?: never;
@@ -2550,6 +2570,34 @@ export interface components {
              */
             source: string;
         };
+        /** AuthorizationSnapshot */
+        AuthorizationSnapshot: {
+            /**
+             * Schemaversion
+             * @default 1
+             * @constant
+             */
+            schemaVersion: "1";
+            /**
+             * Source
+             * @default backend
+             * @constant
+             */
+            source: "backend";
+            identity: components["schemas"]["SnapshotIdentity"];
+            tenant: components["schemas"]["SnapshotTenant"];
+            accountScope: components["schemas"]["SnapshotAccountScope"];
+            /** Roles */
+            roles: components["schemas"]["CanonicalAuthorizationRole"][];
+            /** Permissions */
+            permissions: string[];
+            /** Entitlements */
+            entitlements: string[];
+            /** Issuedat */
+            issuedAt: string;
+            /** Expiresat */
+            expiresAt: string;
+        };
         /** BusinessCase */
         BusinessCase: {
             /** Id */
@@ -2604,6 +2652,11 @@ export interface components {
              */
             audience: string;
         };
+        /**
+         * CanonicalAuthorizationRole
+         * @enum {string}
+         */
+        CanonicalAuthorizationRole: "tenant_admin" | "content_admin" | "analyst" | "read_only";
         /**
          * ClerkTenantResponse
          * @description Canonical mapping from a Clerk organization to a Fabric tenant.
@@ -3576,6 +3629,16 @@ export interface components {
             /** Tenant Name */
             tenant_name: string;
         };
+        /** SnapshotAccountScope */
+        SnapshotAccountScope: {
+            /**
+             * Scopetype
+             * @enum {string}
+             */
+            scopeType: "tenant" | "account";
+            /** Accountid */
+            accountId: string | null;
+        };
         /** SnapshotDiffChange */
         SnapshotDiffChange: {
             /** Field */
@@ -3597,6 +3660,31 @@ export interface components {
             created_at_base: string;
             /** Created At Compare */
             created_at_compare: string;
+        };
+        /** SnapshotIdentity */
+        SnapshotIdentity: {
+            /** Clerkuserid */
+            clerkUserId: string;
+            /** Fabricuserid */
+            fabricUserId: string;
+            /** Sessiondiscriminator */
+            sessionDiscriminator: string;
+        };
+        /** SnapshotTenant */
+        SnapshotTenant: {
+            /** Fabrictenantid */
+            fabricTenantId: string;
+            /** Clerkorganizationid */
+            clerkOrganizationId: string;
+            /** Tenantslug */
+            tenantSlug: string | null;
+            /** Membershipid */
+            membershipId: string;
+            /**
+             * Membershipstatus
+             * @constant
+             */
+            membershipStatus: "active";
         };
         /** Stakeholder */
         Stakeholder: {
@@ -5111,6 +5199,61 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ClerkTenantResponse"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_authorization_snapshot_v1_auth_authorization_snapshot_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-Account-ID"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["HTTPAuthorizationCredentials"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    /** @description Always `private, no-store`; snapshots must not be cached by intermediaries. */
+                    "Cache-Control"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthorizationSnapshot"];
+                };
+            };
+            /** @description Authentication is missing, invalid, or expired. */
+            401: {
+                headers: {
+                    /** @description Always `private, no-store`. */
+                    "Cache-Control"?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authorization or account scope denied. Nonexistent, foreign-tenant, and inaccessible accounts all use `account_scope_denied`. */
+            403: {
+                headers: {
+                    /** @description Always `private, no-store`. */
+                    "Cache-Control"?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

@@ -1,32 +1,35 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
-import type { ReactNode } from "react";
-import { describe, expect, it, vi, beforeEach } from "vitest";
-import { apiGet } from "@/api/typedClient";
+import { renderHook } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useAccountAccess } from "./useAccountAccess";
 
-vi.mock("@/api/typedClient", () => ({ apiGet: vi.fn() }));
+const authorization = vi.hoisted(() => ({
+  status: "verified" as "verified" | "loading" | "denied" | "expired",
+  hasAccountAccess: vi.fn(() => true),
+}));
 
-const wrapper = ({ children }: { children: ReactNode }) => (
-  <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>{children}</QueryClientProvider>
-);
+vi.mock("@/auth/AuthorizationProvider", () => ({
+  useAuthorizationSnapshot: () => authorization,
+}));
 
 describe("useAccountAccess", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    authorization.status = "verified";
+    authorization.hasAccountAccess.mockReset().mockReturnValue(true);
+  });
 
-  it("denies by default on service error", async () => {
-    vi.mocked(apiGet).mockRejectedValueOnce(new Error("down"));
-    const { result } = renderHook(() => useAccountAccess("acc-1", "tenant-a"), { wrapper });
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
+  it("denies when the verified snapshot resolution fails", () => {
+    authorization.status = "denied";
+    authorization.hasAccountAccess.mockReturnValue(false);
+    const { result } = renderHook(() => useAccountAccess("acc-1", "tenant-a"));
     expect(result.current.hasAccountAccess).toBe(false);
     expect(result.current.isError).toBe(true);
   });
 
-  it("requires all acl checks to pass", async () => {
-    vi.mocked(apiGet).mockResolvedValueOnce({ data: { account_exists: true, tenant_bound: true, principal_allowed: false, reason: "acl_denied" } } as never);
-    const { result } = renderHook(() => useAccountAccess("acc-1", "tenant-a"), { wrapper });
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
+  it("delegates exact account access to the verified snapshot", () => {
+    authorization.hasAccountAccess.mockReturnValue(false);
+    const { result } = renderHook(() => useAccountAccess("acc-1", "tenant-a"));
+    expect(authorization.hasAccountAccess).toHaveBeenCalledWith("acc-1");
     expect(result.current.hasAccountAccess).toBe(false);
-    expect(result.current.denyReason).toBe("acl_denied");
+    expect(result.current.isError).toBe(false);
   });
 });

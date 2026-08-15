@@ -16,15 +16,9 @@ const FAIL_CLOSED_ACCESS_POLICY: RouteAccessPolicy = {
 };
 
 const VERIFIED_ROLES_BY_TIER = {
-  standard: [
-    "member",
-    "analyst",
-    "account_admin",
-    "tenant_admin",
-    "platform_admin",
-  ],
-  advanced: ["account_admin", "tenant_admin", "platform_admin"],
-  admin: ["tenant_admin", "platform_admin"],
+  standard: ["read_only", "analyst", "content_admin", "tenant_admin"],
+  advanced: ["content_admin", "tenant_admin"],
+  admin: ["tenant_admin"],
 } as const;
 
 interface UnifiedRouteGuardProps {
@@ -50,9 +44,7 @@ export function UnifiedRouteGuard({ children }: UnifiedRouteGuardProps) {
 
   // Feature flags are presentation controls only. They are evaluated after the
   // verified snapshot and can restrict access, never grant it.
-  const { flagsEnabled } = useFeatureFlags(
-    policy.requiredFeatureFlags ?? []
-  );
+  const { flagsEnabled } = useFeatureFlags(policy.requiredFeatureFlags ?? []);
 
   if (authLoading) {
     return <RouteGuardLoading />;
@@ -69,6 +61,7 @@ export function UnifiedRouteGuard({ children }: UnifiedRouteGuardProps) {
   }
 
   const requiresVerifiedAuthorization =
+    policy.requiresAuth ||
     policy.tenantScoped ||
     policy.accountScoped ||
     !!policy.requiredTier ||

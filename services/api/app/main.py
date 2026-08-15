@@ -42,8 +42,6 @@ from app.routers import (
     value_cases,
     versioning,
 )
-
-from app.routers.authorization_snapshot import router as authorization_snapshot_router
 from app.services.distributed_store import (
     StorePayloadError,
     StoreUnavailableError,
@@ -219,7 +217,6 @@ add_gateway_governance_middleware(app, rate_limiter=None)
 
 app.include_router(accounts.router, prefix="/v1")
 app.include_router(auth.router, prefix="/v1")
-app.include_router(authorization_snapshot_router, prefix="/v1")
 app.include_router(api_keys.router, prefix="/v1")
 app.include_router(benchmarks.router, prefix="/v1")
 app.include_router(usage.router, prefix="/v1")
@@ -231,6 +228,7 @@ app.include_router(jobs.router, prefix="/v1")
 # to a legacy mode and keeps the API surface consistent with runtime config.
 if os.getenv("AUTH_PROVIDER", "clerk").strip().lower() == AUTH_PROVIDER_CLERK:
     app.include_router(clerk_auth.router, prefix="/v1")
+    app.include_router(clerk_auth.authorization_router, prefix="/v1")
 
 app.include_router(intelligence.router, prefix="/v1")
 app.include_router(intelligence.legacy_router, prefix="/v1")

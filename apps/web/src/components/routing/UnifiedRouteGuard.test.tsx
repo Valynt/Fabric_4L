@@ -5,11 +5,7 @@ import type { RouteAccessPolicy } from "@/routes/types";
 const authorization = vi.hoisted(() => ({
   status: "verified" as "loading" | "verified" | "denied" | "expired",
   reason: undefined as
-    | "malformed"
-    | "mismatch"
-    | "unavailable"
-    | "unauthenticated"
-    | undefined,
+    "malformed" | "mismatch" | "unavailable" | "unauthenticated" | undefined,
   hasEveryPermission: vi.fn(() => true),
   hasEveryEntitlement: vi.fn(() => true),
   hasTenantMembership: vi.fn(() => true),
@@ -50,7 +46,9 @@ vi.mock("@/components", () => ({
 
 import { UnifiedRouteGuard } from "./UnifiedRouteGuard";
 
-const policy = (overrides: Partial<RouteAccessPolicy> = {}): RouteAccessPolicy => ({
+const policy = (
+  overrides: Partial<RouteAccessPolicy> = {}
+): RouteAccessPolicy => ({
   requiresAuth: true,
   tenantScoped: false,
   fallbackRoute: "/explicit-fallback",
@@ -156,10 +154,7 @@ describe("UnifiedRouteGuard verified authorization", () => {
     authorization.hasAnyRole.mockReturnValue(false);
     renderGuard(policy({ requiredTier: "admin", tenantScoped: true }));
 
-    expect(authorization.hasAnyRole).toHaveBeenCalledWith([
-      "tenant_admin",
-      "platform_admin",
-    ]);
+    expect(authorization.hasAnyRole).toHaveBeenCalledWith(["tenant_admin"]);
     expect(screen.getByText("redirect:/explicit-fallback")).toBeInTheDocument();
     expectProtectedContentHidden();
   });
@@ -170,9 +165,7 @@ describe("UnifiedRouteGuard verified authorization", () => {
 
     expect(authorization.hasTenantMembership).toHaveBeenCalledWith("tenant-a");
     expect(authorization.hasAccountAccess).toHaveBeenCalledWith("acc-1");
-    expect(
-      screen.getByText("redirect:/explicit-fallback")
-    ).toBeInTheDocument();
+    expect(screen.getByText("redirect:/explicit-fallback")).toBeInTheDocument();
     expectProtectedContentHidden();
   });
 
@@ -181,9 +174,7 @@ describe("UnifiedRouteGuard verified authorization", () => {
     renderGuard(policy({ tenantScoped: true, accountScoped: true }));
 
     expect(authorization.hasAccountAccess).not.toHaveBeenCalled();
-    expect(
-      screen.getByText("redirect:/explicit-fallback")
-    ).toBeInTheDocument();
+    expect(screen.getByText("redirect:/explicit-fallback")).toBeInTheDocument();
     expectProtectedContentHidden();
   });
 
@@ -204,9 +195,7 @@ describe("UnifiedRouteGuard verified authorization", () => {
       "billing.manage",
       "exports.enabled",
     ]);
-    expect(
-      screen.getByText("redirect:/explicit-fallback")
-    ).toBeInTheDocument();
+    expect(screen.getByText("redirect:/explicit-fallback")).toBeInTheDocument();
     expectProtectedContentHidden();
   });
 
@@ -220,9 +209,7 @@ describe("UnifiedRouteGuard verified authorization", () => {
       })
     );
 
-    expect(
-      screen.getByText("redirect:/explicit-fallback")
-    ).toBeInTheDocument();
+    expect(screen.getByText("redirect:/explicit-fallback")).toBeInTheDocument();
     expectProtectedContentHidden();
   });
 
@@ -230,9 +217,7 @@ describe("UnifiedRouteGuard verified authorization", () => {
     featureFlags.flagsEnabled = false;
     renderGuard(policy({ requiredFeatureFlags: ["new-workspace"] }));
 
-    expect(
-      screen.getByText("redirect:/explicit-fallback")
-    ).toBeInTheDocument();
+    expect(screen.getByText("redirect:/explicit-fallback")).toBeInTheDocument();
     expectProtectedContentHidden();
   });
 
