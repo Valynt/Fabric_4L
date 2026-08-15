@@ -56,9 +56,6 @@ env:
   FAIL_THRESHOLD: ${{ inputs.fail_threshold || 'medium' }}
 
 jobs:
-  # =========================================================================
-  # CHECK MANIFEST REGISTRY
-  # =========================================================================
   check-manifests:
     name: Check Manifest Registry
     runs-on: ubuntu-latest
@@ -89,19 +86,17 @@ jobs:
         run: |
           # Read the checked-in manifests.json (which we know is up-to-date)
           python_matrix=$(python -c "import json, sys; data=json.load(open('.github/manifests.json')); print(json.dumps([{'service': item['name']} for item in data['python']]))")
-          node_matrix=$(python -c "import json, sys; data=json.load(open('.github/manifests.json')); print(json.dumps([{'frontend': item['name']} for item in data['node']]))")
+          # Node jobs interpolate matrix.frontend as a scalar name.
+          node_matrix=$(python -c "import json, sys; data=json.load(open('.github/manifests.json')); print(json.dumps([item['name'] for item in data['node']]))")
           echo "python_matrix=$python_matrix" >> $GITHUB_OUTPUT
           echo "node_matrix=$node_matrix" >> $GITHUB_OUTPUT
 
-  # =========================================================================
-  # PYTHON DEPENDENCY SCAN
-  # =========================================================================
   scan-python:
     name: Scan Python Dependencies
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      security-events: write # Uploads dependency scan SARIF to code scanning.
+      security-events: write
     needs: check-manifests
 
     strategy:
@@ -176,7 +171,6 @@ jobs:
           git worktree add --detach "$base_worktree" "origin/$BASE_REF"
           echo "worktree=$base_worktree" >> "$GITHUB_OUTPUT"
 
-          # Determine base service directory
           case "${{ matrix.python.service }}" in
             shared)
               BASE_SERVICE_DIR="$base_worktree/packages/shared/src"
@@ -255,15 +249,12 @@ jobs:
         if: always() && github.event_name == 'pull_request' && steps.base_audit.outputs.worktree != ''
         run: git worktree remove --force "${{ steps.base_audit.outputs.worktree }}"
 
-  # =========================================================================
-  # NODE.JS DEPENDENCY SCAN
-  # =========================================================================
   scan-node:
     name: Scan Node.js Dependencies
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      security-events: write # Uploads dependency scan SARIF to code scanning.
+      security-events: write
     needs: check-manifests
 
     strategy:
@@ -272,40 +263,26 @@ jobs:
         frontend: ${{ fromJson(needs.check-manifests.outputs.node_matrix) }}
 
     steps:
-      # -----------------------------------------------------------------------
-      # 1. Checkout
-      # -----------------------------------------------------------------------
       - name: Checkout code
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
         with:
           fetch-depth: 0
 
-      # -----------------------------------------------------------------------
-      # 2. Setup Node.js + pnpm
-      # -----------------------------------------------------------------------
       - name: Setup Node.js + pnpm
         uses: ./.github/actions/setup-pnpm
         with:
           node-version: '22.18.0'
 
-      # -----------------------------------------------------------------------
-      # 3. Dependency review (PR only)
-      # -----------------------------------------------------------------------
       - name: Dependency Review
         if: github.event_name == 'pull_request'
         uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
         with:
-          # dependency-review-action uses 'moderate', not 'medium'
           fail-on-severity: ${{ env.FAIL_THRESHOLD == 'medium' && 'moderate' || env.FAIL_THRESHOLD }}
           comment-summary-in-pr: true
 
-      # -----------------------------------------------------------------------
-      # 4. pnpm audit
-      # -----------------------------------------------------------------------
       - name: pnpm audit ${{ matrix.frontend }}
         id: pnpm-audit
         run: |
-          # Determine working directory based on matrix value
           case "${{ matrix.frontend }}" in
             value-studio)
               WD="services/value-studio"
@@ -326,19 +303,21 @@ jobs:
           git fetch --no-tags --prune origin "${BASE_REF}"
 
           pnpm install --frozen-lockfile
-          pnpm audit --json --audit-level ${{ env.FAIL_THRESHOLD }} > pnpm-audit.json || true
+          pnpm --dir "${WD}" audit --json --audit-level ${{ env.FAIL_THRESHOLD }} > "${WD}/pnpm-audit.json" || true
 
           git worktree add --detach "${BASE_WORKTREE}" "origin/${BASE_REF}"
           (
-            cd "${BASE_WORKTREE}/${WD}"
+            cd "${BASE_WORKTREE}"
             pnpm install --frozen-lockfile
-            pnpm audit --json --audit-level ${{ env.FAIL_THRESHOLD }} > "${GITHUB_WORKSPACE}/${WD}/pnpm-audit-base.json" || true
+            pnpm --dir "${WD}" audit --json --audit-level ${{ env.FAIL_THRESHOLD }} > "${GITHUB_WORKSPACE}/${WD}/pnpm-audit-base.json" || true
           )
 
+          export AUDIT_CURRENT="${GITHUB_WORKSPACE}/${WD}/pnpm-audit.json"
+          export AUDIT_BASELINE="${GITHUB_WORKSPACE}/${WD}/pnpm-audit-base.json"
           node <<'NODE'
           const fs = require('fs');
-          const current = JSON.parse(fs.readFileSync('pnpm-audit.json', 'utf8'));
-          const baseline = JSON.parse(fs.readFileSync('${{ github.workspace }}/${WD}/pnpm-audit-base.json', 'utf8'));
+          const current = JSON.parse(fs.readFileSync(process.env.AUDIT_CURRENT, 'utf8'));
+          const baseline = JSON.parse(fs.readFileSync(process.env.AUDIT_BASELINE, 'utf8'));
           const sevMap = {low: 0, moderate: 1, high: 2, critical: 3};
           const threshold = sevMap[process.env.FAIL_THRESHOLD] ?? 1;
 
@@ -378,9 +357,6 @@ jobs:
           process.exit(fail ? 1 : 0);
           NODE
 
-      # -----------------------------------------------------------------------
-      # 5. Upload results
-      # -----------------------------------------------------------------------
       - name: Upload audit results
         if: always()
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
@@ -396,17 +372,13 @@ jobs:
             apps/web/pnpm-audit.json
             apps/web/pnpm-audit-base.json
           retention-days: 30
-        # Use always() to ensure upload happens even if previous steps fail
 
-  # =========================================================================
-  # CONTAINER IMAGE SCAN
-  # =========================================================================
   scan-containers:
     name: Scan Container Images
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      security-events: write # Uploads container scan SARIF to code scanning.
+      security-events: write
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
 
     steps:
@@ -434,9 +406,6 @@ jobs:
           sarif_file: container-scan.sarif
           category: container-scan
 
-  # =========================================================================
-  # SBOM GENERATION (Vulnerability Context)
-  # =========================================================================
   generate-sbom:
     name: Generate SBOM for Vulnerability Tracking
     runs-on: ubuntu-latest
@@ -468,9 +437,6 @@ jobs:
           path: sbom-vuln-track.json
           retention-days: 90
 
-  # =========================================================================
-  # SUMMARY
-  # =========================================================================
   summary:
     name: Scan Summary
     runs-on: ubuntu-latest
@@ -480,24 +446,22 @@ jobs:
     steps:
       - name: Generate summary
         run: |
-          echo "## �� 🔒 Dependency Vulnerability Scan Results" >> "$GITHUB_STEP_SUMMARY"
+          echo "## Dependency Vulnerability Scan Results" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "| Component | Status |" >> "$GITHUB_STEP_SUMMARY"
           echo "|-----------|--------|" >> "$GITHUB_STEP_SUMMARY"
 
-          # Python services
           for svc in api layer1-ingestion layer2-extraction layer3-knowledge layer4-agents layer5-ground-truth layer6-benchmarks; do
-            status="��⏭��️ Skipped"
-            if [ "${{ needs.scan-python.result }}" = "success" ]; then status="��✅ Pass"; fi
-            if [ "${{ needs.scan-python.result }}" = "failure" ]; then status="��❌ Fail"; fi
+            status="Skipped"
+            if [ "${{ needs.scan-python.result }}" = "success" ]; then status="Pass"; fi
+            if [ "${{ needs.scan-python.result }}" = "failure" ]; then status="Fail"; fi
             echo "| Python: $svc | $status |" >> "$GITHUB_STEP_SUMMARY"
           done
 
-          # Node frontends
           for fe in web; do
-            status="��⏭��️ Skipped"
-            if [ "${{ needs.scan-node.result }}" = "success" ]; then status="��✅ Pass"; fi
-            if [ "${{ needs.scan-node.result }}" = "failure" ]; then status="��❌ Fail"; fi
+            status="Skipped"
+            if [ "${{ needs.scan-node.result }}" = "success" ]; then status="Pass"; fi
+            if [ "${{ needs.scan-node.result }}" = "failure" ]; then status="Fail"; fi
             echo "| Node.js: $fe | $status |" >> "$GITHUB_STEP_SUMMARY"
           done
 
