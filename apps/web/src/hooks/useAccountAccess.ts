@@ -1,4 +1,4 @@
-/** @deprecated Temporary selector over AuthorizationProvider. */
+/** Snapshot selector over AuthorizationProvider. */
 import { useAuthorizationSnapshot } from "@/auth/AuthorizationProvider";
 
 export function useAccountAccess(

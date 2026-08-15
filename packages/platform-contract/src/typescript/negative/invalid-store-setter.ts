@@ -1,3 +1,4 @@
-import { useAccountContextStore } from "@fabric/platform-contract/stores";
+import type { AccountContextState } from "@fabric/platform-contract/stores";
 
-useAccountContextStore.getState().setSelectedAccountId(123);
+declare const store: AccountContextState;
+store.setSelectedAccountId(123);

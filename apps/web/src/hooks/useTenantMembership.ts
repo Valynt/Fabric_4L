@@ -1,4 +1,4 @@
-/** @deprecated Temporary selectors over AuthorizationProvider. */
+/** Snapshot selectors over AuthorizationProvider. */
 import { useAuthorizationSnapshot } from "@/auth/AuthorizationProvider";
 
 export interface TenantMembership {

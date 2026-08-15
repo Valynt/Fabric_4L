@@ -1,5 +1,4 @@
-/** @deprecated Snapshot selector retained until all callers use
- * useAuthorizationSnapshot directly. It performs no authorization fetch. */
+/** Snapshot selector. It performs no authorization fetch. */
 import { useAuthorizationSnapshot } from "@/auth/AuthorizationProvider";
 
 export function useEntitlements(requiredEntitlements: string[]) {

@@ -26,7 +26,7 @@ const NEGATIVE_CASES = [
   },
   {
     file: "src/typescript/negative/invalid-store-setter.ts",
-    expectedSubstrings: ["Argument of type 'null'", "parameter of type 'string'"],
+    expectedSubstrings: ["Argument of type 'number'", "parameter of type 'string'"],
   },
   {
     file: "src/typescript/negative/missing-barrel-export.ts",
