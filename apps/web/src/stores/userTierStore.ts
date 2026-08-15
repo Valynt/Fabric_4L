@@ -1,11 +1,10 @@
 /**
- * User tier authorization plus presentation-preference state.
+ * User tier presentation-preference state.
  *
  * Manages:
  * - User tier/role (standard, advanced, admin)
  * - Advanced presentation toggle state (disclosure only; never authorization)
- * - Route protection permissions
- * - Tier-specific feature flags
+ * Authorization is exclusively provided by AuthorizationProvider.
  */
 
 import { create } from "zustand";
@@ -18,8 +17,7 @@ export type UserTier = "standard" | "advanced" | "admin" | "unknown";
 
 /** Security result type distinguishing explicit deny from evaluation failure */
 export type AccessDecision =
-  | { allowed: true }
-  | { allowed: false; reason: string };
+  { allowed: true } | { allowed: false; reason: string };
 
 /**
  * Type guard to check if access decision is denied.
@@ -49,10 +47,10 @@ export interface UserTierState {
   // consulted by route, action, role, permission, or entitlement authorization.
   isAdvancedModeEnabled: boolean;
 
-  // User role from backend
+  // Legacy presentation label; never an authorization input.
   userRole: string | null;
 
-  // Feature flags based on tier
+  // Deprecated all-false compatibility shape; never an authorization input.
   permissions: UserPermissions;
 
   // Persist rehydration state (used by route guards to avoid deciding before storage is read)
@@ -66,7 +64,7 @@ export interface UserTierState {
   enableAdvancedMode: () => void;
   disableAdvancedMode: () => void;
 
-  // Permission checks
+  // Deprecated presentation checks; protected consumers use AuthorizationProvider.
   canAccessRoute: (routeTier: UserTier | string) => boolean;
   canAccessRouteWithReason: (routeTier: UserTier | string) => AccessDecision;
   canAccessFeature: (feature: keyof UserPermissions) => boolean;
@@ -92,9 +90,10 @@ export const validateTier = (tier: UserTier | string): UserTier | null => {
   return null;
 };
 
-// Default permissions by tier
-const getDefaultPermissions = (tier: UserTier): UserPermissions => {
-  const base: UserPermissions = {
+// Deprecated compatibility shape. Presentation tiers intentionally grant
+// nothing; delete this field after remaining UI callers migrate.
+const getDefaultPermissions = (_tier: UserTier): UserPermissions => {
+  return {
     canAccessAdvanced: false,
     canAccessAdmin: false,
     canEditFormulas: false,
@@ -103,30 +102,6 @@ const getDefaultPermissions = (tier: UserTier): UserPermissions => {
     canManagePacks: false,
     canManageUsers: false,
   };
-
-  switch (tier) {
-    case "standard":
-      return base;
-    case "advanced":
-      return {
-        ...base,
-        canAccessAdvanced: true,
-        canEditFormulas: true,
-      };
-    case "admin":
-      return {
-        canAccessAdvanced: true,
-        canAccessAdmin: true,
-        canEditFormulas: true,
-        canManageBenchmarks: true,
-        canManageVariables: true,
-        canManagePacks: true,
-        canManageUsers: true,
-      };
-    default:
-      // SECURITY: Unknown tier gets no permissions (fail-closed)
-      return base;
-  }
 };
 
 /**

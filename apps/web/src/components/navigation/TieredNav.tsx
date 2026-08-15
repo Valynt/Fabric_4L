@@ -35,6 +35,7 @@ import { Link, useLocation, useParams } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAccountContextStore } from "@/stores/accountContextStore";
 import { useWorkflowSessionStore } from "@/stores/workflowSessionStore";
+import { useAuthorizationSnapshot } from "@/auth/AuthorizationProvider";
 import {
   Building2,
   Radar,
@@ -243,6 +244,7 @@ const SidebarItem = memo(function SidebarItem({
   currentTier,
   depth = 0,
 }: SidebarItemProps) {
+  const authorization = useAuthorizationSnapshot();
   const location = useLocation().pathname;
   const { tenantSlug, accountId: urlAccountId } = useParams<{ tenantSlug: string; accountId: string }>();
   const selectedAccountId = useAccountContextStore(
@@ -263,8 +265,8 @@ const SidebarItem = memo(function SidebarItem({
   const tierStyle = TIER_STYLES[item.tier];
 
   const visibleChildren = useMemo(
-    () => item.children?.filter(child => isItemVisible(child, currentTier)),
-    [item.children, currentTier]
+    () => item.children?.filter(child => isItemVisible(child, currentTier) && authorization.hasEveryPermission([`tier:${child.tier}:access`])),
+    [authorization, item.children, currentTier]
   );
   const hasVisibleChildren = visibleChildren && visibleChildren.length > 0;
 
@@ -432,9 +434,10 @@ export function TieredNav({
   onAdvancedModeToggle = () => {},
   headerSlot,
 }: TieredNavProps) {
+  const authorization = useAuthorizationSnapshot();
   const visibleNavItems = useMemo(
-    () => NAV_SPINE.filter(item => isItemVisible(item, currentTier)),
-    [currentTier]
+    () => NAV_SPINE.filter(item => isItemVisible(item, currentTier) && authorization.hasEveryPermission([`tier:${item.tier}:access`])),
+    [authorization, currentTier]
   );
 
   return (

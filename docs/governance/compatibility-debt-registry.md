@@ -205,6 +205,7 @@ These are deliberate v1 design decisions that raise errors rather than silently 
 | `apps/web/src/config/auth.ts` (legacy Microsoft option) | Canonical auth provider configuration in same module | auth config consumers via `authProviders` | Medium | Sprint 8 tenant config migration |
 | `apps/web/src/stores/userTierStore.ts` (legacy redirects) | canonical route map in same store/module | navigation flows that still hit legacy routes | Medium | Sprint 8 route canonicalization |
 | `apps/web/src/stores/index.ts` (`Entity` re-export alias) | `EntityData` from `apps/web/src/hooks/useEntities.ts` (already re-exported in same file) | Ontology Browser and other store-index consumers importing `Entity` from `@/stores` | Low | Sprint 7 store export cleanup |
+| `apps/web/src/hooks/useUserPermissions.ts`, `useEntitlements.ts`, `useTenantMembership.ts`, `useAccountAccess.ts` | `apps/web/src/auth/AuthorizationProvider.tsx` | Temporary API-shape adapters; each selects only from `useAuthorizationSnapshot` and performs no request or grant derivation | High | Delete after guard, desktop/mobile navigation, privileged actions, tests, and fixtures directly use the provider; `rg` must show no production imports and CI must prohibit independent authorization fetches or role/tier grant tables. |
 
 ## Frontend Compatibility Shim Migration Runbook
 

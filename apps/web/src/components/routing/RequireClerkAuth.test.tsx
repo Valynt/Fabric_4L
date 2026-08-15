@@ -59,8 +59,16 @@ vi.mock("@clerk/react", () => ({
   useUser: () => ({ user: mockClerkState.isSignedIn ? { id: "u_1" } : null }),
 }));
 
-vi.mock("@/hooks/useResolvedTenant", () => ({
-  useResolvedTenant: () => mockTenantState,
+vi.mock("@/auth/AuthorizationProvider", () => ({
+  useAuthorizationSnapshot: () => ({
+    status: mockTenantState.isLoading
+      ? "loading"
+      : mockTenantState.error
+        ? "denied"
+        : mockTenantState.tenant
+          ? "verified"
+          : "denied",
+  }),
 }));
 
 // Import AFTER vi.mock so the component picks up the mocked module.
@@ -270,6 +278,7 @@ describe("<RequireClerkAuth />", () => {
     setAuthProvider("clerk");
     mockClerkState.isSignedIn = true;
     mockClerkState.organization = { id: "org_phase2" };
+    mockTenantState.tenant = { fabricTenantId: "tenant_phase2" };
 
     renderAt("/protected");
 
@@ -310,7 +319,7 @@ describe("<RequireClerkAuth />", () => {
     expect(screen.queryByText(PROTECTED_CONTENT)).not.toBeInTheDocument();
   });
 
-  it("clerk mode signed-in with org: redirects to sign-in on tenant 401", () => {
+  it("clerk mode signed-in with org: fails closed on snapshot denial", () => {
     setAuthProvider("clerk");
     mockClerkState.isSignedIn = true;
     mockClerkState.organization = { id: "org_phase2" };
@@ -319,10 +328,9 @@ describe("<RequireClerkAuth />", () => {
     renderAt("/protected");
 
     expect(mockNavigate).toHaveBeenCalledTimes(1);
-    expect(mockNavigate).toHaveBeenCalledWith(
-      "/sign-in?redirect_url=%2Fprotected",
-      { replace: true }
-    );
+    expect(mockNavigate).toHaveBeenCalledWith("/forbidden?wfStep=0", {
+      replace: true,
+    });
     expect(screen.queryByText(PROTECTED_CONTENT)).not.toBeInTheDocument();
   });
 
