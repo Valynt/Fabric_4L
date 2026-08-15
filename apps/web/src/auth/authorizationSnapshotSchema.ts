@@ -94,6 +94,6 @@ export function parseAuthorizationCandidate(
     return { status: "denied", snapshot: null, reason: "malformed" };
   }
   if (expiresAt <= now)
-    return { status: "expired", snapshot: null; expiredAt: snapshot.expiresAt };
+    return { status: "expired", snapshot: null, expiredAt: snapshot.expiresAt };
   return { status: "verified", snapshot };
 }
