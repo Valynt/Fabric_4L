@@ -67,6 +67,20 @@ def test_layer1_dockerfiles_install_deprecation_register() -> None:
     assert "COPY docs/deprecation_register.json" not in live
 
 
+def test_layer_mypy_targets_canonical_python_311() -> None:
+    for layer in (
+        "layer1-ingestion",
+        "layer2-extraction",
+        "layer3-knowledge",
+        "layer4-agents",
+        "layer5-ground-truth",
+        "layer6-benchmarks",
+    ):
+        text = (REPO_ROOT / "services" / layer / "pyproject.toml").read_text(encoding="utf-8")
+        assert 'python_version = "3.11"' in text, layer
+        assert 'python_version = "3.12"' not in text, layer
+
+
 def test_web_lockfile_pins_patched_nanoid() -> None:
     lock = (REPO_ROOT / "apps" / "web" / "pnpm-lock.yaml").read_text(encoding="utf-8")
     assert "nanoid@5.1.16" in lock

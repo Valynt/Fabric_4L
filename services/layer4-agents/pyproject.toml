@@ -174,7 +174,7 @@ ignore = [
 "value_fabric.layer6" = { msg = "value_fabric.layer6 is deprecated. Use layer6_benchmarks.* instead. This namespace will be removed before 2026-09-30." }
 
 [tool.mypy]
-python_version = "3.12"
+python_version = "3.11"
 plugins = ["sqlalchemy.ext.mypy.plugin"]
 # Type safety ratchet - prevents regression (Gap 4)
 # Baseline established: 2026-04-19
