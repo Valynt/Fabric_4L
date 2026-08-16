@@ -58,10 +58,22 @@ def test_layer1_packaged_deprecation_register_matches_canonical() -> None:
 def test_layer1_dockerfiles_install_deprecation_register() -> None:
     default = (REPO_ROOT / "services" / "layer1-ingestion" / "Dockerfile").read_text(encoding="utf-8")
     live = (REPO_ROOT / "services" / "layer1-ingestion" / "Dockerfile.live").read_text(encoding="utf-8")
+    dockerignore = (REPO_ROOT / ".dockerignore").read_text(encoding="utf-8")
     assert "deprecation_register.json" in default
     assert "DEPRECATION_REGISTER_PATH" in default
-    assert "docs/deprecation_register.json" in live
+    assert "COPY services/layer1-ingestion/deprecation_register.json /app/docs/deprecation_register.json" in live
     assert "DEPRECATION_REGISTER_PATH" in live
+    assert "**/docs/" in dockerignore
+    assert "COPY docs/deprecation_register.json" not in live
+
+
+def test_web_lockfile_pins_patched_nanoid() -> None:
+    lock = (REPO_ROOT / "apps" / "web" / "pnpm-lock.yaml").read_text(encoding="utf-8")
+    assert "nanoid@5.1.16" in lock
+    assert "nanoid@3.3.17" in lock
+    assert "nanoid@5.1.11" not in lock
+    assert "nanoid@3.3.16" not in lock
+    assert "tailwindcss>nanoid: 3.3.17" in lock
 
 
 def test_dependency_scan_emits_scalar_node_matrix_and_expands_wd() -> None:
