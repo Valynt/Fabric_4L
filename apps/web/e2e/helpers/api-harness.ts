@@ -15,6 +15,9 @@
  * so that the same test code works in both modes.
  */
 import { Page, Route } from "@playwright/test";
+import { verifiedLegacyAuthorizationSnapshot } from "./verified-authorization-snapshot";
+
+export { verifiedLegacyAuthorizationSnapshot };
 
 // ── Environment Detection ───────────────────────────────────────────────────
 
@@ -42,8 +45,6 @@ export interface MockEndpoint {
   /** Optional delay in ms to simulate latency */
   delay?: number;
 }
-
-export { verifiedLegacyAuthorizationSnapshot } from "./verified-authorization-snapshot";
 
 interface ApiHarnessOptions {
   /** Additional mock endpoints beyond the defaults */
