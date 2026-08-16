@@ -439,9 +439,24 @@ function globToRegExp(glob: string): RegExp {
     .replace(/\*\*/g, "<<<DOUBLESTAR>>>")
     .replace(/\*/g, "[^/]*")
     .replace(/<<<DOUBLESTAR>>>/g, ".*");
-  // Anchor to full URL
-  regex = "^" + regex + "$";
+  // Anchor to the path; allow an optional query string so Playwright
+  // `**/resource` globs still match `/resource?account_id=...`.
+  regex = "^" + regex + "(?:\\?.*)?$";
   return new RegExp(regex);
+}
+
+const extraMocksByPage = new WeakMap<Page, MockEndpoint[]>();
+
+/**
+ * Prepend journey-specific mocks into the already-installed harness matcher.
+ *
+ * The harness uses a single /v1/ catch-all. Separate page.route() calls are
+ * not guaranteed to win, so tests must register overrides here.
+ */
+export function addHarnessMocks(page: Page, mocks: MockEndpoint[]): void {
+  const extra = extraMocksByPage.get(page);
+  if (!extra) return;
+  extra.unshift(...mocks);
 }
 
 // ── Harness Implementation ──────────────────────────────────────────────────
@@ -464,7 +479,8 @@ export async function installApiHarness(
   }
 
   // Journey-specific mocks take priority over defaults (more specific first).
-  const allMocks = [...(options.mocks || []), ...DEFAULT_MOCKS];
+  const extraMocks = [...(options.mocks || [])];
+  extraMocksByPage.set(page, extraMocks);
 
   /**
    * Playwright's route matching order is NOT guaranteed when multiple
@@ -478,7 +494,7 @@ export async function installApiHarness(
     const canonicalUrl = canonicalizeApiUrl(url);
     const method = route.request().method();
 
-    const mock = allMocks.find(m => {
+    const mock = [...extraMocks, ...DEFAULT_MOCKS].find(m => {
       const matchesMethod = !m.method || method === m.method.toUpperCase();
       if (!matchesMethod) return false;
 

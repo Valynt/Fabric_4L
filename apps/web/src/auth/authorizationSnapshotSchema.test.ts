@@ -88,6 +88,12 @@ describe("parseAuthorizationCandidate", () => {
       }
     );
     expect(result.status).toBe("verified");
+    if (result.status === "verified") {
+      const { MOCK_TENANT_SLUG } = await import(
+        "../contexts/AuthContextCompat"
+      );
+      expect(result.snapshot.tenant.tenantSlug).toBe(MOCK_TENANT_SLUG);
+    }
     const scoped = parseAuthorizationCandidate(
       verifiedLegacyAuthorizationSnapshot(now, "acct-meridian-001"),
       {
