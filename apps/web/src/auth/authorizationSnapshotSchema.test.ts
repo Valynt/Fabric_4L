@@ -88,6 +88,18 @@ describe("parseAuthorizationCandidate", () => {
       }
     );
     expect(result.status).toBe("verified");
+    const scoped = parseAuthorizationCandidate(
+      verifiedLegacyAuthorizationSnapshot(now, "acct-meridian-001"),
+      {
+        clerkUserId: "legacy",
+        sessionDiscriminator: "legacy",
+        clerkOrganizationId: "legacy",
+        fabricTenantId: "legacy",
+        accountId: "acct-meridian-001",
+        now,
+      }
+    );
+    expect(scoped.status).toBe("verified");
   });
 
   it("classifies an expired candidate without exposing it", () => {

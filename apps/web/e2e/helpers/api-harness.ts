@@ -39,7 +39,7 @@ export interface MockEndpoint {
   /** Response body (will be JSON.stringify'd) */
   body?: unknown;
   /** Fresh body per request. Used for short-lived authorization snapshots. */
-  getBody?: () => unknown;
+  getBody?: (route: Route) => unknown;
   /** HTTP status code (default: 200) */
   status?: number;
   /** Optional delay in ms to simulate latency */
@@ -122,7 +122,10 @@ const DEFAULT_MOCKS: MockEndpoint[] = [
   {
     pattern: /.*\/(?:api\/)?v1\/auth\/authorization-snapshot.*/,
     method: "GET",
-    getBody: () => verifiedLegacyAuthorizationSnapshot(),
+    getBody: route => {
+      const accountId = route.request().headers()["x-account-id"]?.trim() || null;
+      return verifiedLegacyAuthorizationSnapshot(new Date(), accountId);
+    },
   },
   // Web-vitals telemetry beacon — fired by src/lib/web-vitals.ts on every
   // page; the strict fail-closed harness must not treat it as unhandled.
@@ -497,7 +500,7 @@ export async function installApiHarness(
       await route.fulfill({
         status: mock.status ?? 200,
         contentType: "application/json",
-        body: JSON.stringify(mock.getBody ? mock.getBody() : mock.body),
+        body: JSON.stringify(mock.getBody ? mock.getBody(route) : mock.body),
       });
       return;
     }
