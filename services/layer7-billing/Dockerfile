@@ -1,4 +1,4 @@
-FROM docker.io/python:3.11-slim@sha256:f5cf0344c9886ff24d34797578d5d7dd6e8911ae0fe5962bb55d0f89603ec361 AS builder
+FROM docker.io/python:3.14-slim@sha256:ce40764625a4ff50df3548277632e7f96c4e77fe75fa848aae9885476e7df5a4 AS builder
 
 LABEL maintainer="Value Fabric Engineering"
 LABEL description="Layer 7 — Billing Service"
@@ -19,7 +19,7 @@ RUN uv sync --no-install-project
 COPY services/layer7-billing/src/ ./src/
 COPY packages/shared/src/value_fabric/shared/ ./value_fabric/shared/
 
-FROM docker.io/python:3.11-slim@sha256:f5cf0344c9886ff24d34797578d5d7dd6e8911ae0fe5962bb55d0f89603ec361 AS runtime
+FROM docker.io/python:3.14-slim@sha256:ce40764625a4ff50df3548277632e7f96c4e77fe75fa848aae9885476e7df5a4 AS runtime
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
