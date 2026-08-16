@@ -7,8 +7,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-import pytest
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -84,10 +82,11 @@ def test_layer_mypy_targets_canonical_python_311() -> None:
 def test_web_lockfile_pins_patched_nanoid() -> None:
     lock = (REPO_ROOT / "apps" / "web" / "pnpm-lock.yaml").read_text(encoding="utf-8")
     assert "nanoid@5.1.16" in lock
-    assert "nanoid@3.3.17" in lock
+    assert "nanoid@3.3.18" in lock
     assert "nanoid@5.1.11" not in lock
     assert "nanoid@3.3.16" not in lock
-    assert "tailwindcss>nanoid: 3.3.17" in lock
+    assert "nanoid@3.3.17" not in lock
+    assert "tailwindcss>nanoid: 3.3.18" in lock
 
 
 def test_dependency_scan_emits_scalar_node_matrix_and_expands_wd() -> None:
