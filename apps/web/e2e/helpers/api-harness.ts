@@ -34,12 +34,16 @@ export interface MockEndpoint {
   /** URL glob pattern or RegExp for Playwright route matching */
   pattern: string | RegExp;
   /** Response body (will be JSON.stringify'd) */
-  body: unknown;
+  body?: unknown;
+  /** Fresh body per request. Used for short-lived authorization snapshots. */
+  getBody?: () => unknown;
   /** HTTP status code (default: 200) */
   status?: number;
   /** Optional delay in ms to simulate latency */
   delay?: number;
 }
+
+export { verifiedLegacyAuthorizationSnapshot } from "./verified-authorization-snapshot";
 
 interface ApiHarnessOptions {
   /** Additional mock endpoints beyond the defaults */
@@ -112,6 +116,13 @@ function emptyWorkspaceTab(tabName: string): Record<string, unknown[]> {
 }
 
 const DEFAULT_MOCKS: MockEndpoint[] = [
+  // Fail-closed snapshot used by AuthorizationProvider in legacy e2e mode.
+  // TTL is 4 minutes; mint per request so long Playwright files stay verified.
+  {
+    pattern: /.*\/(?:api\/)?v1\/auth\/authorization-snapshot.*/,
+    method: "GET",
+    getBody: () => verifiedLegacyAuthorizationSnapshot(),
+  },
   // Web-vitals telemetry beacon — fired by src/lib/web-vitals.ts on every
   // page; the strict fail-closed harness must not treat it as unhandled.
   {
@@ -485,7 +496,7 @@ export async function installApiHarness(
       await route.fulfill({
         status: mock.status ?? 200,
         contentType: "application/json",
-        body: JSON.stringify(mock.body),
+        body: JSON.stringify(mock.getBody ? mock.getBody() : mock.body),
       });
       return;
     }

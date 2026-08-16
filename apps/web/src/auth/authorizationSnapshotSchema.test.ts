@@ -71,6 +71,25 @@ describe("parseAuthorizationCandidate", () => {
     ).toBe("denied");
   });
 
+  it("accepts the legacy Playwright contract-mode snapshot", async () => {
+    const { verifiedLegacyAuthorizationSnapshot } = await import(
+      "../../e2e/helpers/verified-authorization-snapshot"
+    );
+    const now = new Date("2026-08-16T04:30:00.000Z");
+    const result = parseAuthorizationCandidate(
+      verifiedLegacyAuthorizationSnapshot(now),
+      {
+        clerkUserId: "legacy",
+        sessionDiscriminator: "legacy",
+        clerkOrganizationId: "legacy",
+        fabricTenantId: "legacy",
+        accountId: null,
+        now,
+      }
+    );
+    expect(result.status).toBe("verified");
+  });
+
   it("classifies an expired candidate without exposing it", () => {
     const result = parseAuthorizationCandidate(candidate, {
       clerkUserId: "user_1",
