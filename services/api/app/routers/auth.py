@@ -34,7 +34,6 @@ from app.core.security import (
 from app.models.schemas import AuditLogEvent, Tenant, User
 from app.repositories.session_store import ImpersonationSessionRepository
 from app.services.distributed_store import StorePayloadError, StoreUnavailableError, get_distributed_store
-
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 logger = structlog.get_logger(__name__)
 

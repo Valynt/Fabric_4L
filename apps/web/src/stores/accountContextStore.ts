@@ -94,7 +94,7 @@ export const useAccountContextStore = create<AccountContextState>()(
         fabricTenantId: state.fabricTenantId,
         selectedAccountId: state.selectedAccountId,
       }),
-      skipHydration: true,
+      skipHydration: isClerkAuthEnabled(),
     }
   )
 );

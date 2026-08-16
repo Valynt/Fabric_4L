@@ -6,6 +6,7 @@
     "paths": {
       "@fabric/platform-contract": ["./src/typescript/index.ts"],
       "@fabric/platform-contract/agent-result": ["./src/typescript/agent-result.ts"],
+      "@fabric/platform-contract/authorization-snapshot": ["./src/typescript/authorization-snapshot.ts"],
       "@fabric/platform-contract/routing": ["./src/typescript/routing.ts"],
       "@fabric/platform-contract/stores": ["./src/typescript/stores.ts"],
       "@fabric/platform-contract/agent-contracts": ["./src/typescript/agent-contracts/index.ts"]

@@ -97,8 +97,8 @@ describe("normalizeRoleToTier", () => {
     expect(normalizeRoleToTier("system")).toBe("standard");
   });
 
-  it("fails safe to standard for unknown roles", () => {
-    expect(normalizeRoleToTier("unknown_role")).toBe("standard");
+  it("maps unknown roles to the explicit unresolved tier", () => {
+    expect(normalizeRoleToTier("unknown_role")).toBe("unknown");
   });
 });
 
@@ -133,12 +133,13 @@ describe("useUserTierStore", () => {
       expect(state.permissions).toEqual(adminPermissions);
     });
 
-    it("setUserRole fails safe for unknown roles", () => {
+    it("setUserRole explicitly denies unresolved roles", () => {
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
       useUserTierStore.getState().setUserRole("unknown_role");
       const state = useUserTierStore.getState();
-      expect(state.currentTier).toBe("standard");
+      expect(state.currentTier).toBe("unknown");
       expect(state.permissions).toEqual(standardPermissions);
+      expect(state.canAccessRoute("standard")).toBe(false);
       warnSpy.mockRestore();
     });
 
@@ -159,19 +160,63 @@ describe("useUserTierStore", () => {
   });
 
   describe("persistence", () => {
-    it("normalizes the Zustand storage envelope used by E2E fixtures", () => {
+    it("extracts only a boolean presentation preference from legacy storage", () => {
       const snapshot = getPersistedTierSnapshot({
         state: {
           currentTier: "admin",
-          isAdvancedModeEnabled: true,
           userRole: "admin",
+          permissions: adminPermissions,
+          accountId: "other-tenant-account",
+          securityContext: { isAdmin: true },
+          isAdvancedModeEnabled: true,
         },
         version: 0,
       });
 
-      expect(snapshot.currentTier).toBe("admin");
-      expect(snapshot.isAdvancedModeEnabled).toBe(true);
-      expect(snapshot.userRole).toBe("admin");
+      expect(snapshot).toEqual({ isAdvancedModeEnabled: true });
+    });
+
+    it("ignores malformed persisted presentation preferences", () => {
+      expect(
+        getPersistedTierSnapshot({
+          state: { isAdvancedModeEnabled: "true", currentTier: "admin" },
+        })
+      ).toEqual({});
+    });
+
+    it("rehydrates preferences without restoring legacy authorization state", async () => {
+      useUserTierStore.setState({
+        currentTier: "unknown",
+        userRole: null,
+        permissions: { ...standardPermissions },
+        isAdvancedModeEnabled: false,
+        isRehydrated: false,
+      });
+      // Seed the simulated prior-session value after resetting in-memory
+      // state. Zustand persists every setState call, so seeding first would be
+      // overwritten by the reset and would not model a page reload.
+      localStorage.setItem(
+        "user-tier-storage",
+        JSON.stringify({
+          state: {
+            currentTier: "admin",
+            userRole: "tenant_admin",
+            permissions: adminPermissions,
+            accountId: "other-tenant-account",
+            securityContext: { isAdmin: true },
+            isAdvancedModeEnabled: true,
+          },
+          version: 0,
+        })
+      );
+      await useUserTierStore.persist.rehydrate();
+
+      const state = useUserTierStore.getState();
+      expect(state.currentTier).toBe("unknown");
+      expect(state.userRole).toBeNull();
+      expect(state.permissions).toEqual(standardPermissions);
+      expect(state.isAdvancedModeEnabled).toBe(true);
+      expect(state.canAccessRoute("standard")).toBe(false);
     });
   });
 

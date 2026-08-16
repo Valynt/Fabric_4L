@@ -1538,7 +1538,7 @@
     },
     {
       "kind": "python-any",
-      "line": 38,
+      "line": 57,
       "path": "packages/shared/src/value_fabric/shared/error_handling/tests/test_error_handling.py",
       "text": "trace_id: Any"
     },
@@ -9770,187 +9770,187 @@
     },
     {
       "kind": "python-any",
-      "line": 17,
+      "line": 18,
       "path": "services/api/app/core/database.py",
       "text": "from typing import Any, Generic, TypeVar"
     },
     {
       "kind": "python-any",
-      "line": 73,
+      "line": 75,
       "path": "services/api/app/core/database.py",
       "text": "def _json_default(value: Any) -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 79,
+      "line": 81,
       "path": "services/api/app/core/database.py",
       "text": "def _to_payload(obj: Any) -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 89,
+      "line": 91,
       "path": "services/api/app/core/database.py",
       "text": "def _tenant_from_obj(obj: Any, tenant_field: str) -> str | None:"
     },
     {
       "kind": "python-any",
-      "line": 192,
+      "line": 194,
       "path": "services/api/app/core/database.py",
       "text": "def update(self, id: str, tenant_id: str | None = None, **fields: Any) -> T | None:"
     },
     {
       "kind": "python-any",
-      "line": 223,
+      "line": 225,
       "path": "services/api/app/core/database.py",
       "text": "def update(self, id: str, tenant_id: str | None = None, **fields: Any) -> T | None:  # noqa: ARG002"
     },
     {
       "kind": "python-type-ignore",
-      "line": 256,
+      "line": 258,
       "path": "services/api/app/core/database.py",
       "text": "return self._model_cls.model_validate(data)  # type: ignore[return-value]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 257,
+      "line": 259,
       "path": "services/api/app/core/database.py",
       "text": "return data  # type: ignore[return-value]"
     },
     {
       "kind": "python-any",
-      "line": 298,
+      "line": 300,
       "path": "services/api/app/core/database.py",
       "text": "params: list[Any] = [self.name, id]"
     },
     {
       "kind": "python-any",
-      "line": 317,
+      "line": 319,
       "path": "services/api/app/core/database.py",
       "text": "params: list[Any] = [self.name]"
     },
     {
       "kind": "python-any",
-      "line": 334,
+      "line": 336,
       "path": "services/api/app/core/database.py",
       "text": "def update(self, id: str, tenant_id: str | None = None, **fields: Any) -> T | None:"
     },
     {
       "kind": "python-any",
-      "line": 356,
+      "line": 358,
       "path": "services/api/app/core/database.py",
       "text": "params: list[Any] = [self.name, id]"
     },
     {
       "kind": "python-any",
-      "line": 366,
+      "line": 368,
       "path": "services/api/app/core/database.py",
       "text": "def update(self, id: str, tenant_id: str | None = None, **fields: Any) -> T | None:  # noqa: ARG002"
     },
     {
       "kind": "python-any",
-      "line": 377,
+      "line": 379,
       "path": "services/api/app/core/database.py",
       "text": "_psycopg_pool: Any | None = None"
     },
     {
       "kind": "python-any",
-      "line": 391,
+      "line": 393,
       "path": "services/api/app/core/database.py",
       "text": "def _get_psycopg_pool() -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 440,
+      "line": 446,
       "path": "services/api/app/core/database.py",
       "text": "pool: Any,"
     },
     {
       "kind": "python-any",
-      "line": 449,
+      "line": 455,
       "path": "services/api/app/core/database.py",
       "text": "def _deserialize(self, payload: dict[str, Any]) -> T:"
     },
     {
       "kind": "python-type-ignore",
-      "line": 451,
+      "line": 457,
       "path": "services/api/app/core/database.py",
       "text": "return self._model_cls.model_validate(payload)  # type: ignore[return-value]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 452,
+      "line": 458,
       "path": "services/api/app/core/database.py",
       "text": "return payload  # type: ignore[return-value]"
     },
     {
       "kind": "python-any",
-      "line": 501,
+      "line": 507,
       "path": "services/api/app/core/database.py",
       "text": "params: list[Any] = [self.name, id]"
     },
     {
       "kind": "python-any",
-      "line": 526,
+      "line": 532,
       "path": "services/api/app/core/database.py",
       "text": "params: list[Any] = [self.name]"
     },
     {
       "kind": "python-any",
-      "line": 560,
+      "line": 566,
       "path": "services/api/app/core/database.py",
       "text": "params: list[Any] = [self.name]"
     },
     {
       "kind": "python-any",
-      "line": 583,
+      "line": 589,
       "path": "services/api/app/core/database.py",
       "text": "def update(self, id: str, tenant_id: str | None = None, **fields: Any) -> T | None:"
     },
     {
       "kind": "python-any",
-      "line": 605,
+      "line": 611,
       "path": "services/api/app/core/database.py",
       "text": "params: list[Any] = [self.name, id]"
     },
     {
       "kind": "python-any",
-      "line": 620,
+      "line": 626,
       "path": "services/api/app/core/database.py",
       "text": "def update(self, id: str, tenant_id: str | None = None, **fields: Any) -> T | None:  # noqa: ARG002"
     },
     {
       "kind": "python-any",
-      "line": 666,
+      "line": 672,
       "path": "services/api/app/core/database.py",
       "text": "async def update(self, id: str, tenant_id: str | None = None, **fields: Any) -> T | None:"
     },
     {
       "kind": "python-any",
-      "line": 676,
+      "line": 682,
       "path": "services/api/app/core/database.py",
       "text": "def __init__(self, pool: Any):"
     },
     {
       "kind": "python-any",
-      "line": 778,
+      "line": 784,
       "path": "services/api/app/core/database.py",
       "text": "async def update(self, id: str, tenant_id: str | None = None, **fields: Any) -> T | None:"
     },
     {
       "kind": "python-any",
-      "line": 789,
+      "line": 795,
       "path": "services/api/app/core/database.py",
       "text": "_pg_engine: Any | None = None"
     },
     {
       "kind": "python-any",
-      "line": 808,
+      "line": 814,
       "path": "services/api/app/core/database.py",
       "text": "def get_pg_engine() -> Any:"
     },
     {
       "kind": "python-type-ignore",
-      "line": 897,
+      "line": 903,
       "path": "services/api/app/core/database.py",
       "text": "db: InMemoryDatabase = _LazyDB()  # type: ignore[assignment]"
     },
@@ -11030,27 +11030,21 @@
     },
     {
       "kind": "python-any",
-      "line": 19,
+      "line": 17,
       "path": "services/layer1-ingestion/src/layer1_ingestion/api/main.py",
       "text": "from typing import Any, NoReturn"
     },
     {
       "kind": "python-any",
-      "line": 202,
+      "line": 206,
       "path": "services/layer1-ingestion/src/layer1_ingestion/api/main.py",
       "text": "def delay(self, *args: Any, **kwargs: Any) -> \"NoReturn\":"
     },
     {
       "kind": "python-type-ignore",
-      "line": 220,
+      "line": 224,
       "path": "services/layer1-ingestion/src/layer1_ingestion/api/main.py",
       "text": "build_celery_options = None  # type: ignore[assignment]"
-    },
-    {
-      "kind": "python-any",
-      "line": 262,
-      "path": "services/layer1-ingestion/src/layer1_ingestion/api/main.py",
-      "text": "deprecations: list[Any]"
     },
     {
       "kind": "python-any",
@@ -11060,7 +11054,7 @@
     },
     {
       "kind": "python-any",
-      "line": 61,
+      "line": 89,
       "path": "services/layer1-ingestion/src/layer1_ingestion/api/routes/compatibility.py",
       "text": ") -> dict[str, list[Any]]:"
     },
@@ -16412,7 +16406,7 @@
     },
     {
       "kind": "python-any",
-      "line": 242,
+      "line": 254,
       "path": "services/layer3-knowledge/src/api/dependencies_tenant_secured.py",
       "text": "async def execute_query(self, query: Any, parameters: dict | None = None, **kwargs) -> list[dict]:"
     },
@@ -33404,37 +33398,37 @@
     },
     {
       "kind": "python-type-ignore",
-      "line": 225,
+      "line": 230,
       "path": "services/layer4-agents/src/layer4_agents/services/overage_service.py",
       "text": "limit = plan.get_usage_limit(metric_name)  # type: ignore[assignment]"
     },
     {
       "kind": "python-any",
-      "line": 349,
+      "line": 354,
       "path": "services/layer4-agents/src/layer4_agents/services/overage_service.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-type-ignore",
-      "line": 365,
+      "line": 370,
       "path": "services/layer4-agents/src/layer4_agents/services/overage_service.py",
       "text": "return OverageService_validate_requestResult.model_validate({  # type: ignore[no-any-return]"
     },
     {
       "kind": "python-any",
-      "line": 393,
+      "line": 398,
       "path": "services/layer4-agents/src/layer4_agents/services/overage_service.py",
       "text": "def get_plan_limits(self, plan_id: str) -> dict[str, Any]:"
     },
     {
       "kind": "python-type-ignore",
-      "line": 404,
+      "line": 409,
       "path": "services/layer4-agents/src/layer4_agents/services/overage_service.py",
       "text": "return OverageService_get_plan_limitsResult.model_validate({})  # type: ignore[no-any-return]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 406,
+      "line": 411,
       "path": "services/layer4-agents/src/layer4_agents/services/overage_service.py",
       "text": "return OverageService_get_plan_limitsResult.model_validate({  # type: ignore[no-any-return]"
     },
@@ -33908,43 +33902,43 @@
     },
     {
       "kind": "python-any",
-      "line": 112,
+      "line": 114,
       "path": "services/layer4-agents/src/layer4_agents/services/usage_service.py",
       "text": ") -> dict[str, Any] | None:"
     },
     {
       "kind": "python-any",
-      "line": 176,
+      "line": 178,
       "path": "services/layer4-agents/src/layer4_agents/services/usage_service.py",
       "text": "metadata: dict[str, Any] | None = None,"
     },
     {
       "kind": "python-any",
-      "line": 304,
+      "line": 306,
       "path": "services/layer4-agents/src/layer4_agents/services/usage_service.py",
       "text": "events: list[dict[str, Any]],"
     },
     {
       "kind": "python-any",
-      "line": 305,
+      "line": 307,
       "path": "services/layer4-agents/src/layer4_agents/services/usage_service.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 340,
+      "line": 342,
       "path": "services/layer4-agents/src/layer4_agents/services/usage_service.py",
       "text": "valid_events: list[dict[str, Any]] = []"
     },
     {
       "kind": "python-any",
-      "line": 493,
+      "line": 495,
       "path": "services/layer4-agents/src/layer4_agents/services/usage_service.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 662,
+      "line": 664,
       "path": "services/layer4-agents/src/layer4_agents/services/usage_service.py",
       "text": ") -> dict[str, Any]:"
     },
@@ -39806,7 +39800,7 @@
     },
     {
       "kind": "python-any",
-      "line": 345,
+      "line": 375,
       "path": "services/layer6-benchmarks/src/layer6_benchmarks/api/main.py",
       "text": "checks: dict[str, dict[str, Any]] = {}"
     },
@@ -40268,43 +40262,43 @@
     },
     {
       "kind": "python-any",
-      "line": 85,
+      "line": 90,
       "path": "tests/certification/harness.py",
       "text": "context: dict[str, Any] = field(default_factory=dict)"
     },
     {
       "kind": "python-any",
-      "line": 160,
+      "line": 165,
       "path": "tests/certification/harness.py",
       "text": "json_body: dict[str, Any] | None = None,"
     },
     {
       "kind": "python-any",
-      "line": 162,
+      "line": 167,
       "path": "tests/certification/harness.py",
       "text": ") -> tuple[Any, httpx.Response]:"
     },
     {
       "kind": "python-any",
-      "line": 192,
+      "line": 197,
       "path": "tests/certification/harness.py",
       "text": "**kwargs: Any,"
     },
     {
       "kind": "python-any",
-      "line": 193,
+      "line": 198,
       "path": "tests/certification/harness.py",
       "text": ") -> tuple[Any, httpx.Response]:"
     },
     {
       "kind": "python-any",
-      "line": 203,
+      "line": 209,
       "path": "tests/certification/harness.py",
       "text": "async def gateway_healthy(self) -> tuple[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 213,
+      "line": 219,
       "path": "tests/certification/harness.py",
       "text": "async def stage(self, name: str, coro: Any) -> Any:"
     },
@@ -40340,25 +40334,25 @@
     },
     {
       "kind": "python-any",
-      "line": 171,
+      "line": 183,
       "path": "tests/certification/test_meridian_production_path.py",
       "text": "async def fetch_run() -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 197,
+      "line": 209,
       "path": "tests/certification/test_meridian_production_path.py",
       "text": "async def fetch_entities() -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 257,
+      "line": 284,
       "path": "tests/certification/test_meridian_production_path.py",
       "text": "async def fetch_workflow() -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 307,
+      "line": 353,
       "path": "tests/certification/test_meridian_production_path.py",
       "text": "async def fetch_graph_truth() -> Any:"
     },
@@ -41984,55 +41978,55 @@
     },
     {
       "kind": "python-any",
-      "line": 125,
+      "line": 130,
       "path": "tests/shared/live_harness.py",
       "text": "json: dict[str, Any] | None = None,"
     },
     {
       "kind": "python-any",
-      "line": 128,
+      "line": 133,
       "path": "tests/shared/live_harness.py",
       "text": ") -> tuple[Any, httpx.Response]:"
     },
     {
       "kind": "python-any",
-      "line": 173,
+      "line": 178,
       "path": "tests/shared/live_harness.py",
       "text": "async def first_healthy(self, layer: str) -> tuple[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 183,
+      "line": 188,
       "path": "tests/shared/live_harness.py",
       "text": "async def create_seed_graph(self) -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 250,
+      "line": 255,
       "path": "tests/shared/live_harness.py",
       "text": ") -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 267,
+      "line": 272,
       "path": "tests/shared/live_harness.py",
       "text": "async def assert_audit_event(self, action: str, entity_id: str) -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 279,
+      "line": 284,
       "path": "tests/shared/live_harness.py",
       "text": "async def assert_job_terminal_or_progressing(self, job_id: str) -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 292,
+      "line": 297,
       "path": "tests/shared/live_harness.py",
       "text": ") -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 293,
+      "line": 298,
       "path": "tests/shared/live_harness.py",
       "text": "last_body: Any = None"
     },

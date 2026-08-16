@@ -547,6 +547,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/auth/authorization-snapshot": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Authorization Snapshot
+         * @description Issue one non-cacheable candidate from the canonical authorization projection.
+         */
+        get: operations["get_authorization_snapshot_v1_auth_authorization_snapshot_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/accounts/{account_id}/signals": {
         parameters: {
             query?: never;
@@ -2550,6 +2570,57 @@ export interface components {
              */
             source: string;
         };
+        /**
+         * AuthorizationSnapshot
+         * @description Short-lived backend authority for frontend access-control decisions.
+         */
+        AuthorizationSnapshot: {
+            /**
+             * Schemaversion
+             * @description Authorization snapshot contract version.
+             * @default 1
+             * @constant
+             */
+            schemaVersion: "1";
+            /**
+             * Source
+             * @description Authority source; always the verified backend.
+             * @default backend
+             * @constant
+             */
+            source: "backend";
+            /** @description Verified principal and session binding. */
+            identity: components["schemas"]["SnapshotIdentity"];
+            /** @description Verified active tenant membership. */
+            tenant: components["schemas"]["SnapshotTenant"];
+            /** @description Backend-resolved tenant or exact-account scope. */
+            accountScope: components["schemas"]["SnapshotAccountScope"];
+            /**
+             * Roles
+             * @description Canonical roles granted by the active membership.
+             */
+            roles: components["schemas"]["CanonicalAuthorizationRole"][];
+            /**
+             * Permissions
+             * @description Permission identifiers derived by the backend from the verified canonical membership role.
+             */
+            permissions: string[];
+            /**
+             * Entitlements
+             * @description Active tenant entitlement identifiers.
+             */
+            entitlements: string[];
+            /**
+             * Issuedat
+             * @description UTC timestamp when the snapshot was issued.
+             */
+            issuedAt: string;
+            /**
+             * Expiresat
+             * @description UTC timestamp after which the snapshot is unusable.
+             */
+            expiresAt: string;
+        };
         /** BusinessCase */
         BusinessCase: {
             /** Id */
@@ -2604,6 +2675,12 @@ export interface components {
              */
             audience: string;
         };
+        /**
+         * CanonicalAuthorizationRole
+         * @description Canonical backend roles accepted in browser authorization snapshots.
+         * @enum {string}
+         */
+        CanonicalAuthorizationRole: "tenant_admin" | "content_admin" | "analyst" | "read_only";
         /**
          * ClerkTenantResponse
          * @description Canonical mapping from a Clerk organization to a Fabric tenant.
@@ -3576,6 +3653,23 @@ export interface components {
             /** Tenant Name */
             tenant_name: string;
         };
+        /**
+         * SnapshotAccountScope
+         * @description Tenant-wide or exact-account authorization scope.
+         */
+        SnapshotAccountScope: {
+            /**
+             * Scopetype
+             * @description Scope kind resolved by the backend authorization projection.
+             * @enum {string}
+             */
+            scopeType: "tenant" | "account";
+            /**
+             * Accountid
+             * @description Exact authorized account identifier for account scope; null for tenant scope.
+             */
+            accountId: string | null;
+        };
         /** SnapshotDiffChange */
         SnapshotDiffChange: {
             /** Field */
@@ -3597,6 +3691,59 @@ export interface components {
             created_at_base: string;
             /** Created At Compare */
             created_at_compare: string;
+        };
+        /**
+         * SnapshotIdentity
+         * @description Verified principal and session identity bound to a snapshot.
+         */
+        SnapshotIdentity: {
+            /**
+             * Clerkuserid
+             * @description Verified Clerk user identifier.
+             */
+            clerkUserId: string;
+            /**
+             * Fabricuserid
+             * @description Canonical Fabric principal identifier.
+             */
+            fabricUserId: string;
+            /**
+             * Sessiondiscriminator
+             * @description Opaque verified Clerk session identifier that prevents cross-session replay.
+             */
+            sessionDiscriminator: string;
+        };
+        /**
+         * SnapshotTenant
+         * @description Active tenant membership resolved by the backend identity directory.
+         */
+        SnapshotTenant: {
+            /**
+             * Fabrictenantid
+             * @description Canonical Fabric tenant identifier.
+             */
+            fabricTenantId: string;
+            /**
+             * Clerkorganizationid
+             * @description Verified Clerk organization identifier.
+             */
+            clerkOrganizationId: string;
+            /**
+             * Tenantslug
+             * @description Canonical tenant URL slug when configured.
+             */
+            tenantSlug: string | null;
+            /**
+             * Membershipid
+             * @description Verified Clerk organization-membership identifier.
+             */
+            membershipId: string;
+            /**
+             * Membershipstatus
+             * @description Membership status; snapshots are issued only for active membership.
+             * @constant
+             */
+            membershipStatus: "active";
         };
         /** Stakeholder */
         Stakeholder: {
@@ -5111,6 +5258,62 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ClerkTenantResponse"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_authorization_snapshot_v1_auth_authorization_snapshot_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Optional exact Fabric account identifier to bind into the issued authorization scope. */
+                "X-Account-ID"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["HTTPAuthorizationCredentials"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    /** @description Always `private, no-store`; snapshots must not be cached by intermediaries. */
+                    "Cache-Control"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthorizationSnapshot"];
+                };
+            };
+            /** @description Authentication is missing, invalid, or expired. */
+            401: {
+                headers: {
+                    /** @description Always `private, no-store`. */
+                    "Cache-Control"?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Authorization or account scope denied. Nonexistent, foreign-tenant, and inaccessible accounts all use `account_scope_denied`. */
+            403: {
+                headers: {
+                    /** @description Always `private, no-store`. */
+                    "Cache-Control"?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

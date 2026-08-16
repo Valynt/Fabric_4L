@@ -43,42 +43,12 @@
       "target_removal_date": "2026-12-31"
     },
     {
-      "id": "apps/web/src/api/generated/l4/index.ts:4677:ts_js_doc_deprecated",
-      "rationale": "Approved temporary deprecation compatibility surface; tracked for staged removal.",
-      "target_removal_date": "2026-12-31"
-    },
-    {
-      "id": "apps/web/src/api/generated/l4/index.ts:4688:ts_js_doc_deprecated",
-      "rationale": "Approved temporary deprecation compatibility surface; tracked for staged removal.",
-      "target_removal_date": "2026-12-31"
-    },
-    {
-      "id": "apps/web/src/api/generated/l4/index.ts:4705:ts_js_doc_deprecated",
-      "rationale": "Approved temporary deprecation compatibility surface; tracked for staged removal.",
-      "target_removal_date": "2026-12-31"
-    },
-    {
       "id": "apps/web/src/api/generated/l6/index.ts:73:ts_js_doc_deprecated",
       "rationale": "Approved temporary deprecation compatibility surface; tracked for staged removal.",
       "target_removal_date": "2026-12-31"
     },
     {
       "id": "apps/web/src/hooks/useGraphQuery.ts:240:ts_js_doc_deprecated",
-      "rationale": "Approved temporary deprecation compatibility surface; tracked for staged removal.",
-      "target_removal_date": "2026-12-31"
-    },
-    {
-      "id": "services/layer4-agents/src/layer4_agents/api/routes/frontend_compat.py:125:py_route_deprecated",
-      "rationale": "Approved temporary deprecation compatibility surface; tracked for staged removal.",
-      "target_removal_date": "2026-12-31"
-    },
-    {
-      "id": "services/layer4-agents/src/layer4_agents/api/routes/frontend_compat.py:149:py_route_deprecated",
-      "rationale": "Approved temporary deprecation compatibility surface; tracked for staged removal.",
-      "target_removal_date": "2026-12-31"
-    },
-    {
-      "id": "services/layer4-agents/src/layer4_agents/api/routes/frontend_compat.py:195:py_route_deprecated",
       "rationale": "Approved temporary deprecation compatibility surface; tracked for staged removal.",
       "target_removal_date": "2026-12-31"
     },

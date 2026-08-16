@@ -15,6 +15,9 @@
  * so that the same test code works in both modes.
  */
 import { Page, Route } from "@playwright/test";
+import { verifiedLegacyAuthorizationSnapshot } from "./verified-authorization-snapshot";
+
+export { verifiedLegacyAuthorizationSnapshot };
 
 // ── Environment Detection ───────────────────────────────────────────────────
 
@@ -34,7 +37,9 @@ export interface MockEndpoint {
   /** URL glob pattern or RegExp for Playwright route matching */
   pattern: string | RegExp;
   /** Response body (will be JSON.stringify'd) */
-  body: unknown;
+  body?: unknown;
+  /** Fresh body per request. Used for short-lived authorization snapshots. */
+  getBody?: (route: Route) => unknown;
   /** HTTP status code (default: 200) */
   status?: number;
   /** Optional delay in ms to simulate latency */
@@ -112,6 +117,16 @@ function emptyWorkspaceTab(tabName: string): Record<string, unknown[]> {
 }
 
 const DEFAULT_MOCKS: MockEndpoint[] = [
+  // Fail-closed snapshot used by AuthorizationProvider in legacy e2e mode.
+  // TTL is 4 minutes; mint per request so long Playwright files stay verified.
+  {
+    pattern: /.*\/(?:api\/)?v1\/auth\/authorization-snapshot.*/,
+    method: "GET",
+    getBody: route => {
+      const accountId = route.request().headers()["x-account-id"]?.trim() || null;
+      return verifiedLegacyAuthorizationSnapshot(new Date(), accountId);
+    },
+  },
   // Web-vitals telemetry beacon — fired by src/lib/web-vitals.ts on every
   // page; the strict fail-closed harness must not treat it as unhandled.
   {
@@ -424,9 +439,24 @@ function globToRegExp(glob: string): RegExp {
     .replace(/\*\*/g, "<<<DOUBLESTAR>>>")
     .replace(/\*/g, "[^/]*")
     .replace(/<<<DOUBLESTAR>>>/g, ".*");
-  // Anchor to full URL
-  regex = "^" + regex + "$";
+  // Anchor to the path; allow an optional query string so Playwright
+  // `**/resource` globs still match `/resource?account_id=...`.
+  regex = "^" + regex + "(?:\\?.*)?$";
   return new RegExp(regex);
+}
+
+const extraMocksByPage = new WeakMap<Page, MockEndpoint[]>();
+
+/**
+ * Prepend journey-specific mocks into the already-installed harness matcher.
+ *
+ * The harness uses a single /v1/ catch-all. Separate page.route() calls are
+ * not guaranteed to win, so tests must register overrides here.
+ */
+export function addHarnessMocks(page: Page, mocks: MockEndpoint[]): void {
+  const extra = extraMocksByPage.get(page);
+  if (!extra) return;
+  extra.unshift(...mocks);
 }
 
 // ── Harness Implementation ──────────────────────────────────────────────────
@@ -449,7 +479,8 @@ export async function installApiHarness(
   }
 
   // Journey-specific mocks take priority over defaults (more specific first).
-  const allMocks = [...(options.mocks || []), ...DEFAULT_MOCKS];
+  const extraMocks = [...(options.mocks || [])];
+  extraMocksByPage.set(page, extraMocks);
 
   /**
    * Playwright's route matching order is NOT guaranteed when multiple
@@ -463,7 +494,7 @@ export async function installApiHarness(
     const canonicalUrl = canonicalizeApiUrl(url);
     const method = route.request().method();
 
-    const mock = allMocks.find(m => {
+    const mock = [...extraMocks, ...DEFAULT_MOCKS].find(m => {
       const matchesMethod = !m.method || method === m.method.toUpperCase();
       if (!matchesMethod) return false;
 
@@ -485,7 +516,7 @@ export async function installApiHarness(
       await route.fulfill({
         status: mock.status ?? 200,
         contentType: "application/json",
-        body: JSON.stringify(mock.body),
+        body: JSON.stringify(mock.getBody ? mock.getBody(route) : mock.body),
       });
       return;
     }

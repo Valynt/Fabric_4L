@@ -33,9 +33,9 @@ spec:
             pathType: {{.pathType}}
             backend:
               service:
-                name: {{include "fabric.fullname" $}}-layer4
+                name: {{include "fabric.fullname" $}}-api
                 port:
-                  number: {{$.Values.services.layer4.port}}
+                  number: {{$.Values.services.api.port}}
           {{- end }}
     {{- end }}
 {{- end }}

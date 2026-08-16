@@ -28,7 +28,7 @@ import { test as base, Page, expect } from '@playwright/test';
 import { seedAuthState, DEFAULT_TEST_USER, type TestUserInfo } from '../fixtures/auth-helpers';
 import { setSelectedAccount, TEST_ACCOUNTS, type TestAccount } from '../fixtures/account-helpers';
 import { setUserTier, type UserTier } from '../fixtures/tier-helpers';
-import { installApiHarness, isLiveMode, type MockEndpoint } from './api-harness';
+import { addHarnessMocks, installApiHarness, isLiveMode, type MockEndpoint } from './api-harness';
 import { attachUnexpectedErrorAudit } from '../support/unexpected-errors';
 
 // Re-export for convenience
@@ -123,6 +123,9 @@ export const journeyTest = base.extend<JourneyFixtures>({
   addMocks: async ({ authedPage }, use) => {
     const fn = async (mocks: MockEndpoint[]) => {
       const audit = unexpectedErrorAudits.get(authedPage);
+      // Register on the harness catch-all first so /v1/ overrides cannot lose
+      // to DEFAULT_MOCKS when Playwright route order is not last-wins.
+      addHarnessMocks(authedPage, mocks);
       for (const mock of mocks) {
         const status = mock.status ?? 200;
         if (status >= 500) {

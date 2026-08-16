@@ -2,3 +2,5 @@ pytest>=8.3.0
 pytest-asyncio>=0.24.0
 pydantic>=2.8.0
 pygments>=2.20.0
+jsonschema[format]>=4.23.0
+idna>=3.15

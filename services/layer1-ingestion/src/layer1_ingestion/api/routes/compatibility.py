@@ -14,19 +14,47 @@ from hashlib import sha256
 from typing import Any
 
 from fastapi import APIRouter, Depends, Response
+from value_fabric.shared.governance.deprecation_register import (
+    DeprecationRegisterError,
+    removal_date_for,
+)
 from value_fabric.shared.identity import RequestContext, Role, require_authenticated, require_role
 from value_fabric.shared.observability.logging import get_logger
 
 router = APIRouter()
 logger = get_logger(__name__)
-_DEPRECATION_REMOVAL_DATE = "2026-07-15"
+
+# Register selector for this compatibility boundary. The sunset date itself lives
+# in docs/deprecation_register.json (see D1) — never hardcode it here.
+_INGEST_REGISTER_SELECTOR = "l1.api.short_ingest_compatibility_boundary"
 
 
 def _hash_identifier(value: str) -> str:
     return sha256(value.encode("utf-8")).hexdigest()[:16]
 
 
+def _get_deprecation_removal_date() -> str:
+    """Return this route's sunset date from the canonical deprecation register.
+
+    Reads ``docs/deprecation_register.json`` through the shared loader so runtime
+    headers, startup warnings, and the CI gate consume one source and one schema.
+    A missing or malformed register is logged loudly rather than silently
+    replaced with an empty register.
+    """
+    try:
+        return removal_date_for(_INGEST_REGISTER_SELECTOR)
+    except DeprecationRegisterError as exc:
+        logger.error(
+            "deprecation_register_unavailable",
+            error_code="DEPRECATION_REGISTER_UNAVAILABLE",
+            selector=_INGEST_REGISTER_SELECTOR,
+            error=repr(exc),
+        )
+        raise
+
+
 def _record_compatibility_usage(*, endpoint: str, tenant_id: str, user_id: str) -> None:
+    """Emit deprecation-usage telemetry for a legacy compatibility call."""
     logger.warning(
         "legacy_route_deprecation_usage",
         route_name="layer1_compatibility",
@@ -34,14 +62,14 @@ def _record_compatibility_usage(*, endpoint: str, tenant_id: str, user_id: str) 
         canonical_route="/api/v1/ingestion",
         tenant_hash=_hash_identifier(tenant_id),
         account_hash=_hash_identifier(user_id),
-        removal_date=_DEPRECATION_REMOVAL_DATE,
+        removal_date=_get_deprecation_removal_date(),
         timestamp=datetime.now(UTC).isoformat(),
     )
 
 
 def _add_deprecation_headers(response: Response) -> None:
     response.headers["Deprecation"] = "true"
-    response.headers["Sunset"] = _DEPRECATION_REMOVAL_DATE
+    response.headers["Sunset"] = _get_deprecation_removal_date()
     response.headers["Link"] = '</api/v1/ingestion>; rel="successor-version"'
 
 

@@ -1,6 +1,6 @@
 # Multi-stage build for Layer 1: Data Ingestion Service
 # Stage 1: Builder - installs dependencies and Playwright browsers
-FROM python@sha256:28255a3ace7eb4c48bc1b57b90af29e1bc82b4fd6c60614a8e3dce61b87ff941 AS builder
+FROM docker.io/python:3.11-slim@sha256:28255a3ace7eb4c48bc1b57b90af29e1bc82b4fd6c60614a8e3dce61b87ff941 AS builder
 
 WORKDIR /app
 
@@ -36,7 +36,7 @@ RUN if [ "$INSTALL_PLAYWRIGHT_BROWSERS" = "true" ]; then \
     fi
 
 # Stage 2: Runtime - minimal image with only runtime dependencies
-FROM python@sha256:28255a3ace7eb4c48bc1b57b90af29e1bc82b4fd6c60614a8e3dce61b87ff941 AS runtime
+FROM docker.io/python:3.11-slim@sha256:28255a3ace7eb4c48bc1b57b90af29e1bc82b4fd6c60614a8e3dce61b87ff941 AS runtime
 
 # Install runtime dependencies (Playwright libs + curl for healthcheck)
 RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
@@ -85,6 +85,8 @@ ENV PLAYWRIGHT_BROWSERS_PATH=/home/appuser/.cache/ms-playwright
 COPY src/ ./src/
 COPY alembic.ini .
 COPY migrations/ ./migrations/
+COPY deprecation_register.json /app/docs/deprecation_register.json
+ENV DEPRECATION_REGISTER_PATH=/app/docs/deprecation_register.json
 
 # Change ownership
 RUN chown -R appuser:appgroup /app /home/appuser

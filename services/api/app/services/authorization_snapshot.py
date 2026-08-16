@@ -1,0 +1,268 @@
+"""Atomically issue backend-authoritative browser authorization snapshots."""
+
+from __future__ import annotations
+
+import re
+from datetime import UTC, datetime
+from enum import StrEnum
+from typing import Literal
+
+from fastapi import HTTPException, status
+from pydantic import BaseModel, ConfigDict, Field
+from value_fabric.shared.identity.fabric_auth import AuthContext
+
+from app.core.auth_context_builder import normalize_clerk_role
+from app.core.auth_directory import (
+    AuthDirectory,
+    DirectoryMembership,
+    DirectoryTenant,
+    DirectoryUser,
+)
+
+MAX_SNAPSHOT_TTL_SECONDS = 300
+_ACCOUNT_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
+
+
+class CanonicalAuthorizationRole(StrEnum):
+    """Canonical backend roles accepted in browser authorization snapshots."""
+
+    TENANT_ADMIN = "tenant_admin"
+    CONTENT_ADMIN = "content_admin"
+    ANALYST = "analyst"
+    READ_ONLY = "read_only"
+
+
+ROLE_PERMISSIONS: dict[CanonicalAuthorizationRole, tuple[str, ...]] = {
+    CanonicalAuthorizationRole.TENANT_ADMIN: (
+        "*",
+        "tier:admin:access",
+        "tier:advanced:access",
+        "tier:standard:access",
+    ),
+    CanonicalAuthorizationRole.CONTENT_ADMIN: (
+        "content:read",
+        "content:write",
+        "tier:advanced:access",
+        "tier:standard:access",
+    ),
+    CanonicalAuthorizationRole.ANALYST: (
+        "account:read",
+        "intelligence:read",
+        "tier:standard:access",
+    ),
+    CanonicalAuthorizationRole.READ_ONLY: ("account:read", "tier:standard:access"),
+}
+
+
+class _CamelModel(BaseModel):
+    model_config = ConfigDict(
+        alias_generator=lambda value: "".join(
+            [value.split("_")[0], *[part.title() for part in value.split("_")[1:]]]
+        ),
+        populate_by_name=True,
+    )
+
+
+class SnapshotIdentity(_CamelModel):
+    """Verified principal and session identity bound to a snapshot."""
+
+    clerk_user_id: str = Field(description="Verified Clerk user identifier.")
+    fabric_user_id: str = Field(description="Canonical Fabric principal identifier.")
+    session_discriminator: str = Field(
+        description="Opaque verified Clerk session identifier that prevents cross-session replay."
+    )
+
+
+class SnapshotTenant(_CamelModel):
+    """Active tenant membership resolved by the backend identity directory."""
+
+    fabric_tenant_id: str = Field(description="Canonical Fabric tenant identifier.")
+    clerk_organization_id: str = Field(description="Verified Clerk organization identifier.")
+    tenant_slug: str | None = Field(description="Canonical tenant URL slug when configured.")
+    membership_id: str = Field(description="Verified Clerk organization-membership identifier.")
+    membership_status: Literal["active"] = Field(
+        description="Membership status; snapshots are issued only for active membership."
+    )
+
+
+class SnapshotAccountScope(_CamelModel):
+    """Tenant-wide or exact-account authorization scope."""
+
+    scope_type: Literal["tenant", "account"] = Field(
+        description="Scope kind resolved by the backend authorization projection."
+    )
+    account_id: str | None = Field(
+        description="Exact authorized account identifier for account scope; null for tenant scope."
+    )
+
+
+class AuthorizationSnapshot(_CamelModel):
+    """Short-lived backend authority for frontend access-control decisions."""
+
+    schema_version: Literal["1"] = Field(
+        default="1", description="Authorization snapshot contract version."
+    )
+    source: Literal["backend"] = Field(
+        default="backend", description="Authority source; always the verified backend."
+    )
+    identity: SnapshotIdentity = Field(description="Verified principal and session binding.")
+    tenant: SnapshotTenant = Field(description="Verified active tenant membership.")
+    account_scope: SnapshotAccountScope = Field(
+        description="Backend-resolved tenant or exact-account scope."
+    )
+    roles: list[CanonicalAuthorizationRole] = Field(
+        description="Canonical roles granted by the active membership."
+    )
+    permissions: list[str] = Field(
+        description="Permission identifiers derived by the backend from the verified canonical membership role."
+    )
+    entitlements: list[str] = Field(description="Active tenant entitlement identifiers.")
+    issued_at: str = Field(description="UTC timestamp when the snapshot was issued.")
+    expires_at: str = Field(description="UTC timestamp after which the snapshot is unusable.")
+
+
+def _deny_account(request_id: str) -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail={
+            "code": "account_scope_denied",
+            "message": "The requested account scope is not authorized.",
+            "request_id": request_id,
+        },
+        headers={"Cache-Control": "private, no-store"},
+    )
+
+
+class AuthorizationSnapshotService:
+    def __init__(self, directory: AuthDirectory) -> None:
+        self._directory = directory
+
+    def issue(
+        self,
+        *,
+        auth: AuthContext,
+        verified_claims: dict[str, object],
+        account_id: str | None,
+    ) -> AuthorizationSnapshot:
+        sid = verified_claims.get("sid")
+        token_exp = verified_claims.get("exp")
+        if not isinstance(sid, str) or not sid.strip() or not isinstance(token_exp, int):
+            raise HTTPException(
+                status_code=401,
+                detail={
+                    "code": "auth.session_invalid",
+                    "message": "Authentication required.",
+                    "request_id": auth.request_id,
+                },
+            )
+        normalized_account = account_id.strip() if account_id is not None else None
+        if normalized_account is not None and not _ACCOUNT_ID.fullmatch(normalized_account):
+            raise _deny_account(auth.request_id)
+        if auth.clerk_org_id is None:
+            raise HTTPException(
+                status_code=403,
+                detail={
+                    "code": "auth.tenant_unresolved",
+                    "message": "You do not have access to this resource.",
+                    "request_id": auth.request_id,
+                },
+            )
+
+        projection = self._directory.read_authorization_projection(
+            clerk_org_id=auth.clerk_org_id,
+            clerk_user_id=auth.clerk_user_id,
+            account_id=normalized_account,
+        )
+        if projection is None:
+            raise HTTPException(
+                status_code=403,
+                detail={
+                    "code": "auth.membership_inactive",
+                    "message": "You do not have access to this resource.",
+                    "request_id": auth.request_id,
+                },
+            )
+        user = projection["user"]
+        tenant = projection["tenant"]
+        membership = projection["membership"]
+        assert (
+            isinstance(user, DirectoryUser)
+            and isinstance(tenant, DirectoryTenant)
+            and isinstance(membership, DirectoryMembership)
+        )
+        if user.id != auth.user_id or tenant.id != auth.tenant_id:
+            raise HTTPException(
+                status_code=403,
+                detail={
+                    "code": "auth.context_mismatch",
+                    "message": "You do not have access to this resource.",
+                    "request_id": auth.request_id,
+                },
+            )
+        if normalized_account is not None and projection["account_allowed"] is not True:
+            raise _deny_account(auth.request_id)
+        normalized_role = normalize_clerk_role(membership.role)
+        if normalized_role is None or normalized_role not in {
+            role.value for role in CanonicalAuthorizationRole
+        }:
+            raise HTTPException(
+                status_code=403,
+                detail={
+                    "code": "auth.role_unknown",
+                    "message": "You do not have access to this resource.",
+                    "request_id": auth.request_id,
+                },
+            )
+        role = CanonicalAuthorizationRole(normalized_role)
+
+        now = int(datetime.now(UTC).timestamp())
+        expiry_limits = [token_exp, auth.exp, now + MAX_SNAPSHOT_TTL_SECONDS]
+        for key in (
+            "membership_valid_until",
+            "permission_policy_valid_until",
+            "entitlement_valid_until",
+        ):
+            limit = projection[key]
+            if limit is not None:
+                if not isinstance(limit, int):
+                    raise HTTPException(
+                        status_code=403,
+                        detail={
+                            "code": "auth.projection_invalid",
+                            "message": "You do not have access to this resource.",
+                            "request_id": auth.request_id,
+                        },
+                    )
+                expiry_limits.append(limit)
+        expires = min(expiry_limits)
+        if expires <= now:
+            raise HTTPException(
+                status_code=401,
+                detail={
+                    "code": "auth.session_expired",
+                    "message": "Authentication required.",
+                    "request_id": auth.request_id,
+                },
+            )
+        permissions = sorted(ROLE_PERMISSIONS[role])
+        return AuthorizationSnapshot(
+            identity=SnapshotIdentity(
+                clerk_user_id=auth.clerk_user_id, fabric_user_id=user.id, session_discriminator=sid
+            ),
+            tenant=SnapshotTenant(
+                fabric_tenant_id=tenant.id,
+                clerk_organization_id=tenant.clerk_org_id,
+                tenant_slug=tenant.slug,
+                membership_id=membership.clerk_membership_id,
+                membership_status="active",
+            ),
+            account_scope=SnapshotAccountScope(
+                scope_type="account" if normalized_account else "tenant",
+                account_id=normalized_account,
+            ),
+            roles=[role],
+            permissions=permissions,
+            entitlements=list(projection["entitlements"]),
+            issued_at=datetime.fromtimestamp(now, UTC).isoformat(),
+            expires_at=datetime.fromtimestamp(expires, UTC).isoformat(),
+        )

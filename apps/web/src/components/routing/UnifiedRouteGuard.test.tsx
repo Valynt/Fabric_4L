@@ -1,183 +1,251 @@
-import { afterEach, describe, it, expect, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
-import { setAuthProvider } from "@/test/utils/withAuthProvider";
+import type { RouteAccessPolicy } from "@/routes/types";
 
-const mockUserTierStore = vi.hoisted(() => ({
-  canAccessRoute: vi.fn(() => true),
-  isRehydrated: true,
-  persist: {
-    hasHydrated: vi.fn(() => true),
-  },
+const authorization = vi.hoisted(() => ({
+  status: "verified" as "loading" | "verified" | "denied" | "expired",
+  reason: undefined as
+    | "malformed"
+    | "mismatch"
+    | "unavailable"
+    | "unauthenticated"
+    | undefined,
+  hasEveryPermission: vi.fn(() => true),
+  hasEveryEntitlement: vi.fn(() => true),
+  hasTenantMembership: vi.fn(() => true),
+  hasAccountAccess: vi.fn(() => true),
+  hasAnyRole: vi.fn(() => true),
 }));
-const mockUseParams = vi.fn(() => ({ tenantSlug: "tenant-a", accountId: "acc-1" }));
-const mockUseMatches = vi.fn(() => [{ handle: { accessPolicy: { requiresAuth: true, fallbackRoute: "/home", tenantScoped: true, accountScoped: true, requiredEntitlements: ["feature.a"] } } }]);
-const mockClerkAuth = {
-  isLoaded: true,
-  isSignedIn: true,
-};
+const authState = vi.hoisted(() => ({
+  isAuthenticated: true,
+  isLoading: false,
+}));
+const routeState = vi.hoisted(() => ({
+  params: { tenantSlug: "tenant-a", accountId: "acc-1" } as {
+    tenantSlug?: string;
+    accountId?: string;
+  },
+  matches: [] as Array<{ handle?: { accessPolicy?: RouteAccessPolicy } }>,
+}));
+const featureFlags = vi.hoisted(() => ({ flagsEnabled: true }));
 
 vi.mock("react-router-dom", () => ({
   Navigate: ({ to }: { to: string }) => <div>redirect:{to}</div>,
-  useLocation: () => ({ pathname: "/t/tenant-a/a/acc-1", search: "" }),
-  useParams: () => mockUseParams(),
-  useMatches: () => mockUseMatches(),
+  useLocation: () => ({ pathname: "/protected", search: "?view=detail" }),
+  useParams: () => routeState.params,
+  useMatches: () => routeState.matches,
 }));
-vi.mock("@clerk/react", () => ({ useAuth: () => mockClerkAuth }));
-vi.mock("@/hooks/useTenantMembership", () => ({
-  useTenantMembershipClerk: () => ({ isMemberOfTenant: true, isLoading: false }),
-  useTenantMembershipLegacy: () => ({ isMemberOfTenant: true, isLoading: false }),
+vi.mock("@/auth/AuthorizationProvider", () => ({
+  useAuthorizationSnapshot: () => authorization,
 }));
-vi.mock("@/hooks/useAccountAccess", () => ({ useAccountAccess: () => ({ hasAccountAccess: false, isLoading: false, isError: false }) }));
-vi.mock("@/hooks/useUserPermissions", () => ({ useUserPermissions: () => ({ hasPermissions: true, isLoading: false }) }));
-vi.mock("@/hooks/useFeatureFlags", () => ({ useFeatureFlags: () => ({ flagsEnabled: true, isLoading: false }) }));
-vi.mock("@/hooks/useEntitlements", () => ({ useEntitlements: () => ({ entitlementsMet: false, isLoading: false, isError: false }) }));
-vi.mock("@/stores", () => ({
-  useUserTierStore: Object.assign(() => mockUserTierStore, {
-    persist: mockUserTierStore.persist,
-  }),
+vi.mock("@/contexts/AuthContext", () => ({
+  useAuthContext: () => authState,
+}));
+vi.mock("@/hooks/useFeatureFlags", () => ({
+  useFeatureFlags: () => featureFlags,
+}));
+vi.mock("@/components", () => ({
+  ErrorBoundary: ({ children }: { children: React.ReactNode }) => children,
 }));
 
 import { UnifiedRouteGuard } from "./UnifiedRouteGuard";
-import { AuthContext } from "@/contexts/AuthContext";
 
-function renderGuard() {
+const policy = (
+  overrides: Partial<RouteAccessPolicy> = {}
+): RouteAccessPolicy => ({
+  requiresAuth: true,
+  tenantScoped: false,
+  fallbackRoute: "/explicit-fallback",
+  analyticsRouteId: "test.protected",
+  ...overrides,
+});
+
+function renderGuard(accessPolicy: RouteAccessPolicy | null = policy()) {
+  routeState.matches = accessPolicy
+    ? [{ handle: { accessPolicy } }]
+    : [{ handle: {} }];
   return render(
-    <AuthContext.Provider
-      value={{
-        isAuthenticated: true,
-        isLoading: false,
-        user: null,
-        currentTenantSlug: "tenant-a",
-        accessToken: null,
-        initiateLogin: vi.fn(),
-        handleCallback: vi.fn(async () => true),
-        logout: vi.fn(),
-        refreshToken: vi.fn(async () => true),
-      }}
-    >
-      <UnifiedRouteGuard><div>protected</div></UnifiedRouteGuard>
-    </AuthContext.Provider>
+    <UnifiedRouteGuard>
+      <div>protected</div>
+    </UnifiedRouteGuard>
   );
 }
 
-describe("UnifiedRouteGuard deny behavior", () => {
+function expectProtectedContentHidden() {
+  expect(screen.queryByText("protected")).not.toBeInTheDocument();
+}
+
+describe("UnifiedRouteGuard verified authorization", () => {
   afterEach(() => {
     window.localStorage.clear();
-    setAuthProvider("legacy");
-    mockClerkAuth.isLoaded = true;
-    mockClerkAuth.isSignedIn = true;
-    mockUserTierStore.canAccessRoute.mockReturnValue(true);
-    mockUserTierStore.isRehydrated = true;
-    mockUserTierStore.persist.hasHydrated.mockReturnValue(true);
-    mockUseMatches.mockReturnValue([{ handle: { accessPolicy: { requiresAuth: true, fallbackRoute: "/home", tenantScoped: true, accountScoped: true, requiredEntitlements: ["feature.a"] } } }]);
+    authState.isAuthenticated = true;
+    authState.isLoading = false;
+    authorization.status = "verified";
+    authorization.reason = undefined;
+    authorization.hasEveryPermission.mockReset().mockReturnValue(true);
+    authorization.hasEveryEntitlement.mockReset().mockReturnValue(true);
+    authorization.hasTenantMembership.mockReset().mockReturnValue(true);
+    authorization.hasAccountAccess.mockReset().mockReturnValue(true);
+    authorization.hasAnyRole.mockReset().mockReturnValue(true);
+    routeState.params = { tenantSlug: "tenant-a", accountId: "acc-1" };
+    routeState.matches = [];
+    featureFlags.flagsEnabled = true;
   });
 
-  it("redirects when backend account authorization denies a browser-selected account", () => {
+  it("hides protected content while authentication is loading", () => {
+    authState.isLoading = true;
     renderGuard();
-    expect(screen.getByText("redirect:/t/tenant-a/accounts")).toBeInTheDocument();
-    expect(screen.queryByText("protected")).not.toBeInTheDocument();
+
+    expect(screen.getByRole("status")).toHaveTextContent("Verifying access...");
+    expectProtectedContentHidden();
   });
 
-  it("waits for tier-store rehydration before evaluating protected route access", () => {
-    window.localStorage.setItem(
-      "user-tier-storage",
-      JSON.stringify({ state: { currentTier: "admin" }, version: 0 }),
+  it("redirects unauthenticated users to sign-in", () => {
+    authState.isAuthenticated = false;
+    renderGuard();
+
+    expect(screen.getByText("redirect:/sign-in")).toBeInTheDocument();
+    expectProtectedContentHidden();
+  });
+
+  it("fails closed when route policy metadata is absent", () => {
+    authState.isAuthenticated = false;
+    renderGuard(null);
+
+    expect(screen.getByText("redirect:/sign-in")).toBeInTheDocument();
+    expectProtectedContentHidden();
+  });
+
+  it("hides protected content while the snapshot is loading", () => {
+    authorization.status = "loading";
+    renderGuard(policy({ requiredTier: "admin" }));
+
+    expect(screen.getByRole("status")).toHaveTextContent("Verifying access...");
+    expectProtectedContentHidden();
+  });
+
+  it.each(["denied", "expired"] as const)(
+    "fails closed with the explicit fallback for a %s snapshot",
+    status => {
+      authorization.status = status;
+      authorization.reason = status === "denied" ? "mismatch" : undefined;
+      renderGuard(policy({ requiredTier: "admin" }));
+
+      expect(
+        screen.getByText("redirect:/explicit-fallback")
+      ).toBeInTheDocument();
+      expectProtectedContentHidden();
+    }
+  );
+
+  it("does not treat a requireAuth-only route as a snapshot grant", () => {
+    authorization.status = "denied";
+    authorization.hasAnyRole.mockReturnValue(false);
+    renderGuard(policy({ requiresAuth: true }));
+
+    expect(screen.getByText("protected")).toBeInTheDocument();
+  });
+
+  it("distinguishes snapshot verification errors from access denial", () => {
+    authorization.status = "denied";
+    authorization.reason = "unavailable";
+    renderGuard(policy({ requiredTier: "admin" }));
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Unable to verify access. Please try again."
     );
-    mockUserTierStore.isRehydrated = false;
-    mockUserTierStore.persist.hasHydrated.mockReturnValue(false);
-    mockUserTierStore.canAccessRoute.mockReturnValue(false);
-    mockUseMatches.mockReturnValue([{ handle: { accessPolicy: { requiresAuth: true, fallbackRoute: "/home", requiredTier: "admin" } } }]);
-
-    renderGuard();
-
-    expect(screen.getByText("Verifying access...")).toBeInTheDocument();
-    expect(screen.queryByText("redirect:/home")).not.toBeInTheDocument();
-    expect(screen.queryByText("protected")).not.toBeInTheDocument();
+    expect(screen.queryByText(/redirect:/)).not.toBeInTheDocument();
+    expectProtectedContentHidden();
   });
 
-  it("does not wait for advanced-tier rehydration when an admin route will remain denied", () => {
-    window.localStorage.setItem(
+  it("requires verified backend roles for a tier-protected route", () => {
+    localStorage.setItem(
       "user-tier-storage",
-      JSON.stringify({ state: { currentTier: "advanced" }, version: 0 }),
+      JSON.stringify({ state: { currentTier: "admin" } })
     );
-    mockUserTierStore.isRehydrated = false;
-    mockUserTierStore.persist.hasHydrated.mockReturnValue(false);
-    mockUserTierStore.canAccessRoute.mockReturnValue(false);
-    mockUseMatches.mockReturnValue([{ handle: { accessPolicy: { requiresAuth: true, fallbackRoute: "/home", requiredTier: "admin" } } }]);
+    authorization.hasAnyRole.mockReturnValue(false);
+    renderGuard(policy({ requiredTier: "admin", tenantScoped: true }));
 
-    renderGuard();
-
-    expect(screen.getByText("redirect:/home")).toBeInTheDocument();
-    expect(screen.queryByText("Verifying access...")).not.toBeInTheDocument();
-    expect(screen.queryByText("protected")).not.toBeInTheDocument();
+    expect(authorization.hasAnyRole).toHaveBeenCalledWith(["tenant_admin"]);
+    expect(screen.getByText("redirect:/explicit-fallback")).toBeInTheDocument();
+    expectProtectedContentHidden();
   });
 
-  it("waits for advanced-tier rehydration before evaluating advanced routes", () => {
-    window.localStorage.setItem(
-      "user-tier-storage",
-      JSON.stringify({ state: { currentTier: "advanced" }, version: 0 }),
-    );
-    mockUserTierStore.isRehydrated = false;
-    mockUserTierStore.persist.hasHydrated.mockReturnValue(false);
-    mockUserTierStore.canAccessRoute.mockReturnValue(false);
-    mockUseMatches.mockReturnValue([{ handle: { accessPolicy: { requiresAuth: true, fallbackRoute: "/home", requiredTier: "advanced" } } }]);
+  it("uses verified tenant and exact account scope", () => {
+    authorization.hasAccountAccess.mockReturnValue(false);
+    renderGuard(policy({ tenantScoped: true, accountScoped: true }));
 
-    renderGuard();
-
-    expect(screen.getByText("Verifying access...")).toBeInTheDocument();
-    expect(screen.queryByText("redirect:/home")).not.toBeInTheDocument();
+    expect(authorization.hasTenantMembership).toHaveBeenCalledWith("tenant-a");
+    expect(authorization.hasAccountAccess).toHaveBeenCalledWith("acc-1");
+    expect(screen.getByText("redirect:/explicit-fallback")).toBeInTheDocument();
+    expectProtectedContentHidden();
   });
 
-  it("uses Clerk signed-in state in Clerk mode instead of stale legacy-compatible context", () => {
-    setAuthProvider("clerk");
-    mockClerkAuth.isLoaded = true;
-    mockClerkAuth.isSignedIn = true;
-    mockUseMatches.mockReturnValue([{ handle: { accessPolicy: { requiresAuth: true, fallbackRoute: "/home", tenantScoped: false } } }]);
+  it("fails closed when a required scope parameter is missing", () => {
+    routeState.params = { tenantSlug: "tenant-a" };
+    renderGuard(policy({ tenantScoped: true, accountScoped: true }));
 
-    render(
-      <AuthContext.Provider
-        value={{
-          isAuthenticated: false,
-          isLoading: false,
-          user: null,
-          currentTenantSlug: null,
-          accessToken: null,
-          initiateLogin: vi.fn(),
-          handleCallback: vi.fn(async () => true),
-          logout: vi.fn(),
-          refreshToken: vi.fn(async () => true),
-        }}
-      >
-        <UnifiedRouteGuard><div>protected</div></UnifiedRouteGuard>
-      </AuthContext.Provider>
+    expect(authorization.hasAccountAccess).not.toHaveBeenCalled();
+    expect(screen.getByText("redirect:/explicit-fallback")).toBeInTheDocument();
+    expectProtectedContentHidden();
+  });
+
+  it("uses snapshot all-of checks for permissions and entitlements", () => {
+    authorization.hasEveryEntitlement.mockReturnValue(false);
+    renderGuard(
+      policy({
+        requiredPermissions: ["account:read", "account:write"],
+        requiredEntitlements: ["billing.manage", "exports.enabled"],
+      })
+    );
+
+    expect(authorization.hasEveryPermission).toHaveBeenCalledWith([
+      "account:read",
+      "account:write",
+    ]);
+    expect(authorization.hasEveryEntitlement).toHaveBeenCalledWith([
+      "billing.manage",
+      "exports.enabled",
+    ]);
+    expect(screen.getByText("redirect:/explicit-fallback")).toBeInTheDocument();
+    expectProtectedContentHidden();
+  });
+
+  it("does not let a feature flag grant missing snapshot permission", () => {
+    featureFlags.flagsEnabled = true;
+    authorization.hasEveryPermission.mockReturnValue(false);
+    renderGuard(
+      policy({
+        requiredPermissions: ["admin:read"],
+        requiredFeatureFlags: ["admin-ui"],
+      })
+    );
+
+    expect(screen.getByText("redirect:/explicit-fallback")).toBeInTheDocument();
+    expectProtectedContentHidden();
+  });
+
+  it("lets a feature flag further restrict verified access", () => {
+    featureFlags.flagsEnabled = false;
+    renderGuard(policy({ requiredFeatureFlags: ["new-workspace"] }));
+
+    expect(screen.getByText("redirect:/explicit-fallback")).toBeInTheDocument();
+    expectProtectedContentHidden();
+  });
+
+  it("renders protected content only after every policy check passes", () => {
+    renderGuard(
+      policy({
+        tenantScoped: true,
+        accountScoped: true,
+        requiredTier: "advanced",
+        requiredPermissions: ["account:read"],
+        requiredEntitlements: ["workspace.enabled"],
+        requiredFeatureFlags: ["workspace-ui"],
+      })
     );
 
     expect(screen.getByText("protected")).toBeInTheDocument();
-    expect(screen.queryByText("redirect:/sign-in")).not.toBeInTheDocument();
-  });
-
-  it("fails closed for guarded routes without access policy metadata", () => {
-    mockUseMatches.mockReturnValue([{ handle: {} }]);
-
-    render(
-      <AuthContext.Provider
-        value={{
-          isAuthenticated: false,
-          isLoading: false,
-          user: null,
-          currentTenantSlug: null,
-          accessToken: null,
-          initiateLogin: vi.fn(),
-          handleCallback: vi.fn(async () => true),
-          logout: vi.fn(),
-          refreshToken: vi.fn(async () => true),
-        }}
-      >
-        <UnifiedRouteGuard><div>protected</div></UnifiedRouteGuard>
-      </AuthContext.Provider>
-    );
-
-    expect(screen.getByText("redirect:/sign-in")).toBeInTheDocument();
-    expect(screen.queryByText("protected")).not.toBeInTheDocument();
+    expect(screen.queryByText(/redirect:/)).not.toBeInTheDocument();
   });
 });

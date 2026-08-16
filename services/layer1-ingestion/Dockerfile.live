@@ -4,7 +4,7 @@
 # This variant is intentionally scoped to docker-compose.live.yml, where the
 # build context must include both services/layer1-ingestion and value_fabric.
 
-FROM python@sha256:f5cf0344c9886ff24d34797578d5d7dd6e8911ae0fe5962bb55d0f89603ec361 AS builder
+FROM python:3.11-slim@sha256:f5cf0344c9886ff24d34797578d5d7dd6e8911ae0fe5962bb55d0f89603ec361 AS builder
 
 WORKDIR /app
 
@@ -30,7 +30,7 @@ RUN if [ "$INSTALL_PLAYWRIGHT_BROWSERS" = "true" ]; then \
         mkdir -p /root/.cache/ms-playwright; \
     fi
 
-FROM python@sha256:f5cf0344c9886ff24d34797578d5d7dd6e8911ae0fe5962bb55d0f89603ec361 AS runtime
+FROM python:3.11-slim@sha256:f5cf0344c9886ff24d34797578d5d7dd6e8911ae0fe5962bb55d0f89603ec361 AS runtime
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libglib2.0-0 \
@@ -72,6 +72,10 @@ COPY packages/shared/src/value_fabric/ ./value_fabric/
 COPY packages/shared/src/value_fabric/shared/ ./value_fabric/shared/
 COPY services/layer1-ingestion/alembic.ini ./
 COPY services/layer1-ingestion/migrations/ ./migrations/
+# .dockerignore excludes **/docs/; copy the packaged register that CI
+# already verifies matches docs/deprecation_register.json.
+COPY services/layer1-ingestion/deprecation_register.json /app/docs/deprecation_register.json
+ENV DEPRECATION_REGISTER_PATH=/app/docs/deprecation_register.json
 
 RUN chown -R appuser:appgroup /app /home/appuser
 

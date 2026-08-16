@@ -6,19 +6,22 @@ the Clerk token, resolves the tenant from the directory, and returns the
 canonical mapping. Frontend code must not trust localStorage or unverified
 frontend state for tenant context.
 """
+
 from __future__ import annotations
 
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response, status
 from pydantic import BaseModel
 from value_fabric.shared.error_handling.models import ErrorCode
 from value_fabric.shared.identity.fabric_auth import AuthContext
 
 from app.core.auth_directory import AuthDirectory, DirectoryTenant, get_auth_directory
 from app.core.clerk_auth import require_clerk_authenticated
+from app.services.authorization_snapshot import AuthorizationSnapshot, AuthorizationSnapshotService
 
 router = APIRouter(prefix="/auth/clerk", tags=["Clerk Authentication"])
+authorization_router = APIRouter(prefix="/auth", tags=["Platform", "Authorization"])
 
 
 class ClerkTenantResponse(BaseModel):
@@ -87,4 +90,56 @@ async def get_clerk_tenant(
         status=tenant.status,
         roles=sorted(auth.roles),
         permissions=sorted(auth.permissions),
+    )
+
+
+@authorization_router.get(
+    "/authorization-snapshot",
+    response_model=AuthorizationSnapshot,
+    response_model_by_alias=True,
+    responses={
+        200: {
+            "headers": {
+                "Cache-Control": {
+                    "description": "Always `private, no-store`; snapshots must not be cached by intermediaries.",
+                    "schema": {"type": "string"},
+                }
+            }
+        },
+        403: {
+            "description": "Authorization or account scope denied. Nonexistent, foreign-tenant, and inaccessible accounts all use `account_scope_denied`.",
+            "headers": {
+                "Cache-Control": {
+                    "description": "Always `private, no-store`.",
+                    "schema": {"type": "string"},
+                }
+            },
+        },
+        401: {
+            "description": "Authentication is missing, invalid, or expired.",
+            "headers": {
+                "Cache-Control": {
+                    "description": "Always `private, no-store`.",
+                    "schema": {"type": "string"},
+                }
+            },
+        },
+    },
+)
+async def get_authorization_snapshot(
+    request: Request,
+    response: Response,
+    x_account_id: str | None = Header(
+        default=None,
+        alias="X-Account-ID",
+        description="Optional exact Fabric account identifier to bind into the issued authorization scope.",
+    ),
+    auth: AuthContext = Depends(require_clerk_authenticated),
+    directory: AuthDirectory = Depends(get_auth_directory),
+) -> AuthorizationSnapshot:
+    """Issue one non-cacheable candidate from the canonical authorization projection."""
+    response.headers["Cache-Control"] = "private, no-store"
+    claims = getattr(request.state, "clerk_claims", {})
+    return AuthorizationSnapshotService(directory).issue(
+        auth=auth, verified_claims=claims, account_id=x_account_id
     )

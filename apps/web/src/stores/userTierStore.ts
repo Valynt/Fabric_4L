@@ -18,8 +18,7 @@ export type UserTier = "standard" | "advanced" | "admin" | "unknown";
 
 /** Security result type distinguishing explicit deny from evaluation failure */
 export type AccessDecision =
-  | { allowed: true }
-  | { allowed: false; reason: string };
+  { allowed: true } | { allowed: false; reason: string };
 
 /**
  * Type guard to check if access decision is denied.
@@ -139,7 +138,7 @@ const getDefaultPermissions = (tier: UserTier): UserPermissions => {
  * - analyst, editor, advanced → advanced
  * - read_only, viewer, user, standard → standard
  *
- * SECURITY: Unknown roles fail-safe to 'standard' (lowest tier)
+ * SECURITY: Unknown or unresolved roles map to an explicit denied tier.
  *
  * @param role - Backend-canonical role or frontend tier
  * @returns Normalized UI tier for feature gating
@@ -172,9 +171,8 @@ export const normalizeRoleToTier = (role: string): UserTier => {
   const tier = roleToTierMap[normalizedRole];
 
   if (!tier) {
-    // SECURITY: Fail-safe to standard tier for unknown roles
-    log.warn(`Unknown role "${role}" - defaulting to standard tier`);
-    return "standard";
+    log.warn(`Unknown role "${role}" - denying access until role resolution`);
+    return "unknown";
   }
 
   return tier;
@@ -377,27 +375,34 @@ const SORTED_ROUTES = Object.entries(ROUTE_TIER_MAP).sort(
   (a, b) => b[0].length - a[0].length
 );
 
-// Deterministic fail-closed default tier. The actual persisted tier is applied
-// synchronously by the persist middleware, and permissions are recomputed in
-// onRehydrateStorage. This avoids a server/client hydration mismatch caused by
-// reading localStorage at module evaluation time.
-const DEFAULT_INITIAL_TIER: UserTier = "standard";
+// Authorization starts unresolved and denied until a verified role is supplied.
+// Persistence is presentation-only and can never resolve authorization state.
+const DEFAULT_INITIAL_TIER: UserTier = "unknown";
 
-type PersistedUserTierSnapshot = Partial<UserTierState> & {
-  state?: Partial<UserTierState>;
+type PersistedUserTierSnapshot = {
+  isAdvancedModeEnabled?: boolean;
 };
 
 export function getPersistedTierSnapshot(
   persistedState: unknown
-): Partial<UserTierState> {
-  const snapshot = persistedState as PersistedUserTierSnapshot | undefined;
-  return snapshot?.state ?? snapshot ?? {};
+): PersistedUserTierSnapshot {
+  if (typeof persistedState !== "object" || persistedState === null) return {};
+
+  const envelope = persistedState as Record<string, unknown>;
+  const candidate =
+    typeof envelope.state === "object" && envelope.state !== null
+      ? (envelope.state as Record<string, unknown>)
+      : envelope;
+
+  return typeof candidate.isAdvancedModeEnabled === "boolean"
+    ? { isAdvancedModeEnabled: candidate.isAdvancedModeEnabled }
+    : {};
 }
 
 export const useUserTierStore = create<UserTierState>()(
   persist(
     (set, get) => ({
-      // Initial state (deterministic; persisted values are merged during rehydration)
+      // Authorization is unresolved until verified; only preferences rehydrate.
       currentTier: DEFAULT_INITIAL_TIER,
       isAdvancedModeEnabled: false,
       userRole: null,
@@ -507,20 +512,22 @@ export const useUserTierStore = create<UserTierState>()(
       name: "user-tier-storage",
       storage: createJSONStorage(() => localStorage),
       partialize: state => ({
-        currentTier: state.currentTier,
+        // Only persist presentation preferences, not security-relevant data
         isAdvancedModeEnabled: state.isAdvancedModeEnabled,
-        userRole: state.userRole,
       }),
       merge: (persistedState, currentState) => {
-        const typedState = getPersistedTierSnapshot(persistedState);
-        const storedTier =
-          validateTier(typedState?.currentTier ?? "standard") ?? "standard";
+        const preferences = getPersistedTierSnapshot(persistedState);
         const mergedState: UserTierState = {
-          currentTier: storedTier,
+          // Do not spread currentState here: it contains computed getters whose
+          // evaluation reads the store before Zustand has finished creating it.
+          // Evaluating those getters during initial hydration aborts hydration
+          // and silently drops the presentation preference.
+          currentTier: currentState.currentTier,
           isAdvancedModeEnabled:
-            typedState?.isAdvancedModeEnabled ?? storedTier !== "standard",
-          userRole: typedState?.userRole ?? null,
-          permissions: getDefaultPermissions(storedTier),
+            preferences.isAdvancedModeEnabled ??
+            currentState.isAdvancedModeEnabled,
+          userRole: currentState.userRole,
+          permissions: currentState.permissions,
           isRehydrated: true,
           setRehydrated: currentState.setRehydrated,
           setTier: currentState.setTier,
