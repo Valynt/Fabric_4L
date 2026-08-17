@@ -25,6 +25,9 @@ on:
       - 'scripts/**'
       - 'config/**'
       - 'Makefile'
+  # V1-CI-001: merge queue support (Stage 1 shadow; aggregates become
+  # required at Stage 3).
+  merge_group:
   push:
     tags:
       - 'v*'
@@ -375,3 +378,28 @@ jobs:
           path: |
             ${{ steps.bundle.outputs.path }}
             artifacts/evidence/*.summary.json
+
+
+  # ---------------------------------------------------------------------------
+  # V1-CI-001 Stage 1 (shadow): stable aggregate release-evidence check.
+  # Informational until Stage 3. Summarizes existing jobs only
+  # (scripts/ci/aggregate_gate.py). All fanned-in jobs run on every trigger of
+  # this workflow, so any skip fails the aggregate closed.
+  # ---------------------------------------------------------------------------
+  aggregate-08-release-evidence:
+    name: 08-release-evidence
+    runs-on: ubuntu-latest
+    if: always()
+    needs:
+      - release-readiness-gate
+      - build-and-scan
+      - supply-chain-policy-check
+      - sast-and-tests
+      - live-stack-evidence
+      - consolidate-bundle
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - name: Summarize release-evidence gates
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        run: python3 scripts/ci/aggregate_gate.py --needs-json "$NEEDS_JSON"

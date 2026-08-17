@@ -15,6 +15,9 @@ permissions:
     branches: [main]
   push:
     branches: [main]
+  # V1-CI-001: merge queue support (Stage 1 shadow; aggregates become
+  # required at Stage 3).
+  merge_group:
 
 concurrency:
   # Cancel only an obsolete run of this same workflow/ref. A global
@@ -2932,3 +2935,125 @@ jobs:
             exit 1
           fi
           echo "Unified readiness gate passed."
+
+
+  # ---------------------------------------------------------------------------
+  # V1-CI-001 Stage 1 (shadow): stable aggregate PR checks. Aggregate jobs
+  # perform no substantive testing; they only summarize the results of the
+  # existing jobs they fan in from (scripts/ci/aggregate_gate.py). They are
+  # informational until Stage 3 makes them required after shadow parity.
+  # A 'skipped' child only passes when the skip is explicitly confirmed safe
+  # via a SKIPSAFE_* env expression (change-scope output resolved to 'false'
+  # or the job's event gate does not apply to this event).
+  # ---------------------------------------------------------------------------
+  aggregate-01-repository-integrity:
+    name: 01-repository-integrity
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: always()
+    needs:
+      - change-scope
+      - structural-preflight
+      - pr-overlap-guard
+      - governance-docs-check
+      - gate-engineering
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - name: Summarize repository-integrity gates
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+          # pr-overlap-guard only runs on pull_request events; on push and
+          # merge_group there is no overlapping PR to guard against.
+          SKIPSAFE_PR_OVERLAP_GUARD: ${{ github.event_name != 'pull_request' }}
+        run: |
+          python3 scripts/ci/aggregate_gate.py \
+            --needs-json "$NEEDS_JSON" \
+            --skip-safe pr-overlap-guard=SKIPSAFE_PR_OVERLAP_GUARD
+
+  aggregate-02-code-quality-and-tests:
+    name: 02-code-quality-and-tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: always()
+    needs:
+      - change-scope
+      - layer1-checks
+      - layer2-checks
+      - layer3-checks
+      - layer4-checks
+      - layer5-checks
+      - layer6-checks
+      - shared-and-tests-checks
+      - frontend-checks
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - name: Summarize code-quality and test gates
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+          SKIPSAFE_LAYER1: ${{ needs.change-scope.outputs.layer1 == 'false' }}
+          SKIPSAFE_LAYER2: ${{ needs.change-scope.outputs.layer2 == 'false' }}
+          SKIPSAFE_LAYER3: ${{ needs.change-scope.outputs.layer3 == 'false' }}
+          SKIPSAFE_LAYER4: ${{ needs.change-scope.outputs.layer4 == 'false' }}
+          SKIPSAFE_LAYER5: ${{ needs.change-scope.outputs.layer5 == 'false' }}
+          SKIPSAFE_LAYER6: ${{ needs.change-scope.outputs.layer6 == 'false' }}
+          SKIPSAFE_BACKEND: ${{ needs.change-scope.outputs.backend == 'false' }}
+          SKIPSAFE_WEB: ${{ needs.change-scope.outputs.web == 'false' }}
+        run: |
+          python3 scripts/ci/aggregate_gate.py \
+            --needs-json "$NEEDS_JSON" \
+            --skip-safe layer1-checks=SKIPSAFE_LAYER1 \
+            --skip-safe layer2-checks=SKIPSAFE_LAYER2 \
+            --skip-safe layer3-checks=SKIPSAFE_LAYER3 \
+            --skip-safe layer4-checks=SKIPSAFE_LAYER4 \
+            --skip-safe layer5-checks=SKIPSAFE_LAYER5 \
+            --skip-safe layer6-checks=SKIPSAFE_LAYER6 \
+            --skip-safe shared-and-tests-checks=SKIPSAFE_BACKEND \
+            --skip-safe frontend-checks=SKIPSAFE_WEB
+
+  aggregate-05-tenant-isolation-and-behavior:
+    name: 05-tenant-isolation-and-behavior
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: always()
+    needs:
+      - change-scope
+      - behavior-tests
+      - tenant-isolation-gate
+      - route-auth-gate
+      - layer5-source-contract
+      - layer5-tenant-isolation-regression
+      - layer5-contract-shape-regression
+      - critical-behaviors-gate
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - name: Summarize tenant-isolation and behavior gates
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+          SKIPSAFE_WEB: ${{ needs.change-scope.outputs.web == 'false' }}
+          SKIPSAFE_BACKEND: ${{ needs.change-scope.outputs.backend == 'false' }}
+          SKIPSAFE_LAYER5: ${{ needs.change-scope.outputs.layer5 == 'false' }}
+          SKIPSAFE_CODE: ${{ needs.change-scope.outputs.code == 'false' }}
+        run: |
+          python3 scripts/ci/aggregate_gate.py \
+            --needs-json "$NEEDS_JSON" \
+            --skip-safe behavior-tests=SKIPSAFE_WEB \
+            --skip-safe tenant-isolation-gate=SKIPSAFE_BACKEND \
+            --skip-safe route-auth-gate=SKIPSAFE_BACKEND \
+            --skip-safe layer5-source-contract=SKIPSAFE_LAYER5 \
+            --skip-safe layer5-tenant-isolation-regression=SKIPSAFE_LAYER5 \
+            --skip-safe layer5-contract-shape-regression=SKIPSAFE_LAYER5 \
+            --skip-safe critical-behaviors-gate=SKIPSAFE_CODE
+
+  # 09-change-risk-and-approval is deterministic policy, not an LLM gate and
+  # not a fan-in summary: it verifies that a schema-valid independent-review
+  # artifact exists for the exact base/head SHAs under review, has no
+  # unresolved P0/P1 findings, records CODEOWNER/human approval for every
+  # high-risk surface touched, and that the reviewer did not author the patch.
+  aggregate-09-change-risk-and-approval:
+    name: 09-change-risk-and-approval
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - name: Verify independent-review and change-risk policy
+        run: python3 scripts/ci/check_change_risk_approval.py

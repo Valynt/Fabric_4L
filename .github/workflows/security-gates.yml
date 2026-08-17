@@ -12,6 +12,9 @@ on:
     branches: [main, develop, staging, production]
   push:
     branches: [main, develop, staging, production]
+  # V1-CI-001: merge queue support (Stage 1 shadow; aggregates become
+  # required at Stage 3).
+  merge_group:
   schedule:
     # Run weekly on Mondays at 9 AM UTC
     - cron: '0 9 * * 1'
@@ -1343,3 +1346,68 @@ jobs:
             .fabric/audit/security_regression_gate/
           if-no-files-found: error
           retention-days: ${{env.SECURITY_ARTIFACT_RETENTION_DAYS}}
+
+
+  # ---------------------------------------------------------------------------
+  # V1-CI-001 Stage 1 (shadow): stable aggregate security check. Informational
+  # until Stage 3. Summarizes existing jobs only (scripts/ci/aggregate_gate.py).
+  # ---------------------------------------------------------------------------
+  aggregate-04-security-gates:
+    name: 04-security-gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: always()
+    needs:
+      - change-scope
+      - dev-auth-bypass-guard
+      - gitleaks-scan
+      - cypher-dynamic-guard
+      - semgrep-full-scan
+      - trivy-repo-scan
+      - osv-scanner-pr
+      - trivy-image-scan
+      - sbom-policy
+      - dast-api-scan
+      - bandit-scan
+      - pip-audit-scan
+      - frontend-security-audit
+      - dockerfile-non-root-check
+      - dependency-review
+      - mandatory-security-regression
+      - route-auth-gate
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - name: Summarize security gates
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+          SKIPSAFE_LAYER3: ${{ needs.change-scope.outputs.layer3 == 'false' }}
+          SKIPSAFE_CODE: ${{ needs.change-scope.outputs.code == 'false' }}
+          SKIPSAFE_DEPS: ${{ needs.change-scope.outputs.deps == 'false' }}
+          SKIPSAFE_BACKEND: ${{ needs.change-scope.outputs.backend == 'false' }}
+          SKIPSAFE_WEB: ${{ needs.change-scope.outputs.web == 'false' }}
+          SKIPSAFE_DOCKER: ${{ needs.change-scope.outputs.docker == 'false' }}
+          SKIPSAFE_NOT_PR: ${{ github.event_name != 'pull_request' }}
+          # Several scan jobs are gated on pull_request/push events; on
+          # merge_group they skip and their coverage was already proven on the
+          # PR head (Stage 3 follow-up widens their `if:` to merge_group).
+          SKIPSAFE_NOT_PR_OR_PUSH: ${{ github.event_name != 'pull_request' && github.event_name != 'push' }}
+          SKIPSAFE_OSV_PR: ${{ needs.change-scope.outputs.deps == 'false' || github.event_name != 'pull_request' }}
+          SKIPSAFE_TRIVY_IMAGE: ${{ needs.change-scope.outputs.docker == 'false' || (github.event_name != 'pull_request' && github.event_name != 'push') }}
+          SKIPSAFE_SBOM_POLICY: ${{ (needs.change-scope.outputs.docker == 'false' && needs.change-scope.outputs.deps == 'false') || (github.event_name != 'pull_request' && github.event_name != 'push') }}
+          SKIPSAFE_DAST: ${{ needs.change-scope.outputs.code == 'false' || (github.event_name != 'pull_request' && github.event_name != 'push') }}
+          SKIPSAFE_PIP_AUDIT: ${{ needs.change-scope.outputs.backend == 'false' && needs.change-scope.outputs.deps == 'false' }}
+        run: |
+          python3 scripts/ci/aggregate_gate.py \
+            --needs-json "$NEEDS_JSON" \
+            --skip-safe cypher-dynamic-guard=SKIPSAFE_LAYER3 \
+            --skip-safe semgrep-full-scan=SKIPSAFE_CODE \
+            --skip-safe osv-scanner-pr=SKIPSAFE_OSV_PR \
+            --skip-safe trivy-image-scan=SKIPSAFE_TRIVY_IMAGE \
+            --skip-safe sbom-policy=SKIPSAFE_SBOM_POLICY \
+            --skip-safe dast-api-scan=SKIPSAFE_DAST \
+            --skip-safe bandit-scan=SKIPSAFE_BACKEND \
+            --skip-safe pip-audit-scan=SKIPSAFE_PIP_AUDIT \
+            --skip-safe frontend-security-audit=SKIPSAFE_WEB \
+            --skip-safe dockerfile-non-root-check=SKIPSAFE_DOCKER \
+            --skip-safe dependency-review=SKIPSAFE_NOT_PR \
+            --skip-safe route-auth-gate=SKIPSAFE_BACKEND

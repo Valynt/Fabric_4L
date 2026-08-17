@@ -17,6 +17,7 @@ on:
       - '**/*.md'
   push:
     branches: [main]
+  merge_group:
 
 concurrency:
   # Cancel only an obsolete run of this same workflow/ref. A global
