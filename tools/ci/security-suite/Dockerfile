@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 # Python is pinned by patch version and immutable Docker Hub manifest digest.
-FROM python:3.14.0-slim-bookworm@sha256:d13fa0424035d290decef3d575cea23d1b7d5952cdf429df8f5542c71e961576
+FROM python:3.14.7-slim-bookworm@sha256:23c59390fc717bf09f9336908199a0ae75d9c4264bf296123f94ad772fea3b52
 
 ARG TARGETARCH
 ARG GRYPE_VERSION=0.104.1
