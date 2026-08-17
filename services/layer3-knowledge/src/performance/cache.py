@@ -14,6 +14,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Any
 
+import msgpack
 import redis.asyncio as redis
 from pydantic import BaseModel, ConfigDict, Field
 from value_fabric.shared.testability import Clock, SystemClock
@@ -383,6 +384,8 @@ class MemoryCache:
         elif self.config.serialization == SerializationType.PICKLE:
             # P0 FIX: Pickle is disabled for security — use json or msgpack
             raise ValueError("pickle serializer is disabled for security — use json or msgpack")
+        elif self.config.serialization == SerializationType.MSGPACK:
+            return msgpack.packb(value, use_bin_type=True)
         elif self.config.serialization == SerializationType.BINARY:
             if isinstance(value, bytes):
                 return value
@@ -391,8 +394,9 @@ class MemoryCache:
             else:
                 return str(value).encode("utf-8")
         else:
-            # P0 FIX: Default to JSON instead of pickle for security
-            return json.dumps(value, default=str).encode("utf-8")
+            raise ValueError(
+                f"Unsupported serialization type: {self.config.serialization!r}"
+            )
 
     def _compress(self, data: bytes) -> bytes:
         """Compress data.
@@ -457,11 +461,14 @@ class MemoryCache:
         elif self.config.serialization == SerializationType.PICKLE:
             # P0 FIX: Pickle is disabled for security — use json or msgpack
             raise ValueError("pickle serializer is disabled for security — use json or msgpack")
+        elif self.config.serialization == SerializationType.MSGPACK:
+            return msgpack.unpackb(data, raw=False)
         elif self.config.serialization == SerializationType.BINARY:
             return data
         else:
-            # P0 FIX: Default to JSON instead of pickle for security
-            return json.loads(data.decode("utf-8"))
+            raise ValueError(
+                f"Unsupported serialization type: {self.config.serialization!r}"
+            )
 
     async def get_with_deserialization(self, key: str) -> Any | None:
         """Get value with automatic deserialization.
@@ -732,6 +739,8 @@ class RedisCache:
         elif self.config.serialization == SerializationType.PICKLE:
             # P0 FIX: Pickle is disabled for security — use json or msgpack
             raise ValueError("pickle serializer is disabled for security — use json or msgpack")
+        elif self.config.serialization == SerializationType.MSGPACK:
+            return msgpack.packb(value, use_bin_type=True)
         elif self.config.serialization == SerializationType.BINARY:
             if isinstance(value, bytes):
                 return value
@@ -740,8 +749,9 @@ class RedisCache:
             else:
                 return str(value).encode("utf-8")
         else:
-            # P0 FIX: Default to JSON instead of pickle for security
-            return json.dumps(value, default=str).encode("utf-8")
+            raise ValueError(
+                f"Unsupported serialization type: {self.config.serialization!r}"
+            )
 
     def _compress(self, data: bytes) -> bytes:
         """Compress data."""
@@ -785,11 +795,14 @@ class RedisCache:
         elif self.config.serialization == SerializationType.PICKLE:
             # P0 FIX: Pickle is disabled for security — use json or msgpack
             raise ValueError("pickle serializer is disabled for security — use json or msgpack")
+        elif self.config.serialization == SerializationType.MSGPACK:
+            return msgpack.unpackb(data, raw=False)
         elif self.config.serialization == SerializationType.BINARY:
             return data
         else:
-            # P0 FIX: Default to JSON instead of pickle for security
-            return json.loads(data.decode("utf-8"))
+            raise ValueError(
+                f"Unsupported serialization type: {self.config.serialization!r}"
+            )
 
     def get_stats(self) -> CacheStats:
         """Get cache statistics."""
