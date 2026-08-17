@@ -39,7 +39,12 @@ def test_aggregate_gate_passes_confirmed_safe_skip(monkeypatch) -> None:
     monkeypatch.setenv("SCOPE_SAFE_A", "true")
     assert (
         aggregate_gate.main(
-            ["--needs-json", _needs(a="skipped", b="success"), "--skip-safe", "a=SCOPE_SAFE_A"]
+            [
+                "--needs-json",
+                _needs(a="skipped", b="success"),
+                "--skip-safe",
+                "a=SCOPE_SAFE_A",
+            ]
         )
         == 0
     )
@@ -60,101 +65,91 @@ def test_aggregate_gate_fails_on_skip_without_confirmation() -> None:
     assert aggregate_gate.main(["--needs-json", _needs(a="skipped")]) == 1
 
 
-def test_aggregate_gate_fails_on_skip_when_confirmation_env_not_true(monkeypatch) -> None:
+def test_aggregate_gate_fails_on_skip_when_confirmation_env_not_true(
+    monkeypatch,
+) -> None:
     monkeypatch.setenv("SCOPE_SAFE_A", "false")
     assert (
-        aggregate_gate.main(["--needs-json", _needs(a="skipped"), "--skip-safe", "a=SCOPE_SAFE_A"])
+        aggregate_gate.main(
+            ["--needs-json", _needs(a="skipped"), "--skip-safe", "a=SCOPE_SAFE_A"]
+        )
         == 1
     )
 
 
-# --- check_change_risk_approval helpers ---
+# --- check_change_risk_approval: trusted GitHub evidence ---
 
 
-def _event_payload(tmp_path: Path, name: str = "pull_request") -> Path:
-    if name == "pull_request":
-        payload = {"pull_request": {"base": {"sha": BASE_SHA}, "head": {"sha": HEAD_SHA}}}
-    else:
-        payload = {"merge_group": {"base_sha": BASE_SHA, "head_sha": HEAD_SHA}}
+def _github_api_fixture(
+    *, author="alice", review_state="APPROVED", decision="APPROVED", files=None
+):
+    def fake(arguments):
+        endpoint = arguments[0]
+        if endpoint == "repos/acme/repo/pulls/7":
+            return {"user": {"login": author}}
+        if endpoint.endswith("/reviews"):
+            return [{"user": {"login": "bob"}, "state": review_state}]
+        if endpoint.endswith("/files"):
+            return [{"filename": name} for name in (files or [])]
+        if endpoint == "graphql":
+            return {
+                "data": {"repository": {"pullRequest": {"reviewDecision": decision}}}
+            }
+        raise AssertionError(arguments)
+
+    return fake
+
+
+def _github_event(tmp_path: Path) -> Path:
     path = tmp_path / "event.json"
-    path.write_text(json.dumps(payload), encoding="utf-8")
+    path.write_text(
+        json.dumps(
+            {"number": 7, "pull_request": {"number": 7, "head": {"sha": HEAD_SHA}}}
+        )
+    )
     return path
 
 
-def _artifact(
-    tmp_path: Path,
-    *,
-    head_sha: str = HEAD_SHA,
-    base_sha: str = BASE_SHA,
-    author: str = "alice",
-    reviewer: str = "bob",
-    findings: list | None = None,
-    surfaces: list[str] | None = None,
-    approvals: list | None = None,
-) -> Path:
-    artifact_dir = tmp_path / "reviews"
-    artifact_dir.mkdir(exist_ok=True)
-    artifact = {
-        "schema_version": 1,
-        "base_sha": base_sha,
-        "head_sha": head_sha,
-        "author": author,
-        "reviewer": reviewer,
-        "high_risk_surfaces_touched": surfaces if surfaces is not None else [],
-        "codeowner_approvals": approvals if approvals is not None else [],
-        "findings": findings if findings is not None else [],
-    }
-    (artifact_dir / f"{head_sha}.json").write_text(json.dumps(artifact), encoding="utf-8")
-    return artifact_dir
+def _run_github(tmp_path: Path, monkeypatch, api) -> int:
+    monkeypatch.setenv("GITHUB_EVENT_NAME", "pull_request")
+    monkeypatch.setenv("GITHUB_REPOSITORY", "acme/repo")
+    monkeypatch.setattr(change_risk, "_gh_json", api)
+    return change_risk.main(["--event-path", str(_github_event(tmp_path))])
 
 
-def _run(tmp_path: Path, monkeypatch, artifact_dir: Path, event_name: str = "pull_request") -> int:
-    monkeypatch.setenv("GITHUB_EVENT_NAME", event_name)
-    return change_risk.main(
-        ["--artifact-dir", str(artifact_dir), "--event-path", str(_event_payload(tmp_path, event_name))]
+def test_change_risk_gate_accepts_authenticated_github_approval(
+    tmp_path, monkeypatch
+) -> None:
+    assert (
+        _run_github(tmp_path, monkeypatch, _github_api_fixture(files=["src/app.py"]))
+        == 0
     )
 
 
-# --- check_change_risk_approval: intended allowed behavior ---
+def test_change_risk_gate_rejects_self_approval(tmp_path, monkeypatch) -> None:
+    assert _run_github(tmp_path, monkeypatch, _github_api_fixture(author="bob")) == 1
 
 
-def test_change_risk_gate_accepts_valid_artifact(tmp_path, monkeypatch) -> None:
-    artifact_dir = _artifact(
-        tmp_path,
-        findings=[{"id": "F-1", "severity": "P2", "status": "open"}],
-        surfaces=[".github/workflows/**"],
-        approvals=[{"surface": ".github/workflows/**", "approver": "carol"}],
+def test_change_risk_gate_rejects_dismissed_approval(tmp_path, monkeypatch) -> None:
+    assert (
+        _run_github(
+            tmp_path, monkeypatch, _github_api_fixture(review_state="DISMISSED")
+        )
+        == 1
     )
-    assert _run(tmp_path, monkeypatch, artifact_dir) == 0
 
 
-def test_change_risk_gate_accepts_merge_group_event(tmp_path, monkeypatch) -> None:
-    artifact_dir = _artifact(tmp_path)
-    assert _run(tmp_path, monkeypatch, artifact_dir, event_name="merge_group") == 0
+def test_change_risk_gate_requires_github_approved_decision_for_high_risk_files(
+    tmp_path, monkeypatch
+) -> None:
+    api = _github_api_fixture(
+        decision="REVIEW_REQUIRED", files=[".github/workflows/gate.yml"]
+    )
+    assert _run_github(tmp_path, monkeypatch, api) == 1
 
 
-# --- check_change_risk_approval: intended denied behavior ---
-
-
-def test_change_risk_gate_fails_closed_when_artifact_missing(tmp_path, monkeypatch) -> None:
-    assert _run(tmp_path, monkeypatch, tmp_path / "reviews") == 1
-
-
-def test_change_risk_gate_rejects_unresolved_p0(tmp_path, monkeypatch) -> None:
-    artifact_dir = _artifact(tmp_path, findings=[{"id": "F-9", "severity": "P0", "status": "open"}])
-    assert _run(tmp_path, monkeypatch, artifact_dir) == 1
-
-
-def test_change_risk_gate_rejects_reviewer_who_authored_patch(tmp_path, monkeypatch) -> None:
-    artifact_dir = _artifact(tmp_path, author="alice", reviewer="alice")
-    assert _run(tmp_path, monkeypatch, artifact_dir) == 1
-
-
-def test_change_risk_gate_rejects_sha_mismatch(tmp_path, monkeypatch) -> None:
-    artifact_dir = _artifact(tmp_path, base_sha="c" * 40)
-    assert _run(tmp_path, monkeypatch, artifact_dir) == 1
-
-
-def test_change_risk_gate_rejects_unapproved_high_risk_surface(tmp_path, monkeypatch) -> None:
-    artifact_dir = _artifact(tmp_path, surfaces=["k8s/**"], approvals=[])
-    assert _run(tmp_path, monkeypatch, artifact_dir) == 1
+def test_merge_group_resolves_prs_from_synthetic_commit(monkeypatch) -> None:
+    monkeypatch.setattr(
+        change_risk, "_gh_json", lambda args: [{"number": 8}, {"number": 7}]
+    )
+    assert change_risk._pull_numbers("merge_group", {}, "acme/repo", HEAD_SHA) == [7, 8]

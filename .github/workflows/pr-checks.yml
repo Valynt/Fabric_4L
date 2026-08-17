@@ -3045,14 +3045,16 @@ jobs:
             --skip-safe critical-behaviors-gate=SKIPSAFE_CODE
 
   # 09-change-risk-and-approval is deterministic policy, not an LLM gate and
-  # not a fan-in summary: it verifies that a schema-valid independent-review
-  # artifact exists for the exact base/head SHAs under review, has no
-  # unresolved P0/P1 findings, records CODEOWNER/human approval for every
-  # high-risk surface touched, and that the reviewer did not author the patch.
+  # not a fan-in summary: it verifies authenticated GitHub review data, rejects
+  # author self-approval, and relies on GitHub's review decision for configured
+  # branch-protection and CODEOWNER requirements.
   aggregate-09-change-risk-and-approval:
     name: 09-change-risk-and-approval
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
       - name: Verify independent-review and change-risk policy

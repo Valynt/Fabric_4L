@@ -1,49 +1,25 @@
 #!/usr/bin/env python3
-"""Deterministic change-risk and approval policy gate (V1-CI-001 aggregate 09).
+"""Verify change approval from authenticated GitHub data.
 
-This is a deterministic policy check, not an LLM gate and not substantive
-testing. It verifies that an independent-review artifact exists for the
-change under review and that it satisfies the merge policy:
-
-1. The artifact is schema-valid (required fields, correct types).
-2. Its base and head SHAs match the SHAs of the triggering event
-   (``pull_request`` or ``merge_group``).
-3. It records no unresolved P0/P1 findings.
-4. Every high-risk surface recorded as touched has a CODEOWNER/human
-   approval recorded in the artifact.
-5. The reviewer did not author the patch.
-
-Artifact location: ``signoff-evidence/reviews/<head_sha>.json`` relative to
-the repository root (override with ``--artifact-dir``). Schema (version 1)::
-
-    {
-      "schema_version": 1,
-      "base_sha": "<40-hex>",
-      "head_sha": "<40-hex>",
-      "author": "<github-login>",
-      "reviewer": "<github-login>",
-      "high_risk_surfaces_touched": ["<surface>", ...],
-      "codeowner_approvals": [{"surface": "<surface>", "approver": "<login>"}, ...],
-      "findings": [{"id": "...", "severity": "P0|P1|P2|P3",
-                    "status": "open|resolved|wontfix"}, ...]
-    }
+The gate deliberately does not read evidence from the checked-out revision.  A
+review file in the revision is both self-attested and impossible to key by the
+revision that contains it.  Instead, the GitHub API is the source of truth for
+the pull request author, changed files, review decision, and submitted reviews.
 """
+
 from __future__ import annotations
 
 import argparse
 import json
 import os
 import re
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_ARTIFACT_DIR = REPO_ROOT / "signoff-evidence" / "reviews"
-
 SHA_RE = re.compile(r"^[0-9a-f]{40}$")
-UNRESOLVED_STATUSES = {"open", "triaged", "in_progress"}
-BLOCKING_SEVERITIES = {"P0", "P1"}
+HIGH_RISK_PREFIXES = (".github/", "contracts/", "k8s/", "scripts/ci/", "config/ci/")
 
 
 def _fail(errors: list[str], message: str) -> None:
@@ -51,163 +27,162 @@ def _fail(errors: list[str], message: str) -> None:
     print(f"POLICY FAIL: {message}", file=sys.stderr)
 
 
-def _event_shas(event_name: str, event: dict[str, Any], errors: list[str]) -> tuple[str, str] | None:
+def _event_head(
+    event_name: str, event: dict[str, Any], errors: list[str]
+) -> str | None:
     if event_name == "pull_request":
-        pr = event.get("pull_request")
-        if not isinstance(pr, dict):
-            _fail(errors, "pull_request event payload missing 'pull_request' object")
-            return None
-        base = pr.get("base", {}).get("sha")
-        head = pr.get("head", {}).get("sha")
+        head = event.get("pull_request", {}).get("head", {}).get("sha")
     elif event_name == "merge_group":
-        group = event.get("merge_group")
-        if not isinstance(group, dict):
-            _fail(errors, "merge_group event payload missing 'merge_group' object")
-            return None
-        base = group.get("base_sha")
-        head = group.get("head_sha")
+        head = event.get("merge_group", {}).get("head_sha")
     else:
-        _fail(errors, f"unsupported event {event_name!r}; expected pull_request or merge_group")
+        _fail(
+            errors,
+            f"unsupported event {event_name!r}; expected pull_request or merge_group",
+        )
         return None
-    if not (isinstance(base, str) and SHA_RE.match(base)):
-        _fail(errors, f"event base SHA missing or malformed: {base!r}")
-        return None
-    if not (isinstance(head, str) and SHA_RE.match(head)):
+    if not isinstance(head, str) or not SHA_RE.fullmatch(head):
         _fail(errors, f"event head SHA missing or malformed: {head!r}")
         return None
-    return base, head
+    return head
 
 
-def _validate_artifact(
-    artifact: Any,
-    expected_base: str,
-    expected_head: str,
-    errors: list[str],
-) -> None:
-    if not isinstance(artifact, dict):
-        _fail(errors, "artifact must be a JSON object")
-        return
-    if artifact.get("schema_version") != 1:
-        _fail(errors, f"unsupported schema_version: {artifact.get('schema_version')!r}")
+def _gh_json(arguments: list[str]) -> Any:
+    process = subprocess.run(
+        ["gh", "api", *arguments], capture_output=True, text=True, check=False
+    )
+    if process.returncode:
+        raise RuntimeError(process.stderr.strip() or "GitHub API request failed")
+    decoder = json.JSONDecoder()
+    documents: list[Any] = []
+    remaining = process.stdout.lstrip()
+    while remaining:
+        document, offset = decoder.raw_decode(remaining)
+        documents.append(document)
+        remaining = remaining[offset:].lstrip()
+    if len(documents) == 1:
+        return documents[0]
+    if all(isinstance(document, list) for document in documents):
+        return [item for document in documents for item in document]
+    raise RuntimeError("GitHub API returned an unexpected paginated response")
 
-    base = artifact.get("base_sha")
-    head = artifact.get("head_sha")
-    if not (isinstance(base, str) and SHA_RE.match(base)):
-        _fail(errors, "artifact base_sha missing or malformed")
-    elif base != expected_base:
-        _fail(errors, f"artifact base_sha {base} does not match event base SHA {expected_base}")
-    if not (isinstance(head, str) and SHA_RE.match(head)):
-        _fail(errors, "artifact head_sha missing or malformed")
-    elif head != expected_head:
-        _fail(errors, f"artifact head_sha {head} does not match event head SHA {expected_head}")
 
-    author = artifact.get("author")
-    reviewer = artifact.get("reviewer")
+def _pull_numbers(
+    event_name: str, event: dict[str, Any], repository: str, head: str
+) -> list[int]:
+    if event_name == "pull_request":
+        number = event.get("pull_request", {}).get("number") or event.get("number")
+        if not isinstance(number, int):
+            raise RuntimeError("pull_request event is missing its number")
+        return [number]
+    pulls = _gh_json([f"repos/{repository}/commits/{head}/pulls"])
+    numbers = sorted(
+        {pull.get("number") for pull in pulls if isinstance(pull.get("number"), int)}
+    )
+    if not numbers:
+        raise RuntimeError(
+            f"no pull requests are associated with merge-group commit {head}"
+        )
+    return numbers
+
+
+def _validate_pull(repository: str, number: int, errors: list[str]) -> None:
+    pull = _gh_json([f"repos/{repository}/pulls/{number}"])
+    reviews = _gh_json([f"repos/{repository}/pulls/{number}/reviews", "--paginate"])
+    files = _gh_json([f"repos/{repository}/pulls/{number}/files", "--paginate"])
+    owner, name = repository.split("/", 1)
+    decision_data = _gh_json(
+        [
+            "graphql",
+            "-f",
+            "query=query($owner:String!,$name:String!,$number:Int!){repository(owner:$owner,name:$name){pullRequest(number:$number){reviewDecision}}}",
+            "-f",
+            f"owner={owner}",
+            "-f",
+            f"name={name}",
+            "-F",
+            f"number={number}",
+        ]
+    )
+
+    author = pull.get("user", {}).get("login")
     if not isinstance(author, str) or not author:
-        _fail(errors, "artifact author missing or not a string")
-    if not isinstance(reviewer, str) or not reviewer:
-        _fail(errors, "artifact reviewer missing or not a string")
-    if isinstance(author, str) and isinstance(reviewer, str) and author == reviewer:
-        _fail(errors, f"reviewer {reviewer!r} authored the patch; independent review required")
+        _fail(errors, f"PR #{number} has no authenticated author identity")
+        return
 
-    findings = artifact.get("findings")
-    if not isinstance(findings, list):
-        _fail(errors, "artifact findings missing or not a list")
-        findings = []
-    for finding in findings:
-        if not isinstance(finding, dict):
-            _fail(errors, f"finding entry is not an object: {finding!r}")
-            continue
-        severity = finding.get("severity")
-        status = finding.get("status")
-        if severity not in {"P0", "P1", "P2", "P3"}:
-            _fail(errors, f"finding {finding.get('id')!r} has invalid severity {severity!r}")
-        if not isinstance(status, str):
-            _fail(errors, f"finding {finding.get('id')!r} has missing status")
-        if severity in BLOCKING_SEVERITIES and status in UNRESOLVED_STATUSES:
-            _fail(errors, f"unresolved {severity} finding: {finding.get('id')!r} (status={status!r})")
+    # Only each reviewer's latest submitted state is authoritative.  This
+    # prevents an old approval from surviving a later changes-requested review.
+    latest: dict[str, str] = {}
+    for review in reviews:
+        login = review.get("user", {}).get("login")
+        state = review.get("state")
+        if isinstance(login, str) and isinstance(state, str):
+            latest[login] = state.upper()
+    approvers = sorted(
+        login
+        for login, state in latest.items()
+        if state == "APPROVED" and login != author
+    )
+    if not approvers:
+        _fail(
+            errors,
+            f"PR #{number} has no current approval from a reviewer other than {author!r}",
+        )
 
-    surfaces = artifact.get("high_risk_surfaces_touched")
-    if not isinstance(surfaces, list) or not all(isinstance(s, str) for s in surfaces):
-        _fail(errors, "artifact high_risk_surfaces_touched missing or not a string list")
-        surfaces = []
-    approvals = artifact.get("codeowner_approvals")
-    if not isinstance(approvals, list):
-        _fail(errors, "artifact codeowner_approvals missing or not a list")
-        approvals = []
-    approved_surfaces: dict[str, str] = {}
-    for approval in approvals:
-        if not isinstance(approval, dict) or not isinstance(approval.get("surface"), str):
-            _fail(errors, f"codeowner_approvals entry malformed: {approval!r}")
-            continue
-        approver = approval.get("approver")
-        if not isinstance(approver, str) or not approver:
-            _fail(errors, f"codeowner approval for {approval['surface']!r} missing approver")
-            continue
-        approved_surfaces[approval["surface"]] = approver
-    for surface in surfaces:
-        approver = approved_surfaces.get(surface)
-        if approver is None:
-            _fail(errors, f"high-risk surface {surface!r} has no recorded CODEOWNER/human approval")
-        elif isinstance(author, str) and approver == author:
-            _fail(errors, f"high-risk surface {surface!r} approved by patch author {author!r}")
+    high_risk = sorted(
+        file["filename"]
+        for file in files
+        if isinstance(file.get("filename"), str)
+        and file["filename"].startswith(HIGH_RISK_PREFIXES)
+    )
+    review_decision = (
+        decision_data.get("data", {})
+        .get("repository", {})
+        .get("pullRequest", {})
+        .get("reviewDecision")
+    )
+    if review_decision != "APPROVED":
+        detail = " for high-risk changes" if high_risk else ""
+        _fail(
+            errors,
+            f"PR #{number} GitHub review decision is {review_decision!r}, not 'APPROVED'{detail}",
+        )
+    print(
+        f"PR #{number}: GitHub reports {len(approvers)} independent approver(s) and "
+        f"{len(high_risk)} high-risk file(s)"
+    )
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Deterministic independent-review / change-risk policy gate."
-    )
-    parser.add_argument(
-        "--artifact-dir",
-        type=Path,
-        default=DEFAULT_ARTIFACT_DIR,
-        help="Directory containing <head_sha>.json independent-review artifacts.",
+        description="Trusted GitHub independent-review policy gate"
     )
     parser.add_argument(
         "--event-path",
         type=Path,
         default=Path(os.environ.get("GITHUB_EVENT_PATH", "/dev/null")),
-        help="Path to the GitHub event payload JSON (default: GITHUB_EVENT_PATH).",
     )
     args = parser.parse_args(argv)
-
-    event_name = os.environ.get("GITHUB_EVENT_NAME", "")
     errors: list[str] = []
-
     try:
         event = json.loads(args.event_path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
-        print(f"POLICY FAIL: cannot read event payload {args.event_path}: {exc}", file=sys.stderr)
-        return 1
-
-    shas = _event_shas(event_name, event, errors)
-    if shas is None:
-        return 1
-    expected_base, expected_head = shas
-
-    artifact_path = args.artifact_dir / f"{expected_head}.json"
-    if not artifact_path.is_file():
+        event_name = os.environ.get("GITHUB_EVENT_NAME", "")
+        repository = os.environ.get("GITHUB_REPOSITORY", "")
+        if not repository or "/" not in repository:
+            raise RuntimeError("GITHUB_REPOSITORY is missing or malformed")
+        head = _event_head(event_name, event, errors)
+        if head is None:
+            return 1
+        for number in _pull_numbers(event_name, event, repository, head):
+            _validate_pull(repository, number, errors)
+    except (OSError, json.JSONDecodeError, RuntimeError) as exc:
+        _fail(errors, str(exc))
+    if errors:
         print(
-            f"POLICY FAIL: no independent-review artifact for head {expected_head} "
-            f"(expected {artifact_path})",
+            f"09-change-risk-and-approval FAILED with {len(errors)} policy violation(s)",
             file=sys.stderr,
         )
         return 1
-    try:
-        artifact = json.loads(artifact_path.read_text(encoding="utf-8"))
-    except json.JSONDecodeError as exc:
-        print(f"POLICY FAIL: artifact {artifact_path} is not valid JSON: {exc}", file=sys.stderr)
-        return 1
-
-    _validate_artifact(artifact, expected_base, expected_head, errors)
-
-    if errors:
-        print(f"09-change-risk-and-approval FAILED with {len(errors)} policy violation(s)", file=sys.stderr)
-        return 1
-    print(
-        "09-change-risk-and-approval PASSED: schema-valid independent-review artifact, "
-        "SHAs match, no unresolved P0/P1, high-risk approvals present, reviewer != author"
-    )
+    print("09-change-risk-and-approval PASSED using authenticated GitHub review data")
     return 0
 
 
