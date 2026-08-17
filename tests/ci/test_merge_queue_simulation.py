@@ -168,73 +168,58 @@ def test_simulation_negative_cancelled_job_fails_closed() -> None:
     assert "FAIL contract-compliance: cancelled" in output
 
 
-def test_simulation_change_risk_policy_full_lifecycle(tmp_path: Path) -> None:
-    base_sha = "1111111111111111111111111111111111111111"
-    head_sha = "2222222222222222222222222222222222222222"
+def test_simulation_change_risk_policy_full_lifecycle(tmp_path: Path, monkeypatch) -> None:
+    head_sha = "2" * 40
     
     event_payload = {
         "merge_group": {
-            "base_sha": base_sha,
             "head_sha": head_sha,
         }
     }
     event_file = tmp_path / "event.json"
     event_file.write_text(json.dumps(event_payload), encoding="utf-8")
     
-    reviews_dir = tmp_path / "reviews"
-    reviews_dir.mkdir(parents=True, exist_ok=True)
-    review_file = reviews_dir / f"{head_sha}.json"
-    
-    # 1. Valid artifact passes on merge_group event
-    valid_data = {
-        "schema_version": 1,
-        "base_sha": base_sha,
-        "head_sha": head_sha,
-        "author": "agent-alice",
-        "reviewer": "human-bob",
-        "high_risk_surfaces_touched": ["contracts/openapi"],
-        "codeowner_approvals": [
-            {"surface": "contracts/openapi", "approver": "human-bob"}
-        ],
-        "findings": [],
-    }
-    review_file.write_text(json.dumps(valid_data), encoding="utf-8")
-    
-    env = {
-        **dict(os.environ),
-        "GITHUB_EVENT_NAME": "merge_group",
-    }
-    
-    proc = subprocess.run(
-        [
-            sys.executable,
-            str(CHANGE_RISK_SCRIPT),
-            "--artifact-dir", str(reviews_dir),
-            "--event-path", str(event_file),
-        ],
-        capture_output=True,
-        text=True,
-        check=False,
-        env=env,
-    )
-    assert proc.returncode == 0, f"Expected valid review artifact to pass: {proc.stdout} {proc.stderr}"
-    assert "09-change-risk-and-approval PASSED" in proc.stdout
-    
+    from importlib.util import module_from_spec, spec_from_file_location
+    spec = spec_from_file_location("check_change_risk_approval", CHANGE_RISK_SCRIPT)
+    assert spec is not None and spec.loader is not None
+    module = module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    monkeypatch.setenv("GITHUB_EVENT_NAME", "merge_group")
+    monkeypatch.setenv("GITHUB_REPOSITORY", "acme/repo")
+
+    # 1. Independent approver passes on merge_group event
+    def fake_api_approved(args):
+        endpoint = args[0]
+        if "/commits/" in endpoint and endpoint.endswith("/pulls"):
+            return [{"number": 42}]
+        if endpoint == "repos/acme/repo/pulls/42":
+            return {"user": {"login": "agent-alice"}}
+        if endpoint.endswith("/reviews"):
+            return [{"user": {"login": "human-bob"}, "state": "APPROVED"}]
+        if endpoint.endswith("/files"):
+            return [{"filename": "contracts/openapi/l4.json"}]
+        if endpoint == "graphql":
+            return {"data": {"repository": {"pullRequest": {"reviewDecision": "APPROVED"}}}}
+        raise AssertionError(args)
+
+    monkeypatch.setattr(module, "_gh_json", fake_api_approved)
+    assert module.main(["--event-path", str(event_file)]) == 0
+
     # 2. Author trying to self-approve fails closed
-    invalid_self_approved = dict(valid_data)
-    invalid_self_approved["reviewer"] = "agent-alice"
-    review_file.write_text(json.dumps(invalid_self_approved), encoding="utf-8")
-    proc = subprocess.run(
-        [
-            sys.executable,
-            str(CHANGE_RISK_SCRIPT),
-            "--artifact-dir", str(reviews_dir),
-            "--event-path", str(event_file),
-        ],
-        capture_output=True,
-        text=True,
-        check=False,
-        env=env,
-    )
-    assert proc.returncode == 1
-    assert "reviewer 'agent-alice' authored the patch; independent review required" in proc.stderr
+    def fake_api_self(args):
+        endpoint = args[0]
+        if "/commits/" in endpoint and endpoint.endswith("/pulls"):
+            return [{"number": 42}]
+        if endpoint == "repos/acme/repo/pulls/42":
+            return {"user": {"login": "agent-alice"}}
+        if endpoint.endswith("/reviews"):
+            return [{"user": {"login": "agent-alice"}, "state": "APPROVED"}]
+        if endpoint.endswith("/files"):
+            return [{"filename": "contracts/openapi/l4.json"}]
+        if endpoint == "graphql":
+            return {"data": {"repository": {"pullRequest": {"reviewDecision": "APPROVED"}}}}
+        raise AssertionError(args)
+
+    monkeypatch.setattr(module, "_gh_json", fake_api_self)
+    assert module.main(["--event-path", str(event_file)]) == 1
