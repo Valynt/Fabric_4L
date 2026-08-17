@@ -80,7 +80,7 @@ boto3>=1.34.0                # Required by Layer 4 package storage imports durin
 # tests/conftest.py executes the Layer 3 config surface (pydantic-settings)
 # and imports value_fabric.shared identity/security modules at collection time.
 # ---------------------------------------------------------------------------
-pydantic>=2.7.0
+pydantic>=2.13.4
 pydantic-settings>=2.4.0
 fastapi>=0.110.0
 sqlalchemy>=2.0.0
