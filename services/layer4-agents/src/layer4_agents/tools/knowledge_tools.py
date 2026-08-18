@@ -579,6 +579,12 @@ class GetRelationshipsTool(BaseTool):
                 error=f"Tenant context required: {e}. Authentication required.",
             )
 
+        predicate = input_data.predicate
+        if predicate and re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", predicate) is None:
+            return GetRelationshipsOutput(
+                relationships=[], total_count=0, error="INVALID_PREDICATE"
+            )
+
         driver = self._get_driver()
 
         try:
@@ -586,11 +592,7 @@ class GetRelationshipsTool(BaseTool):
                 # P0 FIX: Build query with mandatory tenant filter and optional predicate
                 tenant_id_str = str(tenant_ctx.tenant_id)
 
-                rel_pattern = "[r]"
-                if getattr(input_data, "predicate", None):
-                    sanitized_predicate = re.sub(r"[^a-zA-Z0-9_]", "", input_data.predicate)
-                    if sanitized_predicate:
-                        rel_pattern = f"[r:{sanitized_predicate}]"
+                rel_pattern = f"[r:{predicate}]" if predicate else "[r]"
 
                 query = f"""
                     MATCH (n {{id: $entity_id, tenant_id: $tenant_id}})-{rel_pattern}->(m {{tenant_id: $tenant_id}})

@@ -288,6 +288,19 @@ async def test_get_relationships_filter_limit_and_error(predicate) -> None:
     assert (await tool.execute(GetRelationshipsInput(entity_id="a"))).total_count == 0
 
 
+@pytest.mark.parametrize("predicate", ["!!!", "A-B"])
+@pytest.mark.asyncio
+async def test_get_relationships_rejects_invalid_predicate(predicate: str) -> None:
+    tool = GetRelationshipsTool(tool_config())
+    tool._driver = Driver([])
+
+    result = await tool.execute(GetRelationshipsInput(entity_id="a", predicate=predicate))
+
+    assert result.error == "INVALID_PREDICATE"
+    assert result.relationships == []
+    assert tool._driver.session_instance.calls == []
+
+
 @pytest.mark.asyncio
 async def test_traverse_tree_uses_path_pattern_and_discovers_unique_nodes() -> None:
     records = [
