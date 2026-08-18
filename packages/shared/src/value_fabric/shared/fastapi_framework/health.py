@@ -14,6 +14,9 @@ from dataclasses import dataclass, field
 from typing import Awaitable, Callable, Protocol, runtime_checkable
 
 
+from value_fabric.shared.security.redaction import redact_credentials
+
+
 @dataclass(frozen=True)
 class ProbeResult:
     """Outcome of a single readiness probe."""
@@ -51,7 +54,8 @@ class CallableProbe:
         try:
             return await self.fn()
         except Exception as exc:  # noqa: BLE001 - probes must never raise
-            return ProbeResult(name=self.name, healthy=False, detail="probe_failed")
+            detail = redact_credentials(str(exc)) if str(exc) else "probe_failed"
+            return ProbeResult(name=self.name, healthy=False, detail=detail)
 
 
 @dataclass(frozen=True)
@@ -74,7 +78,8 @@ class RedisHealthProbe:
             else:
                 await asyncio.to_thread(ping)
         except Exception as exc:  # noqa: BLE001
-            return ProbeResult(name=self.name, healthy=False, detail="probe_failed")
+            detail = redact_credentials(str(exc)) if str(exc) else "probe_failed"
+            return ProbeResult(name=self.name, healthy=False, detail=detail)
         return ProbeResult(name=self.name, healthy=True)
 
 
@@ -90,10 +95,11 @@ async def _run_probe_with_timeout(probe: HealthCheckProbe, timeout_seconds: floa
             latency_ms=(time.perf_counter() - start) * 1000.0,
         )
     except Exception as exc:  # noqa: BLE001 - never propagate
+        detail = redact_credentials(str(exc)) if str(exc) else "probe_failed"
         return ProbeResult(
             name=getattr(probe, "name", probe.__class__.__name__),
             healthy=False,
-            detail="probe_failed",
+            detail=detail,
             latency_ms=(time.perf_counter() - start) * 1000.0,
         )
     latency_ms = (time.perf_counter() - start) * 1000.0

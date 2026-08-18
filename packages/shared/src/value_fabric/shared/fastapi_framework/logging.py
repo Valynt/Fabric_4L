@@ -16,6 +16,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from value_fabric.shared.security.redaction import (
+    REDACTED_VALUE,
     install_redaction_filter,
     is_sensitive_key,
     redaction_processor,
@@ -52,7 +53,7 @@ class StructuredLoggingConfig:
     service_name: str | None = None
 
     @classmethod
-    def from_env(cls, *, service_name: str | None = None) -> "StructuredLoggingConfig":
+    def from_env(cls, *, service_name: str | None = None) -> StructuredLoggingConfig:
         enabled = os.getenv("FABRIC_STRUCTLOG_ENABLED", "").strip().lower() in {
             "1",
             "true",
@@ -69,7 +70,7 @@ def _redact_processor(redact_keys: Iterable[str]) -> Any:
     def processor(_logger: logging.Logger, _method_name: str, event_dict: dict[str, Any]) -> dict[str, Any]:
         for key in list(event_dict.keys()):
             if key.lower() in lowered or is_sensitive_key(key):
-                event_dict[key] = "***REDACTED***"
+                event_dict[key] = REDACTED_VALUE
         return redaction_processor(_logger, _method_name, event_dict)
 
     return processor
