@@ -412,6 +412,7 @@ jobs:
           scanners: 'vuln,secret,config'
           skip-dirs: 'archive,docs/archive,node_modules'
           trivy-config: 'config/trivy/repository.yaml'
+          trivyignores: '.trivyignore.yaml'
 
       - name: Verify Trivy SARIF artifact
         if: always()
