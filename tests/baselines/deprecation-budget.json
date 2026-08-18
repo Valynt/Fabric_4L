@@ -42,6 +42,7 @@
       "rationale": "Approved temporary deprecation compatibility surface; tracked for staged removal.",
       "target_removal_date": "2026-12-31"
     },
+
     {
       "id": "apps/web/src/api/generated/l6/index.ts:73:ts_js_doc_deprecated",
       "rationale": "Approved temporary deprecation compatibility surface; tracked for staged removal.",
@@ -52,6 +53,7 @@
       "rationale": "Approved temporary deprecation compatibility surface; tracked for staged removal.",
       "target_removal_date": "2026-12-31"
     },
+
     {
       "id": "services/layer4-agents/src/layer4_agents/api/routes/integrations.py:589:py_route_deprecated",
       "rationale": "Approved temporary deprecation compatibility surface; tracked for staged removal.",

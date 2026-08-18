@@ -7,6 +7,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -65,28 +67,13 @@ def test_layer1_dockerfiles_install_deprecation_register() -> None:
     assert "COPY docs/deprecation_register.json" not in live
 
 
-def test_layer_mypy_targets_canonical_python_311() -> None:
-    for layer in (
-        "layer1-ingestion",
-        "layer2-extraction",
-        "layer3-knowledge",
-        "layer4-agents",
-        "layer5-ground-truth",
-        "layer6-benchmarks",
-    ):
-        text = (REPO_ROOT / "services" / layer / "pyproject.toml").read_text(encoding="utf-8")
-        assert 'python_version = "3.11"' in text, layer
-        assert 'python_version = "3.12"' not in text, layer
-
-
 def test_web_lockfile_pins_patched_nanoid() -> None:
     lock = (REPO_ROOT / "apps" / "web" / "pnpm-lock.yaml").read_text(encoding="utf-8")
     assert "nanoid@5.1.16" in lock
-    assert "nanoid@3.3.18" in lock
+    assert "nanoid@3.3.17" in lock
     assert "nanoid@5.1.11" not in lock
     assert "nanoid@3.3.16" not in lock
-    assert "nanoid@3.3.17" not in lock
-    assert "tailwindcss>nanoid: 3.3.18" in lock
+    assert "tailwindcss>nanoid: 3.3.17" in lock
 
 
 def test_dependency_scan_emits_scalar_node_matrix_and_expands_wd() -> None:

@@ -11,9 +11,9 @@ overrides:
   brace-expansion@^5.0.0: 5.0.8
   mermaid: '>=11.15.0 <12.0.0'
   fast-uri@<=3.1.4: 3.1.4
-  tailwindcss>nanoid: 3.3.18
+  tailwindcss>nanoid: 3.3.17
   nanoid@^5.0.0: 5.1.16
-  nanoid@^3.0.0: 3.3.18
+  nanoid@^3.0.0: 3.3.17
   systeminformation@<=5.31.6: 5.31.7
   body-parser@<1.20.6: 1.20.6
   tmp: '>=0.2.6'
@@ -5284,8 +5284,8 @@ packages:
     resolution: {integrity: sha512-dkEJPVvun4FryqBmZ5KhDo0K9iDXAwn08tMLDinNdRBNPcYEDiWYysLcc6k3mjTMlbP9KyylvRpd4wFtwrT9rw==}
     engines: {node: ^20.17.0 || >=22.9.0}
 
-  nanoid@3.3.18:
-    resolution: {integrity: sha512-DTg4MJbGMWkfi6VZFdNt2/caMbQy4Ou+Op/hJQvGEWcnVfoA1QA+xzRKAzw9jD6+GVOOeYr/mIcuDSdug6F6+w==}
+  nanoid@3.3.17:
+    resolution: {integrity: sha512-xQLf0A3HOMlgHq0n247/LRuAOYmB7dXJ/DvAxGvsSBij45XtBSmQycu+F8ODbHwns/XyFZagyL1+J0Offw1E0g==}
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
     hasBin: true
 
@@ -12450,7 +12450,7 @@ snapshots:
 
   mute-stream@3.0.0: {}
 
-  nanoid@3.3.18: {}
+  nanoid@3.3.17: {}
 
   nanoid@5.1.16: {}
 
@@ -12657,7 +12657,7 @@ snapshots:
 
   postcss@8.5.23:
     dependencies:
-      nanoid: 3.3.18
+      nanoid: 3.3.17
       picocolors: 1.1.1
       source-map-js: 1.2.1
 
