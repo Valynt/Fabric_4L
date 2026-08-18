@@ -67,7 +67,7 @@ class EntityBatchWriter:
             return result.get("count", 0)
         except Exception as e:
             logger.error("Failed to load %s entities: %s", entity_type, e)
-            return 0
+            raise
 
 
 class RelationshipBatchWriter:
@@ -154,6 +154,7 @@ class RelationshipBatchWriter:
                 total_loaded += result.get("count", 0)
             except Exception as e:
                 logger.error("Failed to load %s relationships: %s", rel_type, e)
+                raise
 
         return total_loaded
 
@@ -219,5 +220,6 @@ class RelationshipBatchWriter:
                     total_loaded += 1
             except Exception as exc:
                 logger.error("Failed to load %s relationships: %s", rel_type, exc)
+                raise
 
         return total_loaded

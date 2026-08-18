@@ -215,6 +215,7 @@
       "name": "Contract Compliance",
       "owner": "@value-fabric/sre-leads",
       "trigger": [
+        "merge_group",
         "pull_request",
         "push",
         "schedule",
@@ -262,6 +263,7 @@
       "name": "Critical Gates",
       "owner": "@value-fabric/sre-leads",
       "trigger": [
+        "merge_group",
         "pull_request",
         "push"
       ],
@@ -680,6 +682,7 @@
       "name": "PR Checks",
       "owner": "@value-fabric/sre-leads",
       "trigger": [
+        "merge_group",
         "pull_request",
         "push"
       ],
@@ -765,6 +768,7 @@
       "name": "Prod Readiness Gates",
       "owner": "@value-fabric/sre-leads",
       "trigger": [
+        "merge_group",
         "pull_request",
         "push",
         "workflow_dispatch"
@@ -876,6 +880,7 @@
       "name": "Release Evidence Bundle",
       "owner": "@value-fabric/sre-leads",
       "trigger": [
+        "merge_group",
         "pull_request",
         "push",
         "workflow_dispatch"
@@ -1027,6 +1032,7 @@
       "name": "Security Gates",
       "owner": "@value-fabric/sre-leads",
       "trigger": [
+        "merge_group",
         "pull_request",
         "push",
         "schedule"
@@ -1069,6 +1075,7 @@
       "name": "Supply Chain Integrity Gate",
       "owner": "@value-fabric/sre-leads",
       "trigger": [
+        "merge_group",
         "pull_request",
         "push",
         "workflow_call",

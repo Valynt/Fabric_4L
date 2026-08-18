@@ -55,7 +55,7 @@ runs:
   using: 'composite'
   steps:
     - name: Detect changed scopes
-      if: github.event_name == 'pull_request'
+      if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
       id: filter
       # SHA-pinned: this action is the scope oracle for the required-check
       # aggregates, so a mutable tag would let a compromised release emit
@@ -65,12 +65,14 @@ runs:
       uses: tj-actions/changed-files@ed68ef82c095e0d48ec87eccea555d944a631a4c # v46.0.5
       with:
         files_yaml_from_source_file: .github/paths-filters.yml
+        base_sha: ${{ github.event.merge_group.base_sha || github.event.pull_request.base.sha }}
+        head_sha: ${{ github.event.merge_group.head_sha || github.sha }}
 
     - name: Resolve scope outputs
       id: resolve
       shell: bash
       env:
-        IS_PR: ${{ github.event_name == 'pull_request' }}
+        IS_SCOPED_EVENT: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
         # Filter outputs are passed via env (never interpolated into the
         # script body) so a compromised upstream action emitting shell
         # metacharacters cannot inject into this step.
@@ -90,13 +92,14 @@ runs:
         FILTER_RUNTIME: ${{ steps.filter.outputs.runtime_any_changed }}
       run: |
         set -euo pipefail
-        # emit <scope> <pr-detected-value>
-        # Non-PR events and any unresolved value fail open to 'true'
-        # (full run); only an explicit 'false' from the PR diff skips work.
+        # emit <scope> <detected-value>
+        # Non-scoped events (push, schedule, workflow_dispatch) and any
+        # unresolved value fail open to 'true' (full run); only an explicit
+        # 'false' from the diff skips work.
         emit() {
           local scope="$1"
           local value="${2:-}"
-          if [[ "${IS_PR}" != "true" || "${value}" != "false" ]]; then
+          if [[ "${IS_SCOPED_EVENT}" != "true" || "${value}" != "false" ]]; then
             value="true"
           fi
           echo "${scope}=${value}" >> "$GITHUB_OUTPUT"
