@@ -24,6 +24,9 @@ on:
   # push/schedule where it does not gate merges.
   pull_request:
     branches: [main, develop]
+  # V1-CI-001: merge queue support (Stage 1 shadow; aggregates become
+  # required at Stage 3).
+  merge_group:
   push:
     branches:
       - main
@@ -890,3 +893,37 @@ jobs:
           echo "- **UI State**: no-imperative-navigation, no-url-concatenation" >> $GITHUB_STEP_SUMMARY
           echo "- **Public API**: no-private-imports, no-circular-dependencies" >> $GITHUB_STEP_SUMMARY
           echo "- **OpenAPI Drift**: Auto-detection via spec comparison" >> $GITHUB_STEP_SUMMARY
+
+
+  # ---------------------------------------------------------------------------
+  # V1-CI-001 Stage 1 (shadow): stable aggregate contract check. Informational
+  # until Stage 3. Summarizes existing jobs only (scripts/ci/aggregate_gate.py).
+  # All fanned-in jobs run unconditionally on pull_request (the trigger is
+  # intentionally unscoped; see the note on the pull_request trigger above), so
+  # any skip fails the aggregate closed.
+  # ---------------------------------------------------------------------------
+  aggregate-03-contract-compliance:
+    name: 03-contract-compliance
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: always()
+    needs:
+      - contract-compliance
+      - plugin-tests
+      - validate-dependabot-coverage
+      - lint-frontend
+      - validate-canonical
+      - platform-contract-tests
+      - python-lint
+      - generate-openapi
+      - detect-drift
+      - openapi-contract-tests
+      - contract-shape-regression
+      - validate-deprecations
+      - contract-scorecard
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - name: Summarize contract-compliance gates
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        run: python3 scripts/ci/aggregate_gate.py --needs-json "$NEEDS_JSON"
