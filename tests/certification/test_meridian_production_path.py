@@ -24,6 +24,8 @@ from tests.certification.harness import CertificationHarness, CertificationRecor
 
 pytestmark = [
     pytest.mark.certification,
+    pytest.mark.backend_integrated,
+    pytest.mark.service_required,
     pytest.mark.timeout(900),
 ]
 

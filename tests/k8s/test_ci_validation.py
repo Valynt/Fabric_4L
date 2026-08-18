@@ -10,6 +10,7 @@ Validates:
 from __future__ import annotations
 
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -167,7 +168,7 @@ class TestPreflightChecks:
         script = repo_root / "scripts" / "ci" / "k8s_preflight.py"
         
         result = subprocess.run(
-            ["python3", "-m", "py_compile", str(script)],
+            [sys.executable, "-m", "py_compile", str(script)],
             capture_output=True,
             text=True,
         )
@@ -179,7 +180,7 @@ class TestPreflightChecks:
         script = repo_root / "scripts" / "ci" / "k8s_preflight.py"
         
         result = subprocess.run(
-            ["python3", str(script)],
+            [sys.executable, str(script)],
             capture_output=True,
             text=True,
             cwd=str(repo_root),
