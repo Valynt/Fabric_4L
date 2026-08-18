@@ -67,6 +67,7 @@ from ..shared.database import (
     redis_client_async,
 )
 from ..shared.models import AccountIntelligencePacket, SourceCorpus
+from ._task_fallback import UnavailableTask, _build_task_unavailable_detail
 from .admin_handlers import (
     create_proxy_pool_endpoint,
     health_check,
@@ -186,44 +187,13 @@ __all__ = [
 ]
 
 
-def _build_task_unavailable_detail() -> dict[str, str]:
-    return {
-        "code": "SERVICE_UNAVAILABLE",
-        "message": (
-            "Background processing is temporarily unavailable. "
-            "Please retry shortly or contact support if the issue persists."
-        ),
-    }
-
-
-class _UnavailableTask:
-    """Fail closed when task infrastructure is unavailable."""
-
-    def __init__(self, task_name: str, import_error: ImportError) -> None:
-        self.task_name = task_name
-        self.import_error = import_error
-
-    def delay(self, *args: Any, **kwargs: Any) -> "NoReturn":
-        job_id = str(args[0]) if args else None
-        logger.error(
-            "background_task_unavailable",
-            task_name=self.task_name,
-            job_id=job_id,
-            correlation_id=job_id,
-            error_type=type(self.import_error).__name__,
-            error=str(self.import_error),
-            exc_info=self.import_error,
-        )
-        raise HTTPException(status_code=503, detail=_build_task_unavailable_detail())
-
-
 try:
     from ..shared.otel_celery import build_celery_options
     from ..shared.tasks import cleanup_old_content, process_scraping_job
 except ImportError as exc:
     build_celery_options = None  # type: ignore[assignment]
-    cleanup_old_content = _UnavailableTask("cleanup_old_content", exc)
-    process_scraping_job = _UnavailableTask("process_scraping_job", exc)
+    cleanup_old_content = UnavailableTask("cleanup_old_content", exc)
+    process_scraping_job = UnavailableTask("process_scraping_job", exc)
 
 # Configure logging
 install_redaction_filter()

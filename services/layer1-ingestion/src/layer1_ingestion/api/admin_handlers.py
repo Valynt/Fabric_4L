@@ -20,6 +20,7 @@ from ..metrics import get_metrics
 from ..shared.config import settings
 from ..shared.database import get_db_from_context_sync
 from ..shared.models import JobStatus, ScrapingJob, create_proxy_pool
+from ._task_fallback import UnavailableTask, _build_task_unavailable_detail
 from .dependencies import get_tenant_id
 from .schemas.admin_schemas import (
     ComponentHealth,
@@ -42,40 +43,12 @@ class legacy_health_checkResult(TypedDictModel):
     status: Any
 
 
-def _build_task_unavailable_detail() -> dict[str, str]:
-    return {
-        "code": "SERVICE_UNAVAILABLE",
-        "message": (
-            "Background processing is temporarily unavailable. "
-            "Please retry shortly or contact support if the issue persists."
-        ),
-    }
-
-
-class _UnavailableTask:
-    """Fail closed when task infrastructure is unavailable."""
-
-    def __init__(self, task_name: str, import_error: ImportError) -> None:
-        self.task_name = task_name
-        self.import_error = import_error
-
-    def apply_async(self, *args: Any, **kwargs: Any) -> None:
-        logger.error(
-            "background_task_unavailable",
-            task_name=self.task_name,
-            error_type=type(self.import_error).__name__,
-            error=str(self.import_error),
-            exc_info=self.import_error,
-        )
-        raise HTTPException(status_code=503, detail=_build_task_unavailable_detail())
-
-
 try:
     from ..shared.otel_celery import build_celery_options
     from ..shared.tasks import cleanup_old_content
 except ImportError as exc:
     build_celery_options = None  # type: ignore[assignment]
-    cleanup_old_content = _UnavailableTask("cleanup_old_content", exc)
+    cleanup_old_content = UnavailableTask("cleanup_old_content", exc)
 
 
 async def health_check(db: Session = Depends(get_db_from_context_sync)):

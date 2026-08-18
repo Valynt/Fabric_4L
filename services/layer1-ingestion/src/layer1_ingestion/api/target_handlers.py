@@ -32,6 +32,7 @@ from ..shared.models import (
     create_scraping_job,
     create_scraping_target,
 )
+from ._task_fallback import UnavailableTask, _build_task_unavailable_detail
 from .dependencies import get_current_user_id, get_current_user_roles, get_tenant_id
 from .schemas.content_schemas import CrawlDecisionSummary
 from .schemas.target_schemas import (
@@ -71,40 +72,12 @@ def _require_target_ownership(
     raise NotFoundError(message="Target not found")
 
 
-def _build_task_unavailable_detail() -> dict[str, str]:
-    return {
-        "code": "SERVICE_UNAVAILABLE",
-        "message": (
-            "Background processing is temporarily unavailable. "
-            "Please retry shortly or contact support if the issue persists."
-        ),
-    }
-
-
-class _UnavailableTask:
-    """Fail closed when task infrastructure is unavailable."""
-
-    def __init__(self, task_name: str, import_error: ImportError) -> None:
-        self.task_name = task_name
-        self.import_error = import_error
-
-    def apply_async(self, *args: Any, **kwargs: Any) -> None:
-        logger.error(
-            "background_task_unavailable",
-            task_name=self.task_name,
-            error_type=type(self.import_error).__name__,
-            error=str(self.import_error),
-            exc_info=self.import_error,
-        )
-        raise HTTPException(status_code=503, detail=_build_task_unavailable_detail())
-
-
 try:
     from ..shared.otel_celery import build_celery_options
     from ..shared.tasks import process_scraping_job
 except ImportError as exc:
     build_celery_options = None  # type: ignore[assignment]
-    process_scraping_job = _UnavailableTask("process_scraping_job", exc)
+    process_scraping_job = UnavailableTask("process_scraping_job", exc)
 
 
 def _url_safety_error_payload(reason_code: str) -> dict[str, str]:
