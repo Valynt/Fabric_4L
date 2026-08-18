@@ -11,6 +11,7 @@ permissions:
   contents: read
 
 "on":
+  merge_group:
   pull_request:
     branches: [main]
   push:
