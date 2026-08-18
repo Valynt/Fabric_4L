@@ -346,18 +346,18 @@ class TestHealthCommand:
 
 class TestConfigErrorHandling:
     def test_parse_toml_value_string_fallback(self):
-        from valuefabric.cli.config import _parse_toml_value
-        assert _parse_toml_value("not_a_number") == "not_a_number"
+        import valuefabric.cli.config as config_mod
+        assert config_mod._parse_toml_value("not_a_number") == "not_a_number"
 
     def test_load_profile_toml_invalid_profiles(self):
-        from valuefabric.cli.config import _load_profile_toml
+        import valuefabric.cli.config as config_mod
         with pytest.raises(ValueError, match="profiles must be a table"):
-            _load_profile_toml("profiles = 1\n[profiles.default]")
+            config_mod._load_profile_toml("profiles = 1\n[profiles.default]")
 
     def test_load_profile_toml_missing_equals(self):
-        from valuefabric.cli.config import _load_profile_toml
+        import valuefabric.cli.config as config_mod
         with pytest.raises(ValueError, match="invalid syntax at line 1"):
-            _load_profile_toml("invalid_line")
+            config_mod._load_profile_toml("invalid_line")
 
     def test_load_config_corrupted_file(self, tmp_path, monkeypatch):
         import valuefabric.cli.config as config_mod
