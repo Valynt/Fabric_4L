@@ -38,9 +38,12 @@ class RDFGenerator:
     - PROV-O provenance annotations
     """
 
+    _ontology_graph: Graph | None = None
+
     def __init__(self):
         """Initialize RDF generator with graph and namespaces."""
         self.graph = Graph()
+        self._entity_ids: set[str] = set()
         self._bind_namespaces()
 
     def _bind_namespaces(self) -> None:
@@ -95,11 +98,21 @@ class RDFGenerator:
         return self.graph.serialize(format="turtle")
 
     def _add_ontology_definitions(self) -> None:
-        """Add OWL class definitions to graph."""
+        """Add OWL class definitions to graph.
+
+        Uses a class-level cache so definitions are added once per process.
+        """
+        if RDFGenerator._ontology_graph is not None:
+            for triple in RDFGenerator._ontology_graph:
+                self.graph.add(triple)
+            return
+
+        ontology = Graph()
+
         # Capability class
-        self.graph.add((VF.Capability, RDF.type, OWL.Class))
-        self.graph.add((VF.Capability, RDFS.label, Literal("Capability")))
-        self.graph.add(
+        ontology.add((VF.Capability, RDF.type, OWL.Class))
+        ontology.add((VF.Capability, RDFS.label, Literal("Capability")))
+        ontology.add(
             (
                 VF.Capability,
                 RDFS.comment,
@@ -108,21 +121,21 @@ class RDFGenerator:
         )
 
         # UseCase class
-        self.graph.add((VF.UseCase, RDF.type, OWL.Class))
-        self.graph.add((VF.UseCase, RDFS.label, Literal("Use Case")))
+        ontology.add((VF.UseCase, RDF.type, OWL.Class))
+        ontology.add((VF.UseCase, RDFS.label, Literal("Use Case")))
 
         # Persona class
-        self.graph.add((VF.Persona, RDF.type, OWL.Class))
-        self.graph.add((VF.Persona, RDFS.label, Literal("Persona")))
+        ontology.add((VF.Persona, RDF.type, OWL.Class))
+        ontology.add((VF.Persona, RDFS.label, Literal("Persona")))
 
         # ValueDriver class
-        self.graph.add((VF.ValueDriver, RDF.type, OWL.Class))
-        self.graph.add((VF.ValueDriver, RDFS.label, Literal("Value Driver")))
+        ontology.add((VF.ValueDriver, RDF.type, OWL.Class))
+        ontology.add((VF.ValueDriver, RDFS.label, Literal("Value Driver")))
 
         # ValueMetric class
-        self.graph.add((VF.ValueMetric, RDF.type, OWL.Class))
-        self.graph.add((VF.ValueMetric, RDFS.label, Literal("Value Metric")))
-        self.graph.add(
+        ontology.add((VF.ValueMetric, RDF.type, OWL.Class))
+        ontology.add((VF.ValueMetric, RDFS.label, Literal("Value Metric")))
+        ontology.add(
             (
                 VF.ValueMetric,
                 RDFS.comment,
@@ -131,9 +144,9 @@ class RDFGenerator:
         )
 
         # Feature class
-        self.graph.add((VF.Feature, RDF.type, OWL.Class))
-        self.graph.add((VF.Feature, RDFS.label, Literal("Feature")))
-        self.graph.add(
+        ontology.add((VF.Feature, RDF.type, OWL.Class))
+        ontology.add((VF.Feature, RDFS.label, Literal("Feature")))
+        ontology.add(
             (VF.Feature, RDFS.comment, Literal("A product feature that implements a capability"))
         )
 
@@ -165,9 +178,13 @@ class RDFGenerator:
         ]
 
         for uri, label, comment in predicates:
-            self.graph.add((uri, RDF.type, OWL.ObjectProperty))
-            self.graph.add((uri, RDFS.label, Literal(label)))
-            self.graph.add((uri, RDFS.comment, Literal(comment)))
+            ontology.add((uri, RDF.type, OWL.ObjectProperty))
+            ontology.add((uri, RDFS.label, Literal(label)))
+            ontology.add((uri, RDFS.comment, Literal(comment)))
+
+        RDFGenerator._ontology_graph = ontology
+        for triple in ontology:
+            self.graph.add(triple)
 
     def _add_capability(self, capability: Capability) -> None:
         """Add a Capability instance to graph."""

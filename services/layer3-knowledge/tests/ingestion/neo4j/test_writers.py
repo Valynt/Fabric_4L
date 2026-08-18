@@ -44,6 +44,21 @@ class _FakeMutationGateway:
         return {"status": "ok"}
 
 
+class _FailingMutationGateway(_FakeMutationGateway):
+    async def write_nodes_batch(self, label, nodes):
+        raise RuntimeError("neo4j unavailable")
+
+    async def write_relationships_batch(self, rel_type, triples):
+        raise RuntimeError("neo4j unavailable")
+
+    async def write_relationship(self, src_id, rel_type, tgt_id, properties=None):
+        raise RuntimeError("neo4j unavailable")
+
+
+def _failing_gateway_factory(**kwargs):
+    return _FailingMutationGateway(**kwargs)
+
+
 def _gateway_factory(captured):
     def _make(**kwargs):
         instance = _FakeMutationGateway(**kwargs)
@@ -70,7 +85,9 @@ async def test_entity_writer_validates_and_writes():
     assert len(created) == 1
     assert created[0].calls[0][0] == "write_nodes_batch"
     assert created[0].calls[0][1] == "Capability"
-    assert created[0].calls[0][2][0]["tenant_id"] == "12345678-1234-1234-1234-123456789abc"
+    assert (
+        created[0].calls[0][2][0]["tenant_id"] == "12345678-1234-1234-1234-123456789abc"
+    )
 
 
 @pytest.mark.asyncio
@@ -106,3 +123,50 @@ async def test_relationship_writer_native_uses_single_writes():
     assert count == 1
     assert len(created) == 1
     assert created[0].calls[0][0] == "write_relationship"
+
+
+@pytest.mark.asyncio
+async def test_entity_writer_propagates_mutation_failure():
+    writer = EntityBatchWriter(mutation_gateway=_failing_gateway_factory)
+
+    with pytest.raises(RuntimeError, match="neo4j unavailable"):
+        await writer.write(
+            _FakeSession(),
+            "Capability",
+            [{"id": "c1", "name": "Cap"}],
+            "source-1",
+            "job-1",
+            "12345678-1234-1234-1234-123456789abc",
+        )
+
+
+@pytest.mark.asyncio
+async def test_relationship_writer_propagates_mutation_failure():
+    writer = RelationshipBatchWriter(mutation_gateway=_failing_gateway_factory)
+
+    with pytest.raises(RuntimeError, match="neo4j unavailable"):
+        await writer.write(
+            _FakeSession(),
+            {
+                "enables": [
+                    {"source_id": "c1", "target_id": "u1", "predicate": "enables"}
+                ]
+            },
+            "source-1",
+            "job-1",
+            "12345678-1234-1234-1234-123456789abc",
+        )
+
+
+@pytest.mark.asyncio
+async def test_native_relationship_writer_propagates_mutation_failure():
+    writer = RelationshipBatchWriter(mutation_gateway=_failing_gateway_factory)
+
+    with pytest.raises(RuntimeError, match="neo4j unavailable"):
+        await writer.write_native(
+            _FakeSession(),
+            [{"source_id": "c1", "target_id": "u1", "predicate": "enables"}],
+            "source-1",
+            "job-1",
+            "12345678-1234-1234-1234-123456789abc",
+        )

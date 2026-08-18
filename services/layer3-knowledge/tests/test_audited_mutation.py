@@ -407,6 +407,65 @@ class TestBulkOperations:
             assert audit_params["action"] == "WRITE_RELATIONSHIPS_BATCH"
 
     @pytest.mark.asyncio
+    async def test_write_nodes_batch_reports_database_merged_count(self):
+        """Bulk node results must reflect what Neo4j matched and merged."""
+        session = AsyncMock()
+        merge_result = AsyncMock()
+        merge_result.single = AsyncMock(return_value={"merged": 1})
+        audit_result = AsyncMock()
+        audit_result.single = AsyncMock(return_value=None)
+        session.run = AsyncMock(side_effect=[merge_result, audit_result])
+
+        with patch('src.db.audited_mutation.get_metrics', return_value=None):
+            mutation = AuditedGraphMutation(
+                tenant_id="test-tenant", session=session, operation_source="test_source"
+            )
+            result = await mutation.write_nodes_batch(
+                "Product",
+                [{"id": "p1", "name": "Product 1"}, {"id": "p2", "name": "Product 2"}],
+            )
+
+        assert result["count"] == 1
+
+    @pytest.mark.asyncio
+    async def test_write_relationships_batch_reports_database_merged_count(self):
+        """Missing endpoints must not be reported as written relationships."""
+        session = AsyncMock()
+        merge_result = AsyncMock()
+        merge_result.single = AsyncMock(return_value={"merged": 1})
+        audit_result = AsyncMock()
+        audit_result.single = AsyncMock(return_value=None)
+        session.run = AsyncMock(side_effect=[merge_result, audit_result])
+
+        with patch('src.db.audited_mutation.get_metrics', return_value=None):
+            mutation = AuditedGraphMutation(
+                tenant_id="test-tenant", session=session, operation_source="test_source"
+            )
+            result = await mutation.write_relationships_batch(
+                "HAS_DRIVER",
+                [{"src_id": "p1", "tgt_id": "vd1"}, {"src_id": "missing", "tgt_id": "vd2"}],
+            )
+
+        assert result["count"] == 1
+
+    @pytest.mark.asyncio
+    async def test_write_relationships_batch_propagates_result_consumption_failure(self):
+        """Streaming failures must fail the mutation rather than report success."""
+        session = AsyncMock()
+        merge_result = AsyncMock()
+        merge_result.single = AsyncMock(side_effect=RuntimeError("stream failed"))
+        session.run = AsyncMock(return_value=merge_result)
+
+        with patch('src.db.audited_mutation.get_metrics', return_value=None):
+            mutation = AuditedGraphMutation(tenant_id="test-tenant", session=session)
+            with pytest.raises(RuntimeError, match="stream failed"):
+                await mutation.write_relationships_batch(
+                    "HAS_DRIVER", [{"src_id": "p1", "tgt_id": "vd1"}]
+                )
+
+        assert session.run.call_count == 1
+
+    @pytest.mark.asyncio
     async def test_delete_by_source_creates_audit(self):
         """Bulk delete by source should create audit event."""
         session = AsyncMock()
