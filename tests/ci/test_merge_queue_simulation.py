@@ -101,7 +101,7 @@ def test_simulation_docs_only_pr_all_safe_skips() -> None:
         "release-policy": "skipped",
     }
     safe_skips_mapping = {k: f"SKIPSAFE_{k.upper().replace('-', '_')}" for k in results}
-    env_values = {v: "true" for v in safe_skips_mapping.values()}
+    env_values = dict.fromkeys(safe_skips_mapping.values(), "true")
     code, output = _run_aggregate(results, safe_skips_mapping, env_values)
     assert code == 0, f"Expected 06-production-readiness to pass on docs-only PR:\n{output}"
     assert "aggregate gate PASSED: all 12 child job(s) succeeded or were confirmed safe to skip" in output
