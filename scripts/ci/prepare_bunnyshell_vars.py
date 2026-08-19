@@ -13,7 +13,6 @@ Outputs:
 import argparse
 import os
 import secrets
-import sys
 from pathlib import Path
 
 
