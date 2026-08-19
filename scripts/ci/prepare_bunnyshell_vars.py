@@ -93,7 +93,8 @@ def main():
         print("=== .bns/vars.env ===")
         print(vars_content)
         print("=== .bns/secrets.env ===")
-        print(secrets_content)
+        redacted_secrets_content = "\n".join(f"{k}=[REDACTED]" for k, _ in sorted(secrets_data.items())) + "\n"
+        print(redacted_secrets_content)
         return
 
     output_dir.mkdir(parents=True, exist_ok=True)
