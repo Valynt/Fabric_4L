@@ -46,7 +46,7 @@ _DISALLOWED_HOSTS: frozenset[str] = frozenset(
     {
         "localhost",
         "127.0.0.1",
-        "0.0.0.0",
+        "0.0.0.0",  # nosec B104 -- denylisted SSRF target, not a bind address
         "169.254.169.254",
         "::1",
         "[::1]",
