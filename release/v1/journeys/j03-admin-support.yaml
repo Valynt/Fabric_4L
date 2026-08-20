@@ -8,20 +8,21 @@ required_outcome: >
   privilege escalation.
 
 steps:
-  - A support administrator requests time-limited, authorized access to a tenant context.
+  - A tenant administrator requests time-limited, authorized impersonation within their tenant context.
   - All impersonation actions are visible to the tenant and audit-logged.
   - Access expires automatically and cannot be extended silently.
 
 allowed_behavior:
-  - An authorized support admin diagnoses a tenant issue within a time-limited, audited impersonation session.
+  - An authorized tenant admin diagnoses a tenant issue within a time-limited, audited same-tenant impersonation session.
 denied_behavior:
   - Impersonation without authorization or audit trail is impossible.
+  - Cross-tenant impersonation is rejected with 403.
   - Support access cannot read tenants outside the approved scope.
   - Expired impersonation sessions are rejected.
 
 evidence:
   existing_tests:
     - tests/tenancy/test_admin_impersonation_scope.py
-    - tests/support
+    - services/api/app/tests/test_impersonation_security.py
   gaps:
     - None currently tracked beyond golden-path integration.

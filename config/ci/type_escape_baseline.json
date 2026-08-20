@@ -40490,49 +40490,49 @@
     },
     {
       "kind": "python-any",
-      "line": 57,
+      "line": 59,
       "path": "tests/certification/test_meridian_production_path.py",
       "text": ") -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 58,
+      "line": 60,
       "path": "tests/certification/test_meridian_production_path.py",
       "text": "last: Any = None"
     },
     {
       "kind": "python-any",
-      "line": 78,
+      "line": 80,
       "path": "tests/certification/test_meridian_production_path.py",
       "text": "ctx: dict[str, Any] = cert_recorder.context"
     },
     {
       "kind": "python-any",
-      "line": 82,
+      "line": 84,
       "path": "tests/certification/test_meridian_production_path.py",
       "text": "async def run_stage(name: str, coro: Any) -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 183,
+      "line": 185,
       "path": "tests/certification/test_meridian_production_path.py",
       "text": "async def fetch_run() -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 209,
+      "line": 211,
       "path": "tests/certification/test_meridian_production_path.py",
       "text": "async def fetch_entities() -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 284,
+      "line": 286,
       "path": "tests/certification/test_meridian_production_path.py",
       "text": "async def fetch_workflow() -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 353,
+      "line": 355,
       "path": "tests/certification/test_meridian_production_path.py",
       "text": "async def fetch_graph_truth() -> Any:"
     },
@@ -40595,18 +40595,6 @@
       "line": 154,
       "path": "tests/chaos/test_service_failure.py",
       "text": "payload: dict[str, Any] | None = None,"
-    },
-    {
-      "kind": "python-any",
-      "line": 13,
-      "path": "tests/ci/test_merge_group_contract.py",
-      "text": "from typing import Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 60,
-      "path": "tests/ci/test_merge_group_contract.py",
-      "text": "def _load_yaml(path: Path) -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
