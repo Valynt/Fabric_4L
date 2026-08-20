@@ -1,10 +1,10 @@
 /**
- * <RequireClerkAuth /> — Phase 2 route guard layered on top of the legacy
- * <ProtectedRoute />.
+ * <RequireClerkAuth /> — Phase 2 route guard layered on top of the
+ * <UnifiedRouteGuard />.
  *
  * Behavior:
  *   - When AUTH_PROVIDER=legacy: renders children unconditionally. The
- *     existing <ProtectedRoute /> guards remain authoritative, so this
+ *     existing <UnifiedRouteGuard /> guards remain authoritative, so this
  *     component is a no-op and zero-risk to add to existing routes.
  *   - When AUTH_PROVIDER=clerk:
  *       - If Clerk is still loading, render nothing (null) to prevent any
@@ -193,7 +193,7 @@ function RequireClerkAuthInner({
 }
 
 export function RequireClerkAuth(props: RequireClerkAuthProps) {
-  // No-op under legacy auth — let downstream <ProtectedRoute /> own the gate.
+  // No-op under legacy auth — let downstream <UnifiedRouteGuard /> own the gate.
   if (!isClerkAuthEnabled()) {
     return <>{props.children}</>;
   }
