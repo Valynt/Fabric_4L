@@ -383,7 +383,7 @@ class AuditedGraphMutation:
         RETURN count(n) as merged
         """
         try:
-            await run_validated_query(
+            result = await run_validated_query(
                 self.session,
                 merge_query,
                 {
@@ -406,16 +406,25 @@ class AuditedGraphMutation:
                 allow_system_query=True,
                 query_name="audited_mutation.write_nodes_batch",
             )
+            record = await result.single() if hasattr(result, "single") else None
+            processed_count = (
+                record.get("merged", node_count)
+                if isinstance(record, dict) or hasattr(record, "get")
+                else node_count
+            )
             self._increment_mutation_success("node_batch")
         except Exception:
             self._increment_mutation_failure("node_batch_error")
             raise
 
         await self._audit_node(
-            "WRITE_NODES_BATCH", label, f"batch_{node_count}", {"count": node_count}
+            "WRITE_NODES_BATCH",
+            label,
+            f"batch_{node_count}",
+            {"count": processed_count, "requested_count": node_count},
         )
 
-        return {"status": "ok", "label": label, "count": node_count}
+        return {"status": "ok", "label": label, "count": processed_count}
 
     async def write_relationships_batch(
         self,
@@ -444,7 +453,7 @@ class AuditedGraphMutation:
         RETURN count(r) as merged
         """
         try:
-            await run_validated_query(
+            result = await run_validated_query(
                 self.session,
                 merge_query,
                 {
@@ -457,6 +466,12 @@ class AuditedGraphMutation:
                 allow_system_query=True,
                 query_name="audited_mutation.write_relationships_batch",
             )
+            record = await result.single() if hasattr(result, "single") else None
+            processed_count = (
+                record.get("merged", triple_count)
+                if isinstance(record, dict) or hasattr(record, "get")
+                else triple_count
+            )
             self._increment_mutation_success("relationship_batch")
         except Exception:
             self._increment_mutation_failure("relationship_batch_error")
@@ -467,10 +482,10 @@ class AuditedGraphMutation:
             f"batch_{triple_count}",
             rel_type,
             f"batch_{triple_count}",
-            {"count": triple_count},
+            {"count": processed_count, "requested_count": triple_count},
         )
 
-        return {"status": "ok", "rel_type": rel_type, "count": triple_count}
+        return {"status": "ok", "rel_type": rel_type, "count": processed_count}
 
     async def delete_by_source(
         self,

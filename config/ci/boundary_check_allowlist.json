@@ -29,8 +29,48 @@
       "reason": "Tenant ID is extracted from an authenticated WebSocket token payload after signature verification; not a raw request parameter."
     },
     {
+      "file": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
+      "line": 407,
+      "reason": "Tenant ID is deserialized from local cache/fallback storage, not read from untrusted request parameters."
+    },
+    {
+      "file": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
+      "line": 467,
+      "reason": "Tenant ID is deserialized from local cache/fallback storage, not read from untrusted request parameters."
+    },
+    {
+      "file": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
+      "line": 503,
+      "reason": "Tenant ID is deserialized from local cache/fallback storage, not read from untrusted request parameters."
+    },
+    {
+      "file": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
+      "line": 537,
+      "reason": "Tenant ID is deserialized from local cache/fallback storage, not read from untrusted request parameters."
+    },
+    {
+      "file": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
+      "line": 1452,
+      "reason": "Tenant ID is validated against stored record metadata during fallback cache scan, not read from untrusted request parameters."
+    },
+    {
+      "file": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
+      "line": 1516,
+      "reason": "Tenant ID is validated against stored record metadata during fallback cache scan, not read from untrusted request parameters."
+    },
+    {
+      "file": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
+      "line": 1536,
+      "reason": "Tenant ID is validated against stored record metadata during fallback cache scan, not read from untrusted request parameters."
+    },
+    {
+      "file": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
+      "line": 1592,
+      "reason": "Tenant ID is validated against stored record metadata during fallback cache scan, not read from untrusted request parameters."
+    },
+    {
       "file": "services/layer4-agents/src/layer4_agents/engine/executor.py",
-      "line": 1459,
+      "line": 1460,
       "reason": "Tenant ID is propagated from an already-authenticated workflow execution context; not read from an untrusted request."
     },
     {

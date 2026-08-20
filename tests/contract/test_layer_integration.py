@@ -147,7 +147,7 @@ def test_entity_data():
     return {
         "id": test_id,
         "name": f"TestCorp {test_id}",
-        "entity_type": "Organization",
+        "entity_type": "Company",
         "properties": {
             "industry": "Technology",
             "employees": 500,
@@ -269,7 +269,7 @@ class TestL1ToL3DataFlow:
         # 2. Query L3 for the entity
         l3_response = _session.post(
             f"{L3_URL}/v1/search/hybrid",
-            json={"query": entity_name, "entity_type": "Organization"},
+            json={"query": entity_name, "entity_type": "Company"},
             headers=_runtime_auth_headers(),
             timeout=15,
         )
@@ -293,7 +293,7 @@ class TestL1ToL3DataFlow:
                     "@prefix ex: <http://example.com/> . "
                     "@prefix vf: <http://valuefabric.io/ontology/> . "
                     "@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> . "
-                    f"ex:runtime-{uuid.uuid4().hex[:8]} rdf:type vf:Organization ; "
+                    f"ex:runtime-{uuid.uuid4().hex[:8]} rdf:type vf:Company ; "
                     'vf:name "TestCorp Runtime" .'
                 ),
                 "source_id": f"runtime-source-{uuid.uuid4().hex[:8]}",
