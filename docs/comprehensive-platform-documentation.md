@@ -254,7 +254,7 @@ Capability → UseCase → Persona → ValueDriver
 - ✅ Redis cache abstraction
 - ✅ Prometheus metrics stubs
 - ✅ Comprehensive test suite
-- ✅ Neo4j connection (driver implemented, docker-compose wired)
+- ✅ Neo4j connection (driver implemented, Docker Compose wired)
 
 **What's Missing:**
 - ⚠️ Neo4j vector indexes (schema defined, needs verification)
@@ -792,36 +792,28 @@ System Admin → Tenant Admin → Analyst/Developer → Viewer
 
 ### Test Inventory
 
-**Total Test Files:** 238+
-**Estimated Total Tests:** ~1,371
-**Baseline Pass Rate:** 46.56% (447 passed, 197 failed, 246 skipped, 70 errors)
-
-**By Layer:**
-- Layer 1 (Ingestion): 15 files, ~120 tests
-- Layer 2 (Extraction): 9 files, ~70 tests
-- Layer 3 (Knowledge): 28 files, ~160 tests
-- Layer 4 (Agents): 46 files, ~330 tests
-- Layer 5 (Ground Truth): 6 files, ~25 tests
-- Layer 6 (Benchmarks): 2 files, ~15 tests
-- Frontend: 47 files, ~150 tests
-- E2E Tests: 18 files, ~92 tests
-- Root/Security: 37 files, ~340 tests
-- Root/Contract: 20 files, ~70 tests
-- Root/Integration: 10+ files, ~50 tests
+- **Layer 1 (Ingestion):** Ingestion jobs, Playwright crawling, robots.txt, PII scanning
+- **Layer 2 (Extraction):** Ontology models, Pydantic validation, RDF/OWL serialization, provenance
+- **Layer 3 (Knowledge):** GraphRAG retrieval, Neo4j connectivity, hybrid vector + graph search
+- **Layer 4 (Agents):** LangGraph workflows, ROI evaluation, business cases, whitespace analysis
+- **Layer 5 (Ground Truth):** TruthObject validation state machine, maturity ladder, provenance
+- **Layer 6 (Benchmarks):** Datasets, peer comparisons, statistical validation
+- **Frontend (`apps/web`):** Unit/component tests (Vitest), accessibility tests, contract tests
+- **E2E Tests:** Playwright journeys, golden paths
+- **Root / Security / Contract:** Cross-layer OpenAPI contracts, tenant boundary isolation, OWASP regression gates
 
 ### CI Gates
 
 **Required (PR Merge Blocking):**
-- PR Checks (`pr-checks.yml`) - Linting, formatting, type checking
-- Contract Checks (`contract-checks.yml`) - API contract validation
-- Security Gates (`security-gates.yml`) - Security regression tests
-- K8s Dry Run (`k8s-dry-run.yml`) - Kubernetes manifest validation
+- PR Checks (`pr-checks.yml`) - Linting, formatting, type checking, structural preflight
+- Contract Checks (`contract-checks.yml`) - OpenAPI drift and contract validation
+- Production Readiness Gate (`make production-readiness-gate`) - Behavior readiness audit and release gates
+- Security Gates - Tenant boundary isolation and OWASP regression tests
 
-**Nightly/Scheduled:**
+**Nightly / Scheduled:**
 - Integration Tests (`integration-tests.yml`)
-- Smoke Tests (`pr-checks.yml` / `integration-checks`, via `make test-backend-integrated-release-smoke`)
+- Smoke Tests (`make test-backend-integrated-release-smoke`)
 - Performance Tests (`performance-load-tests.yml`)
-- Contract Drift (`contract-drift-check.yml`)
 - AI Evals (`ai-evals-pipeline.yml`)
 - Chaos Testing (`chaos-testing.yml`)
 
@@ -833,62 +825,43 @@ System Admin → Tenant Admin → Analyst/Developer → Viewer
 - Markers: `@pytest.mark.unit`
 
 **Integration Tests:**
-- Location: `services/*/tests/`
-- Rules: May use Docker services
+- Location: `services/*/tests/`, `tests/`
+- Rules: Uses local container infrastructure or test fixtures
 - Markers: `@pytest.mark.integration`
 
 **E2E Tests:**
-- Location: `frontend/e2e/`
+- Location: `apps/web/e2e/`
 - Technology: Playwright
-- Scope: Critical flows only
+- Scope: Critical user journeys and golden paths
 
 **Contract Tests:**
 - Location: `tests/contract/`
-- Purpose: Validate tool manifest schemas
-- Markers: `@pytest.mark.contract`
+- Purpose: Validate tool manifests, API shapes, and schema boundaries
+- Markers: `@pytest.mark.contract_static`
 
-**Evals:**
-- Location: `tests/evals/`
-- Purpose: Golden traces for agent skills
-- Technology: Custom evaluation framework
+**Behavior Readiness:**
+- Verification: `make check-behavior-readiness-audit` and `pnpm run test:critical-behaviors`
 
 ### Production Invariant Coverage
 
-| Boundary | Test Files | Coverage | Gaps |
-|----------|-----------|----------|------|
-| Tenant Isolation | 15+ files | Good | Needs more negative tests |
-| Authentication | 10+ files | Good | OIDC/WebSocket gaps |
-| Authorization | 5+ files | Moderate | Role escalation tests needed |
-| Input Validation | 5+ files | Moderate | Oversized payload tests |
-| RLS Enforcement | 3+ files | Good | Cross-layer verification |
-| Secrets Protection | 2 files | Moderate | Log redaction tests |
-| Idempotency | 2 files | Basic | Webhook duplicate tests |
-| Rate Limiting | 3+ files | Good | Burst handling tests |
-
-### Critical Findings
-
-**Pass Rate Crisis:**
-- Current: 46.56% pass rate
-- Failed: 197 tests
-- Skipped: 246 tests
-- Errors: 70 tests
-
-**High-Value Targets:**
-- P0 (Block Release): Tenant isolation negative tests, Auth bypass tests, RLS cross-tenant verification
-- P1 (Core Coverage): Input validation boundary tests, Webhook idempotency tests, Frontend route guard tests, Secrets in logs tests
-
-**Test File Health:**
-- Strong: L4 Agents (46 files), Security (37 files)
-- Weak: L6 Benchmarks (2 files), L5 Ground Truth (6 files)
-- At Risk: High skip count suggests flaky/pending tests
+| Boundary | Scope | Coverage |
+|----------|-------|----------|
+| Tenant Isolation | Cross-service tenant context propagation and hostile negative tests | Active |
+| Authentication | Token verification and 8-phase auth pipeline | Active |
+| Authorization | Role and capability checks | Active |
+| Input Validation | Schema-first Pydantic and JSON Schema boundaries | Active |
+| RLS Enforcement | PostgreSQL row security and Neo4j tenant scoping | Active |
+| Secrets Protection | Placeholder secret scanning and no hardcoded credentials | Active |
+| Idempotency | Webhook and workflow checkpoint deduplication | Active |
+| Rate Limiting | Ingestion and API rate limiters | Active |
 
 ## 12. Local Development Setup
 
 ### Prerequisites
 
 - Python 3.11+
-- Node.js 20+ and pnpm 10+
-- Docker + Docker Compose
+- Node.js ≥ 22.12.0 and pnpm 10.18.1
+- Docker + Docker Compose (v2)
 - `make`
 
 ### Local Development Process
@@ -897,23 +870,21 @@ System Admin → Tenant Admin → Analyst/Developer → Viewer
 # 1. Clone repository
 git clone https://github.com/bmsull560/Fabric_4L.git && cd Fabric_4L
 
-# 2. Configure environment
-cp .env.example .env
-# Edit .env — fill in OPENAI_API_KEY and JWT_SECRET at minimum
+# 2. Enable pnpm and install dependencies
+corepack enable
+corepack prepare pnpm@10.18.1 --activate
+pnpm install --frozen-lockfile
 
-# 3. Start infrastructure
-cd value-fabric && docker compose up -d
+# 3. Setup Python service dependencies
+make setup
 
-# 4. Install Python dependencies (per layer)
-cd layer4-agents && pip install -e ".[dev]"
+# 4. Generate local dev env and start infrastructure
+pnpm env:dev && docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated up -d
 
-# 5. Install frontend dependencies
-cd apps/web && pnpm install
-
-# 6. Run database migrations
+# 5. Run database migrations
 make migrate
 
-# 7. Verify everything passes
+# 6. Verify everything passes
 make verify
 ```
 
@@ -965,7 +936,7 @@ pnpm run typecheck
 | Layer 4 (Agents) | LangGraph agent runtime | 8004 | 8000 |
 | Layer 5 (Ground Truth) | Truth validation service | 8005 | 8005 |
 | Layer 6 (Benchmarks) | Peer comparison service | 8006 | 8006 |
-| Frontend | React + Vite static build | 5173 | 80 |
+| Frontend | React + Vite static build | 3001 | 80 |
 
 ### Communication
 
@@ -1048,9 +1019,8 @@ pnpm run typecheck
 
 ### Testing Gaps
 
-- Pass rate crisis: 46.56% (447 passed, 197 failed, 246 skipped, 70 errors)
-- High skip count suggests flaky/pending tests
-- Need more negative tests for tenant isolation
+- Need continuous execution of behavior readiness audit (`make check-behavior-readiness-audit`)
+- Need continuous expansion of hostile negative tests for tenant isolation
 - OIDC/WebSocket authentication gaps
 - Role escalation tests needed
 - Oversized payload tests needed
@@ -1110,21 +1080,26 @@ automatically, at scale, with full auditability.
 # 1. Clone and enter repo
 git clone https://github.com/bmsull560/Fabric_4L.git && cd Fabric_4L
 
-# 2. Copy environment template
-cp .env.example .env
-# Fill in OPENAI_API_KEY and JWT_SECRET
+# 2. Enable pnpm and install dependencies
+corepack enable
+corepack prepare pnpm@10.18.1 --activate
+pnpm install --frozen-lockfile
 
-# 3. Start all services
-cd value-fabric && docker compose up -d
+# 3. Setup Python service dependencies
+make setup
 
-# 4. Run database migrations
+# 4. Generate local dev env and start infrastructure
+pnpm env:dev && docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated up -d
+
+# 5. Run database migrations
 make migrate
 
-# 5. Verify everything works
+# 6. Verify everything works
 make verify
 
-# 6. Open the UI
-open http://localhost:5173
+# 7. Start and open the UI
+pnpm dev:web
+# Open http://localhost:3001
 ```
 
 ## Repository map
