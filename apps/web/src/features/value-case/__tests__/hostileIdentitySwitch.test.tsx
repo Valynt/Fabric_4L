@@ -65,7 +65,14 @@ describe("Hostile Identity and Scope Switching", () => {
       status: "denied",
       snapshot: null,
       reason: "unauthenticated",
-    } as any);
+      hasEveryPermission: () => false,
+      hasAnyPermission: () => false,
+      hasAnyRole: () => false,
+      hasEveryEntitlement: () => false,
+      hasAnyEntitlement: () => false,
+      hasTenantMembership: () => false,
+      hasAccountAccess: () => false,
+    });
 
     const { result } = renderHook(() => useValueCaseJourney("acc-1"), {
       wrapper,
@@ -104,7 +111,14 @@ describe("Hostile Identity and Scope Switching", () => {
         issuedAt: new Date().toISOString(),
         expiresAt: new Date(Date.now() + 3600000).toISOString(),
       },
-    } as any);
+      hasEveryPermission: () => true,
+      hasAnyPermission: () => true,
+      hasAnyRole: () => true,
+      hasEveryEntitlement: () => true,
+      hasAnyEntitlement: () => true,
+      hasTenantMembership: () => true,
+      hasAccountAccess: id => id === "acc-OTHER",
+    });
 
     const { result } = renderHook(() => useValueCaseJourney("acc-1"), {
       wrapper,
@@ -118,35 +132,41 @@ describe("Hostile Identity and Scope Switching", () => {
   it("does not mutate active UI if account switches before mutation resolves", async () => {
     let authAccount = "acc-1";
     vi.mocked(authProvider.useAuthorizationSnapshot).mockImplementation(
-      () =>
-        ({
-          status: "verified",
-          snapshot: {
-            schemaVersion: "1",
-            source: "backend",
-            identity: {
-              clerkUserId: "user-1",
-              fabricUserId: "f-user-1",
-              sessionDiscriminator: "sess-1",
-            },
-            tenant: {
-              fabricTenantId: "tenant-A",
-              clerkOrganizationId: "org-1",
-              tenantSlug: "slug-a",
-              membershipId: "mem-1",
-              membershipStatus: "active",
-            },
-            accountScope: {
-              scopeType: "account",
-              accountId: authAccount,
-            },
-            roles: ["analyst"],
-            permissions: ["read:data"],
-            entitlements: [],
-            issuedAt: new Date().toISOString(),
-            expiresAt: new Date(Date.now() + 3600000).toISOString(),
+      () => ({
+        status: "verified",
+        snapshot: {
+          schemaVersion: "1",
+          source: "backend",
+          identity: {
+            clerkUserId: "user-1",
+            fabricUserId: "f-user-1",
+            sessionDiscriminator: "sess-1",
           },
-        }) as any
+          tenant: {
+            fabricTenantId: "tenant-A",
+            clerkOrganizationId: "org-1",
+            tenantSlug: "slug-a",
+            membershipId: "mem-1",
+            membershipStatus: "active",
+          },
+          accountScope: {
+            scopeType: "account",
+            accountId: authAccount,
+          },
+          roles: ["analyst"],
+          permissions: ["read:data"],
+          entitlements: [],
+          issuedAt: new Date().toISOString(),
+          expiresAt: new Date(Date.now() + 3600000).toISOString(),
+        },
+        hasEveryPermission: () => true,
+        hasAnyPermission: () => true,
+        hasAnyRole: () => true,
+        hasEveryEntitlement: () => true,
+        hasAnyEntitlement: () => true,
+        hasTenantMembership: () => true,
+        hasAccountAccess: id => id === authAccount,
+      })
     );
 
     const apiCaseAcc1: ApiBusinessCase = {
