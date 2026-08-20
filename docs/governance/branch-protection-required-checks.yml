@@ -17,6 +17,16 @@ protected_branch_patterns:
 
 informational_status_checks:
   - chaos-testing
+  # V1-CI-001 Stage 1 shadow aggregates (informational until Stage 3 parity).
+  - 01-repository-integrity
+  - 02-code-quality-and-tests
+  - 03-contract-compliance
+  - 04-security-gates
+  - 05-tenant-isolation-and-behavior
+  - 06-production-readiness
+  - 07-supply-chain-integrity
+  - 08-release-evidence
+  - 09-change-risk-and-approval
 promotion_policy:
   chaos_smoke:
     current_mode: informational

@@ -96,7 +96,7 @@ async def resume_agent_run(run_id: str, tenant_id: str = Depends(tenant_required
     try:
         return orchestrator.resume_run(run_id, tenant_id=tenant_id, user_id=_current_user_id())
     except ValueError as exc:
-        if str(exc) == ERR_RUN_NOT_FOUND:
+        if str(exc) == ERR_RUN_NOT_FOUND:  # ban-str-e-allow
             raise NotFoundError(message="Agent run not found")
         raise
 
@@ -106,7 +106,7 @@ async def cancel_agent_run(run_id: str, tenant_id: str = Depends(tenant_required
     try:
         return orchestrator.cancel_run(run_id, tenant_id=tenant_id)
     except ValueError as exc:
-        if str(exc) == ERR_RUN_NOT_FOUND:
+        if str(exc) == ERR_RUN_NOT_FOUND:  # ban-str-e-allow
             raise NotFoundError(message="Agent run not found")
         raise
 
@@ -153,7 +153,7 @@ async def cancel_workflow(id: str, tenant_id: str = Depends(tenant_required)):
     try:
         cancelled = orchestrator.cancel_run(id, tenant_id=tenant_id)
     except ValueError as exc:
-        if str(exc) == ERR_RUN_NOT_FOUND:
+        if str(exc) == ERR_RUN_NOT_FOUND:  # ban-str-e-allow
             raise NotFoundError(message="Workflow not found")
         raise
     return _run_to_workflow_payload(cancelled)
@@ -177,7 +177,7 @@ async def resume_workflow(id: str, tenant_id: str = Depends(tenant_required)):
     try:
         resumed = orchestrator.resume_run(id, tenant_id=tenant_id, user_id=_current_user_id())
     except ValueError as exc:
-        if str(exc) == ERR_RUN_NOT_FOUND:
+        if str(exc) == ERR_RUN_NOT_FOUND:  # ban-str-e-allow
             raise NotFoundError(message="Workflow not found")
         raise
     return _run_to_workflow_payload(resumed)

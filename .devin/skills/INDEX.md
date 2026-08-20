@@ -105,6 +105,11 @@ For skill authoring specifications, see [SKILL_SCHEMA.md](./SKILL_SCHEMA.md).
 
 *(Note: Legacy jr-* workflow skills removed - not used in this repository)*
 
+### pr-lifecycle
+**Description:** Full PR pipeline — branch, commit, push, create PR, monitor CI, respond to review feedback, merge to main, and clean up
+**When to Use:** Implementation is complete and work needs to go through the full PR pipeline to merge
+**Side Effects:** exec
+
 ---
 
 ## Architecture & Governance
@@ -260,7 +265,7 @@ For skill authoring specifications, see [SKILL_SCHEMA.md](./SKILL_SCHEMA.md).
 
 **Last Updated:** 2026-06-25
 
-**Total Skills:** 42
+**Total Skills:** 43
 
 **Skills with Full Frontmatter:** 11 (security-auditor, stripe-integration, observability-setup, load-testing, siem-integration, contract-enforcement-auditor, deprecation-migrator, dead-code-sweeper, bunnyshell, clerk-auth, invariant-driven-testing)
 
