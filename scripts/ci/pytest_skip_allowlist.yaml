@@ -1,3 +1,0 @@
-# Temporary skip allowlist for pytest collection governance.
-# Every entry requires owner + expiry (YYYY-MM-DD).
-entries: []
