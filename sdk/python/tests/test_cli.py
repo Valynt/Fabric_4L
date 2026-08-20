@@ -339,18 +339,20 @@ class TestHealthCommand:
 
 
 class TestConfigErrorHandling:
-    def test_parse_toml_value_string_fallback(self):
+    def test_parse_toml_value_string_fallback(self) -> None:
         assert config_mod._parse_toml_value("not_a_number") == "not_a_number"
 
-    def test_load_profile_toml_invalid_profiles(self):
+    def test_load_profile_toml_invalid_profiles(self) -> None:
         with pytest.raises(ValueError, match="profiles must be a table"):
             config_mod._load_profile_toml("profiles = 1\n[profiles.default]")
 
-    def test_load_profile_toml_missing_equals(self):
+    def test_load_profile_toml_missing_equals(self) -> None:
         with pytest.raises(ValueError, match="invalid syntax at line 1"):
             config_mod._load_profile_toml("invalid_line")
 
-    def test_load_config_corrupted_file(self, tmp_path, monkeypatch):
+    def test_load_config_corrupted_file(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         corrupted_file = tmp_path / "corrupted.toml"
         corrupted_file.write_text("invalid_line", encoding="utf-8")
         monkeypatch.setattr(config_mod, "CONFIG_FILE", corrupted_file)

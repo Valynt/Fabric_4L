@@ -1,4 +1,5 @@
 import copy
+import datetime
 import json
 from pathlib import Path
 
@@ -17,7 +18,18 @@ SCHEMA_PATH = (
 def validator() -> Draft202012Validator:
     schema = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
     Draft202012Validator.check_schema(schema)
-    return Draft202012Validator(schema, format_checker=FormatChecker())
+    format_checker = FormatChecker()
+    if "date-time" not in format_checker.checkers:
+        @format_checker.checks("date-time")
+        def _validate_datetime(value: object) -> bool:
+            if not isinstance(value, str):
+                return False
+            try:
+                datetime.datetime.fromisoformat(value.replace("Z", "+00:00"))
+                return True
+            except (ValueError, TypeError):
+                return False
+    return Draft202012Validator(schema, format_checker=format_checker)
 
 
 @pytest.fixture
