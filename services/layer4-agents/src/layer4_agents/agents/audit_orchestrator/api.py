@@ -496,7 +496,7 @@ async def github_webhook(
         except ValueError as exc:
             raise HTTPException(
                 status_code=400,
-                detail=f"Invalid repository URL in webhook payload: {exc}",
+                detail="Invalid repository URL in webhook payload",
             ) from exc
 
         config_manager = ConfigManager()
