@@ -9,11 +9,7 @@ import json
 import time
 from typing import Any
 
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import ed25519
 import pytest
-from fastapi.testclient import TestClient
-
 from app.core.auth_directory import get_auth_directory, reset_auth_directory
 from app.core.auth_telemetry import (
     get_auth_health_summary,
@@ -29,6 +25,9 @@ from app.core.clerk_config import reset_auth_settings_cache
 from app.core.security import create_access_token
 from app.core.webhook_dlq import get_webhook_dlq, reset_webhook_dlq
 from app.main import app
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import ed25519
+from fastapi.testclient import TestClient
 from scripts.replay_clerk_webhooks import sign_svix_payload
 
 MOCK_WEBHOOK_SECRET = f"{'whsec_'}{base64.b64encode(b'test_secret_key_1234567890123456').decode('ascii')}"

@@ -60,9 +60,16 @@ const policy = (
   ...overrides,
 });
 
-function renderGuard(accessPolicy: RouteAccessPolicy | null = policy()) {
+function renderGuard(
+  accessPolicy: RouteAccessPolicy | null = policy(),
+  options?: { extraMatches?: RouteAccessPolicy[] }
+) {
+  // useMatches() lists outermost → innermost; the guard resolves via .pop()
+  // so the innermost (last) policy wins. extraMatches are treated as
+  // innermost policies that must override the primary one.
+  const policies = [accessPolicy ?? undefined, ...(options?.extraMatches ?? [])];
   routeState.matches = accessPolicy
-    ? [{ handle: { accessPolicy } }]
+    ? policies.map((p) => ({ handle: { accessPolicy: p! } }))
     : [{ handle: {} }];
   return render(
     <UnifiedRouteGuard>
@@ -247,5 +254,33 @@ describe("UnifiedRouteGuard verified authorization", () => {
 
     expect(screen.getByText("protected")).toBeInTheDocument();
     expect(screen.queryByText(/redirect:/)).not.toBeInTheDocument();
+  });
+
+  it("uses the innermost (last) match policy over an outer one", () => {
+    // Parent route declares tenant scope only; the child route restricts to
+    // an account. useMatches() orders outermost first, so the guard's .pop()
+    // must select the child's stricter policy.
+    const outer = policy({ tenantScoped: true });
+    const inner = policy({ accountScoped: true });
+    renderGuard(outer, { extraMatches: [inner] });
+
+    // The child policy must be enforced — account checks run.
+    expect(authorization.hasAccountAccess).toHaveBeenCalledWith("acc-1");
+    expect(authorization.hasTenantMembership).not.toHaveBeenCalled();
+  });
+
+  it("fails closed with the innermost fallback when the innermost policy denies", () => {
+    // A permissive outer route must never mask an innermost denial.
+    const outer = policy({ tenantScoped: true });
+    const inner = policy({
+      requiredPermissions: ["admin:only"],
+      fallbackRoute: "/org-redirect",
+    });
+    authorization.hasEveryPermission.mockReturnValue(false);
+
+    renderGuard(outer, { extraMatches: [inner] });
+
+    expect(screen.getByText("redirect:/org-redirect")).toBeInTheDocument();
+    expectProtectedContentHidden();
   });
 });

@@ -409,7 +409,7 @@ jobs:
           vuln-type: 'os,library'
           severity: 'HIGH,CRITICAL'
           limit-severities-for-sarif: true
-          scanners: 'vuln,secret,config'
+          scanners: 'vuln,secret,misconfig'
           skip-dirs: 'archive,docs/archive,node_modules'
           trivy-config: 'config/trivy/repository.yaml'
           trivyignores: '.trivyignore.yaml'
@@ -520,7 +520,7 @@ jobs:
 
       - name: Upload OSV SARIF to code scanning
         if: ${{ !cancelled() }}
-        uses: github/codeql-action/upload-sarif@cdefb33c0f6224e58673d9004f47f7cb3e328b89 # v4.31.10
+        uses: github/codeql-action/upload-sarif@3ce22a6e336a7fcc318bc58ae1986395bdc83ba7 # v4.35.4
         with:
           sarif_file: osv-scanner-pr.sarif
           category: osv-scanner-pr
@@ -630,7 +630,7 @@ jobs:
           ignore-unfixed: true
           vuln-type: 'os,library'
           severity: 'HIGH,CRITICAL'
-          scanners: 'vuln,secret,config'
+          scanners: 'vuln,secret,misconfig'
 
       - name: Upload Trivy scan results
         uses: github/codeql-action/upload-sarif@3ce22a6e336a7fcc318bc58ae1986395bdc83ba7 # v4.35.4

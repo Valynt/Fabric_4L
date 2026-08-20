@@ -83,7 +83,7 @@ def test_orchestrator_signed_audit_report(tmp_path, mock_auth0_export_data):
     assert json_file.exists()
     assert md_file.exists()
 
-    with open(json_file, "r", encoding="utf-8") as f:
+    with open(json_file, encoding="utf-8") as f:
         data = json.load(f)
         assert data["stats"]["total_users"] == 2
         assert data["stats"]["total_organizations"] == 1
