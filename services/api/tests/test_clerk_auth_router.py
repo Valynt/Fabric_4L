@@ -13,8 +13,9 @@ import json
 import pytest
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
-from fastapi import HTTPException, Request
+from fastapi import Request
 from fastapi.testclient import TestClient
+from value_fabric.shared.error_handling.exceptions import AuthorizationError
 from value_fabric.shared.error_handling.models import ErrorCode
 from value_fabric.shared.identity.fabric_auth import AuthContext
 
@@ -129,7 +130,7 @@ async def test_clerk_tenant_resolves_active_org() -> None:
 
 def test_clerk_tenant_response_schema() -> None:
     schema = clerk_auth_module.ClerkTenantResponse.model_json_schema()
-    assert set(schema["properties"].keys()) == {
+    expected_fields = {
         "fabric_tenant_id",
         "tenant_slug",
         "clerk_org_id",
@@ -137,35 +138,35 @@ def test_clerk_tenant_response_schema() -> None:
         "roles",
         "permissions",
     }
-    assert schema["required"] == [
+    assert set(schema["properties"].keys()) == expected_fields
+    assert set(schema["required"]) == {
         "fabric_tenant_id",
-        "tenant_slug",
         "clerk_org_id",
         "status",
         "roles",
         "permissions",
-    ]
+    }
 
 
 async def test_clerk_tenant_fails_closed_when_org_id_missing() -> None:
     directory = get_auth_directory()
     auth = _build_auth_context(org_id=None)  # type: ignore[arg-type]
 
-    with pytest.raises(HTTPException) as exc_info:
+    with pytest.raises(AuthorizationError) as exc_info:
         clerk_auth_module._resolve_directory_tenant(directory, auth.clerk_org_id)
 
     assert exc_info.value.status_code == 403
-    assert exc_info.value.detail["code"] == ErrorCode.AUTH_TENANT_UNRESOLVED
+    assert exc_info.value.error_code == ErrorCode.AUTH_TENANT_UNRESOLVED
 
 
 async def test_clerk_tenant_fails_closed_when_tenant_missing() -> None:
     directory = get_auth_directory()
 
-    with pytest.raises(HTTPException) as exc_info:
+    with pytest.raises(AuthorizationError) as exc_info:
         clerk_auth_module._resolve_directory_tenant(directory, "org_unknown")
 
     assert exc_info.value.status_code == 403
-    assert exc_info.value.detail["code"] == ErrorCode.AUTH_TENANT_UNRESOLVED
+    assert exc_info.value.error_code == ErrorCode.AUTH_TENANT_UNRESOLVED
 
 
 @pytest.mark.parametrize("status", ["suspended", "deleted", "inactive"])
@@ -179,11 +180,11 @@ async def test_clerk_tenant_fails_closed_for_non_active_tenant(status: str) -> N
         status=status,
     )
 
-    with pytest.raises(HTTPException) as exc_info:
+    with pytest.raises(AuthorizationError) as exc_info:
         clerk_auth_module._resolve_directory_tenant(directory, "org_suspended")
 
     assert exc_info.value.status_code == 403
-    assert exc_info.value.detail["code"] == ErrorCode.AUTH_TENANT_UNRESOLVED
+    assert exc_info.value.error_code == ErrorCode.AUTH_TENANT_UNRESOLVED
 
 
 async def test_clerk_tenant_wrong_org_cannot_resolve_other_tenant() -> None:

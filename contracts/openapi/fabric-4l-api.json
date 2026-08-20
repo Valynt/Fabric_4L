@@ -1488,28 +1488,12 @@
     "/v1/auth/clerk/tenant": {
       "get": {
         "tags": [
+          "Platform",
           "Clerk Authentication"
         ],
         "summary": "Get Clerk Tenant",
         "description": "Return the Fabric tenant mapping for the active Clerk organization.\n\nThis endpoint is the single source of truth for Clerk org \u2192 Fabric tenant\nresolution. Callers must present a valid Clerk Bearer token. Failures map\nto the standard codes from ``require_clerk_authenticated``:\n\n- 401: missing/invalid/expired token\n- 403: no active Clerk org, no tenant mapping, inactive membership, or\n  suspended/deleted tenant",
         "operationId": "get_clerk_tenant_v1_auth_clerk_tenant_get",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "anyOf": [
-                  {
-                    "$ref": "#/components/schemas/HTTPAuthorizationCredentials"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "title": "Credentials"
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -1517,6 +1501,210 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ClerkTenantResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/v1/auth/clerk/health": {
+      "get": {
+        "tags": [
+          "Platform",
+          "Clerk Authentication"
+        ],
+        "summary": "Get Auth Health",
+        "description": "Return real-time health and verification SLO statistics for the auth plane.",
+        "operationId": "get_auth_health_v1_auth_clerk_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Get Auth Health V1 Auth Clerk Health Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/clerk/sessions/revoke": {
+      "post": {
+        "tags": [
+          "Platform",
+          "Clerk Authentication"
+        ],
+        "summary": "Revoke Active Session",
+        "description": "Revoke an active Clerk session discriminator.",
+        "operationId": "revoke_active_session_v1_auth_clerk_sessions_revoke_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RevokeSessionRequest",
+                "description": "Target Clerk session revocation request payload."
+              },
+              "examples": {
+                "default": {
+                  "summary": "Revoke target session",
+                  "value": {
+                    "session_id": "sess_2exampleSessionId123456789"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Session revoked successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RevokeSessionResponse"
+                },
+                "example": {
+                  "revoked": true,
+                  "session_id": "sess_2exampleSessionId123456789",
+                  "message": "Session revoked successfully."
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/v1/auth/clerk/sessions/revoke-all": {
+      "post": {
+        "tags": [
+          "Platform",
+          "Clerk Authentication"
+        ],
+        "summary": "Revoke All User Sessions",
+        "description": "Revoke all active sessions for the authenticated user (sign out everywhere).",
+        "operationId": "revoke_all_user_sessions_v1_auth_clerk_sessions_revoke_all_post",
+        "responses": {
+          "200": {
+            "description": "All sessions revoked for user successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RevokeSessionResponse"
+                },
+                "example": {
+                  "revoked": true,
+                  "message": "All sessions revoked for user."
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/v1/auth/clerk/invitations": {
+      "get": {
+        "tags": [
+          "Platform",
+          "Clerk Authentication"
+        ],
+        "summary": "List Org Invitations",
+        "description": "List pending invitations for the verified Clerk organization.",
+        "operationId": "list_org_invitations_v1_auth_clerk_invitations_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/InvitationResponse"
+                  },
+                  "type": "array",
+                  "title": "Response List Org Invitations V1 Auth Clerk Invitations Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/v1/auth/clerk/invitations/{invitation_id}/accept": {
+      "post": {
+        "tags": [
+          "Platform",
+          "Clerk Authentication"
+        ],
+        "summary": "Accept Org Invitation",
+        "description": "Accept a pending organization invitation and activate user membership.",
+        "operationId": "accept_org_invitation_v1_auth_clerk_invitations__invitation_id__accept_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "invitation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Unique Clerk organization invitation identifier to accept",
+              "title": "Invitation Id"
+            },
+            "description": "Unique Clerk organization invitation identifier to accept"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Invitation accepted successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitationResponse"
+                },
+                "example": {
+                  "invitation_id": "inv_2exampleInvitation123456789",
+                  "org_id": "org_2exampleOrg123456789",
+                  "email": "user@example.com",
+                  "role": "org:member",
+                  "status": "accepted"
                 }
               }
             }
@@ -1534,6 +1722,31 @@
         }
       }
     },
+    "/v1/auth/health": {
+      "get": {
+        "tags": [
+          "Platform",
+          "Authorization"
+        ],
+        "summary": "Get Auth Health",
+        "description": "Return real-time health and verification SLO statistics for the auth plane.",
+        "operationId": "get_auth_health_v1_auth_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Get Auth Health V1 Auth Health Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/auth/authorization-snapshot": {
       "get": {
         "tags": [
@@ -1543,6 +1756,11 @@
         "summary": "Get Authorization Snapshot",
         "description": "Issue one non-cacheable candidate from the canonical authorization projection.",
         "operationId": "get_authorization_snapshot_v1_auth_authorization_snapshot_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "parameters": [
           {
             "name": "X-Account-ID",
@@ -1563,23 +1781,6 @@
             "description": "Optional exact Fabric account identifier to bind into the issued authorization scope."
           }
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "anyOf": [
-                  {
-                    "$ref": "#/components/schemas/HTTPAuthorizationCredentials"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "title": "Credentials"
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -8758,9 +8959,70 @@
         }
       }
     },
+    "/internal/webhooks/clerk/dlq": {
+      "get": {
+        "tags": [
+          "Platform",
+          "internal-webhooks"
+        ],
+        "summary": "List Clerk Webhook Dlq",
+        "description": "Inspect the Dead-Letter Queue for failed Clerk webhook events (internal operator inspection).",
+        "operationId": "list_clerk_webhook_dlq_internal_webhooks_clerk_dlq_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "vf_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Session cookie for authenticated requests",
+              "title": "Vf Session"
+            },
+            "description": "Session cookie for authenticated requests"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response List Clerk Webhook Dlq Internal Webhooks Clerk Dlq Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/internal/webhooks/clerk": {
       "post": {
         "tags": [
+          "Platform",
           "internal-webhooks"
         ],
         "summary": "Clerk Webhook",
@@ -9916,7 +10178,8 @@
         "properties": {
           "fabric_tenant_id": {
             "type": "string",
-            "title": "Fabric Tenant Id"
+            "title": "Fabric Tenant Id",
+            "description": "Unique Fabric internal tenant identifier"
           },
           "tenant_slug": {
             "anyOf": [
@@ -9927,11 +10190,13 @@
                 "type": "null"
               }
             ],
-            "title": "Tenant Slug"
+            "title": "Tenant Slug",
+            "description": "Human-readable unique tenant URL slug"
           },
           "clerk_org_id": {
             "type": "string",
-            "title": "Clerk Org Id"
+            "title": "Clerk Org Id",
+            "description": "External Clerk organization identifier"
           },
           "status": {
             "type": "string",
@@ -9940,27 +10205,29 @@
               "suspended",
               "deleted"
             ],
-            "title": "Status"
+            "title": "Status",
+            "description": "Operational tenant status"
           },
           "roles": {
             "items": {
               "type": "string"
             },
             "type": "array",
-            "title": "Roles"
+            "title": "Roles",
+            "description": "List of mapped roles for the tenant actor"
           },
           "permissions": {
             "items": {
               "type": "string"
             },
             "type": "array",
-            "title": "Permissions"
+            "title": "Permissions",
+            "description": "List of resolved effective permissions for the tenant actor"
           }
         },
         "type": "object",
         "required": [
           "fabric_tenant_id",
-          "tenant_slug",
           "clerk_org_id",
           "status",
           "roles",
@@ -10795,25 +11062,6 @@
         "type": "object",
         "title": "GovernanceReviewQueueResponse"
       },
-      "HTTPAuthorizationCredentials": {
-        "properties": {
-          "scheme": {
-            "type": "string",
-            "title": "Scheme"
-          },
-          "credentials": {
-            "type": "string",
-            "title": "Credentials"
-          }
-        },
-        "type": "object",
-        "required": [
-          "scheme",
-          "credentials"
-        ],
-        "title": "HTTPAuthorizationCredentials",
-        "description": "The HTTP authorization credentials in the result of using `HTTPBearer` or\n`HTTPDigest` in a dependency.\n\nThe HTTP authorization header value is split by the first space.\n\nThe first part is the `scheme`, the second part is the `credentials`.\n\nFor example, in an HTTP Bearer token scheme, the client will send a header\nlike:\n\n```\nAuthorization: Bearer deadbeef12346\n```\n\nIn this case:\n\n* `scheme` will have the value `\"Bearer\"`\n* `credentials` will have the value `\"deadbeef12346\"`"
-      },
       "HTTPValidationError": {
         "type": "object",
         "title": "HTTPValidationError",
@@ -10916,6 +11164,52 @@
           "impersonation_session_id"
         ],
         "title": "ImpersonationStartResponse"
+      },
+      "InvitationResponse": {
+        "properties": {
+          "invitation_id": {
+            "type": "string",
+            "title": "Invitation Id",
+            "description": "Unique Clerk invitation identifier"
+          },
+          "org_id": {
+            "type": "string",
+            "title": "Org Id",
+            "description": "Unique Clerk organization identifier"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email",
+            "description": "Email address of the invitee"
+          },
+          "role": {
+            "type": "string",
+            "title": "Role",
+            "description": "Assigned organization role for the invitee"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "Status of the invitation (e.g. pending, accepted, revoked)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "invitation_id",
+          "org_id",
+          "email",
+          "role",
+          "status"
+        ],
+        "title": "InvitationResponse",
+        "description": "Organization invitation projection schema model.",
+        "example": {
+          "email": "user@example.com",
+          "invitation_id": "inv_2exampleInvitation123456789",
+          "org_id": "org_2exampleOrg123456789",
+          "role": "org:member",
+          "status": "pending"
+        }
       },
       "InviteRequest": {
         "properties": {
@@ -12192,6 +12486,66 @@
           "requester_id"
         ],
         "title": "ReviewRequest"
+      },
+      "RevokeSessionRequest": {
+        "properties": {
+          "session_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Id",
+            "description": "Optional target Clerk session ID to revoke"
+          }
+        },
+        "type": "object",
+        "title": "RevokeSessionRequest",
+        "description": "Payload to revoke a specific active Clerk session.",
+        "example": {
+          "session_id": "sess_2exampleSessionId123456789"
+        }
+      },
+      "RevokeSessionResponse": {
+        "properties": {
+          "revoked": {
+            "type": "boolean",
+            "title": "Revoked",
+            "description": "Whether the session or sessions were successfully revoked"
+          },
+          "session_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Id",
+            "description": "The session identifier that was revoked"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "Human-readable outcome description message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "revoked",
+          "message"
+        ],
+        "title": "RevokeSessionResponse",
+        "description": "Result of session revocation operation.",
+        "example": {
+          "message": "Session revoked successfully.",
+          "revoked": true,
+          "session_id": "sess_2exampleSessionId123456789"
+        }
       },
       "Scenario": {
         "properties": {
