@@ -54,8 +54,8 @@ def main():
                 reflection=f"step {step_idx} executed cleanly",
                 importance=4,
             )
-    except Exception:
-        pass
+    except Exception as exc:
+        print(f"[antigravity_post_tool] unexpected error: {exc}", file=sys.stderr)
 
     # Antigravity PostToolUse expects `{}` on stdout
     print("{}")
