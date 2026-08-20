@@ -24,6 +24,22 @@
       ],
       "post_install_results": [],
       "brain_root_primitive": "$CLAUDE_PROJECT_DIR"
+    },
+    "antigravity": {
+      "installed_at": "2026-08-16T22:52:00Z",
+      "files_written": [
+        "GEMINI.md",
+        ".agents/skills.json",
+        ".agents/plugins.json",
+        ".agents/hooks.json",
+        ".agents/mcp_config.json",
+        ".gemini/settings.json"
+      ],
+      "files_overwritten": [],
+      "files_alerted": [],
+      "file_results": [],
+      "post_install_results": [],
+      "brain_root_primitive": ".agent"
     }
   }
 }
