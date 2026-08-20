@@ -9,10 +9,10 @@ frontend state for tenant context.
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Any, Literal
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response, status
-from pydantic import BaseModel
+from fastapi import APIRouter, Body, Depends, Header, HTTPException, Path, Request, Response, status
+from pydantic import BaseModel, ConfigDict, Field
 from value_fabric.shared.error_handling.models import ErrorCode
 from value_fabric.shared.identity.fabric_auth import AuthContext
 
@@ -21,37 +21,79 @@ from app.core.auth_telemetry import get_auth_health_summary
 from app.core.clerk_auth import require_clerk_authenticated
 from app.services.authorization_snapshot import AuthorizationSnapshot, AuthorizationSnapshotService
 
-router = APIRouter(prefix="/auth/clerk", tags=["Clerk Authentication"])
+router = APIRouter(prefix="/auth/clerk", tags=["Platform", "Clerk Authentication"])
 authorization_router = APIRouter(prefix="/auth", tags=["Platform", "Authorization"])
 
 
 class ClerkTenantResponse(BaseModel):
     """Canonical mapping from a Clerk organization to a Fabric tenant."""
 
-    fabric_tenant_id: str
-    tenant_slug: str | None
-    clerk_org_id: str
-    status: Literal["active", "suspended", "deleted"]
-    roles: list[str]
-    permissions: list[str]
+    fabric_tenant_id: str = Field(description="Unique Fabric internal tenant identifier")
+    tenant_slug: str | None = Field(default=None, description="Human-readable unique tenant URL slug")
+    clerk_org_id: str = Field(description="External Clerk organization identifier")
+    status: Literal["active", "suspended", "deleted"] = Field(description="Operational tenant status")
+    roles: list[str] = Field(description="List of mapped roles for the tenant actor")
+    permissions: list[str] = Field(description="List of resolved effective permissions for the tenant actor")
 
 
 class RevokeSessionRequest(BaseModel):
-    session_id: str | None = None
+    """Payload to revoke a specific active Clerk session."""
+
+    session_id: str | None = Field(default=None, description="Optional target Clerk session ID to revoke")
+
+    model_config = ConfigDict(
+        title="RevokeSessionRequest",
+        json_schema_extra={
+            "description": "Payload to revoke a specific active Clerk session.",
+            "example": {
+                "session_id": "sess_2exampleSessionId123456789"
+            }
+        }
+    )
 
 
 class RevokeSessionResponse(BaseModel):
-    revoked: bool
-    session_id: str | None = None
-    message: str
+    """Result of session revocation operation."""
+
+    revoked: bool = Field(description="Whether the session or sessions were successfully revoked")
+    session_id: str | None = Field(default=None, description="The session identifier that was revoked")
+    message: str = Field(description="Human-readable outcome description message")
+
+    model_config = ConfigDict(
+        title="RevokeSessionResponse",
+        json_schema_extra={
+            "description": "Result of session revocation operation.",
+            "example": {
+                "revoked": True,
+                "session_id": "sess_2exampleSessionId123456789",
+                "message": "Session revoked successfully."
+            }
+        }
+    )
 
 
 class InvitationResponse(BaseModel):
-    invitation_id: str
-    org_id: str
-    email: str
-    role: str
-    status: str
+    """Organization invitation projection schema model."""
+
+    invitation_id: str = Field(description="Unique Clerk invitation identifier")
+    org_id: str = Field(description="Unique Clerk organization identifier")
+    email: str = Field(description="Email address of the invitee")
+    role: str = Field(description="Assigned organization role for the invitee")
+    status: str = Field(description="Status of the invitation (e.g. pending, accepted, revoked)")
+
+    model_config = ConfigDict(
+        title="InvitationResponse",
+        json_schema_extra={
+            "description": "Organization invitation projection schema model.",
+            "example": {
+                "invitation_id": "inv_2exampleInvitation123456789",
+                "org_id": "org_2exampleOrg123456789",
+                "email": "user@example.com",
+                "role": "org:member",
+                "status": "pending"
+            }
+        }
+    )
 
 
 def _resolve_directory_tenant(
@@ -171,10 +213,36 @@ async def get_authorization_snapshot(
     )
 
 
-@router.post("/sessions/revoke", response_model=RevokeSessionResponse)
+@router.post(
+    "/sessions/revoke",
+    response_model=RevokeSessionResponse,
+    responses={
+        200: {
+            "description": "Session revoked successfully.",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "revoked": True,
+                        "session_id": "sess_2exampleSessionId123456789",
+                        "message": "Session revoked successfully.",
+                    }
+                }
+            },
+        }
+    },
+)
 async def revoke_active_session(
     request: Request,
-    body: RevokeSessionRequest | None = None,
+    body: RevokeSessionRequest = Body(
+        default=...,
+        description="Target Clerk session revocation request payload.",
+        openapi_examples={
+            "default": {
+                "summary": "Revoke target session",
+                "value": {"session_id": "sess_2exampleSessionId123456789"},
+            }
+        },
+    ),
     auth: AuthContext = Depends(require_clerk_authenticated),
     directory: AuthDirectory = Depends(get_auth_directory),
 ) -> RevokeSessionResponse:
@@ -207,7 +275,24 @@ async def revoke_active_session(
     )
 
 
-@router.post("/sessions/revoke-all", response_model=RevokeSessionResponse)
+@router.post(
+    "/sessions/revoke-all",
+    response_model=RevokeSessionResponse,
+    responses={
+        200: {
+            "description": "All sessions revoked for user successfully.",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "revoked": True,
+                        "session_id": None,
+                        "message": "All sessions revoked for user.",
+                    }
+                }
+            },
+        }
+    },
+)
 async def revoke_all_user_sessions(
     request: Request,
     auth: AuthContext = Depends(require_clerk_authenticated),
@@ -245,10 +330,29 @@ async def list_org_invitations(
     ]
 
 
-@router.post("/invitations/{invitation_id}/accept", response_model=InvitationResponse)
+@router.post(
+    "/invitations/{invitation_id}/accept",
+    response_model=InvitationResponse,
+    responses={
+        200: {
+            "description": "Invitation accepted successfully.",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "invitation_id": "inv_2exampleInvitation123456789",
+                        "org_id": "org_2exampleOrg123456789",
+                        "email": "user@example.com",
+                        "role": "org:member",
+                        "status": "accepted"
+                    }
+                }
+            }
+        }
+    }
+)
 async def accept_org_invitation(
     request: Request,
-    invitation_id: str,
+    invitation_id: str = Path(..., description="Unique Clerk organization invitation identifier to accept"),
     auth: AuthContext = Depends(require_clerk_authenticated),
     directory: AuthDirectory = Depends(get_auth_directory),
 ) -> InvitationResponse:

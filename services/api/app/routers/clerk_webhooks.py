@@ -50,7 +50,7 @@ from app.core.webhook_dlq import get_webhook_dlq
 
 logger = structlog.get_logger(__name__)
 
-router = APIRouter(prefix="/internal/webhooks", tags=["internal-webhooks"])
+router = APIRouter(prefix="/internal/webhooks", tags=["Platform", "internal-webhooks"])
 
 try:
     _clerk_rate_limit = int(os.getenv("CLERK_WEBHOOK_RATE_LIMIT_PER_MINUTE", str(_DEFAULT_CLERK_WEBHOOK_RATE_LIMIT_PER_MINUTE)))

@@ -14,7 +14,7 @@ import logging
 import time
 from functools import lru_cache
 
-from fastapi import HTTPException, Request, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from value_fabric.shared.error_handling.models import ErrorCode
 from value_fabric.shared.identity.fabric_auth import AuthContext
@@ -63,7 +63,7 @@ def reset_clerk_verifier_cache() -> None:
 
 async def require_clerk_authenticated(
     request: Request,
-    credentials: HTTPAuthorizationCredentials | None = None,
+    credentials: HTTPAuthorizationCredentials | None = Depends(_bearer_scheme),
 ) -> AuthContext:
     """FastAPI dependency: verify the Clerk Bearer token + build AuthContext.
 
