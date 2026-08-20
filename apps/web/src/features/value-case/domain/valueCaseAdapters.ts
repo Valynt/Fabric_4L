@@ -148,17 +148,14 @@ export function apiCaseToArtifactVersion(
   versionNumberOrScope?: number | ValueCaseScope,
   expectedScope?: ValueCaseScope
 ): ValueCaseArtifactVersion {
-  let versionNumber = 1;
-  let targetScope: ValueCaseScope | undefined = expectedScope;
-
-  if (typeof versionNumberOrScope === "number") {
-    versionNumber = versionNumberOrScope;
-  } else if (versionNumberOrScope && typeof versionNumberOrScope === "object") {
-    targetScope = versionNumberOrScope;
-    versionNumber = apiCase.version ?? 1;
-  } else {
-    versionNumber = apiCase.version ?? 1;
-  }
+  const versionNumber =
+    typeof versionNumberOrScope === "number"
+      ? versionNumberOrScope
+      : (apiCase.version ?? 1);
+  const targetScope =
+    typeof versionNumberOrScope === "object" && versionNumberOrScope !== null
+      ? versionNumberOrScope
+      : expectedScope;
 
   if (targetScope && apiCase.account_id !== targetScope.accountId) {
     throw new ValueCaseBoundaryError(
