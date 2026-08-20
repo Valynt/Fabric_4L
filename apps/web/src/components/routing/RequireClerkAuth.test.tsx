@@ -70,8 +70,11 @@ const PROTECTED_CONTENT = "PROTECTED_CONTENT_MARKER";
 const SIGN_IN_LANDING = "SIGN_IN_PAGE_MARKER";
 const SELECT_ORG_LANDING = "SELECT_ORG_PAGE_MARKER";
 
-function renderAt(path: string, options?: { requireOrganization?: boolean }) {
-  return render(
+function buildTree(
+  path: string,
+  options?: { requireOrganization?: boolean }
+) {
+  return (
     <MemoryRouter initialEntries={[path]}>
       <Routes>
         <Route path="/sign-in" element={<div>{SIGN_IN_LANDING}</div>} />
@@ -103,6 +106,10 @@ function renderAt(path: string, options?: { requireOrganization?: boolean }) {
       </Routes>
     </MemoryRouter>
   );
+}
+
+function renderAt(path: string, options?: { requireOrganization?: boolean }) {
+  return render(buildTree(path, options));
 }
 
 describe("<RequireClerkAuth />", () => {
@@ -261,6 +268,29 @@ describe("<RequireClerkAuth />", () => {
     expect(screen.getByText(PROTECTED_CONTENT)).toBeInTheDocument();
     expect(screen.queryByText(SELECT_ORG_LANDING)).not.toBeInTheDocument();
     expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it("clerk mode without org: does not re-navigate on re-render (redirect-loop guard)", () => {
+    setAuthProvider("clerk");
+    mockClerkState.isSignedIn = true;
+    mockClerkState.organization = null;
+
+    // Mock auth gains are nothing here: the common re-render source is a
+    // context/token update while the org-picker navigation is pending. The
+    // org-required effect gets a fresh navigateTo identity each render, so
+    // without the hasNavigated ref it would navigate again — this asserts the
+    // ref prevents the loop.
+    const { rerender } = render(buildTree("/protected"));
+
+    expect(mockNavigate).toHaveBeenCalledTimes(1);
+    expect(mockNavigate).toHaveBeenCalledWith("/workspaces", { replace: true });
+
+    // Any subsequent render (context update, parent re-render) must NOT fire
+    // a second navigation to /workspaces.
+    rerender(buildTree("/protected"));
+
+    expect(mockNavigate).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText(PROTECTED_CONTENT)).not.toBeInTheDocument();
   });
 
   // ─────────────────────────────────────────────────────────────────────
