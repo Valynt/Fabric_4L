@@ -156,7 +156,7 @@ async def get_clerk_tenant(
 
 @authorization_router.get("/health")
 @router.get("/health")
-async def get_auth_health() -> dict[str, Any]:
+async def get_auth_health() -> dict[str, object]:
     """Return real-time health and verification SLO statistics for the auth plane."""
     return get_auth_health_summary()
 
