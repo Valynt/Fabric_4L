@@ -11,11 +11,11 @@ All models use Pydantic v2 for validation and serialization.
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
-from enum import Enum
 import ipaddress
 import re
 import socket
+from datetime import UTC, datetime
+from enum import Enum
 from urllib.parse import urlparse
 from uuid import uuid4
 
@@ -126,7 +126,7 @@ def _validate_hostname(hostname: str) -> None:
 
 
 def validate_repo_url(url: str) -> str:
-    """Validate that a repository URL uses an approved Git transport and target.
+    r"""Validate that a repository URL uses an approved Git transport and target.
 
     Permits:
     - Standard URLs with approved schemes (https://, http://, ssh://, git://)
