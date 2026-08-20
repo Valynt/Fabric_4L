@@ -761,7 +761,7 @@ jobs:
           CREDENTIALS_MASTER_KEY=valuefabric-ci-credentials-master-key-32chars
           DEFAULT_TENANT_ID=00000000-0000-4000-8000-000000000001
           LAYER4_DATABASE_URL=postgresql+asyncpg://valuefabric:valuefabric-ci-postgres@postgres:5432/layer4_agents
-          NEO4J_PASSWORD=valuefabric
+          NEO4J_PASSWORD=valuefabric-ci-neo4j-password
           CORS_ORIGINS=["https://localhost:3000"]
           AUTH_PROVIDER=layer4
           CLERK_ISSUER=https://ci-clerk.example.test

@@ -40,6 +40,7 @@ def cache_factory(request: pytest.FixtureRequest) -> Callable[[SerializationType
 def test_msgpack_round_trip_preserves_supported_nested_values(
     cache_factory: Callable[[SerializationType], Any],
 ) -> None:
+    pytest.importorskip("msgpack")
     cache = cache_factory(SerializationType.MSGPACK)
     value = {
         "mapping": {
