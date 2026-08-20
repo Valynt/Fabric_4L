@@ -387,7 +387,8 @@
       "blocking": false,
       "required_secrets": [
         "GITHUB_TOKEN",
-        "INFISICAL_IDENTITY_ID"
+        "INFISICAL_IDENTITY_ID",
+        "PROMETHEUS_URL"
       ],
       "produced_artifacts": [],
       "runtime_budget_minutes": 30,

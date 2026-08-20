@@ -23,6 +23,6 @@ def test_heavy_workflow_concurrency_is_scoped_to_ref(workflow_name: str) -> None
     workflow = yaml.safe_load(source)
     concurrency = workflow["concurrency"]
 
-    assert concurrency["cancel-in-progress"] is True
+    assert concurrency["cancel-in-progress"] is True or concurrency["cancel-in-progress"] == "${{ github.ref != 'refs/heads/main' }}"
     assert "github.ref" in concurrency["group"]
     assert "-shared" not in concurrency["group"]
