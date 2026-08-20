@@ -66,7 +66,7 @@ def test_aggregate_probes_exception_marks_unhealthy() -> None:
     probes = [CallableProbe(name="dep", fn=boom)]
     healthy, results = asyncio.run(aggregate_probes(probes))
     assert healthy is False
-    assert results[0].detail == "dep failed"
+    assert results[0].detail == "probe_failed"
 
 
 # ----- Signature stability (append-only contract) -------------------------------
