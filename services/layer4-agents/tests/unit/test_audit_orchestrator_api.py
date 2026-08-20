@@ -542,7 +542,7 @@ def test_openapi_matches_audit_trigger_and_report_contract(app):
         "http://metadata.google.internal/repo",
     ],
 )
-def test_trigger_audit_rejects_hostile_repo_urls(client: Any, hostile_url: str):
+def test_trigger_audit_rejects_hostile_repo_urls(client, hostile_url: str):
     """POST /run must reject local filesystem paths, file://, traversal, and dangerous schemes."""
     response = client.post(
         "/v1/repo-audit/run",
@@ -562,10 +562,10 @@ def test_trigger_audit_rejects_hostile_repo_urls(client: Any, hostile_url: str):
     ],
 )
 def test_trigger_audit_accepts_valid_repo_urls(
-    client: Any, monkeypatch: pytest.MonkeyPatch, valid_url: str
+    client, monkeypatch: pytest.MonkeyPatch, valid_url: str
 ):
     """POST /run must accept valid Git URLs."""
-    async def fake_background_run_async(*args: Any, **kwargs: Any) -> None:
+    async def fake_background_run_async(*args, **kwargs) -> None:
         pass
 
     monkeypatch.setattr(audit_api, "_background_run_async", fake_background_run_async)
@@ -591,7 +591,7 @@ def test_trigger_audit_accepts_valid_repo_urls(
     ],
 )
 def test_github_webhook_rejects_hostile_clone_url(
-    client: Any, monkeypatch: pytest.MonkeyPatch, hostile_clone_url: str
+    client, monkeypatch: pytest.MonkeyPatch, hostile_clone_url: str
 ):
     """The GitHub webhook endpoint must reject payloads with hostile clone_urls."""
     monkeypatch.delenv("GITHUB_WEBHOOK_SECRET", raising=False)
