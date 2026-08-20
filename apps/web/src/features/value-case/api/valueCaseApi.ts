@@ -4,6 +4,7 @@
  * Performs validated network calls to backend value-case endpoints.
  */
 import { apiGet, apiPost, apiPatch } from "@/api/typedClient";
+import { resolveBackendAccountId } from "@/hooks/useAccounts";
 import {
   parseApiBusinessCase,
   parseApiValueCaseList,
@@ -98,9 +99,10 @@ export async function fetchAccountApi(
   options?: { headers?: Record<string, string> }
 ): Promise<ApiAccount> {
   try {
+    const backendAccountId = await resolveBackendAccountId(accountId);
     const response = await apiGet<unknown>(
       "api",
-      `/accounts/${encodeURIComponent(accountId)}`,
+      `/accounts/${encodeURIComponent(backendAccountId)}`,
       options
     );
     return parseApiAccount(response.data);

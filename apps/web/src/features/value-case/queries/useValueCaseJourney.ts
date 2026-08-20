@@ -379,8 +379,8 @@ export function useValueCaseJourney(
   // 8. Lifecycle State Resolution
   const lifecycleState: ValueCaseJourneyState = useMemo(() => {
     if (authorization.status === "loading") return "resolving-identity";
-    if (authorization.status === "denied" || !verifiedScope) return "denied";
     if (authorization.status === "expired") return "expired";
+    if (authorization.status === "denied" || !verifiedScope) return "denied";
     if (accountQuery.isLoading || versionsQuery.isLoading) return "loading";
     if (accountQuery.isError || versionsQuery.isError) return "boundary-error";
     if (!versions.length) return "empty";

@@ -163,10 +163,10 @@ export const ValueCaseGenerationPanel = memo(function ValueCaseGenerationPanel({
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
 
   useEffect(() => {
-    if (!isDirty) {
+    if (isOpen && !isDirty) {
       setLocalDraft(draft);
     }
-  }, [draft, isDirty]);
+  }, [isOpen, draft, isDirty]);
 
   const updateDraft = (
     updater: (prev: ValueCaseGenerationInputsDraft) => ValueCaseGenerationInputsDraft
@@ -181,6 +181,7 @@ export const ValueCaseGenerationPanel = memo(function ValueCaseGenerationPanel({
   };
 
   const handleGenerate = () => {
+    setIsDirty(false);
     onGenerate(localDraft);
   };
 
