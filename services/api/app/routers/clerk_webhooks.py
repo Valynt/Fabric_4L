@@ -324,7 +324,7 @@ async def clerk_webhook(request: Request, _limit: None = Depends(_clerk_ip_limit
             event_type=event_type,
             payload=payload,
             headers=headers,
-            error_reason=str(exc),
+            error_reason=str(exc),  # ban-str-e-allow: DLQ stores error detail for operator replay
         )
         record_webhook_dlq(event_type, "internal_exception")
         record_webhook_event(event_type, "error", time.perf_counter() - start_time)
