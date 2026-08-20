@@ -104,11 +104,16 @@ class ExtractionCache:
         context = context or {}
         tenant_id = context.get("tenant_id") or ""  # Use empty string as fallback for metrics
 
+        is_decode_failure = isinstance(
+            exc,
+            (ValidationError, ValueError, TypeError, json.JSONDecodeError, UnicodeDecodeError, AttributeError, EOFError),
+        )
+
         # Always record metrics even without tenant context for observability
         metrics = get_metrics()
         if metrics:
             metrics.record_cache_failure(
-                failure_type="decode" if isinstance(exc, (ValidationError, ValueError, TypeError, json.JSONDecodeError, UnicodeDecodeError, AttributeError, EOFError)) else "corruption",
+                failure_type="decode" if is_decode_failure else "corruption",
                 tenant_id=tenant_id,
                 ingestion_id=context.get("ingestion_id", ""),
                 extraction_job_id=context.get("extraction_job_id") or context.get("job_id") or "",
@@ -118,9 +123,11 @@ class ExtractionCache:
                 operation=operation,
             )
 
+        # For decode/validation failures, omit exc_info to prevent logging sensitive cached payloads
+        # present in ValidationError representations or JSONDecodeError context.
         logger.warning(
             "Cache operation failed; continuing without cache",
-            exc_info=exc,
+            exc_info=None if is_decode_failure else exc,
             extra={
                 "operation": operation,
                 "tenant_id": tenant_id or None,  # Use None in logs if empty

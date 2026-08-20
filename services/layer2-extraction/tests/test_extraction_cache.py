@@ -446,6 +446,17 @@ class TestExtractionCacheSafeSerialization:
 
         executed = False
 
+        def malicious_callable():
+            nonlocal executed
+            executed = True
+            return "executed"
+
+        class ExploitConstructor:
+            pass
+
+        # Construct pickle bytecode where malicious_callable is invoked during unpickling (GLOBAL + REDUCE)
+        # without executing it during construction.
+        # Alternatively, resetting the flag after pickle.dumps ensures clean baseline.
         class MaliciousPayload:
             def __reduce__(self):
                 nonlocal executed
@@ -453,6 +464,7 @@ class TestExtractionCacheSafeSerialization:
                 return (str, ("executed",))
 
         poisoned_bytes = pickle.dumps(MaliciousPayload())
+        executed = False  # Reset flag so we only measure execution during cache.get()
 
         mock_redis = AsyncMock()
         mock_redis.get = AsyncMock(return_value=poisoned_bytes)
@@ -480,9 +492,27 @@ class TestExtractionCacheSafeSerialization:
         await cache.get(*DEFAULT_SCOPE, "entities")
 
         for record in caplog.records:
-            # The secret payload content should not be present in the message or extra metadata
+            # The secret payload content should not be present in the formatted record or any attributes
+            formatted_record = caplog.text
+            assert secret_marker not in formatted_record
             assert secret_marker not in record.getMessage()
             extra_dict = getattr(record, "__dict__", {})
             for key, val in extra_dict.items():
-                if key not in ("args", "exc_info"):
-                    assert secret_marker not in str(val)
+                assert secret_marker not in str(val)
+
+    @pytest.mark.asyncio
+    async def test_validation_error_input_value_not_logged_in_traceback(self, caplog: pytest.LogCaptureFixture):
+        secret_tenant_data = "SENSITIVE_CUSTOMER_ENTITY_DATA_98765"
+        mock_redis = AsyncMock()
+        # Valid JSON structure for envelope, but invalid type for version field causing Pydantic ValidationError
+        mock_redis.get = AsyncMock(
+            return_value=f'{{"version": "{secret_tenant_data}", "tenant_id": "tenant-a", "endpoint": "entities", "data": 123}}'.encode()
+        )
+
+        with patch("redis.asyncio.from_url", return_value=mock_redis):
+            cache = ExtractionCache(redis_url="redis://localhost:6379")
+
+        caplog.set_level(logging.WARNING, logger="layer2_extraction.extraction.cache")
+        await cache.get(*DEFAULT_SCOPE, "entities")
+
+        assert secret_tenant_data not in caplog.text
