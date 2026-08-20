@@ -1,0 +1,35 @@
+{
+  "value-fabric-guard": {
+    "PreToolUse": [
+      {
+        "matcher": "run_command|write_to_file|replace_file_content|multi_replace_file_content",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python .agent/harness/hooks/antigravity_pre_tool.py",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python .agent/harness/hooks/antigravity_post_tool.py",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "type": "command",
+        "command": "python .agent/harness/hooks/antigravity_stop.py",
+        "timeout": 30
+      }
+    ]
+  }
+}
