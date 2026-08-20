@@ -428,8 +428,8 @@ jobs:
             artifacts/duplicate-source-trees.json
             artifacts/shared-imports-runtime.json
             artifacts/pytest-collection.txt
-            artifacts/pytest-skip-governance.json
-            artifacts/test-skip-governance.json
+            artifacts/test-debt-governance.json
+            artifacts/test-debt-governance.md
             artifacts/legacy-debt-report.json
             artifacts/violation-diff-summary.json
             artifacts/violation-diff-summary.md
