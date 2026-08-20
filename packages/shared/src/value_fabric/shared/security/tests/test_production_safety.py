@@ -63,6 +63,26 @@ class TestEnvironmentClassification:
         ("env_value", "expected"),
         [
             ("production", True),
+            ("prod", False),
+            ("staging", False),
+            ("stage", False),
+            ("development", False),
+            ("dev", False),
+            ("local", False),
+            ("test", False),
+            ("testing", False),
+            ("ci", False),
+            ("unknown", False),
+            ("custom-env", False),
+        ],
+    )
+    def test_is_production_like_environment(self, env_value: str, expected: bool) -> None:
+        assert is_production_like_environment(env_value) is expected
+
+    @pytest.mark.parametrize(
+        ("env_value", "expected"),
+        [
+            ("production", True),
             ("prod", True),
             ("staging", True),
             ("stage", True),
@@ -72,12 +92,13 @@ class TestEnvironmentClassification:
             ("test", False),
             ("testing", False),
             ("ci", False),
-            ("unknown", True),   # fail-safe: unknown = production-like
-            ("custom-env", True),  # fail-safe: unknown = production-like
+            ("unknown", True),   # fail-safe: unknown = strict
+            ("custom-env", True),  # fail-safe: unknown = strict
         ],
     )
-    def test_is_production_like_environment(self, env_value: str, expected: bool) -> None:
-        assert is_production_like_environment(env_value) is expected
+    def test_is_strict_environment(self, env_value: str, expected: bool) -> None:
+        from value_fabric.shared.security.config import is_strict_environment
+        assert is_strict_environment(env_value) is expected
 
 
 # ---------------------------------------------------------------------------
@@ -384,9 +405,15 @@ class TestAccumulatedErrors:
 @pytest.mark.unit
 class TestProductionSafetyValidatorDirectly:
     def test_validator_exposes_environment_and_production_like(self) -> None:
-        validator = ProductionSafetyValidator(environment="staging")
-        assert validator.environment == "staging"
-        assert validator.is_production_like is True
+        validator_staging = ProductionSafetyValidator(environment="staging")
+        assert validator_staging.environment == "staging"
+        assert validator_staging.is_strict is True
+        assert validator_staging.is_production_like is False
+
+        validator_prod = ProductionSafetyValidator(environment="production")
+        assert validator_prod.environment == "production"
+        assert validator_prod.is_strict is True
+        assert validator_prod.is_production_like is True
 
     def test_validator_clears_errors_after_dev_warning(self) -> None:
         """In dev mode, errors are converted to warnings and the internal list is cleared."""
