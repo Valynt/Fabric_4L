@@ -81,6 +81,11 @@ def _validate_hostname(hostname: str) -> None:
     # Check if the hostname is a literal IP address
     try:
         ip = ipaddress.ip_address(clean_host)
+    except ValueError:
+        # Not a literal IP address; proceed to DNS resolution
+        ip = None
+
+    if ip is not None:
         if (
             ip.is_loopback
             or ip.is_private
@@ -92,8 +97,6 @@ def _validate_hostname(hostname: str) -> None:
         ):
             raise ValueError(f"Disallowed private, loopback, or non-global IP address in repository URL: {hostname}")
         return
-    except ValueError:
-        pass
 
     # Validate resolved IPs if DNS resolution succeeds
     try:
@@ -103,19 +106,22 @@ def _validate_hostname(hostname: str) -> None:
             ip_str = sockaddr[0]
             try:
                 resolved_ip = ipaddress.ip_address(ip_str)
-                if (
-                    resolved_ip.is_loopback
-                    or resolved_ip.is_private
-                    or resolved_ip.is_link_local
-                    or resolved_ip.is_multicast
-                    or resolved_ip.is_reserved
-                    or resolved_ip.is_unspecified
-                    or not resolved_ip.is_global
-                ):
-                    raise ValueError(f"Repository hostname '{hostname}' resolves to disallowed address {resolved_ip}")
             except ValueError:
-                pass
+                # Skip unparseable address format returned from getaddrinfo
+                continue
+
+            if (
+                resolved_ip.is_loopback
+                or resolved_ip.is_private
+                or resolved_ip.is_link_local
+                or resolved_ip.is_multicast
+                or resolved_ip.is_reserved
+                or resolved_ip.is_unspecified
+                or not resolved_ip.is_global
+            ):
+                raise ValueError(f"Repository hostname '{hostname}' resolves to disallowed address {resolved_ip}")
     except (socket.gaierror, socket.herror, OSError):
+        # Ignore DNS resolution failures during offline or transient environments
         pass
 
 
