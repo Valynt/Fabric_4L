@@ -802,6 +802,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p zap-reports
+          chmod a+w zap-reports
           declare -a targets=(
             "layer1:http://127.0.0.1:8001"
             "layer2:http://127.0.0.1:8002"

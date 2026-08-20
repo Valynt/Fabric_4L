@@ -17,7 +17,7 @@ from typing import Any
 try:
     import msgpack
 except ImportError:
-    msgpack = None  # type: ignore[assignment]
+    msgpack: Any = None
 import redis.asyncio as redis
 from pydantic import BaseModel, ConfigDict, Field
 from value_fabric.shared.testability import Clock, SystemClock
