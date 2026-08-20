@@ -17,6 +17,7 @@ without revealing the plaintext.
 from __future__ import annotations
 
 import base64
+import functools
 import hashlib
 import hmac
 import logging
@@ -28,6 +29,7 @@ from cryptography.fernet import Fernet, InvalidToken
 logger = logging.getLogger(__name__)
 
 
+@functools.lru_cache(maxsize=32)
 def _derive_fernet_key(master_key: str) -> bytes:
     """Derive a Fernet-compatible 32-byte key from an arbitrary master key.
 
@@ -37,6 +39,12 @@ def _derive_fernet_key(master_key: str) -> bytes:
     """
     raw = hashlib.sha256(master_key.encode("utf-8")).digest()
     return base64.urlsafe_b64encode(raw)
+
+
+@functools.lru_cache(maxsize=32)
+def _get_fernet_for_key(master_key: str) -> Fernet:
+    """Instantiate and cache a Fernet cipher instance for a given master key."""
+    return Fernet(_derive_fernet_key(master_key))
 
 
 def _is_production_like() -> bool:
@@ -50,7 +58,13 @@ def _get_fernet() -> Fernet | None:
     key = os.getenv("CREDENTIALS_MASTER_KEY", "").strip()
     if not key:
         return None
-    return Fernet(_derive_fernet_key(key))
+    return _get_fernet_for_key(key)
+
+
+@functools.lru_cache(maxsize=32)
+def _derive_blind_index_key(raw_key_bytes: bytes) -> bytes:
+    """Derive an HMAC-SHA256 key for blind indexing from raw key bytes."""
+    return hashlib.sha256(raw_key_bytes + b"::blind-index-v1").digest()
 
 
 def blind_index(plaintext: str | None, key: bytes | str | None = None) -> str | None:
@@ -79,13 +93,15 @@ def blind_index(plaintext: str | None, key: bytes | str | None = None) -> str | 
         master = os.getenv("CREDENTIALS_MASTER_KEY", "").strip()
         if not master:
             return None
-        key = master.encode()
+        raw_key = master.encode()
     elif isinstance(key, str):
-        key = key.encode()
+        raw_key = key.encode()
+    else:
+        raw_key = key
 
     # Derive a separate HMAC key so that a compromise of the blind-index
     # cannot be replayed against the Fernet ciphertext.
-    hmac_key = hashlib.sha256(key + b"::blind-index-v1").digest()
+    hmac_key = _derive_blind_index_key(raw_key)
     normalised = plaintext.lower().strip().encode("utf-8")
     return hmac.new(hmac_key, normalised, hashlib.sha256).hexdigest()
 
