@@ -19,19 +19,20 @@ import {
 import type { ComponentProps, ReactElement } from "react";
 import { isClerkAuthEnabled } from "@/auth/clerkConfig";
 
-interface FabricControlProps {
-  className?: string;
-}
+type UserButtonProps = ComponentProps<typeof UserButton>;
+type OrganizationSwitcherProps = ComponentProps<typeof OrganizationSwitcher>;
+type SignInProps = ComponentProps<typeof SignIn>;
+type SignUpProps = ComponentProps<typeof SignUp>;
+type OrganizationProfileProps = ComponentProps<typeof OrganizationProfile>;
 
 export function FabricUserButton(
-  props: ComponentProps<typeof UserButton> & FabricControlProps
+  props: UserButtonProps
 ): ReactElement | null {
   if (!isClerkAuthEnabled()) {
     return null;
   }
   return (
     <UserButton
-      afterSignOutUrl="/sign-in"
       showName={false}
       appearance={{
         elements: {
@@ -47,7 +48,7 @@ export function FabricUserButton(
 }
 
 export function FabricOrganizationSwitcher(
-  props: ComponentProps<typeof OrganizationSwitcher> & FabricControlProps
+  props: OrganizationSwitcherProps
 ): ReactElement | null {
   if (!isClerkAuthEnabled()) {
     return null;
@@ -73,16 +74,13 @@ export function FabricOrganizationSwitcher(
 }
 
 export function FabricSignIn(
-  props: ComponentProps<typeof SignIn> & FabricControlProps
+  props: SignInProps
 ): ReactElement | null {
   if (!isClerkAuthEnabled()) {
     return null;
   }
   return (
     <SignIn
-      routing="path"
-      path="/sign-in"
-      signUpUrl="/sign-up"
       appearance={{
         elements: {
           card: "shadow-xl border border-border bg-card text-card-foreground rounded-xl",
@@ -96,16 +94,13 @@ export function FabricSignIn(
 }
 
 export function FabricSignUp(
-  props: ComponentProps<typeof SignUp> & FabricControlProps
+  props: SignUpProps
 ): ReactElement | null {
   if (!isClerkAuthEnabled()) {
     return null;
   }
   return (
     <SignUp
-      routing="path"
-      path="/sign-up"
-      signInUrl="/sign-in"
       appearance={{
         elements: {
           card: "shadow-xl border border-border bg-card text-card-foreground rounded-xl",
@@ -119,15 +114,13 @@ export function FabricSignUp(
 }
 
 export function FabricOrganizationProfile(
-  props: ComponentProps<typeof OrganizationProfile> & FabricControlProps
+  props: OrganizationProfileProps
 ): ReactElement | null {
   if (!isClerkAuthEnabled()) {
     return null;
   }
   return (
     <OrganizationProfile
-      routing="path"
-      path="/organization-profile"
       appearance={{
         elements: {
           card: "shadow-xl border border-border bg-card text-card-foreground rounded-xl",

@@ -9018,15 +9018,50 @@
         "summary": "List Clerk Webhook Dlq",
         "description": "Inspect the Dead-Letter Queue for failed Clerk webhook events (internal operator inspection).",
         "operationId": "list_clerk_webhook_dlq_internal_webhooks_clerk_dlq_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "vf_session",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Session cookie for authenticated requests",
+              "title": "Vf Session"
+            },
+            "description": "Session cookie for authenticated requests"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
                   "type": "object",
+                  "additionalProperties": true,
                   "title": "Response List Clerk Webhook Dlq Internal Webhooks Clerk Dlq Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
