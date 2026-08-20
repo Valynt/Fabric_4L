@@ -45,7 +45,7 @@ class CommandStep:
 def run_step(step: CommandStep) -> bool:
     print(f"\n==> {step.name}")
     print("$ " + " ".join(step.command))
-    proc = subprocess.run(step.command, cwd=ROOT, text=True)
+    proc = subprocess.run(step.command, cwd=ROOT, text=True, shell=sys.platform.startswith("win"))
     return proc.returncode == 0
 
 
