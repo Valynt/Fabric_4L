@@ -13,7 +13,9 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from enum import Enum
+import ipaddress
 import re
+import socket
 from urllib.parse import urlparse
 from uuid import uuid4
 
@@ -41,7 +43,17 @@ _DISALLOWED_PREFIXES: tuple[str, ...] = (
 )
 
 _DISALLOWED_HOSTS: frozenset[str] = frozenset(
-    {"localhost", "127.0.0.1", "0.0.0.0", "169.254.169.254", "::1", "[::1]"}
+    {
+        "localhost",
+        "127.0.0.1",
+        "0.0.0.0",
+        "169.254.169.254",
+        "::1",
+        "[::1]",
+        "localhost.localdomain",
+        "metadata.google.internal",
+        "instance-data",
+    }
 )
 _SSH_SCP_PATTERN = re.compile(
     r"^[a-zA-Z0-9._-]+@[a-zA-Z0-9.\-]+:[a-zA-Z0-9._/\-]+(?:\.git)?$"
@@ -49,6 +61,62 @@ _SSH_SCP_PATTERN = re.compile(
 
 # Reject path traversal components or suspicious control/shell characters
 _DANGEROUS_CHARS_PATTERN = re.compile(r"[\x00-\x1f\x7f;`$&|<>\s\"']")
+
+
+def _validate_hostname(hostname: str) -> None:
+    """Validate that a hostname/IP is not private, loopback, link-local, or reserved."""
+    clean_host = hostname.strip("[]").lower()
+    if not clean_host:
+        raise ValueError("Repository URL must include a valid hostname")
+
+    if not re.match(r"^[a-zA-Z0-9.\-]+$", clean_host):
+        raise ValueError(f"Invalid hostname in repository URL: {hostname}")
+
+    if clean_host in _DISALLOWED_HOSTS:
+        raise ValueError(f"Disallowed hostname or loopback/metadata host in repository URL: {hostname}")
+
+    if clean_host.endswith((".localhost", ".local", ".internal", ".lan", ".arpa", ".localdomain")):
+        raise ValueError(f"Disallowed private or internal domain in repository URL: {hostname}")
+
+    # Check if the hostname is a literal IP address
+    try:
+        ip = ipaddress.ip_address(clean_host)
+        if (
+            ip.is_loopback
+            or ip.is_private
+            or ip.is_link_local
+            or ip.is_multicast
+            or ip.is_reserved
+            or ip.is_unspecified
+            or not ip.is_global
+        ):
+            raise ValueError(f"Disallowed private, loopback, or non-global IP address in repository URL: {hostname}")
+        return
+    except ValueError:
+        pass
+
+    # Validate resolved IPs if DNS resolution succeeds
+    try:
+        addr_info = socket.getaddrinfo(clean_host, None)
+        for item in addr_info:
+            sockaddr = item[4]
+            ip_str = sockaddr[0]
+            try:
+                resolved_ip = ipaddress.ip_address(ip_str)
+                if (
+                    resolved_ip.is_loopback
+                    or resolved_ip.is_private
+                    or resolved_ip.is_link_local
+                    or resolved_ip.is_multicast
+                    or resolved_ip.is_reserved
+                    or resolved_ip.is_unspecified
+                    or not resolved_ip.is_global
+                ):
+                    raise ValueError(f"Repository hostname '{hostname}' resolves to disallowed address {resolved_ip}")
+            except ValueError:
+                pass
+    except (socket.gaierror, socket.herror, OSError):
+        pass
 
 
 def validate_repo_url(url: str) -> str:
@@ -114,9 +182,14 @@ def validate_repo_url(url: str) -> str:
     # Check SSH SCP pattern
     if "@" in stripped and ":" in stripped and not stripped.startswith(("http://", "https://", "ssh://", "git://")):
         if _SSH_SCP_PATTERN.match(stripped):
-            host_part, path_part = stripped.split(":", 1)
+            user_host, path_part = stripped.split(":", 1)
+            if "@" in user_host:
+                _, host_part = user_host.split("@", 1)
+            else:
+                host_part = user_host
             if not host_part or not path_part or ".." in path_part:
                 raise ValueError("Invalid SSH Git repository format")
+            _validate_hostname(host_part)
             return stripped
         raise ValueError(
             "Invalid SSH Git URL format. Expected format: user@host:path/to/repo.git"
@@ -140,18 +213,7 @@ def validate_repo_url(url: str) -> str:
         )
 
     hostname = (parsed.hostname or "").lower()
-    if not hostname:
-        raise ValueError("Repository URL must include a valid hostname")
-
-    if not re.match(r"^[a-zA-Z0-9.\-]+$", hostname):
-        raise ValueError(f"Invalid hostname in repository URL: {hostname}")
-
-    if (
-        hostname in _DISALLOWED_HOSTS
-        or hostname.startswith("127.")
-        or hostname.startswith("169.254.")
-    ):
-        raise ValueError(f"Disallowed hostname or loopback/metadata IP in repository URL: {hostname}")
+    _validate_hostname(hostname)
 
     path = parsed.path
     if not path or path == "/" or not path.strip("/"):

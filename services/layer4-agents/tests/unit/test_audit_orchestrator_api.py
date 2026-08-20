@@ -532,6 +532,14 @@ def test_openapi_matches_audit_trigger_and_report_contract(app):
         "http://169.254.169.254/latest/meta-data",
         "http://localhost:8080/repo",
         "http://127.0.0.1:8000/repo",
+        "git@localhost:owner/repo.git",
+        "git@127.0.0.1:owner/repo.git",
+        "git@10.0.0.1:owner/repo.git",
+        "http://10.0.0.1/repo",
+        "http://192.168.1.1/repo",
+        "http://172.16.0.1/repo",
+        "ssh://git@10.0.0.1/repo.git",
+        "http://metadata.google.internal/repo",
     ],
 )
 def test_trigger_audit_rejects_hostile_repo_urls(client: Any, hostile_url: str):
