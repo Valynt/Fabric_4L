@@ -13,6 +13,21 @@
       ],
       "reason": "Removal of overdue frontend-compat aliases (/v1/auth/register, /v1/tenant/settings) from layer4-agents.json per V1-PROVISION-001. Canonical replacements (/v1/tenants/register, /v1/tenants/current/settings) are unchanged. Frontend migration to canonical paths completed before the register's removal targets.",
       "expiresOn": "2026-12-31T00:00:00Z"
+    },
+    {
+      "id": "CLERK-AUTH-HARDENING-001",
+      "status": "approved",
+      "approvedBy": "bmsull560 (repo owner) via PR #1354 and ADR-043 / ADR-044",
+      "rfc": "https://github.com/bmsull560/Fabric_4L/pull/1354",
+      "fingerprints": [
+        "cdf7c7e368084687",
+        "7be9f52060cc4438",
+        "2ba7976f65a4d246",
+        "a1063f45802fca2c",
+        "c83515891b439fbe"
+      ],
+      "reason": "Hardened Clerk authentication endpoints (/v1/auth/authorization-snapshot, /v1/auth/clerk/tenant) in API Gateway: removed legacy request bodies on GET operations and aligned security scheme to Bearer JWT token verification per ADR-043 / ADR-044.",
+      "expiresOn": "2026-12-31T00:00:00Z"
     }
   ]
 }
