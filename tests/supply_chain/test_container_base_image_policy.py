@@ -55,7 +55,7 @@ def test_ci_container_scans_use_blocking_high_critical_policy() -> None:
     assert "trivy-image-scan:" in security_gates
     assert "exit-code: '1'" in security_gates
     assert "severity: 'HIGH,CRITICAL'" in security_gates
-    assert "scanners: 'vuln,secret,config'" in security_gates
+    assert "scanners: 'vuln,secret,misconfig'" in security_gates
 
 
 def test_hadolint_uses_matrix_dockerfile_or_context_dockerfile() -> None:

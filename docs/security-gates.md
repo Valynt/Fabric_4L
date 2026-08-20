@@ -59,7 +59,7 @@ The `Security Gates` workflow now includes:
      (Dockerfiles, Compose, Kubernetes manifests, Terraform).
    - Fails on `HIGH,CRITICAL` (unfixed vulnerabilities are ignored).
    - Complements the per-image `Container Scan (Trivy)` matrix job, which
-     continues to scan each built layer image with `vuln,secret,config`
+     continues to scan each built layer image with `vuln,secret,misconfig`
      scanners and per-layer SARIF categories.
 
 8. **OSV-Scanner** (Google official reusable workflows, pinned)
