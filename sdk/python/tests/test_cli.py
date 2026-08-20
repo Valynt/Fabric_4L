@@ -12,6 +12,7 @@ from uuid import UUID
 import pytest
 from typer.testing import CliRunner
 
+from valuefabric.cli import config as config_mod
 from valuefabric.cli.main import app
 from valuefabric.models import (
     APIKey,
@@ -363,7 +364,6 @@ class TestConfigErrorHandling:
             _load_profile_toml("invalid_line")
 
     def test_load_config_corrupted_file(self, tmp_path, monkeypatch):
-        import valuefabric.cli.config as config_mod
         from valuefabric.errors import ConfigurationError
 
         corrupted_file = tmp_path / "corrupted.toml"

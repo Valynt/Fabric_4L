@@ -81,25 +81,27 @@ jobs:
             HEAD_SHA=$(git rev-parse HEAD)
           fi
 
-          # Find changed skill files
-          CHANGED_SKILLS=$(git diff --name-only $BASE_SHA $HEAD_SHA | grep -E '^services/layer4-agents/skills/.*\.md$' || true)
-          CHANGED_AGENTS=$(git diff --name-only $BASE_SHA $HEAD_SHA | grep -E '^services/layer4-agents/src/layer4_agents/agents/.*\.md$' || true)
-          CHANGED_PROMPTS=$(git diff --name-only $BASE_SHA $HEAD_SHA | grep -E '^services/layer4-agents/prompts/.*\.md$' || true)
+          # Find changed skill, agent, and prompt files
+          CHANGED_SKILLS=$(git diff --name-only $BASE_SHA $HEAD_SHA | grep -E '^services/layer4-agents/(skills/.*\.md|src/layer4_agents/skills/.*\.py)$' || true)
+          CHANGED_AGENTS=$(git diff --name-only $BASE_SHA $HEAD_SHA | grep -E '^services/layer4-agents/src/layer4_agents/(agents/.*|registry/.*|model_registry_client\.py)$' || true)
+          CHANGED_PROMPTS=$(git diff --name-only $BASE_SHA $HEAD_SHA | grep -E '^services/layer4-agents/prompts/.*' || true)
+          CHANGED_OTHER=$(git diff --name-only $BASE_SHA $HEAD_SHA | grep -E '^(services/layer2-extraction/src/layer2_extraction/shared/llm_client\.py|packages/shared/src/value_fabric/shared/llm_safety/.*|evals/.*|tests/evals/.*|\.github/workflows/ai-evals-pipeline\.yml)$' || true)
 
           echo "Changed skills: $CHANGED_SKILLS"
           echo "Changed agents: $CHANGED_AGENTS"
           echo "Changed prompts: $CHANGED_PROMPTS"
+          echo "Changed other eval-trigger files: $CHANGED_OTHER"
 
-          # Extract skill names as JSON array for matrix strategy
-          SKILLS=$(echo "$CHANGED_SKILLS" | xargs -I {} basename {} .md | jq -R . | jq -s . | tr -d '\n')
-          AGENTS=$(echo "$CHANGED_AGENTS" | xargs -I {} basename {} .md | jq -R . | jq -s . | tr -d '\n')
+          # Extract skill and agent names as JSON array for matrix strategy
+          SKILLS=$(echo "$CHANGED_SKILLS" | sed -E 's/\.(md|py)$//' | xargs -I {} basename {} | jq -R . | jq -s . | tr -d '\n')
+          AGENTS=$(echo "$CHANGED_AGENTS" | sed -E 's/\.(md|py)$//' | xargs -I {} basename {} | jq -R . | jq -s . | tr -d '\n')
 
           echo "skills=$SKILLS" >> $GITHUB_OUTPUT
           echo "agents=$AGENTS" >> $GITHUB_OUTPUT
 
           # Determine if evals should run
           if [ -n "$CHANGED_SKILLS" ] || [ -n "$CHANGED_AGENTS" ] || \
-             [ -n "$CHANGED_PROMPTS" ] || [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+             [ -n "$CHANGED_PROMPTS" ] || [ -n "$CHANGED_OTHER" ] || [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             echo "should_run=true" >> $GITHUB_OUTPUT
           else
             echo "should_run=false" >> $GITHUB_OUTPUT

@@ -38,9 +38,12 @@ def check_rollout_status(namespace: str, rollout_name: str) -> bool:
             return True
 
 
-def check_prometheus_metrics(prometheus_url: str | None, max_error_rate: float = 0.01) -> bool:
+def check_prometheus_metrics(prometheus_url: str | None, max_error_rate: float = 0.01, fail_closed: bool = False) -> bool:
     """Query Prometheus for error rate anomalies during canary window."""
     if not prometheus_url:
+        if fail_closed:
+            logger.error("PROMETHEUS_URL is required but not configured; failing closed")
+            return False
         logger.info("PROMETHEUS_URL not set; skipping remote metric poll")
         return True
 
@@ -57,6 +60,9 @@ def check_prometheus_metrics(prometheus_url: str | None, max_error_rate: float =
                     return False
             return True
     except Exception as exc:
+        if fail_closed:
+            logger.error("Failed to query Prometheus at %s: %s; failing closed", prometheus_url, exc)
+            return False
         logger.warning("Failed to query Prometheus at %s: %s", prometheus_url, exc)
         return True
 
@@ -66,11 +72,13 @@ def run_canary_analysis(
     rollouts: Sequence[str],
     timeout_seconds: int = 1800,
     poll_interval_seconds: int = 30,
+    require_metrics: bool = False,
 ) -> int:
     """Poll rollouts until all are healthy or timeout is reached."""
     logger.info("Starting canary analysis for %s in namespace %s (timeout: %ds)", rollouts, namespace, timeout_seconds)
     start_time = time.time()
     prom_url = os.environ.get("PROMETHEUS_URL")
+    fail_closed = require_metrics or namespace.lower() in ("prod", "production")
 
     while time.time() - start_time < timeout_seconds:
         all_healthy = True
@@ -79,7 +87,7 @@ def run_canary_analysis(
                 all_healthy = False
                 break
 
-        if all_healthy and check_prometheus_metrics(prom_url):
+        if all_healthy and check_prometheus_metrics(prom_url, fail_closed=fail_closed):
             logger.info("All rollouts healthy and metrics within bounds")
             return 0
 
@@ -96,6 +104,7 @@ def main() -> int:
     parser.add_argument("--rollouts", required=True, help="Comma-separated list of rollout names")
     parser.add_argument("--timeout-seconds", type=int, default=1800, help="Max wait time")
     parser.add_argument("--poll-interval-seconds", type=int, default=30, help="Poll interval")
+    parser.add_argument("--require-metrics", action="store_true", help="Fail closed if metrics are unavailable")
     args = parser.parse_args()
 
     rollout_list = [r.strip() for r in args.rollouts.split(",") if r.strip()]
@@ -104,6 +113,7 @@ def main() -> int:
         rollouts=rollout_list,
         timeout_seconds=args.timeout_seconds,
         poll_interval_seconds=args.poll_interval_seconds,
+        require_metrics=args.require_metrics,
     )
 
 

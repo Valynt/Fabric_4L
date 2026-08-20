@@ -27,7 +27,8 @@ AUTO_DREAM = os.path.join(AGENT_ROOT, "memory", "auto_dream.py")
 def main():
     try:
         raw = sys.stdin.read()
-        payload = json.loads(raw) if raw.strip() else {}
+        if raw.strip():
+            _ = json.loads(raw)
         
         # Run auto_dream in background if it exists
         if os.path.exists(AUTO_DREAM):
@@ -39,6 +40,7 @@ def main():
                 timeout=30,
             )
     except Exception:
+        # Silently ignore background dream run errors on stop hook exit
         pass
 
     print(json.dumps({"decision": "stop"}))

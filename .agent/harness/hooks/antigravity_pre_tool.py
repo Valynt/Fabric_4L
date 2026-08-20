@@ -47,7 +47,6 @@ def evaluate_decision(payload):
     # 1. Shell command checks
     if tool_name in ("run_command", "bash", "execute_command"):
         cmd = args.get("CommandLine") or args.get("command") or ""
-        cmd_lower = cmd.strip().lower()
 
         # Check hard forbidden patterns
         for pattern, reason in FORBIDDEN_COMMAND_PATTERNS:

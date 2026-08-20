@@ -55,6 +55,7 @@ def main():
                 importance=4,
             )
     except Exception:
+        # Silently ignore memory logging errors to avoid blocking the tool lifecycle
         pass
 
     # Antigravity PostToolUse expects `{}` on stdout
