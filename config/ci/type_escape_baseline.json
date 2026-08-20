@@ -6068,42 +6068,6 @@
     },
     {
       "kind": "python-any",
-      "line": 27,
-      "path": "scripts/ci/check_temporal_skips.py",
-      "text": "from typing import Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 117,
-      "path": "scripts/ci/check_temporal_skips.py",
-      "text": "def _load_register(path: Path) -> dict[tuple[str, str, str], dict[str, Any]]:"
-    },
-    {
-      "kind": "python-any",
-      "line": 125,
-      "path": "scripts/ci/check_temporal_skips.py",
-      "text": "register: dict[tuple[str, str, str], dict[str, Any]] = {}"
-    },
-    {
-      "kind": "python-any",
-      "line": 191,
-      "path": "scripts/ci/check_temporal_skips.py",
-      "text": "def _is_registered(finding: Finding, register: dict[tuple[str, str, str], dict[str, Any]]) -> bool:"
-    },
-    {
-      "kind": "python-any",
-      "line": 253,
-      "path": "scripts/ci/check_temporal_skips.py",
-      "text": "def _load_baseline(path: Path) -> list[dict[str, Any]]:"
-    },
-    {
-      "kind": "python-any",
-      "line": 261,
-      "path": "scripts/ci/check_temporal_skips.py",
-      "text": "def _finding_in_baseline(finding: Finding, baseline: list[dict[str, Any]]) -> bool:"
-    },
-    {
-      "kind": "python-any",
       "line": 5,
       "path": "scripts/ci/check_tenant_enforcement_opt_in.py",
       "text": "F-15 (spec.md): enforce_authenticated_tenant is opt-in per route. Any route"
@@ -6116,33 +6080,45 @@
     },
     {
       "kind": "python-any",
-      "line": 13,
-      "path": "scripts/ci/check_test_skip_governance.py",
-      "text": "from typing import Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 215,
-      "path": "scripts/ci/check_test_skip_governance.py",
-      "text": ") -> dict[str, Any]:"
-    },
-    {
-      "kind": "python-any",
-      "line": 284,
-      "path": "scripts/ci/check_test_skip_governance.py",
-      "text": "def _write_github_step_summary(path: Path, report: dict[str, Any]) -> None:"
-    },
-    {
-      "kind": "python-any",
-      "line": 7,
-      "path": "scripts/ci/check_test_skip_register_uniqueness.py",
-      "text": "from typing import Any"
-    },
-    {
-      "kind": "python-any",
       "line": 15,
-      "path": "scripts/ci/check_test_skip_register_uniqueness.py",
-      "text": "def _load_entries(register_path: Path) -> list[dict[str, Any]]:"
+      "path": "scripts/ci/check_test_skip_governance.py",
+      "text": "from typing import Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 106,
+      "path": "scripts/ci/check_test_skip_governance.py",
+      "text": "def _violation(code: str, message: str, **location: Any) -> Violation:"
+    },
+    {
+      "kind": "python-any",
+      "line": 246,
+      "path": "scripts/ci/check_test_skip_governance.py",
+      "text": "def _entry_json(entry: RegisterEntry) -> dict[str, Any]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 253,
+      "path": "scripts/ci/check_test_skip_governance.py",
+      "text": "def evaluate(root: Path, register_path: Path, scan_roots: list[str], today: date) -> dict[str, Any]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 292,
+      "path": "scripts/ci/check_test_skip_governance.py",
+      "text": "inventory: dict[str, list[dict[str, Any]]] = {\"P0\": [], \"P1\": [], \"P2\": [], \"VALID\": []}"
+    },
+    {
+      "kind": "python-any",
+      "line": 301,
+      "path": "scripts/ci/check_test_skip_governance.py",
+      "text": "def rank(item: dict[str, Any]) -> tuple[Any, ...]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 334,
+      "path": "scripts/ci/check_test_skip_governance.py",
+      "text": "def _render_markdown(report: dict[str, Any]) -> str:"
     },
     {
       "kind": "python-type-ignore",

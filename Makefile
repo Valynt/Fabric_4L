@@ -106,10 +106,8 @@ verify-structure: ## Run structural preflight and Python contract lint checks
 	@$(PYTHON) scripts/ci/check_layer4_boundaries.py
 	@echo "→ Running temporal skip guard..."
 	@$(PYTHON) scripts/ci/check_temporal_skips.py \
-		--baseline config/ci/temporal_skip_baseline.json \
-		--exclude "tests/ci/test_temporal_skip_guard.py" \
-		--json-out artifacts/temporal-skip-guard.json \
-		--md-out artifacts/temporal-skip-guard.md
+		--json-out artifacts/test-debt-governance.json \
+		--md-out artifacts/test-debt-governance.md
 	@echo "✅  Structure verification passed"
 
 check-layer4-boundaries: ## Report/fail on Layer 4 bounded-context dependency violations and transitive hotspots
@@ -201,23 +199,17 @@ gate-database-live: check-migration-postgres-roundtrip ## Live/destructive datab
 	@bash scripts/ops/test_postgres_backup_restore.sh
 	@echo "✅  gate-database-live passed"
 
-check-pytest-skip-governance: ## Enforce pytest skip governance from collection output (with allowlist + baseline)
+check-pytest-skip-governance: ## Reconcile subordinate pytest collection evidence with canonical static governance
 	@mkdir -p artifacts
 	@set +e; $(PYTHON) -m pytest --collect-only -q -ra tests > artifacts/pytest-collection.txt 2>&1; collect_status=$$?; set -e; \
-	 $(PYTHON) scripts/ci/check_pytest_skip_governance.py artifacts/pytest-collection.txt --allowlist config/ci/pytest_skip_allowlist.yaml --baseline config/ci/pytest_skip_baseline.json --write-report artifacts/pytest-skip-governance.json; \
+	 $(PYTHON) scripts/ci/check_pytest_skip_governance.py artifacts/pytest-collection.txt --write-report artifacts/test-debt-governance.json; \
 	 if [ "$$collect_status" -ne 0 ]; then echo "pytest collection exited non-zero ($$collect_status); structural-preflight should catch import errors separately."; fi
 
 check-type-escape-ratchet: ## Fail on net-new unapproved Python or TypeScript type escapes
 	@$(PYTHON) scripts/ci/type_escape_ratchet.py
 
-check-temporal-skips: ## Guard against net-new unregistered hard-coded temporal test skips
-	@echo "→ Checking for unregistered temporal skips..."
-	@$(PYTHON) scripts/ci/check_temporal_skips.py \
-		--baseline config/ci/temporal_skip_baseline.json \
-		--exclude "tests/ci/test_temporal_skip_guard.py" \
-		--json-out artifacts/temporal-skip-guard.json \
-		--md-out artifacts/temporal-skip-guard.md
-	@echo "✅ Temporal skip guard passed"
+check-temporal-skips: ## Compatibility delegate to canonical test-debt governance
+	@$(PYTHON) scripts/ci/check_temporal_skips.py --json-out artifacts/test-debt-governance.json --md-out artifacts/test-debt-governance.md
 
 check-hermetic-build-inputs: ## Enforce digest-pinned Docker base images and approved external domains in CI inputs
 	@echo "→ Checking hermetic build inputs..."
@@ -239,7 +231,7 @@ check-layer3-legacy-tenant-dependency-imports: ## Block legacy Layer 3 tenant de
 
 check-layer3-tenant-dependency-imports: check-layer3-legacy-tenant-dependency-imports ## Alias for check-layer3-legacy-tenant-dependency-imports (backward compat)
 
-check-test-skip-register-uniqueness: ## Enforce uniqueness of test skip register keys (path_pattern + marker + reason_pattern)
+check-test-skip-register-uniqueness: ## Compatibility delegate to canonical test-debt governance
 	@$(PYTHON) scripts/ci/check_test_skip_register_uniqueness.py --register config/ci/test_skip_register.yaml
 
 check-reports-evidence-policy: ## Enforce reports/ artifact policy and fail on unarchived failing snapshots
