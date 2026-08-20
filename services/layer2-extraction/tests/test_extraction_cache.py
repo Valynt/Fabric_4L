@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import logging
-import pytest
 from unittest.mock import AsyncMock, patch
+
+import pytest
 
 from layer2_extraction.extraction.cache import ExtractionCache, _InMemoryLRUCache
 
@@ -166,6 +167,7 @@ class TestExtractionCacheFailureBehavior:
         with patch("redis.asyncio.from_url", return_value=mock_redis):
             cache = ExtractionCache(redis_url="redis://localhost:6379")
 
+        assert cache._fallback is not None
         cache._fallback.set(cache._make_key(*DEFAULT_SCOPE, "entities"), {"ok": True})
         caplog.set_level(logging.WARNING, logger="layer2_extraction.extraction.cache")
 
@@ -312,3 +314,194 @@ class TestExtractionCacheFailureBehavior:
         assert await cache.get(*scope_b, "entities") == "result-b"
         assert await cache.get(*scope_c, "entities") == "result-c"
         assert await cache.get(*scope_d, "entities") == "result-d"
+
+
+# ---------------------------------------------------------------------------
+# ExtractionCache (Redis safe serialization & security tests)
+# ---------------------------------------------------------------------------
+
+class TestExtractionCacheSafeSerialization:
+    @pytest.mark.asyncio
+    async def test_redis_set_and_get_round_trip(self):
+        stored_values: dict[str, bytes] = {}
+        mock_redis = AsyncMock()
+        mock_redis.get = AsyncMock(side_effect=lambda k: stored_values.get(k))
+        mock_redis.setex = AsyncMock(side_effect=lambda k, ttl, val: stored_values.update({k: val}))
+
+        with patch("redis.asyncio.from_url", return_value=mock_redis):
+            cache = ExtractionCache(redis_url="redis://localhost:6379")
+
+        value = {"entities": ["A", "B"], "nested": {"score": 0.95}, "flag": True}
+        await cache.set(*DEFAULT_SCOPE, "entities", value)
+
+        # Verify envelope structure in Redis storage
+        key = cache._make_key(*DEFAULT_SCOPE, "entities")
+        raw_stored = stored_values[key]
+        assert isinstance(raw_stored, bytes)
+        import json
+        parsed = json.loads(raw_stored.decode("utf-8"))
+        assert parsed["version"] == 1
+        assert parsed["tenant_id"] == "tenant-a"
+        assert parsed["endpoint"] == "entities"
+        assert parsed["data"] == value
+
+        # Retrieve and verify round-trip
+        retrieved = await cache.get(*DEFAULT_SCOPE, "entities")
+        assert retrieved == value
+
+    @pytest.mark.asyncio
+    async def test_malformed_json_fails_safely_as_cache_miss(self, caplog: pytest.LogCaptureFixture):
+        mock_redis = AsyncMock()
+        mock_redis.get = AsyncMock(return_value=b"{invalid json payload")
+
+        with patch("redis.asyncio.from_url", return_value=mock_redis):
+            cache = ExtractionCache(redis_url="redis://localhost:6379")
+
+        caplog.set_level(logging.WARNING, logger="layer2_extraction.extraction.cache")
+        result = await cache.get(*DEFAULT_SCOPE, "entities")
+
+        assert result is None
+        assert "Cache operation failed; continuing without cache" in caplog.text
+        assert any(getattr(record, "operation", None) == "read" for record in caplog.records)
+
+    @pytest.mark.asyncio
+    async def test_non_utf8_binary_fails_safely_as_cache_miss(self, caplog: pytest.LogCaptureFixture):
+        mock_redis = AsyncMock()
+        mock_redis.get = AsyncMock(return_value=b"\x80\x04\x95\x1f\x00\x00\x00\x00\x00\x00\x00")
+
+        with patch("redis.asyncio.from_url", return_value=mock_redis):
+            cache = ExtractionCache(redis_url="redis://localhost:6379")
+
+        caplog.set_level(logging.WARNING, logger="layer2_extraction.extraction.cache")
+        result = await cache.get(*DEFAULT_SCOPE, "entities")
+
+        assert result is None
+        assert "Cache operation failed; continuing without cache" in caplog.text
+
+    @pytest.mark.asyncio
+    async def test_schema_invalid_envelope_fails_safely_as_cache_miss(self, caplog: pytest.LogCaptureFixture):
+        mock_redis = AsyncMock()
+        # Missing required fields like tenant_id / endpoint / data
+        mock_redis.get = AsyncMock(return_value=b'{"version": 1, "some_unrelated_field": "test"}')
+
+        with patch("redis.asyncio.from_url", return_value=mock_redis):
+            cache = ExtractionCache(redis_url="redis://localhost:6379")
+
+        caplog.set_level(logging.WARNING, logger="layer2_extraction.extraction.cache")
+        result = await cache.get(*DEFAULT_SCOPE, "entities")
+
+        assert result is None
+        assert "Cache operation failed; continuing without cache" in caplog.text
+
+    @pytest.mark.asyncio
+    async def test_unknown_envelope_version_fails_safely_as_cache_miss(self, caplog: pytest.LogCaptureFixture):
+        mock_redis = AsyncMock()
+        mock_redis.get = AsyncMock(
+            return_value=b'{"version": 999, "tenant_id": "tenant-a", "endpoint": "entities", "data": {"result": 1}}'
+        )
+
+        with patch("redis.asyncio.from_url", return_value=mock_redis):
+            cache = ExtractionCache(redis_url="redis://localhost:6379")
+
+        caplog.set_level(logging.WARNING, logger="layer2_extraction.extraction.cache")
+        result = await cache.get(*DEFAULT_SCOPE, "entities")
+
+        assert result is None
+        assert "Cache operation failed; continuing without cache" in caplog.text
+
+    @pytest.mark.asyncio
+    async def test_tenant_mismatch_in_envelope_fails_safely_as_cache_miss(self, caplog: pytest.LogCaptureFixture):
+        mock_redis = AsyncMock()
+        mock_redis.get = AsyncMock(
+            return_value=b'{"version": 1, "tenant_id": "tenant-b", "endpoint": "entities", "data": {"result": 1}}'
+        )
+
+        with patch("redis.asyncio.from_url", return_value=mock_redis):
+            cache = ExtractionCache(redis_url="redis://localhost:6379")
+
+        caplog.set_level(logging.WARNING, logger="layer2_extraction.extraction.cache")
+        result = await cache.get(*DEFAULT_SCOPE, "entities")
+
+        assert result is None
+        assert "Cache operation failed; continuing without cache" in caplog.text
+
+    @pytest.mark.asyncio
+    async def test_legacy_pickle_payload_rejected_without_deserialization(self):
+        import pickle
+        legacy_data = {"entities": ["legacy-capability"]}
+        legacy_pickle_bytes = pickle.dumps(legacy_data)
+
+        mock_redis = AsyncMock()
+        mock_redis.get = AsyncMock(return_value=legacy_pickle_bytes)
+
+        with patch("redis.asyncio.from_url", return_value=mock_redis):
+            cache = ExtractionCache(redis_url="redis://localhost:6379")
+
+        result = await cache.get(*DEFAULT_SCOPE, "entities")
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_foreign_executable_pickle_object_is_never_executed(self):
+        import pickle
+
+        executed = False
+
+        class MaliciousPayload:
+            def __reduce__(self):
+                nonlocal executed
+                executed = True
+                return (str, ("executed",))
+
+        poisoned_bytes = pickle.dumps(MaliciousPayload())
+        executed = False  # Reset flag so we only measure execution during cache.get()
+
+        mock_redis = AsyncMock()
+        mock_redis.get = AsyncMock(return_value=poisoned_bytes)
+
+        with patch("redis.asyncio.from_url", return_value=mock_redis):
+            cache = ExtractionCache(redis_url="redis://localhost:6379")
+
+        result = await cache.get(*DEFAULT_SCOPE, "entities")
+
+        assert result is None
+        assert executed is False, "Malicious pickle __reduce__ was executed!"
+
+    @pytest.mark.asyncio
+    async def test_cached_content_not_logged_on_decode_failure(self, caplog: pytest.LogCaptureFixture):
+        secret_marker = "SUPER_SECRET_TENANT_PII_12345"
+        mock_redis = AsyncMock()
+        mock_redis.get = AsyncMock(
+            return_value=f'{{"version": 1, "{secret_marker}": invalid_json}}'.encode()
+        )
+
+        with patch("redis.asyncio.from_url", return_value=mock_redis):
+            cache = ExtractionCache(redis_url="redis://localhost:6379")
+
+        caplog.set_level(logging.WARNING, logger="layer2_extraction.extraction.cache")
+        await cache.get(*DEFAULT_SCOPE, "entities")
+
+        for record in caplog.records:
+            # The secret payload content should not be present in the formatted record or any attributes
+            formatted_record = caplog.text
+            assert secret_marker not in formatted_record
+            assert secret_marker not in record.getMessage()
+            extra_dict = getattr(record, "__dict__", {})
+            for key, val in extra_dict.items():
+                assert secret_marker not in str(val)
+
+    @pytest.mark.asyncio
+    async def test_validation_error_input_value_not_logged_in_traceback(self, caplog: pytest.LogCaptureFixture):
+        secret_tenant_data = "SENSITIVE_CUSTOMER_ENTITY_DATA_98765"
+        mock_redis = AsyncMock()
+        # Valid JSON structure for envelope, but invalid type for version field causing Pydantic ValidationError
+        mock_redis.get = AsyncMock(
+            return_value=f'{{"version": "{secret_tenant_data}", "tenant_id": "tenant-a", "endpoint": "entities", "data": 123}}'.encode()
+        )
+
+        with patch("redis.asyncio.from_url", return_value=mock_redis):
+            cache = ExtractionCache(redis_url="redis://localhost:6379")
+
+        caplog.set_level(logging.WARNING, logger="layer2_extraction.extraction.cache")
+        await cache.get(*DEFAULT_SCOPE, "entities")
+
+        assert secret_tenant_data not in caplog.text
