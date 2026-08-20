@@ -23,7 +23,7 @@ concurrency:
   # Cancel only an obsolete run of this same workflow/ref. A global
   # feature-branch group lets activity on an unrelated PR cancel required gates.
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 env:
   # Opt into Node.js 24 for GitHub Actions
@@ -978,7 +978,7 @@ jobs:
           --health-cmd "pg_isready -U postgres -d layer3_knowledge"
           --health-interval 10s --health-timeout 5s --health-retries 5
       neo4j:
-        image: neo4j:5
+        image: neo4j:5-community
         env:
           NEO4J_AUTH: neo4j/testpassword
         ports:
@@ -2662,7 +2662,7 @@ jobs:
         options: >-
           --health-cmd "redis-cli ping" --health-interval 10s --health-timeout 5s --health-retries 5
       neo4j:
-        image: neo4j:5
+        image: neo4j:5-community
         env:
           NEO4J_AUTH: neo4j/testpassword
         ports:

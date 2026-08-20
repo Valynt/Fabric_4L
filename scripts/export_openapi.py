@@ -393,7 +393,7 @@ def _install_layer4_openapi_dependency_shims() -> None:
 
     try:
         langgraph_checkpoint_postgres_aio_spec = importlib.util.find_spec("langgraph.checkpoint.postgres.aio")
-    except ModuleNotFoundError:
+    except Exception:
         langgraph_checkpoint_postgres_aio_spec = None
 
     if langgraph_checkpoint_postgres_aio_spec is None:

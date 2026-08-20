@@ -524,6 +524,8 @@ ENTERPRISE_SAAS_VALUEPACK = ValuePackCreate(
         OntologyTag(tag="ai_copilot", category="capability", related_tags=["automation", "productivity", "augmentation"]),
         OntologyTag(tag="headcount_efficiency", category="value_driver", related_tags=["labor_cost", "productivity", "automation"]),
         OntologyTag(tag="revenue_uplift", category="value_driver", related_tags=["growth", "expansion", "retention"]),
+        OntologyTag(tag="customer_ltv", category="value_driver", related_tags=["retention", "expansion", "growth"]),
+        OntologyTag(tag="compliance", category="compliance", related_tags=["soc2", "gdpr", "security"]),
         OntologyTag(tag="cac_payback", category="economic_model", related_tags=["acquisition", "efficiency", "unit_economics"]),
         OntologyTag(tag="nrr", category="economic_model", related_tags=["retention", "expansion", "recurring_revenue"])
     ],
@@ -796,6 +798,7 @@ HEALTHCARE_VALUEPACK = ValuePackCreate(
         OntologyTag(tag="clinical_outcome", category="value_driver", related_tags=["quality", "safety", "satisfaction"]),
         OntologyTag(tag="readmission", category="value_driver", related_tags=["cms", "penalty", "prevention"]),
         OntologyTag(tag="revenue_capture", category="value_driver", related_tags=["coding", "documentation", "billing"]),
+        OntologyTag(tag="compliance", category="compliance", related_tags=["hipaa", "privacy", "security", "phi"]),
         OntologyTag(tag="hipaa", category="compliance", related_tags=["privacy", "security", "phi"]),
         OntologyTag(tag="mips", category="economic_model", related_tags=["quality", "cms", "reimbursement"])
     ],
@@ -915,7 +918,9 @@ MANUFACTURING_VALUEPACK = ValuePackCreate(
         OntologyTag(tag="oee", category="value_driver", related_tags=["efficiency", "uptime", "performance"]),
         OntologyTag(tag="predictive_maintenance", category="capability", related_tags=["ai", "iot", "condition_monitoring"]),
         OntologyTag(tag="yield", category="value_driver", related_tags=["quality", "scrap", "rework"]),
-        OntologyTag(tag="downtime", category="value_driver", related_tags=["mtbf", "mttr", "availability"])
+        OntologyTag(tag="downtime", category="value_driver", related_tags=["mtbf", "mttr", "availability"]),
+        OntologyTag(tag="inventory", category="value_driver", related_tags=["wip", "raw_materials", "holding_cost"]),
+        OntologyTag(tag="headcount_efficiency", category="value_driver", related_tags=["labor_productivity", "automation", "throughput"])
     ],
     pre_built_economic_graph=PreBuiltEconomicGraph(
         nodes=[
@@ -1000,9 +1005,10 @@ FINANCIAL_SERVICES_VALUEPACK = ValuePackCreate(
     pre_wired_ontology_tags=[
         OntologyTag(tag="financial_services", category="industry", related_tags=["banking", "insurance", "capital_markets"]),
         OntologyTag(tag="risk_management", category="value_driver", related_tags=["credit", "market", "operational"]),
-        OntologyTag(tag="compliance", category="value_driver", related_tags=["regulatory", "reporting", "governance"]),
-        OntologyTag(tag="fraud", category="value_driver", related_tags=["detection", "prevention", "monitoring"]),
-        OntologyTag(tag="customer_ltv", category="value_driver", related_tags=["retention", "cross_sell", "personalization"])
+        OntologyTag(tag="compliance", category="compliance", related_tags=["regulatory", "reporting", "governance"]),
+        OntologyTag(tag="fraud_prevention", category="value_driver", related_tags=["detection", "prevention", "monitoring"]),
+        OntologyTag(tag="customer_ltv", category="value_driver", related_tags=["retention", "cross_sell", "personalization"]),
+        OntologyTag(tag="headcount_efficiency", category="value_driver", related_tags=["backoffice_automation", "efficiency"])
     ],
     pre_built_economic_graph=PreBuiltEconomicGraph(
         nodes=[
@@ -1089,7 +1095,10 @@ ENERGY_UTILITIES_VALUEPACK = ValuePackCreate(
         OntologyTag(tag="energy", category="industry", related_tags=["utilities", "oil_gas", "renewables"]),
         OntologyTag(tag="grid_reliability", category="value_driver", related_tags=["saidi", "saifi", "outages"]),
         OntologyTag(tag="asset_management", category="value_driver", related_tags=["predictive_maintenance", "degradation", "replacement"]),
+        OntologyTag(tag="predictive_maintenance", category="capability", related_tags=["predictive_maintenance", "degradation", "replacement"]),
+        OntologyTag(tag="downtime", category="value_driver", related_tags=["outages", "trips", "unplanned_maintenance"]),
         OntologyTag(tag="carbon", category="value_driver", related_tags=["emissions", "esg", "sustainability"]),
+        OntologyTag(tag="compliance", category="compliance", related_tags=["ferc", "nerc", "regulatory"]),
         OntologyTag(tag="nerc", category="compliance", related_tags=["cip", "reliability", "standards"])
     ],
     pre_built_economic_graph=PreBuiltEconomicGraph(
@@ -1178,6 +1187,8 @@ RETAIL_ECOMMERCE_VALUEPACK = ValuePackCreate(
         OntologyTag(tag="conversion", category="value_driver", related_tags=["funnel", "personalization", "optimization"]),
         OntologyTag(tag="inventory", category="value_driver", related_tags=["stockout", "overstock", "turns"]),
         OntologyTag(tag="customer_ltv", category="value_driver", related_tags=["retention", "repeat", "loyalty"]),
+        OntologyTag(tag="revenue_uplift", category="value_driver", related_tags=["growth", "aov", "conversion"]),
+        OntologyTag(tag="fraud_prevention", category="value_driver", related_tags=["chargebacks", "payment_fraud", "account_takeover"]),
         OntologyTag(tag="personalization", category="capability", related_tags=["recommendations", "targeting", "ai"])
     ],
     pre_built_economic_graph=PreBuiltEconomicGraph(
@@ -1267,6 +1278,10 @@ LOGISTICS_SUPPLY_CHAIN_VALUEPACK = ValuePackCreate(
         OntologyTag(tag="transportation", category="value_driver", related_tags=["freight", "routing", "optimization"]),
         OntologyTag(tag="warehouse", category="value_driver", related_tags=["fulfillment", "picking", "automation"]),
         OntologyTag(tag="visibility", category="value_driver", related_tags=["tracking", "eta", "exceptions"]),
+        OntologyTag(tag="predictive_maintenance", category="capability", related_tags=["fleet_maintenance", "telematics", "condition_monitoring"]),
+        OntologyTag(tag="downtime", category="value_driver", related_tags=["vehicle_downtime", "warehouse_downtime"]),
+        OntologyTag(tag="inventory", category="value_driver", related_tags=["positioning", "turns", "safety_stock"]),
+        OntologyTag(tag="headcount_efficiency", category="value_driver", related_tags=["warehouse_labor", "productivity", "automation"]),
         OntologyTag(tag="carrier", category="capability", related_tags=["freight", "procurement", "management"])
     ],
     pre_built_economic_graph=PreBuiltEconomicGraph(
@@ -1354,7 +1369,8 @@ PUBLIC_SECTOR_VALUEPACK = ValuePackCreate(
         OntologyTag(tag="public_sector", category="industry", related_tags=["government", "federal", "state", "local"]),
         OntologyTag(tag="citizen_service", category="value_driver", related_tags=["efficiency", "access", "satisfaction"]),
         OntologyTag(tag="fraud_prevention", category="value_driver", related_tags=["improper_payments", "waste", "abuse"]),
-        OntologyTag(tag="compliance", category="value_driver", related_tags=["audit", "regulatory", "standards"]),
+        OntologyTag(tag="compliance", category="compliance", related_tags=["audit", "regulatory", "standards"]),
+        OntologyTag(tag="headcount_efficiency", category="value_driver", related_tags=["process_automation", "casework_efficiency"]),
         OntologyTag(tag="fedramp", category="compliance", related_tags=["security", "authorization", "cloud"])
     ],
     pre_built_economic_graph=PreBuiltEconomicGraph(
