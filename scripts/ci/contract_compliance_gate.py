@@ -301,7 +301,7 @@ def _regenerate_openapi(specs: tuple[str, ...]) -> None:
         return
 
     _print_header("Regenerate OpenAPI")
-    _run(["python", "scripts/export_openapi.py", "--only", *refresh_specs], cwd=REPO_ROOT)
+    _run([sys.executable, "scripts/export_openapi.py", "--only", *refresh_specs], cwd=REPO_ROOT)
     _validate_json_artifacts(_tracked_openapi_specs())
 
 

@@ -10,7 +10,6 @@ Invariants verified:
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
 
 import yaml
 
@@ -57,9 +56,10 @@ AGGREGATE_CHECKS_MAP = {
 }
 
 
-def _load_yaml(path: Path) -> dict[str, Any]:
+def _load_yaml(path: Path) -> dict[str, object]:
     with path.open("r", encoding="utf-8") as f:
-        return yaml.safe_load(f) or {}
+        data = yaml.safe_load(f)
+        return data if isinstance(data, dict) else {}
 
 
 def test_required_workflows_trigger_on_merge_group() -> None:
