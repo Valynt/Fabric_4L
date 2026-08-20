@@ -454,7 +454,7 @@ class VersionCompatibility:
                 "latest_version": self.get_latest_version(),
             },
             warnings=all_warnings,
-            deprecated=deprecation.dict() if deprecation else None,
+            deprecated=deprecation.model_dump() if deprecation else None,
         )
 
 

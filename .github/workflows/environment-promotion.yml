@@ -42,6 +42,7 @@ env:
   REGISTRY: ghcr.io
   IMAGE_REF: ${{ github.event.inputs.image_ref || format('sha-{0}', github.sha) }}
   LAYERS: "layer1-ingestion layer2-extraction layer3-knowledge layer4-agents layer5-ground-truth layer6-benchmarks frontend"
+  PROMETHEUS_URL: ${{ secrets.PROMETHEUS_URL || 'https://prometheus.fabric.internal' }}
 
 jobs:
   # ============================================================================

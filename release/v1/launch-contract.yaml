@@ -64,6 +64,10 @@ scope_decisions:
     decision: out-of-scope-for-core-ga
     authority: Identity owner / Product / Release Management
     reference: docs/launch/sso-core-ga-scope-decision.md
+  j03_admin_support_scope:
+    decision: descoped-to-same-tenant-for-core-ga
+    authority: Product + Platform Security + Release Management
+    reference: signoff-evidence/gates/j03-support-admin.md
   layer2_5_signal_refinery_in_scope:
     # Explicit scope decision: the refinery is implicitly deployed (it has a
     # production Dockerfile and a docker-build entry) but is NOT on the

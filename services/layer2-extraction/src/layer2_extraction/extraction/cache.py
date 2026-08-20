@@ -6,15 +6,18 @@ Uses Redis when available, with an in-memory LRU fallback for local dev.
 from __future__ import annotations
 
 import hashlib
+import json
 import logging
 import os
-import pickle
 from collections import OrderedDict
 from typing import Any
+
+from pydantic import BaseModel, Field, JsonValue, ValidationError
 
 from layer2_extraction.metrics import get_metrics
 
 LLM_CACHE_TTL_SECONDS = int(os.getenv("LLM_CACHE_TTL_SECONDS", "3600"))
+CACHE_FORMAT_VERSION: int = 1
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +27,15 @@ except ImportError:  # pragma: no cover - optional dependency fallback
     RedisError = Exception
 
 _REDIS_ERRORS = (RedisError,)
+
+
+class ExtractionCacheEnvelope(BaseModel):
+    """Safe serialization envelope for Layer 2 extraction cache entries."""
+
+    version: int = Field(default=CACHE_FORMAT_VERSION)
+    tenant_id: str
+    endpoint: str
+    data: JsonValue
 
 
 class _InMemoryLRUCache:
@@ -91,12 +103,17 @@ class ExtractionCache:
     def _log_cache_failure(operation: str, exc: Exception, context: dict[str, str | None] | None = None) -> None:
         context = context or {}
         tenant_id = context.get("tenant_id") or ""  # Use empty string as fallback for metrics
-        
+
+        is_decode_failure = isinstance(
+            exc,
+            (ValidationError, ValueError, TypeError, json.JSONDecodeError, UnicodeDecodeError, AttributeError, EOFError),
+        )
+
         # Always record metrics even without tenant context for observability
         metrics = get_metrics()
         if metrics:
             metrics.record_cache_failure(
-                failure_type="decode" if isinstance(exc, (pickle.UnpicklingError, AttributeError, EOFError, ValueError, TypeError)) else "corruption",
+                failure_type="decode" if is_decode_failure else "corruption",
                 tenant_id=tenant_id,
                 ingestion_id=context.get("ingestion_id", ""),
                 extraction_job_id=context.get("extraction_job_id") or context.get("job_id") or "",
@@ -105,10 +122,12 @@ class ExtractionCache:
                 value_pack_id=context.get("value_pack_id", ""),
                 operation=operation,
             )
-        
+
+        # For decode/validation failures, omit exc_info to prevent logging sensitive cached payloads
+        # present in ValidationError representations or JSONDecodeError context.
         logger.warning(
             "Cache operation failed; continuing without cache",
-            exc_info=exc,
+            exc_info=None if is_decode_failure else exc,
             extra={
                 "operation": operation,
                 "tenant_id": tenant_id or None,  # Use None in logs if empty
@@ -130,7 +149,6 @@ class ExtractionCache:
     ) -> str:
         model = model or os.getenv("EXTRACTION_MODEL", "gpt-4o-mini")
         temperature = temperature if temperature is not None else 0.0
-        import json
         payload = json.dumps(
             [tenant_id, source_hash, extraction_version, value_pack_id, model, str(temperature), endpoint],
             separators=(",", ":"),
@@ -163,10 +181,21 @@ class ExtractionCache:
             try:
                 raw = await self._redis.get(key)
                 if raw:
-                    return pickle.loads(raw)  # nosec B301
+                    if isinstance(raw, bytes):
+                        raw_str = raw.decode("utf-8")
+                    elif isinstance(raw, str):
+                        raw_str = raw
+                    else:
+                        raise ValueError(f"Unexpected cache entry type: {type(raw).__name__}")
+                    envelope = ExtractionCacheEnvelope.model_validate_json(raw_str)
+                    if envelope.version != CACHE_FORMAT_VERSION:
+                        raise ValueError(f"Unsupported cache envelope version: {envelope.version}")
+                    if envelope.tenant_id != tenant_id:
+                        raise ValueError(f"Tenant mismatch in cache envelope: expected {tenant_id}, got {envelope.tenant_id}")
+                    return envelope.data
             except RedisError as exc:
                 self._log_cache_failure("read", exc, context)
-            except (pickle.UnpicklingError, AttributeError, EOFError, ValueError, TypeError) as exc:
+            except (ValidationError, ValueError, TypeError, json.JSONDecodeError, UnicodeDecodeError) as exc:
                 self._log_cache_failure("read", exc, context)
             except (RuntimeError, OSError) as exc:
                 self._log_cache_failure("read", exc, context)
@@ -193,11 +222,18 @@ class ExtractionCache:
         ttl = ttl or self._default_ttl
         if self._redis is not None:
             try:
-                await self._redis.setex(key, ttl, pickle.dumps(value))
+                envelope = ExtractionCacheEnvelope(
+                    version=CACHE_FORMAT_VERSION,
+                    tenant_id=tenant_id,
+                    endpoint=endpoint,
+                    data=value,
+                )
+                serialized = envelope.model_dump_json().encode("utf-8")
+                await self._redis.setex(key, ttl, serialized)
                 return
             except RedisError as exc:
                 self._log_cache_failure("write", exc, context)
-            except (pickle.PickleError, TypeError, AttributeError, ValueError) as exc:
+            except (ValidationError, TypeError, AttributeError, ValueError) as exc:
                 self._log_cache_failure("write", exc, context)
             except (RuntimeError, OSError) as exc:
                 self._log_cache_failure("write", exc, context)
