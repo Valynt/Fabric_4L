@@ -84,3 +84,9 @@ verify changed behavior.
 Core competencies for building scalable, high-retention multi-tenant SaaS products, focusing on architecture, onboarding, navigation, and modern UI design.
 Triggers: "SaaS", "multi-tenant", "onboarding", "navigation", "dashboard", "UI design", "accessibility", "AI integration", "tenant isolation", "Time-to-Value", "TTV", "command palette", "dark mode", "WCAG"
 Constraints: prioritize tenant data isolation, enforce tenant-aware authorization, target sub-5-minute TTV, use interactive walkthroughs over static tours, implement command palette for power users, apply calm design principles, prepare for WCAG 3.0 compliance, integrate AI as invisible infrastructure
+
+## context7-mcp
+Fetches current documentation, code examples, and API references for libraries and frameworks directly from Context7.
+Triggers: "context7", "docs", "documentation", "library reference", "framework docs", "api reference"
+Constraints: query per concept, resolve library ID before fetching, prefer official sources
+
