@@ -446,17 +446,6 @@ class TestExtractionCacheSafeSerialization:
 
         executed = False
 
-        def malicious_callable():
-            nonlocal executed
-            executed = True
-            return "executed"
-
-        class ExploitConstructor:
-            pass
-
-        # Construct pickle bytecode where malicious_callable is invoked during unpickling (GLOBAL + REDUCE)
-        # without executing it during construction.
-        # Alternatively, resetting the flag after pickle.dumps ensures clean baseline.
         class MaliciousPayload:
             def __reduce__(self):
                 nonlocal executed
