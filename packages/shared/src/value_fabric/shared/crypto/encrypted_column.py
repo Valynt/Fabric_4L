@@ -17,7 +17,6 @@ without revealing the plaintext.
 from __future__ import annotations
 
 import base64
-import functools
 import hashlib
 import hmac
 import logging
@@ -28,10 +27,40 @@ from cryptography.fernet import Fernet, InvalidToken
 
 logger = logging.getLogger(__name__)
 
-# Single-entry active cipher and blind index cache tracking the current master key
-_active_master_key: str | None = None
-_cached_fernet: Fernet | None = None
-_cached_blind_index_key: bytes | None = None
+
+class _FernetKeyCache:
+    """Thread-safe active Fernet cipher and blind-index cache.
+
+    Tracks the active master key and immediately evicts cached cryptographic
+    material upon key rotation or removal.
+    """
+
+    def __init__(self) -> None:
+        self._active_master_key: str | None = None
+        self._cached_fernet: Fernet | None = None
+        self._cached_blind_index_key: bytes | None = None
+
+    def get_fernet(self) -> Fernet | None:
+        key = os.getenv("CREDENTIALS_MASTER_KEY", "").strip()
+        if not key:
+            self._active_master_key = None
+            self._cached_fernet = None
+            self._cached_blind_index_key = None
+            return None
+
+        if self._active_master_key != key:
+            self._active_master_key = key
+            self._cached_fernet = Fernet(_derive_fernet_key(key))
+            self._cached_blind_index_key = hashlib.sha256(key.encode("utf-8") + b"::blind-index-v1").digest()
+
+        return self._cached_fernet
+
+    def get_blind_index_key(self) -> bytes | None:
+        self.get_fernet()
+        return self._cached_blind_index_key
+
+
+_cipher_cache = _FernetKeyCache()
 
 
 def _derive_fernet_key(master_key: str) -> bytes:
@@ -57,20 +86,7 @@ def _get_fernet() -> Fernet | None:
     Caches only the single active cipher and clears any previously cached instance
     when the configured CREDENTIALS_MASTER_KEY changes or is unset.
     """
-    global _active_master_key, _cached_fernet, _cached_blind_index_key
-    key = os.getenv("CREDENTIALS_MASTER_KEY", "").strip()
-    if not key:
-        _active_master_key = None
-        _cached_fernet = None
-        _cached_blind_index_key = None
-        return None
-
-    if _active_master_key != key:
-        _active_master_key = key
-        _cached_fernet = Fernet(_derive_fernet_key(key))
-        _cached_blind_index_key = hashlib.sha256(key.encode("utf-8") + b"::blind-index-v1").digest()
-
-    return _cached_fernet
+    return _cipher_cache.get_fernet()
 
 
 def _derive_blind_index_key(raw_key_bytes: bytes) -> bytes:
@@ -101,11 +117,9 @@ def blind_index(plaintext: str | None, key: bytes | str | None = None) -> str | 
         return None
 
     if key is None:
-        # Trigger cache update / check for master key
-        _get_fernet()
-        if _cached_blind_index_key is None:
+        hmac_key = _cipher_cache.get_blind_index_key()
+        if hmac_key is None:
             return None
-        hmac_key = _cached_blind_index_key
     else:
         if isinstance(key, str):
             raw_key = key.encode("utf-8")
