@@ -55,6 +55,7 @@ def main():
                 importance=4,
             )
     except Exception:
+        # Best-effort episodic reflection logging; errors must not disrupt the agent tool pipeline.
         pass
 
     # Antigravity PostToolUse expects `{}` on stdout

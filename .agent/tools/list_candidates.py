@@ -3,6 +3,7 @@
 Host-agent workflow: run this, pick the top N, review each with graduate.py
 or reject.py. Priority = cluster_size * canonical_salience * age_factor, so
 recurring + salient + aging items get attention first.
+"""
 import os, sys, json, argparse
 
 if sys.stdout and hasattr(sys.stdout, "reconfigure"):
