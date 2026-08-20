@@ -4,14 +4,14 @@
       "type": "http",
       "url": "https://api.repowise.dev/mcp/bmsull560/fabric_4l",
       "headers": {
-        "Authorization": "Bearer ${REPOWISE_API_KEY}"
+        "Authorization": "${REPOWISE_API_KEY}"
       }
     },
     "context7": {
       "type": "http",
       "url": "https://mcp.context7.com/mcp",
       "headers": {
-        "Authorization": "Bearer ctx7sk-80ce3230-7abb-44c5-8c09-1f0d5698c4f8"
+        "Authorization": "${CONTEXT7_API_KEY}"
       }
     }
   }
