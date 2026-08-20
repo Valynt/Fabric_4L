@@ -12,7 +12,7 @@ import os
 from collections import OrderedDict
 from typing import Any
 
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, Field, JsonValue, ValidationError
 
 from layer2_extraction.metrics import get_metrics
 
@@ -35,7 +35,7 @@ class ExtractionCacheEnvelope(BaseModel):
     version: int = Field(default=CACHE_FORMAT_VERSION)
     tenant_id: str
     endpoint: str
-    data: Any
+    data: JsonValue
 
 
 class _InMemoryLRUCache:
