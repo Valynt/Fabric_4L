@@ -15333,7 +15333,7 @@
           "repo_url": {
             "type": "string",
             "title": "Repo Url",
-            "description": "Repository URL to audit."
+            "description": "Repository URL to audit (must be an approved Git URL scheme like https:// or ssh://)."
           },
           "branch": {
             "anyOf": [
