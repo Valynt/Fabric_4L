@@ -40,9 +40,15 @@ APPROVAL_COMMAND_PATTERNS = [
 
 
 def evaluate_decision(payload):
-    tool_call = payload.get("toolCall") or {}
+    tool_call = payload.get("toolCall")
+    if not isinstance(tool_call, dict):
+        if tool_call is not None:
+            return {"decision": "deny", "reason": "PreTool hook error: toolCall must be an object"}
+        tool_call = {}
     tool_name = tool_call.get("name", "")
     args = tool_call.get("args") or {}
+    if not isinstance(args, dict):
+        args = {}
 
     # 1. Shell command checks
     if tool_name in ("run_command", "bash", "execute_command"):
@@ -73,10 +79,13 @@ def main():
     try:
         raw = sys.stdin.read()
         payload = json.loads(raw) if raw.strip() else {}
-        result = evaluate_decision(payload)
+        if not isinstance(payload, dict):
+            result = {"decision": "deny", "reason": "PreTool hook error: payload must be a JSON object"}
+        else:
+            result = evaluate_decision(payload)
     except Exception as e:
-        # Fail safe: allow with warning
-        result = {"decision": "allow", "reason": f"PreTool hook error fallback: {e}"}
+        # A security guard must fail closed when it cannot evaluate the request.
+        result = {"decision": "deny", "reason": f"PreTool hook error: {e}"}
 
     print(json.dumps(result))
 
