@@ -28,6 +28,41 @@ from cryptography.fernet import Fernet, InvalidToken
 logger = logging.getLogger(__name__)
 
 
+class _FernetKeyCache:
+    """Thread-safe active Fernet cipher and blind-index cache.
+
+    Tracks the active master key and immediately evicts cached cryptographic
+    material upon key rotation or removal.
+    """
+
+    def __init__(self) -> None:
+        self._active_master_key: str | None = None
+        self._cached_fernet: Fernet | None = None
+        self._cached_blind_index_key: bytes | None = None
+
+    def get_fernet(self) -> Fernet | None:
+        key = os.getenv("CREDENTIALS_MASTER_KEY", "").strip()
+        if not key:
+            self._active_master_key = None
+            self._cached_fernet = None
+            self._cached_blind_index_key = None
+            return None
+
+        if self._active_master_key != key:
+            self._active_master_key = key
+            self._cached_fernet = Fernet(_derive_fernet_key(key))
+            self._cached_blind_index_key = hashlib.sha256(key.encode("utf-8") + b"::blind-index-v1").digest()
+
+        return self._cached_fernet
+
+    def get_blind_index_key(self) -> bytes | None:
+        self.get_fernet()
+        return self._cached_blind_index_key
+
+
+_cipher_cache = _FernetKeyCache()
+
+
 def _derive_fernet_key(master_key: str) -> bytes:
     """Derive a Fernet-compatible 32-byte key from an arbitrary master key.
 
@@ -46,11 +81,17 @@ def _is_production_like() -> bool:
 
 
 def _get_fernet() -> Fernet | None:
-    """Return a Fernet instance or None if no key is configured."""
-    key = os.getenv("CREDENTIALS_MASTER_KEY", "").strip()
-    if not key:
-        return None
-    return Fernet(_derive_fernet_key(key))
+    """Return the active Fernet cipher instance or None if no key is configured.
+
+    Caches only the single active cipher and clears any previously cached instance
+    when the configured CREDENTIALS_MASTER_KEY changes or is unset.
+    """
+    return _cipher_cache.get_fernet()
+
+
+def _derive_blind_index_key(raw_key_bytes: bytes) -> bytes:
+    """Derive an HMAC-SHA256 key for blind indexing from raw key bytes."""
+    return hashlib.sha256(raw_key_bytes + b"::blind-index-v1").digest()
 
 
 def blind_index(plaintext: str | None, key: bytes | str | None = None) -> str | None:
@@ -76,16 +117,16 @@ def blind_index(plaintext: str | None, key: bytes | str | None = None) -> str | 
         return None
 
     if key is None:
-        master = os.getenv("CREDENTIALS_MASTER_KEY", "").strip()
-        if not master:
+        hmac_key = _cipher_cache.get_blind_index_key()
+        if hmac_key is None:
             return None
-        key = master.encode()
-    elif isinstance(key, str):
-        key = key.encode()
+    else:
+        if isinstance(key, str):
+            raw_key = key.encode("utf-8")
+        else:
+            raw_key = key
+        hmac_key = _derive_blind_index_key(raw_key)
 
-    # Derive a separate HMAC key so that a compromise of the blind-index
-    # cannot be replayed against the Fernet ciphertext.
-    hmac_key = hashlib.sha256(key + b"::blind-index-v1").digest()
     normalised = plaintext.lower().strip().encode("utf-8")
     return hmac.new(hmac_key, normalised, hashlib.sha256).hexdigest()
 

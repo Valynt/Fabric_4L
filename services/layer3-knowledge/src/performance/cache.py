@@ -14,7 +14,10 @@ from datetime import datetime
 from enum import Enum
 from typing import Any
 
-import msgpack
+try:
+    import msgpack
+except ImportError:
+    msgpack: Any = None
 import redis.asyncio as redis
 from pydantic import BaseModel, ConfigDict, Field
 from value_fabric.shared.testability import Clock, SystemClock
@@ -385,6 +388,8 @@ class MemoryCache:
             # P0 FIX: Pickle is disabled for security — use json or msgpack
             raise ValueError("pickle serializer is disabled for security — use json or msgpack")
         elif self.config.serialization == SerializationType.MSGPACK:
+            if msgpack is None:
+                raise RuntimeError("msgpack is not installed")
             return msgpack.packb(value, use_bin_type=True)
         elif self.config.serialization == SerializationType.BINARY:
             if isinstance(value, bytes):
@@ -462,6 +467,8 @@ class MemoryCache:
             # P0 FIX: Pickle is disabled for security — use json or msgpack
             raise ValueError("pickle serializer is disabled for security — use json or msgpack")
         elif self.config.serialization == SerializationType.MSGPACK:
+            if msgpack is None:
+                raise RuntimeError("msgpack is not installed")
             return msgpack.unpackb(data, raw=False)
         elif self.config.serialization == SerializationType.BINARY:
             return data
@@ -740,6 +747,8 @@ class RedisCache:
             # P0 FIX: Pickle is disabled for security — use json or msgpack
             raise ValueError("pickle serializer is disabled for security — use json or msgpack")
         elif self.config.serialization == SerializationType.MSGPACK:
+            if msgpack is None:
+                raise RuntimeError("msgpack is not installed")
             return msgpack.packb(value, use_bin_type=True)
         elif self.config.serialization == SerializationType.BINARY:
             if isinstance(value, bytes):
@@ -796,6 +805,8 @@ class RedisCache:
             # P0 FIX: Pickle is disabled for security — use json or msgpack
             raise ValueError("pickle serializer is disabled for security — use json or msgpack")
         elif self.config.serialization == SerializationType.MSGPACK:
+            if msgpack is None:
+                raise RuntimeError("msgpack is not installed")
             return msgpack.unpackb(data, raw=False)
         elif self.config.serialization == SerializationType.BINARY:
             return data

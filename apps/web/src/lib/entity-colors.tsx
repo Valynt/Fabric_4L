@@ -19,7 +19,7 @@ export interface EntityColorScheme {
   stroke: string;    // SVG stroke color
 }
 
-export const entityColors: Record<string, EntityColorScheme> = {
+const entityColors: Record<string, EntityColorScheme> = {
   capability: {
     bg: "bg-violet-100 dark:bg-violet-900/30",
     text: "text-violet-800 dark:text-primary",
