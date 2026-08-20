@@ -735,7 +735,7 @@ class ConfigurationManager:
         config = self.get_config()
 
         # Create export dictionary
-        export_data = config.dict()
+        export_data = config.model_dump()
 
         # Remove sensitive data if requested
         if not include_sensitive:
