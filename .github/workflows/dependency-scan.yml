@@ -212,7 +212,7 @@ jobs:
 
       - name: Upload dependency-audit SARIF
         if: always()
-        uses: github/codeql-action/upload-sarif@f58f0d11ebf5dedd870fab2f999275f7602cfa46 # codeql-bundle-v2.26.0
+        uses: github/codeql-action/upload-sarif@3ce22a6e336a7fcc318bc58ae1986395bdc83ba7 # v4.35.4
         with:
           sarif_file: artifacts/pip-audit/${{ matrix.python.service }}/report.sarif
           category: pip-audit-${{ matrix.python.service }}
@@ -401,7 +401,7 @@ jobs:
 
       - name: Upload SARIF
         if: always()
-        uses: github/codeql-action/upload-sarif@f58f0d11ebf5dedd870fab2f999275f7602cfa46 # codeql-bundle-v2.26.0
+        uses: github/codeql-action/upload-sarif@3ce22a6e336a7fcc318bc58ae1986395bdc83ba7 # v4.35.4
         with:
           sarif_file: container-scan.sarif
           category: container-scan
