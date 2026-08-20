@@ -9,7 +9,6 @@ from value_fabric.shared.crypto.encrypted_column import (
     _derive_blind_index_key,
     _derive_fernet_key,
     _get_fernet,
-    _get_fernet_for_key,
     blind_index,
 )
 
