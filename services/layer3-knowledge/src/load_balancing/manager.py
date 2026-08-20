@@ -948,7 +948,7 @@ class LoadBalancingSystem:
         uptime = (datetime.now(UTC) - self.start_time).total_seconds()
 
         return LoadBalancingSystem_get_system_statsResult.model_validate({
-            "load_balancer": lb_stats.dict(),
+            "load_balancer": lb_stats.model_dump(),
             "auto_scaler": {
                 "scaling_history": self.auto_scaler.get_scaling_history(),
                 "current_instances": len(self.load_balancer.backends),
