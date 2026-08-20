@@ -178,6 +178,7 @@ def main(argv: list[str] | None = None) -> int:
     if not args.event_path.exists():
         print(f"GITHUB_EVENT_PATH '{args.event_path}' does not exist; skipping change risk check.")
         return 0
+    errors: list[str] = []
     try:
         event = json.loads(args.event_path.read_text(encoding="utf-8"))
         event_name = os.environ.get("GITHUB_EVENT_NAME", "")

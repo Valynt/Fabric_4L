@@ -75,8 +75,8 @@ def main():
         payload = json.loads(raw) if raw.strip() else {}
         result = evaluate_decision(payload)
     except Exception as e:
-        # Fail safe: allow with warning
-        result = {"decision": "allow", "reason": f"PreTool hook error fallback: {e}"}
+        # A security guard must fail closed when it cannot evaluate the request.
+        result = {"decision": "deny", "reason": f"PreTool hook error: {e}"}
 
     print(json.dumps(result))
 
