@@ -35,6 +35,8 @@ EXTERNAL_AUTH_BOOTSTRAP_ALLOWLIST: frozenset[str] = frozenset(
         "/v1/billing/webhook",
         "/v1/repo-audit/webhook/github",
         "/internal/webhooks/clerk",
+        "/v1/auth/health",
+        "/v1/auth/clerk/health",
         "/v1/auth/login",
         "/v1/auth/signup",
         "/v1/auth/accept-invite",
@@ -54,4 +56,5 @@ def _is_external_auth_bootstrap_path(path: str) -> bool:
         path in EXTERNAL_AUTH_BOOTSTRAP_ALLOWLIST
         or path.startswith("/docs")
         or path.startswith("/redoc")
+        or path.startswith("/internal/webhooks/")
     )

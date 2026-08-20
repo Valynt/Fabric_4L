@@ -1534,6 +1534,258 @@
         }
       }
     },
+    "/v1/auth/clerk/health": {
+      "get": {
+        "tags": [
+          "Clerk Authentication"
+        ],
+        "summary": "Get Auth Health",
+        "description": "Return real-time health and verification SLO statistics for the auth plane.",
+        "operationId": "get_auth_health_v1_auth_clerk_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Get Auth Health V1 Auth Clerk Health Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/clerk/sessions/revoke": {
+      "post": {
+        "tags": [
+          "Clerk Authentication"
+        ],
+        "summary": "Revoke Active Session",
+        "description": "Revoke an active Clerk session discriminator.",
+        "operationId": "revoke_active_session_v1_auth_clerk_sessions_revoke_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_revoke_active_session_v1_auth_clerk_sessions_revoke_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RevokeSessionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/clerk/sessions/revoke-all": {
+      "post": {
+        "tags": [
+          "Clerk Authentication"
+        ],
+        "summary": "Revoke All User Sessions",
+        "description": "Revoke all active sessions for the authenticated user (sign out everywhere).",
+        "operationId": "revoke_all_user_sessions_v1_auth_clerk_sessions_revoke_all_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/HTTPAuthorizationCredentials"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Credentials"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RevokeSessionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/clerk/invitations": {
+      "get": {
+        "tags": [
+          "Clerk Authentication"
+        ],
+        "summary": "List Org Invitations",
+        "description": "List pending invitations for the verified Clerk organization.",
+        "operationId": "list_org_invitations_v1_auth_clerk_invitations_get",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/HTTPAuthorizationCredentials"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Credentials"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/InvitationResponse"
+                  },
+                  "type": "array",
+                  "title": "Response List Org Invitations V1 Auth Clerk Invitations Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/clerk/invitations/{invitation_id}/accept": {
+      "post": {
+        "tags": [
+          "Clerk Authentication"
+        ],
+        "summary": "Accept Org Invitation",
+        "description": "Accept a pending organization invitation and activate user membership.",
+        "operationId": "accept_org_invitation_v1_auth_clerk_invitations__invitation_id__accept_post",
+        "parameters": [
+          {
+            "name": "invitation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Invitation Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/HTTPAuthorizationCredentials"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Credentials"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/health": {
+      "get": {
+        "tags": [
+          "Platform",
+          "Authorization"
+        ],
+        "summary": "Get Auth Health",
+        "description": "Return real-time health and verification SLO statistics for the auth plane.",
+        "operationId": "get_auth_health_v1_auth_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Get Auth Health V1 Auth Health Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/auth/authorization-snapshot": {
       "get": {
         "tags": [
@@ -8758,6 +9010,30 @@
         }
       }
     },
+    "/internal/webhooks/clerk/dlq": {
+      "get": {
+        "tags": [
+          "internal-webhooks"
+        ],
+        "summary": "List Clerk Webhook Dlq",
+        "description": "Inspect the Dead-Letter Queue for failed Clerk webhook events (internal operator inspection).",
+        "operationId": "list_clerk_webhook_dlq_internal_webhooks_clerk_dlq_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response List Clerk Webhook Dlq Internal Webhooks Clerk Dlq Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/internal/webhooks/clerk": {
       "post": {
         "tags": [
@@ -9753,6 +10029,32 @@
         ],
         "title": "AuthorizationSnapshot",
         "description": "Short-lived backend authority for frontend access-control decisions."
+      },
+      "Body_revoke_active_session_v1_auth_clerk_sessions_revoke_post": {
+        "properties": {
+          "body": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RevokeSessionRequest"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "credentials": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/HTTPAuthorizationCredentials"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "title": "Body_revoke_active_session_v1_auth_clerk_sessions_revoke_post"
       },
       "BusinessCase": {
         "properties": {
@@ -10916,6 +11218,39 @@
           "impersonation_session_id"
         ],
         "title": "ImpersonationStartResponse"
+      },
+      "InvitationResponse": {
+        "properties": {
+          "invitation_id": {
+            "type": "string",
+            "title": "Invitation Id"
+          },
+          "org_id": {
+            "type": "string",
+            "title": "Org Id"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "role": {
+            "type": "string",
+            "title": "Role"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "required": [
+          "invitation_id",
+          "org_id",
+          "email",
+          "role",
+          "status"
+        ],
+        "title": "InvitationResponse"
       },
       "InviteRequest": {
         "properties": {
@@ -12192,6 +12527,52 @@
           "requester_id"
         ],
         "title": "ReviewRequest"
+      },
+      "RevokeSessionRequest": {
+        "properties": {
+          "session_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Id"
+          }
+        },
+        "type": "object",
+        "title": "RevokeSessionRequest"
+      },
+      "RevokeSessionResponse": {
+        "properties": {
+          "revoked": {
+            "type": "boolean",
+            "title": "Revoked"
+          },
+          "session_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Id"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "revoked",
+          "message"
+        ],
+        "title": "RevokeSessionResponse"
       },
       "Scenario": {
         "properties": {

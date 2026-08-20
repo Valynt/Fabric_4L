@@ -98,8 +98,18 @@ class ClerkJWKSCache:
                     force_refresh,
                     self._is_stale(),
                 )
-                self._jwks = self._fetch()
-                self._fetched_at = time.time()
+                try:
+                    fresh_jwks = self._fetch()
+                    self._jwks = fresh_jwks
+                    self._fetched_at = time.time()
+                except Exception as exc:
+                    if self._jwks is not None:
+                        logger.warning(
+                            "JWKS endpoint outage or fetch failure (%s); falling back to cached JWKS",
+                            exc,
+                        )
+                        return self._jwks
+                    raise ClerkTokenError(log_detail=f"JWKS fetch failed: {exc}") from exc
             return self._jwks
 
     def signing_key_for_kid(self, kid: str, *, force_refresh: bool = False) -> Any:
@@ -109,6 +119,20 @@ class ClerkJWKSCache:
                 # Use PyJWT's helper to materialize the public key from the JWK.
                 return pyjwt.algorithms.RSAAlgorithm.from_jwk(json.dumps(entry))
         raise ClerkTokenError(log_detail=f"no JWKS entry for kid={kid!r}")
+
+    def get_status(self) -> dict[str, Any]:
+        with self._lock:
+            cached_count = len(self._jwks.get("keys", [])) if self._jwks else 0
+            if cached_count > 0:
+                age = time.time() - self._fetched_at
+                status = "fresh" if age < _JWKS_CACHE_TTL_SECONDS else "stale"
+            else:
+                status = "empty"
+            return {
+                "status": status,
+                "cached_keys_count": cached_count,
+                "fetched_at": self._fetched_at,
+            }
 
 
 class ClerkVerifier:
@@ -122,6 +146,10 @@ class ClerkVerifier:
     ) -> None:
         self._settings = settings
         self._jwks_cache = jwks_cache or ClerkJWKSCache(settings.jwks_url)
+
+    @property
+    def jwks_cache(self) -> ClerkJWKSCache | None:
+        return self._jwks_cache
 
     def verify(self, token: str) -> ClerkClaims:
         if not token or not isinstance(token, str):
@@ -163,6 +191,7 @@ class ClerkVerifier:
                 algorithms=["RS256"],
                 audience=self._settings.jwt_audience,
                 issuer=self._settings.issuer,
+                leeway=self._settings.leeway_seconds,
                 options={
                     "require": ["sub", "iss", "aud", "exp", "iat"],
                     "verify_signature": True,

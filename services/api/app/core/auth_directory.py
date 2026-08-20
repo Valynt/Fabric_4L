@@ -50,6 +50,18 @@ class DirectoryMembership:
     status: str
 
 
+@dataclass(frozen=True)
+class DirectoryInvitation:
+    """An organization invitation record from Clerk ``organizationInvitation.*`` events."""
+
+    clerk_invitation_id: str
+    clerk_org_id: str
+    email: str
+    role: str
+    status: str
+    created_at: int | None = None
+
+
 class AuthDirectory:
     """Process-local identity directory with basic tenant/user/membership tracking."""
 
@@ -62,9 +74,12 @@ class AuthDirectory:
         self._users: dict[str, DirectoryUser] = {}
         self._tenants: dict[str, DirectoryTenant] = {}
         self._memberships: dict[tuple[str, str], DirectoryMembership] = {}
+        self._invitations: dict[str, DirectoryInvitation] = {}
         self._processed_events: set[str] = set()
         self._tenant_entitlements: dict[str, set[str]] = {}
         self._tenant_entitlement_valid_until: dict[str, int | None] = {}
+        self._revoked_sessions: set[str] = set()
+        self._user_revoked_before: dict[str, int] = {}
         # Account ownership is resolved by the canonical account repository,
         # not duplicated in this process-local Clerk identity projection.
         self._account_authorizer = account_authorizer or (lambda _tenant, _user, _account: False)
@@ -194,6 +209,58 @@ class AuthDirectory:
                 return None
             return membership
 
+    # ------------------------------------------------------------------
+    # Invitations
+    # ------------------------------------------------------------------
+    def upsert_invitation(
+        self,
+        *,
+        clerk_invitation_id: str,
+        clerk_org_id: str,
+        email: str,
+        role: str,
+        status: str,
+        created_at: int | None = None,
+    ) -> DirectoryInvitation:
+        with self._lock:
+            invitation = DirectoryInvitation(
+                clerk_invitation_id=clerk_invitation_id,
+                clerk_org_id=clerk_org_id,
+                email=email,
+                role=role,
+                status=status,
+                created_at=created_at,
+            )
+            self._invitations[clerk_invitation_id] = invitation
+            self._projection_version += 1
+            return invitation
+
+    def get_invitation(self, clerk_invitation_id: str) -> DirectoryInvitation | None:
+        with self._lock:
+            return self._invitations.get(clerk_invitation_id)
+
+    def list_invitations_for_org(self, clerk_org_id: str) -> list[DirectoryInvitation]:
+        with self._lock:
+            return [
+                inv
+                for inv in self._invitations.values()
+                if inv.clerk_org_id == clerk_org_id and inv.status == "pending"
+            ]
+
+    def revoke_invitation(self, clerk_invitation_id: str) -> None:
+        with self._lock:
+            if clerk_invitation_id in self._invitations:
+                current = self._invitations[clerk_invitation_id]
+                self._invitations[clerk_invitation_id] = DirectoryInvitation(
+                    clerk_invitation_id=current.clerk_invitation_id,
+                    clerk_org_id=current.clerk_org_id,
+                    email=current.email,
+                    role=current.role,
+                    status="revoked",
+                    created_at=current.created_at,
+                )
+                self._projection_version += 1
+
     def set_tenant_entitlements(
         self, tenant_id: str, entitlements: set[str], *, valid_until: int | None = None
     ) -> None:
@@ -240,6 +307,43 @@ class AuthDirectory:
                 "entitlement_valid_until": self._tenant_entitlement_valid_until.get(tenant.id),
                 "account_allowed": account_allowed,
             }
+
+    # ------------------------------------------------------------------
+    # Session Management & Revocation
+    # ------------------------------------------------------------------
+    def revoke_session(self, sid: str) -> None:
+        """Denylist an active session discriminator."""
+        with self._lock:
+            self._revoked_sessions.add(sid)
+            self._projection_version += 1
+
+    def is_session_revoked(self, sid: str) -> bool:
+        """Check if an individual session is explicitly revoked."""
+        with self._lock:
+            return sid in self._revoked_sessions
+
+    def revoke_user_sessions(
+        self, clerk_user_id: str, *, revoked_before: int | None = None
+    ) -> None:
+        """Force sign-out all sessions for a user issued before the timestamp."""
+        with self._lock:
+            import time
+
+            cutoff = revoked_before if revoked_before is not None else int(time.time())
+            self._user_revoked_before[clerk_user_id] = cutoff
+            self._projection_version += 1
+
+    def is_user_session_revoked(
+        self, clerk_user_id: str, token_iat: int | None = None
+    ) -> bool:
+        """Check if tokens for this user issued at token_iat have been revoked."""
+        with self._lock:
+            cutoff = self._user_revoked_before.get(clerk_user_id)
+            if cutoff is None:
+                return False
+            if token_iat is None:
+                return True
+            return token_iat <= cutoff
 
     # ------------------------------------------------------------------
     # Webhook idempotency

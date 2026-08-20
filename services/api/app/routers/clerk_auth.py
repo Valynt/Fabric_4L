@@ -17,6 +17,7 @@ from value_fabric.shared.error_handling.models import ErrorCode
 from value_fabric.shared.identity.fabric_auth import AuthContext
 
 from app.core.auth_directory import AuthDirectory, DirectoryTenant, get_auth_directory
+from app.core.auth_telemetry import get_auth_health_summary
 from app.core.clerk_auth import require_clerk_authenticated
 from app.services.authorization_snapshot import AuthorizationSnapshot, AuthorizationSnapshotService
 
@@ -33,6 +34,24 @@ class ClerkTenantResponse(BaseModel):
     status: Literal["active", "suspended", "deleted"]
     roles: list[str]
     permissions: list[str]
+
+
+class RevokeSessionRequest(BaseModel):
+    session_id: str | None = None
+
+
+class RevokeSessionResponse(BaseModel):
+    revoked: bool
+    session_id: str | None = None
+    message: str
+
+
+class InvitationResponse(BaseModel):
+    invitation_id: str
+    org_id: str
+    email: str
+    role: str
+    status: str
 
 
 def _resolve_directory_tenant(
@@ -93,6 +112,13 @@ async def get_clerk_tenant(
     )
 
 
+@authorization_router.get("/health")
+@router.get("/health")
+async def get_auth_health() -> dict[str, Any]:
+    """Return real-time health and verification SLO statistics for the auth plane."""
+    return get_auth_health_summary()
+
+
 @authorization_router.get(
     "/authorization-snapshot",
     response_model=AuthorizationSnapshot,
@@ -142,4 +168,98 @@ async def get_authorization_snapshot(
     claims = getattr(request.state, "clerk_claims", {})
     return AuthorizationSnapshotService(directory).issue(
         auth=auth, verified_claims=claims, account_id=x_account_id
+    )
+
+
+@router.post("/sessions/revoke", response_model=RevokeSessionResponse)
+async def revoke_active_session(
+    request: Request,
+    body: RevokeSessionRequest | None = None,
+    auth: AuthContext = Depends(require_clerk_authenticated),
+    directory: AuthDirectory = Depends(get_auth_directory),
+) -> RevokeSessionResponse:
+    """Revoke an active Clerk session discriminator."""
+    claims = getattr(request.state, "clerk_claims", {})
+    sid = (body.session_id if body and body.session_id else None) or claims.get("sid")
+    if not sid:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"code": "auth.session_id_missing", "message": "No session identifier to revoke."},
+        )
+    directory.revoke_session(sid)
+    return RevokeSessionResponse(
+        revoked=True,
+        session_id=sid,
+        message="Session revoked successfully.",
+    )
+
+
+@router.post("/sessions/revoke-all", response_model=RevokeSessionResponse)
+async def revoke_all_user_sessions(
+    request: Request,
+    auth: AuthContext = Depends(require_clerk_authenticated),
+    directory: AuthDirectory = Depends(get_auth_directory),
+) -> RevokeSessionResponse:
+    """Revoke all active sessions for the authenticated user (sign out everywhere)."""
+    directory.revoke_user_sessions(auth.clerk_user_id)
+    return RevokeSessionResponse(
+        revoked=True,
+        message="All sessions revoked for user.",
+    )
+
+
+@router.get("/invitations", response_model=list[InvitationResponse])
+async def list_org_invitations(
+    auth: AuthContext = Depends(require_clerk_authenticated),
+    directory: AuthDirectory = Depends(get_auth_directory),
+) -> list[InvitationResponse]:
+    """List pending invitations for the verified Clerk organization."""
+    if not auth.clerk_org_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"code": ErrorCode.AUTH_TENANT_UNRESOLVED, "message": "No active organization."},
+        )
+    invitations = directory.list_invitations_for_org(auth.clerk_org_id)
+    return [
+        InvitationResponse(
+            invitation_id=inv.clerk_invitation_id,
+            org_id=inv.clerk_org_id,
+            email=inv.email,
+            role=inv.role,
+            status=inv.status,
+        )
+        for inv in invitations
+    ]
+
+
+@router.post("/invitations/{invitation_id}/accept", response_model=InvitationResponse)
+async def accept_org_invitation(
+    invitation_id: str,
+    auth: AuthContext = Depends(require_clerk_authenticated),
+    directory: AuthDirectory = Depends(get_auth_directory),
+) -> InvitationResponse:
+    """Accept a pending organization invitation and activate user membership."""
+    inv = directory.get_invitation(invitation_id)
+    if not inv or inv.status != "pending":
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={
+                "code": "auth.invitation_not_found",
+                "message": "Invitation not found or no longer pending.",
+            },
+        )
+    directory.revoke_invitation(invitation_id)
+    directory.upsert_membership(
+        clerk_org_id=inv.clerk_org_id,
+        clerk_user_id=auth.clerk_user_id,
+        clerk_membership_id=f"mem_{invitation_id[-8:]}",
+        role=inv.role,
+        status="active",
+    )
+    return InvitationResponse(
+        invitation_id=inv.clerk_invitation_id,
+        org_id=inv.clerk_org_id,
+        email=inv.email,
+        role=inv.role,
+        status="accepted",
     )
