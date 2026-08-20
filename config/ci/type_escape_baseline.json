@@ -19724,45 +19724,9 @@
     },
     {
       "kind": "python-any",
-      "line": 15,
-      "path": "services/layer3-knowledge/src/performance/cache.py",
-      "text": "from typing import Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 15,
-      "path": "services/layer3-knowledge/src/performance/cache.py",
-      "text": "from typing import Any"
-    },
-    {
-      "kind": "python-any",
       "line": 20,
       "path": "services/layer3-knowledge/src/performance/cache.py",
       "text": "msgpack: Any = None"
-    },
-    {
-      "kind": "python-any",
-      "line": 20,
-      "path": "services/layer3-knowledge/src/performance/cache.py",
-      "text": "msgpack: Any = None"
-    },
-    {
-      "kind": "python-any",
-      "line": 20,
-      "path": "services/layer3-knowledge/src/performance/cache.py",
-      "text": "msgpack: Any = None"
-    },
-    {
-      "kind": "python-any",
-      "line": 62,
-      "path": "services/layer3-knowledge/src/performance/cache.py",
-      "text": "value: Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 62,
-      "path": "services/layer3-knowledge/src/performance/cache.py",
-      "text": "value: Any"
     },
     {
       "kind": "python-any",
@@ -19778,45 +19742,9 @@
     },
     {
       "kind": "python-any",
-      "line": 69,
-      "path": "services/layer3-knowledge/src/performance/cache.py",
-      "text": "metadata: dict[str, Any] = field(default_factory=dict)"
-    },
-    {
-      "kind": "python-any",
-      "line": 69,
-      "path": "services/layer3-knowledge/src/performance/cache.py",
-      "text": "metadata: dict[str, Any] = field(default_factory=dict)"
-    },
-    {
-      "kind": "python-any",
       "line": 161,
       "path": "services/layer3-knowledge/src/performance/cache.py",
       "text": "async def get(self, key: str) -> Any | None:"
-    },
-    {
-      "kind": "python-any",
-      "line": 161,
-      "path": "services/layer3-knowledge/src/performance/cache.py",
-      "text": "async def get(self, key: str) -> Any | None:"
-    },
-    {
-      "kind": "python-any",
-      "line": 161,
-      "path": "services/layer3-knowledge/src/performance/cache.py",
-      "text": "async def get(self, key: str) -> Any | None:"
-    },
-    {
-      "kind": "python-any",
-      "line": 200,
-      "path": "services/layer3-knowledge/src/performance/cache.py",
-      "text": "self, key: str, value: Any, ttl: int | None = None, tags: set[str] | None = None"
-    },
-    {
-      "kind": "python-any",
-      "line": 200,
-      "path": "services/layer3-knowledge/src/performance/cache.py",
-      "text": "self, key: str, value: Any, ttl: int | None = None, tags: set[str] | None = None"
     },
     {
       "kind": "python-any",
@@ -19832,45 +19760,9 @@
     },
     {
       "kind": "python-any",
-      "line": 376,
-      "path": "services/layer3-knowledge/src/performance/cache.py",
-      "text": "def _serialize(self, value: Any) -> bytes:"
-    },
-    {
-      "kind": "python-any",
-      "line": 376,
-      "path": "services/layer3-knowledge/src/performance/cache.py",
-      "text": "def _serialize(self, value: Any) -> bytes:"
-    },
-    {
-      "kind": "python-any",
       "line": 455,
       "path": "services/layer3-knowledge/src/performance/cache.py",
       "text": "def _deserialize(self, data: bytes) -> Any:"
-    },
-    {
-      "kind": "python-any",
-      "line": 455,
-      "path": "services/layer3-knowledge/src/performance/cache.py",
-      "text": "def _deserialize(self, data: bytes) -> Any:"
-    },
-    {
-      "kind": "python-any",
-      "line": 455,
-      "path": "services/layer3-knowledge/src/performance/cache.py",
-      "text": "def _deserialize(self, data: bytes) -> Any:"
-    },
-    {
-      "kind": "python-any",
-      "line": 480,
-      "path": "services/layer3-knowledge/src/performance/cache.py",
-      "text": "async def get_with_deserialization(self, key: str) -> Any | None:"
-    },
-    {
-      "kind": "python-any",
-      "line": 480,
-      "path": "services/layer3-knowledge/src/performance/cache.py",
-      "text": "async def get_with_deserialization(self, key: str) -> Any | None:"
     },
     {
       "kind": "python-any",
@@ -19886,45 +19778,9 @@
     },
     {
       "kind": "python-any",
-      "line": 501,
-      "path": "services/layer3-knowledge/src/performance/cache.py",
-      "text": "self, key: str, value: Any, ttl: int | None = None, tags: builtins.set[str] | None = None"
-    },
-    {
-      "kind": "python-any",
-      "line": 501,
-      "path": "services/layer3-knowledge/src/performance/cache.py",
-      "text": "self, key: str, value: Any, ttl: int | None = None, tags: builtins.set[str] | None = None"
-    },
-    {
-      "kind": "python-any",
       "line": 603,
       "path": "services/layer3-knowledge/src/performance/cache.py",
       "text": "async def get(self, key: str) -> Any | None:"
-    },
-    {
-      "kind": "python-any",
-      "line": 603,
-      "path": "services/layer3-knowledge/src/performance/cache.py",
-      "text": "async def get(self, key: str) -> Any | None:"
-    },
-    {
-      "kind": "python-any",
-      "line": 603,
-      "path": "services/layer3-knowledge/src/performance/cache.py",
-      "text": "async def get(self, key: str) -> Any | None:"
-    },
-    {
-      "kind": "python-any",
-      "line": 652,
-      "path": "services/layer3-knowledge/src/performance/cache.py",
-      "text": "self, key: str, value: Any, ttl: int | None = None, tags: set[str] | None = None"
-    },
-    {
-      "kind": "python-any",
-      "line": 652,
-      "path": "services/layer3-knowledge/src/performance/cache.py",
-      "text": "self, key: str, value: Any, ttl: int | None = None, tags: set[str] | None = None"
     },
     {
       "kind": "python-any",
@@ -19940,45 +19796,9 @@
     },
     {
       "kind": "python-any",
-      "line": 742,
-      "path": "services/layer3-knowledge/src/performance/cache.py",
-      "text": "def _serialize(self, value: Any) -> bytes:"
-    },
-    {
-      "kind": "python-any",
-      "line": 742,
-      "path": "services/layer3-knowledge/src/performance/cache.py",
-      "text": "def _serialize(self, value: Any) -> bytes:"
-    },
-    {
-      "kind": "python-any",
       "line": 800,
       "path": "services/layer3-knowledge/src/performance/cache.py",
       "text": "def _deserialize(self, data: bytes) -> Any:"
-    },
-    {
-      "kind": "python-any",
-      "line": 800,
-      "path": "services/layer3-knowledge/src/performance/cache.py",
-      "text": "def _deserialize(self, data: bytes) -> Any:"
-    },
-    {
-      "kind": "python-any",
-      "line": 800,
-      "path": "services/layer3-knowledge/src/performance/cache.py",
-      "text": "def _deserialize(self, data: bytes) -> Any:"
-    },
-    {
-      "kind": "python-any",
-      "line": 859,
-      "path": "services/layer3-knowledge/src/performance/cache.py",
-      "text": "async def get(self, key: str, cache_type: str = \"auto\") -> Any | None:"
-    },
-    {
-      "kind": "python-any",
-      "line": 859,
-      "path": "services/layer3-knowledge/src/performance/cache.py",
-      "text": "async def get(self, key: str, cache_type: str = \"auto\") -> Any | None:"
     },
     {
       "kind": "python-any",
@@ -19994,30 +19814,6 @@
     },
     {
       "kind": "python-any",
-      "line": 895,
-      "path": "services/layer3-knowledge/src/performance/cache.py",
-      "text": "value: Any,"
-    },
-    {
-      "kind": "python-any",
-      "line": 895,
-      "path": "services/layer3-knowledge/src/performance/cache.py",
-      "text": "value: Any,"
-    },
-    {
-      "kind": "python-any",
-      "line": 1007,
-      "path": "services/layer3-knowledge/src/performance/cache.py",
-      "text": "self.query_cache: dict[str, Any] = {}"
-    },
-    {
-      "kind": "python-any",
-      "line": 1007,
-      "path": "services/layer3-knowledge/src/performance/cache.py",
-      "text": "self.query_cache: dict[str, Any] = {}"
-    },
-    {
-      "kind": "python-any",
       "line": 1007,
       "path": "services/layer3-knowledge/src/performance/cache.py",
       "text": "self.query_cache: dict[str, Any] = {}"
@@ -20030,45 +19826,9 @@
     },
     {
       "kind": "python-any",
-      "line": 1008,
-      "path": "services/layer3-knowledge/src/performance/cache.py",
-      "text": "self.response_cache: dict[str, Any] = {}"
-    },
-    {
-      "kind": "python-any",
-      "line": 1008,
-      "path": "services/layer3-knowledge/src/performance/cache.py",
-      "text": "self.response_cache: dict[str, Any] = {}"
-    },
-    {
-      "kind": "python-any",
       "line": 1071,
       "path": "services/layer3-knowledge/src/performance/cache.py",
       "text": ") -> dict[str, Any]:"
-    },
-    {
-      "kind": "python-any",
-      "line": 1071,
-      "path": "services/layer3-knowledge/src/performance/cache.py",
-      "text": ") -> dict[str, Any]:"
-    },
-    {
-      "kind": "python-any",
-      "line": 1071,
-      "path": "services/layer3-knowledge/src/performance/cache.py",
-      "text": ") -> dict[str, Any]:"
-    },
-    {
-      "kind": "python-any",
-      "line": 1092,
-      "path": "services/layer3-knowledge/src/performance/cache.py",
-      "text": "items: dict[str, Any],"
-    },
-    {
-      "kind": "python-any",
-      "line": 1092,
-      "path": "services/layer3-knowledge/src/performance/cache.py",
-      "text": "items: dict[str, Any],"
     },
     {
       "kind": "python-any",
