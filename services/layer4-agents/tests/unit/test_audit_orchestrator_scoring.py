@@ -341,7 +341,7 @@ def test_calculate_area_score_applies_catalog_metric_adjustments(
     (services_dir / "dup.py").write_text(content)
     (packages_dir / "dup.py").write_text(content)
 
-    config = AuditConfig(repo_url=".", repo_name="test/repo")
+    config = AuditConfig(repo_url=".", repo_name="test/repo", trusted_source=True)
     result = _check_duplicate_files(tmp_path, config)
     assert "duplicate_file_count" in result
     assert result["duplicate_file_count"] > 0
@@ -377,7 +377,7 @@ def test_calculate_area_score_applies_mypy_disabled_codes_metric(
         lambda _repo_path, _section: [(tmp_path / "pyproject.toml", fake_mypy)],
     )
 
-    config = AuditConfig(repo_url=".", repo_name="test/repo")
+    config = AuditConfig(repo_url=".", repo_name="test/repo", trusted_source=True)
     result = _check_mypy_disabled(tmp_path, config)
     assert "mypy_disabled_codes" in result
     assert result["mypy_disabled_codes"] == 3
@@ -409,7 +409,7 @@ def test_calculate_area_score_applies_migration_issue_count_metric(
     versions_dir.mkdir(parents=True)
     (versions_dir / "001_initial.py").write_text("def upgrade(): pass\n")
 
-    config = AuditConfig(repo_url=".", repo_name="test/repo")
+    config = AuditConfig(repo_url=".", repo_name="test/repo", trusted_source=True)
     result = _check_migration_downgrades(tmp_path, config)
     assert "migration_issue_count" in result
     assert result["migration_issue_count"] == 1

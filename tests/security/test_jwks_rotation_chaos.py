@@ -8,14 +8,6 @@ import jwt as pyjwt
 import pytest
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ed25519, rsa
-from value_fabric.shared.identity.fabric_auth import (
-    AuthContext,
-    KeySet,
-    SigningKey,
-    VerificationKey,
-    sign_envelope,
-    verify_envelope,
-)
 from services.api.app.core.clerk_config import ClerkSettings
 from services.api.app.core.clerk_verifier import (
     ClerkClaims,
@@ -23,6 +15,14 @@ from services.api.app.core.clerk_verifier import (
     ClerkTokenError,
     ClerkTokenExpired,
     ClerkVerifier,
+)
+from value_fabric.shared.identity.fabric_auth import (
+    AuthContext,
+    KeySet,
+    SigningKey,
+    VerificationKey,
+    sign_envelope,
+    verify_envelope,
 )
 
 
