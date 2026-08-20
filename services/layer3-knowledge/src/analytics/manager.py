@@ -1057,7 +1057,7 @@ class AnalyticsManager:
                     widget_data[f"widget_{i}"] = data
 
         return DashboardDataPayload(
-            dashboard=dashboard.dict(),
+            dashboard=dashboard.model_dump(),
             data=widget_data,
             generated_at=datetime.now(UTC).isoformat(),
         )
