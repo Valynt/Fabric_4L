@@ -36,48 +36,48 @@ The local dev stack is defined at `infra/compose/docker-compose.dev.yml`.
 pnpm env:dev && docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated up -d
 
 # Start with build (force rebuild)
-docker compose -f infra/compose/docker-compose.dev.yml up -d --build
+docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated up -d --build
 
 # Start with no cache
-docker compose -f infra/compose/docker-compose.dev.yml build --no-cache && docker compose -f infra/compose/docker-compose.dev.yml up -d
+docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated build --no-cache && docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated up -d
 
 # Stop everything
-docker compose -f infra/compose/docker-compose.dev.yml down
+docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated down
 
 # Stop and remove volumes (DESTRUCTIVE — wipes container data)
-docker compose -f infra/compose/docker-compose.dev.yml down -v
+docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated down -v
 
 # Restart single service
-docker compose -f infra/compose/docker-compose.dev.yml restart postgres
+docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated restart postgres
 
 # View logs (all services)
-docker compose -f infra/compose/docker-compose.dev.yml logs -f --tail=50
+docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated logs -f --tail=50
 
 # View logs (single service)
-docker compose -f infra/compose/docker-compose.dev.yml logs -f --tail=100 postgres
+docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated logs -f --tail=100 postgres
 
 # View logs (last N lines, no follow)
-docker compose -f infra/compose/docker-compose.dev.yml logs --tail=50 redis
+docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated logs --tail=50 redis
 
 # Check container status
-docker compose -f infra/compose/docker-compose.dev.yml ps
+docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated ps
 
 # Check with formatting
-docker compose -f infra/compose/docker-compose.dev.yml ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}"
+docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}"
 ```
 
 ### 1.2 Container Inspection
 
 ```bash
 # Exec into running container
-docker compose -f infra/compose/docker-compose.dev.yml exec postgres bash
-docker compose -f infra/compose/docker-compose.dev.yml exec postgres sh
+docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated exec postgres bash
+docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated exec postgres sh
 
 # Run one-off command in container
-docker compose -f infra/compose/docker-compose.dev.yml exec postgres psql -U fabric -d fabric -c "SELECT 1;"
+docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated exec postgres psql -U postgres -d valuefabric -c "SELECT 1;"
 
 # Check container environment variables
-docker compose -f infra/compose/docker-compose.dev.yml exec postgres env | sort
+docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated exec postgres env | sort
 
 # Check resource usage
 docker stats --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.NetIO}}"
@@ -261,8 +261,8 @@ pnpm --dir apps/web run typecheck
 # Lint
 pnpm --dir apps/web run lint
 
-# Lint + fix
-pnpm --dir apps/web run lint:fix
+# Format
+pnpm --dir apps/web run format
 
 # Production build
 pnpm --dir apps/web run build
@@ -327,7 +327,7 @@ pnpm --dir apps/web run test:a11y:pages
 
 ```bash
 # Connect to PostgreSQL via Docker Compose
-docker compose -f infra/compose/docker-compose.dev.yml exec postgres psql -U fabric -d fabric
+docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated exec postgres psql -U postgres -d valuefabric
 
 # Or from host (port 5432)
 psql postgresql://fabric:fabric@localhost:5432/fabric
@@ -344,17 +344,17 @@ psql postgresql://fabric:fabric@localhost:5432/fabric
 pg_isready -h localhost -p 5432
 
 # Backup database
-docker compose -f infra/compose/docker-compose.dev.yml exec postgres pg_dump -U fabric fabric > backup_$(date +%Y%m%d).sql
+docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated exec postgres pg_dump -U postgres valuefabric > backup_$(date +%Y%m%d).sql
 
 # Restore database
-cat backup.sql | docker compose -f infra/compose/docker-compose.dev.yml exec -T postgres psql -U fabric -d fabric
+cat backup.sql | docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated exec -T postgres psql -U postgres -d valuefabric
 ```
 
 ### 4.2 Redis
 
 ```bash
 # Connect to Redis CLI
-docker compose -f infra/compose/docker-compose.dev.yml exec redis redis-cli
+docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated exec redis redis-cli
 
 # Common commands:
 PING                   # Test connectivity
@@ -372,7 +372,7 @@ redis-cli -h localhost -p 6379 PING
 
 ```bash
 # Cypher shell via Docker Compose
-docker compose -f infra/compose/docker-compose.dev.yml exec neo4j cypher-shell -u neo4j -p fabricneo4j
+docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated exec neo4j cypher-shell -u neo4j -p devpassword
 
 # Common cypher queries:
 MATCH (n) RETURN count(n);                    # Count all nodes
@@ -451,7 +451,7 @@ curl -f http://localhost:8001/health          # Layer 1
 curl -f http://localhost:8002/health          # Layer 2
 curl -f http://localhost:8003/health          # Layer 3
 curl -f http://localhost:8004/health          # Layer 4
-curl -f http://localhost:8005/api/v1/health   # Layer 5
+curl -f http://localhost:8005/health          # Layer 5
 curl -f http://localhost:8006/health          # Layer 6
 curl -f http://localhost:3001/                # Frontend (Vite)
 ```
@@ -596,7 +596,7 @@ pytest services/layer4-agents/tests/test_audit_orchestrator.py -vv -s --tb=short
 
 ```bash
 # Check container logs
-docker compose -f infra/compose/docker-compose.dev.yml logs --tail=50 postgres
+docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated logs --tail=50 postgres
 
 # Check port conflicts
 lsof -i :8003 || netstat -tlnp | grep 8003

@@ -193,13 +193,13 @@ pytest -n auto
 ```bash
 # Get trace from workflow response
 curl http://localhost:8004/v1/repo-audit/runs/run_abc123 \
-  -H "Authorization: ******" | jq '.'
+  -H "Authorization: Bearer ${AUTH_TOKEN}" | jq '.'
 ```
 
 **2. Workflow Logs**
 ```bash
 # Filter worker logs for specific workflow
-docker compose -f infra/compose/docker-compose.dev.yml logs layer4 --tail=100
+docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated logs layer4 --tail=100
 ```
 
 **3. Breakpoint in Code**
@@ -215,7 +215,7 @@ import pdb; pdb.set_trace()  # Python debugger
 **Via API (runtime):**
 ```bash
 curl -X PUT http://localhost:8001/api/v1/features/new-flag-name \
-  -H "Authorization: ******" \
+  -H "Authorization: Bearer ${AUTH_TOKEN}" \
   -H "Content-Type: application/json" \
   -d '{
     "enabled": false,
@@ -352,7 +352,7 @@ NEW_PASSWORD=$(openssl rand -base64 32)
 
 # 2. Add new credentials to secret store
 kubectl create secret generic db-credentials-new \
-  --from-literal=****** \
+  --from-literal=password="$NEW_PASSWORD" \
   --namespace fabric4l \
   --dry-run=client -o yaml | kubectl apply -f -
 
@@ -416,7 +416,7 @@ pytest tests/security/ -m tenant_boundary -v
 ```bash
 # 1. Initiate deletion (Right to Erasure — Article 17)
 curl -X POST http://localhost:8001/api/v1/gdpr/data-deletion \
-  -H "Authorization: ******" \
+  -H "Authorization: Bearer ${AUTH_TOKEN}" \
   -H "Content-Type: application/json" \
   -d '{
     "subject_id": "user@example.com",
@@ -427,7 +427,7 @@ curl -X POST http://localhost:8001/api/v1/gdpr/data-deletion \
 
 # 2. Check deletion status
 curl http://localhost:8001/api/v1/gdpr/data-deletion/del_abc123 \
-  -H "Authorization: ******" | jq '{
+  -H "Authorization: Bearer ${AUTH_TOKEN}" | jq '{
     status,
     deleted_records,
     remaining_records,
@@ -483,9 +483,9 @@ Are tests failing consistently or intermittently?
 Is the database container running?
 |
 |-- NO
-|   |-- docker compose -f infra/compose/docker-compose.dev.yml ps postgres
-|   |-- docker compose -f infra/compose/docker-compose.dev.yml logs postgres
-|   |-- docker compose -f infra/compose/docker-compose.dev.yml up -d postgres
+|   |-- docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated ps postgres
+|   |-- docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated logs postgres
+|   |-- docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated up -d postgres
 |
 |-- YES
     |
@@ -504,7 +504,7 @@ Is the database container running?
     |   |-- Check docker compose port mapping
     |
     +-- Try resetting:
-        docker compose -f infra/compose/docker-compose.dev.yml down -v
+        docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated down -v
         pnpm env:dev && docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated up -d
         make migrate
 ```
