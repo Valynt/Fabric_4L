@@ -11,8 +11,9 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from fastapi import APIRouter, Body, Depends, Header, HTTPException, Path, Request, Response, status
+from fastapi import APIRouter, Body, Depends, Header, Path, Request, Response, status
 from pydantic import BaseModel, ConfigDict, Field
+from value_fabric.shared.error_handling.exceptions import AuthorizationError, BadRequestError, NotFoundError
 from value_fabric.shared.error_handling.models import ErrorCode
 from value_fabric.shared.identity.fabric_auth import AuthContext
 
@@ -102,27 +103,21 @@ def _resolve_directory_tenant(
     """Look up the directory tenant record for the verified Clerk org.
 
     Raises:
-        HTTPException: 403 when the directory does not contain the tenant that
+        AuthorizationError: 403 when the directory does not contain the tenant that
         was validated by ``require_clerk_authenticated``, or when the tenant is
         not active. This should be impossible in normal operation but is handled
         as a controlled authorization failure rather than a 500.
     """
     if clerk_org_id is None:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail={
-                "code": ErrorCode.AUTH_TENANT_UNRESOLVED,
-                "message": "No active Clerk organization is associated with this request.",
-            },
+        raise AuthorizationError(
+            message="No active Clerk organization is associated with this request.",
+            error_code=ErrorCode.AUTH_TENANT_UNRESOLVED,
         )
     tenant = directory.get_tenant_by_clerk_org(clerk_org_id)
     if tenant is None or tenant.status != "active":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail={
-                "code": ErrorCode.AUTH_TENANT_UNRESOLVED,
-                "message": "The tenant for this organization is not active or no longer exists.",
-            },
+        raise AuthorizationError(
+            message="The tenant for this organization is not active or no longer exists.",
+            error_code=ErrorCode.AUTH_TENANT_UNRESOLVED,
         )
     return tenant
 
@@ -254,18 +249,18 @@ async def revoke_active_session(
     if requested_sid and caller_sid and requested_sid != caller_sid:
         caller_role = getattr(auth.membership, "role", "") if hasattr(auth, "membership") else ""
         if caller_role not in ("tenant_admin", "org:admin"):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail={"code": "auth.forbidden", "message": "Cannot revoke sessions belonging to other users."},
+            raise AuthorizationError(
+                message="Cannot revoke sessions belonging to other users.",
+                details={"code": "auth.forbidden"},
             )
         sid = requested_sid
     else:
         sid = requested_sid or caller_sid
 
     if not sid:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail={"code": "auth.session_id_missing", "message": "No session identifier to revoke."},
+        raise BadRequestError(
+            message="No session identifier to revoke.",
+            details={"code": "auth.session_id_missing"},
         )
     directory.revoke_session(sid)
     return RevokeSessionResponse(
@@ -313,9 +308,9 @@ async def list_org_invitations(
 ) -> list[InvitationResponse]:
     """List pending invitations for the verified Clerk organization."""
     if not auth.clerk_org_id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail={"code": ErrorCode.AUTH_TENANT_UNRESOLVED, "message": "No active organization."},
+        raise AuthorizationError(
+            message="No active organization.",
+            error_code=ErrorCode.AUTH_TENANT_UNRESOLVED,
         )
     invitations = directory.list_invitations_for_org(auth.clerk_org_id)
     return [
@@ -359,12 +354,11 @@ async def accept_org_invitation(
     """Accept a pending organization invitation and activate user membership."""
     inv = directory.get_invitation(invitation_id)
     if not inv or inv.status != "pending":
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail={
-                "code": "auth.invitation_not_found",
-                "message": "Invitation not found or no longer pending.",
-            },
+        raise NotFoundError(
+            resource_type="Invitation",
+            resource_id=invitation_id,
+            message="Invitation not found or no longer pending.",
+            details={"code": "auth.invitation_not_found"},
         )
 
     # Verify caller email matches the invitation email recipient
@@ -377,12 +371,9 @@ async def accept_org_invitation(
     )
 
     if inv.email and caller_email and inv.email.strip().lower() != caller_email.strip().lower():
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail={
-                "code": "auth.invitation_email_mismatch",
-                "message": "Invitation was issued for a different email address.",
-            },
+        raise AuthorizationError(
+            message="Invitation was issued for a different email address.",
+            details={"code": "auth.invitation_email_mismatch"},
         )
 
     directory.revoke_invitation(invitation_id)

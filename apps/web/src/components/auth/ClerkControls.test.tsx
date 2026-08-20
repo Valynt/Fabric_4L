@@ -12,13 +12,19 @@ import {
 import { setAuthProvider } from "@/test/utils/withAuthProvider";
 
 vi.mock("@clerk/react", () => ({
-  UserButton: (props: any) => <div data-testid="clerk-user-button" {...props} />,
-  OrganizationSwitcher: (props: any) => (
+  UserButton: (props: Record<string, unknown>) => (
+    <div data-testid="clerk-user-button" {...props} />
+  ),
+  OrganizationSwitcher: (props: Record<string, unknown>) => (
     <div data-testid="clerk-org-switcher" {...props} />
   ),
-  SignIn: (props: any) => <div data-testid="clerk-sign-in" {...props} />,
-  SignUp: (props: any) => <div data-testid="clerk-sign-up" {...props} />,
-  OrganizationProfile: (props: any) => (
+  SignIn: (props: Record<string, unknown>) => (
+    <div data-testid="clerk-sign-in" {...props} />
+  ),
+  SignUp: (props: Record<string, unknown>) => (
+    <div data-testid="clerk-sign-up" {...props} />
+  ),
+  OrganizationProfile: (props: Record<string, unknown>) => (
     <div data-testid="clerk-org-profile" {...props} />
   ),
 }));

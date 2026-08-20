@@ -71,6 +71,7 @@ async def require_clerk_authenticated(
     Failures map to 401 (token issues) or 403 (authorization issues), both
     with sanitized public messages. Detailed reasons are logged only.
     """
+    start_time = time.perf_counter()
     settings = get_auth_settings()
     if settings.provider != AUTH_PROVIDER_CLERK:
         # Defensive: the route should only depend on this if Clerk is active.
