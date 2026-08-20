@@ -1676,31 +1676,31 @@
     },
     {
       "kind": "python-any",
-      "line": 51,
+      "line": 52,
       "path": "packages/shared/src/value_fabric/shared/fastapi_framework/logging.py",
       "text": "extra_processors: tuple[Any, ...] = ()"
     },
     {
       "kind": "python-any",
-      "line": 66,
+      "line": 67,
       "path": "packages/shared/src/value_fabric/shared/fastapi_framework/logging.py",
       "text": "def _redact_processor(redact_keys: Iterable[str]) -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 69,
+      "line": 70,
       "path": "packages/shared/src/value_fabric/shared/fastapi_framework/logging.py",
       "text": "def processor(_logger: logging.Logger, _method_name: str, event_dict: dict[str, Any]) -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 97,
+      "line": 98,
       "path": "packages/shared/src/value_fabric/shared/fastapi_framework/logging.py",
       "text": "processors: list[Any] = ["
     },
     {
       "kind": "python-any",
-      "line": 106,
+      "line": 107,
       "path": "packages/shared/src/value_fabric/shared/fastapi_framework/logging.py",
       "text": "def _add_service(_logger: Any, _method_name: str, event_dict: dict[str, Any]) -> dict[str, Any]:"
     },
@@ -4187,18 +4187,6 @@
       "line": 30,
       "path": "packages/shared/src/value_fabric/shared/mcp_gateway/tests/security/test_auth_security.py",
       "text": "exp: Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 16,
-      "path": "packages/shared/src/value_fabric/shared/mcp_gateway/tests/unit/conftest.py",
-      "text": "private: Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 17,
-      "path": "packages/shared/src/value_fabric/shared/mcp_gateway/tests/unit/conftest.py",
-      "text": "public: Any"
     },
     {
       "kind": "python-any",
@@ -9800,7 +9788,7 @@
     },
     {
       "kind": "python-type-ignore",
-      "line": 89,
+      "line": 90,
       "path": "services/api/app/core/clerk_auth.py",
       "text": "credentials = creds_dependency  # type: ignore[assignment]"
     },
@@ -10292,9 +10280,9 @@
     },
     {
       "kind": "python-any",
-      "line": 117,
+      "line": 12,
       "path": "services/api/app/routers/clerk_auth.py",
-      "text": "async def get_auth_health() -> dict[str, Any]:"
+      "text": "from typing import Any, Literal"
     },
     {
       "kind": "python-any",
@@ -10682,7 +10670,7 @@
     },
     {
       "kind": "python-type-ignore",
-      "line": 152,
+      "line": 153,
       "path": "services/api/tests/test_clerk_auth_router.py",
       "text": "auth = _build_auth_context(org_id=None)  # type: ignore[arg-type]"
     },
@@ -14090,31 +14078,31 @@
     },
     {
       "kind": "python-any",
-      "line": 33,
+      "line": 45,
       "path": "services/layer2-extraction/src/layer2_extraction/extraction/cache.py",
       "text": "self._store: OrderedDict[str, Any] = OrderedDict()"
     },
     {
       "kind": "python-any",
-      "line": 36,
+      "line": 48,
       "path": "services/layer2-extraction/src/layer2_extraction/extraction/cache.py",
       "text": "def get(self, key: str) -> Any | None:"
     },
     {
       "kind": "python-any",
-      "line": 42,
+      "line": 54,
       "path": "services/layer2-extraction/src/layer2_extraction/extraction/cache.py",
       "text": "def set(self, key: str, value: Any) -> None:"
     },
     {
       "kind": "python-any",
-      "line": 150,
+      "line": 168,
       "path": "services/layer2-extraction/src/layer2_extraction/extraction/cache.py",
       "text": ") -> Any | None:"
     },
     {
       "kind": "python-any",
-      "line": 184,
+      "line": 213,
       "path": "services/layer2-extraction/src/layer2_extraction/extraction/cache.py",
       "text": "value: Any,"
     },

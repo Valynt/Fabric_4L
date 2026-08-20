@@ -300,10 +300,11 @@ class ManifestSigner:
         })
 
 
-    def _create_jws(self, header: dict[str, Any], payload: dict[str, Any]) -> str:
+    def _create_jws(self, header: dict[str, Any], payload: dict[str, Any] | TypedDictModel) -> str:
         """Create compact JWS using RS256 private-key signing."""
+        payload_dict = payload.model_dump() if isinstance(payload, TypedDictModel) else payload
         return jwt.encode(
-            payload,
+            payload_dict,
             key=self.private_key,
             algorithm="RS256",
             headers=header,
