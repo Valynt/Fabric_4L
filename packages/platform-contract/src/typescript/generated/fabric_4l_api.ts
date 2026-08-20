@@ -2759,11 +2759,6 @@ export interface components {
              */
             expiresAt: string;
         };
-        /** Body_revoke_active_session_v1_auth_clerk_sessions_revoke_post */
-        Body_revoke_active_session_v1_auth_clerk_sessions_revoke_post: {
-            body?: components["schemas"]["RevokeSessionRequest"] | null;
-            credentials?: components["schemas"]["HTTPAuthorizationCredentials"] | null;
-        };
         /** BusinessCase */
         BusinessCase: {
             /** Id */
@@ -2829,20 +2824,36 @@ export interface components {
          * @description Canonical mapping from a Clerk organization to a Fabric tenant.
          */
         ClerkTenantResponse: {
-            /** Fabric Tenant Id */
+            /**
+             * Fabric Tenant Id
+             * @description Unique Fabric internal tenant identifier
+             */
             fabric_tenant_id: string;
-            /** Tenant Slug */
-            tenant_slug: string | null;
-            /** Clerk Org Id */
+            /**
+             * Tenant Slug
+             * @description Human-readable unique tenant URL slug
+             */
+            tenant_slug?: string | null;
+            /**
+             * Clerk Org Id
+             * @description External Clerk organization identifier
+             */
             clerk_org_id: string;
             /**
              * Status
+             * @description Operational tenant status
              * @enum {string}
              */
             status: "active" | "suspended" | "deleted";
-            /** Roles */
+            /**
+             * Roles
+             * @description List of mapped roles for the tenant actor
+             */
             roles: string[];
-            /** Permissions */
+            /**
+             * Permissions
+             * @description List of resolved effective permissions for the tenant actor
+             */
             permissions: string[];
         };
         /**
@@ -3142,33 +3153,6 @@ export interface components {
             total: number;
         };
         /**
-         * HTTPAuthorizationCredentials
-         * @description The HTTP authorization credentials in the result of using `HTTPBearer` or
-         *     `HTTPDigest` in a dependency.
-         *
-         *     The HTTP authorization header value is split by the first space.
-         *
-         *     The first part is the `scheme`, the second part is the `credentials`.
-         *
-         *     For example, in an HTTP Bearer token scheme, the client will send a header
-         *     like:
-         *
-         *     ```
-         *     Authorization: Bearer deadbeef12346
-         *     ```
-         *
-         *     In this case:
-         *
-         *     * `scheme` will have the value `"Bearer"`
-         *     * `credentials` will have the value `"deadbeef12346"`
-         */
-        HTTPAuthorizationCredentials: {
-            /** Scheme */
-            scheme: string;
-            /** Credentials */
-            credentials: string;
-        };
-        /**
          * HTTPValidationError
          * @description Deprecated compatibility alias for ErrorEnvelope. Use ErrorEnvelope for new clients.
          */
@@ -3217,17 +3201,42 @@ export interface components {
             /** Impersonation Session Id */
             impersonation_session_id: string;
         };
-        /** InvitationResponse */
+        /**
+         * InvitationResponse
+         * @description Organization invitation projection schema model.
+         * @example {
+         *       "email": "user@example.com",
+         *       "invitation_id": "inv_2exampleInvitation123456789",
+         *       "org_id": "org_2exampleOrg123456789",
+         *       "role": "org:member",
+         *       "status": "pending"
+         *     }
+         */
         InvitationResponse: {
-            /** Invitation Id */
+            /**
+             * Invitation Id
+             * @description Unique Clerk invitation identifier
+             */
             invitation_id: string;
-            /** Org Id */
+            /**
+             * Org Id
+             * @description Unique Clerk organization identifier
+             */
             org_id: string;
-            /** Email */
+            /**
+             * Email
+             * @description Email address of the invitee
+             */
             email: string;
-            /** Role */
+            /**
+             * Role
+             * @description Assigned organization role for the invitee
+             */
             role: string;
-            /** Status */
+            /**
+             * Status
+             * @description Status of the invitation (e.g. pending, accepted, revoked)
+             */
             status: string;
         };
         /** InviteRequest */
@@ -3716,18 +3725,44 @@ export interface components {
             /** Resolved At */
             resolved_at?: string | null;
         };
-        /** RevokeSessionRequest */
+        /**
+         * RevokeSessionRequest
+         * @description Payload to revoke a specific active Clerk session.
+         * @example {
+         *       "session_id": "sess_2exampleSessionId123456789"
+         *     }
+         */
         RevokeSessionRequest: {
-            /** Session Id */
+            /**
+             * Session Id
+             * @description Optional target Clerk session ID to revoke
+             */
             session_id?: string | null;
         };
-        /** RevokeSessionResponse */
+        /**
+         * RevokeSessionResponse
+         * @description Result of session revocation operation.
+         * @example {
+         *       "message": "Session revoked successfully.",
+         *       "revoked": true,
+         *       "session_id": "sess_2exampleSessionId123456789"
+         *     }
+         */
         RevokeSessionResponse: {
-            /** Revoked */
+            /**
+             * Revoked
+             * @description Whether the session or sessions were successfully revoked
+             */
             revoked: boolean;
-            /** Session Id */
+            /**
+             * Session Id
+             * @description The session identifier that was revoked
+             */
             session_id?: string | null;
-            /** Message */
+            /**
+             * Message
+             * @description Human-readable outcome description message
+             */
             message: string;
         };
         /** Scenario */
@@ -5414,11 +5449,7 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["HTTPAuthorizationCredentials"] | null;
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
@@ -5427,15 +5458,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ClerkTenantResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -5469,18 +5491,25 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: {
+        requestBody: {
             content: {
-                "application/json": components["schemas"]["Body_revoke_active_session_v1_auth_clerk_sessions_revoke_post"];
+                "application/json": components["schemas"]["RevokeSessionRequest"];
             };
         };
         responses: {
-            /** @description Successful Response */
+            /** @description Session revoked successfully. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
+                    /**
+                     * @example {
+                     *       "revoked": true,
+                     *       "session_id": "sess_2exampleSessionId123456789",
+                     *       "message": "Session revoked successfully."
+                     *     }
+                     */
                     "application/json": components["schemas"]["RevokeSessionResponse"];
                 };
             };
@@ -5502,28 +5531,21 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["HTTPAuthorizationCredentials"] | null;
-            };
-        };
+        requestBody?: never;
         responses: {
-            /** @description Successful Response */
+            /** @description All sessions revoked for user successfully. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
+                    /**
+                     * @example {
+                     *       "revoked": true,
+                     *       "message": "All sessions revoked for user."
+                     *     }
+                     */
                     "application/json": components["schemas"]["RevokeSessionResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -5535,11 +5557,7 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["HTTPAuthorizationCredentials"] | null;
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
@@ -5550,15 +5568,6 @@ export interface operations {
                     "application/json": components["schemas"]["InvitationResponse"][];
                 };
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
         };
     };
     accept_org_invitation_v1_auth_clerk_invitations__invitation_id__accept_post: {
@@ -5566,22 +5575,28 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description Unique Clerk organization invitation identifier to accept */
                 invitation_id: string;
             };
             cookie?: never;
         };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["HTTPAuthorizationCredentials"] | null;
-            };
-        };
+        requestBody?: never;
         responses: {
-            /** @description Successful Response */
+            /** @description Invitation accepted successfully. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
+                    /**
+                     * @example {
+                     *       "invitation_id": "inv_2exampleInvitation123456789",
+                     *       "org_id": "org_2exampleOrg123456789",
+                     *       "email": "user@example.com",
+                     *       "role": "org:member",
+                     *       "status": "accepted"
+                     *     }
+                     */
                     "application/json": components["schemas"]["InvitationResponse"];
                 };
             };
@@ -5628,11 +5643,7 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["HTTPAuthorizationCredentials"] | null;
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {

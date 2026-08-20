@@ -15,7 +15,8 @@ from typing import Any
 from unittest.mock import patch
 
 import jwt as pyjwt
-from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import ed25519, rsa
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 import pytest
@@ -30,7 +31,7 @@ from app.core.clerk_config import (
 )
 from app.core.clerk_verifier import ClerkJWKSCache, ClerkVerifier
 from app.routers.clerk_auth import authorization_router, router as clerk_router
-from value_fabric.shared.identity.fabric_auth import Ed25519SigningKey, KeyId
+from value_fabric.shared.identity.fabric_auth import KeySet, SigningKey, VerificationKey
 from value_fabric.shared.identity.middleware import GovernanceMiddleware
 
 
@@ -102,7 +103,20 @@ def test_client(rsa_keypair, auth_directory):
     app.include_router(clerk_router)
     app.include_router(authorization_router)
 
-    ed_key = Ed25519SigningKey.generate(KeyId("test-adversarial-k1"))
+    priv = ed25519.Ed25519PrivateKey.generate()
+    priv_pem = priv.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.PKCS8,
+        encryption_algorithm=serialization.NoEncryption(),
+    ).decode("ascii")
+    pub_pem = priv.public_key().public_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PublicFormat.SubjectPublicKeyInfo,
+    ).decode("ascii")
+
+    signing_key = SigningKey(kid="test-adversarial-k1", private_pem=priv_pem)
+    verification_keys = KeySet([VerificationKey(kid="test-adversarial-k1", public_pem=pub_pem)])
+
     clerk_settings = ClerkSettings(
         publishable_key=f"{'pk'}_{'test'}_adversarial",
         secret_key=f"{'sk'}_{'test'}_adversarial",
@@ -110,9 +124,8 @@ def test_client(rsa_keypair, auth_directory):
         authorized_parties=["http://localhost:3000"],
     )
     envelope_settings = InternalEnvelopeSettings(
-        signing_key=ed_key,
-        signing_key_id=ed_key.kid,
-        public_keys={ed_key.kid: ed_key.public_key_bytes},
+        signing_key=signing_key,
+        verification_keys=verification_keys,
         envelope_ttl_seconds=60,
     )
     auth_settings = AuthSettings(
@@ -123,7 +136,6 @@ def test_client(rsa_keypair, auth_directory):
 
     jwks_cache = ClerkJWKSCache(clerk_settings.jwks_url)
     # Mock JWKS in cache
-    from cryptography.hazmat.primitives import serialization
     from jwt.utils import to_base64url_uint
 
     pub_numbers = rsa_keypair.public_key().public_numbers()
