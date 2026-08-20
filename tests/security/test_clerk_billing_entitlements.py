@@ -8,8 +8,6 @@ import time
 from unittest.mock import patch
 
 import pytest
-from fastapi.testclient import TestClient
-
 from app.core.auth_directory import AuthDirectory, get_auth_directory
 from app.core.billing_entitlements import (
     PLAN_ENTITLEMENT_MAP,
@@ -17,6 +15,7 @@ from app.core.billing_entitlements import (
     resolve_plan_entitlements,
 )
 from app.main import app
+from fastapi.testclient import TestClient
 
 
 def _compute_svix_signature(secret: str, svix_id: str, svix_ts: str, body: bytes) -> str:

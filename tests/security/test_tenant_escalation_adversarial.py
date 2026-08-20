@@ -15,12 +15,7 @@ from typing import Any
 from unittest.mock import patch
 
 import jwt as pyjwt
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import ed25519, rsa
-from fastapi import FastAPI
-from fastapi.testclient import TestClient
 import pytest
-
 from app.core.auth_directory import AuthDirectory, DirectoryTenant, DirectoryUser
 from app.core.clerk_auth import reset_clerk_verifier_cache
 from app.core.clerk_config import (
@@ -30,7 +25,12 @@ from app.core.clerk_config import (
     InternalEnvelopeSettings,
 )
 from app.core.clerk_verifier import ClerkJWKSCache, ClerkVerifier
-from app.routers.clerk_auth import authorization_router, router as clerk_router
+from app.routers.clerk_auth import authorization_router
+from app.routers.clerk_auth import router as clerk_router
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import ed25519, rsa
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
 from value_fabric.shared.identity.fabric_auth import KeySet, SigningKey, VerificationKey
 from value_fabric.shared.identity.middleware import GovernanceMiddleware
 

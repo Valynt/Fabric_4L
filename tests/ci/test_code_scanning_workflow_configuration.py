@@ -2,7 +2,6 @@
 
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[2]
 SECURITY_GATES = ROOT / ".github/workflows/security-gates.yml"
 DEPENDENCY_SCAN = ROOT / ".github/workflows/dependency-scan.yml"
