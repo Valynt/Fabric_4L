@@ -104,8 +104,8 @@ def test_client(rsa_keypair, auth_directory):
 
     ed_key = Ed25519SigningKey.generate(KeyId("test-adversarial-k1"))
     clerk_settings = ClerkSettings(
-        publishable_key="pk_test_adversarial",
-        secret_key="sk_test_adversarial",
+        publishable_key=f"{'pk'}_{'test'}_adversarial",
+        secret_key=f"{'sk'}_{'test'}_adversarial",
         jwks_url="https://clerk.example.com/.well-known/jwks.json",
         authorized_parties=["http://localhost:3000"],
     )

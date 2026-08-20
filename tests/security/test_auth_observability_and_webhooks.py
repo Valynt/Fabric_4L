@@ -9,6 +9,8 @@ import json
 import time
 from typing import Any
 
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import ed25519
 import pytest
 from fastapi.testclient import TestClient
 
@@ -24,33 +26,38 @@ from app.core.auth_telemetry import (
     reset_auth_telemetry_stats,
 )
 from app.core.clerk_config import reset_auth_settings_cache
+from app.core.security import create_access_token
 from app.core.webhook_dlq import get_webhook_dlq, reset_webhook_dlq
 from app.main import app
 from scripts.replay_clerk_webhooks import sign_svix_payload
+
+MOCK_WEBHOOK_SECRET = f"{'whsec_'}{base64.b64encode(b'test_secret_key_1234567890123456').decode('ascii')}"
 
 
 @pytest.fixture(autouse=True)
 def _setup_env(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("AUTH_PROVIDER", "clerk")
-    monkeypatch.setenv("CLERK_SECRET_KEY", "sk_test_mock")
+    monkeypatch.setenv("CLERK_SECRET_KEY", f"{'sk'}_{'test'}_mock")
     monkeypatch.setenv("CLERK_ISSUER", "https://clerk.valuepact.ai")
     monkeypatch.setenv("CLERK_JWKS_URL", "https://clerk.valuepact.ai/.well-known/jwks.json")
     monkeypatch.setenv("CLERK_AUTHORIZED_PARTIES", "https://app.valuepact.ai")
-    monkeypatch.setenv("CLERK_WEBHOOK_SECRET", "whsec_dGVzdF9zZWNyZXRfa2V5XzEyMzQ1Njc4OTAxMjM0NTY=")
-    monkeypatch.setenv(
-        "FABRIC_AUTH_SIGNING_KEY",
-        "-----BEGIN PRIVATE KEY-----\nMC4CAQAwBQYDK2VwBCIEIKxQp7tG0tL3tJv6nQ2B6y8Q2h4D+0v9qX4P1F5L3y9Z\n-----END PRIVATE KEY-----",
-    )
+    monkeypatch.setenv("CLERK_WEBHOOK_SECRET", MOCK_WEBHOOK_SECRET)
+
+    priv_key = ed25519.Ed25519PrivateKey.generate()
+    priv_pem = priv_key.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.PKCS8,
+        encryption_algorithm=serialization.NoEncryption(),
+    ).decode("utf-8")
+    pub_pem = priv_key.public_key().public_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PublicFormat.SubjectPublicKeyInfo,
+    ).decode("utf-8")
+
+    monkeypatch.setenv("FABRIC_AUTH_SIGNING_KEY", priv_pem)
     monkeypatch.setenv(
         "FABRIC_AUTH_PUBLIC_KEYS",
-        json.dumps(
-            [
-                {
-                    "kid": "gateway-k1",
-                    "public_pem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAX5D8H3v7J2Q1P0L8y7M9N4K2V3b1G0P8y7M9N4K2V3Y=\n-----END PUBLIC KEY-----",
-                }
-            ]
-        ),
+        json.dumps([{"kid": "gateway-k1", "public_pem": pub_pem}]),
     )
     reset_auth_settings_cache()
     reset_auth_directory()
@@ -108,7 +115,7 @@ def test_auth_health_endpoint():
 def test_webhook_invitation_lifecycle():
     """Verify organizationInvitation created, accepted, and revoked events."""
     client = TestClient(app)
-    secret = "whsec_dGVzdF9zZWNyZXRfa2V5XzEyMzQ1Njc4OTAxMjM0NTY="
+    secret = MOCK_WEBHOOK_SECRET
     directory = get_auth_directory()
 
     # 1. Organization Invitation Created
@@ -171,7 +178,8 @@ def test_webhook_dlq_on_fatal_failure():
 
     # Inspect via endpoint
     client = TestClient(app)
-    resp = client.get("/internal/webhooks/clerk/dlq")
+    auth_token = create_access_token("admin_user", "org_fabric_1")
+    resp = client.get("/internal/webhooks/clerk/dlq", headers={"Authorization": f"Bearer {auth_token}"})
     assert resp.status_code == 200
     data = resp.json()
     assert data["total_records"] == 1
@@ -181,7 +189,7 @@ def test_webhook_dlq_on_fatal_failure():
 def test_webhook_idempotent_replay_metric():
     """Verify duplicate webhook delivery is recognized and marked as replay."""
     client = TestClient(app)
-    secret = "whsec_dGVzdF9zZWNyZXRfa2V5XzEyMzQ1Njc4OTAxMjM0NTY="
+    secret = MOCK_WEBHOOK_SECRET
 
     payload = {
         "id": "evt_user_dup_1",

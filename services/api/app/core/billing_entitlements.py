@@ -105,11 +105,21 @@ def process_clerk_billing_event(
     if directory is None:
         directory = get_auth_directory()
 
-    # Resolve organization / tenant id
+    # Resolve organization / tenant id (supporting B2B payer object and nested subscription)
+    payer = data.get("payer") or {}
+    payer_org_id = None
+    if isinstance(payer, dict):
+        if payer.get("organization_id"):
+            payer_org_id = payer.get("organization_id")
+        elif payer.get("type") == "organization" and payer.get("id"):
+            payer_org_id = payer.get("id")
+
     clerk_org_id = (
         data.get("organization_id")
         or data.get("org_id")
+        or payer_org_id
         or (data.get("organization") or {}).get("id")
+        or (data.get("subscription") or {}).get("organization_id")
     )
 
     if not clerk_org_id:
@@ -131,11 +141,31 @@ def process_clerk_billing_event(
         )
         raise KeyError("tenant_not_found")
 
-    status = (data.get("status") or "").lower()
+    status = (data.get("status") or (data.get("subscription") or {}).get("status") or "").lower()
+
+    # Check top-level, nested plan, subscription, and items array
+    items = data.get("items") or (data.get("subscription") or {}).get("items") or []
+    item_plan_slug = None
+    item_features: list[str] = []
+    if isinstance(items, list) and items:
+        first_item = items[0]
+        if isinstance(first_item, dict):
+            item_plan = first_item.get("plan")
+            if isinstance(item_plan, dict):
+                item_plan_slug = item_plan.get("slug") or item_plan.get("name")
+                for f in item_plan.get("features", []):
+                    item_features.append(f.get("name") or f.get("slug") or str(f) if isinstance(f, dict) else str(f))
+            elif isinstance(item_plan, str):
+                item_plan_slug = item_plan
+            elif first_item.get("plan_slug"):
+                item_plan_slug = first_item.get("plan_slug")
+
     plan_slug = (
         data.get("plan_slug")
         or (data.get("plan") or {}).get("slug")
         or (data.get("plan") or {}).get("name")
+        or item_plan_slug
+        or ((data.get("subscription") or {}).get("plan") or {}).get("slug")
         or "starter"
     )
 
@@ -158,6 +188,7 @@ def process_clerk_billing_event(
                 feature_names = [f.get("name") or f.get("slug") or str(f) if isinstance(f, dict) else str(f) for f in features]
             else:
                 feature_names = []
+            feature_names.extend(item_features)
 
             entitlements = resolve_plan_entitlements(plan_slug=plan_slug, features=feature_names)
             directory.set_tenant_entitlements(tenant.id, entitlements, valid_until=valid_until)

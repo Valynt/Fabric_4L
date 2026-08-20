@@ -311,39 +311,79 @@ class AuthDirectory:
     # ------------------------------------------------------------------
     # Session Management & Revocation
     # ------------------------------------------------------------------
+    def _redis(self):
+        try:
+            from app.core.redis_client import get_redis_client
+            return get_redis_client()
+        except Exception:
+            return None
+
     def revoke_session(self, sid: str) -> None:
-        """Denylist an active session discriminator."""
+        """Denylist an active session discriminator across memory and Redis."""
         with self._lock:
             self._revoked_sessions.add(sid)
             self._projection_version += 1
+        r = self._redis()
+        if r is not None:
+            try:
+                r.setex(f"auth:clerk:revoked_session:{sid}", 604800, "revoked")
+            except Exception as exc:
+                logger.warning("Redis revoke_session write failed: %s", exc)
 
     def is_session_revoked(self, sid: str) -> bool:
-        """Check if an individual session is explicitly revoked."""
+        """Check if an individual session is explicitly revoked in memory or Redis."""
         with self._lock:
-            return sid in self._revoked_sessions
+            if sid in self._revoked_sessions:
+                return True
+        r = self._redis()
+        if r is not None:
+            try:
+                if r.get(f"auth:clerk:revoked_session:{sid}") is not None:
+                    with self._lock:
+                        self._revoked_sessions.add(sid)
+                    return True
+            except Exception as exc:
+                logger.warning("Redis is_session_revoked read failed: %s", exc)
+        return False
 
     def revoke_user_sessions(
         self, clerk_user_id: str, *, revoked_before: int | None = None
     ) -> None:
-        """Force sign-out all sessions for a user issued before the timestamp."""
+        """Force sign-out all sessions for a user issued before the timestamp across memory and Redis."""
+        import time
+        cutoff = revoked_before if revoked_before is not None else int(time.time())
         with self._lock:
-            import time
-
-            cutoff = revoked_before if revoked_before is not None else int(time.time())
             self._user_revoked_before[clerk_user_id] = cutoff
             self._projection_version += 1
+        r = self._redis()
+        if r is not None:
+            try:
+                r.setex(f"auth:clerk:user_revoked_before:{clerk_user_id}", 604800, str(cutoff))
+            except Exception as exc:
+                logger.warning("Redis revoke_user_sessions write failed: %s", exc)
 
     def is_user_session_revoked(
         self, clerk_user_id: str, token_iat: int | None = None
     ) -> bool:
-        """Check if tokens for this user issued at token_iat have been revoked."""
+        """Check if tokens for this user issued at token_iat have been revoked in memory or Redis."""
         with self._lock:
             cutoff = self._user_revoked_before.get(clerk_user_id)
-            if cutoff is None:
-                return False
-            if token_iat is None:
-                return True
-            return token_iat <= cutoff
+        if cutoff is None:
+            r = self._redis()
+            if r is not None:
+                try:
+                    val = r.get(f"auth:clerk:user_revoked_before:{clerk_user_id}")
+                    if val is not None:
+                        cutoff = int(val)
+                        with self._lock:
+                            self._user_revoked_before[clerk_user_id] = cutoff
+                except Exception as exc:
+                    logger.warning("Redis is_user_session_revoked read failed: %s", exc)
+        if cutoff is None:
+            return False
+        if token_iat is None:
+            return True
+        return token_iat <= cutoff
 
     # ------------------------------------------------------------------
     # Webhook idempotency

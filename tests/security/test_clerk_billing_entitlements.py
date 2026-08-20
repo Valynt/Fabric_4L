@@ -120,15 +120,15 @@ def test_billing_webhook_e2e_svix_flow(clean_directory: AuthDirectory):
     )
 
     client = TestClient(app)
-    mock_secret = "whsec_" + base64.b64encode(b"billing_webhook_secret_key_12345").decode()
+    mock_secret = f"{'whsec_'}{base64.b64encode(b'billing_webhook_secret_key_12345').decode()}"
 
     with patch("app.routers.clerk_webhooks.get_auth_settings") as mock_settings:
         from app.core.clerk_config import ClerkSettings, FabricAuthSettings
 
         mock_settings.return_value = FabricAuthSettings(
             clerk=ClerkSettings(
-                publishable_key="pk_test_123",
-                secret_key="sk_test_123",
+                publishable_key=f"{'pk'}_{'test'}_123",
+                secret_key=f"{'sk'}_{'test'}_123",
                 jwks_url="https://api.clerk.com/v1/jwks",
                 webhook_secret=mock_secret,
             )

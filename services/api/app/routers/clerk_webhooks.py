@@ -45,6 +45,7 @@ from app.core.auth_telemetry import (
 )
 from app.core.billing_entitlements import process_clerk_billing_event
 from app.core.clerk_config import _DEFAULT_CLERK_WEBHOOK_RATE_LIMIT_PER_MINUTE, get_auth_settings
+from app.core.security import require_authenticated
 from app.core.webhook_dlq import get_webhook_dlq
 
 logger = structlog.get_logger(__name__)
@@ -233,7 +234,9 @@ def _apply_event(directory: AuthDirectory, event_type: str, data: dict[str, Any]
 
 
 @router.get("/clerk/dlq")
-async def list_clerk_webhook_dlq() -> dict[str, Any]:
+async def list_clerk_webhook_dlq(
+    _auth: Any = Depends(require_authenticated),
+) -> dict[str, Any]:
     """Inspect the Dead-Letter Queue for failed Clerk webhook events (internal operator inspection)."""
     dlq = get_webhook_dlq()
     records = dlq.list_records(limit=100, unresolved_only=False)

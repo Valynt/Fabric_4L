@@ -180,7 +180,20 @@ async def revoke_active_session(
 ) -> RevokeSessionResponse:
     """Revoke an active Clerk session discriminator."""
     claims = getattr(request.state, "clerk_claims", {})
-    sid = (body.session_id if body and body.session_id else None) or claims.get("sid")
+    caller_sid = claims.get("sid")
+    requested_sid = body.session_id if body and body.session_id else None
+
+    if requested_sid and caller_sid and requested_sid != caller_sid:
+        caller_role = getattr(auth.membership, "role", "") if hasattr(auth, "membership") else ""
+        if caller_role not in ("tenant_admin", "org:admin"):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail={"code": "auth.forbidden", "message": "Cannot revoke sessions belonging to other users."},
+            )
+        sid = requested_sid
+    else:
+        sid = requested_sid or caller_sid
+
     if not sid:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -234,6 +247,7 @@ async def list_org_invitations(
 
 @router.post("/invitations/{invitation_id}/accept", response_model=InvitationResponse)
 async def accept_org_invitation(
+    request: Request,
     invitation_id: str,
     auth: AuthContext = Depends(require_clerk_authenticated),
     directory: AuthDirectory = Depends(get_auth_directory),
@@ -248,6 +262,25 @@ async def accept_org_invitation(
                 "message": "Invitation not found or no longer pending.",
             },
         )
+
+    # Verify caller email matches the invitation email recipient
+    claims = getattr(request.state, "clerk_claims", {})
+    user = directory.get_user_by_clerk(auth.clerk_user_id)
+    caller_email = (
+        (user.email if user else None)
+        or claims.get("email")
+        or getattr(auth.actor, "email", None)
+    )
+
+    if inv.email and caller_email and inv.email.strip().lower() != caller_email.strip().lower():
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "code": "auth.invitation_email_mismatch",
+                "message": "Invitation was issued for a different email address.",
+            },
+        )
+
     directory.revoke_invitation(invitation_id)
     directory.upsert_membership(
         clerk_org_id=inv.clerk_org_id,

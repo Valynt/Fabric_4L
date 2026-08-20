@@ -196,8 +196,14 @@ class Auth0Client:
                 return []
             resp.raise_for_status()
             orgs = resp.json()
-        except Exception:
-            return []
+        except requests.HTTPError as exc:
+            if exc.response is not None and exc.response.status_code == 404:
+                return []
+            logger.error("Auth0 organizations export failed: %s", exc)
+            raise RuntimeError(f"Failed to export organizations from Auth0: {exc}") from exc
+        except Exception as exc:
+            logger.error("Auth0 organizations export failed: %s", exc)
+            raise RuntimeError(f"Failed to export organizations from Auth0: {exc}") from exc
 
         # Enrich organizations with memberships
         for org in orgs:
@@ -676,12 +682,26 @@ def main() -> int:
         if not orchestrator.run_preflight_check():
             logger.error("Preflight check failed. Aborting cutover.")
             return 1
-        logger.info("Cutover successful: AUTH_PROVIDER set to clerk.")
+        os.environ["AUTH_PROVIDER"] = "clerk"
+        try:
+            state_file = Path(".env.auth.state")
+            with open(state_file, "w", encoding="utf-8") as f:
+                f.write(f"AUTH_PROVIDER=clerk\nUPDATED_AT={datetime.now(timezone.utc).isoformat()}\n")
+        except Exception as exc:
+            logger.warning("Failed to write runtime state file: %s", exc)
+        logger.info("Cutover successful: AUTH_PROVIDER set and persisted as 'clerk'.")
         return 0
 
     if args.rollback:
         logger.warning("Initiating rapid rollback sequence to Auth0...")
-        logger.info("1. Switching AUTH_PROVIDER to auth0")
+        os.environ["AUTH_PROVIDER"] = "legacy"
+        try:
+            state_file = Path(".env.auth.state")
+            with open(state_file, "w", encoding="utf-8") as f:
+                f.write(f"AUTH_PROVIDER=legacy\nUPDATED_AT={datetime.now(timezone.utc).isoformat()}\n")
+        except Exception as exc:
+            logger.warning("Failed to write runtime state file: %s", exc)
+        logger.info("1. Switched and persisted AUTH_PROVIDER to 'legacy' (Auth0)")
         logger.info("2. Invalidating token caches")
         logger.info("3. Re-enabling Auth0 OIDC endpoints")
         logger.info("Rollback completed successfully in <15 minutes SLA.")

@@ -17,29 +17,21 @@ import sys
 import time
 from pathlib import Path
 
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import ed25519
+
 # Add project paths to sys.path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT / "services" / "api"))
 sys.path.insert(0, str(REPO_ROOT / "packages" / "shared" / "src"))
 
 try:
+    from value_fabric.shared.identity.fabric_auth.context import AuthContext
     from value_fabric.shared.identity.fabric_auth.signer import SigningKey, sign_envelope
-    from value_fabric.shared.identity.fabric_auth.context import (
-        AuthContext,
-        ActorInfo,
-        TenantInfo,
-        AccountInfo,
-    )
-    from value_fabric.shared.identity.fabric_auth.dev_keys import (
-        DEV_SIGNING_KEY,
-        DEV_KEY_ID,
-    )
 except ImportError as e:
     SigningKey = None
     sign_envelope = None
     AuthContext = None
-    DEV_SIGNING_KEY = None
-    DEV_KEY_ID = "dev-key-1"
 
 
 SEED_DATA = {
@@ -108,9 +100,18 @@ def generate_dev_envelopes(signing_key_pem: str | None = None) -> dict[str, str]
     now = int(time.time())
 
     signing_key = None
-    if SigningKey and DEV_SIGNING_KEY:
+    if SigningKey:
         try:
-            signing_key = DEV_SIGNING_KEY
+            if signing_key_pem:
+                signing_key = SigningKey(kid="dev-key-1", private_pem=signing_key_pem)
+            else:
+                priv_key = ed25519.Ed25519PrivateKey.generate()
+                private_pem = priv_key.private_bytes(
+                    encoding=serialization.Encoding.PEM,
+                    format=serialization.PrivateFormat.PKCS8,
+                    encryption_algorithm=serialization.NoEncryption(),
+                ).decode("utf-8")
+                signing_key = SigningKey(kid="dev-key-1", private_pem=private_pem)
         except Exception:
             pass
 
@@ -118,22 +119,15 @@ def generate_dev_envelopes(signing_key_pem: str | None = None) -> dict[str, str]
         if sign_envelope and signing_key and AuthContext:
             try:
                 auth_ctx = AuthContext(
-                    actor=ActorInfo(
-                        id=user["id"],
-                        email=user["email"],
-                        display_name=f"{user['first_name']} {user['last_name']}",
-                        roles=[user["role"]],
-                    ),
-                    tenant=TenantInfo(
-                        id=user["tenant_id"],
-                        tier="enterprise",
-                        features=["knowledge_graph", "agents", "ground_truth", "benchmarks"],
-                    ),
-                    account=AccountInfo(
-                        id=user["account_id"],
-                        role=user["role"],
-                        permissions=user["scopes"],
-                    ),
+                    clerk_user_id=user["id"],
+                    clerk_org_id=user["tenant_id"],
+                    user_id=user["id"],
+                    tenant_id=user["tenant_id"],
+                    roles=frozenset([user["role"]]),
+                    permissions=frozenset(user["scopes"]),
+                    request_id=f"req_dev_{user['id']}_{now}",
+                    iat=now,
+                    exp=now + 86400,
                     kid=signing_key.kid,
                 )
                 token = sign_envelope(auth_ctx, signing_key=signing_key)

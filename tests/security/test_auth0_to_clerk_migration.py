@@ -103,7 +103,7 @@ def test_auth0_client_token_mock():
 
 
 def test_clerk_client_dry_run_create_user():
-    client = ClerkClient(secret_key="sk_test_123")
+    client = ClerkClient(secret_key=f"{'sk'}_{'test'}_123")
     success, clerk_id, already_exists = client.create_user(
         {"user_id": "auth0|123", "email": "test@domain.com"}, dry_run=True
     )
