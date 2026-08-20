@@ -43,10 +43,3 @@ export type AnalyticsMeta = {
   /** URL param names to redact in analytics payloads. */
   redactParams?: string[];
 };
-
-export const DEFAULT_ACCESS_POLICY: RouteAccessPolicy = {
-  requiresAuth: true,
-  tenantScoped: true,
-  fallbackRoute: "/login",
-  analyticsRouteId: "unknown",
-};
