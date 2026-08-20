@@ -6,23 +6,31 @@ name: AI Evaluation Pipeline
 "on":
   pull_request:
     paths:
-      - "layer4-agents/skills/**"
-      - "layer4-agents/agents/**"
-      - "layer4-agents/prompts/**"
-      - "layer4-agents/src/registry/**"
-      - "layer2-extraction/src/integration/model_registry_client.py"
-      - "layer2-extraction/src/shared/llm_client.py"
+      - "services/layer4-agents/skills/**"
+      - "services/layer4-agents/prompts/**"
+      - "services/layer4-agents/src/layer4_agents/agents/**"
+      - "services/layer4-agents/src/layer4_agents/skills/**"
+      - "services/layer4-agents/src/layer4_agents/registry/**"
+      - "services/layer4-agents/src/layer4_agents/model_registry_client.py"
+      - "services/layer2-extraction/src/layer2_extraction/shared/llm_client.py"
+      - "packages/shared/src/value_fabric/shared/llm_safety/**"
+      - "evals/**"
       - "tests/evals/**"
+      - ".github/workflows/ai-evals-pipeline.yml"
   push:
     branches: [main]
     paths:
-      - "layer4-agents/skills/**"
-      - "layer4-agents/agents/**"
-      - "layer4-agents/prompts/**"
-      - "layer4-agents/src/registry/**"
-      - "layer2-extraction/src/integration/model_registry_client.py"
-      - "layer2-extraction/src/shared/llm_client.py"
+      - "services/layer4-agents/skills/**"
+      - "services/layer4-agents/prompts/**"
+      - "services/layer4-agents/src/layer4_agents/agents/**"
+      - "services/layer4-agents/src/layer4_agents/skills/**"
+      - "services/layer4-agents/src/layer4_agents/registry/**"
+      - "services/layer4-agents/src/layer4_agents/model_registry_client.py"
+      - "services/layer2-extraction/src/layer2_extraction/shared/llm_client.py"
+      - "packages/shared/src/value_fabric/shared/llm_safety/**"
+      - "evals/**"
       - "tests/evals/**"
+      - ".github/workflows/ai-evals-pipeline.yml"
   workflow_dispatch:
     inputs:
       eval_target:
@@ -73,25 +81,27 @@ jobs:
             HEAD_SHA=$(git rev-parse HEAD)
           fi
 
-          # Find changed skill files
-          CHANGED_SKILLS=$(git diff --name-only $BASE_SHA $HEAD_SHA | grep -E '^layer4-agents/skills/.*\.md$' || true)
-          CHANGED_AGENTS=$(git diff --name-only $BASE_SHA $HEAD_SHA | grep -E '^layer4-agents/agents/.*\.md$' || true)
-          CHANGED_PROMPTS=$(git diff --name-only $BASE_SHA $HEAD_SHA | grep -E '^layer4-agents/prompts/.*\.md$' || true)
+          # Find changed skill, agent, and prompt files
+          CHANGED_SKILLS=$(git diff --name-only $BASE_SHA $HEAD_SHA | grep -E '^services/layer4-agents/(skills/.*\.md|src/layer4_agents/skills/.*\.py)$' || true)
+          CHANGED_AGENTS=$(git diff --name-only $BASE_SHA $HEAD_SHA | grep -E '^services/layer4-agents/src/layer4_agents/(agents/.*|registry/.*|model_registry_client\.py)$' || true)
+          CHANGED_PROMPTS=$(git diff --name-only $BASE_SHA $HEAD_SHA | grep -E '^services/layer4-agents/prompts/.*' || true)
+          CHANGED_OTHER=$(git diff --name-only $BASE_SHA $HEAD_SHA | grep -E '^(services/layer2-extraction/src/layer2_extraction/shared/llm_client\.py|packages/shared/src/value_fabric/shared/llm_safety/.*|evals/.*|tests/evals/.*|\.github/workflows/ai-evals-pipeline\.yml)$' || true)
 
           echo "Changed skills: $CHANGED_SKILLS"
           echo "Changed agents: $CHANGED_AGENTS"
           echo "Changed prompts: $CHANGED_PROMPTS"
+          echo "Changed other eval-trigger files: $CHANGED_OTHER"
 
-          # Extract skill names as JSON array for matrix strategy
-          SKILLS=$(echo "$CHANGED_SKILLS" | xargs -I {} basename {} .md | jq -R . | jq -s . | tr -d '\n')
-          AGENTS=$(echo "$CHANGED_AGENTS" | xargs -I {} basename {} .md | jq -R . | jq -s . | tr -d '\n')
+          # Extract skill and agent names as JSON array for matrix strategy
+          SKILLS=$(echo "$CHANGED_SKILLS" | sed -E 's/\.(md|py)$//' | xargs -I {} basename {} | jq -R . | jq -s . | tr -d '\n')
+          AGENTS=$(echo "$CHANGED_AGENTS" | sed -E 's/\.(md|py)$//' | xargs -I {} basename {} | jq -R . | jq -s . | tr -d '\n')
 
           echo "skills=$SKILLS" >> $GITHUB_OUTPUT
           echo "agents=$AGENTS" >> $GITHUB_OUTPUT
 
           # Determine if evals should run
           if [ -n "$CHANGED_SKILLS" ] || [ -n "$CHANGED_AGENTS" ] || \
-             [ -n "$CHANGED_PROMPTS" ] || [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+             [ -n "$CHANGED_PROMPTS" ] || [ -n "$CHANGED_OTHER" ] || [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             echo "should_run=true" >> $GITHUB_OUTPUT
           else
             echo "should_run=false" >> $GITHUB_OUTPUT
@@ -123,6 +133,7 @@ jobs:
       # once Infisical project is fully populated and CI validation passes.
       # Target: after first successful Infisical-only CI run.
       - name: Fetch secrets from Infisical
+        if: secrets.INFISICAL_IDENTITY_ID != ''
         id: infisical
         uses: Infisical/secrets-action@77ab1f4ccd183a543cb5b42435fbd181189f4995  # v1.0.16
         with:
@@ -135,7 +146,7 @@ jobs:
       - name: Install dependencies
         run: |
           # Install layer4-agents dependencies
-          cd layer4-agents
+          cd services/layer4-agents
           pip install -e .
 
           # Install evaluation framework
@@ -147,6 +158,7 @@ jobs:
           pip install langchain langchain-openai
 
       - name: Verify OpenAI API access
+        if: env.OPENAI_API_KEY != ''
         run: |
           python3 << 'EOF'
           import openai
@@ -189,6 +201,7 @@ jobs:
       # once Infisical project is fully populated and CI validation passes.
       # Target: after first successful Infisical-only CI run.
       - name: Fetch secrets from Infisical
+        if: secrets.INFISICAL_IDENTITY_ID != ''
         id: infisical
         uses: Infisical/secrets-action@77ab1f4ccd183a543cb5b42435fbd181189f4995  # v1.0.16
         with:
@@ -200,7 +213,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          cd layer4-agents
+          cd services/layer4-agents
           pip install -e . --quiet
           pip install pytest pytest-asyncio --quiet
 
@@ -223,7 +236,7 @@ jobs:
             # Run basic skill validation
             python3 << 'EOF'
           import sys
-          sys.path.insert(0, 'layer4-agents/src')
+          sys.path.insert(0, 'services/layer4-agents/src')
 
           skill_name = "${{ matrix.skill }}"
 
@@ -298,12 +311,13 @@ jobs:
 
       - name: Install dependencies
         run: |
-          cd layer4-agents
+          cd services/layer4-agents
           pip install -e . --quiet
 
       # once Infisical project is fully populated and CI validation passes.
       # Target: after first successful Infisical-only CI run.
       - name: Fetch secrets from Infisical
+        if: secrets.INFISICAL_IDENTITY_ID != ''
         id: infisical
         uses: Infisical/secrets-action@77ab1f4ccd183a543cb5b42435fbd181189f4995  # v1.0.16
         with:
@@ -344,13 +358,14 @@ jobs:
 
       - name: Install dependencies
         run: |
-          cd layer4-agents
+          cd services/layer4-agents
           pip install -e . --quiet
           pip install pytest --quiet
 
       # once Infisical project is fully populated and CI validation passes.
       # Target: after first successful Infisical-only CI run.
       - name: Fetch secrets from Infisical
+        if: secrets.INFISICAL_IDENTITY_ID != ''
         id: infisical
         uses: Infisical/secrets-action@77ab1f4ccd183a543cb5b42435fbd181189f4995  # v1.0.16
         with:
@@ -415,8 +430,13 @@ jobs:
                   sys.exit(1)
 
           except FileNotFoundError:
-              print("⚠️ No golden trace results found")
-              set_output("passed", "true")  # Skip if no traces
+              # Fail closed: no results file means the golden-trace suite did
+              # not run (e.g., tests/evals/test_golden_traces.py missing), so
+              # there is no evidence to evaluate. A missing gate must never
+              # read as a pass (anti-vacuous-gate doctrine, cf. #1254).
+              print("❌ No golden trace results found — failing closed (no evidence is not a pass)")
+              set_output("passed", "false")
+              sys.exit(1)
           except Exception as e:
               print(f"❌ Error analyzing results: {e}")
               sys.exit(1)
@@ -732,19 +752,15 @@ jobs:
 
       - name: Update ground truth baseline
         run: |
-          # Save current results as new baseline
+          # Save current results as baseline in workspace (no direct git commit/push per INV-CI-001)
           mkdir -p tests/evals/baselines
           cp eval-summary.json tests/evals/baselines/main-baseline.json
-
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add tests/evals/baselines/
-          git commit -m "chore(evals): update ground truth baseline [skip ci]" || echo "No changes"
-          git push || echo "No changes to push"
+          echo "Ground truth baseline updated in workspace"
 
       # once Infisical project is fully populated and CI validation passes.
       # Target: after first successful Infisical-only CI run.
       - name: Fetch secrets from Infisical
+        if: secrets.INFISICAL_IDENTITY_ID != ''
         id: infisical
         uses: Infisical/secrets-action@77ab1f4ccd183a543cb5b42435fbd181189f4995  # v1.0.16
         with:

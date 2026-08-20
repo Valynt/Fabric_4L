@@ -12,7 +12,7 @@ from uuid import UUID
 import pytest
 from typer.testing import CliRunner
 
-import valuefabric.cli.config as config_mod
+from valuefabric.cli import config as config_mod
 from valuefabric.cli.main import app
 from valuefabric.errors import ConfigurationError
 from valuefabric.models import (
