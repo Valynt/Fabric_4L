@@ -579,27 +579,26 @@ class GetRelationshipsTool(BaseTool):
                 error=f"Tenant context required: {e}. Authentication required.",
             )
 
+        predicate = input_data.predicate
+        if predicate and re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", predicate) is None:
+            return GetRelationshipsOutput(
+                relationships=[], total_count=0, error="INVALID_PREDICATE"
+            )
+
         driver = self._get_driver()
 
         try:
             async with driver.session(database=self.database) as session:
                 # P0 FIX: Build query with mandatory tenant filter and optional predicate
                 tenant_id_str = str(tenant_ctx.tenant_id)
-                if input_data.predicate:
-                    query = (
-                        """
-                        MATCH (n {id: $entity_id, tenant_id: $tenant_id})-[r:%s]->(m {tenant_id: $tenant_id})
-                        RETURN n.id as source_id, type(r) as predicate, 
-                               m.id as target_id, m.name as target_name, r.confidence as confidence
-                    """
-                        % input_data.predicate
-                    )
-                else:
-                    query = """
-                        MATCH (n {id: $entity_id, tenant_id: $tenant_id})-[r]->(m {tenant_id: $tenant_id})
-                        RETURN n.id as source_id, type(r) as predicate, 
-                               m.id as target_id, m.name as target_name, r.confidence as confidence
-                    """
+
+                rel_pattern = f"[r:{predicate}]" if predicate else "[r]"
+
+                query = f"""
+                    MATCH (n {{id: $entity_id, tenant_id: $tenant_id}})-{rel_pattern}->(m {{tenant_id: $tenant_id}})
+                    RETURN n.id as source_id, type(r) as predicate,
+                           m.id as target_id, m.name as target_name, r.confidence as confidence
+                """
 
                 result = await session.run(
                     query, {"entity_id": input_data.entity_id, "tenant_id": tenant_id_str}

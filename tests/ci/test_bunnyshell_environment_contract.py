@@ -10,6 +10,8 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 BUNNYSHELL_PATHS = (
     REPO_ROOT / "bunnyshell.yaml",
     REPO_ROOT / "bunnyshell-pr.yaml",
+    REPO_ROOT / ".deployments" / "bunnyshell.yaml",
+    REPO_ROOT / ".deployments" / "bunnyshell-pr.yaml",
 )
 
 

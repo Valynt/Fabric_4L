@@ -8,6 +8,9 @@ on:
     branches: [main]
   push:
     branches: [main, "release/**"]
+  # V1-CI-001: merge queue support (Stage 1 shadow; aggregates become
+  # required at Stage 3).
+  merge_group:
   workflow_dispatch:
 
 concurrency:
@@ -661,3 +664,52 @@ jobs:
       - name: Publish summary
         if: needs.determine-profile.outputs.profile != 'pr-fast'
         run: cat artifacts/release/summary.md >> $GITHUB_STEP_SUMMARY
+
+
+  # ---------------------------------------------------------------------------
+  # V1-CI-001 Stage 1 (shadow): stable aggregate production-readiness check.
+  # Informational until Stage 3. Summarizes existing jobs only
+  # (scripts/ci/aggregate_gate.py).
+  # ---------------------------------------------------------------------------
+  aggregate-06-production-readiness:
+    name: 06-production-readiness
+    runs-on: ubuntu-latest
+    if: always()
+    needs:
+      - determine-profile
+      - arch-conformance
+      - security-isolation
+      - dependency-chaos
+      - cross-domain-smoke
+      - agent-provenance
+      - state-consistency
+      - db-production-readiness-gate
+      - observability-readiness
+      - repo-maturity-scorecard
+      - readiness-10
+      - gate-engineering
+      - release-policy
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - name: Summarize production-readiness gates
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+          # Runtime-gated jobs skip on documentation-only PRs (runtime=false).
+          SKIPSAFE_RUNTIME: ${{ github.event_name == 'pull_request' && needs.determine-profile.outputs.runtime == 'false' }}
+          # Profile-gated jobs skip on the fast PR profile by design.
+          SKIPSAFE_PROFILE: ${{ needs.determine-profile.outputs.profile == 'pr-fast' }}
+        run: |
+          python3 scripts/ci/aggregate_gate.py \
+            --needs-json "$NEEDS_JSON" \
+            --skip-safe arch-conformance=SKIPSAFE_RUNTIME \
+            --skip-safe security-isolation=SKIPSAFE_RUNTIME \
+            --skip-safe agent-provenance=SKIPSAFE_RUNTIME \
+            --skip-safe state-consistency=SKIPSAFE_RUNTIME \
+            --skip-safe db-production-readiness-gate=SKIPSAFE_RUNTIME \
+            --skip-safe dependency-chaos=SKIPSAFE_PROFILE \
+            --skip-safe cross-domain-smoke=SKIPSAFE_PROFILE \
+            --skip-safe observability-readiness=SKIPSAFE_PROFILE \
+            --skip-safe repo-maturity-scorecard=SKIPSAFE_PROFILE \
+            --skip-safe readiness-10=SKIPSAFE_PROFILE \
+            --skip-safe gate-engineering=SKIPSAFE_PROFILE \
+            --skip-safe release-policy=SKIPSAFE_PROFILE

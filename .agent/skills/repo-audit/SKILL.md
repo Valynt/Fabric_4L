@@ -1,7 +1,18 @@
-skill: repo-audit
-name: Repository Health Audit
-version: 1.2.0
-description: Autonomous repository health auditing with scorecard tracking, finding management, and remediation sprint planning.
+---
+name: repo-audit
+description: >-
+  Autonomous repository health auditing with scorecard tracking, finding management,
+  and remediation sprint planning. Use when the user asks to audit the repo, check codebase
+  health, review scorecards, manage findings, or plan remediation sprints.
+---
+
+# Repository Health Audit
+
+Autonomous repository health auditing with scorecard tracking, finding management, and remediation sprint planning.
+
+## Skill Metadata
+- **Version**: 1.2.0
+- **Category**: engineering
 triggers:
   - pattern: "audit.*repo"
     action: run_full_audit
