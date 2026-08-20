@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "entries": [
+    {
+      "path": ".agents/skills"
+    },
+    {
+      "path": ".agents/skills/superpowers"
+    },
+    {
+      "path": ".agents/skills/clerk"
+    },
+    {
+      "path": ".agent/skills"
+    },
+    {
+      "path": ".devin/skills"
+    },
+    {
+      "path": ".claude/skills"
+    }
+  ]
+}
