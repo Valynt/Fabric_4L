@@ -3853,3 +3853,19 @@ entries:
     work_item: Remove or characterize pytest.mark.skip at tests/tools/test_tool_tenant_boundaries.py:35.
   classification: unacceptable_coverage_gap
   disposition: replace_with_characterization
+
+- id: skip-289
+  path_pattern: services/layer4-agents/tests/unit/test_audit_orchestrator_graph.py
+  marker: pytest.skip
+  reason_pattern: ^pytest\.skip\("Symlinks not supported in this environment"\)$
+  owner: '@layer4-agents-quality'
+  reason: Legitimate environment limitation requiring symlink capability.
+  expires_on: '2026-09-30'
+  severity: P2
+  launch_gate: optional
+  remediation:
+    ticket_id: VF-SKIP-289
+    due_on: '2026-09-30'
+    work_item: Remove or characterize pytest.skip at services/layer4-agents/tests/unit/test_audit_orchestrator_graph.py:210.
+  classification: valid_environment_limitation
+  disposition: retain
