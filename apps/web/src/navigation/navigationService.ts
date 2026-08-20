@@ -445,7 +445,6 @@ export function resolveWorkspacePath(
 // Re-export for convenience
 // ─────────────────────────────────────────────────────────────────────────────
 
-export { ROUTE_MAP };
 export type { UserTier } from "@/routes/types";
 
 export interface NavItem {
