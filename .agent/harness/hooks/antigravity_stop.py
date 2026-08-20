@@ -38,8 +38,8 @@ def main():
                 capture_output=True,
                 timeout=30,
             )
-    except Exception:
-        pass
+    except Exception as exc:
+        print(f"antigravity_stop hook error: {exc}", file=sys.stderr)
 
     print(json.dumps({"decision": "stop"}))
 
