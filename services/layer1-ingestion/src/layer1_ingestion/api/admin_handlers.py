@@ -172,7 +172,7 @@ async def health_check(db: Session = Depends(get_db_from_context_sync)):
         status=overall_status,
         version=settings.app_version,
         timestamp=datetime.now(UTC),
-        components={k: v.dict() for k, v in components.items()},
+        components={k: v.model_dump() for k, v in components.items()},
         metrics=metrics,
     )
 
