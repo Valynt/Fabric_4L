@@ -38,7 +38,11 @@
 	check-behavior-readiness-audit \
 	harness-task harness-guard harness-check \
 	docs-harness \
-	contracts validate-openapi-contracts contract-drift contract-freshness-fast contract-freshness
+	contracts validate-openapi-contracts contract-drift contract-freshness-fast contract-freshness \
+	auth-dev
+
+auth-dev: ## Seed local dev auth environment with mock users, tenants, and envelopes
+	@$(PYTHON) scripts/dev_auth_seed.py
 
 
 # Strict shell settings for production safety

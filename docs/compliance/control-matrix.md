@@ -5,7 +5,7 @@
 This matrix maps major SOC 2, GDPR, HIPAA, and CCPA control themes to concrete **code**, **configuration**, and **operational process** evidence in Value Fabric.
 
 - **Scope:** Current repository implementation.
-- **Last reviewed:** 2026-04-14.
+- **Last reviewed:** 2026-08-20.
 - **Update trigger:** Any PR that changes security/governance-sensitive files must also evaluate (and, when needed, update) this matrix.
 
 ---
