@@ -1,7 +1,7 @@
 """Focused serialization tests for the performance cache implementations."""
 
 from collections.abc import Callable
-from typing import cast
+from typing import Any
 
 import pytest
 
@@ -32,14 +32,15 @@ def _redis_cache(serialization: SerializationType) -> RedisCache:
 
 
 @pytest.fixture(params=[_memory_cache, _redis_cache], ids=["memory", "redis"])
-def cache_factory(request: pytest.FixtureRequest) -> Callable[[SerializationType], object]:
+def cache_factory(request: pytest.FixtureRequest) -> Callable[[SerializationType], Any]:
     return request.param
 
 
 @pytest.mark.unit
 def test_msgpack_round_trip_preserves_supported_nested_values(
-    cache_factory: Callable[[SerializationType], object],
+    cache_factory: Callable[[SerializationType], Any],
 ) -> None:
+    pytest.importorskip("msgpack")
     cache = cache_factory(SerializationType.MSGPACK)
     value = {
         "mapping": {
@@ -54,7 +55,7 @@ def test_msgpack_round_trip_preserves_supported_nested_values(
 @pytest.mark.unit
 @pytest.mark.parametrize("operation", ["serialize", "deserialize"])
 def test_pickle_serialization_is_rejected(
-    cache_factory: Callable[[SerializationType], object], operation: str
+    cache_factory: Callable[[SerializationType], Any], operation: str
 ) -> None:
     cache = cache_factory(SerializationType.PICKLE)
 
@@ -68,10 +69,10 @@ def test_pickle_serialization_is_rejected(
 @pytest.mark.unit
 @pytest.mark.parametrize("operation", ["serialize", "deserialize"])
 def test_unknown_serialization_type_is_rejected(
-    cache_factory: Callable[[SerializationType], object], operation: str
+    cache_factory: Callable[[SerializationType], Any], operation: str
 ) -> None:
     cache = cache_factory(SerializationType.JSON)
-    cache.config.serialization = cast(SerializationType, "unknown")
+    cache.config.serialization = "unknown"  # type: ignore[assignment]
 
     with pytest.raises(ValueError, match="Unsupported serialization type"):
         if operation == "serialize":

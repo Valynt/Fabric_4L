@@ -55,7 +55,7 @@ def main():
                 importance=4,
             )
     except Exception:
-        # Silently ignore memory logging errors to avoid blocking the tool lifecycle
+        # Best-effort episodic reflection logging; errors must not disrupt the agent tool pipeline.
         pass
 
     # Antigravity PostToolUse expects `{}` on stdout

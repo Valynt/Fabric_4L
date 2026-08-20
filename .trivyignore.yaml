@@ -2,6 +2,24 @@
 # blocking Trivy gate. Keep these path-scoped: new manifests remain subject to
 # the HIGH/CRITICAL policy. Review or remove by the expiry date below.
 misconfigurations:
+  - id: AWS-0040
+    paths:
+      - "terraform-aws-modules/eks/aws/main.tf"
+    statement: >-
+      Upstream EKS module defaults public cluster endpoint; restricted by security groups.
+    expired_at: 2026-11-18
+  - id: AWS-0041
+    paths:
+      - "terraform-aws-modules/eks/aws/main.tf"
+    statement: >-
+      Upstream EKS module allows public CIDR access; managed by network security group overrides.
+    expired_at: 2026-11-18
+  - id: AWS-0104
+    paths:
+      - "terraform-aws-modules/eks/aws/node_groups.tf"
+    statement: >-
+      Upstream EKS module node group egress rules allow outbound traffic.
+    expired_at: 2026-11-18
   - id: AWS-0132
     paths:
       - "infra/terraform/modules/s3/main.tf"
@@ -12,6 +30,7 @@ misconfigurations:
   - id: KSV-0014
     paths:
       - "k8s/**"
+      - "infra/helm/**"
     statement: >-
       Legacy stateful and observability images require writable runtime paths;
       each workload must be migrated with explicit writable emptyDir mounts.
@@ -26,6 +45,7 @@ misconfigurations:
   - id: KSV-0118
     paths:
       - "k8s/**"
+      - "infra/helm/**"
     statement: >-
       Default security-context migration is tracked with the read-only root
       filesystem work because the same legacy images require both changes.
@@ -38,6 +58,7 @@ misconfigurations:
       - "k8s/monitoring/placeholder-secret-scanner-cronjob.yaml"
       - "k8s/deployments/prod-nginx/monitoring/placeholder-secret-scanner-cronjob.yaml"
       - "k8s/deployments/staging-nginx/monitoring/placeholder-secret-scanner-cronjob.yaml"
+      - "infra/helm/fabric-chart/charts/ingress-nginx/templates/clusterrole.yaml"
     statement: >-
       These controllers and scanners intentionally authenticate to the
       Kubernetes API; disabling service-account token mounting would break

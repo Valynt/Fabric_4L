@@ -151,3 +151,13 @@ def test_all_aggregates_defined_with_valid_needs() -> None:
                 assert (
                     agg_name == "09-change-risk-and-approval"
                 ), f"Aggregate {agg_job_key} has no needs: but is not 09 policy gate"
+
+
+def test_change_risk_approval_gate_only_runs_for_supported_events() -> None:
+    data = _load_yaml(WORKFLOWS_DIR / "pr-checks.yml")
+    job = data["jobs"]["aggregate-09-change-risk-and-approval"]
+
+    event_gate = job.get("if", "")
+    assert "pull_request" in event_gate
+    assert "merge_group" in event_gate
+    assert "push" not in event_gate

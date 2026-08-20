@@ -16,6 +16,7 @@ import re
 import subprocess
 import sys
 from pathlib import Path
+from typing import Any
 
 SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 HIGH_RISK_PREFIXES = (".github/", "contracts/", "k8s/", "scripts/ci/", "config/ci/")
@@ -27,14 +28,12 @@ def _fail(errors: list[str], message: str) -> None:
 
 
 def _event_head(
-    event_name: str, event: dict[str, object], errors: list[str]
+    event_name: str, event: dict[str, Any], errors: list[str]
 ) -> str | None:
     if event_name == "pull_request":
-        pr_obj = event.get("pull_request")
-        head = pr_obj.get("head", {}).get("sha") if isinstance(pr_obj, dict) else None
+        head = event.get("pull_request", {}).get("head", {}).get("sha")
     elif event_name == "merge_group":
-        mg_obj = event.get("merge_group")
-        head = mg_obj.get("head_sha") if isinstance(mg_obj, dict) else None
+        head = event.get("merge_group", {}).get("head_sha")
     else:
         _fail(
             errors,
@@ -47,14 +46,14 @@ def _event_head(
     return head
 
 
-def _gh_json(arguments: list[str]) -> object:
+def _gh_json(arguments: list[str]) -> Any:
     process = subprocess.run(
         ["gh", "api", *arguments], capture_output=True, text=True, check=False
     )
     if process.returncode:
         raise RuntimeError(process.stderr.strip() or "GitHub API request failed")
     decoder = json.JSONDecoder()
-    documents: list[object] = []
+    documents: list[Any] = []
     remaining = process.stdout.lstrip()
     while remaining:
         document, offset = decoder.raw_decode(remaining)
@@ -63,28 +62,21 @@ def _gh_json(arguments: list[str]) -> object:
     if len(documents) == 1:
         return documents[0]
     if all(isinstance(document, list) for document in documents):
-        return [item for document in documents if isinstance(document, list) for item in document]
+        return [item for document in documents for item in document]
     raise RuntimeError("GitHub API returned an unexpected paginated response")
 
 
 def _pull_numbers(
-    event_name: str, event: dict[str, object], repository: str, head: str
+    event_name: str, event: dict[str, Any], repository: str, head: str
 ) -> list[int]:
     if event_name == "pull_request":
-        pr_obj = event.get("pull_request")
-        number = (
-            pr_obj.get("number")
-            if isinstance(pr_obj, dict)
-            else event.get("number")
-        )
+        number = event.get("pull_request", {}).get("number") or event.get("number")
         if not isinstance(number, int):
             raise RuntimeError("pull_request event is missing its number")
         return [number]
     pulls = _gh_json([f"repos/{repository}/commits/{head}/pulls"])
-    if not isinstance(pulls, list):
-        raise RuntimeError(f"unexpected response fetching pulls for commit {head}")
     numbers = sorted(
-        {pull.get("number") for pull in pulls if isinstance(pull, dict) and isinstance(pull.get("number"), int)}
+        {pull.get("number") for pull in pulls if isinstance(pull.get("number"), int)}
     )
     if not numbers:
         raise RuntimeError(
@@ -97,9 +89,6 @@ def _validate_pull(repository: str, number: int, errors: list[str]) -> None:
     pull = _gh_json([f"repos/{repository}/pulls/{number}"])
     reviews = _gh_json([f"repos/{repository}/pulls/{number}/reviews", "--paginate"])
     files = _gh_json([f"repos/{repository}/pulls/{number}/files", "--paginate"])
-    if not isinstance(pull, dict) or not isinstance(reviews, list) or not isinstance(files, list):
-        _fail(errors, f"PR #{number} GitHub API payload is missing expected structures")
-        return
     owner, name = repository.split("/", 1)
     decision_data = _gh_json(
         [
@@ -115,8 +104,7 @@ def _validate_pull(repository: str, number: int, errors: list[str]) -> None:
         ]
     )
 
-    user_obj = pull.get("user")
-    author = user_obj.get("login") if isinstance(user_obj, dict) else None
+    author = pull.get("user", {}).get("login")
     if not isinstance(author, str) or not author:
         _fail(errors, f"PR #{number} has no authenticated author identity")
         return
@@ -125,12 +113,10 @@ def _validate_pull(repository: str, number: int, errors: list[str]) -> None:
     # prevents an old approval from surviving a later changes-requested review.
     latest: dict[str, str] = {}
     for review in reviews:
-        if isinstance(review, dict):
-            rev_user = review.get("user")
-            login = rev_user.get("login") if isinstance(rev_user, dict) else None
-            state = review.get("state")
-            if isinstance(login, str) and isinstance(state, str):
-                latest[login] = state.upper()
+        login = review.get("user", {}).get("login")
+        state = review.get("state")
+        if isinstance(login, str) and isinstance(state, str):
+            latest[login] = state.upper()
     approvers = sorted(
         login
         for login, state in latest.items()
@@ -145,14 +131,15 @@ def _validate_pull(repository: str, number: int, errors: list[str]) -> None:
     high_risk = sorted(
         file["filename"]
         for file in files
-        if isinstance(file, dict)
-        and isinstance(file.get("filename"), str)
+        if isinstance(file.get("filename"), str)
         and file["filename"].startswith(HIGH_RISK_PREFIXES)
     )
-    data_obj = decision_data.get("data") if isinstance(decision_data, dict) else {}
-    repo_obj = data_obj.get("repository") if isinstance(data_obj, dict) else {}
-    pr_obj = repo_obj.get("pullRequest") if isinstance(repo_obj, dict) else {}
-    review_decision = pr_obj.get("reviewDecision") if isinstance(pr_obj, dict) else None
+    review_decision = (
+        decision_data.get("data", {})
+        .get("repository", {})
+        .get("pullRequest", {})
+        .get("reviewDecision")
+    )
     if review_decision != "APPROVED":
         detail = " for high-risk changes" if high_risk else ""
         _fail(
@@ -175,9 +162,7 @@ def main(argv: list[str] | None = None) -> int:
         default=Path(os.environ.get("GITHUB_EVENT_PATH", "/dev/null")),
     )
     args = parser.parse_args(argv)
-    if not args.event_path.exists():
-        print(f"GITHUB_EVENT_PATH '{args.event_path}' does not exist; skipping change risk check.")
-        return 0
+    errors: list[str] = []
     try:
         event = json.loads(args.event_path.read_text(encoding="utf-8"))
         event_name = os.environ.get("GITHUB_EVENT_NAME", "")

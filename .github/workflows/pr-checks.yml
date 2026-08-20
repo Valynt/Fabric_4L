@@ -3105,6 +3105,7 @@ jobs:
     name: 09-change-risk-and-approval
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
     permissions:
       contents: read
       pull-requests: read

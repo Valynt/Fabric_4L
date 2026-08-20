@@ -40,7 +40,7 @@ def main():
                 timeout=30,
             )
     except Exception:
-        # Silently ignore background dream run errors on stop hook exit
+        # Best-effort lifecycle stop hook; errors must not disrupt the agent shutdown sequence.
         pass
 
     print(json.dumps({"decision": "stop"}))
