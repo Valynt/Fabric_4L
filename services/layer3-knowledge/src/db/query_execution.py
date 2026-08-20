@@ -228,9 +228,15 @@ class TenantQueryExecutor:
         if context.is_bypass:
             return
         cls._guard_direct_mutation(query, context)
-        cls._guard_depth_limit(query, params, context)
+        cls._guard_depth_limit(query, cls._extract_max_depth(query, params), context)
         cls._guard_tenant_context(query, context)
-        cls._guard_structural_scoping(query, params, context)
+        cls._guard_structural_scoping(
+            query,
+            _structural_tenant_scope_errors(query, params)
+            if _touches_tenant_owned_label(query)
+            else [],
+            context,
+        )
         cls._guard_multi_clause(query, context)
 
     @classmethod
@@ -260,10 +266,9 @@ class TenantQueryExecutor:
 
     @classmethod
     def _guard_depth_limit(
-        cls, query: str, params: Mapping[str, Any], context: TenantExecutionContext
+        cls, query: str, max_depth: int | None, context: TenantExecutionContext
     ) -> None:
         """Enforce the traversal depth limit (PERF-001)."""
-        max_depth = cls._extract_max_depth(query, params)
         safe_max_depth = sanitize_query_depth(MAX_QUERY_DEPTH, default_depth=MAX_QUERY_DEPTH)
         if max_depth is not None and max_depth > safe_max_depth:
             metrics = get_metrics() if get_metrics else None
@@ -298,11 +303,9 @@ class TenantQueryExecutor:
 
     @classmethod
     def _guard_structural_scoping(
-        cls, query: str, params: Mapping[str, Any], context: TenantExecutionContext
+        cls, query: str, structural_errors: list[str], context: TenantExecutionContext
     ) -> None:
         """Reject tenant-owned label queries missing explicit tenant predicates."""
-        touches_tenant_data = _touches_tenant_owned_label(query)
-        structural_errors = _structural_tenant_scope_errors(query, params) if touches_tenant_data else []
         if structural_errors and not context.allow_system_query:
             metrics = get_metrics() if get_metrics else None
             if metrics:
