@@ -41,6 +41,7 @@ from .models import (
     ScoreHistory,
     Severity,
     Sprint,
+    validate_repo_url,
 )
 from .persistence import PersistenceManager, get_engine
 
@@ -130,11 +131,17 @@ def get_manager() -> PersistenceManager:
 
 
 def _build_config(request: AuditTriggerRequest) -> AuditConfig:
-    """Merge request overrides with configuration defaults."""
+    """Merge request overrides with configuration defaults.
+
+    API-originated audit requests are never allowed to execute in trusted-source
+    local filesystem mode.
+    """
     from .persistence import _repo_name_from_git_url
 
     config_manager = ConfigManager()
-    overrides: dict[str, Any] = {}
+    overrides: dict[str, Any] = {
+        "trusted_source": False,
+    }
 
     if request.repo_url is not None:
         overrides["repo_url"] = request.repo_url
@@ -150,6 +157,7 @@ def _build_config(request: AuditTriggerRequest) -> AuditConfig:
         overrides["repo_name"] = _repo_name_from_git_url(overrides["repo_url"])
 
     config = config_manager.load_or_default(overrides=overrides)
+    config.trusted_source = False
 
     if not config.repo_name or config.repo_name.strip() == "":
         config.repo_name = _repo_name_from_git_url(config.repo_url)
@@ -483,10 +491,19 @@ async def github_webhook(
         trigger_type = "post_merge"
 
     if should_trigger and repo_url:
+        try:
+            validate_repo_url(repo_url)
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid repository URL in webhook payload: {exc}",
+            ) from exc
+
         config_manager = ConfigManager()
         config = config_manager.load_or_default(
-            overrides={"repo_url": repo_url, "repo_name": repo_name}
+            overrides={"repo_url": repo_url, "repo_name": repo_name, "trusted_source": False}
         )
+        config.trusted_source = False
         config.tenant_id = tenant_id
         asyncio.create_task(
             _background_run_async(config, trigger_type, None, None, tenant_id)

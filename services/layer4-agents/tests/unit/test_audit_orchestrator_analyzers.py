@@ -315,10 +315,13 @@ def test_finding_catalog_check_all_runs(audit_config: AuditConfig):
     assert len(ids) == len(set(ids))
 
 
-def test_analyzers_handle_non_git_or_empty_tree(tmp_path: Path, audit_config: AuditConfig):
+def test_analyzers_handle_non_git_or_empty_tree(
+    tmp_path: Path, audit_config: AuditConfig, monkeypatch: pytest.MonkeyPatch
+):
     """Analyzers should run without raising on a plain, empty directory."""
     (tmp_path / "package.json").write_text('{"name":"x"}')
 
+    monkeypatch.setattr(GitAnalyzer, "_git_available", lambda self, p: (p / ".git").exists())
     git_analyzer = GitAnalyzer(audit_config)
     findings, metrics = git_analyzer.analyze(str(tmp_path))
     assert isinstance(findings, list)

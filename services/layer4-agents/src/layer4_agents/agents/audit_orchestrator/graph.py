@@ -32,6 +32,7 @@ from .models import (
     Scorecard,
     Sprint,
     SprintStatus,
+    validate_repo_url,
 )
 from .persistence import PersistenceManager, update_knowledge_graph
 from .reporter import generate_full_report
@@ -101,16 +102,46 @@ def _effort_to_days(effort: str) -> float:
 def _resolve_repo_path(config: AuditConfig) -> tuple[Path, str | None]:
     """Resolve a local repo path or clone a remote URL.
 
+    Security Confinement Rules:
+    - If `config.trusted_source` is True:
+      - The `repo_url` is treated as a local filesystem path.
+      - Canonicalize with `Path(repo_url).resolve()`.
+      - Check against `config.allowed_repo_root` (or cwd if not specified).
+      - Ensure `candidate.is_relative_to(allowed_root)` to prevent path traversal or symlink escapes.
+      - Fail closed if the directory does not exist or escapes the allowed root.
+    - If `config.trusted_source` is False (default for API / Webhook):
+      - Local filesystem resolution is strictly forbidden.
+      - Validate `repo_url` using `validate_repo_url(repo_url)`.
+      - Clone remote git repository into `config.cache_dir`.
+      - If clone fails, FAIL CLOSED by raising `RuntimeError` (do NOT fall back to cwd).
+
     Returns the resolved path and the current commit SHA (when available).
     """
     repo_url = config.repo_url
-    candidate = Path(repo_url).resolve()
 
-    if candidate.exists() and candidate.is_dir():
+    if config.trusted_source:
+        candidate = Path(repo_url).resolve()
+        allowed_root = (
+            Path(config.allowed_repo_root).resolve()
+            if config.allowed_repo_root
+            else Path.cwd().resolve()
+        )
+        if not candidate.is_relative_to(allowed_root):
+            raise PermissionError(
+                f"Local repository path '{repo_url}' (resolved: '{candidate}') escapes allowed repository root '{allowed_root}'."
+            )
+        if not candidate.exists() or not candidate.is_dir():
+            raise FileNotFoundError(
+                f"Local repository path '{candidate}' does not exist or is not a directory."
+            )
         return candidate, _git_head(candidate)
+
+    # config.trusted_source is False: must be a validated remote Git repository URL
+    validate_repo_url(repo_url)
 
     # Treat repo_url as a git remote and clone into the cache directory.
     cache = Path(config.cache_dir).resolve()
+    cache.mkdir(parents=True, exist_ok=True)
     safe_name = config.repo_name.replace("/", "__").replace("\\", "__")
     clone_target = cache / safe_name
 
@@ -122,11 +153,8 @@ def _resolve_repo_path(config: AuditConfig) -> tuple[Path, str | None]:
     try:
         subprocess.run(cmd, check=True, capture_output=True, text=True, timeout=120)
     except (subprocess.SubprocessError, FileNotFoundError) as exc:
-        # Fallback: analyze the current working directory so tests and local
-        # invocations always have something to work on.
-        logger.warning("Git clone failed (%s); falling back to current directory", exc)
-        fallback = Path(".").resolve()
-        return fallback, _git_head(fallback)
+        logger.error("Git clone failed for '%s': %s", repo_url, exc)
+        raise RuntimeError(f"Failed to clone repository from '{repo_url}': {exc}") from exc
 
     return clone_target, _git_head(clone_target)
 

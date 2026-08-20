@@ -508,3 +508,120 @@ def test_openapi_matches_audit_trigger_and_report_contract(app):
         "responses"
     ]["200"]["content"]
     assert {"application/json", "text/markdown"} <= set(report_content)
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "hostile_url",
+    [
+        "/",
+        "/etc",
+        "/etc/passwd",
+        "C:\\Windows",
+        ".",
+        "../secret",
+        "../../etc/shadow",
+        "file:///etc/passwd",
+        "file://localhost/etc/hosts",
+        "ext::sh -c evil",
+        "fd::1",
+        "ftp://github.com/org/repo",
+        "gopher://github.com/org/repo",
+        "git@github.com:org/repo;rm -rf /",
+        "https://github.com/org/repo\nevil",
+        "http://169.254.169.254/latest/meta-data",
+        "http://localhost:8080/repo",
+        "http://127.0.0.1:8000/repo",
+    ],
+)
+def test_trigger_audit_rejects_hostile_repo_urls(client: Any, hostile_url: str):
+    """POST /run must reject local filesystem paths, file://, traversal, and dangerous schemes."""
+    response = client.post(
+        "/v1/repo-audit/run",
+        json={"repo_url": hostile_url, "branch": "main"},
+    )
+    assert response.status_code == 422
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "valid_url",
+    [
+        "https://github.com/org/repo.git",
+        "http://github.com/org/repo",
+        "git@github.com:org/repo.git",
+        "ssh://git@github.com/org/repo.git",
+    ],
+)
+def test_trigger_audit_accepts_valid_repo_urls(
+    client: Any, monkeypatch: pytest.MonkeyPatch, valid_url: str
+):
+    """POST /run must accept valid Git URLs."""
+    async def fake_background_run_async(*args: Any, **kwargs: Any) -> None:
+        pass
+
+    monkeypatch.setattr(audit_api, "_background_run_async", fake_background_run_async)
+    response = client.post(
+        "/v1/repo-audit/run",
+        json={"repo_url": valid_url, "branch": "main"},
+    )
+    assert response.status_code == 200
+    assert response.json()["status"] == "pending"
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "hostile_clone_url",
+    [
+        "/",
+        "/etc",
+        "/etc/shadow",
+        "file:///etc/passwd",
+        "ext::evil",
+        "ftp://evil.com/repo",
+        "../traversal",
+    ],
+)
+def test_github_webhook_rejects_hostile_clone_url(
+    client: Any, monkeypatch: pytest.MonkeyPatch, hostile_clone_url: str
+):
+    """The GitHub webhook endpoint must reject payloads with hostile clone_urls."""
+    monkeypatch.delenv("GITHUB_WEBHOOK_SECRET", raising=False)
+    monkeypatch.setenv("DEV_WEBHOOK_UNSAFE", "true")
+
+    captured = {}
+
+    async def fake_background_run_async(*args, **kwargs):
+        captured["triggered"] = True
+
+    monkeypatch.setattr(audit_api, "_background_run_async", fake_background_run_async)
+
+    import json
+    payload = json.dumps({
+        "ref": "refs/heads/main",
+        "repository": {
+            "clone_url": hostile_clone_url,
+            "full_name": "owner/repo",
+        },
+    }).encode("utf-8")
+
+    response = client.post(
+        "/v1/repo-audit/webhook/github?tenant_id=tenant-webhook",
+        content=payload,
+        headers={"x-github-event": "push"},
+    )
+    assert response.status_code == 400
+    assert "triggered" not in captured
+
+
+@pytest.mark.unit
+def test_build_config_enforces_untrusted_source():
+    """_build_config must always return an AuditConfig with trusted_source=False."""
+    from layer4_agents.agents.audit_orchestrator.api import _build_config
+    from layer4_agents.agents.audit_orchestrator.models import AuditTriggerRequest
+
+    req = AuditTriggerRequest(repo_url="https://github.com/owner/repo.git")
+    cfg = _build_config(req)
+    assert cfg.trusted_source is False
+    assert cfg.repo_url == "https://github.com/owner/repo.git"
+

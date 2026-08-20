@@ -13,9 +13,155 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from enum import Enum
+import re
+from urllib.parse import urlparse
 from uuid import uuid4
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
+
+# ---------------------------------------------------------------------------
+# Repository URL and Transport Validation
+# ---------------------------------------------------------------------------
+
+_APPROVED_SCHEMES: frozenset[str] = frozenset({"https", "http", "ssh", "git"})
+_DISALLOWED_PREFIXES: tuple[str, ...] = (
+    "file://",
+    "file:",
+    "ext::",
+    "fd::",
+    "ftp://",
+    "ftps://",
+    "gopher://",
+    "dict://",
+    "data:",
+    "javascript:",
+    "vbscript:",
+    "ldap://",
+    "ldaps://",
+)
+
+_DISALLOWED_HOSTS: frozenset[str] = frozenset(
+    {"localhost", "127.0.0.1", "0.0.0.0", "169.254.169.254", "::1", "[::1]"}
+)
+_SSH_SCP_PATTERN = re.compile(
+    r"^[a-zA-Z0-9._-]+@[a-zA-Z0-9.\-]+:[a-zA-Z0-9._/\-]+(?:\.git)?$"
+)
+
+# Reject path traversal components or suspicious control/shell characters
+_DANGEROUS_CHARS_PATTERN = re.compile(r"[\x00-\x1f\x7f;`$&|<>\s\"']")
+
+
+def validate_repo_url(url: str) -> str:
+    """Validate that a repository URL uses an approved Git transport and target.
+
+    Permits:
+    - Standard URLs with approved schemes (https://, http://, ssh://, git://)
+      and valid hostname and repository path.
+    - Standard SCP-style SSH Git URLs (e.g. git@github.com:owner/repo.git).
+
+    Rejects:
+    - Arbitrary local paths (/, /etc, C:\, relative paths with ..).
+    - file:// schemes and local file URIs.
+    - Unsupported or dangerous Git custom transports (ext::, fd::, ftp://, etc.).
+    - Path traversal sequences (..) and shell injection characters.
+
+    Args:
+        url: The repository URL to validate.
+
+    Returns:
+        The validated, stripped repository URL.
+
+    Raises:
+        ValueError: If the URL is invalid or uses an unapproved scheme/format.
+    """
+    if not isinstance(url, str):
+        raise ValueError("Repository URL must be a string")
+
+    stripped = url.strip()
+    if not stripped:
+        raise ValueError("Repository URL cannot be empty")
+
+    if _DANGEROUS_CHARS_PATTERN.search(stripped):
+        raise ValueError("Repository URL contains invalid control or shell characters")
+
+    lower = stripped.lower()
+
+    # Check disallowed protocol prefixes
+    for prefix in _DISALLOWED_PREFIXES:
+        if lower.startswith(prefix):
+            raise ValueError(
+                f"Disallowed repository URL scheme or protocol: {prefix.rstrip(':/')}"
+            )
+
+    # Check local path indicators
+    if (
+        stripped.startswith(("/", "\\", "."))
+        or re.match(r"^[a-zA-Z]:", stripped)
+        or re.match(r"^\\\\", stripped)
+    ):
+        raise ValueError(
+            "Local filesystem paths are not permitted as repository URLs for API/webhook requests"
+        )
+
+    # Check path traversal
+    normalized_for_traversal = stripped.replace("\\", "/")
+    path_parts = normalized_for_traversal.split("/")
+    if ".." in path_parts:
+        raise ValueError("Repository URL cannot contain path traversal sequences ('..')")
+    if "/../" in stripped or "\\..\\" in stripped or "/..\\" in stripped or "\\../" in stripped:
+        raise ValueError("Repository URL cannot contain path traversal sequences ('..')")
+
+    # Check SSH SCP pattern
+    if "@" in stripped and ":" in stripped and not stripped.startswith(("http://", "https://", "ssh://", "git://")):
+        if _SSH_SCP_PATTERN.match(stripped):
+            host_part, path_part = stripped.split(":", 1)
+            if not host_part or not path_part or ".." in path_part:
+                raise ValueError("Invalid SSH Git repository format")
+            return stripped
+        raise ValueError(
+            "Invalid SSH Git URL format. Expected format: user@host:path/to/repo.git"
+        )
+
+    # Check standard URL
+    try:
+        parsed = urlparse(stripped)
+    except Exception as exc:
+        raise ValueError(f"Failed to parse repository URL: {exc}") from exc
+
+    scheme = (parsed.scheme or "").lower()
+    if not scheme:
+        raise ValueError(
+            "Missing repository URL scheme (e.g., https://github.com/owner/repo.git)"
+        )
+
+    if scheme not in _APPROVED_SCHEMES:
+        raise ValueError(
+            f"Unsupported repository URL scheme '{scheme}'. Approved schemes are: {', '.join(sorted(_APPROVED_SCHEMES))}"
+        )
+
+    hostname = (parsed.hostname or "").lower()
+    if not hostname:
+        raise ValueError("Repository URL must include a valid hostname")
+
+    if not re.match(r"^[a-zA-Z0-9.\-]+$", hostname):
+        raise ValueError(f"Invalid hostname in repository URL: {hostname}")
+
+    if (
+        hostname in _DISALLOWED_HOSTS
+        or hostname.startswith("127.")
+        or hostname.startswith("169.254.")
+    ):
+        raise ValueError(f"Disallowed hostname or loopback/metadata IP in repository URL: {hostname}")
+
+    path = parsed.path
+    if not path or path == "/" or not path.strip("/"):
+        raise ValueError("Repository URL must include a repository path")
+
+    path_segments = path.strip("/").split("/")
+    if ".." in path_segments:
+        raise ValueError("Repository URL path cannot contain traversal segments")
+
+    return stripped
 
 # ---------------------------------------------------------------------------
 # Enums
@@ -673,6 +819,14 @@ class AuditConfig(BaseModel):
         ge=0,
         description="Git clone depth (0 for full clone, ≥1 for shallow)",
     )
+    trusted_source: bool = Field(
+        default=False,
+        description="Allow local filesystem paths as repository sources (CLI/internal execution only)",
+    )
+    allowed_repo_root: str | None = Field(
+        default=None,
+        description="Configured repository root for local path confinement",
+    )
 
     # --- Analysis scope ---
     areas_enabled: list[AuditArea] = Field(
@@ -784,6 +938,13 @@ class AuditConfig(BaseModel):
             raise ValueError(f"Area weights must sum to 1.0, got {total:.4f}")
         return v
 
+    @model_validator(mode="after")
+    def _validate_repo_source(self) -> AuditConfig:
+        """Validate repository URL format unless trusted local source mode is enabled."""
+        if not self.trusted_source:
+            validate_repo_url(self.repo_url)
+        return self
+
     def get_area_weight(self, area: AuditArea) -> float:
         """Get the weight for a specific audit area.
 
@@ -807,7 +968,7 @@ class AuditTriggerRequest(BaseModel):
     """
 
     repo_url: str = Field(
-        description="Repository URL to audit.",
+        description="Repository URL to audit (must be an approved Git URL scheme like https:// or ssh://).",
     )
     branch: str | None = Field(
         default=None,
@@ -825,6 +986,14 @@ class AuditTriggerRequest(BaseModel):
         default="manual",
         description="Source of the trigger: manual, scheduled, webhook, post_merge",
     )
+
+    @field_validator("repo_url")
+    @classmethod
+    def _validate_repo_url(cls, v: str) -> str:
+        """Enforce strict repository URL format on API triggers."""
+        if not v or not v.strip():
+            raise ValueError("repo_url is required")
+        return validate_repo_url(v.strip())
 
 
 class AuditRunResponse(BaseModel):
