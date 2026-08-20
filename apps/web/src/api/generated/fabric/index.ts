@@ -547,6 +547,126 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/auth/clerk/health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Auth Health
+         * @description Return real-time health and verification SLO statistics for the auth plane.
+         */
+        get: operations["get_auth_health_v1_auth_clerk_health_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/auth/clerk/sessions/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Revoke Active Session
+         * @description Revoke an active Clerk session discriminator.
+         */
+        post: operations["revoke_active_session_v1_auth_clerk_sessions_revoke_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/auth/clerk/sessions/revoke-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Revoke All User Sessions
+         * @description Revoke all active sessions for the authenticated user (sign out everywhere).
+         */
+        post: operations["revoke_all_user_sessions_v1_auth_clerk_sessions_revoke_all_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/auth/clerk/invitations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Org Invitations
+         * @description List pending invitations for the verified Clerk organization.
+         */
+        get: operations["list_org_invitations_v1_auth_clerk_invitations_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/auth/clerk/invitations/{invitation_id}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Accept Org Invitation
+         * @description Accept a pending organization invitation and activate user membership.
+         */
+        post: operations["accept_org_invitation_v1_auth_clerk_invitations__invitation_id__accept_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/auth/health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Auth Health
+         * @description Return real-time health and verification SLO statistics for the auth plane.
+         */
+        get: operations["get_auth_health_v1_auth_health_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/auth/authorization-snapshot": {
         parameters: {
             query?: never;
@@ -2197,6 +2317,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/internal/webhooks/clerk/dlq": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Clerk Webhook Dlq
+         * @description Inspect the Dead-Letter Queue for failed Clerk webhook events (internal operator inspection).
+         */
+        get: operations["list_clerk_webhook_dlq_internal_webhooks_clerk_dlq_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/internal/webhooks/clerk": {
         parameters: {
             query?: never;
@@ -2686,20 +2826,36 @@ export interface components {
          * @description Canonical mapping from a Clerk organization to a Fabric tenant.
          */
         ClerkTenantResponse: {
-            /** Fabric Tenant Id */
+            /**
+             * Fabric Tenant Id
+             * @description Unique Fabric internal tenant identifier
+             */
             fabric_tenant_id: string;
-            /** Tenant Slug */
-            tenant_slug: string | null;
-            /** Clerk Org Id */
+            /**
+             * Tenant Slug
+             * @description Human-readable unique tenant URL slug
+             */
+            tenant_slug?: string | null;
+            /**
+             * Clerk Org Id
+             * @description External Clerk organization identifier
+             */
             clerk_org_id: string;
             /**
              * Status
+             * @description Operational tenant status
              * @enum {string}
              */
             status: "active" | "suspended" | "deleted";
-            /** Roles */
+            /**
+             * Roles
+             * @description List of mapped roles for the tenant actor
+             */
             roles: string[];
-            /** Permissions */
+            /**
+             * Permissions
+             * @description List of resolved effective permissions for the tenant actor
+             */
             permissions: string[];
         };
         /**
@@ -2999,33 +3155,6 @@ export interface components {
             total: number;
         };
         /**
-         * HTTPAuthorizationCredentials
-         * @description The HTTP authorization credentials in the result of using `HTTPBearer` or
-         *     `HTTPDigest` in a dependency.
-         *
-         *     The HTTP authorization header value is split by the first space.
-         *
-         *     The first part is the `scheme`, the second part is the `credentials`.
-         *
-         *     For example, in an HTTP Bearer token scheme, the client will send a header
-         *     like:
-         *
-         *     ```
-         *     Authorization: Bearer deadbeef12346
-         *     ```
-         *
-         *     In this case:
-         *
-         *     * `scheme` will have the value `"Bearer"`
-         *     * `credentials` will have the value `"deadbeef12346"`
-         */
-        HTTPAuthorizationCredentials: {
-            /** Scheme */
-            scheme: string;
-            /** Credentials */
-            credentials: string;
-        };
-        /**
          * HTTPValidationError
          * @description Deprecated compatibility alias for ErrorEnvelope. Use ErrorEnvelope for new clients.
          */
@@ -3073,6 +3202,44 @@ export interface components {
             expires_in: number;
             /** Impersonation Session Id */
             impersonation_session_id: string;
+        };
+        /**
+         * InvitationResponse
+         * @description Organization invitation projection schema model.
+         * @example {
+         *       "email": "user@example.com",
+         *       "invitation_id": "inv_2exampleInvitation123456789",
+         *       "org_id": "org_2exampleOrg123456789",
+         *       "role": "org:member",
+         *       "status": "pending"
+         *     }
+         */
+        InvitationResponse: {
+            /**
+             * Invitation Id
+             * @description Unique Clerk invitation identifier
+             */
+            invitation_id: string;
+            /**
+             * Org Id
+             * @description Unique Clerk organization identifier
+             */
+            org_id: string;
+            /**
+             * Email
+             * @description Email address of the invitee
+             */
+            email: string;
+            /**
+             * Role
+             * @description Assigned organization role for the invitee
+             */
+            role: string;
+            /**
+             * Status
+             * @description Status of the invitation (e.g. pending, accepted, revoked)
+             */
+            status: string;
         };
         /** InviteRequest */
         InviteRequest: {
@@ -3559,6 +3726,46 @@ export interface components {
             updated_at?: string;
             /** Resolved At */
             resolved_at?: string | null;
+        };
+        /**
+         * RevokeSessionRequest
+         * @description Payload to revoke a specific active Clerk session.
+         * @example {
+         *       "session_id": "sess_2exampleSessionId123456789"
+         *     }
+         */
+        RevokeSessionRequest: {
+            /**
+             * Session Id
+             * @description Optional target Clerk session ID to revoke
+             */
+            session_id?: string | null;
+        };
+        /**
+         * RevokeSessionResponse
+         * @description Result of session revocation operation.
+         * @example {
+         *       "message": "Session revoked successfully.",
+         *       "revoked": true,
+         *       "session_id": "sess_2exampleSessionId123456789"
+         *     }
+         */
+        RevokeSessionResponse: {
+            /**
+             * Revoked
+             * @description Whether the session or sessions were successfully revoked
+             */
+            revoked: boolean;
+            /**
+             * Session Id
+             * @description The session identifier that was revoked
+             */
+            session_id?: string | null;
+            /**
+             * Message
+             * @description Human-readable outcome description message
+             */
+            message: string;
         };
         /** Scenario */
         Scenario: {
@@ -5244,11 +5451,7 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["HTTPAuthorizationCredentials"] | null;
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
@@ -5259,6 +5462,59 @@ export interface operations {
                     "application/json": components["schemas"]["ClerkTenantResponse"];
                 };
             };
+        };
+    };
+    get_auth_health_v1_auth_clerk_health_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    revoke_active_session_v1_auth_clerk_sessions_revoke_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RevokeSessionRequest"];
+            };
+        };
+        responses: {
+            /** @description Session revoked successfully. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "revoked": true,
+                     *       "session_id": "sess_2exampleSessionId123456789",
+                     *       "message": "Session revoked successfully."
+                     *     }
+                     */
+                    "application/json": components["schemas"]["RevokeSessionResponse"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -5266,6 +5522,115 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revoke_all_user_sessions_v1_auth_clerk_sessions_revoke_all_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description All sessions revoked for user successfully. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "revoked": true,
+                     *       "message": "All sessions revoked for user."
+                     *     }
+                     */
+                    "application/json": components["schemas"]["RevokeSessionResponse"];
+                };
+            };
+        };
+    };
+    list_org_invitations_v1_auth_clerk_invitations_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvitationResponse"][];
+                };
+            };
+        };
+    };
+    accept_org_invitation_v1_auth_clerk_invitations__invitation_id__accept_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Unique Clerk organization invitation identifier to accept */
+                invitation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Invitation accepted successfully. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "invitation_id": "inv_2exampleInvitation123456789",
+                     *       "org_id": "org_2exampleOrg123456789",
+                     *       "email": "user@example.com",
+                     *       "role": "org:member",
+                     *       "status": "accepted"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["InvitationResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_auth_health_v1_auth_health_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };
@@ -5280,11 +5645,7 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["HTTPAuthorizationCredentials"] | null;
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
@@ -8854,6 +9215,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_clerk_webhook_dlq_internal_webhooks_clerk_dlq_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                /** @description Session cookie for authenticated requests */
+                vf_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
             /** @description Validation Error */

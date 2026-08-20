@@ -38,11 +38,19 @@ from value_fabric.shared.error_handling.models import ErrorCode
 from value_fabric.shared.rate_limiting.ip_limiter import IPRateLimitDependency
 
 from app.core.auth_directory import AuthDirectory, get_auth_directory
+from app.core.auth_telemetry import (
+    record_webhook_dlq,
+    record_webhook_event,
+    record_webhook_replay,
+)
+from app.core.billing_entitlements import process_clerk_billing_event
 from app.core.clerk_config import _DEFAULT_CLERK_WEBHOOK_RATE_LIMIT_PER_MINUTE, get_auth_settings
+from app.core.security import require_authenticated
+from app.core.webhook_dlq import get_webhook_dlq
 
 logger = structlog.get_logger(__name__)
 
-router = APIRouter(prefix="/internal/webhooks", tags=["internal-webhooks"])
+router = APIRouter(prefix="/internal/webhooks", tags=["Platform", "internal-webhooks"])
 
 try:
     _clerk_rate_limit = int(os.getenv("CLERK_WEBHOOK_RATE_LIMIT_PER_MINUTE", str(_DEFAULT_CLERK_WEBHOOK_RATE_LIMIT_PER_MINUTE)))
@@ -63,6 +71,17 @@ class ClerkEventType(StrEnum):
     ORGANIZATION_MEMBERSHIP_CREATED = "organizationMembership.created"
     ORGANIZATION_MEMBERSHIP_UPDATED = "organizationMembership.updated"
     ORGANIZATION_MEMBERSHIP_DELETED = "organizationMembership.deleted"
+    ORGANIZATION_INVITATION_CREATED = "organizationInvitation.created"
+    ORGANIZATION_INVITATION_ACCEPTED = "organizationInvitation.accepted"
+    ORGANIZATION_INVITATION_REVOKED = "organizationInvitation.revoked"
+    SUBSCRIPTION_CREATED = "subscription.created"
+    SUBSCRIPTION_UPDATED = "subscription.updated"
+    SUBSCRIPTION_DELETED = "subscription.deleted"
+    SUBSCRIPTION_CANCELED = "subscription.canceled"
+    SUBSCRIPTION_ITEM_CREATED = "subscription.item.created"
+    SUBSCRIPTION_ITEM_UPDATED = "subscription.item.updated"
+    PAYMENT_ATTEMPT_SUCCEEDED = "payment_attempt.succeeded"
+    PAYMENT_ATTEMPT_FAILED = "payment_attempt.failed"
 
 
 def _verify_svix_signature(
@@ -182,6 +201,30 @@ def _apply_event(directory: AuthDirectory, event_type: str, data: dict[str, Any]
         clerk_org_id = data.get("organization_id") or org.get("id")
         if clerk_user_id and clerk_org_id:
             directory.revoke_membership(clerk_org_id=clerk_org_id, clerk_user_id=clerk_user_id)
+    elif event_type == ClerkEventType.ORGANIZATION_INVITATION_CREATED:
+        clerk_inv_id = data.get("id")
+        clerk_org_id = data.get("organization_id")
+        email = data.get("email_address")
+        role = data.get("role") or "org:member"
+        if clerk_inv_id and clerk_org_id and email:
+            directory.upsert_invitation(
+                clerk_invitation_id=clerk_inv_id,
+                clerk_org_id=clerk_org_id,
+                email=email,
+                role=role,
+                status="pending",
+                created_at=data.get("created_at"),
+            )
+    elif event_type == ClerkEventType.ORGANIZATION_INVITATION_ACCEPTED:
+        clerk_inv_id = data.get("id")
+        if clerk_inv_id:
+            directory.revoke_invitation(clerk_invitation_id=clerk_inv_id)
+    elif event_type == ClerkEventType.ORGANIZATION_INVITATION_REVOKED:
+        clerk_inv_id = data.get("id")
+        if clerk_inv_id:
+            directory.revoke_invitation(clerk_invitation_id=clerk_inv_id)
+    elif event_type.startswith("subscription.") or event_type.startswith("payment_attempt."):
+        process_clerk_billing_event(event_type, data, directory=directory)
     else:
         logger.info(
             "ignoring unhandled clerk event type",
@@ -190,8 +233,23 @@ def _apply_event(directory: AuthDirectory, event_type: str, data: dict[str, Any]
         )
 
 
+@router.get("/clerk/dlq")
+async def list_clerk_webhook_dlq(
+    _auth: Any = Depends(require_authenticated),
+) -> dict[str, Any]:
+    """Inspect the Dead-Letter Queue for failed Clerk webhook events (internal operator inspection)."""
+    dlq = get_webhook_dlq()
+    records = dlq.list_records(limit=100, unresolved_only=False)
+    return {
+        "total_records": len(records),
+        "unresolved_count": sum(1 for r in records if not r.resolved),
+        "records": [r.to_dict() for r in records],
+    }
+
+
 @router.post("/clerk", status_code=status.HTTP_204_NO_CONTENT)
 async def clerk_webhook(request: Request, _limit: None = Depends(_clerk_ip_limiter)) -> None:
+    start_time = time.perf_counter()
     settings = get_auth_settings()
     if settings.clerk is None or not settings.clerk.webhook_secret:
         # Webhook endpoint is silent until configured.
@@ -211,6 +269,7 @@ async def clerk_webhook(request: Request, _limit: None = Depends(_clerk_ip_limit
         logger.warning(
             "clerk webhook body not valid JSON", operation="webhook_payload_parse", error=str(exc)
         )
+        record_webhook_dlq("unknown", "invalid_json")
         raise BadRequestError(
             message="Bad request.", error_code=ErrorCode.WEBHOOK_INVALID_BODY
         ) from exc
@@ -219,12 +278,14 @@ async def clerk_webhook(request: Request, _limit: None = Depends(_clerk_ip_limit
     event_type = payload.get("type")
     data = payload.get("data") or {}
     if not event_type or not isinstance(data, dict):
+        record_webhook_dlq(str(event_type), "invalid_body_structure")
         raise BadRequestError(
             message="Bad request.", error_code=ErrorCode.WEBHOOK_INVALID_BODY
         )
 
     directory = get_auth_directory()
     if event_id and directory.has_processed_event(event_id):
+        record_webhook_replay(event_type)
         logger.info(
             "clerk webhook replay ignored",
             event_id=event_id,
@@ -245,16 +306,28 @@ async def clerk_webhook(request: Request, _limit: None = Depends(_clerk_ip_limit
             operation="webhook_event_apply",
             error=str(exc),
         )
+        record_webhook_event(event_type, "conflict_ordering", time.perf_counter() - start_time)
         raise ConflictError(message="Retry later.") from exc
     except (BadRequestError, ConflictError, AuthenticationError):
+        record_webhook_event(event_type, "client_error", time.perf_counter() - start_time)
         raise
     except ValueFabricException:
         # Let structured domain errors (400/401/403/409/422) propagate to the
         # global exception handler unchanged.
+        record_webhook_event(event_type, "domain_error", time.perf_counter() - start_time)
         raise
     except Exception as exc:
         # Catch-all for truly unexpected programming errors.
-        # Alerting/monitoring should flag these as they indicate a bug.
+        # Record into DLQ and alert.
+        get_webhook_dlq().enqueue(
+            event_id=event_id,
+            event_type=event_type,
+            payload=payload,
+            headers=headers,
+            error_reason=str(exc),
+        )
+        record_webhook_dlq(event_type, "internal_exception")
+        record_webhook_event(event_type, "error", time.perf_counter() - start_time)
         logger.exception(
             "clerk webhook handler failed",
             event_id=event_id,
@@ -264,6 +337,8 @@ async def clerk_webhook(request: Request, _limit: None = Depends(_clerk_ip_limit
         )
         raise ServiceUnavailableError(message="Internal error.") from exc
 
+    duration = time.perf_counter() - start_time
+    record_webhook_event(event_type, "success", duration)
     if event_id:
         directory.mark_event_processed(event_id, event_type)
     return None

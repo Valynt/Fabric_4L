@@ -5342,21 +5342,57 @@
     },
     {
       "kind": "python-any",
-      "line": 29,
+      "line": 46,
       "path": "scripts/auth0_to_clerk_migration.py",
-      "text": "from typing import Any, Dict, List"
+      "text": "from typing import Any, Dict, List, Optional, Tuple"
     },
     {
       "kind": "python-any",
-      "line": 66,
+      "line": 148,
       "path": "scripts/auth0_to_clerk_migration.py",
-      "text": "users: List[Dict[str, Any]] = []"
+      "text": "def export_all(self) -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 104,
+      "line": 160,
       "path": "scripts/auth0_to_clerk_migration.py",
-      "text": "def create_clerk_user(secret_key: str, user_data: Dict[str, Any], dry_run: bool = True) -> bool:"
+      "text": "def export_users(self) -> list[dict[str, Any]]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 162,
+      "path": "scripts/auth0_to_clerk_migration.py",
+      "text": "users: list[dict[str, Any]] = []"
+    },
+    {
+      "kind": "python-any",
+      "line": 191,
+      "path": "scripts/auth0_to_clerk_migration.py",
+      "text": "def export_organizations(self) -> list[dict[str, Any]]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 246,
+      "path": "scripts/auth0_to_clerk_migration.py",
+      "text": "def create_user(self, user_data: dict[str, Any], dry_run: bool = True) -> Tuple[bool, Optional[str], bool]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 258,
+      "path": "scripts/auth0_to_clerk_migration.py",
+      "text": "payload: dict[str, Any] = {"
+    },
+    {
+      "kind": "python-any",
+      "line": 406,
+      "path": "scripts/auth0_to_clerk_migration.py",
+      "text": "source_data: dict[str, Any],"
+    },
+    {
+      "kind": "python-any",
+      "line": 501,
+      "path": "scripts/auth0_to_clerk_migration.py",
+      "text": "self, source_data: dict[str, Any], stats: MigrationStatistics"
     },
     {
       "kind": "python-type-ignore",
@@ -8564,6 +8600,24 @@
     },
     {
       "kind": "python-any",
+      "line": 29,
+      "path": "scripts/replay_clerk_webhooks.py",
+      "text": "from typing import Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 49,
+      "path": "scripts/replay_clerk_webhooks.py",
+      "text": "def list_dlq(base_url: str) -> list[dict[str, Any]]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 67,
+      "path": "scripts/replay_clerk_webhooks.py",
+      "text": "def replay_event(base_url: str, secret: str, record: dict[str, Any]) -> bool:"
+    },
+    {
+      "kind": "python-any",
       "line": 13,
       "path": "scripts/reports/generate_repo_maturity_scorecard.py",
       "text": "from typing import Any"
@@ -9715,8 +9769,38 @@
       "text": "audit_entry: dict[str, Any] = {"
     },
     {
+      "kind": "python-any",
+      "line": 13,
+      "path": "services/api/app/core/auth_telemetry.py",
+      "text": "from typing import Any, Literal"
+    },
+    {
+      "kind": "python-any",
+      "line": 101,
+      "path": "services/api/app/core/auth_telemetry.py",
+      "text": "def get_summary(self) -> dict[str, Any]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 215,
+      "path": "services/api/app/core/auth_telemetry.py",
+      "text": "def get_auth_health_summary() -> dict[str, Any]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 10,
+      "path": "services/api/app/core/billing_entitlements.py",
+      "text": "from typing import Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 89,
+      "path": "services/api/app/core/billing_entitlements.py",
+      "text": "data: dict[str, Any],"
+    },
+    {
       "kind": "python-type-ignore",
-      "line": 83,
+      "line": 89,
       "path": "services/api/app/core/clerk_auth.py",
       "text": "credentials = creds_dependency  # type: ignore[assignment]"
     },
@@ -9764,13 +9848,19 @@
     },
     {
       "kind": "python-any",
-      "line": 105,
+      "line": 115,
       "path": "services/api/app/core/clerk_verifier.py",
       "text": "def signing_key_for_kid(self, kid: str, *, force_refresh: bool = False) -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 160,
+      "line": 123,
+      "path": "services/api/app/core/clerk_verifier.py",
+      "text": "def get_status(self) -> dict[str, Any]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 188,
       "path": "services/api/app/core/clerk_verifier.py",
       "text": "claims: dict[str, Any] = pyjwt.decode("
     },
@@ -9980,6 +10070,30 @@
     },
     {
       "kind": "python-any",
+      "line": 15,
+      "path": "services/api/app/core/webhook_dlq.py",
+      "text": "from typing import Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 27,
+      "path": "services/api/app/core/webhook_dlq.py",
+      "text": "payload: dict[str, Any]"
+    },
+    {
+      "kind": "python-any",
+      "line": 34,
+      "path": "services/api/app/core/webhook_dlq.py",
+      "text": "def to_dict(self) -> dict[str, Any]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 61,
+      "path": "services/api/app/core/webhook_dlq.py",
+      "text": "payload: dict[str, Any],"
+    },
+    {
+      "kind": "python-any",
       "line": 7,
       "path": "services/api/app/logging_config.py",
       "text": "from typing import Any"
@@ -10178,15 +10292,33 @@
     },
     {
       "kind": "python-any",
+      "line": 117,
+      "path": "services/api/app/routers/clerk_auth.py",
+      "text": "async def get_auth_health() -> dict[str, Any]:"
+    },
+    {
+      "kind": "python-any",
       "line": 26,
       "path": "services/api/app/routers/clerk_webhooks.py",
       "text": "from typing import Any"
     },
     {
       "kind": "python-any",
-      "line": 126,
+      "line": 145,
       "path": "services/api/app/routers/clerk_webhooks.py",
       "text": "def _apply_event(directory: AuthDirectory, event_type: str, data: dict[str, Any]) -> None:"
+    },
+    {
+      "kind": "python-any",
+      "line": 238,
+      "path": "services/api/app/routers/clerk_webhooks.py",
+      "text": "_auth: Any = Depends(require_authenticated),"
+    },
+    {
+      "kind": "python-any",
+      "line": 239,
+      "path": "services/api/app/routers/clerk_webhooks.py",
+      "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
@@ -41767,6 +41899,12 @@
       "text": "from typing import Any"
     },
     {
+      "kind": "python-any",
+      "line": 10,
+      "path": "tests/security/test_auth_observability_and_webhooks.py",
+      "text": "from typing import Any"
+    },
+    {
       "kind": "python-type-ignore",
       "line": 21,
       "path": "tests/security/test_authoritative_rate_limit_resilience.py",
@@ -41987,6 +42125,12 @@
       "line": 118,
       "path": "tests/security/test_sentry_integration.py",
       "text": "scrubbed = scrub(  # type: ignore[operator]"
+    },
+    {
+      "kind": "python-any",
+      "line": 14,
+      "path": "tests/security/test_tenant_escalation_adversarial.py",
+      "text": "from typing import Any"
     },
     {
       "kind": "python-any",

@@ -5,6 +5,7 @@
   "type": "module",
   "license": "SEE LICENSE IN LICENSE",
   "scripts": {
+    "auth:dev": "python scripts/dev_auth_seed.py",
     "generate:contracts": "python scripts/ci/contract_compliance_gate.py --mode full --refresh-only",
     "generate:api": "pnpm --filter ./apps/web run generate:types",
     "check:contract-compliance": "python scripts/ci/contract_compliance_gate.py --mode full",
