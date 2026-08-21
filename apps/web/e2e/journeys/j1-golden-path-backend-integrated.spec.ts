@@ -381,4 +381,4 @@ journeyTest.describe('@backend Golden Path Backend-Integrated: Account to Approv
     await expectTenantContext(authedPage, SEED_TENANT_ID);
   });
 
-  });
+});
