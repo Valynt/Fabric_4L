@@ -20,7 +20,7 @@ mkdir -p "$OUTPUT_DIR"
 
 LAYERS=()
 if [[ "$LAYER" == "all" ]]; then
-  LAYERS=(layer1-ingestion layer2-extraction layer3-knowledge layer4-agents layer5-ground-truth layer6-benchmarks frontend)
+  LAYERS=(api layer1-ingestion layer2-extraction layer2-5-signal-refinery layer3-knowledge layer4-agents layer5-ground-truth layer6-benchmarks layer7-billing web)
 else
   LAYERS=("$LAYER")
 fi
@@ -31,10 +31,10 @@ TOTAL=0
 for layer in "${LAYERS[@]}"; do
   TOTAL=$((TOTAL + 1))
 
-  if [[ "$layer" == "frontend" ]]; then
-    CONTEXT="frontend"
+  if [[ "$layer" == "web" ]]; then
+    CONTEXT="apps/web"
   else
-    CONTEXT="value-fabric/${layer}"
+    CONTEXT="services/${layer}"
   fi
 
   if [[ ! -f "${CONTEXT}/Dockerfile" ]]; then

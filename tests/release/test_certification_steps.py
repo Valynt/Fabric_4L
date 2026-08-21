@@ -77,11 +77,17 @@ class TestCertificationStepRegistry:
             assert required in commands, f"certification omits contract gate: {required}"
 
     def test_sbom_provenance_is_not_substituted_by_a_nearby_check(self) -> None:
+        """05-sbom-provenance runs the real deterministic source-bound SBOM.
+
+        The step must invoke the genuine SBOM/provenance generator
+        (supply_chain_gate.py sbom), not a nearby static check standing in for it.
+        """
         sbom = next(s for s in CERTIFICATION_STEPS if s.name == "05-sbom-provenance")
-        assert sbom.unimplemented, (
-            "no real SBOM/provenance generation exists; the step must be recorded "
-            "unimplemented, not substituted with a nearby static check"
+        assert not sbom.unimplemented, (
+            "05-sbom-provenance must now be implemented via the real SBOM generator "
+            "(make generate-sbom-and-provenance -> supply_chain_gate.py sbom)"
         )
+        assert sbom.command == ("make", "generate-sbom-and-provenance")
         assert "build-reproducibility-check" not in " ".join(sbom.command)
 
     def test_step_names_do_not_overclaim_what_the_command_proves(self) -> None:

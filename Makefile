@@ -21,6 +21,9 @@
 	db-production-readiness-gate architecture-readiness-gate security-readiness-gate gate-all \
 	gate-production gate-production-core tier0-production-safety-gate tier1-beta-readiness-gate tier2-enterprise-readiness-gate production-readiness-gate \
 	release-evidence-packet collect-95-plus-evidence collect-95-plus-evidence-focused \
+	generate-sbom-and-provenance compose-config-validate helm-dependency-validate \
+	k8s-production-overlay-validate k8s-manifest-consistency-check \
+	build-reproducibility-check validate-monitoring-stack \
 	validate-launch-contract release-baseline certify-release-candidate build-release-evidence \
 	platform-contract-lint setup-hooks check-ui-duplicates check-readiness-consistency \
 	check-pytest-skip-governance check-type-escape-ratchet check-conflict-markers check-legacy-debt check-reports-evidence-policy check-no-nul-bytes check-migration-entrypoints check-migration-heads check-migration-status-artifacts \
@@ -53,6 +56,10 @@ SHELL := /bin/bash
 PROFILE ?= release-candidate
 POLICY_FILE := .fabric/prod-gates.policy.yaml
 ARTIFACT_DIR := artifacts/release
+# Default RELEASE_SHA to the current HEAD so docker-build records digests
+# under artifacts/release/<sha>/ even when invoked standalone; certification
+# runs make docker-build with the checkout already at the candidate SHA.
+RELEASE_SHA ?= $(shell git rev-parse HEAD 2>/dev/null || echo UNKNOWN)
 DB_MIGRATION_DATABASE_URL ?=
 
 PYTHON_BOOTSTRAP ?= python
@@ -636,6 +643,10 @@ docker-build: ## Build all deployable production Docker images locally
 	docker build -t fabric-4l/layer6-benchmarks:local -f services/layer6-benchmarks/Dockerfile .
 	docker build -t fabric-4l/layer7-billing:local -f services/layer7-billing/Dockerfile .
 	docker build -t fabric-4l/web:local -f apps/web/Dockerfile .
+	# When certifying a candidate (RELEASE_SHA set), bind each built image's
+	# immutable content digest to the candidate evidence manifest. 04b records
+	# this file (scripts/release/build_evidence_bundle.py:image-digests.txt).
+	if test -n "$(RELEASE_SHA)" && test "$(RELEASE_SHA)" != UNKNOWN; then outdir="$(ARTIFACT_DIR)/$(RELEASE_SHA)"; mkdir -p "$$outdir"; : > "$$outdir/image-digests.txt"; for service in api-gateway layer1-ingestion layer2-extraction layer2-5-signal-refinery layer3-knowledge layer4-agents layer5-ground-truth layer6-benchmarks layer7-billing web; do digest=$$(docker inspect --format='{{.Id}}' "fabric-4l/$$service:local"); echo "fabric-4l/$$service@$$digest" >> "$$outdir/image-digests.txt"; done; echo "Recorded release image digests to $$outdir/image-digests.txt"; fi
 
 docker-build-multi: ## Build all deployable images for linux/amd64 and linux/arm64 (requires docker buildx)
 	@echo "→ Building multi-arch images (requires docker buildx)..."
@@ -875,6 +886,37 @@ certify-release-candidate: ## Fail-closed certification of RELEASE_SHA (live ste
 build-release-evidence: ## Compose the candidate-scoped release evidence packet plus the candidate manifest for RELEASE_SHA
 	@test -n "$(RELEASE_SHA)" || { echo "usage: make build-release-evidence RELEASE_SHA=<sha>"; exit 2; }
 	$(PYTHON) scripts/release/build_evidence_bundle.py $(RELEASE_SHA)
+
+# ─── Deployment manifest certification (thin control plane over validators) ──
+
+generate-sbom-and-provenance: ## Generate a deterministic, source-bound CycloneDX SBOM (no Docker required)
+	$(PYTHON) scripts/ci/supply_chain_gate.py sbom
+
+compose-config-validate: ## Validate all release-significant Docker Compose definitions (requires Docker)
+	$(PYTHON) scripts/ci/check_docker_compose_config.py
+
+helm-dependency-validate: ## Generate then validate integrity evidence for locked Helm chart dependencies (writes artifacts/helm-dependency-evidence)
+	@mkdir -p artifacts/helm-dependency-evidence
+	$(PYTHON) scripts/ci/validate_helm_dependencies.py generate \
+		--chart-dir infra/helm/fabric-chart \
+		--evidence-dir artifacts/helm-dependency-evidence \
+		--helm-version v3.16.2
+	$(PYTHON) scripts/ci/validate_helm_dependencies.py validate \
+		--chart-dir infra/helm/fabric-chart \
+		--evidence-dir artifacts/helm-dependency-evidence \
+		--helm-version v3.16.2
+
+k8s-production-overlay-validate: ## Render and validate Kubernetes production overlays (requires kustomize/kubeconform/kubectl)
+	$(PYTHON) scripts/ci/validate_k8s_production_overlays.py
+
+k8s-manifest-consistency-check: ## Static cross-service Kubernetes manifest consistency check (pure Python, no cluster)
+	$(PYTHON) scripts/ci/check_k8s_manifest_consistency.py
+
+build-reproducibility-check: ## Verify every deployable image builds to byte-identical output (deterministic; requires Docker)
+	bash scripts/ci/build-reproducibility-check.sh all
+
+validate-monitoring-stack: ## End-to-end monitoring stack readiness (YAML + compose config + runbook coverage; requires Docker)
+	bash scripts/ci/validate-monitoring-stack.sh
 
 collect-95-plus-evidence-focused: release-evidence-packet ## Compatibility alias: canonical release evidence packet replaces focused 95+ evidence collection
 	@echo "✅  collect-95-plus-evidence-focused alias completed (canonical: release-evidence-packet)"
