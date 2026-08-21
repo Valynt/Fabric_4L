@@ -546,6 +546,108 @@ class AuditedGraphMutation:
 
         return {"status": "ok", "source_id": source_id, **stats}
 
+    async def delete_by_request(
+        self,
+        request_id: str,
+    ) -> dict[str, Any]:
+        """Delete all tenant nodes scoped to a request id (compensation use case).
+
+        Used by the dual-store transaction coordinator's compensating rollback
+        to remove nodes created during a failed transaction. Scoping by both
+        ``tenant_id`` and ``_request_id`` ensures only nodes from THIS
+        transaction are deleted — never unrelated historical entities.
+        """
+        query = """
+        MATCH (n {tenant_id: $tenant_id})
+        WHERE n._request_id = $request_id
+        DETACH DELETE n
+        RETURN count(n) as deleted_count
+        """
+        try:
+            result = await run_validated_query(
+                self.session,
+                query,
+                {"tenant_id": self.tenant_id, "request_id": request_id},
+                tenant_id=self.tenant_id,
+                require_explicit_tenant_id=True,
+                allow_system_query=True,
+                query_name="audited_mutation.delete_by_request",
+            )
+            record = await result.single()
+            deleted_count = record["deleted_count"] if record else 0
+            self._increment_mutation_success("node_delete_by_request")
+        except Exception:
+            self._increment_mutation_failure("node_delete_by_request_error")
+            raise
+
+        await self._audit_node(
+            "DELETE_BY_REQUEST",
+            "Request",
+            request_id,
+            {"deleted_count": deleted_count},
+        )
+
+        return {"status": "ok", "deleted_count": deleted_count}
+
+    async def emit_audit_event(
+        self,
+        action: str,
+        entity_id: str,
+        details: dict[str, Any] | None = None,
+        event_type: str = "dual_store_coordinator",
+        agent: str = "DualStoreTransactionCoordinator",
+    ) -> dict[str, Any]:
+        """Emit an AuditEvent node through the audited mutation gateway.
+
+        This is the gateway-approved path for audit events produced by the
+        dual-store transaction coordinator. Routing through the gateway
+        ensures tenant isolation, audit logging, and metrics are enforced.
+        """
+        audit_id = str(uuid.uuid4())
+        audit_query = """
+        CREATE (a:AuditEvent {
+            id: $id,
+            tenant_id: $tenant_id,
+            timestamp: $timestamp,
+            event_type: $event_type,
+            entity_id: $entity_id,
+            action: $action,
+            agent: $agent,
+            details: $details,
+            request_id: $request_id,
+            account_id: $account_id,
+            operation_source: $operation_source
+        })
+        """
+        try:
+            await run_validated_query(
+                self.session,
+                audit_query,
+                {
+                    "id": audit_id,
+                    "tenant_id": self.tenant_id,
+                    "timestamp": datetime.now(UTC).isoformat(),
+                    "event_type": event_type,
+                    "entity_id": entity_id,
+                    "action": action,
+                    "agent": agent,
+                    "details": json.dumps(details or {}, default=str),
+                    "request_id": self.request_id,
+                    "account_id": self.account_id,
+                    "operation_source": self.operation_source,
+                },
+                tenant_id=self.tenant_id,
+                require_explicit_tenant_id=True,
+                allow_system_query=True,
+                query_name="audited_mutation.emit_audit_event",
+            )
+            self._increment_mutation_success("audit_event_emit")
+        except Exception:
+            self._increment_mutation_failure("audit_event_emit_error")
+            raise
+
+        return {"status": "ok", "id": audit_id}
+
     # ---------------------------------------------------------------------------
     # Metrics helpers (Phase 1 enhancement)
     # ---------------------------------------------------------------------------

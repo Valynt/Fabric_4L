@@ -24,7 +24,6 @@ from neo4j import AsyncDriver, Record
 from value_fabric.shared.identity.context import get_request_context
 
 from ..db.audited_mutation import AuditedGraphMutation
-from ..db.query_execution import run_validated_query
 from ..metrics.prometheus_metrics import get_metrics
 
 logger = logging.getLogger(__name__)
@@ -107,6 +106,7 @@ class DualStoreTransactionCoordinator:
     def _generate_request_id() -> str:
         """Generate a unique request correlation ID."""
         import uuid
+
         return str(uuid.uuid4())
 
     async def write_with_rollback(
@@ -235,9 +235,7 @@ class DualStoreTransactionCoordinator:
                 except Exception:
                     pass
 
-    async def _execute_neo4j_write(
-        self, neo4j_op, request_id: str
-    ) -> dict[str, Any]:
+    async def _execute_neo4j_write(self, neo4j_op, request_id: str) -> dict[str, Any]:
         """Execute a Neo4j write operation through the validated gateway."""
         from neo4j import AsyncSession
 
@@ -289,47 +287,31 @@ class DualStoreTransactionCoordinator:
     async def _compensate_neo4j_rollback(
         self, error_source: str, request_id: str
     ) -> dict[str, Any]:
-        """Compensating rollback for Neo4j: delete nodes/edges recently created.
+        """Compensating rollback for Neo4j: purge recently created nodes/edges.
 
-        This method retrieves the most recently created SyncMetadata / entity nodes
-        scoped to this tenant and performs a DETACH DELETE on any that were
-        created during the failed transaction window.
+        Routes through ``AuditedGraphMutation.delete_by_request`` so the
+        compensating purge is scoped to both ``tenant_id`` and
+        ``_request_id`` — only nodes from THIS transaction are removed,
+        never unrelated historical entities.
 
-        The compensation is idempotent: DETACH DELETE on non-existent nodes
-        simply returns 0 deleted rows.
+        The compensation is idempotent: purging non-existent nodes simply
+        returns a zero count.
         """
         try:
             async with self.driver.session(database="neo4j") as session:
-                # Query for recently created entities scoped to this tenant
-                # We look for nodes created in the last few minutes (transaction window)
-                # Filter by request_id to ensure only nodes from THIS transaction are deleted
-                query = """
-                MATCH (n {tenant_id: $tenant_id})
-                WHERE n._creation_timestamp > datetime() - duration({minutes: 5})
-                AND n._request_id = $request_id
-                WITH count(n) as recent_count
-                MATCH (n {tenant_id: $tenant_id})
-                WITH n, recent_count
-                DETACH DELETE n
-                RETURN count(n) as deleted_count
-                """
-
-                result = await run_validated_query(
-                    session,
-                    query,
-                    {"tenant_id": self.tenant_id, "request_id": request_id},
+                mutation = AuditedGraphMutation(
                     tenant_id=self.tenant_id,
-                    require_explicit_tenant_id=True,
-                    query_name="dual_store.compensate_neo4j_rollback",
+                    session=session,
+                    request_id=request_id,
+                    operation_source="dual_store.coordinator",
                 )
 
-                record = await result.single()
-                deleted_count = record["deleted_count"] if record else 0
+                result = await mutation.delete_by_request(request_id=request_id)
+                deleted_count = result.get("deleted_count", 0)
 
                 # Emit audit event for the compensating rollback
                 await self._emit_audit_event(
                     action="COMPENSATING_ROLLBACK",
-                    entity_type="neo4j",
                     entity_id=f"tenant:{self.tenant_id}",
                     session=session,
                     details={
@@ -340,8 +322,8 @@ class DualStoreTransactionCoordinator:
                 )
 
                 return {
-                    "status": "completed" if deleted_count >= 0 else "failed",
-                    "error": None if deleted_count >= 0 else "delete operation failed",
+                    "status": "completed",
+                    "error": None,
                     "deleted_count": deleted_count,
                 }
 
@@ -353,60 +335,36 @@ class DualStoreTransactionCoordinator:
                 request_id,
                 exc_info=True,
             )
-            return {"status": "failed", "error": "dual_store_compensation_failed", "deleted_count": 0}
+            return {
+                "status": "failed",
+                "error": "dual_store_compensation_failed",
+                "deleted_count": 0,
+            }
 
     async def _emit_audit_event(
         self,
         action: str,
-        entity_type: str,
         entity_id: str,
         session: Any = None,
         details: dict[str, Any] | None = None,
     ) -> None:
         """Emit an AuditEvent node through the AuditedGraphMutation gateway."""
-        from ..db.audited_mutation import AuditedGraphMutation
-
         try:
             mutation = AuditedGraphMutation(
                 tenant_id=self.tenant_id,
                 session=session,
-                operation_source=f"dual_store.coordinator",
+                operation_source="dual_store.coordinator",
             )
 
-            # We emit a generic audit event for the coordinator action
-            audit_query = """
-            CREATE (a:AuditEvent {
-                id: $id,
-                tenant_id: $tenant_id,
-                timestamp: $timestamp,
-                event_type: $event_type,
-                entity_id: $entity_id,
-                action: $action,
-                agent: $agent,
-                details: $details
-            })
-            """
-
-            await run_validated_query(
-                session,
-                audit_query,
-                {
-                    "id": str(uuid.uuid4()) if 'uuid' in dir() else "coordinator-audit",
-                    "tenant_id": self.tenant_id,
-                    "timestamp": datetime.now(UTC).isoformat(),
-                    "event_type": "dual_store_coordinator",
-                    "entity_id": entity_id,
-                    "action": action,
-                    "agent": "DualStoreTransactionCoordinator",
-                    "details": details or {},
-                },
-                tenant_id=self.tenant_id,
-                require_explicit_tenant_id=True,
-                query_name="dual_store.coordinator.audit",
+            await mutation.emit_audit_event(
+                action=action,
+                entity_id=entity_id,
+                details=details,
             )
         except Exception as exc:
             logger.warning(
-                "Failed to emit audit event for dual-store coordinator: %s", exc,
+                "Failed to emit audit event for dual-store coordinator: %s",
+                exc,
                 exc_info=True,
             )
 
@@ -427,7 +385,8 @@ class DualStoreTransactionCoordinator:
             if neo4j_comp["status"] == "completed":
                 emergency_success = True
                 logger.info(
-                    "Emergency Neo4j compensation deleted %s nodes", neo4j_comp.get("deleted_count", 0)
+                    "Emergency Neo4j compensation deleted %s nodes",
+                    neo4j_comp.get("deleted_count", 0),
                 )
         except Exception:
             pass
@@ -437,7 +396,8 @@ class DualStoreTransactionCoordinator:
             # The postgres service layer should have its own rollback mechanisms
             # Here we just log that we attempted it
             logger.info(
-                "Emergency PostgreSQL compensation attempted for request_id=%s", request_id
+                "Emergency PostgreSQL compensation attempted for request_id=%s",
+                request_id,
             )
         except Exception:
             pass
