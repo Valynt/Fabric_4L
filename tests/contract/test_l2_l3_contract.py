@@ -55,7 +55,6 @@ class TestL2ToL3PayloadContract:
             (
                 {
                     "rdf_data": "@prefix ex: <http://example.com/> . ex:cap1 a ex:Capability .",
-                    "format": "turtle",
                     "source_id": "https://example.com/doc/123",
                     "extraction_job_id": "job-123",
                     "content_hash": "a" * 64,
