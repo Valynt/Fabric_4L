@@ -143,15 +143,27 @@ repos:
   # ============================================
 
   # Semgrep for security patterns
-  - repo: https://github.com/returntocorp/semgrep
-    rev: v1.93.0
+  # Local hook (not the upstream `language: python` hook) to avoid a Windows
+  # path-mangling bug: the pre-commit virtualenv console-script shebang
+  # `#!C:\Users\BBB\...\python.EXE` loses its backslashes when pre-commit
+  # parses it on Windows, producing `C:UsersBBB...python.EXE` (not found).
+  # Invoking `semgrep` from PATH via a local `language: system` hook
+  # sidesteps the broken venv console-script entirely. Uses `p/default`
+  # (a pinned registry ruleset) instead of `auto` so `--metrics=off` is
+  # honored (auto config requires metrics/telemetry). Falls back to the
+  # system semgrep install; if absent the hook errors visibly rather than
+  # silently passing. See debt entry `windows-pre-commit-tooling-gap`.
+  - repo: local
     hooks:
       - id: semgrep
         name: Semgrep (security SAST)
+        entry: semgrep
+        language: system
+        pass_filenames: false
         args:
-          - --config=auto
+          - scan
+          - --config=p/default
           - --error
-          - --skip-git-ignore
           - --metrics=off
         exclude: ^(tests/|\.venv/|venv/|__pycache__/|node_modules/|\.turbo/)
 

@@ -333,40 +333,58 @@ mypy-changed-layer1: ## Type-check changed Python files in Layer 1 (PR gate)
 	@echo "→ Type-checking changed Layer 1 files..."
 	@$(PYTHON) scripts/ci/check_mypy_changed_files.py --service-dir services/layer1-ingestion
 
-typecheck-layer2: ## Type-check Layer 2 only
-	@echo "→ Type-checking Layer 2..."
-	@$(PYTHON) scripts/ci/run_mypy_layer.py services/layer2-extraction src/ -- $(MYPY_LAYER2_FLAGS)
+typecheck-layer2: ## Type-check Layer 2 (mypy baseline ratchet — blocks new errors)
+	@echo "→ Enforcing Layer 2 mypy baseline ratchet..."
+	@$(PYTHON) scripts/ci/check_mypy_baseline.py \
+		--service-dir services/layer2-extraction \
+		--baseline config/ci/mypy_baseline_layer2.json \
+		--paths src --mypy-args "$(MYPY_LAYER2_FLAGS)"
 
-typecheck-layer2-5: ## Type-check Layer 2.5 only
-	@echo "→ Type-checking Layer 2.5..."
-	@$(PYTHON) scripts/ci/run_mypy_layer.py services/layer2-5-signal-refinery src/ -- $(MYPY_LAYER2_5_FLAGS)
+typecheck-layer2-5: ## Type-check Layer 2.5 (mypy baseline ratchet)
+	@echo "→ Enforcing Layer 2.5 mypy baseline ratchet..."
+	@$(PYTHON) scripts/ci/check_mypy_baseline.py \
+		--service-dir services/layer2-5-signal-refinery \
+		--baseline config/ci/mypy_baseline_layer2_5.json \
+		--paths src --mypy-args "$(MYPY_LAYER2_5_FLAGS)"
 
-typecheck-layer3: ## Type-check Layer 3 only
-	@echo "→ Type-checking Layer 3..."
-	@$(PYTHON) scripts/ci/run_mypy_layer.py services/layer3-knowledge src/ -- $(MYPY_LAYER3_FLAGS)
+typecheck-layer3: ## Type-check Layer 3 (mypy baseline ratchet — blocks new errors)
+	@echo "→ Enforcing Layer 3 mypy baseline ratchet..."
+	@$(PYTHON) scripts/ci/check_mypy_baseline.py \
+		--service-dir services/layer3-knowledge \
+		--baseline config/ci/mypy_baseline_layer3.json \
+		--paths src --mypy-args "$(MYPY_LAYER3_FLAGS)"
 
-typecheck-layer4: ## Type-check Layer 4 only
-	@echo "→ Type-checking Layer 4..."
-	@$(PYTHON) scripts/ci/run_mypy_layer.py services/layer4-agents src/ -- $(MYPY_LAYER4_FLAGS)
+typecheck-layer4: ## Type-check Layer 4 (mypy baseline ratchet — blocks new errors)
+	@echo "→ Enforcing Layer 4 mypy baseline ratchet..."
+	@$(PYTHON) scripts/ci/check_mypy_baseline.py \
+		--service-dir services/layer4-agents \
+		--baseline config/ci/mypy_baseline_layer4.json \
+		--paths src --mypy-args "$(MYPY_LAYER4_FLAGS)"
 
 typecheck-layer4-strict: ## Type-check unified Layer 4 namespace strictly
 	@echo "→ Type-checking Layer 4 (strict, unified namespace)..."
 	@$(PYTHON) scripts/ci/run_mypy_layer.py services/layer4-agents src/layer4_agents/ -- $(MYPY_LAYER4_STRICT_FLAGS)
 	@echo "✅ Layer 4 strict type-check passed"
 
-typecheck-layer5: ## Type-check Layer 5 only
-	@echo "→ Type-checking Layer 5..."
-	@$(PYTHON) scripts/ci/run_mypy_layer.py services/layer5-ground-truth src/ -- $(MYPY_LAYER5_FLAGS)
+typecheck-layer5: ## Type-check Layer 5 (mypy baseline ratchet — blocks new errors)
+	@echo "→ Enforcing Layer 5 mypy baseline ratchet..."
+	@$(PYTHON) scripts/ci/check_mypy_baseline.py \
+		--service-dir services/layer5-ground-truth \
+		--baseline config/ci/mypy_baseline_layer5.json \
+		--paths src --mypy-args "$(MYPY_LAYER5_FLAGS)"
 
-typecheck-layer6: ## Type-check Layer 6 only
-	@echo "→ Type-checking Layer 6..."
-	@$(PYTHON) scripts/ci/run_mypy_layer.py services/layer6-benchmarks src/ -- $(MYPY_LAYER6_FLAGS)
+typecheck-layer6: ## Type-check Layer 6 (mypy baseline ratchet — blocks new errors)
+	@echo "→ Enforcing Layer 6 mypy baseline ratchet..."
+	@$(PYTHON) scripts/ci/check_mypy_baseline.py \
+		--service-dir services/layer6-benchmarks \
+		--baseline config/ci/mypy_baseline_layer6.json \
+		--paths src --mypy-args "$(MYPY_LAYER6_FLAGS)"
 
-# Per-layer mypy baseline ratchets (layers 2-6). Baselines start empty and are
-# populated on first run via `make mypy-baseline-write-layerN`. Once a baseline
-# exists, switch the corresponding typecheck-layerN target below to use
-# check_mypy_baseline.py instead of run_mypy_layer.py so new errors fail closed
-# and reductions are credited. See debt entry `mypy-strict-baseline-layers-2-6`.
+# Per-layer mypy baseline ratchets (layers 2-6). Baselines are populated and
+# enforced by the `typecheck-layerN` targets above via check_mypy_baseline.py.
+# Use `make mypy-baseline-write-layerN` to refresh a baseline after a
+# deliberate, reviewed debt increase. Reductions are credited automatically;
+# the ratchet blocks any increase above the committed baseline.
 mypy-baseline-write-layer2: ## Write/refresh the Layer 2 mypy error baseline
 	@$(PYTHON) scripts/ci/check_mypy_baseline.py \
 		--service-dir services/layer2-extraction \
