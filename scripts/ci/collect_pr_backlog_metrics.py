@@ -186,6 +186,10 @@ def find_stale_prs(
 
     Each returned row has ``number``, ``title``, ``author`` and ``updated_at``.
     Comparison is done in UTC.
+
+    Accepts either the GitHub REST ``/pulls`` payload shape (``updated_at``,
+    ``user.login``) or the ``gh pr list`` shape (``updatedAt``,
+    ``author.login``), so both the live fetch and file-backed fixtures work.
     """
     now = now.astimezone(UTC)
     cutoff = now - timedelta(days=stale_days)
@@ -194,20 +198,21 @@ def find_stale_prs(
         number = pr.get("number")
         if not isinstance(number, int):
             continue
-        updated = _parse_utc(pr.get("updatedAt"))
+        updated_raw = pr.get("updatedAt", pr.get("updated_at"))
+        updated = _parse_utc(updated_raw)
         if updated is None:
             continue
         if updated.astimezone(UTC) < cutoff:
-            author_raw = pr.get("author") or {}
+            author_raw = pr.get("author") or pr.get("user") or {}
             author = (
                 author_raw.get("login") if isinstance(author_raw, dict) else None
             )
             stale.append(
                 {
-                                "number": number,
+                    "number": number,
                     "title": _parse_str(pr.get("title"), ""),
                     "author": _parse_str(author, "unknown"),
-                    "updated_at": pr["updatedAt"],
+                    "updated_at": _parse_str(updated_raw, ""),
                 }
             )
     return stale

@@ -118,6 +118,29 @@ def test_find_stale_prs_filters_by_updated_at() -> None:
     assert stale[0]["author"] == "alice"
 
 
+def test_find_stale_prs_accepts_rest_pulls_shape() -> None:
+    """Live /pulls payloads use updated_at and user.login, not updatedAt/author."""
+    module = _load_module()
+    now = datetime(2026, 6, 3, 12, 0, tzinfo=UTC)
+    prs = [
+        {
+            "number": 7,
+            "title": "rest stale",
+            "user": {"login": "carol"},
+            "updated_at": "2026-05-01T00:00:00Z",
+        },
+        {
+            "number": 8,
+            "title": "rest fresh",
+            "user": {"login": "dave"},
+            "updated_at": "2026-06-02T00:00:00Z",
+        },
+    ]
+    stale = module.find_stale_prs(prs, 14, now)
+    assert [row["number"] for row in stale] == [7]
+    assert stale[0]["author"] == "carol"
+
+
 def test_coerce_check_runs_accepts_list_and_wrapped_shapes() -> None:
     module = _load_module()
     assert module._coerce_check_runs(
