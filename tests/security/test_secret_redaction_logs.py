@@ -121,13 +121,13 @@ class TestRedactionFilterInLogs:
         logger.addHandler(handler)
         logger.setLevel(logging.INFO)
         
-        logger.info("Bearer token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwidGVuYW50X2lkIjoidGVzdF90ZW5hbnQifQ.dummy_test_signature_for_testing_only_12345")
+        token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkdW1teV9zdWJqZWN0XzEyMzQ1IiwidGVuYW50IjoidGVzdCJ9.dummy_test_signature_long_enough_12345"
+        logger.info(f"Bearer {token}")
         
         log_output = stream.getvalue()
-        assert "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.dummy_test_payload_12345.dummy_test_signature_for_testing_only_12345" not in log_output, (
+        assert token not in log_output, (
             "JWT token leaked in log message - REDACTION FILTER FAILED"
         )
-
     def test_sensitive_field_redacted_in_log_extra(self):
         """P0: Sensitive fields in log extra dict must be redacted."""
         logger = logging.getLogger("test_extra")

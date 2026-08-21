@@ -85,13 +85,13 @@ class TestSanitizeErrorMessageIntegration:
     def test_bearer_token_redacted_from_error_message(self):
         """P0: Bearer tokens must be redacted from error messages."""
         # Use realistic JWT token length (3 segments, 20+ chars each)
-        message = "Invalid Bearer token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwidGVuYW50X2lkIjoidGVzdF90ZW5hbnQifQ.dummy_test_signature_for_testing_only_12345"
+        token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkdW1teV9zdWJqZWN0XzEyMzQ1IiwidGVuYW50IjoidGVzdCJ9.dummy_test_signature_long_enough_12345"
+        message = f"Invalid Bearer {token}"
         sanitized = sanitize_error_message(message)
         
-        assert "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.dummy_test_payload_12345.dummy_test_signature_for_testing_only_12345" not in sanitized, (
+        assert token not in sanitized, (
             "Bearer token not redacted - INTEGRATION FIX FAILED"
         )
-
     def test_multiple_secrets_redacted_from_error_message(self):
         """P0: Multiple secrets in one message must all be redacted."""
         message = "Error: JWT_SECRET=secret1, password=pass123, token=token456"

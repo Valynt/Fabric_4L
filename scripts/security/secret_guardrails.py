@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import math
 import re
 import sys
@@ -15,7 +16,7 @@ SECRET_PATTERNS = [
     re.compile(r"ghp_[A-Za-z0-9]{36}"),
     re.compile(r"sk-[A-Za-z0-9]{20,}"),
     re.compile(r"-----BEGIN (?:RSA|EC|OPENSSH|PRIVATE) KEY-----"),
-    re.compile(r"(?i)(api[_-]?key|token|secret|password)\s*[:=]\s*[\"'][A-Za-z0-9_\-\/=+]{16,}"),
+    re.compile(r"(?i)(api[_-]?key|token|secret|password)\s*[:=]\s*[\"']?[A-Za-z0-9_\-\/=+]{16,}"),
 ]
 BASE64_CANDIDATE = re.compile(r"\b[A-Za-z0-9+/]{32,}={0,2}\b")
 
@@ -48,19 +49,36 @@ SYNTHETIC_MARKERS = {
     "00000000",
     "aaaa",
     "bbbb",
-    "eyjhbgcioijsuzi1niisinr5cci6ikpxvcj9",  # standard non-secret JWT header: {"alg":"HS256","typ":"JWT"}
+    "eyjhbgcioijiuzi1niisinr5cci6ikpxvcj9",  # standard non-secret JWT header: {"alg":"HS256","typ":"JWT"}
+    "eyjhbgcioiaisfmyntyilcaidhlwijogikpxvcj9",  # standard non-secret JWT header: {"alg": "HS256", "typ": "JWT"}
 }
+
+
+def _try_decode_b64(val: str) -> str:
+    padded = val + "=" * ((4 - len(val) % 4) % 4)
+    try:
+        return base64.b64decode(padded).decode("utf-8", errors="ignore")
+    except Exception:
+        try:
+            return base64.urlsafe_b64decode(padded).decode("utf-8", errors="ignore")
+        except Exception:
+            return ""
 
 
 def is_synthetic_fixture(value: str) -> bool:
     val_lower = value.lower()
-    return any(marker in val_lower for marker in SYNTHETIC_MARKERS)
+    if any(marker in val_lower for marker in SYNTHETIC_MARKERS):
+        return True
+    decoded = _try_decode_b64(value).lower()
+    if decoded and any(marker in decoded for marker in SYNTHETIC_MARKERS):
+        return True
+    return False
 
 
-def is_probable_secret_token(token: str, line: str = "") -> bool:
+def is_probable_secret_token(token: str) -> bool:
     if len(token) < 32:
         return False
-    if is_synthetic_fixture(token) or (line and is_synthetic_fixture(line)):
+    if is_synthetic_fixture(token):
         return False
     if entropy(token) < 4.2:
         return False
@@ -86,12 +104,7 @@ def scan_file(path: Path) -> list[str]:
     except Exception:
         return findings
 
-    is_test_file = "test" in rel.lower()
-
     for i, line in enumerate(content.splitlines(), start=1):
-        if is_synthetic_fixture(line):
-            continue
-
         for pattern in SECRET_PATTERNS:
             for match in pattern.finditer(line):
                 matched_str = match.group(0)
@@ -99,7 +112,7 @@ def scan_file(path: Path) -> list[str]:
                     findings.append(f"{rel}:{i}: matched sensitive token pattern `{pattern.pattern}`")
 
         for token in BASE64_CANDIDATE.findall(line):
-            if is_probable_secret_token(token, line):
+            if is_probable_secret_token(token):
                 findings.append(f"{rel}:{i}: high-entropy token candidate")
 
     return findings
