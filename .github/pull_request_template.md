@@ -106,3 +106,4 @@ For every incremental PR, provide explicit **Pass / Fail** status and evidence l
 - [ ] This PR is small and focused on a single logical change.
 - [ ] If this PR is still a Work-In-Progress, I have marked it as a **Draft** PR.
 - [ ] (For maintainers) If this PR is a trivial change (docs, dependabot group, minor fix), it can be fast-tracked for merge.
+- **Size justification:** Required when the PR is large (>1000 net additions, excluding generated/lockfile paths). Explain why this change could not be split into smaller PRs.

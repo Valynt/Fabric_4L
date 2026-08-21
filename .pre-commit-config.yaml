@@ -209,7 +209,15 @@ repos:
         always_run: true
       - id: contract-drift-check
         name: Check for OpenAPI/Schema drift
-        entry: python scripts/check_contract_drift.py
+        # Canonical contract gate is scripts/ci/contract_compliance_gate.py.
+        # The previous entry pointed at scripts/check_contract_drift.py, which
+        # does not exist and forced contributors to use --no-verify on any
+        # commit touching contracts/ or services/*/api/. Pre-commit runs the
+        # lightweight --validate-only path (JSON shape + OpenAPI 3.x + presence)
+        # so it is a fast, credible predictor of CI without the expensive
+        # OpenAPI regeneration + full frontend typecheck, which run in CI and
+        # via `make verify-strict` / pnpm run check:contract-compliance.
+        entry: python scripts/ci/contract_compliance_gate.py --validate-only
         language: system
         files: ^(contracts/|services/.+/api/)
         pass_filenames: false

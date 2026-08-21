@@ -1,0 +1,137 @@
+# Operational Debt Registry
+#
+# Time-boxed, owned debt that is NOT test skips (those live in
+# behavior_readiness_waivers.yaml) and NOT legacy code markers (those live in
+# legacy_debt_approvals.json). This file tracks operational/infrastructure debt
+# surfaced by audits and PR reviews: broken alerting, type-check baselines,
+# platform-specific tooling gaps, deferred hardening.
+#
+# Operating principle (behavior-first): debt is tolerated only while it is
+# owned, tracked, and time-boxed. An expired entry fails closed (the validator
+# returns non-zero), forcing either renewal with a fresh ticket or removal of
+# the underlying debt. Silent permanent debt is not permitted.
+#
+# Schema per entry:
+#   id:           unique, kebab-case
+#   category:     sli-drift | type-baseline | tooling-gap | security-hardening | other
+#   severity:     critical | high | medium | low
+#   owner:        GitHub team/handle accountable for removal
+#   ticket:       tracking issue URL or #number
+#   expires_on:   YYYY-MM-DD; after this date the entry FAILS CLOSED
+#   source:       PR/audit that surfaced the debt
+#   summary:      one-line description
+#   impact:       what is degraded or non-functional as a result
+#   remediation:  concrete path to removal
+#   verification: how "done" is proven
+
+version: 1
+entries:
+  - id: sli-l2-l6-alerts-non-functional
+    category: sli-drift
+    severity: high
+    owner: "@value-fabric/observability"
+    ticket: "#1374"
+    expires_on: "2026-10-31"
+    source: "PR #1374 (P1 Observability & SLOs audit)"
+    summary: >-
+      Layer SLI rules render L2 and L6 availability alerting non-functional as
+      deployed.
+    impact: >-
+      (A) layer-sli-rules-production.yml is not wired into any live Prometheus
+      rule_files. (B) L2 emits vf_* metrics while SLI rules reference
+      layer2_http_* / layer2_health_status; initialize_metrics() is uncalled,
+      so L2 alerts never fire. (C) docker-compose path mismatch
+      ./monitoring/prometheus.yml vs monitoring/prometheus/prometheus.yml.
+      (D) L6 layer6_health_status uses service= label while the rule selects
+      {component="api"}, so the availability SLI silently never fires.
+    remediation: >-
+      Wire the rules file into Prometheus rule_files; align L2 metric names to
+      the SLI rules (or the rules to the emitted vf_* names); call
+      initialize_metrics() in the L2 app lifecycle; fix the compose path; fix
+      the L6 label selector. Each fix must go through normal change CI with a
+      promtool unit test.
+    verification: >-
+      promtool check rules passes; a synthetic L2/L6 outage triggers the
+      availability alert in a local stack; check_production_alert_metadata.py
+      stays green; the L2/L6 drift section in the #1374 evidence file is
+      resolved and removed.
+
+  - id: mypy-strict-baseline-layers-2-6
+    category: type-baseline
+    severity: medium
+    owner: "@value-fabric/platform-leads"
+    ticket: "#1383"
+    expires_on: "2026-11-30"
+    source: "PR #1383 (mypy baseline triage)"
+    summary: >-
+      mypy --strict on services/ surfaces a large pre-existing error count with
+      no per-layer ratchet, so the pre-commit mypy hook is not a credible
+      predictor of CI and the typecheck target runs raw mypy.
+    impact: >-
+      New type errors are not blocked at pre-commit; contributors must use
+      --no-verify on type-touching commits, eroding the contract-first guard.
+      The baseline is not owned by any single layer, so reductions and
+      regressions cannot be attributed.
+    remediation: >-
+      Generate per-layer mypy baselines (extend config/ci/mypy_baseline_layer1.json
+      to layers 2-6) and wire check_mypy_baseline.py into each layer's typecheck
+      target via run_mypy_layer.py. The ratchet must block increases and allow
+      decreases; it must NOT be a bare count that can be silently bumped.
+    verification: >-
+      make typecheck fails on a deliberately introduced mypy error in each layer
+      and passes once the error is removed; the baseline count for every layer
+      is monotonically non-increasing across PRs.
+
+  - id: windows-pre-commit-tooling-gap
+    category: tooling-gap
+    severity: medium
+    owner: "@value-fabric/platform-leads"
+    ticket: "#1383"
+    expires_on: "2026-11-30"
+    source: "PR #1383 (pre-commit reliability review)"
+    summary: >-
+      Several pre-commit hooks depend on POSIX shims or Linux ELF binaries and
+      are unreliable on Windows/MSYS, so Windows contributors cannot run a clean
+      local pre-commit pass.
+    impact: >-
+      The semgrep pre-commit hook depends on a Linux ELF binary that fails on
+      Windows; the infisical-scan hook uses bash -c; hadolint ships a binary
+      without a Windows path. Windows contributors must skip hooks or use
+      --no-verify, weakening the local-CI parity invariant.
+    remediation: >-
+      Provide a Windows-safe pre-commit profile (language_version / entry
+      adaptations) for the affected hooks; document remaining limitations as
+      registered debt with a concrete fallback (e.g., run semgrep in CI only
+      and print a clear local skip message, never a silent pass).
+    verification: >-
+      A Windows contributor can run `pre-commit run --all-files` without
+      resorting to --no-verify; every hook that cannot run on Windows emits a
+      visible "skipped on Windows, run in CI" notice rather than failing
+      silently.
+
+  - id: gitleaks-not-required-check
+    category: security-hardening
+    severity: high
+    owner: "@value-fabric/security"
+    ticket: "#1384"
+    expires_on: "2026-11-30"
+    source: "PR review governance audit (ADR-038 alignment)"
+    summary: >-
+      ADR-038 §Authoritative Controls requires the CI secret scan to be a
+      required status check, but `Secret Detection (gitleaks)` is not listed in
+      branch protection's required_status_checks.
+    impact: >-
+      A PR that fails the gitleaks job but passes the aggregated
+      `mandatory-security-regression` check could merge with an unscanned secret
+      finding, violating the ADR-038 "blocks merge on finding" invariant. The
+      authoritative gate is currently advisory, not enforced.
+    remediation: >-
+      Add `Secret Detection (gitleaks)` to
+      config/ci/required-status-checks.json and enable it on main branch
+      protection. Requires coordinated branch-protection change (human approval
+      via Platform Governance).
+    verification: >-
+      `python scripts/ci/validate_branch_protection_checks.py --config
+      config/ci/required-status-checks.json --api-response-file <live>` passes
+      with the gitleaks check present; a PR with a planted secret is blocked
+      from merge.

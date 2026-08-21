@@ -1,6 +1,7 @@
 .PHONY: help verify verify-strict lint lint-layer1 lint-layer2 lint-layer2-5 lint-layer3 lint-layer4 \
         lint-layer5 lint-layer6 typecheck typecheck-layer1 typecheck-layer2 typecheck-layer2-5 \
         typecheck-layer3 typecheck-layer4 typecheck-layer4-strict typecheck-layer5 typecheck-layer6 \
+        mypy-baseline-write-layer2 mypy-baseline-write-layer2-5 mypy-baseline-write-layer3 mypy-baseline-write-layer4 mypy-baseline-write-layer5 mypy-baseline-write-layer6 \
 		test contract-tests contract-lint test-layer1 test-layer1-crawler test-layer1-router-cache test-layer1-benchmarks test-layer1-router-benchmarks test-layer2 test-layer2-5 test-layer3 test-layer3-live test-layer4 test-layer4-live \
         test-frontend build docker-build docker-build-multi migrate migrate-layer1 migrate-layer2 migrate-layer2-5 migrate-layer4 migrate-layer5 migrate-api db-migrate-status db-migrate-check gate-database gate-database-live db-production-readiness-gate evals perf-test perf-eval clean sdk check-layer4-boundaries check-layer4-collection check-layer4-canonical-paths \
         setup bootstrap \
@@ -23,7 +24,7 @@
 	release-evidence-packet collect-95-plus-evidence collect-95-plus-evidence-focused \
 	validate-launch-contract release-baseline certify-release-candidate build-release-evidence \
 	platform-contract-lint setup-hooks check-ui-duplicates check-readiness-consistency \
-	check-pytest-skip-governance check-type-escape-ratchet check-conflict-markers check-legacy-debt check-reports-evidence-policy check-no-nul-bytes check-migration-entrypoints check-migration-heads check-migration-status-artifacts \
+	check-pytest-skip-governance check-type-escape-ratchet check-conflict-markers check-legacy-debt check-operational-debt check-reports-evidence-policy check-no-nul-bytes check-migration-entrypoints check-migration-heads check-migration-status-artifacts \
 	check-migration-rollback-policy check-migration-runtime-consistency check-database-governance-docs check-migration-postgres-roundtrip gate-database gate-database-live db-production-readiness-gate \
 	check-temporal-skips check-hermetic-build-inputs check-production-k8s-mutable-tags check-k8s-image-digests \
 	check-keycloak-realm-seed-security \
@@ -84,7 +85,7 @@ VERIFY_CHECKS := check-conflict-markers check-no-nul-bytes check-migration-heads
 	check-workflow-matrix check-test-skip-register-uniqueness \
 	check-pytest-skip-governance check-layer3-legacy-tenant-dependency-imports \
 	check-hermetic-build-inputs check-production-k8s-mutable-tags check-k8s-image-digests \
-	check-value-fabric-public-imports check-legacy-debt check-behavior-contract check-behavior-readiness-audit check-compatibility-shims verify-structure docs-harness
+	check-value-fabric-public-imports check-legacy-debt check-operational-debt check-behavior-contract check-behavior-readiness-audit check-compatibility-shims verify-structure docs-harness
 
 verify: $(VERIFY_CHECKS) ## Run all checks before PR
 	@echo "✅  All checks passed"
@@ -240,6 +241,10 @@ check-legacy-debt: ## Enforce legacy debt baseline (markers + legacy directories
 	@mkdir -p artifacts
 	@$(PYTHON) scripts/ci/check_legacy_debt.py --baseline config/ci/legacy_debt_baseline.json --approvals config/ci/legacy_debt_approvals.json --config config/ci/legacy_debt_config.json --write-report artifacts/legacy-debt-report.json
 
+check-operational-debt: ## Enforce operational debt registry (SLI/type/tooling debt is owned + time-boxed; fail closed on expiry)
+	@mkdir -p artifacts
+	@$(PYTHON) scripts/ci/check_operational_debt.py --registry config/ci/operational_debt_registry.yaml --write-report artifacts/operational-debt-report.json
+
 check-behavior-contract: ## Enforce behavior contract registry (every capability has allowed + denied tests)
 	@mkdir -p artifacts
 	@$(PYTHON) scripts/ci/check_behavior_contract.py --strict --write-report artifacts/behavior-contract.json
@@ -356,6 +361,47 @@ typecheck-layer5: ## Type-check Layer 5 only
 typecheck-layer6: ## Type-check Layer 6 only
 	@echo "→ Type-checking Layer 6..."
 	@$(PYTHON) scripts/ci/run_mypy_layer.py services/layer6-benchmarks src/ -- $(MYPY_LAYER6_FLAGS)
+
+# Per-layer mypy baseline ratchets (layers 2-6). Baselines start empty and are
+# populated on first run via `make mypy-baseline-write-layerN`. Once a baseline
+# exists, switch the corresponding typecheck-layerN target below to use
+# check_mypy_baseline.py instead of run_mypy_layer.py so new errors fail closed
+# and reductions are credited. See debt entry `mypy-strict-baseline-layers-2-6`.
+mypy-baseline-write-layer2: ## Write/refresh the Layer 2 mypy error baseline
+	@$(PYTHON) scripts/ci/check_mypy_baseline.py \
+		--service-dir services/layer2-extraction \
+		--baseline config/ci/mypy_baseline_layer2.json \
+		--paths src --mypy-args "$(MYPY_LAYER2_FLAGS)" --write-baseline
+
+mypy-baseline-write-layer2-5: ## Write/refresh the Layer 2.5 mypy error baseline
+	@$(PYTHON) scripts/ci/check_mypy_baseline.py \
+		--service-dir services/layer2-5-signal-refinery \
+		--baseline config/ci/mypy_baseline_layer2_5.json \
+		--paths src --mypy-args "$(MYPY_LAYER2_5_FLAGS)" --write-baseline
+
+mypy-baseline-write-layer3: ## Write/refresh the Layer 3 mypy error baseline
+	@$(PYTHON) scripts/ci/check_mypy_baseline.py \
+		--service-dir services/layer3-knowledge \
+		--baseline config/ci/mypy_baseline_layer3.json \
+		--paths src --mypy-args "$(MYPY_LAYER3_FLAGS)" --write-baseline
+
+mypy-baseline-write-layer4: ## Write/refresh the Layer 4 mypy error baseline
+	@$(PYTHON) scripts/ci/check_mypy_baseline.py \
+		--service-dir services/layer4-agents \
+		--baseline config/ci/mypy_baseline_layer4.json \
+		--paths src --mypy-args "$(MYPY_LAYER4_FLAGS)" --write-baseline
+
+mypy-baseline-write-layer5: ## Write/refresh the Layer 5 mypy error baseline
+	@$(PYTHON) scripts/ci/check_mypy_baseline.py \
+		--service-dir services/layer5-ground-truth \
+		--baseline config/ci/mypy_baseline_layer5.json \
+		--paths src --mypy-args "$(MYPY_LAYER5_FLAGS)" --write-baseline
+
+mypy-baseline-write-layer6: ## Write/refresh the Layer 6 mypy error baseline
+	@$(PYTHON) scripts/ci/check_mypy_baseline.py \
+		--service-dir services/layer6-benchmarks \
+		--baseline config/ci/mypy_baseline_layer6.json \
+		--paths src --mypy-args "$(MYPY_LAYER6_FLAGS)" --write-baseline
 
 typecheck: ## Type-check all Python layers with mypy (fails fast on first error)
 	@$(ROOT_MAKE) typecheck-layer1 && \
