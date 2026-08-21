@@ -143,3 +143,41 @@ class TestCertificationStepRegistry:
             assert overclaiming not in by_name, (
                 f"step name {overclaiming!r} overclaims what its command proves"
             )
+
+    def test_live_only_steps_fail_closed_when_not_in_live_mode(self, tmp_path: Path) -> None:
+        """Live-only steps must be recorded as not-run (CERTIFY_LIVE=0), never passed.
+
+        This is the fail-closed contract the CI workflow relies on when live
+        certification is not requested: a default certification must not claim
+        deployed/Docker/k8s evidence it did not produce.
+        """
+        by_name = {s.name: s for s in CERTIFICATION_STEPS}
+        # Step 05f is intentionally NOT live_only: it is pure Python with no
+        # Docker/cluster requirement and must run in default certification.
+        assert not by_name["05f-k8s-manifest-consistency-check"].live_only
+
+        for name in (
+            "04b-docker-build",
+            "05b-build-reproducibility",
+            "05c-compose-config-validate",
+            "05d-helm-dependency-validate",
+            "05e-k8s-production-overlay-validate",
+            "16b-observability-stack-validation",
+        ):
+            step = by_name[name]
+            assert step.live_only, f"{name} must be live_only (Docker/cluster)"
+            result = run_step(step, tmp_path, live=False)
+            assert result.exit_code == NOT_RUN_EXIT_CODE
+            assert result.classification == "not-run"
+            assert not result.passed
+
+    def test_non_live_steps_still_run_in_default_certification(self, tmp_path: Path) -> None:
+        """Non-live proof steps must run under CERTIFY_LIVE=0.
+
+        The SBOM generator (no Docker) and the static k8s manifest consistency
+        check must be exercised by default CI, otherwise a candidate could be
+        certified while these are silently skipped.
+        """
+        by_name = {s.name: s for s in CERTIFICATION_STEPS}
+        for name in ("05-sbom-provenance", "05f-k8s-manifest-consistency-check"):
+            assert not by_name[name].live_only

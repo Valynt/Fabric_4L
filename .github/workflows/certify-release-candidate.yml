@@ -19,6 +19,11 @@ on:
         description: 'Immutable commit SHA to certify (defaults to HEAD)'
         required: false
         type: string
+      live:
+        description: 'Run live steps (docker-build, reproducibility, compose/helm/k8s, monitoring stack, staging preflight). Requires Docker + k8s tooling on the runner.'
+        required: false
+        default: 'false'
+        type: boolean
   push:
     branches:
       - main
@@ -32,7 +37,11 @@ permissions:
   id-token: write
 
 env:
-  CERTIFY_LIVE: '0'
+  # Default (push/main/tag) certification runs the live steps only when the caller
+  # opts in; the workflow is fail-closed, so a non-live conclusion still proves
+  # every non-live step and reports the live ones as not-run without a false
+  # "certified" label.
+  CERTIFY_LIVE: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.live == 'true' && '1' || '0' }}
   RELEASE_SHA: ${{ github.event.inputs.sha || github.sha }}
 
 jobs:
