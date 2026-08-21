@@ -132,3 +132,56 @@ def test_main_fails_on_legacy_violation(tmp_path: Path) -> None:
         sys.stdout = orig_stdout  # type: ignore[assignment]
     assert rc == 1
     assert any("llm" in line for line in captured)
+
+
+def test_main_fails_on_legacy_infisical_json(tmp_path: Path) -> None:
+    """Root .infisical.json with a legacy secretPath must be caught (regression
+    for an earlier inverted scan condition that let it pass)."""
+    repo = tmp_path
+    (repo / ".infisical.json").write_text(
+        '{"secretPaths":{"llm":{"dev":"/llm"}}}', encoding="utf-8"
+    )
+    import sys
+
+    orig_argv = sys.argv
+    sys.argv = ["check_infisical_path_schema.py", "--repo-root", str(repo)]
+    try:
+        rc = guard.main()
+    finally:
+        sys.argv = orig_argv
+    assert rc == 1
+
+
+def test_main_fails_on_legacy_env_example_annotation(tmp_path: Path) -> None:
+    """Root .env.example is the mapping source of truth and must be scanned."""
+    repo = tmp_path
+    (repo / ".env.example").write_text(
+        "# Infisical path: /llm\nOPENAI_API_KEY=\n", encoding="utf-8"
+    )
+    import sys
+
+    orig_argv = sys.argv
+    sys.argv = ["check_infisical_path_schema.py", "--repo-root", str(repo)]
+    try:
+        rc = guard.main()
+    finally:
+        sys.argv = orig_argv
+    assert rc == 1
+
+
+def test_main_fails_on_legacy_package_json_script(tmp_path: Path) -> None:
+    """Root package.json carries runtime infisical commands and must be scanned."""
+    repo = tmp_path
+    (repo / "package.json").write_text(
+        '{"scripts":{"dev:layer4":"infisical run --path=/llm -- python -m layer4"}}',
+        encoding="utf-8",
+    )
+    import sys
+
+    orig_argv = sys.argv
+    sys.argv = ["check_infisical_path_schema.py", "--repo-root", str(repo)]
+    try:
+        rc = guard.main()
+    finally:
+        sys.argv = orig_argv
+    assert rc == 1

@@ -50,6 +50,19 @@ MARKER_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
         "secretsPath",
         re.compile(r"secretsPath[\"']?\s*[:=]\s*[\"']?(/{1,2}[A-Za-z0-9_\-/]+)"),
     ),
+    # .infisical.json secretPaths block: legacy root appears as a JSON KEY
+    # inside the object, e.g. {"secretPaths":{"llm":{"dev":"/llm"}}} or
+    # "secretPaths": { "/app": { ... } }. The path token is the key, not a
+    # value, so the value-oriented secretPath/secretsPath regexes above do
+    # not match. The key may be quoted-with-slash ("/llm"), quoted-bare
+    # ("llm"), or bare (llm); capture with/without leading slash and let
+    # _starts_with_legacy_root normalise.
+    (
+        "secretPaths block key",
+        re.compile(
+            r"secretPaths[\"']?\s*[:=]\s*[\"']?\s*\{\s*[\"']?/*([A-Za-z0-9_\-]+)"
+        ),
+    ),
     ("Infisical path:", re.compile(r"Infisical path:\s*(/{1,2}[A-Za-z0-9_\-/]+)")),
     (
         "fix_path_for_git_bash(",
@@ -66,9 +79,16 @@ def _strip_double_slash(token: str) -> str:
 
 
 def _starts_with_legacy_root(path: str) -> bool:
-    """True if the path is a legacy root or has a legacy first segment."""
-    # Normalise to a single leading slash.
+    """True if the path is a legacy root or has a legacy first segment.
+
+    Accepts both leading-slash forms (``/llm``) and bare-key forms
+    (``llm``) because the ``secretPaths`` block stores the root as a JSON
+    key that may be quoted without a slash.
+    """
+    # Normalise to a single leading slash so both "llm" and "/llm" match.
     p = _strip_double_slash(path).strip("'\"")
+    if not p.startswith("/"):
+        p = "/" + p
     for legacy in LEGACY_PATHS:
         root = "/" + legacy
         if p == root or p.startswith(root + "/"):
@@ -100,6 +120,14 @@ SCAN_DIRS = (
     "k8s",
     "config",
     "contracts",
+)
+# Root-level files that are active secret-path sources but live outside the
+# SCAN_DIRS (which are all directories). These are scanned in addition to the
+# directory walk so drift cannot return through a root runtime/config entry.
+ROOT_FILES = (
+    ".infisical.json",
+    ".env.example",
+    "package.json",
 )
 SKIP_PREFIXES = (
     "docs/archive/",
@@ -159,10 +187,13 @@ def main() -> int:
                 if is_legacy_infisical_ref(line):
                     violations.append((rel, i, line.strip()))
 
-    # Also scan root-level config files that aren't under a SCAN_DIR.
-    for name in (".infisical.json",):
+    # Also scan root-level files that are active secret-path sources but live
+    # outside the SCAN_DIRS (which are all directories). .env.example is the
+    # mapping source of truth and package.json carries the runtime infisical
+    # commands, so both must be covered to actually prevent drift.
+    for name in ROOT_FILES:
         f = root / name
-        if f.exists() and not should_scan(f, root):
+        if f.exists() and should_scan(f, root):
             rel = f.relative_to(root).as_posix()
             if is_archival(rel):
                 continue

@@ -23,20 +23,25 @@ PROJECT_ID = "d0dde515-abae-4f6a-a01c-75e7b713a9ff"
 
 # Canonical by-layer secret path taxonomy. Must stay in sync with
 # docs/security/secrets-management.md and the .env.example section headers.
+# Each entry is (path, needs_parent_split): paths containing a "/" are
+# nested folders that must be created parent-first via the Infisical API
+# (which models folder name and parent path separately).
 FOLDERS_TO_CREATE = [
-    "shared",
-    "infra",
-    "layer1-ingestion",
-    "layer2-extraction",
-    "layer2-5-signal-refinery",
-    "layer3-knowledge",
-    "layer4-agents",
-    "layer5-ground-truth",
-    "layer6-benchmarks",
-    "layer7-billing",
-    "apps/web",
-    "monitoring",
-    "ci",
+    ("shared", False),
+    ("shared/auth", True),
+    ("infra", False),
+    ("layer1-ingestion", False),
+    ("layer2-extraction", False),
+    ("layer2-5-signal-refinery", False),
+    ("layer3-knowledge", False),
+    ("layer4-agents", False),
+    ("layer5-ground-truth", False),
+    ("layer6-benchmarks", False),
+    ("layer7-billing", False),
+    ("apps", False),
+    ("apps/web", True),
+    ("monitoring", False),
+    ("ci", False),
 ]
 ENVIRONMENTS = ["staging", "prod"]
 
@@ -100,12 +105,14 @@ def create_folder(
     try:
         with urllib.request.urlopen(req, timeout=15) as resp:
             json.loads(resp.read())  # consume response; folder created
-            print(f"  [OK] Created /{folder_name} in {environment}")
+            display = f"/{folder_name}" if path == "/" else f"{path}/{folder_name}"
+            print(f"  [OK] Created {display} in {environment}")
             return True
     except urllib.error.HTTPError as e:
         body = e.read().decode("utf-8", errors="replace")
         if e.code == 400 and "already exists" in body.lower():
-            print(f"  [EXISTS] /{folder_name} already exists in {environment}")
+            display = f"/{folder_name}" if path == "/" else f"{path}/{folder_name}"
+            print(f"  [EXISTS] {display} already exists in {environment}")
             return True
         print(f"  [FAIL] /{folder_name} in {environment}: {e.code} - {body}")
         return False
@@ -186,7 +193,7 @@ def main():
     print("=" * 60)
     print(f"Project ID: {PROJECT_ID}")
     print(f"Environments to configure: {', '.join(ENVIRONMENTS)}")
-    print(f"Folders to create: {', '.join(FOLDERS_TO_CREATE)}")
+    print(f"Folders to create: {', '.join(p for p, _ in FOLDERS_TO_CREATE)}")
     print()
 
     # Get access token
@@ -201,11 +208,12 @@ def main():
         print(f"{'-' * 40}")
 
         print("\nCreating folders:")
-        for folder in FOLDERS_TO_CREATE:
-            create_folder(token, env, folder)
+        for folder, _needs_parent in FOLDERS_TO_CREATE:
+            parent, _, name = folder.rpartition("/")
+            create_folder(token, env, name, path="/" + parent if parent else "/")
 
         print("\nCopying secrets from dev:")
-        for folder in FOLDERS_TO_CREATE:
+        for folder, _needs_parent in FOLDERS_TO_CREATE:
             print(f"  [{folder}]")
             copy_secrets_from_dev(token, env, folder)
 
