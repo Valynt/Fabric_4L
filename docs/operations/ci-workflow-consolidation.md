@@ -54,7 +54,7 @@ Publish Docker Container, Super Linter, Build projects with Make, publishing
 templates, and the various language templates for stacks this monorepo does
 not use) are **deliberately not configured**. Do not add them:
 
-- The S6-6 workflow-count cap allows at most 55 workflow files; additions beyond it fail
+- The S6-6 workflow-count cap allows at most 56 workflow files; additions beyond it fail
   `scripts/ci/verify_workflow_registry.py` and
   `tests/ci/test_ci_workflow_consolidation.py`.
 - Every applicable template is already covered by canonical workflows using

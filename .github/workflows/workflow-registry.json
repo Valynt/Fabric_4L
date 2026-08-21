@@ -552,6 +552,25 @@
       "deprecation_status": "active"
     },
     {
+      "path": ".github/workflows/live-continuous-suite.yml",
+      "name": "Continuous Live E2E Suite",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "schedule",
+        "workflow_dispatch"
+      ],
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
+      "required_secrets": [],
+      "produced_artifacts": [
+        "apps/web/e2e-results/**",
+        "apps/web/playwright-report/**"
+      ],
+      "runtime_budget_minutes": 75,
+      "local_validation_command": "make check-workflow-references",
+      "deprecation_status": "active"
+    },
+    {
       "path": ".github/workflows/merge-group.yml",
       "name": "Merge Group",
       "owner": "@value-fabric/sre-leads",

@@ -42,6 +42,51 @@ export const DEFAULT_TEST_USER: TestUserInfo = {
 };
 
 /**
+ * Stable identities reserved by scripts/db/seed-e2e-data.ts. Use these to
+ * exercise role-authenticated and cross-tenant workflows without weakening
+ * the backend minted-session path.
+ *
+ * - REVIEWER lives in the alpha (default) tenant and backs reviewer approval
+ *   affordance assertions.
+ * - TENANT_B_USER lives in the Beta tenant; cross-tenant reads from Beta are
+ *   denied by seed verification (attemptCrossTenantVerification).
+ */
+export const E2E_REVIEWER_USER: TestUserInfo = {
+  id: 'e2e-reviewer-user',
+  email: 'reviewer@valuefabric.test',
+  role: 'reviewer',
+  tenantId: BACKEND_E2E_TENANT_ID,
+  tenantSlug: 'e2e-test',
+};
+
+export const E2E_TENANT_BETA_ID =
+  process.env.BACKEND_E2E_TENANT_BETA_ID || '00000000-0000-4000-e2e0-000000000002';
+
+export const E2E_TENANT_B_USER: TestUserInfo = {
+  id: 'e2e-reviewer-user',
+  email: 'tenant-b@valuefabric.test',
+  role: 'reviewer',
+  tenantId: E2E_TENANT_BETA_ID,
+  tenantSlug: 'tenant-e2e-beta',
+};
+
+/**
+ * Determine the canonical backend role to send on a seed session request.
+ *
+ * The default admin test user must keep minting the super_admin session the
+ * suite already relies on. Distinct requested roles (reviewer / sales /
+ * read-only) are passed through so the minted session honors seed role
+ * bindings for role-authenticated workflows instead of always escalating to
+ * super_admin.
+ */
+export function canonicalSeedRole(role: string): string {
+  if (role === 'admin' || role === 'super_admin') {
+    return 'super_admin';
+  }
+  return role;
+}
+
+/**
  * Ensure the page is on a same-origin URL so localStorage is accessible.
  * If the page is on about:blank or a different origin, navigates to '/'.
  */
@@ -171,7 +216,7 @@ async function seedBackendIntegratedSession(page: Page, user: TestUserInfo): Pro
     data: {
       user_id: requestUser.id,
       email: requestUser.email,
-      role: 'super_admin',
+      role: canonicalSeedRole(requestUser.role),
       tenant_slug: requestUser.tenantSlug,
     },
   });
