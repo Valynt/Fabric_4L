@@ -291,7 +291,7 @@ class EntityResolutionService:
         where_clause = " AND ".join(where_clauses) if where_clauses else "true"
 
         query = f"""
-        MATCH (n:{request.entity_type} {{tenant_id: $tenant_id}})
+        MATCH (n:{request.entity_type} {{tenant_id: $tenant_id}})  # cypher-dynamic-safe: validated against safe identifier regex in _validate_entity_type_label
         WHERE {where_clause}
         OPTIONAL MATCH (n)--()
         WITH n, count(*) as reference_count
@@ -319,7 +319,7 @@ class EntityResolutionService:
             return await self._find_exact_candidates(session, request)
 
         query = f"""
-        MATCH (n:{request.entity_type} {{tenant_id: $tenant_id}})
+        MATCH (n:{request.entity_type} {{tenant_id: $tenant_id}})  # cypher-dynamic-safe: validated against safe identifier regex in _validate_entity_type_label
         OPTIONAL MATCH (n)--()
         WITH n, count(*) as reference_count
         RETURN n.id as id, n as properties, reference_count

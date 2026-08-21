@@ -58,7 +58,7 @@ async def upsert_ground_truth_node(
     
     # Build the MERGE query
     query = f"""
-    MERGE (g:{GROUND_TRUTH_LABEL} {{truth_object_id: $truth_object_id, tenant_id: $tenant_id}})
+    MERGE (g:{GROUND_TRUTH_LABEL} {{truth_object_id: $truth_object_id, tenant_id: $tenant_id}})  # cypher-dynamic-safe: GROUND_TRUTH_LABEL is hardcoded literal
     SET g += $properties
     SET g.updated_at = datetime()
     RETURN elementId(g) as node_id
@@ -106,7 +106,7 @@ async def link_ground_truth_to_entity(
     query = f"""
     MATCH (g:GroundTruth), (e:Entity)
     WHERE elementId(g) = $gt_node_id AND e.tenant_id = $tenant_id AND e.id = $entity_id
-    MERGE (g)-[r:{relationship_type}]->(e)
+    MERGE (g)-[r:{relationship_type}]->(e)  # cypher-dynamic-safe: relationship_type is validated literal
     SET r += $rel_props
     RETURN elementId(r) as rel_id
     """

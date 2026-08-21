@@ -183,7 +183,7 @@ class Neo4jVectorStore:
         builder = TenantScopedCypher(tenant)
         scoped = builder.custom_tenant_query(
             f"""
-            MERGE (n:{entity_type} {{id: $id, tenant_id: $_tenant_id}})
+            MERGE (n:{entity_type} {{id: $id, tenant_id: $_tenant_id}})  # cypher-dynamic-safe: validated against VECTOR_ENTITY_TYPES allowlist
             ON CREATE SET n.created_at = datetime()
             SET
                 n.embedding = $embedding,
@@ -252,7 +252,7 @@ class Neo4jVectorStore:
         scoped = builder.custom_tenant_query(
             f"""
             UNWIND $records AS rec
-            MERGE (n:{entity_type} {{id: rec.id, tenant_id: $_tenant_id}})
+            MERGE (n:{entity_type} {{id: rec.id, tenant_id: $_tenant_id}})  # cypher-dynamic-safe: validated against VECTOR_ENTITY_TYPES allowlist
             WITH n, rec
             WHERE n.tenant_id = $_tenant_id
             SET

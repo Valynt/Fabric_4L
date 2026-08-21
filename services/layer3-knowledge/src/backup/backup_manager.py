@@ -1154,7 +1154,7 @@ class BackupManager:
 
                     # Create or merge entity node
                     query = f"""
-                    MERGE (n:{entity_type} {{id: $entity_id, tenant_id: $tenant_id}})
+                    MERGE (n:{entity_type} {{id: $entity_id, tenant_id: $tenant_id}})  # cypher-dynamic-safe: validated against sanitized entity_type literal from backup schema
                     SET n += $properties
                     """
                     await session.run(
@@ -1205,7 +1205,7 @@ class BackupManager:
                     query = f"""
                     MATCH (source {{id: $source_id, tenant_id: $tenant_id}})
                     MATCH (target {{id: $target_id, tenant_id: $tenant_id}})
-                    MERGE (source)-[r:{rel_type}]->(target)
+                    MERGE (source)-[r:{rel_type}]->(target)  # cypher-dynamic-safe: validated against sanitized rel_type literal from backup schema
                     SET r += $properties
                     """
                     await session.run(

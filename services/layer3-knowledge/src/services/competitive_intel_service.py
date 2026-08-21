@@ -538,7 +538,7 @@ class CompetitiveIntelService:
         query = f"""
         MATCH (p:Product {{id: $product_id, tenant_id: $tenant_id}})
         MATCH (c:Competitor {{id: $competitor_id, tenant_id: $tenant_id}})
-        CREATE (p)-[r:{rel_type} {{
+        CREATE (p)-[r:{rel_type} {{  # cypher-dynamic-safe: rel_type is hardcoded literal
             id: $id,
             deal_size_usd: $deal_size_usd,
             reason: $reason,

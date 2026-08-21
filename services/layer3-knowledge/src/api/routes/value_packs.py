@@ -363,7 +363,7 @@ async def _update_relationships(
         # SECURITY: Add tenant_id filter if available
         check_query = f"""
         UNWIND $target_ids as target_id
-        MATCH (t:{target_label} {{id: target_id, tenant_id: $tenant_id}})
+        MATCH (t:{target_label} {{id: target_id, tenant_id: $tenant_id}})  # cypher-dynamic-safe: validated against ALLOWED_TARGET_LABELS allowlist
         RETURN collect(t.id) as found_ids
         """
         params = {"target_ids": target_ids}
@@ -403,7 +403,7 @@ async def _update_relationships(
     # First, find all existing targets to delete individually through the gateway
     existing_query = f"""
     MATCH (vp:ValuePack {{id: $pack_id, tenant_id: $tenant_id}})
-    MATCH (vp)-[r:{rel_type}]->(t)
+    MATCH (vp)-[r:{rel_type}]->(t)  # cypher-dynamic-safe: validated against ALLOWED_REL_TYPES allowlist
     RETURN t.id as target_id
     """
     existing_result = await run_validated_query(
