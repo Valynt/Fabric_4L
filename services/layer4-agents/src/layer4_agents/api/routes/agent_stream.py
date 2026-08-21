@@ -81,6 +81,10 @@ class AgentStreamRequest(BaseModel):
     selected_driver_tree_id: str | None = Field(default=None, alias="selectedDriverTreeId")
     selected_scenario_id: str | None = Field(default=None, alias="selectedScenarioId")
     selected_business_case_id: str | None = Field(default=None, alias="selectedBusinessCaseId")
+    # Stable journey handle threaded across tabs/sessions for an account.
+    # When omitted, the service derives a deterministic journey_id from
+    # (tenant_id, account_id) so every turn remains journey-linked.
+    journey_id: str | None = Field(default=None, alias="journeyId")
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -94,6 +98,8 @@ class AgentGovernanceMetadata(BaseModel):
     tool_name: str
     audit_event_id: str
     emitted_at: str
+    # Stable journey link — reconstruct the full account progression timeline.
+    journey_id: str | None = None
     # New fields surfaced from ConversationService
     intent: str | None = None
     confidence: float | None = None
@@ -287,6 +293,7 @@ async def agent_stream_chat(
         entity_context=entity_context,
         tenant_id=tenant_id,
         trace_id=trace_id,
+        journey_id=payload.journey_id,
     )
 
     # Map result to response contract
@@ -300,6 +307,7 @@ async def agent_stream_chat(
             tool_name=metadata.get("tool_name", "valuepilot_conversation"),
             audit_event_id=metadata.get("audit_event_id", f"audit_{uuid.uuid4().hex[:12]}"),
             emitted_at=metadata.get("emitted_at", datetime.now(UTC).isoformat()),
+            journey_id=metadata.get("journey_id"),
             intent=metadata.get("intent"),
             confidence=metadata.get("confidence"),
             workflow_triggered=metadata.get("workflow_triggered"),
@@ -395,6 +403,7 @@ async def agent_stream_chat_sse(
                 entity_context=entity_context,
                 tenant_id=tenant_id,
                 trace_id=trace_id,
+                journey_id=payload.journey_id,
             ):
                 yield f"data: {json.dumps(event)}\n\n"
         except asyncio.CancelledError:
