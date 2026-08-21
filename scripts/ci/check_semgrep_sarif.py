@@ -139,50 +139,128 @@ def parse_sarif_errors(
     return sorted(findings)
 
 
-def load_baseline(baseline_path: Path) -> set[tuple[str, str, int]] | set[tuple[str, str]]:
+@dataclass
+class BaselineEntry:
+    rule_id: str
+    path: str
+    line: int
+    message: str = ""
+    used: bool = False
+
+    def matches_rule(self, candidate_rule: str) -> bool:
+        norm_cand = normalize_rule_id(candidate_rule)
+        norm_self = normalize_rule_id(self.rule_id)
+        if norm_self == norm_cand:
+            return True
+        bare_cand = norm_cand.split(".")[-1]
+        bare_self = norm_self.split(".")[-1]
+        return bare_cand == bare_self or norm_self.endswith(bare_cand) or norm_cand.endswith(bare_self)
+
+
+def load_baseline(baseline_path: Path) -> list[BaselineEntry]:
     """Load acknowledged baseline findings from JSON."""
     if not baseline_path.exists():
-        return set()
+        return []
 
     with open(baseline_path, encoding="utf-8") as f:
         data = json.load(f)
 
     baseline_items = data.get("allowed_errors", [])
-    exact_keys: set[tuple[str, str, int]] = set()
-    flexible_keys: set[tuple[str, str]] = set()
+    entries: list[BaselineEntry] = []
 
     for item in baseline_items:
         rule_id = normalize_rule_id(item.get("rule_id", ""))
         path = normalize_path(item.get("path", ""))
         line = int(item.get("line", 0))
+        message = str(item.get("message", ""))
         if rule_id and path:
-            if line > 0:
-                exact_keys.add((rule_id, path, line))
-            flexible_keys.add((rule_id, path))
+            entries.append(BaselineEntry(rule_id=rule_id, path=path, line=line, message=message))
 
-    return exact_keys, flexible_keys  # type: ignore[return-value]
+    return entries
+
+
+def match_findings_against_baseline(
+    findings: list[SarifErrorFinding],
+    baseline_entries: list[BaselineEntry],
+    max_line_delta: int = 10,
+) -> tuple[list[SarifErrorFinding], list[SarifErrorFinding]]:
+    """Match findings 1:1 against baseline entries.
+    
+    Returns (baselined_findings, unbaselined_findings).
+    """
+    # Reset used flags on baseline entries
+    for entry in baseline_entries:
+        entry.used = False
+
+    baselined: list[SarifErrorFinding] = []
+    unbaselined: list[SarifErrorFinding] = []
+
+    # First pass: exact line matches
+    unmatched_findings: list[SarifErrorFinding] = []
+    for finding in findings:
+        matched = False
+        for entry in baseline_entries:
+            if not entry.used and entry.path == finding.path and entry.matches_rule(finding.rule_id) and entry.line == finding.line:
+                entry.used = True
+                baselined.append(finding)
+                matched = True
+                break
+        if not matched:
+            unmatched_findings.append(finding)
+
+    # Second pass: bounded line shift (e.g. within max_line_delta)
+    still_unmatched: list[SarifErrorFinding] = []
+    for finding in unmatched_findings:
+        best_entry: BaselineEntry | None = None
+        best_delta = max_line_delta + 1
+
+        for entry in baseline_entries:
+            if not entry.used and entry.path == finding.path and entry.matches_rule(finding.rule_id):
+                if entry.line > 0:
+                    delta = abs(entry.line - finding.line)
+                    if delta <= max_line_delta and delta < best_delta:
+                        best_delta = delta
+                        best_entry = entry
+                elif entry.line == 0:
+                    # Wildcard line entry (matches 1 finding)
+                    best_entry = entry
+                    break
+
+        if best_entry is not None:
+            best_entry.used = True
+            baselined.append(finding)
+        else:
+            still_unmatched.append(finding)
+
+    unbaselined.extend(still_unmatched)
+    return baselined, unbaselined
 
 
 def is_baselined(
     finding: SarifErrorFinding,
-    exact_baseline: set[tuple[str, str, int]],
-    flexible_baseline: set[tuple[str, str]],
+    baseline_entries: list[BaselineEntry] | set[Any],
+    max_line_delta: int = 10,
 ) -> bool:
-    """Check if a finding is in the acknowledged baseline."""
-    # Check exact match: (rule_id, path, line)
-    if (finding.rule_id, finding.path, finding.line) in exact_baseline:
-        return True
-    # Strip prefixes like 'semgrep.' to check rule ID variations
-    bare_rule = finding.rule_id.split(".")[-1]
-    for r_id, p, l in exact_baseline:
-        if p == finding.path and l == finding.line and (r_id == finding.rule_id or r_id.endswith(bare_rule) or bare_rule in r_id):
-            return True
+    """Check if a single finding matches the acknowledged baseline."""
+    if isinstance(baseline_entries, (set, frozenset)):
+        # Backward compatibility for tuple-set baseline fixtures
+        bare_rule = finding.rule_id.split(".")[-1]
+        for item in baseline_entries:
+            if len(item) == 3:
+                r_id, p, l = item
+                if p == finding.path and (r_id == finding.rule_id or r_id.endswith(bare_rule) or bare_rule in r_id):
+                    if l == finding.line or (l > 0 and abs(l - finding.line) <= max_line_delta):
+                        return True
+            elif len(item) == 2:
+                r_id, p = item
+                if p == finding.path and (r_id == finding.rule_id or r_id.endswith(bare_rule) or bare_rule in r_id):
+                    return True
+        return False
 
-    # Fallback to file-level matching if line numbers shifted slightly
-    for r_id, p in flexible_baseline:
-        if p == finding.path and (r_id == finding.rule_id or r_id.endswith(bare_rule) or bare_rule in r_id):
-            return True
-
+    for entry in baseline_entries:
+        if not entry.used and entry.path == finding.path and entry.matches_rule(finding.rule_id):
+            if entry.line == finding.line or (entry.line > 0 and abs(entry.line - finding.line) <= max_line_delta) or entry.line == 0:
+                return True
     return False
 
 
@@ -254,16 +332,9 @@ def main() -> int:
         print("No ERROR-severity Semgrep findings detected.")
         return 0
 
-    exact_baseline, flexible_baseline = load_baseline(args.baseline)
-
-    new_errors: list[SarifErrorFinding] = []
-    baselined_count = 0
-
-    for finding in findings:
-        if is_baselined(finding, exact_baseline, flexible_baseline):
-            baselined_count += 1
-        else:
-            new_errors.append(finding)
+    baseline_entries = load_baseline(args.baseline)
+    baselined_findings, new_errors = match_findings_against_baseline(findings, baseline_entries)
+    baselined_count = len(baselined_findings)
 
     if new_errors:
         print(

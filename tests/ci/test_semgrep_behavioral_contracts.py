@@ -22,9 +22,11 @@ import pytest
 import yaml
 
 from scripts.ci.check_semgrep_sarif import (
+    BaselineEntry,
     SarifErrorFinding,
     is_baselined,
     load_baseline,
+    match_findings_against_baseline,
     normalize_path,
     normalize_rule_id,
     parse_sarif_errors,
@@ -311,3 +313,42 @@ def test_checked_in_baseline_file_is_valid() -> None:
     data = json.loads(BASELINE_PATH.read_text(encoding="utf-8"))
     assert "allowed_errors" in data
     assert isinstance(data["allowed_errors"], list)
+
+
+def test_exact_1_to_1_baseline_matching_and_bounded_relocation() -> None:
+    # 1 baseline entry at line 50
+    entries = [
+        BaselineEntry(
+            rule_id="block-direct-graph-mutation",
+            path="services/api/app/core/database.py",
+            line=50,
+        )
+    ]
+
+    # Finding 1: exact match at line 50
+    f1 = SarifErrorFinding("block-direct-graph-mutation", "services/api/app/core/database.py", 50)
+    baselined, new_errs = match_findings_against_baseline([f1], entries)
+    assert len(baselined) == 1
+    assert len(new_errs) == 0
+
+    # Finding 2: bounded line shift (line 53, delta=3 <= 10) -> matches
+    f2 = SarifErrorFinding("block-direct-graph-mutation", "services/api/app/core/database.py", 53)
+    baselined, new_errs = match_findings_against_baseline([f2], entries, max_line_delta=10)
+    assert len(baselined) == 1
+    assert len(new_errs) == 0
+
+    # Finding 3: far unlisted line (line 150, delta=100 > 10) -> MUST FAIL (not baselined)
+    f3 = SarifErrorFinding("block-direct-graph-mutation", "services/api/app/core/database.py", 150)
+    baselined, new_errs = match_findings_against_baseline([f3], entries, max_line_delta=10)
+    assert len(baselined) == 0
+    assert len(new_errs) == 1
+
+    # Finding 4: two findings in same file when only 1 baseline entry exists (1:1 consumption)
+    # 1 should match, 2nd must be flagged as NEW error
+    f_legit = SarifErrorFinding("block-direct-graph-mutation", "services/api/app/core/database.py", 50)
+    f_regression = SarifErrorFinding("block-direct-graph-mutation", "services/api/app/core/database.py", 52)
+    baselined, new_errs = match_findings_against_baseline([f_legit, f_regression], entries, max_line_delta=10)
+    assert len(baselined) == 1
+    assert len(new_errs) == 1
+    assert new_errs[0] == f_regression
+
