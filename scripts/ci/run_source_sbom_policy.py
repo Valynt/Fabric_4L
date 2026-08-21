@@ -91,8 +91,20 @@ def parse_sarif_findings(sarif_path: Path, severity_cutoff: str = "high") -> lis
     return findings
 
 
+REQUIRED_EXCEPTION_FIELDS = (
+    "cve_id",
+    "layer",
+    "owner",
+    "ticket",
+    "justification",
+    "compensating_controls",
+    "created_at",
+    "expires_at",
+)
+
+
 def load_exceptions(exceptions_path: Path | None) -> list[dict[str, Any]]:
-    """Load valid (non-expired) vulnerability exceptions from JSON or YAML."""
+    """Load valid (well-formed, non-expired) vulnerability exceptions from JSON or YAML."""
     if not exceptions_path or not exceptions_path.exists():
         return []
 
@@ -111,23 +123,47 @@ def load_exceptions(exceptions_path: Path | None) -> list[dict[str, Any]]:
         print(f"Warning: Failed to load exceptions from {exceptions_path}: {exc}", file=sys.stderr)
         return []
 
+    if not isinstance(data, dict):
+        print(f"Warning: Invalid exception data structure in {exceptions_path}", file=sys.stderr)
+        return []
+
     exceptions = data.get("exceptions", [])
+    if not isinstance(exceptions, list):
+        print(f"Warning: 'exceptions' must be a list in {exceptions_path}", file=sys.stderr)
+        return []
+
     valid_exceptions = []
     now = datetime.now(timezone.utc)
 
-    for exc in exceptions:
-        cve = exc.get("cve_id") or exc.get("id")
-        expires_at_str = exc.get("expires_at")
-        if not cve:
+    for idx, exc in enumerate(exceptions):
+        if not isinstance(exc, dict):
+            print(f"Warning: Exception entry {idx} is not a valid dict, skipping.", file=sys.stderr)
             continue
-        if expires_at_str:
-            try:
-                expires_at = datetime.fromisoformat(expires_at_str.replace("Z", "+00:00"))
-                if expires_at < now:
-                    print(f"Exception for {cve} has EXPIRED on {expires_at_str}", file=sys.stderr)
-                    continue
-            except Exception:
-                pass
+
+        cve = exc.get("cve_id") or exc.get("id")
+        if not cve:
+            print(f"Warning: Entry {idx} missing CVE ID, skipping.", file=sys.stderr)
+            continue
+
+        # Enforce required approval and governance fields
+        missing_fields = [f for f in REQUIRED_EXCEPTION_FIELDS if not exc.get(f)]
+        if missing_fields:
+            print(
+                f"Warning: Exception for {cve} missing required fields {missing_fields}, rejecting.",
+                file=sys.stderr,
+            )
+            continue
+
+        expires_at_str = str(exc.get("expires_at"))
+        try:
+            expires_at = datetime.fromisoformat(expires_at_str.replace("Z", "+00:00"))
+            if expires_at < now:
+                print(f"Exception for {cve} has EXPIRED on {expires_at_str}", file=sys.stderr)
+                continue
+        except Exception as e:
+            print(f"Warning: Exception for {cve} has invalid expires_at format '{expires_at_str}': {e}, rejecting.", file=sys.stderr)
+            continue
+
         valid_exceptions.append(exc)
 
     return valid_exceptions
@@ -182,13 +218,13 @@ def compare(
     baseline_findings = parse_sarif_findings(baseline_sarif_path, severity_cutoff=severity_cutoff)
     exceptions = load_exceptions(exceptions_path)
 
-    baseline_rule_ids = {f["rule_id"] for f in baseline_findings}
+    baseline_signatures = {f["signature"] for f in baseline_findings}
 
     inherited = []
     introduced = []
 
     for f in current_findings:
-        if f["rule_id"] in baseline_rule_ids:
+        if f["signature"] in baseline_signatures:
             inherited.append(f)
         else:
             introduced.append(f)

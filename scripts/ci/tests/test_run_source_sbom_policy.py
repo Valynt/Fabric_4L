@@ -122,7 +122,13 @@ def test_exception_handling() -> None:
                 {
                     "cve_id": "CVE-2026-5555",
                     "layer": "layer1-ingestion",
+                    "package": "some-pkg",
+                    "severity": "critical",
                     "owner": "sec-team",
+                    "ticket": "SEC-1234",
+                    "justification": "Mitigated downstream",
+                    "compensating_controls": "WAF enabled",
+                    "created_at": "2026-08-01T00:00:00Z",
                     "expires_at": "2099-01-01T00:00:00Z",
                 }
             ]
@@ -131,3 +137,28 @@ def test_exception_handling() -> None:
 
         status = enforce(sarif_file, severity_cutoff="high", exceptions_path=exc_file, layer="layer1-ingestion")
         assert status == CLEAN_EXIT
+
+
+def test_exception_rejection_missing_fields() -> None:
+    with TemporaryDirectory() as tmpdir:
+        sarif_file = Path(tmpdir) / "vuln.sarif"
+        exc_file = Path(tmpdir) / "exceptions.json"
+
+        data = make_sample_sarif([{"id": "CVE-2026-5555", "severity": "critical"}])
+        sarif_file.write_text(json.dumps(data), encoding="utf-8")
+
+        # Missing required governance fields like owner/ticket/compensating_controls
+        exc_data = {
+            "exceptions": [
+                {
+                    "cve_id": "CVE-2026-5555",
+                    "layer": "layer1-ingestion",
+                    "expires_at": "2099-01-01T00:00:00Z",
+                }
+            ]
+        }
+        exc_file.write_text(json.dumps(exc_data), encoding="utf-8")
+
+        # Incomplete exception should be rejected and enforcement should fail
+        status = enforce(sarif_file, severity_cutoff="high", exceptions_path=exc_file, layer="layer1-ingestion")
+        assert status == VULNERABLE_EXIT
