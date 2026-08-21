@@ -55,28 +55,30 @@ remaining useful for testing, and how to register them in scanner allowlists.
 
 ### Allowlist File
 
-Location: `.gitleaks-allowlist.toml` (or equivalent scanner-specific format)
+Location: `.gitleaks.toml` (root-level configuration; the `[allowlist]` section holds synthetic-fixture allowlist entries per ADR-038).
 
-Each entry must include:
+The gitleaks config extends the default rules (`[extend] useDefault = true`) — it
+never weakens or disables a default rule. The allowlist has two axes:
+
+- `paths` — file-path patterns that are skipped entirely (e.g., `tests/`,
+  `docs/`, `test_.*\.py$`). Broad path allowlists are reviewed periodically
+  (see `config/ci/operational_debt_registry.yaml` if a review is outstanding)
+  to ensure they do not mask real findings.
+- `regexes` — specific synthetic-fixture patterns that are ignored even when
+  they appear in scanned paths (e.g., `sk_test_dummy_*`, `pk_test_dummy_*`,
+  `vf_test_*`). These correspond 1:1 to the Allowed Fixture Formats above.
+
+### Per-Entry Justification (When Narrower Allowlist Is Needed)
+
+For fixtures that need a narrower, per-file allowlist entry (e.g., a single
+file that must be scanned but contains one synthetic secret), gitleaks supports
+`[[allowlists]]` array-of-tables entries with:
 
 ```toml
-[[allowlist]]
-path = "tests/security/test_secret_redaction_responses.py"
+[[allowlists]]
+paths = ['tests/security/test_secret_redaction_responses.py']
 description = "Test fixture for secret redaction logic"
-owner = "security-team"
-expires = "2026-12-31"
-reason = "Synthetic Stripe test key (sk_test_dummy_*) used to verify redaction coverage"
 ```
-
-### Required Fields
-
-| Field | Description |
-|---|---|
-| `path` | File path containing the fixture (glob patterns allowed) |
-| `description` | Human-readable description of the fixture |
-| `owner` | Team or individual responsible for the fixture |
-| `expires` | Expiry date (YYYY-MM-DD); entry must be renewed or removed |
-| `reason` | Justification for why the fixture is synthetic and safe |
 
 ### Allowlist Review
 
