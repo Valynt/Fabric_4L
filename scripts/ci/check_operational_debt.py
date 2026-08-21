@@ -29,7 +29,7 @@ from datetime import date
 from pathlib import Path
 
 try:
-    import yaml  # type: ignore[import-not-found]
+    import yaml  # type: ignore
 except ImportError:  # pragma: no cover - pyyaml is a CI dependency
     yaml = None
 

@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import importlib.util
 from pathlib import Path
+from typing import cast
 from unittest import mock
 
 import pytest
@@ -50,7 +51,7 @@ def test_check_mypy_baseline_passes_executable_as_single_argument() -> None:
     fake_exe = _windows_executable()
     captured: dict[str, object] = {}
 
-    def fake_run(cmd, **kwargs):  # type: ignore[no-untyped-def]
+    def fake_run(cmd: list[str], **kwargs: object) -> mock.Mock:
         captured["cmd"] = cmd
         captured["cwd"] = kwargs.get("cwd")
         return mock.Mock(stdout="", stderr="", returncode=0)
@@ -63,7 +64,7 @@ def test_check_mypy_baseline_passes_executable_as_single_argument() -> None:
                 [],
             )
 
-    cmd = list(captured["cmd"])  # type: ignore[arg-type]
+    cmd = list(cast("list[str]", captured["cmd"]))
     # The executable must be the first element, exactly as-is — no stripping.
     assert cmd[0] == fake_exe, (
         f"Expected executable to be passed as one argument ({fake_exe!r}); "
