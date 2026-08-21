@@ -33,6 +33,9 @@ ehthumbs.db
 # Bunnyshell CLI binary
 .bunny/
 
+# Bunnyshell generated import files (vars.env / secrets.env) — never commit
+.bns/
+
 # Kubernetes secrets (use External Secrets Operator in production)
 k8s/secrets.yml
 
