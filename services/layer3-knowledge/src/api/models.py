@@ -152,6 +152,18 @@ class IngestRequest(BaseModel):
         description="Optional tenant hint for compatibility; authenticated tenant context is authoritative and any provided value must match it",
         examples=["12345678-1234-1234-1234-123456789abc"],
     )
+    prompt_template_version: str | None = Field(
+        None,
+        max_length=255,
+        description="Extraction prompt template version from Layer 2 provenance lineage",
+        examples=["entity_v1+relationship_v1"],
+    )
+    prompt_template_hash: str | None = Field(
+        None,
+        max_length=128,
+        description="Extraction prompt template hash from Layer 2 provenance lineage",
+        examples=["sha256:..."],
+    )
 
     @field_validator("content_hash")
     @classmethod

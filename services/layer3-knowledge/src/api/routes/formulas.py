@@ -1121,6 +1121,21 @@ async def update_formula(
             request.expression is not None and request.expression != current_expr
         )
 
+        # Compute (and validate) the next version BEFORE any writes so a
+        # malformed stored version fails fast as a 400 rather than leaving
+        # the formula node updated with no matching FormulaVersion.
+        new_version: str | None = None
+        if expr_changed:
+            try:
+                new_version = _bump_minor_version(current_version)
+            except ValueError as exc:
+                raise ValidationError(
+                    message=str(
+                        f"Stored formula version {current_version!r} is "
+                        f"malformed; cannot create a new version"
+                    )
+                ) from exc
+
         # Build update properties
         update_fields = []
         params = {"formula_id": formula_id, "tenant_id": tenant_id}
@@ -1169,7 +1184,6 @@ async def update_formula(
 
         # Create new version if expression changed
         if expr_changed:
-            new_version = _bump_minor_version(current_version)
             version_id = f"fv_{uuid.uuid4().hex[:12]}"
             await neo4j.run(
                 """

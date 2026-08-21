@@ -205,3 +205,52 @@ class TestConfidenceScoreContract:
         assert "1.0" in source, (
             "confidence_score must be 1.0 for deterministic validated inputs"
         )
+
+
+# ---------------------------------------------------------------------------
+# Regression: integer-typed variables must reject fractional values
+# (review thread: _coerce_numeric_inputs silently truncated 1.9 -> 1)
+# ---------------------------------------------------------------------------
+
+
+class TestIntegerFractionalRejection:
+    def test_fractional_float_for_integer_variable_is_rejected(self):
+        """A float like 1.9 for an integer-typed variable must fail validation,
+        not be silently truncated to 1 by int()."""
+        agent = _agent()
+        formula = _formula(
+            "n * 2", variables=[{"name": "n", "type": "integer", "required": True}]
+        )
+        errors = agent._validate_inputs(formula, {"n": 1.9})
+        assert any("must be an integer" in e for e in errors), (
+            "fractional float for integer var must be rejected at validation"
+        )
+
+    def test_whole_float_for_integer_variable_accepted(self):
+        """A whole-number float like 5.0 is acceptable for an integer var."""
+        agent = _agent()
+        formula = _formula(
+            "n * 2", variables=[{"name": "n", "type": "integer", "required": True}]
+        )
+        errors = agent._validate_inputs(formula, {"n": 5.0})
+        assert not any("must be an integer" in e for e in errors)
+
+    def test_fractional_string_for_integer_variable_rejected(self):
+        """A string '1.9' for an integer var is rejected (int('1.9') raises)."""
+        agent = _agent()
+        formula = _formula(
+            "n * 2", variables=[{"name": "n", "type": "integer", "required": True}]
+        )
+        errors = agent._validate_inputs(formula, {"n": "1.9"})
+        assert any("must be an integer" in e for e in errors)
+
+    def test_coerce_does_not_truncate_after_validation(self):
+        """After validation passes, coercion of a whole float is exact."""
+        agent = _agent()
+        formula = _formula(
+            "n * 2", variables=[{"name": "n", "type": "integer", "required": True}]
+        )
+        coerced = agent._coerce_numeric_inputs(formula, {"n": 5.0})
+        assert coerced["n"] == 5
+        assert isinstance(coerced["n"], int)
+

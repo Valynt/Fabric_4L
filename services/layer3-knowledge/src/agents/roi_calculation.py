@@ -535,8 +535,16 @@ class ROICalculationAgent(BaseAgent):
                     except (ValueError, TypeError):
                         errors.append(f"Variable {var_name} must be numeric")
                 elif expected_type == "integer":
+                    # Reject fractional values that int() would silently
+                    # truncate (e.g. 1.9 -> 1). String inputs must parse as
+                    # a plain integer, and floats must be whole numbers.
                     try:
-                        int(value)
+                        if isinstance(value, float) and not value.is_integer():
+                            errors.append(
+                                f"Variable {var_name} must be an integer"
+                            )
+                        elif isinstance(value, str):
+                            int(value)
                     except (ValueError, TypeError):
                         errors.append(f"Variable {var_name} must be an integer")
 
@@ -548,14 +556,13 @@ class ROICalculationAgent(BaseAgent):
         """Coerce validated numeric inputs to float for safe execution.
 
         ``_validate_inputs`` already confirmed each numeric variable can be
-        converted via ``float(value)``. This method performs the actual
-        coercion so the execution context contains real numbers, preventing
+        converted via ``float(value)`` and that integer-typed variables are
+        whole numbers (fractional floats are rejected there, not silently
+        truncated here). This method performs the actual coercion so the
+        execution context contains real numbers, preventing
         string-dependent behavior in ``_safe_eval`` (e.g. ``"3" * 2``
         concatenating instead of multiplying, or comparisons returning
         surprising results).
-
-        Non-numeric variables and integer-typed variables are passed through
-        unchanged (integer semantics are preserved for downstream consumers).
 
         Args:
             formula: Formula definition with variable type metadata
