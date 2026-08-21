@@ -1,0 +1,96 @@
+# ==========================================================================
+# docker-compose.e2e.layer3.yml — Layer 3 override for the deterministic E2E stack
+# ==========================================================================
+#
+# Purpose: Add the Layer 3 Knowledge Graph service (and its Neo4j migration
+#          step) to the deterministic `docker-compose.e2e.yml` stack.
+#
+# The base e2e stack intentionally omits Layer 3; journey tests that only
+# touch Layer 1/4 surfaces do not need it and a heavier stack slows down the
+# 16 data-dependent journey tests. The continuous live suite, however, drives
+# the ValuePilot ROI recalc which posts to `l3 /v1/roi/calculate`. Without a
+# real L3 the frontend's `/api/v1/graph` proxy hits the layer4 self-stub
+# (LAYER3_API_URL -> layer4) and surfaces "Failed to recalculate scenario".
+#
+# This override is merged on top of the base file at runtime:
+#   docker compose -f infra/compose/docker-compose.e2e.yml \
+#     -f infra/compose/docker-compose.e2e.layer3.yml up -d --build --wait
+#
+# It reuses the `e2e-network`, the `shared-code-volumes` anchor, and the
+# deterministic `neo4j` (NEO4J_AUTH=neo4j/devpassword) / `redis` services
+# from the base stack. The single-stage Layer 3 Dockerfile runs
+# `uvicorn src.api.main:app --port 8001`; we expose it on host port 8003 so
+# the frontend Vite proxy (`VITE_PROXY_L3_URL`) can reach it.
+# ==========================================================================
+
+# Re-declared locally because Docker Compose merges each `-f` file as a
+# separate YAML document and does NOT resolve anchors across files. This
+# mirrors the `x-shared-code-volumes` / `&shared-code-volumes` anchor in
+# docker-compose.e2e.yml so Layer 3 mounts the same shared code.
+x-shared-code-volumes: &shared-code-volumes
+  - ../../packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
+  - ../../packages/platform-contract/src/python:/app/packages/platform-contract/src/python:ro
+
+services:
+  layer3:
+    build:
+      context: ../../services/layer3-knowledge
+      dockerfile: ./Dockerfile
+    container_name: vf-e2e-layer3
+    ports:
+      - "8003:8001"
+    environment:
+      - ENVIRONMENT=development
+      - NEO4J_URI=bolt://neo4j:7687
+      - NEO4J_USER=neo4j
+      - NEO4J_PASSWORD=devpassword
+      - NEO4J_AUTH=neo4j/devpassword
+      - REDIS_URL=redis://redis:6379/0
+      - CACHE_REDIS_URL=redis://redis:6379/0
+      - JWT_SECRET=e2e-test-secret-do-not-use-in-production-minimum-32-chars
+      - SERVICE_AUTH_SECRET=${SERVICE_AUTH_SECRET:-test-service-auth-secret-for-validation-seed-1234567890}
+      - CORS_ORIGINS=["http://localhost:3001"]
+      - LOG_LEVEL=warning
+    depends_on:
+      redis:
+        condition: service_healthy
+      neo4j:
+        condition: service_healthy
+      layer3-neo4j-migrate:
+        condition: service_completed_successfully
+    networks:
+      - e2e-network
+    volumes: *shared-code-volumes
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  layer3-neo4j-migrate:
+    build:
+      context: ../../services/layer3-knowledge
+      dockerfile: ./Dockerfile
+    container_name: vf-e2e-layer3-neo4j-migrate
+    command:
+      - sh
+      - -lc
+      - "attempts=0\nuntil /app/.venv/bin/python /app/src/migrations/030_neo4j_tenant_id_constraints_and_indexes.py;\
+        \ do\n  attempts=$$((attempts + 1))\n  if [ \"$$attempts\" -ge 24 ]; then\n\
+        \    echo \"layer3 neo4j migration 030 failed after $${attempts} attempts\"\
+        \    exit 1\n  fi\n  echo \"waiting for neo4j ($${attempts}/24)\"\n  sleep 5\n\
+        done\n"
+    environment:
+      - ENVIRONMENT=development
+      - NEO4J_URI=bolt://neo4j:7687
+      - NEO4J_USER=neo4j
+      - NEO4J_PASSWORD=devpassword
+      - NEO4J_AUTH=neo4j/devpassword
+    depends_on:
+      neo4j:
+        condition: service_healthy
+    networks:
+      - e2e-network
+    volumes: *shared-code-volumes
+    restart: "no"
