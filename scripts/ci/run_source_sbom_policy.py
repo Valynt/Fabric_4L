@@ -175,21 +175,21 @@ def load_exceptions(exceptions_path: Path | None) -> list[VulnerabilityException
     valid_exceptions: list[VulnerabilityException] = []
     now = datetime.now(timezone.utc)
 
-    for idx, exc in enumerate(exceptions):
-        if not isinstance(exc, dict):
+    for idx, entry in enumerate(exceptions):
+        if not isinstance(entry, dict):
             print(
                 f"Warning: Exception entry {idx} is not a valid dict, skipping.",
                 file=sys.stderr,
             )
             continue
 
-        cve = exc.get("cve_id") or exc.get("id")
+        cve = entry.get("cve_id") or entry.get("id")
         if not cve:
             print(f"Warning: Entry {idx} missing CVE ID, skipping.", file=sys.stderr)
             continue
 
         # Enforce required approval and governance fields
-        missing_fields = [f for f in REQUIRED_EXCEPTION_FIELDS if not exc.get(f)]
+        missing_fields = [f for f in REQUIRED_EXCEPTION_FIELDS if not entry.get(f)]
         if missing_fields:
             print(
                 f"Warning: Exception for {cve} missing required fields {missing_fields}, rejecting.",
@@ -197,7 +197,7 @@ def load_exceptions(exceptions_path: Path | None) -> list[VulnerabilityException
             )
             continue
 
-        expires_at_str = str(exc.get("expires_at"))
+        expires_at_str = str(entry.get("expires_at"))
         try:
             expires_at = datetime.fromisoformat(expires_at_str.replace("Z", "+00:00"))
             if expires_at < now:
@@ -216,12 +216,12 @@ def load_exceptions(exceptions_path: Path | None) -> list[VulnerabilityException
         valid_exceptions.append(
             VulnerabilityException(
                 cve_id=str(cve),
-                layer=str(exc.get("layer") or exc.get("component") or "*"),
-                owner=str(exc.get("owner", "")),
-                ticket=str(exc.get("ticket", "")),
-                justification=str(exc.get("justification", "")),
-                compensating_controls=str(exc.get("compensating_controls", "")),
-                created_at=str(exc.get("created_at", "")),
+                layer=str(entry.get("layer") or entry.get("component") or "*"),
+                owner=str(entry.get("owner", "")),
+                ticket=str(entry.get("ticket", "")),
+                justification=str(entry.get("justification", "")),
+                compensating_controls=str(entry.get("compensating_controls", "")),
+                created_at=str(entry.get("created_at", "")),
                 expires_at=expires_at_str,
             )
         )
