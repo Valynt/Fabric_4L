@@ -42,9 +42,9 @@ def evaluate_security_posture() -> dict:
 
     # 4. Area D: Canonical Secrets Management (Weight: 20%)
     infisical_config = REPO_ROOT / ".infisical.json"
-    secrets_test = REPO_ROOT / "tests" / "security" / "test_production_startup_secrets.py"
-    has_secrets_hardening = infisical_config.is_file() and secrets_test.is_file()
-    area_d_score = 8.8 if has_secrets_hardening else 7.2
+    startup_guard_test = REPO_ROOT / "tests" / "security" / "test_production_startup_secrets.py"
+    has_canonical_hierarchy = infisical_config.is_file() and startup_guard_test.is_file()
+    area_d_score = 8.8 if has_canonical_hierarchy else 7.2
 
     # 5. Area E: Production-Shaped Security Validation (Weight: 15%)
     redaction_test = REPO_ROOT / "tests" / "security" / "test_token_leak_and_audit_redaction.py"
