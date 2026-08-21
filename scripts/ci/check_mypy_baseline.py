@@ -27,7 +27,9 @@ ERROR_RE = re.compile(r"^(.*?):\d+: error: .*$", re.MULTILINE)
 
 
 def _run_mypy(service_dir: Path, paths: list[str], extra_args: list[str]) -> str:
-    cmd = ["mypy", *paths, *extra_args]
+    # Use ``sys.executable -m mypy`` so the check works on Windows where the
+    # ``mypy`` console-script entrypoint is not guaranteed to be on PATH.
+    cmd = [sys.executable, "-m", "mypy", *paths, *extra_args]
     result = subprocess.run(
         cmd,
         cwd=service_dir,
@@ -55,9 +57,7 @@ def _load_baseline(path: Path) -> dict[str, int]:
     return {str(k): int(v) for k, v in data.items()}
 
 
-def _check(
-    counts: dict[str, int], baseline: dict[str, int]
-) -> tuple[bool, list[str]]:
+def _check(counts: dict[str, int], baseline: dict[str, int]) -> tuple[bool, list[str]]:
     ok = True
     messages: list[str] = []
     for file_path, count in sorted(counts.items()):

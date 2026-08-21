@@ -56,32 +56,6 @@ entries:
       stays green; the L2/L6 drift section in the #1374 evidence file is
       resolved and removed.
 
-  - id: mypy-strict-baseline-layers-2-6
-    category: type-baseline
-    severity: medium
-    owner: "@value-fabric/platform-leads"
-    ticket: "#1383"
-    expires_on: "2026-11-30"
-    source: "PR #1383 (mypy baseline triage)"
-    summary: >-
-      mypy --strict on services/ surfaces a large pre-existing error count with
-      no per-layer ratchet, so the pre-commit mypy hook is not a credible
-      predictor of CI and the typecheck target runs raw mypy.
-    impact: >-
-      New type errors are not blocked at pre-commit; contributors must use
-      --no-verify on type-touching commits, eroding the contract-first guard.
-      The baseline is not owned by any single layer, so reductions and
-      regressions cannot be attributed.
-    remediation: >-
-      Generate per-layer mypy baselines (extend config/ci/mypy_baseline_layer1.json
-      to layers 2-6) and wire check_mypy_baseline.py into each layer's typecheck
-      target via run_mypy_layer.py. The ratchet must block increases and allow
-      decreases; it must NOT be a bare count that can be silently bumped.
-    verification: >-
-      make typecheck fails on a deliberately introduced mypy error in each layer
-      and passes once the error is removed; the baseline count for every layer
-      is monotonically non-increasing across PRs.
-
   - id: windows-pre-commit-tooling-gap
     category: tooling-gap
     severity: medium
@@ -97,17 +71,30 @@ entries:
       The semgrep pre-commit hook depends on a Linux ELF binary that fails on
       Windows; the infisical-scan hook uses bash -c; hadolint ships a binary
       without a Windows path. Windows contributors must skip hooks or use
-      --no-verify, weakening the local-CI parity invariant.
+      --no-verify, weakening the local-CI parity invariant. Additionally, the
+      bash-based git hook (installed by `pre-commit install`) crashes on
+      Windows with MSYS2 fork failures (0xC0000142 STATUS_DLL_INIT_FAILED),
+      preventing `git commit` from invoking the hook chain at all.
     remediation: >-
-      Provide a Windows-safe pre-commit profile (language_version / entry
-      adaptations) for the affected hooks; document remaining limitations as
-      registered debt with a concrete fallback (e.g., run semgrep in CI only
-      and print a clear local skip message, never a silent pass).
+      Root cause confirmed: MSYS2 bash cannot fork subshells on affected
+      Windows systems due to DLL address-space fragmentation (exit code
+      0xC0000142). The MSYS=disable_pcon / noninheritable_pcon env vars do NOT
+      resolve this; it is a system-level DLL rebasing issue. Workaround that
+      WORKS: run `pre-commit run --files <files>` (or `--all-files`) directly
+      from PowerShell/cmd — this bypasses the bash git hook entirely and
+      executes all hooks reliably except semgrep (which has a separate
+      Windows path-munging bug: `C:UsersBBB.cache...` with stripped
+      backslashes). Remaining work: (1) provide a Windows-safe pre-commit
+      profile (language_version / entry adaptations) for semgrep, hadolint,
+      and infisical-scan; (2) document that Windows contributors should use
+      `pre-commit run` directly rather than relying on the git hook; (3)
+      consider a core.hooksPath override pointing to a non-bash hook runner.
     verification: >-
-      A Windows contributor can run `pre-commit run --all-files` without
-      resorting to --no-verify; every hook that cannot run on Windows emits a
-      visible "skipped on Windows, run in CI" notice rather than failing
-      silently.
+      A Windows contributor can run `pre-commit run --all-files` from
+      PowerShell without resorting to --no-verify; every hook that cannot run
+      on Windows emits a visible "skipped on Windows, run in CI" notice rather
+      than failing silently. The bash git hook crash is documented as a known
+      Windows limitation with the `pre-commit run` fallback.
 
   - id: gitleaks-not-required-check
     category: security-hardening

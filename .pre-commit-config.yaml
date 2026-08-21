@@ -14,7 +14,7 @@ repos:
       - id: gitleaks
         name: Detect secrets (gitleaks)
         description: Scans for secrets and credentials
-        fail_fast: true  # Stop if secrets found
+        fail_fast: true # Stop if secrets found
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.6.0
@@ -113,7 +113,7 @@ repos:
         exclude: ^\.vscode/
       - id: check-yaml
         name: Validate YAML
-        args: [--unsafe]  # Allow custom tags
+        args: [--unsafe] # Allow custom tags
 
       # File checks
       - id: check-added-large-files
@@ -140,7 +140,7 @@ repos:
 
   # ============================================
   # SAST (Static Analysis)
- # ============================================
+  # ============================================
 
   # Semgrep for security patterns
   - repo: https://github.com/returntocorp/semgrep
@@ -166,9 +166,9 @@ repos:
         name: Hadolint (Dockerfile linter)
         files: Dockerfile.*|.*Dockerfile
         args:
-          - --ignore=DL3008  # Pin versions in apt-get install
-          - --ignore=DL3013  # Pin versions in pip
-          - --ignore=DL3018  # Pin versions in apk add
+          - --ignore=DL3008 # Pin versions in apt-get install
+          - --ignore=DL3013 # Pin versions in pip
+          - --ignore=DL3018 # Pin versions in apk add
 
   # ============================================
   # COMMIT MESSAGES
@@ -276,4 +276,4 @@ default_stages: [pre-commit, pre-push]
 fail_fast: true
 
 # Minimum pre-commit version
-minimum_pre_commit_version: '3.0.0'
+minimum_pre_commit_version: "3.0.0"
