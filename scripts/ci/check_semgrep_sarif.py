@@ -190,9 +190,16 @@ def load_baseline(baseline_path: Path) -> list[BaselineEntry]:
 def match_findings_against_baseline(
     findings: list[SarifErrorFinding],
     baseline_entries: list[BaselineEntry],
-    max_line_delta: int = 10,
+    max_line_delta: int = 10,  # kept for API compat; proximity matching removed (SEC)
 ) -> tuple[list[SarifErrorFinding], list[SarifErrorFinding]]:
     """Match findings 1:1 against baseline entries.
+
+    Matching is by stable identity: path + rule + exact line, or an explicit
+    wildcard baseline entry (``line == 0``) that matches any single finding.
+    Proximity/line-shift matching is intentionally NOT supported: a legacy
+    finding that disappears and a new same-rule finding nearby must surface as
+    a NEW error so security regressions cannot hide behind a stale baseline
+    entry (SEC-L3-CYPHER review feedback).
 
     Returns (baselined_findings, unbaselined_findings).
     """
@@ -203,8 +210,6 @@ def match_findings_against_baseline(
     baselined: list[SarifErrorFinding] = []
     unbaselined: list[SarifErrorFinding] = []
 
-    # First pass: exact line matches
-    unmatched_findings: list[SarifErrorFinding] = []
     for finding in findings:
         matched = False
         for entry in baseline_entries:
@@ -212,53 +217,30 @@ def match_findings_against_baseline(
                 not entry.used
                 and entry.path == finding.path
                 and entry.matches_rule(finding.rule_id)
-                and entry.line == finding.line
+                and (entry.line == finding.line or entry.line == 0)
             ):
                 entry.used = True
                 baselined.append(finding)
                 matched = True
                 break
         if not matched:
-            unmatched_findings.append(finding)
+            unbaselined.append(finding)
 
-    # Second pass: bounded line shift (e.g. within max_line_delta)
-    still_unmatched: list[SarifErrorFinding] = []
-    for finding in unmatched_findings:
-        best_entry: BaselineEntry | None = None
-        best_delta = max_line_delta + 1
-
-        for entry in baseline_entries:
-            if (
-                not entry.used
-                and entry.path == finding.path
-                and entry.matches_rule(finding.rule_id)
-            ):
-                if entry.line > 0:
-                    delta = abs(entry.line - finding.line)
-                    if delta <= max_line_delta and delta < best_delta:
-                        best_delta = delta
-                        best_entry = entry
-                elif entry.line == 0:
-                    # Wildcard line entry (matches 1 finding)
-                    best_entry = entry
-                    break
-
-        if best_entry is not None:
-            best_entry.used = True
-            baselined.append(finding)
-        else:
-            still_unmatched.append(finding)
-
-    unbaselined.extend(still_unmatched)
     return baselined, unbaselined
 
 
 def is_baselined(
     finding: SarifErrorFinding,
     baseline_entries: list[BaselineEntry] | set[tuple[str, ...]],
-    max_line_delta: int = 10,
+    max_line_delta: int = 10,  # kept for API compat; proximity matching removed (SEC)
 ) -> bool:
-    """Check if a single finding matches the acknowledged baseline."""
+    """Check if a single finding matches the acknowledged baseline.
+
+    Matching requires path + rule + exact line (or an explicit ``line == 0``
+    wildcard). Proximity matching was removed so that a removed legacy finding
+    paired with a new nearby same-rule finding surfaces as a NEW error rather
+    than being absorbed by the stale baseline entry (SEC review feedback).
+    """
     if isinstance(baseline_entries, (set, frozenset)):
         # Backward compatibility for tuple-set baseline fixtures
         bare_rule = finding.rule_id.split(".")[-1]
@@ -270,9 +252,7 @@ def is_baselined(
                     or r_id.endswith(bare_rule)
                     or bare_rule in r_id
                 ):
-                    if l == finding.line or (
-                        l > 0 and abs(l - finding.line) <= max_line_delta
-                    ):
+                    if l == finding.line or l == 0:
                         return True
             elif len(item) == 2:
                 r_id, p = item
@@ -290,11 +270,7 @@ def is_baselined(
             and entry.path == finding.path
             and entry.matches_rule(finding.rule_id)
         ):
-            if (
-                entry.line == finding.line
-                or (entry.line > 0 and abs(entry.line - finding.line) <= max_line_delta)
-                or entry.line == 0
-            ):
+            if entry.line == finding.line or entry.line == 0:
                 return True
     return False
 
