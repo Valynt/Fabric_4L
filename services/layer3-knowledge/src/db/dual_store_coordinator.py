@@ -17,14 +17,13 @@ Design Guarantees:
 from __future__ import annotations
 
 import logging
+from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime
 from typing import Any
 
-from neo4j import AsyncDriver, Record
-from value_fabric.shared.identity.context import get_request_context
+from neo4j import AsyncDriver
 
 from ..db.audited_mutation import AuditedGraphMutation
-from ..metrics.prometheus_metrics import get_metrics
 
 logger = logging.getLogger(__name__)
 
@@ -111,8 +110,8 @@ class DualStoreTransactionCoordinator:
 
     async def write_with_rollback(
         self,
-        neo4j_op,
-        postgres_op,
+        neo4j_op: Callable[[Any], Awaitable[dict[str, Any]]],
+        postgres_op: Callable[[], Awaitable[dict[str, Any]]],
         request_id: str | None = None,
     ) -> DualStoreMutationResult:
         """Execute coordinated Neo4j + PostgreSQL write with compensating rollback.
@@ -235,10 +234,12 @@ class DualStoreTransactionCoordinator:
                 except Exception:
                     pass
 
-    async def _execute_neo4j_write(self, neo4j_op, request_id: str) -> dict[str, Any]:
+    async def _execute_neo4j_write(
+        self,
+        neo4j_op: Callable[[Any], Awaitable[dict[str, Any]]],
+        request_id: str,
+    ) -> dict[str, Any]:
         """Execute a Neo4j write operation through the validated gateway."""
-        from neo4j import AsyncSession
-
         async with self.driver.session(database="neo4j") as session:
             # Execute the user-provided operation
             result = await neo4j_op(session)
@@ -257,7 +258,9 @@ class DualStoreTransactionCoordinator:
             return {"status": "committed", "result": result}
 
     async def _execute_postgres_write(
-        self, postgres_op, request_id: str
+        self,
+        postgres_op: Callable[[], Awaitable[dict[str, Any]]],
+        request_id: str,
     ) -> dict[str, Any]:
         """Execute a PostgreSQL write operation.
 
