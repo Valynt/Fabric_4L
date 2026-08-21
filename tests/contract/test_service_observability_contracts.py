@@ -134,26 +134,28 @@ def test_layer6_observability_endpoints_contract(monkeypatch: pytest.MonkeyPatch
 
 @pytest.mark.unit
 def test_api_gateway_observability_endpoints_contract(monkeypatch: pytest.MonkeyPatch) -> None:
-    from value_fabric.shared.fastapi_framework.health import ProbeResult
+    import httpx
+    import respx
 
-    import app.main as api_main
+    from app.core.config import get_settings
+    from app.core.database import InMemoryDatabase
+    from app.services.distributed_store import InMemoryDistributedStore
     from app.main import app
 
-    async def _mock_probe(name: str):
-        return ProbeResult(name=name, healthy=True)
+    # Mock the underlying probe dependencies
+    monkeypatch.setattr("app.core.database.create_database", lambda: InMemoryDatabase())
+    monkeypatch.setattr("app.services.distributed_store.get_distributed_store", lambda: InMemoryDistributedStore())
 
-    monkeypatch.setattr(api_main, "_api_db_probe", lambda: _mock_probe("database"))
-    monkeypatch.setattr(api_main, "_api_redis_probe", lambda: _mock_probe("redis"))
-    monkeypatch.setattr(api_main, "_api_layer4_probe", lambda: _mock_probe("layer4"))
+    settings = get_settings()
+    layer4_url = f"{settings.layer4_api_base_url.rstrip('/')}/ready"
 
-    # Also update the probes on app.state.health_probes if already registered
-    if hasattr(app.state, "health_probes"):
-        from value_fabric.shared.fastapi_framework.health import CallableProbe
-        app.state.health_probes = [
-            CallableProbe(name="database", fn=lambda: _mock_probe("database")),
-            CallableProbe(name="redis", fn=lambda: _mock_probe("redis")),
-            CallableProbe(name="layer4", fn=lambda: _mock_probe("layer4")),
-        ]
+    # Mock layer4 probe http call
+    def mock_layer4_ready(url, *args, **kwargs):
+        if url == layer4_url:
+            return httpx.Response(200, json={"status": "ready", "service": "layer4-agents"})
+        return httpx.Response(404)
+
+    monkeypatch.setattr(httpx, "get", mock_layer4_ready)
 
     assert_paths_present(app, ("/health", "/ready", "/metrics"))
     client = TestClient(app)
