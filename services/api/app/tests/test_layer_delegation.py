@@ -424,3 +424,33 @@ class TestDelegationObservability:
         ) or 0.0
         assert after == before + 1.0
 
+    @pytest.mark.asyncio
+    async def test_concurrency_exhausted_returns_503_with_concurrency_detail(self) -> None:
+        from app.routers import layer_delegation as mod
+
+        mod._breakers = CircuitBreakerRegistry()
+        app = self._app()
+        # Patch the semaphore returned by _get_semaphore to always report
+        # locked → concurrency exhausted.
+        fake_sem = MagicMock()
+        fake_sem.locked.return_value = True
+        fake_sem.acquire = AsyncMock()
+        fake_sem.release = MagicMock()
+
+        # Use an AsyncMock spy so we can assert the upstream was never called.
+        request_spy = AsyncMock(return_value=httpx.Response(200, content=b"{}"))
+        fake = _FakeAsyncClient(request_spy)
+
+        with (
+            patch("app.routers.layer_delegation.get_settings", return_value=_settings()),
+            patch("app.routers.layer_delegation.httpx.AsyncClient", return_value=fake),
+            patch("app.routers.layer_delegation._get_semaphore", return_value=fake_sem),
+        ):
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+                response = await client.get("/v1/agents/v1/accounts")
+
+        assert response.status_code == 503
+        assert response.json()["detail"] == "gateway_concurrency_exhausted"
+        # Upstream was never contacted — semaphore rejected before the call.
+        request_spy.assert_not_called()
+

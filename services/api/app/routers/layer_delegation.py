@@ -53,6 +53,36 @@ router = APIRouter(tags=["layer-delegation"])
 # simply routes traffic through the others until Kubernetes probes evict it.
 _breakers = CircuitBreakerRegistry()
 
+# Cap on in-flight delegations per replica. Without this, a slow upstream
+# (e.g. L4 LangGraph workflow) can exhaust the async event loop's connection
+# pool and starve other handlers. Acquired around each upstream attempt;
+# when exhausted, new delegations fail fast with 503 rather than queuing.
+# Tuned via DELEGATION_MAX_CONCURRENCY (default 64 — well above the typical
+# per-replica worker count but low enough to protect the connection pool).
+#
+# Lazily created per event loop: a module-level asyncio.Semaphore created at
+# import time binds to whatever loop is active then, which breaks under
+# pytest-asyncio's per-test loops. _get_semaphore() resolves the loop-bound
+# instance on first use so it always matches the running loop.
+import asyncio
+import weakref
+
+_DELEGATION_MAX_CONCURRENCY = int(os.environ.get("DELEGATION_MAX_CONCURRENCY", "64"))
+_semaphore_cache: weakref.WeakKeyDictionary = weakref.WeakKeyDictionary()
+
+
+def _get_semaphore() -> asyncio.Semaphore:
+    """Return a loop-bound semaphore for the currently running event loop."""
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = asyncio.get_event_loop()
+    sem = _semaphore_cache.get(loop)
+    if sem is None:
+        sem = asyncio.Semaphore(_DELEGATION_MAX_CONCURRENCY)
+        _semaphore_cache[loop] = sem
+    return sem
+
 # segment -> (settings attribute for base URL, owning-layer path prefix).
 #
 # The prefix must match the frontend path convention for the segment,
@@ -157,8 +187,12 @@ class _DelegationTransient(RetryableError):  # type: ignore[misc]
 def _is_transient(exc: Exception) -> bool:
     if not isinstance(exc, _DelegationTransient):
         return False
-    # Circuit-open failures fail fast: do not retry.
-    return not getattr(exc, "_circuit_open", False)
+    # Circuit-open and concurrency-exhausted failures fail fast: do not retry.
+    if getattr(exc, "_circuit_open", False):
+        return False
+    if getattr(exc, "_concurrency_exhausted", False):
+        return False
+    return True
 
 
 async def _do_request(
@@ -253,6 +287,16 @@ async def _delegate(
             failure_threshold=settings.delegation_cb_failure_threshold,
             recovery_timeout=settings.delegation_cb_recovery_timeout,
         )
+        # Backpressure: cap concurrent upstream calls per replica so a slow
+        # upstream cannot exhaust the connection pool. Fails fast with a
+        # transient error (retried once, then 503) if the semaphore is
+        # exhausted — better to reject early than to queue indefinitely.
+        semaphore = _get_semaphore()
+        if semaphore.locked():
+            td = _DelegationTransient(status_code=503)
+            td._concurrency_exhausted = True  # type: ignore[attr-defined]
+            raise td
+        await semaphore.acquire()
         try:
             response = await breaker.call(
                 _do_request, request, url, body, headers, timeout
@@ -264,6 +308,8 @@ async def _delegate(
             td = _DelegationTransient()
             td._circuit_open = True  # type: ignore[attr-defined]
             raise td from exc
+        finally:
+            semaphore.release()
         return response
 
     try:
@@ -282,6 +328,15 @@ async def _delegate(
                 status_code=503,
                 content={
                     "detail": "owning_layer_circuit_open",
+                    "segment": segment,
+                },
+            )
+        if getattr(exc, "_concurrency_exhausted", False):
+            _record("concurrency_exhausted", 503)
+            return JSONResponse(
+                status_code=503,
+                content={
+                    "detail": "gateway_concurrency_exhausted",
                     "segment": segment,
                 },
             )
