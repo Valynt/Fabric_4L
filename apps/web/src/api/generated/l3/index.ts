@@ -4899,6 +4899,18 @@ export interface components {
              * @example 12345678-1234-1234-1234-123456789abc
              */
             tenant_id?: string | null;
+            /**
+             * Prompt Template Version
+             * @description Extraction prompt template version from Layer 2 provenance lineage
+             * @example entity_v1+relationship_v1
+             */
+            prompt_template_version?: string | null;
+            /**
+             * Prompt Template Hash
+             * @description Extraction prompt template hash from Layer 2 provenance lineage
+             * @example sha256:...
+             */
+            prompt_template_hash?: string | null;
         };
         /**
          * IngestResponse
