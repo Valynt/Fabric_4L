@@ -209,7 +209,7 @@ jobs:
           test -s semgrep-full.sarif
 
       - name: Upload Semgrep SARIF to GitHub Security
-        if: always()
+        if: always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
         uses: github/codeql-action/upload-sarif@3ce22a6e336a7fcc318bc58ae1986395bdc83ba7 # v4.35.4
         with:
           sarif_file: semgrep-full.sarif
@@ -402,7 +402,7 @@ jobs:
         run: test -s trivy-repo.sarif
 
       - name: Upload Trivy repository scan results
-        if: always()
+        if: always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
         uses: github/codeql-action/upload-sarif@3ce22a6e336a7fcc318bc58ae1986395bdc83ba7 # v4.35.4
         with:
           sarif_file: "trivy-repo.sarif"
@@ -502,7 +502,7 @@ jobs:
           retention-days: 5
 
       - name: Upload OSV SARIF to code scanning
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
         uses: github/codeql-action/upload-sarif@3ce22a6e336a7fcc318bc58ae1986395bdc83ba7 # v4.35.4
         with:
           sarif_file: osv-scanner-pr.sarif
@@ -572,6 +572,7 @@ jobs:
           retention-days: ${{env.SECURITY_ARTIFACT_RETENTION_DAYS}}
 
       - name: Upload Scorecard SARIF to GitHub Security
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         uses: github/codeql-action/upload-sarif@3ce22a6e336a7fcc318bc58ae1986395bdc83ba7 # v4.35.4
         with:
           sarif_file: scorecard-results.sarif
@@ -621,11 +622,12 @@ jobs:
           ignore-unfixed: true
           vuln-type: "os,library"
           severity: "HIGH,CRITICAL"
+          limit-severities-for-sarif: true
           scanners: "vuln,secret,misconfig"
 
       - name: Upload Trivy scan results
         uses: github/codeql-action/upload-sarif@3ce22a6e336a7fcc318bc58ae1986395bdc83ba7 # v4.35.4
-        if: always()
+        if: always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
         with:
           sarif_file: "trivy-results.sarif"
           category: trivy-${{matrix.layer}}
@@ -688,7 +690,7 @@ jobs:
           severity: "HIGH,CRITICAL"
 
       - name: Upload SBOM vulnerability SARIF
-        if: always() && hashFiles(format('{0}-sbom-vuln.sarif', matrix.artifact.name)) != ''
+        if: always() && hashFiles(format('{0}-sbom-vuln.sarif', matrix.artifact.name)) != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
         uses: github/codeql-action/upload-sarif@3ce22a6e336a7fcc318bc58ae1986395bdc83ba7 # v4.35.4
         with:
           sarif_file: "${{matrix.artifact.name}}-sbom-vuln.sarif"
@@ -1157,13 +1159,15 @@ jobs:
           retention-days: ${{env.SECURITY_ARTIFACT_RETENTION_DAYS}}
 
   # This status check should be configured as REQUIRED in branch protection
-  # to block merges unless DAST and SBOM policy checks pass.
+  # to block merges unless Trivy, DAST, and SBOM policy checks pass.
   security-gates-required:
     name: Security Gates Required
     runs-on: ubuntu-latest
     if: always() && github.event_name == 'pull_request'
     needs:
       - change-scope
+      - trivy-repo-scan
+      - trivy-image-scan
       - dast-api-scan
       - sbom-policy
       - mandatory-security-regression
@@ -1182,6 +1186,8 @@ jobs:
         run: |
           set -euo pipefail
           declare -A CHECKS=(
+            ["trivy-repo-scan"]="${{ needs.trivy-repo-scan.result }}"
+            ["trivy-image-scan"]="${{ needs.trivy-image-scan.result }}"
             ["dast-api-scan"]="${{ needs.dast-api-scan.result }}"
             ["sbom-policy"]="${{ needs.sbom-policy.result }}"
             ["mandatory-security-regression"]="${{ needs.mandatory-security-regression.result }}"
@@ -1192,6 +1198,10 @@ jobs:
           # fails closed. Scope values are compared in bash so unresolved
           # (empty) values never count as safe.
           declare -A SCOPE_SAFE=(
+            # trivy-repo-scan runs unconditionally on every PR (IaC + repo filesystem);
+            # it is never scope-skipped and must always succeed.
+            ["trivy-repo-scan"]="false"
+            ["trivy-image-scan"]="$([[ "${SCOPE_DOCKER:-}" == "false" ]] && echo true || echo false)"
             ["dast-api-scan"]="$([[ "${SCOPE_CODE:-}" == "false" ]] && echo true || echo false)"
             ["sbom-policy"]="$([[ "${SCOPE_DOCKER:-}" == "false" && "${SCOPE_DEPS:-}" == "false" ]] && echo true || echo false)"
             # mandatory-security-regression is a governed merge control and

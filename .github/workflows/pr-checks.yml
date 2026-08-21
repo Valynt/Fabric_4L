@@ -138,6 +138,9 @@ jobs:
           pip install pyyaml
           python .github/scripts/enforce_secret_store_security.py
 
+      - name: Validate Trivy ignore governance policy
+        run: make check-trivy-ignore-policy
+
       - name: Validate workflow target/artifact references
         run: make check-workflow-references
 
@@ -175,6 +178,9 @@ jobs:
 
       - name: Enforce shell test bracket spacing in workflow run blocks
         run: python scripts/ci/check_shell_test_spacing.py
+
+      - name: Enforce canonical Infisical secret path schema
+        run: python scripts/ci/check_infisical_path_schema.py --repo-root .
 
       - name: Reject unsupported pip-audit workflow options
         run: python scripts/ci/check_pip_audit_workflow.py
@@ -595,6 +601,13 @@ jobs:
           CHANGED_FILES: ${{ steps.governance-changed-files.outputs.all_changed_files }}
         run: |
           python scripts/ci/check_pr_governance_fields.py
+
+      - name: Enforce PR size policy
+        if: github.event_name == 'pull_request'
+        env:
+          CHANGED_FILES: ${{ steps.governance-changed-files.outputs.all_changed_files }}
+        run: |
+          python scripts/ci/check_pr_size_policy.py
 
       - name: Validate docs claim verification map
         run: |
@@ -2814,7 +2827,7 @@ jobs:
         uses: ./.github/actions/setup-fabric-ci
         with:
           python-dependency-mode: root-test
-          install-node-deps: 'true'
+          install-node-deps: "true"
 
       - name: Check canonical gate artifact paths
         run: |
@@ -2985,7 +2998,6 @@ jobs:
             exit 1
           fi
           echo "Unified readiness gate passed."
-
 
   # ---------------------------------------------------------------------------
   # V1-CI-001 Stage 1 (shadow): stable aggregate PR checks. Aggregate jobs

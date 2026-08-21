@@ -14,7 +14,7 @@ repos:
       - id: gitleaks
         name: Detect secrets (gitleaks)
         description: Scans for secrets and credentials
-        fail_fast: true  # Stop if secrets found
+        fail_fast: true # Stop if secrets found
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.6.0
@@ -113,7 +113,7 @@ repos:
         exclude: ^\.vscode/
       - id: check-yaml
         name: Validate YAML
-        args: [--unsafe]  # Allow custom tags
+        args: [--unsafe] # Allow custom tags
 
       # File checks
       - id: check-added-large-files
@@ -140,18 +140,33 @@ repos:
 
   # ============================================
   # SAST (Static Analysis)
- # ============================================
+  # ============================================
 
   # Semgrep for security patterns
-  - repo: https://github.com/returntocorp/semgrep
-    rev: v1.93.0
+  # Local hook (not the upstream `language: python` hook) to avoid a Windows
+  # path-mangling bug: the pre-commit virtualenv console-script shebang
+  # `#!C:\Users\BBB\...\python.EXE` loses its backslashes when pre-commit
+  # parses it on Windows, producing `C:UsersBBB...python.EXE` (not found).
+  # Invoking `semgrep` from PATH via a local `language: system` hook
+  # sidesteps the broken venv console-script entirely. Uses `p/default`
+  # (a pinned registry ruleset) instead of `auto` so `--metrics=off` is
+  # honored (auto config requires metrics/telemetry). Provisioning: `make
+  # setup` installs semgrep==1.136.0 into the dev environment (see
+  # scripts/ci/setup_python_dev_deps.py), pinned to match CI's
+  # SEMGREP_VERSION in .github/workflows/security-gates.yml. If semgrep is
+  # absent the hook errors visibly rather than silently passing.
+  # See debt entry `windows-pre-commit-tooling-gap`.
+  - repo: local
     hooks:
       - id: semgrep
         name: Semgrep (security SAST)
+        entry: semgrep
+        language: system
+        pass_filenames: false
         args:
-          - --config=auto
+          - scan
+          - --config=p/default
           - --error
-          - --skip-git-ignore
           - --metrics=off
         exclude: ^(tests/|\.venv/|venv/|__pycache__/|node_modules/|\.turbo/)
 
@@ -166,9 +181,9 @@ repos:
         name: Hadolint (Dockerfile linter)
         files: Dockerfile.*|.*Dockerfile
         args:
-          - --ignore=DL3008  # Pin versions in apt-get install
-          - --ignore=DL3013  # Pin versions in pip
-          - --ignore=DL3018  # Pin versions in apk add
+          - --ignore=DL3008 # Pin versions in apt-get install
+          - --ignore=DL3013 # Pin versions in pip
+          - --ignore=DL3018 # Pin versions in apk add
 
   # ============================================
   # COMMIT MESSAGES
@@ -209,7 +224,15 @@ repos:
         always_run: true
       - id: contract-drift-check
         name: Check for OpenAPI/Schema drift
-        entry: python scripts/check_contract_drift.py
+        # Canonical contract gate is scripts/ci/contract_compliance_gate.py.
+        # The previous entry pointed at scripts/check_contract_drift.py, which
+        # does not exist and forced contributors to use --no-verify on any
+        # commit touching contracts/ or services/*/api/. Pre-commit runs the
+        # lightweight --validate-only path (JSON shape + OpenAPI 3.x + presence)
+        # so it is a fast, credible predictor of CI without the expensive
+        # OpenAPI regeneration + full frontend typecheck, which run in CI and
+        # via `make verify-strict` / pnpm run check:contract-compliance.
+        entry: python scripts/ci/contract_compliance_gate.py --validate-only
         language: system
         files: ^(contracts/|services/.+/api/)
         pass_filenames: false
@@ -268,4 +291,4 @@ default_stages: [pre-commit, pre-push]
 fail_fast: true
 
 # Minimum pre-commit version
-minimum_pre_commit_version: '3.0.0'
+minimum_pre_commit_version: "3.0.0"
