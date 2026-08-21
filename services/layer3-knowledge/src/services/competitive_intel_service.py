@@ -42,10 +42,10 @@ from value_fabric.shared.models.typed_dict import TypedDictModel
 from ..db.audited_mutation import AuditedGraphMutation
 from ..db.query_execution import run_validated_query
 from ..security.query_validator import ValidatedNeo4jSession
+from ..utils.cypher_security import ALLOWED_REL_TYPES, validate_cypher_identifier
 from .cypher_scope_guard import (
     validate_tenant_scoped_cypher,
 )
-from ..utils.cypher_security import ALLOWED_REL_TYPES, validate_cypher_identifier
 
 
 class CompetitiveIntelService_add_competitorResult(TypedDictModel):

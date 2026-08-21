@@ -13,7 +13,11 @@ from value_fabric.shared.models import JSONDict
 
 from ...db import run_validated_query
 from ...db.driver import get_driver
-from ..utils.cypher_security import ALLOWED_REL_TYPES, ALLOWED_TARGET_LABELS, validate_cypher_identifier
+from ..utils.cypher_security import (
+    ALLOWED_REL_TYPES,
+    ALLOWED_TARGET_LABELS,
+    validate_cypher_identifier,
+)
 
 logger = logging.getLogger(__name__)
 
