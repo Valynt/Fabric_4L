@@ -2,12 +2,10 @@
 
 from __future__ import annotations
 
-import time
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from scripts.ci.check_scan_freshness import (
-    REQUIRED_LAYERS,
     verify_sarif_freshness,
     verify_workflow_schedules,
 )

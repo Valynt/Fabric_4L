@@ -11,7 +11,6 @@ from scripts.ci.run_source_sbom_policy import (
     VULNERABLE_EXIT,
     compare,
     enforce,
-    load_exceptions,
     parse_sarif_findings,
 )
 
