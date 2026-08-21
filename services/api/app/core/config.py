@@ -118,6 +118,14 @@ class Settings(BaseSettings):
     layer6_api_base_url: str = "http://localhost:8006"
     layer6_timeout_seconds: float = 10.0
     delegation_timeout_seconds: float = 30.0
+    # Gateway delegation resilience (P2): retry + circuit breaker for the
+    # async reverse proxy. Defaults are conservative so a sustained upstream
+    # outage fails closed fast instead of queuing traffic.
+    delegation_retry_max_attempts: int = 3
+    delegation_retry_base_delay: float = 0.2
+    delegation_retry_max_delay: float = 5.0
+    delegation_cb_failure_threshold: int = 5
+    delegation_cb_recovery_timeout: float = 60.0
     seed_demo_data: bool = False
     # Empty list = no cross-origin requests allowed by default (fail-closed).
     # Development get_settings() supplies localhost defaults only after warning.

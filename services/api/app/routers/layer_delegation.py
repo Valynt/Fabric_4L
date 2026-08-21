@@ -17,9 +17,8 @@ it is owned by ``routers/benchmarks.py`` with a typed Layer 6 client.
 
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable
-
 import os
+from collections.abc import Awaitable, Callable
 
 import httpx
 from fastapi import APIRouter, Depends, Request
@@ -27,8 +26,22 @@ from fastapi.responses import JSONResponse, Response
 
 from app.core.config import get_settings
 from app.core.security import TokenPayload, require_authenticated
+from value_fabric.shared.resilience import (
+    CircuitBreakerOpen,
+    CircuitBreakerRegistry,
+    RetryableError,
+    TRANSIENT_STATUS_CODES,
+    retry_transient_async,
+)
 
 router = APIRouter(tags=["layer-delegation"])
+
+# Process-local async breaker registry, one per owning layer segment. These
+# open on sustained upstream outages so subsequent delegations fail fast with
+# 503 instead of queuing behind timeouts. Per-replica state is acceptable here:
+# the gateway is horizontally scalable and a warm breaker on one replica
+# simply routes traffic through the others until Kubernetes probes evict it.
+_breakers = CircuitBreakerRegistry()
 
 # segment -> (settings attribute for base URL, owning-layer path prefix).
 #
@@ -112,6 +125,58 @@ def _request_headers(request: Request, tenant_id: str) -> dict[str, str]:
     return headers
 
 
+class _DelegationTransient(RetryableError):  # type: ignore[misc]
+    """Retryable upstream delegation failure (network error or 502/503/504/429).
+
+    Wraps the response or exception so retry_transient_async + the breaker
+    can classify it. Deterministic 4xx/5xx responses are not wrapped and
+    surface immediately to the caller.
+    """
+
+    def __init__(self, status_code: int | None = None) -> None:
+        self.status_code = status_code
+        super().__init__("delegation_transient")
+
+
+def _is_transient(exc: Exception) -> bool:
+    if not isinstance(exc, _DelegationTransient):
+        return False
+    # Circuit-open failures fail fast: do not retry.
+    return not getattr(exc, "_circuit_open", False)
+
+
+async def _do_request(
+    request: Request,
+    url: str,
+    body: bytes,
+    headers: dict[str, str],
+    timeout: float,
+) -> httpx.Response:
+    """Single upstream HTTP attempt. Raises _DelegationTransient on transient failures.
+
+    Transient status codes (502/503/504/429) are translated to _DelegationTransient
+    so the retry/breaker can classify them; deterministic 4xx/5xx responses are
+    returned to the caller as-is.
+    """
+    try:
+        async with httpx.AsyncClient(
+            timeout=timeout,
+            follow_redirects=False,
+        ) as client:
+            response = await client.request(
+                request.method,
+                url,
+                content=body if body else None,
+                headers=headers,
+            )
+    except httpx.HTTPError as exc:
+        raise _DelegationTransient() from exc
+
+    if response.status_code in TRANSIENT_STATUS_CODES:
+        raise _DelegationTransient(status_code=response.status_code)
+    return response
+
+
 async def _delegate(
     request: Request, segment: str, path: str, tenant_id: str
 ) -> Response:
@@ -120,22 +185,58 @@ async def _delegate(
     if query_string := (request.scope.get("query_string") or b"").decode("latin-1"):
         url = f"{url}?{query_string}"
     body = await request.body()
-    try:
-        async with httpx.AsyncClient(
-            timeout=settings.delegation_timeout_seconds,
-            follow_redirects=False,
-        ) as client:
-            upstream = await client.request(
-                request.method,
-                url,
-                content=body if body else None,
-                headers=_request_headers(request, tenant_id),
+    headers = _request_headers(request, tenant_id)
+    timeout = settings.delegation_timeout_seconds
+
+    async def _attempt() -> httpx.Response:
+        breaker = await _breakers.get_breaker(
+            segment,
+            failure_threshold=settings.delegation_cb_failure_threshold,
+            recovery_timeout=settings.delegation_cb_recovery_timeout,
+        )
+        try:
+            response = await breaker.call(
+                _do_request, request, url, body, headers, timeout
             )
-    except httpx.HTTPError:
+        except CircuitBreakerOpen as exc:
+            # Translate so retry_transient_async can decide. Circuit-open
+            # failures are NOT retried (the breaker says stop) but surface
+            # as a 503 to the caller.
+            td = _DelegationTransient()
+            td._circuit_open = True  # type: ignore[attr-defined]
+            raise td from exc
+        return response
+
+    try:
+        upstream = await retry_transient_async(
+            _attempt,
+            max_attempts=settings.delegation_retry_max_attempts,
+            base_delay=settings.delegation_retry_base_delay,
+            max_delay=settings.delegation_retry_max_delay,
+            retry_on=_is_transient,
+        )
+    except _DelegationTransient as exc:
+        if getattr(exc, "_circuit_open", False):
+            return JSONResponse(
+                status_code=503,
+                content={
+                    "detail": "owning_layer_circuit_open",
+                    "segment": segment,
+                },
+            )
+        status = exc.status_code if exc.status_code else 503
+        return JSONResponse(
+            status_code=status,
+            content={
+                "detail": "owning_layer_unavailable",
+                "segment": segment,
+            },
+        )
+    except CircuitBreakerOpen:
         return JSONResponse(
             status_code=503,
             content={
-                "detail": "owning_layer_unavailable",
+                "detail": "owning_layer_circuit_open",
                 "segment": segment,
             },
         )

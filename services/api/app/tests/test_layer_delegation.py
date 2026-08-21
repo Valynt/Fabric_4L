@@ -17,6 +17,7 @@ from app.routers.layer_delegation import (
     _target_url,
     router,
 )
+from value_fabric.shared.resilience import CircuitBreakerRegistry
 
 
 def _settings(**overrides):
@@ -27,6 +28,11 @@ def _settings(**overrides):
         "layer4_api_base_url": "http://l4:8004",
         "layer5_api_base_url": "http://l5:8005",
         "delegation_timeout_seconds": 5.0,
+        "delegation_retry_max_attempts": 3,
+        "delegation_retry_base_delay": 0.0,
+        "delegation_retry_max_delay": 0.0,
+        "delegation_cb_failure_threshold": 5,
+        "delegation_cb_recovery_timeout": 60.0,
     }
     base.update(overrides)
     return SimpleNamespace(**base)
@@ -241,3 +247,95 @@ class TestDelegationRouter:
             "GET",
             "http://l3:8003/entities?tag=a&tag=b&status=active",
         )
+
+
+class TestDelegationResilience:
+    """Retry + circuit breaker behavior for the async delegation proxy."""
+
+    def _app(self) -> FastAPI:
+        app = FastAPI()
+        app.include_router(router, prefix="/v1")
+        _auth_override(app)
+        return app
+
+    def _client_returning(self, responses):
+        """Return a _FakeAsyncClient whose request yields responses in order.
+
+        Each entry is either an httpx.Response or an Exception instance
+        (raised on that attempt).
+        """
+        iterator = iter(responses)
+
+        async def _request(*args, **kwargs):
+            item = next(iterator)
+            if isinstance(item, Exception):
+                raise item
+            return item
+
+        return _FakeAsyncClient(_request)
+
+    @pytest.mark.asyncio
+    async def test_transient_503_retried_then_succeeds(self) -> None:
+        app = self._app()
+        # Reset breaker registry so prior tests don't share state.
+        from app.routers import layer_delegation as mod
+
+        mod._breakers = CircuitBreakerRegistry()
+
+        bad = httpx.Response(503, content=b"down")
+        ok = httpx.Response(200, content=b"{}", headers={"content-type": "application/json"})
+        fake = self._client_returning([bad, ok])
+
+        with (
+            patch("app.routers.layer_delegation.get_settings", return_value=_settings()),
+            patch("app.routers.layer_delegation.httpx.AsyncClient", return_value=fake),
+        ):
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+                response = await client.get("/v1/agents/v1/accounts")
+
+        assert response.status_code == 200
+
+    @pytest.mark.asyncio
+    async def test_circuit_open_returns_503_with_circuit_open_detail(self) -> None:
+        from app.routers import layer_delegation as mod
+
+        mod._breakers = CircuitBreakerRegistry()
+
+        app = self._app()
+        bad = httpx.Response(503, content=b"down")
+        # failure_threshold=1 → first 503 opens the breaker; retry attempts
+        # are rejected and surface as circuit_open.
+        fake = self._client_returning([bad])
+
+        settings = _settings(delegation_cb_failure_threshold=1)
+
+        with (
+            patch("app.routers.layer_delegation.get_settings", return_value=settings),
+            patch("app.routers.layer_delegation.httpx.AsyncClient", return_value=fake),
+        ):
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+                response = await client.get("/v1/agents/v1/accounts")
+
+        assert response.status_code == 503
+        assert response.json()["detail"] == "owning_layer_circuit_open"
+
+    @pytest.mark.asyncio
+    async def test_deterministic_404_not_retried(self) -> None:
+        from app.routers import layer_delegation as mod
+
+        mod._breakers = CircuitBreakerRegistry()
+
+        app = self._app()
+        not_found = httpx.Response(404, content=b"nope")
+        fake = self._client_returning([not_found])
+
+        with (
+            patch("app.routers.layer_delegation.get_settings", return_value=_settings()),
+            patch("app.routers.layer_delegation.httpx.AsyncClient", return_value=fake),
+        ):
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+                response = await client.get("/v1/agents/v1/accounts")
+
+        # 404 is deterministic → surfaces as-is, no retry.
+        assert response.status_code == 404
+
