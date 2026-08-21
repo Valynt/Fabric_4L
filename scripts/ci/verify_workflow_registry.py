@@ -18,7 +18,7 @@ DEFAULT_REGISTRY = DEFAULT_WORKFLOWS_DIR / "workflow-registry.json"
 MAKEFILE = ROOT / "Makefile"
 ROOT_PACKAGE_JSON = ROOT / "package.json"
 WEB_PACKAGE_JSON = ROOT / "apps" / "web" / "package.json"
-MAX_WORKFLOW_FILES = 56
+MAX_WORKFLOW_FILES = 57
 
 REQUIRED_FIELDS = {
     "path",
