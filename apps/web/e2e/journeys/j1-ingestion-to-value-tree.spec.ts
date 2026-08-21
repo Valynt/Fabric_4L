@@ -23,6 +23,7 @@
 import { journeyTest, expect, expectUrl, expectNoErrors, navigateAndWait, isLiveMode } from '../helpers/journey-fixture';
 import { mockIngestionJobs, mockAccountData } from '../helpers/api-harness';
 import { TEST_ACCOUNTS } from '../fixtures/account-helpers';
+import { expectNoCrossTenantLeakage, expectTenantContext } from '../helpers/validation-program';
 
 // ── Test Data ───────────────────────────────────────────────────────────────
 
@@ -164,18 +165,11 @@ journeyTest.describe('Journey 1: Domain Ingestion → Value Tree Exploration', (
     // that cross-tenant data doesn't leak. In contract mode, we verify
     // the UI correctly passes tenant context.
     await navigateAndWait(authedPage, '/context/value-trees/explorer');
-
-    if (isLive) {
-      // In live mode: verify no data from other tenants appears
-      // The page should only show data for tenant-e2e-001
-      // This is validated by checking that the API requests include
-      // the correct X-Tenant-ID header (verified via backend contract tests)
-      await expectNoErrors(authedPage);
-    } else {
-      // In contract mode: verify the page renders without errors
-      // and that the tenant context is correctly set in localStorage
-      const tenantId = await authedPage.evaluate(() => localStorage.getItem('tenantId'));
-      expect(tenantId).toBe('tenant-e2e-001');
-    }
+    await expectNoErrors(authedPage);
+    await expectNoCrossTenantLeakage(authedPage);
+    // In live mode, verify against the actual e2e tenant ID
+    // In contract mode, verify against the demo tenant ID
+    const expectedTenantId = isLive ? '00000000-0000-4000-e2e0-000000000001' : 'demo';
+    await expectTenantContext(authedPage, expectedTenantId);
   });
 });

@@ -64,7 +64,7 @@ journeyTest.describe('@backend Created Account Golden Path Backend-Integrated', 
     const accountDomain = `created-account-golden-path-${suffix}.example`;
 
     await authedPage.goto('/accounts/new', { waitUntil: 'domcontentloaded' });
-    await expect(authedPage).toHaveURL(//accounts/new(?:[?#].*)?$/);
+    await expect(authedPage).toHaveURL(/\/accounts\/new(?:[?#].*)?$/););
 
     const companyInput = authedPage.getByLabel(/company name/i).or(authedPage.getByPlaceholder(/company name/i)).first();
     const domainInput = authedPage.getByLabel(/website/i).or(authedPage.getByPlaceholder(/website/i)).first();

@@ -77,6 +77,7 @@ journeyTest.describe('@backend Golden Path Backend-Integrated: Account to Approv
         .first(),
     ).toBeVisible({ timeout: 10000 });
 
+    await expectNoCrossTenantLeakage(authedPage);
     await expectTenantContext(authedPage, SEED_TENANT_ID);
   });
 
@@ -87,11 +88,14 @@ journeyTest.describe('@backend Golden Path Backend-Integrated: Account to Approv
       [{ click: /assign|manufacturing|select pack/i }],
       /value pack|manufacturing|assigned|default/i,
     );
+    await expectNoCrossTenantLeakage(authedPage);
+    await expectTenantContext(authedPage, SEED_TENANT_ID);
   });
 
   journeyTest('GP-BI-003: user can trigger domain ingestion from command center', async ({ authedPage }) => {
     await authedPage.goto('/context/command-center', { waitUntil: 'domcontentloaded' });
     await expectAnyVisible(authedPage, [/command center/i, /submit.*domain/i, /ingest/i], 'command center ingestion form');
+    await expectNoCrossTenantLeakage(authedPage);
 
     const domainInput = authedPage.getByPlaceholder(/domain|website/i)
       .or(authedPage.getByPlaceholder(/enter.*domain/i));
@@ -123,6 +127,8 @@ journeyTest.describe('@backend Golden Path Backend-Integrated: Account to Approv
     await expect(
       authedPage.getByText(/ingestion job submitted/i).first(),
     ).toBeVisible({ timeout: 10000 });
+    await expectNoCrossTenantLeakage(authedPage);
+    await expectTenantContext(authedPage, SEED_TENANT_ID);
   });
 
   journeyTest('GP-BI-004: user can monitor ingestion job progress until completion', async ({ authedPage }) => {
@@ -152,6 +158,9 @@ journeyTest.describe('@backend Golden Path Backend-Integrated: Account to Approv
     await expect(
       authedPage.getByText(/completed|done|finished|success/i).or(authedPage.getByText(/100%|complete/i)).first(),
     ).toBeVisible({ timeout: 10000 });
+
+    await expectNoCrossTenantLeakage(authedPage);
+    await expectTenantContext(authedPage, SEED_TENANT_ID);
   });
 
   // ── Phase 2: Intelligence Review ────────────────────────────────────────
@@ -174,11 +183,13 @@ journeyTest.describe('@backend Golden Path Backend-Integrated: Account to Approv
         .first(),
     ).toBeVisible({ timeout: 5000 });
 
+    await expectNoCrossTenantLeakage(authedPage);
     await expectTenantContext(authedPage, SEED_TENANT_ID);
   });
 
   journeyTest('GP-BI-006: user can approve or reject extracted signals', async ({ authedPage }) => {
     await authedPage.goto(`/intelligence/${SEED_ACCOUNT_ID}/signals`, { waitUntil: 'domcontentloaded' });
+    await expectNoCrossTenantLeakage(authedPage);
 
     // Select a signal to open detail panel
     const signalRow = authedPage.getByText(/manual approval routing|quality inspection|supplier scorecards/i).first();
@@ -199,6 +210,8 @@ journeyTest.describe('@backend Golden Path Backend-Integrated: Account to Approv
     } else {
       expect(hasApprove || hasReject, 'Signal review must expose approve or reject actions').toBe(true);
     }
+    await expectNoCrossTenantLeakage(authedPage);
+    await expectTenantContext(authedPage, SEED_TENANT_ID);
   });
 
   journeyTest('GP-BI-007: user reviews account intelligence and stakeholder map', async ({ authedPage }) => {
@@ -212,6 +225,7 @@ journeyTest.describe('@backend Golden Path Backend-Integrated: Account to Approv
         .first(),
     ).toBeVisible({ timeout: 10000 });
 
+    await expectNoCrossTenantLeakage(authedPage);
     await expectTenantContext(authedPage, SEED_TENANT_ID);
   });
 
@@ -219,6 +233,7 @@ journeyTest.describe('@backend Golden Path Backend-Integrated: Account to Approv
 
   journeyTest('GP-BI-008: user generates AI value hypotheses', async ({ authedPage }) => {
     await authedPage.goto(`/hypothesis/${SEED_ACCOUNT_ID}/hypothesis`, { waitUntil: 'domcontentloaded' });
+    await expectNoCrossTenantLeakage(authedPage);
 
     const generateBtn = authedPage.getByRole('button', { name: /generate|create|synthesize/i }).first();
     const hasGenerate = await generateBtn.isVisible({ timeout: 5000 }).catch(() => false);
@@ -235,6 +250,8 @@ journeyTest.describe('@backend Golden Path Backend-Integrated: Account to Approv
         'hypothesis generation surface',
       );
     }
+    await expectNoCrossTenantLeakage(authedPage);
+    await expectTenantContext(authedPage, SEED_TENANT_ID);
   });
 
   journeyTest('GP-BI-009: user builds value driver tree with evidence mapping', async ({ authedPage }) => {
@@ -253,6 +270,7 @@ journeyTest.describe('@backend Golden Path Backend-Integrated: Account to Approv
         .first(),
     ).toBeVisible({ timeout: 5000 });
 
+    await expectNoCrossTenantLeakage(authedPage);
     await expectTenantContext(authedPage, SEED_TENANT_ID);
   });
 
@@ -260,6 +278,7 @@ journeyTest.describe('@backend Golden Path Backend-Integrated: Account to Approv
 
   journeyTest('GP-BI-010: user selects formulas and completes scenario inputs', async ({ authedPage }) => {
     await authedPage.goto(`/calculator/${SEED_ACCOUNT_ID}/roi`, { waitUntil: 'domcontentloaded' });
+    await expectNoCrossTenantLeakage(authedPage);
 
     await expectAnyVisible(
       authedPage,
@@ -274,6 +293,8 @@ journeyTest.describe('@backend Golden Path Backend-Integrated: Account to Approv
     if (isVisible) {
       await hoursInput.fill('120');
     }
+    await expectNoCrossTenantLeakage(authedPage);
+    await expectTenantContext(authedPage, SEED_TENANT_ID);
   });
 
   journeyTest('GP-BI-011: system calculates ROI, payback, and economic value', async ({ authedPage }) => {
@@ -288,6 +309,9 @@ journeyTest.describe('@backend Golden Path Backend-Integrated: Account to Approv
         .or(authedPage.getByText(/\d+.*month/i))
         .first(),
     ).toBeVisible({ timeout: 5000 });
+
+    await expectNoCrossTenantLeakage(authedPage);
+    await expectTenantContext(authedPage, SEED_TENANT_ID);
   });
 
   // ── Phase 5: Business Case and Approval ─────────────────────────────────
@@ -300,6 +324,9 @@ journeyTest.describe('@backend Golden Path Backend-Integrated: Account to Approv
       [/value case/i, /business case/i, /executive summary/i, /generate/i],
       'business case generation surface',
     );
+
+    await expectNoCrossTenantLeakage(authedPage);
+    await expectTenantContext(authedPage, SEED_TENANT_ID);
   });
 
   journeyTest('GP-BI-013: user submits business case for review and reviewer approves', async ({ authedPage }) => {
@@ -316,6 +343,7 @@ journeyTest.describe('@backend Golden Path Backend-Integrated: Account to Approv
       authedPage.getByText(/executive summary/i).first(),
     ).toBeVisible({ timeout: 5000 });
 
+    await expectNoCrossTenantLeakage(authedPage);
     await expectTenantContext(authedPage, SEED_TENANT_ID);
   });
 
@@ -335,6 +363,8 @@ journeyTest.describe('@backend Golden Path Backend-Integrated: Account to Approv
         await expect(exportBtn).toBeDisabled();
       }
     }
+    await expectNoCrossTenantLeakage(authedPage);
+    await expectTenantContext(authedPage, SEED_TENANT_ID);
   });
 
   journeyTest('GP-BI-015: business case contains traceable claims after golden path', async ({ authedPage }) => {
@@ -349,5 +379,19 @@ journeyTest.describe('@backend Golden Path Backend-Integrated: Account to Approv
 
     await expectNoCrossTenantLeakage(authedPage);
     await expectTenantContext(authedPage, SEED_TENANT_ID);
+  });
+
+  // ── Phase 6: Hostile Cross-Tenant Isolation ─────────────────────────────
+
+  journeyTest('GP-BI-016: hostile foreign tenant route fails closed without leaking data', async ({ authedPage }) => {
+    const foreignAccountId = 'acct-foreign-001';
+    await authedPage.goto(`/intelligence/${foreignAccountId}/signals`, { waitUntil: 'domcontentloaded' });
+    await expectNoCrossTenantLeakage(authedPage);
+    await expect(
+      authedPage
+        .getByText(/forbidden|not authorized|access denied|account not found|could not be loaded|no signals yet|error|sign in|login/i)
+        .or(authedPage.locator('#main-content').getByText(/not found|access denied|forbidden/i))
+        .first(),
+    ).toBeVisible({ timeout: 10000 });
   });
 });
