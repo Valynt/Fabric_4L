@@ -142,7 +142,7 @@ from layer2_extraction.integration.pending_ingestion_store import (
     build_pending_ingestion_store,
 )
 from layer2_extraction.integration.quarantine_store import QuarantineRecord, build_quarantine_store
-from layer2_extraction.metrics import get_metrics
+from layer2_extraction.metrics import MetricsMiddleware, get_metrics, initialize_metrics
 from layer2_extraction.models import (
     Capability,
     ExtractionResult,
@@ -162,6 +162,7 @@ from layer2_extraction.output.provenance import (
 from layer2_extraction.output.rdf_generator import generate_rdf
 from layer2_extraction.shared_bootstrap import (
     create_fabric_app,
+    install_metrics_middleware,
     register_health_endpoint,
     verify_metrics_access,
 )
@@ -260,6 +261,14 @@ app = create_fabric_app(
 
 # Register health endpoint
 register_health_endpoint(app, service_name="layer2-extraction")
+
+# Install Layer 2 Prometheus metrics middleware
+install_metrics_middleware(
+    app,
+    metrics=initialize_metrics(),
+    middleware_factory=MetricsMiddleware,
+    logger=logger,
+)
 
 app.add_middleware(
     GovernanceMiddleware,

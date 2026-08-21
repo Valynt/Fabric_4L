@@ -8,6 +8,9 @@ labels. See ``_tenant_bucket`` for the derivation.
 from __future__ import annotations
 
 import hashlib
+import time
+from collections.abc import Awaitable, Callable
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict
 
@@ -265,7 +268,9 @@ class PrometheusMetrics:
             "method": method.upper(),
             "endpoint": endpoint,
             "status_code": str(status_code),
-            "tenant_bucket": _tenant_bucket(tenant_id or "unknown", self.config.tenant_bucket_count),
+            "tenant_bucket": _tenant_bucket(
+                tenant_id or "unknown", self.config.tenant_bucket_count
+            ),
         }
         self._record_counter("layer2_http_requests_total", labels)
         self._record_counter("value_fabric_http_requests_total", labels)
@@ -282,10 +287,14 @@ class PrometheusMetrics:
         labels = {
             "method": method.upper(),
             "endpoint": endpoint,
-            "tenant_bucket": _tenant_bucket(tenant_id or "unknown", self.config.tenant_bucket_count),
+            "tenant_bucket": _tenant_bucket(
+                tenant_id or "unknown", self.config.tenant_bucket_count
+            ),
         }
         self._observe_histogram("layer2_http_request_duration_seconds", labels, duration_seconds)
-        self._observe_histogram("value_fabric_http_request_duration_seconds", labels, duration_seconds)
+        self._observe_histogram(
+            "value_fabric_http_request_duration_seconds", labels, duration_seconds
+        )
 
     def set_health_status(self, healthy: bool, component: str = "api") -> None:
         """Record health status for a component (1=healthy, 0=unhealthy)."""
@@ -326,6 +335,57 @@ class PrometheusMetrics:
             label_str = ",".join(f'{k}="{_escape_label(v)}"' for k, v in labels)
             lines.append(f"{name}{{{label_str}}} {value}")
         return "\n".join(lines)
+
+
+class MetricsMiddleware:
+    """FastAPI / ASGI middleware for collecting Layer 2 HTTP metrics."""
+
+    def __init__(self, metrics: PrometheusMetrics) -> None:
+        self.metrics = metrics
+        try:
+            from value_fabric.shared.observability import PathNormalizer
+            self._normalizer = PathNormalizer()
+        except ImportError:
+            self._normalizer = None
+
+    def _normalize_path(self, path: str) -> str:
+        if self._normalizer is None:
+            return path.rstrip("/") or "/"
+        return self._normalizer.normalize(path)
+
+    async def __call__(self, request: Any, call_next: Callable[[Any], Awaitable[Any]]) -> Any:
+        start_time = time.perf_counter()
+        try:
+            response = await call_next(request)
+            status_code = response.status_code
+        except Exception:
+            status_code = 500
+            raise
+        finally:
+            route = self._normalize_path(request.url.path)
+            duration = time.perf_counter() - start_time
+            context = getattr(request.state, "governance_context", None)
+            tenant_id = str(getattr(context, "tenant_id", None) or "unknown")
+            self.metrics.record_http_request(
+                method=request.method,
+                endpoint=route,
+                status_code=status_code,
+                tenant_id=tenant_id,
+            )
+            self.metrics.record_http_duration(
+                method=request.method,
+                endpoint=route,
+                duration_seconds=duration,
+                tenant_id=tenant_id,
+            )
+            if status_code == 401:
+                self.metrics.record_auth_failure(reason="missing_token", component="http")
+            elif status_code == 403:
+                self.metrics.record_auth_failure(reason="insufficient_role", component="http")
+        return response
+
+    async def dispatch(self, request: Any, call_next: Callable[[Any], Awaitable[Any]]) -> Any:
+        return await self.__call__(request, call_next)
 
 
 _metrics_instance: PrometheusMetrics | None = None

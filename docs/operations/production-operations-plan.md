@@ -19,9 +19,9 @@
 ## 2. Score Target
 > **Authority note:** This document is a **non-authoritative** working plan. Launch
 > decisions and ship/no-ship criteria are governed by the canonical documents:
-> the [launch blocker register](docs/launch/launch-blocker-register.md), the
-> [environment-dependent evidence matrix](docs/launch/environment-dependent-evidence-matrix.md),
-> and the [final testing launch checklist](docs/launch/final-testing-launch-checklist.md).
+> the [launch blocker register](../launch/launch-blocker-register.md), the
+> [environment-dependent evidence matrix](../launch/environment-dependent-evidence-matrix.md),
+> and the [final testing launch checklist](../launch/final-testing-launch-checklist.md).
 > Score values here are directional planning estimates, not approval criteria.
 - **Current:** 3.6
 - **Target:** **8.3 before launch**, **9.0 after production proof**
