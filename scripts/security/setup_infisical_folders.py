@@ -145,8 +145,9 @@ def copy_secrets_from_dev(token: str, target_env: str, folder: str) -> None:
         print(f"    No secrets in dev/{folder}")
         return
 
-    # Set each secret in target env
-    for secret in secrets:
+    # Set each secret in target env. Avoid logging raw secret keys or
+    # response bodies to prevent clear-text logging of sensitive data.
+    for idx, secret in enumerate(secrets, 1):
         secret_key = secret.get("secretKey", "")
         secret_value = secret.get("secretValue", "")
 
@@ -176,15 +177,15 @@ def copy_secrets_from_dev(token: str, target_env: str, folder: str) -> None:
 
         try:
             with urllib.request.urlopen(req, timeout=15) as resp:
-                print(f"    [OK] Set {secret_key} in {target_env}/{folder}")
+                print(f"    [OK] Set secret #{idx} in {target_env}/{folder}")
         except urllib.error.HTTPError as e:
             body = e.read().decode("utf-8", errors="replace")
             if "already exists" in body.lower():
                 print(
-                    f"    [EXISTS] {secret_key} already exists in {target_env}/{folder}"
+                    f"    [EXISTS] secret #{idx} already exists in {target_env}/{folder}"
                 )
             else:
-                print(f"    [FAIL] {secret_key}: {e.code} - {body[:100]}")
+                print(f"    [FAIL] secret #{idx}: HTTP {e.code}")
 
 
 def main():
