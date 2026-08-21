@@ -195,6 +195,7 @@ module = [
     "src.layer1_ingestion.api.target_config",
     "src.layer1_ingestion.api.target_handlers",
     "src.layer1_ingestion.shared.tasks",
+    "src.layer1_ingestion.shared.tasks_helpers",
     "src.layer1_ingestion.crawler.decision_store",
     "src.layer1_ingestion.crawler.playwright_crawler",
     "src.layer1_ingestion.crawler.telemetry",
