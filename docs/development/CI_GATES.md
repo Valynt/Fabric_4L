@@ -13,7 +13,7 @@ This is the authoritative human-readable CI classification and triage map. Its m
 
 The owner is the first-response triage contact. Start with the local command, then inspect the named workflow run and its retained artifacts. Required secrets are runtime dependencies, not values that belong in logs or documentation.
 
-## Active inventory (55 workflows)
+## Active inventory (56 workflows)
 
 | Workflow | Classification | Triggers | Owner / triage | Local command | Dependencies | Artifacts | Runtime budget |
 |---|---|---|---|---|---|---|---:|
@@ -44,6 +44,7 @@ The owner is the first-response triage contact. Start with the local command, th
 | `layer3-wrapper-drift.yml` | pull request validation | `pull_request, workflow_dispatch` | `@value-fabric/sre-leads` | `make check-workflow-references` | none | none | 30 min |
 | `layer4-route-contract-matrix-check.yml` | pull request validation | `pull_request, push` | `@value-fabric/sre-leads` | `make check-workflow-references` | none | none | 30 min |
 | `layer6-wrapper-drift.yml` | pull request validation | `pull_request, push` | `@value-fabric/sre-leads` | `make check-workflow-references` | none | none | 30 min |
+| `live-continuous-suite.yml` | scheduled assurance | `schedule, workflow_dispatch` | `@value-fabric/sre-leads` | `make check-workflow-references` | none | apps/web/e2e-results/**, apps/web/playwright-report/** | 75 min |
 | `merge-group.yml` | manual automation | `merge_group` | `@value-fabric/sre-leads` | `make check-workflow-references` | none | none | 10 min |
 | `monthly-debt-burndown.yml` | scheduled assurance | `schedule, workflow_dispatch` | `@value-fabric/sre-leads` | `make check-workflow-references` | none | artifacts/debt-burndown | 30 min |
 | `openapi-drift-check.yml` | pull request validation | `pull_request, push` | `@value-fabric/sre-leads` | `make check-workflow-references` | none | none | 30 min |
@@ -65,7 +66,7 @@ The owner is the first-response triage contact. Start with the local command, th
 | `sdk-generation.yml` | delivery / continuous automation | `push, schedule, workflow_dispatch` | `@value-fabric/sre-leads` | `make check-workflow-references` | GITHUB_TOKEN, NPM_TOKEN, PYPI_API_TOKEN | sdk/python/, sdk/typescript/ | 30 min |
 | `secret-rotation.yml` | scheduled assurance | `schedule, workflow_dispatch` | `@value-fabric/sre-leads` | `make check-workflow-references` | GITHUB_TOKEN, INFISICAL_IDENTITY_ID | rotation-audit.log | 30 min |
 | `security-gates.yml` | pull request validation | `merge_group, pull_request, push, schedule` | `@value-fabric/sre-leads` | `make check-workflow-references` | GITHUB_TOKEN | ${{matrix.artifact.name}}-sbom-vuln.sarif, ${{matrix.artifact.name}}-sbom.cdx.json, .fabric/audit/security_regression_gate/, apps/web/pnpm-audit-report.json, artifacts/helm-dependencies/checksums.sha256, artifacts/helm-dependencies/metadata.json, artifacts/helm-preparation-diagnostics/, artifacts/mandatory_security/, infra/helm/fabric-chart/charts/, osv-pr-base.json, osv-pr-head.json, osv-scanner-pr.sarif, sbom-${{matrix.layer}}.cdx.json, scorecard-results.sarif, security-evidence/, semgrep-cypher-errors.json, semgrep-cypher-warnings.json, semgrep-full.sarif, services/${{matrix.layer}}/bandit-report.json, services/${{matrix.layer}}/pip-audit-report.json, trivy-repo.sarif, zap-reports/ | 45 min |
-| `supply-chain-integrity.yml` | pull request validation | `merge_group, pull_request, push, workflow_call, workflow_dispatch` | `@value-fabric/sre-leads` | `make check-workflow-references` | GITHUB_TOKEN | ${{ matrix.layer }}-sbom.cdx.json, ${{ matrix.layer }}-sbom.spdx.json, ${{ matrix.layer }}-vulns.sarif, *-audit.json, *.intoto.jsonl, .dependency-findings, license-reports/, source-${{ matrix.layer }}-sbom.cdx.json, source-${{ matrix.layer }}-vulns.sarif, supply-chain-report.md | 30 min |
+| `supply-chain-integrity.yml` | pull request validation | `merge_group, pull_request, push, schedule, workflow_call, workflow_dispatch` | `@value-fabric/sre-leads` | `make check-workflow-references` | GITHUB_TOKEN | ${{ matrix.layer }}-sbom.cdx.json, ${{ matrix.layer }}-sbom.spdx.json, ${{ matrix.layer }}-vulns.sarif, *-audit.json, *.intoto.jsonl, .dependency-findings, license-reports/, source-${{ matrix.layer }}-sbom.cdx.json, source-${{ matrix.layer }}-vulns.sarif, supply-chain-report.md | 30 min |
 | `terraform-cd.yml` | pull request validation | `pull_request, push, workflow_dispatch` | `@value-fabric/sre-leads` | `make check-workflow-references` | AWS_TERRAFORM_ROLE_ARN | infra/terraform/environments/${{ matrix.environment }}/tfplan-${{ matrix.environment }} | 15 min |
 | `test-reporting.yml` | pull request validation | `pull_request, workflow_run` | `@value-fabric/sre-leads` | `make check-workflow-references` | none | none | 30 min |
 | `vault-integration.yml` | reusable automation | `workflow_call` | `@value-fabric/sre-leads` | `make check-workflow-references` | VAULT_ADDR, VAULT_ROLE, VAULT_ROLE_STAGING, outputs | none | 30 min |

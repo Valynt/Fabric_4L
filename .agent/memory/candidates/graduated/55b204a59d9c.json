@@ -1,0 +1,54 @@
+{
+  "id": "55b204a59d9c",
+  "key": "manual_55b204",
+  "name": "manual_55b204",
+  "claim": "Repowise has_test_file uses a same-basename heuristic, so treat 'untested hotspot' as an unverified signal and verify by searching behavior/contract-named tests before adding tests",
+  "conditions": [
+    "adding",
+    "before",
+    "behavior",
+    "contract-named",
+    "has_test_file",
+    "heuristic",
+    "hotspot",
+    "repowise",
+    "same-basename",
+    "searching",
+    "signal",
+    "tests",
+    "treat",
+    "untested",
+    "unverified",
+    "uses",
+    "verify"
+  ],
+  "evidence_ids": [
+    "2026-08-20T20:04:57.772830+00:00"
+  ],
+  "cluster_size": 1,
+  "canonical_salience": 8.0,
+  "staged_at": "2026-08-20T20:04:57.772830+00:00",
+  "status": "accepted",
+  "decisions": [
+    {
+      "ts": "2026-08-20T20:04:57.772830+00:00",
+      "action": "staged",
+      "reviewer": "learn"
+    },
+    {
+      "ts": "2026-08-20T20:04:57.992396+00:00",
+      "action": "graduated",
+      "reviewer": "learn.py",
+      "notes": "Repowise code-health scan marked 20+ Python hotspots as has_test_file:false. Root cause: it looks for test_<module>.py, while value_fabric tests use behavior/contract naming (test_guard, test_boundary, test_hostile). Reconcile first, add tests only for demonstrated gaps.",
+      "provisional": false,
+      "evidence_snapshot": [
+        "2026-08-20T20:04:57.772830+00:00"
+      ],
+      "lessons_sha": "8322ea4ada02"
+    }
+  ],
+  "rejection_count": 0,
+  "accepted_at": "2026-08-20T20:04:57.991108+00:00",
+  "reviewer": "learn.py",
+  "rationale": "Repowise code-health scan marked 20+ Python hotspots as has_test_file:false. Root cause: it looks for test_<module>.py, while value_fabric tests use behavior/contract naming (test_guard, test_boundary, test_hostile). Reconcile first, add tests only for demonstrated gaps."
+}

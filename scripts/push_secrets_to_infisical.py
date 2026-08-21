@@ -1,15 +1,21 @@
 #!/usr/bin/env python3
 """Push Value Fabric secrets into Infisical via the REST API.
 
-Reads credentials and secret values from a local .env file, organises them
-into the correct Infisical secret paths, then upserts every secret using the
-Infisical v3 batch API.
+Reads credentials and secret values from a local .env file, then upserts every
+secret into Infisical using the v3 batch API.
+
+The variable→Infisical-path mapping is derived from the canonical by-layer
+schema encoded in ``.env.example`` (section headers such as ``# /shared`` and
+explicit ``# Infisical path: /apps/web`` comments). This is the sole supported
+path taxonomy — see ``docs/security/secrets-management.md``. Variables without
+an annotation fall back to ``/shared``.
 
 Usage:
     python scripts/push_secrets_to_infisical.py [OPTIONS]
 
 Options:
     --env-file PATH          Path to .env file  [default: .env]
+    --schema-file PATH       Path to .env.example-style schema  [default: .env.example]
     --environment NAME       Infisical environment slug  [default: Development]
     --dry-run                Print what would be pushed; make no API calls
     --include-empty          Also push secrets whose value is blank
@@ -31,8 +37,8 @@ from __future__ import annotations
 
 import argparse
 import os
-import sys
 import re
+import sys
 from pathlib import Path
 from typing import NamedTuple
 
@@ -45,6 +51,11 @@ DEFAULT_ENV_FILE = REPO_ROOT / ".env"
 DEFAULT_SCHEMA_FILE = REPO_ROOT / ".env.example"
 INFISICAL_HOST_DEFAULT = "https://app.infisical.com"
 
+# Canonical fallback path for variables without an explicit `.env.example`
+# annotation. Cross-service config lives under /shared, matching the by-layer
+# taxonomy in docs/security/secrets-management.md.
+DEFAULT_FALLBACK_PATH = "/shared"
+
 # Placeholder values that should not be pushed
 PLACEHOLDER_PATTERNS = [
     r"^sk-your-",
@@ -56,152 +67,6 @@ PLACEHOLDER_PATTERNS = [
     r"^<CHANGE",
     r"^<GENERATE",
 ]
-
-# ---------------------------------------------------------------------------
-# Secret schema — maps each env var to its Infisical path
-# Variables not listed here are pushed to /app (non-secret config)
-# ---------------------------------------------------------------------------
-
-SECRET_SCHEMA: dict[str, str] = {
-    # ── LLM / AI ──────────────────────────────────────────────────────────
-    "OPENAI_API_KEY":         "/llm",
-    "ANTHROPIC_API_KEY":      "/llm",
-    "AZURE_OPENAI_API_KEY":   "/llm",
-    "AZURE_OPENAI_ENDPOINT":  "/llm",
-    "AZURE_OPENAI_DEPLOYMENT":"/llm",
-    "LLM_MODEL":              "/llm",
-    "L2_OPENAI_MODEL":        "/llm",
-    "L2_ANTHROPIC_MODEL":     "/llm",
-    "THESYS_API_KEY":         "/llm",
-    "THESYS_BASE_URL":        "/llm",
-    "LLM_COST_TABLE_PATH":    "/llm",
-
-    # ── Auth / Security ────────────────────────────────────────────────────
-    "JWT_SECRET":                    "/auth",
-    "JWT_ALGORITHM":                 "/auth",
-    "JWT_TENANT_CLAIM":              "/auth",
-    "JWT_USER_CLAIM":                "/auth",
-    "JWT_ROLES_CLAIM":               "/auth",
-    "JWT_FALLBACK_TO_QUERY_PARAM":   "/auth",
-    "API_KEY_HMAC_SECRET":           "/auth",
-    "OIDC_DEFAULT_REDIRECT_URI":     "/auth",
-    "ALLOW_TENANT_QUERY_PARAM":      "/auth",
-
-    # ── Databases ──────────────────────────────────────────────────────────
-    "DATABASE_URL":              "/database",
-    "DATABASE_URL_SYNC":         "/database",
-    "NEO4J_URI":                 "/database",
-    "NEO4J_USER":                "/database",
-    "NEO4J_USERNAME":            "/database",
-    "NEO4J_PASSWORD":            "/database",
-    "NEO4J_DATABASE":            "/database",
-    "NEO4J_MAX_POOL_SIZE":       "/database",
-    "POSTGRES_HOST":             "/database",
-    "POSTGRES_PORT":             "/database",
-    "POSTGRES_USER":             "/database",
-    "POSTGRES_PASSWORD":         "/database",
-    "POSTGRES_DB":               "/database",
-    "REDIS_URL":                 "/database",
-    "CHECKPOINT_DATABASE_URL":   "/database",
-    "LAYER2_DATABASE_URL":       "/database",
-    "DB_POOL_SIZE":              "/database",
-    "DB_MAX_OVERFLOW":           "/database",
-
-    # ── External Integrations ──────────────────────────────────────────────
-    "PINECONE_API_KEY":          "/integrations",
-    "PINECONE_INDEX":            "/integrations",
-    "PINECONE_NAMESPACE":        "/integrations",
-    "PINECONE_CLOUD":            "/integrations",
-    "PINECONE_REGION":           "/integrations",
-    "BROWSERBASE_API_KEY":       "/integrations",
-    "FIRECRAWL_API_KEY":         "/integrations",
-    "CRM_TYPE":                  "/integrations",
-    "CRM_API_KEY":               "/integrations",
-    "CRM_API_SECRET":            "/integrations",
-    "CRM_INSTANCE_URL":          "/integrations",
-    "CRM_SYNC_BATCH_SIZE":       "/integrations",
-    "CRM_SYNC_INTERVAL_MINUTES": "/integrations",
-
-    # ── Inter-layer auth ───────────────────────────────────────────────────
-    "LAYER3_API_KEY":            "/integrations",
-    "LAYER5_SERVICE_TOKEN":      "/integrations",
-    "LAYER5_DEFAULT_ORG_ID":     "/integrations",
-
-    # ── S3 / Storage ──────────────────────────────────────────────────────
-    "S3_ENDPOINT":   "/storage",
-    "S3_ACCESS_KEY": "/storage",
-    "S3_SECRET_KEY": "/storage",
-    "S3_BUCKET":     "/storage",
-    "S3_REGION":     "/storage",
-
-    # ── Layer 1 external data sources ─────────────────────────────────────
-    "USPTO_API_KEY": "/integrations",
-    "NEWSAPI_KEY":   "/integrations",
-    "NEWS_SOURCE":   "/integrations",
-
-    # ── Inter-layer URLs (non-secret config) ──────────────────────────────
-    "LAYER1_API_URL":          "/app",
-    "LAYER2_API_URL":          "/app",
-    "LAYER3_API_URL":          "/app",
-    "LAYER3_BASE_URL":         "/app",
-    "LAYER3_TIMEOUT_SECONDS":  "/app",
-    "LAYER3_SYNC_ENABLED":     "/app",
-    "LAYER4_API_URL":          "/app",
-    "LAYER5_GROUND_TRUTH_URL": "/app",
-    "LAYER6_BENCHMARKS_URL":   "/app",
-
-    # ── Embeddings / GraphRAG tuning ──────────────────────────────────────
-    "EMBEDDING_MODEL":          "/app",
-    "EMBEDDING_DIMENSION":      "/app",
-    "EMBEDDING_BATCH_SIZE":     "/app",
-    "GRAPHRAG_MAX_HOPS":        "/app",
-    "GRAPHRAG_MAX_NODES":       "/app",
-    "GRAPHRAG_MIN_CONFIDENCE":  "/app",
-    "HYBRID_BM25_WEIGHT":       "/app",
-    "HYBRID_VECTOR_WEIGHT":     "/app",
-    "HYBRID_GRAPH_WEIGHT":      "/app",
-    "HYBRID_TOP_K":             "/app",
-
-    # ── Layer 5 tuning ────────────────────────────────────────────────────
-    "MIN_SOURCES_FOR_CORROBORATED": "/app",
-    "MIN_CONFIDENCE_FOR_SUPPORTED": "/app",
-    "AUTO_ADVANCE_TO_SUPPORTED":    "/app",
-    "DEFAULT_FRESHNESS_DAYS":       "/app",
-    "STALE_WARNING_DAYS":           "/app",
-
-    # ── Layer 2 ingestion tuning ──────────────────────────────────────────
-    "INGESTION_RETRY_POLL_SECONDS": "/app",
-    "INGESTION_RETRY_BASE_SECONDS": "/app",
-    "INGESTION_MAX_RETRIES":        "/app",
-    "INGESTION_BATCH_SIZE":         "/app",
-    "INGESTION_TIMEOUT_SECONDS":    "/app",
-    "RDF_OUTPUT_DIR":               "/app",
-    "PENDING_INGESTION_SQLITE_PATH": "/app",
-
-    # ── Cache / Rate limiting ─────────────────────────────────────────────
-    "CACHE_REDIS_URL":               "/database",
-    "CACHE_DEFAULT_TTL":             "/app",
-    "CACHE_MAX_TTL":                 "/app",
-    "RATE_LIMIT_REQUESTS_PER_MINUTE": "/app",
-    "RATE_LIMIT_BURST_SIZE":          "/app",
-
-    # ── Auth — additional fields ───────────────────────────────────────────
-    "DEFAULT_TENANT_ID":           "/auth",
-
-    # ── Vault (legacy) ─────────────────────────────────────────────────────
-    "VAULT_ADDR":  "/app",
-    "VAULT_TOKEN": "/auth",
-
-    # ── Observability ─────────────────────────────────────────────────────
-    "OTEL_EXPORTER_ENDPOINT": "/app",
-
-    # ── App / Runtime (non-secret config) ─────────────────────────────────
-    "NODE_ENV":     "/app",
-    "PORT":         "/app",
-    "LOG_LEVEL":    "/app",
-    "ENVIRONMENT":  "/app",
-    "CORS_ORIGINS": "/app",
-}
 
 # Variables that are Infisical config themselves — never push these
 SKIP_VARS = {
@@ -218,6 +83,7 @@ SKIP_VARS = {
 # Types
 # ---------------------------------------------------------------------------
 
+
 class Secret(NamedTuple):
     name: str
     value: str
@@ -227,6 +93,7 @@ class Secret(NamedTuple):
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def parse_env_file(path: Path) -> dict[str, str]:
     """Parse a .env file into a dict. Handles comments, blank lines, quotes."""
@@ -266,7 +133,7 @@ def load_schema_from_example(path: Path) -> dict[str, str]:
     if not path.exists():
         return schema
 
-    current_path = "/app"
+    current_path = DEFAULT_FALLBACK_PATH
     section_re = re.compile(r"^#\s*(/[/\w\-]+)\s*(?:$|[—–-])")
     explicit_re = re.compile(r"^#\s*Infisical path:\s*(/[/\w\-]+)")
 
@@ -309,7 +176,7 @@ def classify_secrets(
 
         if not value:
             if include_empty:
-                path = path_override or schema.get(key, "/app")
+                path = path_override or schema.get(key, DEFAULT_FALLBACK_PATH)
                 to_push.append(Secret(key, value, path))
             else:
                 skipped_empty.append(key)
@@ -319,7 +186,7 @@ def classify_secrets(
             skipped_placeholder.append(key)
             continue
 
-        path = path_override or schema.get(key, "/app")
+        path = path_override or schema.get(key, DEFAULT_FALLBACK_PATH)
         to_push.append(Secret(key, value, path))
 
     return to_push, skipped_placeholder, skipped_empty
@@ -329,30 +196,35 @@ def classify_secrets(
 # Infisical API
 # ---------------------------------------------------------------------------
 
-def ensure_folder(host: str, token: str, project_id: str, environment: str, path: str) -> None:
+
+def ensure_folder(
+    host: str, token: str, project_id: str, environment: str, path: str
+) -> None:
     """Create an Infisical folder at `path` if it does not already exist."""
     if path in ("/", ""):
         return  # root always exists
-    import urllib.request
-    import urllib.error
     import json as json_mod
+    import urllib.error
+    import urllib.request
 
     # "/foo/bar" → parent="/foo", name="bar"   |   "/foo" → parent="/", name="foo"
     stripped = path.rstrip("/")
     slash = stripped.rfind("/")
     parent = stripped[:slash] or "/"
-    name   = stripped[slash + 1:]
+    name = stripped[slash + 1 :]
 
     # Ensure parent exists recursively first
     if parent != "/":
         ensure_folder(host, token, project_id, environment, parent)
 
-    payload = json_mod.dumps({
-        "workspaceId": project_id,
-        "environment": environment,
-        "name": name,
-        "path": parent,
-    }).encode()
+    payload = json_mod.dumps(
+        {
+            "workspaceId": project_id,
+            "environment": environment,
+            "name": name,
+            "path": parent,
+        }
+    ).encode()
     req = urllib.request.Request(
         f"{host}/api/v1/folders",
         data=payload,
@@ -368,17 +240,24 @@ def ensure_folder(host: str, token: str, project_id: str, environment: str, path
     except urllib.error.HTTPError as exc:
         body = exc.read().decode()
         # 400/409 = already exists — fine
-        if exc.code in (400, 409) and ("already exist" in body.lower() or "exists" in body.lower()):
+        if exc.code in (400, 409) and (
+            "already exist" in body.lower() or "exists" in body.lower()
+        ):
             return
-        raise RuntimeError(f"Failed to create folder '{path}': HTTP {exc.code}: {body}") from exc
+        raise RuntimeError(
+            f"Failed to create folder '{path}': HTTP {exc.code}: {body}"
+        ) from exc
+
 
 def get_access_token(host: str, client_id: str, client_secret: str) -> str:
     try:
-        import urllib.request
-        import urllib.error
         import json as json_mod
+        import urllib.error
+        import urllib.request
 
-        payload = json_mod.dumps({"clientId": client_id, "clientSecret": client_secret}).encode()
+        payload = json_mod.dumps(
+            {"clientId": client_id, "clientSecret": client_secret}
+        ).encode()
         req = urllib.request.Request(
             f"{host}/api/v1/auth/universal-auth/login",
             data=payload,
@@ -393,12 +272,19 @@ def get_access_token(host: str, client_id: str, client_secret: str) -> str:
             return token
     except urllib.error.HTTPError as exc:
         body = exc.read().decode()
-        print(f"\n  ERROR: Authentication failed — HTTP {exc.code}: {body}", file=sys.stderr)
-        print("  Check INFISICAL_CLIENT_ID and INFISICAL_CLIENT_SECRET.", file=sys.stderr)
+        print(
+            f"\n  ERROR: Authentication failed — HTTP {exc.code}: {body}",
+            file=sys.stderr,
+        )
+        print(
+            "  Check INFISICAL_CLIENT_ID and INFISICAL_CLIENT_SECRET.", file=sys.stderr
+        )
         sys.exit(1)
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 - intentional catch-all around auth
         print(f"\n  ERROR: Authentication failed — {exc}", file=sys.stderr)
-        print("  Check INFISICAL_CLIENT_ID and INFISICAL_CLIENT_SECRET.", file=sys.stderr)
+        print(
+            "  Check INFISICAL_CLIENT_ID and INFISICAL_CLIENT_SECRET.", file=sys.stderr
+        )
         sys.exit(1)
 
 
@@ -411,19 +297,21 @@ def upsert_secrets_batch(
     secrets: list[Secret],
 ) -> dict:
     """Push a batch of secrets at the same path via POST (create-or-update)."""
-    import urllib.request
-    import urllib.error
     import json as json_mod
+    import urllib.error
+    import urllib.request
 
-    payload = json_mod.dumps({
-        "workspaceId": project_id,
-        "environment": environment,
-        "secretPath": path,
-        "secrets": [
-            {"secretKey": s.name, "secretValue": s.value, "type": "shared"}
-            for s in secrets
-        ],
-    }).encode()
+    payload = json_mod.dumps(
+        {
+            "workspaceId": project_id,
+            "environment": environment,
+            "secretPath": path,
+            "secrets": [
+                {"secretKey": s.name, "secretValue": s.value, "type": "shared"}
+                for s in secrets
+            ],
+        }
+    ).encode()
 
     req = urllib.request.Request(
         f"{host}/api/v3/secrets/batch/raw",
@@ -442,7 +330,9 @@ def upsert_secrets_batch(
         body = exc.read().decode()
         # 400 on "already exists" — retry with PATCH (update)
         if exc.code == 400 and "already exists" in body.lower():
-            return _patch_secrets_batch(host, token, project_id, environment, path, secrets)
+            return _patch_secrets_batch(
+                host, token, project_id, environment, path, secrets
+            )
         raise RuntimeError(f"HTTP {exc.code}: {body}") from exc
 
 
@@ -455,18 +345,20 @@ def _patch_secrets_batch(
     secrets: list[Secret],
 ) -> dict:
     """Update existing secrets via PATCH."""
-    import urllib.request
     import json as json_mod
+    import urllib.request
 
-    payload = json_mod.dumps({
-        "workspaceId": project_id,
-        "environment": environment,
-        "secretPath": path,
-        "secrets": [
-            {"secretKey": s.name, "secretValue": s.value, "type": "shared"}
-            for s in secrets
-        ],
-    }).encode()
+    payload = json_mod.dumps(
+        {
+            "workspaceId": project_id,
+            "environment": environment,
+            "secretPath": path,
+            "secrets": [
+                {"secretKey": s.name, "secretValue": s.value, "type": "shared"}
+                for s in secrets
+            ],
+        }
+    ).encode()
 
     req = urllib.request.Request(
         f"{host}/api/v3/secrets/batch/raw",
@@ -480,6 +372,7 @@ def _patch_secrets_batch(
 
     with urllib.request.urlopen(req, timeout=20) as resp:
         import json as json_mod
+
         return json_mod.loads(resp.read())
 
 
@@ -491,9 +384,9 @@ def upsert_secret_individual(
     secret: Secret,
 ) -> None:
     """Upsert a single secret (POST then PATCH on conflict)."""
-    import urllib.request
-    import urllib.error
     import json as json_mod
+    import urllib.error
+    import urllib.request
 
     base_payload = {
         "workspaceId": project_id,
@@ -519,36 +412,56 @@ def upsert_secret_individual(
                 return  # success
         except urllib.error.HTTPError as exc:
             body = exc.read().decode()
-            if method == "POST" and exc.code in (400, 409) and (
-                "already exists" in body.lower() or "duplicate" in body.lower()
+            if (
+                method == "POST"
+                and exc.code in (400, 409)
+                and ("already exists" in body.lower() or "duplicate" in body.lower())
             ):
                 continue  # try PATCH
-            raise RuntimeError(f"HTTP {exc.code} [{method} {secret.name}]: {body}") from exc
+            raise RuntimeError(
+                f"HTTP {exc.code} [{method} {secret.name}]: {body}"
+            ) from exc
 
 
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Push Value Fabric secrets into Infisical.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument("--env-file", default=str(DEFAULT_ENV_FILE),
-                        help=f"Path to .env file (default: {DEFAULT_ENV_FILE})")
-    parser.add_argument("--schema-file", default=str(DEFAULT_SCHEMA_FILE),
-                        help=f"Path to .env.example-style schema file (default: {DEFAULT_SCHEMA_FILE})")
-    parser.add_argument("--environment", default=None,
-                        help="Infisical environment slug (default: from .env INFISICAL_ENVIRONMENT)")
-    parser.add_argument("--dry-run", action="store_true",
-                        help="Print plan without making API calls")
-    parser.add_argument("--include-empty", action="store_true",
-                        help="Also push keys with blank values")
-    parser.add_argument("--path", default=None,
-                        help="Override all secret paths with a single path (e.g. /)")
-    parser.add_argument("--skip-confirm", action="store_true",
-                        help="Skip confirmation prompt")
+    parser.add_argument(
+        "--env-file",
+        default=str(DEFAULT_ENV_FILE),
+        help=f"Path to .env file (default: {DEFAULT_ENV_FILE})",
+    )
+    parser.add_argument(
+        "--schema-file",
+        default=str(DEFAULT_SCHEMA_FILE),
+        help=f"Path to .env.example-style schema file (default: {DEFAULT_SCHEMA_FILE})",
+    )
+    parser.add_argument(
+        "--environment",
+        default=None,
+        help="Infisical environment slug (default: from .env INFISICAL_ENVIRONMENT)",
+    )
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Print plan without making API calls"
+    )
+    parser.add_argument(
+        "--include-empty", action="store_true", help="Also push keys with blank values"
+    )
+    parser.add_argument(
+        "--path",
+        default=None,
+        help="Override all secret paths with a single path (e.g. /)",
+    )
+    parser.add_argument(
+        "--skip-confirm", action="store_true", help="Skip confirmation prompt"
+    )
     args = parser.parse_args()
 
     env_file = Path(args.env_file)
@@ -563,14 +476,23 @@ def main() -> None:
     schema_file = Path(args.schema_file)
     schema = load_schema_from_example(schema_file)
     if not schema:
-        print(f"WARNING: no schema loaded from {schema_file}; using fallback mapping.", file=sys.stderr)
-        schema = SECRET_SCHEMA
+        print(
+            f"WARNING: no schema loaded from {schema_file}; every variable will "
+            f"fall back to {DEFAULT_FALLBACK_PATH}.",
+            file=sys.stderr,
+        )
 
     # ── Read Infisical credentials from .env (or real environment) ─────────
-    client_id     = os.getenv("INFISICAL_CLIENT_ID")     or env_vars.get("INFISICAL_CLIENT_ID", "")
-    client_secret = os.getenv("INFISICAL_CLIENT_SECRET") or env_vars.get("INFISICAL_CLIENT_SECRET", "")
-    project_id    = os.getenv("INFISICAL_PROJECT_ID")    or env_vars.get("INFISICAL_PROJECT_ID", "")
-    environment   = (
+    client_id = os.getenv("INFISICAL_CLIENT_ID") or env_vars.get(
+        "INFISICAL_CLIENT_ID", ""
+    )
+    client_secret = os.getenv("INFISICAL_CLIENT_SECRET") or env_vars.get(
+        "INFISICAL_CLIENT_SECRET", ""
+    )
+    project_id = os.getenv("INFISICAL_PROJECT_ID") or env_vars.get(
+        "INFISICAL_PROJECT_ID", ""
+    )
+    environment = (
         args.environment
         or os.getenv("INFISICAL_ENVIRONMENT")
         or env_vars.get("INFISICAL_ENVIRONMENT", "Development")
@@ -639,7 +561,9 @@ def main() -> None:
 
     # ── Confirm ────────────────────────────────────────────────────────────
     if not args.skip_confirm:
-        answer = input(f"  Push {total} secrets to '{environment}'? [y/N] ").strip().lower()
+        answer = (
+            input(f"  Push {total} secrets to '{environment}'? [y/N] ").strip().lower()
+        )
         if answer != "y":
             print("  Aborted.")
             return
@@ -671,7 +595,9 @@ def main() -> None:
             print(f"\n  Batch failed ({exc}), retrying individually…")
             for secret in secrets:
                 try:
-                    upsert_secret_individual(host, token, project_id, environment, secret)
+                    upsert_secret_individual(
+                        host, token, project_id, environment, secret
+                    )
                     print(f"    ✓ {secret.name}")
                     pushed += 1
                 except Exception as inner:  # noqa: BLE001

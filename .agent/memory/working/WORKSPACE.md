@@ -1,26 +1,53 @@
-# Workspace (live task state)
+﻿# Workspace (live task state)
 
 ## Current task
 
-Hardening GitHub Merge Queue (`merge_group`) and Aggregate PR checks (`V1-CI-001`).
+Infisical secret-path schema reconciliation — canonicalize all by-consumer
+legacy paths to the by-layer taxonomy; add a CI regression guard; resolve
+two follow-up drift items (CI wiring verification + undocumented paths).
 
 ## Status
 
-Complete. All acceptance criteria satisfied, automated tests passing (24/24), governance registries synchronized, and validation sign-off evidence recorded.
+Complete. Both commits landed on `bmsull560-reconcile-infisical-paths`:
+- `cd9979475` canonicalize Infisical secret paths to by-layer taxonomy
+- `9cbd48875` Resolve undocumented Infisical paths in .env.example
 
 ## What was done
 
-- Applied `v1-ci-001-aggregation.patch` introducing 9 aggregate check contracts (`01-repository-integrity` through `09-change-risk-and-approval`) across 6 host workflows.
-- Enhanced `.github/actions/change-scope/action.yml` to support diff-aware change-scoping on `merge_group` using `base_sha` and `head_sha`.
-- Added `merge_group:` trigger to `.github/workflows/critical-gates.yml`.
-- Added `tests/ci/test_merge_group_contract.py` and `tests/ci/test_merge_queue_simulation.py` asserting all triggers, safe-skip policies, child failure fail-closed semantics, and independent review enforcement.
-- Synchronized workflow registry and CI gate documentation via `generate_workflow_registry.py` and `sync_ci_gate_docs.py`.
-- Recorded comprehensive sign-off evidence in `signoff-evidence/gates/merge-queue-validation-evidence.md`.
+Phase 1 (commit cd9979475):
+- Stripped `secretPaths` from `.infisical.json`.
+- Rewrote `scripts/push_secrets_to_infisical.py` to derive the variable->path
+  map from `.env.example` annotations via `load_schema_from_example()`; deleted
+  the redundant by-consumer `SECRET_SCHEMA`; default fallback `/shared`.
+- Rewrote `scripts/security/setup_infisical_folders.py` `FOLDERS_TO_CREATE`
+  to the 13 canonical by-layer paths.
+- Rewrote `.devin/skills/infisical-windows-patterns.md` to by-layer; preserved
+  the Windows Git Bash path-mangling fix (`MSYS_NO_PATHCONV=1`, `//` prefix,
+  `fix_path_for_git_bash()`).
+- Added `scripts/ci/check_infisical_path_schema.py` (marker-based path
+  extraction) and wired it into the `structural-preflight` job in
+  `.github/workflows/pr-checks.yml`.
+- Added 16 tests (`tests/ci/test_check_infisical_path_schema.py` (9),
+  `tests/ci/test_push_secrets_by_layer.py` (7)) — all green.
 
-## Active hypotheses
+Phase 2 (commit 9cbd48875):
+- Verified the CI guard wiring: the step is inside `structural-preflight`
+  (line 179-180), which has no `if:`/`needs:` guard, so it runs
+  unconditionally on every `pull_request`/`push` to `main` and `merge_group`.
+  A planted `--path=/llm` in a temp tree makes the guard exit 1 -> job fails.
+- Resolved the two undocumented `.env.example` paths `/api-gateway` and
+  `/webhooks` -> `/shared/auth` (canonical sub-path already used for
+  CLERK_ISSUER/AUTH_PROVIDER). Both groups are API-gateway auth-plane secrets
+  consumed by services/api; production separation is at the Vault/k8s layer
+  (value-fabric/auth, value-fabric/clerk), not Infisical.
 
-None. All invariants verified green.
+## Findings (drift)
 
-## Next step
+None outstanding. The schema is now single-source: `.env.example` is the
+source of truth for variable->path mapping, the CI guard blocks regressions,
+and `.env.example` contains only the 12 documented by-layer roots and their
+`/shared/auth` sub-path.
 
-Stage 2 shadow observation across representative PRs and merge queue activations.
+## Active hypotheses / Next step
+
+None. Task complete.

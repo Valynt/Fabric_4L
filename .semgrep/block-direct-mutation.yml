@@ -7,6 +7,19 @@ rules:
     severity: ERROR
     languages:
       - python
+    paths:
+      include:
+        - "services/layer3-knowledge/**"
+        - "services/**"
+      exclude:
+        - "**/tests/**"
+        - "**/test_*.py"
+        - "**/conftest.py"
+        - "services/layer3-knowledge/src/db/audited_mutation.py"
+        - "services/layer3-knowledge/src/layer3_knowledge/db/audited_mutation.py"
+        - "services/layer3-knowledge/src/ingestion/neo4jwriters.py"
+        - "services/layer3-knowledge/src/schema/**"
+        - "services/layer3-knowledge/src/migrations/**"
     metadata:
       category: security
       technology:
@@ -17,10 +30,15 @@ rules:
       references:
         - https://github.com/neo4j/neo4j
     patterns:
-      - pattern-regex: '(MERGE|CREATE|DELETE).*\{.*tenant_id'
-      - pattern-not-regex: 'AuditedGraphMutation'
-      - pattern-not-regex: 'test_.*\.py'
-      - pattern-not-regex: 'conftest\.py'
+      - pattern-either:
+          - pattern-regex: '(?im)^.*\b(MERGE|CREATE|DELETE|DETACH\s+DELETE)\b\s*(?:\([^)]*tenant_id|\bWHERE\b[^;]*\btenant_id|\{[^}]*tenant_id).*$'
+          - pattern-regex: '(?im)^.*\b(MERGE|CREATE)\s*\([a-zA-Z0-9_]*\s*:\s*[a-zA-Z0-9_]+.*$'
+          - pattern-regex: '(?im)^.*\b(DELETE|DETACH\s+DELETE)\s+[a-zA-Z0-9_]+.*$'
+      - pattern-not-regex: '(?i)\bCREATE\s+(?:CONSTRAINT|INDEX|OR\s+REPLACE\s+INDEX|OR\s+REPLACE\s+CONSTRAINT)\b'
+      - pattern-not-regex: '# cypher-mutation-safe:'
+      - pattern-not-inside: |
+          class AuditedGraphMutation:
+            ...
     fix: |
       Replace direct Cypher mutation with AuditedGraphMutation methods:
       - For relationships: mutation.write_relationship(src_id, rel_type, tgt_id, properties)
