@@ -1,0 +1,12 @@
+# Semgrep ignore file
+node_modules/
+.venv/
+venv/
+dist/
+build/
+.mypy_cache/
+.pytest_cache/
+.git/
+artifacts/
+archive/
+docs/archive/

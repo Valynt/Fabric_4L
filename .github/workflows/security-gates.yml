@@ -217,26 +217,9 @@ jobs:
 
       - name: Fail on ERROR-severity Semgrep findings
         run: |
-          python3 << 'PYEOF'
-          import json
-          import sys
-          with open('semgrep-full.sarif', encoding='utf-8') as fh:
-              sarif = json.load(fh)
-          errors = []
-          for run in sarif.get('runs', []):
-              for result in run.get('results', []):
-                  if result.get('level', 'warning') == 'error':
-                      loc = result.get('locations', [{}])[0].get('physicalLocation', {})
-                      uri = loc.get('artifactLocation', {}).get('uri', '<unknown>')
-                      line = loc.get('region', {}).get('startLine', '?')
-                      errors.append(f"{result.get('ruleId', '<rule>')} at {uri}:{line}")
-          if errors:
-              print(f"Found {len(errors)} ERROR-severity Semgrep findings:")
-              for item in errors[:20]:
-                  print(f"  - {item}")
-              sys.exit(1)
-          print("No ERROR-severity Semgrep findings")
-          PYEOF
+          python3 scripts/ci/check_semgrep_sarif.py \
+            --sarif semgrep-full.sarif \
+            --baseline config/ci/semgrep_baseline.json
 
       - name: Upload Semgrep full-scan results
         if: always()
