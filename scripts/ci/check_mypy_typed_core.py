@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import subprocess
+import sys
 from pathlib import Path
 
 TYPED_CORE_PATHS = [
@@ -28,7 +29,7 @@ def main() -> int:
     args = parser.parse_args()
 
     service_dir = args.service_dir.resolve()
-    cmd = ["mypy", *TYPED_CORE_PATHS]
+    cmd = [sys.executable, "-m", "mypy", *TYPED_CORE_PATHS]
     result = subprocess.run(cmd, cwd=service_dir, check=False)
     return result.returncode
 
