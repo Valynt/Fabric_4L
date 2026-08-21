@@ -53,6 +53,11 @@ APPROVED_DOMAINS = {
     # scripts/ci/generate_sbom.py references the GitHub CLI installation URL in
     # an error message when the `gh` binary is missing.
     "cli.github.com",
+    # scripts/ci/supply_chain_gate.py emits in-toto and SLSA specification URIs
+    # for machine-readable provenance and build definitions.
+    "in-toto.io",
+    "slsa.dev",
+    "fabric4l.dev",
 }
 
 ACTION_REF_RE = re.compile(r"^\s*-\s*uses:\s*([^@\s]+)@([^\s#]+)")
