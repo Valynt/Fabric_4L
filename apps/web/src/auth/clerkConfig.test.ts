@@ -132,8 +132,8 @@ describe("clerkConfig — publishable key fail-fast", () => {
   });
 
   it("returns the trimmed key when present", () => {
-    env().VITE_CLERK_PUBLISHABLE_KEY = "  pk_test_abc123  ";
-    expect(getClerkPublishableKey()).toBe("pk_test_abc123");
+    env().VITE_CLERK_PUBLISHABLE_KEY = "  pk_test_dummyabc123  ";
+    expect(getClerkPublishableKey()).toBe("pk_test_dummyabc123");
   });
 
   it("does not throw merely because the key is missing in legacy mode", () => {
@@ -156,8 +156,8 @@ describe("clerkConfig — publishable key fail-fast", () => {
   });
 
   it("accepts pk_live_ key format", () => {
-    env().VITE_CLERK_PUBLISHABLE_KEY = "pk_live_xyz789";
-    expect(getClerkPublishableKey()).toBe("pk_live_xyz789");
+    env().VITE_CLERK_PUBLISHABLE_KEY = "pk_live_dummyxyz789";
+    expect(getClerkPublishableKey()).toBe("pk_live_dummyxyz789");
   });
 });
 
