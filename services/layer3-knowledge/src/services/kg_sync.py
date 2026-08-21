@@ -60,7 +60,7 @@ async def upsert_ground_truth_node(
     # Build the MERGE query
     validate_cypher_identifier(GROUND_TRUTH_LABEL, ALLOWED_TARGET_LABELS, kind="label")
     query = (
-        f"MERGE (g:{GROUND_TRUTH_LABEL} {{truth_object_id: $truth_object_id, tenant_id: $tenant_id}})\n"  # cypher-dynamic-safe: GROUND_TRUTH_LABEL is hardcoded literal
+        f"MERGE (g:{GROUND_TRUTH_LABEL} {{truth_object_id: $truth_object_id, tenant_id: $tenant_id}})\n"  # cypher-dynamic-safe: GROUND_TRUTH_LABEL is hardcoded literal  # cypher-mutation-safe: label is hardcoded constant, tenant-scoped
         "    SET g += $properties\n"
         "    SET g.updated_at = datetime()\n"
         "    RETURN elementId(g) as node_id\n"

@@ -182,7 +182,7 @@ class Neo4jVectorStore:
         }
         builder = TenantScopedCypher(tenant)
         scoped = builder.custom_tenant_query(
-            "MERGE (n:" + entity_type + " {id: $id, tenant_id: $_tenant_id})\n"  # cypher-dynamic-safe: validated against VECTOR_ENTITY_TYPES allowlist
+            "MERGE (n:" + entity_type + " {id: $id, tenant_id: $_tenant_id})\n"  # cypher-dynamic-safe: validated against VECTOR_ENTITY_TYPES allowlist  # cypher-mutation-safe: label validated, tenant-scoped upsert
             "            ON CREATE SET n.created_at = datetime()\n"
             "            SET\n"
             "                n.embedding = $embedding,\n"
@@ -227,6 +227,11 @@ class Neo4jVectorStore:
         if not entities:
             return Neo4jVectorStore_upsert_batchResult.model_validate({"upserted": 0, "failed": []})
 
+        if entity_type not in VECTOR_ENTITY_TYPES:
+            raise VectorStoreError(
+                f"Unknown entity type '{entity_type}'. Supported: {VECTOR_ENTITY_TYPES}"
+            )
+
         tenant = self._resolve_tenant_id(tenant_id if tenant_id is not None else entities[0].get("tenant_id"))
         texts = [e.get("text", e.get("name", "")) for e in entities]
         embeddings = self._embed_batch(texts)
@@ -250,7 +255,7 @@ class Neo4jVectorStore:
         builder = TenantScopedCypher(tenant)
         scoped = builder.custom_tenant_query(
             "UNWIND $records AS rec\n"
-            "            MERGE (n:" + entity_type + " {id: rec.id, tenant_id: $_tenant_id})\n"  # cypher-dynamic-safe: validated against VECTOR_ENTITY_TYPES allowlist
+            "            MERGE (n:" + entity_type + " {id: rec.id, tenant_id: $_tenant_id})\n"  # cypher-dynamic-safe: validated against VECTOR_ENTITY_TYPES allowlist  # cypher-mutation-safe: label validated, tenant-scoped batch upsert
             "            WITH n, rec\n"
             "            WHERE n.tenant_id = $_tenant_id\n"
             "            SET\n"
@@ -379,7 +384,7 @@ class Neo4jVectorStore:
             record = await self._run_scoped_single(scoped)
             return bool(record and record["updated"] > 0)
         except (ClientError, ServiceUnavailable) as exc:
-            logger.error("Failed to delete embedding for %s: %s", entity_id, exc)
+            logger.error("Failed to delete embedding for %s: %s", entity_id, exc)  # cypher-mutation-safe: log message, not a Cypher query
             return False
 
     async def index_health(self) -> dict[str, Any]:

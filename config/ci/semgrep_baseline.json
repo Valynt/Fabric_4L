@@ -322,12 +322,6 @@
     },
     {
       "rule_id": "semgrep.block-direct-graph-mutation",
-      "path": "services/layer3-knowledge/src/api/routes/benchmarks.py",
-      "line": 347,
-      "message": "Direct Cypher MERGE/CREATE/DELETE on tenant-owned labels must go through AuditedGraphMutation.\nThis bypasses the audited mutation gateway which enforces tenant isolation, audit logging, and metrics.\nUse AuditedGraphMutation.write_relationship(), write_node(), delete_relationship(), or delete_node() instead."
-    },
-    {
-      "rule_id": "semgrep.block-direct-graph-mutation",
       "path": "services/layer3-knowledge/src/api/routes/calculators.py",
       "line": 144,
       "message": "Direct Cypher MERGE/CREATE/DELETE on tenant-owned labels must go through AuditedGraphMutation.\nThis bypasses the audited mutation gateway which enforces tenant isolation, audit logging, and metrics.\nUse AuditedGraphMutation.write_relationship(), write_node(), delete_relationship(), or delete_node() instead."
@@ -425,12 +419,6 @@
     {
       "rule_id": "semgrep.block-direct-graph-mutation",
       "path": "services/layer3-knowledge/src/api/routes/formulas.py",
-      "line": 1020,
-      "message": "Direct Cypher MERGE/CREATE/DELETE on tenant-owned labels must go through AuditedGraphMutation.\nThis bypasses the audited mutation gateway which enforces tenant isolation, audit logging, and metrics.\nUse AuditedGraphMutation.write_relationship(), write_node(), delete_relationship(), or delete_node() instead."
-    },
-    {
-      "rule_id": "semgrep.block-direct-graph-mutation",
-      "path": "services/layer3-knowledge/src/api/routes/formulas.py",
       "line": 1192,
       "message": "Direct Cypher MERGE/CREATE/DELETE on tenant-owned labels must go through AuditedGraphMutation.\nThis bypasses the audited mutation gateway which enforces tenant isolation, audit logging, and metrics.\nUse AuditedGraphMutation.write_relationship(), write_node(), delete_relationship(), or delete_node() instead."
     },
@@ -444,12 +432,6 @@
       "rule_id": "semgrep.block-direct-graph-mutation",
       "path": "services/layer3-knowledge/src/api/routes/formulas.py",
       "line": 1221,
-      "message": "Direct Cypher MERGE/CREATE/DELETE on tenant-owned labels must go through AuditedGraphMutation.\nThis bypasses the audited mutation gateway which enforces tenant isolation, audit logging, and metrics.\nUse AuditedGraphMutation.write_relationship(), write_node(), delete_relationship(), or delete_node() instead."
-    },
-    {
-      "rule_id": "semgrep.block-direct-graph-mutation",
-      "path": "services/layer3-knowledge/src/api/routes/formulas.py",
-      "line": 1232,
       "message": "Direct Cypher MERGE/CREATE/DELETE on tenant-owned labels must go through AuditedGraphMutation.\nThis bypasses the audited mutation gateway which enforces tenant isolation, audit logging, and metrics.\nUse AuditedGraphMutation.write_relationship(), write_node(), delete_relationship(), or delete_node() instead."
     },
     {
@@ -574,12 +556,6 @@
     },
     {
       "rule_id": "semgrep.block-direct-graph-mutation",
-      "path": "services/layer3-knowledge/src/api/routes/signals.py",
-      "line": 80,
-      "message": "Direct Cypher MERGE/CREATE/DELETE on tenant-owned labels must go through AuditedGraphMutation.\nThis bypasses the audited mutation gateway which enforces tenant isolation, audit logging, and metrics.\nUse AuditedGraphMutation.write_relationship(), write_node(), delete_relationship(), or delete_node() instead."
-    },
-    {
-      "rule_id": "semgrep.block-direct-graph-mutation",
       "path": "services/layer3-knowledge/src/api/routes/value_packs.py",
       "line": 406,
       "message": "Direct Cypher MERGE/CREATE/DELETE on tenant-owned labels must go through AuditedGraphMutation.\nThis bypasses the audited mutation gateway which enforces tenant isolation, audit logging, and metrics.\nUse AuditedGraphMutation.write_relationship(), write_node(), delete_relationship(), or delete_node() instead."
@@ -630,12 +606,6 @@
       "rule_id": "semgrep.block-direct-graph-mutation",
       "path": "services/layer3-knowledge/src/backup/backup_manager.py",
       "line": 439,
-      "message": "Direct Cypher MERGE/CREATE/DELETE on tenant-owned labels must go through AuditedGraphMutation.\nThis bypasses the audited mutation gateway which enforces tenant isolation, audit logging, and metrics.\nUse AuditedGraphMutation.write_relationship(), write_node(), delete_relationship(), or delete_node() instead."
-    },
-    {
-      "rule_id": "semgrep.block-direct-graph-mutation",
-      "path": "services/layer3-knowledge/src/backup/backup_manager.py",
-      "line": 1169,
       "message": "Direct Cypher MERGE/CREATE/DELETE on tenant-owned labels must go through AuditedGraphMutation.\nThis bypasses the audited mutation gateway which enforces tenant isolation, audit logging, and metrics.\nUse AuditedGraphMutation.write_relationship(), write_node(), delete_relationship(), or delete_node() instead."
     },
     {
@@ -784,24 +754,6 @@
     },
     {
       "rule_id": "semgrep.block-direct-graph-mutation",
-      "path": "services/layer3-knowledge/src/retrieval/vector_store.py",
-      "line": 185,
-      "message": "Direct Cypher MERGE/CREATE/DELETE on tenant-owned labels must go through AuditedGraphMutation.\nThis bypasses the audited mutation gateway which enforces tenant isolation, audit logging, and metrics.\nUse AuditedGraphMutation.write_relationship(), write_node(), delete_relationship(), or delete_node() instead."
-    },
-    {
-      "rule_id": "semgrep.block-direct-graph-mutation",
-      "path": "services/layer3-knowledge/src/retrieval/vector_store.py",
-      "line": 253,
-      "message": "Direct Cypher MERGE/CREATE/DELETE on tenant-owned labels must go through AuditedGraphMutation.\nThis bypasses the audited mutation gateway which enforces tenant isolation, audit logging, and metrics.\nUse AuditedGraphMutation.write_relationship(), write_node(), delete_relationship(), or delete_node() instead."
-    },
-    {
-      "rule_id": "semgrep.block-direct-graph-mutation",
-      "path": "services/layer3-knowledge/src/retrieval/vector_store.py",
-      "line": 382,
-      "message": "Direct Cypher MERGE/CREATE/DELETE on tenant-owned labels must go through AuditedGraphMutation.\nThis bypasses the audited mutation gateway which enforces tenant isolation, audit logging, and metrics.\nUse AuditedGraphMutation.write_relationship(), write_node(), delete_relationship(), or delete_node() instead."
-    },
-    {
-      "rule_id": "semgrep.block-direct-graph-mutation",
       "path": "services/layer3-knowledge/src/security/query_validator.py",
       "line": 69,
       "message": "Direct Cypher MERGE/CREATE/DELETE on tenant-owned labels must go through AuditedGraphMutation.\nThis bypasses the audited mutation gateway which enforces tenant isolation, audit logging, and metrics.\nUse AuditedGraphMutation.write_relationship(), write_node(), delete_relationship(), or delete_node() instead."
@@ -894,18 +846,6 @@
       "rule_id": "semgrep.block-direct-graph-mutation",
       "path": "services/layer3-knowledge/src/services/evidence_search.py",
       "line": 309,
-      "message": "Direct Cypher MERGE/CREATE/DELETE on tenant-owned labels must go through AuditedGraphMutation.\nThis bypasses the audited mutation gateway which enforces tenant isolation, audit logging, and metrics.\nUse AuditedGraphMutation.write_relationship(), write_node(), delete_relationship(), or delete_node() instead."
-    },
-    {
-      "rule_id": "semgrep.block-direct-graph-mutation",
-      "path": "services/layer3-knowledge/src/services/evidence_search.py",
-      "line": 309,
-      "message": "Direct Cypher MERGE/CREATE/DELETE on tenant-owned labels must go through AuditedGraphMutation.\nThis bypasses the audited mutation gateway which enforces tenant isolation, audit logging, and metrics.\nUse AuditedGraphMutation.write_relationship(), write_node(), delete_relationship(), or delete_node() instead."
-    },
-    {
-      "rule_id": "semgrep.block-direct-graph-mutation",
-      "path": "services/layer3-knowledge/src/services/kg_sync.py",
-      "line": 63,
       "message": "Direct Cypher MERGE/CREATE/DELETE on tenant-owned labels must go through AuditedGraphMutation.\nThis bypasses the audited mutation gateway which enforces tenant isolation, audit logging, and metrics.\nUse AuditedGraphMutation.write_relationship(), write_node(), delete_relationship(), or delete_node() instead."
     },
     {
@@ -1163,18 +1103,6 @@
     {
       "rule_id": "semgrep.block-direct-graph-mutation",
       "path": "services/layer4-agents/src/layer4_agents/services/value_hypothesis_engine.py",
-      "line": 728,
-      "message": "Direct Cypher MERGE/CREATE/DELETE on tenant-owned labels must go through AuditedGraphMutation.\nThis bypasses the audited mutation gateway which enforces tenant isolation, audit logging, and metrics.\nUse AuditedGraphMutation.write_relationship(), write_node(), delete_relationship(), or delete_node() instead."
-    },
-    {
-      "rule_id": "semgrep.block-direct-graph-mutation",
-      "path": "services/layer4-agents/src/layer4_agents/services/value_hypothesis_engine.py",
-      "line": 742,
-      "message": "Direct Cypher MERGE/CREATE/DELETE on tenant-owned labels must go through AuditedGraphMutation.\nThis bypasses the audited mutation gateway which enforces tenant isolation, audit logging, and metrics.\nUse AuditedGraphMutation.write_relationship(), write_node(), delete_relationship(), or delete_node() instead."
-    },
-    {
-      "rule_id": "semgrep.block-direct-graph-mutation",
-      "path": "services/layer4-agents/src/layer4_agents/services/value_hypothesis_engine.py",
       "line": 742,
       "message": "Direct Cypher MERGE/CREATE/DELETE on tenant-owned labels must go through AuditedGraphMutation.\nThis bypasses the audited mutation gateway which enforces tenant isolation, audit logging, and metrics.\nUse AuditedGraphMutation.write_relationship(), write_node(), delete_relationship(), or delete_node() instead."
     },
@@ -1206,12 +1134,6 @@
       "rule_id": "semgrep.block-direct-graph-mutation",
       "path": "services/layer4-agents/src/layer4_agents/services/value_pack_service.py",
       "line": 387,
-      "message": "Direct Cypher MERGE/CREATE/DELETE on tenant-owned labels must go through AuditedGraphMutation.\nThis bypasses the audited mutation gateway which enforces tenant isolation, audit logging, and metrics.\nUse AuditedGraphMutation.write_relationship(), write_node(), delete_relationship(), or delete_node() instead."
-    },
-    {
-      "rule_id": "semgrep.block-direct-graph-mutation",
-      "path": "services/layer4-agents/src/layer4_agents/services/value_pack_service.py",
-      "line": 460,
       "message": "Direct Cypher MERGE/CREATE/DELETE on tenant-owned labels must go through AuditedGraphMutation.\nThis bypasses the audited mutation gateway which enforces tenant isolation, audit logging, and metrics.\nUse AuditedGraphMutation.write_relationship(), write_node(), delete_relationship(), or delete_node() instead."
     },
     {
@@ -1330,12 +1252,6 @@
     },
     {
       "rule_id": "semgrep.block-direct-graph-mutation",
-      "path": "services/layer5-ground-truth/src/layer5_ground_truth/integration/layer3_client.py",
-      "line": 251,
-      "message": "Direct Cypher MERGE/CREATE/DELETE on tenant-owned labels must go through AuditedGraphMutation.\nThis bypasses the audited mutation gateway which enforces tenant isolation, audit logging, and metrics.\nUse AuditedGraphMutation.write_relationship(), write_node(), delete_relationship(), or delete_node() instead."
-    },
-    {
-      "rule_id": "semgrep.block-direct-graph-mutation",
       "path": "services/layer5-ground-truth/src/layer5_ground_truth/migrations/versions/010_enforce_append_only_audit_events.py",
       "line": 50,
       "message": "Direct Cypher MERGE/CREATE/DELETE on tenant-owned labels must go through AuditedGraphMutation.\nThis bypasses the audited mutation gateway which enforces tenant isolation, audit logging, and metrics.\nUse AuditedGraphMutation.write_relationship(), write_node(), delete_relationship(), or delete_node() instead."
@@ -1374,12 +1290,6 @@
       "rule_id": "semgrep.block-direct-graph-mutation",
       "path": "services/layer5-ground-truth/src/layer5_ground_truth/services/truth_service.py",
       "line": 330,
-      "message": "Direct Cypher MERGE/CREATE/DELETE on tenant-owned labels must go through AuditedGraphMutation.\nThis bypasses the audited mutation gateway which enforces tenant isolation, audit logging, and metrics.\nUse AuditedGraphMutation.write_relationship(), write_node(), delete_relationship(), or delete_node() instead."
-    },
-    {
-      "rule_id": "semgrep.block-direct-graph-mutation",
-      "path": "services/layer6-benchmarks/src/layer6_benchmarks/repositories/benchmark_repository.py",
-      "line": 39,
       "message": "Direct Cypher MERGE/CREATE/DELETE on tenant-owned labels must go through AuditedGraphMutation.\nThis bypasses the audited mutation gateway which enforces tenant isolation, audit logging, and metrics.\nUse AuditedGraphMutation.write_relationship(), write_node(), delete_relationship(), or delete_node() instead."
     },
     {

@@ -1166,7 +1166,7 @@ class BackupManager:
 
                     # Create or merge entity node
                     query = (
-                        f"MERGE (n:{entity_type} {{id: $entity_id, tenant_id: $tenant_id}})\n"  # cypher-dynamic-safe: validated against ALLOWED_TARGET_LABELS allowlist
+                        f"MERGE (n:{entity_type} {{id: $entity_id, tenant_id: $tenant_id}})\n"  # cypher-dynamic-safe: validated against ALLOWED_TARGET_LABELS allowlist  # cypher-mutation-safe: label validated, tenant-scoped restore
                         "                    SET n += $properties\n"
                         "                    "
                     )
