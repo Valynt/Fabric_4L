@@ -42,6 +42,7 @@ from value_fabric.shared.models.typed_dict import TypedDictModel
 from ..db.audited_mutation import AuditedGraphMutation
 from ..db.query_execution import run_validated_query
 from ..security.query_validator import ValidatedNeo4jSession
+from ..utils.cypher_security import ALLOWED_REL_TYPES, validate_cypher_identifier
 from .cypher_scope_guard import (
     validate_tenant_scoped_cypher,
 )
@@ -534,20 +535,22 @@ class CompetitiveIntelService:
         now = datetime.now(UTC).isoformat()
 
         rel_type = "WON_AGAINST" if record_data.outcome == "won" else "LOST_TO"
+        validate_cypher_identifier(rel_type, ALLOWED_REL_TYPES, kind="rel_type")
 
-        query = f"""
-        MATCH (p:Product {{id: $product_id, tenant_id: $tenant_id}})
-        MATCH (c:Competitor {{id: $competitor_id, tenant_id: $tenant_id}})
-        CREATE (p)-[r:{rel_type} {{
-            id: $id,
-            deal_size_usd: $deal_size_usd,
-            reason: $reason,
-            industry: $industry,
-            deal_date: $deal_date,
-            recorded_at: $now
-        }}]->(c)
-        RETURN r {{.*}} AS record
-        """
+        query = (
+            "MATCH (p:Product {id: $product_id, tenant_id: $tenant_id})\n"
+            "MATCH (c:Competitor {id: $competitor_id, tenant_id: $tenant_id})\n"
+            f"CREATE (p)-[r:{rel_type} {{\n"  # cypher-dynamic-safe: validated against ALLOWED_REL_TYPES allowlist (hardcoded literal)
+            "            id: $id,\n"
+            "            deal_size_usd: $deal_size_usd,\n"
+            "            reason: $reason,\n"
+            "            industry: $industry,\n"
+            "            deal_date: $deal_date,\n"
+            "            recorded_at: $now\n"
+            "        }]->(c)\n"
+            "        RETURN r {.*} AS record\n"
+            "        "
+        )
         async with self._driver.session() as session:
             result = await self._run_cypher(session, query, {
                 "id": wl_id,
