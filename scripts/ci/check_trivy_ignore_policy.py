@@ -36,6 +36,40 @@ KNOWN_EXTERNAL_PATH_PREFIXES = (
     "infra/helm/fabric-chart/charts/",
 )
 
+# Exact strings that match the entire repository tree and therefore let a
+# single waiver ID suppress findings everywhere. These must never pass the
+# governance validator regardless of how they are written.
+_REPO_WIDE_EXACT = {"*", "**", "/", ".", "./", "**/**", "***", "**/*", "**/*/**", "/*"}
+
+
+def _is_repo_wide_glob(pattern: str) -> bool:
+    """Return True when a path pattern matches the whole repository tree.
+
+    A waiver scoped to the entire checkout defeats path-scoped governance:
+    one ID can suppress findings anywhere while check-trivy-ignore-policy
+    still passes. We normalize the pattern (strip whitespace, collapse
+    repeated ``**`` segments and trailing slashes) and reject it when the
+    surviving form is empty or matches the repository root.
+    """
+    cleaned = pattern.strip()
+    if not cleaned:
+        return True
+    if cleaned in _REPO_WIDE_EXACT:
+        return True
+    # Collapse repeated glob segments and trailing slashes so variants of
+    # ``**/*`` (``**/**/*``, ``./**/*``, ``**/*/**``) all collapse to the
+    # same whole-tree equivalent.
+    parts = [seg for seg in cleaned.replace("\\", "/").split("/") if seg]
+    collapsed = [seg for seg in parts if seg != "**"]
+    if not collapsed:
+        return True
+    if all(seg == "*" for seg in collapsed):
+        return True
+    normalized = "/".join(collapsed).rstrip("/")
+    if normalized in {"", ".", "*", "**"}:
+        return True
+    return False
+
 
 @dataclass
 class PolicyViolation:
@@ -233,13 +267,17 @@ def validate_trivy_ignore(
                                     message="Paths must be non-empty strings",
                                 )
                             )
-                        elif p.strip() in ("*", "**", "/", "."):
+                        elif _is_repo_wide_glob(p):
                             violations.append(
                                 PolicyViolation(
                                     section=section,
                                     entry_id=entry_id,
                                     field="paths",
-                                    message=f"Overly broad path pattern '{p}' is not allowed",
+                                    message=(
+                                        f"Overly broad path pattern '{p}' "
+                                        "matches the whole repository tree; "
+                                        "narrow it to a checkout path prefix"
+                                    ),
                                 )
                             )
 
