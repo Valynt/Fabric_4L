@@ -24,16 +24,34 @@
 
 ## 2. Score Target
 
+> **Authority note:** This document is a **non-authoritative** working plan. Launch
+> decisions and ship/no-ship criteria are governed by the canonical documents:
+> the [launch blocker register](docs/launch/launch-blocker-register.md), the
+> [environment-dependent evidence matrix](docs/launch/environment-dependent-evidence-matrix.md),
+> and the [final testing launch checklist](docs/launch/final-testing-launch-checklist.md).
+> Score values here are directional planning estimates, not approval criteria.
+
 - **Current:** 3.6
 - **Target:** **8.3 before launch**, **9.0 after production proof**
-- This is the **highest-priority workstream**.
+- This is a **highest-priority workstream** for planning purposes.
 
-| Section                           | Score effect |
-| --------------------------------- | ------------ |
-| A. Production ingress convergence | 3.6 → 5.0    |
-| B. Proven backup and recovery     | 5.0 → 6.5    |
-| C. Proven deployment and rollback | 6.5 → 7.2    |
-| D. Operational observability      | 7.2 → 8.0    |
+| Section                                | Score effect |
+| -------------------------------------- | ------------ |
+| A. Production ingress convergence      | 3.6 → 5.0    |
+| B. Proven backup and recovery          | 5.0 → 6.5    |
+| C. Proven deployment and rollback      | 6.5 → 7.2    |
+| D. Operational observability           | 7.2 → 8.0    |
+| **Sections A–D cumulative**            | **3.6 → 8.0** |
+| **Gap − 0.3 (to 8.3) / − 1.0 (to 9.0)** | **Out of scope** |
+
+> **Gap to target:** The four sections above sum to an 8.0 ceiling:
+> **8.3 (launch) and 9.0 (post-production-proof)** exceed this figure by
+> **0.3** and **1.0** respectively. The gap must be closed by **additional,
+> separate workstreams** (for example hardened compliance controls, security
+> hardening, or expanded production proof) — it is not covered by Sections A–D
+> alone. Closing the gap is tracked as its own follow-up; the declared score
+> targets are retained and validated against the canonical launch evidence
+> documents before launch.
 
 ---
 
@@ -86,7 +104,7 @@ Production Operations **3.6 → 5.0**.
 
 ## 5. Section B — Proven Backup and Recovery
 
-**Goal:** Guarantee restorability within **RPO ≤ 15 min** and **RTO ≤ 60 min**, proven by automated restore validation.
+**Goal:** Guarantee service-specific restorability, with **RPO/RTO objectives scoped per critical service** per the canonical DR policy (`docs/reliability/dr-policy.md`), proven by automated restore validation. The policy's Tier 0 / Tier 1 targets (for example PostgreSQL **RTO ≤ 60 min / RPO ≤ 15 min**, Neo4j **RTO ≤ 90 min / RPO ≤ 30 min**, Redis **RTO ≤ 120 min / RPO ≤ 60 min**) are the authoritative objectives for this plan. The blanket **RPO ≤ 15 min / RTO ≤ 60 min** below is the **PostgreSQL Tier 0** requirement for the platform's system of record, not a uniform target across every service.
 
 ### Implementation steps
 
@@ -112,17 +130,22 @@ Production Operations **3.6 → 5.0**.
 
 | Metric                               | Target                              |
 | ------------------------------------ | ----------------------------------- |
-| RPO                                  | ≤ 15 minutes                        |
-| RTO                                  | ≤ 60 minutes                        |
+| RPO (PostgreSQL Tier 0 system of record) | ≤ 15 minutes                    |
+| RTO (PostgreSQL Tier 0 system of record) | ≤ 60 minutes                    |
 | Successful automated restores        | ≥ 3 consecutive                     |
 | Integrity / checksum mismatches      | 0 (zero)                            |
 | Backup stored only in source cluster | 0 (none)                            |
 | Restore evidence                     | Tied to backup ID and candidate SHA |
 
+> **Scope note.** The RPO/RTO rows above are the **PostgreSQL Tier 0** system-of-record
+> targets. Other critical services use their own per-service RTO/RPO objectives from
+> `docs/reliability/dr-policy.md` (for example Neo4j 90/30, Redis 120/60, Layer 2 and
+> Layer 1 workers 4h/4h). Table row values apply to PostgreSQL unless a row states otherwise.
+
 ### Exit criteria
 
-- [ ] RPO ≤ 15 minutes.
-- [ ] RTO ≤ 60 minutes.
+- [ ] RPO ≤ 15 minutes (PostgreSQL Tier 0 system of record).
+- [ ] RTO ≤ 60 minutes (PostgreSQL Tier 0 system of record); per-service RTO/RPO objectives from `docs/reliability/dr-policy.md` met for all critical services.
 - [ ] Three consecutive successful automated restores.
 - [ ] Zero checksum or integrity mismatches across all restores.
 - [ ] No backup is stored only in the source cluster.
