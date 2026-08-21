@@ -227,10 +227,25 @@ class TenantQueryExecutor:
     def _validate(cls, query: str, params: Mapping[str, Any], context: TenantExecutionContext) -> None:
         if context.is_bypass:
             return
+        cls._guard_direct_mutation(query, context)
+        cls._guard_depth_limit(query, cls._extract_max_depth(query, params), context)
+        cls._guard_tenant_context(query, context)
+        cls._guard_structural_scoping(
+            query,
+            _structural_tenant_scope_errors(query, params)
+            if _touches_tenant_owned_label(query)
+            else [],
+            context,
+        )
+        cls._guard_multi_clause(query, context)
 
-        # Phase 1 hardening: Block direct CREATE/MERGE/DELETE on tenant-owned labels
-        # These must go through AuditedGraphMutation for audit trail
-        mutation_keywords = re.compile(r'\b(CREATE|MERGE|DELETE)\b', re.IGNORECASE)
+    @classmethod
+    def _guard_direct_mutation(cls, query: str, context: TenantExecutionContext) -> None:
+        """Phase 1 hardening: block direct CREATE/MERGE/DELETE on tenant-owned labels.
+
+        These must go through AuditedGraphMutation for audit trail.
+        """
+        mutation_keywords = re.compile(r"\b(CREATE|MERGE|DELETE)\b", re.IGNORECASE)
         if mutation_keywords.search(query) and _touches_tenant_owned_label(query):
             if not context.allow_system_query:
                 metrics = get_metrics() if get_metrics else None
@@ -249,8 +264,11 @@ class TenantQueryExecutor:
                     "This ensures audit trail and metrics collection for all graph mutations."
                 )
 
-        # Depth limit check (PERF-001)
-        max_depth = cls._extract_max_depth(query, params)
+    @classmethod
+    def _guard_depth_limit(
+        cls, query: str, max_depth: int | None, context: TenantExecutionContext
+    ) -> None:
+        """Enforce the traversal depth limit (PERF-001)."""
         safe_max_depth = sanitize_query_depth(MAX_QUERY_DEPTH, default_depth=MAX_QUERY_DEPTH)
         if max_depth is not None and max_depth > safe_max_depth:
             metrics = get_metrics() if get_metrics else None
@@ -267,8 +285,10 @@ class TenantQueryExecutor:
                 f"Query exceeds maximum depth of {safe_max_depth} (found {max_depth})"
             )
 
-        touches_tenant_data = _touches_tenant_owned_label(query)
-        if touches_tenant_data and not context.tenant_id and not context.allow_system_query:
+    @classmethod
+    def _guard_tenant_context(cls, query: str, context: TenantExecutionContext) -> None:
+        """Require a tenant id whenever a tenant-owned label is touched."""
+        if _touches_tenant_owned_label(query) and not context.tenant_id and not context.allow_system_query:
             metrics = get_metrics() if get_metrics else None
             if metrics:
                 metrics.increment_tenant_isolation_violation(
@@ -281,7 +301,11 @@ class TenantQueryExecutor:
                 )
             raise TenantQueryValidationError("Tenant context is required for tenant-owned Cypher execution")
 
-        structural_errors = _structural_tenant_scope_errors(query, params) if touches_tenant_data else []
+    @classmethod
+    def _guard_structural_scoping(
+        cls, query: str, structural_errors: list[str], context: TenantExecutionContext
+    ) -> None:
+        """Reject tenant-owned label queries missing explicit tenant predicates."""
         if structural_errors and not context.allow_system_query:
             metrics = get_metrics() if get_metrics else None
             if metrics:
@@ -293,22 +317,26 @@ class TenantQueryExecutor:
                 f"Denied Cypher query due to missing tenant scoping in tenant-owned path: {details}"
             )
 
-        if _CLAUSE_KEYWORD_PATTERN.search(query):
-            clause_tokens = [m.group(1).upper() for m in _CLAUSE_PATTERN.finditer(query)]
-            ambiguous = (
-                clause_tokens.count("MATCH") + clause_tokens.count("OPTIONAL MATCH") > 1
-                or any(token.startswith("UNION") for token in clause_tokens)
-                or bool(re.search(r"(?is)\bCALL\s*\{", query))
+    @classmethod
+    def _guard_multi_clause(cls, query: str, context: TenantExecutionContext) -> None:
+        """Reject ambiguous/multi-clause tenant-owned Cypher outside allowlisted wrappers."""
+        if not _CLAUSE_KEYWORD_PATTERN.search(query):
+            return
+        clause_tokens = [m.group(1).upper() for m in _CLAUSE_PATTERN.finditer(query)]
+        ambiguous = (
+            clause_tokens.count("MATCH") + clause_tokens.count("OPTIONAL MATCH") > 1
+            or any(token.startswith("UNION") for token in clause_tokens)
+            or bool(re.search(r"(?is)\bCALL\s*\{", query))
+        )
+        if ambiguous and not context.allow_system_query:
+            if context.allow_multi_clause_tenant_query:
+                # Legacy high-risk modules may execute multi-clause templates only
+                # after every tenant-labeled query has an explicit tenant predicate.
+                return
+            raise TenantQueryValidationError(
+                "Denied ambiguous or multi-clause Cypher; only allowlisted system queries or "
+                "validated legacy runtime wrappers may opt in"
             )
-            if ambiguous and not context.allow_system_query:
-                if context.allow_multi_clause_tenant_query:
-                    # Legacy high-risk modules may execute multi-clause templates only
-                    # after every tenant-owned label has an explicit tenant predicate.
-                    return
-                raise TenantQueryValidationError(
-                    "Denied ambiguous or multi-clause Cypher; only allowlisted system queries or "
-                    "validated legacy runtime wrappers may opt in"
-                )
 
 
 def _resolve_runner(session_or_run_callable):
