@@ -124,8 +124,59 @@ class TestLayer4OrchestrationClient:
         assert kwargs["json"]["workflow_type"] == "roi_calculator"
         assert kwargs["json"]["inputs"]["prospect_id"] == "acc-1"
         assert kwargs["json"]["inputs"]["custom_data"] == {"foo": "bar"}
+        assert "workflow_id" in kwargs["json"]
         assert kwargs["headers"]["X-Tenant-ID"] == "t1"
         assert kwargs["headers"]["X-User-ID"] == "user-1"
+        assert kwargs["headers"]["Idempotency-Key"] == kwargs["json"]["workflow_id"]
+
+    @patch("app.services.agent_orchestrator.httpx.Client")
+    def test_create_workflow_stable_idempotency_across_retries(
+        self, mock_client_cls: MagicMock
+    ) -> None:
+        """When create_workflow retries after a transient failure, it reuses the same workflow_id and Idempotency-Key."""
+        bad_response = MagicMock()
+        bad_response.status_code = 503
+        bad_response.text = "unavailable"
+
+        ok_response = MagicMock()
+        ok_response.status_code = 201
+        ok_response.json.return_value = {
+            "workflow_instance_id": "wf-1",
+            "status": "pending",
+        }
+
+        mock_client = MagicMock()
+        mock_client.__enter__.return_value = mock_client
+        mock_client.request.side_effect = [bad_response, ok_response]
+        mock_client_cls.return_value = mock_client
+
+        client = Layer4OrchestrationClient(
+            base_url="http://layer4",
+            timeout_seconds=1.0,
+            max_attempts=3,
+            retry_base_delay=0.0,
+            retry_max_delay=0.0,
+            sleep=lambda _: None,
+        )
+
+        result = client.create_workflow(
+            tenant_id="t1",
+            workflow_type="roi_calculator",
+            account_id="acc-1",
+            input_data={"test": 1},
+        )
+        assert result["workflow_instance_id"] == "wf-1"
+        assert mock_client.request.call_count == 2
+
+        call1_kwargs = mock_client.request.call_args_list[0][1]
+        call2_kwargs = mock_client.request.call_args_list[1][1]
+
+        # Both attempts must have sent the exact same workflow_id and Idempotency-Key
+        wf_id_1 = call1_kwargs["json"]["workflow_id"]
+        wf_id_2 = call2_kwargs["json"]["workflow_id"]
+        assert wf_id_1 == wf_id_2
+        assert call1_kwargs["headers"]["Idempotency-Key"] == wf_id_1
+        assert call2_kwargs["headers"]["Idempotency-Key"] == wf_id_1
 
     @patch("app.services.agent_orchestrator.httpx.Client")
     def test_get_workflow_success(self, mock_client_cls: MagicMock) -> None:

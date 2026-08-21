@@ -16,6 +16,7 @@ from __future__ import annotations
 import logging
 import os
 import time
+import uuid
 from datetime import UTC, datetime
 from typing import Any
 
@@ -235,9 +236,12 @@ class Layer4OrchestrationClient:
         tenant_id: str,
         user_id: str | None = None,
         json_body: dict[str, Any] | None = None,
+        extra_headers: dict[str, str] | None = None,
     ) -> dict[str, Any]:
         url = f"{self.base_url}{path}"
         headers = self._headers(tenant_id, user_id)
+        if extra_headers:
+            headers.update(extra_headers)
 
         def _attempt() -> dict[str, Any]:
             # Each individual attempt goes through the breaker so a
@@ -286,7 +290,13 @@ class Layer4OrchestrationClient:
         account_id: str | None,
         input_data: dict[str, Any] | None,
         user_id: str | None = None,
+        workflow_id: str | None = None,
+        idempotency_key: str | None = None,
     ) -> dict[str, Any]:
+        # Generate a stable workflow_id/idempotency_key once across retries
+        # to prevent duplicate workflow executions upstream on transient network drops.
+        stable_workflow_id = workflow_id or str(uuid.uuid4())
+        stable_idempotency_key = idempotency_key or stable_workflow_id
         inputs: dict[str, Any] = {"custom_data": input_data or {}}
         if account_id:
             inputs["prospect_id"] = account_id
@@ -295,7 +305,15 @@ class Layer4OrchestrationClient:
             "/v1/workflows",
             tenant_id=tenant_id,
             user_id=user_id,
-            json_body={"workflow_type": workflow_type, "inputs": inputs},
+            json_body={
+                "workflow_type": workflow_type,
+                "inputs": inputs,
+                "workflow_id": stable_workflow_id,
+            },
+            extra_headers={
+                "Idempotency-Key": stable_idempotency_key,
+                "X-Idempotency-Key": stable_idempotency_key,
+            },
         )
 
     def get_workflow(self, *, tenant_id: str, workflow_id: str) -> dict[str, Any]:

@@ -467,6 +467,17 @@ class TestDelegationGetCache:
         mod._breakers = CircuitBreakerRegistry()
         return app
 
+    def _client_returning(self, responses):
+        iterator = iter(responses)
+
+        async def _request(*args, **kwargs):
+            item = next(iterator)
+            if isinstance(item, Exception):
+                raise item
+            return item
+
+        return _FakeAsyncClient(_request)
+
     @pytest.mark.asyncio
     async def test_get_cache_hit_serves_without_upstream_call(self) -> None:
         app = self._app()
@@ -576,5 +587,82 @@ class TestDelegationGetCache:
         key_a = _cache_key("graph", "/entities", "tenant-a", "user-1", "")
         key_b = _cache_key("graph", "/entities", "tenant-b", "user-1", "")
         assert key_a != key_b
+
+    def test_get_cache_key_is_principal_scoped(self) -> None:
+        """Cache keys differ by user within the same tenant to avoid RBAC cache poisoning."""
+        from app.routers.layer_delegation import _cache_key
+
+        key_user1 = _cache_key("graph", "/entities", "tenant-a", "user-1", "")
+        key_user2 = _cache_key("graph", "/entities", "tenant-a", "user-2", "")
+        key_anon = _cache_key("graph", "/entities", "tenant-a", None, "")
+
+        assert key_user1 != key_user2
+        assert key_user1 != key_anon
+
+    @pytest.mark.asyncio
+    async def test_get_cache_hit_records_telemetry(self) -> None:
+        """Cache hits record metrics with outcome=cache_hit and audit logs."""
+        from app.core.metrics import registry
+        from app.routers import layer_delegation as mod
+
+        mod._breakers = CircuitBreakerRegistry()
+        app = self._app()
+        cached_body = b'{"cached": true}'
+        cached_payload = "200\rapplication/json\r" + cached_body.decode("latin-1")
+        fake_redis = MagicMock()
+        fake_redis.get.return_value = cached_payload
+
+        before = registry.get_sample_value(
+            "fabric_api_delegation_requests_total",
+            {"segment": "graph", "method": "GET", "status_code": "200", "outcome": "cache_hit"},
+        ) or 0.0
+
+        with (
+            patch("app.routers.layer_delegation.get_settings", return_value=_settings()),
+            patch("app.core.redis_client.get_redis_client", return_value=fake_redis),
+        ):
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+                response = await client.get("/v1/graph/entities")
+
+        assert response.status_code == 200
+        assert response.headers["x-delegation-cache"] == "hit"
+
+        after = registry.get_sample_value(
+            "fabric_api_delegation_requests_total",
+            {"segment": "graph", "method": "GET", "status_code": "200", "outcome": "cache_hit"},
+        ) or 0.0
+        assert after == before + 1.0
+
+    @pytest.mark.asyncio
+    async def test_429_exhaustion_preserves_rate_limit_headers_and_body(self) -> None:
+        """Exhausted 429 attempts retain upstream rate-limit headers and body."""
+        from app.routers import layer_delegation as mod
+
+        mod._breakers = CircuitBreakerRegistry()
+        app = self._app()
+        upstream_headers = {
+            "content-type": "application/json",
+            "retry-after": "30",
+            "x-ratelimit-limit": "100",
+            "x-ratelimit-remaining": "0",
+            "x-ratelimit-reset": "1700000000",
+        }
+        rate_limit_body = b'{"error": "rate limit exceeded"}'
+        resp_429 = httpx.Response(429, content=rate_limit_body, headers=upstream_headers)
+        fake = self._client_returning([resp_429, resp_429, resp_429])
+
+        with (
+            patch("app.routers.layer_delegation.get_settings", return_value=_settings(delegation_retry_max_attempts=3)),
+            patch("app.routers.layer_delegation.httpx.AsyncClient", return_value=fake),
+        ):
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+                response = await client.get("/v1/agents/v1/accounts")
+
+        assert response.status_code == 429
+        assert response.content == rate_limit_body
+        assert response.headers.get("retry-after") == "30"
+        assert response.headers.get("x-ratelimit-limit") == "100"
+        assert response.headers.get("x-ratelimit-remaining") == "0"
+        assert response.headers.get("x-ratelimit-reset") == "1700000000"
 
 

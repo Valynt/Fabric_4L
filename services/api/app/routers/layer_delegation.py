@@ -180,8 +180,15 @@ class _DelegationTransient(RetryableError):  # type: ignore[misc]
     surface immediately to the caller.
     """
 
-    def __init__(self, status_code: int | None = None) -> None:
+    def __init__(
+        self,
+        status_code: int | None = None,
+        headers: httpx.Headers | dict[str, str] | None = None,
+        content: bytes | None = None,
+    ) -> None:
         self.status_code = status_code
+        self.headers = headers
+        self.content = content
         super().__init__("delegation_transient")
 
 
@@ -224,7 +231,11 @@ async def _do_request(
         raise _DelegationTransient() from exc
 
     if response.status_code in TRANSIENT_STATUS_CODES:
-        raise _DelegationTransient(status_code=response.status_code)
+        raise _DelegationTransient(
+            status_code=response.status_code,
+            headers=response.headers,
+            content=response.content,
+        )
     return response
 
 
@@ -290,7 +301,11 @@ def _cache_store(key: str, status: int, body: bytes, content_type: str) -> bool:
 
 
 async def _delegate(
-    request: Request, segment: str, path: str, tenant_id: str
+    request: Request,
+    segment: str,
+    path: str,
+    tenant_id: str,
+    user_id: str | None = None,
 ) -> Response:
     settings = get_settings()
     url = _target_url(segment, path)
@@ -299,32 +314,15 @@ async def _delegate(
         url = f"{url}?{query_string}"
     body = await request.body()
     headers = _request_headers(request, tenant_id)
+    if user_id:
+        headers["x-user-id"] = user_id
     timeout = settings.delegation_timeout_seconds
     method = request.method.upper()
     request_id = headers.get("x-request-id") or headers.get("x-trace-id")
-    user_id = headers.get("x-user-id")
+    effective_user_id = user_id or headers.get("x-user-id")
 
     _start = time.perf_counter()
     _retries = 0
-
-    # GET cache: serve from Redis on a hit. Only safe GETs with no body are
-    # eligible; mutations and non-GET methods bypass the cache.
-    cache_key: str | None = None
-    if method == "GET" and not body:
-        cache_key = _cache_key(segment, path, tenant_id, user_id, query_string)
-        cached = _cache_lookup(cache_key)
-        if cached is not None:
-            DELEGATION_CACHE_TOTAL.labels(segment=segment, outcome="hit").inc()
-            status, cached_body, content_type = cached
-            return Response(
-                content=cached_body,
-                status_code=status,
-                headers={"x-delegation-cache": "hit"},
-                media_type=content_type or None,
-            )
-        DELEGATION_CACHE_TOTAL.labels(segment=segment, outcome="miss").inc()
-    elif method == "GET":
-        DELEGATION_CACHE_TOTAL.labels(segment=segment, outcome="skip").inc()
 
     def _record(outcome: str, status_code: int | str) -> None:
         duration = time.perf_counter() - _start
@@ -346,8 +344,29 @@ async def _delegate(
                 "retries": _retries,
                 "request_id": request_id,
                 "tenant_id": tenant_id,
+                "user_id": effective_user_id,
             },
         )
+
+    # GET cache: serve from Redis on a hit. Only safe GETs with no body are
+    # eligible; mutations and non-GET methods bypass the cache.
+    cache_key: str | None = None
+    if method == "GET" and not body:
+        cache_key = _cache_key(segment, path, tenant_id, effective_user_id, query_string)
+        cached = _cache_lookup(cache_key)
+        if cached is not None:
+            DELEGATION_CACHE_TOTAL.labels(segment=segment, outcome="hit").inc()
+            status, cached_body, content_type = cached
+            _record("cache_hit", status)
+            return Response(
+                content=cached_body,
+                status_code=status,
+                headers={"x-delegation-cache": "hit"},
+                media_type=content_type or None,
+            )
+        DELEGATION_CACHE_TOTAL.labels(segment=segment, outcome="miss").inc()
+    elif method == "GET":
+        DELEGATION_CACHE_TOTAL.labels(segment=segment, outcome="skip").inc()
 
     class _RetryCounter:
         """Captures retry attempts for metrics without coupling to the retry helper internals."""
@@ -425,6 +444,27 @@ async def _delegate(
             )
         status = exc.status_code if exc.status_code else 503
         _record("unavailable", status)
+        if status == 429 and exc.headers:
+            preserved_headers: dict[str, str] = {}
+            for k, v in exc.headers.items():
+                k_lower = k.lower()
+                if k_lower in {"retry-after"} or k_lower.startswith("x-ratelimit-"):
+                    preserved_headers[k] = v
+            if exc.content:
+                return Response(
+                    content=exc.content,
+                    status_code=429,
+                    headers=preserved_headers,
+                    media_type=exc.headers.get("content-type", "application/json"),
+                )
+            return JSONResponse(
+                status_code=429,
+                headers=preserved_headers,
+                content={
+                    "detail": "owning_layer_rate_limited",
+                    "segment": segment,
+                },
+            )
         return JSONResponse(
             status_code=status,
             content={
@@ -472,7 +512,9 @@ def _make_handler(segment: str) -> Callable[..., Awaitable[Response]]:
         path: str = "",
         auth: TokenPayload = Depends(require_authenticated),
     ) -> Response:
-        return await _delegate(request, segment, path, auth.tenant_id)
+        return await _delegate(
+            request, segment, path, auth.tenant_id, user_id=auth.sub
+        )
 
     return handler
 

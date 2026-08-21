@@ -105,17 +105,35 @@ class Settings(BaseSettings):
     llm_provider: str = "layer4"
     llm_model: str | None = None
     allow_mock_llm: bool = False
-    layer1_api_base_url: str = "http://localhost:8001"
+    layer1_api_base_url: str = Field(
+        default="http://localhost:8001",
+        validation_alias=AliasChoices("LAYER1_API_BASE_URL", "LAYER1_API_URL"),
+    )
     layer1_timeout_seconds: float = 30.0
-    layer2_api_base_url: str = "http://localhost:8002"
+    layer2_api_base_url: str = Field(
+        default="http://localhost:8002",
+        validation_alias=AliasChoices("LAYER2_API_BASE_URL", "LAYER2_API_URL"),
+    )
     layer2_timeout_seconds: float = 30.0
-    layer3_api_base_url: str = "http://localhost:8003"
+    layer3_api_base_url: str = Field(
+        default="http://localhost:8003",
+        validation_alias=AliasChoices("LAYER3_API_BASE_URL", "LAYER3_API_URL"),
+    )
     layer3_timeout_seconds: float = 10.0
-    layer4_api_base_url: str = "http://localhost:8004"
+    layer4_api_base_url: str = Field(
+        default="http://localhost:8004",
+        validation_alias=AliasChoices("LAYER4_API_BASE_URL", "LAYER4_API_URL"),
+    )
     layer4_timeout_seconds: float = 10.0
-    layer5_api_base_url: str = "http://localhost:8005"
+    layer5_api_base_url: str = Field(
+        default="http://localhost:8005",
+        validation_alias=AliasChoices("LAYER5_API_BASE_URL", "LAYER5_API_URL"),
+    )
     layer5_timeout_seconds: float = 10.0
-    layer6_api_base_url: str = "http://localhost:8006"
+    layer6_api_base_url: str = Field(
+        default="http://localhost:8006",
+        validation_alias=AliasChoices("LAYER6_API_BASE_URL", "LAYER6_API_URL"),
+    )
     layer6_timeout_seconds: float = 10.0
     delegation_timeout_seconds: float = 30.0
     # Gateway delegation resilience (P2): retry + circuit breaker for the
