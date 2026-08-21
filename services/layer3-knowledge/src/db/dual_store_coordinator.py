@@ -1,4 +1,4 @@
-﻿"""Dual-Store Transaction Coordinator for Layer 3 Knowledge Graph.
+"""Dual-Store Transaction Coordinator for Layer 3 Knowledge Graph.
 
 Manages the write lifecycle across heterogeneous storage layers:
   1. Neo4j Graph Database (nodes & relationships)
