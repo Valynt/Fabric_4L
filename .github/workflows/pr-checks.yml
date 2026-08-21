@@ -176,6 +176,9 @@ jobs:
       - name: Enforce shell test bracket spacing in workflow run blocks
         run: python scripts/ci/check_shell_test_spacing.py
 
+      - name: Enforce canonical Infisical secret path schema
+        run: python scripts/ci/check_infisical_path_schema.py --repo-root .
+
       - name: Reject unsupported pip-audit workflow options
         run: python scripts/ci/check_pip_audit_workflow.py
 

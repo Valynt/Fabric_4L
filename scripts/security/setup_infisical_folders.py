@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
-"""
-Create Infisical folders for staging and production environments.
-Uses Infisical API to create folder structure matching development.
+"""Create Infisical folders for staging and production environments.
+
+Creates the canonical by-layer folder structure used by the Fabric_4L runtime
+(see docs/security/secrets-management.md) and copies dev secrets into each
+target environment. Uses the Infisical REST API.
 
 Requires environment variables:
   INFISICAL_CLIENT_ID
@@ -13,13 +15,29 @@ Usage:
 
 import json
 import os
-import urllib.request
 import urllib.error
+import urllib.request
 
 INFISICAL_API_URL = "https://app.infisical.com/api"
 PROJECT_ID = "d0dde515-abae-4f6a-a01c-75e7b713a9ff"
 
-FOLDERS_TO_CREATE = ["app", "auth", "database", "integrations", "llm", "storage"]
+# Canonical by-layer secret path taxonomy. Must stay in sync with
+# docs/security/secrets-management.md and the .env.example section headers.
+FOLDERS_TO_CREATE = [
+    "shared",
+    "infra",
+    "layer1-ingestion",
+    "layer2-extraction",
+    "layer2-5-signal-refinery",
+    "layer3-knowledge",
+    "layer4-agents",
+    "layer5-ground-truth",
+    "layer6-benchmarks",
+    "layer7-billing",
+    "apps/web",
+    "monitoring",
+    "ci",
+]
 ENVIRONMENTS = ["staging", "prod"]
 
 
@@ -33,10 +51,12 @@ def get_access_token() -> str:
             "Set INFISICAL_CLIENT_ID and INFISICAL_CLIENT_SECRET environment variables"
         )
 
-    data = json.dumps({
-        "clientId": client_id,
-        "clientSecret": client_secret,
-    }).encode("utf-8")
+    data = json.dumps(
+        {
+            "clientId": client_id,
+            "clientSecret": client_secret,
+        }
+    ).encode("utf-8")
 
     req = urllib.request.Request(
         f"{INFISICAL_API_URL}/v1/auth/universal-auth/login",
@@ -54,14 +74,18 @@ def get_access_token() -> str:
         raise RuntimeError(f"Auth failed ({e.code}): {body}")
 
 
-def create_folder(token: str, environment: str, folder_name: str, path: str = "/") -> bool:
+def create_folder(
+    token: str, environment: str, folder_name: str, path: str = "/"
+) -> bool:
     """Create a folder in Infisical via API."""
-    data = json.dumps({
-        "projectId": PROJECT_ID,
-        "environment": environment,
-        "name": folder_name,
-        "path": path,
-    }).encode("utf-8")
+    data = json.dumps(
+        {
+            "projectId": PROJECT_ID,
+            "environment": environment,
+            "name": folder_name,
+            "path": path,
+        }
+    ).encode("utf-8")
 
     req = urllib.request.Request(
         f"{INFISICAL_API_URL}/v2/folders",
@@ -75,7 +99,7 @@ def create_folder(token: str, environment: str, folder_name: str, path: str = "/
 
     try:
         with urllib.request.urlopen(req, timeout=15) as resp:
-            result = json.loads(resp.read())
+            json.loads(resp.read())  # consume response; folder created
             print(f"  [OK] Created /{folder_name} in {environment}")
             return True
     except urllib.error.HTTPError as e:
@@ -90,11 +114,13 @@ def create_folder(token: str, environment: str, folder_name: str, path: str = "/
 def copy_secrets_from_dev(token: str, target_env: str, folder: str) -> None:
     """Copy secrets from dev to target environment for a given folder path."""
     # Get secrets from dev
-    params = urllib.parse.urlencode({
-        "environment": "dev",
-        "secretPath": f"/{folder}",
-        "workspaceId": PROJECT_ID,
-    })
+    params = urllib.parse.urlencode(
+        {
+            "environment": "dev",
+            "secretPath": f"/{folder}",
+            "workspaceId": PROJECT_ID,
+        }
+    )
     req = urllib.request.Request(
         f"{INFISICAL_API_URL}/v3/secrets/raw?{params}",
         headers={"Authorization": f"Bearer {token}"},
@@ -120,14 +146,16 @@ def copy_secrets_from_dev(token: str, target_env: str, folder: str) -> None:
         if not secret_key:
             continue
 
-        data = json.dumps({
-            "workspaceId": PROJECT_ID,
-            "environment": target_env,
-            "secretPath": f"/{folder}",
-            "secretName": secret_key,
-            "secretValue": secret_value,
-            "type": "shared",
-        }).encode("utf-8")
+        data = json.dumps(
+            {
+                "workspaceId": PROJECT_ID,
+                "environment": target_env,
+                "secretPath": f"/{folder}",
+                "secretName": secret_key,
+                "secretValue": secret_value,
+                "type": "shared",
+            }
+        ).encode("utf-8")
 
         req = urllib.request.Request(
             f"{INFISICAL_API_URL}/v3/secrets/raw/{secret_key}",
@@ -145,7 +173,9 @@ def copy_secrets_from_dev(token: str, target_env: str, folder: str) -> None:
         except urllib.error.HTTPError as e:
             body = e.read().decode("utf-8", errors="replace")
             if "already exists" in body.lower():
-                print(f"    [EXISTS] {secret_key} already exists in {target_env}/{folder}")
+                print(
+                    f"    [EXISTS] {secret_key} already exists in {target_env}/{folder}"
+                )
             else:
                 print(f"    [FAIL] {secret_key}: {e.code} - {body[:100]}")
 
@@ -186,4 +216,5 @@ def main():
 
 if __name__ == "__main__":
     import urllib.parse
+
     main()
