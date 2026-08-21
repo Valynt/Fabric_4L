@@ -688,7 +688,7 @@ Examples:
   python scripts/security/key_rotation.py --provider clerk --env prod
   
   # Rotate all keys (requires manual keys set for each)
-  OPENAI_MANUAL_KEY=sk-xxx CLERK_MANUAL_KEY=sk_live_xxx \\
+  OPENAI_MANUAL_KEY=sk-xxx CLERK_MANUAL_KEY=sk_test_dummy_xxx \\
     python scripts/security/key_rotation.py --provider all --env prod
   
   # Verify only (no rotation)

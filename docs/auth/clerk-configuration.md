@@ -238,7 +238,7 @@ Use these Infisical paths.
 Frontend-safe only:
 
 ```env
-VITE_CLERK_PUBLISHABLE_KEY=pk_test_or_pk_live_xxx
+VITE_CLERK_PUBLISHABLE_KEY=pk_test_or_pk_live_dummy_xxx
 VITE_CLERK_SIGN_IN_URL=/sign-in
 VITE_CLERK_SIGN_UP_URL=/sign-up
 VITE_CLERK_AFTER_SIGN_IN_URL=/home

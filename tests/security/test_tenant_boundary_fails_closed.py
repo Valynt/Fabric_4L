@@ -273,7 +273,7 @@ class TestWebSocketTenantBoundaryFailsClosed:
         Expired tokens should be rejected during JWT validation.
         This addresses the P2 gap: 'Expired JWT handling'.
         """
-        expired_token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyLTEiLCJ0ZW5hbnRfaWQiOiJ0ZW5hbnQtYSIsImV4cCI6MTYwMDAwMDAwMH0.invalid"
+        expired_token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwidGVuYW50X2lkIjoidGVzdF90ZW5hbnQiLCJleHAiOjk5OTk5OTk5OTl9.dummy_test_signature_for_testing_only_12345"
         protocol_header = f"token,{expired_token}"
 
         def mock_extract_tenant_from_token(token):
@@ -326,7 +326,7 @@ class TestWebSocketTenantBoundaryFailsClosed:
 
         Tests routes.py logic when header is just the JWT without prefix.
         """
-        jwt_token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.test.signature"
+        jwt_token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwidGVuYW50X2lkIjoidGVzdF90ZW5hbnQiLCJleHAiOjk5OTk5OTk5OTl9.dummy_test_signature_for_testing_only_12345"
         protocol_header = jwt_token  # No "token," prefix
 
         # routes.py:116-117 - single part without prefix
