@@ -152,6 +152,24 @@
       "deprecation_status": "active"
     },
     {
+      "path": ".github/workflows/certify-release-candidate.yml",
+      "name": "Certify Release Candidate",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "push",
+        "workflow_dispatch"
+      ],
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
+      "required_secrets": [],
+      "produced_artifacts": [
+        "artifacts/release/${{ env.RELEASE_SHA }}/**/*"
+      ],
+      "runtime_budget_minutes": 120,
+      "local_validation_command": "make check-workflow-references",
+      "deprecation_status": "active"
+    },
+    {
       "path": ".github/workflows/chaos-testing.yml",
       "name": "Chaos Engineering Tests",
       "owner": "@value-fabric/sre-leads",

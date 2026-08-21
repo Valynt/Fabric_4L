@@ -30,6 +30,12 @@ TARGET_COMPOSE_FILES = (
     "infra/compose/docker-compose.live.yml",
     "infra/compose/docker-compose.release-smoke.yml",
     "infra/compose/docker-compose.full.yml",
+    "infra/compose/docker-compose.prod.yml",
+    "infra/compose/docker-compose.observability.yml",
+    "infra/compose/docker-compose.monitoring.yml",
+    "infra/compose/docker-compose.ha.yml",
+    "infra/compose/docker-compose.db-readiness.yml",
+    "infra/compose/docker-compose.backend-integrated.yml",
 )
 
 SAFE_REQUIRED_ENV_DEFAULTS = {
