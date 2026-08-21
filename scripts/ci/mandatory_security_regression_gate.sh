@@ -514,6 +514,13 @@ run_step_record "I-02 production fail-closed checks - Layer 5 (Ground Truth)" \
   "pytest tests/test_production_fail_closed_i02.py" \
   "Yes" "${ARTIFACT_DIR}/layer5_fail_closed.xml"
 
+run_step_record "Security exception lifecycle governance" \
+  python scripts/ci/check_security_exceptions.py \
+  -- \
+  "Security Exception Governance" \
+  "python scripts/ci/check_security_exceptions.py" \
+  "Yes" "✓"
+
 write_summary ""
 write_summary "✅ mandatory-security-regression gate passed"
 write_summary "📦 Evidence written to: ${AUDIT_DIR}/security_regression_gate/"

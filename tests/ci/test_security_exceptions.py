@@ -9,7 +9,6 @@ from scripts.ci import check_security_exceptions
 from scripts.ci.check_security_exceptions import (
     validate_registry,
     iter_exceptions,
-    ExceptionError,
 )
 
 REFERENCE_DATE = date(2030, 1, 1)
@@ -19,16 +18,16 @@ REFERENCE_DATE = date(2030, 1, 1)
 def fixed_today(monkeypatch: pytest.MonkeyPatch) -> date:
     class _FixedDate(date):
         @classmethod
-        def today(cls) -> date:
+        def reference(cls) -> date:
             return REFERENCE_DATE
 
-    monkeypatch.setattr(check_security_exceptions, "date", _FixedDate)
+    monkeypatch.setattr(check_security_exceptions, "ReferenceDate", _FixedDate)
     return REFERENCE_DATE
 
 
 def test_empty_registry_is_valid(fixed_today: date):
     data = {"schema_version": 1, "exceptions": {}}
-    errors = validate_registry(data, reference_date=fixed_today)
+    errors, warnings = validate_registry(data, fixed_today)
     assert errors == []
 
 
@@ -46,7 +45,25 @@ def test_valid_exception_entry_passes(fixed_today: date):
             }
         },
     }
-    errors = validate_registry(data, reference_date=fixed_today)
+    errors, warnings = validate_registry(data, fixed_today)
+    assert errors == []
+
+
+def test_valid_exception_with_yaml_date_object(fixed_today: date):
+    future_date = fixed_today + timedelta(days=30)
+    data = {
+        "schema_version": 1,
+        "exceptions": {
+            "semgrep:rule-2": {
+                "owner": "security.team",
+                "expires_on": future_date,
+                "justification": "False positive",
+                "compensating_control": "Protected by auth gateway",
+                "ticket": "SEC-102",
+            }
+        },
+    }
+    errors, warnings = validate_registry(data, fixed_today)
     assert errors == []
 
 
@@ -60,12 +77,13 @@ def test_expired_exception_fails_closed(fixed_today: date):
                 "expires_on": past,
                 "justification": "Reviewed debt",
                 "compensating_control": "Manual review",
+                "ticket": "SEC-103",
             }
         },
     }
-    errors = validate_registry(data, reference_date=fixed_today)
+    errors, warnings = validate_registry(data, fixed_today)
     assert len(errors) == 1
-    assert "expired on" in errors[0].message
+    assert "EXPIRED on" in errors[0]
 
 
 def test_missing_required_fields_fails_closed(fixed_today: date):
@@ -78,12 +96,12 @@ def test_missing_required_fields_fails_closed(fixed_today: date):
             }
         },
     }
-    errors = validate_registry(data, reference_date=fixed_today)
-    assert len(errors) >= 3
-    messages = [e.message for e in errors]
-    assert any("missing required 'owner'" in m for m in messages)
-    assert any("missing required 'justification'" in m for m in messages)
-    assert any("missing required 'compensating_control'" in m for m in messages)
+    errors, warnings = validate_registry(data, fixed_today)
+    assert len(errors) >= 4
+    assert any("missing required 'owner'" in m for m in errors)
+    assert any("missing required 'justification'" in m for m in errors)
+    assert any("missing required 'compensating_control'" in m for m in errors)
+    assert any("missing required 'ticket'" in m for m in errors)
 
 
 def test_invalid_date_format_fails_closed(fixed_today: date):
@@ -95,11 +113,12 @@ def test_invalid_date_format_fails_closed(fixed_today: date):
                 "expires_on": "2030/01/01",
                 "justification": "reason",
                 "compensating_control": "control",
+                "ticket": "SEC-104",
             }
         },
     }
-    errors = validate_registry(data, reference_date=fixed_today)
-    assert any("must be YYYY-MM-DD" in e.message for e in errors)
+    errors, warnings = validate_registry(data, fixed_today)
+    assert any("must be an ISO YYYY-MM-DD date" in e for e in errors)
 
 
 def test_main_cli_with_repo_registry(tmp_path: Path):
@@ -117,3 +136,4 @@ def test_main_cli_with_repo_registry(tmp_path: Path):
         ]
     )
     assert rc == 0
+

@@ -93,29 +93,47 @@ def validate_registry(
         expiry = entry.get("expires_on")
         justification = entry.get("justification")
         compensating = entry.get("compensating_control")
+        ticket = entry.get("ticket")
 
         # Metric: 100% of exceptions have an owner.
         if not owner or not isinstance(owner, str) or not owner.strip():
             errors.append(f"{prefix}: missing required 'owner'")
 
-        # Metric: 100% of exceptions have an expiry.
-        if not expiry or not isinstance(expiry, str):
+        # Metric: 100% of exceptions have an expiry (supports date and str).
+        if expiry is None:
             errors.append(f"{prefix}: missing required 'expires_on'")
-        elif not _parse_date(expiry):
-            errors.append(f"{prefix}: 'expires_on' must be an ISO YYYY-MM-DD date")
-        else:
-            expires = datetime.strptime(expiry, "%Y-%m-%d").date()
+        elif isinstance(expiry, date):
+            expires = expiry
+            expiry_str = expires.isoformat()
             if expires < reference:
                 errors.append(
-                    f"{prefix}: EXPIRED on {expiry} (reference date "
+                    f"{prefix}: EXPIRED on {expiry_str} (reference date "
                     f"{reference.isoformat()}). Remediate or re-grant before merge."
                 )
             elif expires <= reference:
-                warnings.append(f"{prefix}: expires today ({expiry})")
+                warnings.append(f"{prefix}: expires today ({expiry_str})")
             else:
                 days_left = (expires - reference).days
                 if days_left <= 14:
-                    warnings.append(f"{prefix}: expiring within {days_left} days ({expiry})")
+                    warnings.append(f"{prefix}: expiring within {days_left} days ({expiry_str})")
+        elif isinstance(expiry, str):
+            if not _parse_date(expiry):
+                errors.append(f"{prefix}: 'expires_on' must be an ISO YYYY-MM-DD date")
+            else:
+                expires = datetime.strptime(expiry, "%Y-%m-%d").date()
+                if expires < reference:
+                    errors.append(
+                        f"{prefix}: EXPIRED on {expiry} (reference date "
+                        f"{reference.isoformat()}). Remediate or re-grant before merge."
+                    )
+                elif expires <= reference:
+                    warnings.append(f"{prefix}: expires today ({expiry})")
+                else:
+                    days_left = (expires - reference).days
+                    if days_left <= 14:
+                        warnings.append(f"{prefix}: expiring within {days_left} days ({expiry})")
+        else:
+            errors.append(f"{prefix}: 'expires_on' must be an ISO YYYY-MM-DD date")
 
         # Reviewed-existing-debt baseline requires justification + compensating
         # control so baselines do not silently become permanent acceptance.
@@ -123,6 +141,8 @@ def validate_registry(
             errors.append(f"{prefix}: missing required 'justification' (baseline exceptions must be reviewed debt, not silent)")
         if not compensating or not isinstance(compensating, str) or not compensating.strip():
             errors.append(f"{prefix}: missing required 'compensating_control'")
+        if not ticket or not isinstance(ticket, str) or not ticket.strip():
+            errors.append(f"{prefix}: missing required 'ticket'")
 
         # Enforce ISO format for these fields (defensive; not a findable).
         for fname in ("owner", "justification", "compensating_control", "ticket"):

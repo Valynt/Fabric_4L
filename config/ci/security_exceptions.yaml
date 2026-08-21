@@ -1,24 +1,6 @@
-# Security exception registry — reviewed existing debt only.
-#
-# Every entry records a security exception that is knowingly accepted for a
-# bounded window. The expiry is enforced by scripts/ci/check_security_exceptions.py;
-# an expired exception fails the merge gate closed (acceptance metric:
-# "Expired exceptions automatically fail CI").
-#
-# Requirements for a valid entry:
-#   - owner:        team or role accountable for remediating the exception.
-#   - justification: why the baseline/tool limitation is acceptable for the
-#                    exception window (not "it works" — a defensible rationale).
-#   - expires_on:   ISO date (YYYY-MM-DD). The gate fails after this date.
-#   - compensating_control: the control that reduces residual risk while the
-#                    exception is open.
-#   - ticket:       tracking ticket/reference for the remediation commitment.
-#
-# Baseline-only entries are permitted for reviewed existing debt.  Any new
-# HIGH or CRITICAL finding that is NOT covered by an entry here fails closed.
-#
-# Date-sensitive fields MUST never be faked (see governance: "Do not return
-# fake data").  Keep expires_on honest and schedule the remediation.
-
 schema_version: 1
+
+# Security exceptions registry
+# Expired exceptions automatically fail CI.
 exceptions: {}
+
