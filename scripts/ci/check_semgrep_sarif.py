@@ -4,7 +4,7 @@
 Validates that:
 1. The SARIF file is valid and well-formed.
 2. All ERROR-severity Semgrep findings are matched against an acknowledged baseline.
-3. Any new or unbaselined ERROR-severity finding fails the CI gate closed.
+3. Newly introduced or unbaselined ERROR-severity findings fail the CI gate closed.
 """
 
 from __future__ import annotations
@@ -15,7 +15,6 @@ import os
 import sys
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any
 
 
 @dataclass(frozen=True, order=True)
@@ -29,7 +28,7 @@ class SarifErrorFinding:
     def key(self) -> str:
         return f"{self.path}:{self.line}:{self.rule_id}"
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> dict[str, object]:
         return {
             "rule_id": self.rule_id,
             "path": self.path,
@@ -62,7 +61,7 @@ def normalize_rule_id(raw_rule_id: str) -> str:
 
 
 def parse_sarif_errors(
-    sarif_data: dict[str, Any], root: Path | None = None
+    sarif_data: dict[str, object], root: Path | None = None
 ) -> list[SarifErrorFinding]:
     """Parse SARIF JSON data and extract all ERROR-severity findings."""
     if not isinstance(sarif_data, dict):
@@ -86,10 +85,9 @@ def parse_sarif_errors(
         tool_driver = run.get("tool", {}).get("driver", {})
         for rule in tool_driver.get("rules", []):
             rule_id = rule.get("id")
-            default_level = (
-                rule.get("defaultConfiguration", {}).get("level")
-                or rule.get("properties", {}).get("precision")
-            )
+            default_level = rule.get("defaultConfiguration", {}).get(
+                "level"
+            ) or rule.get("properties", {}).get("precision")
             if rule_id and default_level:
                 rules_map[rule_id] = default_level.lower()
 
@@ -112,7 +110,11 @@ def parse_sarif_errors(
             locations = result.get("locations", [])
             path = "<unknown>"
             line = 1
-            if locations and isinstance(locations, list) and isinstance(locations[0], dict):
+            if (
+                locations
+                and isinstance(locations, list)
+                and isinstance(locations[0], dict)
+            ):
                 phys = locations[0].get("physicalLocation", {})
                 art = phys.get("artifactLocation", {})
                 raw_uri = art.get("uri", "<unknown>")
@@ -154,7 +156,11 @@ class BaselineEntry:
             return True
         bare_cand = norm_cand.split(".")[-1]
         bare_self = norm_self.split(".")[-1]
-        return bare_cand == bare_self or norm_self.endswith(bare_cand) or norm_cand.endswith(bare_self)
+        return (
+            bare_cand == bare_self
+            or norm_self.endswith(bare_cand)
+            or norm_cand.endswith(bare_self)
+        )
 
 
 def load_baseline(baseline_path: Path) -> list[BaselineEntry]:
@@ -174,7 +180,9 @@ def load_baseline(baseline_path: Path) -> list[BaselineEntry]:
         line = int(item.get("line", 0))
         message = str(item.get("message", ""))
         if rule_id and path:
-            entries.append(BaselineEntry(rule_id=rule_id, path=path, line=line, message=message))
+            entries.append(
+                BaselineEntry(rule_id=rule_id, path=path, line=line, message=message)
+            )
 
     return entries
 
@@ -185,7 +193,7 @@ def match_findings_against_baseline(
     max_line_delta: int = 10,
 ) -> tuple[list[SarifErrorFinding], list[SarifErrorFinding]]:
     """Match findings 1:1 against baseline entries.
-    
+
     Returns (baselined_findings, unbaselined_findings).
     """
     # Reset used flags on baseline entries
@@ -200,7 +208,12 @@ def match_findings_against_baseline(
     for finding in findings:
         matched = False
         for entry in baseline_entries:
-            if not entry.used and entry.path == finding.path and entry.matches_rule(finding.rule_id) and entry.line == finding.line:
+            if (
+                not entry.used
+                and entry.path == finding.path
+                and entry.matches_rule(finding.rule_id)
+                and entry.line == finding.line
+            ):
                 entry.used = True
                 baselined.append(finding)
                 matched = True
@@ -215,7 +228,11 @@ def match_findings_against_baseline(
         best_delta = max_line_delta + 1
 
         for entry in baseline_entries:
-            if not entry.used and entry.path == finding.path and entry.matches_rule(finding.rule_id):
+            if (
+                not entry.used
+                and entry.path == finding.path
+                and entry.matches_rule(finding.rule_id)
+            ):
                 if entry.line > 0:
                     delta = abs(entry.line - finding.line)
                     if delta <= max_line_delta and delta < best_delta:
@@ -238,7 +255,7 @@ def match_findings_against_baseline(
 
 def is_baselined(
     finding: SarifErrorFinding,
-    baseline_entries: list[BaselineEntry] | set[Any],
+    baseline_entries: list[BaselineEntry] | set[tuple[str, ...]],
     max_line_delta: int = 10,
 ) -> bool:
     """Check if a single finding matches the acknowledged baseline."""
@@ -248,18 +265,36 @@ def is_baselined(
         for item in baseline_entries:
             if len(item) == 3:
                 r_id, p, l = item
-                if p == finding.path and (r_id == finding.rule_id or r_id.endswith(bare_rule) or bare_rule in r_id):
-                    if l == finding.line or (l > 0 and abs(l - finding.line) <= max_line_delta):
+                if p == finding.path and (
+                    r_id == finding.rule_id
+                    or r_id.endswith(bare_rule)
+                    or bare_rule in r_id
+                ):
+                    if l == finding.line or (
+                        l > 0 and abs(l - finding.line) <= max_line_delta
+                    ):
                         return True
             elif len(item) == 2:
                 r_id, p = item
-                if p == finding.path and (r_id == finding.rule_id or r_id.endswith(bare_rule) or bare_rule in r_id):
+                if p == finding.path and (
+                    r_id == finding.rule_id
+                    or r_id.endswith(bare_rule)
+                    or bare_rule in r_id
+                ):
                     return True
         return False
 
     for entry in baseline_entries:
-        if not entry.used and entry.path == finding.path and entry.matches_rule(finding.rule_id):
-            if entry.line == finding.line or (entry.line > 0 and abs(entry.line - finding.line) <= max_line_delta) or entry.line == 0:
+        if (
+            not entry.used
+            and entry.path == finding.path
+            and entry.matches_rule(finding.rule_id)
+        ):
+            if (
+                entry.line == finding.line
+                or (entry.line > 0 and abs(entry.line - finding.line) <= max_line_delta)
+                or entry.line == 0
+            ):
                 return True
     return False
 
@@ -333,7 +368,9 @@ def main() -> int:
         return 0
 
     baseline_entries = load_baseline(args.baseline)
-    baselined_findings, new_errors = match_findings_against_baseline(findings, baseline_entries)
+    baselined_findings, new_errors = match_findings_against_baseline(
+        findings, baseline_entries
+    )
     baselined_count = len(baselined_findings)
 
     if new_errors:

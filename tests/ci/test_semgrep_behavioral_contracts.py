@@ -16,7 +16,7 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
-from typing import Any
+from typing import cast
 
 import pytest
 import yaml
@@ -51,8 +51,8 @@ EXPECTED_CUSTOM_RULES = {
 }
 
 
-def _load_all_rules() -> dict[str, dict[str, Any]]:
-    rules = {}
+def _load_all_rules() -> dict[str, dict[str, object]]:
+    rules: dict[str, dict[str, object]] = {}
     for yml_file in SEMGREP_DIR.glob("*.yml"):
         data = yaml.safe_load(yml_file.read_text(encoding="utf-8"))
         if not data or "rules" not in data:
@@ -95,7 +95,9 @@ def test_paths_filters_code_scope_covers_all_security_surfaces() -> None:
         ".semgrepignore",
     ]
     for surface in expected_surfaces:
-        assert surface in code_patterns, f"Missing security surface {surface} in code: filter"
+        assert (
+            surface in code_patterns
+        ), f"Missing security surface {surface} in code: filter"
 
 
 def test_security_workflow_runs_baseline_check() -> None:
@@ -104,21 +106,21 @@ def test_security_workflow_runs_baseline_check() -> None:
     assert "config/ci/semgrep_baseline.json" in workflow_text
 
 
-def _run_semgrep_on_code(code_snippet: str, rule_id: str) -> list[dict[str, Any]]:
+def _run_semgrep_on_code(code_snippet: str, rule_id: str) -> list[dict[str, object]]:
     rules_map = _load_all_rules()
     rule = rules_map[rule_id]
-    
+
     with tempfile.TemporaryDirectory() as tmpdir:
         tmp_path = Path(tmpdir)
         rule_file = tmp_path / "rule.yml"
         rule_file.write_text(yaml.dump({"rules": [rule]}), encoding="utf-8")
-        
+
         # Write code file in simulated services/layer3-knowledge directory so path filters pass
         target_dir = tmp_path / "services" / "layer3-knowledge" / "src"
         target_dir.mkdir(parents=True, exist_ok=True)
         code_file = target_dir / "target.py"
         code_file.write_text(code_snippet, encoding="utf-8")
-        
+
         cmd = [
             "semgrep",
             "scan",
@@ -134,7 +136,9 @@ def _run_semgrep_on_code(code_snippet: str, rule_id: str) -> list[dict[str, Any]
             res = json.loads(proc.stdout)
             return res.get("results", [])
         except json.JSONDecodeError:
-            pytest.fail(f"Semgrep failed to produce JSON: {proc.stderr}\nStdout: {proc.stdout}")
+            pytest.fail(
+                f"Semgrep failed to produce JSON: {proc.stderr}\nStdout: {proc.stdout}"
+            )
 
 
 def test_block_direct_mutation_behavior() -> None:
@@ -148,81 +152,95 @@ def mutate_node(tx, tenant_id, name):
     results = _run_semgrep_on_code(bad_code, "block-direct-graph-mutation")
     assert len(results) >= 1, "Expected direct MERGE mutation to be flagged"
 
-    safe_code = '''
+    safe_code = """
 def mutate_node(mutation, tenant_id, name):
     # cypher-mutation-safe: audited gateway
     mutation.write_node("Entity", "id-123", {"name": name})
-'''
+"""
     results_safe = _run_semgrep_on_code(safe_code, "block-direct-graph-mutation")
     assert len(results_safe) == 0, "Expected safe AuditedGraphMutation to remain clean"
 
 
 def test_cypher_label_injection_behavior() -> None:
-    bad_fstring = '''
+    bad_fstring = """
 def get_nodes(session, target_label):
     query = f"MATCH (n:{target_label}) RETURN n"
     return session.run(query)
-'''
+"""
     results = _run_semgrep_on_code(bad_fstring, "cypher-dynamic-label-injection")
     assert len(results) >= 1, "Expected dynamic label interpolation to be flagged"
 
     # Fake suppression without allowlist provenance must STILL fail
-    bad_suppression = '''
+    bad_suppression = """
 def get_nodes(session, target_label):
     query = f"MATCH (n:{target_label}) RETURN n"  # cypher-dynamic-safe: ignore
     return session.run(query)
-'''
-    results_bad_suppr = _run_semgrep_on_code(bad_suppression, "cypher-dynamic-label-injection")
-    assert len(results_bad_suppr) >= 1, "Expected fake suppression without allowlist provenance to be flagged"
+"""
+    results_bad_suppr = _run_semgrep_on_code(
+        bad_suppression, "cypher-dynamic-label-injection"
+    )
+    assert (
+        len(results_bad_suppr) >= 1
+    ), "Expected fake suppression without allowlist provenance to be flagged"
 
     # Verified allowlist provenance is accepted
-    safe_provenance = '''
+    safe_provenance = """
 def get_nodes(session, target_label):
     query = f"MATCH (n:{target_label}) RETURN n"  # cypher-dynamic-safe: validated against _ALLOWED_TARGET_LABELS
     return session.run(query)
-'''
-    results_safe = _run_semgrep_on_code(safe_provenance, "cypher-dynamic-label-injection")
-    assert len(results_safe) == 0, "Expected valid allowlist provenance to suppress safely"
+"""
+    results_safe = _run_semgrep_on_code(
+        safe_provenance, "cypher-dynamic-label-injection"
+    )
+    assert (
+        len(results_safe) == 0
+    ), "Expected valid allowlist provenance to suppress safely"
 
 
 def test_cypher_rel_type_injection_behavior() -> None:
-    bad_rel = '''
+    bad_rel = """
 def get_relationships(session, rel_type):
     query = f"MATCH (a)-[:{rel_type}]->(b) RETURN a, b"
     return session.run(query)
-'''
+"""
     results = _run_semgrep_on_code(bad_rel, "cypher-dynamic-rel-type-injection")
     assert len(results) >= 1, "Expected dynamic rel_type to be flagged"
 
-    safe_rel = '''
+    safe_rel = """
 def get_relationships(session, rel_type):
     query = f"MATCH (a)-[:{rel_type}]->(b) RETURN a, b"  # cypher-dynamic-safe: validated against _ALLOWED_REL_TYPES
     return session.run(query)
-'''
+"""
     results_safe = _run_semgrep_on_code(safe_rel, "cypher-dynamic-rel-type-injection")
-    assert len(results_safe) == 0, "Expected valid allowlist provenance to suppress safely"
+    assert (
+        len(results_safe) == 0
+    ), "Expected valid allowlist provenance to suppress safely"
 
 
 def test_error_str_leakage_logging_not_flagged_as_result_dict() -> None:
-    logger_code = '''
+    logger_code = """
 def handle_request():
     try:
         do_something()
     except Exception as e:
         logger.info("request failed", extra={"error": str(e), "status": 500})
         return {"error": "An internal error occurred", "code": 500}
-'''
+"""
     results = _run_semgrep_on_code(logger_code, "error-str-leakage-in-result-dict")
-    assert len(results) == 0, "Logging extra dictionary must NOT trigger result-dict error rule"
+    assert (
+        len(results) == 0
+    ), "Logging extra dictionary must NOT trigger result-dict error rule"
 
-    leakage_code = '''
+    leakage_code = """
 def handle_request():
     try:
         do_something()
     except Exception as e:
         return {"error": str(e), "success": False}
-'''
-    results_leak = _run_semgrep_on_code(leakage_code, "error-str-leakage-in-result-dict")
+"""
+    results_leak = _run_semgrep_on_code(
+        leakage_code, "error-str-leakage-in-result-dict"
+    )
     assert len(results_leak) >= 1, "Actual error string in return dict MUST be flagged"
 
 
@@ -253,7 +271,9 @@ def test_sarif_parser_and_baseline_matching() -> None:
                         "locations": [
                             {
                                 "physicalLocation": {
-                                    "artifactLocation": {"uri": "services/layer3-knowledge/query.py"},
+                                    "artifactLocation": {
+                                        "uri": "services/layer3-knowledge/query.py"
+                                    },
                                     "region": {"startLine": 42},
                                 }
                             }
@@ -266,7 +286,9 @@ def test_sarif_parser_and_baseline_matching() -> None:
                         "locations": [
                             {
                                 "physicalLocation": {
-                                    "artifactLocation": {"uri": "services/layer3-knowledge/filter.py"},
+                                    "artifactLocation": {
+                                        "uri": "services/layer3-knowledge/filter.py"
+                                    },
                                     "region": {"startLine": 10},
                                 }
                             }
@@ -284,8 +306,16 @@ def test_sarif_parser_and_baseline_matching() -> None:
     assert findings[0].path == "services/layer3-knowledge/query.py"
     assert findings[0].line == 42
 
-    exact_baseline = {("semgrep.cypher-dynamic-label-injection", "services/layer3-knowledge/query.py", 42)}
-    flexible_baseline = {("semgrep.cypher-dynamic-label-injection", "services/layer3-knowledge/query.py")}
+    exact_baseline = {
+        (
+            "semgrep.cypher-dynamic-label-injection",
+            "services/layer3-knowledge/query.py",
+            42,
+        )
+    }
+    flexible_baseline = {
+        ("semgrep.cypher-dynamic-label-injection", "services/layer3-knowledge/query.py")
+    }
 
     assert is_baselined(findings[0], exact_baseline, flexible_baseline) is True
 
@@ -305,7 +335,7 @@ def test_sarif_parser_handles_malformed_and_empty() -> None:
         parse_sarif_errors({"invalid": "format"})
 
     with pytest.raises(ValueError):
-        parse_sarif_errors([])  # type: ignore[arg-type]
+        parse_sarif_errors(cast(dict[str, object], []))
 
 
 def test_checked_in_baseline_file_is_valid() -> None:
@@ -326,29 +356,44 @@ def test_exact_1_to_1_baseline_matching_and_bounded_relocation() -> None:
     ]
 
     # Finding 1: exact match at line 50
-    f1 = SarifErrorFinding("block-direct-graph-mutation", "services/api/app/core/database.py", 50)
+    f1 = SarifErrorFinding(
+        "block-direct-graph-mutation", "services/api/app/core/database.py", 50
+    )
     baselined, new_errs = match_findings_against_baseline([f1], entries)
     assert len(baselined) == 1
     assert len(new_errs) == 0
 
     # Finding 2: bounded line shift (line 53, delta=3 <= 10) -> matches
-    f2 = SarifErrorFinding("block-direct-graph-mutation", "services/api/app/core/database.py", 53)
-    baselined, new_errs = match_findings_against_baseline([f2], entries, max_line_delta=10)
+    f2 = SarifErrorFinding(
+        "block-direct-graph-mutation", "services/api/app/core/database.py", 53
+    )
+    baselined, new_errs = match_findings_against_baseline(
+        [f2], entries, max_line_delta=10
+    )
     assert len(baselined) == 1
     assert len(new_errs) == 0
 
     # Finding 3: far unlisted line (line 150, delta=100 > 10) -> MUST FAIL (not baselined)
-    f3 = SarifErrorFinding("block-direct-graph-mutation", "services/api/app/core/database.py", 150)
-    baselined, new_errs = match_findings_against_baseline([f3], entries, max_line_delta=10)
+    f3 = SarifErrorFinding(
+        "block-direct-graph-mutation", "services/api/app/core/database.py", 150
+    )
+    baselined, new_errs = match_findings_against_baseline(
+        [f3], entries, max_line_delta=10
+    )
     assert len(baselined) == 0
     assert len(new_errs) == 1
 
     # Finding 4: two findings in same file when only 1 baseline entry exists (1:1 consumption)
     # 1 should match, 2nd must be flagged as NEW error
-    f_legit = SarifErrorFinding("block-direct-graph-mutation", "services/api/app/core/database.py", 50)
-    f_regression = SarifErrorFinding("block-direct-graph-mutation", "services/api/app/core/database.py", 52)
-    baselined, new_errs = match_findings_against_baseline([f_legit, f_regression], entries, max_line_delta=10)
+    f_legit = SarifErrorFinding(
+        "block-direct-graph-mutation", "services/api/app/core/database.py", 50
+    )
+    f_regression = SarifErrorFinding(
+        "block-direct-graph-mutation", "services/api/app/core/database.py", 52
+    )
+    baselined, new_errs = match_findings_against_baseline(
+        [f_legit, f_regression], entries, max_line_delta=10
+    )
     assert len(baselined) == 1
     assert len(new_errs) == 1
     assert new_errs[0] == f_regression
-
