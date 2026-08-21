@@ -77,6 +77,37 @@ except Exception:  # pragma: no cover - service remains available if package imp
 
 SEMANTIC_CONTRACT_VERSION = "2.0.0"
 
+# Stable namespace for deterministic journey_id derivation.
+# A journey represents the end-to-end progression of a single account through
+# the ValuePilot workspaces (Intelligence → Value Studio → Narrative). Linking
+# every audit event and spine artifact to a journey_id makes the full timeline
+# reconstructable for traceability and replay.
+JOURNEY_NAMESPACE = uuid.UUID("c4b1f7a2-9d3e-4a6b-8c2f-1e5a4d7b9c30")
+
+
+def _resolve_journey_id(
+    *,
+    tenant_id: str,
+    account_id: str | None,
+    journey_id: str | None,
+) -> str:
+    """Resolve a stable journey_id scoped to (tenant_id, account_id).
+
+    Precedence:
+      1. Explicit journey_id passed by the caller (frontend/session).
+      2. Deterministic uuid5 from (tenant_id, account_id) when an account is
+         selected — stable across turns, tabs, and sessions for that account.
+      3. Deterministic uuid5 from (tenant_id, "no-account") when no account is
+         selected, so unscoped turns still carry a non-null journey link.
+
+    The journey_id is always tenant-scoped: different tenants with the same
+    account_id derive different journey_ids, preserving tenant isolation.
+    """
+    if journey_id and journey_id.strip():
+        return journey_id.strip()
+    account_key = account_id.strip() if isinstance(account_id, str) and account_id.strip() else "no-account"
+    return str(uuid.uuid5(JOURNEY_NAMESPACE, f"{tenant_id}:{account_key}"))
+
 
 # Tab-specific system prompts that provide workspace context to the LLM
 TAB_SYSTEM_PROMPTS: dict[str, str] = {
@@ -295,6 +326,7 @@ class ConversationService:
         entity_context: dict[str, Any] | None = None,
         tenant_id: str,
         trace_id: str | None = None,
+        journey_id: str | None = None,
     ):
         """Async generator that yields AG-UI events as the pipeline progresses.
 
@@ -310,6 +342,9 @@ class ConversationService:
         """
         tenant_id = self._require_tenant_id(tenant_id)
         trace_id = trace_id or str(uuid.uuid4())
+        journey_id = _resolve_journey_id(
+            tenant_id=tenant_id, account_id=account_id, journey_id=journey_id
+        )
         workflow_id = str(uuid.uuid4())
         audit_event_id = f"audit_{uuid.uuid4().hex[:12]}"
         run_id = f"run-{trace_id[:8]}"
@@ -323,18 +358,21 @@ class ConversationService:
             "runId": run_id,
             "description": f"Processing request for {account_name}",
             "expectedSteps": self.STREAMING_STEPS,
-            "metadata": self._semantic_agent_metadata(
-                agent_type="ConversationAgent",
-                output={"status": "started"},
-                tenant_id=tenant_id,
-                trace_id=trace_id,
-                workflow_id=workflow_id,
-                audit_event_id=None,
-                active_tab=active_tab,
-                intent="pending",
-                confidence=None,
-                source_node="conversation.start",
-            ),
+            "metadata": {
+                "journeyId": journey_id,
+                **self._semantic_agent_metadata(
+                    agent_type="ConversationAgent",
+                    output={"status": "started"},
+                    tenant_id=tenant_id,
+                    trace_id=trace_id,
+                    workflow_id=workflow_id,
+                    audit_event_id=None,
+                    active_tab=active_tab,
+                    intent="pending",
+                    confidence=None,
+                    source_node="conversation.start",
+                ),
+            },
         }
 
         try:
@@ -355,6 +393,7 @@ class ConversationService:
                             "traceId": trace_id,
                             "workflowId": workflow_id,
                             "tenantId": tenant_id,
+                            "journeyId": journey_id,
                             "intent": "refusal",
                             "confidence": 1.0,
                             **self._semantic_agent_metadata(
@@ -380,6 +419,7 @@ class ConversationService:
                 trace_id=trace_id,
                 workflow_id=workflow_id,
                 audit_event_id=audit_event_id,
+                journey_id=journey_id,
             )
             intent_result = await self._classify_intent(user_message, gate_context)
             intent = intent_result.get("intent", "general_question")
@@ -430,6 +470,7 @@ class ConversationService:
                     "traceId": trace_id,
                     "workflowId": workflow_id,
                     "tenantId": tenant_id,
+                    "journeyId": journey_id,
                     "intent": intent,
                     "confidence": confidence,
                     **self._semantic_agent_metadata(
@@ -464,6 +505,7 @@ class ConversationService:
         entity_context: dict[str, Any] | None = None,
         tenant_id: str,
         trace_id: str | None = None,
+        journey_id: str | None = None,
     ) -> dict[str, Any]:
         """Process a user message through the full ValuePilot pipeline.
 
@@ -472,6 +514,9 @@ class ConversationService:
         """
         tenant_id = self._require_tenant_id(tenant_id)
         trace_id = trace_id or str(uuid.uuid4())
+        journey_id = _resolve_journey_id(
+            tenant_id=tenant_id, account_id=account_id, journey_id=journey_id
+        )
         workflow_id = str(uuid.uuid4())
         audit_event_id = f"audit_{uuid.uuid4().hex[:12]}"
 
@@ -485,6 +530,7 @@ class ConversationService:
                 active_tab=active_tab,
                 account_id=account_id,
                 reason=guardrail["reason"],
+                journey_id=journey_id,
             )
             return ConversationService_handle_messageResult.model_validate({
                 "content": guardrail["message"],
@@ -492,6 +538,7 @@ class ConversationService:
                     "trace_id": trace_id,
                     "workflow_id": workflow_id,
                     "tenant_id": tenant_id,
+                    "journey_id": journey_id,
                     "tool_name": "valuepilot_conversation",
                     "audit_event_id": audit_event_id,
                     "emitted_at": datetime.now(UTC).isoformat(),
@@ -520,6 +567,7 @@ class ConversationService:
             trace_id=trace_id,
             workflow_id=workflow_id,
             audit_event_id=audit_event_id,
+            journey_id=journey_id,
         )
 
         # Step 1: Classify intent (GATE-governed)
@@ -580,6 +628,7 @@ class ConversationService:
             active_tab=active_tab,
             account_id=account_id,
             has_workflow=workflow_result is not None,
+            journey_id=journey_id,
         )
 
         return ConversationService_handle_messageResult.model_validate({
@@ -588,6 +637,7 @@ class ConversationService:
                 "trace_id": trace_id,
                 "workflow_id": workflow_id,
                 "tenant_id": tenant_id,
+                "journey_id": journey_id,
                 "tool_name": "valuepilot_conversation",
                 "audit_event_id": audit_event_id,
                 "emitted_at": datetime.now(UTC).isoformat(),
@@ -616,6 +666,7 @@ class ConversationService:
         trace_id: str | None = None,
         workflow_id: str | None = None,
         audit_event_id: str | None = None,
+        journey_id: str | None = None,
     ) -> dict[str, Any]:
         """Build the GATE execution context for ConversationAgent."""
         ctx: dict[str, Any] = {}
@@ -634,6 +685,8 @@ class ConversationService:
             ctx["workflow_id"] = workflow_id
         if audit_event_id:
             ctx["audit_event_id"] = audit_event_id
+        if journey_id:
+            ctx["journey_id"] = journey_id
 
         return ctx
 
@@ -1208,6 +1261,7 @@ class ConversationService:
         active_tab: str,
         account_id: str | None,
         has_workflow: bool,
+        journey_id: str | None,
     ) -> None:
         """Emit a GATE audit event for the conversation interaction."""
         try:
@@ -1221,13 +1275,14 @@ class ConversationService:
                     "workflow_id": workflow_id,
                     "audit_event_id": audit_event_id,
                     "tenant_id": tenant_id,
+                    "journey_id": journey_id,
                     "intent": intent,
                     "confidence": confidence,
                     "active_tab": active_tab,
                     "account_id": account_id,
                     "workflow_triggered": has_workflow,
                 },
-                chain_id=f"conversation:{tenant_id}",
+                chain_id=f"conversation:{tenant_id}:journey:{journey_id}" if journey_id else f"conversation:{tenant_id}",
             )
         except asyncio.CancelledError:
             raise
@@ -1244,6 +1299,7 @@ class ConversationService:
         active_tab: str,
         account_id: str | None,
         reason: str,
+        journey_id: str | None,
     ) -> None:
         """Emit an audit event for refused unsafe agent requests."""
         try:
@@ -1257,11 +1313,12 @@ class ConversationService:
                     "workflow_id": workflow_id,
                     "audit_event_id": audit_event_id,
                     "tenant_id": tenant_id,
+                    "journey_id": journey_id,
                     "active_tab": active_tab,
                     "account_id": account_id,
                     "reason": reason,
                 },
-                chain_id=f"conversation-security:{tenant_id}",
+                chain_id=f"conversation-security:{tenant_id}:journey:{journey_id}" if journey_id else f"conversation-security:{tenant_id}",
             )
         except asyncio.CancelledError:
             raise
