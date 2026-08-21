@@ -96,8 +96,36 @@ class TestLLMCostMetrics:
         metrics.set_health_status(False, component="layer3")
         output = metrics.get_metrics()
         assert "vf_health_status" in output
+        assert "layer2_health_status" in output
+        assert "value_fabric_health_status" in output
         assert 'component="api"' in output
         assert 'component="layer3"' in output
+
+    def test_record_http_request_and_duration(self):
+        """HTTP SLI request and latency metrics can be recorded."""
+        metrics = PrometheusMetrics()
+        metrics.record_http_request(
+            method="POST",
+            endpoint="/api/v1/extract",
+            status_code=200,
+            tenant_id="tenant-123",
+        )
+        metrics.record_http_duration(
+            method="POST",
+            endpoint="/api/v1/extract",
+            duration_seconds=0.35,
+            tenant_id="tenant-123",
+        )
+        output = metrics.get_metrics()
+        assert "layer2_http_requests_total" in output
+        assert "value_fabric_http_requests_total" in output
+        assert 'method="POST"' in output
+        assert 'endpoint="/api/v1/extract"' in output
+        assert 'status_code="200"' in output
+        assert "layer2_http_request_duration_seconds_bucket" in output
+        assert 'le="0.5"' in output
+        assert "layer2_http_request_duration_seconds_count" in output
+        assert "layer2_http_request_duration_seconds_sum" in output
 
 
 class TestGlobalMetrics:

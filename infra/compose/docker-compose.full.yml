@@ -566,7 +566,9 @@ services:
       - "9090"
     volumes:
       - ../../monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ../../monitoring/prometheus/recording-rules.yml:/etc/prometheus/recording-rules.yml:ro
       - ../../monitoring/alerting/rules.yml:/etc/prometheus/alerting/rules.yml:ro
+      - ../../monitoring/alerting/layer-sli-rules-production.yml:/etc/prometheus/alerting/layer-sli-rules-production.yml:ro
     networks:
       - value-fabric-network
     restart: unless-stopped

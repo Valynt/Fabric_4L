@@ -47,6 +47,7 @@ class PrometheusMetrics:
         self._counters: dict[tuple[str, tuple[tuple[str, str], ...]], float] = {}
         self._gauges: dict[tuple[str, tuple[tuple[str, str], ...]], float] = {}
         self._histograms: dict[tuple[str, tuple[tuple[str, str], ...]], list[float]] = {}
+        self.set_health_status(True, component="api")
 
     def _normalized_labels(self, labels: dict[str, str]) -> tuple[tuple[str, str], ...]:
         return tuple(sorted((k, str(v)) for k, v in labels.items()))
@@ -251,13 +252,47 @@ class PrometheusMetrics:
             {"reason": reason, "component": component},
         )
 
+    def record_http_request(
+        self,
+        *,
+        method: str,
+        endpoint: str,
+        status_code: int | str,
+        tenant_id: str | None = None,
+    ) -> None:
+        """Record an HTTP request for SLI tracking across canonical metric names."""
+        labels = {
+            "method": method.upper(),
+            "endpoint": endpoint,
+            "status_code": str(status_code),
+            "tenant_bucket": _tenant_bucket(tenant_id or "unknown", self.config.tenant_bucket_count),
+        }
+        self._record_counter("layer2_http_requests_total", labels)
+        self._record_counter("value_fabric_http_requests_total", labels)
+
+    def record_http_duration(
+        self,
+        *,
+        method: str,
+        endpoint: str,
+        duration_seconds: float,
+        tenant_id: str | None = None,
+    ) -> None:
+        """Record HTTP duration for SLI tracking across canonical metric names."""
+        labels = {
+            "method": method.upper(),
+            "endpoint": endpoint,
+            "tenant_bucket": _tenant_bucket(tenant_id or "unknown", self.config.tenant_bucket_count),
+        }
+        self._observe_histogram("layer2_http_request_duration_seconds", labels, duration_seconds)
+        self._observe_histogram("value_fabric_http_request_duration_seconds", labels, duration_seconds)
+
     def set_health_status(self, healthy: bool, component: str = "api") -> None:
         """Record health status for a component (1=healthy, 0=unhealthy)."""
-        self._record_gauge(
-            "vf_health_status",
-            {"component": component},
-            1.0 if healthy else 0.0,
-        )
+        val = 1.0 if healthy else 0.0
+        self._record_gauge("vf_health_status", {"component": component}, val)
+        self._record_gauge("layer2_health_status", {"component": component}, val)
+        self._record_gauge("value_fabric_health_status", {"component": component}, val)
 
     def get_metrics(self) -> str:
         """Generate Prometheus exposition format output."""
@@ -276,9 +311,17 @@ class PrometheusMetrics:
             lines.append(f"{name}{{{label_str}}} {value}")
         for (name, labels), values in self._histograms.items():
             if values:
-                label_str = ",".join(f'{k}="{_escape_label(v)}"' for k, v in labels)
-                lines.append(f"{name}_count{{{label_str}}} {len(values)}")
-                lines.append(f"{name}_sum{{{label_str}}} {sum(values)}")
+                label_prefix = ",".join(f'{k}="{_escape_label(v)}"' for k, v in labels)
+                buckets = [0.05, 0.1, 0.25, 0.5, 1.0, 1.5, 2.5, 5.0, 10.0]
+                for b in buckets:
+                    count_le = sum(1 for v in values if v <= b)
+                    b_label = f'{label_prefix},le="{b}"' if label_prefix else f'le="{b}"'
+                    lines.append(f"{name}_bucket{{{b_label}}} {count_le}")
+                inf_label = f'{label_prefix},le="+Inf"' if label_prefix else 'le="+Inf"'
+                lines.append(f"{name}_bucket{{{inf_label}}} {len(values)}")
+                count_label = f"{{{label_prefix}}}" if label_prefix else ""
+                lines.append(f"{name}_count{count_label} {len(values)}")
+                lines.append(f"{name}_sum{count_label} {sum(values)}")
         for (name, labels), value in self._gauges.items():
             label_str = ",".join(f'{k}="{_escape_label(v)}"' for k, v in labels)
             lines.append(f"{name}{{{label_str}}} {value}")
