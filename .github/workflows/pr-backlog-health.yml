@@ -27,77 +27,29 @@ jobs:
         run: |
           gh label create pr-backlog-health --color "5319e7" --description "Backlog health reports and related issues" || true
 
+      - name: Set up Python
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
+        with:
+          python-version: "3.11"
+
       - name: Collect backlog metrics
         id: metrics
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-
-          stale_date=$(date -u -d "14 days ago" +%Y-%m-%dT%H:%M:%SZ)
-          stale_prs=$(gh pr list --state open --limit 200 --json number,title,author,updatedAt \
-            --jq "[.[] | select(.updatedAt < \"$stale_date\") | \"- #\\(.number) by @\\(.author.login): \\(.title) (updated \\(.updatedAt))\"] | join(\"\\n\")")
-          stale_count=$(echo "$stale_prs" | grep -c '^-' || true)
-
-          required_contexts=(
-            "mandatory-security-regression"
-            "contract-compliance"
-            "prod-readiness"
-            "behavior-tests"
-            "Layer 5 - Source Contract"
-            "Layer 5 - Tenant Isolation Regression"
-            "Layer 5 - Contract Shape Regression"
-            "Structural Preflight"
-          )
-
-          main_sha=$(gh api repos/${{ github.repository }}/commits/main --jq '.sha')
-          total_required=${#required_contexts[@]}
-          passed_required=0
-          check_summary=""
-          for ctx in "${required_contexts[@]}"; do
-            conclusion=$(gh api "repos/${{ github.repository }}/commits/${main_sha}/check-runs" --paginate \
-              --jq "[.check_runs[] | select(.name == \"$ctx\")] | last // {} | .conclusion")
-            if [[ "$conclusion" == "success" ]]; then
-              passed_required=$((passed_required + 1))
-              check_summary="${check_summary}- $ctx: ✅ success\\n"
-            else
-              check_summary="${check_summary}- $ctx: ❌ ${conclusion:-missing}\\n"
-            fi
-          done
-
-          pass_rate=$(( passed_required * 100 / total_required ))
-
-          {
-            echo "stale_count=$stale_count"
-            echo "pass_rate=$pass_rate"
-            echo "main_sha=$main_sha"
-          } >> "$GITHUB_OUTPUT"
-
-          body_file=$(mktemp)
-          cat > "$body_file" <<EOF
-          ## PR Backlog Health Report
-
-          - Report generated: $(date -u +%Y-%m-%dT%H:%M:%SZ)
-          - \`main\` HEAD: ${main_sha}
-          - Stale open PRs (>14 days since last update): **${stale_count}**
-          - Required-check pass rate on \`main\`: **${pass_rate}%** (${passed_required}/${total_required})
-
-          ### Stale PRs
-
-          ${stale_prs:-No stale open PRs.}
-
-          ### Required checks on main
-
-          ${check_summary}
-
-          ### Action
-
-          If the pass rate is below 100% or stale PRs exist, follow [docs/runbooks/operational/pr-backlog-health.md](https://github.com/${{ github.repository }}/blob/main/docs/runbooks/operational/pr-backlog-health.md).
-          EOF
-
-          # Trim leading whitespace from heredoc lines
-          sed -i 's/^          //' "$body_file"
-          echo "body_file=$body_file" >> "$GITHUB_OUTPUT"
+          body_file="$(mktemp)"
+          github_output="$(mktemp)"
+          python3 scripts/ci/collect_pr_backlog_metrics.py \
+            --repo "${{ github.repository }}" \
+            --server-url "https://github.com" \
+            --stale-days 14 \
+            --main-sha "$(gh api repos/${{ github.repository }}/commits/main --jq '.sha')" \
+            --required-checks-config config/ci/required-status-checks.json \
+            --body-output "$body_file" \
+            --github-output "$github_output"
+          cat "$github_output" >> "$GITHUB_OUTPUT"
 
       - name: Open or update backlog health issue
         env:
@@ -105,10 +57,7 @@ jobs:
         run: |
           set -euo pipefail
           body_file="${{ steps.metrics.outputs.body_file }}"
-          stale_count="${{ steps.metrics.outputs.stale_count }}"
-          pass_rate="${{ steps.metrics.outputs.pass_rate }}"
-
-          title="PR Backlog Health Report — ${stale_count} stale, ${pass_rate}% main pass rate"
+          title="${{ steps.metrics.outputs.issue_title }}"
           existing=$(gh issue list --label pr-backlog-health --state open --json number --jq '.[0].number' || true)
 
           if [[ -n "$existing" && "$existing" != "null" ]]; then
