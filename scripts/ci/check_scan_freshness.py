@@ -25,7 +25,7 @@ REQUIRED_LAYERS = (
 def verify_workflow_schedules() -> list[str]:
     """Verify that required workflows have scheduled triggers covering all 6 layers."""
     errors = []
-    
+
     supply_chain_wf = WORKFLOW_DIR / "supply-chain-integrity.yml"
     if not supply_chain_wf.exists():
         errors.append("supply-chain-integrity.yml is missing")
@@ -46,7 +46,9 @@ def verify_workflow_schedules() -> list[str]:
             errors.append("dependency-scan.yml lacks a scheduled cron trigger")
         for layer in REQUIRED_LAYERS:
             if layer not in content:
-                errors.append(f"dependency-scan.yml is missing layer container scan for: {layer}")
+                errors.append(
+                    f"dependency-scan.yml is missing layer container scan for: {layer}"
+                )
 
     return errors
 
@@ -63,7 +65,9 @@ def verify_sarif_freshness(sarif_files: list[Path], max_age_days: int = 7) -> li
             mtime = datetime.fromtimestamp(sarif_path.stat().st_mtime, timezone.utc)
             age_days = (now - mtime).total_seconds() / 86400.0
             if age_days > max_age_days:
-                errors.append(f"SARIF file {sarif_path.name} is stale ({age_days:.1f} days old > {max_age_days} days)")
+                errors.append(
+                    f"SARIF file {sarif_path.name} is stale ({age_days:.1f} days old > {max_age_days} days)"
+                )
         except Exception as exc:
             errors.append(f"Failed to check freshness of {sarif_path}: {exc}")
 
@@ -72,22 +76,33 @@ def verify_sarif_freshness(sarif_files: list[Path], max_age_days: int = 7) -> li
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--max-age-days", type=int, default=7, help="Maximum allowed scan age in days")
-    parser.add_argument("--sarif-dir", type=Path, default=None, help="Directory containing SARIF reports to inspect")
+    parser.add_argument(
+        "--max-age-days", type=int, default=7, help="Maximum allowed scan age in days"
+    )
+    parser.add_argument(
+        "--sarif-dir",
+        type=Path,
+        default=None,
+        help="Directory containing SARIF reports to inspect",
+    )
     args = parser.parse_args()
 
     errors = verify_workflow_schedules()
 
     if args.sarif_dir and args.sarif_dir.exists():
         sarif_files = list(args.sarif_dir.glob("**/*.sarif"))
-        errors.extend(verify_sarif_freshness(sarif_files, max_age_days=args.max_age_days))
+        errors.extend(
+            verify_sarif_freshness(sarif_files, max_age_days=args.max_age_days)
+        )
 
     if errors:
         for err in errors:
             print(f"Scan Freshness Error: {err}", file=sys.stderr)
         sys.exit(1)
 
-    print(f"Scan freshness and schedule coverage verified for all {len(REQUIRED_LAYERS)} layers.")
+    print(
+        f"Scan freshness and schedule coverage verified for all {len(REQUIRED_LAYERS)} layers."
+    )
     sys.exit(0)
 
 

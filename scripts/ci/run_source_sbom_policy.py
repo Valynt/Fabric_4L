@@ -44,7 +44,9 @@ class VulnerabilityException:
     expires_at: str
 
 
-def parse_sarif_findings(sarif_path: Path, severity_cutoff: str = "high") -> list[SarifFinding]:
+def parse_sarif_findings(
+    sarif_path: Path, severity_cutoff: str = "high"
+) -> list[SarifFinding]:
     """Extract findings meeting or exceeding severity cutoff from SARIF file."""
     if not sarif_path.exists() or sarif_path.stat().st_size == 0:
         return []
@@ -75,19 +77,24 @@ def parse_sarif_findings(sarif_path: Path, severity_cutoff: str = "high") -> lis
             rule_id = result.get("ruleId") or "UNKNOWN"
             level = result.get("level", "warning")
             message = result.get("message", {}).get("text", "")
-            
+
             # Extract package name from message or locations if available
             locations = result.get("locations", [])
             location_str = ""
             if locations:
-                loc = locations[0].get("physicalLocation", {}).get("artifactLocation", {}).get("uri", "")
+                loc = (
+                    locations[0]
+                    .get("physicalLocation", {})
+                    .get("artifactLocation", {})
+                    .get("uri", "")
+                )
                 location_str = loc
 
             # Determine severity
             severity = "medium"
             if level == "error":
                 severity = "high"
-            
+
             rule_info = rules_map.get(rule_id, {})
             for tag in rule_info.get("tags", []):
                 if tag.startswith("severity:"):
@@ -136,6 +143,7 @@ def load_exceptions(exceptions_path: Path | None) -> list[VulnerabilityException
         if exceptions_path.suffix in (".yaml", ".yml"):
             try:
                 import yaml
+
                 data = yaml.safe_load(content) or {}
             except ImportError:
                 # Basic line parsing fallback if pyyaml not installed
@@ -143,16 +151,25 @@ def load_exceptions(exceptions_path: Path | None) -> list[VulnerabilityException
         else:
             data = json.loads(content)
     except Exception as exc:
-        print(f"Warning: Failed to load exceptions from {exceptions_path}: {exc}", file=sys.stderr)
+        print(
+            f"Warning: Failed to load exceptions from {exceptions_path}: {exc}",
+            file=sys.stderr,
+        )
         return []
 
     if not isinstance(data, dict):
-        print(f"Warning: Invalid exception data structure in {exceptions_path}", file=sys.stderr)
+        print(
+            f"Warning: Invalid exception data structure in {exceptions_path}",
+            file=sys.stderr,
+        )
         return []
 
     exceptions = data.get("exceptions", [])
     if not isinstance(exceptions, list):
-        print(f"Warning: 'exceptions' must be a list in {exceptions_path}", file=sys.stderr)
+        print(
+            f"Warning: 'exceptions' must be a list in {exceptions_path}",
+            file=sys.stderr,
+        )
         return []
 
     valid_exceptions: list[VulnerabilityException] = []
@@ -160,7 +177,10 @@ def load_exceptions(exceptions_path: Path | None) -> list[VulnerabilityException
 
     for idx, exc in enumerate(exceptions):
         if not isinstance(exc, dict):
-            print(f"Warning: Exception entry {idx} is not a valid dict, skipping.", file=sys.stderr)
+            print(
+                f"Warning: Exception entry {idx} is not a valid dict, skipping.",
+                file=sys.stderr,
+            )
             continue
 
         cve = exc.get("cve_id") or exc.get("id")
@@ -181,10 +201,16 @@ def load_exceptions(exceptions_path: Path | None) -> list[VulnerabilityException
         try:
             expires_at = datetime.fromisoformat(expires_at_str.replace("Z", "+00:00"))
             if expires_at < now:
-                print(f"Exception for {cve} has EXPIRED on {expires_at_str}", file=sys.stderr)
+                print(
+                    f"Exception for {cve} has EXPIRED on {expires_at_str}",
+                    file=sys.stderr,
+                )
                 continue
         except Exception as e:
-            print(f"Warning: Exception for {cve} has invalid expires_at format '{expires_at_str}': {e}, rejecting.", file=sys.stderr)
+            print(
+                f"Warning: Exception for {cve} has invalid expires_at format '{expires_at_str}': {e}, rejecting.",
+                file=sys.stderr,
+            )
             continue
 
         valid_exceptions.append(
@@ -203,7 +229,11 @@ def load_exceptions(exceptions_path: Path | None) -> list[VulnerabilityException
     return valid_exceptions
 
 
-def is_excepted(finding: SarifFinding, exceptions: list[VulnerabilityException], layer: str | None = None) -> bool:
+def is_excepted(
+    finding: SarifFinding,
+    exceptions: list[VulnerabilityException],
+    layer: str | None = None,
+) -> bool:
     """Check if finding matches any active exception."""
     rule_id = finding.rule_id
     for exc in exceptions:
@@ -230,11 +260,16 @@ def enforce(
             unexcepted.append(f)
 
     if not unexcepted:
-        print(f"SARIF policy enforce: 0 unexcepted {severity_cutoff}+ vulnerabilities found.")
+        print(
+            f"SARIF policy enforce: 0 unexcepted {severity_cutoff}+ vulnerabilities found."
+        )
         return CLEAN_EXIT
 
     for f in unexcepted:
-        print(f"Vulnerability violation [{f.severity.upper()}]: {f.rule_id} - {f.message}", file=sys.stderr)
+        print(
+            f"Vulnerability violation [{f.severity.upper()}]: {f.rule_id} - {f.message}",
+            file=sys.stderr,
+        )
 
     return VULNERABLE_EXIT
 
@@ -246,8 +281,12 @@ def compare(
     exceptions_path: Path | None = None,
     layer: str | None = None,
 ) -> int:
-    current_findings = parse_sarif_findings(current_sarif_path, severity_cutoff=severity_cutoff)
-    baseline_findings = parse_sarif_findings(baseline_sarif_path, severity_cutoff=severity_cutoff)
+    current_findings = parse_sarif_findings(
+        current_sarif_path, severity_cutoff=severity_cutoff
+    )
+    baseline_findings = parse_sarif_findings(
+        baseline_sarif_path, severity_cutoff=severity_cutoff
+    )
     exceptions = load_exceptions(exceptions_path)
 
     baseline_signatures = {f.signature for f in baseline_findings}
@@ -262,17 +301,23 @@ def compare(
             introduced.append(f)
 
     for f in inherited:
-        print(f"Inherited vulnerability [{f.severity.upper()}]: {f.rule_id} - {f.message}")
+        print(
+            f"Inherited vulnerability [{f.severity.upper()}]: {f.rule_id} - {f.message}"
+        )
 
     unexcepted_introduced: list[SarifFinding] = []
     for f in introduced:
         if is_excepted(f, exceptions, layer=layer):
-            print(f"Excepted branch-introduced vulnerability: {f.rule_id} ({f.severity}) - {f.message}")
+            print(
+                f"Excepted branch-introduced vulnerability: {f.rule_id} ({f.severity}) - {f.message}"
+            )
         else:
             unexcepted_introduced.append(f)
 
     if not unexcepted_introduced:
-        print(f"SARIF policy compare: 0 new unexcepted {severity_cutoff}+ vulnerabilities introduced.")
+        print(
+            f"SARIF policy compare: 0 new unexcepted {severity_cutoff}+ vulnerabilities introduced."
+        )
         return CLEAN_EXIT
 
     for f in unexcepted_introduced:
@@ -304,7 +349,14 @@ def main() -> None:
     args = parser.parse_args()
 
     if args.command == "enforce":
-        sys.exit(enforce(args.sarif, severity_cutoff=args.severity, exceptions_path=args.exceptions, layer=args.layer))
+        sys.exit(
+            enforce(
+                args.sarif,
+                severity_cutoff=args.severity,
+                exceptions_path=args.exceptions,
+                layer=args.layer,
+            )
+        )
     elif args.command == "compare":
         sys.exit(
             compare(
