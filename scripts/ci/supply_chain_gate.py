@@ -150,7 +150,40 @@ def generate_sbom() -> int:
         json.dumps(summary, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
-    print(f"Generated {repo_relative(output)}")
+
+    provenance = {
+        "_type": "https://in-toto.io/Statement/v1",
+        "subject": [
+            {
+                "name": "fabric-4l-monorepo",
+                "digest": {
+                    "sha256": lockfile_hashes[0]["sha256"] if lockfile_hashes else ""
+                },
+            }
+        ],
+        "predicateType": "https://slsa.dev/provenance/v1",
+        "predicate": {
+            "buildDefinition": {
+                "buildType": "https://fabric4l.dev/release/v1/source-build",
+                "externalParameters": {"lockfiles": lockfile_hashes},
+                "internalParameters": {
+                    "component_count": len(sbom["components"]),
+                },
+            },
+            "runDetails": {
+                "builder": {"id": "https://fabric4l.dev/tools/supply_chain_gate.py"},
+                "metadata": {
+                    "invocationId": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
+                },
+            },
+        },
+    }
+    prov_output = ARTIFACT_DIR / "provenance.json"
+    prov_output.write_text(
+        json.dumps(provenance, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    print(f"Generated {repo_relative(output)} and {repo_relative(prov_output)}")
     return 0
 
 
