@@ -63,7 +63,7 @@ def test_parse_sarif_findings() -> None:
 
         findings = parse_sarif_findings(sarif_file, severity_cutoff="high")
         assert len(findings) == 1
-        assert findings[0]["rule_id"] == "CVE-2026-1001"
+        assert findings[0].rule_id == "CVE-2026-1001"
 
 
 def test_enforce_clean() -> None:

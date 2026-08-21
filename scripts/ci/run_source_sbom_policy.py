@@ -6,9 +6,9 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
 
 CLEAN_EXIT = 0
 VULNERABLE_EXIT = 1
@@ -23,7 +23,28 @@ SEVERITY_ORDER = {
 }
 
 
-def parse_sarif_findings(sarif_path: Path, severity_cutoff: str = "high") -> list[dict[str, Any]]:
+@dataclass(frozen=True)
+class SarifFinding:
+    rule_id: str
+    severity: str
+    message: str
+    location: str
+    signature: str
+
+
+@dataclass(frozen=True)
+class VulnerabilityException:
+    cve_id: str
+    layer: str
+    owner: str
+    ticket: str
+    justification: str
+    compensating_controls: str
+    created_at: str
+    expires_at: str
+
+
+def parse_sarif_findings(sarif_path: Path, severity_cutoff: str = "high") -> list[SarifFinding]:
     """Extract findings meeting or exceeding severity cutoff from SARIF file."""
     if not sarif_path.exists() or sarif_path.stat().st_size == 0:
         return []
@@ -34,7 +55,7 @@ def parse_sarif_findings(sarif_path: Path, severity_cutoff: str = "high") -> lis
         raise RuntimeError(f"Failed to parse SARIF file {sarif_path}: {exc}") from exc
 
     min_sev_level = SEVERITY_ORDER.get(severity_cutoff.lower(), 3)
-    findings: list[dict[str, Any]] = []
+    findings: list[SarifFinding] = []
 
     for run in data.get("runs", []):
         rules_map = {}
@@ -80,13 +101,15 @@ def parse_sarif_findings(sarif_path: Path, severity_cutoff: str = "high") -> lis
             # Check cutoff
             sev_level = SEVERITY_ORDER.get(severity, 2)
             if sev_level >= min_sev_level:
-                findings.append({
-                    "rule_id": rule_id,
-                    "severity": severity,
-                    "message": message,
-                    "location": location_str,
-                    "signature": f"{rule_id}:{location_str}:{message[:50]}",
-                })
+                findings.append(
+                    SarifFinding(
+                        rule_id=rule_id,
+                        severity=severity,
+                        message=message,
+                        location=location_str,
+                        signature=f"{rule_id}:{location_str}:{message[:50]}",
+                    )
+                )
 
     return findings
 
@@ -103,7 +126,7 @@ REQUIRED_EXCEPTION_FIELDS = (
 )
 
 
-def load_exceptions(exceptions_path: Path | None) -> list[dict[str, Any]]:
+def load_exceptions(exceptions_path: Path | None) -> list[VulnerabilityException]:
     """Load valid (well-formed, non-expired) vulnerability exceptions from JSON or YAML."""
     if not exceptions_path or not exceptions_path.exists():
         return []
@@ -132,7 +155,7 @@ def load_exceptions(exceptions_path: Path | None) -> list[dict[str, Any]]:
         print(f"Warning: 'exceptions' must be a list in {exceptions_path}", file=sys.stderr)
         return []
 
-    valid_exceptions = []
+    valid_exceptions: list[VulnerabilityException] = []
     now = datetime.now(timezone.utc)
 
     for idx, exc in enumerate(exceptions):
@@ -164,19 +187,28 @@ def load_exceptions(exceptions_path: Path | None) -> list[dict[str, Any]]:
             print(f"Warning: Exception for {cve} has invalid expires_at format '{expires_at_str}': {e}, rejecting.", file=sys.stderr)
             continue
 
-        valid_exceptions.append(exc)
+        valid_exceptions.append(
+            VulnerabilityException(
+                cve_id=str(cve),
+                layer=str(exc.get("layer") or exc.get("component") or "*"),
+                owner=str(exc.get("owner", "")),
+                ticket=str(exc.get("ticket", "")),
+                justification=str(exc.get("justification", "")),
+                compensating_controls=str(exc.get("compensating_controls", "")),
+                created_at=str(exc.get("created_at", "")),
+                expires_at=expires_at_str,
+            )
+        )
 
     return valid_exceptions
 
 
-def is_excepted(finding: dict[str, Any], exceptions: list[dict[str, Any]], layer: str | None = None) -> bool:
+def is_excepted(finding: SarifFinding, exceptions: list[VulnerabilityException], layer: str | None = None) -> bool:
     """Check if finding matches any active exception."""
-    rule_id = finding.get("rule_id", "")
+    rule_id = finding.rule_id
     for exc in exceptions:
-        exc_cve = exc.get("cve_id") or exc.get("id")
-        exc_layer = exc.get("layer") or exc.get("component")
-        if exc_cve == rule_id:
-            if not exc_layer or exc_layer == "*" or exc_layer == layer:
+        if exc.cve_id == rule_id:
+            if not exc.layer or exc.layer == "*" or exc.layer == layer:
                 return True
     return False
 
@@ -190,10 +222,10 @@ def enforce(
     findings = parse_sarif_findings(sarif_path, severity_cutoff=severity_cutoff)
     exceptions = load_exceptions(exceptions_path)
 
-    unexcepted = []
+    unexcepted: list[SarifFinding] = []
     for f in findings:
         if is_excepted(f, exceptions, layer=layer):
-            print(f"Excepted vulnerability: {f['rule_id']} ({f['severity']}) - {f['message']}")
+            print(f"Excepted vulnerability: {f.rule_id} ({f.severity}) - {f.message}")
         else:
             unexcepted.append(f)
 
@@ -202,7 +234,7 @@ def enforce(
         return CLEAN_EXIT
 
     for f in unexcepted:
-        print(f"Vulnerability violation [{f['severity'].upper()}]: {f['rule_id']} - {f['message']}", file=sys.stderr)
+        print(f"Vulnerability violation [{f.severity.upper()}]: {f.rule_id} - {f.message}", file=sys.stderr)
 
     return VULNERABLE_EXIT
 
@@ -218,24 +250,24 @@ def compare(
     baseline_findings = parse_sarif_findings(baseline_sarif_path, severity_cutoff=severity_cutoff)
     exceptions = load_exceptions(exceptions_path)
 
-    baseline_signatures = {f["signature"] for f in baseline_findings}
+    baseline_signatures = {f.signature for f in baseline_findings}
 
-    inherited = []
-    introduced = []
+    inherited: list[SarifFinding] = []
+    introduced: list[SarifFinding] = []
 
     for f in current_findings:
-        if f["signature"] in baseline_signatures:
+        if f.signature in baseline_signatures:
             inherited.append(f)
         else:
             introduced.append(f)
 
     for f in inherited:
-        print(f"Inherited vulnerability [{f['severity'].upper()}]: {f['rule_id']} - {f['message']}")
+        print(f"Inherited vulnerability [{f.severity.upper()}]: {f.rule_id} - {f.message}")
 
-    unexcepted_introduced = []
+    unexcepted_introduced: list[SarifFinding] = []
     for f in introduced:
         if is_excepted(f, exceptions, layer=layer):
-            print(f"Excepted branch-introduced vulnerability: {f['rule_id']} ({f['severity']}) - {f['message']}")
+            print(f"Excepted branch-introduced vulnerability: {f.rule_id} ({f.severity}) - {f.message}")
         else:
             unexcepted_introduced.append(f)
 
@@ -245,7 +277,7 @@ def compare(
 
     for f in unexcepted_introduced:
         print(
-            f"Branch-introduced vulnerability [{f['severity'].upper()}]: {f['rule_id']} - {f['message']}",
+            f"Branch-introduced vulnerability [{f.severity.upper()}]: {f.rule_id} - {f.message}",
             file=sys.stderr,
         )
 
