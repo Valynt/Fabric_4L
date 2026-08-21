@@ -362,21 +362,6 @@ export async function expectNoCrossTenantLeakage(page: Page): Promise<void> {
   await expect(page.getByText(foreignPattern).first()).not.toBeVisible({ timeout: 3000 });
 }
 
-export async function expectCrossTenantAccessDenied(
-  page: Page,
-  foreignRoute: string,
-  description = 'cross-tenant route access',
-): Promise<void> {
-  await page.goto(foreignRoute, { waitUntil: 'domcontentloaded' });
-  await expectNoCrossTenantLeakage(page);
-  await expect(
-    page
-      .getByText(/forbidden|not authorized|access denied|account not found|could not be loaded|no signals yet|error|sign in|login/i)
-      .or(page.locator('#main-content').getByText(/not found|access denied|forbidden/i))
-      .first(),
-  ).toBeVisible({ timeout: 10000 });
-}
-
 export async function expectSeededBusinessCaseWorkflowResults(
   page: Page,
   caseIds: string[],
