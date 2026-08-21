@@ -6,6 +6,7 @@ required_status_checks:
   - Structural Preflight
   - prod-readiness
   - behavior-tests
+  - Security Gates Required
   - Layer 5 - Source Contract
   - Layer 5 - Tenant Isolation Regression
   - Layer 5 - Contract Shape Regression
@@ -21,7 +22,6 @@ informational_status_checks:
   - 01-repository-integrity
   - 02-code-quality-and-tests
   - 03-contract-compliance
-  - 04-security-gates
   - 05-tenant-isolation-and-behavior
   - 06-production-readiness
   - 07-supply-chain-integrity
