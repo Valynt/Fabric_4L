@@ -11,7 +11,7 @@
 
 This is a **verification-only** deliverable: no production source code was modified. It audits the SLI alerting contract, confirms W3C trace propagation wiring across the six-layer platform, runs the targeted observability/contract test suites, and records production-readiness drift findings that should be routed through normal change CI.
 
-The SLI rules file is **structurally valid** and **metadata-complete** (19 alerts), and Jaeger trace propagation is **correctly wired** across all layer entrypoints. However, the audit surfaced **four drift findings** (A-D) that mean the SLI rules, as currently deployed, would not function as intended for Layers 2 and 6, and the SLI file itself is not loaded by live Prometheus.
+The SLI rules file is **structurally valid** and **metadata-complete** (19 alerts), and Jaeger trace propagation is **wired across the shared framework and most layer entrypoints**. However, the audit surfaced **five drift findings** (A, B, B2, C, D) that mean the SLI rules, as currently deployed, would not function as intended for Layers 2 and 6, Layer 2 emits no FastAPI spans to Jaeger, and the SLI file itself is not loaded by live Prometheus.
 
 ---
 
@@ -22,7 +22,7 @@ The SLI rules file is **structurally valid** and **metadata-complete** (19 alert
 | Check | Result |
 |---|---|
 | YAML structure / alerts parse | **PASS** - 1 group `layer-sli-production`, 19 alerts |
-| Required labels (`severity`, `environment: production`, `oncall_owner`, `layer`) | **PASS** - all 19 alerts |
+| Required labels (`severity`, `environment: production`, `oncall_owner`, `layer`) | **PARTIAL** - 18 of 19 alerts; `InconsistentTenantContextAccess` is a cross-layer security alert aggregating `by (layer, service, route, source)` and intentionally carries no single `layer` label (18 alerts carry `layer`, 19 carry `severity`/`environment`/`oncall_owner`) |
 | Required annotations (`summary`, `description`, `runbook_url`) | **PASS** - all 19 alerts |
 | Runbook URLs resolve to existing files | **PASS** - all under `docs/troubleshooting/runbooks/` |
 | Latency threshold (p95) | **PASS** - `> 1.5s` consistent L1-L6 |
@@ -37,7 +37,7 @@ The SLI rules file is **structurally valid** and **metadata-complete** (19 alert
 - **Correlation headers** (`trace_context.py`): verified `X-Request-ID` + aliases `X-Correlation-ID` / `X-Trace-ID`.
 - **OTel collector** (`monitoring/otel-collector.yaml`): OTLP receiver + tail sampling + Jaeger export verified.
 - **Jaeger datasource** (`monitoring/grafana/provisioning/datasources/jaeger.yml`): verified.
-- **Middleware wiring**: `init_telemetry()` + `FastAPIInstrumentor.instrument_fastapi_app()` wired into all layer entrypoints via shared `create_fabric_app()` in `packages/shared/src/value_fabric/shared/fastapi_framework/app.py` (211-250). W3C extraction/injection enabled.
+- **Middleware wiring**: `init_telemetry()` + `FastAPIInstrumentor.instrument_fastapi_app()` wired via shared `create_fabric_app()` in `packages/shared/src/value_fabric/shared/fastapi_framework/app.py` (211-250), but **only when `telemetry_service_name` is passed**. Layers 1, 3, 5, and 6 pass both `telemetry_service_name` and `instrument_telemetry=True` and are instrumented. **Layer 2 passes `instrument_telemetry=True` but omits `telemetry_service_name`**, so its provider stays `None` and it emits no FastAPI spans to Jaeger (see Finding B2). W3C extraction/injection enabled.
 
 ## 4. Test Suite Validation
 
@@ -67,6 +67,11 @@ Not run: one contract test requiring live services (timed out - out of static sc
 The SLI rules for L2 and the live `monitoring/alerting/rules.yml` reference `layer2_http_request_duration_seconds_bucket`, `layer2_http_requests_total{status_code=~"5.."}`, and `layer2_health_status{component="api"}`. But L2's live metrics module (`services/layer2-extraction/src/layer2_extraction/metrics/prometheus_metrics.py`) only emits **`vf_`-prefixed** names (`vf_health_status`, `vf_extraction_outcomes_total`, `vf_schema_validation_failures_total`, `vf_extraction_retries_total`, `vf_model_latency_seconds`, `vf_extraction_confidence`, `vf_cache_failures_total`, `vf_prompt_injection_attempts_total`, `vf_auth_failures_total`). Additionally `initialize_metrics()` is defined but never called in L2 service source, and `health.py` reads `metrics._metrics.get("requests_total")`/`active_connections` which the `vf_`-based module never populates.
 
 **Impact:** L2 latency/error/availability SLI alerts will never fire - they reference metrics L2 never emits. Single most actionable finding.
+
+### Finding B2 - Layer 2 FastAPI telemetry not instrumented (trace propagation gap)
+`services/layer2-extraction/src/layer2_extraction/api/main.py` passes `instrument_telemetry=True` but **omits `telemetry_service_name`**. In `packages/shared/src/value_fabric/shared/fastapi_framework/app.py` (487-490), the provider is initialized and FastAPI instrumented only when `telemetry_service_name is not None`. Consequently Layer 2 emits no FastAPI spans to Jaeger, unlike Layers 1, 3, 5, and 6 which pass both args. The static tests detect the `instrument_telemetry` flag's presence but cannot substantiate an all-layer trace-propagation sign-off.
+
+**Impact:** Jaeger trace propagation is incomplete across the six-layer platform - Layer 2 produces no instrumented HTTP spans. Verify with the runtime trace test or add `telemetry_service_name` before relying on an all-layer propagation sign-off.
 
 ### Finding C - docker-compose path mismatch
 `infra/compose/docker-compose.observability.yml` mounts `./monitoring/prometheus.yml`, but the actual file is `monitoring/prometheus/prometheus.yml`. Prometheus container would fail to load config in that compose path.
