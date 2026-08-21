@@ -20,6 +20,7 @@ from typing import cast
 
 import pytest
 import yaml
+
 from scripts.ci.check_semgrep_sarif import (
     BaselineEntry,
     SarifErrorFinding,

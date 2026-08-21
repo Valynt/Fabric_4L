@@ -28,7 +28,35 @@ rules:
         - "**/schema/**"
         - "**/db/audited_mutation.py"
     patterns:
-      - pattern-regex: '(?im)^.*?\([a-zA-Z0-9_`]*\s*:\s*`?\{[a-zA-Z0-9_.]+\}`?.*$'
+      - pattern-either:
+          # f-strings assigning or passed as arguments
+          - pattern: |
+              $Q = f"... ($ALIAS:$LABEL ...) ..."
+          - pattern: |
+              $Q = f"... (:$LABEL ...) ..."
+          - pattern: |
+              $Q = f"... ($ALIAS:`$LABEL` ...) ..."
+          - pattern: |
+              $Q = f"... (:`$LABEL` ...) ..."
+          - pattern: |
+              $FUNC(..., f"... ($ALIAS:$LABEL ...) ...", ...)
+          - pattern: |
+              $FUNC(..., f"... (:$LABEL ...) ...", ...)
+          - pattern: |
+              return f"... ($ALIAS:$LABEL ...) ..."
+          - pattern: |
+              return f"... (:$LABEL ...) ..."
+          # String formatting / concatenation
+          - pattern: |
+              "... (:" + $LABEL + ")..."
+          - pattern: |
+              "... (:{}) ...".format($LABEL, ...)
+          - pattern: |
+              "... (:{...}) ...".format(..., $K=$LABEL, ...)
+          - pattern: |
+              "... (:%s) ..." % $LABEL
+          # Regex fallback matching the entire line containing dynamic label interpolation
+          - pattern-regex: '(?im)^.*?\([a-zA-Z0-9_`]*\s*:\s*`?\{[a-zA-Z0-9_.]+\}`?.*$'
       # Must provide verified allowlist/validation provenance in the comment
       - pattern-not-regex: '(?i)#\s*cypher-dynamic-safe:\s*.*(?:allowlist|allowed_|validate|enum|literal|hardcoded|_allowed_target_labels|_allowed_rel_types|sanitized)'
     message: >
@@ -61,7 +89,62 @@ rules:
         - "**/schema/**"
         - "**/db/audited_mutation.py"
     patterns:
-      - pattern-regex: '(?im)^.*?(?:<-|-)?\[[a-zA-Z0-9_`]*\s*:\s*`?\{[a-zA-Z0-9_.]+\}`?[^\]]*\](?:->|-)?.*$'
+      - pattern-either:
+          # Directed right
+          - pattern: |
+              $Q = f"... -[$ALIAS:$REL_TYPE]-> ..."
+          - pattern: |
+              $Q = f"... -[:$REL_TYPE]-> ..."
+          - pattern: |
+              $Q = f"... -[$ALIAS:`$REL_TYPE`]-> ..."
+          - pattern: |
+              $Q = f"... -[:`$REL_TYPE`]-> ..."
+          # Directed left
+          - pattern: |
+              $Q = f"... <-[$ALIAS:$REL_TYPE]- ..."
+          - pattern: |
+              $Q = f"... <-[:$REL_TYPE]- ..."
+          - pattern: |
+              $Q = f"... <-[$ALIAS:`$REL_TYPE`]- ..."
+          - pattern: |
+              $Q = f"... <-[:`$REL_TYPE`]- ..."
+          # Undirected
+          - pattern: |
+              $Q = f"... -[$ALIAS:$REL_TYPE]- ..."
+          - pattern: |
+              $Q = f"... -[:$REL_TYPE]- ..."
+          # Direct function arguments and return statements
+          - pattern: |
+              $FUNC(..., f"... -[$ALIAS:$REL_TYPE]-> ...", ...)
+          - pattern: |
+              $FUNC(..., f"... -[:$REL_TYPE]-> ...", ...)
+          - pattern: |
+              $FUNC(..., f"... <-[$ALIAS:$REL_TYPE]- ...", ...)
+          - pattern: |
+              $FUNC(..., f"... <-[:$REL_TYPE]- ...", ...)
+          - pattern: |
+              $FUNC(..., f"... -[$ALIAS:$REL_TYPE]- ...", ...)
+          - pattern: |
+              $FUNC(..., f"... -[:$REL_TYPE]- ...", ...)
+          - pattern: |
+              return f"... -[$ALIAS:$REL_TYPE]-> ..."
+          - pattern: |
+              return f"... -[:$REL_TYPE]-> ..."
+          - pattern: |
+              return f"... <-[$ALIAS:$REL_TYPE]- ..."
+          - pattern: |
+              return f"... <-[:$REL_TYPE]- ..."
+          # String formatting / concatenation
+          - pattern: |
+              "... -[:" + $REL_TYPE + "]->..."
+          - pattern: |
+              "... <-[:" + $REL_TYPE + "]-..."
+          - pattern: |
+              "... -[:{}]->...".format($REL_TYPE, ...)
+          - pattern: |
+              "... <-[:{}]-...".format($REL_TYPE, ...)
+          # Regex patterns matching full line for anonymous and multi-directional relationships
+          - pattern-regex: '(?im)^.*?(?:<-|-)?\[[a-zA-Z0-9_`]*\s*:\s*`?\{[a-zA-Z0-9_.]+\}`?[^\]]*\](?:->|-)?.*$'
       # Must provide verified allowlist/validation provenance in the comment
       - pattern-not-regex: '(?i)#\s*cypher-dynamic-safe:\s*.*(?:allowlist|allowed_|validate|enum|literal|hardcoded|_allowed_target_labels|_allowed_rel_types|sanitized)'
     message: >
