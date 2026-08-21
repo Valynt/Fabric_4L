@@ -182,18 +182,17 @@ class Neo4jVectorStore:
         }
         builder = TenantScopedCypher(tenant)
         scoped = builder.custom_tenant_query(
-            f"""
-            MERGE (n:{entity_type} {{id: $id, tenant_id: $_tenant_id}})  # cypher-dynamic-safe: validated against VECTOR_ENTITY_TYPES allowlist
-            ON CREATE SET n.created_at = datetime()
-            SET
-                n.embedding = $embedding,
-                n.embedding_text = $text,
-                n.embedding_updated_at = datetime(),
-                n += $metadata
-            WITH n
-            WHERE n.tenant_id = $_tenant_id
-            RETURN n.id AS entity_id, true AS upserted
-            """,
+            "MERGE (n:" + entity_type + " {id: $id, tenant_id: $_tenant_id})\n"  # cypher-dynamic-safe: validated against VECTOR_ENTITY_TYPES allowlist
+            "            ON CREATE SET n.created_at = datetime()\n"
+            "            SET\n"
+            "                n.embedding = $embedding,\n"
+            "                n.embedding_text = $text,\n"
+            "                n.embedding_updated_at = datetime(),\n"
+            "                n += $metadata\n"
+            "            WITH n\n"
+            "            WHERE n.tenant_id = $_tenant_id\n"
+            "            RETURN n.id AS entity_id, true AS upserted\n"
+            "            ",
             params={
                 "id": entity_id,
                 "embedding": embedding,
@@ -250,18 +249,17 @@ class Neo4jVectorStore:
 
         builder = TenantScopedCypher(tenant)
         scoped = builder.custom_tenant_query(
-            f"""
-            UNWIND $records AS rec
-            MERGE (n:{entity_type} {{id: rec.id, tenant_id: $_tenant_id}})  # cypher-dynamic-safe: validated against VECTOR_ENTITY_TYPES allowlist
-            WITH n, rec
-            WHERE n.tenant_id = $_tenant_id
-            SET
-                n.embedding = rec.embedding,
-                n.embedding_text = rec.text,
-                n += rec.metadata,
-                n.embedding_updated_at = datetime()
-            RETURN count(n) AS upserted
-            """,
+            "UNWIND $records AS rec\n"
+            "            MERGE (n:" + entity_type + " {id: rec.id, tenant_id: $_tenant_id})\n"  # cypher-dynamic-safe: validated against VECTOR_ENTITY_TYPES allowlist
+            "            WITH n, rec\n"
+            "            WHERE n.tenant_id = $_tenant_id\n"
+            "            SET\n"
+            "                n.embedding = rec.embedding,\n"
+            "                n.embedding_text = rec.text,\n"
+            "                n += rec.metadata,\n"
+            "                n.embedding_updated_at = datetime()\n"
+            "            RETURN count(n) AS upserted\n"
+            "            ",
             params={"records": records},
             operation="vector_upsert_batch",
             labels=(entity_type,),

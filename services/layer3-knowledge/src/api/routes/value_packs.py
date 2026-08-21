@@ -361,11 +361,15 @@ async def _update_relationships(
     # Validate all targets exist with tenant scoping
     if target_ids:
         # SECURITY: Add tenant_id filter if available
-        check_query = f"""
-        UNWIND $target_ids as target_id
-        MATCH (t:{target_label} {{id: target_id, tenant_id: $tenant_id}})  # cypher-dynamic-safe: validated against ALLOWED_TARGET_LABELS allowlist
-        RETURN collect(t.id) as found_ids
-        """
+        # Query is split so the validated label interpolation lives on a line
+        # carrying the cypher-dynamic-safe provenance marker (outside the
+        # query text, so Neo4j never sees the `#` token).
+        check_query = (
+            "UNWIND $target_ids as target_id\n"
+            f"        MATCH (t:{target_label} {{id: target_id, tenant_id: $tenant_id}})\n"  # cypher-dynamic-safe: validated against ALLOWED_TARGET_LABELS allowlist
+            "        RETURN collect(t.id) as found_ids\n"
+            "        "
+        )
         params = {"target_ids": target_ids}
         if tenant_id:
             params["tenant_id"] = tenant_id
@@ -401,11 +405,12 @@ async def _update_relationships(
 
     # Delete existing relationships of this type from the pack
     # First, find all existing targets to delete individually through the gateway
-    existing_query = f"""
-    MATCH (vp:ValuePack {{id: $pack_id, tenant_id: $tenant_id}})
-    MATCH (vp)-[r:{rel_type}]->(t)  # cypher-dynamic-safe: validated against ALLOWED_REL_TYPES allowlist
-    RETURN t.id as target_id
-    """
+    existing_query = (
+        "MATCH (vp:ValuePack {id: $pack_id, tenant_id: $tenant_id})\n"
+        f"MATCH (vp)-[r:{rel_type}]->(t)\n"  # cypher-dynamic-safe: validated against ALLOWED_REL_TYPES allowlist
+        "RETURN t.id as target_id\n"
+        ""
+    )
     existing_result = await run_validated_query(
         tx,
         existing_query,

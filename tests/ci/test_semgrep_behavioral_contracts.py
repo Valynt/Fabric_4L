@@ -363,15 +363,18 @@ def test_exact_1_to_1_baseline_matching_and_bounded_relocation() -> None:
     assert len(baselined) == 1
     assert len(new_errs) == 0
 
-    # Finding 2: bounded line shift (line 53, delta=3 <= 10) -> matches
+    # Finding 2: shifted line (53, delta=3) is NOT baselined anymore: proximity
+    # matching was removed so a removed legacy finding cannot mask a new nearby
+    # finding. It must surface as a NEW error (SEC review feedback).
     f2 = SarifErrorFinding(
         "block-direct-graph-mutation", "services/api/app/core/database.py", 53
     )
     baselined, new_errs = match_findings_against_baseline(
         [f2], entries, max_line_delta=10
     )
-    assert len(baselined) == 1
-    assert len(new_errs) == 0
+    assert len(baselined) == 0
+    assert len(new_errs) == 1
+    assert new_errs[0] == f2
 
     # Finding 3: far unlisted line (line 150, delta=100 > 10) -> MUST FAIL (not baselined)
     f3 = SarifErrorFinding(
@@ -397,3 +400,26 @@ def test_exact_1_to_1_baseline_matching_and_bounded_relocation() -> None:
     assert len(baselined) == 1
     assert len(new_errs) == 1
     assert new_errs[0] == f_regression
+
+    # Finding 5: a line=0 wildcard baseline entry matches any single finding 1:1
+    wildcard_entries = [
+        BaselineEntry(
+            rule_id="block-direct-graph-mutation",
+            path="services/api/app/core/database.py",
+            line=0,
+        )
+    ]
+    f_wild = SarifErrorFinding(
+        "block-direct-graph-mutation", "services/api/app/core/database.py", 77
+    )
+    baselined, new_errs = match_findings_against_baseline(
+        [f_wild], wildcard_entries, max_line_delta=10
+    )
+    assert len(baselined) == 1
+    assert len(new_errs) == 0
+    # Wildcard consumes only one finding; a second finding must be NEW.
+    baselined, new_errs = match_findings_against_baseline(
+        [f_wild, f2], wildcard_entries, max_line_delta=10
+    )
+    assert len(baselined) == 1
+    assert len(new_errs) == 1

@@ -13,6 +13,7 @@ from value_fabric.shared.models import JSONDict
 
 from ...db import run_validated_query
 from ...db.driver import get_driver
+from ..utils.cypher_security import ALLOWED_REL_TYPES, ALLOWED_TARGET_LABELS, validate_cypher_identifier
 
 logger = logging.getLogger(__name__)
 
@@ -57,12 +58,14 @@ async def upsert_ground_truth_node(
     }
     
     # Build the MERGE query
-    query = f"""
-    MERGE (g:{GROUND_TRUTH_LABEL} {{truth_object_id: $truth_object_id, tenant_id: $tenant_id}})  # cypher-dynamic-safe: GROUND_TRUTH_LABEL is hardcoded literal
-    SET g += $properties
-    SET g.updated_at = datetime()
-    RETURN elementId(g) as node_id
-    """
+    validate_cypher_identifier(GROUND_TRUTH_LABEL, ALLOWED_TARGET_LABELS, kind="label")
+    query = (
+        f"MERGE (g:{GROUND_TRUTH_LABEL} {{truth_object_id: $truth_object_id, tenant_id: $tenant_id}})\n"  # cypher-dynamic-safe: GROUND_TRUTH_LABEL is hardcoded literal
+        "    SET g += $properties\n"
+        "    SET g.updated_at = datetime()\n"
+        "    RETURN elementId(g) as node_id\n"
+        "    "
+    )
     
     params = {
         "truth_object_id": str(truth_object_id),
@@ -102,14 +105,16 @@ async def link_ground_truth_to_entity(
     
     rel_props = properties or {}
     rel_props["created_at"] = "datetime()"
-    
-    query = f"""
-    MATCH (g:GroundTruth), (e:Entity)
-    WHERE elementId(g) = $gt_node_id AND e.tenant_id = $tenant_id AND e.id = $entity_id
-    MERGE (g)-[r:{relationship_type}]->(e)  # cypher-dynamic-safe: relationship_type is validated literal
-    SET r += $rel_props
-    RETURN elementId(r) as rel_id
-    """
+
+    validate_cypher_identifier(relationship_type, ALLOWED_REL_TYPES, kind="rel_type")
+    query = (
+        "MATCH (g:GroundTruth), (e:Entity)\n"
+        "WHERE elementId(g) = $gt_node_id AND e.tenant_id = $tenant_id AND e.id = $entity_id\n"
+        f"    MERGE (g)-[r:{relationship_type}]->(e)\n"  # cypher-dynamic-safe: relationship_type validated against ALLOWED_REL_TYPES allowlist
+        "    SET r += $rel_props\n"
+        "    RETURN elementId(r) as rel_id\n"
+        "    "
+    )
     
     params = {
         "gt_node_id": ground_truth_node_id,
