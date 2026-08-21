@@ -76,11 +76,17 @@ services:
     command:
       - sh
       - -lc
-      - "attempts=0\nuntil /app/.venv/bin/python /app/src/migrations/030_neo4j_tenant_id_constraints_and_indexes.py;\
-        \ do\n  attempts=$$((attempts + 1))\n  if [ \"$$attempts\" -ge 24 ]; then\n\
-        \    echo \"layer3 neo4j migration 030 failed after $${attempts} attempts\"\
-        \    exit 1\n  fi\n  echo \"waiting for neo4j ($${attempts}/24)\"\n  sleep 5\n\
-        done\n"
+      - |
+        attempts=0
+        until /app/.venv/bin/python /app/src/migrations/030_neo4j_tenant_id_constraints_and_indexes.py; do
+          attempts=$$((attempts + 1))
+          if [ "$$attempts" -ge 24 ]; then
+            echo "layer3 neo4j migration 030 failed after $${attempts} attempts"
+            exit 1
+          fi
+          echo "waiting for neo4j ($${attempts}/24)"
+          sleep 5
+        done
     environment:
       - ENVIRONMENT=development
       - NEO4J_URI=bolt://neo4j:7687
