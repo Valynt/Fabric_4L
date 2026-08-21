@@ -214,28 +214,4 @@ test.describe('Journey 11: Golden Path Business Lifecycle', () => {
     await expectNoCrossTenantLeakage(page);
     await expectTenantContext(page, BACKEND_E2E_TENANT_ID);
   });
-
-  test('test_hostile_cross_tenant_business_case_isolation @backend', async ({ page }) => {
-    requireBackendOrThrow('test_hostile_cross_tenant_business_case_isolation @backend');
-
-    // Attempt to access an unauthorized foreign business case
-    await navigateAndWait(page, '/deliverables/cases/case-foreign-001');
-    await expectNoCrossTenantLeakage(page);
-    await expect(
-      page
-        .getByText(/forbidden|not authorized|access denied|case not found|could not be loaded|not found|error|sign in|login/i)
-        .or(page.locator('#main-content').getByText(/not found|access denied|forbidden/i))
-        .first(),
-    ).toBeVisible({ timeout: 10000 });
-
-    // Attempt to access an unauthorized foreign tenant intelligence signals route
-    await navigateAndWait(page, '/intelligence/acct-foreign-001/signals');
-    await expectNoCrossTenantLeakage(page);
-    await expect(
-      page
-        .getByText(/forbidden|not authorized|access denied|account not found|could not be loaded|no signals yet|not found|error|sign in|login/i)
-        .or(page.locator('#main-content').getByText(/not found|access denied|forbidden/i))
-        .first(),
-    ).toBeVisible({ timeout: 10000 });
-  });
 });

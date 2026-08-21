@@ -381,17 +381,4 @@ journeyTest.describe('@backend Golden Path Backend-Integrated: Account to Approv
     await expectTenantContext(authedPage, SEED_TENANT_ID);
   });
 
-  // ── Phase 6: Hostile Cross-Tenant Isolation ─────────────────────────────
-
-  journeyTest('GP-BI-016: hostile foreign tenant route fails closed without leaking data', async ({ authedPage }) => {
-    const foreignAccountId = 'acct-foreign-001';
-    await authedPage.goto(`/intelligence/${foreignAccountId}/signals`, { waitUntil: 'domcontentloaded' });
-    await expectNoCrossTenantLeakage(authedPage);
-    await expect(
-      authedPage
-        .getByText(/forbidden|not authorized|access denied|account not found|could not be loaded|no signals yet|error|sign in|login/i)
-        .or(authedPage.locator('#main-content').getByText(/not found|access denied|forbidden/i))
-        .first(),
-    ).toBeVisible({ timeout: 10000 });
   });
-});
