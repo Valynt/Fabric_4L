@@ -203,13 +203,13 @@ def main() -> int:
                     violations.append((rel, i, line.strip()))
 
     if violations:
-        print("❌ Legacy Infisical secret paths detected (use by-layer paths instead):")
+        print("[FAIL] Legacy Infisical secret paths detected (use by-layer paths instead):")
         print("   Canonical paths: /shared /infra /layerN-* /apps/web /monitoring /ci")
         for rel, i, line in violations:
             print(f"   - {rel}:{i}: {line}")
         return 1
 
-    print("✅ PASS: no legacy Infisical secret paths found in active code/config/docs.")
+    print("[PASS] No legacy Infisical secret paths found in active code/config/docs.")
     return 0
 
 
