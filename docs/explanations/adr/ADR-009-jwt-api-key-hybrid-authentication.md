@@ -99,7 +99,7 @@ We chose a **Hybrid approach**: JWT for interactive users + API Keys for integra
 1. **Long-Lived**: Don't expire quickly like JWTs
    ```python
    # API key valid for 90 days
-   api_key = "vf_live_32_char_random_string"
+   api_key = "vf_test_dummy_32_char_random_string"
    ```
 
 2. **Revocable**: Can be disabled without affecting other keys

@@ -268,6 +268,16 @@ class CentralityAnalyzer:
         """Calculate degree centrality within the active tenant only.
 
         Useful for finding hubs and highly connected entities.
+
+        Contract note: the returned ``score`` is the **raw same-tenant degree
+        count** (number of relationships to same-tenant neighbors), not the
+        normalized degree centrality (degree / (n-1)). This matches the
+        unnormalized scale used by the other centrality algorithms on this
+        endpoint (PageRank, Betweenness) and the OpenAPI ``CentralityResult``
+        schema, which defines ``score`` as a generic number with no [0,1]
+        constraint. Cross-tenant relationships are excluded by the
+        ``WHERE r IS NULL OR m.tenant_id = $_tenant_id`` filter, so degree
+        counts never include neighbors owned by another tenant.
         """
         driver = await self._get_driver()
         builder = self._tenant_builder(tenant_id)
@@ -555,8 +565,12 @@ class CentralityAnalyzer:
 
 
     def _random_id(self) -> str:
-        """Generate random ID."""
-        import random
-        import string
+        """Generate a short unique ID for transient GDS graph projections.
 
-        return "".join(random.choices(string.ascii_lowercase + string.digits, k=8))
+        Uses ``uuid4().hex`` rather than module-level ``random`` so uniqueness
+        does not depend on global RNG state and the name is deterministic
+        across process forks (no shared seed drift).
+        """
+        from uuid import uuid4
+
+        return uuid4().hex[:8]

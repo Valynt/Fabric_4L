@@ -43,11 +43,11 @@ class TestSecretRedactionInResponses:
 
     def test_api_key_redacted_in_response_body(self):
         """P0: API keys must be redacted in response bodies."""
-        response_data = {"api_key": "sk_live_abc123xyz789"}
+        response_data = {"api_key": "sk_test_dummy_abc123xyz789"}
         redacted = redact_value(response_data)
 
         assert redacted["api_key"] == REDACTED_VALUE
-        assert "sk_live_abc123xyz789" not in str(redacted)
+        assert "sk_test_dummy_abc123xyz789" not in str(redacted)
 
     def test_nested_secrets_redacted_in_response_body(self):
         """P0: Nested secrets must be redacted in response bodies."""
@@ -67,8 +67,8 @@ class TestSecretRedactionInResponses:
     def test_list_with_secrets_redacted_in_response_body(self):
         """P0: Lists containing secrets must be redacted."""
         response_data = [
-            {"name": "key1", "api_key": "sk_live_abc123"},
-            {"name": "key2", "api_key": "sk_live_def456"}
+            {"name": "key1", "api_key": "sk_test_dummy_abc123"},
+            {"name": "key2", "api_key": "sk_test_dummy_def456"}
         ]
         redacted = redact_value(response_data)
 
@@ -77,7 +77,7 @@ class TestSecretRedactionInResponses:
     def test_jwt_token_redacted_in_response_body(self):
         """P0: JWT tokens must be redacted in response bodies."""
         response_data = {
-            "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+            "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwidGVuYW50X2lkIjoidGVzdF90ZW5hbnQifQ.dummy_test_signature_for_testing_only_12345"
         }
         redacted = redact_value(response_data)
 
@@ -95,7 +95,7 @@ class TestSecretRedactionInResponses:
         """P0: Multiple secrets in one response must all be redacted."""
         response_data = {
             "password": "secret123",
-            "api_key": "sk_live_abc123",
+            "api_key": "sk_test_dummy_abc123",
             "token": "token456",
             "username": "testuser"
         }

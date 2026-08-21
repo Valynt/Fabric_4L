@@ -32,7 +32,7 @@ Content-Type: application/json
 {
   "url": "https://myapp.com/webhooks/valuepact",
   "events": ["initiative.created", "business_case.approved"],
-  "secret": "whsec_mysecret",
+  "secret": "whsec_test_dummy_mysecret",
   "active": true
 }
 ```

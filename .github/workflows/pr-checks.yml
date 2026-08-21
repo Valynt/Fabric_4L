@@ -138,6 +138,9 @@ jobs:
           pip install pyyaml
           python .github/scripts/enforce_secret_store_security.py
 
+      - name: Validate Trivy ignore governance policy
+        run: make check-trivy-ignore-policy
+
       - name: Validate workflow target/artifact references
         run: make check-workflow-references
 
@@ -2814,7 +2817,7 @@ jobs:
         uses: ./.github/actions/setup-fabric-ci
         with:
           python-dependency-mode: root-test
-          install-node-deps: 'true'
+          install-node-deps: "true"
 
       - name: Check canonical gate artifact paths
         run: |
@@ -2985,7 +2988,6 @@ jobs:
             exit 1
           fi
           echo "Unified readiness gate passed."
-
 
   # ---------------------------------------------------------------------------
   # V1-CI-001 Stage 1 (shadow): stable aggregate PR checks. Aggregate jobs

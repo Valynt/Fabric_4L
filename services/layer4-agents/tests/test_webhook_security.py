@@ -114,7 +114,7 @@ async def test_webhook_missing_signature_rejected(mock_db):
         await service.handle_webhook(
             payload=valid_webhook_payload(),
             signature="",  # Empty signature
-            webhook_secret="whsec_test",
+            webhook_secret="whsec_test_dummy",
         )
 
 
@@ -134,7 +134,7 @@ async def test_webhook_invalid_signature_rejected_with_specific_error(mock_db):
         await service.handle_webhook(
             payload=valid_webhook_payload(),
             signature="sig_invalid",
-            webhook_secret="whsec_test",
+            webhook_secret="whsec_test_dummy",
         )
 
 
@@ -155,7 +155,7 @@ async def test_webhook_malformed_payload_rejected(mock_db):
         await service.handle_webhook(
             payload=b"not valid json {{",
             signature="sig_test",
-            webhook_secret="whsec_test",
+            webhook_secret="whsec_test_dummy",
         )
 
 
@@ -185,14 +185,14 @@ async def test_webhook_signature_verification_mandatory(mock_db):
     await service.handle_webhook(
         payload=payload,
         signature="sig_test",
-        webhook_secret="whsec_test",
+        webhook_secret="whsec_test_dummy",
     )
 
     # Verify construct_event was actually called with correct args
     stripe.Webhook.construct_event.assert_called_once_with(
         payload,
         "sig_test",
-        "whsec_test",
+        "whsec_test_dummy",
     )
 
 
@@ -237,7 +237,7 @@ async def test_webhook_idempotency_uses_db_constraint_for_race_safe_event_claim(
     result = await service.handle_webhook(
         payload=b'{"test": "payload"}',
         signature="sig_test",
-        webhook_secret="whsec_test",
+        webhook_secret="whsec_test_dummy",
     )
 
     # Verify execute was called
@@ -281,7 +281,7 @@ async def test_webhook_duplicate_event_id_returns_success(mock_db):
     result = await service.handle_webhook(
         payload=b'{"test": "payload"}',
         signature="sig_test",
-        webhook_secret="whsec_test",
+        webhook_secret="whsec_test_dummy",
     )
 
     # Must return the event object (success) even though already processed
@@ -335,7 +335,7 @@ async def test_webhook_tenant_resolution_from_customer_record(mock_db, sample_cu
     await service.handle_webhook(
         payload=b'{"test": "payload"}',
         signature="sig_test",
-        webhook_secret="whsec_test",
+        webhook_secret="whsec_test_dummy",
     )
 
     # Verify customer was looked up - this is the security check
@@ -374,7 +374,7 @@ async def test_webhook_checkout_completed_with_unknown_customer(mock_db):
     result = await service.handle_webhook(
         payload=b'{"test": "payload"}',
         signature="sig_test",
-        webhook_secret="whsec_test",
+        webhook_secret="whsec_test_dummy",
     )
     
     # Returns the inbox event object (success) even though customer not found
@@ -431,7 +431,7 @@ async def test_webhook_database_failure_rolls_back(mock_db):
             event_id="evt_db_fail",
             payload=b'{"test": "payload"}',
             signature="sig_test",
-            webhook_secret="whsec_test",
+            webhook_secret="whsec_test_dummy",
         )
 
     # Verify rollback was called
@@ -468,7 +468,7 @@ async def test_webhook_does_not_log_secrets(mock_db, caplog):
         await service.handle_webhook(
             payload=b'{"test": "payload"}',
             signature="sig_super_secret_token_12345",
-            webhook_secret="whsec_ultra_secret_webhook_key",
+            webhook_secret="whsec_test_dummy_ultra_secret_webhook_key",
         )
 
     # Check logs don't contain secrets
@@ -505,7 +505,7 @@ async def test_webhook_unknown_event_type_logged_and_ignored(mock_db):
     result = await service.handle_webhook(
         payload=b'{"test": "payload"}',
         signature="sig_test",
-        webhook_secret="whsec_test",
+        webhook_secret="whsec_test_dummy",
     )
 
     # Should succeed even for unknown event types
@@ -545,7 +545,7 @@ async def test_webhook_out_of_order_subscription_events(mock_db, sample_subscrip
     result = await service.handle_webhook(
         payload=b'{"test": "payload"}',
         signature="sig_test",
-        webhook_secret="whsec_test",
+        webhook_secret="whsec_test_dummy",
     )
     
     assert result is not None

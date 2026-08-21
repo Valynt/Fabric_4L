@@ -77,7 +77,7 @@ class TestVerifyStripeWebhookSignature:
 
     def test_verifies_valid_signature(self) -> None:
         payload = b'{"id":"evt_1"}'
-        secret = "whsec_test_secret"
+        secret = "whsec_test_dummy_secret"
         ts = int(time.time())
         header = self._make_signature(payload, secret, ts)
         result = verify_stripe_webhook_signature(payload, header, secret)
@@ -87,13 +87,13 @@ class TestVerifyStripeWebhookSignature:
     def test_rejects_wrong_secret(self) -> None:
         payload = b'{"id":"evt_1"}'
         ts = int(time.time())
-        header = self._make_signature(payload, "whsec_correct", ts)
+        header = self._make_signature(payload, "whsec_test_dummy_correct", ts)
         with pytest.raises(ValueError, match="Invalid"):
-            verify_stripe_webhook_signature(payload, header, "whsec_wrong")
+            verify_stripe_webhook_signature(payload, header, "whsec_test_dummy_wrong")
 
     def test_rejects_stale_timestamp(self) -> None:
         payload = b'{"id":"evt_1"}'
-        secret = "whsec_test_secret"
+        secret = "whsec_test_dummy_secret"
         old_ts = int(time.time()) - DEFAULT_STRIPE_WEBHOOK_TOLERANCE_SECONDS - 10
         header = self._make_signature(payload, secret, old_ts)
         with pytest.raises(ValueError, match="tolerance"):
@@ -101,7 +101,7 @@ class TestVerifyStripeWebhookSignature:
 
     def test_accepts_timestamp_within_tolerance(self) -> None:
         payload = b'{"id":"evt_1"}'
-        secret = "whsec_test_secret"
+        secret = "whsec_test_dummy_secret"
         ts = int(time.time()) - 10
         header = self._make_signature(payload, secret, ts)
         result = verify_stripe_webhook_signature(payload, header, secret)
@@ -121,7 +121,7 @@ class TestVerifyStripeWebhookSignature:
 
     def test_custom_now_accepted(self) -> None:
         payload = b'{"id":"evt_1"}'
-        secret = "whsec_test_secret"
+        secret = "whsec_test_dummy_secret"
         ts = 1710000000
         header = self._make_signature(payload, secret, ts)
         result = verify_stripe_webhook_signature(payload, header, secret, now=ts)
@@ -129,7 +129,7 @@ class TestVerifyStripeWebhookSignature:
 
     def test_custom_now_rejects_future(self) -> None:
         payload = b'{"id":"evt_1"}'
-        secret = "whsec_test_secret"
+        secret = "whsec_test_dummy_secret"
         ts = 1710000000
         header = self._make_signature(payload, secret, ts)
         with pytest.raises(ValueError, match="tolerance"):

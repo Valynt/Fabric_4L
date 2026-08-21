@@ -259,7 +259,7 @@ await session.execute(
 
 Run:
 ```bash
-SERVICE_AUTH_SECRET=UvEL-QFgyTwP0r5mSuuTjACDgKMVFm1zx0oQRzE79m8 npx tsx scripts/db/seed-e2e-data.ts --base-url=http://localhost:8004
+SERVICE_AUTH_SECRET=dummy_service_auth_secret_for_tests_32_chars npx tsx scripts/db/seed-e2e-data.ts --base-url=http://localhost:8004
 ```
 
 Expected: exit 0; `case-meridian-e2e-001` exists.
@@ -302,14 +302,14 @@ docker compose -f docker-compose.live.yml --env-file .env up -d --build frontend
 - [ ] **Step 3: Run the seeder**
 
 ```bash
-SERVICE_AUTH_SECRET=UvEL-QFgyTwP0r5mSuuTjACDgKMVFm1zx0oQRzE79m8 npx tsx scripts/db/seed-e2e-data.ts --base-url=http://localhost:8004
+SERVICE_AUTH_SECRET=dummy_service_auth_secret_for_tests_32_chars npx tsx scripts/db/seed-e2e-data.ts --base-url=http://localhost:8004
 ```
 
 - [ ] **Step 4: Run P0 backend-integrated tests**
 
 ```bash
 cd apps/web
-E2E_SEED_DATA=false SERVICE_AUTH_SECRET=UvEL-QFgyTwP0r5mSuuTjACDgKMVFm1zx0oQRzE79m8 npx playwright test --project=backend-integrated e2e/journeys/j1-golden-path-backend-integrated.spec.ts e2e/journeys/j11-business-case-lifecycle-backend-integrated.spec.ts
+E2E_SEED_DATA=false SERVICE_AUTH_SECRET=dummy_service_auth_secret_for_tests_32_chars npx playwright test --project=backend-integrated e2e/journeys/j1-golden-path-backend-integrated.spec.ts e2e/journeys/j11-business-case-lifecycle-backend-integrated.spec.ts
 ```
 
 - [ ] **Step 5: Record evidence**
@@ -350,7 +350,7 @@ docker tag fabric_4l-layer4:rollback-pinned fabric_4l-layer4:latest
 docker compose -f docker-compose.live.yml --env-file .env up -d --no-build layer4
 sleep 20
 curl -fsS http://localhost:8004/ready
-PYTHONIOENCODING=utf-8 E2E_SERVICE_AUTH_SECRET=UvEL-QFgyTwP0r5mSuuTjACDgKMVFm1zx0oQRzE79m8 python scripts/e2e/critical_path_smoke.py --host
+PYTHONIOENCODING=utf-8 E2E_SERVICE_AUTH_SECRET=dummy_service_auth_secret_for_tests_32_chars python scripts/e2e/critical_path_smoke.py --host
 ```
 
 - [ ] **Step 4: Update rollback evidence**
@@ -511,7 +511,7 @@ git commit -m "docs(readiness): update launch artifacts after remediation sprint
 - [ ] **Step 1: Run critical-path smoke**
 
 ```bash
-PYTHONIOENCODING=utf-8 E2E_SERVICE_AUTH_SECRET=UvEL-QFgyTwP0r5mSuuTjACDgKMVFm1zx0oQRzE79m8 python scripts/e2e/critical_path_smoke.py --host
+PYTHONIOENCODING=utf-8 E2E_SERVICE_AUTH_SECRET=dummy_service_auth_secret_for_tests_32_chars python scripts/e2e/critical_path_smoke.py --host
 ```
 
 Expected: PASS 12/0.
