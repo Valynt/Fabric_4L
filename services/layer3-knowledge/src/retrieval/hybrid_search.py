@@ -353,26 +353,31 @@ class HybridSearch:
                 vector_lookup[eid] = r
 
         for r in graph_results:
-            eid = r.get("id")
+            eid = r.get("id") or r.get("entity_id")
             if eid:
                 all_ids.add(eid)
                 graph_lookup[eid] = r
 
-        bm25_max = max((r.get("score", 0.0) for r in bm25_results), default=1.0) or 1.0
-        vector_max = (
-            max((r.get("score", 0.0) for r in vector_results), default=1.0) or 1.0
-        )
-        graph_max = (
-            max((r.get("score", 0.0) for r in graph_results), default=1.0) or 1.0
-        )
+        # Normalize each signal to [0, 1] by its max. Guard against negative
+        # max values (which would invert sign of all normalized scores) and
+        # against an all-zero/empty signal (divisor falls back to 1.0).
+        def _norm_divisor(results: list[dict]) -> float:
+            mx = max((r.get("score", 0.0) for r in results), default=0.0)
+            return mx if mx > 0 else 1.0
+
+        bm25_max = _norm_divisor(bm25_results)
+        vector_max = _norm_divisor(vector_results)
+        graph_max = _norm_divisor(graph_results)
 
         merged = []
         for entity_id in all_ids:
-            bm25_score = bm25_lookup.get(entity_id, {}).get("score", 0.0) / bm25_max
-            vector_score = (
-                vector_lookup.get(entity_id, {}).get("score", 0.0) / vector_max
+            # Clamp each per-signal normalized score to [0, 1] so a negative
+            # raw score cannot flip the combined score's sign.
+            bm25_score = max(0.0, min(1.0, bm25_lookup.get(entity_id, {}).get("score", 0.0) / bm25_max))
+            vector_score = max(
+                0.0, min(1.0, vector_lookup.get(entity_id, {}).get("score", 0.0) / vector_max)
             )
-            graph_score = graph_lookup.get(entity_id, {}).get("score", 0.0) / graph_max
+            graph_score = max(0.0, min(1.0, graph_lookup.get(entity_id, {}).get("score", 0.0) / graph_max))
 
             combined = (
                 weights["bm25"] * bm25_score
@@ -401,5 +406,8 @@ class HybridSearch:
                 )
             )
 
-        merged.sort(key=lambda x: x.combined_score, reverse=True)
+        # Deterministic ordering: primary by combined score (desc), secondary
+        # by entity_id (asc) so ties resolve stably across runs. Without the
+        # secondary key, set-iteration order made tied results non-reproducible.
+        merged.sort(key=lambda x: (-x.combined_score, x.entity_id))
         return merged

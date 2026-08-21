@@ -110,6 +110,14 @@ async def ingest_rdf(
     if not tenant_id:
         raise AuthenticationError(message = "Authenticated tenant context required for ingestion")
 
+    # Fail closed: if a caller supplies tenant_id in the body, it MUST match
+    # the authenticated tenant. Body tenant_id is never trusted as a source
+    # of truth — a mismatch indicates confused-deputy or stale-client usage.
+    if request.tenant_id is not None and request.tenant_id != tenant_id:
+        raise AuthenticationError(
+            message="Body tenant_id does not match authenticated tenant context"
+        )
+
     try:
         stats = await sync_manager.sync_extraction_result(
             rdf_data=request.rdf_data,
