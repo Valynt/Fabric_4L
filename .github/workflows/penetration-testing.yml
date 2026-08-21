@@ -8,7 +8,7 @@ permissions:
 on:
   # Weekly scheduled run (Mondays at 2 AM UTC)
   schedule:
-    - cron: '0 2 * * 1'
+    - cron: "0 2 * * 1"
 
   # On-demand trigger.
   # PR trigger removed because this workflow requires a live docker-compose
@@ -16,13 +16,13 @@ on:
   workflow_dispatch:
     inputs:
       target_url:
-        description: 'Target URL to scan'
+        description: "Target URL to scan"
         required: false
-        default: 'http://localhost:8004'
+        default: "http://localhost:8004"
       scan_type:
-        description: 'Scan type'
+        description: "Scan type"
         required: false
-        default: 'full'
+        default: "full"
         type: choice
         options:
           - full
@@ -49,7 +49,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Install dependencies
         run: |
@@ -124,10 +124,7 @@ jobs:
             up -d; then
             echo "::error::Docker Compose stack failed to start"
 
-            docker compose \
-              -f infra/compose/docker-compose.full.yml \
-              --env-file .env \
-              logs --no-color \
+            docker compose -f infra/compose/docker-compose.full.yml --env-file .env logs --no-color \
               | tee zap-results/compose.log
 
             exit 1
@@ -136,10 +133,7 @@ jobs:
           health_url="${TARGET_URL%/}/health"
 
           for attempt in $(seq 1 30); do
-            if curl \
-              --fail \
-              --silent \
-              --show-error \
+            if curl --fail --silent --show-error \
               --max-time 5 \
               "$health_url" > /dev/null; then
               echo "Target is healthy at $health_url"
@@ -152,10 +146,7 @@ jobs:
 
           echo "::error::Target never became healthy at $health_url"
 
-          docker compose \
-            -f infra/compose/docker-compose.full.yml \
-            --env-file .env \
-            logs --no-color \
+          docker compose -f infra/compose/docker-compose.full.yml --env-file .env logs --no-color \
             | tee zap-results/compose.log
 
           exit 1
@@ -409,10 +400,7 @@ jobs:
             up -d; then
             echo "::error::Docker Compose stack failed to start"
 
-            docker compose \
-              -f infra/compose/docker-compose.full.yml \
-              --env-file .env \
-              logs --no-color \
+            docker compose -f infra/compose/docker-compose.full.yml --env-file .env logs --no-color \
               | tee nikto-results/compose.log
 
             exit 1
@@ -421,10 +409,7 @@ jobs:
           health_url="${TARGET_URL%/}/health"
 
           for attempt in $(seq 1 30); do
-            if curl \
-              --fail \
-              --silent \
-              --show-error \
+            if curl --fail --silent --show-error \
               --max-time 5 \
               "$health_url" > /dev/null; then
               echo "Target is healthy at $health_url"
@@ -437,10 +422,7 @@ jobs:
 
           echo "::error::Target never became healthy at $health_url"
 
-          docker compose \
-            -f infra/compose/docker-compose.full.yml \
-            --env-file .env \
-            logs --no-color \
+          docker compose -f infra/compose/docker-compose.full.yml --env-file .env logs --no-color \
             | tee nikto-results/compose.log
 
           exit 1
