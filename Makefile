@@ -159,6 +159,8 @@ check-trivy-ignore-policy: ## Validate .trivyignore.yaml governance and waiver h
 	@$(PYTHON) scripts/ci/check_trivy_ignore_policy.py
 check-security-exceptions: ## Validate security exceptions registry governance and lifecycle
 	@$(PYTHON) scripts/ci/check_security_exceptions.py
+check-hostile-tenant-evidence: ## Validate hostile tenant evidence across all 8 isolation contracts
+	@$(PYTHON) scripts/ci/check_hostile_tenant_evidence.py
 check-path-env-hygiene: ## Fail on suspicious tracked path artifacts and unapproved tracked .env-style files
 	@$(PYTHON) scripts/ci/check_path_and_env_hygiene.py
 check-migration-entrypoints: ## Ensure maintained services expose migration entrypoints and revision history commands

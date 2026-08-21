@@ -3,35 +3,55 @@
   "defaultEnvironment": "dev",
   "gitBranchToEnvironmentMapping": null,
   "secretPaths": {
-    "app": {
-      "dev": "/app",
-      "staging": "/app",
-      "prod": "/app"
+    "shared": {
+      "dev": "/shared",
+      "staging": "/shared",
+      "prod": "/shared"
+    },
+    "infra": {
+      "dev": "/infra",
+      "staging": "/infra",
+      "prod": "/infra"
+    },
+    "layer1": {
+      "dev": "/layer1",
+      "staging": "/layer1",
+      "prod": "/layer1"
+    },
+    "layer2": {
+      "dev": "/layer2",
+      "staging": "/layer2",
+      "prod": "/layer2"
+    },
+    "layer3": {
+      "dev": "/layer3",
+      "staging": "/layer3",
+      "prod": "/layer3"
+    },
+    "layer4": {
+      "dev": "/layer4",
+      "staging": "/layer4",
+      "prod": "/layer4"
+    },
+    "layer5": {
+      "dev": "/layer5",
+      "staging": "/layer5",
+      "prod": "/layer5"
+    },
+    "layer6": {
+      "dev": "/layer6",
+      "staging": "/layer6",
+      "prod": "/layer6"
+    },
+    "frontend": {
+      "dev": "/frontend",
+      "staging": "/frontend",
+      "prod": "/frontend"
     },
     "auth": {
       "dev": "/auth",
       "staging": "/auth",
       "prod": "/auth"
-    },
-    "database": {
-      "dev": "/database",
-      "staging": "/database",
-      "prod": "/database"
-    },
-    "integrations": {
-      "dev": "/integrations",
-      "staging": "/integrations",
-      "prod": "/integrations"
-    },
-    "llm": {
-      "dev": "/llm",
-      "staging": "/llm",
-      "prod": "/llm"
-    },
-    "storage": {
-      "dev": "/storage",
-      "staging": "/storage",
-      "prod": "/storage"
     }
   }
 }

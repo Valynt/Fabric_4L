@@ -228,7 +228,6 @@ def check_ci_policy() -> list[str]:
     required_security_tokens = (
         "sbom-policy",
         "trivy-image-scan",
-        "severity: 'HIGH,CRITICAL'",
         "frontend-security-audit",
         "dependency-review",
         "release-security-evidence",
@@ -236,6 +235,9 @@ def check_ci_policy() -> list[str]:
     for token in required_security_tokens:
         if token not in security_gates:
             errors.append(f"Security gates workflow missing token: {token}")
+
+    if not re.search(r"severity:\s*['\"]HIGH,CRITICAL['\"]", security_gates):
+        errors.append("Security gates workflow missing token: severity: 'HIGH,CRITICAL'")
 
     for policy_file in POLICY_FILES:
         if not policy_file.is_file():
