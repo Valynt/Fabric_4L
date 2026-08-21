@@ -17,7 +17,9 @@ it is owned by ``routers/benchmarks.py`` with a typed Layer 6 client.
 
 from __future__ import annotations
 
+import logging
 import os
+import time
 from collections.abc import Awaitable, Callable
 
 import httpx
@@ -25,6 +27,12 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse, Response
 
 from app.core.config import get_settings
+from app.core.metrics import (
+    DELEGATION_CIRCUIT_OPEN_TOTAL,
+    DELEGATION_LATENCY_SECONDS,
+    DELEGATION_REQUESTS_TOTAL,
+    DELEGATION_RETRY_TOTAL,
+)
 from app.core.security import TokenPayload, require_authenticated
 from value_fabric.shared.resilience import (
     CircuitBreakerOpen,
@@ -33,6 +41,8 @@ from value_fabric.shared.resilience import (
     TRANSIENT_STATUS_CODES,
     retry_transient_async,
 )
+
+logger = logging.getLogger("fabric.delegation")
 
 router = APIRouter(tags=["layer-delegation"])
 
@@ -122,6 +132,12 @@ def _request_headers(request: Request, tenant_id: str) -> dict[str, str]:
     # gateway service clients (e.g. app/services/agent_orchestrator.py).
     if service_secret := os.environ.get("SERVICE_AUTH_SECRET", ""):
         headers["x-service-auth"] = service_secret
+    # Propagate the active OTel trace context so downstream layers see the same
+    # trace and their spans are correlated with the gateway's. No-op when OTel
+    # is not installed or no span is active.
+    from value_fabric.shared.observability.http_trace_propagation import merge_trace_headers
+
+    merge_trace_headers(headers)
     return headers
 
 
@@ -187,8 +203,51 @@ async def _delegate(
     body = await request.body()
     headers = _request_headers(request, tenant_id)
     timeout = settings.delegation_timeout_seconds
+    method = request.method.upper()
+    request_id = headers.get("x-request-id") or headers.get("x-trace-id")
+
+    _start = time.perf_counter()
+    _retries = 0
+
+    def _record(outcome: str, status_code: int | str) -> None:
+        duration = time.perf_counter() - _start
+        DELEGATION_REQUESTS_TOTAL.labels(
+            segment=segment, method=method, status_code=str(status_code), outcome=outcome
+        ).inc()
+        DELEGATION_LATENCY_SECONDS.labels(segment=segment, method=method).observe(duration)
+        if _retries:
+            DELEGATION_RETRY_TOTAL.labels(segment=segment).inc(_retries)
+        logger.info(
+            "delegation",
+            extra={
+                "segment": segment,
+                "method": method,
+                "path": path,
+                "status_code": status_code,
+                "outcome": outcome,
+                "duration_ms": round(duration * 1000, 2),
+                "retries": _retries,
+                "request_id": request_id,
+                "tenant_id": tenant_id,
+            },
+        )
+
+    class _RetryCounter:
+        """Captures retry attempts for metrics without coupling to the retry helper internals."""
+
+        def __init__(self) -> None:
+            self.count = 0
+
+        async def before_attempt(self) -> None:
+            if self.count > 0:
+                nonlocal _retries
+                _retries = self.count
+            self.count += 1
+
+    counter = _RetryCounter()
 
     async def _attempt() -> httpx.Response:
+        await counter.before_attempt()
         breaker = await _breakers.get_breaker(
             segment,
             failure_threshold=settings.delegation_cb_failure_threshold,
@@ -217,6 +276,8 @@ async def _delegate(
         )
     except _DelegationTransient as exc:
         if getattr(exc, "_circuit_open", False):
+            DELEGATION_CIRCUIT_OPEN_TOTAL.labels(segment=segment).inc()
+            _record("circuit_open", 503)
             return JSONResponse(
                 status_code=503,
                 content={
@@ -225,6 +286,7 @@ async def _delegate(
                 },
             )
         status = exc.status_code if exc.status_code else 503
+        _record("unavailable", status)
         return JSONResponse(
             status_code=status,
             content={
@@ -233,6 +295,8 @@ async def _delegate(
             },
         )
     except CircuitBreakerOpen:
+        DELEGATION_CIRCUIT_OPEN_TOTAL.labels(segment=segment).inc()
+        _record("circuit_open", 503)
         return JSONResponse(
             status_code=503,
             content={
@@ -241,6 +305,7 @@ async def _delegate(
             },
         )
 
+    _record("success", upstream.status_code)
     response_headers = {
         name: value
         for name, value in upstream.headers.items()

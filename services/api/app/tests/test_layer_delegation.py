@@ -344,3 +344,83 @@ class TestDelegationResilience:
         # 404 is deterministic → surfaces as-is, no retry.
         assert response.status_code == 404
 
+
+class TestDelegationObservability:
+    """Prometheus metrics + structured audit logs are emitted per delegation."""
+
+    def _app(self) -> FastAPI:
+        app = FastAPI()
+        app.include_router(router, prefix="/v1")
+        _auth_override(app)
+        return app
+
+    def _client_returning(self, responses):
+        iterator = iter(responses)
+
+        async def _request(*args, **kwargs):
+            item = next(iterator)
+            if isinstance(item, Exception):
+                raise item
+            return item
+
+        return _FakeAsyncClient(_request)
+
+    @pytest.mark.asyncio
+    async def test_success_increments_delegation_requests_counter(self) -> None:
+        from app.routers import layer_delegation as mod
+
+        mod._breakers = CircuitBreakerRegistry()
+        app = self._app()
+        ok = httpx.Response(200, content=b"{}", headers={"content-type": "application/json"})
+        fake = self._client_returning([ok])
+
+        from app.core.metrics import DELEGATION_REQUESTS_TOTAL, registry
+
+        before = registry.get_sample_value(
+            "fabric_api_delegation_requests_total",
+            {"segment": "agents", "method": "GET", "status_code": "200", "outcome": "success"},
+        ) or 0.0
+
+        with (
+            patch("app.routers.layer_delegation.get_settings", return_value=_settings()),
+            patch("app.routers.layer_delegation.httpx.AsyncClient", return_value=fake),
+        ):
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+                response = await client.get("/v1/agents/v1/accounts")
+
+        assert response.status_code == 200
+        after = registry.get_sample_value(
+            "fabric_api_delegation_requests_total",
+            {"segment": "agents", "method": "GET", "status_code": "200", "outcome": "success"},
+        ) or 0.0
+        assert after == before + 1.0
+
+    @pytest.mark.asyncio
+    async def test_circuit_open_increments_circuit_open_counter(self) -> None:
+        from app.routers import layer_delegation as mod
+
+        mod._breakers = CircuitBreakerRegistry()
+        app = self._app()
+        bad = httpx.Response(503, content=b"down")
+        fake = self._client_returning([bad])
+        settings = _settings(delegation_cb_failure_threshold=1)
+
+        from app.core.metrics import DELEGATION_CIRCUIT_OPEN_TOTAL, registry
+
+        before = registry.get_sample_value(
+            "fabric_api_delegation_circuit_open_total", {"segment": "agents"}
+        ) or 0.0
+
+        with (
+            patch("app.routers.layer_delegation.get_settings", return_value=settings),
+            patch("app.routers.layer_delegation.httpx.AsyncClient", return_value=fake),
+        ):
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+                response = await client.get("/v1/agents/v1/accounts")
+
+        assert response.status_code == 503
+        after = registry.get_sample_value(
+            "fabric_api_delegation_circuit_open_total", {"segment": "agents"}
+        ) or 0.0
+        assert after == before + 1.0
+
