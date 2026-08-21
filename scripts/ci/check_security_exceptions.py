@@ -32,9 +32,8 @@ import re
 import sys
 from datetime import date, datetime
 from pathlib import Path
-from typing import Any
 
-import yaml  # type: ignore[import]
+import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_REGISTRY = REPO_ROOT / "config" / "ci" / "security_exceptions.yaml"
@@ -54,8 +53,8 @@ class ReferenceDate(date):
 
 
 def iter_exceptions(
-    registry_data: dict[str, Any],
-) -> list[tuple[str, dict[str, Any]]]:
+    registry_data: dict[str, object],
+) -> list[tuple[str, dict[str, object]]]:
     """Yield (key, entry) pairs from the registry's ``exceptions`` mapping."""
     raw = registry_data.get("exceptions") or {}
     if not isinstance(raw, dict):
@@ -68,7 +67,7 @@ def iter_exceptions(
 
 
 def validate_registry(
-    registry_data: dict[str, Any], reference: date
+    registry_data: dict[str, object], reference: date
 ) -> tuple[list[str], list[str]]:
     """Return (errors, warnings).
 
@@ -166,7 +165,7 @@ def _parse_date(value: object) -> bool:
     return True
 
 
-def load_registry(path: Path) -> dict[str, Any]:
+def load_registry(path: Path) -> dict[str, object]:
     if not path.exists():
         raise FileNotFoundError(f"registry not found: {path}")
     with open(path, encoding="utf-8") as f:

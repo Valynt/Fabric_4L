@@ -16,7 +16,6 @@ import time
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone, timedelta
-from typing import Any, Dict, List, Optional, Set
 
 
 TENANT_ALPHA_ID = "tenant-alpha-001"
@@ -36,7 +35,7 @@ class SeededResource:
     tenant_id: str
     resource_type: str
     content: str
-    metadata: dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, object] = field(default_factory=dict)
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
 
@@ -89,10 +88,10 @@ class HostileTenancyHarness:
         self.object_store: dict[tuple[str, str], bytes] = {}
 
         # Graph entities map: (tenant_id, entity_id) -> dict
-        self.graph_entities: dict[tuple[str, str], dict[str, Any]] = {}
+        self.graph_entities: dict[tuple[str, str], dict[str, object]] = {}
 
         # Vector retrieval store: tenant_id -> list of (vector_id, embedding, document)
-        self.vector_store: dict[str, list[dict[str, Any]]] = {
+        self.vector_store: dict[str, list[dict[str, object]]] = {
             TENANT_ALPHA_ID: [],
             TENANT_BETA_ID: [],
         }
@@ -100,10 +99,10 @@ class HostileTenancyHarness:
         # AI session memory and cache: (tenant_id, session_id) -> history
         self.ai_sessions: dict[tuple[str, str], list[str]] = {}
         self.ai_cache: dict[tuple[str, str], str] = {}
-        self.ai_traces: dict[tuple[str, str], dict[str, Any]] = {}
+        self.ai_traces: dict[tuple[str, str], dict[str, object]] = {}
 
         # Queue envelopes: list of dicts
-        self.queue_envelopes: list[dict[str, Any]] = []
+        self.queue_envelopes: list[dict[str, object]] = []
 
         # Impersonation grants: grant_id -> ImpersonationGrant
         self.impersonation_grants: dict[str, ImpersonationGrant] = {}
@@ -178,7 +177,7 @@ class HostileTenancyHarness:
         resource_type: str,
         resource_id: str,
         content: str,
-        metadata: Optional[dict[str, Any]] = None,
+        metadata: dict[str, object] | None = None,
     ) -> SeededResource:
         res = SeededResource(
             resource_id=resource_id,
@@ -225,7 +224,7 @@ class HostileTenancyHarness:
         self.signed_urls[signature] = record
         return record
 
-    def access_signed_url(self, signature: str, requesting_tenant_id: Optional[str] = None) -> bytes:
+    def access_signed_url(self, signature: str, requesting_tenant_id: str | None = None) -> bytes:
         if signature not in self.signed_urls:
             raise PermissionError("Invalid signed URL signature")
         rec = self.signed_urls[signature]
@@ -241,7 +240,7 @@ class HostileTenancyHarness:
         return self.get_object(rec.tenant_id, rec.tenant_id, rec.object_key)
 
     # --- Graph & Vector Isolation ---
-    def get_graph_entity(self, requesting_tenant_id: str, entity_id: str) -> dict[str, Any]:
+    def get_graph_entity(self, requesting_tenant_id: str, entity_id: str) -> dict[str, object]:
         key = (requesting_tenant_id, entity_id)
         if key not in self.graph_entities:
             # Check if entity belongs to another tenant to prove isolation vs 404
@@ -251,7 +250,7 @@ class HostileTenancyHarness:
             raise KeyError(f"Graph entity not found: {entity_id}")
         return self.graph_entities[key]
 
-    def query_vectors(self, requesting_tenant_id: str, embedding: list[float], top_k: int = 5) -> list[dict[str, Any]]:
+    def query_vectors(self, requesting_tenant_id: str, embedding: list[float], top_k: int = 5) -> list[dict[str, object]]:
         # Hard isolation: only query within requesting_tenant_id partition
         entries = self.vector_store.get(requesting_tenant_id, [])
         return entries[:top_k]
@@ -265,7 +264,7 @@ class HostileTenancyHarness:
             raise KeyError(f"AI session not found: {session_id}")
         return self.ai_sessions[(requesting_tenant_id, session_id)]
 
-    def get_ai_trace(self, requesting_tenant_id: str, trace_id: str) -> dict[str, Any]:
+    def get_ai_trace(self, requesting_tenant_id: str, trace_id: str) -> dict[str, object]:
         if (requesting_tenant_id, trace_id) not in self.ai_traces:
             foreign = [tr for (t, tid), tr in self.ai_traces.items() if tid == trace_id and t != requesting_tenant_id]
             if foreign:
@@ -274,7 +273,7 @@ class HostileTenancyHarness:
         return self.ai_traces[(requesting_tenant_id, trace_id)]
 
     # --- Queue Envelopes ---
-    def dispatch_queue_message(self, authenticated_tenant_id: str, payload_envelope: dict[str, Any]) -> dict[str, Any]:
+    def dispatch_queue_message(self, authenticated_tenant_id: str, payload_envelope: dict[str, object]) -> dict[str, object]:
         envelope_tenant = payload_envelope.get("tenant_id")
         if not envelope_tenant:
             raise ValueError("Missing tenant context in queue envelope")
@@ -322,7 +321,7 @@ class HostileTenancyHarness:
         grant_id: str,
         action_tenant_id: str,
         action_scope: str,
-    ) -> dict[str, Any]:
+    ) -> dict[str, object]:
         if grant_id not in self.impersonation_grants:
             raise PermissionError("Invalid impersonation grant ID")
         grant = self.impersonation_grants[grant_id]
