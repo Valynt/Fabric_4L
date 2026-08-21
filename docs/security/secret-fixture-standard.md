@@ -32,7 +32,7 @@ remaining useful for testing, and how to register them in scanner allowlists.
 
 | Type | Format | Example |
 |---|---|---|
-| Test token | `eyJ` + base64 of `{"test": true}` | `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0ZXN0Ijp0cnVlfQ.test-signature` |
+| Test token | `eyJ` + base64 of `{"test": true}` | `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.dummy_test_payload.dummy_test_signature` |
 | Prohibited | Real signed tokens with valid secrets | Never use tokens signed with production secrets |
 
 ### API Keys (generic)

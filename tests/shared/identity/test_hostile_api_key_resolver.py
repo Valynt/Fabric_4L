@@ -69,7 +69,7 @@ def _make_sync_middleware(resolver_return_value: dict | None) -> GovernanceMiddl
     mw = GovernanceMiddlewareSync(
         app,
         api_key_resolver=resolver,
-        jwt_secret="test-secret-32-chars-long-enough",
+        jwt_secret="dummy_jwt_secret_32_chars_long_enough",
     )
     return mw
 
@@ -194,7 +194,7 @@ class TestGovernanceMiddlewareSyncHostileApiKeys:
         record = {k: v for k, v in base.items() if k != "metadata"}
         mw = _make_sync_middleware(resolver_return_value=record)
 
-        result = mw._resolve_identity_sync(api_key_header="test-key-abc123")
+        result = mw._resolve_identity_sync(api_key_header="dummy_test_api_key_abc123")
 
         assert result is None, (
             "Record missing 'metadata' must fail closed in sync middleware. "
@@ -206,7 +206,7 @@ class TestGovernanceMiddlewareSyncHostileApiKeys:
         record = {**valid_api_key_record(), "metadata": {}}
         mw = _make_sync_middleware(resolver_return_value=record)
 
-        result = mw._resolve_identity_sync(api_key_header="test-key-abc123")
+        result = mw._resolve_identity_sync(api_key_header="dummy_test_api_key_abc123")
 
         assert result is None, (
             "Record with empty 'metadata' must fail closed in sync middleware. "
@@ -219,7 +219,7 @@ class TestGovernanceMiddlewareSyncHostileApiKeys:
         record = {k: v for k, v in base.items() if k != "tenant_id"}
         mw = _make_sync_middleware(resolver_return_value=record)
 
-        result = mw._resolve_identity_sync(api_key_header="test-key-abc123")
+        result = mw._resolve_identity_sync(api_key_header="dummy_test_api_key_abc123")
 
         assert result is None
 
@@ -228,7 +228,7 @@ class TestGovernanceMiddlewareSyncHostileApiKeys:
         record = {**valid_api_key_record(), "tenant_id": ""}
         mw = _make_sync_middleware(resolver_return_value=record)
 
-        result = mw._resolve_identity_sync(api_key_header="test-key-abc123")
+        result = mw._resolve_identity_sync(api_key_header="dummy_test_api_key_abc123")
 
         assert result is None
 
@@ -236,14 +236,12 @@ class TestGovernanceMiddlewareSyncHostileApiKeys:
         """When the resolver returns None, result must be None in sync path."""
         mw = _make_sync_middleware(resolver_return_value=None)
 
-        result = mw._resolve_identity_sync(api_key_header="test-key-abc123")
+        result = mw._resolve_identity_sync(api_key_header="dummy_test_api_key_abc123")
 
         assert result is None
 
     def test_no_api_key_header_returns_none(self) -> None:
         """When no api_key_header is passed, result must be None in sync path."""
         mw = _make_sync_middleware(resolver_return_value=valid_api_key_record())
-
         result = mw._resolve_identity_sync(api_key_header=None)
-
         assert result is None

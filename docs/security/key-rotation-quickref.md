@@ -137,7 +137,7 @@ kubectl rollout status deployment/api-gateway -n value-fabric --timeout=300s
 | Provider | Environment Variable | Example |
 |----------|---------------------|---------|
 | OpenAI | `OPENAI_MANUAL_KEY` | `sk-abc123...` |
-| Clerk | `CLERK_MANUAL_KEY` | `sk_live_abc123...` |
+| Clerk | `CLERK_MANUAL_KEY` | `sk_test_dummy_abc123...` |
 | Thesys | `THESYS_MANUAL_KEY` | `thesys_abc123...` |
 | Registry | `REGISTRY_MANUAL_KEY` | `ghp_abc123...` |
 

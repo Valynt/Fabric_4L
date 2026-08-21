@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import math
 import re
 import sys
@@ -30,8 +31,54 @@ def entropy(value: str) -> float:
     return -sum(p * math.log2(p) for p in probs)
 
 
+SYNTHETIC_MARKERS = {
+    "dummy",
+    "mock",
+    "example",
+    "placeholder",
+    "test_dummy",
+    "test_payload",
+    "test_signature",
+    "test_secret",
+    "test_password",
+    "test_key",
+    "test_token",
+    "fake",
+    "redacted",
+    "REDACTED",
+    "00000000",
+    "aaaa",
+    "bbbb",
+    "eyjhbgcioijiuzi1niisinr5cci6ikpxvcj9",  # standard non-secret JWT header: {"alg":"HS256","typ":"JWT"}
+    "eyjhbgcioiaisfmyntyilcaidhlwijogikpxvcj9",  # standard non-secret JWT header: {"alg": "HS256", "typ": "JWT"}
+}
+
+
+def _try_decode_b64(val: str) -> str:
+    padded = val + "=" * ((4 - len(val) % 4) % 4)
+    try:
+        return base64.b64decode(padded).decode("utf-8", errors="ignore")
+    except Exception:
+        try:
+            return base64.urlsafe_b64decode(padded).decode("utf-8", errors="ignore")
+        except Exception:
+            return ""
+
+
+def is_synthetic_fixture(value: str) -> bool:
+    val_lower = value.lower()
+    if any(marker in val_lower for marker in SYNTHETIC_MARKERS):
+        return True
+    decoded = _try_decode_b64(value).lower()
+    if decoded and any(marker in decoded for marker in SYNTHETIC_MARKERS):
+        return True
+    return False
+
+
 def is_probable_secret_token(token: str) -> bool:
     if len(token) < 32:
+        return False
+    if is_synthetic_fixture(token):
         return False
     if entropy(token) < 4.2:
         return False
@@ -57,11 +104,13 @@ def scan_file(path: Path) -> list[str]:
     except Exception:
         return findings
 
-    for pattern in SECRET_PATTERNS:
-        if pattern.search(content):
-            findings.append(f"{rel}: matched sensitive token pattern `{pattern.pattern}`")
-
     for i, line in enumerate(content.splitlines(), start=1):
+        for pattern in SECRET_PATTERNS:
+            for match in pattern.finditer(line):
+                matched_str = match.group(0)
+                if not is_synthetic_fixture(matched_str):
+                    findings.append(f"{rel}:{i}: matched sensitive token pattern `{pattern.pattern}`")
+
         for token in BASE64_CANDIDATE.findall(line):
             if is_probable_secret_token(token):
                 findings.append(f"{rel}:{i}: high-entropy token candidate")

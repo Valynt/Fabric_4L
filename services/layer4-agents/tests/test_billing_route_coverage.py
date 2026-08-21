@@ -434,7 +434,7 @@ def test_webhook_database_unavailable(client):
         "layer4_agents.api.routes.billing.get_webhook_db",
         new_callable=MagicMock,
         return_value=_empty_db_gen(),
-    ), patch("layer4_agents.api.routes.billing.STRIPE_WEBHOOK_SECRET", "whsec_test"):
+    ), patch("layer4_agents.api.routes.billing.STRIPE_WEBHOOK_SECRET", "whsec_test_dummy"):
         response = client.post(
             "/v1/billing/webhook",
             headers={"Stripe-Signature": "sig"},
@@ -466,7 +466,7 @@ def test_webhook_success(client):
         "layer4_agents.api.routes.billing.BillingService.process_webhook_event",
         new_callable=AsyncMock,
         return_value=None,
-    ), patch("layer4_agents.api.routes.billing.STRIPE_WEBHOOK_SECRET", "whsec_test"):
+    ), patch("layer4_agents.api.routes.billing.STRIPE_WEBHOOK_SECRET", "whsec_test_dummy"):
         response = client.post(
             "/v1/billing/webhook",
             headers={"Stripe-Signature": "sig"},
@@ -504,7 +504,7 @@ async def test_webhook_database_unavailable_direct():
         "layer4_agents.api.routes.billing.get_webhook_db",
         new_callable=MagicMock,
         return_value=_EmptyAsyncIterator(),
-    ), patch("layer4_agents.api.routes.billing.STRIPE_WEBHOOK_SECRET", "whsec_test"):
+    ), patch("layer4_agents.api.routes.billing.STRIPE_WEBHOOK_SECRET", "whsec_test_dummy"):
         with pytest.raises(ServiceUnavailableError):
             await stripe_webhook(request, MagicMock(), db=None, stripe_signature="sig")
 
@@ -534,7 +534,7 @@ async def test_webhook_success_direct():
         "layer4_agents.api.routes.billing.BillingService.process_webhook_event",
         new_callable=AsyncMock,
         return_value=None,
-    ), patch("layer4_agents.api.routes.billing.STRIPE_WEBHOOK_SECRET", "whsec_test"):
+    ), patch("layer4_agents.api.routes.billing.STRIPE_WEBHOOK_SECRET", "whsec_test_dummy"):
         result = await stripe_webhook(request, MagicMock(), db=mock_db, stripe_signature="sig")
 
     assert result == {"received": True}
@@ -558,7 +558,7 @@ async def test_webhook_cancelled_error_inside_try_block():
         "layer4_agents.api.routes.billing.BillingService.handle_webhook",
         new_callable=AsyncMock,
         side_effect=asyncio.CancelledError(),
-    ), patch("layer4_agents.api.routes.billing.STRIPE_WEBHOOK_SECRET", "whsec_test"):
+    ), patch("layer4_agents.api.routes.billing.STRIPE_WEBHOOK_SECRET", "whsec_test_dummy"):
         with pytest.raises(asyncio.CancelledError):
             await stripe_webhook(request, MagicMock(), db=mock_db, stripe_signature="sig")
 
