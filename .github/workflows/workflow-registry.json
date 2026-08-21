@@ -1098,6 +1098,7 @@
         "merge_group",
         "pull_request",
         "push",
+        "schedule",
         "workflow_call",
         "workflow_dispatch"
       ],
