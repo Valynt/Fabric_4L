@@ -334,12 +334,32 @@ export async function expectTenantContext(
   page: Page,
   expectedTenantId = 'tenant-e2e-001',
 ): Promise<void> {
-  const tenantId = await page.evaluate(() => localStorage.getItem('tenantId'));
+  const tenantId = await page.evaluate(() => {
+    const directTenant = localStorage.getItem('tenantId');
+    if (directTenant) return directTenant;
+    const userInfoRaw = localStorage.getItem('userInfo');
+    if (userInfoRaw) {
+      try {
+        const parsed = JSON.parse(userInfoRaw);
+        if (parsed.tenantId) return parsed.tenantId;
+      } catch { /* ignore */ }
+    }
+    const sessionMetaRaw = sessionStorage.getItem('vf.auth.session.meta');
+    if (sessionMetaRaw) {
+      try {
+        const parsed = JSON.parse(sessionMetaRaw);
+        if (parsed.tenantId) return parsed.tenantId;
+      } catch { /* ignore */ }
+    }
+    return null;
+  });
   expect(tenantId).toBe(expectedTenantId);
 }
 
 export async function expectNoCrossTenantLeakage(page: Page): Promise<void> {
-  await expect(page.getByText(/tenant-other|other tenant|globex confidential|cross-tenant/i).first()).not.toBeVisible({ timeout: 3000 });
+  // Check for foreign tenant signatures in both rendered text and DOM attributes
+  const foreignPattern = /tenant-other|other tenant|globex confidential|cross-tenant|foreign-tenant|tenant-foreign|acct-other-tenant|acct-foreign-001/i;
+  await expect(page.getByText(foreignPattern).first()).not.toBeVisible({ timeout: 3000 });
 }
 
 export async function expectSeededBusinessCaseWorkflowResults(

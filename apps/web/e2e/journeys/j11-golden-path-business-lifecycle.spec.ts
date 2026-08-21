@@ -47,6 +47,7 @@ test.describe('Journey 11: Golden Path Business Lifecycle', () => {
       'prospect intake and launch workflow',
     );
     await expectTenantContext(page, BACKEND_E2E_TENANT_ID);
+    await expectNoCrossTenantLeakage(page);
 
     const promptField = page
       .getByLabel(/new value case prompt/i)
@@ -67,6 +68,7 @@ test.describe('Journey 11: Golden Path Business Lifecycle', () => {
       'signal review and approval workflow',
     );
     await expectNoCrossTenantLeakage(page);
+    await expectTenantContext(page, BACKEND_E2E_TENANT_ID);
 
     await expectRouteSupportsWorkflow(
       page,
@@ -74,6 +76,8 @@ test.describe('Journey 11: Golden Path Business Lifecycle', () => {
       [/hypoth/i, /approve/i, /edit/i, /expected value/i],
       'hypothesis review and approval workflow',
     );
+    await expectNoCrossTenantLeakage(page);
+    await expectTenantContext(page, BACKEND_E2E_TENANT_ID);
 
     await expectRouteSupportsWorkflow(
       page,
@@ -81,6 +85,8 @@ test.describe('Journey 11: Golden Path Business Lifecycle', () => {
       [/driver tree/i, /value driver/i, /formula/i, /evidence/i],
       'driver tree and evidence mapping workflow',
     );
+    await expectNoCrossTenantLeakage(page);
+    await expectTenantContext(page, BACKEND_E2E_TENANT_ID);
 
     await expectRouteSupportsWorkflow(
       page,
@@ -88,6 +94,8 @@ test.describe('Journey 11: Golden Path Business Lifecycle', () => {
       [/roi calculator/i, /scenario/i, /payback/i, /economic value/i],
       'scenario calculation workflow',
     );
+    await expectNoCrossTenantLeakage(page);
+    await expectTenantContext(page, BACKEND_E2E_TENANT_ID);
 
     await expectRouteSupportsWorkflow(
       page,
@@ -95,6 +103,8 @@ test.describe('Journey 11: Golden Path Business Lifecycle', () => {
       [/business cases/i, /new case/i, /executive summary/i, /draft|approved/i],
       'business-case list and lifecycle workflow',
     );
+    await expectNoCrossTenantLeakage(page);
+    await expectTenantContext(page, BACKEND_E2E_TENANT_ID);
   });
 
   test('test_business_case_contains_traceable_claims_after_golden_path @backend', async ({ page }) => {
@@ -106,6 +116,8 @@ test.describe('Journey 11: Golden Path Business Lifecycle', () => {
       [/business cases/i, /executive summary/i, /recommendations/i, /roi/i],
       'deliverable list after golden path',
     );
+    await expectNoCrossTenantLeakage(page);
+    await expectTenantContext(page, BACKEND_E2E_TENANT_ID);
 
     await navigateAndWait(page, '/governance/traces');
     await expectAnyVisible(
@@ -113,6 +125,8 @@ test.describe('Journey 11: Golden Path Business Lifecycle', () => {
       [/decision trace/i, /provenance timeline/i, /truth references/i, /audit log/i, /claim/i],
       'claim traceability surfaces',
     );
+    await expectNoCrossTenantLeakage(page);
+    await expectTenantContext(page, BACKEND_E2E_TENANT_ID);
 
     await navigateAndWait(page, '/governance/evidence');
     await expectAnyVisible(
@@ -120,6 +134,8 @@ test.describe('Journey 11: Golden Path Business Lifecycle', () => {
       [/evidence/i, /truth objects/i, /confidence/i, /source/i, /claim/i],
       'evidence-backed claim lineage',
     );
+    await expectNoCrossTenantLeakage(page);
+    await expectTenantContext(page, BACKEND_E2E_TENANT_ID);
   });
 
   test('test_export_is_available_only_after_required_approval @backend', async ({ page }) => {
@@ -133,6 +149,8 @@ test.describe('Journey 11: Golden Path Business Lifecycle', () => {
       'draft business case before approval',
     );
     await expectButtonStateIfVisible(page, /export pdf/i, 'disabled');
+    await expectNoCrossTenantLeakage(page);
+    await expectTenantContext(page, BACKEND_E2E_TENANT_ID);
 
     await navigateAndWait(page, '/deliverables/cases/case-e2e-approved-001');
     await expectAnyVisible(
@@ -141,6 +159,8 @@ test.describe('Journey 11: Golden Path Business Lifecycle', () => {
       'approved business case after review',
     );
     await expectButtonStateIfVisible(page, /export pdf/i, 'enabled');
+    await expectNoCrossTenantLeakage(page);
+    await expectTenantContext(page, BACKEND_E2E_TENANT_ID);
   });
 
   test('test_crm_push_available_after_case_approval @backend', async ({ page }) => {
@@ -161,6 +181,8 @@ test.describe('Journey 11: Golden Path Business Lifecycle', () => {
       [/push.*crm|sync.*crm|export.*salesforce|send.*crm|crm/i],
       'CRM push affordance on approved business case',
     );
+    await expectNoCrossTenantLeakage(page);
+    await expectTenantContext(page, BACKEND_E2E_TENANT_ID);
   });
 
   test('test_post_sale_realization_conversion @backend', async ({ page }) => {
@@ -189,5 +211,7 @@ test.describe('Journey 11: Golden Path Business Lifecycle', () => {
       [/outcome|realization|baseline|metric|account|meridian/i],
       'account detail with realization plan or outcome tracking surface',
     );
+    await expectNoCrossTenantLeakage(page);
+    await expectTenantContext(page, BACKEND_E2E_TENANT_ID);
   });
 });
