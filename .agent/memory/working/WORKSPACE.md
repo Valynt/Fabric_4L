@@ -2,25 +2,26 @@
 
 ## Current task
 
-Hardening GitHub Merge Queue (`merge_group`) and Aggregate PR checks (`V1-CI-001`).
+P1 Observability & SLOs verification — Prometheus SLI alerting rules and Jaeger trace propagation (verification-only; no repo files modified).
 
 ## Status
 
-Complete. All acceptance criteria satisfied, automated tests passing (24/24), governance registries synchronized, and validation sign-off evidence recorded.
+Complete. All four todos done. 32 targeted tests pass; Jaeger trace propagation verified. Four drift findings documented (A–D) in the verification report (artifacts, not repo).
 
 ## What was done
 
-- Applied `v1-ci-001-aggregation.patch` introducing 9 aggregate check contracts (`01-repository-integrity` through `09-change-risk-and-approval`) across 6 host workflows.
-- Enhanced `.github/actions/change-scope/action.yml` to support diff-aware change-scoping on `merge_group` using `base_sha` and `head_sha`.
-- Added `merge_group:` trigger to `.github/workflows/critical-gates.yml`.
-- Added `tests/ci/test_merge_group_contract.py` and `tests/ci/test_merge_queue_simulation.py` asserting all triggers, safe-skip policies, child failure fail-closed semantics, and independent review enforcement.
-- Synchronized workflow registry and CI gate documentation via `generate_workflow_registry.py` and `sync_ci_gate_docs.py`.
-- Recorded comprehensive sign-off evidence in `signoff-evidence/gates/merge-queue-validation-evidence.md`.
+- Audited `monitoring/alerting/layer-sli-rules-production.yml`: 19 alerts, all labels/annotations/runbook URLs valid, thresholds consistent across L1–L6.
+- Verified W3C traceparent/tracestate, correlation-header aliasing, OTel collector → Jaeger export, and middleware wiring across all layer entrypoints via shared `create_fabric_app()`.
+- Ran 32 targeted observability/contract/security/reliability/CI tests to green.
+- Wrote verification report covering three + D drift findings.
 
-## Active hypotheses
+## Findings (drift)
 
-None. All invariants verified green.
+- (A) SLI rules file not in any live Prometheus `rule_files` (not deployed).
+- (B) L2 emits only `vf_*` metrics; SLI rules reference `layer2_http_*`/`layer2_health_status` — L2 alerts never fire; `initialize_metrics()` uncalled.
+- (C) docker-compose path mismatch `./monitoring/prometheus.yml` vs actual.
+- (D) L6 `layer6_health_status` uses `service=` label; SLI rule selects `{component="api"}` — availability SLI silently never fires.
 
-## Next step
+## Active hypotheses / Next step
 
-Stage 2 shadow observation across representative PRs and merge queue activations.
+None in current task. Recommended outcome: file findings as drift/debt; route fixes through normal PR CI path (do not fix in-place on verification-only branch).
