@@ -2695,8 +2695,8 @@ def cleanup_old_content(days: int = 30, tenant_id: str = None):
                         total_deleted += deleted_count
             except Exception as e:
                 failed_tenants.append(
-                    (str(tenant_uuid), repr(e))
-                )  # ban-str-e-allow: internal-tracking
+                    (str(tenant_uuid), repr(e))  # ban-str-e-allow: internal-tracking
+                )
                 logger.error(
                     "Tenant cleanup failed",
                     tenant_id=str(tenant_uuid),

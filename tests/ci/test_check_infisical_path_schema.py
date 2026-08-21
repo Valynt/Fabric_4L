@@ -110,28 +110,20 @@ def test_main_fails_on_legacy_violation(tmp_path: Path) -> None:
     (repo / "scripts" / "bad.sh").write_text(
         "infisical secrets get --path=/llm OPENAI_API_KEY\n", encoding="utf-8"
     )
+    import contextlib
+    import io
     import sys
 
     orig_argv = sys.argv
-    orig_stdout = sys.stdout
     sys.argv = ["check_infisical_path_schema.py", "--repo-root", str(repo)]
-    captured: list[str] = []
-
-    class _Buf:
-        def write(self, s: str) -> None:
-            captured.append(s)
-
-        def flush(self) -> None:
-            pass
-
-    sys.stdout = _Buf()  # type: ignore[assignment]
+    buf = io.StringIO()
     try:
-        rc = guard.main()
+        with contextlib.redirect_stdout(buf):
+            rc = guard.main()
     finally:
         sys.argv = orig_argv
-        sys.stdout = orig_stdout  # type: ignore[assignment]
     assert rc == 1
-    assert any("llm" in line for line in captured)
+    assert "llm" in buf.getvalue()
 
 
 def test_main_fails_on_legacy_infisical_json(tmp_path: Path) -> None:
