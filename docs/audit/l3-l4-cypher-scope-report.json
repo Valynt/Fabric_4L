@@ -121,38 +121,38 @@
     },
     {
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
-      "line": 1782,
+      "line": 1786,
       "function": "_write_kg_tx",
       "classification": "Unknown",
       "message": "session.run constant Cypher query requires explicit allowlist or scoped helper marker",
-      "finding_key": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py::_write_kg_tx::1782",
+      "finding_key": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py::_write_kg_tx::1786",
       "allowlisted": true
     },
     {
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
-      "line": 1802,
+      "line": 1806,
       "function": "_write_kg_tx",
       "classification": "Unknown",
       "message": "session.run constant Cypher query requires explicit allowlist or scoped helper marker",
-      "finding_key": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py::_write_kg_tx::1802",
+      "finding_key": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py::_write_kg_tx::1806",
       "allowlisted": true
     },
     {
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
-      "line": 1814,
+      "line": 1818,
       "function": "_write_kg_tx",
       "classification": "Unknown",
       "message": "session.run constant Cypher query requires explicit allowlist or scoped helper marker",
-      "finding_key": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py::_write_kg_tx::1814",
+      "finding_key": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py::_write_kg_tx::1818",
       "allowlisted": true
     },
     {
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
-      "line": 1830,
+      "line": 1834,
       "function": "_write_kg_tx",
       "classification": "Unknown",
       "message": "session.run constant Cypher query requires explicit allowlist or scoped helper marker",
-      "finding_key": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py::_write_kg_tx::1830",
+      "finding_key": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py::_write_kg_tx::1834",
       "allowlisted": true
     },
     {
