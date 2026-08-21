@@ -894,8 +894,16 @@ build-release-evidence: ## Compose the candidate-scoped release evidence packet 
 
 # ─── Deployment manifest certification (thin control plane over validators) ──
 
-generate-sbom-and-provenance: ## Generate a deterministic, source-bound CycloneDX SBOM (no Docker required)
+generate-sbom-and-provenance: ## Generate a deterministic, source-bound CycloneDX SBOM and SLSA provenance (no Docker required)
 	$(PYTHON) scripts/ci/supply_chain_gate.py sbom
+	@if test -n "$(RELEASE_SHA)" && test "$(RELEASE_SHA)" != UNKNOWN; then \
+		outdir="$(ARTIFACT_DIR)/$(RELEASE_SHA)"; \
+		mkdir -p "$$outdir"; \
+		test -f artifacts/supply-chain/fabric-4l-source-sbom.cdx.json && cp -f artifacts/supply-chain/fabric-4l-source-sbom.cdx.json "$$outdir/fabric-4l-source-sbom.cdx.json" || true; \
+		test -f artifacts/supply-chain/sbom-summary.json && cp -f artifacts/supply-chain/sbom-summary.json "$$outdir/sbom-summary.json" || true; \
+		test -f artifacts/supply-chain/provenance.json && cp -f artifacts/supply-chain/provenance.json "$$outdir/provenance.json" || true; \
+		echo "Copied candidate SBOM and provenance to $$outdir"; \
+	fi
 
 compose-config-validate: ## Validate all release-significant Docker Compose definitions (requires Docker)
 	$(PYTHON) scripts/ci/check_docker_compose_config.py

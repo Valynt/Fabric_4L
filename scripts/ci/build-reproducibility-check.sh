@@ -32,13 +32,13 @@ for layer in "${LAYERS[@]}"; do
   TOTAL=$((TOTAL + 1))
 
   if [[ "$layer" == "web" ]]; then
-    CONTEXT="apps/web"
+    DOCKERFILE="apps/web/Dockerfile"
   else
-    CONTEXT="services/${layer}"
+    DOCKERFILE="services/${layer}/Dockerfile"
   fi
 
-  if [[ ! -f "${CONTEXT}/Dockerfile" ]]; then
-    echo "⚠️  SKIP: ${layer} — no Dockerfile found at ${CONTEXT}/Dockerfile"
+  if [[ ! -f "$DOCKERFILE" ]]; then
+    echo "⚠️  SKIP: ${layer} — no Dockerfile found at ${DOCKERFILE}"
     continue
   fi
 
@@ -51,7 +51,8 @@ for layer in "${LAYERS[@]}"; do
     --no-cache \
     --build-arg BUILDKIT_INLINE_CACHE=0 \
     -t "repro-${layer}:build1" \
-    "$CONTEXT" > "${OUTPUT_DIR}/${layer}-build1.log" 2>&1 || { cat "${OUTPUT_DIR}/${layer}-build1.log"; exit 1; }
+    -f "$DOCKERFILE" \
+    . > "${OUTPUT_DIR}/${layer}-build1.log" 2>&1 || { cat "${OUTPUT_DIR}/${layer}-build1.log"; exit 1; }
   tail -5 "${OUTPUT_DIR}/${layer}-build1.log"
 
   echo "Building ${layer} (pass 2 of 2)..."
@@ -60,7 +61,8 @@ for layer in "${LAYERS[@]}"; do
     --no-cache \
     --build-arg BUILDKIT_INLINE_CACHE=0 \
     -t "repro-${layer}:build2" \
-    "$CONTEXT" > "${OUTPUT_DIR}/${layer}-build2.log" 2>&1 || { cat "${OUTPUT_DIR}/${layer}-build2.log"; exit 1; }
+    -f "$DOCKERFILE" \
+    . > "${OUTPUT_DIR}/${layer}-build2.log" 2>&1 || { cat "${OUTPUT_DIR}/${layer}-build2.log"; exit 1; }
   tail -5 "${OUTPUT_DIR}/${layer}-build2.log"
 
   # Extract layer digests

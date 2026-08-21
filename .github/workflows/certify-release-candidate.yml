@@ -114,17 +114,17 @@ jobs:
           RELEASE_SHA: ${{ env.RELEASE_SHA }}
         run: |
           echo "certification-sha=$RELEASE_SHA"
-          test -f "artifacts/release/$RELEASE_SHA/certification.json"
+          test -f "artifacts/release/$RELEASE_SHA/candidate-manifest.json"
           python - "$RELEASE_SHA" <<'PYEOF'
           import json, sys
           sha = sys.argv[1]
-          with open(f"artifacts/release/{sha}/certification.json", encoding="utf-8") as fh:
-              record = json.load(fh)
-          status = record.get("status")
+          with open(f"artifacts/release/{sha}/candidate-manifest.json", encoding="utf-8") as fh:
+              manifest = json.load(fh)
+          status = manifest.get("certification", {}).get("status")
           if status != "certified":
-              print(f"Candidate NOT certified: {status}", file=sys.stderr)
+              print(f"Candidate NOT certified: status={status}", file=sys.stderr)
               sys.exit(1)
-          print("Candidate certified (certification.json status=certified)")
+          print("Candidate certified (candidate-manifest.json certification.status=certified)")
           PYEOF
 
       - name: Attest certification bundle
@@ -148,9 +148,10 @@ jobs:
           import json, sys
           from pathlib import Path
           sha = sys.argv[1]
-          record = json.loads(Path(f"artifacts/release/{sha}/certification.json").read_text(encoding="utf-8"))
-          state = "success" if record.get("status") == "certified" else "failure"
-          print(f"certification conclusion: {state} (status={record.get('status')})")
+          manifest = json.loads(Path(f"artifacts/release/{sha}/candidate-manifest.json").read_text(encoding="utf-8"))
+          status = manifest.get("certification", {}).get("status")
+          state = "success" if status == "certified" else "failure"
+          print(f"certification conclusion: {state} (status={status})")
           if state != "success":
               sys.exit(1)
           PY

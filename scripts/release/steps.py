@@ -178,8 +178,8 @@ CERTIFICATION_STEPS: tuple[Step, ...] = (
     Step(
         "16b-observability-stack-validation",
         ("make", "validate-monitoring-stack"),
-        "observability: end-to-end monitoring stack readiness (YAML + compose + "
-        "runbook coverage)",
+        "observability: monitoring stack definition readiness (YAML + compose + "
+        "runbook coverage) — static configuration validation only, not live telemetry proof",
         live_only=True,
     ),
 )
