@@ -145,7 +145,7 @@ API keys are used for automated integrations and service accounts:
 ```http
 POST /api/v1/ingestion/jobs HTTP/1.1
 Host: l1.valuefabric.io
-X-API-Key: vf_live_550e8400e29b41d4a716446655440000
+X-API-Key: vf_test_dummy_550e8400e29b41d4a716446655440000
 X-Tenant-ID: 550e8400-e29b-41d4-a716-446655440000
 ```
 

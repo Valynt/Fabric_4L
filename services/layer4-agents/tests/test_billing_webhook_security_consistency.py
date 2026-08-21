@@ -34,7 +34,7 @@ def webhook_client(monkeypatch: pytest.MonkeyPatch) -> TestClient:
     register_exception_handlers(app)
     app.include_router(billing_route.router, prefix="/v1")
 
-    monkeypatch.setattr(billing_route, "STRIPE_WEBHOOK_SECRET", "whsec_test")
+    monkeypatch.setattr(billing_route, "STRIPE_WEBHOOK_SECRET", "whsec_test_dummy")
     monkeypatch.setattr(billing_route, "STRIPE_WEBHOOK_SKIP_IP_CHECK", False)
     monkeypatch.setattr(billing_route, "_is_stripe_webhook_ip", lambda ip: ip == "3.18.12.63")
 
