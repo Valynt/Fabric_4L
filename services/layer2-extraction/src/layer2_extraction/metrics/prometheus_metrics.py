@@ -9,8 +9,6 @@ from __future__ import annotations
 
 import hashlib
 import time
-from collections.abc import Awaitable, Callable
-from typing import Any
 
 from pydantic import BaseModel, ConfigDict
 
@@ -353,7 +351,7 @@ class MetricsMiddleware:
             return path.rstrip("/") or "/"
         return self._normalizer.normalize(path)
 
-    async def __call__(self, request: Any, call_next: Callable[[Any], Awaitable[Any]]) -> Any:
+    async def __call__(self, request, call_next):
         start_time = time.perf_counter()
         try:
             response = await call_next(request)
@@ -384,7 +382,7 @@ class MetricsMiddleware:
                 self.metrics.record_auth_failure(reason="insufficient_role", component="http")
         return response
 
-    async def dispatch(self, request: Any, call_next: Callable[[Any], Awaitable[Any]]) -> Any:
+    async def dispatch(self, request, call_next):
         return await self.__call__(request, call_next)
 
 
