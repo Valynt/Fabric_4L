@@ -4,7 +4,6 @@ Spec-compliant pipeline stage tasks with multi-tenancy support.
 Manages ScrapingJob lifecycle through 11 PipelineStages.
 """
 
-import asyncio
 import hashlib
 import os
 import time
@@ -18,7 +17,6 @@ import structlog
 from celery import Celery, chain
 from celery.schedules import crontab
 from celery.signals import task_failure
-from jsonschema import Draft7Validator
 
 from .dlq import (
     DLQ_QUEUE_NAME,
@@ -49,6 +47,7 @@ from ..crawler.smart_router import RouteType, SmartRouter
 
 if TYPE_CHECKING:
     from ..crawler.httpx_crawler import FastPathResult
+
 from value_fabric.shared.audit import emit_audit_event
 from value_fabric.shared.audit.models import AuditAction, AuditOutcome
 from value_fabric.shared.error_handling import sanitize_log_error
@@ -93,27 +92,20 @@ from .task_contracts import (
     validation_stageResult,
 )
 
+# Pure, stateless helpers extracted for readability — re-exported so both
+# bare-name callers in this module and consumers importing from
+# ``layer1_ingestion.shared.tasks`` keep resolving identically.
+from .tasks_helpers import (
+    _domain_class,
+    _extract_unified_crawl_result,
+    _get_target_config,
+    _is_stage_already_completed,
+    _run_async,
+    _validate_payload_against_schema,
+)
+
 # Maximum delivery attempts before an outbox event is dead-lettered.
 MAX_DISPATCH_ATTEMPTS = 5
-
-
-def _domain_class(url: str) -> str:
-    host = (urlparse(url).netloc or "").lower()
-    if not host:
-        return "unknown"
-    if host.endswith(".gov") or host.endswith(".edu"):
-        return "regulated"
-    if host.endswith(".internal") or host.endswith(".local"):
-        return "internal"
-    return "public"
-
-
-
-
-
-
-
-
 
 
 logger = structlog.get_logger()
@@ -121,22 +113,22 @@ logger = structlog.get_logger()
 
 async def _verify_l3_graph_population(tenant_id: str, source_version_id: str) -> int:
     """Verify L3 graph has entities from the given source version.
-    
+
     Calls L3 /v1/query/entities with source_version_id filter and returns count.
     """
     import httpx
 
     from ..shared.config import settings
-    
+
     l3_url = settings.layer3_api_url
     service_secret = os.getenv("SERVICE_AUTH_SECRET", "")
-    
+
     headers = {
         "X-Tenant-ID": tenant_id,
         "X-Service-Auth": service_secret,
         "Content-Type": "application/json",
     }
-    
+
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
             response = await client.get(
@@ -148,19 +140,14 @@ async def _verify_l3_graph_population(tenant_id: str, source_version_id: str) ->
                 data = response.json()
                 return data.get("total", 0)
     except Exception as e:
-        logger.warning("L3 graph verification failed", tenant_id=tenant_id, source_version_id=source_version_id, error=str(e))
+        logger.warning(
+            "L3 graph verification failed",
+            tenant_id=tenant_id,
+            source_version_id=source_version_id,
+            error=str(e),
+        )
     return 0
 
-
-def _run_async(coro):
-    # In a Celery worker there is no running event loop, so run the coroutine
-    # to completion. When called from an async test context (e.g. pytest-asyncio)
-    # with a running loop, return the coroutine so the caller can await it.
-    try:
-        asyncio.get_running_loop()
-    except RuntimeError:
-        return asyncio.run(coro)
-    return coro
 
 _celery_broker_url, _celery_transport_options = get_celery_redis_broker_config(settings.redis_url)
 
@@ -282,7 +269,7 @@ def process_scraping_job(self, job_id: str, tenant_id: str):
     """Main pipeline orchestrator for a ScrapingJob.
 
     Chains all pipeline stages together for sequential execution.
-    
+
     Args:
         job_id: The job UUID
         tenant_id: Trusted tenant_id from server-controlled dispatch envelope
@@ -294,7 +281,12 @@ def process_scraping_job(self, job_id: str, tenant_id: str):
         if _check_tenant_kill_switch_sync(tenant_id):
             _fail_job(job_id, tenant_id, "Tenant suspended", PipelineStage.INIT)
             return process_scraping_jobResult.model_validate(
-                {"success": False, "job_id": str(job_id), "error": "Tenant suspended", "task_id": None}
+                {
+                    "success": False,
+                    "job_id": str(job_id),
+                    "error": "Tenant suspended",
+                    "task_id": None,
+                }
             ).model_dump()
     except TenantKillSwitchUnavailable as exc:
         # Unknown suspension state is not allow: retry with backoff instead of
@@ -347,10 +339,17 @@ def process_scraping_job(self, job_id: str, tenant_id: str):
 
         result = pipeline_chain.apply_async(**build_celery_options())
 
-        return process_scraping_jobResult.model_validate({"success": True, "job_id": str(job_id), "task_id": result.id}).model_dump()
+        return process_scraping_jobResult.model_validate(
+            {"success": True, "job_id": str(job_id), "task_id": result.id}
+        ).model_dump()
 
     except Exception as exc:
-        logger.error("Pipeline orchestration failed", job_id=str(job_id), error_code="PIPELINE_ORCHESTRATION_ERROR", error=sanitize_log_error(exc))
+        logger.error(
+            "Pipeline orchestration failed",
+            job_id=str(job_id),
+            error_code="PIPELINE_ORCHESTRATION_ERROR",
+            error=sanitize_log_error(exc),
+        )
         _fail_job(job_id, tenant_id, sanitize_log_error(exc)[:200], PipelineStage.INIT)
         metrics = get_metrics()
         if metrics:
@@ -370,7 +369,7 @@ def compliance_check_stage(self, job_id: UUID, tenant_id: str):
 
 async def _compliance_check_stage_async(self, job_id: UUID, tenant_id: str):
     """Stage 1: Compliance Check (robots.txt, rate limits, domain policies).
-    
+
     Args:
         job_id: The job UUID
         tenant_id: Trusted tenant_id from server-controlled dispatch envelope
@@ -400,12 +399,16 @@ async def _compliance_check_stage_async(self, job_id: UUID, tenant_id: str):
                 job = session.query(ScrapingJob).get(job_id)
                 if not job:
                     raise ValueError(f"Job {job_id} not found")
-                
+
                 _record_queue_latency(job, PipelineStage.COMPLIANCE_CHECK)
-                
+
                 if _is_stage_already_completed(session, job_id, PipelineStage.COMPLIANCE_CHECK):
-                    logger.info("Compliance check already completed (idempotent retry)", job_id=str(job_id))
-                    return compliance_check_stageResult.model_validate({"success": True, "job_id": str(job_id)}).model_dump()
+                    logger.info(
+                        "Compliance check already completed (idempotent retry)", job_id=str(job_id)
+                    )
+                    return compliance_check_stageResult.model_validate(
+                        {"success": True, "job_id": str(job_id)}
+                    ).model_dump()
 
                 _update_stage(session, job_id, PipelineStage.COMPLIANCE_CHECK, "RUNNING")
                 job.status = JobStatus.VALIDATING.value
@@ -414,22 +417,32 @@ async def _compliance_check_stage_async(self, job_id: UUID, tenant_id: str):
 
                 config = job.configuration
                 url = config.get("url", "")
-                target = session.query(ScrapingTarget).filter(ScrapingTarget.id == job.target_id).first()
-                compliance_allowlist = ((target.compliance or {}) if target else {}).get("domain_allowlist")
-                
+                target = (
+                    session.query(ScrapingTarget).filter(ScrapingTarget.id == job.target_id).first()
+                )
+                compliance_allowlist = ((target.compliance or {}) if target else {}).get(
+                    "domain_allowlist"
+                )
+
                 url = await _validate_url_safety(session, job, url, compliance_allowlist)
                 if url is None:
                     return compliance_check_stageResult.model_validate(
-                        {"success": False, "error": "URL blocked by compliance policy", "job_id": str(job_id)}
+                        {
+                            "success": False,
+                            "error": "URL blocked by compliance policy",
+                            "job_id": str(job_id),
+                        }
                     ).model_dump()
-                
+
                 config["url"] = url
-                crawl_delay = await _check_robots_txt(session, job, url, config.get("compliance", {}))
+                crawl_delay = await _check_robots_txt(
+                    session, job, url, config.get("compliance", {})
+                )
                 if crawl_delay is None:
                     return compliance_check_stageResult.model_validate(
                         {"success": False, "error": "robots.txt blocked", "job_id": str(job_id)}
                     ).model_dump()
-                
+
                 if crawl_delay > 0:
                     _apply_crawl_delay(session, job_id, crawl_delay)
                     raise self.retry(countdown=int(crawl_delay))
@@ -439,13 +452,22 @@ async def _compliance_check_stage_async(self, job_id: UUID, tenant_id: str):
 
                 logger.info("Compliance check completed", job_id=str(job_id))
                 _record_stage_completion(stage_started_at, PipelineStage.COMPLIANCE_CHECK)
-                return compliance_check_stageResult.model_validate({"success": True, "job_id": str(job_id)}).model_dump()
+                return compliance_check_stageResult.model_validate(
+                    {"success": True, "job_id": str(job_id)}
+                ).model_dump()
 
         except Exception as exc:
             if "Retry" in type(exc).__name__:
                 raise
-            logger.error("Compliance check failed", job_id=str(job_id), error_code="COMPLIANCE_CHECK_ERROR", error=sanitize_log_error(exc))
-            _handle_compliance_error(exc, job_id, tenant_uuid, stage_started_at, PipelineStage.COMPLIANCE_CHECK)
+            logger.error(
+                "Compliance check failed",
+                job_id=str(job_id),
+                error_code="COMPLIANCE_CHECK_ERROR",
+                error=sanitize_log_error(exc),
+            )
+            _handle_compliance_error(
+                exc, job_id, tenant_uuid, stage_started_at, PipelineStage.COMPLIANCE_CHECK
+            )
             raise self.retry(exc=exc, countdown=30)
 
 
@@ -459,19 +481,6 @@ def _record_queue_latency(job, stage):
             stage=stage.value,
             status=job.status,
         )
-
-
-def _is_stage_already_completed(session, job_id, stage):
-    """Check if stage is already completed (idempotency)."""
-    existing_stage = (
-        session.query(JobStageDetail)
-        .filter(
-            JobStageDetail.job_id == job_id,
-            JobStageDetail.stage == stage.value,
-        )
-        .first()
-    )
-    return existing_stage and existing_stage.status == "COMPLETED"
 
 
 async def _validate_url_safety(session, job, url, compliance_allowlist):
@@ -513,7 +522,12 @@ async def _validate_url_safety(session, job, url, compliance_allowlist):
             )
         except Exception:
             logger.exception("url_safety_blocked_audit_failed")
-        _fail_job(job.id, str(job.tenant_id), "URL blocked by compliance policy", PipelineStage.COMPLIANCE_CHECK)
+        _fail_job(
+            job.id,
+            str(job.tenant_id),
+            "URL blocked by compliance policy",
+            PipelineStage.COMPLIANCE_CHECK,
+        )
         return None
 
 
@@ -521,7 +535,7 @@ async def _check_robots_txt(session, job, url, compliance_config):
     """Check robots.txt and return crawl_delay or None if blocked."""
     if not compliance_config.get("respect_robots_txt", True):
         return 0
-    
+
     checker = RobotsChecker(
         tenant_id=str(job.tenant_id),
         strict_mode=compliance_config.get("strict_robots_compliance", False),
@@ -565,9 +579,11 @@ async def _check_robots_txt(session, job, url, compliance_config):
             )
         except Exception:
             logger.exception("url_robots_blocked_audit_failed")
-        _fail_job(job.id, str(job.tenant_id), "URL blocked by robots.txt", PipelineStage.COMPLIANCE_CHECK)
+        _fail_job(
+            job.id, str(job.tenant_id), "URL blocked by robots.txt", PipelineStage.COMPLIANCE_CHECK
+        )
         return None
-    
+
     return crawl_delay if crawl_delay is not None else 0
 
 
@@ -575,7 +591,9 @@ def _apply_crawl_delay(session, job_id, crawl_delay):
     """Apply crawl delay via Celery retry."""
     _update_stage(session, job_id, PipelineStage.COMPLIANCE_CHECK, "RUNNING")
     session.commit()
-    logger.info("Applying crawl delay via Celery retry", job_id=str(job_id), crawl_delay_seconds=crawl_delay)
+    logger.info(
+        "Applying crawl delay via Celery retry", job_id=str(job_id), crawl_delay_seconds=crawl_delay
+    )
 
 
 def _record_stage_completion(stage_started_at, stage):
@@ -593,11 +611,14 @@ def _handle_compliance_error(exc, job_id, tenant_uuid, stage_started_at, stage):
     """Handle compliance check errors."""
     try:
         with get_db_session(tenant_id=tenant_uuid, require_tenant=True) as error_session:
-            _update_stage(
-                error_session, job_id, stage, "FAILED", sanitize_log_error(exc)[:200]
-            )
+            _update_stage(error_session, job_id, stage, "FAILED", sanitize_log_error(exc)[:200])
     except Exception as update_exc:
-        logger.error("Failed to update stage status", job_id=str(job_id), error_code="COMPLIANCE_CHECK_ERROR", error=sanitize_log_error(update_exc))
+        logger.error(
+            "Failed to update stage status",
+            job_id=str(job_id),
+            error_code="COMPLIANCE_CHECK_ERROR",
+            error=sanitize_log_error(update_exc),
+        )
     metrics = get_metrics()
     if metrics:
         metrics.increment_retry_event(stage="compliance_check", reason="stage_failure")
@@ -619,7 +640,7 @@ async def _browser_crawl_stage_async(self, prev_result: dict, tenant_id: str):
     OPTIMIZATION: Integrates SmartRouter to choose between HTTPX fast path
     and Playwright browser path. Merges launch+navigate+capture into one task,
     eliminating redundant browser launches and enabling fast path for static content.
-    
+
     Args:
         prev_result: Previous stage result containing job_id
         tenant_id: Trusted tenant_id from server-controlled dispatch envelope
@@ -673,8 +694,8 @@ async def _browser_crawl_stage_async(self, prev_result: dict, tenant_id: str):
                 if crawl_result and crawl_result.error:
                     raise Exception(crawl_result.error)
 
-                final_url, status_code, headers, html_content, title, duration_ms = _extract_unified_crawl_result(
-                    fast_result, crawl_result, final_path
+                final_url, status_code, headers, html_content, title, duration_ms = (
+                    _extract_unified_crawl_result(fast_result, crawl_result, final_path)
                 )
 
                 job.configuration["navigation_result"] = {
@@ -686,7 +707,17 @@ async def _browser_crawl_stage_async(self, prev_result: dict, tenant_id: str):
 
                 # Stage 4: Content Capture
                 raw_content_id = await _capture_raw_content(
-                    session, job, url, final_url, status_code, headers, title, html_content, duration_ms, fast_result, final_path
+                    session,
+                    job,
+                    url,
+                    final_url,
+                    status_code,
+                    headers,
+                    title,
+                    html_content,
+                    duration_ms,
+                    fast_result,
+                    final_path,
                 )
 
                 _update_stage(session, job_id, PipelineStage.CONTENT_CAPTURE, "COMPLETED")
@@ -699,15 +730,26 @@ async def _browser_crawl_stage_async(self, prev_result: dict, tenant_id: str):
                     final_path=final_path,
                     final_url=final_url,
                 )
-                return browser_crawl_stageResult.model_validate({
-                    "success": True,
-                    "job_id": str(job_id),
-                    "raw_content_id": str(raw_content_id),
-                }).model_dump()
+                return browser_crawl_stageResult.model_validate(
+                    {
+                        "success": True,
+                        "job_id": str(job_id),
+                        "raw_content_id": str(raw_content_id),
+                    }
+                ).model_dump()
 
         except Exception as exc:
-            logger.error("Smart crawl failed", job_id=str(job_id), error_code="SMART_CRAWL_ERROR", error=sanitize_log_error(exc))
-            for stage in (PipelineStage.BROWSER_LAUNCH, PipelineStage.NAVIGATION, PipelineStage.CONTENT_CAPTURE):
+            logger.error(
+                "Smart crawl failed",
+                job_id=str(job_id),
+                error_code="SMART_CRAWL_ERROR",
+                error=sanitize_log_error(exc),
+            )
+            for stage in (
+                PipelineStage.BROWSER_LAUNCH,
+                PipelineStage.NAVIGATION,
+                PipelineStage.CONTENT_CAPTURE,
+            ):
                 with get_db_session(tenant_id=tenant_uuid, require_tenant=True) as session:
                     _update_stage(session, job_id, stage, "FAILED", sanitize_log_error(exc)[:200])
             metrics = get_metrics()
@@ -721,17 +763,9 @@ async def _browser_crawl_stage_async(self, prev_result: dict, tenant_id: str):
             raise self.retry(exc=exc, countdown=30)
 
 
-def _get_target_config(session, job) -> dict:
-    """Get target configuration from job."""
-    target_config = {}
-    if job.target_id:
-        target = session.query(ScrapingTarget).get(job.target_id)
-        if target:
-            target_config = target.extraction_config or {}
-    return target_config
-
-
-async def _execute_routing(url: str, browser_config: dict, effective_mode: str, job_id: UUID, tenant_id: str):
+async def _execute_routing(
+    url: str, browser_config: dict, effective_mode: str, job_id: UUID, tenant_id: str
+):
     """Execute routing decision and return crawl results."""
     router = SmartRouter()
     gate = QualityGate()
@@ -766,14 +800,20 @@ async def _execute_routing(url: str, browser_config: dict, effective_mode: str, 
     final_path = "unknown"
 
     if routing_decision.route == RouteType.FAST:
-        fast_result, decision_record = await _execute_fast_path_routing(url, fast_result, decision_record)
+        fast_result, decision_record = await _execute_fast_path_routing(
+            url, fast_result, decision_record
+        )
         final_path = "fast"
     elif routing_decision.route == RouteType.FAST_WITH_FALLBACK:
-        crawl_result, fast_result, decision_record, final_path = await _execute_fast_with_fallback_routing(
-            url, browser_config, gate, fast_result, decision_record
+        crawl_result, fast_result, decision_record, final_path = (
+            await _execute_fast_with_fallback_routing(
+                url, browser_config, gate, fast_result, decision_record
+            )
         )
     else:  # RouteType.BROWSER
-        crawl_result, decision_record, final_path = await _execute_browser_routing(url, browser_config, decision_record)
+        crawl_result, decision_record, final_path = await _execute_browser_routing(
+            url, browser_config, decision_record
+        )
 
     return crawl_result, fast_result, final_path, decision_record
 
@@ -795,7 +835,9 @@ async def _execute_fast_path_routing(url: str, fast_result, decision_record):
     return fast_result, decision_record
 
 
-async def _execute_fast_with_fallback_routing(url: str, browser_config: dict, gate, fast_result, decision_record):
+async def _execute_fast_with_fallback_routing(
+    url: str, browser_config: dict, gate, fast_result, decision_record
+):
     """Execute fast with fallback routing."""
     logger.info("Using FAST_WITH_FALLBACK path", url=url)
     fast_result = await _execute_fast_path(url)
@@ -805,7 +847,7 @@ async def _execute_fast_with_fallback_routing(url: str, browser_config: dict, ga
     decision_record.quality_passed = quality.passed
     decision_record.quality_checks = quality.checks
     decision_record.fallback_reason = quality.fallback_reason
-    
+
     if quality.passed:
         final_path = "fast"
         decision_record.final_path = "fast"
@@ -816,16 +858,22 @@ async def _execute_fast_with_fallback_routing(url: str, browser_config: dict, ga
         logger.info("Fast path succeeded", duration_ms=fast_result.fetch_time_ms)
         crawl_result = None
     else:
-        logger.warning("Fast path failed quality, escalating to browser", url=url, fallback_reason=quality.fallback_reason)
+        logger.warning(
+            "Fast path failed quality, escalating to browser",
+            url=url,
+            fallback_reason=quality.fallback_reason,
+        )
         crawl_result = await _crawl_browser(url, browser_config)
         final_path = "fallback"
         decision_record.final_path = "fallback"
         decision_record.status_code = crawl_result.status_code
         decision_record.browser_duration_ms = crawl_result.duration_ms
         decision_record.fetch_time_ms = fast_result.fetch_time_ms + crawl_result.duration_ms
-        decision_record.bytes_transferred = len((fast_result.html or "").encode("utf-8")) + len((crawl_result.html_content or "").encode("utf-8"))
+        decision_record.bytes_transferred = len((fast_result.html or "").encode("utf-8")) + len(
+            (crawl_result.html_content or "").encode("utf-8")
+        )
         decision_record.text_length = len(crawl_result.html_content or "") // 10
-    
+
     return crawl_result, fast_result, decision_record, final_path
 
 
@@ -863,30 +911,19 @@ def _record_stage_metrics(stage_started_at, stage):
         )
 
 
-def _extract_unified_crawl_result(fast_result, crawl_result, final_path):
-    """Extract unified crawl result from fast or browser path."""
-    if fast_result and final_path in ("fast",):
-        return (
-            fast_result.url,
-            fast_result.status_code,
-            fast_result.headers,
-            fast_result.html or "",
-            fast_result.title,
-            fast_result.fetch_time_ms,
-        )
-    elif crawl_result:
-        return (
-            crawl_result.final_url,
-            crawl_result.status_code,
-            crawl_result.headers,
-            crawl_result.html_content or "",
-            crawl_result.title or "",
-            crawl_result.duration_ms,
-        )
-    return "", None, {}, "", "", 0
-
-
-async def _capture_raw_content(session, job, url, final_url, status_code, headers, title, html_content, duration_ms, fast_result, final_path):
+async def _capture_raw_content(
+    session,
+    job,
+    url,
+    final_url,
+    status_code,
+    headers,
+    title,
+    html_content,
+    duration_ms,
+    fast_result,
+    final_path,
+):
     """Capture raw content to database."""
     _update_stage(session, job.id, PipelineStage.CONTENT_CAPTURE, "RUNNING")
     job.status = JobStatus.EXTRACTING.value
@@ -940,7 +977,7 @@ def ai_extraction_stage(self, prev_result: dict, tenant_id: str):
 
 async def _ai_extraction_stage_async(self, prev_result: dict, tenant_id: str):
     """Stage 5: AI/LLM Extraction (conditional based on config).
-    
+
     Args:
         prev_result: Previous stage result containing job_id
         tenant_id: Trusted tenant_id from server-controlled dispatch envelope
@@ -978,7 +1015,9 @@ async def _ai_extraction_stage_async(self, prev_result: dict, tenant_id: str):
 
                 if method == ExtractionMethod.DETERMINISTIC.value:
                     logger.info("Skipping AI extraction (deterministic mode)", job_id=str(job_id))
-                    return ai_extraction_stageResult.model_validate({"success": True, "job_id": str(job_id), "skipped": True}).model_dump()
+                    return ai_extraction_stageResult.model_validate(
+                        {"success": True, "job_id": str(job_id), "skipped": True}
+                    ).model_dump()
 
                 _update_stage(session, job_id, PipelineStage.AI_EXTRACTION, "RUNNING")
                 job.progress_stage = PipelineStage.AI_EXTRACTION.value
@@ -1006,7 +1045,9 @@ async def _ai_extraction_stage_async(self, prev_result: dict, tenant_id: str):
                     "tenant_id": str(job.tenant_id),
                     "model_version": extraction_config.get("model_version", extraction_model),
                     "schema_version": extraction_config.get("schema_version", "1.0"),
-                    "prompt_version": extraction_config.get("prompt_version", "entity_extraction_v1"),
+                    "prompt_version": extraction_config.get(
+                        "prompt_version", "entity_extraction_v1"
+                    ),
                     "options": {
                         "model": extraction_model,
                         "temperature": extraction_config.get("temperature", 0.0),
@@ -1020,7 +1061,9 @@ async def _ai_extraction_stage_async(self, prev_result: dict, tenant_id: str):
 
                 # OPTIMIZATION: Use Celery for L2 dispatch when enabled (async queue-based processing)
                 # Falls back to HTTP if Celery disabled or unavailable
-                use_celery_dispatch = settings.use_celery_for_l2  # Local flag to avoid race condition
+                use_celery_dispatch = (
+                    settings.use_celery_for_l2
+                )  # Local flag to avoid race condition
                 if use_celery_dispatch:
                     try:
                         # Import Celery for cross-service dispatch
@@ -1034,17 +1077,31 @@ async def _ai_extraction_stage_async(self, prev_result: dict, tenant_id: str):
                         )
 
                         # Dispatch task to L2 Celery worker with extract-and-ingest
-                        logger.info("Dispatching extract-and-ingest task to L2 Celery", job_id=str(job_id))
+                        logger.info(
+                            "Dispatching extract-and-ingest task to L2 Celery", job_id=str(job_id)
+                        )
                         result = l2_celery.send_task(
                             "layer2_extraction.shared.tasks.run_extraction_task",
-                            args=[str(job_id), job.source_url or "", raw_content.meta_title or "", extraction_payload],
-                            kwargs={"mark_pipeline_complete": False, "use_extract_and_ingest": True},
+                            args=[
+                                str(job_id),
+                                job.source_url or "",
+                                raw_content.meta_title or "",
+                                extraction_payload,
+                            ],
+                            kwargs={
+                                "mark_pipeline_complete": False,
+                                "use_extract_and_ingest": True,
+                            },
                         )
 
                         # Wait for result with timeout
                         extraction_result = result.get(timeout=300)
                         tokens_consumed = extraction_result.get("tokens_consumed", 0)
-                        logger.info("L2 Celery extract-and-ingest completed", job_id=str(job_id), task_id=result.id)
+                        logger.info(
+                            "L2 Celery extract-and-ingest completed",
+                            job_id=str(job_id),
+                            task_id=result.id,
+                        )
 
                     except Exception as e:
                         logger.warning(
@@ -1095,9 +1152,15 @@ async def _ai_extraction_stage_async(self, prev_result: dict, tenant_id: str):
                                 status=e.response.status_code,
                             )
                             raise self.retry(exc=e, countdown=15)
-                        raise ValueError(f"L2 extract-and-ingest failed: HTTP {e.response.status_code}: {e.response.text}")
+                        raise ValueError(
+                            f"L2 extract-and-ingest failed: HTTP {e.response.status_code}: {e.response.text}"
+                        )
                     except Exception as e:
-                        logger.warning("L2 extract-and-ingest failed, retrying via Celery", job_id=str(job_id), error_code="L2_EXTRACTION_ERROR")
+                        logger.warning(
+                            "L2 extract-and-ingest failed, retrying via Celery",
+                            job_id=str(job_id),
+                            error_code="L2_EXTRACTION_ERROR",
+                        )
                         raise self.retry(exc=e, countdown=30)
 
                 job.configuration["extraction_result"] = extraction_result
@@ -1124,19 +1187,32 @@ async def _ai_extraction_stage_async(self, prev_result: dict, tenant_id: str):
                     tokens_consumed=tokens_consumed,
                     entities_extracted=len(extraction_result.get("entities", [])),
                 )
-                return ai_extraction_stageResult.model_validate({
-                    "success": True,
-                    "job_id": str(job_id),
-                    "tokens_consumed": tokens_consumed,
-                    "entities_extracted": len(extraction_result.get("entities", [])),
-                }).model_dump()
+                return ai_extraction_stageResult.model_validate(
+                    {
+                        "success": True,
+                        "job_id": str(job_id),
+                        "tokens_consumed": tokens_consumed,
+                        "entities_extracted": len(extraction_result.get("entities", [])),
+                    }
+                ).model_dump()
 
         except Exception as exc:
             if "Retry" in type(exc).__name__:
                 raise
-            logger.error("AI extraction failed", job_id=str(job_id), error_code="AI_EXTRACTION_ERROR", error=sanitize_log_error(exc))
+            logger.error(
+                "AI extraction failed",
+                job_id=str(job_id),
+                error_code="AI_EXTRACTION_ERROR",
+                error=sanitize_log_error(exc),
+            )
             with get_db_session(tenant_id=tenant_uuid, require_tenant=True) as session:
-                _update_stage(session, job_id, PipelineStage.AI_EXTRACTION, "FAILED", sanitize_log_error(exc)[:200])
+                _update_stage(
+                    session,
+                    job_id,
+                    PipelineStage.AI_EXTRACTION,
+                    "FAILED",
+                    sanitize_log_error(exc)[:200],
+                )
             metrics = get_metrics()
             if metrics:
                 metrics.increment_retry_event(stage="ai_extraction", reason="stage_failure")
@@ -1146,7 +1222,7 @@ async def _ai_extraction_stage_async(self, prev_result: dict, tenant_id: str):
 @celery_app.task(bind=True, max_retries=2)
 def post_processing_stage(self, prev_result: dict, tenant_id: str):
     """Stage 6: Post-processing (PII redaction, normalization).
-    
+
     Args:
         prev_result: Previous stage result containing job_id
         tenant_id: Trusted tenant_id from server-controlled dispatch envelope
@@ -1211,14 +1287,10 @@ def post_processing_stage(self, prev_result: dict, tenant_id: str):
                 skill = get_skill(job.job_type)
                 if skill:
                     raw_contents = (
-                        session.query(RawContent)
-                        .filter(RawContent.job_id == job_id)
-                        .all()
+                        session.query(RawContent).filter(RawContent.job_id == job_id).all()
                     )
                     extracted_data = (
-                        session.query(ExtractedData)
-                        .filter(ExtractedData.job_id == job_id)
-                        .all()
+                        session.query(ExtractedData).filter(ExtractedData.job_id == job_id).all()
                     )
                     skill_output = skill.build_output(job, raw_contents, extracted_data)
                     # Store in job configuration for downstream stages
@@ -1235,48 +1307,29 @@ def post_processing_stage(self, prev_result: dict, tenant_id: str):
                 session.commit()
 
                 logger.info("Post-processing completed", job_id=str(job_id))
-                return post_processing_stageResult.model_validate({"success": True, "job_id": str(job_id)}).model_dump()
+                return post_processing_stageResult.model_validate(
+                    {"success": True, "job_id": str(job_id)}
+                ).model_dump()
 
         except Exception as exc:
-            logger.error("Post-processing failed", job_id=str(job_id), error_code="POST_PROCESSING_ERROR", error=sanitize_log_error(exc))
+            logger.error(
+                "Post-processing failed",
+                job_id=str(job_id),
+                error_code="POST_PROCESSING_ERROR",
+                error=sanitize_log_error(exc),
+            )
             with get_db_session(tenant_id=tenant_uuid, require_tenant=True) as session:
-                _update_stage(session, job_id, PipelineStage.POST_PROCESSING, "FAILED", sanitize_log_error(exc)[:200])
+                _update_stage(
+                    session,
+                    job_id,
+                    PipelineStage.POST_PROCESSING,
+                    "FAILED",
+                    sanitize_log_error(exc)[:200],
+                )
             metrics = get_metrics()
             if metrics:
                 metrics.increment_retry_event(stage="post_processing", reason="stage_failure")
             raise self.retry(exc=exc, countdown=10)
-
-
-def _validate_payload_against_schema(
-    data: dict,
-    schema: dict,
-) -> tuple[bool, list[dict], list[str], list[str]]:
-    """Validate *data* against a JSON Schema *schema*.
-
-    Returns:
-        (schema_valid, errors, required_present, required_missing)
-
-    *errors* is a list of dicts with keys ``path``, ``message``, ``validator``
-    so callers can persist them directly into ``ExtractedData.validation_errors``.
-    """
-    validator = Draft7Validator(schema)
-    raw_errors = sorted(validator.iter_errors(data), key=lambda e: list(e.absolute_path))
-
-    errors = [
-        {
-            "path": ".".join(str(p) for p in err.absolute_path) or "$",
-            "message": err.message,
-            "validator": err.validator,
-        }
-        for err in raw_errors
-    ]
-
-    # Determine which required fields are present / missing
-    required_fields: list[str] = schema.get("required", [])
-    required_present = [f for f in required_fields if f in data]
-    required_missing = [f for f in required_fields if f not in data]
-
-    return len(errors) == 0, errors, required_present, required_missing
 
 
 @celery_app.task(bind=True, max_retries=2)
@@ -1289,7 +1342,7 @@ def validation_stage(self, prev_result: dict, tenant_id: str):
 
     If no extraction_schema is configured the stage completes successfully
     without modifying the ExtractedData record (schema validation is opt-in).
-    
+
     Args:
         prev_result: Previous stage result containing job_id
         tenant_id: Trusted tenant_id from server-controlled dispatch envelope
@@ -1370,12 +1423,25 @@ def validation_stage(self, prev_result: dict, tenant_id: str):
                 session.commit()
 
                 logger.info("Validation completed", job_id=str(job_id))
-                return validation_stageResult.model_validate({"success": True, "job_id": str(job_id)}).model_dump()
+                return validation_stageResult.model_validate(
+                    {"success": True, "job_id": str(job_id)}
+                ).model_dump()
 
         except Exception as exc:
-            logger.error("Validation failed", job_id=str(job_id), error_code="VALIDATION_ERROR", error=sanitize_log_error(exc))
+            logger.error(
+                "Validation failed",
+                job_id=str(job_id),
+                error_code="VALIDATION_ERROR",
+                error=sanitize_log_error(exc),
+            )
             with get_db_session(tenant_id=tenant_uuid, require_tenant=True) as session:
-                _update_stage(session, job_id, PipelineStage.VALIDATION, "FAILED", sanitize_log_error(exc)[:200])
+                _update_stage(
+                    session,
+                    job_id,
+                    PipelineStage.VALIDATION,
+                    "FAILED",
+                    sanitize_log_error(exc)[:200],
+                )
             metrics = get_metrics()
             if metrics:
                 metrics.increment_retry_event(stage="validation", reason="stage_failure")
@@ -1385,7 +1451,7 @@ def validation_stage(self, prev_result: dict, tenant_id: str):
 @celery_app.task(bind=True, max_retries=3)
 def storage_stage(self, prev_result: dict, tenant_id: str):
     """Stage 8: Storage (save to database, update references).
-    
+
     Args:
         prev_result: Previous stage result containing job_id
         tenant_id: Trusted tenant_id from server-controlled dispatch envelope
@@ -1458,7 +1524,10 @@ def storage_stage(self, prev_result: dict, tenant_id: str):
                         # Idempotent: skip if a SourceCorpus already exists for this job
                         existing_corpus = (
                             session.query(SourceCorpus)
-                            .filter(SourceCorpus.job_id == job_id, SourceCorpus.tenant_id == job.tenant_id)
+                            .filter(
+                                SourceCorpus.job_id == job_id,
+                                SourceCorpus.tenant_id == job.tenant_id,
+                            )
                             .first()
                         )
                         if existing_corpus:
@@ -1472,11 +1541,15 @@ def storage_stage(self, prev_result: dict, tenant_id: str):
                                 tenant_id=job.tenant_id,
                                 company_id=skill_output.get("company_id"),
                                 company_name=skill_output.get("company_name", "Unknown"),
-                                corpus_type=skill_output.get("corpus_type", "licensing_company_ontology_seed"),
+                                corpus_type=skill_output.get(
+                                    "corpus_type", "licensing_company_ontology_seed"
+                                ),
                                 source_groups=skill_output.get("source_groups", []),
                                 candidate_concepts=skill_output.get("candidate_concepts", []),
                                 provenance=skill_output.get("provenance", []),
-                                extraction_status=skill_output.get("extraction_status", "ready_for_extraction"),
+                                extraction_status=skill_output.get(
+                                    "extraction_status", "ready_for_extraction"
+                                ),
                                 job_id=job_id,
                             )
                             session.add(corpus)
@@ -1491,7 +1564,10 @@ def storage_stage(self, prev_result: dict, tenant_id: str):
                         # Idempotent: skip if a packet already exists for this job
                         existing_packet = (
                             session.query(AccountIntelligencePacket)
-                            .filter(AccountIntelligencePacket.job_id == job_id, AccountIntelligencePacket.tenant_id == job.tenant_id)
+                            .filter(
+                                AccountIntelligencePacket.job_id == job_id,
+                                AccountIntelligencePacket.tenant_id == job.tenant_id,
+                            )
                             .first()
                         )
                         if existing_packet:
@@ -1512,7 +1588,9 @@ def storage_stage(self, prev_result: dict, tenant_id: str):
                                 likely_stakeholders=skill_output.get("likely_stakeholders", []),
                                 source_references=skill_output.get("source_references", []),
                                 confidence_summary=skill_output.get("confidence_summary", {}),
-                                next_recommended_events=skill_output.get("next_recommended_events", []),
+                                next_recommended_events=skill_output.get(
+                                    "next_recommended_events", []
+                                ),
                                 job_id=job_id,
                             )
                             session.add(packet)
@@ -1528,12 +1606,21 @@ def storage_stage(self, prev_result: dict, tenant_id: str):
                 session.commit()
 
                 logger.info("Storage completed", job_id=str(job_id))
-                return storage_stageResult.model_validate({"success": True, "job_id": str(job_id)}).model_dump()
+                return storage_stageResult.model_validate(
+                    {"success": True, "job_id": str(job_id)}
+                ).model_dump()
 
         except Exception as exc:
-            logger.error("Storage failed", job_id=str(job_id), error_code="STORAGE_ERROR", error=sanitize_log_error(exc))
+            logger.error(
+                "Storage failed",
+                job_id=str(job_id),
+                error_code="STORAGE_ERROR",
+                error=sanitize_log_error(exc),
+            )
             with get_db_session(tenant_id=tenant_uuid, require_tenant=True) as session:
-                _update_stage(session, job_id, PipelineStage.STORAGE, "FAILED", sanitize_log_error(exc)[:200])
+                _update_stage(
+                    session, job_id, PipelineStage.STORAGE, "FAILED", sanitize_log_error(exc)[:200]
+                )
             metrics = get_metrics()
             if metrics:
                 metrics.increment_retry_event(stage="storage", reason="stage_failure")
@@ -1543,7 +1630,7 @@ def storage_stage(self, prev_result: dict, tenant_id: str):
 @celery_app.task(bind=True)
 def notification_stage(self, prev_result: dict, tenant_id: str):
     """Stage 9: Notification (webhooks, callbacks).
-    
+
     Args:
         prev_result: Previous stage result containing job_id
         tenant_id: Trusted tenant_id from server-controlled dispatch envelope
@@ -1590,7 +1677,9 @@ def notification_stage(self, prev_result: dict, tenant_id: str):
                         total_duration = (
                             target.average_execution_time_ms * (target.success_count - 1) + duration
                         )
-                        target.average_execution_time_ms = int(total_duration / target.success_count)
+                        target.average_execution_time_ms = int(
+                            total_duration / target.success_count
+                        )
                     session.commit()
 
                 # Skill-aware event emission via durable transactional outbox.
@@ -1664,13 +1753,28 @@ def notification_stage(self, prev_result: dict, tenant_id: str):
                         )
 
                 logger.info("Job completed successfully", job_id=str(job_id))
-                return notification_stageResult.model_validate({"success": True, "job_id": str(job_id), "error": None}).model_dump()
+                return notification_stageResult.model_validate(
+                    {"success": True, "job_id": str(job_id), "error": None}
+                ).model_dump()
 
         except Exception as exc:
-            logger.error("Notification stage failed", job_id=str(job_id), error_code="NOTIFICATION_ERROR", error=sanitize_log_error(exc))
+            logger.error(
+                "Notification stage failed",
+                job_id=str(job_id),
+                error_code="NOTIFICATION_ERROR",
+                error=sanitize_log_error(exc),
+            )
             with get_db_session(tenant_id=tenant_uuid, require_tenant=True) as session:
-                _update_stage(session, job_id, PipelineStage.NOTIFICATION, "FAILED", sanitize_log_error(exc)[:200])
-            return notification_stageResult.model_validate({"success": False, "job_id": str(job_id), "error": "Notification stage failed"}).model_dump()
+                _update_stage(
+                    session,
+                    job_id,
+                    PipelineStage.NOTIFICATION,
+                    "FAILED",
+                    sanitize_log_error(exc)[:200],
+                )
+            return notification_stageResult.model_validate(
+                {"success": False, "job_id": str(job_id), "error": "Notification stage failed"}
+            ).model_dump()
 
 
 # =============================================================================
@@ -1688,7 +1792,7 @@ def dispatch_outbox_event(self, event_id: str, tenant_id: str):
 
     The initial sink is a structured log. The architecture supports adding
     HTTP adapter or other delivery mechanisms without changing this task.
-    
+
     Args:
         event_id: The event UUID
         tenant_id: Trusted tenant_id from server-controlled dispatch envelope
@@ -1704,11 +1808,7 @@ def dispatch_outbox_event(self, event_id: str, tenant_id: str):
         try:
             # Set tenant context BEFORE any database queries
             with get_db_session(tenant_id=tenant_uuid, require_tenant=True) as session:
-                event = (
-                    session.query(EventOutbox)
-                    .filter(EventOutbox.id == event_uuid)
-                .first()
-            )
+                event = session.query(EventOutbox).filter(EventOutbox.id == event_uuid).first()
             if not event:
                 logger.warning("EventOutbox row not found", event_id=event_id)
                 return
@@ -1755,8 +1855,10 @@ def dispatch_outbox_event(self, event_id: str, tenant_id: str):
                 attempt=self.request.retries + 1,
             )
 
-            should_retry = _handle_dispatch_failure(event_uuid, tenant_uuid, exc, self.request.retries)
-            
+            should_retry = _handle_dispatch_failure(
+                event_uuid, tenant_uuid, exc, self.request.retries
+            )
+
             if not should_retry:
                 return  # Dead-lettered, do not retry
 
@@ -1764,25 +1866,26 @@ def dispatch_outbox_event(self, event_id: str, tenant_id: str):
             metrics = get_metrics()
             if metrics:
                 metrics.increment_retry_event(stage="notification", reason="dispatch_failure")
-            raise self.retry(exc=exc, countdown=30 * (2 ** self.request.retries))
+            raise self.retry(exc=exc, countdown=30 * (2**self.request.retries))
 
 
-def _handle_dispatch_failure(event_uuid: UUID, tenant_uuid: UUID, exc: Exception, current_retries: int) -> bool:
+def _handle_dispatch_failure(
+    event_uuid: UUID, tenant_uuid: UUID, exc: Exception, current_retries: int
+) -> bool:
     """Handle dispatch failure and return whether to retry.
-    
+
     Returns False if event was dead-lettered (no retry), True otherwise.
     """
     try:
         with get_db_session(tenant_id=tenant_uuid, require_tenant=True) as session:
-            event = (
-                session.query(EventOutbox)
-                .filter(EventOutbox.id == event_uuid)
-                .first()
-            )
+            event = session.query(EventOutbox).filter(EventOutbox.id == event_uuid).first()
             if not event:
-                logger.warning("EventOutbox not found for failure handling, skipping retry", event_id=str(event_uuid))
+                logger.warning(
+                    "EventOutbox not found for failure handling, skipping retry",
+                    event_id=str(event_uuid),
+                )
                 return False
-            
+
             event.attempts = (event.attempts or 0) + 1
             event.last_error = sanitize_log_error(exc)[:200]
 
@@ -1882,7 +1985,7 @@ def run_pipeline_stage(self, stage_name: str, payload: dict):
             error=sanitize_log_error(exc),
         )
         # Retry with exponential backoff.
-        raise self.retry(exc=exc, countdown=60 * (2 ** self.request.retries))
+        raise self.retry(exc=exc, countdown=60 * (2**self.request.retries))
 
 
 @celery_app.task
@@ -1951,10 +2054,7 @@ def _check_tenant_kill_switch_sync(tenant_id: str) -> bool:
     Returns True when the tenant is suspended and all work must fail closed.
     Raises TenantKillSwitchUnavailable when the state cannot be determined.
     """
-    from value_fabric.shared.tenant_kill_switch import (
-        TenantSuspensionStatus,
-        get_kill_switch,
-    )
+    from value_fabric.shared.tenant_kill_switch import TenantSuspensionStatus, get_kill_switch
 
     status = get_kill_switch().check_status_sync(tenant_id)
     if status == TenantSuspensionStatus.UNKNOWN:
@@ -2055,7 +2155,8 @@ def record_dead_lettered_task(envelope: dict[str, Any]) -> dict[str, Any]:
                 tenant_id=job_tenant_id,
                 stage="DEAD_LETTER",
                 error_code="TASK_DEAD_LETTERED",
-                error_message=envelope.get("error") or "Task exhausted retries and was dead-lettered",
+                error_message=envelope.get("error")
+                or "Task exhausted retries and was dead-lettered",
                 retryable=False,
             )
             session.add(error_record)
@@ -2112,10 +2213,10 @@ def execute_pipeline_stage(job_id: str, stage: str, tenant_id: str):
 
 
 @celery_app.task(bind=True, max_retries=3)
-def crawl_url_with_routing(self, job_id: str, url: str, tenant_id: str, target_mode: str = "browser"):
-    return _run_async(
-        _acrawl_url_with_routing(self, job_id, url, tenant_id, target_mode)
-    )
+def crawl_url_with_routing(
+    self, job_id: str, url: str, tenant_id: str, target_mode: str = "browser"
+):
+    return _run_async(_acrawl_url_with_routing(self, job_id, url, tenant_id, target_mode))
 
 
 async def _acrawl_url_with_routing(
@@ -2164,25 +2265,25 @@ async def _acrawl_url_with_routing(
                 job = session.query(ScrapingJob).get(job_id_uuid)
                 if not job:
                     raise ValueError(f"Job {job_id} not found")
-    
+
                 target = session.query(ScrapingTarget).get(job.target_id)
                 target_config = target.extraction_config or {} if target else {}
-    
+
                 # Use target's crawl_path if available, otherwise use parameter
                 effective_mode = target_config.get("crawl_path", target_mode)
-    
+
             # Parse URL for domain extraction
             parsed_url = urlparse(url)
             domain = parsed_url.netloc
-    
+
             # SECURITY: Validate URL safety before any routing decision
             safety_result = validate_url_safety(url)
             enforce_rebinding_protection(safety_result.normalized_url, safety_result.resolved_ips)
-    
+
             # 1. ROUTING DECISION
             route_type = RouteType(effective_mode)
             routing_decision = router.decide(url, route_type)
-    
+
             # Initialize decision record
             decision_record = CrawlDecisionRecord(
                 decision_id=str(uuid4()),
@@ -2205,12 +2306,12 @@ async def _acrawl_url_with_routing(
                 spa_detected=False,
                 text_length=0,
             )
-    
+
             # 2. EXECUTE BASED ON ROUTING DECISION
             if routing_decision.route == RouteType.FAST:
                 # Direct fast path
                 result = await _execute_fast_path(url)
-    
+
                 decision_record.final_path = "fast"
                 decision_record.status_code = result.status_code
                 decision_record.fast_duration_ms = result.fetch_time_ms
@@ -2218,24 +2319,24 @@ async def _acrawl_url_with_routing(
                 decision_record.bytes_transferred = len(result.html.encode("utf-8"))
                 decision_record.spa_detected = result.is_spa_detected
                 decision_record.text_length = len(result.text_content)
-    
+
                 if result.status_code == 200:
                     decision_record.quality_passed = True
                     decision_record.quality_checks = {"direct_fast": True}
-    
+
             elif routing_decision.route == RouteType.FAST_WITH_FALLBACK:
                 # Try fast path, fallback if quality fails
                 result = await _execute_fast_path(url)
-    
+
                 decision_record.fast_duration_ms = result.fetch_time_ms
                 decision_record.spa_detected = result.is_spa_detected
-    
+
                 # Quality gate evaluation
                 quality = gate.evaluate(result)
                 decision_record.quality_passed = quality.passed
                 decision_record.quality_checks = quality.checks
                 decision_record.fallback_reason = quality.fallback_reason
-    
+
                 if quality.passed:
                     # Fast path succeeded
                     decision_record.final_path = "fast"
@@ -2243,7 +2344,7 @@ async def _acrawl_url_with_routing(
                     decision_record.fetch_time_ms = result.fetch_time_ms
                     decision_record.bytes_transferred = len(result.html.encode("utf-8"))
                     decision_record.text_length = len(result.text_content)
-    
+
                     logger.info(
                         "Fast path succeeded",
                         job_id=job_id,
@@ -2258,34 +2359,36 @@ async def _acrawl_url_with_routing(
                         url=url,
                         fallback_reason=quality.fallback_reason,
                     )
-    
-                    browser_result = await _execute_browser_path(url, routing_decision.stagehand_config)
-    
+
+                    browser_result = await _execute_browser_path(
+                        url, routing_decision.stagehand_config
+                    )
+
                     decision_record.final_path = "fallback"
                     decision_record.status_code = browser_result.get("status_code")
                     decision_record.browser_duration_ms = browser_result.get("duration_ms", 0)
                     decision_record.fetch_time_ms = result.fetch_time_ms + browser_result.get(
                         "duration_ms", 0
                     )
-                    decision_record.bytes_transferred = len(result.html.encode("utf-8")) + browser_result.get(
-                        "content_length", 0
-                    )
+                    decision_record.bytes_transferred = len(
+                        result.html.encode("utf-8")
+                    ) + browser_result.get("content_length", 0)
                     decision_record.text_length = browser_result.get("text_length", 0)
-    
+
             else:  # RouteType.BROWSER
                 # Direct browser path
                 browser_result = await _execute_browser_path(url, routing_decision.stagehand_config)
-    
+
                 decision_record.final_path = "browser"
                 decision_record.status_code = browser_result.get("status_code")
                 decision_record.browser_duration_ms = browser_result.get("duration_ms", 0)
                 decision_record.fetch_time_ms = browser_result.get("duration_ms", 0)
                 decision_record.bytes_transferred = browser_result.get("content_length", 0)
                 decision_record.text_length = browser_result.get("text_length", 0)
-    
+
             # 3. PERSIST CANONICAL DECISION
             await decision_repo.save(decision_record, trusted_tenant_id=tenant_uuid)
-    
+
             logger.info(
                 "Crawl completed with routing",
                 job_id=job_id,
@@ -2293,17 +2396,18 @@ async def _acrawl_url_with_routing(
                 final_path=decision_record.final_path,
                 duration_ms=decision_record.fetch_time_ms,
             )
-    
-            return crawl_url_with_routingResult.model_validate({
-                "success": True,
-                "job_id": job_id,
-                "url": url,
-                "final_path": decision_record.final_path,
-                "duration_ms": decision_record.fetch_time_ms,
-                "decision_id": decision_record.decision_id,
-            }).model_dump()
-    
-    
+
+            return crawl_url_with_routingResult.model_validate(
+                {
+                    "success": True,
+                    "job_id": job_id,
+                    "url": url,
+                    "final_path": decision_record.final_path,
+                    "duration_ms": decision_record.fetch_time_ms,
+                    "decision_id": decision_record.decision_id,
+                }
+            ).model_dump()
+
         except Exception as exc:
             logger.error(
                 "Crawl failed",
@@ -2313,19 +2417,21 @@ async def _acrawl_url_with_routing(
                 error=sanitize_log_error(exc),
                 exc_info=True,
             )
-    
+
             # Try to save error decision if we have a decision record
             if "decision_record" in locals():
                 decision_record.error_type = type(exc).__name__
-                decision_record.error_message = sanitize_log_error(exc)[:500]  # Truncate long messages
+                decision_record.error_message = sanitize_log_error(exc)[
+                    :500
+                ]  # Truncate long messages
                 try:
                     await decision_repo.save(decision_record, trusted_tenant_id=tenant_uuid)
                 except Exception:
                     pass  # Don't let decision save failure mask original error
-    
+
             raise self.retry(exc=exc, countdown=60)
-    
-    
+
+
 async def _execute_fast_path(url: str) -> "FastPathResult":
     """Execute HTTPX fast path crawl.
 
@@ -2352,6 +2458,7 @@ async def _crawl_browser(url: str, browser_config: dict) -> "CrawlResult":
         CrawlResult with rendered HTML and metadata
     """
     from ..crawler.crawler_config import CrawlerConfig
+
     cfg = CrawlerConfig(headless=browser_config.get("headless", True))
     result = validate_url_safety(url)
     enforce_rebinding_protection(result.normalized_url, result.resolved_ips)
@@ -2386,6 +2493,7 @@ async def _execute_browser_path(url: str, config: dict | None) -> dict:
     wait_timeout = browser_config.get("wait_timeout", 30000)
 
     from ..crawler.crawler_config import CrawlerConfig
+
     crawler_cfg = CrawlerConfig(headless=browser_config.get("headless", True))
     async with PlaywrightCrawler(config=crawler_cfg) as crawler:
         result = await crawler.crawl_url(
@@ -2397,23 +2505,23 @@ async def _execute_browser_path(url: str, config: dict | None) -> dict:
 
     duration_ms = int((time.monotonic() - start_time) * 1000)
 
-    return _execute_browser_pathResult.model_validate({
-        "status_code": result.status_code or 200,
-        "duration_ms": duration_ms,
-        "content_length": len(result.html_content or ""),
-        "text_length": len(result.html_content or "") // 10,  # Approximate text ratio
-        "title": result.title,
-        "final_url": result.final_url,
-        "error": result.error,
-        "config_used": config,
-        "blocked_resources": result.blocked_resources,
-        "scroll_triggered": result.scroll_triggered,
-    }).model_dump()
+    return _execute_browser_pathResult.model_validate(
+        {
+            "status_code": result.status_code or 200,
+            "duration_ms": duration_ms,
+            "content_length": len(result.html_content or ""),
+            "text_length": len(result.html_content or "") // 10,  # Approximate text ratio
+            "title": result.title,
+            "final_url": result.final_url,
+            "error": result.error,
+            "config_used": config,
+            "blocked_resources": result.blocked_resources,
+            "scroll_triggered": result.scroll_triggered,
+        }
+    ).model_dump()
 
 
-def _should_fail_closed(
-    quality_result, fast_result, routing_decision
-) -> tuple[bool, str | None]:
+def _should_fail_closed(quality_result, fast_result, routing_decision) -> tuple[bool, str | None]:
     """Determine if we should fail closed to browser path.
 
     Fail-closed rules:
@@ -2485,42 +2593,47 @@ def _enumerate_authorized_tenants_for_cleanup() -> list[UUID]:
 
 def cleanup_old_content(days: int = 30, tenant_id: str = None):
     """Clean up raw content older than specified days.
-    
+
     This function implements tenant-by-tenant cleanup under RLS by default.
     System-scoped cleanup requires explicit system maintenance authorization.
-    
+
     Args:
         days: Number of days to retain content
         tenant_id: Trusted tenant_id from server-controlled dispatch envelope
                    If None, requires system maintenance authorization
-        
+
     Raises:
         SystemMaintenanceAuthorizationError: If system-scoped operation lacks authorization
         InvalidTenantContextError: If tenant_id is provided but invalid
     """
     from .exceptions import InvalidTenantContextError
+
     cutoff_date = datetime.now(UTC) - timedelta(days=days)
-    
+
     # Validate tenant context if provided
     if tenant_id:
         try:
             tenant_uuid = UUID(tenant_id)
         except (ValueError, TypeError):
             raise InvalidTenantContextError(
-                f"Invalid tenant_id format: {tenant_id}",
-                tenant_id=tenant_id
+                f"Invalid tenant_id format: {tenant_id}", tenant_id=tenant_id
             )
-        
+
         # Tenant-scoped cleanup under RLS
-        logger.info("Starting tenant-scoped content cleanup", 
-                   cutoff_date=cutoff_date.isoformat(), 
-                   tenant_id=str(tenant_uuid))
-        
+        logger.info(
+            "Starting tenant-scoped content cleanup",
+            cutoff_date=cutoff_date.isoformat(),
+            tenant_id=str(tenant_uuid),
+        )
+
         with maintenance_audit_log("cleanup_old_content", tenant_id=str(tenant_uuid)) as record:
             with get_db_session(tenant_id=tenant_uuid, require_tenant=True) as session:
                 deleted_count = (
                     session.query(RawContent)
-                    .filter(RawContent.created_at < cutoff_date, RawContent.processing_status != "DELETED")
+                    .filter(
+                        RawContent.created_at < cutoff_date,
+                        RawContent.processing_status != "DELETED",
+                    )
                     .update({"processing_status": "DELETED"}, synchronize_session=False)
                 )
 
@@ -2534,17 +2647,19 @@ def cleanup_old_content(days: int = 30, tenant_id: str = None):
                     tenant_id=str(tenant_uuid),
                 )
 
-                return cleanup_old_contentResult.model_validate({"deleted_count": deleted_count, "cutoff_date": cutoff_date.isoformat()}).model_dump()
-    
+                return cleanup_old_contentResult.model_validate(
+                    {"deleted_count": deleted_count, "cutoff_date": cutoff_date.isoformat()}
+                ).model_dump()
+
     else:
         # System-scoped: iterate tenants individually under RLS.
         # Use tenant_registry (system table, no RLS) instead of tenant-owned tables.
-        
+
         # Emit metric for tenant enumeration observability
         metrics = get_metrics()
         if metrics:
             metrics.increment_maintenance_tenant_enumeration()
-        
+
         # Audit log entry before TenantRegistry query
         logger.info(
             "System maintenance: beginning tenant enumeration",
@@ -2553,7 +2668,7 @@ def cleanup_old_content(days: int = 30, tenant_id: str = None):
             system_identity="fabric4l-system-maintenance",
             correlation_id=str(uuid4()),
         )
-        
+
         tenant_ids = _enumerate_authorized_tenants_for_cleanup()
 
         total_deleted = 0
@@ -2562,7 +2677,9 @@ def cleanup_old_content(days: int = 30, tenant_id: str = None):
 
         for tenant_uuid in tenant_ids:
             try:
-                with maintenance_audit_log("cleanup_old_content", tenant_id=str(tenant_uuid)) as record:
+                with maintenance_audit_log(
+                    "cleanup_old_content", tenant_id=str(tenant_uuid)
+                ) as record:
                     with get_db_session(tenant_id=tenant_uuid, require_tenant=True) as session:
                         deleted_count = (
                             session.query(RawContent)
@@ -2577,7 +2694,9 @@ def cleanup_old_content(days: int = 30, tenant_id: str = None):
                         record.rows_affected = deleted_count
                         total_deleted += deleted_count
             except Exception as e:
-                failed_tenants.append((str(tenant_uuid), repr(e)))  # ban-str-e-allow: internal-tracking
+                failed_tenants.append(
+                    (str(tenant_uuid), repr(e))
+                )  # ban-str-e-allow: internal-tracking
                 logger.error(
                     "Tenant cleanup failed",
                     tenant_id=str(tenant_uuid),
@@ -2598,7 +2717,9 @@ def cleanup_old_content(days: int = 30, tenant_id: str = None):
             completed_at=completed_at.isoformat(),
             rows_affected=total_deleted,
             success=len(failed_tenants) == 0,
-            error_message=None if not failed_tenants else f"Failed tenants: {[t[0] for t in failed_tenants]}",
+            error_message=(
+                None if not failed_tenants else f"Failed tenants: {[t[0] for t in failed_tenants]}"
+            ),
             metadata={
                 "tenants_processed": len(tenant_ids),
                 "failed_tenants": failed_tenants,
@@ -2613,13 +2734,17 @@ def cleanup_old_content(days: int = 30, tenant_id: str = None):
             cutoff_date=cutoff_date.isoformat(),
         )
 
-        return cleanup_old_contentResult.model_validate({
-            "deleted_count": total_deleted,
-            "cutoff_date": cutoff_date.isoformat(),
-        }).model_dump()
+        return cleanup_old_contentResult.model_validate(
+            {
+                "deleted_count": total_deleted,
+                "cutoff_date": cutoff_date.isoformat(),
+            }
+        ).model_dump()
 
 
-@celery_app.task(name="layer1_ingestion.shared.tasks.purge_expired_raw_content", bind=True, max_retries=2)
+@celery_app.task(
+    name="layer1_ingestion.shared.tasks.purge_expired_raw_content", bind=True, max_retries=2
+)
 def purge_expired_raw_content(self) -> dict:
     """Celery beat task: purge raw content whose per-record retention window has elapsed.
 
