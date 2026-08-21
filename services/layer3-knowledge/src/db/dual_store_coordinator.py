@@ -1,4 +1,4 @@
-"""Dual-Store Transaction Coordinator for Layer 3 Knowledge Graph.
+﻿"""Dual-Store Transaction Coordinator for Layer 3 Knowledge Graph.
 
 Manages the write lifecycle across heterogeneous storage layers:
   1. Neo4j Graph Database (nodes & relationships)
@@ -8,7 +8,7 @@ Enforces strict tenant isolation, compensating rollback on failure,
 and audit trail observability for all cross-store mutations.
 
 Design Guarantees:
-- Fail-closed: Any failure causes rollback of both stores, never partial state.
+- Fail-closed: Every failure causes rollback of both stores, never partial state.
 - Tenant-scoped: All writes and compensating deletes require explicit tenant_id.
 - Idempotent compensation: Compensating operations are safe to re-execute.
 - Auditable: Every mutation and rollback produces an AuditEvent node.
@@ -19,9 +19,8 @@ from __future__ import annotations
 import logging
 from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime
-from typing import Any
 
-from neo4j import AsyncDriver
+from neo4j import AsyncDriver, AsyncSession
 
 from ..db.audited_mutation import AuditedGraphMutation
 
@@ -36,27 +35,22 @@ class DualStoreRollbackError(DualStoreTransactionError):
     """Raised when a compensating rollback operation fails."""
 
 
-class DualStoreMutationResult(dict[str, Any]):
-    """Structured result from a dual-store mutation attempt."""
-
-    def __init__(
-        self,
-        neo4j_status: str | None = None,
-        neo4j_error: str | None = None,
-        postgres_status: str | None = None,
-        postgres_error: str | None = None,
-        request_id: str | None = None,
-    ):
-        super().__init__(
-            {
-                "neo4j_status": neo4j_status,
-                "neo4j_error": neo4j_error,
-                "postgres_status": postgres_status,
-                "postgres_error": postgres_error,
-                "request_id": request_id,
-                "timestamp": datetime.now(UTC).isoformat(),
-            }
-        )
+def _build_result(
+    neo4j_status: str | None = None,
+    neo4j_error: object = None,
+    postgres_status: str | None = None,
+    postgres_error: object = None,
+    request_id: str | None = None,
+) -> dict[str, str]:
+    """Build a structured result dict from a dual-store mutation attempt."""
+    return {
+        "neo4j_status": neo4j_status or "",
+        "neo4j_error": str(neo4j_error) if neo4j_error else "",
+        "postgres_status": postgres_status or "",
+        "postgres_error": str(postgres_error) if postgres_error else "",
+        "request_id": request_id or "",
+        "timestamp": datetime.now(UTC).isoformat(),
+    }
 
 
 class DualStoreTransactionCoordinator:
@@ -99,7 +93,7 @@ class DualStoreTransactionCoordinator:
         self.tenant_id = tenant_id.strip()
         self.driver = driver
         self.request_id = request_id or self._generate_request_id()
-        self._audit_mutations: list[dict[str, Any]] = []
+        self._audit_mutations: list[dict[str, object]] = []
 
     @staticmethod
     def _generate_request_id() -> str:
@@ -110,10 +104,10 @@ class DualStoreTransactionCoordinator:
 
     async def write_with_rollback(
         self,
-        neo4j_op: Callable[[Any], Awaitable[dict[str, Any]]],
-        postgres_op: Callable[[], Awaitable[dict[str, Any]]],
+        neo4j_op: Callable[[AsyncSession], Awaitable[dict[str, object]]],
+        postgres_op: Callable[[], Awaitable[dict[str, object]]],
         request_id: str | None = None,
-    ) -> DualStoreMutationResult:
+    ) -> dict[str, str]:
         """Execute coordinated Neo4j + PostgreSQL write with compensating rollback.
 
         The transaction proceeds as a coordinated saga:
@@ -143,7 +137,7 @@ class DualStoreTransactionCoordinator:
             neo4j_result = await self._execute_neo4j_write(neo4j_op, req_id)
             if neo4j_result["status"] == "failed":
                 # Neo4j already logged its own error; return early
-                return DualStoreMutationResult(
+                return _build_result(
                     neo4j_status="failed",
                     neo4j_error=neo4j_result.get("error"),
                     request_id=req_id,
@@ -168,7 +162,7 @@ class DualStoreTransactionCoordinator:
                         f"PostgreSQL write failed and Neo4j compensating rollback also failed: "
                         f"{rollback_result.get('error')}"
                     )
-                return DualStoreMutationResult(
+                return _build_result(
                     neo4j_status="rolled_back",
                     neo4j_error=rollback_result.get("error"),
                     postgres_status="failed",
@@ -183,7 +177,7 @@ class DualStoreTransactionCoordinator:
                 req_id,
                 self.tenant_id,
             )
-            return DualStoreMutationResult(
+            return _build_result(
                 neo4j_status="committed",
                 postgres_status="committed",
                 request_id=req_id,
@@ -236,16 +230,16 @@ class DualStoreTransactionCoordinator:
 
     async def _execute_neo4j_write(
         self,
-        neo4j_op: Callable[[Any], Awaitable[dict[str, Any]]],
+        neo4j_op: Callable[[AsyncSession], Awaitable[dict[str, object]]],
         request_id: str,
-    ) -> dict[str, Any]:
+    ) -> dict[str, object]:
         """Execute a Neo4j write operation through the validated gateway."""
         async with self.driver.session(database="neo4j") as session:
             # Execute the user-provided operation
             result = await neo4j_op(session)
 
             # Record audit metadata for this write
-            audit_entry = {
+            audit_entry: dict[str, object] = {
                 "operation": "dual_store_write",
                 "target": "neo4j",
                 "tenant_id": self.tenant_id,
@@ -259,9 +253,9 @@ class DualStoreTransactionCoordinator:
 
     async def _execute_postgres_write(
         self,
-        postgres_op: Callable[[], Awaitable[dict[str, Any]]],
+        postgres_op: Callable[[], Awaitable[dict[str, object]]],
         request_id: str,
-    ) -> dict[str, Any]:
+    ) -> dict[str, object]:
         """Execute a PostgreSQL write operation.
 
         Note: This method currently validates tenant context through
@@ -274,7 +268,7 @@ class DualStoreTransactionCoordinator:
         result = await postgres_op()
 
         # Record audit metadata
-        audit_entry = {
+        audit_entry: dict[str, object] = {
             "operation": "dual_store_write",
             "target": "postgres",
             "tenant_id": self.tenant_id,
@@ -289,12 +283,12 @@ class DualStoreTransactionCoordinator:
 
     async def _compensate_neo4j_rollback(
         self, error_source: str, request_id: str
-    ) -> dict[str, Any]:
+    ) -> dict[str, object]:
         """Compensating rollback for Neo4j: purge recently created nodes/edges.
 
         Routes through ``AuditedGraphMutation.delete_by_request`` so the
         compensating purge is scoped to both ``tenant_id`` and
-        ``_request_id`` — only nodes from THIS transaction are removed,
+        ``_request_id`` â€” only nodes from THIS transaction are removed,
         never unrelated historical entities.
 
         The compensation is idempotent: purging non-existent nodes simply
@@ -348,8 +342,8 @@ class DualStoreTransactionCoordinator:
         self,
         action: str,
         entity_id: str,
-        session: Any = None,
-        details: dict[str, Any] | None = None,
+        session: AsyncSession | None = None,
+        details: dict[str, object] | None = None,
     ) -> None:
         """Emit an AuditEvent node through the AuditedGraphMutation gateway."""
         try:

@@ -549,7 +549,7 @@ class AuditedGraphMutation:
     async def delete_by_request(
         self,
         request_id: str,
-    ) -> dict[str, Any]:
+    ) -> dict[str, object]:
         """Delete all tenant nodes scoped to a request id (compensation use case).
 
         Used by the dual-store transaction coordinator's compensating rollback
@@ -593,10 +593,10 @@ class AuditedGraphMutation:
         self,
         action: str,
         entity_id: str,
-        details: dict[str, Any] | None = None,
+        details: dict[str, object] | None = None,
         event_type: str = "dual_store_coordinator",
         agent: str = "DualStoreTransactionCoordinator",
-    ) -> dict[str, Any]:
+    ) -> dict[str, object]:
         """Emit an AuditEvent node through the audited mutation gateway.
 
         This is the gateway-approved path for audit events produced by the
