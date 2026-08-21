@@ -14,10 +14,10 @@ import time
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from decimal import Decimal
-from typing import Any
+from typing import Any, cast
 
 # Cap exponent magnitude in `**` to prevent DoS via huge exponents
-# (e.g. `2 ** 999_999_999` would hang/OOM the worker). Any exponent whose
+# (e.g. `2 ** 999_999_999` would hang/OOM the worker). An exponent whose
 # absolute value exceeds this bound is rejected before `operator.pow` runs.
 MAX_POW_EXPONENT = 1_000_000
 
@@ -36,20 +36,24 @@ class ROICalculationAgent__run_sensitivity_analysisResult(TypedDictModel):
     most_sensitive_variable: Any | None = None
     variable_analysis: Any | None = None
 
+
 class ROICalculationAgent__retrieve_formulasResult(TypedDictModel):
     error: str
     formulas: list[Any]
     formulas_found: Any | None = None
     use_case_id: Any | None = None
 
+
 class ROICalculationAgent__calculate_sensitivityResult(TypedDictModel):
     elasticity_metrics: Any
     variables_analyzed: list[Any]
+
 
 class ROICalculationAgent__execute_formulaResult(TypedDictModel):
     error: str
     formula: Any
     validation_errors: Any | None = None
+
 
 logger = logging.getLogger(__name__)
 
@@ -221,27 +225,32 @@ class ROICalculationAgent(BaseAgent):
         """
         resolved_tenant_id = self._require_tenant_id(tenant_id)
         if not self._driver:
-            return ROICalculationAgent__execute_formulaResult.model_validate({"error": "No database driver"})
+            return ROICalculationAgent__execute_formulaResult.model_validate(
+                {"error": "No database driver"}
+            )
 
         # Retrieve formula from graph
         formula = await self._get_formula(formula_id, resolved_tenant_id)
         if not formula:
-            return ROICalculationAgent__execute_formulaResult.model_validate({"error": f"Formula {formula_id} not found"})
+            return ROICalculationAgent__execute_formulaResult.model_validate(
+                {"error": f"Formula {formula_id} not found"}
+            )
 
         # Validate inputs
         validation_errors = self._validate_inputs(formula, inputs)
         if validation_errors:
-            return ROICalculationAgent__execute_formulaResult.model_validate({
-                "error": "Input validation failed",
-                "validation_errors": validation_errors,
-            })
+            return ROICalculationAgent__execute_formulaResult.model_validate(
+                {
+                    "error": "Input validation failed",
+                    "validation_errors": validation_errors,
+                }
+            )
 
         # Coerce validated numeric inputs to float before execution so that
         # string-typed numerics (e.g. "3" from a JSON body) that passed
         # `_validate_inputs` do not break `_safe_eval` or yield type-dependent
         # results (e.g. `"3" * 2` concatenating instead of multiplying).
         coerced_inputs = self._coerce_numeric_inputs(formula, inputs)
-
 
         # Prepare execution context
         execution_context = {
@@ -253,11 +262,12 @@ class ROICalculationAgent(BaseAgent):
         try:
             result = self._safe_eval(formula.formula_expression, execution_context)
         except Exception as e:
-            return ROICalculationAgent__execute_formulaResult.model_validate({
-                "error": f"Formula execution failed: {e}",
-                "formula": formula.formula_expression,
-            })
-
+            return ROICalculationAgent__execute_formulaResult.model_validate(
+                {
+                    "error": f"Formula execution failed: {e}",
+                    "formula": formula.formula_expression,
+                }
+            )
 
         # Build execution trace
         trace = self._build_execution_trace(formula, coerced_inputs, execution_context)
@@ -312,11 +322,15 @@ class ROICalculationAgent(BaseAgent):
         """
         resolved_tenant_id = self._require_tenant_id(tenant_id)
         if not self._driver:
-            return ROICalculationAgent__run_sensitivity_analysisResult.model_validate({"error": "No database driver"})
+            return ROICalculationAgent__run_sensitivity_analysisResult.model_validate(
+                {"error": "No database driver"}
+            )
 
         formula = await self._get_formula(formula_id, resolved_tenant_id)
         if not formula:
-            return ROICalculationAgent__run_sensitivity_analysisResult.model_validate({"error": f"Formula {formula_id} not found"})
+            return ROICalculationAgent__run_sensitivity_analysisResult.model_validate(
+                {"error": f"Formula {formula_id} not found"}
+            )
 
         results = {}
 
@@ -334,9 +348,9 @@ class ROICalculationAgent(BaseAgent):
                     variable_results.append(
                         {
                             "variable_value": value,
-                            "result": float(result)
-                            if isinstance(result, Decimal)
-                            else result,
+                            "result": (
+                                float(result) if isinstance(result, Decimal) else result
+                            ),
                         }
                     )
                 except Exception as e:
@@ -359,20 +373,25 @@ class ROICalculationAgent(BaseAgent):
                     "test_points": variable_results,
                 }
 
-        return ROICalculationAgent__run_sensitivity_analysisResult.model_validate({
-            "formula_id": formula_id,
-            "base_inputs": base_inputs,
-            "variable_analysis": results,
-            "most_sensitive_variable": max(
-                results.items(),
-                key=lambda x: x[1].get("sensitivity_ratio", 0),
-            )[0]
-            if results
-            else None,
-        })
+        return ROICalculationAgent__run_sensitivity_analysisResult.model_validate(
+            {
+                "formula_id": formula_id,
+                "base_inputs": base_inputs,
+                "variable_analysis": results,
+                "most_sensitive_variable": (
+                    max(
+                        results.items(),
+                        key=lambda x: x[1].get("sensitivity_ratio", 0),
+                    )[0]
+                    if results
+                    else None
+                ),
+            }
+        )
 
-
-    async def _retrieve_formulas(self, use_case_id: str, tenant_id: str | None = None) -> dict[str, Any]:
+    async def _retrieve_formulas(
+        self, use_case_id: str, tenant_id: str | None = None
+    ) -> dict[str, Any]:
         """Retrieve formulas applicable to a use case.
 
         Retrieves formulas linked to the use case within tenant scope.
@@ -386,7 +405,9 @@ class ROICalculationAgent(BaseAgent):
         """
         resolved_tenant_id = self._require_tenant_id(tenant_id)
         if not self._driver:
-            return ROICalculationAgent__retrieve_formulasResult.model_validate({"formulas": [], "error": "No database driver"})
+            return ROICalculationAgent__retrieve_formulasResult.model_validate(
+                {"formulas": [], "error": "No database driver"}
+            )
 
         builder = self._builder(resolved_tenant_id)
         query = builder.custom_tenant_query(
@@ -433,15 +454,18 @@ class ROICalculationAgent(BaseAgent):
                         }
                     )
 
-        return ROICalculationAgent__retrieve_formulasResult.model_validate({
-            "use_case_id": use_case_id,
-            "formulas_found": len(formulas),
-            "formulas": formulas,
-            "error": "",
-        })
+        return ROICalculationAgent__retrieve_formulasResult.model_validate(
+            {
+                "use_case_id": use_case_id,
+                "formulas_found": len(formulas),
+                "formulas": formulas,
+                "error": "",
+            }
+        )
 
-
-    async def _get_formula(self, formula_id: str, tenant_id: str | None = None) -> FormulaNode | None:
+    async def _get_formula(
+        self, formula_id: str, tenant_id: str | None = None
+    ) -> FormulaNode | None:
         """Retrieve formula from graph by ID.
 
         Args:
@@ -540,9 +564,7 @@ class ROICalculationAgent(BaseAgent):
                     # a plain integer, and floats must be whole numbers.
                     try:
                         if isinstance(value, float) and not value.is_integer():
-                            errors.append(
-                                f"Variable {var_name} must be an integer"
-                            )
+                            errors.append(f"Variable {var_name} must be an integer")
                         elif isinstance(value, str):
                             int(value)
                     except (ValueError, TypeError):
@@ -551,8 +573,8 @@ class ROICalculationAgent(BaseAgent):
         return errors
 
     def _coerce_numeric_inputs(
-        self, formula: FormulaNode, inputs: dict[str, Any]
-    ) -> dict[str, Any]:
+        self, formula: FormulaNode, inputs: dict[str, object]
+    ) -> dict[str, object]:
         """Coerce validated numeric inputs to float for safe execution.
 
         ``_validate_inputs`` already confirmed each numeric variable can be
@@ -571,7 +593,7 @@ class ROICalculationAgent(BaseAgent):
         Returns:
             Copy of inputs with numeric variables coerced to float
         """
-        coerced: dict[str, Any] = dict(inputs)
+        coerced: dict[str, object] = dict(inputs)
         for var in formula.variables:
             var_name = var["name"]
             if var_name not in coerced:
@@ -579,14 +601,14 @@ class ROICalculationAgent(BaseAgent):
             expected_type = var.get("type", "number")
             if expected_type == "number":
                 try:
-                    coerced[var_name] = float(coerced[var_name])
+                    coerced[var_name] = float(cast(float, coerced[var_name]))
                 except (ValueError, TypeError):
                     # Validation already caught this; leave value unchanged so
                     # the downstream error path remains consistent.
                     pass
             elif expected_type == "integer":
                 try:
-                    coerced[var_name] = int(coerced[var_name])
+                    coerced[var_name] = int(cast(int, coerced[var_name]))
                 except (ValueError, TypeError):
                     pass
         return coerced
@@ -757,17 +779,19 @@ class ROICalculationAgent(BaseAgent):
                 delta_output = results[2] - results[0]
 
                 sensitivities[var_name] = {
-                    "elasticity": (delta_output / results[1])
-                    / (delta_input / base_value)
-                    if results[1] and base_value
-                    else 0,
-                    "absolute_sensitivity": delta_output / delta_input
-                    if delta_input
-                    else 0,
+                    "elasticity": (
+                        (delta_output / results[1]) / (delta_input / base_value)
+                        if results[1] and base_value
+                        else 0
+                    ),
+                    "absolute_sensitivity": (
+                        delta_output / delta_input if delta_input else 0
+                    ),
                 }
 
-        return ROICalculationAgent__calculate_sensitivityResult.model_validate({
-            "variables_analyzed": list(sensitivities.keys()),
-            "elasticity_metrics": sensitivities,
-        })
-
+        return ROICalculationAgent__calculate_sensitivityResult.model_validate(
+            {
+                "variables_analyzed": list(sensitivities.keys()),
+                "elasticity_metrics": sensitivities,
+            }
+        )

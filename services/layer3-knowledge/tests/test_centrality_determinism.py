@@ -13,7 +13,6 @@ Covers:
 
 from __future__ import annotations
 
-from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -25,7 +24,7 @@ _TENANT_A = "00000000-0000-0000-0000-000000000001"
 _TENANT_B = "00000000-0000-0000-0000-000000000002"
 
 
-def _settings() -> Any:
+def _settings():
     """Minimal settings stub matching what CentralityAnalyzer reads."""
     s = MagicMock()
     s.neo4j_uri = "bolt://localhost:7687"
@@ -38,20 +37,20 @@ def _settings() -> Any:
 class _Record:
     """Minimal async-iterable record stub for Neo4j result cursors."""
 
-    def __init__(self, data: dict[str, Any]) -> None:
+    def __init__(self, data: dict[str, object]) -> None:
         self._data = data
 
-    def __getitem__(self, key: str) -> Any:
+    def __getitem__(self, key: str) -> object:
         return self._data[key]
 
-    def get(self, key: str, default: Any = None) -> Any:
+    def get(self, key: str, default: object = None) -> object:
         return self._data.get(key, default)
 
 
 class _ResultCursor:
     """Async-iterable cursor over a list of record dicts."""
 
-    def __init__(self, records: list[dict[str, Any]]) -> None:
+    def __init__(self, records: list[dict[str, object]]) -> None:
         self._records = records
 
     def __aiter__(self):
@@ -68,7 +67,7 @@ class _ResultCursor:
 class _SessionStub:
     """Session stub that returns a fixed cursor for any run() call."""
 
-    def __init__(self, records: list[dict[str, Any]]) -> None:
+    def __init__(self, records: list[dict[str, object]]) -> None:
         self._records = records
 
     async def __aenter__(self):
@@ -84,7 +83,7 @@ class _SessionStub:
 class _DriverStub:
     """Driver stub that yields sessions returning a fixed record set."""
 
-    def __init__(self, records: list[dict[str, Any]]) -> None:
+    def __init__(self, records: list[dict[str, object]]) -> None:
         self._records = records
 
     def session(self, database: str | None = None):
@@ -94,7 +93,7 @@ class _DriverStub:
         pass
 
 
-def _analyzer(records: list[dict[str, Any]]) -> CentralityAnalyzer:
+def _analyzer(records: list[dict[str, object]]) -> CentralityAnalyzer:
     """Build an analyzer whose ``_run_scoped`` returns a cursor over ``records``.
 
     We mock ``_run_scoped`` (not ``session.run``) because the real path runs
@@ -107,7 +106,7 @@ def _analyzer(records: list[dict[str, Any]]) -> CentralityAnalyzer:
     agent = CentralityAnalyzer(driver=_DriverStub([]), settings=_settings())
     cursor = _ResultCursor(records)
 
-    async def _fake_run_scoped(self_inner: Any, session: Any, query: Any):
+    async def _fake_run_scoped(self_inner, session, query):
         return cursor
 
     # _run_scoped is an instance method; bind the stub.

@@ -32,6 +32,7 @@ class ProvenanceTrackingAgent__record_entityResult(TypedDictModel):
     recorded: bool | None = None
     type: Any | None = None
 
+
 class ProvenanceTrackingAgent__record_activityResult(TypedDictModel):
     activity_id: Any | None = None
     error: str
@@ -40,12 +41,14 @@ class ProvenanceTrackingAgent__record_activityResult(TypedDictModel):
     recorded: bool | None = None
     type: Any | None = None
 
+
 class ProvenanceTrackingAgent__record_derivationResult(TypedDictModel):
     derivation_type: Any | None = None
     derived_entity: Any | None = None
     error: str
     recorded: bool | None = None
     source_entity: Any | None = None
+
 
 class ProvenanceTrackingAgent__create_decision_traceResult(TypedDictModel):
     completed_at: Any
@@ -58,6 +61,7 @@ class ProvenanceTrackingAgent__create_decision_traceResult(TypedDictModel):
     workflow_id: Any
     workflow_instance_id: Any
 
+
 class ProvenanceTrackingAgent__query_lineageResult(TypedDictModel):
     downstream_lineage: Any | None = None
     entity_id: Any | None = None
@@ -66,13 +70,15 @@ class ProvenanceTrackingAgent__query_lineageResult(TypedDictModel):
     lineage: list[Any]
     upstream_lineage: Any | None = None
 
+
 class ProvenanceTrackingAgent_build_provenance_recordResult(TypedDictModel):
     attribution: dict[str, Any]
     entity: dict[str, Any]
     generation: dict[str, Any]
     rdf_triples: list[Any]
-    tenant_id: Any | None = None
+    tenant_id: str | None = None
     usage: dict[str, Any]
+
 
 logger = logging.getLogger(__name__)
 
@@ -233,7 +239,9 @@ class ProvenanceTrackingAgent(BaseAgent):
             UUID(normalized)
             return normalized
         except ValueError as e:
-            raise ValueError(f"Invalid tenant_id format: {tenant_id}. Expected UUID.") from e
+            raise ValueError(
+                f"Invalid tenant_id format: {tenant_id}. Expected UUID."
+            ) from e
 
     def _validate_entity_id(self, entity_id: str | None) -> str:
         """Validate entity ID format to prevent injection.
@@ -322,8 +330,12 @@ class ProvenanceTrackingAgent(BaseAgent):
             elif operation == "record_derivation":
                 # SECURITY: Validate entity_ids
                 try:
-                    derived_id = self._validate_entity_id(context.get("derived_entity_id"))
-                    source_id = self._validate_entity_id(context.get("source_entity_id"))
+                    derived_id = self._validate_entity_id(
+                        context.get("derived_entity_id")
+                    )
+                    source_id = self._validate_entity_id(
+                        context.get("source_entity_id")
+                    )
                 except ValueError:
                     return self._create_result(
                         status="failed",
@@ -405,7 +417,9 @@ class ProvenanceTrackingAgent(BaseAgent):
             Dict with recorded entity info
         """
         if not self._driver:
-            return ProvenanceTrackingAgent__record_entityResult.model_validate({"error": "No database driver"})
+            return ProvenanceTrackingAgent__record_entityResult.model_validate(
+                {"error": "No database driver"}
+            )
 
         full_entity_id = f"{self.PROV_NAMESPACES['vf']}entity/{entity_id}"
 
@@ -423,7 +437,8 @@ class ProvenanceTrackingAgent(BaseAgent):
         """
 
         async with self._driver.session() as session:
-            result = await run_validated_query(session,
+            result = await run_validated_query(
+                session,
                 query,
                 {
                     "entity_id": entity_id,
@@ -439,15 +454,16 @@ class ProvenanceTrackingAgent(BaseAgent):
             )
             record = await result.single()
 
-        return ProvenanceTrackingAgent__record_entityResult.model_validate({
-            "entity_id": entity_id,
-            "full_id": full_entity_id,
-            "type": entity_type,
-            "label": label,
-            "recorded": record is not None,
-            "error": "",
-        })
-
+        return ProvenanceTrackingAgent__record_entityResult.model_validate(
+            {
+                "entity_id": entity_id,
+                "full_id": full_entity_id,
+                "type": entity_type,
+                "label": label,
+                "recorded": record is not None,
+                "error": "",
+            }
+        )
 
     async def _record_activity(
         self,
@@ -469,7 +485,9 @@ class ProvenanceTrackingAgent(BaseAgent):
             Dict with recorded activity info
         """
         if not self._driver:
-            return ProvenanceTrackingAgent__record_activityResult.model_validate({"error": "No database driver"})
+            return ProvenanceTrackingAgent__record_activityResult.model_validate(
+                {"error": "No database driver"}
+            )
 
         full_activity_id = f"{self.PROV_NAMESPACES['vf']}activity/{activity_id}"
 
@@ -487,7 +505,8 @@ class ProvenanceTrackingAgent(BaseAgent):
         """
 
         async with self._driver.session() as session:
-            result = await run_validated_query(session,
+            result = await run_validated_query(
+                session,
                 query,
                 {
                     "activity_id": activity_id,
@@ -503,15 +522,16 @@ class ProvenanceTrackingAgent(BaseAgent):
             )
             record = await result.single()
 
-        return ProvenanceTrackingAgent__record_activityResult.model_validate({
-            "activity_id": activity_id,
-            "full_id": full_activity_id,
-            "type": activity_type,
-            "label": label,
-            "recorded": record is not None,
-            "error": "",
-        })
-
+        return ProvenanceTrackingAgent__record_activityResult.model_validate(
+            {
+                "activity_id": activity_id,
+                "full_id": full_activity_id,
+                "type": activity_type,
+                "label": label,
+                "recorded": record is not None,
+                "error": "",
+            }
+        )
 
     async def _record_derivation(
         self,
@@ -532,7 +552,9 @@ class ProvenanceTrackingAgent(BaseAgent):
             Dict with derivation record
         """
         if not self._driver:
-            return ProvenanceTrackingAgent__record_derivationResult.model_validate({"error": "No database driver"})
+            return ProvenanceTrackingAgent__record_derivationResult.model_validate(
+                {"error": "No database driver"}
+            )
 
         query = """
         MATCH (derived:PROVEntity {entity_id: $derived_id, tenant_id: $tenant_id})
@@ -545,7 +567,8 @@ class ProvenanceTrackingAgent(BaseAgent):
         """
 
         async with self._driver.session() as session:
-            result = await run_validated_query(session,
+            result = await run_validated_query(
+                session,
                 query,
                 {
                     "derived_id": derived_entity_id,
@@ -559,14 +582,15 @@ class ProvenanceTrackingAgent(BaseAgent):
             )
             record = await result.single()
 
-        return ProvenanceTrackingAgent__record_derivationResult.model_validate({
-            "derivation_type": derivation_type,
-            "derived_entity": derived_entity_id,
-            "source_entity": source_entity_id,
-            "recorded": record is not None,
-            "error": "",
-        })
-
+        return ProvenanceTrackingAgent__record_derivationResult.model_validate(
+            {
+                "derivation_type": derivation_type,
+                "derived_entity": derived_entity_id,
+                "source_entity": source_entity_id,
+                "recorded": record is not None,
+                "error": "",
+            }
+        )
 
     async def _create_decision_trace(
         self,
@@ -629,29 +653,32 @@ class ProvenanceTrackingAgent(BaseAgent):
         if self._driver:
             await self._store_decision_trace(decision_trace)
 
-        return ProvenanceTrackingAgent__create_decision_traceResult.model_validate({
-            "trace_id": trace_id,
-            "workflow_id": workflow_id,
-            "workflow_instance_id": workflow_instance_id,
-            "output_type": output_type,
-            "output_id": output_id,
-            "step_count": len(decision_trace.steps),
-            "steps": [
-                {
-                    "step_number": s.step_number,
-                    "step_type": s.step_type,
-                    "description": s.description,
-                    "confidence": s.confidence,
-                    "agent_id": s.agent_id,
-                }
-                for s in decision_trace.steps
-            ],
-            "created_at": decision_trace.created_at.isoformat(),
-            "completed_at": decision_trace.completed_at.isoformat()
-            if decision_trace.completed_at
-            else None,
-        })
-
+        return ProvenanceTrackingAgent__create_decision_traceResult.model_validate(
+            {
+                "trace_id": trace_id,
+                "workflow_id": workflow_id,
+                "workflow_instance_id": workflow_instance_id,
+                "output_type": output_type,
+                "output_id": output_id,
+                "step_count": len(decision_trace.steps),
+                "steps": [
+                    {
+                        "step_number": s.step_number,
+                        "step_type": s.step_type,
+                        "description": s.description,
+                        "confidence": s.confidence,
+                        "agent_id": s.agent_id,
+                    }
+                    for s in decision_trace.steps
+                ],
+                "created_at": decision_trace.created_at.isoformat(),
+                "completed_at": (
+                    decision_trace.completed_at.isoformat()
+                    if decision_trace.completed_at
+                    else None
+                ),
+            }
+        )
 
     async def _store_decision_trace(self, trace: DecisionTrace) -> None:
         """Store decision trace in Neo4j.
@@ -708,7 +735,8 @@ class ProvenanceTrackingAgent(BaseAgent):
         """
 
         async with self._driver.session() as session:
-            await run_validated_query(session,
+            await run_validated_query(
+                session,
                 query,
                 {
                     "trace_id": trace.trace_id,
@@ -718,9 +746,9 @@ class ProvenanceTrackingAgent(BaseAgent):
                     "output_id": trace.output_id,
                     "tenant_id": trace.tenant_id,
                     "created_at": trace.created_at.isoformat(),
-                    "completed_at": trace.completed_at.isoformat()
-                    if trace.completed_at
-                    else None,
+                    "completed_at": (
+                        trace.completed_at.isoformat() if trace.completed_at else None
+                    ),
                     "steps": steps_payload,
                 },
                 tenant_id=trace.tenant_id,
@@ -728,7 +756,9 @@ class ProvenanceTrackingAgent(BaseAgent):
                 query_name="provenance_tracking.create_decision_trace_with_steps",
             )
 
-    async def _query_lineage(self, entity_id: str, tenant_id: str = "system") -> dict[str, Any]:
+    async def _query_lineage(
+        self, entity_id: str, tenant_id: str = "system"
+    ) -> dict[str, Any]:
         """Query lineage for an entity.
 
         Args:
@@ -739,7 +769,9 @@ class ProvenanceTrackingAgent(BaseAgent):
             Dict with lineage information
         """
         if not self._driver:
-            return ProvenanceTrackingAgent__query_lineageResult.model_validate({"lineage": [], "error": "No database driver"})
+            return ProvenanceTrackingAgent__query_lineageResult.model_validate(
+                {"lineage": [], "error": "No database driver"}
+            )
 
         # Query upstream lineage (what this entity was derived from)
         upstream_query = """
@@ -783,15 +815,16 @@ class ProvenanceTrackingAgent(BaseAgent):
             async for record in result:
                 downstream.extend(record.get("lineage", []))
 
-        return ProvenanceTrackingAgent__query_lineageResult.model_validate({
-            "entity_id": entity_id,
-            "lineage": [*upstream, *downstream],
-            "upstream_lineage": upstream,
-            "downstream_lineage": downstream,
-            "full_lineage_depth": len(upstream) + len(downstream),
-            "error": "",
-        })
-
+        return ProvenanceTrackingAgent__query_lineageResult.model_validate(
+            {
+                "entity_id": entity_id,
+                "lineage": [*upstream, *downstream],
+                "upstream_lineage": upstream,
+                "downstream_lineage": downstream,
+                "full_lineage_depth": len(upstream) + len(downstream),
+                "error": "",
+            }
+        )
 
     def create_rdf_star_annotation(
         self,
@@ -843,29 +876,30 @@ class ProvenanceTrackingAgent(BaseAgent):
         Returns:
             Dict with complete provenance
         """
-        return ProvenanceTrackingAgent_build_provenance_recordResult.model_validate({
-            "entity": {
-                "id": entity_id,
-                "type": entity_type,
-            },
-            "generation": {
-                "activity": generated_by,
-                "timestamp": datetime.now(UTC).isoformat(),
-            },
-            "usage": {
-                "used_entities": used_entities,
-            },
-            "attribution": {
-                "agent": attributed_to,
-            },
-            "tenant_id": tenant_id,
-            "rdf_triples": [
-                (f"vf:{entity_id}", "prov:wasGeneratedBy", f"vf:{generated_by}"),
-                (f"vf:{entity_id}", "prov:wasAttributedTo", f"vf:{attributed_to}"),
-                *[
-                    (f"vf:{generated_by}", "prov:used", f"vf:{used}")
-                    for used in used_entities
+        return ProvenanceTrackingAgent_build_provenance_recordResult.model_validate(
+            {
+                "entity": {
+                    "id": entity_id,
+                    "type": entity_type,
+                },
+                "generation": {
+                    "activity": generated_by,
+                    "timestamp": datetime.now(UTC).isoformat(),
+                },
+                "usage": {
+                    "used_entities": used_entities,
+                },
+                "attribution": {
+                    "agent": attributed_to,
+                },
+                "tenant_id": tenant_id,
+                "rdf_triples": [
+                    (f"vf:{entity_id}", "prov:wasGeneratedBy", f"vf:{generated_by}"),
+                    (f"vf:{entity_id}", "prov:wasAttributedTo", f"vf:{attributed_to}"),
+                    *[
+                        (f"vf:{generated_by}", "prov:used", f"vf:{used}")
+                        for used in used_entities
+                    ],
                 ],
-            ],
-        })
-
+            }
+        )

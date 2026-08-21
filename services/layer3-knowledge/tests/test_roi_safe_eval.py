@@ -12,7 +12,6 @@ Covers:
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
 
 import pytest
 
@@ -29,7 +28,7 @@ def _agent() -> ROICalculationAgent:
 
 def _formula(
     expression: str,
-    variables: list[dict[str, Any]] | None = None,
+    variables: list[dict[str, str]] | None = None,
     constants: dict[str, float] | None = None,
 ) -> FormulaNode:
     return FormulaNode(
@@ -175,9 +174,7 @@ class TestSensitivityEdgeCases:
         """Empty/whitespace tenant_id is rejected."""
         agent = _agent()
         with pytest.raises(ValueError, match="tenant_id is required"):
-            await agent._run_sensitivity_analysis(
-                "f1", {"a": 1}, {}, tenant_id="   "
-            )
+            await agent._run_sensitivity_analysis("f1", {"a": 1}, {}, tenant_id="   ")
 
 
 # ---------------------------------------------------------------------------
@@ -199,12 +196,12 @@ class TestConfidenceScoreContract:
         import inspect
 
         source = inspect.getsource(ROICalculationAgent._execute_formula)
-        assert "0.95" not in source, (
-            "confidence_score must not fall back to the legacy 0.95 value"
-        )
-        assert "1.0" in source, (
-            "confidence_score must be 1.0 for deterministic validated inputs"
-        )
+        assert (
+            "0.95" not in source
+        ), "confidence_score must not fall back to the legacy 0.95 value"
+        assert (
+            "1.0" in source
+        ), "confidence_score must be 1.0 for deterministic validated inputs"
 
 
 # ---------------------------------------------------------------------------
@@ -222,9 +219,9 @@ class TestIntegerFractionalRejection:
             "n * 2", variables=[{"name": "n", "type": "integer", "required": True}]
         )
         errors = agent._validate_inputs(formula, {"n": 1.9})
-        assert any("must be an integer" in e for e in errors), (
-            "fractional float for integer var must be rejected at validation"
-        )
+        assert any(
+            "must be an integer" in e for e in errors
+        ), "fractional float for integer var must be rejected at validation"
 
     def test_whole_float_for_integer_variable_accepted(self):
         """A whole-number float like 5.0 is acceptable for an integer var."""
@@ -253,4 +250,3 @@ class TestIntegerFractionalRejection:
         coerced = agent._coerce_numeric_inputs(formula, {"n": 5.0})
         assert coerced["n"] == 5
         assert isinstance(coerced["n"], int)
-

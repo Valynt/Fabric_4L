@@ -66,7 +66,8 @@ def test_ties_resolve_deterministically_by_entity_id():
         {"id": "z-entity", "score": 1.0, "entity_type": "Capability", "name": "Z"},
         {"id": "a-entity", "score": 1.0, "entity_type": "Capability", "name": "A"},
     ]
-    vector = graph = []  # type: ignore[var-annotated]
+    vector: list[dict] = []
+    graph: list[dict] = []
 
     results = engine._merge_results(bm25, vector, graph, _weights())
     assert [r.entity_id for r in results] == ["a-entity", "z-entity"]
@@ -79,9 +80,13 @@ def test_ties_resolve_deterministically_by_entity_id():
 def test_graph_row_keyed_by_entity_id_is_merged():
     """graph rows returning entity_id (not id) must still merge with bm25/vector."""
     engine = _engine()
-    bm25 = [{"entity_id": "shared", "score": 1.0, "entity_type": "Capability", "name": "S"}]
+    bm25 = [
+        {"entity_id": "shared", "score": 1.0, "entity_type": "Capability", "name": "S"}
+    ]
     vector: list[dict] = []
-    graph = [{"entity_id": "shared", "score": 0.5, "entity_type": "Capability", "name": "S"}]
+    graph = [
+        {"entity_id": "shared", "score": 0.5, "entity_type": "Capability", "name": "S"}
+    ]
 
     results = engine._merge_results(bm25, vector, graph, _weights())
     assert len(results) == 1
