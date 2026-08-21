@@ -283,7 +283,8 @@ class DualStoreTransactionCoordinator:
         }
         self._audit_mutations.append(audit_entry)
 
-        return {"status": "committed", "result": result}
+        # Return the actual status from postgres_op, not hardcoded "committed"
+        return {"status": result.get("status", "committed"), "result": result}
 
     async def _compensate_neo4j_rollback(
         self, error_source: str, request_id: str
@@ -301,11 +302,14 @@ class DualStoreTransactionCoordinator:
             async with self.driver.session(database="neo4j") as session:
                 # Query for recently created entities scoped to this tenant
                 # We look for nodes created in the last few minutes (transaction window)
+                # Filter by request_id to ensure only nodes from THIS transaction are deleted
                 query = """
                 MATCH (n {tenant_id: $tenant_id})
                 WHERE n._creation_timestamp > datetime() - duration({minutes: 5})
+                AND n._request_id = $request_id
                 WITH count(n) as recent_count
                 MATCH (n {tenant_id: $tenant_id})
+                WITH n, recent_count
                 DETACH DELETE n
                 RETURN count(n) as deleted_count
                 """
@@ -313,7 +317,7 @@ class DualStoreTransactionCoordinator:
                 result = await run_validated_query(
                     session,
                     query,
-                    {"tenant_id": self.tenant_id},
+                    {"tenant_id": self.tenant_id, "request_id": request_id},
                     tenant_id=self.tenant_id,
                     require_explicit_tenant_id=True,
                     query_name="dual_store.compensate_neo4j_rollback",
@@ -327,6 +331,7 @@ class DualStoreTransactionCoordinator:
                     action="COMPENSATING_ROLLBACK",
                     entity_type="neo4j",
                     entity_id=f"tenant:{self.tenant_id}",
+                    session=session,
                     details={
                         "error_source": error_source,
                         "deleted_count": deleted_count,
@@ -346,15 +351,17 @@ class DualStoreTransactionCoordinator:
                 exc,
                 self.tenant_id,
                 request_id,
+                exc_info=True,
             )
-            return {"status": "failed", "error": str(exc), "deleted_count": 0}
+            return {"status": "failed", "error": "dual_store_compensation_failed", "deleted_count": 0}
 
     async def _emit_audit_event(
         self,
         action: str,
         entity_type: str,
         entity_id: str,
-        details: dict[str, Any],
+        session: Any = None,
+        details: dict[str, Any] | None = None,
     ) -> None:
         """Emit an AuditEvent node through the AuditedGraphMutation gateway."""
         from ..db.audited_mutation import AuditedGraphMutation
@@ -362,12 +369,11 @@ class DualStoreTransactionCoordinator:
         try:
             mutation = AuditedGraphMutation(
                 tenant_id=self.tenant_id,
-                session=None,  # Will be set per-operation context
+                session=session,
                 operation_source=f"dual_store.coordinator",
             )
 
             # We emit a generic audit event for the coordinator action
-            # The actual session will be bound by the caller
             audit_query = """
             CREATE (a:AuditEvent {
                 id: $id,
@@ -382,7 +388,7 @@ class DualStoreTransactionCoordinator:
             """
 
             await run_validated_query(
-                None,  # placeholder - real session set by caller
+                session,
                 audit_query,
                 {
                     "id": str(uuid.uuid4()) if 'uuid' in dir() else "coordinator-audit",
@@ -392,7 +398,7 @@ class DualStoreTransactionCoordinator:
                     "entity_id": entity_id,
                     "action": action,
                     "agent": "DualStoreTransactionCoordinator",
-                    "details": details,
+                    "details": details or {},
                 },
                 tenant_id=self.tenant_id,
                 require_explicit_tenant_id=True,
@@ -400,7 +406,8 @@ class DualStoreTransactionCoordinator:
             )
         except Exception as exc:
             logger.warning(
-                "Failed to emit audit event for dual-store coordinator: %s", exc
+                "Failed to emit audit event for dual-store coordinator: %s", exc,
+                exc_info=True,
             )
 
     async def _emergency_compensation(self, request_id: str) -> bool:
