@@ -137,41 +137,102 @@ def significant_line_count(path: Path) -> int:
 # ---------------------------------------------------------------------------
 # Function complexity (McCabe)
 # ---------------------------------------------------------------------------
+class _FunctionComplexityVisitor(ast.NodeVisitor):
+    """Count the cyclomatic complexity of a single function body.
+
+    Branches owned by nested function/async-function definitions are excluded
+    because they are measured separately as their own complexity entries.
+    """
+
+    def __init__(self) -> None:
+        self.complexity = 1
+
+    def _walk_children_skipping_nested_defs(self, node: ast.AST) -> None:
+        """Visit a function's children but do not descend into nested defs."""
+        for child in ast.iter_child_nodes(node):
+            if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                continue  # nested function: measured separately
+            self.visit(child)
+
+    def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
+        self._walk_children_skipping_nested_defs(node)
+
+    def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
+        self._walk_children_skipping_nested_defs(node)
+
+    def visit_If(self, node: ast.If) -> None:
+        self.complexity += 1
+        self.generic_visit(node)
+
+    def visit_While(self, node: ast.While) -> None:
+        self.complexity += 1
+        self.generic_visit(node)
+
+    def visit_For(self, node: ast.For) -> None:
+        self.complexity += 1
+        self.generic_visit(node)
+
+    def visit_AsyncFor(self, node: ast.AsyncFor) -> None:
+        self.complexity += 1
+        self.generic_visit(node)
+
+    def visit_BoolOp(self, node: ast.BoolOp) -> None:
+        self.complexity += len(node.values) - 1
+        self.generic_visit(node)
+
+    def visit_ExceptHandler(self, node: ast.ExceptHandler) -> None:
+        self.complexity += 1
+        self.generic_visit(node)
+
+    def visit_comprehension(self, node: ast.comprehension) -> None:
+        self.complexity += 1
+        self.generic_visit(node)
+
+    def visit_Assert(self, node: ast.Assert) -> None:
+        self.complexity += 1
+        self.generic_visit(node)
+
+
 def function_complexity(node: ast.AST) -> int:
-    """Compute McCabe cyclomatic complexity for a function node."""
-    complexity = 1
-    for child in ast.walk(node):
+    """Compute McCabe cyclomatic complexity for a function node.
+
+    Nested function bodies are excluded because they are reported as separate
+    complexity entries by :func:`collect_complexities`.
+    """
+    visitor = _FunctionComplexityVisitor()
+    visitor.visit(node)
+    return visitor.complexity
+
+
+def _collect_scope_complexities(
+    node: ast.AST, prefix: str, results: list[tuple[str, int]]
+) -> None:
+    """Emit (qualified_name, mccabe) for every function/method at any depth."""
+    for child in ast.iter_child_nodes(node):
         if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef)):
-            continue  # nested functions are measured separately
-        if isinstance(child, (ast.If, ast.While, ast.For, ast.AsyncFor)):
-            complexity += 1
-        elif isinstance(child, ast.BoolOp):
-            complexity += len(child.values) - 1
-        elif isinstance(child, ast.ExceptHandler):
-            complexity += 1
-        elif isinstance(child, ast.comprehension):
-            complexity += 1
-        elif isinstance(child, ast.Assert):
-            complexity += 1
-    return complexity
+            name = f"{prefix}.{child.name}" if prefix else child.name
+            results.append((name, function_complexity(child)))
+            _collect_scope_complexities(child, name, results)
+        elif isinstance(child, ast.ClassDef):
+            name = f"{prefix}.{child.name}" if prefix else child.name
+            _collect_scope_complexities(child, name, results)
+        else:
+            _collect_scope_complexities(child, prefix, results)
 
 
 def collect_complexities(source: str) -> list[tuple[str, int]]:
-    """Return [(qualified_name, mccabe), ...] for top-level functions/methods."""
+    """Return [(qualified_name, mccabe), ...] for functions/methods at any depth.
+
+    Nested functions (e.g. handlers defined inside a router factory) are
+    measured separately under a dotted qualified name so their complexity does
+    not inflate the enclosing function and cannot escape the ratchet.
+    """
     try:
         tree = ast.parse(source)
     except SyntaxError:
         return []
     results: list[tuple[str, int]] = []
-    for node in ast.iter_child_nodes(tree):
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-            results.append((node.name, function_complexity(node)))
-        elif isinstance(node, ast.ClassDef):
-            for member in node.body:
-                if isinstance(member, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                    results.append(
-                        (f"{node.name}.{member.name}", function_complexity(member))
-                    )
+    _collect_scope_complexities(tree, "", results)
     return results
 
 
@@ -198,6 +259,32 @@ def resolve_import(
         if cand in mod_to_path:
             return cand
     return None
+
+
+def resolve_relative_import(
+    level: int, module: str | None, imported_name: str | None, importer: str,
+    mod_to_path: dict[str, str],
+) -> str | None:
+    """Resolve a relative import (``level`` dots) to a concrete module key.
+
+    ``module`` is ``None`` for pure relative imports such as ``from .. import
+    main``; the target module is then the ``imported_name`` bound inside the
+    package at ``level`` levels up from the importer.
+    """
+    parts = importer.split(".")
+    if level > len(parts):
+        return None
+    base = parts[: len(parts) - level]
+    if not base:
+        return None
+    payload = module if module else imported_name
+    if not payload:
+        return None
+    full = ".".join(base + [payload])
+    resolved = resolve_import(full, importer, mod_to_path)
+    if resolved:
+        return resolved
+    return full if full in mod_to_path else None
 
 
 def build_import_graph(files: list[str]) -> dict[str, set[str]]:
@@ -230,10 +317,38 @@ def build_import_graph(files: list[str]) -> dict[str, set[str]]:
                     resolved = resolve_import(name, importer, mod_to_path)
                     if resolved and resolved != importer:
                         adj[importer].add(resolved)
-            elif isinstance(node, ast.ImportFrom) and node.module:
-                resolved = resolve_import(node.module, importer, mod_to_path)
-                if resolved and resolved != importer:
-                    adj[importer].add(resolved)
+            elif isinstance(node, ast.ImportFrom):
+                if node.module:
+                    if node.level > 0:
+                        # Relative from-import (``from .pkg import a, b``) may
+                        # bind several submodules; record one edge per bound
+                        # name so ``from .routes import benchmarks, system``
+                        # closes real cycles through the submodules.
+                        for alias in node.names:
+                            submod = f"{node.module}.{alias.name}"
+                            resolved = resolve_relative_import(
+                                node.level, submod, None, importer, mod_to_path
+                            )
+                            if not resolved:
+                                resolved = resolve_import(
+                                    submod, importer, mod_to_path
+                                )
+                            if resolved and resolved != importer:
+                                adj[importer].add(resolved)
+                    else:
+                        # Absolute ``from foo import ...``
+                        resolved = resolve_import(node.module, importer, mod_to_path)
+                        if resolved and resolved != importer:
+                            adj[importer].add(resolved)
+                else:
+                    # Pure relative import (``from .. import x``): each bound
+                    # name resolves inside the package ``node.level`` levels up.
+                    for alias in node.names:
+                        resolved = resolve_relative_import(
+                            node.level, None, alias.name, importer, mod_to_path
+                        )
+                        if resolved and resolved != importer:
+                            adj[importer].add(resolved)
     return adj
 
 
@@ -353,6 +468,7 @@ def compare(
     baseline: dict,
 ) -> list[str]:
     violations: list[str] = []
+    current_oversized = {m.module for m in oversized}
     baseline_oversized = {
         m["module"] for m in baseline.get("oversized_modules", [])
     }
@@ -362,22 +478,40 @@ def compare(
                 f"oversized module {m.module} ({m.size} lines > threshold {m.threshold}) "
                 "not in baseline"
             )
+    for stale in sorted(baseline_oversized - current_oversized):
+        violations.append(
+            f"baseline entry for oversized module {stale} is stale "
+            "(no longer oversized in the current scan); regenerate the baseline"
+        )
 
     baseline_functions = {
         (f["module"], f["function"])
         for f in baseline.get("high_complexity_functions", [])
     }
+    current_functions = {(fn.module, fn.name) for fn in functions}
     for fn in functions:
         if (fn.module, fn.name) not in baseline_functions:
             violations.append(
                 f"high-complexity function {fn.module}::{fn.name} "
                 f"(McCabe {fn.complexity} > {fn.threshold}) not in baseline"
             )
+    for stale in sorted(baseline_functions - current_functions):
+        module, name = stale
+        violations.append(
+            f"baseline entry for high-complexity function {module}::{name} is stale "
+            "(no longer hot in the current scan); regenerate the baseline"
+        )
 
     baseline_cycle_set = {tuple(c) for c in baseline.get("dependency_cycles", [])}
+    current_cycle_set = set(cycles)
     for cycle in cycles:
         if cycle not in baseline_cycle_set:
             violations.append(f"new import cycle: {' -> '.join(cycle)}")
+    for stale in sorted(baseline_cycle_set - current_cycle_set):
+        violations.append(
+            f"baseline entry for import cycle {' -> '.join(stale)} is stale "
+            "(no longer present in the current scan); regenerate the baseline"
+        )
     return violations
 
 

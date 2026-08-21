@@ -2,30 +2,9 @@
   "complexity_threshold": 25,
   "dependency_cycles": [
     [
-      "api.routes.value_packs",
-      "api.routes.value_packs_mapping"
-    ],
-    [
-      "layer4_agents.tenants.models.isolation_tier_history",
-      "layer4_agents.tenants.models.tenant"
-    ],
-    [
-      "value_fabric.shared.fastapi_framework.app",
-      "value_fabric.shared.fastapi_framework.middleware"
-    ],
-    [
-      "value_fabric.shared.identity.audit",
-      "value_fabric.shared.identity.middleware"
-    ],
-    [
-      "value_fabric.shared.identity.jwt",
-      "value_fabric.shared.identity.jwt_external",
-      "value_fabric.shared.identity.jwt_keys",
-      "value_fabric.shared.identity.jwt_tokens"
-    ],
-    [
-      "value_fabric.shared.mcp_gateway.manifest",
-      "value_fabric.shared.mcp_gateway.mcp_types"
+      "layer6_benchmarks.api.main",
+      "layer6_benchmarks.api.routes.benchmarks",
+      "layer6_benchmarks.api.routes.system"
     ]
   ],
   "description": "Baseline for Initiative E hotspot reduction. Regenerate only after approved refactors.",
@@ -49,11 +28,6 @@
       "complexity": 31,
       "function": "validate_repo_url",
       "module": "layer4_agents.agents.audit_orchestrator.models"
-    },
-    {
-      "complexity": 30,
-      "function": "build_workspace_router",
-      "module": "layer4_agents.api.routes.analysis_workspace"
     },
     {
       "complexity": 28,
@@ -82,17 +56,12 @@
     },
     {
       "complexity": 26,
-      "function": "build_lifespan",
-      "module": "layer4_agents.api.startup"
-    },
-    {
-      "complexity": 26,
       "function": "ConversationService._heuristic_response",
       "module": "layer4_agents.services.conversation"
     },
     {
       "complexity": 26,
-      "function": "BaseWorkflow._create_node_function",
+      "function": "BaseWorkflow._create_node_function.node_function",
       "module": "layer4_agents.workflows.base"
     },
     {
