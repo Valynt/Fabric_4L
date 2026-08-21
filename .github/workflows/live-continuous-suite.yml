@@ -28,6 +28,7 @@ env:
   VITE_ENABLE_MOCK_FALLBACK: "false"
   VITE_PROXY_DEBUG_DIRECT_LAYERS: "true"
   VITE_PROXY_L1_URL: http://localhost:8001
+  VITE_PROXY_L3_URL: http://localhost:8003
   VITE_PROXY_L4_URL: http://localhost:8004
   VITE_PROXY_API_GATEWAY_URL: http://localhost:8004
 
@@ -63,7 +64,7 @@ jobs:
 
       - name: Start deterministic live E2E backend
         working-directory: ${{ github.workspace }}
-        run: docker compose -f infra/compose/docker-compose.e2e.yml up -d --build --wait
+        run: docker compose -f infra/compose/docker-compose.e2e.yml -f infra/compose/docker-compose.e2e.layer3.yml up -d --build --wait
 
       - name: Run continuous live E2E suite
         run: |
@@ -74,8 +75,8 @@ jobs:
         if: failure()
         working-directory: ${{ github.workspace }}
         run: |
-          docker compose -f infra/compose/docker-compose.e2e.yml ps -a
-          docker compose -f infra/compose/docker-compose.e2e.yml logs --no-color --timestamps --tail=500
+          docker compose -f infra/compose/docker-compose.e2e.yml -f infra/compose/docker-compose.e2e.layer3.yml ps -a
+          docker compose -f infra/compose/docker-compose.e2e.yml -f infra/compose/docker-compose.e2e.layer3.yml logs --no-color --timestamps --tail=500
 
       - name: Upload continuous live E2E artifacts
         if: always()
@@ -91,4 +92,4 @@ jobs:
       - name: Tear down deterministic live E2E backend
         if: always()
         working-directory: ${{ github.workspace }}
-        run: docker compose -f infra/compose/docker-compose.e2e.yml down -v
+        run: docker compose -f infra/compose/docker-compose.e2e.yml -f infra/compose/docker-compose.e2e.layer3.yml down -v
