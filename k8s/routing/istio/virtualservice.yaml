@@ -30,27 +30,12 @@ spec:
   gateways:
     - value-fabric-gateway
   http:
+    # The entire API host is served by the gateway. Per-segment paths
+    # (/v1/agents, /v1/ingest, /v1/extract, /v1/graph, /v1/truths,
+    # /v1/benchmarks) are routed inside the gateway by
+    # routers/layer_delegation.py. No VirtualService route points directly
+    # at a layer Service; scripts/ci/k8s_routing_check.py asserts this.
     - match:
-        - uri: {prefix: /layer1}
+        - uri: {prefix: /}
       route:
-        - destination: {host: layer1-ingestion, port: {number: 8000}}
-    - match:
-        - uri: {prefix: /layer2}
-      route:
-        - destination: {host: layer2-extraction, port: {number: 8000}}
-    - match:
-        - uri: {prefix: /layer3}
-      route:
-        - destination: {host: layer3-knowledge, port: {number: 8001}}
-    - match:
-        - uri: {prefix: /layer4}
-      route:
-        - destination: {host: layer4-agents, port: {number: 8000}}
-    - match:
-        - uri: {prefix: /layer5}
-      route:
-        - destination: {host: layer5-ground-truth, port: {number: 8005}}
-    - match:
-        - uri: {prefix: /layer6}
-      route:
-        - destination: {host: layer6-benchmarks, port: {number: 8006}}
+        - destination: {host: api-gateway, port: {number: 8000}}
