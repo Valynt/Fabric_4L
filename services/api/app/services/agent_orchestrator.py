@@ -69,6 +69,18 @@ _KNOWN_STATUSES = {
 }
 
 
+def _truncate_utf8(text: str, max_chars: int) -> str:
+    """Truncate *text* to *max_chars* without splitting multi-byte chars.
+
+    Plain slicing ``text[:400]`` is fine for str (Python counts code points),
+    but downstream logs/JSON encoders may re-encode to UTF-8; truncating at a
+    code-point boundary keeps the result safe to encode in any codec.
+    """
+    if len(text) <= max_chars:
+        return text
+    return text[:max_chars]
+
+
 class Layer4UnavailableError(RuntimeError):
     """Raised when the Layer 4 orchestration dependency is unavailable."""
 
@@ -202,7 +214,7 @@ class Layer4OrchestrationClient:
             raise Layer4DependencyError(
                 ERR_LAYER4_HTTP_ERROR,
                 status_code=response.status_code,
-                body=response.text[:400],
+                body=_truncate_utf8(response.text, 400),
             )
 
         try:

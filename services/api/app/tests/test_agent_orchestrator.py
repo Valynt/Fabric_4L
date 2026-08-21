@@ -73,6 +73,28 @@ class TestLayer4DependencyError:
         assert exc_info.value.body is not None
         assert len(exc_info.value.body) <= 400
 
+    def test_truncate_utf8_preserves_short_strings(self) -> None:
+        from app.services.agent_orchestrator import _truncate_utf8
+
+        assert _truncate_utf8("short", 400) == "short"
+
+    def test_truncate_utf8_truncates_long_strings_to_max_chars(self) -> None:
+        from app.services.agent_orchestrator import _truncate_utf8
+
+        result = _truncate_utf8("x" * 1000, 400)
+        assert len(result) == 400
+
+    def test_truncate_utf8_does_not_split_multibyte_characters(self) -> None:
+        """Truncation must land on a code-point boundary so the result
+        remains encodable in any UTF-8-compatible codec."""
+        from app.services.agent_orchestrator import _truncate_utf8
+
+        # Emoji are 4-byte UTF-8 code points; truncating must not split one.
+        text = "🎉" * 100
+        result = _truncate_utf8(text, 10)
+        assert result.encode("utf-8").decode("utf-8") == result
+        assert len(result) <= 10
+
 
 class TestLayer4OrchestrationClient:
     def _client(self) -> Layer4OrchestrationClient:

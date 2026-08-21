@@ -209,6 +209,11 @@ class TestDelegationRouter:
         # Override auth dependency so we don't need a real JWT
         _auth_override(app)
 
+        # Reset breaker registry so prior resilience tests don't leave state.
+        from app.routers import layer_delegation as mod
+
+        mod._breakers = CircuitBreakerRegistry()
+
         failing_client = _FakeAsyncClient(AsyncMock(side_effect=httpx.ConnectError("down")))
 
         with (
