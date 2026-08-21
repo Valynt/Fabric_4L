@@ -167,9 +167,9 @@ journeyTest.describe('Journey 1: Domain Ingestion → Value Tree Exploration', (
     await navigateAndWait(authedPage, '/context/value-trees/explorer');
     await expectNoErrors(authedPage);
     await expectNoCrossTenantLeakage(authedPage);
-    // In live mode, verify against the actual e2e tenant ID
-    // In contract mode, verify against the demo tenant ID
-    const expectedTenantId = isLive ? '00000000-0000-4000-e2e0-000000000001' : 'demo';
+    // In live mode, verify against the backend e2e tenant ID (seeded by auth helper)
+    // In contract mode, verify against the seed auth tenant ID (tenant-e2e-001)
+    const expectedTenantId = isLive ? '00000000-0000-4000-e2e0-000000000001' : 'tenant-e2e-001';
     await expectTenantContext(authedPage, expectedTenantId);
   });
 });
