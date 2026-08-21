@@ -20,7 +20,6 @@ import re
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
 
 import yaml
 
@@ -47,7 +46,7 @@ class PolicyViolation:
 
 
 def validate_trivy_ignore(
-    ignore_data: dict[str, Any],
+    ignore_data: dict[str, object],
     reference_date: datetime.date | None = None,
     repo_root: Path | None = None,
 ) -> list[PolicyViolation]:
@@ -306,7 +305,7 @@ def main() -> int:
     return 0
 
 
-def seen_counts(content: Any) -> list:
+def seen_counts(content: object) -> list:
     if not isinstance(content, dict):
         return []
     res = []

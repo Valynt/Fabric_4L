@@ -3,9 +3,7 @@ from __future__ import annotations
 import datetime
 from pathlib import Path
 
-import pytest
 import yaml
-
 from scripts.ci.check_trivy_ignore_policy import validate_trivy_ignore
 
 ROOT = Path(__file__).resolve().parents[2]
