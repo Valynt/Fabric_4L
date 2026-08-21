@@ -33,16 +33,32 @@ def test_missing_paths_returns_usage_error(tmp_path: Path, capsys) -> None:
     assert "Usage: run_mypy_layer.py" in captured.err
 
 
-def test_missing_mypy_returns_dependency_error(tmp_path: Path, monkeypatch, capsys) -> None:
+def test_missing_mypy_falls_back_to_sys_executable(tmp_path: Path, monkeypatch) -> None:
+    """When the `mypy` console-script is not on PATH (Windows), fall back to
+    `sys.executable -m mypy` so the wrapper works cross-platform."""
     service_dir = tmp_path / "service"
     service_dir.mkdir()
     monkeypatch.setattr(run_mypy_layer.shutil, "which", lambda executable: None)
+    calls: list[dict[str, object]] = []
+
+    def fake_run(command, *, cwd, check):
+        calls.append({"command": command, "cwd": cwd, "check": check})
+        return SimpleNamespace(returncode=7)
+
+    monkeypatch.setattr(run_mypy_layer.subprocess, "run", fake_run)
+    sentinel = "/sentinel/python"
+    monkeypatch.setattr(run_mypy_layer.sys, "executable", sentinel)
 
     result = run_mypy_layer.main([str(service_dir), "src/"])
 
-    captured = capsys.readouterr()
-    assert result == 1
-    assert "mypy not found" in captured.err
+    assert result == 7
+    assert calls == [
+        {
+            "command": [sentinel, "-m", "mypy", "src/"],
+            "cwd": service_dir,
+            "check": False,
+        }
+    ]
 
 
 def test_invokes_mypy_from_service_dir_with_paths_and_flags(tmp_path: Path, monkeypatch) -> None:
