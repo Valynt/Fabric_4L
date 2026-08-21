@@ -20,7 +20,6 @@ import urllib.request
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Any
 
 DEFAULT_REQUIRED_CHECKS_CONFIG = "config/ci/required-status-checks.json"
 DEFAULT_USER_AGENT = "value-fabric-pr-backlog-health"
@@ -77,7 +76,7 @@ def next_link(link_header: str | None) -> str | None:
     return None
 
 
-def api_get(url: str, token: str) -> tuple[dict[str, Any], str | None]:
+def api_get(url: str, token: str) -> tuple[dict[str, object], str | None]:
     """GET a GitHub API URL, returning ``(payload, next_page_url)``."""
     request = urllib.request.Request(
         url,
@@ -98,9 +97,9 @@ def api_get(url: str, token: str) -> tuple[dict[str, Any], str | None]:
         raise RuntimeError(f"GitHub API request failed with {exc.code}: {body}") from exc
 
 
-def fetch_paginated(url: str, token: str, list_key: str) -> list[dict[str, Any]]:
+def fetch_paginated(url: str, token: str, list_key: str) -> list[dict[str, object]]:
     """Fetch every page of a paginated GitHub collection."""
-    items: list[dict[str, Any]] = []
+    items: list[dict[str, object]] = []
     while url:
         payload, url = api_get(url, token)
         values = payload.get(list_key, [])
@@ -125,7 +124,7 @@ def load_required_checks(path: Path) -> list[str]:
     return parsed
 
 
-def _completed_at(run: dict[str, Any]) -> datetime:
+def _completed_at(run: dict[str, object]) -> datetime:
     rawhave = run.get("completed_at")
     return (
         datetime.fromisoformat(rawhave.replace("Z", "+00:00"))
@@ -134,7 +133,7 @@ def _completed_at(run: dict[str, Any]) -> datetime:
     )
 
 
-def aggregate_check_conclusions(runs: list[dict[str, Any]]) -> dict[str, str]:
+def aggregate_check_conclusions(runs: list[dict[str, object]]) -> dict[str, str]:
     """Map each check name to the latest completed conclusion.
 
     Ignores unfinished (in_progress/queued) runs and runs without a name.
@@ -170,7 +169,7 @@ def compute_pass_rate(
     return passed, total, percent
 
 
-def _parse_utc(value: Any) -> datetime | None:
+def _parse_utc(value: object) -> datetime | None:
     if not isinstance(value, str) or not value:
         return None
     try:
@@ -180,7 +179,7 @@ def _parse_utc(value: Any) -> datetime | None:
 
 
 def find_stale_prs(
-    prs: list[dict[str, Any]], stale_days: int, now: datetime
+    prs: list[dict[str, object]], stale_days: int, now: datetime
 ) -> list[dict[str, str]]:
     """Return a list of open PRs not updated within ``stale_days``.
 
@@ -218,11 +217,11 @@ def find_stale_prs(
     return stale
 
 
-def _parse_str(value: Any, default: str) -> str:
+def _parse_str(value: object, default: str) -> str:
     return value if isinstance(value, str) else default
 
 
-def _coerce_check_runs(data: Any) -> list[dict[str, Any]]:
+def _coerce_check_runs(data: object) -> list[dict[str, object]]:
     """Accept either a bare list of check runs or a ``{"check_runs": [...]}`` wrapper."""
     if isinstance(data, list):
         return data
@@ -309,7 +308,7 @@ def _md_escape(value: str) -> str:
     return str(value).replace("|", "\\|")
 
 
-def fetch_check_runs(repo: str, sha: str, server_url: str, token: str) -> list[dict[str, Any]]:
+def fetch_check_runs(repo: str, sha: str, server_url: str, token: str) -> list[dict[str, object]]:
     """Fetch all check runs for a commit across every page."""
     owner_repo = urllib.parse.quote(repo, safe="/")
     url = (
@@ -319,7 +318,7 @@ def fetch_check_runs(repo: str, sha: str, server_url: str, token: str) -> list[d
     return fetch_paginated(url, token, "check_runs")
 
 
-def fetch_open_pulls(repo: str, server_url: str, token: str) -> list[dict[str, Any]]:
+def fetch_open_pulls(repo: str, server_url: str, token: str) -> list[dict[str, object]]:
     """Fetch all open pull requests across every page.
 
     The pulls endpoint returns a bare JSON array, so we page through the link
@@ -330,7 +329,7 @@ def fetch_open_pulls(repo: str, server_url: str, token: str) -> list[dict[str, A
         f"{github_api_base(server_url)}/{owner_repo}/pulls"
         f"?state=open&per_page=100"
     )
-    items: list[dict[str, Any]] = []
+    items: list[dict[str, object]] = []
     while url:
         page, url = _page_payload(url, token)
         if isinstance(page, list):
@@ -338,19 +337,19 @@ def fetch_open_pulls(repo: str, server_url: str, token: str) -> list[dict[str, A
     return items
 
 
-def _page_payload(url: str, token: str) -> tuple[Any, str | None]:
+def _page_payload(url: str, token: str) -> tuple[dict[str, object], str | None]:
     """GET a URL and return ``(payload, next_page_url)`` for any payload shape."""
     payload, next_url = api_get(url, token)
     return payload, next_url
 
 
-def load_json_file(path: Path | None) -> Any:
+def load_json_file(path: Path | None) -> object | None:
     if path is None:
         return None
     return json.loads(Path(path).read_text(encoding="utf-8"))
 
 
-def collect_metrics(config: MetricsConfig) -> dict[str, Any]:
+def collect_metrics(config: MetricsConfig) -> dict[str, object]:
     """Collect and compile the full report payload (offline or live)."""
     required_checks = load_required_checks(config.required_checks_config)
 
