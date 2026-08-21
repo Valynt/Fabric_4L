@@ -59,6 +59,16 @@ The Fabric_4L repository contains **two** environment-definition artifacts:
   - `NEO4J_PASSWORD`, `MINIO_ROOT_USER`, `MINIO_ROOT_PASSWORD`
   - `POSTGRES_USER`, `POSTGRES_PASSWORD`, `REDIS_PASSWORD`
   - `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`
+  - `LAYER3_API_KEY`, `LAYER5_API_KEY` (consumed by the `layer6` component)
+
+> **Note on `ANTHROPIC_API_KEY`:** It is only required when the Layer 4
+> agent workflows are configured to use Anthropic models. If your deployment
+> uses only OpenAI (or another provider), remove the
+> `${ANTHROPIC_API_KEY}` reference from the `layer4` component in
+> `bunnyshell.yaml` rather than supplying a placeholder value — supplying a
+> bogus credential can cause the service to fail at runtime with a 401.
+> Keep `OPENAI_API_KEY` mandatory; treat `ANTHROPIC_API_KEY` as
+> provider-conditional.
 
 ### 3.2 `docker-compose.live.yml` (Local / Docker Compose)
 
@@ -77,8 +87,17 @@ Use **`bunnyshell.yaml`** as the single source of truth for all programmatic Bun
 
 ### 4.1 Profile-based authentication (recommended for interactive use)
 
-The PAT provided for this project is `bns_pat_80076cc13be5dd7fd432232cf9d76460f9c73fde258cd9fa79ef5a1efec0c05b`.  
-**Do not commit this token.**
+> **SECURITY:** A personal access token was previously committed in this document.
+> Treat that token (`bns_pat_80076cc13be5dd7fd432…f5a1efec0c05b`)
+> as **compromised** and take these steps before any further use:
+>
+> 1. Revoke it in the Bunnyshell dashboard.
+> 2. Create a replacement token with the minimum required scope.
+> 3. Store the replacement **only** in Bunnyshell, Infisical, or your CI secret store — never in the repository.
+> 4. Purge the token from Git history (e.g. `git filter-repo --replace-text`, or BFG Repo-Cleaner) and coordinate a force-push with maintainers.
+> 5. Do not copy or reuse the compromised token.
+
+Load the token from your secret store into an environment variable before running CLI commands:
 
 ```bash
 # Windows (Git Bash)
@@ -409,8 +428,15 @@ This is the consolidated, copy-pasteable workflow derived entirely from local ar
 
 ### Prerequisites
 
+> **Never hardcode a Bunnyshell token in the repository.** Load it from your CI
+> secret store or a local untracked `.env` file. The token shown in earlier
+> versions of this document has been removed and must be treated as compromised
+> (see §4.1).
+
 ```bash
-export BNS_TOKEN="bns_pat_80076cc13be5dd7fd432232cf9d76460f9c73fde258cd9fa79ef5a1efec0c05b"
+# Load from your secret store, e.g.:
+#   export BNS_TOKEN="$(infisical secrets get BNS_TOKEN --plain)"
+export BNS_TOKEN="<load-from-secret-store>"
 export BNS_ORG=4918
 export BNS_PROJECT=6266
 ```
@@ -529,7 +555,7 @@ Derived from the header comments of `bunnyshell.yaml`:
 - [ ] `POSTGRES_PASSWORD`
 - [ ] `REDIS_PASSWORD`
 - [ ] `OPENAI_API_KEY`
-- [ ] `ANTHROPIC_API_KEY`
+- [ ] `ANTHROPIC_API_KEY` — provider-conditional; remove from `layer4` if Anthropic is unused (see §3.1 note)
 
 ---
 
