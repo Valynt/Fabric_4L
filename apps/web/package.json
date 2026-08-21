@@ -64,6 +64,7 @@
     "test:e2e:live": "node scripts/live-e2e-runner.mjs --scenario backend",
     "test:e2e:live:p0": "node scripts/live-e2e-runner.mjs --scenario p0",
     "test:e2e:live:golden-path": "node scripts/live-e2e-runner.mjs --scenario golden-path",
+    "test:e2e:live:continuous": "node scripts/live-e2e-runner.mjs --scenario continuous",
     "test:e2e:live:docker": "docker compose -f ../../docker-compose.playwright-live.yml run --rm playwright pnpm run test:e2e:live",
     "test:e2e:live:docker:p0": "docker compose -f ../../docker-compose.playwright-live.yml run --rm playwright pnpm run test:e2e:live:p0",
     "test:e2e:live:docker:golden-path": "docker compose -f ../../docker-compose.playwright-live.yml run --rm playwright pnpm run test:e2e:live:golden-path",
