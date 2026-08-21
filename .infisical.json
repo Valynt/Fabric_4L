@@ -1,37 +1,5 @@
 {
   "workspaceId": "d0dde515-abae-4f6a-a01c-75e7b713a9ff",
   "defaultEnvironment": "dev",
-  "gitBranchToEnvironmentMapping": null,
-  "secretPaths": {
-    "app": {
-      "dev": "/app",
-      "staging": "/app",
-      "prod": "/app"
-    },
-    "auth": {
-      "dev": "/auth",
-      "staging": "/auth",
-      "prod": "/auth"
-    },
-    "database": {
-      "dev": "/database",
-      "staging": "/database",
-      "prod": "/database"
-    },
-    "integrations": {
-      "dev": "/integrations",
-      "staging": "/integrations",
-      "prod": "/integrations"
-    },
-    "llm": {
-      "dev": "/llm",
-      "staging": "/llm",
-      "prod": "/llm"
-    },
-    "storage": {
-      "dev": "/storage",
-      "staging": "/storage",
-      "prod": "/storage"
-    }
-  }
+  "gitBranchToEnvironmentMapping": null
 }

@@ -13,7 +13,7 @@ This is the authoritative human-readable CI classification and triage map. Its m
 
 The owner is the first-response triage contact. Start with the local command, then inspect the named workflow run and its retained artifacts. Required secrets are runtime dependencies, not values that belong in logs or documentation.
 
-## Active inventory (56 workflows)
+## Active inventory (57 workflows)
 
 | Workflow | Classification | Triggers | Owner / triage | Local command | Dependencies | Artifacts | Runtime budget |
 |---|---|---|---|---|---|---|---:|
@@ -24,6 +24,7 @@ The owner is the first-response triage contact. Start with the local command, th
 | `branch-protection-validation.yml` | scheduled assurance | `schedule, workflow_dispatch` | `@value-fabric/sre-leads` | `make check-workflow-references` | GITHUB_TOKEN | none | 30 min |
 | `build-deploy.yml` | delivery / continuous automation | `push, workflow_dispatch` | `@value-fabric/sre-leads` | `make check-workflow-references` | GITHUB_TOKEN | /tmp/build-metadata/build-metadata-${{ matrix.layer }}.json | 30 min |
 | `bundle-analysis.yml` | pull request validation | `pull_request, push` | `@value-fabric/sre-leads` | `make check-workflow-references` | none | .bundle-stats/stats.json, apps/web/dist, artifacts/bundle-comment.md | 30 min |
+| `certify-release-candidate.yml` | delivery / continuous automation | `push, workflow_dispatch` | `@value-fabric/sre-leads` | `make check-workflow-references` | none | artifacts/release/${{ env.RELEASE_SHA }}/**/* | 120 min |
 | `chaos-testing.yml` | reusable automation | `schedule, workflow_call, workflow_dispatch` | `@value-fabric/sre-leads` | `make check-workflow-references` | none | chaos-results/, chaos-results/${{ matrix.stress_type }}-stress/, chaos-results/autoscaler/, chaos-results/network-partition/, chaos-results/pod-delete/, chaos-results/pre-chaos-health.json | 25 min |
 | `cleanup-repo.yml` | delivery / continuous automation | `push, workflow_dispatch` | `@value-fabric/sre-leads` | `make check-workflow-references` | GITHUB_TOKEN | none | 30 min |
 | `codeql.yml` | pull request validation | `pull_request, push, schedule` | `@value-fabric/sre-leads` | `make check-workflow-references` | none | none | 30 min |
