@@ -26,6 +26,8 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any, TypeVar
 
+from ..error_handling import sanitize_log_error
+
 logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
@@ -207,7 +209,8 @@ def retry_transient(
                 extra={
                     "attempt": attempt,
                     "delay": jittered,
-                    "error": str(exc),
+                    "error_code": "RETRY_TRANSIENT",
+                    "error": sanitize_log_error(exc),
                 },
             )
             sleep(jittered)

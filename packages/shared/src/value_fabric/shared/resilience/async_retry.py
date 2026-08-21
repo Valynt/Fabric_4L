@@ -14,6 +14,7 @@ import random
 from collections.abc import Awaitable, Callable
 from typing import TypeVar
 
+from ..error_handling import sanitize_log_error
 from .sync_circuit_breaker import RetryableError
 
 logger = logging.getLogger(__name__)
@@ -65,7 +66,12 @@ async def retry_transient_async(
             jittered = random.uniform(0, delay)
             logger.debug(
                 "retry_transient_async_retry",
-                extra={"attempt": attempt, "delay": jittered, "error": str(exc)},
+                extra={
+                    "attempt": attempt,
+                    "delay": jittered,
+                    "error_code": "RETRY_TRANSIENT_ASYNC",
+                    "error": sanitize_log_error(exc),
+                },
             )
             await sleep(jittered)
     raise RuntimeError("retry_transient_async exhausted without exception") from last_exc
