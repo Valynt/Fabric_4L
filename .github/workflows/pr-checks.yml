@@ -602,6 +602,13 @@ jobs:
         run: |
           python scripts/ci/check_pr_governance_fields.py
 
+      - name: Enforce PR size policy
+        if: github.event_name == 'pull_request'
+        env:
+          CHANGED_FILES: ${{ steps.governance-changed-files.outputs.all_changed_files }}
+        run: |
+          python scripts/ci/check_pr_size_policy.py
+
       - name: Validate docs claim verification map
         run: |
           mkdir -p artifacts/docs-validation

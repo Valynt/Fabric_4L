@@ -47,11 +47,7 @@ def _changed_files(service_dir: Path, base_ref: str | None) -> list[str]:
     ]
 
     all_files = changed + untracked
-    return [
-        f
-        for f in all_files
-        if f.endswith(".py") and f.startswith("src/")
-    ]
+    return [f for f in all_files if f.endswith(".py") and f.startswith("src/")]
 
 
 def main() -> int:
@@ -66,7 +62,7 @@ def main() -> int:
         print("No changed Python source files; typed changed-files gate passes.")
         return 0
 
-    cmd = ["mypy", *files]
+    cmd = [sys.executable, "-m", "mypy", *files]
     result = subprocess.run(cmd, cwd=service_dir)
     return result.returncode
 
