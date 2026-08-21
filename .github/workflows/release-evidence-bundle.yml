@@ -1,30 +1,14 @@
 name: Release Evidence Bundle
 
 on:
+  # NOTE: the `08-release-evidence` check is REQUIRED by branch protection on
+  # main. A paths-filtered required check is never emitted for PRs that touch
+  # only unlisted paths, which blocks merging those PRs. The pull_request
+  # trigger therefore runs unconditionally.
   pull_request:
     branches:
       - main
       - "release/**"
-    # Change-scoping: evidence bundles cover runtime images, contracts, and
-    # deployment surfaces; docs-only PRs skip. Tag/push runs stay unscoped.
-    paths:
-      - "services/**"
-      - "apps/**"
-      - "packages/**"
-      - "contracts/**"
-      - "infra/**"
-      - "k8s/**"
-      - "monitoring/**"
-      - "**/Dockerfile*"
-      - "**/package.json"
-      - "**/pnpm-lock.yaml"
-      - "pnpm-workspace.yaml"
-      - "**/requirements*.txt"
-      - "**/pyproject.toml"
-      - ".github/**"
-      - "scripts/**"
-      - "config/**"
-      - "Makefile"
   # V1-CI-001: merge queue support (Stage 1 shadow; aggregates become
   # required at Stage 3).
   merge_group:

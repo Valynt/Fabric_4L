@@ -1,28 +1,12 @@
 name: "Supply Chain Integrity Gate"
 
 "on":
+  # NOTE: the `07-supply-chain-integrity` check is REQUIRED by branch protection on
+  # main. A paths-filtered required check is never emitted for PRs that touch
+  # only unlisted paths, which blocks merging those PRs. The pull_request
+  # trigger therefore runs unconditionally.
   pull_request:
     branches: [main]
-    # Change-scoping: supply-chain checks are only relevant when the PR can
-    # affect dependencies, container images, or the pipeline itself.
-    # Push-to-main and dispatch/call events still run unscoped.
-    paths:
-      - "services/**"
-      - "apps/**"
-      - "packages/**"
-      - "infra/**"
-      - "**/Dockerfile*"
-      - "**/package.json"
-      - "**/pnpm-lock.yaml"
-      - "pnpm-workspace.yaml"
-      - "**/requirements*.txt"
-      - "**/pyproject.toml"
-      - "**/uv.lock"
-      - "**/poetry.lock"
-      - ".github/**"
-      - "scripts/**"
-      - "config/**"
-      - "Makefile"
   push:
     branches: [main]
   schedule:
