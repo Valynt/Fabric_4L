@@ -4,32 +4,64 @@
 # Cypher query construction in Layer 3 service code.
 #
 # Enforcement model:
-#   UNSAFE  — blocked by CI; must be refactored before merge
-#   SAFE    — annotated with `# cypher-dynamic-safe: <reason>` on the same line
-#   UNKNOWN — treated as UNSAFE until classified
+#   UNSAFE  ? blocked by CI; must be refactored before merge
+#   SAFE    ? annotated with `# cypher-dynamic-safe: <allowlist/validation rationale>` on the same line
+#   UNKNOWN ? treated as UNSAFE until classified
 #
-# To mark a dynamic query as reviewed and safe, add the annotation:
+# To mark a dynamic query as reviewed and safe, validate against an allowlist and add:
 #   query = f"MATCH (n:{label}) ..."  # cypher-dynamic-safe: label from _ALLOWED_TARGET_LABELS
-#
-# To add a new dynamic pattern, update this file and the allowlist in value_packs.py.
 
 rules:
-  # ── Rule 1: f-string Cypher with label/rel interpolation ──────────────────
-  # Detects f-strings that embed a variable directly into a Cypher MATCH or
-  # CREATE clause as a node label or relationship type. These are injection
-  # vectors unless the variable is validated against an allowlist.
+  # ?? Rule 1: Dynamic Cypher node label interpolation ???????????????????????
+  # Detects f-strings, format(), %, and concatenation that embed variables
+  # directly into Cypher node patterns (:label).
   - id: cypher-dynamic-label-injection
+    paths:
+      include:
+        - "services/layer3-knowledge/**"
+        - "services/**"
+      exclude:
+        - "**/tests/**"
+        - "**/test_*.py"
+        - "**/conftest.py"
     patterns:
-      - pattern: |
-          $QUERY = f"... MATCH ($ALIAS:$LABEL ...) ..."
-      - pattern-not-regex: '# cypher-dynamic-safe:'
+      - pattern-either:
+          # f-strings assigning or passed as arguments
+          - pattern: |
+              $Q = f"... ($ALIAS:$LABEL ...) ..."
+          - pattern: |
+              $Q = f"... (:$LABEL ...) ..."
+          - pattern: |
+              $Q = f"... ($ALIAS:`$LABEL` ...) ..."
+          - pattern: |
+              $Q = f"... (:`$LABEL` ...) ..."
+          - pattern: |
+              $FUNC(..., f"... ($ALIAS:$LABEL ...) ...", ...)
+          - pattern: |
+              $FUNC(..., f"... (:$LABEL ...) ...", ...)
+          - pattern: |
+              return f"... ($ALIAS:$LABEL ...) ..."
+          - pattern: |
+              return f"... (:$LABEL ...) ..."
+          # String formatting / concatenation
+          - pattern: |
+              "... (:" + $LABEL + ")..."
+          - pattern: |
+              "... (:{}) ...".format($LABEL, ...)
+          - pattern: |
+              "... (:{...}) ...".format(..., $K=$LABEL, ...)
+          - pattern: |
+              "... (:%s) ..." % $LABEL
+          # Regex fallback matching the entire line containing dynamic label interpolation
+          - pattern-regex: '(?im)^.*?\([a-zA-Z0-9_`]*\s*:\s*`?\{[a-zA-Z0-9_.]+\}`?.*$'
+      # Must provide verified allowlist/validation provenance in the comment
+      - pattern-not-regex: '(?i)#\s*cypher-dynamic-safe:\s*.*(?:allowlist|allowed_|validate|enum|literal|hardcoded|_allowed_target_labels|_allowed_rel_types|sanitized)'
     message: >
-      Dynamic Cypher label interpolation detected in f-string.
-      Node labels and relationship types cannot be parameterized in Cypher —
-      they must be validated against an explicit allowlist before interpolation.
-      Either use a hardcoded string literal, or validate the variable against
-      an allowlist (e.g. _ALLOWED_TARGET_LABELS) and annotate the line with:
-        # cypher-dynamic-safe: <reason>
+      Dynamic Cypher label interpolation detected. Node labels cannot be parameterized
+      in Cypher ? they must be validated against an explicit allowlist before interpolation.
+      Either use a hardcoded string literal, or validate the variable against an allowlist
+      (e.g. _ALLOWED_TARGET_LABELS, validate_cypher_identifier) and annotate with:
+        # cypher-dynamic-safe: validated against <ALLOWLIST>
     languages: [python]
     severity: ERROR
     metadata:
@@ -38,17 +70,83 @@ rules:
       sprint_task: SEC-L3-CYPHER-003
       layer: layer3-knowledge
 
-  # ── Rule 2: f-string Cypher with relationship type interpolation ───────────
+  # ?? Rule 2: Dynamic Cypher relationship type interpolation ????????????????
+  # Detects f-strings, format(), %, and concatenation that embed variables
+  # into Cypher relationship patterns (-[:rel]->, <-[:rel]-, -[:rel]-).
   - id: cypher-dynamic-rel-type-injection
+    paths:
+      include:
+        - "services/layer3-knowledge/**"
+        - "services/**"
+      exclude:
+        - "**/tests/**"
+        - "**/test_*.py"
+        - "**/conftest.py"
     patterns:
-      - pattern: |
-          $QUERY = f"... -[$ALIAS:$REL_TYPE]-> ..."
-      - pattern-not-regex: '# cypher-dynamic-safe:'
+      - pattern-either:
+          # Directed right
+          - pattern: |
+              $Q = f"... -[$ALIAS:$REL_TYPE]-> ..."
+          - pattern: |
+              $Q = f"... -[:$REL_TYPE]-> ..."
+          - pattern: |
+              $Q = f"... -[$ALIAS:`$REL_TYPE`]-> ..."
+          - pattern: |
+              $Q = f"... -[:`$REL_TYPE`]-> ..."
+          # Directed left
+          - pattern: |
+              $Q = f"... <-[$ALIAS:$REL_TYPE]- ..."
+          - pattern: |
+              $Q = f"... <-[:$REL_TYPE]- ..."
+          - pattern: |
+              $Q = f"... <-[$ALIAS:`$REL_TYPE`]- ..."
+          - pattern: |
+              $Q = f"... <-[:`$REL_TYPE`]- ..."
+          # Undirected
+          - pattern: |
+              $Q = f"... -[$ALIAS:$REL_TYPE]- ..."
+          - pattern: |
+              $Q = f"... -[:$REL_TYPE]- ..."
+          # Direct function arguments and return statements
+          - pattern: |
+              $FUNC(..., f"... -[$ALIAS:$REL_TYPE]-> ...", ...)
+          - pattern: |
+              $FUNC(..., f"... -[:$REL_TYPE]-> ...", ...)
+          - pattern: |
+              $FUNC(..., f"... <-[$ALIAS:$REL_TYPE]- ...", ...)
+          - pattern: |
+              $FUNC(..., f"... <-[:$REL_TYPE]- ...", ...)
+          - pattern: |
+              $FUNC(..., f"... -[$ALIAS:$REL_TYPE]- ...", ...)
+          - pattern: |
+              $FUNC(..., f"... -[:$REL_TYPE]- ...", ...)
+          - pattern: |
+              return f"... -[$ALIAS:$REL_TYPE]-> ..."
+          - pattern: |
+              return f"... -[:$REL_TYPE]-> ..."
+          - pattern: |
+              return f"... <-[$ALIAS:$REL_TYPE]- ..."
+          - pattern: |
+              return f"... <-[:$REL_TYPE]- ..."
+          # String formatting / concatenation
+          - pattern: |
+              "... -[:" + $REL_TYPE + "]->..."
+          - pattern: |
+              "... <-[:" + $REL_TYPE + "]-..."
+          - pattern: |
+              "... -[:{}]->...".format($REL_TYPE, ...)
+          - pattern: |
+              "... <-[:{}]-...".format($REL_TYPE, ...)
+          # Regex patterns matching full line for anonymous and multi-directional relationships
+          - pattern-regex: '(?im)^.*?(?:<-|-)?\[[a-zA-Z0-9_`]*\s*:\s*`?\{[a-zA-Z0-9_.]+\}`?[^\]]*\](?:->|-)?.*$'
+      # Must provide verified allowlist/validation provenance in the comment
+      - pattern-not-regex: '(?i)#\s*cypher-dynamic-safe:\s*.*(?:allowlist|allowed_|validate|enum|literal|hardcoded|_allowed_target_labels|_allowed_rel_types|sanitized)'
     message: >
-      Dynamic Cypher relationship type interpolation detected in f-string.
-      Relationship types must be validated against an explicit allowlist
-      (e.g. _ALLOWED_REL_TYPES) before interpolation, or use a hardcoded literal.
-      Annotate reviewed safe uses with: # cypher-dynamic-safe: <reason>
+      Dynamic Cypher relationship type interpolation detected. Relationship types
+      must be validated against an explicit allowlist (e.g. _ALLOWED_REL_TYPES,
+      validate_cypher_identifier) before interpolation, or use a hardcoded literal.
+      Annotate reviewed safe uses with:
+        # cypher-dynamic-safe: validated against <ALLOWLIST>
     languages: [python]
     severity: ERROR
     metadata:
@@ -57,17 +155,35 @@ rules:
       sprint_task: SEC-L3-CYPHER-003
       layer: layer3-knowledge
 
-  # ── Rule 3: WHERE clause built from string concatenation ──────────────────
-  # Detects patterns where a WHERE clause is assembled via string join/concat
-  # and then interpolated into a Cypher query. The where_clause variable itself
-  # must only contain hardcoded predicate strings (never user input).
+  # ?? Rule 3: WHERE clause built from string concatenation ??????????????????
   - id: cypher-dynamic-where-clause
+    paths:
+      include:
+        - "services/layer3-knowledge/**"
+        - "services/**"
+      exclude:
+        - "**/tests/**"
+        - "**/test_*.py"
+        - "**/conftest.py"
     patterns:
-      - pattern: |
-          $WHERE = " AND ".join($CLAUSES)
-          ...
-          $QUERY = f"... WHERE {$WHERE} ..."
-      - pattern-not-regex: '# cypher-dynamic-safe:'
+      - pattern-either:
+          - pattern: |
+              $WHERE = " AND ".join($CLAUSES)
+              ...
+              $QUERY = f"... WHERE {$WHERE} ..."
+          - pattern: |
+              $WHERE = " OR ".join($CLAUSES)
+              ...
+              $QUERY = f"... WHERE {$WHERE} ..."
+          - pattern: |
+              $WHERE = " AND ".join($CLAUSES)
+              ...
+              $FUNC(..., f"... WHERE {$WHERE} ...", ...)
+          - pattern: |
+              $WHERE = " OR ".join($CLAUSES)
+              ...
+              $FUNC(..., f"... WHERE {$WHERE} ...", ...)
+      - pattern-not-regex: '(?i)#\s*cypher-dynamic-safe:\s*.*(?:allowlist|allowed_|validate|enum|literal|hardcoded|sanitized)'
     message: >
       Dynamic Cypher WHERE clause assembled via string join and interpolated
       into a query. Verify that all elements of the joined list are hardcoded
@@ -81,14 +197,27 @@ rules:
       sprint_task: SEC-L3-CYPHER-003
       layer: layer3-knowledge
 
-  # ── Rule 4: SET clause built from list join ────────────────────────────────
+  # ?? Rule 4: SET clause built from list join ????????????????????????????????
   - id: cypher-dynamic-set-clause
+    paths:
+      include:
+        - "services/layer3-knowledge/**"
+        - "services/**"
+      exclude:
+        - "**/tests/**"
+        - "**/test_*.py"
+        - "**/conftest.py"
     patterns:
-      - pattern: |
-          $SET = ", ".join($CLAUSES)
-          ...
-          $QUERY = f"... SET {$SET} ..."
-      - pattern-not-regex: '# cypher-dynamic-safe:'
+      - pattern-either:
+          - pattern: |
+              $SET = ", ".join($CLAUSES)
+              ...
+              $QUERY = f"... SET {$SET} ..."
+          - pattern: |
+              $SET = ", ".join($CLAUSES)
+              ...
+              $FUNC(..., f"... SET {$SET} ...", ...)
+      - pattern-not-regex: '(?i)#\s*cypher-dynamic-safe:\s*.*(?:allowlist|allowed_|validate|enum|literal|hardcoded|sanitized)'
     message: >
       Dynamic Cypher SET clause assembled via string join and interpolated
       into a query. Verify that all elements are hardcoded string literals.
