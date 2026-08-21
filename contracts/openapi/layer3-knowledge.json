@@ -7851,6 +7851,7 @@
             "default": 2
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
           "entity_ids"
@@ -8026,6 +8027,7 @@
             "default": true
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
           "operations"
@@ -8775,6 +8777,7 @@
             "default": 20
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "title": "CentralityRequest"
       },
@@ -8937,6 +8940,7 @@
             "title": "Relationship Types"
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "title": "CommunityDetectionRequest"
       },
@@ -9867,6 +9871,7 @@
             "default": true
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
           "business_case_id"
@@ -10176,6 +10181,7 @@
             "title": "Entity Id2"
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
           "entity_id1",
@@ -10672,6 +10678,7 @@
             "default": "desc"
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "title": "EntityFilterRequest",
         "description": "Server-backed entity filtering request.\n\nThe API applies these filters natively in Neo4j Cypher queries.\nThis eliminates the need for client-side filtering of large result sets."
@@ -11862,6 +11869,7 @@
             "default": true
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
           "query"
@@ -12298,6 +12306,7 @@
             ]
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
           "rdf_data",
@@ -15253,6 +15262,7 @@
             "description": "Additional search filters"
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
           "query"
@@ -15990,6 +16000,7 @@
             "title": "Target Type"
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
           "entity_id"
@@ -17901,6 +17912,7 @@
             "default": "both"
           }
         },
+        "additionalProperties": false,
         "type": "object",
         "required": [
           "entity_id"
