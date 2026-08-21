@@ -21,6 +21,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -48,7 +49,65 @@ EXCLUDED_PREFIXES = (
 )
 
 SIZE_JUSTIFICATION_LABEL = "Size justification"
-PLACEHOLDER_VALUES = {"", "tbd", "todo", "pending", "?", "<fill me in>", "n/a", "none"}
+# Placeholder values that should be rejected as non-justifications.
+# Includes the stock PR template instruction text (so an untouched
+# template cannot pass the size gate). The template wraps instructions
+# in an HTML comment so the author replaces it with a real rationale.
+PLACEHOLDER_VALUES = {
+    "",
+    "tbd",
+    "todo",
+    "pending",
+    "?",
+    "<fill me in>",
+    "n/a",
+    "none",
+}
+# Reject any value that is entirely an HTML comment (e.g. the untouched
+# template instruction block). Matched case-insensitively.
+_HTML_COMMENT_RE = re.compile(r"^\s*<!--.*-->\s*$", re.DOTALL | re.IGNORECASE)
+
+
+def is_placeholder_justification(value: str) -> bool:
+    """Return True if the value is a placeholder, not a real justification."""
+    return value.casefold() in PLACEHOLDER_VALUES or bool(_HTML_COMMENT_RE.match(value))
+
+
+def _git_numstat(base_ref: str) -> dict[str, int]:
+    """Return a {path: additions} map from ``git diff --numstat``.
+
+    Used as a fallback when the GitHub event payload lacks per-file
+    statistics (the ``pull_request`` event body carries aggregate
+    ``additions`` but not the ``files`` array with per-file stats).
+    Computing the diff from the checked-out repo lets us subtract
+    generated-file additions that the size policy excludes, instead of
+    returning the unfiltered aggregate total (which would misclassify
+    generated-heavy PRs as large).
+    """
+    try:
+        result = subprocess.run(
+            ["git", "diff", "--numstat", "--no-renames", base_ref],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return {}
+    if result.returncode != 0:
+        return {}
+    stats: dict[str, int] = {}
+    for line in result.stdout.splitlines():
+        parts = line.split("\t")
+        if len(parts) != 3:
+            continue
+        additions_str, _, path = parts
+        if additions_str == "-":
+            continue  # binary file
+        try:
+            stats[path] = int(additions_str)
+        except ValueError:
+            continue
+    return stats
 
 
 def parse_additions(payload: dict, env_changed: str) -> tuple[int, set[str]]:
@@ -79,9 +138,34 @@ def parse_additions(payload: dict, env_changed: str) -> tuple[int, set[str]]:
         net = max(0, additions - excluded_additions)
         return net, relevant
 
-    # Fall back to set membership when per-file stats are absent.
+    # Fallback: the pull_request event body carries aggregate additions but
+    # not the per-file stats array. Use git diff --numstat against the base
+    # ref to get per-file additions so excluded (generated/lockfile) paths
+    # are subtracted. If git is unavailable or the base ref is unknown,
+    # fall back to filtering by path membership only (aggregate additions,
+    # relevant files) — this over-counts but never under-counts.
+    base_ref = _base_ref(payload)
+    if base_ref:
+        numstat = _git_numstat(base_ref)
+        if numstat:
+            for path, file_adds in numstat.items():
+                if is_excluded(path):
+                    excluded_additions += file_adds
+                else:
+                    relevant.add(path)
+            net = max(0, additions - excluded_additions)
+            return net, relevant
+
+    # Last resort: set membership only (cannot subtract generated additions).
     relevant = {p for p in changed if not is_excluded(p)}
     return additions, relevant
+
+
+def _base_ref(payload: dict) -> str:
+    """Extract the base ref to diff against from the GitHub event payload."""
+    pr = payload.get("pull_request") or {}
+    base = pr.get("base") or {}
+    return str(base.get("ref") or "").strip() or ""
 
 
 def is_excluded(path: str) -> bool:
@@ -98,7 +182,13 @@ def classify(net_additions: int) -> str:
 
 
 def extract_field_value(body: str, label: str) -> str | None:
-    pattern = re.compile(rf"(?mi)^[-*]?\s*\*{re.escape(label)}:?\*\*?\s*(.+?)\s*$")
+    # Match Markdown bold (**label:**) or italic (*label:*) field headers,
+    # optionally preceded by a bullet (- or *). Allows 1-2 asterisks on
+    # each side so the PR template's `**Size justification:**` format
+    # parses correctly. Captures the text after the header.
+    pattern = re.compile(
+        rf"(?mi)^[-*]?\s*\*{{1,2}}{re.escape(label)}:?\*{{1,2}}\s*(.+?)\s*$"
+    )
     match = pattern.search(body)
     return match.group(1).strip() if match else None
 
@@ -144,7 +234,7 @@ def main() -> int:
         print(f"PR title: {title}", file=sys.stderr)
         return 1
 
-    if justification.casefold() in PLACEHOLDER_VALUES:
+    if is_placeholder_justification(justification):
         print(
             f"ERROR: Large PR has a placeholder **{SIZE_JUSTIFICATION_LABEL}:** value: "
             f"{justification!r}. Provide a concrete rationale.",

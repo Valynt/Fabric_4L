@@ -19,6 +19,8 @@ import importlib.util
 from pathlib import Path
 from unittest import mock
 
+import pytest
+
 _SCRIPTS_DIR = Path(__file__).resolve().parents[1]
 
 
@@ -51,7 +53,7 @@ def test_check_mypy_baseline_passes_executable_as_single_argument() -> None:
     def fake_run(cmd, **kwargs):  # type: ignore[no-untyped-def]
         captured["cmd"] = cmd
         captured["cwd"] = kwargs.get("cwd")
-        return mock.Mock(stdout="", stderr="")
+        return mock.Mock(stdout="", stderr="", returncode=0)
 
     with mock.patch.object(check_mypy_baseline.sys, "executable", fake_exe):
         with mock.patch.object(check_mypy_baseline.subprocess, "run", fake_run):
@@ -154,3 +156,52 @@ def test_semgrep_hook_uses_system_language_not_python_venv() -> None:
         "'language: python' creates a pre-commit venv whose console-script "
         "shebang has backslashes stripped on Windows."
     )
+
+
+def test_check_mypy_baseline_fails_closed_on_tooling_error() -> None:
+    """When mypy exits non-zero with no parseable diagnostics (tooling
+    failure: mypy not installed, invalid args, config error), the ratchet
+    must fail closed — not silently report 'baseline OK' with 0 errors."""
+    fake_result = mock.Mock(stdout="", stderr="mypy: command not found", returncode=2)
+    with mock.patch.object(check_mypy_baseline.subprocess, "run", return_value=fake_result):
+        with pytest.raises(check_mypy_baseline.MypyInvocationError):
+            check_mypy_baseline._run_mypy(
+                Path("services/layer1-ingestion"),
+                ["src"],
+                [],
+            )
+
+
+def test_check_mypy_baseline_passes_when_mypy_succeeds() -> None:
+    """A successful mypy run (returncode 0, empty output) must not raise."""
+    fake_result = mock.Mock(stdout="", stderr="", returncode=0)
+    captured: dict[str, object] = {}
+
+    def fake_run(cmd, **kwargs):
+        captured["cmd"] = cmd
+        return fake_result
+
+    with mock.patch.object(check_mypy_baseline.subprocess, "run", fake_run):
+        output = check_mypy_baseline._run_mypy(
+            Path("services/layer1-ingestion"),
+            ["src"],
+            [],
+        )
+    assert output == ""
+
+
+def test_check_mypy_baseline_passes_when_mypy_reports_real_errors() -> None:
+    """When mypy exits non-zero but produces real ``file:line: error:``
+    diagnostics, the ratchet must parse them — not treat it as a tooling
+    failure."""
+    fake_output = (
+        "services/layer1/src/foo.py:10: error: Function is missing a return type annotation  [no-untyped-def]\n"
+    )
+    fake_result = mock.Mock(stdout=fake_output, stderr="", returncode=1)
+    with mock.patch.object(check_mypy_baseline.subprocess, "run", return_value=fake_result):
+        output = check_mypy_baseline._run_mypy(
+            Path("services/layer1-ingestion"),
+            ["src"],
+            [],
+        )
+    assert "foo.py:10: error" in output

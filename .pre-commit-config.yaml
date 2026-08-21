@@ -150,9 +150,12 @@ repos:
   # Invoking `semgrep` from PATH via a local `language: system` hook
   # sidesteps the broken venv console-script entirely. Uses `p/default`
   # (a pinned registry ruleset) instead of `auto` so `--metrics=off` is
-  # honored (auto config requires metrics/telemetry). Falls back to the
-  # system semgrep install; if absent the hook errors visibly rather than
-  # silently passing. See debt entry `windows-pre-commit-tooling-gap`.
+  # honored (auto config requires metrics/telemetry). Provisioning: `make
+  # setup` installs semgrep==1.136.0 into the dev environment (see
+  # scripts/ci/setup_python_dev_deps.py), pinned to match CI's
+  # SEMGREP_VERSION in .github/workflows/security-gates.yml. If semgrep is
+  # absent the hook errors visibly rather than silently passing.
+  # See debt entry `windows-pre-commit-tooling-gap`.
   - repo: local
     hooks:
       - id: semgrep

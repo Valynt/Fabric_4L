@@ -26,6 +26,15 @@ from pathlib import Path
 ERROR_RE = re.compile(r"^(.*?):\d+: error: .*$", re.MULTILINE)
 
 
+class MypyInvocationError(RuntimeError):
+    """Raised when mypy exits before emitting usable diagnostics.
+
+    This covers tooling failures (mypy not installed, invalid arguments,
+    config load errors) that would otherwise be silently swallowed,
+    causing the ratchet to fail open with an empty (0-error) count.
+    """
+
+
 def _run_mypy(service_dir: Path, paths: list[str], extra_args: list[str]) -> str:
     # Use ``sys.executable -m mypy`` so the check works on Windows where the
     # ``mypy`` console-script entrypoint is not guaranteed to be on PATH.
@@ -37,7 +46,20 @@ def _run_mypy(service_dir: Path, paths: list[str], extra_args: list[str]) -> str
         text=True,
         check=False,
     )
-    return result.stdout + result.stderr
+    # Fail closed on tooling failures: if mypy exited non-zero but produced
+    # no parseable ``file:line: error:`` diagnostics, the invocation itself
+    # failed (missing mypy, bad args, config error). Returning an empty
+    # count would let the ratchet report "Mypy baseline OK" and hide the
+    # failure, so surface it as an explicit error instead.
+    output = result.stdout + result.stderr
+    if result.returncode != 0 and not ERROR_RE.search(output):
+        raise MypyInvocationError(
+            f"mypy exited with code {result.returncode} but produced no "
+            f"parseable diagnostics. This indicates a tooling failure "
+            f"(mypy not installed, invalid arguments, or config load "
+            f"error). Output:\n{output}"
+        )
+    return output
 
 
 def _count_errors(output: str) -> dict[str, int]:
@@ -79,11 +101,15 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--write-baseline", action="store_true")
     args = parser.parse_args(argv)
 
-    output = _run_mypy(
-        args.service_dir.resolve(),
-        args.paths,
-        args.mypy_args.split() if args.mypy_args else [],
-    )
+    try:
+        output = _run_mypy(
+            args.service_dir.resolve(),
+            args.paths,
+            args.mypy_args.split() if args.mypy_args else [],
+        )
+    except MypyInvocationError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 1
     counts = _count_errors(output)
 
     if args.write_baseline:
