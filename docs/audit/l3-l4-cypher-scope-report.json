@@ -7,26 +7,17 @@
   "summary": {
     "Safe": 0,
     "Unsafe": 0,
-    "Unknown": 22,
+    "Unknown": 21,
     "unknown_missing_allowlist": 0
   },
   "findings": [
     {
       "path": "services/layer3-knowledge/src/api/routes/formulas.py",
-      "line": 966,
+      "line": 971,
       "function": "create_formula",
       "classification": "Unknown",
       "message": "session.run constant Cypher query requires explicit allowlist or scoped helper marker",
-      "finding_key": "services/layer3-knowledge/src/api/routes/formulas.py::create_formula::966",
-      "allowlisted": true
-    },
-    {
-      "path": "services/layer3-knowledge/src/api/routes/formulas.py",
-      "line": 1025,
-      "function": "create_formula",
-      "classification": "Unknown",
-      "message": "session.run constant Cypher query requires explicit allowlist or scoped helper marker",
-      "finding_key": "services/layer3-knowledge/src/api/routes/formulas.py::create_formula::1025",
+      "finding_key": "services/layer3-knowledge/src/api/routes/formulas.py::create_formula::971",
       "allowlisted": true
     },
     {
@@ -49,56 +40,56 @@
     },
     {
       "path": "services/layer3-knowledge/src/api/routes/formulas.py",
-      "line": 1158,
+      "line": 1188,
       "function": "update_formula",
       "classification": "Unknown",
       "message": "session.run constant Cypher query requires explicit allowlist or scoped helper marker",
-      "finding_key": "services/layer3-knowledge/src/api/routes/formulas.py::update_formula::1158",
+      "finding_key": "services/layer3-knowledge/src/api/routes/formulas.py::update_formula::1188",
       "allowlisted": true
     },
     {
       "path": "services/layer3-knowledge/src/api/routes/formulas.py",
-      "line": 1187,
+      "line": 1217,
       "function": "update_formula",
       "classification": "Unknown",
       "message": "session.run constant Cypher query requires explicit allowlist or scoped helper marker",
-      "finding_key": "services/layer3-knowledge/src/api/routes/formulas.py::update_formula::1187",
+      "finding_key": "services/layer3-knowledge/src/api/routes/formulas.py::update_formula::1217",
       "allowlisted": true
     },
     {
       "path": "services/layer3-knowledge/src/api/routes/formulas.py",
-      "line": 1197,
+      "line": 1227,
       "function": "update_formula",
       "classification": "Unknown",
       "message": "session.run constant Cypher query requires explicit allowlist or scoped helper marker",
-      "finding_key": "services/layer3-knowledge/src/api/routes/formulas.py::update_formula::1197",
+      "finding_key": "services/layer3-knowledge/src/api/routes/formulas.py::update_formula::1227",
       "allowlisted": true
     },
     {
       "path": "services/layer3-knowledge/src/api/routes/formulas.py",
-      "line": 1220,
+      "line": 1250,
       "function": "update_formula",
       "classification": "Unknown",
       "message": "session.run constant Cypher query requires explicit allowlist or scoped helper marker",
-      "finding_key": "services/layer3-knowledge/src/api/routes/formulas.py::update_formula::1220",
+      "finding_key": "services/layer3-knowledge/src/api/routes/formulas.py::update_formula::1250",
       "allowlisted": true
     },
     {
       "path": "services/layer3-knowledge/src/api/routes/formulas.py",
-      "line": 1267,
+      "line": 1297,
       "function": "delete_formula",
       "classification": "Unknown",
       "message": "session.run constant Cypher query requires explicit allowlist or scoped helper marker",
-      "finding_key": "services/layer3-knowledge/src/api/routes/formulas.py::delete_formula::1267",
+      "finding_key": "services/layer3-knowledge/src/api/routes/formulas.py::delete_formula::1297",
       "allowlisted": true
     },
     {
       "path": "services/layer3-knowledge/src/api/routes/formulas.py",
-      "line": 1288,
+      "line": 1318,
       "function": "delete_formula",
       "classification": "Unknown",
       "message": "session.run constant Cypher query requires explicit allowlist or scoped helper marker",
-      "finding_key": "services/layer3-knowledge/src/api/routes/formulas.py::delete_formula::1288",
+      "finding_key": "services/layer3-knowledge/src/api/routes/formulas.py::delete_formula::1318",
       "allowlisted": true
     },
     {
