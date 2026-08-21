@@ -189,7 +189,7 @@ export OPENAI_MANUAL_KEY="sk-proj-xxx"
 export THESYS_MANUAL_KEY="thesys_xxx"
 
 # Clerk
-export CLERK_MANUAL_KEY="sk_live_xxx"
+export CLERK_MANUAL_KEY="sk_test_dummy_xxx"
 
 # Registry
 export REGISTRY_MANUAL_KEY="ghp_xxx"

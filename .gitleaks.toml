@@ -1,0 +1,31 @@
+# Gitleaks configuration for Value Fabric (ADR-038)
+# Extends default Gitleaks rules with structured allowlists for synthetic test fixtures and documentation examples.
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Allowlist for synthetic test fixtures and documentation examples per ADR-038"
+paths = [
+    '''(^|/)tests/''',
+    '''(^|/)docs/''',
+    '''(^|/)docs-site/''',
+    '''(^|/)services/[^/]+/tests/''',
+    '''(^|/)apps/web/src/auth/clerkConfig\.test\.ts$''',
+    '''(^|/)signoff-evidence/''',
+    '''(^|/)archive/''',
+    '''\.test\.(ts|tsx|js|jsx)$''',
+    '''test_.*\.py$'''
+]
+regexes = [
+    '''sk_test_dummy_[A-Za-z0-9_]+''',
+    '''pk_test_dummy_[A-Za-z0-9_]+''',
+    '''whsec_test_dummy_[A-Za-z0-9_]+''',
+    '''test_dummy_[A-Za-z0-9_]+''',
+    '''dummy_[A-Za-z0-9_]+''',
+    '''vf_test_[A-Za-z0-9_]+''',
+    '''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+''',
+    '''ghp_dummytoken[A-Za-z0-9]+''',
+    '''AKIAIOSFODNN7EXAMPLE''',
+    '''wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY'''
+]
