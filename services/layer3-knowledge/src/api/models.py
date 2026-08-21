@@ -11,11 +11,18 @@ from typing import Annotated, Literal
 
 from pydantic import (
     BaseModel,
+    ConfigDict,
     Field,
     computed_field,
     field_validator,
     model_validator,
 )
+
+# Strict request-body config: unknown fields are rejected so contract drift
+# (typo'd field, renamed field, stale frontend type) surfaces as a 422 at the
+# most-imported boundary instead of being silently dropped. Response models
+# and legacy-alias graph models intentionally stay permissive.
+_STRICT_REQUEST_CONFIG = ConfigDict(extra="forbid")
 from value_fabric.shared.contracts.layer3_statuses import (
     EntityStatus,
     HealthStatus,
@@ -119,6 +126,8 @@ class DetailedHealthResponse(BaseModel):
 # Ingestion Models
 class IngestRequest(BaseModel):
     """Request for ingesting RDF data into the knowledge graph."""
+
+    model_config = _STRICT_REQUEST_CONFIG
 
     rdf_data: str = Field(
         ...,
@@ -263,6 +272,8 @@ class SearchType(str, Enum):
 class GraphRAGQuery(BaseModel):
     """Request for graph-based question answering."""
 
+    model_config = _STRICT_REQUEST_CONFIG
+
     query: str = Field(
         ...,
         min_length=1,
@@ -322,6 +333,8 @@ class GraphRAGResponse(BaseModel):
 # Search Models
 class SearchRequest(BaseModel):
     """Request for entity search."""
+
+    model_config = _STRICT_REQUEST_CONFIG
 
     query: str = Field(
         ..., min_length=1, max_length=500, description="Search query string", examples=["real-time analytics"]
@@ -427,6 +440,7 @@ class SearchStreamEvent(BaseModel):
 
 # Entity Models
 class EntityContextRequest(BaseModel):
+    model_config = _STRICT_REQUEST_CONFIG
     hops: int = Field(default=2, ge=1, le=3)
     relationship_types: list[str] | None = None
     fields: list[str] | None = Field(
@@ -661,6 +675,8 @@ class EntityFilterRequest(BaseModel):
     This eliminates the need for client-side filtering of large result sets.
     """
 
+    model_config = _STRICT_REQUEST_CONFIG
+
     # Text search (across name, description, properties)
     search_text: str | None = Field(
         None, max_length=200, description="Search across name, description, and properties"
@@ -737,6 +753,7 @@ class EntityListResponse(BaseModel):
 # ═══════════════════════════════════════════════════════════════════════════════
 
 class ValueTreeTraversal(BaseModel):
+    model_config = _STRICT_REQUEST_CONFIG
     entity_id: str
     direction: str = Field(default="both", description="up, down, or both")
 
@@ -750,6 +767,7 @@ class ValueTreeResponse(BaseModel):
 
 # Analytics Models
 class CommunityDetectionRequest(BaseModel):
+    model_config = _STRICT_REQUEST_CONFIG
     algorithm: str = Field(
         default="louvain", description="louvain, leiden, or value_tree"
     )
@@ -774,6 +792,7 @@ class CommunityDetectionResponse(BaseModel):
 
 
 class CentralityRequest(BaseModel):
+    model_config = _STRICT_REQUEST_CONFIG
     algorithm: str = Field(
         default="pagerank", description="pagerank, betweenness, degree, or value_tree"
     )
@@ -797,6 +816,7 @@ class CentralityResponse(BaseModel):
 
 
 class SimilarityRequest(BaseModel):
+    model_config = _STRICT_REQUEST_CONFIG
     entity_id: str
     method: str = Field(
         default="combined",
@@ -824,6 +844,7 @@ class SimilarityResponse(BaseModel):
 
 
 class EntityComparisonRequest(BaseModel):
+    model_config = _STRICT_REQUEST_CONFIG
     entity_id1: str
     entity_id2: str
 
@@ -895,6 +916,8 @@ class AuditLogEntry(BaseModel):
 class AuditLogFilter(BaseModel):
     """Filter parameters for audit log queries."""
 
+    model_config = _STRICT_REQUEST_CONFIG
+
     source: str | None = Field(
         None, description="Filter by source: 'provenance', 'access', or 'all'"
     )
@@ -916,6 +939,8 @@ class AuditLogResponse(BaseModel):
 
 class DocumentExportRequest(BaseModel):
     """Request for document export."""
+
+    model_config = _STRICT_REQUEST_CONFIG
 
     document_type: str = Field(
         "business_case", description="Type of document to export"
@@ -957,6 +982,8 @@ class BatchEntityOperation(BaseModel):
 class BatchEntityRequest(BaseModel):
     """Request for batch entity operations."""
 
+    model_config = _STRICT_REQUEST_CONFIG
+
     operations: list[BatchEntityOperation] = Field(
         ..., min_length=1, max_length=100, description="Entity operations to perform"
     )
@@ -991,6 +1018,8 @@ class BatchEntityResponse(BaseModel):
 
 class BatchAnalyticsRequest(BaseModel):
     """Request for batch analytics operations."""
+
+    model_config = _STRICT_REQUEST_CONFIG
 
     entity_ids: list[str] = Field(
         ..., min_length=1, max_length=50, description="Entity IDs to analyze"

@@ -16,6 +16,11 @@ from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Any
 
+# Cap exponent magnitude in `**` to prevent DoS via huge exponents
+# (e.g. `2 ** 999_999_999` would hang/OOM the worker). Any exponent whose
+# absolute value exceeds this bound is rejected before `operator.pow` runs.
+MAX_POW_EXPONENT = 1_000_000
+
 from neo4j import AsyncDriver
 from value_fabric.shared.identity.isolation import ScopedQuery, TenantScopedCypher
 from value_fabric.shared.models.typed_dict import TypedDictModel
@@ -231,11 +236,17 @@ class ROICalculationAgent(BaseAgent):
                 "validation_errors": validation_errors,
             })
 
+        # Coerce validated numeric inputs to float before execution so that
+        # string-typed numerics (e.g. "3" from a JSON body) that passed
+        # `_validate_inputs` do not break `_safe_eval` or yield type-dependent
+        # results (e.g. `"3" * 2` concatenating instead of multiplying).
+        coerced_inputs = self._coerce_numeric_inputs(formula, inputs)
+
 
         # Prepare execution context
         execution_context = {
             **formula.constants,
-            **inputs,
+            **coerced_inputs,
         }
 
         # Execute formula safely
@@ -249,27 +260,31 @@ class ROICalculationAgent(BaseAgent):
 
 
         # Build execution trace
-        trace = self._build_execution_trace(formula, inputs, execution_context)
+        trace = self._build_execution_trace(formula, coerced_inputs, execution_context)
 
         # Run sensitivity analysis if requested
         sensitivity = None
         if run_sensitivity:
             sensitivity = await self._calculate_sensitivity(
-                formula, inputs, execution_context
+                formula, coerced_inputs, execution_context
             )
 
         roi_result = {
             "calculation_id": f"calc-{formula_id}-{int(time.time())}",
             "formula_id": formula_id,
             "formula_name": formula.name,
-            "inputs": inputs,
+            "inputs": coerced_inputs,
             "outputs": {
                 formula.output_metric: result,
                 "raw_value": float(result) if isinstance(result, Decimal) else result,
             },
             "intermediate_values": execution_context,
             "execution_trace": trace,
-            "confidence_score": 0.95,  # High confidence for deterministic calc
+            # Deterministic calculation over fully-validated numeric inputs
+            # yields exact (not estimated) results, so confidence is 1.0.
+            # Validation failures return earlier; reaching here means all
+            # required numeric inputs validated successfully.
+            "confidence_score": 1.0,
             "sensitivity_analysis": sensitivity,
             "calculation_timestamp": datetime.now(UTC).isoformat(),
             "assumptions": formula.assumptions,
@@ -527,6 +542,48 @@ class ROICalculationAgent(BaseAgent):
 
         return errors
 
+    def _coerce_numeric_inputs(
+        self, formula: FormulaNode, inputs: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Coerce validated numeric inputs to float for safe execution.
+
+        ``_validate_inputs`` already confirmed each numeric variable can be
+        converted via ``float(value)``. This method performs the actual
+        coercion so the execution context contains real numbers, preventing
+        string-dependent behavior in ``_safe_eval`` (e.g. ``"3" * 2``
+        concatenating instead of multiplying, or comparisons returning
+        surprising results).
+
+        Non-numeric variables and integer-typed variables are passed through
+        unchanged (integer semantics are preserved for downstream consumers).
+
+        Args:
+            formula: Formula definition with variable type metadata
+            inputs: Validated input values
+
+        Returns:
+            Copy of inputs with numeric variables coerced to float
+        """
+        coerced: dict[str, Any] = dict(inputs)
+        for var in formula.variables:
+            var_name = var["name"]
+            if var_name not in coerced:
+                continue
+            expected_type = var.get("type", "number")
+            if expected_type == "number":
+                try:
+                    coerced[var_name] = float(coerced[var_name])
+                except (ValueError, TypeError):
+                    # Validation already caught this; leave value unchanged so
+                    # the downstream error path remains consistent.
+                    pass
+            elif expected_type == "integer":
+                try:
+                    coerced[var_name] = int(coerced[var_name])
+                except (ValueError, TypeError):
+                    pass
+        return coerced
+
     def _safe_eval(self, expression: str, context: dict[str, Any]) -> Any:
         """Safely evaluate a mathematical expression.
 
@@ -570,6 +627,22 @@ class ROICalculationAgent(BaseAgent):
             op_type = type(node.op)
 
             if op_type in self.SAFE_OPERATORS:
+                if op_type is ast.Pow:
+                    # Guard against DoS via enormous exponents. Reject any
+                    # exponent whose magnitude exceeds the cap before calling
+                    # operator.pow, which would otherwise allocate or iterate
+                    # an unbounded number of times.
+                    try:
+                        exp_val = float(right)
+                    except (TypeError, ValueError) as exc:
+                        raise ValueError(
+                            f"Exponent must be numeric, got {type(right).__name__}"
+                        ) from exc
+                    if abs(exp_val) > MAX_POW_EXPONENT:
+                        raise ValueError(
+                            f"Exponent magnitude {exp_val} exceeds safe cap "
+                            f"{MAX_POW_EXPONENT}"
+                        )
                 return self.SAFE_OPERATORS[op_type](left, right)
             else:
                 raise ValueError(f"Unsupported binary operator: {op_type}")

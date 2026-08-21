@@ -43,6 +43,8 @@ logger = get_logger(__name__)
 # Constants for formula evaluation
 DEFAULT_CONFIDENCE = 0.92
 FLOATING_POINT_EPSILON = 1e-10  # Threshold for considering a value as zero
+# Cap exponent magnitude to prevent DoS (e.g. 2 ** 99999999 hanging the worker).
+MAX_POW_EXPONENT = 1_000_000
 
 # Valid expression pattern: alphanumeric, operators (+, -, *, /), parentheses, underscores, whitespace
 # Note: period (.) intentionally excluded to prevent attribute access attempts
@@ -860,6 +862,9 @@ def _evaluate_ast_node(node: ast.AST, variables: dict[str, float]) -> float:
                 raise ZeroDivisionError("Division by zero")
             return left / right
         if isinstance(node.op, ast.Pow):
+            # Prevent DoS from huge exponents (e.g. 2 ** 99999999).
+            if abs(right) > MAX_POW_EXPONENT:
+                raise ValueError("Exponent too large in formula")
             return left**right
         raise ValueError("Unsupported binary operator")
     if isinstance(node, ast.Call):
@@ -978,7 +983,10 @@ async def create_formula(
                 message=f"Formula with name '{request.name}' already exists"
             )
 
-        # Create formula, version, and variables
+        # Create formula, version, and variables in a single auto-committed
+        # statement so a mid-write failure cannot leave a formula node without
+        # its version or variables (the previous two-statement pattern could
+        # commit formula+version then fail on variables, leaving partial state).
         await neo4j.run(
             """
             CREATE (f:Formula {
@@ -1006,6 +1014,20 @@ async def create_formula(
                 tenant_id: $tenant_id
             })
             CREATE (f)-[:HAS_VERSION]->(fv)
+            WITH f
+            UNWIND ($variables) AS var
+            WITH f, var WHERE var IS NOT NULL
+            MERGE (v:Variable {name: var.name, tenant_id: $tenant_id})
+            ON CREATE SET
+                v.displayName = var.display_name,
+                v.description = var.description,
+                v.type = var.type,
+                v.unit = var.unit,
+                v.defaultValue = var.default_value,
+                v.minValue = var.min_value,
+                v.maxValue = var.max_value,
+                v.required = var.required
+            CREATE (f)-[:REQUIRES]->(v)
             """,
             formula_id=formula_id,
             name=request.name,
@@ -1018,30 +1040,8 @@ async def create_formula(
             owner=owner,
             tenant_id=tenant_id,
             version_id=version_id,
+            variables=[v.model_dump() for v in request.variables] if request.variables else [],
         )
-
-        # Create variables if provided
-        if request.variables:
-            await neo4j.run(
-                """
-                MATCH (f:Formula {id: $formula_id})
-                UNWIND $variables as var
-                MERGE (v:Variable {name: var.name, tenant_id: $tenant_id})
-                ON CREATE SET
-                    v.displayName = var.display_name,
-                    v.description = var.description,
-                    v.type = var.type,
-                    v.unit = var.unit,
-                    v.defaultValue = var.default_value,
-                    v.minValue = var.min_value,
-                    v.maxValue = var.max_value,
-                    v.required = var.required
-                CREATE (f)-[:REQUIRES]->(v)
-                """,
-                formula_id=formula_id,
-                variables=[v.model_dump() for v in request.variables],
-                tenant_id=tenant_id,
-            )
 
         # Fetch created formula
         result = await neo4j.run(
@@ -1096,7 +1096,8 @@ async def update_formula(
             """
             MATCH (f:Formula {id: $formula_id})
             WHERE f.tenant_id = $tenant_id
-            RETURN f.status as status, f.version as version, f.expression as current_expr
+            RETURN f.status as status, f.version as version,
+                   f.expression as current_expr, f.updatedAt as updated_at
             """,
             formula_id=formula_id,
             tenant_id=tenant_id,
@@ -1108,6 +1109,7 @@ async def update_formula(
         current_status = record["status"]
         current_version = record["version"]
         current_expr = record["current_expr"]
+        current_updated_at = record["updated_at"]
 
         if current_status not in (STATUS_DRAFT, STATUS_UNDER_REVIEW):
             raise ConflictError(
@@ -1144,12 +1146,26 @@ async def update_formula(
 
         # Update formula
         if update_fields:
+            # Optimistic concurrency: require the row's updatedAt to still
+            # match the value we read; a concurrent update that bumped
+            # updatedAt means our in-memory view is stale -> 409 Conflict.
             update_query = f"""
                 MATCH (f:Formula {{id: $formula_id}})
                 WHERE f.tenant_id = $tenant_id
+                  AND f.updatedAt = $expected_updated_at
                 SET {', '.join(update_fields)}
+                RETURN count(f) AS matched
                 """
-            await neo4j.run(update_query, **params)
+            params["expected_updated_at"] = current_updated_at
+            update_result = await neo4j.run(update_query, **params)
+            update_record = await update_result.single()
+            if not update_record or update_record["matched"] == 0:
+                raise ConflictError(
+                    message=(
+                        f"Formula {formula_id} was modified by another request; "
+                        "reload and retry"
+                    )
+                )
 
         # Create new version if expression changed
         if expr_changed:
@@ -1311,16 +1327,25 @@ async def delete_formula(
 
 
 def _bump_minor_version(version: str) -> str:
-    """Bump the minor version number (e.g., 1.0.0 -> 1.1.0)."""
+    """Bump the minor version number (e.g., 1.0.0 -> 1.1.0).
+
+    Raises ValueError on malformed semver so a corrupted stored version
+    surfaces as an error instead of silently resetting to 1.0.0.
+    """
+    if not version or not isinstance(version, str):
+        raise ValueError(f"Invalid formula version: {version!r}")
     parts = version.split(".")
-    if len(parts) >= 2:
-        try:
-            minor = int(parts[1])
-            parts[1] = str(minor + 1)
-            return ".".join(parts[:3]) if len(parts) >= 3 else ".".join(parts) + ".0"
-        except ValueError:
-            pass
-    return "1.0.0"
+    if len(parts) != 3:
+        raise ValueError(f"Invalid formula version (expected major.minor.patch): {version!r}")
+    try:
+        major = int(parts[0])
+        minor = int(parts[1])
+        patch = int(parts[2])
+    except ValueError as exc:
+        raise ValueError(f"Invalid formula version (non-numeric segment): {version!r}") from exc
+    if major < 0 or minor < 0 or patch < 0:
+        raise ValueError(f"Invalid formula version (negative segment): {version!r}")
+    return f"{major}.{minor + 1}.0"
 
 
 # Local route modules register cohesive formula route groups without changing public paths.

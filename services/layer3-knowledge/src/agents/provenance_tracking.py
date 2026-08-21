@@ -71,6 +71,7 @@ class ProvenanceTrackingAgent_build_provenance_recordResult(TypedDictModel):
     entity: dict[str, Any]
     generation: dict[str, Any]
     rdf_triples: list[Any]
+    tenant_id: Any | None = None
     usage: dict[str, Any]
 
 logger = logging.getLogger(__name__)
@@ -199,6 +200,13 @@ class ProvenanceTrackingAgent(BaseAgent):
         SECURITY: Strict validation to prevent tenant confusion attacks.
         Accepts UUID format or reserved system/admin identifiers.
 
+        Fail-closed: a missing or empty tenant_id raises ValueError rather
+        than defaulting to the shared "system" tenant. Provenance is the
+        trust layer; silently attributing records to "system" when no
+        tenant context was supplied is a cross-tenant provenance leak.
+        Callers that genuinely need platform-internal provenance must pass
+        an explicit "system" or "admin" identifier.
+
         Args:
             tenant_id: Raw tenant identifier from context
 
@@ -206,17 +214,17 @@ class ProvenanceTrackingAgent(BaseAgent):
             Normalized tenant ID string
 
         Raises:
-            ValueError: If tenant_id is invalid format
+            ValueError: If tenant_id is missing, empty, or invalid format
         """
         if tenant_id is None:
-            return _TENANT_SYSTEM
+            raise ValueError("tenant_id is required for provenance operations")
 
         normalized = str(tenant_id).strip().lower()
 
         if not normalized:
-            return _TENANT_SYSTEM
+            raise ValueError("tenant_id is required for provenance operations")
 
-        # Allow reserved system identifiers
+        # Allow reserved system identifiers (must be passed explicitly)
         if normalized in (_TENANT_SYSTEM, _TENANT_ADMIN):
             return normalized
 
@@ -654,7 +662,23 @@ class ProvenanceTrackingAgent(BaseAgent):
         if not self._driver:
             return
 
-        # Create trace node
+        # Single atomic statement: create the trace node and UNWIND all step
+        # nodes in one query so a mid-write failure cannot leave a trace with
+        # a partial step set (the previous per-step loop auto-committed each
+        # step independently).
+        steps_payload = [
+            {
+                "step_id": s.step_id,
+                "step_type": s.step_type,
+                "step_number": s.step_number,
+                "description": s.description,
+                "confidence": s.confidence,
+                "agent_id": s.agent_id,
+                "llm_model": s.llm_model,
+            }
+            for s in trace.steps
+        ]
+
         query = """
         CREATE (t:DecisionTrace {
             trace_id: $trace_id,
@@ -666,6 +690,20 @@ class ProvenanceTrackingAgent(BaseAgent):
             created_at: datetime($created_at),
             completed_at: datetime($completed_at)
         })
+        WITH t
+        UNWIND ($steps) AS step
+        WITH t, step WHERE step IS NOT NULL
+        CREATE (s:DecisionStep {
+            step_id: step.step_id,
+            step_type: step.step_type,
+            step_number: step.step_number,
+            description: step.description,
+            confidence: step.confidence,
+            agent_id: step.agent_id,
+            llm_model: step.llm_model,
+            tenant_id: $tenant_id
+        })
+        CREATE (t)-[:HAS_STEP]->(s)
         RETURN t
         """
 
@@ -683,46 +721,12 @@ class ProvenanceTrackingAgent(BaseAgent):
                     "completed_at": trace.completed_at.isoformat()
                     if trace.completed_at
                     else None,
+                    "steps": steps_payload,
                 },
                 tenant_id=trace.tenant_id,
                 require_explicit_tenant_id=True,
-                query_name="provenance_tracking.create_decision_trace",
+                query_name="provenance_tracking.create_decision_trace_with_steps",
             )
-
-            # Create step nodes and link to trace
-            for step in trace.steps:
-                step_query = """
-                MATCH (t:DecisionTrace {trace_id: $trace_id, tenant_id: $tenant_id})
-                CREATE (s:DecisionStep {
-                    step_id: $step_id,
-                    step_type: $step_type,
-                    step_number: $step_number,
-                    description: $description,
-                    confidence: $confidence,
-                    agent_id: $agent_id,
-                    llm_model: $llm_model,
-                    tenant_id: $tenant_id
-                })
-                CREATE (t)-[:HAS_STEP]->(s)
-                """
-
-                await run_validated_query(session,
-                    step_query,
-                    {
-                        "trace_id": trace.trace_id,
-                        "step_id": step.step_id,
-                        "step_type": step.step_type,
-                        "step_number": step.step_number,
-                        "description": step.description,
-                        "confidence": step.confidence,
-                        "agent_id": step.agent_id,
-                        "llm_model": step.llm_model,
-                        "tenant_id": trace.tenant_id,
-                    },
-                    tenant_id=trace.tenant_id,
-                    require_explicit_tenant_id=True,
-                    query_name="provenance_tracking.create_decision_step",
-                )
 
     async def _query_lineage(self, entity_id: str, tenant_id: str = "system") -> dict[str, Any]:
         """Query lineage for an entity.
@@ -823,6 +827,7 @@ class ProvenanceTrackingAgent(BaseAgent):
         generated_by: str,
         used_entities: list[str],
         attributed_to: str,
+        tenant_id: str | None = None,
     ) -> dict[str, Any]:
         """Build complete provenance record.
 
@@ -832,6 +837,8 @@ class ProvenanceTrackingAgent(BaseAgent):
             generated_by: Activity that generated it
             used_entities: Entities used in generation
             attributed_to: Agent responsible
+            tenant_id: Owning tenant (required for persistence; the record
+                carries it so any downstream store tags ownership).
 
         Returns:
             Dict with complete provenance
@@ -851,6 +858,7 @@ class ProvenanceTrackingAgent(BaseAgent):
             "attribution": {
                 "agent": attributed_to,
             },
+            "tenant_id": tenant_id,
             "rdf_triples": [
                 (f"vf:{entity_id}", "prov:wasGeneratedBy", f"vf:{generated_by}"),
                 (f"vf:{entity_id}", "prov:wasAttributedTo", f"vf:{attributed_to}"),
