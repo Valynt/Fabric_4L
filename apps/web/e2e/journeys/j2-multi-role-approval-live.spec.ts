@@ -71,18 +71,16 @@ test.describe('Journey 2: Multi-Role Live Approval', () => {
 
     const base = backendGovernanceBase();
 
-    // 1. Reviewer may LIST governance reviews (auth-only surface). If the
-    //    authorized list is returned it must be a JSON array; otherwise an
-    //    explicit auth/forbidden rejection also satisfies the auth boundary.
+    // 1. Reviewer may LIST governance reviews (auth-only surface). A reviewer
+    //    session was just minted, so this must actually succeed with a JSON
+    //    array - otherwise the reviewer session is broken and the whole spec
+    //    (including the write-denial half below) is meaningless.
     const list = await page.request.get(`${base}/reviews`, {
       headers: { Accept: 'application/json' },
     });
-        if (list.status() === 200) {
-          const body = await list.json();
-          expect(Array.isArray(body)).toBeTruthy();
-        } else {
-          expect([401, 403].includes(list.status())).toBeTruthy();
-        }
+    expect(list.status()).toBe(200);
+    const listBody = await list.json();
+    expect(Array.isArray(listBody)).toBeTruthy();
 
     // 2. Reviewer must NOT be able to CREATE a review (content_admin gated).
     const create = await page.request.post(`${base}/reviews`, {
