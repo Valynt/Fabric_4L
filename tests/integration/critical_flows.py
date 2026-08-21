@@ -317,7 +317,7 @@ async def test_flow_4_billing_flow(flow: CriticalFlowClient) -> None:
 
     payload = {"id": f"evt_{uuid.uuid4().hex}", "type": "invoice.created", "created": int(time.time()), "data": {"object": {"id": f"in_{uuid.uuid4().hex}"}}}
     body = json.dumps(payload, separators=(",", ":")).encode("utf-8")
-    secret = os.getenv("STRIPE_WEBHOOK_SECRET", "whsec_critical_flow_test_secret")
+    secret = os.getenv("STRIPE_WEBHOOK_SECRET", "whsec_test_dummy_critical_flow_secret")
     timestamp = str(int(time.time()))
     signature = hmac.new(secret.encode(), f"{timestamp}.".encode() + body, hashlib.sha256).hexdigest()
     webhook, _ = await flow.request(

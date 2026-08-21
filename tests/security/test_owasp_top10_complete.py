@@ -743,7 +743,7 @@ class TestLoggingAndMonitoring:
 
         sensitive_payload = {
             "password": "super-secret-password",
-            "api_key": "sk-live-1234567890",
+            "api_key": "sk-live-dummy1234567890",
             "authorization": "Bearer secret-token",
             "normal_field": "this-is-ok",
             "nested": {

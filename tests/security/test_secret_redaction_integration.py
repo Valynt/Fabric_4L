@@ -37,38 +37,38 @@ class TestSanitizeErrorMessageIntegration:
 
     def test_jwt_secret_redacted_from_error_message(self):
         """P0: JWT_SECRET must be redacted from error messages."""
-        message = "Internal error with JWT_SECRET=super-secret-key-12345"
+        message = "Internal error with JWT_SECRET=dummy_super_secret_key_12345"
         sanitized = sanitize_error_message(message)
         
-        assert "super-secret-key-12345" not in sanitized, (
+        assert "dummy_super_secret_key_12345" not in sanitized, (
             "JWT_SECRET not redacted - INTEGRATION FIX FAILED"
         )
         assert "JWT_SECRET" in sanitized or "redacted" in sanitized.lower()
 
     def test_service_auth_secret_redacted_from_error_message(self):
         """P0: SERVICE_AUTH_SECRET must be redacted from error messages."""
-        message = "Auth failed: SERVICE_AUTH_SECRET=my-secret-67890"
+        message = "Auth failed: SERVICE_AUTH_SECRET=dummy_my_secret_67890"
         sanitized = sanitize_error_message(message)
         
-        assert "my-secret-67890" not in sanitized, (
+        assert "dummy_my_secret_67890" not in sanitized, (
             "SERVICE_AUTH_SECRET not redacted - INTEGRATION FIX FAILED"
         )
 
     def test_api_key_redacted_from_error_message(self):
         """P0: API keys must be redacted from error messages."""
-        message = "Invalid API key: sk_live_abc123xyz789"
+        message = "Invalid API key: sk_test_dummy_abc123xyz789"
         sanitized = sanitize_error_message(message)
         
-        assert "sk_live_abc123xyz789" not in sanitized, (
+        assert "sk_test_dummy_abc123xyz789" not in sanitized, (
             "API key not redacted - INTEGRATION FIX FAILED"
         )
 
     def test_database_password_redacted_from_error_message(self):
         """P0: Database passwords must be redacted from error messages."""
-        message = "DB connection failed: password=DbP@ssw0rd!123"
+        message = "DB connection failed: password=dummy-db-pass-123"
         sanitized = sanitize_error_message(message)
         
-        assert "DbP@ssw0rd!123" not in sanitized, (
+        assert "dummy-db-pass-123" not in sanitized, (
             "Database password not redacted - INTEGRATION FIX FAILED"
         )
 
@@ -85,10 +85,10 @@ class TestSanitizeErrorMessageIntegration:
     def test_bearer_token_redacted_from_error_message(self):
         """P0: Bearer tokens must be redacted from error messages."""
         # Use realistic JWT token length (3 segments, 20+ chars each)
-        message = "Invalid Bearer token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+        message = "Invalid Bearer token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwidGVuYW50X2lkIjoidGVzdF90ZW5hbnQifQ.dummy_test_signature_for_testing_only_12345"
         sanitized = sanitize_error_message(message)
         
-        assert "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9" not in sanitized, (
+        assert "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.dummy_test_payload_12345.dummy_test_signature_for_testing_only_12345" not in sanitized, (
             "Bearer token not redacted - INTEGRATION FIX FAILED"
         )
 

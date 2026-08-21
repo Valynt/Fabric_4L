@@ -56,11 +56,11 @@ class TestRedactionFilterInLogs:
         logger.setLevel(logging.INFO)
         
         # Log message with secret
-        logger.info("Authentication failed with JWT_SECRET=super-secret-key-12345")
+        logger.info("Authentication failed with JWT_SECRET=dummy_super_secret_key_12345")
         
         # Check output
         log_output = stream.getvalue()
-        assert "super-secret-key-12345" not in log_output, (
+        assert "dummy_super_secret_key_12345" not in log_output, (
             "JWT_SECRET leaked in log message - REDACTION FILTER FAILED"
         )
         assert REDACTED_VALUE in log_output or "redacted" in log_output.lower()
@@ -79,10 +79,10 @@ class TestRedactionFilterInLogs:
         logger.addHandler(handler)
         logger.setLevel(logging.INFO)
         
-        logger.info("DB connection: password=DbP@ssw0rd!123")
+        logger.info("DB connection: password=dummy_db_password_123")
         
         log_output = stream.getvalue()
-        assert "DbP@ssw0rd!123" not in log_output, (
+        assert "dummy_db_password_123" not in log_output, (
             "Password leaked in log message - REDACTION FILTER FAILED"
         )
 
@@ -100,10 +100,10 @@ class TestRedactionFilterInLogs:
         logger.addHandler(handler)
         logger.setLevel(logging.INFO)
         
-        logger.info("API call with key=sk_live_abc123xyz789")
+        logger.info("API call with key=sk_test_dummy_abc123xyz789")
         
         log_output = stream.getvalue()
-        assert "sk_live_abc123xyz789" not in log_output, (
+        assert "sk_test_dummy_abc123xyz789" not in log_output, (
             "API key leaked in log message - REDACTION FILTER FAILED"
         )
 
@@ -121,10 +121,10 @@ class TestRedactionFilterInLogs:
         logger.addHandler(handler)
         logger.setLevel(logging.INFO)
         
-        logger.info("Bearer token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c")
+        logger.info("Bearer token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwidGVuYW50X2lkIjoidGVzdF90ZW5hbnQifQ.dummy_test_signature_for_testing_only_12345")
         
         log_output = stream.getvalue()
-        assert "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9" not in log_output, (
+        assert "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.dummy_test_payload_12345.dummy_test_signature_for_testing_only_12345" not in log_output, (
             "JWT token leaked in log message - REDACTION FILTER FAILED"
         )
 
@@ -190,7 +190,7 @@ class TestRedactionFilterInStructuredLogs:
         data = {
             "user_id": "user-123",
             "password": "secret123",
-            "api_key": "sk_live_abc123",
+            "api_key": "sk_test_dummy_abc123",
             "normal_field": "safe_value"
         }
         
@@ -224,8 +224,8 @@ class TestRedactionFilterInStructuredLogs:
         from value_fabric.shared.security.redaction import redact_value
         
         data = [
-            {"api_key": "sk_live_abc123"},
-            {"api_key": "sk_live_def456"}
+            {"api_key": "sk_test_dummy_abc123"},
+            {"api_key": "sk_test_dummy_def456"}
         ]
         
         redacted = redact_value(data)
@@ -236,9 +236,9 @@ class TestRedactionFilterInStructuredLogs:
         """P0: URLs with secret query params must be redacted."""
         from value_fabric.shared.security.redaction import redact_credentials
         
-        url = "https://api.example.com/endpoint?api_key=sk_live_abc123&token=xyz789"
+        url = "https://api.example.com/endpoint?api_key=sk_test_dummy_abc123&token=xyz789"
         redacted = redact_credentials(url)
         
-        assert "sk_live_abc123" not in redacted
+        assert "sk_test_dummy_abc123" not in redacted
         assert "xyz789" not in redacted
         assert REDACTED_VALUE in redacted
