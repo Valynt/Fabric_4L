@@ -454,3 +454,127 @@ class TestDelegationObservability:
         # Upstream was never contacted — semaphore rejected before the call.
         request_spy.assert_not_called()
 
+
+class TestDelegationGetCache:
+    """Redis-backed short-TTL cache for safe GET delegations."""
+
+    def _app(self) -> FastAPI:
+        app = FastAPI()
+        app.include_router(router, prefix="/v1")
+        _auth_override(app)
+        from app.routers import layer_delegation as mod
+
+        mod._breakers = CircuitBreakerRegistry()
+        return app
+
+    @pytest.mark.asyncio
+    async def test_get_cache_hit_serves_without_upstream_call(self) -> None:
+        app = self._app()
+        cached_body = b'{"cached": true}'
+        cached_payload = "200\rapplication/json\r" + cached_body.decode("latin-1")
+        fake_redis = MagicMock()
+        fake_redis.get.return_value = cached_payload
+
+        request_spy = AsyncMock(return_value=httpx.Response(200, content=b"{}"))
+        fake = _FakeAsyncClient(request_spy)
+
+        with (
+            patch("app.routers.layer_delegation.get_settings", return_value=_settings()),
+            patch("app.routers.layer_delegation.httpx.AsyncClient", return_value=fake),
+            patch("app.core.redis_client.get_redis_client", return_value=fake_redis),
+        ):
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+                response = await client.get("/v1/graph/entities")
+
+        assert response.status_code == 200
+        assert response.content == cached_body
+        assert response.headers["x-delegation-cache"] == "hit"
+        # Upstream was never called — cache served the request.
+        request_spy.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_get_cache_miss_stores_and_forwards(self) -> None:
+        app = self._app()
+        fake_redis = MagicMock()
+        fake_redis.get.return_value = None  # cache miss
+
+        upstream_response = httpx.Response(
+            200,
+            content=b'{"fresh": true}',
+            headers={"content-type": "application/json"},
+        )
+        request_mock = AsyncMock(return_value=upstream_response)
+        fake = _FakeAsyncClient(request_mock)
+
+        with (
+            patch("app.routers.layer_delegation.get_settings", return_value=_settings()),
+            patch("app.routers.layer_delegation.httpx.AsyncClient", return_value=fake),
+            patch("app.core.redis_client.get_redis_client", return_value=fake_redis),
+        ):
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+                response = await client.get("/v1/graph/entities")
+
+        assert response.status_code == 200
+        assert response.headers["x-delegation-cache"] == "store"
+        assert response.content == b'{"fresh": true}'
+        fake_redis.set.assert_called_once()
+        # TTL is passed as a keyword.
+        assert fake_redis.set.await_args.kwargs.get("ex") or fake_redis.set.call_args.kwargs.get("ex")
+
+    @pytest.mark.asyncio
+    async def test_get_cache_skipped_when_redis_unavailable(self) -> None:
+        app = self._app()
+        # Redis unavailable → cache lookup returns None, upstream is called.
+        upstream_response = httpx.Response(
+            200, content=b'{"ok": true}', headers={"content-type": "application/json"}
+        )
+        request_mock = AsyncMock(return_value=upstream_response)
+        fake = _FakeAsyncClient(request_mock)
+
+        with (
+            patch("app.routers.layer_delegation.get_settings", return_value=_settings()),
+            patch("app.routers.layer_delegation.httpx.AsyncClient", return_value=fake),
+            patch("app.core.redis_client.get_redis_client", return_value=None),
+        ):
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+                response = await client.get("/v1/graph/entities")
+
+        assert response.status_code == 200
+        # No cache header since Redis was unavailable (store was skipped).
+        assert "x-delegation-cache" not in response.headers
+
+    @pytest.mark.asyncio
+    async def test_post_bypasses_cache(self) -> None:
+        app = self._app()
+        fake_redis = MagicMock()
+        fake_redis.get.return_value = None
+
+        upstream_response = httpx.Response(
+            201, content=b'{"created": true}', headers={"content-type": "application/json"}
+        )
+        request_mock = AsyncMock(return_value=upstream_response)
+        fake = _FakeAsyncClient(request_mock)
+
+        with (
+            patch("app.routers.layer_delegation.get_settings", return_value=_settings()),
+            patch("app.routers.layer_delegation.httpx.AsyncClient", return_value=fake),
+            patch("app.core.redis_client.get_redis_client", return_value=fake_redis),
+        ):
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+                response = await client.post("/v1/agents/v1/accounts", json={"x": 1})
+
+        assert response.status_code == 201
+        # POST must never read from or write to the cache.
+        fake_redis.get.assert_not_called()
+        fake_redis.set.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_get_cache_key_is_tenant_scoped(self) -> None:
+        """Cache keys differ by tenant so cross-tenant reads cannot collide."""
+        from app.routers.layer_delegation import _cache_key
+
+        key_a = _cache_key("graph", "/entities", "tenant-a", "user-1", "")
+        key_b = _cache_key("graph", "/entities", "tenant-b", "user-1", "")
+        assert key_a != key_b
+
+

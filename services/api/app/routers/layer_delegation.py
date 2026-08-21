@@ -28,6 +28,7 @@ from fastapi.responses import JSONResponse, Response
 
 from app.core.config import get_settings
 from app.core.metrics import (
+    DELEGATION_CACHE_TOTAL,
     DELEGATION_CIRCUIT_OPEN_TOTAL,
     DELEGATION_LATENCY_SECONDS,
     DELEGATION_REQUESTS_TOTAL,
@@ -227,21 +228,103 @@ async def _do_request(
     return response
 
 
+# --- GET response cache -----------------------------------------------------
+# Short-TTL Redis cache for safe GET delegations. Caches per (tenant, user,
+# segment, path, query) so one tenant/user cannot read another's cached
+# response. Fail-open: any Redis error is skipped (the request still goes
+# upstream). Mutations (POST/PUT/PATCH/DELETE) bypass the cache entirely.
+_DELEGATION_CACHE_TTL = int(os.environ.get("DELEGATION_CACHE_TTL_SECONDS", "30"))
+
+
+def _cache_key(segment: str, path: str, tenant_id: str, user_id: str | None,
+               query_string: str) -> str:
+    """Build a tenant+user scoped Redis key for a GET delegation."""
+    import hashlib
+
+    digest = hashlib.sha256(
+        f"{tenant_id}|{user_id or ''}|{segment}|{path}|{query_string}".encode()
+    ).hexdigest()
+    return f"delegation:get:{digest}"
+
+
+def _cache_lookup(key: str) -> tuple[int, bytes, str] | None:
+    """Return (status, body, content_type) from cache, or None on miss/unavailable."""
+    from app.core.redis_client import get_redis_client
+
+    client = get_redis_client()
+    if client is None:
+        return None
+    try:
+        raw = client.get(key)
+    except Exception as exc:  # noqa: BLE001 — fail open
+        logger.debug("delegation cache lookup failed: %s", exc)
+        return None
+    if not raw:
+        return None
+    parts = raw.split("\r", 2)
+    if len(parts) != 3:
+        return None
+    status = int(parts[0])
+    content_type = parts[1]
+    body = parts[2].encode("latin-1")
+    return status, body, content_type
+
+
+def _cache_store(key: str, status: int, body: bytes, content_type: str) -> bool:
+    """Store a GET response in cache with the configured TTL.
+
+    Returns True if stored, False if Redis was unavailable or the write failed.
+    """
+    from app.core.redis_client import get_redis_client
+
+    client = get_redis_client()
+    if client is None:
+        return False
+    payload = f"{status}\r{content_type}\r{body.decode('latin-1')}"
+    try:
+        client.set(key, payload, ex=_DELEGATION_CACHE_TTL)
+    except Exception as exc:  # noqa: BLE001 — fail open
+        logger.debug("delegation cache store failed: %s", exc)
+        return False
+    return True
+
+
 async def _delegate(
     request: Request, segment: str, path: str, tenant_id: str
 ) -> Response:
     settings = get_settings()
     url = _target_url(segment, path)
-    if query_string := (request.scope.get("query_string") or b"").decode("latin-1"):
+    query_string = (request.scope.get("query_string") or b"").decode("latin-1")
+    if query_string:
         url = f"{url}?{query_string}"
     body = await request.body()
     headers = _request_headers(request, tenant_id)
     timeout = settings.delegation_timeout_seconds
     method = request.method.upper()
     request_id = headers.get("x-request-id") or headers.get("x-trace-id")
+    user_id = headers.get("x-user-id")
 
     _start = time.perf_counter()
     _retries = 0
+
+    # GET cache: serve from Redis on a hit. Only safe GETs with no body are
+    # eligible; mutations and non-GET methods bypass the cache.
+    cache_key: str | None = None
+    if method == "GET" and not body:
+        cache_key = _cache_key(segment, path, tenant_id, user_id, query_string)
+        cached = _cache_lookup(cache_key)
+        if cached is not None:
+            DELEGATION_CACHE_TOTAL.labels(segment=segment, outcome="hit").inc()
+            status, cached_body, content_type = cached
+            return Response(
+                content=cached_body,
+                status_code=status,
+                headers={"x-delegation-cache": "hit"},
+                media_type=content_type or None,
+            )
+        DELEGATION_CACHE_TOTAL.labels(segment=segment, outcome="miss").inc()
+    elif method == "GET":
+        DELEGATION_CACHE_TOTAL.labels(segment=segment, outcome="skip").inc()
 
     def _record(outcome: str, status_code: int | str) -> None:
         duration = time.perf_counter() - _start
@@ -366,6 +449,15 @@ async def _delegate(
         for name, value in upstream.headers.items()
         if name.lower() not in _HOP_BY_HOP
     }
+    # Store safe GET 2xx responses in the short-TTL cache for reuse.
+    if cache_key is not None and 200 <= upstream.status_code < 300:
+        if _cache_store(
+            cache_key,
+            upstream.status_code,
+            upstream.content,
+            upstream.headers.get("content-type", "application/json"),
+        ):
+            response_headers["x-delegation-cache"] = "store"
     return Response(
         content=upstream.content,
         status_code=upstream.status_code,

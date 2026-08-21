@@ -91,6 +91,7 @@ class MCPGateway:
         manifest_verifier: ManifestVerifier | None = None,
         tool_registry: ToolRegistry | None = None,
         enable_audit_logging: bool = True,
+        tool_timeout_seconds: float = 30.0,
     ):
         """Initialize MCP Gateway with required components.
         
@@ -100,12 +101,14 @@ class MCPGateway:
             manifest_verifier: JWS manifest verification
             tool_registry: Tenant-scoped tool registry
             enable_audit_logging: Whether to emit audit events
+            tool_timeout_seconds: HTTP timeout for dispatching to tool endpoints
         """
         self.auth_handler = auth_handler
         self.token_exchanger = token_exchanger
         self.manifest_verifier = manifest_verifier
         self.tool_registry = tool_registry or ToolRegistry()
         self.enable_audit_logging = enable_audit_logging
+        self.tool_timeout_seconds = tool_timeout_seconds
         
         # Metrics for monitoring
         self._metrics = {
@@ -115,7 +118,8 @@ class MCPGateway:
             "auth_failures": 0,
             "access_denied": 0,
             "manifest_failures": 0,
-            "not_implemented": 0,
+            "executions_success": 0,
+            "execution_failures": 0,
         }
         
         logger.info("MCP Gateway initialized")
@@ -328,24 +332,19 @@ class MCPGateway:
         delegated_token: DelegatedToken | None,
         start_time: float,
     ) -> ToolResponse:
-        """Execute the tool invocation.
-        
+        """Execute the tool invocation by dispatching to the tool endpoint.
+
         Args:
             tool_request: Prepared tool request
             delegated_token: Token for tool authentication
             start_time: Timestamp for duration calculation
-            
+
         Returns:
             ToolResponse
         """
-        # Placeholder: In production, this would:
-        # 1. Look up tool implementation/endpoint
-        # 2. Make HTTP call with delegated token
-        # 3. Handle response/errors
-        
         tool_name = tool_request.tool_name
-        
-        # Get tool manifest for endpoint
+
+        # Look up the tool manifest for the endpoint URL.
         manifest = self.tool_registry._tools.get(tool_name)
         if not manifest:
             return ToolResponse(
@@ -354,22 +353,64 @@ class MCPGateway:
                 execution_time_ms=(time.time() - start_time) * 1000,
                 request_id=tool_request.request_id,
             )
-        
-        # Tool execution is not yet implemented in production.
-        # The gateway authenticates and authorizes but does not dispatch
-        # to actual tool endpoints. Callers must not receive mock success.
-        self._metrics["not_implemented"] += 1
-        logger.warning(
-            f"Tool '{tool_name}' execution not implemented - returning error instead of mock data",
-            extra={
-                "tool_name": tool_name,
-                "endpoint": manifest.endpoint,
-                "tenant_id": str(tool_request.tenant_id),
-            }
-        )
+
+        # Dispatch to the real tool endpoint with the delegated token.
+        # The tool is responsible for its own tenant isolation; the gateway
+        # authenticates, authorizes, and delegates a scoped token.
+        try:
+            import httpx
+
+            headers = {"content-type": "application/json"}
+            if delegated_token:
+                headers["authorization"] = f"{delegated_token.token_type} {delegated_token.access_token}"
+            if tool_request.tenant_id:
+                headers["x-tenant-id"] = str(tool_request.tenant_id)
+            if tool_request.user_id:
+                headers["x-user-id"] = tool_request.user_id
+            if tool_request.request_id:
+                headers["x-request-id"] = tool_request.request_id
+
+            async with httpx.AsyncClient(timeout=self.tool_timeout_seconds, follow_redirects=False) as client:
+                upstream = await client.post(
+                    manifest.endpoint,
+                    json=tool_request.parameters,
+                    headers=headers,
+                )
+        except httpx.HTTPError as exc:
+            self._metrics["execution_failures"] += 1
+            logger.warning(
+                f"Tool '{tool_name}' HTTP dispatch failed: {exc}",
+                extra={
+                    "tool_name": tool_name,
+                    "endpoint": manifest.endpoint,
+                    "tenant_id": str(tool_request.tenant_id),
+                },
+            )
+            return ToolResponse(
+                tool_name=tool_name,
+                error=f"Tool dispatch failed: {exc}",
+                execution_time_ms=(time.time() - start_time) * 1000,
+                request_id=tool_request.request_id,
+            )
+
+        if upstream.status_code >= 400:
+            self._metrics["execution_failures"] += 1
+            return ToolResponse(
+                tool_name=tool_name,
+                error=f"Tool endpoint returned HTTP {upstream.status_code}",
+                execution_time_ms=(time.time() - start_time) * 1000,
+                request_id=tool_request.request_id,
+            )
+
+        try:
+            result = upstream.json()
+        except ValueError:
+            result = {"_text": upstream.text}
+
+        self._metrics["executions_success"] += 1
         return ToolResponse(
             tool_name=tool_name,
-            error=f"Tool '{tool_name}' execution is not implemented. The tool endpoint at {manifest.endpoint} is registered but not wired to a real implementation.",
+            result=result,
             execution_time_ms=(time.time() - start_time) * 1000,
             request_id=tool_request.request_id,
         )

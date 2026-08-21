@@ -77,6 +77,13 @@ DELEGATION_RETRY_TOTAL = Counter(
     registry=registry,
 )
 
+DELEGATION_CACHE_TOTAL = Counter(
+    "fabric_api_delegation_cache_total",
+    "GET delegation cache lookups by segment and outcome (hit/miss/store/skip).",
+    ("segment", "outcome"),
+    registry=registry,
+)
+
 
 def _route_path(request: Request) -> str:
     route = request.scope.get("route")
