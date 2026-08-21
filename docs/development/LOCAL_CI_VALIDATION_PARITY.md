@@ -1,0 +1,128 @@
+# Local-to-CI Validation Parity
+
+> Defines the contract between local validation and CI so that a clean local
+> run is a credible predictor of a green CI run, and so that contributors are
+> not forced to push-and-pray or use `--no-verify` to make progress.
+>
+> Companion to: `docs/development/BUILD_SYSTEM.md`, `docs/development/COMMANDS.md`,
+> `Makefile` (`verify`, `verify-strict`), `.pre-commit-config.yaml`,
+> `.github/workflows/pr-checks.yml`.
+
+---
+
+## Principle
+
+Every check that runs in CI must be **runnable locally** with the same inputs
+and the same outcome. The difference between local and CI is **cost and
+frequency**, not correctness:
+
+- **Fast pre-commit** — runs on every commit, sub-second to a few seconds.
+  Must be a credible predictor of the CI check it mirrors, never a silent pass.
+- **Standard local verify** — runs on demand before pushing or opening a PR
+  (`make verify`). Covers the checks that are too expensive for pre-commit but
+  too important to defer to CI alone.
+- **CI-only expensive** — runs in `.github/workflows/pr-checks.yml` and
+  requires services, containers, or compute that is impractical to run on every
+  workstation. These checks must still have a documented local fallback so a
+  contributor can reproduce a failure without pushing.
+
+A check that cannot be run locally is **debt**, not a feature. It must be
+registered in `config/ci/operational_debt_registry.yaml` with an owner and a
+time-boxed remediation.
+
+---
+
+## Tier 1 — Fast pre-commit (every commit)
+
+Run automatically by `pre-commit install`. Mirror the CI check, do not weaken it.
+
+| Pre-commit hook | CI mirror | Notes |
+|---|---|---|
+| `contract-drift-check` (`--validate-only`) | `contract-checks` / `make contract-drift` | Validates OpenAPI JSON shape + presence. Full regeneration + drift diff runs in CI and `make verify-strict`. |
+| ruff (lint) | `layer{1..6}-checks` lint jobs / `make lint` | Same config (`ruff`). |
+| black (format) | pre-commit + `make lint` | Same config. |
+| mypy (`--strict` on `services/`) | `layer{1..6}-checks` typecheck jobs / `make typecheck` | Layer 1 has a per-file baseline ratchet (`config/ci/mypy_baseline_layer1.json`). Layers 2-6 baselines are pending (see operational debt registry). |
+| gitleaks | `mandatory-security-regression` | Config in `.gitleaks.toml` (ADR-038). |
+| `check_package_manager_policy` | `structural-preflight` | pnpm-only enforcement. |
+| `check-type-escape-ratchet` | `make check-type-escape-ratchet` | Blocks net-new `Any` / `type: ignore` / `as any`. |
+
+**Platform note (Windows/MSYS):** the `semgrep` and `hadolint` hooks depend
+on binaries that may be unavailable on Windows. Until the Windows pre-commit
+profile is complete (see operational debt registry
+`windows-pre-commit-tooling-gap`), these hooks emit a visible skip notice
+rather than a silent pass.
+
+---
+
+## Tier 2 — Standard local verify (before push/PR)
+
+```bash
+make verify
+```
+
+Runs the full `VERIFY_CHECKS` chain: lint, typecheck, contract tests,
+security smoke, legacy + operational debt enforcement, behavior contract +
+readiness audit, structure verification, docs harness. This is the canonical
+"does my change pass the gate" command and the one referenced in the PR
+template.
+
+For contract-touching changes, also run:
+
+```bash
+make verify-strict   # adds full OpenAPI regeneration + drift diff + frontend typecheck
+```
+
+---
+
+## Tier 3 — CI-only expensive (`.github/workflows/pr-checks.yml`)
+
+These require containers, live services, or compute that is impractical to run
+on every workstation. Each has a documented local fallback.
+
+| CI job | Why CI-only | Local fallback |
+|---|---|---|
+| `layer{1..6}-checks` (full test suites) | Service DBs/Redis/Neo4j | `make test-layerN` with `docker compose -f infra/compose/docker-compose.dev.yml up -d` |
+| `behavior-tests` | Live stack + fixtures | `pnpm run test:critical-behaviors` (subset) |
+| `p0-e2e-gate` | Playwright + mocked API | `pnpm --dir apps/web run test:e2e` |
+| `tenant-isolation-gate` | Cross-tenant hostile fixtures + live DB | `pytest -m tenant_boundary` with local stack |
+| `route-auth-gate` | Live auth context | `pytest tests/security/test_route_auth.py` |
+| `contract-checks` (full) | OpenAPI regen + typecheck | `make verify-strict` |
+| `schemathesis-checks` | Schemathesis stateful fuzzing | N/A — register as debt if you need to reproduce |
+| `docker-build-check` | Buildx + registry | `docker build` locally |
+| `alertmanager-config-check` | promtool + Alertmanager | `promtool check rules monitoring/alerting/layer-sli-rules-production.yml` |
+| `k8s-dry-run` | kubeval + live kubeconform | `kubeconform` locally |
+| `production-readiness-gate` | Aggregates many gates | `make production-readiness-gate` (subset of checks run) |
+
+---
+
+## Mapping required status checks to local commands
+
+`config/ci/required-status-checks.json` lists the 9 checks that GitHub branch
+protection requires. Their local predictors:
+
+| Required status check | Local predictor |
+|---|---|
+| `mandatory-security-regression` | pre-commit gitleaks + `make gate-security` |
+| `contract-compliance` | `make verify-strict` |
+| `Structural Preflight` | `make verify-structure` (subset of `make verify`) |
+| `prod-readiness` | `make production-readiness-gate` |
+| `behavior-tests` | `pnpm run test:critical-behaviors` + `make check-behavior-readiness-audit` |
+| `Layer 5 - Source Contract` | `pytest tests/contract/test_layer5_source_contract.py` |
+| `Layer 5 - Tenant Isolation Regression` | `pytest -m tenant_boundary tests/layer5` |
+| `Layer 5 - Contract Shape Regression` | `make contract-drift` |
+
+---
+
+## When local and CI disagree
+
+1. Reproduce the CI failure locally using the fallback in Tier 3.
+2. If the failure is environmental (missing service, binary, or platform limit),
+   register it in the operational debt registry rather than working around it
+   with `--no-verify`.
+3. Never silence a pre-commit hook to make progress. A broken hook is a bug in
+   the repo, not a reason to bypass the gate. Fix the hook (see the
+   `contract-drift-check` rewire in `.pre-commit-config.yaml` for the pattern).
+
+---
+
+*Last reviewed: 2026-08-21*
