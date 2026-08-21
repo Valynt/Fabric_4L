@@ -23,6 +23,7 @@ import argparse
 import hashlib
 import json
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -362,6 +363,30 @@ def build_manifest(
             **(
                 {"evidence_packet_digest": packet_digest}
                 if packet_digest is not None
+                else {}
+            ),
+            **(
+                {"sbom": _repo_relative(out_dir / "fabric-4l-source-sbom.cdx.json")}
+                if (out_dir / "fabric-4l-source-sbom.cdx.json").exists()
+                or (
+                    (REPO_ROOT / "artifacts" / "supply-chain" / "fabric-4l-source-sbom.cdx.json").exists()
+                    and shutil.copy2(
+                        REPO_ROOT / "artifacts" / "supply-chain" / "fabric-4l-source-sbom.cdx.json",
+                        out_dir / "fabric-4l-source-sbom.cdx.json",
+                    )
+                )
+                else {}
+            ),
+            **(
+                {"provenance": _repo_relative(out_dir / "provenance.json")}
+                if (out_dir / "provenance.json").exists()
+                or (
+                    (REPO_ROOT / "artifacts" / "supply-chain" / "provenance.json").exists()
+                    and shutil.copy2(
+                        REPO_ROOT / "artifacts" / "supply-chain" / "provenance.json",
+                        out_dir / "provenance.json",
+                    )
+                )
                 else {}
             ),
         },
