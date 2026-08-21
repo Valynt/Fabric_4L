@@ -31,9 +31,9 @@ rules:
         - https://github.com/neo4j/neo4j
     patterns:
       - pattern-either:
-          - pattern-regex: '(?is)\b(MERGE|CREATE|DELETE|DETACH\s+DELETE)\b\s*(?:\([^)]*tenant_id|\bWHERE\b[^;]*\btenant_id|\{[^}]*tenant_id)'
-          - pattern-regex: '(?is)\b(MERGE|CREATE)\s*\([a-zA-Z0-9_]*\s*:\s*[a-zA-Z0-9_]+'
-          - pattern-regex: '(?is)\b(DELETE|DETACH\s+DELETE)\s+[a-zA-Z0-9_]+'
+          - pattern-regex: '(?im)^.*\b(MERGE|CREATE|DELETE|DETACH\s+DELETE)\b\s*(?:\([^)]*tenant_id|\bWHERE\b[^;]*\btenant_id|\{[^}]*tenant_id).*$'
+          - pattern-regex: '(?im)^.*\b(MERGE|CREATE)\s*\([a-zA-Z0-9_]*\s*:\s*[a-zA-Z0-9_]+.*$'
+          - pattern-regex: '(?im)^.*\b(DELETE|DETACH\s+DELETE)\s+[a-zA-Z0-9_]+.*$'
       - pattern-not-regex: '(?i)\bCREATE\s+(?:CONSTRAINT|INDEX|OR\s+REPLACE\s+INDEX|OR\s+REPLACE\s+CONSTRAINT)\b'
       - pattern-not-regex: '# cypher-mutation-safe:'
       - pattern-not-inside: |

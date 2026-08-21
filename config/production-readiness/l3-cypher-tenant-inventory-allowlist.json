@@ -44,42 +44,42 @@
       "justification": "Seeded baseline for existing L3 Cypher tenant-inventory findings; must be remediated or re-reviewed before expiry."
     },
     {
-      "finding_key": "services/layer3-knowledge/src/backup/backup_manager.py::_generate_backup_data::746::literal-only::cypher-string",
+      "finding_key": "services/layer3-knowledge/src/backup/backup_manager.py::_generate_backup_data::751::literal-only::cypher-string",
       "expires_on": "2026-12-31",
       "justification": "Seeded baseline for existing L3 Cypher tenant-inventory findings; must be remediated or re-reviewed before expiry."
     },
     {
-      "finding_key": "services/layer3-knowledge/src/backup/backup_manager.py::_generate_backup_data::771::literal-only::cypher-string",
+      "finding_key": "services/layer3-knowledge/src/backup/backup_manager.py::_generate_backup_data::776::literal-only::cypher-string",
       "expires_on": "2026-12-31",
       "justification": "Seeded baseline for existing L3 Cypher tenant-inventory findings; must be remediated or re-reviewed before expiry."
     },
     {
-      "finding_key": "services/layer3-knowledge/src/backup/backup_manager.py::_generate_backup_data::798::session.run::run-call-unresolved",
+      "finding_key": "services/layer3-knowledge/src/backup/backup_manager.py::_generate_backup_data::803::session.run::run-call-unresolved",
       "expires_on": "2026-12-31",
       "justification": "Seeded baseline for existing L3 Cypher tenant-inventory findings; must be remediated or re-reviewed before expiry."
     },
     {
-      "finding_key": "services/layer3-knowledge/src/backup/backup_manager.py::_generate_backup_data::806::session.run::run-call-unresolved",
+      "finding_key": "services/layer3-knowledge/src/backup/backup_manager.py::_generate_backup_data::811::session.run::run-call-unresolved",
       "expires_on": "2026-12-31",
       "justification": "Seeded baseline for existing L3 Cypher tenant-inventory findings; must be remediated or re-reviewed before expiry."
     },
     {
-      "finding_key": "services/layer3-knowledge/src/backup/backup_manager.py::_generate_backup_data::848::session.run::run-call-unresolved",
+      "finding_key": "services/layer3-knowledge/src/backup/backup_manager.py::_generate_backup_data::853::session.run::run-call-unresolved",
       "expires_on": "2026-12-31",
       "justification": "Seeded baseline for existing L3 Cypher tenant-inventory findings; must be remediated or re-reviewed before expiry."
     },
     {
-      "finding_key": "services/layer3-knowledge/src/backup/backup_manager.py::_generate_backup_data::855::session.run::run-call-unresolved",
+      "finding_key": "services/layer3-knowledge/src/backup/backup_manager.py::_generate_backup_data::860::session.run::run-call-unresolved",
       "expires_on": "2026-12-31",
       "justification": "Seeded baseline for existing L3 Cypher tenant-inventory findings; must be remediated or re-reviewed before expiry."
     },
     {
-      "finding_key": "services/layer3-knowledge/src/backup/backup_manager.py::_restore_schema::1247::session.run::run-call-unresolved",
+      "finding_key": "services/layer3-knowledge/src/backup/backup_manager.py::_restore_schema::1268::session.run::run-call-unresolved",
       "expires_on": "2026-12-31",
       "justification": "Seeded baseline for existing L3 Cypher tenant-inventory findings; must be remediated or re-reviewed before expiry."
     },
     {
-      "finding_key": "services/layer3-knowledge/src/backup/backup_manager.py::_restore_schema::1257::session.run::run-call-unresolved",
+      "finding_key": "services/layer3-knowledge/src/backup/backup_manager.py::_restore_schema::1278::session.run::run-call-unresolved",
       "expires_on": "2026-12-31",
       "justification": "Seeded baseline for existing L3 Cypher tenant-inventory findings; must be remediated or re-reviewed before expiry."
     },
@@ -199,57 +199,57 @@
       "justification": "Seeded baseline for existing L3 Cypher tenant-inventory findings; must be remediated or re-reviewed before expiry."
     },
     {
-      "finding_key": "services/layer3-knowledge/src/services/competitive_intel_service.py::add_battlecard::464::self._run_cypher::run-call-unresolved",
+      "finding_key": "services/layer3-knowledge/src/services/competitive_intel_service.py::add_battlecard::465::self._run_cypher::run-call-unresolved",
       "expires_on": "2026-12-31",
       "justification": "Seeded baseline for existing L3 Cypher tenant-inventory findings; must be remediated or re-reviewed before expiry."
     },
     {
-      "finding_key": "services/layer3-knowledge/src/services/competitive_intel_service.py::analyze_competitive_landscape::612::self._run_cypher::run-call-unresolved",
+      "finding_key": "services/layer3-knowledge/src/services/competitive_intel_service.py::analyze_competitive_landscape::615::self._run_cypher::run-call-unresolved",
       "expires_on": "2026-12-31",
       "justification": "Seeded baseline for existing L3 Cypher tenant-inventory findings; must be remediated or re-reviewed before expiry."
     },
     {
-      "finding_key": "services/layer3-knowledge/src/services/competitive_intel_service.py::delete_competitor::376::self._run_cypher::run-call-unresolved",
+      "finding_key": "services/layer3-knowledge/src/services/competitive_intel_service.py::delete_competitor::377::self._run_cypher::run-call-unresolved",
       "expires_on": "2026-12-31",
       "justification": "Seeded baseline for existing L3 Cypher tenant-inventory findings; must be remediated or re-reviewed before expiry."
     },
     {
-      "finding_key": "services/layer3-knowledge/src/services/competitive_intel_service.py::delete_competitor::394::self._run_cypher::run-call-unresolved",
+      "finding_key": "services/layer3-knowledge/src/services/competitive_intel_service.py::delete_competitor::395::self._run_cypher::run-call-unresolved",
       "expires_on": "2026-12-31",
       "justification": "Seeded baseline for existing L3 Cypher tenant-inventory findings; must be remediated or re-reviewed before expiry."
     },
     {
-      "finding_key": "services/layer3-knowledge/src/services/competitive_intel_service.py::get_battlecard::518::self._run_cypher::run-call-unresolved",
+      "finding_key": "services/layer3-knowledge/src/services/competitive_intel_service.py::get_battlecard::519::self._run_cypher::run-call-unresolved",
       "expires_on": "2026-12-31",
       "justification": "Seeded baseline for existing L3 Cypher tenant-inventory findings; must be remediated or re-reviewed before expiry."
     },
     {
-      "finding_key": "services/layer3-knowledge/src/services/competitive_intel_service.py::get_competitor::250::self._run_cypher::run-call-unresolved",
+      "finding_key": "services/layer3-knowledge/src/services/competitive_intel_service.py::get_competitor::251::self._run_cypher::run-call-unresolved",
       "expires_on": "2026-12-31",
       "justification": "Seeded baseline for existing L3 Cypher tenant-inventory findings; must be remediated or re-reviewed before expiry."
     },
     {
-      "finding_key": "services/layer3-knowledge/src/services/competitive_intel_service.py::get_win_loss_summary::670::self._run_cypher::run-call-unresolved",
+      "finding_key": "services/layer3-knowledge/src/services/competitive_intel_service.py::get_win_loss_summary::673::self._run_cypher::run-call-unresolved",
       "expires_on": "2026-12-31",
       "justification": "Seeded baseline for existing L3 Cypher tenant-inventory findings; must be remediated or re-reviewed before expiry."
     },
     {
-      "finding_key": "services/layer3-knowledge/src/services/competitive_intel_service.py::list_competitors::304::self._run_cypher::run-call-unresolved",
+      "finding_key": "services/layer3-knowledge/src/services/competitive_intel_service.py::list_competitors::305::self._run_cypher::run-call-unresolved",
       "expires_on": "2026-12-31",
       "justification": "Seeded baseline for existing L3 Cypher tenant-inventory findings; must be remediated or re-reviewed before expiry."
     },
     {
-      "finding_key": "services/layer3-knowledge/src/services/competitive_intel_service.py::list_competitors::309::self._run_cypher::run-call-unresolved",
+      "finding_key": "services/layer3-knowledge/src/services/competitive_intel_service.py::list_competitors::310::self._run_cypher::run-call-unresolved",
       "expires_on": "2026-12-31",
       "justification": "Seeded baseline for existing L3 Cypher tenant-inventory findings; must be remediated or re-reviewed before expiry."
     },
     {
-      "finding_key": "services/layer3-knowledge/src/services/competitive_intel_service.py::record_win_loss::552::self._run_cypher::run-call-unresolved",
+      "finding_key": "services/layer3-knowledge/src/services/competitive_intel_service.py::record_win_loss::555::self._run_cypher::run-call-unresolved",
       "expires_on": "2026-12-31",
       "justification": "Seeded baseline for existing L3 Cypher tenant-inventory findings; must be remediated or re-reviewed before expiry."
     },
     {
-      "finding_key": "services/layer3-knowledge/src/services/competitive_intel_service.py::update_competitor::354::self._run_cypher::run-call-unresolved",
+      "finding_key": "services/layer3-knowledge/src/services/competitive_intel_service.py::update_competitor::355::self._run_cypher::run-call-unresolved",
       "expires_on": "2026-12-31",
       "justification": "Seeded baseline for existing L3 Cypher tenant-inventory findings; must be remediated or re-reviewed before expiry."
     },
