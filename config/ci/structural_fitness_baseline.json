@@ -1,0 +1,175 @@
+{
+  "complexity_threshold": 25,
+  "dependency_cycles": [
+    [
+      "api.routes.value_packs",
+      "api.routes.value_packs_mapping"
+    ],
+    [
+      "layer4_agents.tenants.models.isolation_tier_history",
+      "layer4_agents.tenants.models.tenant"
+    ],
+    [
+      "value_fabric.shared.fastapi_framework.app",
+      "value_fabric.shared.fastapi_framework.middleware"
+    ],
+    [
+      "value_fabric.shared.identity.audit",
+      "value_fabric.shared.identity.middleware"
+    ],
+    [
+      "value_fabric.shared.identity.jwt",
+      "value_fabric.shared.identity.jwt_external",
+      "value_fabric.shared.identity.jwt_keys",
+      "value_fabric.shared.identity.jwt_tokens"
+    ],
+    [
+      "value_fabric.shared.mcp_gateway.manifest",
+      "value_fabric.shared.mcp_gateway.mcp_types"
+    ]
+  ],
+  "description": "Baseline for Initiative E hotspot reduction. Regenerate only after approved refactors.",
+  "high_complexity_functions": [
+    {
+      "complexity": 36,
+      "function": "run_extraction",
+      "module": "layer2_extraction.api.main"
+    },
+    {
+      "complexity": 34,
+      "function": "decode_jwt",
+      "module": "value_fabric.shared.identity.jwt_tokens"
+    },
+    {
+      "complexity": 33,
+      "function": "FetchingSourceHandler.handle",
+      "module": "layer1_ingestion.orchestrator.stage_handlers.fetching_source"
+    },
+    {
+      "complexity": 31,
+      "function": "validate_repo_url",
+      "module": "layer4_agents.agents.audit_orchestrator.models"
+    },
+    {
+      "complexity": 30,
+      "function": "build_workspace_router",
+      "module": "layer4_agents.api.routes.analysis_workspace"
+    },
+    {
+      "complexity": 28,
+      "function": "Settings.validate_production_safety",
+      "module": "layer1_ingestion.shared.config"
+    },
+    {
+      "complexity": 28,
+      "function": "UsageService.ingest_batch",
+      "module": "layer4_agents.services.usage_service"
+    },
+    {
+      "complexity": 28,
+      "function": "Settings.validate_production_safety",
+      "module": "shared.config"
+    },
+    {
+      "complexity": 27,
+      "function": "CRMSyncService.sync_provider",
+      "module": "layer4_agents.services.crm_sync_service"
+    },
+    {
+      "complexity": 26,
+      "function": "batch_operation",
+      "module": "layer1_ingestion.api._batch_and_stats"
+    },
+    {
+      "complexity": 26,
+      "function": "build_lifespan",
+      "module": "layer4_agents.api.startup"
+    },
+    {
+      "complexity": 26,
+      "function": "ConversationService._heuristic_response",
+      "module": "layer4_agents.services.conversation"
+    },
+    {
+      "complexity": 26,
+      "function": "BaseWorkflow._create_node_function",
+      "module": "layer4_agents.workflows.base"
+    },
+    {
+      "complexity": 26,
+      "function": "BusinessCaseGeneratorWorkflow._execute_verify_truth_requirements",
+      "module": "layer4_agents.workflows.business_case"
+    }
+  ],
+  "oversized_modules": [
+    {
+      "module": "layer1_ingestion.shared.tasks",
+      "size": 2255
+    },
+    {
+      "module": "layer4_agents.agents.audit_orchestrator.analyzers.finding_catalog",
+      "size": 1646
+    },
+    {
+      "module": "layer2_extraction.api.main",
+      "size": 1641
+    },
+    {
+      "module": "layer4_agents.agents.audit_orchestrator.persistence",
+      "size": 1637
+    },
+    {
+      "module": "layer5_ground_truth.api.governance_router",
+      "size": 1544
+    },
+    {
+      "module": "layer4_agents.engine.executor",
+      "size": 1539
+    },
+    {
+      "module": "layer4_agents.api.routes.analysis",
+      "size": 1429
+    },
+    {
+      "module": "models.valuepack",
+      "size": 1333
+    },
+    {
+      "module": "api.routes.value_packs",
+      "size": 1223
+    },
+    {
+      "module": "layer4_agents.workflows.business_case",
+      "size": 1199
+    },
+    {
+      "module": "layer4_agents.api.routes.billing",
+      "size": 1179
+    },
+    {
+      "module": "api.routes.formulas",
+      "size": 1156
+    },
+    {
+      "module": "backup.backup_manager",
+      "size": 1134
+    },
+    {
+      "module": "layer4_agents.services.conversation",
+      "size": 1121
+    },
+    {
+      "module": "layer1_ingestion.shared.models",
+      "size": 1092
+    },
+    {
+      "module": "layer4_agents.agents.taxonomy",
+      "size": 1072
+    },
+    {
+      "module": "layer4_agents.agents.audit_orchestrator.models",
+      "size": 1037
+    }
+  ],
+  "size_threshold": 1000
+}
