@@ -1,11 +1,11 @@
 export MSYS_NO_PATHCONV=1
-infisical secrets get --env=dev --path=/llm OPENAI_API_KEY
+infisical secrets get --env=dev --path=/layer4-agents OPENAI_API_KEY
 ```
 
 #### Option 2: Double Slash Prefix
 ```bash
 # Use // to prevent path conversion
-infisical secrets get --env=dev --path=//llm OPENAI_API_KEY
+infisical secrets get --env=dev --path=//layer4-agents OPENAI_API_KEY
 ```
 
 #### Option 3: Python Script Path Fix
@@ -26,7 +26,7 @@ def fix_path_for_git_bash(path: str) -> str:
 
 # Use in subprocess calls
 cmd = ["infisical", "secrets", "get", 
-       f"--path={fix_path_for_git_bash('/llm')}", 
+       f"--path={fix_path_for_git_bash('/layer4-agents')}", 
        "OPENAI_API_KEY"]
 ```
 
@@ -73,33 +73,41 @@ stripe.secret.key    # dotted
 
 ## Folder Organization Patterns
 
-### Pattern A: By Consumer/Service (Recommended)
-Best for multi-service projects. Each service gets exactly the secrets it needs.
+### Pattern A: By Layer (Canonical)
+
+Fabric_4L uses a single by-layer secret path taxonomy. Each layer/service reads
+only the secrets it needs, and runtime injection is driven by `--path=` flags in
+`package.json` (`dev:layer1` … `dev:layer6`, `env:dev`, `compose:dev`). This is
+the sole supported schema — see `docs/security/secrets-management.md`.
 
 ```
-/ (root)           → Shared secrets (DATABASE_URL, REDIS_URL)
-├── /app           → Application secrets
-├── /auth          → Authentication (CLERK_SECRET_KEY, JWT_SECRET)
-├── /database      → Database credentials
-├── /integrations  → Third-party APIs
-├── /llm           → LLM providers (OPENAI_API_KEY, THESYS_API_KEY)
-├── /storage       → Storage credentials
-└── /ci            → CI/CD only (DEPLOY_KEY, DOCKER_TOKEN)
+/ (root)                     → (unused; secrets live under named paths below)
+├── /shared                  → Cross-service config (JWT, rate limits, tenant defaults)
+│   └── /shared/auth         → Backend gateway auth (JWT, Clerk, HMAC)
+├── /infra                   → Infrastructure credentials (Postgres, Redis, Neo4j, S3)
+├── /layer1-ingestion        → L1 crawling + ingestion
+├── /layer2-extraction       → L2 extraction + RDF
+├── /layer2-5-signal-refinery→ L2.5 signal refinery
+├── /layer3-knowledge        → L3 Neo4j / GraphRAG / pgvector
+├── /layer4-agents           → L4 LangGraph + LLM provider keys (OPENAI_API_KEY, …)
+├── /layer5-ground-truth     → L5 TruthObject validation
+├── /layer6-benchmarks       → L6 peer comparison + benchmarks
+├── /layer7-billing          → L7 billing
+├── /apps/web                → Frontend runtime / build (public VITE_* only)
+├── /monitoring              → Observability config
+└── /ci                      → CI/CD-only secrets (DEPLOY_KEY, DOCKER_TOKEN)
 ```
 
 **Why this works:**
-- `infisical run --path=/llm` injects root + /llm secrets
-- Machine identities scoped to /llm can't read /ci secrets
-- Maps to team ownership and deployment targets
+- `infisical run --env=dev --path=/layer4-agents -- pnpm dev:layer4` injects
+  `/layer4-agents` secrets (plus any inherited) for the L4 service.
+- Machine identities scoped to `/layer4-agents` can't read `/ci` secrets.
+- Maps 1:1 to the six-layer pipeline and the `package.json` dev scripts.
 
-### Pattern B: By Environment (Single-service)
-For monoliths or when secrets are organized by environment:
-
-```
-/dev
-/staging
-/prod
-```
+### Pattern B: By Environment (Single-service, not used here)
+For monoliths or when secrets are organized by environment. Fabric_4L does
+**not** use this pattern — environments are selected via `--env=dev|staging|prod`,
+not via path.
 
 ## Authentication Patterns
 
@@ -125,7 +133,7 @@ infisical login --method=universal-auth \
 infisical secrets get \
   --env=prod \
   --projectId=d0dde515-abae-4f6a-a01c-75e7b713a9ff \
-  --path=/llm \
+  --path=/layer4-agents \
   OPENAI_API_KEY
 ```
 
@@ -137,13 +145,13 @@ infisical secrets get \
 infisical secrets get --env=dev OPENAI_API_KEY
 
 # With path
-infisical secrets get --env=dev --path=/llm OPENAI_API_KEY
+infisical secrets get --env=dev --path=/layer4-agents OPENAI_API_KEY
 
 # With project ID (no .infisical.json needed)
 MSYS_NO_PATHCONV=1 infisical secrets get \
   --env=dev \
   --projectId=xxx \
-  --path=/llm \
+  --path=/layer4-agents \
   OPENAI_API_KEY
 ```
 
@@ -151,7 +159,7 @@ MSYS_NO_PATHCONV=1 infisical secrets get \
 ```bash
 MSYS_NO_PATHCONV=1 infisical secrets set \
   --env=prod \
-  --path=/llm \
+  --path=/layer4-agents \
   OPENAI_API_KEY="sk-xxx"
 ```
 
@@ -269,7 +277,7 @@ cmd = [
     *get_infisical_base_cmd(),
     "secrets", "set",
     "--env=prod",
-    f"--path={fix_path_for_git_bash('/llm')}",
+    f"--path={fix_path_for_git_bash('/layer4-agents')}",
     "OPENAI_API_KEY=sk-xxx"
 ]
 subprocess.run(cmd, check=True)
