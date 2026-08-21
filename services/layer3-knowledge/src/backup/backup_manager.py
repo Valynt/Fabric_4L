@@ -26,6 +26,11 @@ from value_fabric.shared.models.typed_dict import TypedDictModel
 from src.logging_config import get_logger
 
 from ..backup.interfaces import BackupStoragePort
+from ..utils.cypher_security import (
+    ALLOWED_REL_TYPES,
+    ALLOWED_TARGET_LABELS,
+    validate_cypher_identifier,
+)
 
 
 class BackupMetadata_to_dictResult(TypedDictModel):
@@ -1152,11 +1157,19 @@ class BackupManager:
                     properties = entity.get("properties", {})
                     tenant_id = entity.get("tenant_id", "default")
 
+                    # SEC-L3-CYPHER-003: Validate the backup-supplied entity_type
+                    # against a closed label allowlist before interpolating it into
+                    # Cypher; a tampered backup must fail closed rather than inject.
+                    validate_cypher_identifier(
+                        entity_type, ALLOWED_TARGET_LABELS, kind="backup entity type"
+                    )
+
                     # Create or merge entity node
-                    query = f"""
-                    MERGE (n:{entity_type} {{id: $entity_id, tenant_id: $tenant_id}})
-                    SET n += $properties
-                    """
+                    query = (
+                        f"MERGE (n:{entity_type} {{id: $entity_id, tenant_id: $tenant_id}})\n"  # cypher-dynamic-safe: validated against ALLOWED_TARGET_LABELS allowlist  # cypher-mutation-safe: label validated, tenant-scoped restore
+                        "                    SET n += $properties\n"
+                        "                    "
+                    )
                     await session.run(
                         query,
                         entity_id=entity_id,
@@ -1201,13 +1214,21 @@ class BackupManager:
                         logger.warning(f"Skipping relationship with missing source/target: {rel}")
                         continue
 
+                    # SEC-L3-CYPHER-003: Validate the backup-supplied rel_type against
+                    # a closed allowlist before interpolating it into Cypher; a tampered
+                    # backup must fail closed rather than inject.
+                    validate_cypher_identifier(
+                        rel_type, ALLOWED_REL_TYPES, kind="backup relationship type"
+                    )
+
                     # Create relationship between entities
-                    query = f"""
-                    MATCH (source {{id: $source_id, tenant_id: $tenant_id}})
-                    MATCH (target {{id: $target_id, tenant_id: $tenant_id}})
-                    MERGE (source)-[r:{rel_type}]->(target)
-                    SET r += $properties
-                    """
+                    query = (
+                        "MATCH (source {id: $source_id, tenant_id: $tenant_id})\n"
+                        "                    MATCH (target {id: $target_id, tenant_id: $tenant_id})\n"
+                        f"                    MERGE (source)-[r:{rel_type}]->(target)\n"  # cypher-dynamic-safe: validated against ALLOWED_REL_TYPES allowlist
+                        "                    SET r += $properties\n"
+                        "                    "
+                    )
                     await session.run(
                         query,
                         source_id=source_id,
