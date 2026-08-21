@@ -13,7 +13,7 @@ This is the authoritative human-readable CI classification and triage map. Its m
 
 The owner is the first-response triage contact. Start with the local command, then inspect the named workflow run and its retained artifacts. Required secrets are runtime dependencies, not values that belong in logs or documentation.
 
-## Active inventory (55 workflows)
+## Active inventory (56 workflows)
 
 | Workflow | Classification | Triggers | Owner / triage | Local command | Dependencies | Artifacts | Runtime budget |
 |---|---|---|---|---|---|---|---:|
@@ -44,6 +44,7 @@ The owner is the first-response triage contact. Start with the local command, th
 | `layer3-wrapper-drift.yml` | pull request validation | `pull_request, workflow_dispatch` | `@value-fabric/sre-leads` | `make check-workflow-references` | none | none | 30 min |
 | `layer4-route-contract-matrix-check.yml` | pull request validation | `pull_request, push` | `@value-fabric/sre-leads` | `make check-workflow-references` | none | none | 30 min |
 | `layer6-wrapper-drift.yml` | pull request validation | `pull_request, push` | `@value-fabric/sre-leads` | `make check-workflow-references` | none | none | 30 min |
+| `live-continuous-suite.yml` | scheduled assurance | `schedule, workflow_dispatch` | `@value-fabric/sre-leads` | `make check-workflow-references` | none | apps/web/e2e-results/**, apps/web/playwright-report/** | 75 min |
 | `merge-group.yml` | manual automation | `merge_group` | `@value-fabric/sre-leads` | `make check-workflow-references` | none | none | 10 min |
 | `monthly-debt-burndown.yml` | scheduled assurance | `schedule, workflow_dispatch` | `@value-fabric/sre-leads` | `make check-workflow-references` | none | artifacts/debt-burndown | 30 min |
 | `openapi-drift-check.yml` | pull request validation | `pull_request, push` | `@value-fabric/sre-leads` | `make check-workflow-references` | none | none | 30 min |

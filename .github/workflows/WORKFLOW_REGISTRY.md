@@ -33,7 +33,7 @@ The verifier fails closed when workflow files, registry entries, triggers, secre
 
 ## Inventory
 
-The repository currently contains **55** GitHub Actions workflow files.
+The repository currently contains **56** GitHub Actions workflow files.
 
 | Workflow | Owner | Blocking | Triggers | Local validation |
 |---|---|---:|---|---|
@@ -64,6 +64,7 @@ The repository currently contains **55** GitHub Actions workflow files.
 | `.github/workflows/layer3-wrapper-drift.yml` | `@value-fabric/sre-leads` | no | `pull_request, workflow_dispatch` | `make check-workflow-references` |
 | `.github/workflows/layer4-route-contract-matrix-check.yml` | `@value-fabric/sre-leads` | no | `pull_request, push` | `make check-workflow-references` |
 | `.github/workflows/layer6-wrapper-drift.yml` | `@value-fabric/sre-leads` | no | `pull_request, push` | `make check-workflow-references` |
+| `.github/workflows/live-continuous-suite.yml` | `@value-fabric/sre-leads` | no | `schedule, workflow_dispatch` | `make check-workflow-references` |
 | `.github/workflows/merge-group.yml` | `@value-fabric/sre-leads` | no | `merge_group` | `make check-workflow-references` |
 | `.github/workflows/monthly-debt-burndown.yml` | `@value-fabric/sre-leads` | no | `schedule, workflow_dispatch` | `make check-workflow-references` |
 | `.github/workflows/openapi-drift-check.yml` | `@value-fabric/sre-leads` | no | `pull_request, push` | `make check-workflow-references` |

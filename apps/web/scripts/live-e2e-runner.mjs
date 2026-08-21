@@ -28,6 +28,16 @@ const SCENARIOS = {
       "e2e/journeys/j11-golden-path-business-lifecycle.spec.ts",
     ],
   ],
+  continuous: [
+    "playwright",
+    [
+      "test",
+      "--project=backend-integrated",
+      "e2e/journeys/j1-valuepilot-continuous-live.spec.ts",
+      "e2e/journeys/j2-multi-role-approval-live.spec.ts",
+      "e2e/security/live-tenant-b-denied.spec.ts",
+    ],
+  ],
 };
 
 const args = parseArgs(process.argv.slice(2));
