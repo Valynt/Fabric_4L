@@ -311,6 +311,10 @@ pnpm --dir apps/web run test:e2e
 # E2E tests against live backend
 pnpm --dir apps/web run test:e2e:live
 
+# Continuous live role-authenticated E2E suite (@backend specs: J1 ValuePilot continuous,
+# J2 multi-role approval, cross-tenant denial) — requires a running live backend stack
+pnpm --dir apps/web run test:e2e:live:continuous
+
 # Specific golden-path journey E2E test
 pnpm --dir apps/web run test:e2e:golden:j1:canonical
 
