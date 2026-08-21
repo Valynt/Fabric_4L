@@ -277,7 +277,7 @@ curl -X POST http://localhost:8001/api/v1/tenants \
   "id": "tenant_2v8x4k1m9p",
   "name": "My First Tenant",
   "tier": "shared",
-  "api_key": "fab_ak_live_51H8x...z9Kq",
+  "api_key": "fab_test_dummy_ak_live_placeholder",
   "status": "active",
   "created_at": "2026-07-14T10:30:00Z",
   "settings": {
@@ -292,7 +292,7 @@ curl -X POST http://localhost:8001/api/v1/tenants \
 
 ```bash
 # Save the API key for subsequent commands
-export API_KEY="fab_ak_live_51H8x...z9Kq"  # Replace with your actual key
+export API_KEY="fab_test_dummy_ak_live_placeholder"  # Replace with your actual key
 
 echo "API_KEY=$API_KEY" >> .env.dev
 ```

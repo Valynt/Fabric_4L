@@ -253,7 +253,7 @@ Expected output:
 
 ✓ CLERK - VALID
    Secret: CLERK_SECRET_KEY
-   Value: sk_live_a1b2...x9y0
+   Value: sk_test_dummy_a1b2...x9y0
    Checks: Exists: ✓ | Valid Format: ✓ | Accessible: ✓
 
 ============================================================

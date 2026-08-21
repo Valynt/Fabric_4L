@@ -28,7 +28,7 @@ def clear_encryption_cache(monkeypatch):
 
     # Set a deterministic 32-byte Fernet key (43 chars url-safe base64) and
     # allow ephemeral fallback so the invalid key in pytest.ini is overridden.
-    monkeypatch.setenv("CREDENTIALS_MASTER_KEY", "vhN2bTnQwWeI5p6A2o61XSxF_3lZ7U4WY6_unrOSwEA")
+    monkeypatch.setenv("CREDENTIALS_MASTER_KEY", "ZHVtbXlfdGVzdF9tYXN0ZXJfa2V5XzMyX2J5dGVzISE=")
     monkeypatch.setenv("ALLOW_EPHEMERAL_ENCRYPTION", "true")
     EncryptionService._MASTER_KEY = None
     EncryptionService._key_cache = OrderedDict()

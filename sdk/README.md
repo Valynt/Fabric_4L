@@ -110,7 +110,7 @@ from fabric4l_l2_auth import Configuration
 # ── API Key ─────────────────────────────────────────────────────────────────
 config = Configuration(
     host="https://api.fabric4l.io/v1",
-    api_key={"ApiKeyAuth": "fab_live_xxxxxxxxxxxxxxxx"},
+    api_key={"ApiKeyAuth": "fab_test_dummy_example_key"},
 )
 
 # ── Bearer Token (JWT) ──────────────────────────────────────────────────────
@@ -335,7 +335,7 @@ import {
 // 1. Configure API client
 const config = new Configuration({
   basePath: "https://api.fabric4l.io/v1",
-  apiKey: "fab_live_xxxxxxxxxxxxxxxx",
+  apiKey: "fab_test_dummy_example_key",
 });
 
 // 2. Instantiate API
@@ -378,7 +378,7 @@ import { Configuration } from "@fabric4l/sdk-l2-auth";
 const config = new Configuration({
   basePath: "https://api.fabric4l.io/v1",
   apiKey: (name: string) => {
-    if (name === "ApiKeyAuth") return "fab_live_xxxxxxxxxxxxxxxx";
+    if (name === "ApiKeyAuth") return "fab_test_dummy_example_key";
     return undefined;
   },
 });
