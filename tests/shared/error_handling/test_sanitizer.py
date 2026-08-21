@@ -7,8 +7,8 @@ from fastapi import HTTPException
 from value_fabric.shared.error_handling.exceptions import (
     AuthenticationError,
     AuthorizationError,
-    RateLimitError,
     NotFoundError,
+    RateLimitError,
     ValidationError,
     ValueFabricException,
 )
@@ -19,7 +19,6 @@ from value_fabric.shared.error_handling.sanitizer import (
     sanitize_error_message,
     sanitize_public_error,
 )
-
 
 # ---------------------------------------------------------------------------
 # Public Error Sanitization Tests
