@@ -175,6 +175,7 @@ async def agent_workflow(
             await provenance_agent.execute(
                 {
                     "operation": "create_decision_trace",
+                    "tenant_id": tenant_id,
                     "workflow_id": "whitespace_analysis_v1",
                     "workflow_instance_id": f"ws-{datetime.now(UTC).timestamp()}",
                     "output_type": "account_plan",
@@ -206,6 +207,7 @@ async def agent_workflow(
             await provenance_agent.execute(
                 {
                     "operation": "create_decision_trace",
+                    "tenant_id": tenant_id,
                     "workflow_id": "business_case_v1",
                     "workflow_instance_id": f"bc-{datetime.now(UTC).timestamp()}",
                     "output_type": "business_case",
