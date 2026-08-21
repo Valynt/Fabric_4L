@@ -549,7 +549,7 @@ test-layer6: ## Run Layer 6 tests
 	cd services/layer6-benchmarks && $(PYTEST) --basetemp=../../.tmp/pytest-layer6 tests/
 
 test-shared: ## Run the shared-package suite (value_fabric.shared; fans out to every layer)
-	$(PYTEST) packages/shared/tests --basetemp=.tmp/pytest-shared \
+	$(PYTEST) packages/shared/tests tests/shared --basetemp=.tmp/pytest-shared \
 		--cov=value_fabric.shared.identity \
 		--cov=value_fabric.shared.governance \
 		--cov=value_fabric.shared.rate_limiting \

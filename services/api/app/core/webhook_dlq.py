@@ -32,12 +32,25 @@ class DLQRecord:
     resolved: bool = False
 
     def to_dict(self) -> dict[str, Any]:
+        sensitive_header_keys = {
+            "secret",
+            "authorization",
+            "cookie",
+            "x-api-key",
+            "token",
+            "password",
+            "private-key",
+        }
         return {
             "id": self.id,
             "event_id": self.event_id,
             "event_type": self.event_type,
             "payload": self.payload,
-            "headers": {k: v for k, v in self.headers.items() if "secret" not in k.lower()},
+            "headers": {
+                k: v
+                for k, v in self.headers.items()
+                if not any(s in k.lower() for s in sensitive_header_keys)
+            },
             "error_reason": self.error_reason,
             "received_at": self.received_at,
             "retry_count": self.retry_count,
