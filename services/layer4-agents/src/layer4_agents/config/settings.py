@@ -164,6 +164,19 @@ class Settings(BillingSettingsMixin, RuntimeSettingsMixin, BaseSettings):
         ),
     )
 
+    @field_validator("llm_provider")
+    @classmethod
+    def validate_llm_provider(cls, value: str) -> str:
+        """Reject provider typos during settings construction/startup."""
+        normalized = value.strip().lower()
+        supported = {"together", "openai", "anthropic"}
+        if normalized not in supported:
+            raise ValueError(
+                "llm_provider must be one of: anthropic, openai, together; "
+                "implicit provider fallback is prohibited"
+            )
+        return normalized
+
     # ==========================================================================
     # Layer Integration
     # ==========================================================================

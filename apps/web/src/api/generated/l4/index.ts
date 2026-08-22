@@ -5614,6 +5614,16 @@ export interface components {
             confidence?: number | null;
             /** Workflow Triggered */
             workflow_triggered?: boolean | null;
+            /** Response Tier */
+            response_tier?: string | null;
+            /** Provider */
+            provider?: string | null;
+            /** Fallback */
+            fallback?: boolean | null;
+            /** Degraded */
+            degraded?: boolean | null;
+            /** Degradation Reason */
+            degradation_reason?: string | null;
         };
         /**
          * AgentStreamAccountContext
