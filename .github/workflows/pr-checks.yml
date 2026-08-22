@@ -15,12 +15,15 @@ permissions:
     branches: [main]
   push:
     branches: [main]
+  # V1-CI-001: merge queue support (Stage 1 shadow; aggregates become
+  # required at Stage 3).
+  merge_group:
 
 concurrency:
   # Cancel only an obsolete run of this same workflow/ref. A global
   # feature-branch group lets activity on an unrelated PR cancel required gates.
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 env:
   # Opt into Node.js 24 for GitHub Actions
@@ -124,6 +127,9 @@ jobs:
       - name: Enforce type escape ratchet
         run: make check-type-escape-ratchet
 
+      - name: Enforce structural fitness ratchet
+        run: make check-structural-fitness-ratchet
+
       - name: Verify schema index coverage
         run: pnpm test:schema
 
@@ -134,6 +140,9 @@ jobs:
         run: |
           pip install pyyaml
           python .github/scripts/enforce_secret_store_security.py
+
+      - name: Validate Trivy ignore governance policy
+        run: make check-trivy-ignore-policy
 
       - name: Validate workflow target/artifact references
         run: make check-workflow-references
@@ -172,6 +181,9 @@ jobs:
 
       - name: Enforce shell test bracket spacing in workflow run blocks
         run: python scripts/ci/check_shell_test_spacing.py
+
+      - name: Enforce canonical Infisical secret path schema
+        run: python scripts/ci/check_infisical_path_schema.py --repo-root .
 
       - name: Reject unsupported pip-audit workflow options
         run: python scripts/ci/check_pip_audit_workflow.py
@@ -255,9 +267,7 @@ jobs:
           set -e
           python scripts/ci/check_pytest_skip_governance.py \
             artifacts/pytest-collection.txt \
-            --allowlist config/ci/pytest_skip_allowlist.yaml \
-            --baseline config/ci/pytest_skip_baseline.json \
-            --write-report artifacts/pytest-skip-governance.json
+            --write-report artifacts/test-debt-governance.json
           if [ "$collect_status" -ne 0 ]; then
             echo "pytest collection failed with status ${collect_status}."
             cat artifacts/pytest-collection.txt
@@ -270,11 +280,10 @@ jobs:
 
       - name: Enforce static test skip governance
         run: |
-          python scripts/ci/check_test_skip_register_uniqueness.py \
-            --register config/ci/test_skip_register.yaml
           python scripts/ci/check_test_skip_governance.py \
             --register config/ci/test_skip_register.yaml \
-            --write-report artifacts/test-skip-governance.json
+            --write-report artifacts/test-debt-governance.json \
+            --md-out artifacts/test-debt-governance.md
 
       - name: Enforce legacy debt baseline
         run: |
@@ -428,8 +437,8 @@ jobs:
             artifacts/duplicate-source-trees.json
             artifacts/shared-imports-runtime.json
             artifacts/pytest-collection.txt
-            artifacts/pytest-skip-governance.json
-            artifacts/test-skip-governance.json
+            artifacts/test-debt-governance.json
+            artifacts/test-debt-governance.md
             artifacts/legacy-debt-report.json
             artifacts/violation-diff-summary.json
             artifacts/violation-diff-summary.md
@@ -595,6 +604,13 @@ jobs:
           CHANGED_FILES: ${{ steps.governance-changed-files.outputs.all_changed_files }}
         run: |
           python scripts/ci/check_pr_governance_fields.py
+
+      - name: Enforce PR size policy
+        if: github.event_name == 'pull_request'
+        env:
+          CHANGED_FILES: ${{ steps.governance-changed-files.outputs.all_changed_files }}
+        run: |
+          python scripts/ci/check_pr_size_policy.py
 
       - name: Validate docs claim verification map
         run: |
@@ -978,7 +994,7 @@ jobs:
           --health-cmd "pg_isready -U postgres -d layer3_knowledge"
           --health-interval 10s --health-timeout 5s --health-retries 5
       neo4j:
-        image: neo4j:5
+        image: neo4j:5-community
         env:
           NEO4J_AUTH: neo4j/testpassword
         ports:
@@ -2662,7 +2678,7 @@ jobs:
         options: >-
           --health-cmd "redis-cli ping" --health-interval 10s --health-timeout 5s --health-retries 5
       neo4j:
-        image: neo4j:5
+        image: neo4j:5-community
         env:
           NEO4J_AUTH: neo4j/testpassword
         ports:
@@ -2814,7 +2830,7 @@ jobs:
         uses: ./.github/actions/setup-fabric-ci
         with:
           python-dependency-mode: root-test
-          install-node-deps: 'true'
+          install-node-deps: "true"
 
       - name: Check canonical gate artifact paths
         run: |
@@ -2985,3 +3001,129 @@ jobs:
             exit 1
           fi
           echo "Unified readiness gate passed."
+
+  # ---------------------------------------------------------------------------
+  # V1-CI-001 Stage 1 (shadow): stable aggregate PR checks. Aggregate jobs
+  # perform no substantive testing; they only summarize the results of the
+  # existing jobs they fan in from (scripts/ci/aggregate_gate.py). They are
+  # informational until Stage 3 makes them required after shadow parity.
+  # A 'skipped' child only passes when the skip is explicitly confirmed safe
+  # via a SKIPSAFE_* env expression (change-scope output resolved to 'false'
+  # or the job's event gate does not apply to this event).
+  # ---------------------------------------------------------------------------
+  aggregate-01-repository-integrity:
+    name: 01-repository-integrity
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: always()
+    needs:
+      - change-scope
+      - structural-preflight
+      - pr-overlap-guard
+      - governance-docs-check
+      - gate-engineering
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - name: Summarize repository-integrity gates
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+          # pr-overlap-guard only runs on pull_request events; on push and
+          # merge_group there is no overlapping PR to guard against.
+          SKIPSAFE_PR_OVERLAP_GUARD: ${{ github.event_name != 'pull_request' }}
+        run: |
+          python3 scripts/ci/aggregate_gate.py \
+            --needs-json "$NEEDS_JSON" \
+            --skip-safe pr-overlap-guard=SKIPSAFE_PR_OVERLAP_GUARD
+
+  aggregate-02-code-quality-and-tests:
+    name: 02-code-quality-and-tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: always()
+    needs:
+      - change-scope
+      - layer1-checks
+      - layer2-checks
+      - layer3-checks
+      - layer4-checks
+      - layer5-checks
+      - layer6-checks
+      - shared-and-tests-checks
+      - frontend-checks
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - name: Summarize code-quality and test gates
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+          SKIPSAFE_LAYER1: ${{ needs.change-scope.outputs.layer1 == 'false' }}
+          SKIPSAFE_LAYER2: ${{ needs.change-scope.outputs.layer2 == 'false' }}
+          SKIPSAFE_LAYER3: ${{ needs.change-scope.outputs.layer3 == 'false' }}
+          SKIPSAFE_LAYER4: ${{ needs.change-scope.outputs.layer4 == 'false' }}
+          SKIPSAFE_LAYER5: ${{ needs.change-scope.outputs.layer5 == 'false' }}
+          SKIPSAFE_LAYER6: ${{ needs.change-scope.outputs.layer6 == 'false' }}
+          SKIPSAFE_BACKEND: ${{ needs.change-scope.outputs.backend == 'false' }}
+          SKIPSAFE_WEB: ${{ needs.change-scope.outputs.web == 'false' }}
+        run: |
+          python3 scripts/ci/aggregate_gate.py \
+            --needs-json "$NEEDS_JSON" \
+            --skip-safe layer1-checks=SKIPSAFE_LAYER1 \
+            --skip-safe layer2-checks=SKIPSAFE_LAYER2 \
+            --skip-safe layer3-checks=SKIPSAFE_LAYER3 \
+            --skip-safe layer4-checks=SKIPSAFE_LAYER4 \
+            --skip-safe layer5-checks=SKIPSAFE_LAYER5 \
+            --skip-safe layer6-checks=SKIPSAFE_LAYER6 \
+            --skip-safe shared-and-tests-checks=SKIPSAFE_BACKEND \
+            --skip-safe frontend-checks=SKIPSAFE_WEB
+
+  aggregate-05-tenant-isolation-and-behavior:
+    name: 05-tenant-isolation-and-behavior
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: always()
+    needs:
+      - change-scope
+      - behavior-tests
+      - tenant-isolation-gate
+      - route-auth-gate
+      - layer5-source-contract
+      - layer5-tenant-isolation-regression
+      - layer5-contract-shape-regression
+      - critical-behaviors-gate
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - name: Summarize tenant-isolation and behavior gates
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+          SKIPSAFE_WEB: ${{ needs.change-scope.outputs.web == 'false' }}
+          SKIPSAFE_BACKEND: ${{ needs.change-scope.outputs.backend == 'false' }}
+          SKIPSAFE_LAYER5: ${{ needs.change-scope.outputs.layer5 == 'false' }}
+          SKIPSAFE_CODE: ${{ needs.change-scope.outputs.code == 'false' }}
+        run: |
+          python3 scripts/ci/aggregate_gate.py \
+            --needs-json "$NEEDS_JSON" \
+            --skip-safe behavior-tests=SKIPSAFE_WEB \
+            --skip-safe tenant-isolation-gate=SKIPSAFE_BACKEND \
+            --skip-safe route-auth-gate=SKIPSAFE_BACKEND \
+            --skip-safe layer5-source-contract=SKIPSAFE_LAYER5 \
+            --skip-safe layer5-tenant-isolation-regression=SKIPSAFE_LAYER5 \
+            --skip-safe layer5-contract-shape-regression=SKIPSAFE_LAYER5 \
+            --skip-safe critical-behaviors-gate=SKIPSAFE_CODE
+
+  # 09-change-risk-and-approval is deterministic policy, not an LLM gate and
+  # not a fan-in summary: it verifies authenticated GitHub review data, rejects
+  # author self-approval, and relies on GitHub's review decision for configured
+  # branch-protection and CODEOWNER requirements.
+  aggregate-09-change-risk-and-approval:
+    name: 09-change-risk-and-approval
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - name: Verify independent-review and change-risk policy
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 scripts/ci/check_change_risk_approval.py

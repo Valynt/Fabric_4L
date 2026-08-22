@@ -32,7 +32,7 @@ If you prefer not to install dependencies locally, click below to launch a pre-c
 
 [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/bmsull560/Fabric_4L?devcontainer_path=.devcontainer/devcontainer.json)
 
-The Codespace includes all dependencies pre-installed and the development server running on port 5173.
+The Codespace includes all dependencies pre-installed and the development server running on port 3001.
 
 ---
 
@@ -230,7 +230,7 @@ make verify
 ✅ All checks passed (12/12)
 
 Services:
-  Frontend:  http://localhost:5173
+  Frontend:  http://localhost:3001
   API:       http://localhost:8001
   API Docs:  http://localhost:8001/api/docs
 ```
@@ -277,7 +277,7 @@ curl -X POST http://localhost:8001/api/v1/tenants \
   "id": "tenant_2v8x4k1m9p",
   "name": "My First Tenant",
   "tier": "shared",
-  "api_key": "fab_ak_live_51H8x...z9Kq",
+  "api_key": "fab_test_dummy_ak_live_placeholder",
   "status": "active",
   "created_at": "2026-07-14T10:30:00Z",
   "settings": {
@@ -292,7 +292,7 @@ curl -X POST http://localhost:8001/api/v1/tenants \
 
 ```bash
 # Save the API key for subsequent commands
-export API_KEY="fab_ak_live_51H8x...z9Kq"  # Replace with your actual key
+export API_KEY="fab_test_dummy_ak_live_placeholder"  # Replace with your actual key
 
 echo "API_KEY=$API_KEY" >> .env.dev
 ```
@@ -680,12 +680,13 @@ Open the frontend dashboard to see the ROI panel with your processing metrics.
 If not already running:
 
 ```bash
-cd frontend && npm run dev
+pnpm dev:web
+# Or: pnpm --dir apps/web run dev
 ```
 
 ### Open Dashboard
 
-Navigate to http://localhost:5173 and log in with your tenant credentials.
+Navigate to http://localhost:3001 and log in with your tenant credentials.
 
 ### Expected Dashboard View
 
@@ -746,8 +747,8 @@ curl http://localhost:8001/api/v1/tenants/current/usage \
 # Ensure API is running
 curl http://localhost:8001/api/v1/health/detailed | jq '.status'
 
-# Check CORS settings in .env.dev
-# Ensure API_URL in frontend/.env points to http://localhost:8001
+# Check CORS settings in .env
+# Ensure API_URL points to http://localhost:8001
 ```
 
 **"Dashboard shows empty data"**

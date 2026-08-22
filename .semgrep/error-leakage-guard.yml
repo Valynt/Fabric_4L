@@ -34,6 +34,12 @@ rules:
           - pattern: '{..., "errors": [str($E)], ...}'
           - pattern: '{"error": str($E), ...}'
           - pattern: '{"errors": [str($E)], ...}'
+      - pattern-not-inside: logger.$METHOD(...)
+      - pattern-not-inside: logging.$METHOD(...)
+      - pattern-not-inside: log.$METHOD(...)
+      - pattern-not-inside: LOG.$METHOD(...)
+      - pattern-not-inside: LOGGER.$METHOD(...)
+      - pattern-not-inside: structlog.$METHOD(...)
     metadata:
       category: security
       technology:

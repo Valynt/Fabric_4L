@@ -152,6 +152,24 @@
       "deprecation_status": "active"
     },
     {
+      "path": ".github/workflows/certify-release-candidate.yml",
+      "name": "Certify Release Candidate",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "push",
+        "workflow_dispatch"
+      ],
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
+      "required_secrets": [],
+      "produced_artifacts": [
+        "artifacts/release/${{ env.RELEASE_SHA }}/**/*"
+      ],
+      "runtime_budget_minutes": 120,
+      "local_validation_command": "make check-workflow-references",
+      "deprecation_status": "active"
+    },
+    {
       "path": ".github/workflows/chaos-testing.yml",
       "name": "Chaos Engineering Tests",
       "owner": "@value-fabric/sre-leads",
@@ -215,6 +233,7 @@
       "name": "Contract Compliance",
       "owner": "@value-fabric/sre-leads",
       "trigger": [
+        "merge_group",
         "pull_request",
         "push",
         "schedule",
@@ -262,6 +281,7 @@
       "name": "Critical Gates",
       "owner": "@value-fabric/sre-leads",
       "trigger": [
+        "merge_group",
         "pull_request",
         "push"
       ],
@@ -385,7 +405,8 @@
       "blocking": false,
       "required_secrets": [
         "GITHUB_TOKEN",
-        "INFISICAL_IDENTITY_ID"
+        "INFISICAL_IDENTITY_ID",
+        "PROMETHEUS_URL"
       ],
       "produced_artifacts": [],
       "runtime_budget_minutes": 30,
@@ -549,6 +570,25 @@
       "deprecation_status": "active"
     },
     {
+      "path": ".github/workflows/live-continuous-suite.yml",
+      "name": "Continuous Live E2E Suite",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "schedule",
+        "workflow_dispatch"
+      ],
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
+      "required_secrets": [],
+      "produced_artifacts": [
+        "apps/web/e2e-results/**",
+        "apps/web/playwright-report/**"
+      ],
+      "runtime_budget_minutes": 75,
+      "local_validation_command": "make check-workflow-references",
+      "deprecation_status": "active"
+    },
+    {
       "path": ".github/workflows/merge-group.yml",
       "name": "Merge Group",
       "owner": "@value-fabric/sre-leads",
@@ -680,6 +720,7 @@
       "name": "PR Checks",
       "owner": "@value-fabric/sre-leads",
       "trigger": [
+        "merge_group",
         "pull_request",
         "push"
       ],
@@ -716,7 +757,6 @@
         "artifacts/observability/**",
         "artifacts/production-readiness/**",
         "artifacts/pytest-collection.txt",
-        "artifacts/pytest-skip-governance.json",
         "artifacts/python-contract-lint.json",
         "artifacts/readiness/behavior-readiness-audit.json",
         "artifacts/release-evidence/billing-entitlements-junit.xml",
@@ -728,7 +768,8 @@
         "artifacts/shared-imports-runtime.json",
         "artifacts/structural-preflight.json",
         "artifacts/tenant-isolation/summary.json",
-        "artifacts/test-skip-governance.json",
+        "artifacts/test-debt-governance.json",
+        "artifacts/test-debt-governance.md",
         "artifacts/violation-diff-summary.json",
         "artifacts/violation-diff-summary.md",
         "artifacts/webhook-security-matrix.md",
@@ -765,6 +806,7 @@
       "name": "Prod Readiness Gates",
       "owner": "@value-fabric/sre-leads",
       "trigger": [
+        "merge_group",
         "pull_request",
         "push",
         "workflow_dispatch"
@@ -876,6 +918,7 @@
       "name": "Release Evidence Bundle",
       "owner": "@value-fabric/sre-leads",
       "trigger": [
+        "merge_group",
         "pull_request",
         "push",
         "workflow_dispatch"
@@ -1027,6 +1070,7 @@
       "name": "Security Gates",
       "owner": "@value-fabric/sre-leads",
       "trigger": [
+        "merge_group",
         "pull_request",
         "push",
         "schedule"
@@ -1069,8 +1113,10 @@
       "name": "Supply Chain Integrity Gate",
       "owner": "@value-fabric/sre-leads",
       "trigger": [
+        "merge_group",
         "pull_request",
         "push",
+        "schedule",
         "workflow_call",
         "workflow_dispatch"
       ],

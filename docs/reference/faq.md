@@ -1,7 +1,5 @@
 # Frequently Asked Questions & Troubleshooting
 
-> **Audit note (2026-07-18):** Several answers below reference legacy paths and commands (`npm install`, `cd frontend && npm run dev`, `backend/`, `frontend/`). The production frontend is at `apps/web/`, backend services are under `services/`, and the package manager is `pnpm`. Update setup and build instructions accordingly.
-
 Quick answers to common questions about Fabric 4L. For detailed guides, see [Tutorials](/tutorials/getting-started) and [How-To Guides](/how-to/).
 
 ---
@@ -17,46 +15,51 @@ Quick answers to common questions about Fabric 4L. For detailed guides, see [Tut
 | RAM | 8 GB | 16 GB |
 | CPU | 4 cores | 8 cores |
 | Disk | 20 GB free | 50 GB SSD |
+| Python | 3.11+ | 3.11+ |
+| Node.js | ≥ 22.12.0 | 22.12.0+ (LTS) |
+| Package Manager | pnpm 10.18.1 | pnpm 10.18.1 |
 | Docker | 24.0+ | Latest stable |
-| Docker Compose | 2.20+ | Latest stable |
+| Docker Compose | 2.20+ (v2 `docker compose`) | Latest stable |
 
 For production deployments, see the [Kubernetes deployment guide](/how-to/deploy-kubernetes).
 
 ### Q2: How do I set up without Docker?
 
-**A:** While Docker is the recommended approach, you can run services directly:
+**A:** While Docker Compose (`infra/compose/docker-compose.dev.yml`) is the standard approach, you can run services directly on your host:
 
 ```bash
-# 1. Install dependencies manually
-# PostgreSQL 15+, Redis 7+, MinIO, Python 3.11+, Node.js 20+
+# 1. Ensure prerequisites are installed:
+# PostgreSQL 15+, Redis 7+, Neo4j, Keycloak, Python 3.11+, Node.js ≥ 22.12.0, pnpm 10.18.1
 
-# 2. Configure environment
-cp .env.example .env
-# Edit .env to point to your local services
+# 2. Enable pnpm and install frontend/monorepo dependencies
+corepack enable
+corepack prepare pnpm@10.18.1 --activate
+pnpm install --frozen-lockfile
 
-# 3. Install Python dependencies
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
+# 3. Set up Python virtual environment and service dependencies
+make setup
 
-# 4. Install frontend dependencies
-cd frontend && npm install
+# 4. Generate local dev env secrets or configure .env
+pnpm env:dev
+# Or cp .env.example .env and edit to point to your local PostgreSQL/Redis/Neo4j services
 
-# 5. Run database migrations
-alembic upgrade head
+# 5. Run database migrations across services
+make migrate
 
-# 6. Start services individually
-# Terminal 1: API
-uvicorn main:app --host 0.0.0.0 --port 8001
+# 6. Start individual layers and frontend as needed:
+# Frontend (Vite on port 3001)
+pnpm dev:web
 
-# Terminal 2: Frontend
-cd frontend && npm run dev
-
-# Terminal 3: Worker
-celery -A worker worker --loglevel=info
+# Individual backend layers (ports 8001–8006):
+pnpm dev:layer1   # Ingestion
+pnpm dev:layer2   # Extraction
+pnpm dev:layer3   # Knowledge Graph
+pnpm dev:layer4   # Agents
+pnpm dev:layer5   # Ground Truth
+pnpm dev:layer6   # Benchmarks
 ```
 
-**Note:** Non-Docker setups are supported for development only. Production deployments must use Docker or Kubernetes.
+**Note:** Non-Docker setups are supported for local development only. Production deployments must use containers or Kubernetes.
 
 ### Q3: Can I use Fabric 4L on Windows/WSL?
 
@@ -72,8 +75,10 @@ celery -A worker worker --loglevel=info
 
 # 2. Install Docker Desktop with WSL2 backend enabled
 # 3. Follow standard Linux setup
+pnpm install --frozen-lockfile
 make setup
-make infra-up
+pnpm env:dev && docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated up -d
+make migrate
 make verify
 ```
 
@@ -90,7 +95,7 @@ make verify
 |--------|-------------|------------|
 | Docker (local) | 10-15 min | 2-3 min |
 | GitHub Codespaces | 5 min (pre-built) | 2 min |
-| Without Docker | 30-60 min | 5 min |
+| Without Docker | 15-30 min | 2-3 min |
 
 The first Docker setup pulls images (~2-3 GB). Subsequent starts use cached images.
 
@@ -108,8 +113,8 @@ The first Docker setup pulls images (~2-3 GB). Subsequent starts use cached imag
 
 When reporting issues, include:
 - `make verify` output
-- Relevant container logs (`docker logs <container>`)
-- Your `.env.dev` (with secrets redacted)
+- Relevant container logs (`docker logs <container>` or `docker compose -f infra/compose/docker-compose.dev.yml logs <service>`)
+- Your environment configuration (with secrets redacted)
 - Steps to reproduce
 
 ---
@@ -121,37 +126,35 @@ When reporting issues, include:
 **A:** Fabric 4L's 6-layer architecture is designed for extension. To add a new microservice:
 
 ```bash
-# 1. Create service directory
-mkdir backend/services/mynewlayer
+# 1. Create service directory under services/
+mkdir -p services/layer7-custom/src/layer7_custom
 
 # 2. Create minimal FastAPI app
-cat > backend/services/mynewlayer/main.py << 'EOF'
+cat > services/layer7-custom/src/layer7_custom/main.py << 'EOF'
 from fastapi import FastAPI, Depends
-from middleware.auth import require_auth
+from value_fabric.shared.tenant import TenantContext, require_tenant_context
 
-app = FastAPI(title="Fabric 4L — Layer X: My New Layer")
+app = FastAPI(title="Fabric 4L — Layer 7: Custom Service")
 
 @app.get("/health")
 async def health():
-    return {"status": "healthy", "layer": "mynewlayer"}
+    return {"status": "healthy", "layer": "layer7"}
 
-@app.get("/api/vX/status")
-async def status(user=Depends(require_auth)):
-    return {"layer": "mynewlayer", "user": user.tenant_id}
+@app.get("/api/v1/status")
+async def status(ctx: TenantContext = Depends(require_tenant_context)):
+    return {"layer": "layer7", "tenant_id": ctx.tenant_id}
 EOF
 
-# 3. Add to docker-compose.dev.yml
-# 4. Register in API gateway
+# 3. Add to infra/compose/docker-compose.dev.yml
+# 4. Register in packages/shared and Makefile test targets
 # 5. Add health check to make verify
-
-# See full guide: /how-to/add-new-service
 ```
 
 **Architecture rules:**
-- Each layer must expose `/health` endpoint
-- All endpoints require `require_auth` dependency
-- Use the shared `tenant_context` for tenant isolation (ADR-028)
-- Register in the API gateway for routing
+- Each layer must expose a `/health` endpoint
+- Protected endpoints require tenant context authentication
+- Use the shared `value_fabric.shared.tenant` module for tenant isolation
+- Register OpenAPI contracts in `contracts/openapi/`
 
 ### Q7: How do I run tests for a single layer?
 
@@ -162,24 +165,24 @@ EOF
 make test
 
 # Run tests for a specific layer
-make test-l1    # Layer 1: Ingestion
-make test-l2    # Layer 2: Extraction
-make test-l3    # Layer 3: Knowledge
-make test-l4    # Layer 4: Agents
-make test-l5    # Layer 5: Ground Truth
-make test-l6    # Layer 6: Benchmarks
+make test-layer1    # Layer 1: Ingestion
+make test-layer2    # Layer 2: Extraction
+make test-layer3    # Layer 3: Knowledge Graph
+make test-layer4    # Layer 4: Agents
+make test-layer5    # Layer 5: Ground Truth
+make test-layer6    # Layer 6: Benchmarks
 
 # Run specific test file
-pytest backend/tests/l4/test_workflows.py -v
+pytest services/layer4-agents/tests/test_audit_orchestrator.py -v
 
 # Run with coverage for one layer
-pytest backend/tests/l4/ --cov=backend/l4 --cov-report=html
+pytest services/layer4-agents/tests/ --cov=services/layer4-agents/src --cov-report=html
 
 # Run only failed tests
 pytest --lf
 
-# Run in parallel (4 workers)
-pytest -n 4
+# Run in parallel
+pytest -n auto
 ```
 
 ### Q8: How do I debug agent workflows?
@@ -188,39 +191,21 @@ pytest -n 4
 
 **1. Trace Inspection (OTel)**
 ```bash
-# Get the trace_id from workflow response
-curl http://localhost:8001/api/v1/traces/trace_a1b2c3d4e5f6 \
-  -H "Authorization: Bearer $API_KEY" | jq '.spans'
+# Get trace from workflow response
+curl http://localhost:8004/v1/repo-audit/runs/run_abc123 \
+  -H "Authorization: Bearer ${AUTH_TOKEN}" | jq '.'
 ```
 
 **2. Workflow Logs**
 ```bash
 # Filter worker logs for specific workflow
-docker logs fabric4l-worker 2>&1 | grep wf_3n5p7q9r2s
-
-# Or use structured logging
-jq 'select(.workflow_id == "wf_3n5p7q9r2s")' logs/structured/worker.jsonl
+docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated logs layer4 --tail=100
 ```
 
-**3. Step-by-Step Execution**
-```python
-# Enable debug mode to execute synchronously with verbose output
-response = client.workflows.run(
-    workflow_type="insight_generation",
-    inputs={"query": "test"},
-    debug=True  # Returns step-by-step execution log
-)
-```
-
-**4. Breakpoint in Code**
+**3. Breakpoint in Code**
 ```python
 # Add breakpoint in your agent tool
 import pdb; pdb.set_trace()  # Python debugger
-
-# Or use the built-in debug endpoint
-curl -X POST http://localhost:8004/api/v1/workflows/debug \
-  -H "Authorization: Bearer $API_KEY" \
-  -d '{"workflow_type": "insight_generation", "inputs": {"query": "test"}}'
 ```
 
 ### Q9: How do I add a new feature flag?
@@ -230,7 +215,7 @@ curl -X POST http://localhost:8004/api/v1/workflows/debug \
 **Via API (runtime):**
 ```bash
 curl -X PUT http://localhost:8001/api/v1/features/new-flag-name \
-  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Authorization: Bearer ${AUTH_TOKEN}" \
   -H "Content-Type: application/json" \
   -d '{
     "enabled": false,
@@ -243,21 +228,9 @@ curl -X PUT http://localhost:8001/api/v1/features/new-flag-name \
   }'
 ```
 
-**Via configuration (static):**
-```yaml
-# config/features.yaml
-new-flag-name:
-  enabled: false
-  default_value: false
-  description: "Enables the new extraction engine"
-  targeting:
-    tenants: []
-    percentage: 0
-```
-
 **In code:**
 ```python
-from core.features import is_enabled
+from value_fabric.shared.features import is_enabled
 
 if is_enabled("new-flag-name", default=False):
     # New behavior
@@ -269,14 +242,16 @@ else:
 
 ### Q10: How do I update database migrations?
 
-**A:** Use Alembic for all database schema changes:
+**A:** Use Alembic for all database schema changes per service:
 
 ```bash
-# 1. Make changes to SQLAlchemy models
-# 2. Generate migration
-alembic revision --autogenerate -m "Add user preferences table"
+# 1. Navigate to the relevant service directory
+cd services/layer4-agents
 
-# 3. Review generated migration in backend/migrations/versions/
+# 2. Make changes to models, then generate migration
+alembic revision --autogenerate -m "Add workflow checkpoint table"
+
+# 3. Review generated migration in migrations/versions/
 # 4. Apply migration
 alembic upgrade head
 
@@ -288,13 +263,18 @@ alembic downgrade -1
 
 # To view migration history:
 alembic history --verbose
+
+# Run all layer migrations from repo root:
+make migrate
+# Check single-head consistency:
+make check-migration-heads
 ```
 
 **Rules:**
 - Never modify existing migrations that have been applied to production
 - Always test rollback (`alembic downgrade`) before committing
 - Include both `upgrade()` and `downgrade()` functions
-- Mark destructive migrations with `op.execute("-- destructive change")`
+- Ensure each service has exactly one Alembic head (`make check-migration-heads`)
 
 ---
 
@@ -386,9 +366,6 @@ kubectl rollout restart deployment/fabric4l-api -n fabric4l
 # 5. Verify connectivity
 kubectl exec -it fabric4l-api-xxx -- \
   curl localhost:8001/api/v1/health/detailed | jq '.status'
-
-# 6. Remove old secret after confirming stability (24h+)
-# kubectl delete secret db-credentials -n fabric4l
 ```
 
 ### Q14: How do I scale Layer 4 (Agents)?
@@ -410,36 +387,6 @@ kubectl autoscale deployment fabric4l-agent-worker \
 kubectl get hpa fabric4l-agent-worker -n fabric4l -w
 ```
 
-**Scaling factors:**
-- CPU/memory: Agent workers are CPU-bound during model inference
-- Queue depth: Monitor Redis queue length for backpressure
-- GPU: For LLM-based agents, GPU nodes may be required
-
-### Q15: How do I perform a zero-downtime deployment?
-
-**A:** Use the built-in blue-green deployment:
-
-```bash
-# 1. Deploy new version to green environment
-helm upgrade fabric4l-green fabric4l/fabric4l \
-  --namespace fabric4l \
-  --set image.tag=v1.2.1 \
-  --values values.production.yaml
-
-# 2. Run smoke tests against green
-SMOKE_URL=$(kubectl get svc fabric4l-green -n fabric4l -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-make smoke-test URL=http://$SMOKE_URL
-
-# 3. Switch traffic to green
-kubectl patch service fabric4l -n fabric4l -p \
-  '{"spec":{"selector":{"app":"fabric4l","version":"green"}}}'
-
-# 4. Monitor for errors
-# If issues detected, switch back:
-kubectl patch service fabric4l -n fabric4l -p \
-  '{"spec":{"selector":{"app":"fabric4l","version":"blue"}}}'
-```
-
 ---
 
 ## Security & Compliance
@@ -451,21 +398,16 @@ kubectl patch service fabric4l -n fabric4l -p \
 | Layer | Mechanism | ADR Reference |
 |-------|-----------|---------------|
 | Database | PostgreSQL Row-Level Security (RLS) | ADR-021 |
-| Application | AsyncLocalStorage tenant context | ADR-028 |
-| API | 8-phase auth pipeline | ADR-029 |
+| Application | `value_fabric.shared.tenant.TenantContext` | ADR-028 |
+| API | Authenticated Context Pipeline | ADR-029 |
 | Network | Namespace isolation in K8s | — |
 | Storage | Prefix-scoped object paths | — |
 
 **Verification:**
 ```bash
-# Verify RLS is active
-kubectl exec -it fabric4l-db-0 -- psql -U fabric4l -c \
-  "SELECT tablename, rowsecurity FROM pg_tables WHERE schemaname='public';"
-
-# Expected: All tenant tables show rowsecurity = true
+# Run tenant boundary security tests
+pytest tests/security/ -m tenant_boundary -v
 ```
-
-**Breach response:** See [Q23: Tenant isolation breach response](#q23-how-do-i-respond-to-a-tenant-isolation-breach).
 
 ### Q17: How do I handle GDPR data deletion requests?
 
@@ -474,7 +416,7 @@ kubectl exec -it fabric4l-db-0 -- psql -U fabric4l -c \
 ```bash
 # 1. Initiate deletion (Right to Erasure — Article 17)
 curl -X POST http://localhost:8001/api/v1/gdpr/data-deletion \
-  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  -H "Authorization: Bearer ${AUTH_TOKEN}" \
   -H "Content-Type: application/json" \
   -d '{
     "subject_id": "user@example.com",
@@ -485,242 +427,13 @@ curl -X POST http://localhost:8001/api/v1/gdpr/data-deletion \
 
 # 2. Check deletion status
 curl http://localhost:8001/api/v1/gdpr/data-deletion/del_abc123 \
-  -H "Authorization: Bearer $ADMIN_TOKEN" | jq '{
+  -H "Authorization: Bearer ${AUTH_TOKEN}" | jq '{
     status,
     deleted_records,
     remaining_records,
     estimated_completion
   }'
 ```
-
-**What gets deleted:**
-- All documents associated with the subject
-- Knowledge graph nodes and relationships
-- Workflow history and results
-- Audit logs older than retention period
-- Feature flag targeting records
-
-**What is retained (anonymized):**
-- Aggregate metrics (with subject ID hashed)
-- Billing records (as required by law)
-- Security incident records
-
-**Timeline:** Deletion completes within 30 days per GDPR requirements. Status can be checked at any time.
-
-### Q18: What security headers are enforced?
-
-**A:** The following headers are enforced on all API responses:
-
-| Header | Value | Purpose |
-|--------|-------|---------|
-| `Strict-Transport-Security` | `max-age=31536000; includeSubDomains` | HSTS |
-| `X-Content-Type-Options` | `nosniff` | MIME sniffing protection |
-| `X-Frame-Options` | `DENY` | Clickjacking protection |
-| `Content-Security-Policy` | `default-src 'self'` | XSS mitigation |
-| `X-Request-ID` | `<uuid>` | Request tracing |
-| `Referrer-Policy` | `strict-origin-when-cross-origin` | Referrer control |
-| `Permissions-Policy` | `camera=(), microphone=()` | Feature restriction |
-
-**Verification:**
-```bash
-curl -I http://localhost:8001/api/v1/health/detailed | grep -i "strict-transport\|x-content\|x-frame\|content-security"
-```
-
-### Q19: How do I report a security vulnerability?
-
-**A:** Security issues should be reported privately:
-
-1. **Email:** security@fabric4l.io (PGP key available)
-2. **Do not** open public GitHub issues for security bugs
-3. Include:
-   - Description of the vulnerability
-   - Steps to reproduce
-   - Potential impact assessment
-   - Suggested fix (if any)
-
-**Response timeline:**
-- Acknowledgment within 24 hours
-- Initial assessment within 72 hours
-- Fix timeline communicated within 1 week
-- Public disclosure coordinated after fix
-
-See [SECURITY.md](https://github.com/bmsull560/Fabric_4L/blob/main/SECURITY.md) for full policy.
-
-### Q20: How is audit logging handled?
-
-**A:** All sensitive operations are audited:
-
-```bash
-# Query audit logs
-curl http://localhost:8001/api/v1/admin/audit-log \
-  -H "Authorization: Bearer $ADMIN_TOKEN" \
-  -G -d "resource_type=tenant" -d "action=delete" -d "limit=100"
-```
-
-**Logged events:**
-- Tenant CRUD operations
-- API key creation/revocation
-- GDPR data deletion
-- Feature flag changes
-- Kill switch activation
-- Database migrations
-- Authentication failures
-
-**Log format (structured JSON):**
-```json
-{
-  "timestamp": "2026-07-14T10:30:00Z",
-  "event_type": "tenant_deleted",
-  "actor": { "type": "user", "id": "user_abc", "email": "admin@example.com" },
-  "resource": { "type": "tenant", "id": "tenant_xyz" },
-  "action": "delete",
-  "result": "success",
-  "ip_address": "10.0.0.1",
-  "user_agent": "Mozilla/5.0...",
-  "request_id": "req_123",
-  "metadata": { "reason": "User request" }
-}
-```
-
-**Retention:** 1 year for standard logs, 7 years for compliance-related logs.
-
----
-
-## Operations
-
-### Q21: How do I access Grafana dashboards?
-
-**A:** Grafana is available at the configured URL (default: http://localhost:3000):
-
-| Dashboard | URL | Purpose |
-|-----------|-----|---------|
-| System Overview | `/d/system-overview` | CPU, memory, disk, network |
-| API Performance | `/d/api-performance` | Request rates, latencies, errors |
-| SLO Compliance | `/d/slo-compliance` | All 6 SLOs with burn rates |
-| Agent Workflows | `/d/agent-workflows` | Workflow execution metrics |
-| Knowledge Graph | `/d/knowledge-graph` | Graph statistics and health |
-| Feature Flags | `/d/feature-flags` | Flag usage and performance impact |
-
-**Login:** Default credentials are set during setup. Change immediately:
-```bash
-# Reset admin password
-kubectl exec -it fabric4l-grafana-0 -- grafana-cli admin reset-admin-password $NEW_PASSWORD
-```
-
-### Q22: What are the critical alerts and their meanings?
-
-**A:** Critical alerts (P1 — immediate response required):
-
-| Alert | Meaning | Response |
-|-------|---------|----------|
-| `TenantIsolationBreach` | Cross-tenant data access detected | [Run DR-001](/runbooks/dr-001-tenant-isolation) |
-| `SLOBurnRateCritical` | Error budget exhausted in < 3 days | Scale resources or disable features |
-| `DatabaseConnectionsExhausted` | Connection pool saturated | Check for connection leaks, scale DB |
-| `AgentWorkerQueueBacklog` | > 1000 pending workflows | Scale agent workers |
-| `KillSwitchActivated` | Emergency kill switch is active | Investigate root cause, prepare fix |
-
-**Warning alerts (P2 — respond within 4 hours):**
-
-| Alert | Meaning | Response |
-|-------|---------|----------|
-| `HighLatencyP99` | P99 latency > 500ms | Check resource usage, review slow queries |
-| `DiskSpaceWarning` | Disk > 80% full | Clean old exports, scale storage |
-| `CertificateExpiring` | TLS cert expires in < 30 days | Renew certificate |
-| `FeatureFlagDrift` | Flag config differs from code | Sync feature flag definitions |
-
-Alert routing is configured in `infra/alertmanager/alertmanager.yml`.
-
-### Q23: How do I respond to a tenant isolation breach?
-
-**A:** Follow the DR-001 runbook:
-
-```bash
-# STEP 1: Confirm the breach
-curl http://localhost:8001/api/v1/admin/audit-log \
-  -H "Authorization: Bearer $ADMIN_TOKEN" \
-  -G -d "event_type=tenant_isolation_breach" | jq '.events'
-
-# STEP 2: Activate emergency kill switch
-curl -X POST http://localhost:8001/api/v1/killswitches/ingestion/activate \
-  -H "Authorization: Bearer $ADMIN_TOKEN" \
-  -d '{"reason": "Tenant isolation breach detected"}'
-
-# STEP 3: Isolate affected tenants
-curl -X POST http://localhost:8001/api/v1/admin/tenants/isolate \
-  -H "Authorization: Bearer $ADMIN_TOKEN" \
-  -d '{"tenant_ids": ["tenant_affected"], "reason": "Isolation breach"}'
-
-# STEP 4: Preserve evidence
-# Audit logs are automatically preserved
-curl http://localhost:8001/api/v1/admin/audit-log/export \
-  -H "Authorization: Bearer $ADMIN_TOKEN" \
-  -d '{"start": "2026-07-14T00:00:00Z", "format": "json"}'
-
-# STEP 5: Notify security team
-curl -X POST http://localhost:8001/api/v1/admin/security-incident \
-  -H "Authorization: Bearer $ADMIN_TOKEN" \
-  -d '{
-    "severity": "critical",
-    "type": "tenant_isolation_breach",
-    "description": "Cross-tenant data access detected",
-    "affected_tenants": ["tenant_affected"]
-  }'
-
-# STEP 6: Post-incident review within 24 hours
-```
-
-### Q24: How do I perform disaster recovery?
-
-**A:** DR procedures are documented in 5 runbooks:
-
-| Runbook | Scenario | RTO | RPO |
-|---------|----------|-----|-----|
-| [DR-001](/runbooks/dr-001) | Tenant isolation breach | 15 min | 0 |
-| [DR-002](/runbooks/dr-002) | Database corruption | 30 min | 5 min |
-| [DR-003](/runbooks/dr-003) | Complete region failure | 1 hour | 5 min |
-| [DR-004](/runbooks/dr-004) | API layer cascade failure | 10 min | 0 |
-| [DR-005](/runbooks/dr-005) | Data center network partition | 20 min | 0 |
-
-**Quick recovery commands:**
-
-```bash
-# Restore from latest backup
-make dr-restore BACKUP_DATE=latest
-
-# Failover to secondary region
-make dr-failover TARGET_REGION=us-west-2
-
-# Verify recovery
-make dr-verify
-```
-
-### Q25: How do I interpret SLO burn rate alerts?
-
-**A:** SLO burn rate alerts indicate how fast you're consuming your error budget:
-
-```bash
-# View current SLO status
-curl http://localhost:8001/api/v1/slos \
-  -H "Authorization: Bearer $ADMIN_TOKEN" | jq '.slos[] | {
-    name,
-    target,
-    current_value,
-    burn_rate,
-    days_remaining
-  }'
-```
-
-**Burn rate interpretation:**
-
-| Burn Rate | Meaning | Action |
-|-----------|---------|--------|
-| < 1x | On track to meet SLO | None |
-| 1-2x | Slightly elevated | Monitor closely |
-| 2-6x | Fast budget burn | Investigate, prepare mitigation |
-| 6-14x | Critical | Page on-call, begin incident response |
-| > 14x | Emergency | Full incident response, consider kill switches |
-
-**Example:** A burn rate of 6x for API availability means at the current error rate, the quarterly error budget will be exhausted in ~5 days instead of 90 days.
 
 ---
 
@@ -739,12 +452,12 @@ Are tests failing consistently or intermittently?
 |   |
 |   |-- Is it a specific test file?
 |   |   |-- YES → Run with -v for verbose output:
-|   |   |       pytest path/to/test.py -v -s
+|   |   |       pytest services/layer4-agents/tests/test_audit_orchestrator.py -v -s
 |   |   |-- NO  → Continue...
 |   |
 |   |-- Is the database migrated?
 |   |   |-- Run: make migrate
-|   |   |-- Verify: alembic current
+|   |   |-- Verify: make check-migration-heads
 |   |
 |   +-- Check test fixtures and dependencies:
 |       pytest --fixtures | grep your_fixture
@@ -753,7 +466,6 @@ Are tests failing consistently or intermittently?
     |
     |-- Is it timing-related?
     |   |-- YES → Increase timeouts in test config
-    |   |       Or use pytest-rerunfailures: pytest --reruns 3
     |   |-- NO  → Continue...
     |
     |-- Is it database-related?
@@ -761,9 +473,8 @@ Are tests failing consistently or intermittently?
     |   |       Ensure test database isolation
     |   |-- NO  → Continue...
     |
-    +-- Check flakiness tracker:
-        make flakiness-report
-        # Or view: https://ci.fabric4l.io/flakiness
+    +-- Run full verification:
+        make verify
 ```
 
 ### "I can't connect to the database"
@@ -772,142 +483,30 @@ Are tests failing consistently or intermittently?
 Is the database container running?
 |
 |-- NO
-|   |-- docker ps | grep fabric4l-db
-|   |-- docker logs fabric4l-db
-|   |-- docker compose -f infra/compose/docker-compose.dev.yml up -d fabric4l-db
+|   |-- docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated ps postgres
+|   |-- docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated logs postgres
+|   |-- docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated up -d postgres
 |
 |-- YES
     |
     |-- Can you connect locally?
-    |   |-- docker exec -it fabric4l-db pg_isready -U fabric4l
+    |   |-- pg_isready -h localhost -p 5432
     |   |-- If "refused": Wait 10s, PostgreSQL may still be starting
     |   |-- If "no response": Check logs for errors
     |
     |-- Are migrations applied?
     |   |-- make migrate
-    |   |-- alembic current
     |
     |-- Is the connection string correct?
-    |   |-- cat .env.dev | grep DATABASE_URL
-    |   |-- Format: postgresql://user:pass@host:port/db
+    |   |-- Format: postgresql://fabric:fabric@localhost:5432/fabric
     |
     |-- Is the port accessible?
-    |   |-- telnet localhost 5432
-    |   |-- If "connection refused": Check docker port mapping
+    |   |-- Check docker compose port mapping
     |
     +-- Try resetting:
-        docker compose -f infra/compose/docker-compose.dev.yml down -v fabric4l-db
-        make infra-up
+        docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated down -v
+        pnpm env:dev && docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated up -d
         make migrate
-```
-
-### "Agent workflows are failing"
-
-```
-What is the failure symptom?
-|
-|-- Workflows stuck in "queued" state
-|   |
-|   |-- Is the worker running?
-|   |   |-- docker ps | grep fabric4l-worker
-|   |   |-- docker logs fabric4l-worker
-|   |
-|   |-- Is Redis accessible?
-|   |   |-- docker exec -it fabric4l-redis redis-cli ping
-|   |   |-- Should return: PONG
-|   |
-|   +-- Check queue depth:
-|       docker exec -it fabric4l-redis redis-cli LLEN celery
-|       # If > 100: Workers may be overwhelmed, scale up
-|
-|-- Workflows failing immediately (status: "failed")
-|   |
-|   |-- Check workflow logs:
-|   |   docker logs fabric4l-worker 2>&1 | grep <workflow_id>
-|   |
-|   |-- Is the API key valid?
-|   |   curl http://localhost:8001/api/v1/tenants/current \
-|   |     -H "Authorization: Bearer $API_KEY"
-|   |
-|   |-- Is the feature flag enabled?
-|   |   curl http://localhost:8001/api/v1/features/<flag> \
-|   |     -H "Authorization: Bearer $API_KEY"
-|   |
-|   +-- Check for tool registry errors:
-|       curl http://localhost:8001/api/v1/admin/contracts \
-|   |     -H "Authorization: Bearer $ADMIN_TOKEN" | jq '.violations'
-|
-|-- Workflows completing but with empty results
-    |
-    |-- Was the document successfully extracted?
-    |   curl http://localhost:8001/api/v1/ingestion/documents/<doc_id> \
-    |     -H "Authorization: Bearer $API_KEY" | jq '.extraction_status'
-    |
-    |-- Is the knowledge graph populated?
-    |   curl http://localhost:8003/api/v1/knowledge/graph \
-    |     -H "Authorization: Bearer $API_KEY" | jq '.graph.nodes | length'
-    |
-    +-- Try with a simpler query to rule out query complexity:
-        Change inputs.query to something basic like "summarize"
-```
-
-### "Performance is degraded"
-
-```
-Which metric is degraded?
-|
-|-- High latency (P50/P95/P99)
-|   |
-|   |-- Check resource utilization:
-|   |   docker stats --no-stream
-|   |   # Look for CPU throttling or memory pressure
-|   |
-|   |-- Check database performance:
-|   |   docker exec -it fabric4l-db psql -U fabric4l -c \
-|   |     "SELECT query, mean_exec_time FROM pg_stat_statements \
-|   |      ORDER BY mean_exec_time DESC LIMIT 10;"
-|   |
-|   |-- Enable query logging temporarily:
-|   |   docker exec -it fabric4l-db psql -U fabric4l -c \
-|   |     "ALTER SYSTEM SET log_min_duration_statement = '100'; \
-|   |      SELECT pg_reload_conf();"
-|   |
-|   +-- Check for N+1 queries:
-|       # Look for repeated similar queries in logs
-|       docker logs fabric4l-api | grep "SELECT" | sort | uniq -c | sort -rn | head
-|
-|-- High error rate
-|   |
-|   |-- Check error logs:
-|   |   docker logs fabric4l-api 2>&1 | grep ERROR
-|   |
-|   |-- Check recent deployments:
-|   |   kubectl rollout history deployment/fabric4l-api
-|   |
-|   |-- Check feature flags (recently enabled?):
-|   |   curl http://localhost:8001/api/v1/features \
-|   |     -H "Authorization: Bearer $ADMIN_TOKEN" | jq '.flags[] | select(.enabled)'
-|   |
-|   +-- Consider kill switch:
-|       curl -X POST http://localhost:8001/api/v1/killswitches/<feature>/activate \
-|         -H "Authorization: Bearer $ADMIN_TOKEN"
-|
-|-- Low throughput
-    |
-    |-- Check worker scaling:
-    |   docker ps | grep fabric4l-worker
-    |   # Scale if needed: docker compose up -d --scale worker=5
-    |
-    |-- Check queue backlog:
-    |   docker exec -it fabric4l-redis redis-cli LLEN celery
-    |
-    |-- Check database connection pool:
-    |   docker exec -it fabric4l-db psql -U fabric4l -c \
-    |     "SELECT count(*) FROM pg_stat_activity WHERE state = 'active';"
-    |
-    +-- Check for resource contention:
-        # Are other services consuming shared resources?
-        docker stats --no-stream --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}"
 ```
 
 ---
@@ -916,26 +515,21 @@ Which metric is degraded?
 
 | Task | Command |
 |------|---------|
-| Check health | `curl http://localhost:8001/api/v1/health/detailed \| jq` |
-| View logs | `docker logs fabric4l-api --tail 100 -f` |
+| Full verification | `make verify` |
+| Check health | `curl http://localhost:8001/health` |
 | Run migrations | `make migrate` |
-| Run tests | `make test` |
-| Scale workers | `docker compose up -d --scale worker=5` |
+| Check migration heads | `make check-migration-heads` |
+| Run backend tests | `make test` |
+| Run layer tests | `make test-layer1` .. `make test-layer6` |
+| Start frontend dev | `pnpm dev:web` |
+| Frontend typecheck & lint | `pnpm --dir apps/web run typecheck && pnpm --dir apps/web run lint` |
 | Reset environment | `make clean && make setup` |
-| Check SLOs | `curl /api/v1/slos -H "Authorization: Bearer $ADMIN_TOKEN" \| jq` |
-| View contracts | `curl /api/v1/admin/contracts -H "Authorization: Bearer $ADMIN_TOKEN" \| jq` |
-| List feature flags | `curl /api/v1/features -H "Authorization: Bearer $API_KEY" \| jq` |
-| Activate kill switch | `curl -X POST /api/v1/killswitches/<key>/activate` |
-| Export audit log | `curl /api/v1/admin/audit-log/export -d '{"format":"json"}'` |
-| GDPR data export | `curl -X POST /api/v1/gdpr/data-export -d '{"subject_id":"..."}'` |
-| Run chaos experiment | `curl -X POST /api/v1/chaos/experiments -d '{"type":"latency","target":"api"}'` |
 
 ---
 
 ## Version Information
 
 - **Documentation Version:** v1.2.0
-- **Last Updated:** 2026-07-14
 - **Compatible Versions:** v1.2.0+
 - **Maintainer:** Fabric 4L Documentation Team
 

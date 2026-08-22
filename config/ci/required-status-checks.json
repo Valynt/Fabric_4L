@@ -2,16 +2,33 @@
   "metadata": {
     "owner_team": "Platform Governance",
     "change_process": "Changes require approval from Platform Governance and Security in CODEOWNERS-reviewed PRs. Keep this list aligned with branch protection enforcement and CI job names.",
-    "last_reviewed": "2026-06-05"
+    "last_reviewed": "2026-08-21",
+    "transition_note": "V1-CI-001 Stage 3: the nine stable aggregate checks (01-repository-integrity .. 09-change-risk-and-approval) are now required alongside the legacy partial contexts. Remove the legacy eight contexts only after 30 consecutive queue merges with zero false negatives (V1-CI-001 Stage 4)."
   },
   "required_status_checks": [
+    "01-repository-integrity",
+    "02-code-quality-and-tests",
+    "03-contract-compliance",
+    "04-security-gates",
+    "05-tenant-isolation-and-behavior",
+    "06-production-readiness",
+    "07-supply-chain-integrity",
+    "08-release-evidence",
+    "09-change-risk-and-approval",
     "mandatory-security-regression",
     "contract-compliance",
     "Structural Preflight",
     "prod-readiness",
     "behavior-tests",
+    "Security Gates Required",
     "Layer 5 - Source Contract",
     "Layer 5 - Tenant Isolation Regression",
     "Layer 5 - Contract Shape Regression"
-  ]
+  ],
+  "required_pull_request_reviews": {
+    "required_approving_review_count": 1,
+    "dismiss_stale_reviews": true,
+    "require_code_owner_reviews": false
+  },
+  "required_conversation_resolution": true
 }

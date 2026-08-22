@@ -62,6 +62,7 @@ def test_audit_orchestrator_smoke_on_current_repo():
         repo_name=_derive_repo_name(),
         incremental=False,
         output_dir=".audit_cache/test_reports",
+        trusted_source=True,
     )
 
     state = run_audit(config, trigger_type="manual")

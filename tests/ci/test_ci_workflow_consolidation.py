@@ -144,10 +144,10 @@ def test_ci_workflow_retired_candidates_are_documented_and_removed() -> None:
 
 def test_ci_workflow_inventory_stays_within_s6_6_limit() -> None:
     workflow_files = _workflow_files()
-    assert len(workflow_files) <= 55
+    assert len(workflow_files) <= 56
 
     content = PLAN.read_text(encoding="utf-8")
-    assert "at most 55 workflow YAML files" in content
+    assert "at most 56 workflow YAML files" in content
     assert "workflow-registry.json" in content
 
 

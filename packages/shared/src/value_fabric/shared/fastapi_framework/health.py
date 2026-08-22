@@ -14,6 +14,12 @@ from dataclasses import dataclass, field
 from typing import Awaitable, Callable, Protocol, runtime_checkable
 
 
+import logging
+
+
+logger = logging.getLogger(__name__)
+
+
 @dataclass(frozen=True)
 class ProbeResult:
     """Outcome of a single readiness probe."""
@@ -51,6 +57,7 @@ class CallableProbe:
         try:
             return await self.fn()
         except Exception as exc:  # noqa: BLE001 - probes must never raise
+            logger.warning("Callable probe %s failed: %s", self.name, exc)
             return ProbeResult(name=self.name, healthy=False, detail="probe_failed")
 
 
@@ -74,6 +81,7 @@ class RedisHealthProbe:
             else:
                 await asyncio.to_thread(ping)
         except Exception as exc:  # noqa: BLE001
+            logger.warning("Redis health probe %s failed: %s", self.name, exc)
             return ProbeResult(name=self.name, healthy=False, detail="probe_failed")
         return ProbeResult(name=self.name, healthy=True)
 
@@ -90,8 +98,10 @@ async def _run_probe_with_timeout(probe: HealthCheckProbe, timeout_seconds: floa
             latency_ms=(time.perf_counter() - start) * 1000.0,
         )
     except Exception as exc:  # noqa: BLE001 - never propagate
+        probe_name = getattr(probe, "name", probe.__class__.__name__)
+        logger.warning("Health probe %s raised unexpected exception: %s", probe_name, exc)
         return ProbeResult(
-            name=getattr(probe, "name", probe.__class__.__name__),
+            name=probe_name,
             healthy=False,
             detail="probe_failed",
             latency_ms=(time.perf_counter() - start) * 1000.0,

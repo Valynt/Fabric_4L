@@ -14481,6 +14481,17 @@
             "type": "string",
             "title": "Emitted At"
           },
+          "journey_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Journey Id"
+          },
           "intent": {
             "anyOf": [
               {
@@ -14696,6 +14707,17 @@
               }
             ],
             "title": "Selectedbusinesscaseid"
+          },
+          "journeyId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Journeyid"
           }
         },
         "type": "object",
@@ -15333,7 +15355,7 @@
           "repo_url": {
             "type": "string",
             "title": "Repo Url",
-            "description": "Repository URL to audit."
+            "description": "Repository URL to audit (must be an approved Git URL scheme like https:// or ssh://)."
           },
           "branch": {
             "anyOf": [

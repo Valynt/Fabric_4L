@@ -570,3 +570,68 @@ def test_finding_update() -> None:
 def test_default_constants_available() -> None:
     assert DEFAULT_AREA_WEIGHTS[AuditArea.SECURITY] == 0.16
     assert DEFAULT_GRADE_THRESHOLDS["A+"] == (97, 100)
+
+
+# ---------------------------------------------------------------------------
+# Repository URL Validation
+# ---------------------------------------------------------------------------
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "valid_url",
+    [
+        "https://github.com/org/repo",
+        "https://github.com/org/repo.git",
+        "http://github.com/org/repo.git",
+        "ssh://git@github.com/org/repo.git",
+        "git://github.com/org/repo.git",
+        "git@github.com:org/repo.git",
+        "git@gitlab.com:team/subgroup/project.git",
+    ],
+)
+def test_validate_repo_url_allowed(valid_url: str) -> None:
+    from layer4_agents.agents.audit_orchestrator.models import validate_repo_url
+
+    assert validate_repo_url(valid_url) == valid_url
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "hostile_url",
+    [
+        "/",
+        "/etc",
+        "/etc/passwd",
+        "C:\\Windows",
+        "\\\\server\\share",
+        "../secret",
+        "foo/../../bar",
+        "file:///etc/shadow",
+        "file://localhost/etc/passwd",
+        "ext::sh -c 'touch /tmp/pwned'",
+        "fd::3",
+        "ftp://github.com/org/repo.git",
+        "gopher://github.com/org/repo.git",
+        "data:text/plain;base64,SGVsbG8=",
+        "javascript:alert(1)",
+        "http://localhost/repo",
+        "http://127.0.0.1/repo",
+        "http://169.254.169.254/repo",
+        "http://10.0.0.1/repo",
+        "http://192.168.1.1/repo",
+        "http://172.16.0.1/repo",
+        "http://metadata.google.internal/repo",
+        "git@localhost:owner/repo.git",
+        "git@127.0.0.1:owner/repo.git",
+        "git@10.0.0.1:owner/repo.git",
+        "git@192.168.1.1:owner/repo.git",
+        "ssh://git@10.0.0.1/repo.git",
+        "ssh://git@127.0.0.1/repo.git",
+    ],
+)
+def test_validate_repo_url_hostile_rejected(hostile_url: str) -> None:
+    from layer4_agents.agents.audit_orchestrator.models import validate_repo_url
+
+    with pytest.raises(ValueError):
+        validate_repo_url(hostile_url)
+

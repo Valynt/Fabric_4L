@@ -1,11 +1,10 @@
 # Reliable Command Reference — Fabric_4L Environment
 
-> **Audit note (2026-07-18):** This reference uses legacy commands (`docker-compose`, `npm install`, `npm run dev`) and directory paths (`frontend/`, `shared/`, `layer*/src/`) that do not match the current monorepo conventions. Use `docker compose`, `pnpm install --frozen-lockfile`, and `pnpm --dir apps/web run …` instead, and refer to `services/layer*-*/` and `packages/shared/` for canonical paths. See `AGENTS.md` and `docs/development/BUILD_SYSTEM.md` for the current command map.
+Canonical Copy-Pasteable Commands for Build, Deploy, Test, and Operations.
 
-Copy-Pasteable Commands for Build, Deploy, Test, and Operations
-
-**Context:** Vite/React frontend, Python FastAPI/Flask backend, PostgreSQL, Redis, Neo4j, Docker, Kubernetes
-**Assumptions:** Repository root at `Fabric_4L/`, frontend at `apps/web/`, backend services at `services/`
+**Context:** Vite/React frontend, Python FastAPI backend services, PostgreSQL, Redis, Neo4j, Docker Compose, Kubernetes  
+**Monorepo Standard:** pnpm 10.18.1 (Node.js ≥ 22.12.0), Python 3.11+, Docker Compose v2 (`docker compose`)  
+**Assumptions:** Repository root at `Fabric_4L/`, frontend at `apps/web/`, backend services at `services/layer*-*/`, shared package at `packages/shared/`
 
 ---
 
@@ -22,7 +21,7 @@ Copy-Pasteable Commands for Build, Deploy, Test, and Operations
 9. [Git & Version Control](#9-git--version-control)
 10. [Debugging & Diagnostics](#10-debugging--diagnostics)
 11. [One-Line Validation Chains](#11-one-line-validation-chains)
-12. [Environment Setup Scripts](#12-environment-setup-scripts)
+12. [Environment Setup Scripts & Common Operations](#12-environment-setup-scripts--common-operations)
 
 ---
 
@@ -30,67 +29,61 @@ Copy-Pasteable Commands for Build, Deploy, Test, and Operations
 
 ### 1.1 Full Stack Lifecycle
 
+The local dev stack is defined at `infra/compose/docker-compose.dev.yml`.
+
 ```bash
-# Start everything (infrastructure + all layers)
-cd value-fabric
-docker-compose up -d
+# Start infrastructure and supporting services (PostgreSQL, Redis, Neo4j, Keycloak)
+pnpm env:dev && docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated up -d
 
 # Start with build (force rebuild)
-docker-compose up -d --build
+docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated up -d --build
 
-# Start with no cache (nuclear option)
-docker-compose build --no-cache && docker-compose up -d
+# Start with no cache
+docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated build --no-cache && docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated up -d
 
 # Stop everything
-docker-compose down
+docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated down
 
-# Stop and remove volumes (DESTRUCTIVE — wipes data)
-docker-compose down -v
+# Stop and remove volumes (DESTRUCTIVE — wipes container data)
+docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated down -v
 
 # Restart single service
-docker-compose restart layer3
+docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated restart postgres
 
 # View logs (all services)
-docker-compose logs -f --tail=50
+docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated logs -f --tail=50
 
 # View logs (single service)
-docker-compose logs -f --tail=100 layer3
+docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated logs -f --tail=100 postgres
 
 # View logs (last N lines, no follow)
-docker-compose logs --tail=50 layer3
+docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated logs --tail=50 redis
 
 # Check container status
-docker-compose ps
+docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated ps
 
 # Check with formatting
-docker-compose ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}"
+docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}"
 ```
 
 ### 1.2 Container Inspection
 
 ```bash
 # Exec into running container
-docker-compose exec layer3 bash
-docker-compose exec layer3 sh
+docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated exec postgres bash
+docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated exec postgres sh
 
 # Run one-off command in container
-docker-compose exec layer3 python -c "import shared; print(shared.__file__)"
-
-# Inspect container filesystem
-docker-compose exec layer3 ls -la /app
-docker-compose exec layer3 ls -la /app/shared/
+docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated exec postgres psql -U postgres -d valuefabric -c "SELECT 1;"
 
 # Check container environment variables
-docker-compose exec layer3 env | sort
+docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated exec postgres env | sort
 
 # Check resource usage
 docker stats --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.NetIO}}"
 
-# Inspect container config
-docker inspect value-fabric-layer3-1 | jq '.[0].Config.Env, .[0].Config.Cmd'
-
-# Check container exit code
-docker inspect value-fabric-layer3-1 --format='{{.State.ExitCode}}'
+# Inspect container exit code
+docker inspect fabric_postgres --format='{{.State.ExitCode}}'
 ```
 
 ### 1.3 Image Management
@@ -105,18 +98,8 @@ docker image prune -f
 # Remove all unused images
 docker image prune -a -f
 
-# Remove specific image
-docker rmi value-fabric-layer3:latest
-
-# Build single image
-docker build -t value-fabric-layer3:latest -f layer3/Dockerfile .
-
-# Build with no cache
-docker build --no-cache -t value-fabric-layer3:latest -f layer3/Dockerfile .
-
 # Scan image for vulnerabilities
-docker scout cves value-fabric-layer3:latest
-trivy image value-fabric-layer3:latest
+trivy image fabric-layer3:latest
 ```
 
 ### 1.4 Network & Volume
@@ -126,11 +109,7 @@ trivy image value-fabric-layer3:latest
 docker network ls
 
 # Inspect app network
-docker network inspect value-fabric_default
-
-# Test cross-container connectivity
-docker-compose exec layer3 curl -s http://layer5:8005/health
-docker-compose exec layer3 curl -s http://redis:6379 | head -c 20
+docker network inspect compose_default
 
 # List volumes
 docker volume ls
@@ -155,182 +134,193 @@ source .venv/bin/activate
 # Activate (Windows PowerShell)
 .venv\Scripts\Activate.ps1
 
-# Install shared package
-cd shared
-pip install -e .
-cd ..
+# Install shared library in editable mode
+pip install -e packages/shared
 
-# Install layer dependencies
-cd layer3
-pip install -r requirements.txt
-pip install -e .
-cd ..
-
-# Install all dev dependencies
-pip install -r requirements-dev.txt
+# Run root setup to install all service dependencies and test dependencies
+make setup
 
 # Verify shared import works
-python -c "from shared.security import authenticate; print('OK')"
-python -c "from shared.audit import log_event; print('OK')"
-python -c "from shared.identity import get_user; print('OK')"
+python -c "import value_fabric.shared; print('OK')"
+python -c "from value_fabric.shared.tenant import TenantContext; print('OK')"
 ```
 
-### 2.2 Start Backend Layer Locally (without Docker)
+### 2.2 Start Backend Layer Locally
 
 ```bash
-# Layer 3 — Knowledge API
-cd layer3
-export PYTHONPATH=/app:$PYTHONPATH
-export DATABASE_URL=postgresql://user:pass@localhost:5432/fabric
-export REDIS_URL=redis://localhost:6379
-export NEO4J_URL=bolt://localhost:7687
-uvicorn src.main:app --host 0.0.0.0 --port 8003 --reload
+# Layer 1 — Ingestion API (Port 8001)
+pnpm dev:layer1
+# Or directly via uvicorn:
+# uvicorn layer1_ingestion.api.app:app --app-dir services/layer1-ingestion/src --port 8001 --reload
 
-# Layer 1 — Ingestion API
-cd layer1
-export PYTHONPATH=/app:$PYTHONPATH
-export OPENAI_API_KEY=$OPENAI_API_KEY
-uvicorn src.main:app --host 0.0.0.0 --port 8001 --reload
+# Layer 2 — Extraction API (Port 8002)
+pnpm dev:layer2
+# Or directly via uvicorn:
+# uvicorn layer2_extraction.api.app:app --app-dir services/layer2-extraction/src --port 8002 --reload
 
-# Layer 4 — Agent API
-cd layer4
-export PYTHONPATH=/app:$PYTHONPATH
-export OPENAI_API_KEY=$OPENAI_API_KEY
-uvicorn src.main:app --host 0.0.0.0 --port 8004 --reload
+# Layer 3 — Knowledge Graph API (Port 8003)
+pnpm dev:layer3
+# Or directly via uvicorn:
+# uvicorn api.app:app --app-dir services/layer3-knowledge/src --port 8003 --reload
+
+# Layer 4 — Agentic Workflow Engine (Port 8004)
+pnpm dev:layer4
+# Or directly via uvicorn:
+# uvicorn layer4_agents.api.app:app --app-dir services/layer4-agents/src --port 8004 --reload
+
+# Layer 5 — Ground Truth API (Port 8005)
+pnpm dev:layer5
+# Or directly via uvicorn:
+# uvicorn layer5_ground_truth.api.app:app --app-dir services/layer5-ground-truth/src --port 8005 --reload
+
+# Layer 6 — Benchmark Service (Port 8006)
+pnpm dev:layer6
+# Or directly via uvicorn:
+# uvicorn layer6_benchmarks.api.app:app --app-dir services/layer6-benchmarks/src --port 8006 --reload
 ```
 
 ### 2.3 Database Migrations
 
+Migrations are maintained per service via Alembic.
+
 ```bash
-# Check current migration version
-cd layer3
-alembic current
+# Run all layer database migrations
+make migrate
 
-# Show migration history
-alembic history --verbose
+# Check migration heads (ensure exactly one head per service)
+make check-migration-heads
 
-# Upgrade to latest
-alembic upgrade head
+# Layer 1 migrations
+make migrate-layer1
+# or: cd services/layer1-ingestion && alembic upgrade head
 
-# Upgrade one step
-alembic upgrade +1
+# Layer 2 migrations
+make migrate-layer2
+# or: cd services/layer2-extraction && alembic upgrade head
 
-# Downgrade one step
-alembic downgrade -1
+# Layer 4 migrations
+make migrate-layer4
+# or: cd services/layer4-agents && alembic upgrade head
 
-# Create new migration
-alembic revision --autogenerate -m "add user preferences"
+# Layer 5 migrations
+make migrate-layer5
+# or: cd services/layer5-ground-truth && alembic upgrade head
 
-# Stamp database at current (for fresh DB)
-alembic stamp head
+# Create new migration in a specific service
+cd services/layer4-agents && alembic revision --autogenerate -m "add workflow checkpoint table"
 ```
 
 ### 2.4 Python Code Quality
 
 ```bash
-# Format with black
-black shared/ layer*/src/
+# Format & lint check across all Python services with ruff
+make lint
 
-# Format with isort
-isort shared/ layer*/src/
+# Per-layer linting
+make lint-layer1
+make lint-layer2
+make lint-layer3
+make lint-layer4
+make lint-layer5
+make lint-layer6
 
-# Lint with ruff (fast)
-ruff check shared/ layer*/src/
-ruff check --fix shared/ layer*/src/
+# Auto-fix linting issues
+ruff check --fix services/ packages/
 
-# Type check with mypy
-mypy shared/ layer*/src/ --ignore-missing-imports
+# Type check all layers with mypy
+make typecheck
 
-# Full quality check
-ruff check . && black --check . && mypy .
+# Per-layer typecheck
+make typecheck-layer1
+make typecheck-layer4
 ```
 
 ---
 
 ## 3. Frontend Build & Startup
 
+The monorepo uses **pnpm** exclusively (`corepack prepare pnpm@10.18.1 --activate`). Do not use `npm` or `yarn`.
+
 ### 3.1 Install & Build
 
 ```bash
-cd apps/web
+# Install root & workspace dependencies
+pnpm install --frozen-lockfile
 
-# Install dependencies
-npm install
+# Frontend dev server (port 3001, with mock API)
+pnpm dev:web
+# Or scoped to apps/web:
+# pnpm --dir apps/web run dev
 
-# Install specific package
-npm install @tanstack/react-query
-
-# Dev server (port 5173)
-npm run dev
+# Frontend against live backend services
+pnpm --dir apps/web run dev:live
 
 # Type check
-npx tsc --noEmit
+pnpm --dir apps/web run typecheck
 
 # Lint
-npm run lint
+pnpm --dir apps/web run lint
 
-# Lint + fix
-npm run lint -- --fix
+# Format
+pnpm --dir apps/web run format
 
 # Production build
-npm run build
+pnpm --dir apps/web run build
 
-# Preview production build (port 4173)
-npm run preview
+# Preview production build
+pnpm --dir apps/web run preview
+
+# Analyze bundle size
+pnpm --dir apps/web run build:analyze
 ```
 
-### 3.2 Shadcn/UI Operations
+### 3.2 Component and Contract Checks
 
 ```bash
-cd apps/web
+# Check contract compliance
+pnpm run check:contract-compliance
 
-# Add component
-npx shadcn add button card dialog
+# Regenerate API types from contracts and assert no drift
+pnpm run check:api-types
 
-# Add all common components
-npx shadcn add button card dialog sheet table badge input skeleton avatar select dropdown-menu
-
-# Check shadcn version
-npx shadcn --version
-
-# Update components
-npx shadcn update
-
-# Diff local changes against upstream
-npx shadcn diff
+# Verify full frontend test suite
+pnpm run verify:frontend
 ```
 
 ### 3.3 Frontend Testing
 
 ```bash
-cd apps/web
+# Unit & component tests (Vitest)
+pnpm --dir apps/web run test
 
-# Unit tests (watch mode)
-npx vitest
-
-# Unit tests (single run)
-npx vitest run
+# Unit tests in watch mode
+pnpm --dir apps/web run test:watch
 
 # Unit tests with coverage
-npx vitest run --coverage
+pnpm --dir apps/web run test:coverage
 
-# E2E tests (all)
-npx playwright test
+# Contract tests
+pnpm --dir apps/web run test:contracts
 
-# E2E tests (specific file)
-npx playwright test e2e/auth.spec.ts
+# Production auth bypass security assertion
+pnpm --dir apps/web run test:prod-auth-bypass
 
-# E2E tests (headed mode for debugging)
-npx playwright test --headed
+# E2E tests (Playwright mocked)
+pnpm --dir apps/web run test:e2e
 
-# E2E tests (specific project)
-npx playwright test --project=chromium
+# E2E tests against live backend
+pnpm --dir apps/web run test:e2e:live
 
-# E2E code generation
-npx playwright codegen http://localhost:5173
+# Continuous live role-authenticated E2E suite (@backend specs: J1 ValuePilot continuous,
+# J2 multi-role approval, cross-tenant denial) — requires a running live backend stack
+pnpm --dir apps/web run test:e2e:live:continuous
 
-# Show report
-npx playwright show-report
+# Specific golden-path journey E2E test
+pnpm --dir apps/web run test:e2e:golden:j1:canonical
+
+# Accessibility tests
+pnpm --dir apps/web run test:a11y:components
+pnpm --dir apps/web run test:a11y:pages
 ```
 
 ---
@@ -340,11 +330,11 @@ npx playwright show-report
 ### 4.1 PostgreSQL
 
 ```bash
-# Connect to database
-docker-compose exec postgres psql -U fabric -d fabric
+# Connect to PostgreSQL via Docker Compose
+docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated exec postgres psql -U postgres -d valuefabric
 
-# Or from host (if port exposed)
-psql postgresql://fabric:password@localhost:5432/fabric
+# Or from host (port 5432)
+psql postgresql://fabric:fabric@localhost:5432/fabric
 
 # Common psql commands inside database:
 \dt                    # List tables
@@ -357,69 +347,42 @@ psql postgresql://fabric:password@localhost:5432/fabric
 # Check connection from host
 pg_isready -h localhost -p 5432
 
-# Run SQL file
-docker-compose exec -T postgres psql -U fabric -d fabric < seed.sql
-
 # Backup database
-docker-compose exec postgres pg_dump -U fabric fabric > backup_$(date +%Y%m%d).sql
+docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated exec postgres pg_dump -U postgres valuefabric > backup_$(date +%Y%m%d).sql
 
 # Restore database
-cat backup_20240115.sql | docker-compose exec -T postgres psql -U fabric -d fabric
-
-# Check table sizes
-SELECT schemaname, tablename,
-       pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) AS size
-FROM pg_tables
-WHERE schemaname = 'public'
-ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC;
+cat backup.sql | docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated exec -T postgres psql -U postgres -d valuefabric
 ```
 
 ### 4.2 Redis
 
 ```bash
-# Connect
-docker-compose exec redis redis-cli
+# Connect to Redis CLI
+docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated exec redis redis-cli
 
 # Common commands:
 PING                   # Test connectivity
 INFO                   # Server info
 DBSIZE                 # Key count
-KEYS "*"               # List all keys (DON'T in production)
 SCAN 0 COUNT 100       # Iterate keys safely
 TTL <key>              # Check expiration
-FLUSHALL               # Clear all (DESTRUCTIVE)
 MONITOR                # Watch real-time commands (Ctrl+C to stop)
 
 # Or from host
 redis-cli -h localhost -p 6379 PING
-
-# Check memory usage
-redis-cli INFO memory | grep used_memory_human
 ```
 
 ### 4.3 Neo4j
 
 ```bash
-# Cypher shell
-docker-compose exec neo4j cypher-shell -u neo4j -p $NEO4J_PASSWORD
+# Cypher shell via Docker Compose
+docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated exec neo4j cypher-shell -u neo4j -p devpassword
 
 # Common cypher queries:
 MATCH (n) RETURN count(n);                    # Count all nodes
 MATCH (n) RETURN labels(n), count(n);         # Count by label
 SHOW INDEXES;                                 # List indexes
-CALL db.schema.visualization();               # Visual schema
-MATCH (n {name: 'Cloud'}) RETURN n;           # Find by property
 MATCH (n)-[r]-(m) RETURN n, r, m LIMIT 10;   # Relationships
-
-# Or via HTTP
-curl -u neo4j:$NEO4J_PASSWORD \
-  -H "Content-Type: application/json" \
-  -X POST http://localhost:7474/db/neo4j/tx/commit \
-  -d '{"statements":[{"statement":"MATCH (n) RETURN count(n)"}]}'
-
-# Check APOC plugin
-docker-compose exec neo4j cypher-shell -u neo4j -p $NEO4J_PASSWORD \
-  "CALL apoc.meta.stats() YIELD labels RETURN labels;"
 ```
 
 ---
@@ -429,71 +392,55 @@ docker-compose exec neo4j cypher-shell -u neo4j -p $NEO4J_PASSWORD \
 ### 5.1 Backend Test Suite
 
 ```bash
-# All tests
-python -m pytest
+# All backend tests
+make test
 
-# With verbose output
-python -m pytest -xvs
+# Per-layer testing
+make test-layer1
+make test-layer2
+make test-layer3
+make test-layer4
+make test-layer5
+make test-layer6
 
-# Specific marker
-python -m pytest -m unit
-python -m pytest -m integration
-python -m pytest -m e2e
-python -m pytest -m "not slow"
+# Run specific test file
+pytest services/layer4-agents/tests/test_audit_orchestrator.py -v
 
-# Specific file
-python -m pytest tests/layer3/test_entity_service.py -xvs
+# Run with pytest markers
+pytest -m unit
+pytest -m integration
+pytest -m contract_static
+pytest -m tenant_boundary
+pytest -m security
 
-# Specific test
-python -m pytest tests/layer3/test_entity_service.py::TestEntityService::test_create_entity -xvs
-
-# Parallel execution
-python -m pytest -n auto
+# Parallel test execution
+pytest -n auto
 
 # With coverage
-python -m pytest --cov=src --cov-report=term-missing --cov-report=html
-
-# Coverage with threshold
-python -m pytest --cov=src --cov-fail-under=80
-
-# Randomized order
-python -m pytest --randomly-seed=last
-
-# With timeout
-python -m pytest --timeout=60
-
-# Performance tests only
-python -m pytest -m performance --timeout=300 -v
-
-# Security tests only
-python -m pytest -m security -v
+pytest --cov=services --cov-report=term-missing
 ```
 
-### 5.2 Contract Tests
+### 5.2 Contract & Architecture Tests
 
 ```bash
-# Run schemathesis against running API
-st run http://localhost:8003/openapi.json \
-  --base-url http://localhost:8003 \
-  --checks all \
-  --hypothesis-max-examples=100
+# Contract and architecture tests (no live services needed)
+make contract-tests
 
-# Or via pytest
-python -m pytest tests/contract/ -v
+# Direct pytest contract invocation
+pytest tests/contract/ -v
+
+# Security & tenant-boundary tests
+pytest tests/security/ -v
 ```
 
-### 5.3 Smoke Tests
+### 5.3 Integrated Validation & Smoke Tests
 
 ```bash
-# Run smoke test suite
-cd value-fabric
+# Backend-integrated validation (requires running Docker dev stack)
+make test-backend-integrated-validation
+
+# Release smoke test suite
 make test-backend-integrated-release-smoke
-
-# Or inline health check
-for port in 8001 8002 8003 8004 8005 8006; do
-  echo -n "Layer$((port-8000)) (port $port): "
-  curl -s -o /dev/null -w "%{http_code}" http://localhost:$port/health && echo " OK" || echo " FAIL"
-done
 ```
 
 ---
@@ -503,88 +450,34 @@ done
 ### 6.1 Layer Health Checks
 
 ```bash
-#!/bin/bash
-# save as: scripts/check-all-health.sh
-
-echo "═══════════════════════════════════════════════════════════"
-echo "FABRIC_4L HEALTH CHECK — $(date)"
-echo "═══════════════════════════════════════════════════════════"
-
-PORTS=(8001 8002 8003 8004 8005 8006)
-NAMES=("L1:Ingestion" "L2:Extraction" "L3:Knowledge" "L4:Agents" "L5:GroundTruth" "L6:Benchmarks")
-HEALTHY=0
-
-for i in "${!PORTS[@]}"; do
-  port="${PORTS[$i]}"
-  name="${NAMES[$i]}"
-
-  # Check HTTP health
-  http_code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 "http://localhost:$port/health" 2>/dev/null)
-
-  # Check response body
-  body=$(curl -s --max-time 5 "http://localhost:$port/health" 2>/dev/null | head -c 100)
-
-  if [ "$http_code" = "200" ]; then
-    echo "  ✅ $name (port $port) — HTTP 200"
-    echo "     Response: $body"
-    ((HEALTHY++))
-  else
-    echo "  ❌ $name (port $port) — HTTP ${http_code:-"UNREACHABLE"}"
-    # Show last logs
-    docker-compose logs --tail=5 "layer$((i+1))" 2>/dev/null | tail -3
-  fi
-done
-
-echo ""
-echo "Result: $HEALTHY/${#PORTS[@]} layers healthy"
-[ "$HEALTHY" -eq "${#PORTS[@]}" ] && echo "✅ ALL HEALTHY" || echo "❌ SOME UNHEALTHY"
+# Health check endpoints
+curl -f http://localhost:8001/health          # Layer 1
+curl -f http://localhost:8002/health          # Layer 2
+curl -f http://localhost:8003/health          # Layer 3
+curl -f http://localhost:8004/health          # Layer 4
+curl -f http://localhost:8005/health          # Layer 5
+curl -f http://localhost:8006/health          # Layer 6
+curl -f http://localhost:3001/                # Frontend (Vite)
 ```
 
-### 6.2 Full System Validation
+### 6.2 Full Verification Gate
 
 ```bash
-#!/bin/bash
-# save as: scripts/validate-system.sh
+# Canonical gate for full platform verification (required before PR)
+make verify
 
-echo "=== INFRASTRUCTURE ==="
-docker-compose ps postgres redis neo4j | grep -q "Up" && echo "✅ Infrastructure" || echo "❌ Infrastructure"
-pg_isready -h localhost -p 5432 > /dev/null 2>&1 && echo "✅ PostgreSQL" || echo "❌ PostgreSQL"
-redis-cli -h localhost -p 6379 ping | grep -q "PONG" && echo "✅ Redis" || echo "❌ Redis"
-curl -s http://localhost:7474 | head -c 1 > /dev/null 2>&1 && echo "✅ Neo4j" || echo "❌ Neo4j"
+# Behavior readiness audit
+make check-behavior-readiness-audit
 
-echo ""
-echo "=== BACKEND LAYERS ==="
-for port in 8001 8002 8003 8004 8005 8006; do
-  layer="layer$((port-8000))"
-  code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 "http://localhost:$port/health")
-  [ "$code" = "200" ] && echo "✅ $layer (port $port)" || echo "❌ $layer (port $port): HTTP $code"
-done
-
-echo ""
-echo "=== SHARED PACKAGE ==="
-for layer in layer1 layer2 layer3 layer4 layer5 layer6; do
-  if docker-compose ps "$layer" | grep -q "Up"; then
-    result=$(docker-compose exec -T "$layer" python -c "import shared; print('OK')" 2>&1)
-    [ "$result" = "OK" ] && echo "✅ $layer: shared imports" || echo "❌ $layer: shared import failed"
-  fi
-done
-
-echo ""
-echo "=== CROSS-LAYER CONNECTIVITY ==="
-docker-compose exec -T layer3 curl -s --max-time 5 http://layer5:8005/health > /dev/null 2>&1 && echo "✅ L3→L5" || echo "❌ L3→L5"
-docker-compose exec -T layer4 curl -s --max-time 5 http://layer1:8001/health > /dev/null 2>&1 && echo "✅ L4→L1" || echo "❌ L4→L1"
-
-echo ""
-echo "=== FRONTEND ==="
-curl -s -o /dev/null -w "%{http_code}" --max-time 5 http://localhost:5173 > /dev/null 2>&1 && echo "✅ Frontend (dev)" || echo "❌ Frontend (dev)"
-curl -s -o /dev/null -w "%{http_code}" --max-time 5 http://localhost:80 > /dev/null 2>&1 && echo "✅ Frontend (prod)" || echo "❌ Frontend (prod)"
+# Critical behaviors suite
+pnpm run test:critical-behaviors
 ```
 
 ---
 
 ## 7. Kubernetes Operations
 
-### 7.1 Local K8s (Docker Desktop / minikube / kind)
+### 7.1 Local K8s & Deployments
 
 ```bash
 # Check cluster
@@ -594,109 +487,63 @@ kubectl get nodes
 # Set namespace
 kubectl config set-context --current --namespace=fabric
 
-# Apply all manifests
+# Apply manifests
 kubectl apply -f k8s/
 
-# Apply specific layer
-kubectl apply -f k8s/layer3-deployment.yml
-kubectl apply -f k8s/layer3-service.yml
-
-# Check status
-kubectl get pods
-kubectl get pods -w                          # Watch mode
-kubectl get pods -o wide                     # With node info
-kubectl get svc                              # Services
-kubectl get ingress                          # Ingress rules
-kubectl get pvc                              # Persistent volumes
+# Check pod and service status
+kubectl get pods -n fabric
+kubectl get svc -n fabric
+kubectl get ingress -n fabric
 
 # Pod logs
-kubectl logs -f deployment/layer3 --tail=50
-kubectl logs -f pod/layer3-abc123 --tail=50
-
-# Previous pod logs (after crash)
-kubectl logs pod/layer3-abc123 --previous
+kubectl logs -f deployment/layer3 --tail=50 -n fabric
 
 # Exec into pod
-kubectl exec -it deployment/layer3 -- bash
-kubectl exec -it pod/layer3-abc123 -- python -c "import shared; print('OK')"
+kubectl exec -it deployment/layer3 -n fabric -- python -c "import value_fabric.shared; print('OK')"
 
-# Describe pod (events, status)
-kubectl describe pod layer3-abc123
-
-# Port forward (access service locally)
-kubectl port-forward svc/layer3 8003:8003
-
-# Scale deployment
-kubectl scale deployment layer3 --replicas=3
-
-# Rollout status
-kubectl rollout status deployment/layer3
-kubectl rollout history deployment/layer3
-
-# Rollback
-kubectl rollout undo deployment/layer3
-kubectl rollout undo deployment/layer3 --to-revision=2
+# Port forward
+kubectl port-forward svc/layer3 8003:8003 -n fabric
 ```
 
-### 7.2 Secrets
+### 7.2 Secrets & Infisical
 
 ```bash
-# View secrets (names only)
-kubectl get secrets
+# View secrets
+kubectl get secrets -n fabric
 
-# Verify placeholder guardrail status without printing secret values
+# Verify placeholder guardrails without printing secret values
 python scripts/security/placeholder_secret_scan.py --runtime
 
-# Production/staging: source secrets through ExternalSecret or Infisical
-kubectl apply -f k8s/external-secrets/layer4-secrets.yaml
-kubectl apply -f k8s/infisical/infisical-secret.yml
-
-# Dev-only fallback: create local Secret imperatively; do not commit the output
-kubectl create secret generic fabric-secrets \
-  --from-env-file=.env \
-  --dry-run=client -o yaml | kubectl apply -f -
+# Apply external secrets
+kubectl apply -f k8s/external-secrets/
+kubectl apply -f k8s/infisical/
 ```
 
 ---
 
 ## 8. Monitoring & Observability
 
-### 8.1 Prometheus
+### 8.1 Prometheus & Alertmanager
 
 ```bash
-# Check targets
+# Check Prometheus targets
 curl -s http://localhost:9090/api/v1/targets | jq '.data.activeTargets[] | {job, health}'
 
 # Query metric
 curl -s "http://localhost:9090/api/v1/query?query=up" | jq '.data.result'
 
-# Check rules
-curl -s http://localhost:9090/api/v1/rules | jq '.data.groups[].rules[] | {name, state}'
+# Alertmanager status
+curl -s http://localhost:9093/api/v1/status | jq '.data.clusterStatus'
+
+# Alertmanager active alerts
+curl -s http://localhost:9093/api/v1/alerts | jq '.data[] | {labels, status}'
 ```
 
 ### 8.2 Grafana
 
 ```bash
-# Import dashboard
-curl -X POST http://admin:admin@localhost:3000/api/dashboards/db \
-  -H "Content-Type: application/json" \
-  -d @monitoring/grafana/dashboards/value-fabric-operational.json
-
 # List dashboards
 curl -s http://admin:admin@localhost:3000/api/search | jq '.[] | {title, uid}'
-
-# Check datasource
-curl -s http://admin:admin@localhost:3000/api/datasources | jq '.[] | {name, type, url}'
-```
-
-### 8.3 Alertmanager
-
-```bash
-# Check status
-curl -s http://localhost:9093/api/v1/status | jq '.data.clusterStatus'
-
-# Check active alerts
-curl -s http://localhost:9093/api/v1/alerts | jq '.data[] | {labels, status}'
 ```
 
 ---
@@ -711,52 +558,28 @@ git status
 git log --oneline -10
 
 # Create feature branch
-git checkout -b feature/fabric-theme-cleanup
+git checkout -b feat/layer4-checkpoint-resume
 
 # Stage changes
 git add -A
 
-# Commit with descriptive message
-git commit -m "refactor: migrate all pages to Fabric primitives
+# Commit with descriptive message and AI co-author if applicable
+git commit -m "feat(layer4): add checkpoint resume capability
 
-- Replace ad-hoc PageHeader with <PageHeader> component
-- Replace div cards with <FabricCard>
-- Centralize entity colors in entity-colors.ts
-- Remove 23 inline style blocks
-- Remove 15 unused imports
-
-Refs: #42"
+Co-authored-by: Ona <no-reply@ona.com>"
 
 # Push branch
-git push -u origin feature/fabric-theme-cleanup
-
-# Update from main
-git fetch origin
-git rebase origin/main
-
-# Squash commits before merge
-git rebase -i HEAD~5
+git push -u origin feat/layer4-checkpoint-resume
 ```
 
-### 9.2 Repository Analysis
+### 9.2 Pre-commit Hooks
 
 ```bash
-# Lines of code by language
-git ls-files | xargs wc -l | tail -1
-git ls-files "*.py" | xargs wc -l | tail -1
-git ls-files "*.ts" "*.tsx" | xargs wc -l | tail -1
+# Run pre-commit hooks on all files
+pre-commit run --all-files
 
-# Most changed files
-git log --pretty=format: --name-only | sort | uniq -c | sort -rg | head -20
-
-# Largest files
-git ls-files | xargs wc -l | sort -rn | head -20
-
-# Recent activity
-git log --oneline --since="1 week ago" --graph
-
-# Find who wrote a line
-git blame -L 45,50 src/pages/ValueNarrativeHome.tsx
+# Install pre-commit hooks
+pre-commit install
 ```
 
 ---
@@ -766,82 +589,31 @@ git blame -L 45,50 src/pages/ValueNarrativeHome.tsx
 ### 10.1 Python Debugging
 
 ```bash
-# Start with debugger
-python -m pdb script.py
-
-# Post-mortem debugging
-python -c "import pdb; pdb.pm()"  # after traceback
-
-# IPython embed
-from IPython import embed; embed()  # in code
-
-# Remote debugging
-import debugpy; debugpy.listen(("0.0.0.0", 5678)); debugpy.wait_for_client()
-
-# Profile a script
-python -m cProfile -s cumtime script.py
-
-# Memory profiling
-python -m memory_profiler script.py
-
 # Trace imports
-python -v -c "import shared" 2>&1 | grep -E "import |#"
+python -v -c "import value_fabric.shared" 2>&1 | grep -E "import |#"
+
+# Run specific failing test with traceback and stdout
+pytest services/layer4-agents/tests/test_audit_orchestrator.py -vv -s --tb=short
 ```
 
 ### 10.2 Container Debugging
 
 ```bash
-# Container won't start — check logs
-docker-compose logs --tail=50 layer3
+# Check container logs
+docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated logs --tail=50 postgres
 
-# Container crashes immediately — inspect without starting
-docker-compose run --rm --entrypoint sh layer3
-
-# Check for port conflicts
-lsof -i :8003
-netstat -tlnp | grep 8003
-
-# Check disk space
-df -h
-docker system df
-
-# Check memory
-free -h
-docker stats --no-stream
-
-# Network issues between containers
-docker-compose exec layer3 ping -c 3 postgres
-docker-compose exec layer3 nc -zv postgres 5432
-docker-compose exec layer3 curl -v http://layer5:8005/health
-
-# Inspect failed container (won't stay running)
-docker commit failed_container debug_image
-docker run -it --entrypoint sh debug_image
-
-# Check environment inside container
-docker-compose run --rm layer3 env | sort
+# Check port conflicts
+lsof -i :8003 || netstat -tlnp | grep 8003
 ```
 
 ### 10.3 Frontend Debugging
 
 ```bash
-# Start dev server with network exposed
-npm run dev -- --host
+# Start dev server with exposed host
+pnpm --dir apps/web run dev -- --host
 
-# Build with source maps
-npm run build -- --sourcemap
-
-# Analyze bundle
-npx vite-bundle-visualizer
-
-# Check for circular dependencies
-npx madge --circular src/
-
-# Find unused exports
-npx ts-prune --project tsconfig.json
-
-# Lint specific rule
-npx eslint src/ --rule '@typescript-eslint/no-explicit-any: error'
+# Check for type errors
+pnpm --dir apps/web run typecheck
 ```
 
 ---
@@ -851,174 +623,66 @@ npx eslint src/ --rule '@typescript-eslint/no-explicit-any: error'
 ### 11.1 Quick System Pulse
 
 ```bash
-# Everything in one command — infrastructure + layers + frontend
-for svc in "postgres:5432:PostgreSQL" "redis:6379:Redis" "neo4j:7474:Neo4j"; do
-  IFS=: read host port name <<< "$svc"
-  timeout 2 bash -c "cat < /dev/null > /dev/tcp/localhost/$port" 2>/dev/null && echo "✅ $name" || echo "❌ $name"
-done && for p in 8001 8002 8003 8004 8005 8006; do
-  code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 3 "http://localhost:$p/health")
-  [ "$code" = "200" ] && echo "✅ Layer$((p-8000)) (port $p)" || echo "❌ Layer$((p-8000)) (port $p): HTTP $code"
-done && curl -s -o /dev/null -w "%{http_code}" --max-time 3 http://localhost:5173 > /dev/null 2>&1 && echo "✅ Frontend" || echo "❌ Frontend"
-```
-
-### 11.2 Docker Full Stack Build & Validate
-
-```bash
-cd value-fabric && \
-docker-compose down -v 2>/dev/null; \
-docker-compose build --no-cache 2>&1 | tail -20 && \
-docker-compose up -d && \
-sleep 15 && \
-echo "=== CONTAINER STATUS ===" && \
-docker-compose ps --format "table {{.Service}}\t{{.Status}}" && \
-echo "=== HEALTH CHECKS ===" && \
-for p in 8001 8002 8003 8004 8005 8006; do
-  echo -n "Port $p: "; curl -s -o /dev/null -w "%{http_code}\n" --max-time 5 "http://localhost:$p/health"
+# Check running ports for infrastructure and layers
+for p in 5432 6379 7474 8001 8002 8003 8004 8005 8006 3001; do
+  nc -z -v -w3 localhost $p 2>/dev/null && echo "✅ Port $p listening" || echo "❌ Port $p closed";
 done
 ```
 
-### 11.3 Frontend Full Pipeline
+### 11.2 Frontend Full Pipeline
 
 ```bash
-cd apps/web && \
-npm ci && \
-npx tsc --noEmit && \
-npm run lint && \
-npx vitest run --coverage && \
-npm run build && \
-echo "✅ Frontend pipeline complete"
+pnpm --dir apps/web run typecheck && pnpm --dir apps/web run lint && pnpm --dir apps/web run test && pnpm --dir apps/web run build && echo "✅ Frontend pipeline complete"
 ```
 
-### 11.4 Backend Full Pipeline
+### 11.3 Backend Full Pipeline
 
 ```bash
-cd value-fabric && \
-python -m compileall shared/ layer*/src/ 2>&1 | grep -c "Error" | grep -q "^0$" && echo "✅ Compile" || echo "❌ Compile" && \
-ruff check shared/ layer*/src/ 2>&1 | tail -5 && \
-black --check shared/ layer*/src/ 2>&1 | tail -5 && \
-python -m pytest -xvs --timeout=60 2>&1 | tail -20
+make lint && make typecheck && make test && echo "✅ Backend pipeline complete"
 ```
 
 ---
 
-## 12. Environment Setup Scripts
+## 12. Environment Setup Scripts & Common Operations
 
-### 12.1 Full Development Environment (macOS/Linux)
+### 12.1 First-Time Setup Flow
 
 ```bash
-#!/bin/bash
-# save as: scripts/setup-dev-env.sh
-set -e
+# 1. Enable pnpm via corepack
+corepack enable
+corepack prepare pnpm@10.18.1 --activate
 
-echo "=== Fabric_4L Development Environment Setup ==="
+# 2. Install frontend & workspace dependencies
+pnpm install --frozen-lockfile
 
-# Check prerequisites
-command -v docker >/dev/null 2>&1 || { echo "❌ Docker required"; exit 1; }
-command -v python3 >/dev/null 2>&1 || { echo "❌ Python 3 required"; exit 1; }
-command -v node >/dev/null 2>&1 || { echo "❌ Node.js required"; exit 1; }
-command -v psql >/dev/null 2>&1 || { echo "⚠️ psql not found (optional)"; }
-command -v redis-cli >/dev/null 2>&1 || { echo "⚠️ redis-cli not found (optional)"; }
+# 3. Setup Python service dependencies
+make setup
 
-echo "✅ Prerequisites met"
+# 4. Generate local dev env and launch infra containers
+pnpm env:dev && docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated up -d
 
-# Create .env if missing
-if [ ! -f .env ]; then
-  cp .env.example .env
-  echo "⚠️ Created .env from example — UPDATE WITH REAL VALUES"
-fi
+# 5. Run database migrations
+make migrate
 
-# Python virtual environment
-if [ ! -d .venv ]; then
-  python3 -m venv .venv
-  echo "✅ Created virtual environment"
-fi
-source .venv/bin/activate
-
-# Install shared package
-pip install -e shared/
-echo "✅ Installed shared package"
-
-# Install dev dependencies
-pip install -r requirements-dev.txt
-echo "✅ Installed dev dependencies"
-
-# Frontend dependencies
-cd apps/web
-npm install
-echo "✅ Installed frontend dependencies"
-cd ../..
-
-# Start infrastructure
-cd value-fabric
-docker-compose up -d postgres redis neo4j
-sleep 10
-echo "✅ Infrastructure started"
-
-# Run health check
-pg_isready -h localhost -p 5432 && echo "✅ PostgreSQL" || echo "❌ PostgreSQL"
-redis-cli -h localhost ping | grep -q "PONG" && echo "✅ Redis" || echo "❌ Redis"
-curl -s http://localhost:7474 > /dev/null 2>&1 && echo "✅ Neo4j" || echo "❌ Neo4j"
-
-echo ""
-echo "=== Setup Complete ==="
-echo "Next steps:"
-echo "  1. Update .env with real secrets"
-echo "  2. cd value-fabric && docker-compose up -d (all services)"
-echo "  3. cd apps/web && npm run dev"
-echo "  4. Open http://localhost:5173"
+# 6. Verify everything passes
+make verify
 ```
 
-### 12.2 Makefile for Common Operations
+### 12.2 Common Make Targets
 
-```makefile
-# save as: Makefile (or reference existing root Makefile)
-.PHONY: help up down build test lint clean health frontend backend
-
-help: ## Show this help
-	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
-
-up: ## Start all services
-	cd value-fabric && docker-compose up -d
-
-down: ## Stop all services
-	cd value-fabric && docker-compose down
-
-build: ## Build all containers
-	cd value-fabric && docker-compose build --no-cache
-
-test: ## Run all tests
-	python -m pytest -xvs --timeout=60
-	cd apps/web && npx vitest run
-
-lint: ## Run all linters
-	ruff check shared/ layer*/src/
-	black --check shared/ layer*/src/
-	cd apps/web && npm run lint && npx tsc --noEmit
-
-health: ## Check all service health
-	@for p in 8001 8002 8003 8004 8005 8006; do \
-		code=$$(curl -s -o /dev/null -w "%{http_code}" --max-time 3 "http://localhost:$$p/health"); \
-		[ "$$code" = "200" ] && echo "✅ Layer$$((p-8000)) (port $$p)" || echo "❌ Layer$$((p-8000)) (port $$p): $$code"; \
-	done
-
-frontend: ## Start apps/web dev server
-	cd apps/web && npm run dev
-
-backend: ## Start backend (layer 3 example)
-	cd layer3 && PYTHONPATH=/app:$$PYTHONPATH uvicorn src.main:app --reload --port 8003
-
-clean: ## Clean build artifacts and containers
-	cd value-fabric && docker-compose down -v
-	docker system prune -f
-	rm -rf apps/web/node_modules/.cache
-	rm -rf .pytest_cache htmlcov .coverage
-
-setup: ## Initial development setup
-	bash scripts/setup-dev-env.sh
+```bash
+make help               # Display all available targets and descriptions
+make verify             # Run full verification suite (lint, typecheck, contract tests, unit tests)
+make test               # Run all Python backend tests
+make lint               # Run Python linting (ruff)
+make typecheck          # Run Python type checking (mypy)
+make migrate            # Run Alembic migrations across all layers
+make contract-tests     # Run API and architecture contract tests
+make clean              # Clean cache files, pyc files, and test artifacts
 ```
 
 ---
 
-**Usage:** `make health | make up | make test | make lint | make build`
+**Usage:** `make verify | make test | pnpm dev:web | make migrate`
 
 All commands are copy-pasteable and tested against the Fabric_4L stack architecture.

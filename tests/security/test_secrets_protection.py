@@ -22,13 +22,9 @@ if TYPE_CHECKING:
     from logging import Logger, StreamHandler
 
 # Test constants to avoid hardcoded secrets
-SAMPLE_API_KEY = "vf_live_1234567890abcdef"
-SAMPLE_JWT = (
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9."
-    "eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ."
-    "SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
-)
-SAMPLE_PASSWORD = "SuperSecretPassword123!"
+SAMPLE_API_KEY = "vf_test_dummy_1234567890abcdef"
+SAMPLE_JWT = "dummy_test_header_12345.dummy_test_payload_12345.dummy_test_signature_for_testing_only_12345"
+SAMPLE_PASSWORD = "dummy_test_password_123!"
 SAMPLE_CONN_STRING = "postgresql://user:secret_password@localhost:5432/dbname"
 
 
@@ -75,7 +71,7 @@ class TestSecretsNotInPlaintextLogs:
         handler.flush()
 
         log_output = log_stream.getvalue()
-        assert "vf_live_" not in log_output, "API key prefix found in log"
+        assert "vf_test_dummy_" not in log_output, "API key prefix found in log"
         assert hashed in log_output, "Expected hash in log output"
 
     def test_jwt_token_not_logged_in_plaintext(self, log_capture) -> None:
@@ -126,7 +122,7 @@ class TestSecretHashingBehavior:
 
     def test_hash_is_one_way(self) -> None:
         """Hash should not be reversible to original secret."""
-        secret = "super-sensitive-secret"
+        secret = "dummy_test_sensitive_secret"
         hashed = _hash_secret(secret)
         assert secret not in hashed
         assert hashed != secret

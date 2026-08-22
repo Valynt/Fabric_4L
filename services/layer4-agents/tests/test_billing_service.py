@@ -371,7 +371,7 @@ async def test_handle_webhook_checkout_completed(mock_db):
         result = await service.handle_webhook(
             payload=b'{"test": "payload"}',
             signature="test_sig",
-            webhook_secret="whsec_test",
+            webhook_secret="whsec_test_dummy",
         )
 
     assert result.id == event_id
@@ -403,7 +403,7 @@ async def test_handle_webhook_idempotency(mock_db):
         result = await service.handle_webhook(
             payload=b'{"test": "payload"}',
             signature="test_sig",
-            webhook_secret="whsec_test",
+            webhook_secret="whsec_test_dummy",
         )
 
     assert result.id == event_id  # Returns inbox even though already processed
@@ -460,7 +460,7 @@ async def test_webhook_invalid_signature(mock_db):
             await service.handle_webhook(
                 payload=b'{"test": "payload"}',
                 signature="invalid_sig",
-                webhook_secret="whsec_test",
+                webhook_secret="whsec_test_dummy",
             )
     assert exc_info.value.code == WebhookErrorCode.INVALID_SIGNATURE
 
@@ -474,7 +474,7 @@ async def test_webhook_payload_corruption_classified_without_provider_message_co
     with patch("layer4_agents.services.billing_service._get_stripe", return_value=mock_stripe):
         service = BillingService(mock_db)
         with pytest.raises(WebhookValidationError, match="Malformed webhook payload") as exc_info:
-            await service.handle_webhook(payload=b"\x80\x81", signature="sig", webhook_secret="whsec_test")
+            await service.handle_webhook(payload=b"\x80\x81", signature="sig", webhook_secret="whsec_test_dummy")
     assert exc_info.value.code == WebhookErrorCode.MALFORMED_PAYLOAD
 
 
@@ -487,7 +487,7 @@ async def test_webhook_unexpected_exception_category_maps_to_internal_error_code
     with patch("layer4_agents.services.billing_service._get_stripe", return_value=mock_stripe):
         service = BillingService(mock_db)
         with pytest.raises(WebhookValidationError, match="Invalid payload") as exc_info:
-            await service.handle_webhook(payload=b"{}", signature="sig", webhook_secret="whsec_test")
+            await service.handle_webhook(payload=b"{}", signature="sig", webhook_secret="whsec_test_dummy")
     assert exc_info.value.code == WebhookErrorCode.INTERNAL_ERROR
 
 
@@ -968,7 +968,7 @@ async def test_webhook_subscription_created(mock_db):
         result = await service.handle_webhook(
             payload=b'{}',
             signature="sig",
-            webhook_secret="whsec_test",
+            webhook_secret="whsec_test_dummy",
         )
 
     assert result.id == "evt_sub_created"
@@ -1014,7 +1014,7 @@ async def test_webhook_subscription_updated_plan_change(mock_db, sample_subscrip
             event_id="evt_sub_updated",
             payload=b'{}',
             signature="sig",
-            webhook_secret="whsec_test",
+            webhook_secret="whsec_test_dummy",
         )
 
     assert sample_subscription.plan_id == "enterprise"
@@ -1052,7 +1052,7 @@ async def test_webhook_subscription_deleted_downgrades_to_free(mock_db, sample_s
             event_id="evt_sub_deleted",
             payload=b'{}',
             signature="sig",
-            webhook_secret="whsec_test",
+            webhook_secret="whsec_test_dummy",
         )
 
     assert sample_subscription.status == SubscriptionStatus.CANCELED
@@ -1086,7 +1086,7 @@ async def test_webhook_replay_idempotency_explicit(mock_db):
         result = await service.handle_webhook(
             payload=b'{}',
             signature="sig",
-            webhook_secret="whsec_test",
+            webhook_secret="whsec_test_dummy",
         )
 
     assert result.id == event_id

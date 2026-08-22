@@ -251,6 +251,32 @@ def render_with_kustomize(overlay: Path) -> list[str]:
     )
     if result.returncode != 0:
         return [f"{rel(overlay)} failed kustomize build: {result.stderr.strip()}"]
+
+    rendered_yaml = result.stdout
+    kubeconform = shutil.which("kubeconform")
+    if not kubeconform:
+        return [f"SKIP kubeconform validation for {rel(overlay)} because kubeconform is not installed"]
+
+    kc_result = subprocess.run(
+        [
+            kubeconform,
+            "-strict",
+            "-ignore-missing-schemas",
+            "-kubernetes-version",
+            "1.30.0",
+            "-summary",
+        ],
+        input=rendered_yaml,
+        cwd=ROOT,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    if kc_result.returncode != 0:
+        err_msg = kc_result.stderr.strip() or kc_result.stdout.strip()
+        return [f"{rel(overlay)} failed kubeconform schema validation: {err_msg}"]
+
     return []
 
 

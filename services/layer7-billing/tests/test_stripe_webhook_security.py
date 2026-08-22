@@ -11,7 +11,7 @@ from httpx import AsyncClient
 from layer7_billing.api.main import _STRIPE_WEBHOOK_REPLAY_CACHE
 from layer7_billing.webhook_security import verify_stripe_webhook_signature
 
-WEBHOOK_SECRET = "whsec_test_secret_for_layer7_billing"
+WEBHOOK_SECRET = "whsec_test_dummy_secret_for_layer7_billing"
 
 
 def _stripe_signature(

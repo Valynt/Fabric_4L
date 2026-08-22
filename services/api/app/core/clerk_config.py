@@ -62,6 +62,7 @@ class ClerkSettings:
     webhook_secret: str | None = None
     secret_key: str | None = None
     publishable_key: str | None = None
+    leeway_seconds: int = 10
 
 
 @dataclass(frozen=True)
@@ -132,6 +133,12 @@ def _load_verification_keys(raw: str) -> KeySet:
 def get_auth_settings() -> AuthSettings:
     """Return auth provider settings, loaded from environment and cached."""
     provider = os.getenv("AUTH_PROVIDER", "clerk").strip().lower()
+    leeway_raw = os.getenv("CLERK_JWT_LEEWAY_SECONDS", "10").strip()
+    try:
+        leeway_sec = max(0, min(60, int(leeway_raw)))
+    except ValueError:
+        leeway_sec = 10
+
     clerk_settings = ClerkSettings(
         issuer=os.getenv("CLERK_ISSUER") or None,
         jwt_audience=os.getenv("CLERK_JWT_AUDIENCE") or _DEFAULT_CLERK_JWT_AUDIENCE,
@@ -143,6 +150,7 @@ def get_auth_settings() -> AuthSettings:
         webhook_secret=os.getenv("CLERK_WEBHOOK_SECRET") or None,
         secret_key=os.getenv("CLERK_SECRET_KEY") or None,
         publishable_key=os.getenv("CLERK_PUBLISHABLE_KEY") or None,
+        leeway_seconds=leeway_sec,
     )
 
     signing_key_pem = (

@@ -13,16 +13,17 @@ on:
     # or CI scripts; documentation-only PRs are skipped. Push-to-main runs
     # remain unscoped.
     paths-ignore:
-      - 'docs/**'
-      - '**/*.md'
+      - "docs/**"
+      - "**/*.md"
   push:
     branches: [main]
+  merge_group:
 
 concurrency:
   # Cancel only an obsolete run of this same workflow/ref. A global
   # feature-branch group lets activity on an unrelated PR cancel required gates.
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 permissions:
   contents: read
@@ -218,12 +219,12 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Set up Node.js for pnpm gates
         uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8
         with:
-          node-version: '22.18.0'
+          node-version: "22.18.0"
 
       - name: Enable pnpm
         uses: pnpm/action-setup@v3

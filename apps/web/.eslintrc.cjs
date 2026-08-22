@@ -1,3 +1,14 @@
+// Work around ESM-default export incompatibility in eslint-plugin-react-refresh for ESLint 8 CJS
+try {
+  const reactRefreshId = require.resolve("eslint-plugin-react-refresh");
+  const reactRefreshModule = require(reactRefreshId);
+  if (reactRefreshModule && reactRefreshModule.default && !reactRefreshModule.rules) {
+    require.cache[reactRefreshId].exports = reactRefreshModule.default;
+  }
+} catch {
+  // Ignore if not present
+}
+
 const wfPrimitivesAllowlist = [
   "client/src/components/graph/GraphInspectorPanel.tsx",
   "client/src/components/integrations/IntegrationConfigPanel.tsx",
@@ -80,7 +91,7 @@ module.exports = {
   parserOptions: {
     ecmaVersion: 2020,
     sourceType: "module",
-    project: ["./tsconfig.json"],
+    project: ["./tsconfig.json", "./tsconfig.spec.json", "./tsconfig.node.json"],
     tsconfigRootDir: __dirname,
     ecmaFeatures: {
       jsx: true,

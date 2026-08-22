@@ -6,6 +6,7 @@ import pytest
 
 from value_fabric.shared.crypto.encrypted_column import (
     EncryptedString,
+    _derive_blind_index_key,
     _derive_fernet_key,
     _get_fernet,
     blind_index,
@@ -34,6 +35,20 @@ class TestKeyDerivation:
     def test_get_fernet_returns_instance_when_key_set(self) -> None:
         fernet = _get_fernet()
         assert fernet is not None
+
+    def test_get_fernet_returns_cached_instance(self) -> None:
+        """Subsequent calls with the same key should return the exact same Fernet object."""
+        fernet1 = _get_fernet()
+        fernet2 = _get_fernet()
+        assert fernet1 is fernet2
+
+    def test_get_fernet_updates_when_key_changes(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """When CREDENTIALS_MASTER_KEY changes, a new Fernet instance is returned."""
+        fernet1 = _get_fernet()
+        monkeypatch.setenv("CREDENTIALS_MASTER_KEY", "different-secret-key-67890")
+        fernet2 = _get_fernet()
+        assert fernet1 is not fernet2
+        assert fernet2 is _get_fernet()
 
     def test_get_fernet_returns_none_when_key_missing(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.delenv("CREDENTIALS_MASTER_KEY", raising=False)
@@ -65,6 +80,14 @@ class TestBlindIndex:
     def test_missing_key_returns_none(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.delenv("CREDENTIALS_MASTER_KEY", raising=False)
         assert blind_index("alice@example.com") is None
+
+    def test_derive_blind_index_key_cached(self) -> None:
+        """Deriving HMAC blind index key should be deterministic and cached."""
+        key_bytes = b"sample-key-bytes"
+        k1 = _derive_blind_index_key(key_bytes)
+        k2 = _derive_blind_index_key(key_bytes)
+        assert k1 == k2
+        assert len(k1) == 32
 
     def test_explicit_key(self) -> None:
         idx1 = blind_index("alice@example.com", key="secret-one")

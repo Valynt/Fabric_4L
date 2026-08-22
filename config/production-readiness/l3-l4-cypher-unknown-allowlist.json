@@ -1,11 +1,7 @@
 {
   "allowlist": [
     {
-      "finding_key": "services/layer3-knowledge/src/api/routes/formulas.py::create_formula::966",
-      "justification": "Manually reviewed constant Cypher query; tenant scoping is parameterized and pending scoped helper migration."
-    },
-    {
-      "finding_key": "services/layer3-knowledge/src/api/routes/formulas.py::create_formula::1025",
+      "finding_key": "services/layer3-knowledge/src/api/routes/formulas.py::create_formula::971",
       "justification": "Manually reviewed constant Cypher query; tenant scoping is parameterized and pending scoped helper migration."
     },
     {
@@ -17,27 +13,27 @@
       "justification": "Manually reviewed constant Cypher query; tenant scoping is parameterized and pending scoped helper migration."
     },
     {
-      "finding_key": "services/layer3-knowledge/src/api/routes/formulas.py::update_formula::1158",
+      "finding_key": "services/layer3-knowledge/src/api/routes/formulas.py::update_formula::1188",
       "justification": "Manually reviewed constant Cypher query; tenant scoping is parameterized and pending scoped helper migration."
     },
     {
-      "finding_key": "services/layer3-knowledge/src/api/routes/formulas.py::update_formula::1187",
+      "finding_key": "services/layer3-knowledge/src/api/routes/formulas.py::update_formula::1217",
       "justification": "Manually reviewed constant Cypher query; tenant scoping is parameterized and pending scoped helper migration."
     },
     {
-      "finding_key": "services/layer3-knowledge/src/api/routes/formulas.py::update_formula::1197",
+      "finding_key": "services/layer3-knowledge/src/api/routes/formulas.py::update_formula::1227",
       "justification": "Manually reviewed constant Cypher query; tenant scoping is parameterized and pending scoped helper migration."
     },
     {
-      "finding_key": "services/layer3-knowledge/src/api/routes/formulas.py::update_formula::1220",
+      "finding_key": "services/layer3-knowledge/src/api/routes/formulas.py::update_formula::1250",
       "justification": "Manually reviewed constant Cypher query; tenant scoping is parameterized and pending scoped helper migration."
     },
     {
-      "finding_key": "services/layer3-knowledge/src/api/routes/formulas.py::delete_formula::1267",
+      "finding_key": "services/layer3-knowledge/src/api/routes/formulas.py::delete_formula::1297",
       "justification": "Manually reviewed constant Cypher query; tenant scoping is parameterized and pending scoped helper migration."
     },
     {
-      "finding_key": "services/layer3-knowledge/src/api/routes/formulas.py::delete_formula::1288",
+      "finding_key": "services/layer3-knowledge/src/api/routes/formulas.py::delete_formula::1318",
       "justification": "Manually reviewed constant Cypher query; tenant scoping is parameterized and pending scoped helper migration."
     },
     {
@@ -49,27 +45,43 @@
       "justification": "Manually reviewed schema statistics query; no tenant data is returned and pending scoped helper migration."
     },
     {
+      "finding_key": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py::_write_kg_tx::1786",
+      "justification": "Audit orchestrator graph persistence linking audit run to findings; tenant context is managed at run initialization."
+    },
+    {
+      "finding_key": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py::_write_kg_tx::1806",
+      "justification": "Audit orchestrator graph persistence linking findings to evidence source files; tenant context is managed at run initialization."
+    },
+    {
+      "finding_key": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py::_write_kg_tx::1818",
+      "justification": "Audit orchestrator graph persistence linking audit run to area scores; tenant context is managed at run initialization."
+    },
+    {
+      "finding_key": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py::_write_kg_tx::1834",
+      "justification": "Audit orchestrator graph persistence linking sprint plans to targeted findings; tenant context is managed at run initialization."
+    },
+    {
       "finding_key": "services/layer4-agents/src/layer4_agents/tools/competitive_tools.py::_query_graph_for_competitor::256",
       "justification": "Manually reviewed constant Cypher query; tenant scoping is parameterized and pending scoped helper migration."
     },
     {
-      "finding_key": "services/layer4-agents/src/layer4_agents/tools/knowledge.py::get_entity::98",
+      "finding_key": "services/layer4-agents/src/layer4_agents/tools/knowledge.py::get_entity::110",
       "justification": "Manually reviewed constant Cypher query; tenant scoping is parameterized and pending scoped helper migration."
     },
     {
-      "finding_key": "services/layer4-agents/src/layer4_agents/tools/knowledge.py::update_entity::147",
+      "finding_key": "services/layer4-agents/src/layer4_agents/tools/knowledge.py::update_entity::159",
       "justification": "Manually reviewed constant Cypher query; tenant scoping is parameterized and pending scoped helper migration."
     },
     {
-      "finding_key": "services/layer4-agents/src/layer4_agents/tools/knowledge.py::delete_entity::194",
+      "finding_key": "services/layer4-agents/src/layer4_agents/tools/knowledge.py::delete_entity::206",
       "justification": "Manually reviewed constant Cypher query; tenant scoping is parameterized and pending scoped helper migration."
     },
     {
-      "finding_key": "services/layer4-agents/src/layer4_agents/tools/knowledge.py::search_entities::241",
+      "finding_key": "services/layer4-agents/src/layer4_agents/tools/knowledge.py::search_entities::253",
       "justification": "Manually reviewed constant Cypher query; tenant scoping is parameterized and pending scoped helper migration."
     },
     {
-      "finding_key": "services/layer4-agents/src/layer4_agents/tools/knowledge.py::list_entities::274",
+      "finding_key": "services/layer4-agents/src/layer4_agents/tools/knowledge.py::list_entities::286",
       "justification": "Manually reviewed constant Cypher query; tenant scoping is parameterized and pending scoped helper migration."
     }
   ]

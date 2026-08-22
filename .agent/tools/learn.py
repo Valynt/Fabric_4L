@@ -20,6 +20,11 @@ orphaned dead-ends.
 """
 import argparse, datetime, json, os, subprocess, sys
 
+if sys.stdout and hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if sys.stderr and hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
 BASE = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 CANDIDATES = os.path.join(BASE, "memory/candidates")
 sys.path.insert(0, os.path.join(BASE, "harness"))

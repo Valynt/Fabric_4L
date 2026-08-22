@@ -1,11 +1,23 @@
 version: 1
-validated_on: 2026-07-18
+validated_on: 2026-08-21
 required_status_checks:
+  # V1-CI-001 Stage 3: nine stable aggregates are required alongside legacy
+  # partial contexts until 30 false-negative-free queue merges (Stage 4).
+  - 01-repository-integrity
+  - 02-code-quality-and-tests
+  - 03-contract-compliance
+  - 04-security-gates
+  - 05-tenant-isolation-and-behavior
+  - 06-production-readiness
+  - 07-supply-chain-integrity
+  - 08-release-evidence
+  - 09-change-risk-and-approval
   - mandatory-security-regression
   - contract-compliance
   - Structural Preflight
   - prod-readiness
   - behavior-tests
+  - Security Gates Required
   - Layer 5 - Source Contract
   - Layer 5 - Tenant Isolation Regression
   - Layer 5 - Contract Shape Regression

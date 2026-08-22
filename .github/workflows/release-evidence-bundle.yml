@@ -1,40 +1,27 @@
 name: Release Evidence Bundle
 
 on:
+  # NOTE: the `08-release-evidence` check is REQUIRED by branch protection on
+  # main. A paths-filtered required check is never emitted for PRs that touch
+  # only unlisted paths, which blocks merging those PRs. The pull_request
+  # trigger therefore runs unconditionally.
   pull_request:
     branches:
       - main
-      - 'release/**'
-    # Change-scoping: evidence bundles cover runtime images, contracts, and
-    # deployment surfaces; docs-only PRs skip. Tag/push runs stay unscoped.
-    paths:
-      - 'services/**'
-      - 'apps/**'
-      - 'packages/**'
-      - 'contracts/**'
-      - 'infra/**'
-      - 'k8s/**'
-      - 'monitoring/**'
-      - '**/Dockerfile*'
-      - '**/package.json'
-      - '**/pnpm-lock.yaml'
-      - 'pnpm-workspace.yaml'
-      - '**/requirements*.txt'
-      - '**/pyproject.toml'
-      - '.github/**'
-      - 'scripts/**'
-      - 'config/**'
-      - 'Makefile'
+      - "release/**"
+  # V1-CI-001: merge queue support (Stage 1 shadow; aggregates become
+  # required at Stage 3).
+  merge_group:
   push:
     tags:
-      - 'v*'
+      - "v*"
     branches:
       - main
-      - 'release/**'
+      - "release/**"
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Release tag to attach evidence bundle to'
+        description: "Release tag to attach evidence bundle to"
         required: true
         type: string
 
@@ -42,7 +29,7 @@ concurrency:
   # Cancel only an obsolete run of this same workflow/ref. A global
   # feature-branch group lets activity on an unrelated PR cancel required gates.
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 permissions:
   contents: write
@@ -61,7 +48,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
       - name: Install test dependencies
         run: |
           python -m pip install --upgrade pip
@@ -100,7 +87,7 @@ jobs:
       - name: Resolve security mode
         id: mode
         run: |
-          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+          if [[ "${{ github.event_name }}" == "pull_request" || "${{ github.event_name }}" == "merge_group" ]]; then
             echo "publish=false" >> "$GITHUB_OUTPUT"
           else
             echo "publish=true" >> "$GITHUB_OUTPUT"
@@ -223,7 +210,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Install uv
         uses: astral-sh/setup-uv@caf0cab7a618c569241d31dcd442f54681755d39 # v3
@@ -295,9 +282,9 @@ jobs:
       - name: OWASP ZAP baseline scan
         uses: zaproxy/action-baseline@v0.12.0
         with:
-          target: 'http://localhost:8001'
-          rules_file_name: '.zap/rules.tsv'
-          cmd_options: '-a'
+          target: "http://localhost:8001"
+          rules_file_name: ".zap/rules.tsv"
+          cmd_options: "-a"
 
       - name: Upload live evidence
         uses: actions/upload-artifact@v4
@@ -311,7 +298,14 @@ jobs:
   consolidate-bundle:
     name: Consolidate & Publish Evidence Bundle
     runs-on: ubuntu-latest
-    needs: [release-readiness-gate, build-and-scan, supply-chain-policy-check, sast-and-tests, live-stack-evidence]
+    needs:
+      [
+        release-readiness-gate,
+        build-and-scan,
+        supply-chain-policy-check,
+        sast-and-tests,
+        live-stack-evidence,
+      ]
     steps:
       - uses: actions/checkout@v4
 
@@ -324,7 +318,7 @@ jobs:
       - name: Setup Node.js + pnpm
         uses: ./.github/actions/setup-pnpm
         with:
-          node-version: '22.18.0'
+          node-version: "22.18.0"
 
       - name: Install Node.js dependencies
         run: pnpm install --frozen-lockfile
@@ -375,3 +369,27 @@ jobs:
           path: |
             ${{ steps.bundle.outputs.path }}
             artifacts/evidence/*.summary.json
+
+  # ---------------------------------------------------------------------------
+  # V1-CI-001 Stage 1 (shadow): stable aggregate release-evidence check.
+  # Informational until Stage 3. Summarizes existing jobs only
+  # (scripts/ci/aggregate_gate.py). All fanned-in jobs run on every trigger of
+  # this workflow, so any skip fails the aggregate closed.
+  # ---------------------------------------------------------------------------
+  aggregate-08-release-evidence:
+    name: 08-release-evidence
+    runs-on: ubuntu-latest
+    if: always()
+    needs:
+      - release-readiness-gate
+      - build-and-scan
+      - supply-chain-policy-check
+      - sast-and-tests
+      - live-stack-evidence
+      - consolidate-bundle
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - name: Summarize release-evidence gates
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        run: python3 scripts/ci/aggregate_gate.py --needs-json "$NEEDS_JSON"

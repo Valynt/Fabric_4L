@@ -13,8 +13,8 @@ from value_fabric.shared.models.typed_dict import TypedDictModel
 
 
 class sample_rsa_keypairResult(TypedDictModel):
-    private: Any
-    public: Any
+    private: str
+    public: str
 
 
 @pytest.fixture

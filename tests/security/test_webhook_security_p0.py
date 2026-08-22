@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     from collections.abc import Generator
 
 # Test constants
-WEBHOOK_SECRET = "whsec_test_secret_1234567890"
+WEBHOOK_SECRET = "whsec_test_dummy_secret_1234567890"
 VALID_PAYLOAD = b'{"id": "evt_123", "type": "payment.created", "data": {"amount": 1000}}'
 OLD_TIMESTAMP = int((datetime.now(UTC) - timedelta(minutes=15)).timestamp())
 CURRENT_TIMESTAMP = int(datetime.now(UTC).timestamp())
@@ -183,7 +183,7 @@ class TestWebhookSecretValidation:
         correct_signature = _make_signature(payload, WEBHOOK_SECRET, CURRENT_TIMESTAMP)
         
         # Signature with wrong secret
-        wrong_secret = "whsec_wrong_secret_9876543210"
+        wrong_secret = "whsec_test_dummy_wrong_secret_9876543210"
         wrong_signature = _make_signature(payload, wrong_secret, CURRENT_TIMESTAMP)
         
         # Signatures should be different

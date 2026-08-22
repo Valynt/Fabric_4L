@@ -384,7 +384,7 @@ def _check_migration_downgrades(repo_path: Path, _config: AuditConfig) -> dict[s
     migration_files = [
         p
         for p in _walk_files(repo_path, roots=[services_dir], extensions={".py"})
-        if "migrations/versions" in str(p)
+        if "migrations/versions" in p.as_posix()
     ]
     for migration in migration_files:
         content = "\n".join(_read_lines(migration))
@@ -435,7 +435,7 @@ _IDEMPOTENCY_RE = re.compile(r"@router\.(post|put|patch)\(")
 
 
 def _check_idempotency_gaps(repo_path: Path, _config: AuditConfig) -> dict[str, Any]:
-    route_files = [p for p in _py_files(repo_path) if "api/routes" in str(p) or "api" in p.parts]
+    route_files = [p for p in _py_files(repo_path) if "api/routes" in p.as_posix() or "api" in p.parts]
     non_idempotent = 0
     examples: list[str] = []
     for file_path in route_files:

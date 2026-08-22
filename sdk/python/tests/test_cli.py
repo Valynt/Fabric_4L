@@ -12,7 +12,9 @@ from uuid import UUID
 import pytest
 from typer.testing import CliRunner
 
+from valuefabric.cli import config as config_mod
 from valuefabric.cli.main import app
+from valuefabric.errors import ConfigurationError
 from valuefabric.models import (
     APIKey,
     APIKeyCreateResult,
@@ -41,18 +43,14 @@ def mock_config(tmp_path: Path) -> Iterator[None]:
         },
     }
     with patch("valuefabric.cli.config.CONFIG_FILE", tmp_path / "config.toml"):
-        from valuefabric.cli.config import _save_config
-
-        _save_config(config)
+        config_mod._save_config(config)
         yield
 
 
 class TestConfigCommands:
     def test_token_expiration_warns_for_expired_timestamp(self) -> None:
-        from valuefabric.cli.config import _check_token_expiration
-
         with patch("valuefabric.cli.config.rich_print") as mock_print:
-            _check_token_expiration({"jwt_expires_at": "0"}, "default")
+            config_mod._check_token_expiration({"jwt_expires_at": "0"}, "default")
 
         mock_print.assert_called_once()
         warning = mock_print.call_args.args[0]
@@ -60,10 +58,8 @@ class TestConfigCommands:
         assert "vf auth login" in warning
 
     def test_token_expiration_does_not_warn_for_future_timestamp(self) -> None:
-        from valuefabric.cli.config import _check_token_expiration
-
         with patch("valuefabric.cli.config.rich_print") as mock_print:
-            _check_token_expiration({"jwt_expires_at": "99999999999"}, "default")
+            config_mod._check_token_expiration({"jwt_expires_at": "99999999999"}, "default")
 
         mock_print.assert_not_called()
 
@@ -79,10 +75,8 @@ class TestConfigCommands:
     def test_token_expiration_ignores_missing_or_invalid_timestamp(
         self, profile_config: dict[str, str | None]
     ) -> None:
-        from valuefabric.cli.config import _check_token_expiration
-
         with patch("valuefabric.cli.config.rich_print") as mock_print:
-            _check_token_expiration(profile_config, "default")
+            config_mod._check_token_expiration(profile_config, "default")
 
         mock_print.assert_not_called()
 
@@ -342,3 +336,25 @@ class TestHealthCommand:
             result = runner.invoke(app, ["health"])
             assert result.exit_code == 0
             assert "healthy" in result.output
+
+
+class TestConfigErrorHandling:
+    def test_parse_toml_value_string_fallback(self) -> None:
+        assert config_mod._parse_toml_value("not_a_number") == "not_a_number"
+
+    def test_load_profile_toml_invalid_profiles(self) -> None:
+        with pytest.raises(ValueError, match="profiles must be a table"):
+            config_mod._load_profile_toml("profiles = 1\n[profiles.default]")
+
+    def test_load_profile_toml_missing_equals(self) -> None:
+        with pytest.raises(ValueError, match="invalid syntax at line 1"):
+            config_mod._load_profile_toml("invalid_line")
+
+    def test_load_config_corrupted_file(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        corrupted_file = tmp_path / "corrupted.toml"
+        corrupted_file.write_text("invalid_line", encoding="utf-8")
+        monkeypatch.setattr(config_mod, "CONFIG_FILE", corrupted_file)
+        with pytest.raises(ConfigurationError, match="Config file is corrupted"):
+            config_mod._load_config()

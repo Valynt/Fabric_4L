@@ -1,6 +1,7 @@
 .PHONY: help verify verify-strict lint lint-layer1 lint-layer2 lint-layer2-5 lint-layer3 lint-layer4 \
         lint-layer5 lint-layer6 typecheck typecheck-layer1 typecheck-layer2 typecheck-layer2-5 \
         typecheck-layer3 typecheck-layer4 typecheck-layer4-strict typecheck-layer5 typecheck-layer6 \
+        mypy-baseline-write-layer2 mypy-baseline-write-layer2-5 mypy-baseline-write-layer3 mypy-baseline-write-layer4 mypy-baseline-write-layer5 mypy-baseline-write-layer6 \
 		test contract-tests contract-lint test-layer1 test-layer1-crawler test-layer1-router-cache test-layer1-benchmarks test-layer1-router-benchmarks test-layer2 test-layer2-5 test-layer3 test-layer3-live test-layer4 test-layer4-live \
         test-frontend build docker-build docker-build-multi migrate migrate-layer1 migrate-layer2 migrate-layer2-5 migrate-layer4 migrate-layer5 migrate-api db-migrate-status db-migrate-check gate-database gate-database-live db-production-readiness-gate evals perf-test perf-eval clean sdk check-layer4-boundaries check-layer4-collection check-layer4-canonical-paths \
         setup bootstrap \
@@ -21,13 +22,17 @@
 	db-production-readiness-gate architecture-readiness-gate security-readiness-gate gate-all \
 	gate-production gate-production-core tier0-production-safety-gate tier1-beta-readiness-gate tier2-enterprise-readiness-gate production-readiness-gate \
 	release-evidence-packet collect-95-plus-evidence collect-95-plus-evidence-focused \
+	generate-sbom-and-provenance compose-config-validate helm-dependency-validate \
+	k8s-production-overlay-validate k8s-manifest-consistency-check \
+	build-reproducibility-check validate-monitoring-stack \
 	validate-launch-contract release-baseline certify-release-candidate build-release-evidence \
 	platform-contract-lint setup-hooks check-ui-duplicates check-readiness-consistency \
-	check-pytest-skip-governance check-type-escape-ratchet check-conflict-markers check-legacy-debt check-reports-evidence-policy check-no-nul-bytes check-migration-entrypoints check-migration-heads check-migration-status-artifacts \
+	check-pytest-skip-governance check-type-escape-ratchet check-conflict-markers check-legacy-debt check-operational-debt check-reports-evidence-policy check-no-nul-bytes check-migration-entrypoints check-migration-heads check-migration-status-artifacts \
 	check-migration-rollback-policy check-migration-runtime-consistency check-database-governance-docs check-migration-postgres-roundtrip gate-database gate-database-live db-production-readiness-gate \
 	check-temporal-skips check-hermetic-build-inputs check-production-k8s-mutable-tags check-k8s-image-digests \
 	check-keycloak-realm-seed-security \
 	check-manifest-secret-hygiene \
+	check-trivy-ignore-policy \
 	check-path-env-hygiene \
 	check-compatibility-shims \
 	check-layer3-legacy-tenant-dependency-imports \
@@ -38,7 +43,11 @@
 	check-behavior-readiness-audit \
 	harness-task harness-guard harness-check \
 	docs-harness \
-	contracts validate-openapi-contracts contract-drift contract-freshness-fast contract-freshness
+	contracts validate-openapi-contracts contract-drift contract-freshness-fast contract-freshness \
+	auth-dev
+
+auth-dev: ## Seed local dev auth environment with mock users, tenants, and envelopes
+	@$(PYTHON) scripts/dev_auth_seed.py
 
 
 # Strict shell settings for production safety
@@ -49,6 +58,10 @@ SHELL := /bin/bash
 PROFILE ?= release-candidate
 POLICY_FILE := .fabric/prod-gates.policy.yaml
 ARTIFACT_DIR := artifacts/release
+# Default RELEASE_SHA to the current HEAD so docker-build records digests
+# under artifacts/release/<sha>/ even when invoked standalone; certification
+# runs make docker-build with the checkout already at the candidate SHA.
+RELEASE_SHA ?= $(shell git rev-parse HEAD 2>/dev/null || echo UNKNOWN)
 DB_MIGRATION_DATABASE_URL ?=
 
 PYTHON_BOOTSTRAP ?= python
@@ -74,13 +87,14 @@ help: ## Show this help
 
 VERIFY_CHECKS := check-conflict-markers check-no-nul-bytes check-migration-heads \
 	check-keycloak-realm-seed-security check-manifest-secret-hygiene check-path-env-hygiene \
+	check-trivy-ignore-policy \
 	lint typecheck test contract-tests security-smoke \
 	check-deprecations check-tool-contracts check-deprecated-tracer-imports \
 	platform-contract-lint check-ui-duplicates check-readiness-consistency \
 	check-workflow-matrix check-test-skip-register-uniqueness \
 	check-pytest-skip-governance check-layer3-legacy-tenant-dependency-imports \
 	check-hermetic-build-inputs check-production-k8s-mutable-tags check-k8s-image-digests \
-	check-value-fabric-public-imports check-legacy-debt check-behavior-contract check-behavior-readiness-audit check-compatibility-shims verify-structure docs-harness
+	check-value-fabric-public-imports check-legacy-debt check-structural-fitness-ratchet check-operational-debt check-behavior-contract check-behavior-readiness-audit check-compatibility-shims verify-structure docs-harness
 
 verify: $(VERIFY_CHECKS) ## Run all checks before PR
 	@echo "✅  All checks passed"
@@ -102,10 +116,8 @@ verify-structure: ## Run structural preflight and Python contract lint checks
 	@$(PYTHON) scripts/ci/check_layer4_boundaries.py
 	@echo "→ Running temporal skip guard..."
 	@$(PYTHON) scripts/ci/check_temporal_skips.py \
-		--baseline config/ci/temporal_skip_baseline.json \
-		--exclude "tests/ci/test_temporal_skip_guard.py" \
-		--json-out artifacts/temporal-skip-guard.json \
-		--md-out artifacts/temporal-skip-guard.md
+		--json-out artifacts/test-debt-governance.json \
+		--md-out artifacts/test-debt-governance.md
 	@echo "✅  Structure verification passed"
 
 check-layer4-boundaries: ## Report/fail on Layer 4 bounded-context dependency violations and transitive hotspots
@@ -149,6 +161,9 @@ check-keycloak-realm-seed-security: ## Fail when committed Keycloak realm seed i
 
 check-manifest-secret-hygiene: ## Enforce secret-only references and denylisted sensitive patterns in production manifests
 	@$(PYTHON) scripts/ci/check_manifest_secret_hygiene.py
+
+check-trivy-ignore-policy: ## Validate .trivyignore.yaml governance and waiver health
+	@$(PYTHON) scripts/ci/check_trivy_ignore_policy.py
 check-path-env-hygiene: ## Fail on suspicious tracked path artifacts and unapproved tracked .env-style files
 	@$(PYTHON) scripts/ci/check_path_and_env_hygiene.py
 check-migration-entrypoints: ## Ensure maintained services expose migration entrypoints and revision history commands
@@ -197,23 +212,20 @@ gate-database-live: check-migration-postgres-roundtrip ## Live/destructive datab
 	@bash scripts/ops/test_postgres_backup_restore.sh
 	@echo "✅  gate-database-live passed"
 
-check-pytest-skip-governance: ## Enforce pytest skip governance from collection output (with allowlist + baseline)
+check-pytest-skip-governance: ## Reconcile subordinate pytest collection evidence with canonical static governance
 	@mkdir -p artifacts
 	@set +e; $(PYTHON) -m pytest --collect-only -q -ra tests > artifacts/pytest-collection.txt 2>&1; collect_status=$$?; set -e; \
-	 $(PYTHON) scripts/ci/check_pytest_skip_governance.py artifacts/pytest-collection.txt --allowlist config/ci/pytest_skip_allowlist.yaml --baseline config/ci/pytest_skip_baseline.json --write-report artifacts/pytest-skip-governance.json; \
+	 $(PYTHON) scripts/ci/check_pytest_skip_governance.py artifacts/pytest-collection.txt --write-report artifacts/test-debt-governance.json; \
 	 if [ "$$collect_status" -ne 0 ]; then echo "pytest collection exited non-zero ($$collect_status); structural-preflight should catch import errors separately."; fi
 
 check-type-escape-ratchet: ## Fail on net-new unapproved Python or TypeScript type escapes
 	@$(PYTHON) scripts/ci/type_escape_ratchet.py
 
-check-temporal-skips: ## Guard against net-new unregistered hard-coded temporal test skips
-	@echo "→ Checking for unregistered temporal skips..."
-	@$(PYTHON) scripts/ci/check_temporal_skips.py \
-		--baseline config/ci/temporal_skip_baseline.json \
-		--exclude "tests/ci/test_temporal_skip_guard.py" \
-		--json-out artifacts/temporal-skip-guard.json \
-		--md-out artifacts/temporal-skip-guard.md
-	@echo "✅ Temporal skip guard passed"
+check-structural-fitness-ratchet: ## Fail on net-new oversized modules, high-complexity functions, or import cycles
+	@$(PYTHON) scripts/ci/structural_fitness_ratchet.py
+
+check-temporal-skips: ## Compatibility delegate to canonical test-debt governance
+	@$(PYTHON) scripts/ci/check_temporal_skips.py --json-out artifacts/test-debt-governance.json --md-out artifacts/test-debt-governance.md
 
 check-hermetic-build-inputs: ## Enforce digest-pinned Docker base images and approved external domains in CI inputs
 	@echo "→ Checking hermetic build inputs..."
@@ -235,7 +247,7 @@ check-layer3-legacy-tenant-dependency-imports: ## Block legacy Layer 3 tenant de
 
 check-layer3-tenant-dependency-imports: check-layer3-legacy-tenant-dependency-imports ## Alias for check-layer3-legacy-tenant-dependency-imports (backward compat)
 
-check-test-skip-register-uniqueness: ## Enforce uniqueness of test skip register keys (path_pattern + marker + reason_pattern)
+check-test-skip-register-uniqueness: ## Compatibility delegate to canonical test-debt governance
 	@$(PYTHON) scripts/ci/check_test_skip_register_uniqueness.py --register config/ci/test_skip_register.yaml
 
 check-reports-evidence-policy: ## Enforce reports/ artifact policy and fail on unarchived failing snapshots
@@ -243,6 +255,10 @@ check-reports-evidence-policy: ## Enforce reports/ artifact policy and fail on u
 check-legacy-debt: ## Enforce legacy debt baseline (markers + legacy directories)
 	@mkdir -p artifacts
 	@$(PYTHON) scripts/ci/check_legacy_debt.py --baseline config/ci/legacy_debt_baseline.json --approvals config/ci/legacy_debt_approvals.json --config config/ci/legacy_debt_config.json --write-report artifacts/legacy-debt-report.json
+
+check-operational-debt: ## Enforce operational debt registry (SLI/type/tooling debt is owned + time-boxed; fail closed on expiry)
+	@mkdir -p artifacts
+	@$(PYTHON) scripts/ci/check_operational_debt.py --registry config/ci/operational_debt_registry.yaml --write-report artifacts/operational-debt-report.json
 
 check-behavior-contract: ## Enforce behavior contract registry (every capability has allowed + denied tests)
 	@mkdir -p artifacts
@@ -332,34 +348,93 @@ mypy-changed-layer1: ## Type-check changed Python files in Layer 1 (PR gate)
 	@echo "→ Type-checking changed Layer 1 files..."
 	@$(PYTHON) scripts/ci/check_mypy_changed_files.py --service-dir services/layer1-ingestion
 
-typecheck-layer2: ## Type-check Layer 2 only
-	@echo "→ Type-checking Layer 2..."
-	@$(PYTHON) scripts/ci/run_mypy_layer.py services/layer2-extraction src/ -- $(MYPY_LAYER2_FLAGS)
+typecheck-layer2: ## Type-check Layer 2 (mypy baseline ratchet — blocks new errors)
+	@echo "→ Enforcing Layer 2 mypy baseline ratchet..."
+	@$(PYTHON) scripts/ci/check_mypy_baseline.py \
+		--service-dir services/layer2-extraction \
+		--baseline config/ci/mypy_baseline_layer2.json \
+		--paths src --mypy-args "$(MYPY_LAYER2_FLAGS)"
 
-typecheck-layer2-5: ## Type-check Layer 2.5 only
-	@echo "→ Type-checking Layer 2.5..."
-	@$(PYTHON) scripts/ci/run_mypy_layer.py services/layer2-5-signal-refinery src/ -- $(MYPY_LAYER2_5_FLAGS)
+typecheck-layer2-5: ## Type-check Layer 2.5 (mypy baseline ratchet)
+	@echo "→ Enforcing Layer 2.5 mypy baseline ratchet..."
+	@$(PYTHON) scripts/ci/check_mypy_baseline.py \
+		--service-dir services/layer2-5-signal-refinery \
+		--baseline config/ci/mypy_baseline_layer2_5.json \
+		--paths src --mypy-args "$(MYPY_LAYER2_5_FLAGS)"
 
-typecheck-layer3: ## Type-check Layer 3 only
-	@echo "→ Type-checking Layer 3..."
-	@$(PYTHON) scripts/ci/run_mypy_layer.py services/layer3-knowledge src/ -- $(MYPY_LAYER3_FLAGS)
+typecheck-layer3: ## Type-check Layer 3 (mypy baseline ratchet — blocks new errors)
+	@echo "→ Enforcing Layer 3 mypy baseline ratchet..."
+	@$(PYTHON) scripts/ci/check_mypy_baseline.py \
+		--service-dir services/layer3-knowledge \
+		--baseline config/ci/mypy_baseline_layer3.json \
+		--paths src --mypy-args "$(MYPY_LAYER3_FLAGS)"
 
-typecheck-layer4: ## Type-check Layer 4 only
-	@echo "→ Type-checking Layer 4..."
-	@$(PYTHON) scripts/ci/run_mypy_layer.py services/layer4-agents src/ -- $(MYPY_LAYER4_FLAGS)
+typecheck-layer4: ## Type-check Layer 4 (mypy baseline ratchet — blocks new errors)
+	@echo "→ Enforcing Layer 4 mypy baseline ratchet..."
+	@$(PYTHON) scripts/ci/check_mypy_baseline.py \
+		--service-dir services/layer4-agents \
+		--baseline config/ci/mypy_baseline_layer4.json \
+		--paths src --mypy-args "$(MYPY_LAYER4_FLAGS)"
 
 typecheck-layer4-strict: ## Type-check unified Layer 4 namespace strictly
 	@echo "→ Type-checking Layer 4 (strict, unified namespace)..."
 	@$(PYTHON) scripts/ci/run_mypy_layer.py services/layer4-agents src/layer4_agents/ -- $(MYPY_LAYER4_STRICT_FLAGS)
 	@echo "✅ Layer 4 strict type-check passed"
 
-typecheck-layer5: ## Type-check Layer 5 only
-	@echo "→ Type-checking Layer 5..."
-	@$(PYTHON) scripts/ci/run_mypy_layer.py services/layer5-ground-truth src/ -- $(MYPY_LAYER5_FLAGS)
+typecheck-layer5: ## Type-check Layer 5 (mypy baseline ratchet — blocks new errors)
+	@echo "→ Enforcing Layer 5 mypy baseline ratchet..."
+	@$(PYTHON) scripts/ci/check_mypy_baseline.py \
+		--service-dir services/layer5-ground-truth \
+		--baseline config/ci/mypy_baseline_layer5.json \
+		--paths src --mypy-args "$(MYPY_LAYER5_FLAGS)"
 
-typecheck-layer6: ## Type-check Layer 6 only
-	@echo "→ Type-checking Layer 6..."
-	@$(PYTHON) scripts/ci/run_mypy_layer.py services/layer6-benchmarks src/ -- $(MYPY_LAYER6_FLAGS)
+typecheck-layer6: ## Type-check Layer 6 (mypy baseline ratchet — blocks new errors)
+	@echo "→ Enforcing Layer 6 mypy baseline ratchet..."
+	@$(PYTHON) scripts/ci/check_mypy_baseline.py \
+		--service-dir services/layer6-benchmarks \
+		--baseline config/ci/mypy_baseline_layer6.json \
+		--paths src --mypy-args "$(MYPY_LAYER6_FLAGS)"
+
+# Per-layer mypy baseline ratchets (layers 2-6). Baselines are populated and
+# enforced by the `typecheck-layerN` targets above via check_mypy_baseline.py.
+# Use `make mypy-baseline-write-layerN` to refresh a baseline after a
+# deliberate, reviewed debt increase. Reductions are credited automatically;
+# the ratchet blocks any increase above the committed baseline.
+mypy-baseline-write-layer2: ## Write/refresh the Layer 2 mypy error baseline
+	@$(PYTHON) scripts/ci/check_mypy_baseline.py \
+		--service-dir services/layer2-extraction \
+		--baseline config/ci/mypy_baseline_layer2.json \
+		--paths src --mypy-args "$(MYPY_LAYER2_FLAGS)" --write-baseline
+
+mypy-baseline-write-layer2-5: ## Write/refresh the Layer 2.5 mypy error baseline
+	@$(PYTHON) scripts/ci/check_mypy_baseline.py \
+		--service-dir services/layer2-5-signal-refinery \
+		--baseline config/ci/mypy_baseline_layer2_5.json \
+		--paths src --mypy-args "$(MYPY_LAYER2_5_FLAGS)" --write-baseline
+
+mypy-baseline-write-layer3: ## Write/refresh the Layer 3 mypy error baseline
+	@$(PYTHON) scripts/ci/check_mypy_baseline.py \
+		--service-dir services/layer3-knowledge \
+		--baseline config/ci/mypy_baseline_layer3.json \
+		--paths src --mypy-args "$(MYPY_LAYER3_FLAGS)" --write-baseline
+
+mypy-baseline-write-layer4: ## Write/refresh the Layer 4 mypy error baseline
+	@$(PYTHON) scripts/ci/check_mypy_baseline.py \
+		--service-dir services/layer4-agents \
+		--baseline config/ci/mypy_baseline_layer4.json \
+		--paths src --mypy-args "$(MYPY_LAYER4_FLAGS)" --write-baseline
+
+mypy-baseline-write-layer5: ## Write/refresh the Layer 5 mypy error baseline
+	@$(PYTHON) scripts/ci/check_mypy_baseline.py \
+		--service-dir services/layer5-ground-truth \
+		--baseline config/ci/mypy_baseline_layer5.json \
+		--paths src --mypy-args "$(MYPY_LAYER5_FLAGS)" --write-baseline
+
+mypy-baseline-write-layer6: ## Write/refresh the Layer 6 mypy error baseline
+	@$(PYTHON) scripts/ci/check_mypy_baseline.py \
+		--service-dir services/layer6-benchmarks \
+		--baseline config/ci/mypy_baseline_layer6.json \
+		--paths src --mypy-args "$(MYPY_LAYER6_FLAGS)" --write-baseline
 
 typecheck: ## Type-check all Python layers with mypy (fails fast on first error)
 	@$(ROOT_MAKE) typecheck-layer1 && \
@@ -553,7 +628,7 @@ test-layer6: ## Run Layer 6 tests
 	cd services/layer6-benchmarks && $(PYTEST) --basetemp=../../.tmp/pytest-layer6 tests/
 
 test-shared: ## Run the shared-package suite (value_fabric.shared; fans out to every layer)
-	$(PYTEST) packages/shared/tests --basetemp=.tmp/pytest-shared \
+	$(PYTEST) packages/shared/tests tests/shared --basetemp=.tmp/pytest-shared \
 		--cov=value_fabric.shared.identity \
 		--cov=value_fabric.shared.governance \
 		--cov=value_fabric.shared.rate_limiting \
@@ -640,6 +715,10 @@ docker-build: ## Build all deployable production Docker images locally
 	docker build -t fabric-4l/layer6-benchmarks:local -f services/layer6-benchmarks/Dockerfile .
 	docker build -t fabric-4l/layer7-billing:local -f services/layer7-billing/Dockerfile .
 	docker build -t fabric-4l/web:local -f apps/web/Dockerfile .
+	# When certifying a candidate (RELEASE_SHA set), bind each built image's
+	# immutable content digest to the candidate evidence manifest. 04b records
+	# this file (scripts/release/build_evidence_bundle.py:image-digests.txt).
+	if test -n "$(RELEASE_SHA)" && test "$(RELEASE_SHA)" != UNKNOWN; then outdir="$(ARTIFACT_DIR)/$(RELEASE_SHA)"; mkdir -p "$$outdir"; : > "$$outdir/image-digests.txt"; for service in api-gateway layer1-ingestion layer2-extraction layer2-5-signal-refinery layer3-knowledge layer4-agents layer5-ground-truth layer6-benchmarks layer7-billing web; do digest=$$(docker inspect --format='{{.Id}}' "fabric-4l/$$service:local"); echo "fabric-4l/$$service@$$digest" >> "$$outdir/image-digests.txt"; done; echo "Recorded release image digests to $$outdir/image-digests.txt"; fi
 
 docker-build-multi: ## Build all deployable images for linux/amd64 and linux/arm64 (requires docker buildx)
 	@echo "→ Building multi-arch images (requires docker buildx)..."
@@ -879,6 +958,45 @@ certify-release-candidate: ## Fail-closed certification of RELEASE_SHA (live ste
 build-release-evidence: ## Compose the candidate-scoped release evidence packet plus the candidate manifest for RELEASE_SHA
 	@test -n "$(RELEASE_SHA)" || { echo "usage: make build-release-evidence RELEASE_SHA=<sha>"; exit 2; }
 	$(PYTHON) scripts/release/build_evidence_bundle.py $(RELEASE_SHA)
+
+# ─── Deployment manifest certification (thin control plane over validators) ──
+
+generate-sbom-and-provenance: ## Generate a deterministic, source-bound CycloneDX SBOM and SLSA provenance (no Docker required)
+	$(PYTHON) scripts/ci/supply_chain_gate.py sbom
+	@if test -n "$(RELEASE_SHA)" && test "$(RELEASE_SHA)" != UNKNOWN; then \
+		outdir="$(ARTIFACT_DIR)/$(RELEASE_SHA)"; \
+		mkdir -p "$$outdir"; \
+		test -f artifacts/supply-chain/fabric-4l-source-sbom.cdx.json && cp -f artifacts/supply-chain/fabric-4l-source-sbom.cdx.json "$$outdir/fabric-4l-source-sbom.cdx.json" || true; \
+		test -f artifacts/supply-chain/sbom-summary.json && cp -f artifacts/supply-chain/sbom-summary.json "$$outdir/sbom-summary.json" || true; \
+		test -f artifacts/supply-chain/provenance.json && cp -f artifacts/supply-chain/provenance.json "$$outdir/provenance.json" || true; \
+		echo "Copied candidate SBOM and provenance to $$outdir"; \
+	fi
+
+compose-config-validate: ## Validate all release-significant Docker Compose definitions (requires Docker)
+	$(PYTHON) scripts/ci/check_docker_compose_config.py
+
+helm-dependency-validate: ## Generate then validate integrity evidence for locked Helm chart dependencies (writes artifacts/helm-dependency-evidence)
+	@mkdir -p artifacts/helm-dependency-evidence
+	$(PYTHON) scripts/ci/validate_helm_dependencies.py generate \
+		--chart-dir infra/helm/fabric-chart \
+		--evidence-dir artifacts/helm-dependency-evidence \
+		--helm-version v3.16.2
+	$(PYTHON) scripts/ci/validate_helm_dependencies.py validate \
+		--chart-dir infra/helm/fabric-chart \
+		--evidence-dir artifacts/helm-dependency-evidence \
+		--helm-version v3.16.2
+
+k8s-production-overlay-validate: ## Render and validate Kubernetes production overlays (requires kustomize/kubeconform/kubectl)
+	$(PYTHON) scripts/ci/validate_k8s_production_overlays.py
+
+k8s-manifest-consistency-check: ## Static cross-service Kubernetes manifest consistency check (pure Python, no cluster)
+	$(PYTHON) scripts/ci/check_k8s_manifest_consistency.py
+
+build-reproducibility-check: ## Verify every deployable image builds to byte-identical output (deterministic; requires Docker)
+	bash scripts/ci/build-reproducibility-check.sh all
+
+validate-monitoring-stack: ## End-to-end monitoring stack readiness (YAML + compose config + runbook coverage; requires Docker)
+	bash scripts/ci/validate-monitoring-stack.sh
 
 collect-95-plus-evidence-focused: release-evidence-packet ## Compatibility alias: canonical release evidence packet replaces focused 95+ evidence collection
 	@echo "✅  collect-95-plus-evidence-focused alias completed (canonical: release-evidence-packet)"

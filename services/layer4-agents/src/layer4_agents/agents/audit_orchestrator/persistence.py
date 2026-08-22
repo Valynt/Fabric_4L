@@ -602,7 +602,11 @@ def _repo_name_from_path(repo_path: str) -> str:
                 return _repo_name_from_git_url(url)
         except Exception:  # pragma: no cover
             pass
-    parts = [p for p in path.parts if p not in ("", "/")]
+    parts = [
+        p
+        for p in path.parts
+        if p not in ("", "/", "\\") and not p.endswith(":\\") and not p.endswith(":")
+    ]
     if len(parts) >= 2:
         return f"{parts[-2]}/{parts[-1]}"
     if parts:

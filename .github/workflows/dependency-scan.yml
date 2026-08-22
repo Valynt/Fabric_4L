@@ -212,7 +212,7 @@ jobs:
 
       - name: Upload dependency-audit SARIF
         if: always()
-        uses: github/codeql-action/upload-sarif@f58f0d11ebf5dedd870fab2f999275f7602cfa46 # codeql-bundle-v2.26.0
+        uses: github/codeql-action/upload-sarif@3ce22a6e336a7fcc318bc58ae1986395bdc83ba7 # v4.35.4
         with:
           sarif_file: artifacts/pip-audit/${{ matrix.python.service }}/report.sarif
           category: pip-audit-${{ matrix.python.service }}
@@ -374,12 +374,38 @@ jobs:
           retention-days: 30
 
   scan-containers:
-    name: Scan Container Images
+    name: Scan Container Images (${{ matrix.service.name }})
     runs-on: ubuntu-latest
     permissions:
       contents: read
       security-events: write
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - name: api
+            path: services/api/Dockerfile
+            context: .
+          - name: layer1-ingestion
+            path: services/layer1-ingestion/Dockerfile
+            context: services/layer1-ingestion
+          - name: layer2-extraction
+            path: services/layer2-extraction/Dockerfile
+            context: services/layer2-extraction
+          - name: layer3-knowledge
+            path: services/layer3-knowledge/Dockerfile
+            context: services/layer3-knowledge
+          - name: layer4-agents
+            path: services/layer4-agents/Dockerfile
+            context: services/layer4-agents
+          - name: layer5-ground-truth
+            path: services/layer5-ground-truth/Dockerfile
+            context: services/layer5-ground-truth
+          - name: layer6-benchmarks
+            path: services/layer6-benchmarks/Dockerfile
+            context: services/layer6-benchmarks
 
     steps:
       - name: Checkout code
@@ -387,24 +413,24 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Build API service image
+      - name: Build service image
         run: |
-          docker build -t fabric4l/api:scan-target -f services/api/Dockerfile .
+          docker build -t fabric4l/${{ matrix.service.name }}:scan-target -f ${{ matrix.service.path }} ${{ matrix.service.context }}
 
       - name: Scan image with Grype
         uses: anchore/scan-action@e1165082ffb1fe366ebaf02d8526e7c4989ea9d2 # v7.4.0
         with:
-          image: "fabric4l/api:scan-target"
+          image: "fabric4l/${{ matrix.service.name }}:scan-target"
           severity-cutoff: ${{ env.FAIL_THRESHOLD }}
           output-format: sarif
-          output-file: container-scan.sarif
+          output-file: container-scan-${{ matrix.service.name }}.sarif
 
       - name: Upload SARIF
         if: always()
-        uses: github/codeql-action/upload-sarif@f58f0d11ebf5dedd870fab2f999275f7602cfa46 # codeql-bundle-v2.26.0
+        uses: github/codeql-action/upload-sarif@3ce22a6e336a7fcc318bc58ae1986395bdc83ba7 # v4.35.4
         with:
-          sarif_file: container-scan.sarif
-          category: container-scan
+          sarif_file: container-scan-${{ matrix.service.name }}.sarif
+          category: container-scan-${{ matrix.service.name }}
 
   generate-sbom:
     name: Generate SBOM for Vulnerability Tracking

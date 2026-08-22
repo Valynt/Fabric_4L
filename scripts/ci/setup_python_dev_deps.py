@@ -13,8 +13,17 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
+# Pinned for parity with .github/workflows/security-gates.yml (SEMGREP_VERSION).
+# The local pre-commit semgrep hook (`.pre-commit-config.yaml`) uses
+# `language: system`, so semgrep must be installed into the dev environment
+# rather than relying on pre-commit's isolated virtualenv (which mangles
+# Windows shebang paths). Keeping the version in sync with CI prevents
+# rule-behavior drift between local and CI scans.
+SEMGREP_VERSION = "1.136.0"
+
 INSTALL_TARGETS = (
     ("pytest support packages", None, ("pytest-timeout", "pytest-randomly", "pytest-env"), False),
+    ("semgrep SAST tool", None, (f"semgrep=={SEMGREP_VERSION}",), True),
     ("shared package", REPO_ROOT, ("-e", "packages/shared/src"), True),
     ("platform contract package", REPO_ROOT, ("-e", "packages/platform-contract/src/python"), True),
     ("API service dev dependencies", REPO_ROOT / "services/api", ("-e", ".[dev]"), False),

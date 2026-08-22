@@ -7,7 +7,6 @@
  * @example
  * ```tsx
  * import { 
- *   AppShell, 
  *   PageShell, 
  *   Button, 
  *   Card, 
@@ -16,13 +15,12 @@
  * ```
  */
 
-// â”€â”€ Layout / Shell Components â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Layout / Shell Components ───────────────────────────────────────────────
 
-export { default as AppShell } from "./AppShell";
 export { PageShell } from "./layout/PageShell";
 export { RightRailPanel } from "./layout/RightRailPanel";
 
-// â”€â”€ Navigation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Navigation ──────────────────────────────────────────────────────────────
 
 export { TieredNav, type UserTier, NAV_SPINE } from "./navigation/TieredNav";
 export { AccountPicker, type AccountPickerProps } from "./navigation/AccountPicker";

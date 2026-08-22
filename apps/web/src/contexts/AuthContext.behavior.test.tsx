@@ -170,4 +170,33 @@ describe("Auth behavior invariants", () => {
     expect(screen.getByTestId("tenant").textContent).toBe("org_without_slug");
     expect(screen.getByTestId("role").textContent).toBe("analyst");
   });
+
+  it("never elevates the role from a membership that does not match the active org", () => {
+    setAuthProvider("clerk");
+    mockClerkState.authLoaded = true;
+    mockClerkState.userLoaded = true;
+    mockClerkState.isSignedIn = true;
+    mockClerkState.organizationLoaded = true;
+    // The active org is NOT part of the user's memberships — a hostile or
+    // transiently stale state. The user's own (unrelated) membership claims
+    // org:admin, but the active org must not inherit that role by
+    // cross-matching.
+    mockClerkState.organization = { id: "org_active", slug: "active" };
+    mockClerkState.user = {
+      id: "user_1",
+      primaryEmailAddress: { emailAddress: "alice@example.com" },
+      organizationMemberships: [
+        { organization: { id: "org_other" }, role: "org:admin" },
+      ],
+    };
+
+    renderProbe();
+
+    // Signed in with the active org as the tenant, but the role falls back to
+    // the baseline analyst — an unmatched membership is never treated as a
+    // grant for the current org.
+    expect(screen.getByTestId("auth").textContent).toBe("yes");
+    expect(screen.getByTestId("tenant").textContent).toBe("active");
+    expect(screen.getByTestId("role").textContent).toBe("analyst");
+  });
 });

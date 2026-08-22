@@ -29,9 +29,89 @@
       "reason": "Tenant ID is extracted from an authenticated WebSocket token payload after signature verification; not a raw request parameter."
     },
     {
+      "file": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
+      "line": 407,
+      "reason": "Tenant ID is deserialized from local cache/fallback storage, not read from untrusted request parameters."
+    },
+    {
+      "file": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
+      "line": 467,
+      "reason": "Tenant ID is deserialized from local cache/fallback storage, not read from untrusted request parameters."
+    },
+    {
+      "file": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
+      "line": 503,
+      "reason": "Tenant ID is deserialized from local cache/fallback storage, not read from untrusted request parameters."
+    },
+    {
+      "file": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
+      "line": 537,
+      "reason": "Tenant ID is deserialized from local cache/fallback storage, not read from untrusted request parameters."
+    },
+    {
+      "file": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
+      "line": 1452,
+      "reason": "Tenant ID is validated against stored record metadata during fallback cache scan, not read from untrusted request parameters."
+    },
+    {
+      "file": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
+      "line": 1516,
+      "reason": "Tenant ID is validated against stored record metadata during fallback cache scan, not read from untrusted request parameters."
+    },
+    {
+      "file": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
+      "line": 1536,
+      "reason": "Tenant ID is validated against stored record metadata during fallback cache scan, not read from untrusted request parameters."
+    },
+    {
+      "file": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
+      "line": 1592,
+      "reason": "Tenant ID is validated against stored record metadata during fallback cache scan, not read from untrusted request parameters."
+    },
+    {
       "file": "services/layer4-agents/src/layer4_agents/engine/executor.py",
-      "line": 1459,
+      "line": 1460,
       "reason": "Tenant ID is propagated from an already-authenticated workflow execution context; not read from an untrusted request."
+    },
+    {
+      "file": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
+      "line": 407,
+      "reason": "Internal audit report deserialization from stored database JSON payload; not read from an untrusted request."
+    },
+    {
+      "file": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
+      "line": 467,
+      "reason": "Internal audit report deserialization from stored database JSON payload; not read from an untrusted request."
+    },
+    {
+      "file": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
+      "line": 503,
+      "reason": "Internal audit report deserialization from stored database JSON payload; not read from an untrusted request."
+    },
+    {
+      "file": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
+      "line": 537,
+      "reason": "Internal audit report deserialization from stored database JSON payload; not read from an untrusted request."
+    },
+    {
+      "file": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
+      "line": 1452,
+      "reason": "Tenant isolation verification comparing stored data tenant against authenticated context; not inferring tenant."
+    },
+    {
+      "file": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
+      "line": 1516,
+      "reason": "Tenant isolation verification comparing stored data tenant against authenticated context; not inferring tenant."
+    },
+    {
+      "file": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
+      "line": 1536,
+      "reason": "Tenant isolation verification comparing stored data tenant against authenticated context; not inferring tenant."
+    },
+    {
+      "file": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
+      "line": 1592,
+      "reason": "Tenant isolation verification comparing stored data tenant against authenticated context; not inferring tenant."
     },
     {
       "file": "services/layer4-agents/src/layer4_agents/services/tenant_query_helper.py",

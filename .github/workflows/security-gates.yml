@@ -12,15 +12,18 @@ on:
     branches: [main, develop, staging, production]
   push:
     branches: [main, develop, staging, production]
+  # V1-CI-001: merge queue support (Stage 1 shadow; aggregates become
+  # required at Stage 3).
+  merge_group:
   schedule:
     # Run weekly on Mondays at 9 AM UTC
-    - cron: '0 9 * * 1'
+    - cron: "0 9 * * 1"
 
 concurrency:
   # Cancel only an obsolete run of this same workflow/ref. A global
   # feature-branch group lets activity on an unrelated PR cancel required gates.
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 permissions:
   contents: read
@@ -31,7 +34,7 @@ env:
   SECURITY_ARTIFACT_RETENTION_DAYS: 30
   # Reviewed scanner release shared by every Semgrep job. Update only in a
   # dedicated security-tool review together with config/semgrep/registry/.
-  SEMGREP_VERSION: '1.136.0'
+  SEMGREP_VERSION: "1.136.0"
   # Opt into Node.js 24 for GitHub Actions
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
@@ -105,7 +108,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Install reviewed Semgrep release
         run: pip install "semgrep==${{ env.SEMGREP_VERSION }}"
@@ -161,14 +164,14 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Install reviewed Semgrep CE release
         run: pip install "semgrep==${{ env.SEMGREP_VERSION }}"
 
       - name: Smoke check pinned Semgrep
         env:
-          SEMGREP_SEND_METRICS: 'off'
+          SEMGREP_SEND_METRICS: "off"
         run: |
           semgrep scan \
             --validate \
@@ -193,7 +196,7 @@ jobs:
       - name: Run Semgrep CE (curated rules + local rules)
         env:
           # Semgrep CE only; no Semgrep AppSec Platform token is used.
-          SEMGREP_SEND_METRICS: 'off'
+          SEMGREP_SEND_METRICS: "off"
         run: |
           semgrep scan \
             --config config/semgrep/registry/ \
@@ -206,7 +209,7 @@ jobs:
           test -s semgrep-full.sarif
 
       - name: Upload Semgrep SARIF to GitHub Security
-        if: always()
+        if: always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
         uses: github/codeql-action/upload-sarif@3ce22a6e336a7fcc318bc58ae1986395bdc83ba7 # v4.35.4
         with:
           sarif_file: semgrep-full.sarif
@@ -214,26 +217,9 @@ jobs:
 
       - name: Fail on ERROR-severity Semgrep findings
         run: |
-          python3 << 'PYEOF'
-          import json
-          import sys
-          with open('semgrep-full.sarif', encoding='utf-8') as fh:
-              sarif = json.load(fh)
-          errors = []
-          for run in sarif.get('runs', []):
-              for result in run.get('results', []):
-                  if result.get('level', 'warning') == 'error':
-                      loc = result.get('locations', [{}])[0].get('physicalLocation', {})
-                      uri = loc.get('artifactLocation', {}).get('uri', '<unknown>')
-                      line = loc.get('region', {}).get('startLine', '?')
-                      errors.append(f"{result.get('ruleId', '<rule>')} at {uri}:{line}")
-          if errors:
-              print(f"Found {len(errors)} ERROR-severity Semgrep findings:")
-              for item in errors[:20]:
-                  print(f"  - {item}")
-              sys.exit(1)
-          print("No ERROR-severity Semgrep findings")
-          PYEOF
+          python3 scripts/ci/check_semgrep_sarif.py \
+            --sarif semgrep-full.sarif \
+            --baseline config/ci/semgrep_baseline.json
 
       - name: Upload Semgrep full-scan results
         if: always()
@@ -397,28 +383,29 @@ jobs:
       - name: Run Trivy repository scanner
         uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
         with:
-          scan-type: 'fs'
-          scan-ref: '.'
-          format: 'sarif'
-          output: 'trivy-repo.sarif'
-          exit-code: '1'
+          scan-type: "fs"
+          scan-ref: "."
+          format: "sarif"
+          output: "trivy-repo.sarif"
+          exit-code: "1"
           ignore-unfixed: true
-          vuln-type: 'os,library'
-          severity: 'HIGH,CRITICAL'
+          vuln-type: "os,library"
+          severity: "HIGH,CRITICAL"
           limit-severities-for-sarif: true
-          scanners: 'vuln,secret,config'
-          skip-dirs: 'archive,docs/archive,node_modules'
-          trivy-config: 'config/trivy/repository.yaml'
+          scanners: "vuln,secret,misconfig"
+          skip-dirs: "archive,docs/archive,node_modules"
+          trivy-config: "config/trivy/repository.yaml"
+          trivyignores: ".trivyignore.yaml"
 
       - name: Verify Trivy SARIF artifact
         if: always()
         run: test -s trivy-repo.sarif
 
       - name: Upload Trivy repository scan results
-        if: always()
+        if: always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
         uses: github/codeql-action/upload-sarif@3ce22a6e336a7fcc318bc58ae1986395bdc83ba7 # v4.35.4
         with:
-          sarif_file: 'trivy-repo.sarif'
+          sarif_file: "trivy-repo.sarif"
           category: trivy-repo
 
       - name: Upload Trivy repository scan artifact
@@ -515,8 +502,8 @@ jobs:
           retention-days: 5
 
       - name: Upload OSV SARIF to code scanning
-        if: ${{ !cancelled() }}
-        uses: github/codeql-action/upload-sarif@cdefb33c0f6224e58673d9004f47f7cb3e328b89 # v4.31.10
+        if: ${{ !cancelled() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
+        uses: github/codeql-action/upload-sarif@3ce22a6e336a7fcc318bc58ae1986395bdc83ba7 # v4.35.4
         with:
           sarif_file: osv-scanner-pr.sarif
           category: osv-scanner-pr
@@ -585,6 +572,7 @@ jobs:
           retention-days: ${{env.SECURITY_ARTIFACT_RETENTION_DAYS}}
 
       - name: Upload Scorecard SARIF to GitHub Security
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         uses: github/codeql-action/upload-sarif@3ce22a6e336a7fcc318bc58ae1986395bdc83ba7 # v4.35.4
         with:
           sarif_file: scorecard-results.sarif
@@ -603,7 +591,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        layer: [layer1-ingestion, layer2-extraction, layer3-knowledge, layer4-agents, layer5-ground-truth, layer6-benchmarks]
+        layer:
+          [
+            layer1-ingestion,
+            layer2-extraction,
+            layer3-knowledge,
+            layer4-agents,
+            layer5-ground-truth,
+            layer6-benchmarks,
+          ]
 
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
@@ -619,20 +615,21 @@ jobs:
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
         with:
-          image-ref: '${{matrix.layer}}:scan-target'
-          format: 'sarif'
-          output: 'trivy-results.sarif'
-          exit-code: '1'
+          image-ref: "${{matrix.layer}}:scan-target"
+          format: "sarif"
+          output: "trivy-results.sarif"
+          exit-code: "1"
           ignore-unfixed: true
-          vuln-type: 'os,library'
-          severity: 'HIGH,CRITICAL'
-          scanners: 'vuln,secret,config'
+          vuln-type: "os,library"
+          severity: "HIGH,CRITICAL"
+          limit-severities-for-sarif: true
+          scanners: "vuln,secret,misconfig"
 
       - name: Upload Trivy scan results
         uses: github/codeql-action/upload-sarif@3ce22a6e336a7fcc318bc58ae1986395bdc83ba7 # v4.35.4
-        if: always()
+        if: always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
         with:
-          sarif_file: 'trivy-results.sarif'
+          sarif_file: "trivy-results.sarif"
           category: trivy-${{matrix.layer}}
 
   # SBOM generation + vulnerability policy gate
@@ -676,27 +673,27 @@ jobs:
       - name: Generate CycloneDX SBOM (Trivy)
         uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
         with:
-          image-ref: '${{matrix.artifact.name}}:ci'
-          format: 'cyclonedx'
-          output: '${{matrix.artifact.name}}-sbom.cdx.json'
-          scanners: 'vuln'
+          image-ref: "${{matrix.artifact.name}}:ci"
+          format: "cyclonedx"
+          output: "${{matrix.artifact.name}}-sbom.cdx.json"
+          scanners: "vuln"
 
       - name: Evaluate SBOM vulnerability policy
         uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
         with:
-          scan-type: 'sbom'
-          scan-ref: '${{matrix.artifact.name}}-sbom.cdx.json'
-          format: 'sarif'
-          output: '${{matrix.artifact.name}}-sbom-vuln.sarif'
-          exit-code: '1'
+          scan-type: "sbom"
+          scan-ref: "${{matrix.artifact.name}}-sbom.cdx.json"
+          format: "sarif"
+          output: "${{matrix.artifact.name}}-sbom-vuln.sarif"
+          exit-code: "1"
           ignore-unfixed: true
-          severity: 'HIGH,CRITICAL'
+          severity: "HIGH,CRITICAL"
 
       - name: Upload SBOM vulnerability SARIF
-        if: always() && hashFiles(format('{0}-sbom-vuln.sarif', matrix.artifact.name)) != ''
+        if: always() && hashFiles(format('{0}-sbom-vuln.sarif', matrix.artifact.name)) != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
         uses: github/codeql-action/upload-sarif@3ce22a6e336a7fcc318bc58ae1986395bdc83ba7 # v4.35.4
         with:
-          sarif_file: '${{matrix.artifact.name}}-sbom-vuln.sarif'
+          sarif_file: "${{matrix.artifact.name}}-sbom-vuln.sarif"
           category: sbom-${{matrix.artifact.name}}
 
       - name: Upload SBOM and policy artifacts
@@ -757,7 +754,7 @@ jobs:
           CREDENTIALS_MASTER_KEY=valuefabric-ci-credentials-master-key-32chars
           DEFAULT_TENANT_ID=00000000-0000-4000-8000-000000000001
           LAYER4_DATABASE_URL=postgresql+asyncpg://valuefabric:valuefabric-ci-postgres@postgres:5432/layer4_agents
-          NEO4J_PASSWORD=valuefabric
+          NEO4J_PASSWORD=valuefabric-ci-neo4j-password
           CORS_ORIGINS=["https://localhost:3000"]
           AUTH_PROVIDER=layer4
           CLERK_ISSUER=https://ci-clerk.example.test
@@ -798,6 +795,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p zap-reports
+          chmod a+w zap-reports
           declare -a targets=(
             "layer1:http://127.0.0.1:8001"
             "layer2:http://127.0.0.1:8002"
@@ -850,7 +848,15 @@ jobs:
 
     strategy:
       matrix:
-        layer: [layer1-ingestion, layer2-extraction, layer3-knowledge, layer4-agents, layer5-ground-truth, layer6-benchmarks]
+        layer:
+          [
+            layer1-ingestion,
+            layer2-extraction,
+            layer3-knowledge,
+            layer4-agents,
+            layer5-ground-truth,
+            layer6-benchmarks,
+          ]
 
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
@@ -858,7 +864,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Install bandit
         run: pip install bandit
@@ -914,7 +920,15 @@ jobs:
 
     strategy:
       matrix:
-        layer: [layer1-ingestion, layer2-extraction, layer3-knowledge, layer4-agents, layer5-ground-truth, layer6-benchmarks]
+        layer:
+          [
+            layer1-ingestion,
+            layer2-extraction,
+            layer3-knowledge,
+            layer4-agents,
+            layer5-ground-truth,
+            layer6-benchmarks,
+          ]
 
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
@@ -922,7 +936,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Install pip-audit
         run: python -m pip install --upgrade pip "setuptools>=83.0.0" pip-audit
@@ -963,14 +977,14 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
         with:
-          version: '10.18.1'
+          version: "10.18.1"
 
       - name: Set up Node.js
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: '22.18.0'
-          cache: 'pnpm'
-          cache-dependency-path: 'pnpm-lock.yaml'
+          node-version: "22.18.0"
+          cache: "pnpm"
+          cache-dependency-path: "pnpm-lock.yaml"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -1145,13 +1159,15 @@ jobs:
           retention-days: ${{env.SECURITY_ARTIFACT_RETENTION_DAYS}}
 
   # This status check should be configured as REQUIRED in branch protection
-  # to block merges unless DAST and SBOM policy checks pass.
+  # to block merges unless Trivy, DAST, and SBOM policy checks pass.
   security-gates-required:
     name: Security Gates Required
     runs-on: ubuntu-latest
     if: always() && github.event_name == 'pull_request'
     needs:
       - change-scope
+      - trivy-repo-scan
+      - trivy-image-scan
       - dast-api-scan
       - sbom-policy
       - mandatory-security-regression
@@ -1170,6 +1186,8 @@ jobs:
         run: |
           set -euo pipefail
           declare -A CHECKS=(
+            ["trivy-repo-scan"]="${{ needs.trivy-repo-scan.result }}"
+            ["trivy-image-scan"]="${{ needs.trivy-image-scan.result }}"
             ["dast-api-scan"]="${{ needs.dast-api-scan.result }}"
             ["sbom-policy"]="${{ needs.sbom-policy.result }}"
             ["mandatory-security-regression"]="${{ needs.mandatory-security-regression.result }}"
@@ -1180,6 +1198,10 @@ jobs:
           # fails closed. Scope values are compared in bash so unresolved
           # (empty) values never count as safe.
           declare -A SCOPE_SAFE=(
+            # trivy-repo-scan runs unconditionally on every PR (IaC + repo filesystem);
+            # it is never scope-skipped and must always succeed.
+            ["trivy-repo-scan"]="false"
+            ["trivy-image-scan"]="$([[ "${SCOPE_DOCKER:-}" == "false" ]] && echo true || echo false)"
             ["dast-api-scan"]="$([[ "${SCOPE_CODE:-}" == "false" ]] && echo true || echo false)"
             ["sbom-policy"]="$([[ "${SCOPE_DOCKER:-}" == "false" && "${SCOPE_DEPS:-}" == "false" ]] && echo true || echo false)"
             # mandatory-security-regression is a governed merge control and
@@ -1215,7 +1237,16 @@ jobs:
 
     strategy:
       matrix:
-        layer: [layer1-ingestion, layer2-extraction, layer3-knowledge, layer4-agents, layer5-ground-truth, layer6-benchmarks, apps-web]
+        layer:
+          [
+            layer1-ingestion,
+            layer2-extraction,
+            layer3-knowledge,
+            layer4-agents,
+            layer5-ground-truth,
+            layer6-benchmarks,
+            apps-web,
+          ]
 
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
@@ -1268,7 +1299,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Install gate dependencies
         run: python -m pip install pyyaml
@@ -1290,7 +1321,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Validate mandatory security merge-control contract
         run: |
@@ -1301,13 +1332,13 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
         with:
-          version: '10.18.1'
+          version: "10.18.1"
 
       - name: Set up Node.js
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: '22.18.0'
-          cache: 'pnpm'
+          node-version: "22.18.0"
+          cache: "pnpm"
           cache-dependency-path: pnpm-lock.yaml
 
       - name: Install Python security test dependencies
@@ -1343,3 +1374,67 @@ jobs:
             .fabric/audit/security_regression_gate/
           if-no-files-found: error
           retention-days: ${{env.SECURITY_ARTIFACT_RETENTION_DAYS}}
+
+  # ---------------------------------------------------------------------------
+  # V1-CI-001 Stage 1 (shadow): stable aggregate security check. Informational
+  # until Stage 3. Summarizes existing jobs only (scripts/ci/aggregate_gate.py).
+  # ---------------------------------------------------------------------------
+  aggregate-04-security-gates:
+    name: 04-security-gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: always()
+    needs:
+      - change-scope
+      - dev-auth-bypass-guard
+      - gitleaks-scan
+      - cypher-dynamic-guard
+      - semgrep-full-scan
+      - trivy-repo-scan
+      - osv-scanner-pr
+      - trivy-image-scan
+      - sbom-policy
+      - dast-api-scan
+      - bandit-scan
+      - pip-audit-scan
+      - frontend-security-audit
+      - dockerfile-non-root-check
+      - dependency-review
+      - mandatory-security-regression
+      - route-auth-gate
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - name: Summarize security gates
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+          SKIPSAFE_LAYER3: ${{ needs.change-scope.outputs.layer3 == 'false' }}
+          SKIPSAFE_CODE: ${{ needs.change-scope.outputs.code == 'false' }}
+          SKIPSAFE_DEPS: ${{ needs.change-scope.outputs.deps == 'false' }}
+          SKIPSAFE_BACKEND: ${{ needs.change-scope.outputs.backend == 'false' }}
+          SKIPSAFE_WEB: ${{ needs.change-scope.outputs.web == 'false' }}
+          SKIPSAFE_DOCKER: ${{ needs.change-scope.outputs.docker == 'false' }}
+          SKIPSAFE_NOT_PR: ${{ github.event_name != 'pull_request' }}
+          # Several scan jobs are gated on pull_request/push events; on
+          # merge_group they skip and their coverage was already proven on the
+          # PR head (Stage 3 follow-up widens their `if:` to merge_group).
+          SKIPSAFE_NOT_PR_OR_PUSH: ${{ github.event_name != 'pull_request' && github.event_name != 'push' }}
+          SKIPSAFE_OSV_PR: ${{ needs.change-scope.outputs.deps == 'false' || github.event_name != 'pull_request' }}
+          SKIPSAFE_TRIVY_IMAGE: ${{ needs.change-scope.outputs.docker == 'false' || (github.event_name != 'pull_request' && github.event_name != 'push') }}
+          SKIPSAFE_SBOM_POLICY: ${{ (needs.change-scope.outputs.docker == 'false' && needs.change-scope.outputs.deps == 'false') || (github.event_name != 'pull_request' && github.event_name != 'push') }}
+          SKIPSAFE_DAST: ${{ needs.change-scope.outputs.code == 'false' || (github.event_name != 'pull_request' && github.event_name != 'push') }}
+          SKIPSAFE_PIP_AUDIT: ${{ needs.change-scope.outputs.backend == 'false' && needs.change-scope.outputs.deps == 'false' }}
+        run: |
+          python3 scripts/ci/aggregate_gate.py \
+            --needs-json "$NEEDS_JSON" \
+            --skip-safe cypher-dynamic-guard=SKIPSAFE_LAYER3 \
+            --skip-safe semgrep-full-scan=SKIPSAFE_CODE \
+            --skip-safe osv-scanner-pr=SKIPSAFE_OSV_PR \
+            --skip-safe trivy-image-scan=SKIPSAFE_TRIVY_IMAGE \
+            --skip-safe sbom-policy=SKIPSAFE_SBOM_POLICY \
+            --skip-safe dast-api-scan=SKIPSAFE_DAST \
+            --skip-safe bandit-scan=SKIPSAFE_BACKEND \
+            --skip-safe pip-audit-scan=SKIPSAFE_PIP_AUDIT \
+            --skip-safe frontend-security-audit=SKIPSAFE_WEB \
+            --skip-safe dockerfile-non-root-check=SKIPSAFE_DOCKER \
+            --skip-safe dependency-review=SKIPSAFE_NOT_PR \
+            --skip-safe route-auth-gate=SKIPSAFE_BACKEND

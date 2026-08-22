@@ -10,6 +10,8 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 BUNNYSHELL_PATHS = (
     REPO_ROOT / "bunnyshell.yaml",
     REPO_ROOT / "bunnyshell-pr.yaml",
+    REPO_ROOT / ".deployments" / "bunnyshell.yaml",
+    REPO_ROOT / ".deployments" / "bunnyshell-pr.yaml",
 )
 
 
@@ -226,6 +228,25 @@ def test_postgres_multiple_databases_includes_all_required_dbs(bunnyshell_path: 
     assert not missing, (
         f"POSTGRES_MULTIPLE_DATABASES is missing: {missing}"
     )
+
+
+@pytest.mark.parametrize("bunnyshell_path", BUNNYSHELL_PATHS, ids=lambda path: path.name)
+def test_bunnyshell_layer6_uses_layer3_and_layer5_api_keys(bunnyshell_path: Path):
+    """layer6 must consume LAYER3_API_KEY and LAYER5_API_KEY (Finding 5)."""
+    config = _load_bunnyshell(bunnyshell_path)
+    layer6_env = _component(config, "layer6")["dockerCompose"]["environment"]
+    assert layer6_env["LAYER3_API_KEY"] == "${LAYER3_API_KEY}"
+    assert layer6_env["LAYER5_API_KEY"] == "${LAYER5_API_KEY}"
+
+
+@pytest.mark.parametrize("bunnyshell_path", BUNNYSHELL_PATHS, ids=lambda path: path.name)
+def test_bunnyshell_manifest_documents_layer3_and_layer5_api_keys(
+    bunnyshell_path: Path,
+):
+    """The header comment must list LAYER3_API_KEY and LAYER5_API_KEY as required."""
+    text = bunnyshell_path.read_text(encoding="utf-8")
+    assert "LAYER3_API_KEY" in text, "manifest must document LAYER3_API_KEY as required"
+    assert "LAYER5_API_KEY" in text, "manifest must document LAYER5_API_KEY as required"
 
 
 @pytest.mark.parametrize("bunnyshell_path", BUNNYSHELL_PATHS, ids=lambda path: path.name)

@@ -5604,6 +5604,8 @@ export interface components {
             audit_event_id: string;
             /** Emitted At */
             emitted_at: string;
+            /** Journey Id */
+            journey_id?: string | null;
             /** Intent */
             intent?: string | null;
             /** Confidence */
@@ -5679,6 +5681,8 @@ export interface components {
             selectedScenarioId?: string | null;
             /** Selectedbusinesscaseid */
             selectedBusinessCaseId?: string | null;
+            /** Journeyid */
+            journeyId?: string | null;
         };
         /**
          * AgentStreamResponse
@@ -6033,7 +6037,7 @@ export interface components {
         AuditTriggerRequest: {
             /**
              * Repo Url
-             * @description Repository URL to audit.
+             * @description Repository URL to audit (must be an approved Git URL scheme like https:// or ssh://).
              */
             repo_url: string;
             /**
