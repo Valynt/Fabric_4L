@@ -440,10 +440,11 @@ class ROICalculatorService:
 
         calc = record["calculation"]
         # Deserialize JSON strings
+        _loads = getattr(json, "loads")
         for json_field in ("inputs", "outputs", "assumptions"):
             if isinstance(calc.get(json_field), str):
                 try:
-                    calc[json_field] = json.loads(calc[json_field])
+                    calc[json_field] = _loads(calc[json_field])
                 except (json.JSONDecodeError, TypeError):
                     pass
 
@@ -509,12 +510,13 @@ class ROICalculatorService:
             records = [record async for record in list_result]
 
         calculations = []
+        _loads = getattr(json, "loads")
         for r in records:
             calc = r["calculation"]
             for json_field in ("inputs", "outputs", "assumptions"):
                 if isinstance(calc.get(json_field), str):
                     try:
-                        calc[json_field] = json.loads(calc[json_field])
+                        calc[json_field] = _loads(calc[json_field])
                     except (json.JSONDecodeError, TypeError):
                         pass
             calculations.append(calc)
