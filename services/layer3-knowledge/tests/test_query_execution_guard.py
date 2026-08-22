@@ -7,21 +7,18 @@ import pytest
 from value_fabric.shared.identity.isolation import QueryScope
 
 from src.db.query_execution import (
+    MAX_QUERY_DEPTH,
     CypherDepthLimitExceeded,
     CypherInjectionDetected,
     DangerousProcedureBlockedError,
-    DirectMutationProhibitedError,
-    MAX_QUERY_DEPTH,
     MissingTenantContextError,
     TenantExecutionContext,
     TenantParameterMismatchError,
     TenantQueryExecutor,
     TenantQueryValidationError,
     UnscopedTenantLabelError,
-    run_scoped_query,
     run_system_query,
     run_tenant_query,
-    run_validated_query,
 )
 from src.graph.query_guards import (
     DEFAULT_MAX_QUERY_DEPTH,
@@ -255,3 +252,20 @@ async def test_unscoped_tenant_label_in_subquery_is_rejected() -> None:
             tenant_id="tenant-a",
         )
     assert exc_info.value.code == "UNSCOPED_TENANT_LABEL"
+
+
+@pytest.mark.asyncio
+async def test_execute_with_timeout_success() -> None:
+    async def fake_run(q, p):
+        return ["record1"]
+
+    res, elapsed = await TenantQueryExecutor._execute_with_timeout(
+        fake_run, "RETURN 1", {}
+    )
+    assert res == ["record1"]
+    assert elapsed >= 0.0
+
+
+def test_record_query_metrics_safe_without_metrics() -> None:
+    # Should not raise exception
+    TenantQueryExecutor._record_query_metrics(1.5, ["rec1", "rec2"])
