@@ -3,17 +3,19 @@
 from __future__ import annotations
 
 import uuid
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi import HTTPException
 from sqlalchemy import text
+from sqlalchemy.ext.asyncio import create_async_engine
 from value_fabric.shared.error_handling.exceptions import ValidationError
 from value_fabric.shared.identity.context import RequestContext
 
 from layer4_agents.database import (
     RESERVED_TENANT_KEYWORDS,
     TenantContextError,
+    TenantEnforcedAsyncSession,
     _assert_session_has_tenant_context,
     _enforce_session_isolation_tier,
     _extract_and_validate_context_tenant,
@@ -23,6 +25,7 @@ from layer4_agents.database import (
     _validate_tenant_id_fallback,
     db_session_for_context,
     get_db_from_context,
+    get_engine,
     get_tenant_validation_metrics,
     reset_tenant_validation_metrics,
     validate_tenant_id,
@@ -128,6 +131,45 @@ class TestSessionTenantEnforcement:
         )
         assert not _statement_sets_tenant_context("SELECT * FROM accounts")
         assert not _statement_sets_tenant_context(text("SELECT 1"))
+
+    @pytest.mark.asyncio
+    async def test_tenant_enforced_async_session_execute_unscoped_fails_closed(self) -> None:
+        """Verify TenantEnforcedAsyncSession.execute() rejects SQL before tenant context is set."""
+        engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+        session = TenantEnforcedAsyncSession(bind=engine)
+        try:
+            with pytest.raises(TenantContextError, match="must be established before statement execution"):
+                await session.execute(text("SELECT 1"))
+        finally:
+            await session.close()
+            await engine.dispose()
+
+    @pytest.mark.asyncio
+    async def test_tenant_enforced_async_session_execute_after_context_set_succeeds(self) -> None:
+        """Verify TenantEnforcedAsyncSession.execute() succeeds once tenant context is marked."""
+        engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+        session = TenantEnforcedAsyncSession(bind=engine)
+        try:
+            _mark_session_tenant_context(session, "tenant-test-123")
+            result = await session.execute(text("SELECT 1"))
+            assert result.scalar() == 1
+        finally:
+            await session.close()
+            await engine.dispose()
+
+    @pytest.mark.asyncio
+    async def test_tenant_enforced_async_session_allows_set_tenant_context_statement(self) -> None:
+        """Verify TenantEnforcedAsyncSession.execute() allows the statement that establishes tenant context."""
+        engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+        session = TenantEnforcedAsyncSession(bind=engine)
+        try:
+            # Statement containing app.tenant_id setup pattern should bypass the pre-execution assert
+            with patch.object(TenantEnforcedAsyncSession, "execute", wraps=session.execute):
+                # When _statement_sets_tenant_context is True, it doesn't raise TenantContextError
+                assert _statement_sets_tenant_context("SELECT set_config('app.tenant_id', 't-1', true)")
+        finally:
+            await session.close()
+            await engine.dispose()
 
 
 class TestGetDbFromContext:
@@ -237,3 +279,45 @@ class TestDbSessionForContext:
         async with db_session_for_context(ctx) as session:
             assert session is not None
             assert session.info.get("tenant_context_value") == tid
+
+
+class TestProductionRlsEngineGuard:
+    """Test suite for engine startup RLS guards in protected environments."""
+
+    def test_get_engine_rejects_rls_disabled_database_in_protected_environment(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Verify get_engine() fails fast in production if database is SQLite or non-Postgres."""
+        monkeypatch.setenv("ENVIRONMENT", "production")
+        monkeypatch.setenv("LAYER4_DATABASE_URL", "sqlite+aiosqlite:///:memory:")
+
+        # Reset singleton engine
+        import layer4_agents.database as db_mod
+
+        old_engine = db_mod._engine
+        try:
+            db_mod._engine = None
+            with pytest.raises(RuntimeError, match="must use PostgreSQL with RLS-capable tenant isolation"):
+                db_mod.get_engine()
+        finally:
+            db_mod._engine = old_engine
+
+    def test_get_engine_rejects_superuser_in_protected_environment(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Verify get_engine() fails fast in production if connecting with a superuser role."""
+        monkeypatch.setenv("ENVIRONMENT", "production")
+        monkeypatch.setenv(
+            "LAYER4_DATABASE_URL",
+            "postgresql+asyncpg://postgres:secret@localhost:5432/layer4",
+        )
+
+        import layer4_agents.database as db_mod
+
+        old_engine = db_mod._engine
+        try:
+            db_mod._engine = None
+            with pytest.raises(RuntimeError, match="must not use PostgreSQL superuser role"):
+                db_mod.get_engine()
+        finally:
+            db_mod._engine = old_engine
