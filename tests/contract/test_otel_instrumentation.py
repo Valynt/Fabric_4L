@@ -73,8 +73,18 @@ class TestOtelInstrumentationStatic:
             / "src"
             / "layer2_extraction"
             / "api"
-            / "main.py"
+            / "app_factory.py"
         )
+        if not path.exists():
+            path = (
+                REPO_ROOT
+                / "services"
+                / "layer2-extraction"
+                / "src"
+                / "layer2_extraction"
+                / "api"
+                / "main.py"
+            )
         source = _read_source(path)
         assert _has_kwarg_in_call(source, "instrument_telemetry=True"), (
             "layer2-extraction must pass instrument_telemetry=True to create_fabric_app"

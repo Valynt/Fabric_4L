@@ -14,19 +14,27 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 MAINTAINED_APP_ENTRYPOINTS = {
     "api": REPO_ROOT / "services/api/app/main.py",
     "layer1": REPO_ROOT / "services/layer1-ingestion/src/layer1_ingestion/api/main.py",
-    "layer2": REPO_ROOT / "services/layer2-extraction/src/layer2_extraction/api/main.py",
+    "layer2": REPO_ROOT
+    / "services/layer2-extraction/src/layer2_extraction/api/app_factory.py",
     "layer3": REPO_ROOT / "services/layer3-knowledge/src/api/main.py",
     "layer4": REPO_ROOT / "services/layer4-agents/src/layer4_agents/api/app_factory.py",
-    "layer5": REPO_ROOT / "services/layer5-ground-truth/src/layer5_ground_truth/api/main.py",
-    "layer6": REPO_ROOT / "services/layer6-benchmarks/src/layer6_benchmarks/api/main.py",
+    "layer5": REPO_ROOT
+    / "services/layer5-ground-truth/src/layer5_ground_truth/api/main.py",
+    "layer6": REPO_ROOT
+    / "services/layer6-benchmarks/src/layer6_benchmarks/api/main.py",
 }
 
 BOUNDARY_SOURCES = {
-    "api_boundary": REPO_ROOT / "packages/shared/src/value_fabric/shared/error_handling/middleware.py",
-    "http_trace_boundary": REPO_ROOT / "packages/shared/src/value_fabric/shared/observability/w3c_trace_context.py",
-    "db_boundary": REPO_ROOT / "packages/shared/src/value_fabric/shared/database/runtime_adapter.py",
-    "queue_boundary": REPO_ROOT / "packages/shared/src/value_fabric/shared/audit/redis_queue.py",
-    "worker_boundary": REPO_ROOT / "packages/shared/src/value_fabric/shared/audit/worker.py",
+    "api_boundary": REPO_ROOT
+    / "packages/shared/src/value_fabric/shared/error_handling/middleware.py",
+    "http_trace_boundary": REPO_ROOT
+    / "packages/shared/src/value_fabric/shared/observability/w3c_trace_context.py",
+    "db_boundary": REPO_ROOT
+    / "packages/shared/src/value_fabric/shared/database/runtime_adapter.py",
+    "queue_boundary": REPO_ROOT
+    / "packages/shared/src/value_fabric/shared/audit/redis_queue.py",
+    "worker_boundary": REPO_ROOT
+    / "packages/shared/src/value_fabric/shared/audit/worker.py",
 }
 
 
@@ -73,4 +81,6 @@ def test_trace_context_has_boundary_coverage_hooks() -> None:
     for boundary, tokens in boundary_tokens.items():
         source = BOUNDARY_SOURCES[boundary].read_text(encoding="utf-8")
         for token in tokens:
-            assert token in source, f"{boundary} must preserve trace/correlation context token {token}"
+            assert (
+                token in source
+            ), f"{boundary} must preserve trace/correlation context token {token}"
