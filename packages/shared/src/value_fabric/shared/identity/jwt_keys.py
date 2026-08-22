@@ -23,6 +23,27 @@ class get_jwksResult(BaseModel):
         except AttributeError as exc:
             raise KeyError(key) from exc
 
+    def __setitem__(self, key: str, value: Any) -> None:
+        setattr(self, key, value)
+
+    def __contains__(self, key: str) -> bool:
+        return hasattr(self, key)
+
+    def get(self, key: str, default: Any = None) -> Any:
+        return getattr(self, key, default)
+
+    def __iter__(self):
+        return iter(self.model_dump())
+
+    def items(self):
+        return self.model_dump().items()
+
+    def values(self):
+        return self.model_dump().values()
+
+    def __len__(self) -> int:
+        return len(self.model_dump())
+
 
 class _build_keysetResult(TypedDictModel):
     active_kid: Any
