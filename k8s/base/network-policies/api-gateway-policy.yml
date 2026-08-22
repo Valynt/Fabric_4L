@@ -1,0 +1,105 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: api-gateway-policy
+  namespace: value-fabric
+spec:
+  podSelector:
+    matchLabels:
+      app: api-gateway
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow external ingress traffic from ingress controller namespace
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: __INGRESS_NAMESPACE__
+      ports:
+        - protocol: TCP
+          port: 8000
+    # Allow traffic from frontend within value-fabric namespace
+    - from:
+        - podSelector:
+            matchLabels:
+              app: frontend
+      ports:
+        - protocol: TCP
+          port: 8000
+  egress:
+    # Allow to infrastructure: Postgres and Redis
+    - to:
+        - podSelector:
+            matchLabels:
+              app: postgres
+      ports:
+        - protocol: TCP
+          port: 5432
+    - to:
+        - podSelector:
+            matchLabels:
+              app: redis
+      ports:
+        - protocol: TCP
+          port: 6379
+    # Allow to backend layer services
+    - to:
+        - podSelector:
+            matchLabels:
+              app: layer1-ingestion
+      ports:
+        - protocol: TCP
+          port: 8000
+    - to:
+        - podSelector:
+            matchLabels:
+              app: layer2-extraction
+      ports:
+        - protocol: TCP
+          port: 8000
+    - to:
+        - podSelector:
+            matchLabels:
+              app: layer3-knowledge
+      ports:
+        - protocol: TCP
+          port: 8001
+    - to:
+        - podSelector:
+            matchLabels:
+              app: layer4-agents
+      ports:
+        - protocol: TCP
+          port: 8000
+    - to:
+        - podSelector:
+            matchLabels:
+              app: layer5-ground-truth
+      ports:
+        - protocol: TCP
+          port: 8005
+    - to:
+        - podSelector:
+            matchLabels:
+              app: layer6-benchmarks
+      ports:
+        - protocol: TCP
+          port: 8006
+    - to:
+        - podSelector:
+            matchLabels:
+              app: layer2-5-signal-refinery
+      ports:
+        - protocol: TCP
+          port: 8007
+    # Allow DNS resolution
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53

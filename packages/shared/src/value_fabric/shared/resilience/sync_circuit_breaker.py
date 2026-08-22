@@ -198,7 +198,10 @@ def retry_transient(
             return func(*args, **kwargs)
         except Exception as exc:
             last_exc = exc
-            if retry_on is None or not retry_on(exc):
+            is_retryable = (
+                retry_on(exc) if retry_on is not None else isinstance(exc, RetryableError)
+            )
+            if not is_retryable:
                 raise
             if attempt >= max_attempts:
                 raise

@@ -165,7 +165,8 @@ async def _api_layer_probe(name: str, base_url_attr: str) -> ProbeResult:
     try:
         base_url = getattr(settings, base_url_attr).rstrip("/")
         url = f"{base_url}/ready"
-        response = httpx.get(url, timeout=2.0)
+        async with httpx.AsyncClient(timeout=2.0) as client:
+            response = await client.get(url)
         if response.status_code == 200:
             return ProbeResult(name=name, healthy=True)
         return ProbeResult(

@@ -17,6 +17,7 @@ it is owned by ``routers/benchmarks.py`` with a typed Layer 6 client.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
 import time
@@ -253,12 +254,12 @@ def _cache_key(segment: str, path: str, tenant_id: str, user_id: str | None,
     import hashlib
 
     digest = hashlib.sha256(
-        f"{tenant_id}|{user_id or ''}|{segment}|{path}|{query_string}".encode()
+        f"{user_id or ''}|{path}|{query_string}".encode()
     ).hexdigest()
-    return f"delegation:get:{digest}"
+    return f"delegation:get:{tenant_id}:{segment}:{digest}"
 
 
-def _cache_lookup(key: str) -> tuple[int, bytes, str] | None:
+def _sync_cache_lookup(key: str) -> tuple[int, bytes, str] | None:
     """Return (status, body, content_type) from cache, or None on miss/unavailable."""
     from app.core.redis_client import get_redis_client
 
@@ -281,7 +282,12 @@ def _cache_lookup(key: str) -> tuple[int, bytes, str] | None:
     return status, body, content_type
 
 
-def _cache_store(key: str, status: int, body: bytes, content_type: str) -> bool:
+async def _cache_lookup(key: str) -> tuple[int, bytes, str] | None:
+    """Non-blocking cache lookup offloaded to worker thread."""
+    return await asyncio.to_thread(_sync_cache_lookup, key)
+
+
+def _sync_cache_store(key: str, status: int, body: bytes, content_type: str) -> bool:
     """Store a GET response in cache with the configured TTL.
 
     Returns True if stored, False if Redis was unavailable or the write failed.
@@ -298,6 +304,32 @@ def _cache_store(key: str, status: int, body: bytes, content_type: str) -> bool:
         logger.debug("delegation cache store failed: %s", exc)
         return False
     return True
+
+
+async def _cache_store(key: str, status: int, body: bytes, content_type: str) -> bool:
+    """Non-blocking cache store offloaded to worker thread."""
+    return await asyncio.to_thread(_sync_cache_store, key, status, body, content_type)
+
+
+def _sync_cache_invalidate(tenant_id: str, segment: str) -> None:
+    """Invalidate cached GET delegations for a tenant and segment after mutation."""
+    from app.core.redis_client import get_redis_client
+
+    client = get_redis_client()
+    if client is None:
+        return
+    try:
+        match_pattern = f"delegation:get:{tenant_id}:{segment}:*"
+        keys = list(client.scan_iter(match=match_pattern, count=100))
+        if keys:
+            client.delete(*keys)
+    except Exception as exc:  # noqa: BLE001 — fail open
+        logger.debug("delegation cache invalidate failed: %s", exc)
+
+
+async def _cache_invalidate(tenant_id: str, segment: str) -> None:
+    """Non-blocking cache invalidation offloaded to worker thread."""
+    await asyncio.to_thread(_sync_cache_invalidate, tenant_id, segment)
 
 
 async def _delegate(
@@ -353,7 +385,7 @@ async def _delegate(
     cache_key: str | None = None
     if method == "GET" and not body:
         cache_key = _cache_key(segment, path, tenant_id, effective_user_id, query_string)
-        cached = _cache_lookup(cache_key)
+        cached = await _cache_lookup(cache_key)
         if cached is not None:
             DELEGATION_CACHE_TOTAL.labels(segment=segment, outcome="hit").inc()
             status, cached_body, content_type = cached
@@ -414,10 +446,17 @@ async def _delegate(
             semaphore.release()
         return response
 
+    # Restrict automatic retries to idempotent requests (or explicit idempotency key)
+    # to avoid duplicate writes on non-idempotent mutations (e.g. POST, PATCH).
+    is_idempotent = method in {"GET", "HEAD", "OPTIONS", "PUT", "DELETE"} or bool(
+        request.headers.get("idempotency-key") or request.headers.get("x-idempotency-key")
+    )
+    max_attempts = settings.delegation_retry_max_attempts if is_idempotent else 1
+
     try:
         upstream = await retry_transient_async(
             _attempt,
-            max_attempts=settings.delegation_retry_max_attempts,
+            max_attempts=max_attempts,
             base_delay=settings.delegation_retry_base_delay,
             max_delay=settings.delegation_retry_max_delay,
             retry_on=_is_transient,
@@ -491,13 +530,17 @@ async def _delegate(
     }
     # Store safe GET 2xx responses in the short-TTL cache for reuse.
     if cache_key is not None and 200 <= upstream.status_code < 300:
-        if _cache_store(
+        if await _cache_store(
             cache_key,
             upstream.status_code,
             upstream.content,
             upstream.headers.get("content-type", "application/json"),
         ):
             response_headers["x-delegation-cache"] = "store"
+    elif method in {"POST", "PUT", "PATCH", "DELETE"} and 200 <= upstream.status_code < 300:
+        # Invalidate cached GET delegations for the tenant segment on mutation
+        await _cache_invalidate(tenant_id, segment)
+
     return Response(
         content=upstream.content,
         status_code=upstream.status_code,

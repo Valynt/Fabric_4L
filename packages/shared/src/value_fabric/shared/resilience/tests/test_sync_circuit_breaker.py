@@ -177,6 +177,19 @@ class TestRetryTransient:
         assert 0 <= sleeps[0] <= 0.2
         assert 0 <= sleeps[1] <= 0.4
 
+    def test_default_retry_on_omitted_honors_retryable_error(self) -> None:
+        calls: list[int] = []
+
+        def func() -> str:
+            calls.append(1)
+            if len(calls) < 2:
+                raise RetryableError("transient failure")
+            return "ok"
+
+        result = retry_transient(func, max_attempts=3, sleep=lambda _: None)
+        assert result == "ok"
+        assert len(calls) == 2
+
 
 def test_transient_status_codes_contract() -> None:
     assert TRANSIENT_STATUS_CODES == frozenset({502, 503, 504, 429})

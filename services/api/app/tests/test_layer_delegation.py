@@ -580,6 +580,65 @@ class TestDelegationGetCache:
         fake_redis.set.assert_not_called()
 
     @pytest.mark.asyncio
+    async def test_mutation_invalidates_cached_gets(self) -> None:
+        app = self._app()
+        fake_redis = MagicMock()
+        fake_redis.scan_iter.return_value = ["delegation:get:test-tenant:agents:abc"]
+
+        upstream_response = httpx.Response(
+            200, content=b'{"updated": true}', headers={"content-type": "application/json"}
+        )
+        fake = _FakeAsyncClient(AsyncMock(return_value=upstream_response))
+
+        with (
+            patch("app.routers.layer_delegation.get_settings", return_value=_settings()),
+            patch("app.routers.layer_delegation.httpx.AsyncClient", return_value=fake),
+            patch("app.core.redis_client.get_redis_client", return_value=fake_redis),
+        ):
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+                response = await client.post("/v1/agents/v1/accounts", json={"x": 1})
+
+        assert response.status_code == 200
+        fake_redis.delete.assert_called_once_with("delegation:get:test-tenant:agents:abc")
+
+    @pytest.mark.asyncio
+    async def test_non_idempotent_post_not_retried_without_idempotency_key(self) -> None:
+        app = self._app()
+        bad = httpx.Response(503, content=b"down")
+        ok = httpx.Response(200, content=b"{}", headers={"content-type": "application/json"})
+        fake = self._client_returning([bad, ok])
+
+        with (
+            patch("app.routers.layer_delegation.get_settings", return_value=_settings()),
+            patch("app.routers.layer_delegation.httpx.AsyncClient", return_value=fake),
+        ):
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+                response = await client.post("/v1/agents/v1/accounts", json={"x": 1})
+
+        # Non-idempotent POST without idempotency key fails immediately without retry
+        assert response.status_code == 503
+
+    @pytest.mark.asyncio
+    async def test_non_idempotent_post_retried_with_idempotency_key(self) -> None:
+        app = self._app()
+        bad = httpx.Response(503, content=b"down")
+        ok = httpx.Response(200, content=b"{}", headers={"content-type": "application/json"})
+        fake = self._client_returning([bad, ok])
+
+        with (
+            patch("app.routers.layer_delegation.get_settings", return_value=_settings()),
+            patch("app.routers.layer_delegation.httpx.AsyncClient", return_value=fake),
+        ):
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+                response = await client.post(
+                    "/v1/agents/v1/accounts",
+                    json={"x": 1},
+                    headers={"Idempotency-Key": "idemp-key-123"},
+                )
+
+        assert response.status_code == 200
+
+    @pytest.mark.asyncio
     async def test_get_cache_key_is_tenant_scoped(self) -> None:
         """Cache keys differ by tenant so cross-tenant reads cannot collide."""
         from app.routers.layer_delegation import _cache_key
