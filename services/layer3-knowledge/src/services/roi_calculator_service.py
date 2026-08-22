@@ -115,7 +115,7 @@ def _get_tenant_id() -> str:
         return "default"
 
 
-def _safe_json_loads(data: Any) -> Any:
+def _safe_json_loads(data: object) -> object:
     """Deserialize JSON data safely using loads method without direct literal call."""
     if not isinstance(data, str):
         return data
