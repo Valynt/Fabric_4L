@@ -25,6 +25,14 @@ class PermanentError(CRMError):
     """Non-retryable failure: bad request, malformed ID, not found, validation."""
 
 
+class IntegrityGateOpenError(CRMError):
+    """Raised when CRM sync precondition integrity checks fail."""
+
+    def __init__(self, detail: dict[str, Any]):
+        super().__init__(detail.get("message", "INTEGRITY_GATE_OPEN"))
+        self.detail = detail
+
+
 def classify_http_status(status_code: int, message: str = "") -> CRMError:
     """Map an HTTP status code to the CRM error taxonomy.
 

@@ -23,7 +23,12 @@ from value_fabric.shared.error_handling import sanitize_log_error
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
 from ..integrations.core.connector import CRMConnector
-from ..integrations.core.errors import AuthError, TransientError
+from ..integrations.core.errors import (
+    AuthError,
+    IntegrityGateOpenError,
+    PermanentError,
+    TransientError,
+)
 from ..integrations.core.observations import (
     ErrorClass,
     sync_failed,
@@ -179,7 +184,7 @@ class CRMSyncService:
             # Get CRM config from tenant integration table
             config = await self._get_crm_config(provider, tenant_id)
             if not config or not config.get("api_key"):
-                raise ValueError(f"CRM configuration missing for {provider.value}")
+                raise PermanentError(f"CRM configuration missing for {provider.value}")
 
             # Initialize connector
             connector = get_connector(provider, config)
@@ -364,7 +369,7 @@ class CRMSyncService:
         record = await connector.get_account(prospect_id, timeout=self._provider_timeout)
 
         if record is None:
-            raise ValueError(f"No profile data returned for {prospect_id}")
+            raise PermanentError(f"No profile data returned for {prospect_id}")
 
         # Check if account exists
         existing = await self.db.execute(
@@ -670,14 +675,14 @@ class CRMSyncService:
         try:
             provider = CRMProvider(account.provider)
         except ValueError as e:
-            raise ValueError(
+            raise PermanentError(
                 f"Invalid CRM provider '{account.provider}' for account {account_id}"
             ) from e
 
         # Get CRM config
         config = await self._get_crm_config(provider, tenant_id)
         if not config or not config.get("api_key"):
-            raise ValueError(f"CRM not configured for provider {provider.value}")
+            raise PermanentError(f"CRM not configured for provider {provider.value}")
 
         # Sync the account via connector
         connector = get_connector(provider, config)
@@ -706,9 +711,10 @@ class CRMSyncService:
         3. Fails closed with 422 INTEGRITY_GATE_OPEN if integrity is missing, stale, or human approval is mismatched.
         """
         from ..contracts.artifacts import IntegrityGateErrorResponse, IntegrityPrecondition
+        from ..integrations.core.errors import IntegrityGateOpenError
 
         if not integrity_precondition:
-            raise ValueError(
+            raise IntegrityGateOpenError(
                 IntegrityGateErrorResponse(
                     code="INTEGRITY_GATE_OPEN",
                     message="CRM sync requires an active, passing IntegrityArtifact.",
@@ -721,7 +727,7 @@ class CRMSyncService:
 
         # Verify human approval matches exact content hash
         if human_approved_hash != narrative_content_hash:
-            raise ValueError(
+            raise IntegrityGateOpenError(
                 IntegrityGateErrorResponse(
                     code="INTEGRITY_GATE_OPEN",
                     message="Human approval hash does not match current narrative content hash.",
@@ -744,7 +750,7 @@ class CRMSyncService:
             or integrity_precondition.unresolved_findings > 0
             or not integrity_precondition.is_passed
         ):
-            raise ValueError(
+            raise IntegrityGateOpenError(
                 IntegrityGateErrorResponse(
                     code="INTEGRITY_GATE_OPEN",
                     message="Integrity check failed immediately prior to CRM write (stale or unverified).",
