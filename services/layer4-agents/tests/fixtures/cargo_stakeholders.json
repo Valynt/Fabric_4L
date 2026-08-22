@@ -1,0 +1,13 @@
+{
+    "stakeholders": [
+        {
+            "firstName": "John",
+            "lastName": "Doe",
+            "title": "Chief Financial Officer",
+            "linkedinUrl": "https://www.linkedin.com/in/johndoe",
+            "joined_at": "2001-01-01",
+            "recently_hired": false,
+            "work_email": "john.doe@datadog.com"
+        }
+    ]
+}

@@ -1,0 +1,20 @@
+{
+    "name": "Datadog",
+    "description": "Datadog is the essential monitoring platform for cloud applications. We bring together data from servers, containers, databases, and third-party services to make your stack entirely observable. These capabilities help DevOps teams avoid downtime, resolve performance issues, and ensure customers are getting the best user experience.\n\n",
+    "employeesCount": 10889,
+    "linkedinUrl": "https://www.linkedin.com/company/datadog/",
+    "linkedinIndustry": "Software Development",
+    "crunchbaseUrl": "",
+    "foundedYear": 2010,
+    "followersCount": 577153,
+    "phone": "",
+    "email": "",
+    "city": "New York",
+    "address": "620 8th Ave",
+    "country": "US",
+    "postalCode": "10018",
+    "lastFundingRoundAmount": null,
+    "lastFundingRoundDate": null,
+    "lastFundingRoundType": null,
+    "technologies": ["aws", "google_analytics", "salesforce"]
+}

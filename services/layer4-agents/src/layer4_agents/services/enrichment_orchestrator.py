@@ -30,6 +30,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from value_fabric.shared.models.typed_dict import TypedDictModel
 from value_fabric.shared.security.dil_auth import SSRFBlockedError, validate_url_safe
 
+from ..interfaces.account_intelligence import AccountIntelligenceProvider
 from ..models.account import Account
 
 
@@ -119,6 +120,7 @@ class EnrichmentStatus(str, Enum):
 
 
 class EnrichmentSource(str, Enum):
+    CARGO = "cargo"
     SEC_EDGAR = "sec_edgar"
     WEB_CRAWL = "web_crawl"
     DOMAIN_LOOKUP = "domain_lookup"
@@ -194,10 +196,12 @@ class EnrichmentOrchestrator:
         db: AsyncSession,
         sec_edgar_base_url: str = "https://efts.sec.gov/LATEST",
         http_timeout: float = 30.0,
+        intelligence_provider: AccountIntelligenceProvider | None = None,
     ):
         self.db = db
         self.sec_edgar_base_url = sec_edgar_base_url
         self.http_timeout = http_timeout
+        self.intelligence_provider = intelligence_provider
         self._http_client: httpx.AsyncClient | None = None
 
     async def _get_http_client(self) -> httpx.AsyncClient:
@@ -427,23 +431,23 @@ class EnrichmentOrchestrator:
         """Determine which enrichment sources are applicable for an account."""
         sources = []
 
-        # SEC EDGAR: applicable for public companies (have a domain or are large enough)
+        # If an external intelligence provider is configured, place it first
+        if self.intelligence_provider is not None:
+            sources.append(EnrichmentSource.CARGO)
+
+        # Legacy fallback sources
         if account.annual_revenue and account.annual_revenue > 10_000_000:
             sources.append(EnrichmentSource.SEC_EDGAR)
 
-        # Web crawl: applicable if we have a website/domain
         if account.website or account.domain:
             sources.append(EnrichmentSource.WEB_CRAWL)
 
-        # Domain lookup: applicable if we have a domain
         if account.domain:
             sources.append(EnrichmentSource.DOMAIN_LOOKUP)
 
-        # News scan: always applicable if we have a company name
         if account.name:
             sources.append(EnrichmentSource.NEWS_SCAN)
 
-        # Fallback: at least try web crawl if we have any URL
         if not sources and (account.website or account.domain):
             sources.append(EnrichmentSource.WEB_CRAWL)
 
@@ -458,6 +462,7 @@ class EnrichmentOrchestrator:
     ) -> dict[str, Any]:
         """Dispatch enrichment to the appropriate source handler."""
         handlers = {
+            EnrichmentSource.CARGO: self._enrich_from_cargo,
             EnrichmentSource.SEC_EDGAR: self._enrich_from_sec_edgar,
             EnrichmentSource.WEB_CRAWL: self._enrich_from_web_crawl,
             EnrichmentSource.DOMAIN_LOOKUP: self._enrich_from_domain,
@@ -469,6 +474,49 @@ class EnrichmentOrchestrator:
                 {"success": False, "error": f"Unknown source: {source}"}
             )
         return await handler(account)
+
+    async def _enrich_from_cargo(self, account: Account) -> dict[str, Any]:
+        """Enrich account using the configured AccountIntelligenceProvider."""
+        if not self.intelligence_provider:
+            return {"success": False, "error": "No AccountIntelligenceProvider configured"}
+
+        domain = account.domain or account.website or account.name
+        context = await self.intelligence_provider.get_full_account_context(
+            domain=domain,
+            company_name=account.name,
+            tenant_id=account.tenant_id,
+            account_id=account.id,
+        )
+        if not context:
+            return {"success": False, "error": "Cargo enrichment returned no context"}
+
+        # Populate firmographics
+        if context.company.industry and not account.industry:
+            account.industry = context.company.industry
+        if context.company.employee_count and not account.company_size:
+            account.company_size = context.company.employee_count
+            account.employees = context.company.employee_count
+        if context.company.annual_revenue_usd and not account.annual_revenue:
+            account.annual_revenue = context.company.annual_revenue_usd
+
+        # Populate tech stack & executives & pain signals
+        account.tech_stack = context.company.tech_stack_by_category
+        account.executives = [s.model_dump() for s in context.stakeholders]
+        account.pain_signals = [s.model_dump() for s in context.signals]
+        account.financials = {
+            "revenue": context.company.annual_revenue_usd,
+            "employees": context.company.employee_count,
+            "ownership": context.company.ownership_type,
+            "provenance": context.company.provenance.model_dump(mode="json"),
+        }
+
+        return {
+            "success": True,
+            "provider": self.intelligence_provider.provider_name,
+            "technologies_found": len(context.company.technologies),
+            "stakeholders_found": len(context.stakeholders),
+            "signals_found": len(context.signals),
+        }
 
     async def _enrich_from_sec_edgar(self, account: Account) -> dict[str, Any]:
         """Enrich account with SEC EDGAR financial data.
