@@ -228,7 +228,9 @@ def test_gate_accepts_valid_nginx_render(tmp_path: Path, repo_root: Path) -> Non
     rendered = tmp_path / "rendered"
     rendered.mkdir()
     (rendered / "dev-nginx.yaml").write_text(VALID_NGINX_RENDER, encoding="utf-8")
-    result = _run_gate(repo_root, rendered, _ok_routing_dir(tmp_path), ["dev-nginx:nginx"])
+    result = _run_gate(
+        repo_root, rendered, _ok_routing_dir(tmp_path), ["dev-nginx:nginx"]
+    )
     assert result.returncode == 0, result.stderr + result.stdout
 
 
@@ -238,7 +240,9 @@ def test_gate_detects_sentinel_survival(tmp_path: Path, repo_root: Path) -> None
     rendered.mkdir()
     bad = VALID_NGINX_RENDER.replace("app.example.com", "__HOST__", 1)
     (rendered / "dev-nginx.yaml").write_text(bad, encoding="utf-8")
-    result = _run_gate(repo_root, rendered, _ok_routing_dir(tmp_path), ["dev-nginx:nginx"])
+    result = _run_gate(
+        repo_root, rendered, _ok_routing_dir(tmp_path), ["dev-nginx:nginx"]
+    )
     assert result.returncode == 1
     assert "__HOST__" in result.stderr
 
@@ -260,7 +264,9 @@ def test_gate_detects_forbidden_kind_for_axis(tmp_path: Path, repo_root: Path) -
         """
     )
     (rendered / "dev-nginx.yaml").write_text(leaky, encoding="utf-8")
-    result = _run_gate(repo_root, rendered, _ok_routing_dir(tmp_path), ["dev-nginx:nginx"])
+    result = _run_gate(
+        repo_root, rendered, _ok_routing_dir(tmp_path), ["dev-nginx:nginx"]
+    )
     assert result.returncode == 1
     assert "forbidden routing resource" in result.stderr
     assert "HTTPRoute" in result.stderr
@@ -270,9 +276,13 @@ def test_gate_detects_hostname_mismatch(tmp_path: Path, repo_root: Path) -> None
     """A host that is neither `host` nor `apiHost` fails consistency."""
     rendered = tmp_path / "rendered"
     rendered.mkdir()
-    bad = VALID_NGINX_RENDER.replace("- host: app.example.com", "- host: rogue.example.com")
+    bad = VALID_NGINX_RENDER.replace(
+        "- host: app.example.com", "- host: rogue.example.com"
+    )
     (rendered / "dev-nginx.yaml").write_text(bad, encoding="utf-8")
-    result = _run_gate(repo_root, rendered, _ok_routing_dir(tmp_path), ["dev-nginx:nginx"])
+    result = _run_gate(
+        repo_root, rendered, _ok_routing_dir(tmp_path), ["dev-nginx:nginx"]
+    )
     assert result.returncode == 1
     assert "rogue.example.com" in result.stderr
 
@@ -287,7 +297,9 @@ def test_gate_detects_listener_bucket_swap(tmp_path: Path, repo_root: Path) -> N
     """
     rendered = tmp_path / "rendered"
     rendered.mkdir()
-    (rendered / "prod-gateway-api.yaml").write_text(SWAPPED_GATEWAY_RENDER, encoding="utf-8")
+    (rendered / "prod-gateway-api.yaml").write_text(
+        SWAPPED_GATEWAY_RENDER, encoding="utf-8"
+    )
     result = _run_gate(
         repo_root, rendered, _ok_routing_dir(tmp_path), ["prod-gateway-api:gateway-api"]
     )
@@ -309,7 +321,9 @@ def test_gate_detects_missing_routing_host_configmap(
         if "kind: ConfigMap" not in block
     )
     (rendered / "dev-nginx.yaml").write_text(no_cm, encoding="utf-8")
-    result = _run_gate(repo_root, rendered, _ok_routing_dir(tmp_path), ["dev-nginx:nginx"])
+    result = _run_gate(
+        repo_root, rendered, _ok_routing_dir(tmp_path), ["dev-nginx:nginx"]
+    )
     assert result.returncode == 1
     assert "missing 'routing-host' ConfigMap" in result.stderr
 
@@ -331,7 +345,9 @@ def test_gate_detects_gateway_bypass_on_layer_apis_ingress(
         "service: {name: layer1-ingestion, port: {number: 8000}}",
     )
     (rendered / "dev-nginx.yaml").write_text(bad, encoding="utf-8")
-    result = _run_gate(repo_root, rendered, _ok_routing_dir(tmp_path), ["dev-nginx:nginx"])
+    result = _run_gate(
+        repo_root, rendered, _ok_routing_dir(tmp_path), ["dev-nginx:nginx"]
+    )
     assert result.returncode == 1
     assert "must route through" in result.stderr
     assert "api-gateway" in result.stderr
@@ -365,7 +381,9 @@ def test_gate_detects_bypass_path_prefix_on_any_ingress(
         """
     )
     (rendered / "dev-nginx.yaml").write_text(bad, encoding="utf-8")
-    result = _run_gate(repo_root, rendered, _ok_routing_dir(tmp_path), ["dev-nginx:nginx"])
+    result = _run_gate(
+        repo_root, rendered, _ok_routing_dir(tmp_path), ["dev-nginx:nginx"]
+    )
     assert result.returncode == 1
     assert "bypass path" in result.stderr
     assert "/layer4" in result.stderr
@@ -380,7 +398,9 @@ def test_gate_detects_unknown_backend_service(tmp_path: Path, repo_root: Path) -
         "service: {name: nonexistent-svc, port: {number: 8000}}",
     )
     (rendered / "dev-nginx.yaml").write_text(bad, encoding="utf-8")
-    result = _run_gate(repo_root, rendered, _ok_routing_dir(tmp_path), ["dev-nginx:nginx"])
+    result = _run_gate(
+        repo_root, rendered, _ok_routing_dir(tmp_path), ["dev-nginx:nginx"]
+    )
     assert result.returncode == 1
     assert "nonexistent-svc" in result.stderr
 
@@ -392,7 +412,9 @@ def test_gate_detects_routing_stack_importing_base(
     rendered = tmp_path / "rendered"
     rendered.mkdir()
     (rendered / "dev-nginx.yaml").write_text(VALID_NGINX_RENDER, encoding="utf-8")
-    result = _run_gate(repo_root, rendered, _bad_routing_dir(tmp_path), ["dev-nginx:nginx"])
+    result = _run_gate(
+        repo_root, rendered, _bad_routing_dir(tmp_path), ["dev-nginx:nginx"]
+    )
     assert result.returncode == 1
     assert "must not import base" in result.stderr
 
@@ -419,7 +441,9 @@ def test_gate_tolerates_comments_about_base(tmp_path: Path, repo_root: Path) -> 
     assert result.returncode == 0, result.stderr + result.stdout
 
 
-def test_gate_detects_missing_deployment_security_context(tmp_path: Path, repo_root: Path) -> None:
+def test_gate_detects_missing_deployment_security_context(
+    tmp_path: Path, repo_root: Path
+) -> None:
     """Rendered deployment bundles fail when container hardening is missing."""
     rendered = tmp_path / "rendered"
     rendered.mkdir()
@@ -440,6 +464,8 @@ def test_gate_detects_missing_deployment_security_context(tmp_path: Path, repo_r
         """
     )
     (rendered / "dev-nginx.yaml").write_text(insecure, encoding="utf-8")
-    result = _run_gate(repo_root, rendered, _ok_routing_dir(tmp_path), ["dev-nginx:nginx"])
+    result = _run_gate(
+        repo_root, rendered, _ok_routing_dir(tmp_path), ["dev-nginx:nginx"]
+    )
     assert result.returncode == 1
     assert "runAsNonRoot must be true" in result.stderr

@@ -51,9 +51,7 @@ logger = logging.getLogger(__name__)
 _DEFAULT_MAX_ATTEMPTS = int(os.environ.get("LAYER4_RETRY_MAX_ATTEMPTS", "3"))
 _DEFAULT_RETRY_BASE_DELAY = float(os.environ.get("LAYER4_RETRY_BASE_DELAY", "0.2"))
 _DEFAULT_RETRY_MAX_DELAY = float(os.environ.get("LAYER4_RETRY_MAX_DELAY", "5.0"))
-_DEFAULT_CB_FAILURE_THRESHOLD = int(
-    os.environ.get("LAYER4_CB_FAILURE_THRESHOLD", "5")
-)
+_DEFAULT_CB_FAILURE_THRESHOLD = int(os.environ.get("LAYER4_CB_FAILURE_THRESHOLD", "5"))
 _DEFAULT_CB_RECOVERY_TIMEOUT = float(
     os.environ.get("LAYER4_CB_RECOVERY_TIMEOUT", "60.0")
 )
@@ -317,9 +315,7 @@ class Layer4OrchestrationClient:
         )
 
     def get_workflow(self, *, tenant_id: str, workflow_id: str) -> dict[str, Any]:
-        return self._request(
-            "GET", f"/v1/workflows/{workflow_id}", tenant_id=tenant_id
-        )
+        return self._request("GET", f"/v1/workflows/{workflow_id}", tenant_id=tenant_id)
 
     def get_workflow_result(
         self, *, tenant_id: str, workflow_id: str
@@ -329,7 +325,12 @@ class Layer4OrchestrationClient:
         )
 
     def pause_workflow(
-        self, *, tenant_id: str, workflow_id: str, user_id: str, reason: str | None = None
+        self,
+        *,
+        tenant_id: str,
+        workflow_id: str,
+        user_id: str,
+        reason: str | None = None,
     ) -> dict[str, Any]:
         return self._request(
             "POST",
@@ -456,7 +457,9 @@ class AgentOrchestrator:
         self._apply_layer4_state(run, delegated)
         return run
 
-    def pause_run(self, run_id: str, *, tenant_id: str, user_id: str | None = None) -> AgentRun:
+    def pause_run(
+        self, run_id: str, *, tenant_id: str, user_id: str | None = None
+    ) -> AgentRun:
         run = db.agent_runs.get(run_id, tenant_id=tenant_id)
         if not run:
             raise ValueError(ERR_RUN_NOT_FOUND)
@@ -500,7 +503,11 @@ class AgentOrchestrator:
         return run
 
     def _apply_layer4_state(
-        self, run: AgentRun, delegated: Mapping[str, object], *, default_status: str | None = None
+        self,
+        run: AgentRun,
+        delegated: Mapping[str, object],
+        *,
+        default_status: str | None = None,
     ) -> None:
         run.status = _map_status(
             delegated.get("status"), default=default_status or run.status

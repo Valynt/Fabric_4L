@@ -197,12 +197,22 @@ app = create_fabric_app(
     health_probes=[
         CallableProbe(name="database", fn=_api_db_probe),
         CallableProbe(name="redis", fn=_api_redis_probe),
-        CallableProbe(name="layer1", fn=lambda: _api_layer_probe("layer1", "layer1_api_base_url")),
-        CallableProbe(name="layer2", fn=lambda: _api_layer_probe("layer2", "layer2_api_base_url")),
-        CallableProbe(name="layer3", fn=lambda: _api_layer_probe("layer3", "layer3_api_base_url")),
+        CallableProbe(
+            name="layer1", fn=lambda: _api_layer_probe("layer1", "layer1_api_base_url")
+        ),
+        CallableProbe(
+            name="layer2", fn=lambda: _api_layer_probe("layer2", "layer2_api_base_url")
+        ),
+        CallableProbe(
+            name="layer3", fn=lambda: _api_layer_probe("layer3", "layer3_api_base_url")
+        ),
         CallableProbe(name="layer4", fn=_api_layer4_probe),
-        CallableProbe(name="layer5", fn=lambda: _api_layer_probe("layer5", "layer5_api_base_url")),
-        CallableProbe(name="layer6", fn=lambda: _api_layer_probe("layer6", "layer6_api_base_url")),
+        CallableProbe(
+            name="layer5", fn=lambda: _api_layer_probe("layer5", "layer5_api_base_url")
+        ),
+        CallableProbe(
+            name="layer6", fn=lambda: _api_layer_probe("layer6", "layer6_api_base_url")
+        ),
     ],
     readiness_path="/ready",
     enforcement_rollout=EnforcementRolloutConfig(

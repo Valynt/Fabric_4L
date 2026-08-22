@@ -43,8 +43,7 @@ class CircuitBreakerOpen(Exception):
         self.service = service
         self.retry_after = retry_after
         super().__init__(
-            f"Circuit breaker open for {service}. "
-            f"Retry after {retry_after:.1f}s."
+            f"Circuit breaker open for {service}. " f"Retry after {retry_after:.1f}s."
         )
 
 
@@ -199,7 +198,9 @@ def retry_transient(
         except Exception as exc:
             last_exc = exc
             is_retryable = (
-                retry_on(exc) if retry_on is not None else isinstance(exc, RetryableError)
+                retry_on(exc)
+                if retry_on is not None
+                else isinstance(exc, RetryableError)
             )
             if not is_retryable:
                 raise

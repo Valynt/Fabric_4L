@@ -85,6 +85,7 @@ def _get_semaphore() -> asyncio.Semaphore:
         _semaphore_cache[loop] = sem
     return sem
 
+
 # segment -> (settings attribute for base URL, owning-layer path prefix).
 #
 # The prefix must match the frontend path convention for the segment,
@@ -154,7 +155,9 @@ def _request_headers(request: Request, tenant_id: str) -> dict[str, str]:
         for name, value in request.headers.items()
         if name.lower() in _FORWARDED_REQUEST_HEADERS
     }
-    if "authorization" not in headers and (session_token := request.cookies.get("vf_session")):
+    if "authorization" not in headers and (
+        session_token := request.cookies.get("vf_session")
+    ):
         headers["authorization"] = "B" + "earer " + session_token
     headers["x-tenant-id"] = tenant_id
     # Service-to-service auth is injected server-side, never forwarded from the
@@ -167,7 +170,9 @@ def _request_headers(request: Request, tenant_id: str) -> dict[str, str]:
     # Propagate the active OTel trace context so downstream layers see the same
     # trace and their spans are correlated with the gateway's. No-op when OTel
     # is not installed or no span is active.
-    from value_fabric.shared.observability.http_trace_propagation import merge_trace_headers
+    from value_fabric.shared.observability.http_trace_propagation import (
+        merge_trace_headers,
+    )
 
     merge_trace_headers(headers)
     return headers
@@ -253,8 +258,9 @@ async def _do_request(
 _DELEGATION_CACHE_TTL = int(os.environ.get("DELEGATION_CACHE_TTL_SECONDS", "30"))
 
 
-def _cache_key(segment: str, path: str, tenant_id: str, user_id: str | None,
-               query_string: str) -> str:
+def _cache_key(
+    segment: str, path: str, tenant_id: str, user_id: str | None, query_string: str
+) -> str:
     """Build a tenant+user scoped Redis key for a GET delegation."""
     import hashlib
 
@@ -364,9 +370,14 @@ async def _delegate(
     def _record(outcome: str, status_code: int | str) -> None:
         duration = time.perf_counter() - _start
         DELEGATION_REQUESTS_TOTAL.labels(
-            segment=segment, method=method, status_code=str(status_code), outcome=outcome
+            segment=segment,
+            method=method,
+            status_code=str(status_code),
+            outcome=outcome,
         ).inc()
-        DELEGATION_LATENCY_SECONDS.labels(segment=segment, method=method).observe(duration)
+        DELEGATION_LATENCY_SECONDS.labels(segment=segment, method=method).observe(
+            duration
+        )
         if _retries:
             DELEGATION_RETRY_TOTAL.labels(segment=segment).inc(_retries)
         logger.info(
@@ -389,7 +400,9 @@ async def _delegate(
     # eligible; mutations and non-GET methods bypass the cache.
     cache_key: str | None = None
     if method == "GET" and not body:
-        cache_key = _cache_key(segment, path, tenant_id, effective_user_id, query_string)
+        cache_key = _cache_key(
+            segment, path, tenant_id, effective_user_id, query_string
+        )
         cached = await _cache_lookup(cache_key)
         if cached is not None:
             DELEGATION_CACHE_TOTAL.labels(segment=segment, outcome="hit").inc()
@@ -450,7 +463,8 @@ async def _delegate(
     # Restrict automatic retries to idempotent requests (or explicit idempotency key)
     # to avoid duplicate writes on non-idempotent mutations (e.g. POST, PATCH).
     is_idempotent = method in {"GET", "HEAD", "OPTIONS", "PUT", "DELETE"} or bool(
-        request.headers.get("idempotency-key") or request.headers.get("x-idempotency-key")
+        request.headers.get("idempotency-key")
+        or request.headers.get("x-idempotency-key")
     )
     max_attempts = settings.delegation_retry_max_attempts if is_idempotent else 1
 
@@ -538,7 +552,10 @@ async def _delegate(
             upstream.headers.get("content-type", "application/json"),
         ):
             response_headers["x-delegation-cache"] = "store"
-    elif method in {"POST", "PUT", "PATCH", "DELETE"} and 200 <= upstream.status_code < 300:
+    elif (
+        method in {"POST", "PUT", "PATCH", "DELETE"}
+        and 200 <= upstream.status_code < 300
+    ):
         # Invalidate cached GET delegations for the tenant segment on mutation
         await _cache_invalidate(tenant_id, segment)
 
@@ -556,9 +573,7 @@ def _make_handler(segment: str) -> Callable[..., Awaitable[Response]]:
         path: str = "",
         auth: TokenPayload = Depends(require_authenticated),
     ) -> Response:
-        return await _delegate(
-            request, segment, path, auth.tenant_id, user_id=auth.sub
-        )
+        return await _delegate(request, segment, path, auth.tenant_id, user_id=auth.sub)
 
     return handler
 
