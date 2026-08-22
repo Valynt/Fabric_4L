@@ -271,6 +271,8 @@ class AccountFilterOptionsResponse(BaseModel):
     stages: list[str]
     regions: list[str]
     segments: list[str]
+    providers: list[CRMProvider]
+    owners: list[str]
 
 
 # ============================================================================

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { CheckCircle2, Circle, Clock, AlertTriangle, ChevronRight, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { apiClient } from "@/api/client";
 
 export type JourneyStageStatus = "not_started" | "in_progress" | "completed" | "blocked" | "failed";
 
@@ -66,13 +67,14 @@ export function JourneyTimelineRightRail({
     let isMounted = true;
     setIsLoading(true);
 
-    fetch(`/api/v1/accounts/${activeAccountId}/journey-timeline`)
+    apiClient
+      .get<AccountJourneyTimelineResponse>(
+        "layer4",
+        `/accounts/${activeAccountId}/journey-timeline`
+      )
       .then((res) => {
-        if (!res.ok) throw new Error("Failed to load journey timeline");
-        return res.json();
-      })
-      .then((data: AccountJourneyTimelineResponse) => {
-        if (isMounted && data.stages) {
+        const data = res.data;
+        if (isMounted && data?.stages) {
           setStages(data.stages);
           if (data.journey_id) setActiveJourneyId(data.journey_id);
         }
