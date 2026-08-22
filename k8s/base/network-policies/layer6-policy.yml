@@ -11,12 +11,14 @@ spec:
     - Ingress
     - Egress
   ingress:
-    # Allow from the API gateway (delegated browser traffic). The frontend
-    # reaches L6 only through the gateway.
+    # Allow gateway delegation and Layer 4 orchestration.
     - from:
         - podSelector:
             matchLabels:
               app: api-gateway
+        - podSelector:
+            matchLabels:
+              app: layer4-agents
       ports:
         - protocol: TCP
           port: 8006

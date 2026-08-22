@@ -5,7 +5,6 @@ metadata:
   namespace: value-fabric
 data:
   host: www.valuepact.ai
-  apiHost: api.valuepact.ai
   # Ingress controller namespace for NetworkPolicy
   ingressNamespace: ingress-nginx
   # cert-manager ClusterIssuer for TLS certificates

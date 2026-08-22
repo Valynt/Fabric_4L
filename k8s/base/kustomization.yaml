@@ -28,6 +28,7 @@ resources:
   - pgbouncer.yml
   - neo4j.yml
   - api-gateway.yml
+  - api-gateway-serviceaccount.yaml
   - layer1-ingestion.yml
   - layer1-celery.yaml
   - layer1-serviceaccount.yaml

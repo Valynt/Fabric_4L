@@ -21,11 +21,6 @@ Name: www
 Value: <your-kubernetes-load-balancer-ip>
 TTL: 300
 
-Type: A Record  
-Name: api
-Value: <your-kubernetes-load-balancer-ip>
-TTL: 300
-
 Type: A Record
 Name: accounts
 Value: <your-kubernetes-load-balancer-ip>
@@ -41,9 +36,6 @@ After updating DNS records, verify propagation:
 ```bash
 # Check www subdomain
 dig www.valuepact.ai
-
-# Check api subdomain
-dig api.valuepact.ai
 
 # Check accounts subdomain (for Clerk)
 dig accounts.valuepact.ai
@@ -68,8 +60,9 @@ The hostname-config.yaml has been updated to use `security@valuepact.ai`. Ensure
 ### Step 3: Deploy with cert-manager
 
 When you deploy the production stack, cert-manager will automatically:
-1. Create CertificateRequest for www.valuepact.ai and api.valuepact.ai
-2. Request certificates from Let's Encrypt
+
+1. Create a CertificateRequest for www.valuepact.ai
+2. Request the certificate from Let's Encrypt
 3. Handle ACME challenges via HTTP-01
 4. Store certificates in Kubernetes secrets
 
@@ -80,10 +73,11 @@ When you deploy the production stack, cert-manager will automatically:
 In your Clerk Dashboard, update the following:
 
 **Allowed Origins:**
+
 - https://www.valuepact.ai
-- https://api.valuepact.ai
 
 **Redirect URLs:**
+
 - After sign-in: https://www.valuepact.ai/workspaces
 - After sign-up: https://www.valuepact.ai/onboarding
 
@@ -91,12 +85,14 @@ In your Clerk Dashboard, update the following:
 
 ### Step 2: Configure Clerk Webhook
 
-Set up the Clerk webhook to point to:
-```
-POST https://api.valuepact.ai/internal/webhooks/clerk
-```
+The canonical application edge intentionally exposes only `/api/v1` to the
+gateway. Do not publish the internal webhook on a separate API host. Before
+enabling Clerk webhooks, provision a separately reviewed webhook route on the
+application host (with signature verification and dedicated rate limits) and
+document that route in the edge contract.
 
 Subscribe to events:
+
 - user.created
 - user.updated
 - user.deleted
@@ -112,14 +108,16 @@ Subscribe to events:
 Update the following Infisical secrets for production:
 
 **Path: /shared/auth**
+
 ```
 CLERK_ISSUER=https://accounts.valuepact.ai
 CLERK_JWT_AUDIENCE=fabric4l-api
-CLERK_AUTHORIZED_PARTIES=https://www.valuepact.ai,https://api.valuepact.ai
+CLERK_AUTHORIZED_PARTIES=https://www.valuepact.ai
 CLERK_JWKS_URL=https://accounts.valuepact.ai/.well-known/jwks.json
 ```
 
 **Path: /api-gateway**
+
 ```
 CLERK_SECRET_KEY=<your-clerk-secret-key>
 CLERK_WEBHOOK_SECRET=<your-clerk-webhook-secret>
@@ -129,6 +127,7 @@ FABRIC_AUTH_PUBLIC_KEYS=<json-public-key-set>
 ```
 
 **Path: /apps/web**
+
 ```
 VITE_CLERK_PUBLISHABLE_KEY=<your-clerk-publishable-key>
 VITE_AUTH_PROVIDER=clerk
@@ -198,7 +197,7 @@ The following environment files have been updated:
 - [ ] Ingress resources created
 - [ ] Certificates issued successfully
 - [ ] HTTPS accessible at https://www.valuepact.ai
-- [ ] API accessible at https://api.valuepact.ai
+- [ ] API returns JSON at https://www.valuepact.ai/api/v1/auth/health
 - [ ] Authentication flow tested
 - [ ] Health checks passing
 
@@ -207,12 +206,14 @@ The following environment files have been updated:
 ### Certificate Not Issuing
 
 Check cert-manager logs:
+
 ```bash
 kubectl logs -n cert-manager deployment/cert-manager
 kubectl logs -n cert-manager deployment/cert-manager-webhook
 ```
 
 Check CertificateRequest events:
+
 ```bash
 kubectl describe certificaterequest <name> -n value-fabric
 ```
