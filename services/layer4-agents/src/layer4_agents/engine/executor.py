@@ -42,6 +42,12 @@ class WorkflowExecutionError(Exception):
     pass
 
 
+class WorkflowPauseValidationError(WorkflowExecutionError, ValueError):
+    """Raised when workflow pause request violates status or existence invariants."""
+
+    pass
+
+
 class CheckpointConflictError(WorkflowExecutionError):
     """Raised when checkpoint hash from caller is stale versus persisted latest state."""
 
@@ -53,8 +59,6 @@ class CheckpointConflictError(WorkflowExecutionError):
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
 from ..agents.base import BaseAgent
-from ..harness.models import GateStatus, GateType, HumanGate
-from ..harness.policies import PolicyViolationError, enforce_action_approval
 from ..messaging.bus import InMemoryMessageBus, MessageBus
 from ..messaging.router import MessageRouter
 from ..messaging.types import MessageType
@@ -68,9 +72,13 @@ from .checkpoint_replay import (
     resolve_resume_policy,
 )
 from .execution_checkpointing import persist_interruption_if_needed
-from .execution_dispatch import build_workflow_task
+from .execution_dispatch import build_workflow_task, initialize_workflow_run_context
 from .execution_persistence import mark_workflow_running, persist_workflow_failure
-from .execution_validation import ensure_controller_accepts_execution
+from .execution_validation import (
+    ensure_controller_accepts_execution,
+    parse_and_enforce_approval_gate,
+    validate_workflow_start_invariants,
+)
 from .output_contract import validate_final_output
 from .state_manager import StateManager
 
@@ -258,7 +266,7 @@ class OrchestrationController:
 
     def __init__(
         self,
-        tool_registry: ToolRegistry,
+        tool_registry: ToolRegistry | None = None,
         state_manager: StateManager | None = None,
         message_bus: MessageBus | None = None,
         max_concurrent: int = 100,
@@ -269,7 +277,7 @@ class OrchestrationController:
         """Initialize orchestration controller.
 
         Args:
-            tool_registry: Registry of available tools
+            tool_registry: Registry of available tools (optional, defaults to empty ToolRegistry)
             state_manager: State persistence manager
             message_bus: Message bus for agent communication
             max_concurrent: Maximum concurrent tasks
@@ -277,7 +285,7 @@ class OrchestrationController:
             checkpoint_saver: LangGraph checkpoint saver for workflow persistence
             task_scheduler: Optional scheduler implementation for dependency injection
         """
-        self.tool_registry = tool_registry
+        self.tool_registry = tool_registry if tool_registry is not None else ToolRegistry()
         self.state_manager = state_manager or StateManager()
         self.message_bus = message_bus or InMemoryMessageBus()
         self.checkpoint_saver = checkpoint_saver
@@ -471,50 +479,20 @@ class OrchestrationController:
             error_cls=WorkflowExecutionError,
         )
 
-        # Validate workflow type early for clear error messages
-        if workflow_type not in WORKFLOW_TYPES:
-            raise WorkflowExecutionError(
-                f"Unknown workflow type: {workflow_type!r}. "
-                f"Supported types: {', '.join(sorted(WORKFLOW_TYPES))}"
-            )
+        validate_workflow_start_invariants(
+            workflow_type=workflow_type,
+            supported_types=WORKFLOW_TYPES,
+            tenant_id=tenant_id,
+            checkpoint_saver=self.checkpoint_saver,
+            error_cls=WorkflowExecutionError,
+        )
 
-        # HARDENING: Tenant scope is a mandatory workflow-start invariant
-        tenant_id_str = str(tenant_id) if tenant_id else ""
-        if not tenant_id_str or not tenant_id_str.strip():
-            raise WorkflowExecutionError(
-                "tenant_id is required: workflow start rejected"
-            )
-
-        action_class = input_data.get("action_class")
-        gate_data = input_data.get("approval_gate")
-        gate: HumanGate | None = None
-        if gate_data is not None:
-            gate = HumanGate(
-                id=str(gate_data["id"]),
-                run_id=str(gate_data.get("run_id") or ""),
-                tenant_id=tenant_id,
-                gate_type=GateType(gate_data["gate_type"]),
-                status=GateStatus(gate_data.get("status", GateStatus.APPROVED.value)),
-            )
-        try:
-            approval_evidence = enforce_action_approval(
-                run_id=workflow_id or "pending_workflow_id",
-                action_class=action_class,
-                gate=gate,
-            )
-        except (ValueError, PolicyViolationError) as exc:
-            raise WorkflowExecutionError(f"{type(exc).__name__}: workflow_execution_failed") from exc
-
-        if self.checkpoint_saver is None:
-            import os
-
-            from value_fabric.shared.security.config import is_production_like_environment
-
-            environment = os.getenv("ENVIRONMENT") or os.getenv("ENV") or os.getenv("APP_ENV")
-            if is_production_like_environment(environment):
-                raise WorkflowExecutionError(
-                    "Production workflow execution requires a durable checkpoint saver"
-                )
+        approval_evidence = parse_and_enforce_approval_gate(
+            workflow_id=workflow_id,
+            input_data=input_data,
+            tenant_id=tenant_id,
+            error_cls=WorkflowExecutionError,
+        )
 
         # P1-42: Check concurrent workflow limit
         active_count = len(self._active_workflows)
@@ -553,58 +531,28 @@ class OrchestrationController:
                     )
                 return existing_state
 
-        # Generate canonical run envelope with distinct IDs
-        from uuid import uuid4
-
-        from ..models.run_envelope import RunEnvelope
-
-        wf_id = workflow_id or str(uuid4())
-        run_id = str(uuid4())
-        trace_id = str(uuid4())
-
-        # Create workflow with checkpointing if available
-        workflow = create_workflow(workflow_type, self.tool_registry, self.checkpoint_saver)
-        initial_state = workflow.create_initial_state(
-            input_data,
+        (
+            wf_id,
+            run_id,
+            trace_id,
+            workflow,
+            initial_state,
+            workflow_metadata,
+        ) = initialize_workflow_run_context(
+            workflow_type=workflow_type,
+            input_data=input_data,
+            tool_registry=self.tool_registry,
+            checkpoint_saver=self.checkpoint_saver,
+            workflow_id=workflow_id,
             tenant_id=tenant_id,
-            run_id=run_id,
-            trace_id=trace_id,
-            workflow_id=wf_id,
+            user_id=user_id,
+            priority_value=priority.value,
+            approval_evidence=approval_evidence,
+            resolved_timeout_seconds=resolved_timeout_seconds,
+            timeout_source=timeout_source,
         )
         workflow_id = wf_id
-
-        envelope = RunEnvelope(
-            run_id=run_id,
-            workflow_id=workflow_id,
-            trace_id=trace_id,
-            tenant_id=str(tenant_id) if tenant_id else "",
-            workflow_type=workflow_type,
-        )
-
-        initial_state.run_envelope = envelope
-        if approval_evidence is not None:
-            initial_state.metadata["approval_decision"] = approval_evidence
-        initial_state.metadata["workflow_timeout_seconds"] = resolved_timeout_seconds
-        initial_state.metadata["workflow_timeout_source"] = timeout_source
-        self._workflow_metadata[workflow_id] = {
-            "workflow_type": workflow_type,
-            "tenant_id": tenant_id,
-            "user_id": user_id,
-            "priority": priority.value,
-            "started_at": datetime.now(UTC).isoformat(),
-            "timeout_seconds": resolved_timeout_seconds,
-            "timeout_resolution": {
-                "tenant_id": tenant_id,
-                "selected_timeout_seconds": resolved_timeout_seconds,
-                "source": timeout_source,
-            },
-            "run_envelope": envelope.model_dump(),
-            "approval_decision": approval_evidence,
-        }
-        if approval_evidence:
-            envelope_data = envelope.model_dump()
-            envelope_data["approval_decision"] = approval_evidence
-            self._workflow_metadata[workflow_id]["run_envelope"] = envelope_data
+        self._workflow_metadata[workflow_id] = workflow_metadata
 
         # Schedule workflow execution (Task 2.1: Capture tenant context)
         lifecycle_logger.emit(
@@ -1002,19 +950,19 @@ class OrchestrationController:
         """
         state = await self.state_manager.load_state(workflow_id)
         if not state:
-            raise ValueError(f"Workflow {workflow_id} not found")
+            raise WorkflowPauseValidationError(f"Workflow {workflow_id} not found")
 
         if state.status in [
             WorkflowStatus.COMPLETED,
             WorkflowStatus.FAILED,
             WorkflowStatus.CANCELLED,
         ]:
-            raise ValueError(
+            raise WorkflowPauseValidationError(
                 f"Workflow {workflow_id} is {state.status.value} and cannot be paused"
             )
 
         if state.status == WorkflowStatus.INTERRUPTED:
-            raise ValueError(f"Workflow {workflow_id} is already interrupted")
+            raise WorkflowPauseValidationError(f"Workflow {workflow_id} is already interrupted")
 
         await self.scheduler.cancel_task(f"wf-{workflow_id}")
         await self.scheduler.cancel_task(workflow_id)

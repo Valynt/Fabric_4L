@@ -36,6 +36,17 @@ from ...models.billing import (
     BillingSubscription,
     BillingUsageEvent,
 )
+from .billing_helpers import (
+    dt_iso as _dt_iso,
+    get_client_ip as _get_client_ip,
+    is_stripe_webhook_ip as _is_stripe_webhook_ip,
+    serialize_charge as _serialize_charge,
+    serialize_customer as _serialize_customer,
+    serialize_invoice as _serialize_invoice,
+    serialize_invoice_item as _serialize_invoice_item,
+    serialize_subscription as _serialize_subscription,
+    serialize_usage_event as _serialize_usage_event,
+)
 from ...services.billing_security import validate_webhook_request_security
 from ...services.billing_service import BillingService
 from ...services.invoice_service import InvoiceService
@@ -46,28 +57,9 @@ from ..common.db import get_route_db, get_webhook_db
 logger = logging.getLogger(__name__)
 
 # Known Stripe webhook IPs (documented by Stripe) + loopback for local dev
-_STRIPE_WEBHOOK_IPS = {"3.18.12.63", "52.15.183.38", "54.187.174.170", "127.0.0.1", "::1"}
 _STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
 STRIPE_WEBHOOK_SECRET = _STRIPE_WEBHOOK_SECRET
 STRIPE_WEBHOOK_SKIP_IP_CHECK = False
-
-
-def _is_stripe_webhook_ip(ip: str) -> bool:
-    """Return True if *ip* is a known Stripe webhook or loopback address."""
-    return ip in _STRIPE_WEBHOOK_IPS
-
-
-def _get_client_ip(request: Request) -> str:
-    """Extract the client IP from forwarded headers or the transport socket."""
-    x_forwarded = request.headers.get("X-Forwarded-For")
-    if x_forwarded:
-        return x_forwarded.split(",")[0].strip()
-    x_real = request.headers.get("X-Real-IP")
-    if x_real:
-        return x_real.strip()
-    if request.client is not None:
-        return request.client.host
-    return ""
 
 
 async def _defer_webhook_db() -> None:
@@ -120,138 +112,6 @@ def _raise_billing_bad_request(exc: ValueError, message: str = "Invalid billing 
         message=message,
         details={"code": "BILLING_VALIDATION_ERROR"},
     ) from exc
-
-
-# ---------------------------------------------------------------------------
-# Serialization helpers
-# ---------------------------------------------------------------------------
-
-def _dt_iso(dt: datetime | None) -> str | None:
-    """Serialize a datetime to ISO format."""
-    return dt.isoformat() if dt else None
-
-
-def _serialize_subscription(sub: BillingSubscription | None) -> dict[str, Any]:
-    """Serialize a BillingSubscription to the frontend contract shape."""
-    if sub is None:
-        return {
-            "id": None,
-            "plan_id": "free",
-            "status": "active",
-            "current_period_start": None,
-            "current_period_end": None,
-            "cancel_at_period_end": False,
-        }
-    return {
-        "id": sub.id,
-        "plan_id": sub.plan_id,
-        "status": sub.status,
-        "current_period_start": _dt_iso(sub.current_period_start),
-        "current_period_end": _dt_iso(sub.current_period_end),
-        "cancel_at_period_end": sub.cancel_at_period_end,
-    }
-
-
-def _serialize_invoice_item(item: BillingInvoiceItem) -> dict[str, Any]:
-    return {
-        "id": item.id,
-        "type": item.type,
-        "description": item.description,
-        "quantity": float(item.quantity),
-        "unit_amount_cents": item.unit_amount,
-        "amount_cents": item.amount,
-        "amount_dollars": item.amount_dollars,
-        "period_start": _dt_iso(item.period_start),
-        "period_end": _dt_iso(item.period_end),
-        "usage_quantity": float(item.usage_quantity) if item.usage_quantity is not None else None,
-        "usage_metric": item.usage_metric,
-        "tax_cents": item.tax_amount,
-        "discount_cents": item.discount_amount,
-    }
-
-
-def _serialize_charge(charge: BillingCharge) -> dict[str, Any]:
-    return {
-        "id": charge.id,
-        "customer_id": charge.customer_id,
-        "invoice_id": charge.invoice_id,
-        "invoice_number": charge.invoice.invoice_number if charge.invoice else None,
-        "status": charge.status,
-        "amount_cents": charge.amount,
-        "amount_dollars": charge.amount_dollars,
-        "amount_refunded_cents": charge.amount_refunded,
-        "net_amount_cents": charge.net_amount,
-        "stripe_charge_id": charge.stripe_charge_id,
-        "payment_method_id": charge.payment_method_id,
-        "payment_method_type": charge.payment_method_type,
-        "failure_code": charge.failure_code,
-        "failure_message": charge.failure_message,
-        "receipt_url": charge.receipt_url,
-        "description": charge.description,
-        "created_at": _dt_iso(charge.created_at),
-        "captured_at": _dt_iso(charge.captured_at),
-        "refunded_at": _dt_iso(charge.refunded_at),
-    }
-
-
-def _serialize_invoice(
-    inv: BillingInvoice, *, include_items: bool = True, include_charges: bool = False
-) -> dict[str, Any]:
-    result: dict[str, Any] = {
-        "id": inv.id,
-        "invoice_number": inv.invoice_number,
-        "customer_id": inv.customer_id,
-        "status": inv.status,
-        "currency": inv.currency,
-        "subtotal_cents": inv.subtotal,
-        "tax_cents": inv.tax,
-        "total_cents": inv.total,
-        "total_dollars": inv.total_dollars,
-        "amount_paid_cents": inv.amount_paid,
-        "amount_due_cents": inv.amount_due,
-        "amount_due_dollars": inv.amount_due_dollars,
-        "balance_cents": inv.balance,
-        "period_start": _dt_iso(inv.period_start),
-        "period_end": _dt_iso(inv.period_end),
-        "due_date": _dt_iso(inv.due_date),
-        "paid_at": _dt_iso(inv.paid_at),
-        "voided_at": _dt_iso(inv.voided_at),
-        "created_at": _dt_iso(inv.created_at),
-        "description": inv.description,
-        "hosted_invoice_url": inv.hosted_invoice_url,
-        "invoice_pdf_url": inv.invoice_pdf_url,
-    }
-    if include_items:
-        result["items"] = [_serialize_invoice_item(item) for item in (inv.items or [])]
-    if include_charges:
-        result["charges"] = [_serialize_charge(charge) for charge in (inv.charges or [])]
-    return result
-
-
-def _serialize_usage_event(event: BillingUsageEvent) -> dict[str, Any]:
-    return {
-        "id": event.id,
-        "event_id": event.event_id,
-        "customer_id": event.customer_id,
-        "tenant_id": event.tenant_id,
-        "event_name": event.event_name,
-        "metric_name": event.metric_name,
-        "quantity": event.quantity,
-        "timestamp": _dt_iso(event.timestamp),
-        "created_at": _dt_iso(event.created_at),
-        "status": event.status,
-        "unit": event.unit,
-    }
-
-
-def _serialize_customer(customer: BillingCustomer) -> dict[str, Any]:
-    return {
-        "id": customer.id,
-        "tenant_id": customer.tenant_id,
-        "email": customer.email,
-        "name": customer.name,
-        "stripe_customer_id": customer.stripe_customer_id,
-    }
 
 
 # ---------------------------------------------------------------------------
