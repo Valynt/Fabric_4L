@@ -396,7 +396,10 @@ def require_tenant_header_for_internal():
                 detail="Identity system unavailable. Ensure shared.identity is configured.",
             )
         provider = _require_request_context_provider()
-        ctx = provider(request)
+        try:
+            ctx = provider(request)
+        except TypeError:
+            ctx = provider()
         if inspect.isawaitable(ctx):
             ctx = await ctx
         if ctx and ctx.tenant_id:

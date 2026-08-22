@@ -245,6 +245,7 @@ def _build_configuration(settings: Any) -> dict[str, Any]:
 def _derive_overall_status(
     dependencies: list[DependencyStatus],
     schema_initializer: Any | None,
+    schema_status: dict[str, Any] | None = None,
 ) -> Literal["healthy", "unhealthy", "degraded"]:
     if schema_initializer is None or getattr(schema_initializer, "_driver", None) is None:
         return "degraded"
@@ -252,6 +253,11 @@ def _derive_overall_status(
         return "unhealthy"
     if any(dep.status == "degraded" for dep in dependencies):
         return "degraded"
+    if schema_status is not None:
+        if schema_status.get("status") in ("error", "unhealthy") or schema_status.get("valid") is False:
+            return "unhealthy"
+        if schema_status.get("status") == "degraded":
+            return "degraded"
     return "healthy"
 
 
@@ -344,7 +350,7 @@ async def health_check(
 
     neo4j_health, schema_status = await _resolve_neo4j_and_schema_status(schema_initializer, request_id)
 
-    overall_status = _derive_overall_status(dependencies, schema_initializer)
+    overall_status = _derive_overall_status(dependencies, schema_initializer, schema_status)
     response_time_ms = round((time.time() - start_time) * 1000, 2)
 
     logger.info(
@@ -395,7 +401,7 @@ async def detailed_health_check(
 
     overall_status = cast(
         Literal["healthy", "unhealthy", "degraded"],
-        _derive_overall_status(dependencies, schema_initializer),
+        _derive_overall_status(dependencies, schema_initializer, schema_status),
     )
 
     settings = get_settings()

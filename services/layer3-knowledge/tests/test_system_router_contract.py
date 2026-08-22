@@ -169,3 +169,30 @@ def test_health_endpoints_contract():
         assert "uptime_seconds" in detailed_data
     finally:
         app.dependency_overrides.pop(get_schema_initializer, None)
+
+
+@pytest.mark.unit
+def test_health_endpoints_schema_failure_derives_unhealthy_or_degraded():
+    """Verify failed schema verification causes non-healthy overall status in detailed health."""
+    mock_init = SimpleNamespace(
+        _driver=MagicMock(),
+        health_check=AsyncMock(return_value={"status": "healthy"}),
+        verify_schema=AsyncMock(return_value={"valid": False, "status": "error", "message": "Schema missing"}),
+    )
+    app.dependency_overrides[get_schema_initializer] = lambda: mock_init
+    try:
+        client = TestClient(app)
+
+        response_detailed = client.get("/health/detailed")
+        assert response_detailed.status_code == 200
+        detailed_data = response_detailed.json()
+        assert detailed_data["status"] in ("unhealthy", "degraded")
+        assert detailed_data["schema_status"]["valid"] is False
+
+        response_health = client.get("/health")
+        assert response_health.status_code == 200
+        health_data = response_health.json()
+        assert health_data["status"] in ("unhealthy", "degraded")
+        assert health_data["readiness"]["is_ready"] is False
+    finally:
+        app.dependency_overrides.pop(get_schema_initializer, None)
