@@ -6,6 +6,7 @@ ARG KUBECTL_VERSION=v1.29.15
 ARG KUSTOMIZE_VERSION=v5.4.3
 ARG COSIGN_VERSION=v2.4.1
 ARG INFISICAL_VERSION=0.41.11
+ARG UV_VERSION=0.11.6
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
@@ -14,6 +15,9 @@ RUN apt-get update \
       build-essential docker.io uidmap dbus-user-session slirp4netns fuse-overlayfs \
       pipx make jq curl ca-certificates gnupg \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+RUN PIPX_BIN_DIR=/usr/local/bin PIPX_HOME=/opt/pipx pipx install "uv==${UV_VERSION}" \
+    && uv --version
 
 RUN arch="$(dpkg --print-architecture)" \
     && case "$arch" in amd64|arm64) ;; *) echo "Unsupported architecture: $arch" >&2; exit 1 ;; esac \
