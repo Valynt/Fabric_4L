@@ -59,8 +59,6 @@ class CheckpointConflictError(WorkflowExecutionError):
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
 from ..agents.base import BaseAgent
-from ..harness.models import GateStatus, GateType, HumanGate
-from ..harness.policies import PolicyViolationError, enforce_action_approval
 from ..messaging.bus import InMemoryMessageBus, MessageBus
 from ..messaging.router import MessageRouter
 from ..messaging.types import MessageType
