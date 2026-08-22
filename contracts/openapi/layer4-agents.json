@@ -14089,7 +14089,8 @@
           },
           "owners": {
             "items": {
-              "type": "string"
+              "additionalProperties": true,
+              "type": "object"
             },
             "type": "array",
             "title": "Owners"
