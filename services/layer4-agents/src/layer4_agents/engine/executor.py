@@ -42,6 +42,12 @@ class WorkflowExecutionError(Exception):
     pass
 
 
+class WorkflowPauseValidationError(WorkflowExecutionError, ValueError):
+    """Raised when workflow pause request violates status or existence invariants."""
+
+    pass
+
+
 class CheckpointConflictError(WorkflowExecutionError):
     """Raised when checkpoint hash from caller is stale versus persisted latest state."""
 
@@ -946,19 +952,19 @@ class OrchestrationController:
         """
         state = await self.state_manager.load_state(workflow_id)
         if not state:
-            raise ValueError(f"Workflow {workflow_id} not found")
+            raise WorkflowPauseValidationError(f"Workflow {workflow_id} not found")
 
         if state.status in [
             WorkflowStatus.COMPLETED,
             WorkflowStatus.FAILED,
             WorkflowStatus.CANCELLED,
         ]:
-            raise ValueError(
+            raise WorkflowPauseValidationError(
                 f"Workflow {workflow_id} is {state.status.value} and cannot be paused"
             )
 
         if state.status == WorkflowStatus.INTERRUPTED:
-            raise ValueError(f"Workflow {workflow_id} is already interrupted")
+            raise WorkflowPauseValidationError(f"Workflow {workflow_id} is already interrupted")
 
         await self.scheduler.cancel_task(f"wf-{workflow_id}")
         await self.scheduler.cancel_task(workflow_id)

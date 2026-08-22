@@ -246,8 +246,14 @@ class ToolNotFoundError(ToolError):
     pass
 
 
-class ToolValidationError(ToolError):
+class ToolValidationError(ToolError, ValueError):
     """Raised when tool input validation fails."""
+
+    pass
+
+
+class ToolRegistrationError(ToolValidationError):
+    """Raised when tool registration constraint is violated."""
 
     pass
 
@@ -593,13 +599,13 @@ class ToolRegistry:
             tool: Tool instance to register
 
         Raises:
-            ValueError: If tool with same name already registered
+            ToolRegistrationError: If tool name is empty or already registered
         """
         if not tool.name:
-            raise ValueError("Tool must have a name")
+            raise ToolRegistrationError("Tool must have a name")
 
         if tool.name in self._tools:
-            raise ValueError(f"Tool '{tool.name}' is already registered")
+            raise ToolRegistrationError(f"Tool '{tool.name}' is already registered")
 
         self._tools[tool.name] = tool
 
