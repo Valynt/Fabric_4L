@@ -203,6 +203,37 @@ def _has_internal_execution_envelope(input_dict: dict[str, Any]) -> bool:
     return all(input_dict.get(key) for key in ("workflow_id", "run_id", "trace_id"))
 
 
+def _extract_auth_error_info(exc: Exception) -> tuple[str, str, Any]:
+    """Extract normalized error code, message, and details from an auth exception."""
+    status_code = getattr(exc, "status_code", 403)
+    detail = getattr(exc, "detail", None)
+    code = "AUTHENTICATION_REQUIRED" if status_code == 401 else "INSUFFICIENT_SCOPE"
+    if isinstance(detail, dict):
+        message = detail.get("message", type(exc).__name__)
+    elif detail is not None:
+        message = str(detail)
+    else:
+        message = type(exc).__name__
+    return code, message, detail
+
+
+def _record_tool_auth_failure_metric(tool_name: str, tenant_id: Any) -> None:
+    """Safely increment the tool auth failure Prometheus metric if available."""
+    try:
+        from ..metrics.prometheus_metrics import get_metrics
+
+        metrics = get_metrics()
+        if metrics:
+            metrics.increment_tool_auth_failure(
+                tool_name=tool_name,
+                tenant_id=str(tenant_id) if tenant_id else "unknown",
+            )
+    except asyncio.CancelledError:
+        raise
+    except Exception:
+        pass
+
+
 class ToolError(Exception):
     """Raised when a tool execution fails."""
 
@@ -638,29 +669,8 @@ class ToolRegistry:
         except asyncio.CancelledError:
             raise
         except Exception as exc:
-            status_code = getattr(exc, "status_code", 403)
-            detail = getattr(exc, "detail", None)
-            code = "AUTHENTICATION_REQUIRED" if status_code == 401 else "INSUFFICIENT_SCOPE"
-            if isinstance(detail, dict):
-                message = detail.get("message", type(exc).__name__)
-            elif detail is not None:
-                message = str(detail)
-            else:
-                message = type(exc).__name__
-            # Hardening: emit tool auth failure metric
-            try:
-                from ..metrics.prometheus_metrics import get_metrics
-
-                metrics = get_metrics()
-                if metrics:
-                    metrics.increment_tool_auth_failure(
-                        tool_name=tool_name,
-                        tenant_id=str(tenant_id) if tenant_id else "unknown",
-                    )
-            except asyncio.CancelledError:
-                raise
-            except Exception:
-                pass
+            code, message, detail = _extract_auth_error_info(exc)
+            _record_tool_auth_failure_metric(tool_name, tenant_id)
             return ToolResult.failure(
                 code=code,
                 message=message,
@@ -729,6 +739,47 @@ class ToolRegistry:
                 metadata=_safe_metadata(trace_id=trace_id, tenant_id=tenant_id),
             )
         return tenant_id, None
+
+    def _enforce_approval_policy(
+        self,
+        *,
+        tool_name: str,
+        tool_category: ToolCategory,
+        input_dict: dict[str, Any],
+        workflow_id: str | None,
+        tenant_id: str,
+        user_id: str | None,
+        trace_id: str | None,
+    ) -> ToolResult | None:
+        """Enforce human-in-the-loop approval policy for restricted categories."""
+        approval_required = tool_category in self._approval_required_categories
+        if not approval_required:
+            return None
+
+        approved = input_dict.get("approval_decision") == "approved"
+        if not approved:
+            self._emit_policy_audit_event(
+                workflow_id=workflow_id,
+                tenant_id=tenant_id,
+                user_id=user_id,
+                tool_name=tool_name,
+                approval_decision="denied",
+            )
+            return ToolResult.failure(
+                code="APPROVAL_REQUIRED",
+                message=f"Tool '{tool_name}' requires approval before execution",
+                recoverable=False,
+                metadata=_safe_metadata(trace_id=trace_id, tenant_id=tenant_id),
+            )
+
+        self._emit_policy_audit_event(
+            workflow_id=workflow_id,
+            tenant_id=tenant_id,
+            user_id=user_id,
+            tool_name=tool_name,
+            approval_decision="approved",
+        )
+        return None
 
     @staticmethod
     def _tool_lifecycle_context(
@@ -877,31 +928,17 @@ class ToolRegistry:
                 metadata=_safe_metadata(trace_id=trace_id, tenant_id=tenant_id),
             )
 
-        approval_required = tool.category in self._approval_required_categories
-        approved = bool(input_dict.get("approval_decision") == "approved" or not approval_required)
-        if approval_required and not approved:
-            self._emit_policy_audit_event(
-                workflow_id=workflow_id,
-                tenant_id=tenant_id,
-                user_id=user_id,
-                tool_name=tool_name,
-                approval_decision="denied",
-            )
-            return ToolResult.failure(
-                code="APPROVAL_REQUIRED",
-                message=f"Tool '{tool_name}' requires approval before execution",
-                recoverable=False,
-                metadata=_safe_metadata(trace_id=trace_id, tenant_id=tenant_id),
-            )
-
-        if approval_required:
-            self._emit_policy_audit_event(
-                workflow_id=workflow_id,
-                tenant_id=tenant_id,
-                user_id=user_id,
-                tool_name=tool_name,
-                approval_decision="approved",
-            )
+        approval_failure = self._enforce_approval_policy(
+            tool_name=tool_name,
+            tool_category=tool.category,
+            input_dict=input_dict,
+            workflow_id=workflow_id,
+            tenant_id=tenant_id,
+            user_id=user_id,
+            trace_id=trace_id,
+        )
+        if approval_failure is not None:
+            return approval_failure
 
         if idempotency_key:
             cached = await self._get_cached_result(tenant_id, tool_name, str(idempotency_key))
