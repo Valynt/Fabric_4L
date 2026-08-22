@@ -1,5 +1,62 @@
 {
   "workspaceId": "d0dde515-abae-4f6a-a01c-75e7b713a9ff",
   "defaultEnvironment": "dev",
-  "gitBranchToEnvironmentMapping": null
+  "gitBranchToEnvironmentMapping": null,
+  "secretPaths": {
+    "shared": {
+      "dev": "/shared",
+      "staging": "/shared",
+      "prod": "/shared"
+    },
+    "infra": {
+      "dev": "/infra",
+      "staging": "/infra",
+      "prod": "/infra"
+    },
+    "layer1-ingestion": {
+      "dev": "/layer1-ingestion",
+      "staging": "/layer1-ingestion",
+      "prod": "/layer1-ingestion"
+    },
+    "layer2-extraction": {
+      "dev": "/layer2-extraction",
+      "staging": "/layer2-extraction",
+      "prod": "/layer2-extraction"
+    },
+    "layer2-5-signal-refinery": {
+      "dev": "/layer2-5-signal-refinery",
+      "staging": "/layer2-5-signal-refinery",
+      "prod": "/layer2-5-signal-refinery"
+    },
+    "layer3-knowledge": {
+      "dev": "/layer3-knowledge",
+      "staging": "/layer3-knowledge",
+      "prod": "/layer3-knowledge"
+    },
+    "layer4-agents": {
+      "dev": "/layer4-agents",
+      "staging": "/layer4-agents",
+      "prod": "/layer4-agents"
+    },
+    "layer5-ground-truth": {
+      "dev": "/layer5-ground-truth",
+      "staging": "/layer5-ground-truth",
+      "prod": "/layer5-ground-truth"
+    },
+    "layer6-benchmarks": {
+      "dev": "/layer6-benchmarks",
+      "staging": "/layer6-benchmarks",
+      "prod": "/layer6-benchmarks"
+    },
+    "apps/web": {
+      "dev": "/apps/web",
+      "staging": "/apps/web",
+      "prod": "/apps/web"
+    },
+    "auth": {
+      "dev": "/auth",
+      "staging": "/auth",
+      "prod": "/auth"
+    }
+  }
 }

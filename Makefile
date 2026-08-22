@@ -33,6 +33,7 @@
 	check-keycloak-realm-seed-security \
 	check-manifest-secret-hygiene \
 	check-trivy-ignore-policy \
+	check-security-exceptions \
 	check-path-env-hygiene \
 	check-compatibility-shims \
 	check-layer3-legacy-tenant-dependency-imports \
@@ -87,7 +88,7 @@ help: ## Show this help
 
 VERIFY_CHECKS := check-conflict-markers check-no-nul-bytes check-migration-heads \
 	check-keycloak-realm-seed-security check-manifest-secret-hygiene check-path-env-hygiene \
-	check-trivy-ignore-policy \
+	check-trivy-ignore-policy check-security-exceptions \
 	lint typecheck test contract-tests security-smoke \
 	check-deprecations check-tool-contracts check-deprecated-tracer-imports \
 	platform-contract-lint check-ui-duplicates check-readiness-consistency \
@@ -164,6 +165,10 @@ check-manifest-secret-hygiene: ## Enforce secret-only references and denylisted 
 
 check-trivy-ignore-policy: ## Validate .trivyignore.yaml governance and waiver health
 	@$(PYTHON) scripts/ci/check_trivy_ignore_policy.py
+check-security-exceptions: ## Validate security exceptions registry governance and lifecycle
+	@$(PYTHON) scripts/ci/check_security_exceptions.py
+check-hostile-tenant-evidence: ## Validate hostile tenant evidence across all 8 isolation contracts
+	@$(PYTHON) scripts/ci/check_hostile_tenant_evidence.py
 check-path-env-hygiene: ## Fail on suspicious tracked path artifacts and unapproved tracked .env-style files
 	@$(PYTHON) scripts/ci/check_path_and_env_hygiene.py
 check-migration-entrypoints: ## Ensure maintained services expose migration entrypoints and revision history commands
