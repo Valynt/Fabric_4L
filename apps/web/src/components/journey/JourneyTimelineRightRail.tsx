@@ -69,7 +69,7 @@ export function JourneyTimelineRightRail({
 
     apiClient
       .get<AccountJourneyTimelineResponse>(
-        "layer4",
+        "l4",
         `/accounts/${activeAccountId}/journey-timeline`
       )
       .then((res) => {
