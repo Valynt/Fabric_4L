@@ -233,7 +233,26 @@ class CargoAccountIntelligenceProvider(AccountIntelligenceProvider):
     ) -> list[AccountSignal]:
         """Acquire active buying signals and operational observations."""
         self.metrics["requests_total"] += 1
-        return []
+        payload = {"companyDomain": domain}
+        raw_company = await self._execute_tool_action_http(self.TOOL_ENRICH_COMPANY, payload)
+        
+        # To get stakeholder signals, we also need stakeholders
+        # But for POC speed, we will extract just company signals (funding, tech)
+        if not raw_company:
+            return []
+            
+        # We can also fetch stakeholders for leadership change signals
+        raw_stakeholders = []
+        try:
+            stakeholder_result = await self._execute_tool_action_http(self.TOOL_FIND_STAKEHOLDERS, {"companyDomain": domain})
+            if stakeholder_result and "stakeholders" in stakeholder_result:
+                raw_stakeholders = stakeholder_result["stakeholders"]
+        except Exception:
+            pass
+
+        from layer4_agents.provenance.cargo_normalizer import CargoContextNormalizer
+        signals = CargoContextNormalizer.extract_implicit_signals(raw_company, raw_stakeholders, domain)
+        return signals
 
     async def get_full_account_context(
         self,

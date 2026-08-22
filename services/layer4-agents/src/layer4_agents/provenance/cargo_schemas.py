@@ -44,6 +44,11 @@ class CargoRawEnrichment(BaseModel):
     technologies: list[str] | dict[str, list[str]] | None = None
     source: str | None = None
     
+    # Funding Signals
+    lastFundingRoundAmount: float | str | None = None
+    lastFundingRoundDate: str | None = None
+    lastFundingRoundType: str | None = None
+    
     # Nested lists
     competitors: list[CargoRawCompetitor] | None = None
 

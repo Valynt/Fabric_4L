@@ -355,6 +355,77 @@ class CargoContextNormalizer:
         return signals
 
     @classmethod
+    def extract_implicit_signals(
+        cls,
+        raw_company: dict[str, Any],
+        raw_stakeholders: list[dict[str, Any]],
+        domain: str,
+    ) -> list[AccountSignal]:
+        """Extract explicit AccountSignals from company and stakeholder firmographics."""
+        signals: list[AccountSignal] = []
+        try:
+            company = CargoRawEnrichment.model_validate(raw_company)
+            
+            # Funding
+            if company.lastFundingRoundAmount:
+                signals.append(
+                    AccountSignal(
+                        signal_category="financial",
+                        signal_type="funding",
+                        headline=f"Recent Funding Round",
+                        description=f"Amount: {company.lastFundingRoundAmount}, Type: {company.lastFundingRoundType or 'Unknown'}",
+                        metadata={"amount": company.lastFundingRoundAmount},
+                        provenance=cls.create_provenance(classification=ProvenanceClassification.PARTIALLY_TRACEABLE)
+                    )
+                )
+                
+            # Technology footprint footprint
+            if company.technologies:
+                techs = company.technologies
+                if isinstance(techs, dict):
+                    techs = [item for sublist in techs.values() for item in sublist]
+                if techs:
+                    signals.append(
+                        AccountSignal(
+                            signal_category="technology",
+                            signal_type="tech_adoption",
+                            headline=f"Detected significant technology footprint",
+                            description=f"Found {len(techs)} technologies.",
+                            metadata={"technologies": techs},
+                            provenance=cls.create_provenance(classification=ProvenanceClassification.PARTIALLY_TRACEABLE)
+                        )
+                    )
+        except ValidationError:
+            pass
+            
+        # Leadership changes
+        recent_hires = []
+        for lead in raw_stakeholders:
+            try:
+                raw_lead = CargoRawStakeholder.model_validate(lead)
+                # Ensure they actually joined recently
+                joined_at = raw_lead.joined_at
+                if joined_at and not joined_at.startswith("2001-01-01") and raw_lead.recently_hired:
+                    name = f"{raw_lead.firstName or ''} {raw_lead.lastName or ''}".strip()
+                    if name and raw_lead.title:
+                        recent_hires.append(f"{name} ({raw_lead.title})")
+            except ValidationError:
+                continue
+                
+        if recent_hires:
+            signals.append(
+                AccountSignal(
+                    signal_category="workforce",
+                    signal_type="leadership_change",
+                    headline=f"Detected {len(recent_hires)} recent leadership hires",
+                    description=", ".join(recent_hires[:5]),
+                    provenance=cls.create_provenance(classification=ProvenanceClassification.PARTIALLY_TRACEABLE)
+                )
+            )
+            
+        return signals
+
+    @classmethod
     def assemble_context(
         cls,
         company_data: CompanyEnrichmentData,

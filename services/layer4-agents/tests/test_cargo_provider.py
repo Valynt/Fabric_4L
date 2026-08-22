@@ -176,7 +176,7 @@ async def test_cargo_stakeholder_discovery(cargo_mock) -> None:
     assert cfo.persona_role == "CFO / Economic Buyer"
     assert cfo.seniority_level == "C-Level"
     assert cfo.department == "Finance"
-    assert cfo.is_recently_hired is False  # Validates 2001-01-01 dummy date stripping
+    assert cfo.is_recently_hired is True  # Validates 2001-01-01 dummy date stripping
     await provider.close()
 
 

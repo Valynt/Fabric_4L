@@ -197,11 +197,13 @@ class EnrichmentOrchestrator:
         sec_edgar_base_url: str = "https://efts.sec.gov/LATEST",
         http_timeout: float = 30.0,
         intelligence_provider: AccountIntelligenceProvider | None = None,
+        value_hypothesis_engine: Any | None = None,
     ):
         self.db = db
         self.sec_edgar_base_url = sec_edgar_base_url
         self.http_timeout = http_timeout
         self.intelligence_provider = intelligence_provider
+        self.value_hypothesis_engine = value_hypothesis_engine
         self._http_client: httpx.AsyncClient | None = None
 
     async def _get_http_client(self) -> httpx.AsyncClient:
@@ -510,12 +512,23 @@ class EnrichmentOrchestrator:
             "provenance": context.company.provenance.model_dump(mode="json"),
         }
 
+        # Phase 3: Connect normalized account context to canonical ValueHypothesisEngine
+        hypotheses_generated = 0
+        if self.value_hypothesis_engine:
+            try:
+                # Fire and wait for hypotheses generation using the new Cargo data
+                new_hypotheses = await self.value_hypothesis_engine.generate_hypotheses_from_context(context)
+                hypotheses_generated = len(new_hypotheses)
+            except Exception as e:
+                logger.error("value_hypothesis_generation_failed", error=str(e), account_id=str(account.id))
+
         return {
             "success": True,
             "provider": self.intelligence_provider.provider_name,
             "technologies_found": len(context.company.technologies),
             "stakeholders_found": len(context.stakeholders),
             "signals_found": len(context.signals),
+            "hypotheses_generated": hypotheses_generated,
         }
 
     async def _enrich_from_sec_edgar(self, account: Account) -> dict[str, Any]:
