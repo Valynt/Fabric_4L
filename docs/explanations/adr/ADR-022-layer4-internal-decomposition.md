@@ -2,7 +2,7 @@
 
 # ADR-022: Layer 4 Internal Decomposition
 
-**Status:** Accepted
+**Status:** Superseded for the Billing pilot by Layer 7 billing ownership rationalization (2026-06-05); remaining decomposition principles and future-candidate guidance unchanged
 **Date:** 2026-05-22
 **Deciders:** Platform Architecture Committee
 **Reviewers:** Platform Architecture Committee
@@ -42,6 +42,8 @@ We will **decompose Layer 4 incrementally**, starting with **Billing** as the pi
 
 ### Pilot: Billing & Usage Service
 
+> **Superseded (2026-06-05):** The Billing pilot as described below is **superseded by the Layer 7 billing ownership rationalization**. The canonical deployable billing behavior is now `services/layer7-billing/` (COMPAT-L4-002 is archived in the [compatibility debt registry](docs/governance/compatibility-debt-registry.md)). The Phase 1 canonical runtime (`value_fabric/layer4/billing/`) was never extracted; that path no longer exists and must not be recreated. This section is retained for historical record only.
+
 **Rationale for pilot:**
 - Clear external API boundary with Stripe
 - Isolated models (`models/billing.py`), schemas, routes, and services already exist
@@ -51,7 +53,7 @@ We will **decompose Layer 4 incrementally**, starting with **Billing** as the pi
 **Extraction plan:**
 
 ```text
-Phase 1 — Canonical runtime
+Phase 1 — Canonical runtime (superseded 2026-06-05 — never extracted; path absent)
   value_fabric/layer4/billing/__init__.py
   value_fabric/layer4/billing/models.py          ← from models/billing.py
   value_fabric/layer4/billing/schemas.py         ← from api/schemas/billing.py
@@ -66,7 +68,7 @@ Phase 2 — Service wrapper (superseded 2026-06-05)
 Phase 3 — Proxy migration
   services/layer4-agents/src/layer4_agents/api/routes/billing.py
     → becomes a thin proxy to services/layer7-billing/ via HTTP client
-  → Remove after all callers migrate (target: 2026-10-31)
+  → Forwarding shim to Layer 7 billing retained while callers migrate (COMPAT-L4-003; removal target 2026-10-31)
 
 Compatibility note:
   services/billing/ remains non-deployable historical Stripe compatibility code only.
@@ -122,15 +124,17 @@ Compatibility note:
 | Operational complexity | Start with Docker Compose; K8s manifests follow after pilot proves stable |
 | Network latency | Keep services in same VPC / cluster; use connection pooling |
 | Shared DB fate | Alembic migrations remain coordinated; tag migrations with service owner |
-| Proxy overhead | Proxies are temporary; removal target 2026-09-30 per compatibility registry |
+| Proxy overhead | Proxies are temporary; forwarding shim to Layer 7 billing with removal target 2026-10-31 per compatibility registry (COMPAT-L4-003) |
 | Contract drift | OpenAPI spec lives in `contracts/openapi/billing.yaml`; drift gate in CI |
 
 ## Implementation
 
 ### Canonical Runtime Path Policy
 
+> **Superseded (2026-06-05):** The billing canonical runtime below is **superseded by the Layer 7 billing consolidation**. The canonical deployable billing behavior now lives in `services/layer7-billing/`; the `value_fabric.layer4.billing.*` path no longer exists. See the [compatibility debt registry](docs/governance/compatibility-debt-registry.md) (COMPAT-L4-002 archived, COMPAT-L4-003 active).
+
 ```python
-# Correct — canonical runtime
+# Deprecated — historical path (never extracted; do not recreate)
 from value_fabric.layer4.billing.models import BillingCustomer
 
 # Deprecated — service-local path (allowed during migration)
@@ -142,8 +146,8 @@ from value_fabric.layer4_agents.src.models.billing import BillingCustomer
 
 ### Compatibility Debt Registry
 
-- **COMPAT-L4-002:** Billing canonical runtime extraction (removal target: 2026-09-30)
-- **COMPAT-L4-003:** Billing service wrapper migration (removal target: 2026-10-31)
+- ~~**COMPAT-L4-002:** Billing canonical runtime extraction~~ — **Archived** 2026-08-22: root `value_fabric/` directory no longer exists; canonical deployable billing behavior is `services/layer7-billing/`.
+- **COMPAT-L4-003:** Billing service wrapper migration (forwarding shim to Layer 7 billing; removal target: 2026-10-31)
 
 ### Tenant Isolation Checklist for Extracted Services
 
@@ -174,4 +178,4 @@ from value_fabric.layer4_agents.src.models.billing import BillingCustomer
 
 ---
 
-**Last Updated:** May 22, 2026
+**Last Updated:** June 5, 2026
