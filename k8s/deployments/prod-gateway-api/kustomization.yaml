@@ -13,7 +13,23 @@ resources:
   - hostname-config.yaml
 
 replacements:
-  # Frontend host -> Gateway listeners + HTTPRoute hostnames + Certificate dnsNames
+  # Ingress namespace -> NetworkPolicies
+  - source:
+      kind: ConfigMap
+      name: routing-host
+      fieldPath: data.ingressNamespace
+    targets:
+      - select:
+          kind: NetworkPolicy
+          name: frontend-policy
+        fieldPaths:
+          - spec.ingress.0.from.0.namespaceSelector.matchLabels.[kubernetes.io/metadata.name]
+      - select:
+          kind: NetworkPolicy
+          name: api-gateway-policy
+        fieldPaths:
+          - spec.ingress.0.from.0.namespaceSelector.matchLabels.[kubernetes.io/metadata.name]
+  # Application host -> Gateway listeners + HTTPRoute hostname + Certificate dnsName
   - source:
       kind: ConfigMap
       name: routing-host
@@ -27,33 +43,11 @@ replacements:
           - spec.listeners.1.hostname
       - select:
           kind: HTTPRoute
-          name: frontend
+          name: application
         fieldPaths:
           - spec.hostnames.0
       - select:
           kind: Certificate
           name: frontend-tls
-        fieldPaths:
-          - spec.dnsNames.0
-  # API host -> Gateway listeners + HTTPRoute hostnames + Certificate dnsNames
-  - source:
-      kind: ConfigMap
-      name: routing-host
-      fieldPath: data.apiHost
-    targets:
-      - select:
-          kind: Gateway
-          name: value-fabric-gateway
-        fieldPaths:
-          - spec.listeners.2.hostname
-          - spec.listeners.3.hostname
-      - select:
-          kind: HTTPRoute
-          name: layer-apis
-        fieldPaths:
-          - spec.hostnames.0
-      - select:
-          kind: Certificate
-          name: layer-apis-tls
         fieldPaths:
           - spec.dnsNames.0

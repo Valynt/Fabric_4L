@@ -11,11 +11,11 @@ spec:
     - Ingress
     - Egress
   ingress:
-    # Allow from frontend
+    # Public API requests enter through the gateway only.
     - from:
         - podSelector:
             matchLabels:
-              app: frontend
+              app: api-gateway
       ports:
         - protocol: TCP
           port: 8000

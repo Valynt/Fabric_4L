@@ -7,6 +7,7 @@ import httpx
 import pytest
 
 from app.services.agent_orchestrator import (
+    ERR_LAYER4_CIRCUIT_OPEN,
     ERR_LAYER4_HTTP_ERROR,
     ERR_LAYER4_INVALID_JSON,
     ERR_LAYER4_INVALID_RESPONSE_TYPE,
@@ -16,6 +17,7 @@ from app.services.agent_orchestrator import (
     Layer4OrchestrationClient,
     Layer4UnavailableError,
 )
+from value_fabric.shared.resilience import SyncCircuitBreaker
 
 
 def _mock_httpx(mock_client_cls: MagicMock, response: MagicMock) -> MagicMock:
@@ -71,6 +73,28 @@ class TestLayer4DependencyError:
         assert exc_info.value.body is not None
         assert len(exc_info.value.body) <= 400
 
+    def test_truncate_utf8_preserves_short_strings(self) -> None:
+        from app.services.agent_orchestrator import _truncate_utf8
+
+        assert _truncate_utf8("short", 400) == "short"
+
+    def test_truncate_utf8_truncates_long_strings_to_max_chars(self) -> None:
+        from app.services.agent_orchestrator import _truncate_utf8
+
+        result = _truncate_utf8("x" * 1000, 400)
+        assert len(result) == 400
+
+    def test_truncate_utf8_does_not_split_multibyte_characters(self) -> None:
+        """Truncation must land on a code-point boundary so the result
+        remains encodable in any UTF-8-compatible codec."""
+        from app.services.agent_orchestrator import _truncate_utf8
+
+        # Emoji are 4-byte UTF-8 code points; truncating must not split one.
+        text = "🎉" * 100
+        result = _truncate_utf8(text, 10)
+        assert result.encode("utf-8").decode("utf-8") == result
+        assert len(result) <= 10
+
 
 class TestLayer4OrchestrationClient:
     def _client(self) -> Layer4OrchestrationClient:
@@ -100,8 +124,59 @@ class TestLayer4OrchestrationClient:
         assert kwargs["json"]["workflow_type"] == "roi_calculator"
         assert kwargs["json"]["inputs"]["prospect_id"] == "acc-1"
         assert kwargs["json"]["inputs"]["custom_data"] == {"foo": "bar"}
+        assert "workflow_id" in kwargs["json"]
         assert kwargs["headers"]["X-Tenant-ID"] == "t1"
         assert kwargs["headers"]["X-User-ID"] == "user-1"
+        assert kwargs["headers"]["Idempotency-Key"] == kwargs["json"]["workflow_id"]
+
+    @patch("app.services.agent_orchestrator.httpx.Client")
+    def test_create_workflow_stable_idempotency_across_retries(
+        self, mock_client_cls: MagicMock
+    ) -> None:
+        """When create_workflow retries after a transient failure, it reuses the same workflow_id and Idempotency-Key."""
+        bad_response = MagicMock()
+        bad_response.status_code = 503
+        bad_response.text = "unavailable"
+
+        ok_response = MagicMock()
+        ok_response.status_code = 201
+        ok_response.json.return_value = {
+            "workflow_instance_id": "wf-1",
+            "status": "pending",
+        }
+
+        mock_client = MagicMock()
+        mock_client.__enter__.return_value = mock_client
+        mock_client.request.side_effect = [bad_response, ok_response]
+        mock_client_cls.return_value = mock_client
+
+        client = Layer4OrchestrationClient(
+            base_url="http://layer4",
+            timeout_seconds=1.0,
+            max_attempts=3,
+            retry_base_delay=0.0,
+            retry_max_delay=0.0,
+            sleep=lambda _: None,
+        )
+
+        result = client.create_workflow(
+            tenant_id="t1",
+            workflow_type="roi_calculator",
+            account_id="acc-1",
+            input_data={"test": 1},
+        )
+        assert result["workflow_instance_id"] == "wf-1"
+        assert mock_client.request.call_count == 2
+
+        call1_kwargs = mock_client.request.call_args_list[0][1]
+        call2_kwargs = mock_client.request.call_args_list[1][1]
+
+        # Both attempts must have sent the exact same workflow_id and Idempotency-Key
+        wf_id_1 = call1_kwargs["json"]["workflow_id"]
+        wf_id_2 = call2_kwargs["json"]["workflow_id"]
+        assert wf_id_1 == wf_id_2
+        assert call1_kwargs["headers"]["Idempotency-Key"] == wf_id_1
+        assert call2_kwargs["headers"]["Idempotency-Key"] == wf_id_1
 
     @patch("app.services.agent_orchestrator.httpx.Client")
     def test_get_workflow_success(self, mock_client_cls: MagicMock) -> None:
@@ -230,6 +305,136 @@ class TestLayer4OrchestrationClient:
         assert result["status"] == "cancelled"
         args, _ = mock_client.request.call_args
         assert args[0] == "DELETE"
+
+
+class TestLayer4OrchestrationClientResilience:
+    """Retry with backoff and circuit breaker for transient Layer 4 failures."""
+
+    def _client(self, **kwargs) -> Layer4OrchestrationClient:
+        return Layer4OrchestrationClient(
+            base_url="http://layer4",
+            timeout_seconds=1.0,
+            max_attempts=kwargs.get("max_attempts", 3),
+            retry_base_delay=0.0,
+            retry_max_delay=0.0,
+            sleep=lambda _: None,
+            breaker=kwargs.get(
+                "breaker",
+                SyncCircuitBreaker(
+                    "layer4-test", failure_threshold=5, recovery_timeout=60.0
+                ),
+            ),
+        )
+
+    @patch("app.services.agent_orchestrator.httpx.Client")
+    def test_transient_503_retried_then_succeeds(self, mock_client_cls: MagicMock) -> None:
+        """A 503 followed by a 200 succeeds after retries."""
+        ok_response = MagicMock()
+        ok_response.status_code = 200
+        ok_response.json.return_value = {"id": "wf-1", "status": "running"}
+        bad_response = MagicMock()
+        bad_response.status_code = 503
+        bad_response.text = "unavailable"
+
+        mock_client = MagicMock()
+        mock_client.__enter__.return_value = mock_client
+        mock_client.request.side_effect = [bad_response, ok_response]
+        mock_client_cls.return_value = mock_client
+
+        result = self._client().get_workflow(tenant_id="t1", workflow_id="wf-1")
+        assert result == {"id": "wf-1", "status": "running"}
+        assert mock_client.request.call_count == 2
+
+    @patch("app.services.agent_orchestrator.httpx.Client")
+    def test_transient_503_exhausts_attempts_raises_unavailable(
+        self, mock_client_cls: MagicMock
+    ) -> None:
+        """Persistent 503 exhausts retries and raises Layer4UnavailableError."""
+        bad_response = MagicMock()
+        bad_response.status_code = 503
+        bad_response.text = "unavailable"
+
+        mock_client = MagicMock()
+        mock_client.__enter__.return_value = mock_client
+        mock_client.request.return_value = bad_response
+        mock_client_cls.return_value = mock_client
+
+        with pytest.raises(Layer4UnavailableError) as exc_info:
+            self._client(max_attempts=3).get_workflow(
+                tenant_id="t1", workflow_id="wf-1"
+            )
+        assert exc_info.value.code == ERR_LAYER4_UNAVAILABLE
+        assert exc_info.value.status_code == 503
+        assert mock_client.request.call_count == 3
+
+    @patch("app.services.agent_orchestrator.httpx.Client")
+    def test_network_error_retried(self, mock_client_cls: MagicMock) -> None:
+        """ConnectError is retryable; success on second attempt."""
+        ok_response = MagicMock()
+        ok_response.status_code = 200
+        ok_response.json.return_value = {"id": "wf-1", "status": "running"}
+
+        mock_client = MagicMock()
+        mock_client.__enter__.return_value = mock_client
+        mock_client.request.side_effect = [
+            httpx.ConnectError("connection refused"),
+            ok_response,
+        ]
+        mock_client_cls.return_value = mock_client
+
+        result = self._client().get_workflow(tenant_id="t1", workflow_id="wf-1")
+        assert result["id"] == "wf-1"
+        assert mock_client.request.call_count == 2
+
+    @patch("app.services.agent_orchestrator.httpx.Client")
+    def test_4xx_not_retried(self, mock_client_cls: MagicMock) -> None:
+        """Deterministic 4xx failures surface immediately without retry."""
+        bad_response = MagicMock()
+        bad_response.status_code = 400
+        bad_response.text = '{"detail": "bad request"}'
+
+        mock_client = MagicMock()
+        mock_client.__enter__.return_value = mock_client
+        mock_client.request.return_value = bad_response
+        mock_client_cls.return_value = mock_client
+
+        with pytest.raises(Layer4DependencyError):
+            self._client().get_workflow(tenant_id="t1", workflow_id="wf-1")
+        assert mock_client.request.call_count == 1
+
+    @patch("app.services.agent_orchestrator.httpx.Client")
+    def test_circuit_open_raises_unavailable(self, mock_client_cls: MagicMock) -> None:
+        """When the breaker is open, requests fail fast with circuit_open code."""
+        breaker = SyncCircuitBreaker(
+            "layer4-open", failure_threshold=1, recovery_timeout=300.0
+        )
+        client = self._client(breaker=breaker)
+
+        bad_response = MagicMock()
+        bad_response.status_code = 503
+        bad_response.text = "down"
+        mock_client = MagicMock()
+        mock_client.__enter__.return_value = mock_client
+        mock_client.request.return_value = bad_response
+        mock_client_cls.return_value = mock_client
+
+        # First call: the first HTTP attempt fails (503) and opens the
+        # breaker (threshold=1). Subsequent retry attempts within this
+        # call are rejected by the open breaker. The call surfaces as
+        # Layer4UnavailableError with the circuit_open code.
+        with pytest.raises(Layer4UnavailableError) as exc_info:
+            client.get_workflow(tenant_id="t1", workflow_id="wf-1")
+        assert exc_info.value.code == ERR_LAYER4_CIRCUIT_OPEN
+        assert breaker.state == "open"
+        # Only one HTTP request was made (the breaker rejected the retry).
+        assert mock_client.request.call_count == 1
+
+        # Second call: breaker still open → fail fast, no HTTP attempt.
+        with pytest.raises(Layer4UnavailableError) as exc_info2:
+            client.get_workflow(tenant_id="t1", workflow_id="wf-1")
+        assert exc_info2.value.code == ERR_LAYER4_CIRCUIT_OPEN
+        # Still only the original HTTP request — no new attempts.
+        assert mock_client.request.call_count == 1
 
 
 class FakeLayer4Client:

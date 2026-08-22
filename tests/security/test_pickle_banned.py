@@ -11,12 +11,14 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-CACHE_PY = REPO_ROOT / "services" / "layer3-knowledge" / "src" / "performance" / "cache.py"
+CACHE_PY_L3 = REPO_ROOT / "services" / "layer3-knowledge" / "src" / "performance" / "cache.py"
+CACHE_PY_L2 = REPO_ROOT / "services" / "layer2-extraction" / "src" / "layer2_extraction" / "extraction" / "cache.py"
+ALL_CACHE_FILES = [CACHE_PY_L3, CACHE_PY_L2]
 
 
 def _load_cache_module():
     """Load cache.py directly without package relative import issues."""
-    spec = importlib.util.spec_from_file_location("performance_cache", CACHE_PY)
+    spec = importlib.util.spec_from_file_location("performance_cache", CACHE_PY_L3)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
@@ -27,33 +29,35 @@ class TestPickleBanned:
 
     @pytest.mark.security
     def test_cache_source_never_imports_pickle(self):
-        """cache.py must not import pickle module."""
-        source = CACHE_PY.read_text(encoding="utf-8")
+        """cache modules must not import pickle module."""
+        for cache_path in ALL_CACHE_FILES:
+            source = cache_path.read_text(encoding="utf-8")
 
-        # Parse AST to find import statements
-        tree = ast.parse(source)
+            # Parse AST to find import statements
+            tree = ast.parse(source)
 
-        for node in ast.walk(tree):
-            if isinstance(node, ast.Import):
-                for alias in node.names:
-                    assert alias.name != "pickle", (
-                        "cache.py imports pickle — use json or msgpack instead"
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Import):
+                    for alias in node.names:
+                        assert alias.name != "pickle", (
+                            f"{cache_path.name} imports pickle — use json or msgpack instead"
+                        )
+                elif isinstance(node, ast.ImportFrom):
+                    assert node.module != "pickle", (
+                        f"{cache_path.name} imports from pickle — use json or msgpack instead"
                     )
-            elif isinstance(node, ast.ImportFrom):
-                assert node.module != "pickle", (
-                    "cache.py imports from pickle — use json or msgpack instead"
-                )
 
     @pytest.mark.security
     def test_cache_source_never_calls_pickle_dumps(self):
-        """cache.py must not call pickle.dumps or pickle.loads."""
-        source = CACHE_PY.read_text(encoding="utf-8")
+        """cache modules must not call pickle.dumps or pickle.loads."""
+        for cache_path in ALL_CACHE_FILES:
+            source = cache_path.read_text(encoding="utf-8")
 
-        banned = ["pickle.dumps", "pickle.loads", "pickle.dump", "pickle.load"]
-        for call in banned:
-            assert call not in source, (
-                f"cache.py contains banned call '{call}' — use json or msgpack instead"
-            )
+            banned = ["pickle.dumps", "pickle.loads", "pickle.dump", "pickle.load"]
+            for call in banned:
+                assert call not in source, (
+                    f"{cache_path.name} contains banned call '{call}' — use json or msgpack instead"
+                )
 
     @pytest.mark.security
     def test_memory_cache_serialize_raises_for_pickle(self):

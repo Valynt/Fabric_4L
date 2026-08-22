@@ -7,7 +7,7 @@
         setup bootstrap \
         check-env check-env-backend check-env-frontend validate-env-contract \
         preflight up down logs check-deprecations test-backup-drills db-production-readiness-gate \
-	test-backend-integrated-validation test-backend-integrated-release-smoke \
+	test-backend-integrated-validation test-backend-integrated-release-smoke production-edge-smoke \
 	certify-meridian-journey \
 	check-workflow-matrix check-workflow-registry check-workflow-references \
 	gate-mandatory-security-regression gate-security gate-security-broad gate-state gate-arch gate-config gate-local gate-local-production-subset \
@@ -115,6 +115,8 @@ verify-structure: ## Run structural preflight and Python contract lint checks
 	@$(PYTHON) scripts/ci/check_navigation_patterns.py --strict
 	@echo "→ Running Layer 4 bounded-context dependency check..."
 	@$(PYTHON) scripts/ci/check_layer4_boundaries.py
+	@echo "→ Running model-provider boundary ratchet..."
+	@$(PYTHON) scripts/ci/check_model_provider_boundaries.py
 	@echo "→ Running temporal skip guard..."
 	@$(PYTHON) scripts/ci/check_temporal_skips.py \
 		--json-out artifacts/test-debt-governance.json \
@@ -123,6 +125,9 @@ verify-structure: ## Run structural preflight and Python contract lint checks
 
 check-layer4-boundaries: ## Report/fail on Layer 4 bounded-context dependency violations and transitive hotspots
 	@$(PYTHON) scripts/ci/check_layer4_boundaries.py
+
+check-model-provider-boundaries: ## Block new direct LLM/provider access outside migration baseline
+	@$(PYTHON) scripts/ci/check_model_provider_boundaries.py
 
 check-layer4-collection: ## Check that all Layer 4 tests can be collected without import errors
 	cd services/layer4-agents && pytest --collect-only . -q
@@ -473,6 +478,10 @@ test-backend-integrated-validation: ## Backend milestone: run direct release-pol
 
 test-backend-integrated-release-smoke: ## Backend milestone: boot full L1-L6 release stack and run release-environment smoke validation
 	bash scripts/ci/run_release_smoke.sh
+
+production-edge-smoke: ## Verify public /api/v1 routes to gateway JSON rather than frontend HTML (APPLICATION_URL required)
+	@test -n "$(APPLICATION_URL)" || (echo "APPLICATION_URL is required" && exit 2)
+	$(PYTHON) scripts/ci/production_edge_smoke.py --base-url "$(APPLICATION_URL)"
 
 certify-meridian-journey: ## Certification: run the Meridian L1-L6 production-path journey through the live gateway (requires the running stack)
 	$(PYTEST) tests/certification -m certification -v

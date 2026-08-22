@@ -1,0 +1,96 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "ingress": {
+      "type": "object",
+      "required": ["enabled", "application", "api", "frontend"],
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "className": { "type": "string" },
+        "application": {
+          "type": "object",
+          "required": ["host"],
+          "properties": {
+            "host": { "type": "string", "minLength": 1 }
+          }
+        },
+        "tlsSecretName": { "type": "string" },
+        "annotations": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "api": {
+          "type": "object",
+          "required": ["externalPrefix", "upstreamPrefix", "annotations"],
+          "properties": {
+            "externalPrefix": { "const": "/api/v1" },
+            "upstreamPrefix": { "const": "/v1" },
+            "annotations": {
+              "type": "object",
+              "additionalProperties": { "type": "string" }
+            }
+          }
+        },
+        "frontend": {
+          "type": "object",
+          "required": ["externalPrefix"],
+          "properties": {
+            "externalPrefix": { "const": "/" }
+          }
+        }
+      }
+    },
+    "services": {
+      "type": "object",
+      "required": [
+        "frontend",
+        "api",
+        "layer1",
+        "layer2",
+        "layer3",
+        "layer4",
+        "layer5",
+        "layer6"
+      ],
+      "properties": {
+        "frontend": { "$ref": "#/definitions/service" },
+        "api": { "$ref": "#/definitions/service" },
+        "layer1": { "$ref": "#/definitions/internalService" },
+        "layer2": { "$ref": "#/definitions/internalService" },
+        "layer3": { "$ref": "#/definitions/internalService" },
+        "layer4": { "$ref": "#/definitions/internalService" },
+        "layer5": { "$ref": "#/definitions/internalService" },
+        "layer6": { "$ref": "#/definitions/internalService" }
+      }
+    }
+  },
+  "definitions": {
+    "service": {
+      "type": "object",
+      "required": ["enabled", "port"],
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "port": { "type": "integer", "minimum": 1, "maximum": 65535 },
+        "image": {
+          "type": "object",
+          "properties": {
+            "repository": { "type": "string" },
+            "tag": { "type": "string" },
+            "digest": { "type": "string" }
+          }
+        }
+      }
+    },
+    "internalService": {
+      "allOf": [
+        { "$ref": "#/definitions/service" },
+        {
+          "properties": {
+            "type": { "const": "ClusterIP" }
+          }
+        }
+      ]
+    }
+  }
+}
