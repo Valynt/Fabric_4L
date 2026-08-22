@@ -279,7 +279,7 @@ class TenantQueryExecutor:
     def _guard_direct_mutation(
         cls, query: str, context: TenantExecutionContext
     ) -> None:
-        """Phase 1 hardening: block direct CREATE/MERGE/DELETE on tenant-owned labels.
+        """Phase 1 hardening: block direct CREATE/MERGE/DELETE on tenant-owned labels.  # cypher-mutation-safe: docstring
 
         These must go through AuditedGraphMutation for audit trail.
         """
@@ -298,7 +298,7 @@ class TenantQueryExecutor:
                         violation_type="direct_mutation_bypass",
                     )
                 raise TenantQueryValidationError(
-                    "Direct CREATE/MERGE/DELETE on tenant-owned labels is prohibited. "
+                    "Direct CREATE/MERGE/DELETE on tenant-owned labels is prohibited. "  # cypher-mutation-safe: error message
                     "Use AuditedGraphMutation.write_relationship(), write_node(), delete_relationship(), or delete_node() instead. "
                     "This ensures audit trail and metrics collection for all graph mutations."
                 )

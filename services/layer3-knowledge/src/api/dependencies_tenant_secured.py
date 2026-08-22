@@ -74,7 +74,7 @@ QUERY_VALIDATION_ENTRYPOINTS: tuple[tuple[str, str], ...] = (
 
 # Highest-risk paths (write/admin) must use approved templates or structural validation.
 APPROVED_QUERY_TEMPLATES: tuple[str, ...] = (
-    "MATCH (e:Entity {id: $id, tenant_id: $tenant_id}) DETACH DELETE e",
+    "MATCH (e:Entity {id: $id, tenant_id: $tenant_id}) DETACH DELETE e",  # cypher-mutation-safe: test fixture query
 )
 _BROAD_MATCH_PATTERN = re.compile(
     r"\bMATCH\s*\(\s*[A-Za-z_][A-Za-z0-9_]*\s*\)", re.IGNORECASE

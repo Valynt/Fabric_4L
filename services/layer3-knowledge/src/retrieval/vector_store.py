@@ -435,8 +435,8 @@ class Neo4jVectorStore:
             return bool(record and record["updated"] > 0)
         except (ClientError, ServiceUnavailable) as exc:
             logger.error(
-                "Failed to delete embedding for %s: %s", entity_id, exc
-            )  # cypher-mutation-safe: log message, not a Cypher query
+                "Failed to delete embedding for %s: %s", entity_id, exc  # cypher-mutation-safe: log message, not a Cypher query
+            )
             return False
 
     async def index_health(self) -> dict[str, object]:

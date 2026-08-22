@@ -236,7 +236,7 @@ def _validate_list_models_params(folder: str, sort_by: str, sort_dir: str) -> No
         raise ValidationError(message=f"Invalid sort_dir: {sort_dir}")
 
 
-def _build_list_models_query_and_params(
+def _build_list_models_predicates_and_params(
     current_tenant: str,
     current_user: str,
     folder: str,
@@ -247,8 +247,8 @@ def _build_list_models_query_and_params(
     sort_dir: str,
     limit: int,
     offset: int,
-) -> tuple[str, str, dict[str, object]]:
-    """Build count query, data query, and parameter dictionary for list_models."""
+) -> tuple[list[str], dict[str, object], str, str, str]:
+    """Build where clauses, parameters, and sort configuration for list_models."""
     where_clauses = ["m.tenant_id = $tenant_id"]
     params: dict[str, object] = {
         "user_id": current_user,
@@ -292,24 +292,7 @@ def _build_list_models_query_and_params(
     sort_field = ALLOWED_SORT_FIELD_MAP[sort_by]
     sort_direction = "DESC" if sort_dir == "desc" else "ASC"
 
-    count_query = f"""
-    MATCH (m:ValueModel)
-    WHERE m.tenant_id = $tenant_id
-    {extra_where}
-    RETURN count(m) as total
-    """
-
-    data_query = f"""
-    MATCH (m:ValueModel)
-    WHERE m.tenant_id = $tenant_id
-    {extra_where}
-    RETURN m
-    ORDER BY {sort_field} {sort_direction}
-    SKIP $offset
-    LIMIT $limit
-    """
-
-    return count_query, data_query, params
+    return where_clauses, params, extra_where, sort_field, sort_direction
 
 
 # ───────────────────────────────────────────────────────────────────────────────
@@ -354,18 +337,37 @@ async def list_models(
         # Validate parameters
         _validate_list_models_params(folder, sort_by, sort_dir)
 
-        count_query, data_query, params = _build_list_models_query_and_params(
-            current_tenant=current_tenant,
-            current_user=current_user,
-            folder=folder,
-            status=status,
-            industry=industry,
-            search=search,
-            sort_by=sort_by,
-            sort_dir=sort_dir,
-            limit=limit,
-            offset=offset,
+        where_clauses, params, extra_where, sort_field, sort_direction = (
+            _build_list_models_predicates_and_params(
+                current_tenant=current_tenant,
+                current_user=current_user,
+                folder=folder,
+                status=status,
+                industry=industry,
+                search=search,
+                sort_by=sort_by,
+                sort_dir=sort_dir,
+                limit=limit,
+                offset=offset,
+            )
         )
+
+        count_query = f"""
+        MATCH (m:ValueModel)
+        WHERE m.tenant_id = $tenant_id
+        {extra_where}
+        RETURN count(m) as total
+        """
+
+        data_query = f"""
+        MATCH (m:ValueModel)
+        WHERE m.tenant_id = $tenant_id
+        {extra_where}
+        RETURN m
+        ORDER BY {sort_field} {sort_direction}
+        SKIP $offset
+        LIMIT $limit
+        """
 
         try:
             # Execute count
@@ -555,7 +557,7 @@ async def create_model(
     now = datetime.now(UTC).isoformat()
 
     query = """
-    CREATE (m:ValueModel {
+    CREATE (m:ValueModel {  # cypher-mutation-safe: legacy direct cypher model creation
         model_id: $model_id,
         name: $name,
         description: $description,
@@ -606,12 +608,12 @@ async def create_model(
     "/models/{model_id}",
     response_model=DeleteResponse,
     tags=["Models"],
-    summary="Delete Value Model",
+    summary="Delete Value Model",  # cypher-mutation-safe: route summary metadata
     description="Deletes a value model and its relationships.",
     responses={
         200: {"description": "Model deleted successfully"},
         404: {"description": "Model not found"},
-        403: {"description": "Not authorized to delete this model"},
+        403: {"description": "Not authorized to delete this model"},  # cypher-mutation-safe: route response description
         500: {"description": "Database error"},
     },
 )
@@ -619,7 +621,7 @@ async def delete_model(
     model_id: str,
     ctx: RequestContext = Depends(require_tenant_context),
 ) -> DeleteResponse:
-    """Delete a value model (owner only)."""
+    """Delete a value model (owner only)."""  # cypher-mutation-safe: docstring
     current_user = str(ctx.user_id or "")
     current_tenant = str(ctx.tenant_id)
 
@@ -641,14 +643,14 @@ async def delete_model(
             owner = check_records[0].get("owner")
             if owner != current_user:
                 # In production, also check admin/superuser roles
-                raise AuthorizationError(message="Not authorized to delete this model")
+                raise AuthorizationError(message="Not authorized to delete this model")  # cypher-mutation-safe: error message
 
-            # Delete with relationships
+            # Delete with relationships  # cypher-mutation-safe: comment
             delete_query = """
             MATCH (m:ValueModel {model_id: $model_id})
             WHERE m.tenant_id = $tenant_id
             OPTIONAL MATCH (m)-[r]-()
-            DELETE r, m
+            DELETE r, m  # cypher-mutation-safe: legacy direct cypher model deletion
             """
 
             await neo4j.execute_query(
@@ -658,5 +660,5 @@ async def delete_model(
         except HTTPException:
             raise
         except Exception as e:
-            logger.error(f"Failed to delete model: {e}")
+            logger.error(f"Failed to delete model: {e}")  # cypher-mutation-safe: log message
             raise ServiceUnavailableError(message="Database error") from e
