@@ -188,6 +188,33 @@ class HybridSearch:
         """Execute a strict scoped query through the Neo4j session seam."""
         return await run_scoped_query(session.run, scoped)
 
+    async def _execute_bm25_for_type(
+        self,
+        session: Any,
+        builder: TenantScopedCypher,
+        escaped_query: str,
+        etype: str,
+        top_k: int,
+    ) -> list[dict[str, Any]]:
+        """Execute BM25 query for a single entity type."""
+        scoped = builder.fulltext_query_nodes_query(
+            f"{etype.lower()}_fulltext",
+            "query",
+            params={"query": escaped_query},
+            return_clause=(
+                "node.id as id, labels(node)[0] as entity_type, node.name as name, "
+                "node.description as description, score"
+            ),
+            limit=top_k,
+        )
+        try:
+            result = await self._run_scoped(session, scoped)
+            records = [dict(record) async for record in result]
+            return [row for row in records if row.get("entity_type") == etype]
+        except Exception as exc:
+            logger.warning("BM25 search failed for %s: %s", etype, exc)
+            return []
+
     async def _bm25_search(
         self,
         query: str,
@@ -197,35 +224,37 @@ class HybridSearch:
     ) -> list[dict[str, Any]]:
         """Execute BM25 full-text search via Neo4j fulltext index."""
         driver = await self._get_driver()
-        results = []
+        results: list[dict[str, Any]] = []
         search_types = entity_types or ["Capability", "UseCase", "Persona", "ValueDriver"]
 
         async with driver.session(database=self.settings.neo4j_database) as session:
             escaped_query = query.replace('"', '\\"')
             builder = self._tenant_builder(tenant_id)
             for etype in search_types:
-                scoped = builder.fulltext_query_nodes_query(
-                    f"{etype.lower()}_fulltext",
-                    "query",
-                    params={"query": escaped_query},
-                    return_clause=(
-                        "node.id as id, labels(node)[0] as entity_type, node.name as name, "
-                        "node.description as description, score"
-                    ),
-                    limit=top_k,
+                type_results = await self._execute_bm25_for_type(
+                    session, builder, escaped_query, etype, top_k
                 )
-                try:
-                    result = await self._run_scoped(session, scoped)
-                    records = [dict(record) async for record in result]
-                    for row in records:
-                        if row.get("entity_type") == etype:
-                            results.append(row)
-                except Exception as exc:
-                    logger.warning("BM25 search failed for %s: %s", etype, exc)
+                results.extend(type_results)
 
         results.sort(key=lambda row: row.get("score", 0), reverse=True)
-        results = results[:top_k]
-        return results
+        return results[:top_k]
+
+    @staticmethod
+    def _normalize_vector_item(item: Any) -> dict[str, Any]:
+        """Convert tuple or legacy dict from vector store into standard dict."""
+        if isinstance(item, tuple):
+            entity_id, score, meta = item
+            return {
+                "id": entity_id,
+                "entity_id": entity_id,
+                "score": score,
+                "entity_type": meta.get("entity_type", "Unknown"),
+                "name": meta.get("name", ""),
+                "description": meta.get("description", ""),
+                "metadata": meta,
+            }
+        item.setdefault("id", item.get("entity_id", ""))
+        return item
 
     async def _vector_search(
         self,
@@ -257,28 +286,42 @@ class HybridSearch:
             logger.warning("Vector search failed: %s", exc)
             return []
 
-        results: list[dict[str, Any]] = []
-        for item in raw:
-            # Handle both tuple format (new) and dict format (legacy)
-            if isinstance(item, tuple):
-                entity_id, score, meta = item
-                results.append(
-                    {
-                        "id": entity_id,
-                        "entity_id": entity_id,
-                        "score": score,
-                        "entity_type": meta.get("entity_type", "Unknown"),
-                        "name": meta.get("name", ""),
-                        "description": meta.get("description", ""),
-                        "metadata": meta,
-                    }
-                )
-            else:
-                # Legacy dict format — ensure 'id' key exists
-                item.setdefault("id", item.get("entity_id", ""))
-                results.append(item)
+        return [self._normalize_vector_item(item) for item in raw]
 
-        return results
+    async def _execute_graph_for_type(
+        self,
+        session: Any,
+        builder: TenantScopedCypher,
+        escaped_query: str,
+        etype: str,
+        top_k: int,
+    ) -> list[dict[str, Any]]:
+        """Execute graph centrality search for a single entity type."""
+        scoped = builder.custom_tenant_query(
+            """
+            CALL db.index.fulltext.queryNodes($index_name, $query)
+            YIELD node, score
+            WHERE node.tenant_id = $_tenant_id
+            OPTIONAL MATCH (node)-[r]-(neighbor)
+            WHERE neighbor.tenant_id = $_tenant_id
+            WITH node, score as text_score, count(r) as degree
+            RETURN node.id as id, labels(node)[0] as entity_type, node.name as name,
+                   text_score * log(degree + 1) as score
+            ORDER BY score DESC
+            LIMIT $limit
+            """,
+            params={"index_name": f"{etype.lower()}_fulltext", "query": escaped_query, "limit": top_k},
+            operation="hybrid_search.graph",
+            labels=(etype,),
+            allowlist_key="hybrid_search.graph_fulltext_tenant_scoped",
+        )
+        try:
+            result = await self._run_scoped(session, scoped)
+            records = [dict(record) async for record in result]
+            return [row for row in records if row.get("entity_type") == etype]
+        except Exception as exc:
+            logger.warning("Graph search failed for %s: %s", etype, exc)
+            return []
 
     async def _graph_search(
         self,
@@ -289,43 +332,20 @@ class HybridSearch:
     ) -> list[dict[str, Any]]:
         """Execute graph-based search (centrality-aware)."""
         driver = await self._get_driver()
-        results = []
+        results: list[dict[str, Any]] = []
         search_types = entity_types or ["Capability", "UseCase", "Persona", "ValueDriver"]
 
         async with driver.session(database=self.settings.neo4j_database) as session:
             escaped_query = query.replace('"', '\\"')
+            builder = self._tenant_builder(tenant_id)
             for etype in search_types:
-                builder = self._tenant_builder(tenant_id)
-                scoped = builder.custom_tenant_query(
-                    """
-                    CALL db.index.fulltext.queryNodes($index_name, $query)
-                    YIELD node, score
-                    WHERE node.tenant_id = $_tenant_id
-                    OPTIONAL MATCH (node)-[r]-(neighbor)
-                    WHERE neighbor.tenant_id = $_tenant_id
-                    WITH node, score as text_score, count(r) as degree
-                    RETURN node.id as id, labels(node)[0] as entity_type, node.name as name,
-                           text_score * log(degree + 1) as score
-                    ORDER BY score DESC
-                    LIMIT $limit
-                    """,
-                    params={"index_name": f"{etype.lower()}_fulltext", "query": escaped_query, "limit": top_k},
-                    operation="hybrid_search.graph",
-                    labels=(etype,),
-                    allowlist_key="hybrid_search.graph_fulltext_tenant_scoped",
+                type_results = await self._execute_graph_for_type(
+                    session, builder, escaped_query, etype, top_k
                 )
-                try:
-                    result = await self._run_scoped(session, scoped)
-                    records = [dict(record) async for record in result]
-                    for row in records:
-                        if row.get("entity_type") == etype:
-                            results.append(row)
-                except Exception as exc:
-                    logger.warning("Graph search failed for %s: %s", etype, exc)
+                results.extend(type_results)
 
         results.sort(key=lambda row: row.get("score", 0), reverse=True)
-        results = results[:top_k]
-        return results
+        return results[:top_k]
 
     def _merge_results(
         self,

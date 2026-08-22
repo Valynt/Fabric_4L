@@ -155,6 +155,63 @@ class Neo4jVectorStore:
             result = await run_scoped_query(session.run, scoped)
             return [record async for record in result]
 
+    @staticmethod
+    def _clean_entity_metadata(metadata: dict[str, Any] | None) -> dict[str, Any]:
+        """Filter out tenant IDs and non-primitive values from metadata."""
+        return {
+            k: v
+            for k, v in (metadata or {}).items()
+            if k not in {"tenant_id", "tenantId"} and isinstance(v, (str, int, float, bool))
+        }
+
+    @staticmethod
+    def _build_vector_search_query(
+        builder: TenantScopedCypher,
+        index_name: str,
+        query_embedding: list[float],
+        top_k: int,
+        min_score: float,
+        etype: str,
+    ) -> ScopedQuery:
+        """Construct scoped vector search Cypher query."""
+        return builder.custom_tenant_query(
+            """
+            CALL db.index.vector.queryNodes($index_name, $top_k, $embedding)
+            YIELD node, score
+            WHERE node.tenant_id = $_tenant_id AND score >= $min_score
+            RETURN
+                node.id AS entity_id,
+                labels(node)[0] AS entity_type,
+                score,
+                node.name AS name,
+                node.description AS description,
+                node.confidence AS confidence
+            ORDER BY score DESC
+            """,
+            params={
+                "index_name": index_name,
+                "top_k": top_k,
+                "embedding": query_embedding,
+                "min_score": min_score,
+            },
+            operation="vector_search",
+            labels=(etype,),
+        )
+
+    @staticmethod
+    def _format_search_record(record: Record | dict[str, Any]) -> tuple[str, float, dict[str, Any]]:
+        """Format a Neo4j vector search record into standard (id, score, meta) tuple."""
+        return (
+            record["entity_id"],
+            record["score"],
+            {
+                "entity_type": record["entity_type"],
+                "name": record["name"],
+                "description": record["description"],
+                "confidence": record["confidence"],
+            },
+        )
+
     # ------------------------------------------------------------------
     # Write operations
     # ------------------------------------------------------------------
@@ -175,11 +232,7 @@ class Neo4jVectorStore:
 
         tenant = self._resolve_tenant_id(tenant_id if tenant_id is not None else (metadata or {}).get("tenant_id"))
         embedding = self._embed(text)
-        clean_metadata = {
-            k: v
-            for k, v in (metadata or {}).items()
-            if k not in {"tenant_id", "tenantId"} and isinstance(v, (str, int, float, bool))
-        }
+        clean_metadata = self._clean_entity_metadata(metadata)
         builder = TenantScopedCypher(tenant)
         scoped = builder.custom_tenant_query(
             "MERGE (n:" + entity_type + " {id: $id, tenant_id: $_tenant_id})\n"  # cypher-dynamic-safe: validated against VECTOR_ENTITY_TYPES allowlist  # cypher-mutation-safe: label validated, tenant-scoped upsert
@@ -298,44 +351,18 @@ class Neo4jVectorStore:
         for etype in types_to_search:
             index_name = f"{etype.lower()}_embedding_idx"
             builder = TenantScopedCypher(tenant)
-            scoped = builder.custom_tenant_query(
-                """
-                CALL db.index.vector.queryNodes($index_name, $top_k, $embedding)
-                YIELD node, score
-                WHERE node.tenant_id = $_tenant_id AND score >= $min_score
-                RETURN
-                    node.id AS entity_id,
-                    labels(node)[0] AS entity_type,
-                    score,
-                    node.name AS name,
-                    node.description AS description,
-                    node.confidence AS confidence
-                ORDER BY score DESC
-                """,
-                params={
-                    "index_name": index_name,
-                    "top_k": top_k,
-                    "embedding": query_embedding,
-                    "min_score": min_score,
-                },
-                operation="vector_search",
-                labels=(etype,),
+            scoped = self._build_vector_search_query(
+                builder=builder,
+                index_name=index_name,
+                query_embedding=query_embedding,
+                top_k=top_k,
+                min_score=min_score,
+                etype=etype,
             )
             try:
                 records = await self._run_scoped_list(scoped)
                 for record in records:
-                    all_results.append(
-                        (
-                            record["entity_id"],
-                            record["score"],
-                            {
-                                "entity_type": record["entity_type"],
-                                "name": record["name"],
-                                "description": record["description"],
-                                "confidence": record["confidence"],
-                            },
-                        )
-                    )
+                    all_results.append(self._format_search_record(record))
             except ClientError as exc:
                 if (
                     "index does not exist" in str(exc).lower()

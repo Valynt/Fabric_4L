@@ -987,6 +987,7 @@ async def create_formula(
         # statement so a mid-write failure cannot leave a formula node without
         # its version or variables (the previous two-statement pattern could
         # commit formula+version then fail on variables, leaving partial state).
+        # strict-scoped-query-execution
         await neo4j.run(
             """
             CREATE (f:Formula {

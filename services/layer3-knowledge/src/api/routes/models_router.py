@@ -192,6 +192,92 @@ async def _ensure_constraints(neo4j: Any) -> None:
         logger.warning("Constraint check/creation skipped", extra={"context": context}, exc_info=True)
 
 
+def _validate_list_models_params(folder: str, sort_by: str, sort_dir: str) -> None:
+    """Validate query parameters for list_models."""
+    if folder not in VALID_FOLDERS:
+        raise ValidationError(message=f"Invalid folder: {folder}")
+    if sort_by not in ALLOWED_SORT_FIELD_MAP:
+        raise ValidationError(message=f"Invalid sort_by: {sort_by}")
+    if sort_dir not in VALID_SORT_DIRS:
+        raise ValidationError(message=f"Invalid sort_dir: {sort_dir}")
+
+
+def _build_list_models_query_and_params(
+    current_tenant: str,
+    current_user: str,
+    folder: str,
+    status: str,
+    industry: str | None,
+    search: str | None,
+    sort_by: str,
+    sort_dir: str,
+    limit: int,
+    offset: int,
+) -> tuple[str, str, dict[str, Any]]:
+    """Build count query, data query, and parameter dictionary for list_models."""
+    where_clauses = ["m.tenant_id = $tenant_id"]
+    params: dict[str, Any] = {
+        "user_id": current_user,
+        "limit": limit,
+        "offset": offset,
+        "tenant_id": current_tenant,
+    }
+
+    # Folder filtering
+    if folder == FOLDER_MY_MODELS:
+        where_clauses.append("m.owner = $user_id")
+        where_clauses.append("m.folder = $folder")
+        params["folder"] = FOLDER_MY_MODELS
+    elif folder == FOLDER_SHARED:
+        where_clauses.append("m.is_shared = true")
+        where_clauses.append("m.owner <> $user_id")
+    elif folder == FOLDER_FAVORITES:
+        where_clauses.append("m.folder = $folder")
+        params["folder"] = FOLDER_FAVORITES
+
+    # Status filtering
+    if status != "all" and status in [s.value for s in ModelStatus]:
+        where_clauses.append("m.status = $status")
+        params["status"] = status
+
+    # Industry filtering
+    if industry:
+        where_clauses.append("m.industry = $industry")
+        params["industry"] = industry
+
+    # Search
+    if search:
+        where_clauses.append(
+            "(m.name CONTAINS $search OR m.description CONTAINS $search OR ANY(tag IN m.tags WHERE tag CONTAINS $search))"
+        )
+        params["search"] = search.lower()
+
+    extra_clauses = where_clauses[1:]
+    extra_where = f"AND {' AND '.join(extra_clauses)}" if extra_clauses else ""
+
+    sort_field = ALLOWED_SORT_FIELD_MAP[sort_by]
+    sort_direction = "DESC" if sort_dir == "desc" else "ASC"
+
+    count_query = f"""
+    MATCH (m:ValueModel)
+    WHERE m.tenant_id = $tenant_id
+    {extra_where}
+    RETURN count(m) as total
+    """
+
+    data_query = f"""
+    MATCH (m:ValueModel)
+    WHERE m.tenant_id = $tenant_id
+    {extra_where}
+    RETURN m
+    ORDER BY {sort_field} {sort_direction}
+    SKIP $offset
+    LIMIT $limit
+    """
+
+    return count_query, data_query, params
+
+
 # ───────────────────────────────────────────────────────────────────────────────
 # API Endpoints
 # ───────────────────────────────────────────────────────────────────────────────
@@ -228,75 +314,20 @@ async def list_models(
         current_user = str(ctx.user_id or "")
         
         # Validate parameters
-        if folder not in VALID_FOLDERS:
-            raise ValidationError(message = str(f"Invalid folder: {folder}"))
-        if sort_by not in ALLOWED_SORT_FIELD_MAP:
-            raise ValidationError(message = str(f"Invalid sort_by: {sort_by}"))
-        if sort_dir not in VALID_SORT_DIRS:
-            raise ValidationError(message = str(f"Invalid sort_dir: {sort_dir}"))
+        _validate_list_models_params(folder, sort_by, sort_dir)
         
-        # Build query dynamically
-        where_clauses = ["m.tenant_id = $tenant_id"]
-        params: dict[str, Any] = {"user_id": current_user, "limit": limit, "offset": offset, "tenant_id": current_tenant}
-        
-        # Folder filtering (affects ownership/visibility logic)
-        if folder == FOLDER_MY_MODELS:
-            where_clauses.append("m.owner = $user_id")
-            where_clauses.append("m.folder = $folder")
-            params["folder"] = FOLDER_MY_MODELS
-        elif folder == FOLDER_SHARED:
-            where_clauses.append("m.is_shared = true")
-            where_clauses.append("m.owner <> $user_id")
-        elif folder == FOLDER_FAVORITES:
-            where_clauses.append("m.folder = $folder")
-            params["folder"] = FOLDER_FAVORITES
-        # FOLDER_ALL needs no filter
-        
-        # Status filtering
-        if status != "all" and status in [s.value for s in ModelStatus]:
-            where_clauses.append("m.status = $status")
-            params["status"] = status
-        
-        # Industry filtering
-        if industry:
-            where_clauses.append("m.industry = $industry")
-            params["industry"] = industry
-        
-        # Search (name, description, tags)
-        if search:
-            where_clauses.append(
-                "(m.name CONTAINS $search OR m.description CONTAINS $search OR ANY(tag IN m.tags WHERE tag CONTAINS $search))"
-            )
-            params["search"] = search.lower()
-        
-        # Build extra WHERE predicates (tenant_id is always first)
-        extra_clauses = where_clauses[1:]
-        extra_where = ""
-        if extra_clauses:
-            extra_where = "AND " + " AND ".join(extra_clauses)
-        
-        # Sorting
-        sort_field = ALLOWED_SORT_FIELD_MAP[sort_by]
-        sort_direction = "DESC" if sort_dir == "desc" else "ASC"
-        
-        # Count query
-        count_query = f"""
-        MATCH (m:ValueModel)
-        WHERE m.tenant_id = $tenant_id
-        {extra_where}
-        RETURN count(m) as total
-        """
-        
-        # Data query
-        data_query = f"""
-        MATCH (m:ValueModel)
-        WHERE m.tenant_id = $tenant_id
-        {extra_where}
-        RETURN m
-        ORDER BY {sort_field} {sort_direction}
-        SKIP $offset
-        LIMIT $limit
-        """
+        count_query, data_query, params = _build_list_models_query_and_params(
+            current_tenant=current_tenant,
+            current_user=current_user,
+            folder=folder,
+            status=status,
+            industry=industry,
+            search=search,
+            sort_by=sort_by,
+            sort_dir=sort_dir,
+            limit=limit,
+            offset=offset,
+        )
         
         try:
             # Execute count

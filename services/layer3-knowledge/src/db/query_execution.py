@@ -154,21 +154,45 @@ class TenantQueryExecutor:
         return max_depth
 
     @classmethod
-    async def run(
+    def _record_query_metrics(cls, elapsed: float, result: Any) -> None:
+        """Record execution metrics, result size, and slow query buckets."""
+        metrics = get_metrics() if get_metrics else None
+        if not metrics:
+            return
+
+        try:
+            size = len(result)
+        except Exception:
+            try:
+                size = len(result.records)
+            except Exception:
+                size = 0
+        metrics.observe_graph_result_size(
+            size=size, endpoint="tenant_query_executor", operation="run"
+        )
+
+        if elapsed > 10.0:
+            metrics.increment_graph_slow_queries(
+                operation="run", threshold_bucket=">10s"
+            )
+        elif elapsed > 5.0:
+            metrics.increment_graph_slow_queries(
+                operation="run", threshold_bucket=">5s"
+            )
+        elif elapsed > 1.0:
+            metrics.increment_graph_slow_queries(
+                operation="run", threshold_bucket=">1s"
+            )
+
+    @classmethod
+    async def _execute_with_timeout(
         cls,
         run_callable,
         query: str,
-        parameters: dict[str, Any] | None,
-        context: TenantExecutionContext,
-    ) -> Any:
+        params: dict[str, Any],
+    ) -> tuple[Any, float]:
+        """Execute query coroutine wrapped in timeout with failure metrics."""
         import time
-
-        params = dict(parameters or {})
-        if context.tenant_id:
-            params["tenant_id"] = context.tenant_id
-            params["_tenant_id"] = context.tenant_id
-
-        cls._validate(query=query, params=params, context=context)
 
         start = time.monotonic()
         coro = run_callable(query, params)
@@ -192,35 +216,25 @@ class TenantQueryExecutor:
             raise
 
         elapsed = time.monotonic() - start
+        return result, elapsed
 
-        metrics = get_metrics() if get_metrics else None
-        if metrics:
-            # Result size
-            try:
-                size = len(result)
-            except Exception:
-                try:
-                    size = len(result.records)
-                except Exception:
-                    size = 0
-            metrics.observe_graph_result_size(
-                size=size, endpoint="tenant_query_executor", operation="run"
-            )
+    @classmethod
+    async def run(
+        cls,
+        run_callable,
+        query: str,
+        parameters: dict[str, Any] | None,
+        context: TenantExecutionContext,
+    ) -> Any:
+        params = dict(parameters or {})
+        if context.tenant_id:
+            params["tenant_id"] = context.tenant_id
+            params["_tenant_id"] = context.tenant_id
 
-            # Slow query thresholds
-            if elapsed > 10.0:
-                metrics.increment_graph_slow_queries(
-                    operation="run", threshold_bucket=">10s"
-                )
-            elif elapsed > 5.0:
-                metrics.increment_graph_slow_queries(
-                    operation="run", threshold_bucket=">5s"
-                )
-            elif elapsed > 1.0:
-                metrics.increment_graph_slow_queries(
-                    operation="run", threshold_bucket=">1s"
-                )
+        cls._validate(query=query, params=params, context=context)
 
+        result, elapsed = await cls._execute_with_timeout(run_callable, query, params)
+        cls._record_query_metrics(elapsed, result)
         return result
 
     @classmethod

@@ -159,6 +159,47 @@ class Neo4jTenantSessionSecured:
             await self._session.close()
             self._session = None
 
+    def _validate_cypher_text(self, query_text: str, allow_system_query: bool) -> None:
+        """Validate raw Cypher text against broad match and tenant isolation policies."""
+        if _BROAD_MATCH_PATTERN.search(query_text) and not allow_system_query:
+            raise UnscopedQueryError(
+                "Denied broad MATCH traversal without explicit tenant-owned label and tenant predicate"
+            )
+        risk = QueryValidator.classify_risk(query_text)
+        normalized = " ".join(query_text.split())
+        if risk in {"write", "admin"}:
+            if normalized in APPROVED_QUERY_TEMPLATES:
+                self._validator.validate(query_text, query_name="neo4j.run.template")
+            else:
+                self._validator.validate_structural_tenant_scope(query_text, query_name="neo4j.run.structural")
+        findings = self._validator.validate(query_text, query_name="neo4j.run")
+        if findings:
+            errors = [f for f in findings if f.severity.value == "error"]
+            if errors:
+                raise UnscopedQueryError(
+                    f"Query validation failed: {errors[0].message}"
+                )
+
+    async def _run_scoped_query(self, query: Any, raw_params: dict) -> Any:
+        """Execute a ScopedQuery object with verified tenant parameters."""
+        scoped_tenant = query.tenant_id or self._tenant_id
+        if query.scope == QueryScope.TENANT and not scoped_tenant:
+            raise UnscopedQueryError("Tenant-scoped Cypher requires tenant context")
+        params = {**query.params, **raw_params}
+        params.setdefault("tenant_id", scoped_tenant)
+        params.setdefault("_tenant_id", scoped_tenant)
+        allow_system_query = bool(params.pop("allow_system_query", False))
+        return await TenantQueryExecutor.run(
+            self._session.run,
+            query.cypher,
+            params,
+            TenantExecutionContext(
+                tenant_id=self._tenant_id,
+                allow_system_query=allow_system_query,
+                allow_multi_clause_tenant_query=True,
+            ),
+        )
+
     async def run(self, query: Any, parameters: dict | None = None, **kwargs) -> Any:
         """Execute query with validation and tenant scoping.
         
@@ -184,31 +225,7 @@ class Neo4jTenantSessionSecured:
         params.update(kwargs)
 
         if TENANT_ISOLATION_AVAILABLE and isinstance(query, ScopedQuery):
-            scoped_tenant = query.tenant_id or self._tenant_id
-            if query.scope == QueryScope.TENANT and not scoped_tenant:
-                raise UnscopedQueryError("Tenant-scoped Cypher requires tenant context")
-            params = {**query.params, **params}
-            params.setdefault("tenant_id", scoped_tenant)
-            params.setdefault("_tenant_id", scoped_tenant)
-            allow_system_query = bool(params.pop("allow_system_query", False))
-            return await TenantQueryExecutor.run(
-                self._session.run,
-                query.cypher,
-                params,
-                # ScopedQuery is produced by the canonical TenantScopedCypher
-                # builder, which is exactly the "validated runtime wrapper"
-                # class the multi-clause guard allows to opt in. The executor
-                # still enforces explicit tenant predicates on every
-                # tenant-owned label before honoring the opt-in, so
-                # CALL {}/multi-MATCH shapes from the builder (e.g. the
-                # entity-list count+page query) execute while unscoped or
-                # predicate-less queries remain rejected.
-                TenantExecutionContext(
-                    tenant_id=self._tenant_id,
-                    allow_system_query=allow_system_query,
-                    allow_multi_clause_tenant_query=True,
-                ),
-            )
+            return await self._run_scoped_query(query, params)
 
         query_text = str(query)
         allow_system_query = bool(params.pop("allow_system_query", False))
@@ -216,24 +233,7 @@ class Neo4jTenantSessionSecured:
         # Validate query for tenant scoping
         if self._strict:
             try:
-                if _BROAD_MATCH_PATTERN.search(query_text) and not allow_system_query:
-                    raise UnscopedQueryError(
-                        "Denied broad MATCH traversal without explicit tenant-owned label and tenant predicate"
-                    )
-                risk = QueryValidator.classify_risk(query_text)
-                normalized = " ".join(query_text.split())
-                if risk in {"write", "admin"}:
-                    if normalized in APPROVED_QUERY_TEMPLATES:
-                        self._validator.validate(query_text, query_name="neo4j.run.template")
-                    else:
-                        self._validator.validate_structural_tenant_scope(query_text, query_name="neo4j.run.structural")
-                findings = self._validator.validate(query_text, query_name="neo4j.run")
-                if findings:
-                    errors = [f for f in findings if f.severity.value == "error"]
-                    if errors:
-                        raise UnscopedQueryError(
-                            f"Query validation failed: {errors[0].message}"
-                        )
+                self._validate_cypher_text(query_text, allow_system_query)
             except UnscopedQueryError:
                 logger.warning(
                     f"Blocked unscoped query for tenant {self._tenant_id}: {query_text[:100]}..."

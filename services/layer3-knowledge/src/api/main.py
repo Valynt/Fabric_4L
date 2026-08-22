@@ -118,74 +118,62 @@ def _exception_trace(exc: Exception) -> tuple:
     return (type(exc), exc, exc.__traceback__)
 
 
-# ---------------------------------------------------------------------------
-# Lifespan
-# ---------------------------------------------------------------------------
-
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Application lifespan — startup and shutdown."""
-    validate_production_safety()
-
-    settings = get_settings()
-    setup_logging(settings)
-    if os.getenv("TESTING", "").lower() != "true":
-        from ..retrieval.vector_store import Neo4jVectorStore
-
-        Neo4jVectorStore(settings=settings)._get_embedding_model()
-    logger.info(
-        "Starting Value Fabric Knowledge Graph API",
-        extra={"component": "layer3-knowledge", "version": "1.0.0"},
-    )
-
-    # Cache
-    cache_manager = None
+def _init_cache(settings: Any) -> Any:
+    """Initialize Redis cache manager if enabled."""
+    if not settings.cache_enabled:
+        return None
     try:
         from ..cache import CacheConfig, initialize_cache
 
-        if settings.cache_enabled:
-            cache_config = CacheConfig(
-                default_ttl=settings.cache_default_ttl,
-                max_ttl=settings.cache_max_ttl,
-                key_prefix=settings.cache_key_prefix,
-                serializer=settings.cache_serializer,
-                compression=settings.cache_compression,
-            )
-            cache_manager = initialize_cache(
-                redis_url=settings.cache_redis_url, config=cache_config
-            )
-            logger.info("Redis cache initialised")
+        cache_config = CacheConfig(
+            default_ttl=settings.cache_default_ttl,
+            max_ttl=settings.cache_max_ttl,
+            key_prefix=settings.cache_key_prefix,
+            serializer=settings.cache_serializer,
+            compression=settings.cache_compression,
+        )
+        cache_manager = initialize_cache(
+            redis_url=settings.cache_redis_url, config=cache_config
+        )
+        logger.info("Redis cache initialised")
+        return cache_manager
     except (ImportError, ConnectionError, TimeoutError, OSError) as e:
         logger.warning("Cache unavailable: %s", e)
+        return None
 
-    # Metrics
-    metrics = None
+
+def _init_metrics(app: FastAPI, settings: Any) -> Any:
+    """Initialize Prometheus metrics if enabled."""
+    if not settings.metrics_enabled:
+        return None
     try:
         from ..metrics import MetricsConfig, MetricsMiddleware, initialize_metrics
 
-        if settings.metrics_enabled:
-            metrics = initialize_metrics(
-                MetricsConfig(
-                    enabled=True,
-                    prefix=settings.metrics_prefix,
-                    label_namespace=settings.metrics_namespace,
-                )
+        metrics = initialize_metrics(
+            MetricsConfig(
+                enabled=True,
+                prefix=settings.metrics_prefix,
+                label_namespace=settings.metrics_namespace,
             )
-            logger.info("Prometheus metrics initialised")
-            try:
-                install_metrics_middleware(
-                    app,
-                    metrics=metrics,
-                    middleware_factory=MetricsMiddleware,
-                    logger=None,
-                )
-            except RuntimeError as exc:
-                logger.warning("Skipping metrics middleware: %s", exc)
+        )
+        logger.info("Prometheus metrics initialised")
+        try:
+            install_metrics_middleware(
+                app,
+                metrics=metrics,
+                middleware_factory=MetricsMiddleware,
+                logger=None,
+            )
+        except RuntimeError as exc:
+            logger.warning("Skipping metrics middleware: %s", exc)
+        return metrics
     except (ImportError, ConnectionError, RuntimeError, ValueError) as e:
         logger.warning("Metrics unavailable: %s", e)
+        return None
 
-    # Versioning
+
+def _init_versioning() -> Any:
+    """Initialize API versioning and register migration handlers."""
     from ..api.versioning import (
         initialize_versioning,
         migrate_v1_to_v2_ingestion_request,
@@ -216,13 +204,11 @@ async def lifespan(app: FastAPI):
         "v1", "/health", transform_v1_health_response
     )
     logger.info("API versioning system initialised")
+    return version_compatibility
 
-    app.state.cache_manager = cache_manager
-    app.state.metrics = metrics
-    app.state.version_compatibility = version_compatibility
-    set_app_metrics(metrics)
 
-    # Production Vault gate
+async def _verify_production_vault() -> None:
+    """Verify Vault connectivity when running in production."""
     if os.getenv("ENVIRONMENT", "development") == "production":
         vault_addr = os.getenv("VAULT_ADDR")
         if vault_addr:
@@ -232,6 +218,39 @@ async def lifespan(app: FastAPI):
                     "Vault unreachable — cannot start in production without secrets backend"
                 )
             logger.info("L3: Vault connectivity verified")
+
+
+# ---------------------------------------------------------------------------
+# Lifespan
+# ---------------------------------------------------------------------------
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifespan — startup and shutdown."""
+    validate_production_safety()
+
+    settings = get_settings()
+    setup_logging(settings)
+    if os.getenv("TESTING", "").lower() != "true":
+        from ..retrieval.vector_store import Neo4jVectorStore
+
+        Neo4jVectorStore(settings=settings)._get_embedding_model()
+    logger.info(
+        "Starting Value Fabric Knowledge Graph API",
+        extra={"component": "layer3-knowledge", "version": "1.0.0"},
+    )
+
+    cache_manager = _init_cache(settings)
+    metrics = _init_metrics(app, settings)
+    version_compatibility = _init_versioning()
+
+    app.state.cache_manager = cache_manager
+    app.state.metrics = metrics
+    app.state.version_compatibility = version_compatibility
+    set_app_metrics(metrics)
+
+    await _verify_production_vault()
 
     await init_app_state(app)
     yield
