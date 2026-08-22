@@ -11,21 +11,11 @@ spec:
     - Ingress
     - Egress
   ingress:
-    # Allow from the API gateway (delegated browser traffic) and from the
-    # frontend (existing internal path). The gateway is the canonical
-    # ingress for all public API traffic.
+    # Public API requests enter through the gateway only.
     - from:
         - podSelector:
             matchLabels:
               app: api-gateway
-      ports:
-        - protocol: TCP
-          port: 8000
-    # Allow from frontend
-    - from:
-        - podSelector:
-            matchLabels:
-              app: frontend
       ports:
         - protocol: TCP
           port: 8000
