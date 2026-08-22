@@ -118,3 +118,19 @@ async def test_run_tenant_query_rejects_workflow_label_without_tenant_predicate(
             {"workflow_id": "wf-1"},
             tenant_id="tenant-a",
         )
+
+
+@pytest.mark.asyncio
+async def test_execute_with_timeout_success() -> None:
+    async def fake_run(q, p):
+        return ["record1"]
+
+    res, elapsed = await TenantQueryExecutor._execute_with_timeout(fake_run, "RETURN 1", {})
+    assert res == ["record1"]
+    assert elapsed >= 0.0
+
+
+def test_record_query_metrics_safe_without_metrics() -> None:
+    # Should not raise exception
+    TenantQueryExecutor._record_query_metrics(1.5, ["rec1", "rec2"])
+
