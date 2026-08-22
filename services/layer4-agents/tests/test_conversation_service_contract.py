@@ -303,6 +303,8 @@ async def test_generate_response_prefers_mutation_agent_c1_then_heuristic() -> N
     assert result == "c1 response"
 
     service._generate_via_c1.side_effect = RuntimeError("unavailable")
+    metadata = {}
+    service._emit_degradation_audit = AsyncMock()
     result = await service._generate_response(
         user_message="summarize",
         messages=[],
@@ -313,8 +315,45 @@ async def test_generate_response_prefers_mutation_agent_c1_then_heuristic() -> N
         account_name="Acme",
         gate_context={},
         tenant_id="tenant-1",
+        generation_metadata=metadata,
     )
     assert "summary" in result.lower()
+    assert metadata == {
+        "response_tier": "heuristic",
+        "provider": None,
+        "fallback": True,
+        "degraded": True,
+        "degradation_reason": "thesys_c1_failed",
+    }
+    service._emit_degradation_audit.assert_awaited_once_with(
+        gate_context={},
+        tenant_id="tenant-1",
+        selected_tier="heuristic",
+        reason="thesys_c1_failed",
+    )
+
+
+@pytest.mark.asyncio
+async def test_handle_message_surfaces_heuristic_degradation_metadata() -> None:
+    service = ConversationService()
+    service._classify_intent = AsyncMock(
+        return_value={"intent": "general_question", "confidence": 0.8, "entities": {}}
+    )
+    service._gather_context = AsyncMock(return_value={})
+    service._emit_audit = AsyncMock()
+    service._emit_degradation_audit = AsyncMock()
+
+    result = await service.handle_message(
+        user_message="summarize",
+        messages=[],
+        active_tab="signals",
+        tenant_id="tenant-1",
+    )
+
+    assert result["metadata"]["response_tier"] == "heuristic"
+    assert result["metadata"]["fallback"] is True
+    assert result["metadata"]["degraded"] is True
+    assert result["metadata"]["degradation_reason"] == "llm_tiers_unavailable"
 
 
 @pytest.mark.parametrize(

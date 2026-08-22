@@ -15,6 +15,7 @@ from layer4_agents.services.llm_adapter_interfaces import (
 from layer4_agents.services.llm_intent_classifier import LLMIntentClassifier
 from layer4_agents.services.llm_provider import (
     OpenAIProvider,
+    UnknownLLMProviderError,
     get_llm_provider,
     get_openai_provider,
     get_provider_adapters,
@@ -353,11 +354,12 @@ def test_provider_factories_respect_config_and_environment(monkeypatch) -> None:
     assert isinstance(get_llm_provider({}), OpenAIProvider)
 
 
-def test_provider_registry_and_unknown_provider_fallback(monkeypatch) -> None:
+def test_provider_registry_and_unknown_provider_fails_closed(monkeypatch) -> None:
     adapters = get_provider_adapters({})
     assert {"openai", "anthropic"} <= adapters.keys()
     monkeypatch.setenv("LAYER4_LLM_PROVIDER", "unknown")
-    assert isinstance(get_llm_provider({"together_api_key": "fallback"}), TogetherAIProvider)
+    with pytest.raises(UnknownLLMProviderError, match="Unsupported LLM provider"):
+        get_llm_provider({"together_api_key": "must-not-be-used"})
 
 
 @pytest.mark.parametrize("provider_cls", [OpenAIProvider, TogetherAIProvider])
