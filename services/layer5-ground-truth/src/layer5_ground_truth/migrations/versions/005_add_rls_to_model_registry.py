@@ -15,7 +15,7 @@ policies here reference tenant_id.
 try:
     from alembic import op
 except ImportError:  # pragma: no cover
-    op = None  # type: ignore[assignment]
+    op = None
 
 revision = "005"
 down_revision = "004"

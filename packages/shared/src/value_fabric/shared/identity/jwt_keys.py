@@ -17,19 +17,19 @@ class get_jwksResult(BaseModel):
     model_config = ConfigDict(extra="allow")
     keys: list[Any]
 
-    def __getitem__(self, key: str) -> Any:
+    def __getitem__(self, key: str) -> object:
         try:
             return getattr(self, key)
         except AttributeError as exc:
             raise KeyError(key) from exc
 
-    def __setitem__(self, key: str, value: Any) -> None:
+    def __setitem__(self, key: str, value: object) -> None:
         setattr(self, key, value)
 
     def __contains__(self, key: str) -> bool:
         return hasattr(self, key)
 
-    def get(self, key: str, default: Any = None) -> Any:
+    def get(self, key: str, default: object = None) -> object:
         return getattr(self, key, default)
 
     def __iter__(self):

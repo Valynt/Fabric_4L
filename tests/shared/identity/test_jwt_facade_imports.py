@@ -1,8 +1,12 @@
 """Public import compatibility for the shared JWT façade."""
 
 from value_fabric.shared.identity.jwt import decode_jwt, encode_jwt, get_jwks
-from value_fabric.shared.identity.jwt_tokens import decode_jwt as implementation_decode_jwt
-from value_fabric.shared.identity.jwt_tokens import encode_jwt as implementation_encode_jwt
+from value_fabric.shared.identity.jwt_tokens import (
+    decode_jwt as implementation_decode_jwt,
+)
+from value_fabric.shared.identity.jwt_tokens import (
+    encode_jwt as implementation_encode_jwt,
+)
 
 
 def test_established_jwt_imports_resolve_to_implementation_functions() -> None:
@@ -22,4 +26,3 @@ def test_get_jwks_mapping_interface() -> None:
     assert jwks["keys"] in list(jwks.values())
     assert "keys" in list(iter(jwks))
     assert len(jwks) >= 1
-
