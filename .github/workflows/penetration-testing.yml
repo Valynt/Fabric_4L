@@ -97,8 +97,21 @@ jobs:
           CLERK_SECRET_KEY=sk_test_ci_dummy
           FABRIC_AUTH_SIGNING_KEY=ci-only-dummy-signing-key
           FABRIC_AUTH_PUBLIC_KEYS=[]
-          CREDENTIALS_MASTER_KEY=ci-only-dummy-credentials-master-key-0123456789abcdef
           EOF
+
+          # Generate an ephemeral, runtime-valid Fernet key (32 random
+          # bytes, URL-safe base64 — 43/44 chars) for api-gateway/L4
+          # encryption initialization. The static CI dummy is not a
+          # valid Fernet key and is rejected at runtime.
+          CREDENTIALS_MASTER_KEY="$(
+            python - <<'PY'
+          import base64
+          import os
+
+          print(base64.urlsafe_b64encode(os.urandom(32)).decode())
+          PY
+          )"
+          printf 'CREDENTIALS_MASTER_KEY=%s\n' "$CREDENTIALS_MASTER_KEY" >> .env
 
           mkdir -p zap-results
 
@@ -374,8 +387,21 @@ jobs:
           CLERK_SECRET_KEY=sk_test_ci_dummy
           FABRIC_AUTH_SIGNING_KEY=ci-only-dummy-signing-key
           FABRIC_AUTH_PUBLIC_KEYS=[]
-          CREDENTIALS_MASTER_KEY=ci-only-dummy-credentials-master-key-0123456789abcdef
           EOF
+
+          # Generate an ephemeral, runtime-valid Fernet key (32 random
+          # bytes, URL-safe base64 — 43/44 chars) for api-gateway/L4
+          # encryption initialization. The static CI dummy is not a
+          # valid Fernet key and is rejected at runtime.
+          CREDENTIALS_MASTER_KEY="$(
+            python - <<'PY'
+          import base64
+          import os
+
+          print(base64.urlsafe_b64encode(os.urandom(32)).decode())
+          PY
+          )"
+          printf 'CREDENTIALS_MASTER_KEY=%s\n' "$CREDENTIALS_MASTER_KEY" >> .env
 
           mkdir -p nikto-results
 
