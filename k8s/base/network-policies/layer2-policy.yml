@@ -15,14 +15,10 @@ spec:
     - from:
         - podSelector:
             matchLabels:
-              app: api-gateway
-      ports:
-        - protocol: TCP
-          port: 8000
-    - from:
+              app: layer4-agents
         - podSelector:
             matchLabels:
-              app: layer4-agents
+              app: api-gateway
       ports:
         - protocol: TCP
           port: 8000

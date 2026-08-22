@@ -33,13 +33,13 @@ spec:
               app: api-gateway
       ports:
         - protocol: TCP
-          port: 5432  # Postgres
+          port: 5432 # Postgres
         - protocol: TCP
-          port: 6379  # Redis
+          port: 6379 # Redis
         - protocol: TCP
-          port: 7474  # Neo4j HTTP
+          port: 7474 # Neo4j HTTP
         - protocol: TCP
-          port: 7687  # Neo4j Bolt
+          port: 7687 # Neo4j Bolt
   egress:
     # Allow DNS
     - to:

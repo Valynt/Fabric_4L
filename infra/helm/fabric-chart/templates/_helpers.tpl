@@ -56,11 +56,17 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- default "dev" .Values.global.environment }}
 {{- end }}
 
-{{/* Shared application image reference. Digests take precedence over tags. */}}
+{{/* Application image reference for a service or chart default. Digests take precedence over tags. */}}
 {{- define "fabric.image" -}}
-{{- $imageRepository := required "image.repository is required" .Values.image.repository -}}
-{{- $imageTag := .Values.image.tag | default "" | toString -}}
-{{- $imageDigest := .Values.image.digest | default "" | toString -}}
+{{- $root := index . 0 -}}
+{{- $svc := index . 1 -}}
+{{- $svcImage := default (dict) (default (dict) $svc).image -}}
+{{- $imageRepository := default $root.Values.image.repository $svcImage.repository -}}
+{{- if not $imageRepository -}}
+{{- fail "image.repository is required" -}}
+{{- end -}}
+{{- $imageTag := default (default "" $root.Values.image.tag) $svcImage.tag | toString -}}
+{{- $imageDigest := default (default "" $root.Values.image.digest) $svcImage.digest | toString -}}
 {{- if and (eq $imageDigest "") (or (eq $imageTag "") (eq $imageTag "latest")) -}}
 {{- fail "image.tag must be explicitly set to a non-latest value or image.digest must be set" -}}
 {{- end -}}

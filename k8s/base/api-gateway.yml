@@ -17,6 +17,7 @@ spec:
       labels:
         app: api-gateway
     spec:
+      serviceAccountName: api-gateway
       automountServiceAccountToken: false
       securityContext:
         runAsNonRoot: true
