@@ -1,8 +1,49 @@
 {{- if .Values.ingress.enabled -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: routing-host
+data:
+  host: {{ .Values.ingress.application.host | quote }}
+---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{include "fabric.fullname" .}}
+  name: {{ include "fabric.fullname" . }}-api
+  labels:
+    {{- include "fabric.labels" . | nindent 4 }}
+  annotations:
+    {{- with .Values.ingress.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+    {{- with .Values.ingress.api.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  {{- with .Values.ingress.className }}
+  ingressClassName: {{ . }}
+  {{- end }}
+  {{- with .Values.ingress.tlsSecretName }}
+  tls:
+    - hosts: [{{ $.Values.ingress.application.host | quote }}]
+      secretName: {{ . }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.ingress.application.host | quote }}
+      http:
+        paths:
+          - path: {{ .Values.ingress.api.externalPrefix }}(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: {{ include "fabric.fullname" . }}-api
+                port:
+                  number: {{ .Values.services.api.port }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "fabric.fullname" . }}-frontend
   labels:
     {{- include "fabric.labels" . | nindent 4 }}
   {{- with .Values.ingress.annotations }}
@@ -10,32 +51,23 @@ metadata:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
-  {{- if .Values.ingress.className }}
-  ingressClassName: {{.Values.ingress.className}}
+  {{- with .Values.ingress.className }}
+  ingressClassName: {{ . }}
   {{- end }}
-  {{- if .Values.ingress.tls }}
+  {{- with .Values.ingress.tlsSecretName }}
   tls:
-    {{- range .Values.ingress.tls }}
-    - hosts:
-        {{- range .hosts }}
-        - {{. | quote}}
-        {{- end }}
-      secretName: {{.secretName}}
-    {{- end }}
+    - hosts: [{{ $.Values.ingress.application.host | quote }}]
+      secretName: {{ . }}
   {{- end }}
   rules:
-    {{- range .Values.ingress.hosts }}
-    - host: {{.host | quote}}
+    - host: {{ .Values.ingress.application.host | quote }}
       http:
         paths:
-          {{- range .paths }}
-          - path: {{.path}}
-            pathType: {{.pathType}}
+          - path: {{ .Values.ingress.frontend.externalPrefix }}
+            pathType: Prefix
             backend:
               service:
-                name: {{include "fabric.fullname" $}}-api
+                name: {{ include "fabric.fullname" . }}-frontend
                 port:
-                  number: {{$.Values.services.api.port}}
-          {{- end }}
-    {{- end }}
+                  number: {{ .Values.services.frontend.port }}
 {{- end }}

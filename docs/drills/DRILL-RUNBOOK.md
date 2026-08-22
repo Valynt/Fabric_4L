@@ -3,6 +3,7 @@
 ## Scope
 
 This runbook covers DR drills for the Fabric_4L platform:
+
 - Database point-in-time recovery
 - Cross-region failover
 - Backup integrity verification
@@ -23,22 +24,26 @@ Restore the PostgreSQL database to a specific point in time using WAL archives.
 ### Steps
 
 1. **Identify recovery target**
+
    ```bash
    wal-g backup-list | head -n 20
    ```
 
 2. **Stop application writes**
+
    ```bash
    kubectl scale deployment fabric-layer4 --replicas=0
    ```
 
 3. **Restore from base backup**
+
    ```bash
    wal-g backup-fetch /var/lib/postgresql/data BASE_BACKUP_NAME
    ```
 
 4. **Configure recovery target**
    Create `recovery.conf`:
+
    ```ini
    restore_command = 'wal-g wal-fetch %f %p'
    recovery_target_time = '2024-01-01 12:00:00'
@@ -46,11 +51,13 @@ Restore the PostgreSQL database to a specific point in time using WAL archives.
    ```
 
 5. **Start PostgreSQL in recovery mode**
+
    ```bash
    pg_ctl start -D /var/lib/postgresql/data
    ```
 
 6. **Verify data integrity**
+
    ```bash
    psql -d fabric -c "SELECT COUNT(*) FROM fabric_api_records;"
    ```
@@ -69,6 +76,7 @@ Fail over the platform to a secondary AWS region.
 ### Steps
 
 1. **Promote RDS read replica**
+
    ```bash
    aws rds promote-read-replica \
      --db-instance-identifier fabric-prod-replica \
@@ -76,24 +84,30 @@ Fail over the platform to a secondary AWS region.
    ```
 
 2. **Update application database URLs**
+
    ```bash
    kubectl set env deployment/fabric-layer4 \
      DATABASE_URL="postgresql://...us-west-2..."
    ```
 
 3. **Redirect traffic via Route53**
+
    ```bash
    aws route53 change-resource-record-sets \
      --hosted-zone-id ZONE_ID \
      --change-batch file://failover.json
    ```
 
-4. **Verify health endpoints**
+4. **Verify the public gateway health endpoint**
+
    ```bash
-   for layer in l1 l2 l3 l4 l5 l6; do
-     curl -f "https://api.fabric.example.com/${layer}/health"
-   done
+   python scripts/ci/production_edge_smoke.py \
+     --base-url "https://www.valuepact.ai"
    ```
+
+   The drill must exercise the public `/api/v1` gateway route. L1–L6 health
+   endpoints are internal-only and may be checked with `kubectl` from an
+   approved in-cluster diagnostic workload when layer-level evidence is needed.
 
 ## Drill 3: Backup Integrity Verification
 
@@ -104,11 +118,13 @@ Verify that backups are restorable and contain expected data.
 ### Steps
 
 1. **List available backups**
+
    ```bash
    wal-g backup-list
    ```
 
 2. **Restore to a temporary instance**
+
    ```bash
    docker run -d --name temp-restore \
      -e POSTGRES_PASSWORD=temp \
@@ -117,16 +133,19 @@ Verify that backups are restorable and contain expected data.
    ```
 
 3. **Fetch and restore backup**
+
    ```bash
    wal-g backup-fetch /var/lib/postgresql/data LATEST_BACKUP
    ```
 
 4. **Run integrity checks**
+
    ```bash
    psql -d fabric -c "SELECT pg_database_datvalid FROM pg_database WHERE datname='fabric';"
    ```
 
 5. **Compare record counts**
+
    ```bash
    psql -d fabric -c "SELECT table_name, COUNT(*) FROM fabric_api_records GROUP BY table_name;"
    ```
@@ -152,6 +171,7 @@ Verify that backups are restorable and contain expected data.
 ## Escalation
 
 If any drill fails:
+
 1. Document failure in incident tracker
 2. Notify platform team via #incidents Slack channel
 3. Create JIRA ticket with severity "High"

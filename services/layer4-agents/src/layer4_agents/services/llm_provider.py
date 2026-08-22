@@ -3,9 +3,28 @@ from __future__ import annotations
 """Minimal LLM provider abstraction for Layer 4 runtime calls."""
 import asyncio
 import logging
+import os
 from typing import Any, Protocol
 
 logger = logging.getLogger(__name__)
+
+SUPPORTED_LLM_PROVIDERS = frozenset({"together", "openai", "anthropic"})
+
+
+class UnknownLLMProviderError(ValueError):
+    """Raised when runtime configuration names an unsupported LLM provider.
+
+    Provider configuration is a deployment contract. Silently substituting a
+    different provider can violate tenant residency policy, change cost, and
+    make model behavior non-reproducible, so resolution must fail closed.
+    """
+
+    def __init__(self, provider_name: str) -> None:
+        supported = ", ".join(sorted(SUPPORTED_LLM_PROVIDERS))
+        super().__init__(
+            f"Unsupported LLM provider {provider_name!r}; expected one of: {supported}"
+        )
+        self.provider_name = provider_name
 
 from pydantic import ConfigDict, create_model
 
@@ -251,14 +270,19 @@ def get_llm_provider(config: dict[str, Any] | None = None) -> Any:
 
     Returns an instance implementing the ``LLMProvider`` protocol.
     """
-    import os
-
     provider_name = (
         os.getenv("LAYER4_LLM_PROVIDER")
         or (config.get("llm_provider") if config and hasattr(config, "get") else None)
         or getattr(config, "llm_provider", None)
         or "together"
-    ).lower()
+    ).strip().lower()
+
+    if provider_name not in SUPPORTED_LLM_PROVIDERS:
+        logger.error(
+            "llm_provider_configuration_rejected",
+            extra={"provider": provider_name, "supported": sorted(SUPPORTED_LLM_PROVIDERS)},
+        )
+        raise UnknownLLMProviderError(provider_name)
 
     if provider_name == "together":
         from .together_provider import TogetherAIProvider
@@ -282,18 +306,4 @@ def get_llm_provider(config: dict[str, Any] | None = None) -> Any:
 
         return get_anthropic_provider(config)
 
-    logger.warning(
-        "Unknown LLM provider %r — falling back to Together.ai. "
-        "Set LAYER4_LLM_PROVIDER to 'together' or 'openai' to suppress this warning.",
-        provider_name,
-    )
-    from .together_provider import TogetherAIProvider
-
-    api_key = (
-        os.getenv("LAYER4_TOGETHER_API_KEY")
-        or (config.get("together_api_key") if config and hasattr(config, "get") else None)
-        or getattr(config, "together_api_key", None)
-    )
-    base_url = os.getenv("LAYER4_TOGETHER_BASE_URL", "https://api.together.ai/v1")
-    timeout = float(os.getenv("LAYER4_TOGETHER_TIMEOUT_SECONDS", "60"))
-    return TogetherAIProvider(api_key=api_key, base_url=base_url, timeout=timeout)
+    raise AssertionError("validated provider dispatch is not exhaustive")

@@ -93,6 +93,11 @@ spec:
       ports:
         - protocol: TCP
           port: 8007
+    # Clerk JWKS and other configured HTTPS control-plane dependencies.
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+      ports: [{ protocol: TCP, port: 443 }]
     # Allow DNS resolution
     - to:
         - namespaceSelector:

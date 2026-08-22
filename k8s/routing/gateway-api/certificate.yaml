@@ -15,16 +15,3 @@ spec:
     kind: ClusterIssuer
   dnsNames:
     - __HOST__
----
-apiVersion: cert-manager.io/v1
-kind: Certificate
-metadata:
-  name: layer-apis-tls
-  namespace: value-fabric
-spec:
-  secretName: layer-apis-tls
-  issuerRef:
-    name: letsencrypt-prod
-    kind: ClusterIssuer
-  dnsNames:
-    - __API_HOST__

@@ -66,14 +66,14 @@ if "Gateway" not in resources or "value-fabric-gateway" not in resources["Gatewa
 
 # Check 2: HTTPRoute resources exist
 http_routes = resources.get("HTTPRoute", set())
-for route in ("frontend", "layer-apis"):
+for route in ("application",):
     if route not in http_routes:
         errors.append(f"HTTPRoute '{route}' not found in rendered output")
 
 # Check 3: Certificate resources exist with valid issuerRef
 certs = [d for d in docs if isinstance(d, dict) and d.get("kind") == "Certificate"]
 cert_names = {c.get("metadata", {}).get("name") for c in certs}
-for cert in ("frontend-tls", "layer-apis-tls"):
+for cert in ("frontend-tls",):
     if cert not in cert_names:
         errors.append(f"Certificate '{cert}' not found in rendered output")
 
