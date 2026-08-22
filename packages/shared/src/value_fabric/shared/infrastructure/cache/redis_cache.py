@@ -23,8 +23,7 @@ except ImportError:
     REDIS_AVAILABLE = False
 
 from value_fabric.shared.models.typed_dict import TypedDictModel
-
-from logging_config import get_logger
+from value_fabric.shared.observability.logging import get_logger
 
 
 class RedisCache_get_statsResult(TypedDictModel):
@@ -34,6 +33,7 @@ class RedisCache_get_statsResult(TypedDictModel):
     total_commands_processed: Any | None = None
     used_memory: Any | None = None
     used_memory_human: Any | None = None
+
 
 logger = get_logger(__name__)
 
@@ -168,7 +168,9 @@ class RedisCache:
             ValueError: If pickle serializer is requested (disabled for security)
         """
         if self.config.serializer == "pickle":
-            raise ValueError("pickle serializer is disabled for security — use json or msgpack")
+            raise ValueError(
+                "pickle serializer is disabled for security — use json or msgpack"
+            )
         else:
             return json.dumps(data, default=str)
 
@@ -185,7 +187,9 @@ class RedisCache:
             ValueError: If pickle serializer is requested (disabled for security)
         """
         if self.config.serializer == "pickle":
-            raise ValueError("pickle serializer is disabled for security — use json or msgpack")
+            raise ValueError(
+                "pickle serializer is disabled for security — use json or msgpack"
+            )
         else:
             return json.loads(data)
 
@@ -346,15 +350,16 @@ class RedisCache:
 
         try:
             info = await self._redis_client.info()
-            return RedisCache_get_statsResult.model_validate({
-                "connected_clients": info.get("connected_clients", 0),
-                "used_memory": info.get("used_memory", 0),
-                "used_memory_human": info.get("used_memory_human", "0B"),
-                "keyspace_hits": info.get("keyspace_hits", 0),
-                "keyspace_misses": info.get("keyspace_misses", 0),
-                "total_commands_processed": info.get("total_commands_processed", 0),
-            })
-
+            return RedisCache_get_statsResult.model_validate(
+                {
+                    "connected_clients": info.get("connected_clients", 0),
+                    "used_memory": info.get("used_memory", 0),
+                    "used_memory_human": info.get("used_memory_human", "0B"),
+                    "keyspace_hits": info.get("keyspace_hits", 0),
+                    "keyspace_misses": info.get("keyspace_misses", 0),
+                    "total_commands_processed": info.get("total_commands_processed", 0),
+                }
+            )
 
         except Exception as e:
             logger.warning(f"Cache stats error: {e}")
