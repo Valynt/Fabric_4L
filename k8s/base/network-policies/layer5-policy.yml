@@ -11,19 +11,20 @@ spec:
     - Ingress
     - Egress
   ingress:
+    # Allow from the API gateway and L4 agents (internal mesh). The
+    # frontend reaches L5 only through the gateway.
+    - from:
+        - podSelector:
+            matchLabels:
+              app: api-gateway
+      ports:
+        - protocol: TCP
+          port: 8005
     # Allow from L4 agents
     - from:
         - podSelector:
             matchLabels:
               app: layer4-agents
-      ports:
-        - protocol: TCP
-          port: 8005
-    # Allow public API delegation from the gateway.
-    - from:
-        - podSelector:
-            matchLabels:
-              app: api-gateway
       ports:
         - protocol: TCP
           port: 8005

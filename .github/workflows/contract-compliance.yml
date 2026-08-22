@@ -31,43 +31,43 @@ on:
     branches:
       - main
       - develop
-      - 'release/**'
+      - "release/**"
     paths:
-      - 'apps/web/**'
-      - 'examples/canonical/**'
-      - 'packages/eslint-plugin-fabric-contracts/**'
-      - 'packages/shared/**'
-      - 'services/**/src/**'
-      - 'packages/platform-contract/**'
-      - 'contracts/openapi/**'
-      - 'contracts/jsonschema/**'
-      - 'contracts/tool-manifests/**'
-      - 'contracts/frontend/**'
-      - 'contracts/auth/**'
-      - 'contracts/config-policy/**'
-      - 'contracts/observability/**'
-      - 'contracts/schema-index.json'
-      - 'contracts/agent-registry/**'
-      - 'tests/contract/**'
-      - 'scripts/verify-schema-indexes.sh'
-      - 'package.json'
-      - 'tests/test_openapi_breaking_change_gate.py'
-      - 'scripts/ci/platform_contract_lint.py'
-      - 'scripts/ci/check_agent_registry.py'
-      - 'scripts/export_openapi.py'
-      - 'scripts/ci/contract_compliance_gate.py'
-      - 'scripts/ci/openapi_breaking_change_gate.py'
-      - 'docs/governance/openapi-breaking-change-exceptions.json'
-      - 'docs/reference/openapi-breaking-change-gate.md'
-      - '.github/workflows/contract-compliance.yml'
+      - "apps/web/**"
+      - "examples/canonical/**"
+      - "packages/eslint-plugin-fabric-contracts/**"
+      - "packages/shared/**"
+      - "services/**/src/**"
+      - "packages/platform-contract/**"
+      - "contracts/openapi/**"
+      - "contracts/jsonschema/**"
+      - "contracts/tool-manifests/**"
+      - "contracts/frontend/**"
+      - "contracts/auth/**"
+      - "contracts/config-policy/**"
+      - "contracts/observability/**"
+      - "contracts/schema-index.json"
+      - "contracts/agent-registry/**"
+      - "tests/contract/**"
+      - "scripts/verify-schema-indexes.sh"
+      - "package.json"
+      - "tests/test_openapi_breaking_change_gate.py"
+      - "scripts/ci/platform_contract_lint.py"
+      - "scripts/ci/check_agent_registry.py"
+      - "scripts/export_openapi.py"
+      - "scripts/ci/contract_compliance_gate.py"
+      - "scripts/ci/openapi_breaking_change_gate.py"
+      - "docs/governance/openapi-breaking-change-exceptions.json"
+      - "docs/reference/openapi-breaking-change-gate.md"
+      - ".github/workflows/contract-compliance.yml"
   schedule:
     # Run daily at 03:00 UTC (consolidated from 02:00 and 03:00)
-    - cron: '0 3 * * *'
+    - cron: "0 3 * * *"
   workflow_dispatch:
 
 concurrency:
-  group: contract-compliance-${{github.ref}}
-  cancel-in-progress: true
+  group: contract-compliance-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   contract-compliance:
@@ -84,7 +84,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Install Python OpenAPI export dependencies
         run: |
@@ -101,8 +101,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22.18.0'
-          cache: 'pnpm'
+          node-version: "22.18.0"
+          cache: "pnpm"
           cache-dependency-path: pnpm-lock.yaml
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -162,8 +162,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22.18.0'
-          cache: 'pnpm'
+          node-version: "22.18.0"
+          cache: "pnpm"
           cache-dependency-path: pnpm-lock.yaml
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -197,7 +197,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Install dependencies
         run: pip install pyyaml
@@ -227,8 +227,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22.18.0'
-          cache: 'pnpm'
+          node-version: "22.18.0"
+          cache: "pnpm"
           cache-dependency-path: pnpm-lock.yaml
       - name: Install frontend dependencies
         working-directory: apps/web
@@ -286,8 +286,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22.18.0'
-          cache: 'pnpm'
+          node-version: "22.18.0"
+          cache: "pnpm"
           cache-dependency-path: pnpm-lock.yaml
       - name: Install plugin
         working-directory: packages/eslint-plugin-fabric-contracts
@@ -322,7 +322,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
           cache: pip
 
       - name: Setup pnpm
@@ -333,8 +333,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22.18.0'
-          cache: 'pnpm'
+          node-version: "22.18.0"
+          cache: "pnpm"
           cache-dependency-path: pnpm-lock.yaml
       - name: Install Python contract test dependencies
         run: pip install -r packages/platform-contract/requirements-test.txt
@@ -363,7 +363,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
           cache: pip
 
       - name: Setup pnpm
@@ -495,7 +495,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Install dependencies
         run: |
@@ -570,8 +570,8 @@ jobs:
         uses: ./.github/actions/setup-fabric-ci
         with:
           python-dependency-mode: root-test
-          install-node-deps: 'false'
-          cache: ''
+          install-node-deps: "false"
+          cache: ""
 
       - name: Install deterministic root test dependencies
         run: python -m pip install --require-hashes -r tests/requirements-test.lock
@@ -639,8 +639,8 @@ jobs:
         uses: ./.github/actions/setup-fabric-ci
         with:
           python-dependency-mode: root-test
-          install-node-deps: 'false'
-          cache: ''
+          install-node-deps: "false"
+          cache: ""
 
       - name: Run contract tests
         run: |
@@ -671,8 +671,8 @@ jobs:
         uses: ./.github/actions/setup-fabric-ci
         with:
           python-dependency-mode: root-test
-          install-node-deps: 'false'
-          cache: ''
+          install-node-deps: "false"
+          cache: ""
 
       - name: Run representative shape regression tests
         run: python -m pytest tests/contract/test_api_shape_regression.py -v --tb=short
@@ -685,7 +685,14 @@ jobs:
   validate-deprecations:
     name: Validate Deprecation Register
     runs-on: ubuntu-latest
-    needs: [plugin-tests, lint-frontend, validate-canonical, platform-contract-tests, python-lint]
+    needs:
+      [
+        plugin-tests,
+        lint-frontend,
+        validate-canonical,
+        platform-contract-tests,
+        python-lint,
+      ]
 
     steps:
       - name: Checkout code
@@ -694,7 +701,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22.18.0'
+          node-version: "22.18.0"
 
       - name: Validate deprecations.json schema
         run: |
@@ -797,7 +804,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Install ripgrep
         run: sudo apt-get update && sudo apt-get install -y ripgrep
@@ -838,7 +845,22 @@ jobs:
   summary:
     name: Contract Compliance Summary
     runs-on: ubuntu-latest
-    needs: [contract-compliance, plugin-tests, validate-dependabot-coverage, lint-frontend, validate-canonical, platform-contract-tests, python-lint, generate-openapi, detect-drift, openapi-contract-tests, contract-shape-regression, validate-deprecations, contract-scorecard]
+    needs:
+      [
+        contract-compliance,
+        plugin-tests,
+        validate-dependabot-coverage,
+        lint-frontend,
+        validate-canonical,
+        platform-contract-tests,
+        python-lint,
+        generate-openapi,
+        detect-drift,
+        openapi-contract-tests,
+        contract-shape-regression,
+        validate-deprecations,
+        contract-scorecard,
+      ]
     if: always()
 
     steps:
@@ -893,7 +915,6 @@ jobs:
           echo "- **UI State**: no-imperative-navigation, no-url-concatenation" >> $GITHUB_STEP_SUMMARY
           echo "- **Public API**: no-private-imports, no-circular-dependencies" >> $GITHUB_STEP_SUMMARY
           echo "- **OpenAPI Drift**: Auto-detection via spec comparison" >> $GITHUB_STEP_SUMMARY
-
 
   # ---------------------------------------------------------------------------
   # V1-CI-001 Stage 1 (shadow): stable aggregate contract check. Informational

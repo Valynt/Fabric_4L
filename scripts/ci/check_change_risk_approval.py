@@ -19,7 +19,17 @@ from pathlib import Path
 from typing import Any
 
 SHA_RE = re.compile(r"^[0-9a-f]{40}$")
-HIGH_RISK_PREFIXES = (".github/", "contracts/", "k8s/", "scripts/ci/", "config/ci/")
+HIGH_RISK_PREFIXES = (
+    ".github/",
+    "contracts/",
+    "k8s/",
+    "infra/",
+    "monitoring/",
+    "scripts/ci/",
+    "config/ci/",
+    "packages/shared/src/value_fabric/shared/identity/",
+    "services/layer5-ground-truth/",
+)
 
 
 def _fail(errors: list[str], message: str) -> None:

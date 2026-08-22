@@ -13,6 +13,22 @@ resources:
   - hostname-config.yaml
 
 replacements:
+  # Ingress namespace -> NetworkPolicies
+  - source:
+      kind: ConfigMap
+      name: routing-host
+      fieldPath: data.ingressNamespace
+    targets:
+      - select:
+          kind: NetworkPolicy
+          name: frontend-policy
+        fieldPaths:
+          - spec.ingress.0.from.0.namespaceSelector.matchLabels.[kubernetes.io/metadata.name]
+      - select:
+          kind: NetworkPolicy
+          name: api-gateway-policy
+        fieldPaths:
+          - spec.ingress.0.from.0.namespaceSelector.matchLabels.[kubernetes.io/metadata.name]
   # Application host -> Gateway listeners + HTTPRoute hostname + Certificate dnsName
   - source:
       kind: ConfigMap

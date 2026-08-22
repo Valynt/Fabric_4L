@@ -11,7 +11,7 @@ spec:
     - Ingress
     - Egress
   ingress:
-    # Allow Layer 4 orchestration and API-gateway delegation.
+    # Allow from the API gateway, L4 agents, and L5 ground truth (mesh).
     - from:
         - podSelector:
             matchLabels:

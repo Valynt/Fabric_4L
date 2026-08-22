@@ -210,6 +210,11 @@ services:
     enabled: true
     replicaCount: 2
     port: 3000
+    image:
+      repository: ghcr.io/bmsull560/fabric_4l/frontend
+      # Override tag/digest specifically for frontend, or inherits root image tag/digest when left blank
+      tag: ""
+      digest: ""
     resources:
       limits:
         cpu: 1000m

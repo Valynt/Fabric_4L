@@ -5,3 +5,4 @@ metadata:
   namespace: value-fabric
 data:
   host: www.valuepact.ai
+  ingressNamespace: istio-system

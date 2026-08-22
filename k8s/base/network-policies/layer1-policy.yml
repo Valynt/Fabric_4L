@@ -11,7 +11,9 @@ spec:
     - Ingress
     - Egress
   ingress:
-    # Allow Layer 4 orchestration and API-gateway delegation.
+    # Allow from the API gateway (delegated browser traffic) and from L4
+    # agents (internal service mesh). No ingress from the public ingress
+    # controller namespace: external traffic must terminate at api-gateway.
     - from:
         - podSelector:
             matchLabels:

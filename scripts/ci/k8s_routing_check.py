@@ -72,6 +72,17 @@ ROUTING_KIND_MATRIX: dict[str, set[tuple[str, str]]] = {
 # allowed subset is forbidden.
 ALL_ROUTING_KINDS: set[tuple[str, str]] = set().union(*ROUTING_KIND_MATRIX.values())
 
+# The Service name the API host must route to. The gateway is the only
+# public entry point for API traffic; layer Services must never be exposed
+# directly by an Ingress. Enforced by _check_gateway_only_api_ingress().
+GATEWAY_SERVICE_NAME = "api-gateway"
+
+# Path prefixes that, if routed directly to a non-gateway Service, constitute
+# a bypass of the gateway (auth, tenant context, rate limiting, audit).
+# These are the public layer-segment surfaces; the gateway owns them and
+# delegates internally to the owning layer Service over the mesh.
+BYPASS_PATH_PREFIXES = ("/layer1", "/layer2", "/layer3", "/layer4", "/layer5", "/layer6")
+
 SENTINELS = ("__HOST__", "__API_HOST__")
 
 REQUIRED_NGINX_ANNOTATIONS: dict[str, tuple[str, ...]] = {
@@ -263,6 +274,100 @@ def _collect_routes(doc: dict) -> list[Route]:
 
 def _collect_backends(doc: dict) -> list[str]:
     return [route.backend for route in _collect_routes(doc) if route.backend]
+
+
+def _collect_backend_refs_with_paths(doc: dict) -> list[tuple[str, str]]:
+    """Return [(service_name, path_prefix), ...] for a routing resource.
+
+    For NGINX Ingress, HTTPRoute, and VirtualService, extract each
+    (backend Service, path prefix) pair so the bypass check can detect
+    direct layer exposure on any routing axis, not just nginx Ingress.
+    """
+    spec = doc.get("spec", {}) or {}
+    kind = doc.get("kind", "")
+    group = _api_group(doc.get("apiVersion", ""))
+    out: list[tuple[str, str]] = []
+
+    if group == "networking.k8s.io" and kind == "Ingress":
+        for rule in spec.get("rules", []) or []:
+            for path in (rule.get("http") or {}).get("paths", []) or []:
+                svc = ((path.get("backend") or {}).get("service") or {}).get("name")
+                if svc:
+                    out.append((svc, path.get("path", "") or ""))
+
+    elif group == "gateway.networking.k8s.io" and kind == "HTTPRoute":
+        for rule in spec.get("rules", []) or []:
+            prefix = ""
+            for match in rule.get("matches", []) or []:
+                p = (match.get("path") or {}).get("value", "") or ""
+                if p:
+                    prefix = p
+                    break
+            for ref in rule.get("backendRefs", []) or []:
+                if ref.get("name"):
+                    out.append((ref["name"], prefix))
+
+    elif group == "networking.istio.io" and kind == "VirtualService":
+        for http in spec.get("http", []) or []:
+            prefix = ""
+            for match in http.get("match", []) or []:
+                p = (match.get("uri") or {}).get("prefix", "") or ""
+                if p:
+                    prefix = p
+                    break
+            for route in http.get("route", []) or []:
+                host = (route.get("destination") or {}).get("host")
+                if host:
+                    out.append((host.split(".")[0], prefix))
+
+    return out
+
+
+def _check_gateway_only_api_ingress(name: str, docs: list[dict]) -> list[str]:
+    """Assert every API-bucket routing resource routes to the gateway Service.
+
+    The gateway is the only public entry point for API traffic. A routing
+    resource whose metadata.name maps to the API bucket (``layer-apis``)
+    must route every path/backend to ``api-gateway``; no backend may point
+    directly at a layer Service (``layer1-ingestion`` …
+    ``layer6-benchmarks``) or any other non-gateway backend, because that
+    bypasses the gateway's auth, tenant resolution, rate limiting, and
+    audit logging. Applies to NGINX Ingress, Gateway API HTTPRoute, and
+    Istio VirtualService.
+
+    Also catches direct bypasses on *any* routing resource: a path
+    starting with one of the BYPASS_PATH_PREFIXES routed to a
+    non-gateway Service is a bypass regardless of the resource name.
+    """
+    errors: list[str] = []
+    for d in docs:
+        gk = (_api_group(d.get("apiVersion", "")), d.get("kind", ""))
+        if gk not in ALL_ROUTING_KINDS:
+            continue
+        md_name = d.get("metadata", {}).get("name", "?")
+        is_api_bucket = md_name == "layer-apis"
+        for svc, path_prefix in _collect_backend_refs_with_paths(d):
+            # Rule 1: an API-bucket resource must route to the gateway.
+            if is_api_bucket and svc != GATEWAY_SERVICE_NAME:
+                errors.append(
+                    f"{name}: {gk[1]}/{md_name} routes path '{path_prefix}' to "
+                    f"Service '{svc}', but API traffic must route through "
+                    f"'{GATEWAY_SERVICE_NAME}'. Direct layer exposure bypasses "
+                    f"gateway auth/tenant/rate-limit/audit invariants."
+                )
+            # Rule 2: any resource routing a layer-segment path to a
+            # non-gateway Service is a bypass, regardless of name.
+            if (
+                path_prefix in BYPASS_PATH_PREFIXES
+                and svc != GATEWAY_SERVICE_NAME
+            ):
+                errors.append(
+                    f"{name}: {gk[1]}/{md_name} routes bypass path "
+                    f"'{path_prefix}' directly to Service '{svc}'; "
+                    f"layer segments must enter through "
+                    f"'{GATEWAY_SERVICE_NAME}'."
+                )
+    return errors
 
 
 def _check_deployment(name: str, axis: str, rendered: Path) -> list[str]:
@@ -471,7 +576,10 @@ def _check_deployment(name: str, axis: str, rendered: Path) -> list[str]:
             f"{name}: missing required {expected_route_kind[1]} routing resource"
         )
 
-    # 7. Mandatory controls apply to API ingress, not the frontend SPA.
+    # 7. Gateway-only API ingress check.
+    errors.extend(_check_gateway_only_api_ingress(name, docs))
+
+    # 8. Mandatory controls apply to API ingress, not the frontend SPA.
     if axis == "nginx":
         api_resources = {route.resource for route in api_routes}
         for d in docs:

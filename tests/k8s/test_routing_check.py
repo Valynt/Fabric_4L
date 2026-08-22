@@ -93,6 +93,11 @@ VALID_NGINX_RENDER = textwrap.dedent(
     ---
     apiVersion: v1
     kind: Service
+    metadata: {name: api-gateway, namespace: value-fabric}
+    spec: {selector: {app: api-gateway}, ports: [{port: 8000}]}
+    ---
+    apiVersion: v1
+    kind: Service
     metadata: {name: layer1-ingestion, namespace: value-fabric}
     spec: {type: ClusterIP, selector: {app: layer1-ingestion}, ports: [{port: 8000}]}
     ---
@@ -172,6 +177,11 @@ VALID_GATEWAY_RENDER = textwrap.dedent(
     kind: Service
     metadata: {name: layer1-ingestion, namespace: value-fabric}
     spec: {type: ClusterIP, ports: [{port: 8000}]}
+    ---
+    apiVersion: v1
+    kind: Service
+    metadata: {name: api-gateway, namespace: value-fabric}
+    spec: {selector: {app: api-gateway}, ports: [{port: 8000}]}
     ---
     apiVersion: gateway.networking.k8s.io/v1
     kind: Gateway
@@ -374,6 +384,67 @@ def test_gate_detects_missing_routing_host_configmap(
     )
     assert result.returncode == 1
     assert "missing 'routing-host' ConfigMap" in result.stderr
+
+
+def test_gate_detects_gateway_bypass_on_layer_apis_ingress(
+    tmp_path: Path, repo_root: Path
+) -> None:
+    """A layer-apis Ingress routing directly to a layer Service must fail.
+
+    This is the regression test for the production ingress bypass: the
+    `layer-apis` Ingress must route to `api-gateway`, never directly to a
+    layer Service. Routing to a layer bypasses gateway auth, tenant
+    resolution, rate limiting, and audit logging.
+    """
+    rendered = tmp_path / "rendered"
+    rendered.mkdir()
+    bad = VALID_NGINX_RENDER.replace(
+        "service: {name: api-gateway, port: {number: 8000}}",
+        "service: {name: layer1-ingestion, port: {number: 8000}}",
+    )
+    (rendered / "dev-nginx.yaml").write_text(bad, encoding="utf-8")
+    result = _run_gate(
+        repo_root, rendered, _ok_routing_dir(tmp_path), ["dev-nginx:nginx"]
+    )
+    assert result.returncode == 1
+    assert "/api/v1 route must target only api-gateway:8000" in result.stderr
+    assert "layer1-ingestion" in result.stderr
+
+
+def test_gate_detects_bypass_path_prefix_on_any_ingress(
+    tmp_path: Path, repo_root: Path
+) -> None:
+    """Every Ingress routing a /layerN path to a non-gateway Service must fail.
+
+    Catches a bypass even when the Ingress is not named `layer-apis` (e.g.
+    a stray Ingress exposing /layer4 directly to layer4-agents).
+    """
+    rendered = tmp_path / "rendered"
+    rendered.mkdir()
+    bad = VALID_NGINX_RENDER + textwrap.dedent(
+        """\
+        ---
+        apiVersion: networking.k8s.io/v1
+        kind: Ingress
+        metadata: {name: rogue-bypass, namespace: value-fabric}
+        spec:
+          rules:
+            - host: api.example.com
+              http:
+                paths:
+                  - path: /layer4
+                    pathType: Prefix
+                    backend:
+                      service: {name: layer4-agents, port: {number: 8000}}
+        """
+    )
+    (rendered / "dev-nginx.yaml").write_text(bad, encoding="utf-8")
+    result = _run_gate(
+        repo_root, rendered, _ok_routing_dir(tmp_path), ["dev-nginx:nginx"]
+    )
+    assert result.returncode == 1
+    assert "bypass path" in result.stderr
+    assert "/layer4" in result.stderr
 
 
 def test_gate_detects_unknown_backend_service(tmp_path: Path, repo_root: Path) -> None:

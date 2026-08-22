@@ -28,6 +28,7 @@ resources:
   - pgbouncer.yml
   - neo4j.yml
   - api-gateway.yml
+  - api-gateway-serviceaccount.yaml
   - layer1-ingestion.yml
   - layer1-celery.yaml
   - layer1-serviceaccount.yaml
@@ -57,6 +58,7 @@ resources:
   - hpa/layer5-ground-truth-hpa.yml
   - hpa/layer6-benchmarks-hpa.yml
   - hpa/frontend-hpa.yml
+  - hpa/api-gateway-hpa.yml
   # Pod disruption budgets for critical services
   - pdb/postgres-pdb.yml
   - pdb/redis-pdb.yml
@@ -70,6 +72,7 @@ resources:
   - pdb/layer5-ground-truth-pdb.yml
   - pdb/layer6-benchmarks-pdb.yml
   - pdb/frontend-pdb.yml
+  - pdb/api-gateway-pdb.yml
 
 patches:
   - target:

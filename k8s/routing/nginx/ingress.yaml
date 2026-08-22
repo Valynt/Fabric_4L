@@ -95,6 +95,14 @@ metadata:
       add_header X-Content-Type-Options "nosniff" always;
       add_header X-Frame-Options "DENY" always;
       add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    # Gateway-enforced routing contract: ALL public API traffic for the
+    # layer segments (/v1/agents, /v1/ingest, /v1/extract, /v1/graph,
+    # /v1/truths, /v1/benchmarks) MUST enter through the api-gateway Service.
+    # The gateway authenticates, resolves tenant context, rate-limits, and
+    # audits every request before delegating to the owning layer over the
+    # service mesh. Layer pods never accept ingress directly from the public
+    # ingress controller (enforced by the layer NetworkPolicies in base/).
+    # scripts/ci/k8s_routing_check.py asserts this invariant in CI.
 spec:
   ingressClassName: nginx
   tls:

@@ -15,12 +15,21 @@ from __future__ import annotations
 
 import logging
 import os
+import time
+import uuid
 from datetime import UTC, datetime
-from typing import Any
+from typing import Mapping
 
 import httpx
 from value_fabric.shared.observability.http_trace_propagation import (
     inject_trace_headers,
+)
+from value_fabric.shared.resilience import (
+    TRANSIENT_STATUS_CODES,
+    RetryableError,
+    SyncCircuitBreaker,
+    SyncCircuitBreakerOpen,
+    retry_transient,
 )
 
 from app.core.config import get_settings
@@ -33,8 +42,19 @@ ERR_LAYER4_HTTP_ERROR = "layer4_http_error"
 ERR_LAYER4_INVALID_JSON = "layer4_invalid_json"
 ERR_LAYER4_INVALID_RESPONSE_TYPE = "layer4_invalid_response_type"
 ERR_RUN_NOT_FOUND = "run_not_found"
+ERR_LAYER4_CIRCUIT_OPEN = "layer4_circuit_open"
 
 logger = logging.getLogger(__name__)
+
+# Retry configuration for transient Layer 4 failures (502/503/504/429 and
+# network errors). Tunable via env for production ops without code changes.
+_DEFAULT_MAX_ATTEMPTS = int(os.environ.get("LAYER4_RETRY_MAX_ATTEMPTS", "3"))
+_DEFAULT_RETRY_BASE_DELAY = float(os.environ.get("LAYER4_RETRY_BASE_DELAY", "0.2"))
+_DEFAULT_RETRY_MAX_DELAY = float(os.environ.get("LAYER4_RETRY_MAX_DELAY", "5.0"))
+_DEFAULT_CB_FAILURE_THRESHOLD = int(os.environ.get("LAYER4_CB_FAILURE_THRESHOLD", "5"))
+_DEFAULT_CB_RECOVERY_TIMEOUT = float(
+    os.environ.get("LAYER4_CB_RECOVERY_TIMEOUT", "60.0")
+)
 
 # Statuses emitted by the Layer 4 workflow API (WorkflowStatusValue literal).
 _KNOWN_STATUSES = {
@@ -46,6 +66,18 @@ _KNOWN_STATUSES = {
     "failed",
     "cancelled",
 }
+
+
+def _truncate_utf8(text: str, max_chars: int) -> str:
+    """Truncate *text* to *max_chars* without splitting multi-byte chars.
+
+    Plain slicing ``text[:400]`` is fine for str (Python counts code points),
+    but downstream logs/JSON encoders may re-encode to UTF-8; truncating at a
+    code-point boundary keeps the result safe to encode in any codec.
+    """
+    if len(text) <= max_chars:
+        return text
+    return text[:max_chars]
 
 
 class Layer4UnavailableError(RuntimeError):
@@ -73,20 +105,63 @@ class Layer4DependencyError(RuntimeError):
         self.body = body
 
 
+class _TransientRequestError(RetryableError):
+    """Internal marker: a transient (retryable) Layer 4 request failure.
+
+    Wraps network errors and 502/503/504/429 responses so the retry helper
+    can classify them without a custom predicate. These failures also trip
+    the circuit breaker; deterministic 4xx failures do neither.
+    """
+
+    def __init__(
+        self,
+        code: str,
+        *,
+        status_code: int | None = None,
+    ) -> None:
+        super().__init__(code)
+        self.code = code
+        self.status_code = status_code
+
+
 class Layer4OrchestrationClient:
     """Sync client for the Layer 4 ``/v1/workflows`` API.
 
     Authentication uses the platform service-auth contract: the gateway
     forwards the verified tenant (and user when known) plus the shared
     service secret. Tenant identity is never taken from caller input.
+
+    Resilience: transient failures (502/503/504/429, connect errors) are
+    retried with full-jitter exponential backoff and protected by a sync
+    circuit breaker so a sustained Layer 4 outage fails closed fast rather
+    than queuing traffic. Deterministic 4xx failures surface immediately.
     """
 
     provider_name = "layer4"
 
-    def __init__(self, base_url: str, timeout_seconds: float = 10.0):
+    def __init__(
+        self,
+        base_url: str,
+        timeout_seconds: float = 10.0,
+        *,
+        breaker: SyncCircuitBreaker | None = None,
+        max_attempts: int = _DEFAULT_MAX_ATTEMPTS,
+        retry_base_delay: float = _DEFAULT_RETRY_BASE_DELAY,
+        retry_max_delay: float = _DEFAULT_RETRY_MAX_DELAY,
+        sleep=time.sleep,
+    ):
         self.base_url = base_url.rstrip("/")
         self.timeout_seconds = timeout_seconds
         self.service_secret = os.environ.get("SERVICE_AUTH_SECRET", "")
+        self.max_attempts = max_attempts
+        self.retry_base_delay = retry_base_delay
+        self.retry_max_delay = retry_max_delay
+        self._sleep = sleep
+        self.breaker = breaker or SyncCircuitBreaker(
+            "layer4-orchestration",
+            failure_threshold=_DEFAULT_CB_FAILURE_THRESHOLD,
+            recovery_timeout=_DEFAULT_CB_RECOVERY_TIMEOUT,
+        )
 
     def _headers(self, tenant_id: str, user_id: str | None) -> dict[str, str]:
         headers = {
@@ -98,34 +173,47 @@ class Layer4OrchestrationClient:
             headers["X-User-ID"] = user_id
         return inject_trace_headers(headers)
 
-    def _request(
+    def _is_transient(self, exc: Exception) -> bool:
+        """Return True for failures that should be retried.
+
+        Circuit-open failures are NOT retried (the breaker says stop), even
+        though they're wrapped in _TransientRequestError for uniform
+        handling — they surface immediately as Layer4UnavailableError.
+        """
+        if isinstance(exc, _TransientRequestError):
+            return exc.code != ERR_LAYER4_CIRCUIT_OPEN
+        return False
+
+    def _do_request(
         self,
         method: str,
-        path: str,
+        url: str,
         *,
-        tenant_id: str,
-        user_id: str | None = None,
-        json_body: dict[str, Any] | None = None,
+        headers: dict[str, str],
+        json_body: dict[str, Any] | None,
     ) -> dict[str, Any]:
+        """Single HTTP attempt. Raises _TransientRequestError on retryable failures."""
         try:
             with httpx.Client(timeout=self.timeout_seconds) as client:
                 response = client.request(
                     method,
-                    f"{self.base_url}{path}",
+                    url,
                     json=json_body,
-                    headers=self._headers(tenant_id, user_id),
+                    headers=headers,
                 )
         except httpx.HTTPError as exc:
-            raise Layer4UnavailableError(ERR_LAYER4_UNAVAILABLE) from exc
+            raise _TransientRequestError(ERR_LAYER4_UNAVAILABLE) from exc
 
-        if response.status_code in {502, 503, 504}:
-            raise Layer4UnavailableError(ERR_LAYER4_UNAVAILABLE, status_code=response.status_code)
+        if response.status_code in TRANSIENT_STATUS_CODES:
+            raise _TransientRequestError(
+                ERR_LAYER4_UNAVAILABLE, status_code=response.status_code
+            )
 
         if response.status_code >= 400:
             raise Layer4DependencyError(
                 ERR_LAYER4_HTTP_ERROR,
                 status_code=response.status_code,
-                body=response.text[:400],
+                body=_truncate_utf8(response.text, 400),
             )
 
         try:
@@ -138,6 +226,60 @@ class Layer4OrchestrationClient:
 
         return body
 
+    def _request(
+        self,
+        method: str,
+        path: str,
+        *,
+        tenant_id: str,
+        user_id: str | None = None,
+        json_body: dict[str, Any] | None = None,
+        extra_headers: dict[str, str] | None = None,
+    ) -> dict[str, Any]:
+        url = f"{self.base_url}{path}"
+        headers = self._headers(tenant_id, user_id)
+        if extra_headers:
+            headers.update(extra_headers)
+
+        def _attempt() -> dict[str, Any]:
+            # Each individual attempt goes through the breaker so a
+            # sustained outage opens the circuit and subsequent requests
+            # fail fast. The retry wraps the breaker so a single transient
+            # failure is retried before the breaker counts it as a failure
+            # on the final attempt.
+            try:
+                return self.breaker.call(
+                    self._do_request,
+                    method,
+                    url,
+                    headers=headers,
+                    json_body=json_body,
+                )
+            except SyncCircuitBreakerOpen as exc:
+                # Translate to a retryable marker so retry_transient can
+                # decide whether to keep retrying (it should not — the
+                # breaker is open).
+                raise _TransientRequestError(
+                    ERR_LAYER4_CIRCUIT_OPEN, status_code=None
+                ) from exc
+
+        try:
+            body = retry_transient(
+                _attempt,
+                max_attempts=self.max_attempts,
+                base_delay=self.retry_base_delay,
+                max_delay=self.retry_max_delay,
+                retry_on=self._is_transient,
+                sleep=self._sleep,
+            )
+        except _TransientRequestError as exc:
+            if exc.code == ERR_LAYER4_CIRCUIT_OPEN:
+                raise Layer4UnavailableError(ERR_LAYER4_CIRCUIT_OPEN)
+            raise Layer4UnavailableError(
+                ERR_LAYER4_UNAVAILABLE, status_code=exc.status_code
+            ) from exc
+        return body
+
     def create_workflow(
         self,
         *,
@@ -146,7 +288,13 @@ class Layer4OrchestrationClient:
         account_id: str | None,
         input_data: dict[str, Any] | None,
         user_id: str | None = None,
+        workflow_id: str | None = None,
+        idempotency_key: str | None = None,
     ) -> dict[str, Any]:
+        # Generate a stable workflow_id/idempotency_key once across retries
+        # to prevent duplicate workflow executions upstream on transient network drops.
+        stable_workflow_id = workflow_id or str(uuid.uuid4())
+        stable_idempotency_key = idempotency_key or stable_workflow_id
         inputs: dict[str, Any] = {"custom_data": input_data or {}}
         if account_id:
             inputs["prospect_id"] = account_id
@@ -155,13 +303,19 @@ class Layer4OrchestrationClient:
             "/v1/workflows",
             tenant_id=tenant_id,
             user_id=user_id,
-            json_body={"workflow_type": workflow_type, "inputs": inputs},
+            json_body={
+                "workflow_type": workflow_type,
+                "inputs": inputs,
+                "workflow_id": stable_workflow_id,
+            },
+            extra_headers={
+                "Idempotency-Key": stable_idempotency_key,
+                "X-Idempotency-Key": stable_idempotency_key,
+            },
         )
 
     def get_workflow(self, *, tenant_id: str, workflow_id: str) -> dict[str, Any]:
-        return self._request(
-            "GET", f"/v1/workflows/{workflow_id}", tenant_id=tenant_id
-        )
+        return self._request("GET", f"/v1/workflows/{workflow_id}", tenant_id=tenant_id)
 
     def get_workflow_result(
         self, *, tenant_id: str, workflow_id: str
@@ -171,7 +325,12 @@ class Layer4OrchestrationClient:
         )
 
     def pause_workflow(
-        self, *, tenant_id: str, workflow_id: str, user_id: str, reason: str | None = None
+        self,
+        *,
+        tenant_id: str,
+        workflow_id: str,
+        user_id: str,
+        reason: str | None = None,
     ) -> dict[str, Any]:
         return self._request(
             "POST",
@@ -233,7 +392,7 @@ class AgentOrchestrator:
         tenant_id: str,
         workflow_type: str,
         account_id: str | None = None,
-        input_data: dict[str, Any] | None = None,
+        input_data: Mapping[str, object] | None = None,
         user_id: str | None = None,
     ) -> AgentRun:
         delegated = self.layer4_client.create_workflow(
@@ -298,7 +457,9 @@ class AgentOrchestrator:
         self._apply_layer4_state(run, delegated)
         return run
 
-    def pause_run(self, run_id: str, *, tenant_id: str, user_id: str | None = None) -> AgentRun:
+    def pause_run(
+        self, run_id: str, *, tenant_id: str, user_id: str | None = None
+    ) -> AgentRun:
         run = db.agent_runs.get(run_id, tenant_id=tenant_id)
         if not run:
             raise ValueError(ERR_RUN_NOT_FOUND)
@@ -317,7 +478,7 @@ class AgentOrchestrator:
         *,
         tenant_id: str,
         user_id: str | None = None,
-        resume_data: dict[str, Any] | None = None,
+        resume_data: Mapping[str, object] | None = None,
     ) -> AgentRun:
         run = db.agent_runs.get(run_id, tenant_id=tenant_id)
         if not run:
@@ -342,7 +503,11 @@ class AgentOrchestrator:
         return run
 
     def _apply_layer4_state(
-        self, run: AgentRun, delegated: dict[str, Any], *, default_status: str | None = None
+        self,
+        run: AgentRun,
+        delegated: Mapping[str, object],
+        *,
+        default_status: str | None = None,
     ) -> None:
         run.status = _map_status(
             delegated.get("status"), default=default_status or run.status

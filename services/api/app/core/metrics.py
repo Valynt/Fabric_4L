@@ -42,6 +42,48 @@ DEPENDENCY_HEALTH = Gauge(
     registry=registry,
 )
 
+# --- Layer delegation observability (P4) -----------------------------------
+# These cover the async reverse-proxy in routers/layer_delegation.py: every
+# delegated request is counted by segment/method/status, latency is observed
+# per segment, and circuit-open + retry events are surfaced separately so
+# dashboards can distinguish "upstream slow" from "breaker tripped".
+
+DELEGATION_REQUESTS_TOTAL = Counter(
+    "fabric_api_delegation_requests_total",
+    "Total delegated requests by owning-layer segment, method, and status.",
+    ("segment", "method", "status_code", "outcome"),
+    registry=registry,
+)
+
+DELEGATION_LATENCY_SECONDS = Histogram(
+    "fabric_api_delegation_latency_seconds",
+    "End-to-end latency for a delegated request, including retries.",
+    ("segment", "method"),
+    buckets=(0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0),
+    registry=registry,
+)
+
+DELEGATION_CIRCUIT_OPEN_TOTAL = Counter(
+    "fabric_api_delegation_circuit_open_total",
+    "Delegated requests rejected because the segment breaker was open.",
+    ("segment",),
+    registry=registry,
+)
+
+DELEGATION_RETRY_TOTAL = Counter(
+    "fabric_api_delegation_retry_total",
+    "Retry attempts issued by the delegation proxy (excludes the first try).",
+    ("segment",),
+    registry=registry,
+)
+
+DELEGATION_CACHE_TOTAL = Counter(
+    "fabric_api_delegation_cache_total",
+    "GET delegation cache lookups by segment and outcome (hit/miss/store/skip).",
+    ("segment", "outcome"),
+    registry=registry,
+)
+
 
 def _route_path(request: Request) -> str:
     route = request.scope.get("route")
