@@ -993,7 +993,7 @@ async def _quarantine_validation_failure(
     schema_version: str = "",
     prompt_template_version: str = "",
     reason: str = "persistence_validation_failed",
-) -> None:
+) -> QuarantineRecord:
     """Record an artifact validation failure to quarantine store, respecting test monkeypatching."""
     main_mod = sys.modules.get("layer2_extraction.api.main")
     if (
@@ -1015,6 +1015,7 @@ async def _quarantine_validation_failure(
         )
 
     quarantine_store = _get_active_quarantine_store()
+    dt_cls = _get_active_datetime()
     record = QuarantineRecord(
         quarantine_id=f"q-{uuid4().hex[:12]}",
         job_id=job_id,
@@ -1029,7 +1030,37 @@ async def _quarantine_validation_failure(
         validation_errors=errors,
         reason=reason,
     )
+    from layer2_extraction.api.ingestion_runner import _set_pipeline_job
+
     await quarantine_store.put(record)
+    await _set_pipeline_job(
+        job_id,
+        extraction_status="quarantined",
+        last_error="; ".join(errors),
+        completed_at=dt_cls.now(UTC),
+    )
+    try:
+        from uuid import UUID as _UUID
+
+        from value_fabric.shared.audit import AuditAction, emit_audit_event
+
+        emit_audit_event(
+            AuditAction.EXTRACTION_QUARANTINED,
+            tenant_id=_UUID(tenant_id) if tenant_id else None,
+            resource_type="ExtractionJob",
+            resource_id=job_id,
+            outcome="failure",
+            details={
+                "model_version": model_version,
+                "schema_version": schema_version,
+                "prompt_template_version": prompt_template_version,
+                "validation_errors": errors,
+            },
+        )
+    except Exception:
+        # Audit emission must never break the quarantine flow
+        pass
+    return record
 
 
 __all__ = [

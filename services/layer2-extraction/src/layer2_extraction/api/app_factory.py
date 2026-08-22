@@ -54,6 +54,29 @@ from layer2_extraction.shared_bootstrap import (
 
 logger = structlog.get_logger(__name__)
 
+# Bootstrap Infisical secrets on import (optional in dev, required in prod)
+def _bootstrap_secrets() -> None:
+    """Load secrets from Infisical if available (optional in dev, required in prod)."""
+    try:
+        from value_fabric.shared.secrets import load_infisical_secrets
+
+        load_infisical_secrets()
+    except Exception as exc:
+        from value_fabric.shared.environment import (
+            get_service_environment,
+            is_production_like_environment,
+        )
+
+        _secret_env = get_service_environment("layer2")
+        logger.warning("Failed to load Infisical secrets (dev mode): %s", exc)
+        if is_production_like_environment(_secret_env):
+            raise RuntimeError(
+                "Failed to load Infisical secrets in production-like Layer 2 runtime"
+            ) from exc
+
+
+_bootstrap_secrets()
+
 # App start time for uptime calculation
 _app_start_time = time.time()
 
@@ -145,6 +168,7 @@ class health_checkResult(TypedDictModel):
 
 def create_app() -> FastAPI:
     """Create and configure the Layer 2 FastAPI application."""
+    _bootstrap_secrets()
     reject_insecure_bypass_in_production(service_name="layer2-extraction")
 
     redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
