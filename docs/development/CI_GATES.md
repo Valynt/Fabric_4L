@@ -13,7 +13,7 @@ This is the authoritative human-readable CI classification and triage map. Its m
 
 The owner is the first-response triage contact. Start with the local command, then inspect the named workflow run and its retained artifacts. Required secrets are runtime dependencies, not values that belong in logs or documentation.
 
-## Active inventory (57 workflows)
+## Active inventory (58 workflows)
 
 | Workflow | Classification | Triggers | Owner / triage | Local command | Dependencies | Artifacts | Runtime budget |
 |---|---|---|---|---|---|---|---:|
@@ -33,6 +33,7 @@ The owner is the first-response triage contact. Start with the local command, th
 | `critical-gates.yml` | pull request validation | `merge_group, pull_request, push` | `@value-fabric/sre-leads` | `make check-workflow-references` | none | artifacts/critical-gates/ | 30 min |
 | `dependency-scan.yml` | pull request validation | `pull_request, push, schedule, workflow_dispatch` | `@value-fabric/sre-leads` | `make check-workflow-references` | none | ${{ github.workspace }}/packages/config/pnpm-audit-base.json, ${{ github.workspace }}/packages/config/pnpm-audit.json, ${{ github.workspace }}/packages/eslint-plugin-fabric-contracts/pnpm-audit-base.json, ${{ github.workspace }}/packages/eslint-plugin-fabric-contracts/pnpm-audit.json, ${{ github.workspace }}/services/value-studio/pnpm-audit-base.json, ${{ github.workspace }}/services/value-studio/pnpm-audit.json, apps/web/pnpm-audit-base.json, apps/web/pnpm-audit.json, artifacts/pip-audit-base/${{ matrix.python.service }}/diagnostic.json, artifacts/pip-audit-base/${{ matrix.python.service }}/report.json, artifacts/pip-audit-base/${{ matrix.python.service }}/report.sarif, artifacts/pip-audit-base/${{ matrix.python.service }}/requirements.txt, artifacts/pip-audit/${{ matrix.python.service }}/diagnostic.json, artifacts/pip-audit/${{ matrix.python.service }}/report.json, artifacts/pip-audit/${{ matrix.python.service }}/report.sarif, artifacts/pip-audit/${{ matrix.python.service }}/requirements.txt, sbom-vuln-track.json | 30 min |
 | `deploy.yml` | reusable automation | `workflow_call, workflow_dispatch` | `@value-fabric/sre-leads` | `make check-workflow-references` | AWS_DEPLOY_ROLE_ARN, GITHUB_TOKEN, INFISICAL_IDENTITY_ID | ${{ steps.evidence.outputs.file }}, deployment-record.json | 30 min |
+| `devcontainer-smoke.yml` | pull request validation | `pull_request, push, workflow_dispatch` | `@value-fabric/sre-leads` | `make check-workflow-references` | none | none | 30 min |
 | `dr-drill.yml` | scheduled assurance | `schedule, workflow_dispatch` | `@value-fabric/sre-leads` | `make check-workflow-references` | DR_BACKUP_BUCKET, DR_IAM_ROLE_ARN, SLACK_DR_WEBHOOK | none | 30 min |
 | `drift-check.yml` | pull request validation | `pull_request, workflow_dispatch` | `@value-fabric/sre-leads` | `make check-workflow-references` | none | contracts/openapi/*.json, scripts/export_openapi.py | 10 min |
 | `environment-promotion.yml` | delivery / continuous automation | `workflow_dispatch, workflow_run` | `@value-fabric/sre-leads` | `make check-workflow-references` | GITHUB_TOKEN, INFISICAL_IDENTITY_ID, PROMETHEUS_URL | none | 30 min |
