@@ -12,3 +12,4 @@ resources:
   - layer5-policy.yml
   - layer6-policy.yml
   - frontend-policy.yml
+  - api-gateway-policy.yml
