@@ -21,6 +21,9 @@ if command -v pre-commit >/dev/null 2>&1; then
   pre-commit install || echo "pre-commit install skipped; run 'pre-commit install' manually if desired."
 fi
 
+echo "Verifying dev container environment health..."
+bash "$workspace/.devcontainer/verify.sh"
+
 cat <<'EOF'
 
 Dev Container bootstrap complete. No secrets, migrations, or services were started.
