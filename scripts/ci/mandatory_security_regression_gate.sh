@@ -142,6 +142,10 @@ HOSTILE_API_KEY_RESOLVER_TESTS=(
   services/layer2-extraction/tests/test_api_key_resolver_hostile_cases.py
 )
 
+HOSTILE_TENANCY_CONTRACT_TESTS=(
+  tests/tenancy/test_hostile_tenancy_contracts.py
+)
+
 FRONTEND_CONTRACT_TEST_DIR="apps/web/src/api/__tests__/contract"
 FRONTEND_PLACEHOLDER_GUARD="apps/web/scripts/security/assert-no-placeholder-contract-tests.mjs"
 FRONTEND_CRITICAL_E2E_GUARD="apps/web/scripts/security/assert-no-skipped-critical-e2e.mjs"
@@ -175,7 +179,8 @@ required_suite_paths() {
     "${K8S_TESTS[@]}" \
     "${LAYER2_FAIL_CLOSED_TESTS[@]}" \
     "${LAYER5_FAIL_CLOSED_TESTS[@]}" \
-    "${HOSTILE_API_KEY_RESOLVER_TESTS[@]}"; do
+    "${HOSTILE_API_KEY_RESOLVER_TESTS[@]}" \
+    "${HOSTILE_TENANCY_CONTRACT_TESTS[@]}"; do
     printf '%s\n' "${path%%::*}"
   done
 }
@@ -513,6 +518,30 @@ run_step_record "I-02 production fail-closed checks - Layer 5 (Ground Truth)" \
   "I-02 Layer 5 Production Fail-Closed" \
   "pytest tests/test_production_fail_closed_i02.py" \
   "Yes" "${ARTIFACT_DIR}/layer5_fail_closed.xml"
+
+run_step_record "Hostile tenancy contracts (8 core isolation contracts)" \
+  bash -c "python -m pytest --tb=short -q -n 0 --timeout=60 \
+    --junitxml='${ROOT_DIR}/${ARTIFACT_DIR}/hostile_tenancy_contracts.xml' \
+    tests/tenancy/test_hostile_tenancy_contracts.py && \
+    python scripts/ci/assert_no_pytest_skips.py '${ARTIFACT_DIR}/hostile_tenancy_contracts.xml'" \
+  -- \
+  "Hostile Tenancy Contracts (Area B)" \
+  "pytest tests/tenancy/test_hostile_tenancy_contracts.py" \
+  "Yes" "${ARTIFACT_DIR}/hostile_tenancy_contracts.xml"
+
+run_step_record "Hostile tenant evidence coverage check" \
+  python scripts/ci/check_hostile_tenant_evidence.py \
+  -- \
+  "Hostile Tenant Evidence Verification" \
+  "python scripts/ci/check_hostile_tenant_evidence.py" \
+  "Yes" "✓"
+
+run_step_record "Security exception lifecycle governance" \
+  python scripts/ci/check_security_exceptions.py \
+  -- \
+  "Security Exception Governance" \
+  "python scripts/ci/check_security_exceptions.py" \
+  "Yes" "✓"
 
 write_summary ""
 write_summary "✅ mandatory-security-regression gate passed"
