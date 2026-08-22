@@ -415,3 +415,28 @@ def test_gate_context_and_workflow_notice_include_available_context() -> None:
     }
     assert service._append_workflow_notice("content", None) == "content"
     assert "schedule-1" in service._append_workflow_notice("content", {"schedule_id": "schedule-1"})
+
+
+def test_agent_governance_metadata_includes_degradation_fields() -> None:
+    from layer4_agents.api.routes.agent_stream import AgentGovernanceMetadata
+
+    metadata = AgentGovernanceMetadata(
+        trace_id="tr-1",
+        workflow_id="wf-1",
+        tenant_id="tenant-1",
+        tool_name="valuepilot_conversation",
+        audit_event_id="audit-1",
+        emitted_at="2025-01-01T00:00:00Z",
+        response_tier="heuristic",
+        provider="openai",
+        fallback=True,
+        degraded=True,
+        degradation_reason="llm_tiers_unavailable",
+    )
+    dumped = metadata.model_dump()
+    assert dumped["response_tier"] == "heuristic"
+    assert dumped["provider"] == "openai"
+    assert dumped["fallback"] is True
+    assert dumped["degraded"] is True
+    assert dumped["degradation_reason"] == "llm_tiers_unavailable"
+

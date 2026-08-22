@@ -136,7 +136,11 @@ class GovernedLLMClient:
         runtime_config_path: Path | None = None,
     ) -> None:
         self._provider = provider
-        self._provider_name = provider_name
+        self._provider_name = (
+            provider_name.strip().lower()
+            if isinstance(provider_name, str)
+            else provider_name
+        )
         self._run = run
         self._telemetry = telemetry
         self._config = self._load_runtime_config(runtime_config_path or _RUNTIME_CONFIG_PATH)
@@ -350,7 +354,12 @@ class GovernedLLMClient:
     def _resolve_model(self, model_task: str) -> str:
         """Resolve model name from layer4_agents.harness.runtime.yaml for the active provider."""
         llm_cfg = self._config.get("llm", {})
-        provider = os.getenv("LAYER4_LLM_PROVIDER", llm_cfg.get("provider", self._provider_name))
+        raw_provider = os.getenv("LAYER4_LLM_PROVIDER", llm_cfg.get("provider", self._provider_name))
+        provider = (
+            raw_provider.strip().lower()
+            if isinstance(raw_provider, str)
+            else raw_provider
+        )
         models = llm_cfg.get("models", {}).get(provider, {})
         model = models.get(model_task)
         if not model:
