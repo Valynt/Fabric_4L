@@ -44,7 +44,30 @@ class ConversationResponseResult(TypedDictModel):
     fallback: bool
     degraded: bool
     degradation_reason: str | None = None
-    attempted_tiers: list[dict[str, Any]] = []
+    attempted_tiers: list[dict[str, object]] = []
+
+    def __contains__(self, item: object) -> bool:
+        if isinstance(item, str) and item in self.content:
+            return True
+        return item in self.__dict__ or item in self.__class__.model_fields
+
+    def lower(self) -> str:
+        return self.content.lower()
+
+    def upper(self) -> str:
+        return self.content.upper()
+
+    def startswith(self, prefix: str | tuple[str, ...], *args: object) -> bool:
+        return self.content.startswith(prefix, *args)
+
+    def endswith(self, suffix: str | tuple[str, ...], *args: object) -> bool:
+        return self.content.endswith(suffix, *args)
+
+    def strip(self, *args: object) -> str:
+        return self.content.strip(*args)
+
+    def __str__(self) -> str:
+        return self.content
 
 
 class ConversationService_handle_messageResult(TypedDictModel):
@@ -925,7 +948,7 @@ class ConversationService:
         account_name: str,
         gate_context: dict[str, Any],
         tenant_id: str,
-        entities: dict[str, Any] | None = None,
+        entities: dict[str, object] | None = None,
     ) -> ConversationResponseResult:
         """Generate the response content and track tier execution.
 
@@ -936,7 +959,7 @@ class ConversationService:
         3. Context-aware heuristic response (heuristic_fallback, degraded + fallback)
         """
         tenant_id = self._require_tenant_id(tenant_id)
-        attempted_tiers: list[dict[str, Any]] = []
+        attempted_tiers: list[dict[str, object]] = []
 
         # Strategy 0: Mutation tool execution
         if intent in MUTATION_INTENTS:
@@ -1117,7 +1140,7 @@ class ConversationService:
         user_message: str,
         messages: list[dict[str, str]],
         active_tab: str,
-        context_data: dict[str, Any],
+        context_data: dict[str, object],
         account_name: str,
     ) -> str:
         """Generate response via the Thesys C1 API.
@@ -1193,7 +1216,9 @@ class ConversationService:
                 )
             return str(data)
 
-    def _heuristic_classify(self, message: str) -> dict[str, Any]:
+    def _heuristic_classify(
+        self, message: str
+    ) -> ConversationService__heuristic_classifyResult:
         """Rule-based intent classification fallback."""
         lower = message.lower()
 
