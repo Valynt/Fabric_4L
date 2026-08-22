@@ -93,3 +93,18 @@ def test_playwright_compose_uses_repository_root_build_context() -> None:
 
     assert "context: ../.." in compose
     assert "dockerfile: ./apps/web/Dockerfile.playwright" in compose
+
+
+@pytest.mark.security
+@pytest.mark.contract_static
+def test_dockerfile_healthcheck_evaluates_port_env() -> None:
+    """Production web Dockerfile healthcheck must evaluate process.env.PORT with 3000 fallback."""
+    dockerfile = WEB_ROOT / "Dockerfile"
+    assert dockerfile.exists(), f"{dockerfile} does not exist"
+    content = dockerfile.read_text(encoding="utf-8")
+
+    assert "process.env.PORT" in content, "Healthcheck should evaluate process.env.PORT"
+    assert "3000" in content, "Healthcheck should retain fallback port 3000"
+    assert "http://localhost:3000/" not in content, "Healthcheck should not contain hard-coded http://localhost:3000/ URL"
+    assert "http://localhost:3000" not in content, "Healthcheck should not contain hard-coded http://localhost:3000 URL"
+
