@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Any
-
 from ..harness.models import GateStatus, GateType, HumanGate
 from ..harness.policies import PolicyViolationError, enforce_action_approval
 
@@ -16,7 +14,7 @@ def validate_workflow_start_invariants(
     workflow_type: str,
     supported_types: set[str] | frozenset[str] | list[str],
     tenant_id: str | None,
-    checkpoint_saver: Any,
+    checkpoint_saver: object,
     error_cls: type[Exception],
 ) -> None:
     """Validate common start invariants (type, tenant context, checkpoint saver in prod)."""
@@ -43,15 +41,15 @@ def validate_workflow_start_invariants(
 def parse_and_enforce_approval_gate(
     *,
     workflow_id: str | None,
-    input_data: dict[str, Any],
+    input_data: dict[str, object],
     tenant_id: str | None,
     error_cls: type[Exception],
-) -> Any:
+) -> object:
     """Parse HumanGate definition and enforce action approval policy."""
     action_class = input_data.get("action_class")
     gate_data = input_data.get("approval_gate")
     gate: HumanGate | None = None
-    if gate_data is not None:
+    if isinstance(gate_data, dict):
         gate = HumanGate(
             id=str(gate_data["id"]),
             run_id=str(gate_data.get("run_id") or ""),
@@ -62,7 +60,7 @@ def parse_and_enforce_approval_gate(
     try:
         return enforce_action_approval(
             run_id=workflow_id or "pending_workflow_id",
-            action_class=action_class,
+            action_class=action_class if isinstance(action_class, str) else None,
             gate=gate,
         )
     except (ValueError, PolicyViolationError) as exc:

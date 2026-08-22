@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from typing import Any
 from uuid import uuid4
 
 from ..models.run_envelope import RunEnvelope
@@ -12,17 +11,17 @@ from .types import ScheduledTask
 def initialize_workflow_run_context(
     *,
     workflow_type: str,
-    input_data: dict[str, Any],
-    tool_registry: Any,
-    checkpoint_saver: Any,
+    input_data: dict[str, object],
+    tool_registry: object,
+    checkpoint_saver: object,
     workflow_id: str | None,
     tenant_id: str | None,
     user_id: str | None,
     priority_value: int,
-    approval_evidence: Any,
+    approval_evidence: object,
     resolved_timeout_seconds: int,
     timeout_source: str,
-) -> tuple[str, str, str, Any, Any, dict[str, Any]]:
+) -> tuple[str, str, str, object, object, dict[str, object]]:
     """Initialize workflow run identity, state, envelope, and metadata dictionary."""
     wf_id = workflow_id or str(uuid4())
     run_id = str(uuid4())
@@ -55,7 +54,7 @@ def initialize_workflow_run_context(
     if approval_evidence:
         envelope_data["approval_decision"] = approval_evidence
 
-    metadata: dict[str, Any] = {
+    metadata: dict[str, object] = {
         "workflow_type": workflow_type,
         "tenant_id": tenant_id,
         "user_id": user_id,
@@ -74,7 +73,18 @@ def initialize_workflow_run_context(
     return wf_id, run_id, trace_id, workflow, initial_state, metadata
 
 
-def build_workflow_task(*, priority: int, workflow_id: str, tenant_id: str | None, user_id: str | None, workflow_type: str, workflow: Any, initial_state: Any, checkpoint_interval: int, handler: Any) -> ScheduledTask:
+def build_workflow_task(
+    *,
+    priority: int,
+    workflow_id: str,
+    tenant_id: str | None,
+    user_id: str | None,
+    workflow_type: str,
+    workflow: object,
+    initial_state: object,
+    checkpoint_interval: int,
+    handler: object,
+) -> ScheduledTask:
     return ScheduledTask(
         priority=priority,
         scheduled_time=datetime.now(UTC),

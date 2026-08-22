@@ -13,7 +13,7 @@ import asyncio
 import logging
 import uuid
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -138,7 +138,7 @@ async def create_or_update_prospect_account(
 
 
 async def trigger_prospect_workflow(
-    executor: Any | None,
+    executor: object | None,
     prospect_uuid: uuid.UUID,
     setup_data: ProspectSetupData,
     workflow_type: str,

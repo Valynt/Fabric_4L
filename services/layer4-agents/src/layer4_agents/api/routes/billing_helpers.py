@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from fastapi import Request
 
@@ -51,7 +51,7 @@ def dt_iso(dt: datetime | None) -> str | None:
     return dt.isoformat() if dt else None
 
 
-def serialize_subscription(sub: BillingSubscription | None) -> dict[str, Any]:
+def serialize_subscription(sub: BillingSubscription | None) -> dict[str, object]:
     """Serialize a BillingSubscription to the frontend contract shape."""
     if sub is None:
         return {
@@ -72,7 +72,7 @@ def serialize_subscription(sub: BillingSubscription | None) -> dict[str, Any]:
     }
 
 
-def serialize_invoice_item(item: BillingInvoiceItem) -> dict[str, Any]:
+def serialize_invoice_item(item: BillingInvoiceItem) -> dict[str, object]:
     """Serialize an invoice item to JSON-compatible dictionary."""
     return {
         "id": item.id,
@@ -91,7 +91,7 @@ def serialize_invoice_item(item: BillingInvoiceItem) -> dict[str, Any]:
     }
 
 
-def serialize_charge(charge: BillingCharge) -> dict[str, Any]:
+def serialize_charge(charge: BillingCharge) -> dict[str, object]:
     """Serialize a charge record to JSON-compatible dictionary."""
     return {
         "id": charge.id,
@@ -118,9 +118,9 @@ def serialize_charge(charge: BillingCharge) -> dict[str, Any]:
 
 def serialize_invoice(
     inv: BillingInvoice, *, include_items: bool = True, include_charges: bool = False
-) -> dict[str, Any]:
+) -> dict[str, object]:
     """Serialize an invoice record to JSON-compatible dictionary."""
-    result: dict[str, Any] = {
+    result: dict[str, object] = {
         "id": inv.id,
         "invoice_number": inv.invoice_number,
         "customer_id": inv.customer_id,
@@ -151,7 +151,7 @@ def serialize_invoice(
     return result
 
 
-def serialize_usage_event(event: BillingUsageEvent) -> dict[str, Any]:
+def serialize_usage_event(event: BillingUsageEvent) -> dict[str, object]:
     """Serialize a usage event to JSON-compatible dictionary."""
     return {
         "id": event.id,
@@ -168,7 +168,7 @@ def serialize_usage_event(event: BillingUsageEvent) -> dict[str, Any]:
     }
 
 
-def serialize_customer(customer: BillingCustomer) -> dict[str, Any]:
+def serialize_customer(customer: BillingCustomer) -> dict[str, object]:
     """Serialize a customer record to JSON-compatible dictionary."""
     return {
         "id": customer.id,

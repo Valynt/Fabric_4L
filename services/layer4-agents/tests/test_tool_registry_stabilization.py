@@ -53,7 +53,7 @@ class MutationTool(BaseTool):
 
 
 class AuthHttpException(Exception):
-    def __init__(self, status_code: int, detail: Any):
+    def __init__(self, status_code: int, detail: object):
         super().__init__(str(detail))
         self.status_code = status_code
         self.detail = detail
