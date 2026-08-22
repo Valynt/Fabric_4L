@@ -12,7 +12,10 @@ Note: The tenant column normalization was handled in migration 004. The RLS
 policies here reference tenant_id.
 """
 
-from alembic import op
+try:
+    from alembic import op
+except ImportError:  # pragma: no cover
+    op = None
 
 revision = "005"
 down_revision = "004"

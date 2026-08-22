@@ -13,7 +13,6 @@ spec:
         protocol: HTTP
       hosts:
         - __HOST__
-        - __API_HOST__
       tls:
         httpsRedirect: true
     - port:
@@ -25,12 +24,3 @@ spec:
       tls:
         mode: SIMPLE
         credentialName: frontend-tls
-    - port:
-        number: 443
-        name: https-api
-        protocol: HTTPS
-      hosts:
-        - __API_HOST__
-      tls:
-        mode: SIMPLE
-        credentialName: layer-apis-tls

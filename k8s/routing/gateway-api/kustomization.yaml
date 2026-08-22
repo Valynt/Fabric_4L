@@ -3,8 +3,8 @@ kind: Kustomization
 
 # Gateway API routing stack (EXPERIMENTAL).
 # This kustomization MUST NOT import ../../base.
-# Hostnames use sentinel values __HOST__ / __API_HOST__ replaced by the
-# deployment overlay via Kustomize `replacements:` keyed off a routing-host ConfigMap.
+# The application hostname uses the __HOST__ sentinel replaced by the deployment
+# overlay via Kustomize `replacements:` keyed off a routing-host ConfigMap.
 
 resources:
   - certificate.yaml

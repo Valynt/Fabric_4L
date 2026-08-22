@@ -76,10 +76,6 @@
       "size": 2255
     },
     {
-      "module": "layer4_agents.agents.audit_orchestrator.analyzers.finding_catalog",
-      "size": 1646
-    },
-    {
       "module": "layer2_extraction.api.main",
       "size": 1641
     },
@@ -93,7 +89,7 @@
     },
     {
       "module": "layer4_agents.engine.executor",
-      "size": 1539
+      "size": 1522
     },
     {
       "module": "layer4_agents.api.routes.analysis",
@@ -104,16 +100,16 @@
       "size": 1333
     },
     {
+      "module": "layer4_agents.services.conversation",
+      "size": 1240
+    },
+    {
       "module": "api.routes.value_packs",
-      "size": 1223
+      "size": 1225
     },
     {
       "module": "layer4_agents.workflows.business_case",
       "size": 1199
-    },
-    {
-      "module": "layer4_agents.api.routes.billing",
-      "size": 1179
     },
     {
       "module": "api.routes.formulas",
@@ -121,11 +117,7 @@
     },
     {
       "module": "backup.backup_manager",
-      "size": 1134
-    },
-    {
-      "module": "layer4_agents.services.conversation",
-      "size": 1121
+      "size": 1147
     },
     {
       "module": "layer1_ingestion.shared.models",
@@ -136,8 +128,16 @@
       "size": 1072
     },
     {
+      "module": "layer4_agents.api.routes.billing",
+      "size": 1061
+    },
+    {
       "module": "layer4_agents.agents.audit_orchestrator.models",
       "size": 1037
+    },
+    {
+      "module": "layer4_agents.tools.registry",
+      "size": 1033
     }
   ],
   "size_threshold": 1000

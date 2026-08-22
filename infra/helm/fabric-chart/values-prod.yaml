@@ -83,22 +83,23 @@ services:
         memory: 512Mi
 
 postgresql:
-  enabled: false  # Use managed RDS in production
+  enabled: false # Use managed RDS in production
 
 redis:
-  enabled: false  # Use managed ElastiCache in production
+  enabled: false # Use managed ElastiCache in production
 
 ingress:
   enabled: true
+  application:
+    host: app.fabric.example.com
+  tlsSecretName: fabric-tls
   annotations:
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
-    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
-    nginx.ingress.kubernetes.io/rate-limit: "200"
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
-  tls:
-    - secretName: fabric-tls
-      hosts:
-        - api.fabric.example.com
+  api:
+    annotations:
+      nginx.ingress.kubernetes.io/limit-rps: "40"
+      nginx.ingress.kubernetes.io/limit-rpm: "200"
 
 monitoring:
   enabled: true

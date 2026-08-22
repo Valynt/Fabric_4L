@@ -14,8 +14,8 @@ if str(SERVICE_ROOT) not in sys.path:
 from value_fabric.shared.error_handling.exceptions import AuthorizationError, ValidationError
 from value_fabric.shared.identity.context import RequestContext
 
-import src.database as database
 import layer4_agents.database as _layer4_db
+import layer4_agents.database as database
 import layer4_agents.metrics as _layer4_metrics
 
 
