@@ -137,7 +137,7 @@ def build_scenarios_router() -> APIRouter:
                 SavedBusinessCaseScenario.tenant_id == str(context.tenant_id),
             )
         )
-        if result.rowcount == 0:
+        if getattr(result, "rowcount", 0) == 0:
             raise NotFoundError(message="Saved scenario not found")
 
     return router

@@ -11,7 +11,7 @@ import json
 import logging
 from collections.abc import Callable
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, cast
 from uuid import UUID, uuid4
 
 from fastapi import (
@@ -35,6 +35,7 @@ from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import require_authenticated
 from value_fabric.shared.identity.policy_registry import authorize_action
 
+from ...config.settings import get_settings
 from ...engine.executor import WorkflowExecutor
 from ...models.agent_state import (
     BusinessCaseInputData,
@@ -43,6 +44,7 @@ from ...models.business_case_record import BusinessCaseRecord
 from ...services.account_service import AccountService
 from ...services.business_case_service import BusinessCaseService
 from ...services.export_provenance import build_export_provenance_manifest
+from ...services.export_storage import generate_download_url, upload_bytes
 from ..common.audit import emit_and_persist_audit
 from ..common.db import get_route_db
 from ..common.errors import normalize_exception
@@ -149,7 +151,7 @@ async def require_approved_case(
 ) -> None:
     """Raise if the business case is not in an export-allowed status."""
     if str(record.status).lower() not in {"approved", "exported", "delivered"}:
-        await analysis.emit_and_persist_audit(
+        await emit_and_persist_audit(
             action=AuditAction.EXPORT_REQUESTED,
             context=context,
             resource_type="BusinessCaseExport",
@@ -171,7 +173,7 @@ def build_cases_router(
     *,
     get_executor: Callable[[], WorkflowExecutor],
     require_tenant_account_fn: Callable[[AsyncSession, UUID, RequestContext], Any],
-    is_smoke_mode_fn: Callable[[Request, Any], bool],
+    is_smoke_mode_fn: Callable[..., bool],
     smoke_business_case_response_fn: Callable[
         [Request, BusinessCaseRequest, Any, AsyncSession, RequestContext], Any
     ],
@@ -213,7 +215,7 @@ def build_cases_router(
                 )
 
             executor = get_executor()
-            account = await analysis.AccountService(db).get_account(
+            account = await AccountService(db).get_account(
                 request.account_id, tenant_id=str(context.tenant_id)
             )
             if not account:
@@ -225,8 +227,11 @@ def build_cases_router(
             if is_smoke_mode_fn(
                 http_request, body_mode=str(custom_inputs.get("mode", ""))
             ):
-                return await smoke_business_case_response_fn(
-                    http_request, request, account, db, context
+                return cast(
+                    BusinessCaseResponse,
+                    await smoke_business_case_response_fn(
+                        http_request, request, account, db, context
+                    ),
                 )
 
             input_data = BusinessCaseInputData(
@@ -244,9 +249,10 @@ def build_cases_router(
                 user_id=context.user_id,
             )
 
-            assemble_data = result.output_data.get("assemble", {})
-            truth_gate = result.output_data.get("verify_truth_requirements", {})
-            sdes_bundle = result.output_data.get("generate_sdes", {})
+            output_data = result.output_data or {}
+            assemble_data = output_data.get("assemble", {})
+            truth_gate = output_data.get("verify_truth_requirements", {})
+            sdes_bundle = output_data.get("generate_sdes", {})
 
             case_metadata = dict(assemble_data.get("case_metadata", {}))
             case_metadata["account_id"] = str(request.account_id)
@@ -461,7 +467,7 @@ def build_cases_router(
             )
             raise exc
 
-        await analysis._require_approved_case(record, context, account, format)
+        await require_approved_case(record, context, account, format)
 
         result = await executor.get_result(case_id)
         if not result:
@@ -503,29 +509,32 @@ def build_cases_router(
                     "truth_gate_passed": truth_gate.get("passed", False),
                 },
             )
-            return export_business_caseResult.model_validate(
-                {
-                    "case_id": case_id,
-                    "export_id": export_id,
-                    "format": format,
-                    "document_url": assemble_data.get("document_url"),
-                    "download_ready": False,
-                    "blocked": True,
-                    "remediation_items": remediation_items,
-                    "truth_references": truth_references,
-                    "manifest": {
+            return cast(
+                dict[str, Any],
+                export_business_caseResult.model_validate(
+                    {
                         "case_id": case_id,
+                        "export_id": export_id,
                         "format": format,
+                        "document_url": assemble_data.get("document_url"),
+                        "download_ready": False,
                         "blocked": True,
-                        "truth_references": truth_references,
                         "remediation_items": remediation_items,
-                        "truth_gate": {
-                            "passed": truth_gate.get("passed", False),
-                            "requirements": truth_gate.get("requirements", []),
+                        "truth_references": truth_references,
+                        "manifest": {
+                            "case_id": case_id,
+                            "format": format,
+                            "blocked": True,
+                            "truth_references": truth_references,
+                            "remediation_items": remediation_items,
+                            "truth_gate": {
+                                "passed": truth_gate.get("passed", False),
+                                "requirements": truth_gate.get("requirements", []),
+                            },
                         },
-                    },
-                }
-            ).model_dump()
+                    }
+                ).model_dump(),
+            )
 
         if not document_bytes:
             raise ConflictError(message="Business case document bytes unavailable")
@@ -533,7 +542,7 @@ def build_cases_router(
         if not isinstance(document_bytes, bytes):
             document_bytes = bytes(document_bytes)
 
-        effective_settings = analysis.get_settings()
+        effective_settings = get_settings()
         if not getattr(effective_settings, "export_storage_endpoint", None):
             raise ServiceUnavailableError(
                 message="Export storage endpoint is not configured"
@@ -573,14 +582,14 @@ def build_cases_router(
             "application/pdf" if format == "pdf" else "application/octet-stream"
         )
 
-        await analysis.upload_bytes(
+        await upload_bytes(
             tenant_id=str(context.tenant_id),
             object_key=object_key,
             content=document_bytes,
             content_type=content_type,
             metadata=metadata,
         )
-        await analysis.upload_bytes(
+        await upload_bytes(
             tenant_id=str(context.tenant_id),
             object_key=manifest_key,
             content=manifest_bytes,
@@ -588,10 +597,10 @@ def build_cases_router(
             metadata=metadata,
         )
 
-        document_url = await analysis.generate_download_url(
+        document_url = await generate_download_url(
             tenant_id=str(context.tenant_id), object_key=object_key
         )
-        manifest_url = await analysis.generate_download_url(
+        manifest_url = await generate_download_url(
             tenant_id=str(context.tenant_id), object_key=manifest_key
         )
         expires_at = datetime.fromtimestamp(
@@ -600,7 +609,7 @@ def build_cases_router(
             tz=UTC,
         ).isoformat()
 
-        await analysis.emit_and_persist_audit(
+        await emit_and_persist_audit(
             action=AuditAction.EXPORT_REQUESTED,
             context=context,
             resource_type="BusinessCaseExport",
@@ -614,7 +623,7 @@ def build_cases_router(
             },
         )
 
-        await analysis.emit_and_persist_audit(
+        await emit_and_persist_audit(
             action=AuditAction.EXPORT_PACKAGE_GENERATED,
             context=context,
             resource_type="BusinessCaseExport",
@@ -631,7 +640,7 @@ def build_cases_router(
             },
         )
 
-        await analysis.emit_and_persist_audit(
+        await emit_and_persist_audit(
             action=AuditAction.EXPORT_DOWNLOAD_ACCESSED,
             context=context,
             resource_type="BusinessCaseExport",
@@ -645,21 +654,24 @@ def build_cases_router(
             },
         )
 
-        return export_business_caseResult.model_validate(
-            {
-                "case_id": case_id,
-                "export_id": export_id,
-                "format": format,
-                "document_url": document_url,
-                "manifest_url": manifest_url,
-                "download_ready": True,
-                "blocked": False,
-                "manifest": manifest,
-                "remediation_items": remediation_items,
-                "truth_references": truth_references,
-                "url_expires_at": expires_at,
-            }
-        ).model_dump()
+        return cast(
+            dict[str, Any],
+            export_business_caseResult.model_validate(
+                {
+                    "case_id": case_id,
+                    "export_id": export_id,
+                    "format": format,
+                    "document_url": document_url,
+                    "manifest_url": manifest_url,
+                    "download_ready": True,
+                    "blocked": False,
+                    "manifest": manifest,
+                    "remediation_items": remediation_items,
+                    "truth_references": truth_references,
+                    "url_expires_at": expires_at,
+                }
+            ).model_dump(),
+        )
 
     @router.get("/cases", response_model=CaseListResponse)
     async def list_cases(
