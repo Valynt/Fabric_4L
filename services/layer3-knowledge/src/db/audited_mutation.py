@@ -430,8 +430,15 @@ class AuditedGraphMutation:
         self,
         rel_type: str,
         triples: list[dict[str, str]],
+        versioned: bool = False,
     ) -> dict[str, Any]:
-        """Batch merge relationships and audit the batch operation."""
+        """Batch merge relationships and audit the batch operation.
+
+        When ``versioned=True``, a ``RelationshipVersion`` node is created for
+        every triple in a single UNWIND round trip — mirroring the per-call
+        versioning behavior of :meth:`write_relationship` (default ``True``) so
+        batch and single paths keep identical provenance.
+        """
         validate_cypher_identifier(
             rel_type, ALLOWED_REL_TYPES, kind="relationship type"
         )
@@ -443,24 +450,51 @@ class AuditedGraphMutation:
         now = datetime.now(UTC).isoformat()
         triple_count = len(triples)
 
-        merge_query = f"""
-        UNWIND $triples as triple
-        MATCH (src {{id: triple.src_id, tenant_id: $tenant_id}})
-        MATCH (tgt {{id: triple.tgt_id, tenant_id: $tenant_id}})
-        MERGE (src)-[r:{rel_type}]->(tgt)
-        SET r += coalesce(triple.properties, {{}})
-        SET r.updated_at = $now
-        RETURN count(r) as merged
-        """
+        params: dict[str, Any] = {
+            "triples": triples,
+            "tenant_id": self.tenant_id,
+            "now": now,
+        }
+        if versioned:
+            merge_query = f"""
+            UNWIND $triples as triple
+            MATCH (src {{id: triple.src_id, tenant_id: $tenant_id}})
+            MATCH (tgt {{id: triple.tgt_id, tenant_id: $tenant_id}})
+            MERGE (src)-[r:{rel_type}]->(tgt)
+            SET r += coalesce(triple.properties, {{}})
+            SET r.updated_at = $now
+            CREATE (v:RelationshipVersion {{
+                id: triple.iid,
+                tenant_id: $tenant_id,
+                src_id: triple.src_id,
+                rel_type: $rel_type,
+                tgt_id: triple.tgt_id,
+                timestamp: $now,
+                details: coalesce(triple.properties, {{}})
+            }})
+            RETURN count(r) as merged
+            """
+            params["rel_type"] = rel_type
+            # Each version node needs a unique id; enrich a copy so the
+            # caller's input list is not mutated.
+            params["triples"] = [
+                {**t, "iid": str(uuid.uuid4())} for t in triples
+            ]
+        else:
+            merge_query = f"""
+            UNWIND $triples as triple
+            MATCH (src {{id: triple.src_id, tenant_id: $tenant_id}})
+            MATCH (tgt {{id: triple.tgt_id, tenant_id: $tenant_id}})
+            MERGE (src)-[r:{rel_type}]->(tgt)
+            SET r += coalesce(triple.properties, {{}})
+            SET r.updated_at = $now
+            RETURN count(r) as merged
+            """
         try:
             result = await run_validated_query(
                 self.session,
                 merge_query,
-                {
-                    "triples": triples,
-                    "tenant_id": self.tenant_id,
-                    "now": now,
-                },
+                params,
                 tenant_id=self.tenant_id,
                 require_explicit_tenant_id=True,
                 allow_system_query=True,
@@ -479,6 +513,64 @@ class AuditedGraphMutation:
 
         await self._audit(
             "WRITE_RELATIONSHIPS_BATCH",
+            f"batch_{triple_count}",
+            rel_type,
+            f"batch_{triple_count}",
+            {"count": processed_count, "requested_count": triple_count},
+        )
+
+        return {"status": "ok", "rel_type": rel_type, "count": processed_count}
+
+    async def delete_relationships_batch(
+        self,
+        rel_type: str,
+        triples: list[dict[str, str]],
+    ) -> dict[str, Any]:
+        """Batch delete relationships and audit the batch operation."""
+        validate_cypher_identifier(
+            rel_type, ALLOWED_REL_TYPES, kind="relationship type"
+        )
+
+        if rel_type not in ALLOWED_REL_TYPES:
+            self._increment_mutation_failure("relationship_type_not_allowed")
+            raise ValueError(f"Relationship type '{rel_type}' not in allowlist")
+
+        triple_count = len(triples)
+
+        delete_query = f"""
+        UNWIND $triples as triple
+        MATCH (src {{id: triple.src_id, tenant_id: $tenant_id}})
+        MATCH (tgt {{id: triple.tgt_id, tenant_id: $tenant_id}})
+        MATCH (src)-[r:{rel_type}]->(tgt)
+        DELETE r
+        RETURN count(r) as deleted
+        """
+        try:
+            result = await run_validated_query(
+                self.session,
+                delete_query,
+                {
+                    "triples": triples,
+                    "tenant_id": self.tenant_id,
+                },
+                tenant_id=self.tenant_id,
+                require_explicit_tenant_id=True,
+                allow_system_query=True,
+                query_name="audited_mutation.delete_relationships_batch",
+            )
+            record = await result.single() if hasattr(result, "single") else None
+            processed_count = (
+                record["deleted"]
+                if isinstance(record, dict) and "deleted" in record
+                else triple_count
+            )
+            self._increment_mutation_success("relationship_delete_batch")
+        except Exception:
+            self._increment_mutation_failure("relationship_delete_batch_error")
+            raise
+
+        await self._audit(
+            "DELETE_RELATIONSHIPS_BATCH",
             f"batch_{triple_count}",
             rel_type,
             f"batch_{triple_count}",
