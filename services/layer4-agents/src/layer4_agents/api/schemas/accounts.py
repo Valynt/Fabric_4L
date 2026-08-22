@@ -12,6 +12,8 @@ from decimal import Decimal
 from enum import Enum
 from uuid import UUID
 
+from typing import Any
+
 from pydantic import BaseModel, ConfigDict, Field
 
 from ...models.account import CRMProvider, SyncStatus
@@ -130,9 +132,16 @@ class CreateAccountRequest(BaseModel):
     For manual accounts, provider_record_id is auto-generated if omitted.
     """
 
-    id: UUID | None = Field(None, description="Optional deterministic account UUID for validation seeding")
+    id: UUID | None = Field(
+        None, description="Optional deterministic account UUID for validation seeding"
+    )
     provider: CRMProvider
-    provider_record_id: str | None = Field(None, min_length=1, max_length=100, description="Original CRM record ID. Auto-generated for manual accounts.")
+    provider_record_id: str | None = Field(
+        None,
+        min_length=1,
+        max_length=100,
+        description="Original CRM record ID. Auto-generated for manual accounts.",
+    )
     name: str = Field(..., min_length=1, max_length=255)
     domain: str | None = Field(None, max_length=255)
     industry: str | None = Field(None, max_length=100)
@@ -272,7 +281,7 @@ class AccountFilterOptionsResponse(BaseModel):
     regions: list[str]
     segments: list[str]
     providers: list[CRMProvider]
-    owners: list[dict[str, str]]
+    owners: list[dict[str, Any]]
 
 
 # ============================================================================
