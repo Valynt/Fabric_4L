@@ -15,6 +15,10 @@ from __future__ import annotations
 
 import os as _os
 _os.environ.setdefault("JWT_SECRET", "test-secret-key-for-layer2-tests-32b")
+_os.environ.setdefault("ENVIRONMENT", "test")
+_os.environ.setdefault("LAYER2_ENV", "test")
+_os.environ.setdefault("TESTING", "true")
+_os.environ.setdefault("ALLOW_LEGACY_TEST_TENANT_IDS", "true")
 
 import importlib
 import sys

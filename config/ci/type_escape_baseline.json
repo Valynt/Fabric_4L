@@ -13729,6 +13729,12 @@
       "text": "def _compute_cache_key(self, entity: Any) -> str:"
     },
     {
+      "kind": "python-type-ignore",
+      "line": 17,
+      "path": "services/layer2-extraction/src/layer2_extraction/api/app_factory.py",
+      "text": "psutil = None  # type: ignore[assignment]"
+    },
+    {
       "kind": "python-any",
       "line": 7,
       "path": "services/layer2-extraction/src/layer2_extraction/api/extraction_config.py",
@@ -13796,27 +13802,45 @@
     },
     {
       "kind": "python-any",
-      "line": 26,
-      "path": "services/layer2-extraction/src/layer2_extraction/api/main.py",
+      "line": 14,
+      "path": "services/layer2-extraction/src/layer2_extraction/api/ingestion_runner.py",
+      "text": "from typing import Any, cast"
+    },
+    {
+      "kind": "python-any",
+      "line": 94,
+      "path": "services/layer2-extraction/src/layer2_extraction/api/ingestion_runner.py",
+      "text": "def _serialize_artifacts(artifacts: Any) -> tuple[str, str]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 103,
+      "path": "services/layer2-extraction/src/layer2_extraction/api/ingestion_runner.py",
+      "text": "def _deserialize_artifacts(result_json: str, relationships_json: str) -> Any:"
+    },
+    {
+      "kind": "python-any",
+      "line": 153,
+      "path": "services/layer2-extraction/src/layer2_extraction/api/ingestion_runner.py",
+      "text": "artifacts: Any,"
+    },
+    {
+      "kind": "python-any",
+      "line": 198,
+      "path": "services/layer2-extraction/src/layer2_extraction/api/ingestion_runner.py",
+      "text": "async def _attempt_ingestion(job_id: str, source_url: str, artifacts: Any) -> bool:"
+    },
+    {
+      "kind": "python-any",
+      "line": 14,
+      "path": "services/layer2-extraction/src/layer2_extraction/api/pipeline_runner.py",
       "text": "from typing import Any, Protocol, TypeVar, cast"
     },
     {
       "kind": "python-any",
-      "line": 897,
-      "path": "services/layer2-extraction/src/layer2_extraction/api/main.py",
-      "text": "def _require_authenticated_tenant_id(tenant_id: Any, *, operation: str) -> str:"
-    },
-    {
-      "kind": "python-any",
-      "line": 1093,
-      "path": "services/layer2-extraction/src/layer2_extraction/api/main.py",
+      "line": 548,
+      "path": "services/layer2-extraction/src/layer2_extraction/api/pipeline_runner.py",
       "text": "all_entities: dict[str, list[Any]] = {"
-    },
-    {
-      "kind": "python-any",
-      "line": 1878,
-      "path": "services/layer2-extraction/src/layer2_extraction/api/main.py",
-      "text": "event_data: dict[str, Any] = {"
     },
     {
       "kind": "python-any",
@@ -13937,6 +13961,18 @@
       "line": 46,
       "path": "services/layer2-extraction/src/layer2_extraction/api/s2s_auth.py",
       "text": "def _decode_s2s_claims(token: str) -> Any | None:"
+    },
+    {
+      "kind": "python-any",
+      "line": 13,
+      "path": "services/layer2-extraction/src/layer2_extraction/api/sse_stream.py",
+      "text": "from typing import Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 94,
+      "path": "services/layer2-extraction/src/layer2_extraction/api/sse_stream.py",
+      "text": "event_data: dict[str, Any] = {"
     },
     {
       "kind": "python-any",
