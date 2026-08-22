@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import re
 from pathlib import Path
 from typing import Any
@@ -32,8 +33,8 @@ _EXCLUDED_DIRS: set[str] = {
 
 
 def _is_excluded(path: Path) -> bool:
-    """Return True if any segment of ``path`` matches :data:`_EXCLUDED_DIRS`."""
-    return bool(set(path.parts) & _EXCLUDED_DIRS)
+    """Return True if any path component should be skipped."""
+    return any(part in _EXCLUDED_DIRS for part in path.parts)
 
 
 def _walk_files(
@@ -41,53 +42,53 @@ def _walk_files(
     roots: list[Path] | None = None,
     extensions: set[str] | None = None,
 ) -> list[Path]:
-    """Recursively collect file paths under *roots* (or *repo_path*), skipping excluded dirs."""
-    targets = roots if roots is not None else [repo_path]
-    result: list[Path] = []
-    for root in targets:
+    """Walk configured roots while pruning excluded directories.
+
+    This avoids descending into ``node_modules``, ``.venv``, ``.git``, etc.,
+    which keeps large repository scans fast.
+    """
+    results: list[Path] = []
+    search_roots = roots or [repo_path]
+    for root in search_roots:
         if not root.exists():
             continue
-        for p in root.rglob("*"):
-            if p.is_file() and not _is_excluded(p):
-                if extensions is None or p.suffix in extensions:
-                    result.append(p)
-    return result
+        for dirpath, dirnames, filenames in os.walk(str(root), topdown=True):
+            # Prune excluded directories in-place so os.walk does not descend.
+            dirnames[:] = [d for d in dirnames if d not in _EXCLUDED_DIRS]
+            for filename in filenames:
+                file_path = Path(dirpath) / filename
+                if extensions is None or file_path.suffix.lower() in extensions:
+                    results.append(file_path)
+    return results
 
 
 def _source_files(repo_path: Path, extensions: set[str]) -> list[Path]:
-    """Collect source files within ``services/``, ``apps/``, and ``packages/``."""
-    search_roots = [
-        repo_path / "services",
-        repo_path / "apps",
-        repo_path / "packages",
-    ]
-    return _walk_files(
-        repo_path,
-        roots=[r for r in search_roots if r.exists()],
-        extensions=extensions,
-    )
+    """Yield non-excluded source files with the given extensions."""
+    return _walk_files(repo_path, extensions=extensions)
 
 
 def _py_files(repo_path: Path) -> list[Path]:
     """Collect all Python source files in the repo (skipping excluded dirs)."""
-    return _walk_files(repo_path, extensions={".py"})
+    return _source_files(repo_path, {".py"})
 
 
-def _read_lines(file_path: Path) -> list[str]:
-    """Read a file and return non-empty stripped lines."""
+def _read_lines(path: Path) -> list[str]:
+    """Read a text file, returning a list of physical lines.
+
+    Errors are ignored so that binary or malformed files do not abort a run.
+    Caching is intentionally avoided here: a process-wide cache would retain
+    stale file contents across audit runs and across different repositories.
+    """
     try:
-        content = file_path.read_text(encoding="utf-8", errors="replace")
-        return [line for line in content.splitlines() if line.strip()]
-    except OSError:
+        with path.open("r", encoding="utf-8", errors="ignore") as fh:
+            return fh.readlines()
+    except (OSError, UnicodeDecodeError):
         return []
 
 
-def _line_count(file_path: Path) -> int:
+def _line_count(path: Path) -> int:
     """Return the total line count for a file."""
-    try:
-        return len(file_path.read_text(encoding="utf-8", errors="replace").splitlines())
-    except OSError:
-        return 0
+    return len(_read_lines(path))
 
 
 def _match_count(files: list[Path], pattern: re.Pattern[str]) -> tuple[int, list[str]]:
@@ -95,12 +96,14 @@ def _match_count(files: list[Path], pattern: re.Pattern[str]) -> tuple[int, list
     total = 0
     snippets: list[str] = []
     for file_path in files:
-        lines = _read_lines(file_path)
-        for i, line in enumerate(lines, start=1):
-            if pattern.search(line):
-                total += 1
-                if len(snippets) < 10:
-                    snippets.append(f"{file_path}:{i}: {line.strip()[:80]}")
+        try:
+            for i, line in enumerate(_read_lines(file_path), start=1):
+                if pattern.search(line):
+                    total += 1
+                    if len(snippets) < 10:
+                        snippets.append(f"{file_path}:{i}: {line.strip()[:80]}")
+        except Exception:
+            continue
     return total, snippets
 
 
