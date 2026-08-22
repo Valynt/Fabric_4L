@@ -26,8 +26,8 @@ from value_fabric.shared.audit import AuditAction
 from value_fabric.shared.error_handling.exceptions import (
     AuthorizationError,
     ConflictError,
+    NotFoundError,
     ValidationError,
-    ValueFabricException,
 )
 from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import require_authenticated
@@ -510,7 +510,7 @@ def build_validation_seed_router(
         """Seed deterministic business-case lifecycle state for non-production E2E validation."""
         authorize_action("layer4.analysis.seed_case_lifecycle", context)
         require_validation_seed_allowed(
-            http_request, context, settings_provider=get_settings_ref
+            http_request, context, settings_provider=get_settings
         )
         if require_tenant_account_fn:
             await require_tenant_account_fn(db, payload.account_id, context)

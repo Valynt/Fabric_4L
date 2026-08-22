@@ -3,40 +3,30 @@ from __future__ import annotations
 import asyncio
 
 from value_fabric.shared.error_handling.exceptions import (
-    AuthorizationError,
-    ConflictError,
     NotFoundError,
     ServiceUnavailableError,
     ValidationError,
-    ValueFabricException,
 )
 
 """Analysis API routes for quick ROI and whitespace calculations."""
 
 
-import json
 import logging
 import os
-import re
 from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID, uuid4
 
 from fastapi import (
     APIRouter,
-    BackgroundTasks,
     Body,
     Depends,
     Request,
-    Response,
-    status,
 )
-from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from value_fabric.shared.audit import AuditAction, emit_audit_event
 from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import require_authenticated
-from value_fabric.shared.identity.jwt import encode_jwt
 from value_fabric.shared.identity.policy_registry import authorize_action
 
 from ...config.settings import get_settings
@@ -47,57 +37,29 @@ from ...config.settings import get_settings
 settings = get_settings()
 from ...engine.executor import WorkflowExecutor
 from ...models.agent_state import (
-    BusinessCaseAgentState,
-    BusinessCaseInputData,
     ROIInputData,
     WhitespaceInputData,
-    WorkflowStatus,
 )
-from ...models.business_case_record import BusinessCaseRecord
-from ...models.saved_scenario import SavedBusinessCaseScenario
 from ...services.account_service import AccountService
 from ...services.business_case_service import BusinessCaseService
-from ...services.export_provenance import build_export_provenance_manifest
-from ...services.export_storage import generate_download_url, upload_bytes
-from ...tenants.models.api_key import APIKey
-from ...tenants.models.tenant import IsolationTier, Tenant, TenantStatus
-from ...tenants.models.user import User
-from ..common.audit import emit_and_persist_audit
 from ..common.db import get_route_db
 from ..common.errors import normalize_exception
-from ..security.csrf import CSRF_COOKIE_NAME, SESSION_COOKIE_NAME, issue_csrf_token
 from .analysis_schemas import (
-    BusinessCaseLifecycleSeedRequest,
     BusinessCaseRequest,
     BusinessCaseResponse,
-    CaseListItem,
-    CaseListResponse,
-    CreateCaseRequest,
-    CreateCaseResponse,
-    RegenerateBusinessCaseRequest,
     ROIAnalysisRequest,
     ROIAnalysisResponse,
-    SavedScenarioDetail,
-    SavedScenarioSummary,
-    SaveScenarioRequest,
-    ValidationAuthContextSeedRequest,
-    ValidationSeededApiKey,
-    ValidationSessionRequest,
     WhitespaceAnalysisRequest,
     WhitespaceAnalysisResponse,
-    export_business_caseResult,
 )
-from .analysis_cases import require_approved_case as _require_approved_case
 
 get_db_from_context = get_route_db
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
-from ...test_support.seed_runtime_config import (
-    SEED_AUTH_SOURCE,
+from ...test_support.seed_runtime_config import (  # noqa: F401
     SEED_PRIVILEGED_REASON,
-    SEED_SERVICE_ACCOUNT_ID,
     SEED_VALIDATION_USER_IDS,
 )
 

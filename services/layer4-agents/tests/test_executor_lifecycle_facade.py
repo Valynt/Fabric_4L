@@ -1,8 +1,7 @@
 ﻿"""Tests for Layer 4 OrchestrationController workflow lifecycle decomposition and facade integrity."""
 
 from datetime import UTC, datetime
-from typing import Any
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -15,8 +14,6 @@ from layer4_agents.engine.execution_dispatch import build_workflow_task
 from layer4_agents.engine.execution_persistence import (
     WorkflowLifecyclePersistenceService,
     archive_workflow_state,
-    mark_workflow_running,
-    persist_workflow_failure,
     recover_orphaned_workflow_states,
 )
 from layer4_agents.engine.execution_validation import (
@@ -123,7 +120,6 @@ async def test_execute_workflow_deduplication_returns_existing_completed_state()
 ):
     from unittest.mock import AsyncMock, MagicMock
 
-    from layer4_agents.engine.executor import OrchestrationController
     from layer4_agents.models.agent_state import (
         BaseAgentState,
         WorkflowStatus,

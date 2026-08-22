@@ -70,7 +70,6 @@ from .checkpoint_replay import (
 from .execution_checkpointing import persist_interruption_if_needed
 from .execution_dispatch import build_workflow_task
 from .execution_persistence import (
-    WorkflowLifecyclePersistenceService,
     archive_workflow_state,
     mark_workflow_running,
     persist_workflow_failure,
