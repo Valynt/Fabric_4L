@@ -1,4 +1,4 @@
-from src.metrics.prometheus_metrics import MetricsConfig, PrometheusMetrics
+from layer4_agents.metrics.prometheus_metrics import MetricsConfig, PrometheusMetrics
 
 
 def test_db_pool_metrics_emit_values() -> None:

@@ -29,8 +29,9 @@ _src_dir = _layer4_dir / "src"
 if str(_src_dir) not in sys.path:
     sys.path.insert(0, str(_src_dir))
 
-# Ensure the real compatibility package is present before collection-time tests
-# that register targeted ``src.models.*`` mocks with sys.modules.setdefault().
+# Ensure the models packages are present before collection-time tests
+# that register targeted models mocks with sys.modules.setdefault().
+import layer4_agents.models  # noqa: E402,F401
 import src.models  # noqa: E402,F401
 
 # Settings are instantiated by several service imports during collection.
