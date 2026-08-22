@@ -24,6 +24,11 @@ RUN pnpm install --frozen-lockfile --ignore-scripts \
 
 USER node
 
+# Pre-seed the pinned pnpm version into the node user's Corepack cache so the container
+# start path never triggers Corepack's lazy download (which would burst past the 512Mi
+# Bunnyshell memory limit and OOMKill the pod during `pnpm dev` startup).
+RUN corepack enable && corepack prepare pnpm@10.18.1 --activate
+
 # Copy frontend source into its workspace location. Staying at the workspace path keeps
 # pnpm's relative symlinks (../../node_modules/.pnpm/...) valid against /workspace/node_modules,
 # so no symlink/copy gymnastics are needed and the anonymous node_modules volume populates

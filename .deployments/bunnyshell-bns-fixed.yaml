@@ -96,7 +96,7 @@ components:
                 resources:
                     limits:
                         cpus: '0.25'
-                        memory: '536870912'
+                        memory: '1073741824'
             environment:
                 PLAYWRIGHT_LIVE_MODE: 'true'
                 VITE_API_BASE: /api/v1
@@ -127,6 +127,7 @@ components:
                 timeout: 5s
                 interval: 15s
                 retries: 10
+                start_period: 20s
             ports:
                 - '3011:3001'
         hosts:
