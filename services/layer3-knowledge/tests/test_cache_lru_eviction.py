@@ -10,7 +10,12 @@ from collections import OrderedDict
 
 import pytest
 
-from src.performance.cache import CacheConfig, CacheStrategy, MemoryCache
+from src.performance.cache import (
+    CacheConfig,
+    CacheStrategy,
+    CompressionType,
+    MemoryCache,
+)
 
 
 def _cache(max_size: int) -> MemoryCache:
@@ -18,7 +23,7 @@ def _cache(max_size: int) -> MemoryCache:
         CacheConfig(
             strategy=CacheStrategy.LRU,
             max_size=max_size,
-            compression="none",  # type: ignore[arg-type]
+            compression=CompressionType.NONE,
             enable_background_cleanup=False,
         )
     )

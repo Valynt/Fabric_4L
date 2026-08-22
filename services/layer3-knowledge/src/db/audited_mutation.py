@@ -450,7 +450,7 @@ class AuditedGraphMutation:
         now = datetime.now(UTC).isoformat()
         triple_count = len(triples)
 
-        params: dict[str, Any] = {
+        params: dict[str, object] = {
             "triples": triples,
             "tenant_id": self.tenant_id,
             "now": now,
@@ -525,7 +525,7 @@ class AuditedGraphMutation:
         self,
         rel_type: str,
         triples: list[dict[str, str]],
-    ) -> dict[str, Any]:
+    ) -> dict[str, object]:
         """Batch delete relationships and audit the batch operation."""
         validate_cypher_identifier(
             rel_type, ALLOWED_REL_TYPES, kind="relationship type"
