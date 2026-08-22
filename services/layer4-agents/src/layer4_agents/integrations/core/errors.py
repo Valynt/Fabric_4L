@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Any
-
 
 class CRMError(Exception):
     """Base class for all CRM-boundary errors."""
@@ -30,8 +28,9 @@ class PermanentError(CRMError):
 class IntegrityGateOpenError(CRMError):
     """Raised when CRM sync precondition integrity checks fail."""
 
-    def __init__(self, detail: dict[str, Any]):
-        super().__init__(detail.get("message", "INTEGRITY_GATE_OPEN"))
+    def __init__(self, detail: dict[str, object]):
+        message = str(detail.get("message", "INTEGRITY_GATE_OPEN"))
+        super().__init__(message)
         self.detail = detail
 
 

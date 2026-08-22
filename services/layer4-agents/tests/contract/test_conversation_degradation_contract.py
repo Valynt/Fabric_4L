@@ -16,7 +16,6 @@ from __future__ import annotations
 import asyncio
 import sys
 from pathlib import Path
-from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -70,8 +69,9 @@ async def test_primary_agent_success_not_degraded():
 
         # Verify audit emission
         mock_emit.assert_awaited_once()
-        call_kwargs = mock_emit.call_args.kwargs
-        assert call_kwargs["action"] == AuditAction.AGENT_EXECUTION
+        call_args = mock_emit.call_args
+        assert call_args.args[0] == AuditAction.AGENT_EXECUTION
+        call_kwargs = call_args.kwargs
         assert call_kwargs["outcome"] == AuditOutcome.SUCCESS
         details = call_kwargs["details"]
         assert details["response_tier"] == "conversation_agent"

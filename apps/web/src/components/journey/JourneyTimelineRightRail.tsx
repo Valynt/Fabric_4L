@@ -1,8 +1,13 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { CheckCircle2, Circle, Clock, AlertTriangle, ChevronRight, XCircle } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
 import { apiClient } from "@/api/client";
+
+function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
 
 export type JourneyStageStatus = "not_started" | "in_progress" | "completed" | "blocked" | "failed";
 
@@ -126,6 +131,11 @@ export function JourneyTimelineRightRail({
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {isLoading && (
+          <div className="text-[11px] text-muted-foreground animate-pulse">
+            Syncing journey timeline...
+          </div>
+        )}
         {stages.map((stage, idx) => {
           const isCurrent = stage.status === "in_progress";
           const stageUrl = stage.deep_link

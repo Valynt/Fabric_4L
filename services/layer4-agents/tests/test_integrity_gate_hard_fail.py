@@ -17,6 +17,7 @@ import pytest
 from fastapi import HTTPException
 from layer4_agents.api.routes.narratives import NarrativeExportRequest, export_narrative
 from layer4_agents.contracts.artifacts import IntegrityPrecondition
+from layer4_agents.integrations.core.errors import IntegrityGateOpenError
 from layer4_agents.services.crm_sync_service import CRMSyncService
 
 
@@ -224,7 +225,7 @@ async def test_crm_sync_toctou_defense_fails_closed_on_stale_or_mismatched():
     )
 
     # 1. Mismatched human approval vs content hash
-    with pytest.raises(ValueError) as exc1:
+    with pytest.raises(IntegrityGateOpenError) as exc1:
         await crm_service.sync_narrative_to_crm(
             tenant_id="tenant_001",
             account_id="acc_001",
@@ -235,8 +236,8 @@ async def test_crm_sync_toctou_defense_fails_closed_on_stale_or_mismatched():
             human_approved_hash="old_different_hash",  # Stale approval!
             integrity_precondition=valid_precondition,
         )
-    assert exc1.value.args[0]["code"] == "INTEGRITY_GATE_OPEN"
-    assert exc1.value.args[0]["integrity_status"] == "mismatched"
+    assert exc1.value.detail["code"] == "INTEGRITY_GATE_OPEN"
+    assert exc1.value.detail["integrity_status"] == "mismatched"
 
     # 2. Stale / failed integrity precondition
     stale_precondition = IntegrityPrecondition(
@@ -249,7 +250,7 @@ async def test_crm_sync_toctou_defense_fails_closed_on_stale_or_mismatched():
         status="stale",
         unresolved_findings=0,
     )
-    with pytest.raises(ValueError) as exc2:
+    with pytest.raises(IntegrityGateOpenError) as exc2:
         await crm_service.sync_narrative_to_crm(
             tenant_id="tenant_001",
             account_id="acc_001",
@@ -260,8 +261,8 @@ async def test_crm_sync_toctou_defense_fails_closed_on_stale_or_mismatched():
             human_approved_hash="hash_abc123",
             integrity_precondition=stale_precondition,
         )
-    assert exc2.value.args[0]["code"] == "INTEGRITY_GATE_OPEN"
-    assert exc2.value.args[0]["integrity_status"] == "stale"
+    assert exc2.value.detail["code"] == "INTEGRITY_GATE_OPEN"
+    assert exc2.value.detail["integrity_status"] == "stale"
 
     # 3. Valid CRM sync
     res = await crm_service.sync_narrative_to_crm(

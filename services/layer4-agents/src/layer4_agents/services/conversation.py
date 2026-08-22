@@ -1254,7 +1254,7 @@ class ConversationService:
         user_message: str,
         active_tab: str,
         intent: str,
-        context_data: dict[str, Any],
+        context_data: dict[str, object],
         account_name: str,
     ) -> str:
         """Generate a context-aware response without LLM."""
@@ -1373,7 +1373,7 @@ class ConversationService:
     def _append_workflow_notice(
         self,
         content: str,
-        workflow_result: dict[str, Any] | None,
+        workflow_result: dict[str, object] | None,
     ) -> str:
         """Append workflow scheduling notice if a workflow was triggered."""
         if not workflow_result:
@@ -1403,7 +1403,7 @@ class ConversationService:
         fallback: bool = False,
         degraded: bool = False,
         degradation_reason: str | None = None,
-        attempted_tiers: list[dict[str, Any]] | None = None,
+        attempted_tiers: list[dict[str, object]] | None = None,
     ) -> None:
         """Emit a GATE audit event for the conversation interaction."""
         try:

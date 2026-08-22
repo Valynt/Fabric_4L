@@ -696,8 +696,8 @@ class CRMSyncService:
         narrative_content_hash: str,
         evidence_set_hash: str,
         human_approved_hash: str,
-        integrity_precondition: Any,
-    ) -> dict[str, Any]:
+        integrity_precondition: object,
+    ) -> dict[str, object]:
         """Delegate or write narrative claims to CRM.
 
         Enforces Pillar 3 Integrity Gate & CRM TOCTOU defense:

@@ -2,7 +2,6 @@ import { lazy, Suspense } from "react";
 import { createBrowserRouter, Navigate, useLocation, useParams } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuthContext } from "@/contexts/AuthContext";
-import { useAccountContextStore } from "@/stores/accountContextStore";
 import { GlobalLayout } from "@/components/layout/GlobalLayout";
 import { UnifiedRouteGuard } from "@/components/routing/UnifiedRouteGuard";
 import { RequireClerkAuth } from "@/components/routing/RequireClerkAuth";
@@ -34,7 +33,6 @@ const BillingInvoices = lazy(() => import("@/app/settings/pages/BillingInvoices"
 
 // Settings pages — Team & Access
 const TeamMembers = lazy(() => import("@/app/settings/pages/TeamMembers").then(m => ({ default: m.TeamMembers })));
-const TeamInvitations = lazy(() => import("@/app/settings/pages/TeamInvitations").then(m => ({ default: m.TeamInvitations })));
 const TeamRoles = lazy(() => import("@/app/settings/pages/TeamRoles").then(m => ({ default: m.TeamRoles })));
 const TeamPermissions = lazy(() => import("@/app/settings/pages/TeamPermissions").then(m => ({ default: m.TeamPermissions })));
 const TeamApiKeys = lazy(() => import("@/app/settings/pages/TeamApiKeys").then(m => ({ default: m.TeamApiKeys })));
@@ -85,7 +83,6 @@ const TargetsAdmin = lazy(() => import("@/pages/TargetsAdmin"));
 // ── Deliverables ──
 const BusinessCaseList = lazy(() => import("@/pages/BusinessCaseList"));
 const BusinessCase = lazy(() => import("@/pages/BusinessCase"));
-const InteractiveBusinessCase = lazy(() => import("@/pages/InteractiveBusinessCase"));
 const CFOView = lazy(() => import("@/pages/deliverables/CFOView"));
 const ExecutiveView = lazy(() => import("@/pages/deliverables/ExecutiveView"));
 const TechnicalView = lazy(() => import("@/pages/deliverables/TechnicalView"));
@@ -95,9 +92,6 @@ const DecisionTracePage = lazy(() => import("@/pages/DecisionTrace"));
 const GovernanceEvidencePage = lazy(() => import("@/pages/GovernanceEvidence"));
 const GovernanceCompliancePage = lazy(() => import("@/pages/GovernanceCompliance"));
 const GovernanceAuditLogPage = lazy(() => import("@/pages/GovernanceAuditLog"));
-const GovernanceChangeHistoryPage = lazy(() => import("@/pages/GovernanceChangeHistory"));
-const ReviewQueuePage = lazy(() => import("@/pages/ReviewQueuePage"));
-const VersionHistoryPage = lazy(() => import("@/pages/VersionHistoryPage"));
 const BenchmarkPoliciesPage = lazy(() => import("@/pages/admin/BenchmarkPolicies"));
 const HealthMonitorPage = lazy(() => import("@/pages/admin/HealthMonitor"));
 const BillingAdminPage = lazy(() => import("@/pages/admin/BillingAdmin"));
@@ -259,10 +253,7 @@ const tenantStdPolicy = (id: string) => ({ requiresAuth: true, tenantScoped: tru
 const tenantAdvPolicy = (id: string) => ({ requiresAuth: true, tenantScoped: true, requiredTier: "advanced" as const, fallbackRoute: "/home", analyticsRouteId: id });
 const tenantAdminPolicy = (id: string) => ({ requiresAuth: true, tenantScoped: true, requiredTier: "admin" as const, fallbackRoute: "/home", analyticsRouteId: id });
 const accountStdPolicy = (id: string) => ({ requiresAuth: true, tenantScoped: true, accountScoped: true, requiredTier: "standard" as const, fallbackRoute: "/home", analyticsRouteId: id });
-// TODO(VF-FE-ROUTER-DEBT-001): accountAdvPolicy is reserved for future advanced account-scoped gating.
-// No routes currently use it. When advanced account access is implemented,
-// update affected routes (e.g. studio build, value-model detail) to use this policy.
-const accountAdvPolicy = (id: string) => ({ requiresAuth: true, tenantScoped: true, accountScoped: true, requiredTier: "advanced" as const, fallbackRoute: "/home", analyticsRouteId: id });
+// Note: Advanced account access will be wired in future sprint.
 
 export const router = createBrowserRouter([
   {
