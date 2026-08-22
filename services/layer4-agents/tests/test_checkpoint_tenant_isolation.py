@@ -8,7 +8,7 @@ from httpx import ASGITransport, AsyncClient
 from value_fabric.shared.error_handling import register_exception_handlers
 from value_fabric.shared.identity.context import RequestContext
 
-from src.api.routes import checkpoints
+from layer4_agents.api.routes import checkpoints
 
 
 class _FakeConn:

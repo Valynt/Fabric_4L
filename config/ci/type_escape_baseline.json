@@ -1456,61 +1456,25 @@
       "kind": "python-any",
       "line": 5,
       "path": "packages/shared/src/value_fabric/shared/error_handling/helpers.py",
-      "text": "from typing import Any, Optional"
+      "text": "from typing import Any"
     },
     {
       "kind": "python-any",
-      "line": 44,
+      "line": 35,
       "path": "packages/shared/src/value_fabric/shared/error_handling/helpers.py",
       "text": "extra: dict[str, Any] | None = None,"
     },
     {
       "kind": "python-any",
-      "line": 45,
+      "line": 36,
       "path": "packages/shared/src/value_fabric/shared/error_handling/helpers.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 47,
+      "line": 38,
       "path": "packages/shared/src/value_fabric/shared/error_handling/helpers.py",
       "text": "payload: dict[str, Any] = {"
-    },
-    {
-      "kind": "python-any",
-      "line": 61,
-      "path": "packages/shared/src/value_fabric/shared/error_handling/helpers.py",
-      "text": "details: Optional[dict[str, Any]] = None,"
-    },
-    {
-      "kind": "python-any",
-      "line": 78,
-      "path": "packages/shared/src/value_fabric/shared/error_handling/helpers.py",
-      "text": "details: Optional[dict[str, Any]] = None,"
-    },
-    {
-      "kind": "python-any",
-      "line": 94,
-      "path": "packages/shared/src/value_fabric/shared/error_handling/helpers.py",
-      "text": "details: Optional[dict[str, Any]] = None,"
-    },
-    {
-      "kind": "python-any",
-      "line": 110,
-      "path": "packages/shared/src/value_fabric/shared/error_handling/helpers.py",
-      "text": "details: Optional[dict[str, Any]] = None,"
-    },
-    {
-      "kind": "python-any",
-      "line": 132,
-      "path": "packages/shared/src/value_fabric/shared/error_handling/helpers.py",
-      "text": "details: Optional[dict[str, Any]] = None,"
-    },
-    {
-      "kind": "python-any",
-      "line": 149,
-      "path": "packages/shared/src/value_fabric/shared/error_handling/helpers.py",
-      "text": "details: Optional[dict[str, Any]] = None,"
     },
     {
       "kind": "python-any",
@@ -38018,25 +37982,25 @@
     },
     {
       "kind": "python-any",
-      "line": 16,
+      "line": 15,
       "path": "services/layer4-agents/tests/test_dil_phase3.py",
       "text": "from typing import Any"
     },
     {
       "kind": "python-any",
-      "line": 81,
+      "line": 68,
       "path": "services/layer4-agents/tests/test_dil_phase3.py",
       "text": "def __init__(self, data: dict[str, Any]):"
     },
     {
       "kind": "python-any",
-      "line": 94,
+      "line": 81,
       "path": "services/layer4-agents/tests/test_dil_phase3.py",
       "text": "def __init__(self, records: list[dict[str, Any]]):"
     },
     {
       "kind": "python-any",
-      "line": 113,
+      "line": 100,
       "path": "services/layer4-agents/tests/test_dil_phase3.py",
       "text": "def make_mock_driver(results_sequence: list[list[dict[str, Any]]]):"
     },
@@ -38474,37 +38438,31 @@
     },
     {
       "kind": "python-any",
-      "line": 18,
+      "line": 15,
       "path": "services/layer4-agents/tests/test_value_hypothesis.py",
       "text": "from typing import Any"
     },
     {
-      "kind": "python-type-ignore",
-      "line": 30,
-      "path": "services/layer4-agents/tests/test_value_hypothesis.py",
-      "text": "_mock_pain_signal.ErrorCategory = type(\"ErrorCategory\", (), {})  # type: ignore"
-    },
-    {
       "kind": "python-any",
-      "line": 55,
+      "line": 39,
       "path": "services/layer4-agents/tests/test_value_hypothesis.py",
       "text": "def __init__(self, data: dict[str, Any]):"
     },
     {
       "kind": "python-any",
-      "line": 68,
+      "line": 52,
       "path": "services/layer4-agents/tests/test_value_hypothesis.py",
       "text": "def __init__(self, records: list[dict[str, Any]]):"
     },
     {
       "kind": "python-any",
-      "line": 87,
+      "line": 71,
       "path": "services/layer4-agents/tests/test_value_hypothesis.py",
       "text": "def make_mock_driver(responses: list[list[dict[str, Any]]] | None = None):"
     },
     {
       "kind": "python-any",
-      "line": 223,
+      "line": 207,
       "path": "services/layer4-agents/tests/test_value_hypothesis.py",
       "text": "def _make_hypotheses(self) -> list[dict[str, Any]]:"
     },

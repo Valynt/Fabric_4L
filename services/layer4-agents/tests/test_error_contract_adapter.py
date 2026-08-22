@@ -1,6 +1,6 @@
 from value_fabric.shared.error_handling.exceptions import ValidationError
 
-from src.adapters.value_fabric_api import map_exception_to_contract_detail
+from layer4_agents.adapters.value_fabric_api import map_exception_to_contract_detail
 
 
 def test_layer4_adapter_maps_shared_exception_to_canonical_error_envelope() -> None:
