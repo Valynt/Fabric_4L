@@ -1,14 +1,7 @@
 # NGINX Ingress resources.
-# Hosts use sentinel values __HOST__ (frontend) and __API_HOST__ (the API host
-# served by the api-gateway Service). These are replaced by the deployment
-# overlay via Kustomize `replacements:` keyed off a `routing-host` ConfigMap.
-# CI fails if any sentinel survives a render.
-#
-# ROUTING CONTRACT: all public API traffic enters through the api-gateway
-# Service. The `layer-apis` Ingress routes the entire API host (`/`) to
-# api-gateway; per-segment paths are delegated inside the gateway by
-# routers/layer_delegation.py. No Ingress path points directly at a layer
-# Service. scripts/ci/k8s_routing_check.py asserts this invariant.
+# Both resources use the __HOST__ application-host sentinel.
+# It is replaced by the deployment overlay via Kustomize `replacements:`
+# keyed off a `routing-host` ConfigMap. CI fails if any sentinel survives a render.
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -66,10 +59,12 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: layer-apis
+  name: application-api
   namespace: value-fabric
   annotations:
     cert-manager.io/cluster-issuer: __TLS_ISSUER__
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /v1/$2
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
     nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
     nginx.ingress.kubernetes.io/proxy-body-size: "32m"
@@ -87,7 +82,7 @@ metadata:
       proxy_set_header Authorization "";
       proxy_set_header X-Auth-Request-User "";
       proxy_set_header X-Auth-Request-Email "";
-    nginx.ingress.kubernetes.io/auth-signin: "https://__API_HOST__/oauth2/start?rd=$escaped_request_uri"
+    nginx.ingress.kubernetes.io/auth-signin: "https://__HOST__/oauth2/start?rd=$escaped_request_uri"
     nginx.ingress.kubernetes.io/auth-response-headers: "X-Auth-Request-User,X-Auth-Request-Email,Authorization"
     # Rate limiting: 20 req/sec, 200 req/min for API (higher than frontend)
     nginx.ingress.kubernetes.io/limit-rps: "20"
@@ -112,18 +107,14 @@ spec:
   ingressClassName: nginx
   tls:
     - hosts:
-        - __API_HOST__
-      secretName: layer-apis-tls
+        - __HOST__
+      secretName: frontend-tls
   rules:
-    - host: __API_HOST__
+    - host: __HOST__
       http:
         paths:
-          # The entire API host is served by the gateway. Per-segment paths
-          # are routed inside the gateway by routers/layer_delegation.py and
-          # the product routers (agents, benchmarks, ...). No path here
-          # points directly at a layer Service.
-          - path: /
-            pathType: Prefix
+          - path: /api/v1(/|$)(.*)
+            pathType: ImplementationSpecific
             backend:
               service:
                 name: api-gateway

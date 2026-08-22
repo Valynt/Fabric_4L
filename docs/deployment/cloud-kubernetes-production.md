@@ -319,11 +319,6 @@ Name: www
 Value: <LOADBALANCER_IP>
 TTL: 300
 
-Type: A Record  
-Name: api
-Value: <LOADBALANCER_IP>
-TTL: 300
-
 Type: A Record
 Name: accounts
 Value: <LOADBALANCER_IP>
@@ -354,7 +349,7 @@ kubectl get ingress -n value-fabric
 
 # Test HTTPS access
 curl -I https://www.valuepact.ai
-curl -I https://api.valuepact.ai
+python scripts/ci/production_edge_smoke.py --base-url https://www.valuepact.ai
 ```
 
 ## Update Infisical Secrets
@@ -362,14 +357,16 @@ curl -I https://api.valuepact.ai
 Update the following Infisical secrets for production:
 
 **Path: /shared/auth**
+
 ```
 CLERK_ISSUER=https://accounts.valuepact.ai
 CLERK_JWT_AUDIENCE=fabric4l-api
-CLERK_AUTHORIZED_PARTIES=https://www.valuepact.ai,https://api.valuepact.ai
+CLERK_AUTHORIZED_PARTIES=https://www.valuepact.ai
 CLERK_JWKS_URL=https://accounts.valuepact.ai/.well-known/jwks.json
 ```
 
 **Path: /api-gateway**
+
 ```
 CLERK_SECRET_KEY=<your-clerk-secret-key>
 CLERK_WEBHOOK_SECRET=<your-clerk-webhook-secret>
@@ -379,6 +376,7 @@ FABRIC_AUTH_PUBLIC_KEYS=<json-public-key-set>
 ```
 
 **Path: /apps/web**
+
 ```
 VITE_CLERK_PUBLISHABLE_KEY=<your-clerk-publishable-key>
 VITE_AUTH_PROVIDER=clerk
@@ -389,15 +387,19 @@ VITE_AUTH_PROVIDER=clerk
 In your Clerk Dashboard:
 
 **Allowed Origins:**
+
 - https://www.valuepact.ai
-- https://api.valuepact.ai
 
 **Redirect URLs:**
+
 - After sign-in: https://www.valuepact.ai/workspaces
 - After sign-up: https://www.valuepact.ai/onboarding
 
 **Webhook Endpoint:**
-- POST https://api.valuepact.ai/internal/webhooks/clerk
+
+- The application edge does not expose `/internal/webhooks/clerk`. Provision a
+  separately reviewed same-host webhook route with signature verification and
+  dedicated rate limits before enabling Clerk webhooks.
 
 ## Production Checklist
 
@@ -410,7 +412,7 @@ In your Clerk Dashboard:
 - [ ] DNS records configured at Spaceship.com
 - [ ] SSL certificates issued
 - [ ] HTTPS accessible at https://www.valuepact.ai
-- [ ] API accessible at https://api.valuepact.ai
+- [ ] API returns JSON at https://www.valuepact.ai/api/v1/auth/health
 - [ ] Clerk authentication configured
 - [ ] Infisical secrets updated
 - [ ] Health checks passing
@@ -418,12 +420,14 @@ In your Clerk Dashboard:
 ## Cost Estimates (Monthly)
 
 **GKE (Google Cloud):**
+
 - 2x e2-standard-4 nodes: ~$200
 - LoadBalancer: ~$20
 - Storage: ~$50-100
 - **Total: ~$270-320/month**
 
 **EKS (AWS):**
+
 - 2x t3.medium nodes: ~$100
 - EKS control plane: ~$73
 - LoadBalancer: ~$20
@@ -431,6 +435,7 @@ In your Clerk Dashboard:
 - **Total: ~$243-293/month**
 
 **AKS (Azure):**
+
 - 2x Standard_DS4_v2 nodes: ~$280
 - LoadBalancer: ~$20
 - Storage: ~$50-100
@@ -439,6 +444,7 @@ In your Clerk Dashboard:
 ## Scaling Considerations
 
 For production, consider:
+
 - Enable cluster autoscaler (configured above)
 - Set up horizontal pod autoscalers (already in k8s/base/hpa/)
 - Configure pod disruption budgets (already in k8s/base/pdb/)

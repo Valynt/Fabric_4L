@@ -21,31 +21,8 @@ spec:
         - protocol: TCP
           port: 3000
   egress:
-    # Allow to L4 agents
-    - to:
-        - podSelector:
-            matchLabels:
-              app: layer4-agents
-      ports:
-        - protocol: TCP
-          port: 8000
-    # Allow to L5 ground truth
-    - to:
-        - podSelector:
-            matchLabels:
-              app: layer5-ground-truth
-      ports:
-        - protocol: TCP
-          port: 8005
-    # Allow to L6 benchmarks
-    - to:
-        - podSelector:
-            matchLabels:
-              app: layer6-benchmarks
-      ports:
-        - protocol: TCP
-          port: 8006
-    # Allow DNS
+    # The browser reaches APIs through the public edge; the frontend pod has no
+    # direct layer access. Allow DNS for runtime infrastructure only.
     - to:
         - namespaceSelector:
             matchLabels:

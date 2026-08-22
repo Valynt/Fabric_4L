@@ -5,4 +5,4 @@ metadata:
   namespace: value-fabric
 data:
   host: www.valuepact.ai
-  apiHost: api.valuepact.ai
+  ingressNamespace: gateway-system

@@ -12,7 +12,23 @@ resources:
   - hostname-config.yaml
 
 replacements:
-  # Frontend host -> Istio Gateway server hosts + VirtualService hosts
+  # Ingress namespace -> NetworkPolicies
+  - source:
+      kind: ConfigMap
+      name: routing-host
+      fieldPath: data.ingressNamespace
+    targets:
+      - select:
+          kind: NetworkPolicy
+          name: frontend-policy
+        fieldPaths:
+          - spec.ingress.0.from.0.namespaceSelector.matchLabels.[kubernetes.io/metadata.name]
+      - select:
+          kind: NetworkPolicy
+          name: api-gateway-policy
+        fieldPaths:
+          - spec.ingress.0.from.0.namespaceSelector.matchLabels.[kubernetes.io/metadata.name]
+  # Application host -> Istio Gateway server hosts + VirtualService host
   - source:
       kind: ConfigMap
       name: routing-host
@@ -22,27 +38,10 @@ replacements:
           kind: Gateway
           name: value-fabric-gateway
         fieldPaths:
-          - spec.servers.0.hosts.0  # HTTP listener, frontend host slot
-          - spec.servers.1.hosts.0  # HTTPS frontend listener
+          - spec.servers.0.hosts.0 # HTTP listener
+          - spec.servers.1.hosts.0 # HTTPS listener
       - select:
           kind: VirtualService
-          name: frontend
-        fieldPaths:
-          - spec.hosts.0
-  # API host -> Istio Gateway server hosts + VirtualService hosts
-  - source:
-      kind: ConfigMap
-      name: routing-host
-      fieldPath: data.apiHost
-    targets:
-      - select:
-          kind: Gateway
-          name: value-fabric-gateway
-        fieldPaths:
-          - spec.servers.0.hosts.1  # HTTP listener, api host slot
-          - spec.servers.2.hosts.0  # HTTPS api listener
-      - select:
-          kind: VirtualService
-          name: layer-apis
+          name: application
         fieldPaths:
           - spec.hosts.0
