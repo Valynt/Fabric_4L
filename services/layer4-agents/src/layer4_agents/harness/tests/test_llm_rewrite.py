@@ -383,10 +383,11 @@ class TestGetLLMProviderFactory:
             mod = _load_direct("services/llm_provider.py")
             assert "Together" in self._name(mod.get_llm_provider({"llm_provider": "together"}))
 
-    def test_unknown_falls_back_to_together(self):
+    def test_unknown_provider_fails_closed(self):
         with patch.dict(os.environ, {"LAYER4_LLM_PROVIDER": "unknown_xyz"}):
             mod = _load_direct("services/llm_provider.py")
-            assert "Together" in self._name(mod.get_llm_provider())
+            with pytest.raises(mod.UnknownLLMProviderError):
+                mod.get_llm_provider()
 
 
 # Note: AIModelStatus.tsx does not exist in apps/web/src/components. Tests for

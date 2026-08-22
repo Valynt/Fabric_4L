@@ -115,6 +115,8 @@ verify-structure: ## Run structural preflight and Python contract lint checks
 	@$(PYTHON) scripts/ci/check_navigation_patterns.py --strict
 	@echo "→ Running Layer 4 bounded-context dependency check..."
 	@$(PYTHON) scripts/ci/check_layer4_boundaries.py
+	@echo "→ Running model-provider boundary ratchet..."
+	@$(PYTHON) scripts/ci/check_model_provider_boundaries.py
 	@echo "→ Running temporal skip guard..."
 	@$(PYTHON) scripts/ci/check_temporal_skips.py \
 		--json-out artifacts/test-debt-governance.json \
@@ -123,6 +125,9 @@ verify-structure: ## Run structural preflight and Python contract lint checks
 
 check-layer4-boundaries: ## Report/fail on Layer 4 bounded-context dependency violations and transitive hotspots
 	@$(PYTHON) scripts/ci/check_layer4_boundaries.py
+
+check-model-provider-boundaries: ## Block new direct LLM/provider access outside migration baseline
+	@$(PYTHON) scripts/ci/check_model_provider_boundaries.py
 
 check-layer4-collection: ## Check that all Layer 4 tests can be collected without import errors
 	cd services/layer4-agents && pytest --collect-only . -q
