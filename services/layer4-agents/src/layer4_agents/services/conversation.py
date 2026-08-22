@@ -441,7 +441,7 @@ class ConversationService:
 
             # ── Generate ──
             yield {"type": "STEP_STARTED", "timestamp": now(), "runId": run_id, "stepId": "generate", "label": "Generating response"}
-            generation_metadata: dict[str, Any] = {}
+            generation_metadata: dict[str, object] = {}
             response_content = await self._generate_response(
                 user_message=user_message,
                 messages=messages,
@@ -607,7 +607,7 @@ class ConversationService:
             )
 
         # Step 4: Generate response
-        generation_metadata: dict[str, Any] = {}
+        generation_metadata: dict[str, object] = {}
         response_content = await self._generate_response(
             user_message=user_message,
             messages=messages,
@@ -893,7 +893,7 @@ class ConversationService:
         gate_context: dict[str, Any],
         tenant_id: str,
         entities: dict[str, Any] | None = None,
-        generation_metadata: dict[str, Any] | None = None,
+        generation_metadata: dict[str, object] | None = None,
     ) -> str:
         """Generate the response content.
 
@@ -1014,7 +1014,7 @@ class ConversationService:
     async def _emit_degradation_audit(
         self,
         *,
-        gate_context: dict[str, Any],
+        gate_context: dict[str, object],
         tenant_id: str,
         selected_tier: str,
         reason: str,
