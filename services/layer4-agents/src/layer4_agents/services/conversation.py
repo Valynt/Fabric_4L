@@ -32,6 +32,21 @@ from value_fabric.shared.audit.emitter import emit_audit_event
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
 
+class AttemptedTier(TypedDictModel):
+    tier: str
+    outcome: str
+    error_type: str | None = None
+
+
+class ConversationResponseResult(TypedDictModel):
+    content: str
+    response_tier: str
+    fallback: bool
+    degraded: bool
+    degradation_reason: str | None = None
+    attempted_tiers: list[dict[str, Any]] = []
+
+
 class ConversationService_handle_messageResult(TypedDictModel):
     content: Any
     metadata: dict[str, Any]
@@ -441,7 +456,7 @@ class ConversationService:
 
             # ── Generate ──
             yield {"type": "STEP_STARTED", "timestamp": now(), "runId": run_id, "stepId": "generate", "label": "Generating response"}
-            response_content = await self._generate_response(
+            gen_result = await self._generate_response(
                 user_message=user_message,
                 messages=messages,
                 active_tab=active_tab,
@@ -453,6 +468,11 @@ class ConversationService:
                 tenant_id=tenant_id,
                 entities=entities,
             )
+            response_content = gen_result["content"]
+            response_tier = gen_result["response_tier"]
+            fallback = gen_result["fallback"]
+            degraded = gen_result["degraded"]
+            degradation_reason = gen_result["degradation_reason"]
             yield {"type": "STEP_FINISHED", "timestamp": now(), "runId": run_id, "stepId": "generate", "status": "done"}
 
             # ── Text message ──
@@ -473,6 +493,10 @@ class ConversationService:
                     "journeyId": journey_id,
                     "intent": intent,
                     "confidence": confidence,
+                    "responseTier": response_tier,
+                    "fallback": fallback,
+                    "degraded": degraded,
+                    "degradationReason": degradation_reason,
                     **self._semantic_agent_metadata(
                         agent_type="ConversationAgent",
                         output={"content": response_content, "intent": intent},
@@ -604,7 +628,7 @@ class ConversationService:
             )
 
         # Step 4: Generate response
-        response_content = await self._generate_response(
+        gen_result = await self._generate_response(
             user_message=user_message,
             messages=messages,
             active_tab=active_tab,
@@ -616,6 +640,12 @@ class ConversationService:
             tenant_id=tenant_id,
             entities=entities,
         )
+        response_content = gen_result["content"]
+        response_tier = gen_result["response_tier"]
+        fallback = gen_result["fallback"]
+        degraded = gen_result["degraded"]
+        degradation_reason = gen_result["degradation_reason"]
+        attempted_tiers = gen_result["attempted_tiers"]
 
         # Step 5: Emit audit event
         await self._emit_audit(
@@ -629,6 +659,11 @@ class ConversationService:
             account_id=account_id,
             has_workflow=workflow_result is not None,
             journey_id=journey_id,
+            response_tier=response_tier,
+            fallback=fallback,
+            degraded=degraded,
+            degradation_reason=degradation_reason,
+            attempted_tiers=attempted_tiers,
         )
 
         return ConversationService_handle_messageResult.model_validate({
@@ -645,6 +680,10 @@ class ConversationService:
                 "confidence": confidence,
                 "workflow_triggered": workflow_result is not None,
                 "entity_context": entity_context or {},
+                "response_tier": response_tier,
+                "fallback": fallback,
+                "degraded": degraded,
+                "degradation_reason": degradation_reason,
                 **self._semantic_agent_metadata(
                     agent_type="ConversationAgent",
                     output={"content": response_content, "intent": intent},
@@ -887,18 +926,19 @@ class ConversationService:
         gate_context: dict[str, Any],
         tenant_id: str,
         entities: dict[str, Any] | None = None,
-    ) -> str:
-        """Generate the response content.
+    ) -> ConversationResponseResult:
+        """Generate the response content and track tier execution.
 
         Priority:
-        1. Execute mutation tool if intent matches
-        2. ConversationAgent.execute(chat) if agent + tool_gateway available
-        3. C1 proxy with enriched system prompt if C1 enabled
-        4. Context-aware heuristic response (no LLM)
+        0. Execute mutation tool if intent matches (primary path)
+        1. ConversationAgent.execute(chat) if agent + tool_gateway available (primary path)
+        2. C1 proxy with enriched system prompt if C1 enabled (c1_proxy, degraded)
+        3. Context-aware heuristic response (heuristic_fallback, degraded + fallback)
         """
         tenant_id = self._require_tenant_id(tenant_id)
+        attempted_tiers: list[dict[str, Any]] = []
+
         # Strategy 0: Mutation tool execution
-        tool_result = None
         if intent in MUTATION_INTENTS:
             tool_result = await self._execute_mutation_tool(
                 intent=intent,
@@ -909,18 +949,36 @@ class ConversationService:
             if tool_result:
                 context_data = {**context_data, "tool_result": tool_result}
                 if tool_result.get("success"):
-                    return self._append_workflow_notice(
+                    msg = self._append_workflow_notice(
                         f"✅ {tool_result.get('message', 'Action completed successfully.')}",
                         workflow_result,
                     )
                 else:
-                    return self._append_workflow_notice(
+                    msg = self._append_workflow_notice(
                         f"❌ I couldn't complete that action: {tool_result.get('error', 'Unknown error')}",
                         workflow_result,
                     )
+                attempted_tiers.append({"tier": "conversation_agent", "outcome": "success", "error_type": None})
+                return ConversationResponseResult.model_validate({
+                    "content": msg,
+                    "response_tier": "conversation_agent",
+                    "fallback": False,
+                    "degraded": False,
+                    "degradation_reason": None,
+                    "attempted_tiers": attempted_tiers,
+                })
 
         # Strategy 1: Full agent pipeline (uses generate_section tool via GATE)
-        if self.conversation_agent and gate_context.get("tool_gateway"):
+        agent_available = bool(
+            self.conversation_agent
+            and (
+                gate_context.get("tool_gateway")
+                or gate_context.get("tool_registry")
+                or self.tool_registry
+                or self.conversation_agent is not None
+            )
+        )
+        if agent_available:
             try:
                 result = await self.conversation_agent.execute(
                     {
@@ -935,11 +993,43 @@ class ConversationService:
                 )
                 content = result.get("response", "")
                 if content:
-                    return self._append_workflow_notice(content, workflow_result)
+                    attempted_tiers.append({"tier": "conversation_agent", "outcome": "success", "error_type": None})
+                    return ConversationResponseResult.model_validate({
+                        "content": self._append_workflow_notice(content, workflow_result),
+                        "response_tier": "conversation_agent",
+                        "fallback": False,
+                        "degraded": False,
+                        "degradation_reason": None,
+                        "attempted_tiers": attempted_tiers,
+                    })
+                else:
+                    attempted_tiers.append({
+                        "tier": "conversation_agent",
+                        "outcome": "error",
+                        "error_type": "empty_response",
+                    })
             except asyncio.CancelledError:
                 raise
-            except Exception:
-                logger.warning("Full agent pipeline failed, falling back")
+            except TimeoutError as exc:
+                logger.warning("ConversationAgent execution timed out: %s", exc)
+                attempted_tiers.append({
+                    "tier": "conversation_agent",
+                    "outcome": "timeout",
+                    "error_type": exc.__class__.__name__,
+                })
+            except Exception as exc:
+                logger.warning("Full agent pipeline failed, falling back: %s", exc)
+                attempted_tiers.append({
+                    "tier": "conversation_agent",
+                    "outcome": "error",
+                    "error_type": exc.__class__.__name__,
+                })
+        else:
+            attempted_tiers.append({
+                "tier": "conversation_agent",
+                "outcome": "unavailable",
+                "error_type": "agent_unconfigured",
+            })
 
         # Strategy 2: C1 proxy with enriched context
         if self.c1_enabled:
@@ -952,11 +1042,44 @@ class ConversationService:
                     account_name=account_name,
                 )
                 if content:
-                    return self._append_workflow_notice(content, workflow_result)
+                    attempted_tiers.append({"tier": "c1_proxy", "outcome": "success", "error_type": None})
+                    agent_failure_reason = attempted_tiers[0].get("error_type") or attempted_tiers[0].get("outcome")
+                    return ConversationResponseResult.model_validate({
+                        "content": self._append_workflow_notice(content, workflow_result),
+                        "response_tier": "c1_proxy",
+                        "fallback": False,
+                        "degraded": True,
+                        "degradation_reason": f"primary_agent_unavailable:{agent_failure_reason}",
+                        "attempted_tiers": attempted_tiers,
+                    })
+                else:
+                    attempted_tiers.append({
+                        "tier": "c1_proxy",
+                        "outcome": "error",
+                        "error_type": "empty_response",
+                    })
             except asyncio.CancelledError:
                 raise
-            except Exception:
-                logger.warning("C1 generation failed, falling back to heuristic")
+            except TimeoutError as exc:
+                logger.warning("C1 generation timed out: %s", exc)
+                attempted_tiers.append({
+                    "tier": "c1_proxy",
+                    "outcome": "timeout",
+                    "error_type": exc.__class__.__name__,
+                })
+            except Exception as exc:
+                logger.warning("C1 generation failed, falling back to heuristic: %s", exc)
+                attempted_tiers.append({
+                    "tier": "c1_proxy",
+                    "outcome": "error",
+                    "error_type": exc.__class__.__name__,
+                })
+        else:
+            attempted_tiers.append({
+                "tier": "c1_proxy",
+                "outcome": "unavailable",
+                "error_type": "c1_disabled",
+            })
 
         # Strategy 3: Context-aware heuristic (always works)
         content = self._heuristic_response(
@@ -966,7 +1089,21 @@ class ConversationService:
             context_data=context_data,
             account_name=account_name,
         )
-        return self._append_workflow_notice(content, workflow_result)
+        attempted_tiers.append({"tier": "heuristic_fallback", "outcome": "success", "error_type": None})
+
+        # Determine degradation reason based on previous tier failures
+        c1_outcome = attempted_tiers[1].get("outcome", "unknown")
+        c1_error = attempted_tiers[1].get("error_type", "")
+        degrade_reason = f"c1_unavailable:{c1_outcome}:{c1_error}" if c1_error else f"c1_unavailable:{c1_outcome}"
+
+        return ConversationResponseResult.model_validate({
+            "content": self._append_workflow_notice(content, workflow_result),
+            "response_tier": "heuristic_fallback",
+            "fallback": True,
+            "degraded": True,
+            "degradation_reason": degrade_reason,
+            "attempted_tiers": attempted_tiers,
+        })
 
     def _require_tenant_id(self, tenant_id: str) -> str:
         normalized = tenant_id.strip() if isinstance(tenant_id, str) else ""
@@ -1262,6 +1399,11 @@ class ConversationService:
         account_id: str | None,
         has_workflow: bool,
         journey_id: str | None,
+        response_tier: str = "conversation_agent",
+        fallback: bool = False,
+        degraded: bool = False,
+        degradation_reason: str | None = None,
+        attempted_tiers: list[dict[str, Any]] | None = None,
     ) -> None:
         """Emit a GATE audit event for the conversation interaction."""
         try:
@@ -1274,6 +1416,7 @@ class ConversationService:
                     "trace_id": trace_id,
                     "workflow_id": workflow_id,
                     "audit_event_id": audit_event_id,
+                    "correlation_id": trace_id,
                     "tenant_id": tenant_id,
                     "journey_id": journey_id,
                     "intent": intent,
@@ -1281,6 +1424,11 @@ class ConversationService:
                     "active_tab": active_tab,
                     "account_id": account_id,
                     "workflow_triggered": has_workflow,
+                    "response_tier": response_tier,
+                    "fallback": fallback,
+                    "degraded": degraded,
+                    "degradation_reason": degradation_reason,
+                    "attempted_tiers": attempted_tiers or [],
                 },
                 chain_id=f"conversation:{tenant_id}:journey:{journey_id}" if journey_id else f"conversation:{tenant_id}",
             )

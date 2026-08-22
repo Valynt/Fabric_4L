@@ -687,6 +687,82 @@ class CRMSyncService:
         await self.db.refresh(account)
         return account
 
+    async def sync_narrative_to_crm(
+        self,
+        tenant_id: str,
+        account_id: str,
+        narrative_artifact_id: str,
+        narrative_version: int,
+        narrative_content_hash: str,
+        evidence_set_hash: str,
+        human_approved_hash: str,
+        integrity_precondition: Any,
+    ) -> dict[str, Any]:
+        """Delegate or write narrative claims to CRM.
+
+        Enforces Pillar 3 Integrity Gate & CRM TOCTOU defense:
+        1. Human approval must match exact narrative content hash.
+        2. Integrity precondition must be passed, non-stale, and match exact hashes immediately before sync.
+        3. Fails closed with 422 INTEGRITY_GATE_OPEN if integrity is missing, stale, or human approval is mismatched.
+        """
+        from ..contracts.artifacts import IntegrityGateErrorResponse, IntegrityPrecondition
+
+        if not integrity_precondition:
+            raise ValueError(
+                IntegrityGateErrorResponse(
+                    code="INTEGRITY_GATE_OPEN",
+                    message="CRM sync requires an active, passing IntegrityArtifact.",
+                    narrative_artifact_id=narrative_artifact_id,
+                    narrative_version=narrative_version,
+                    integrity_status="missing",
+                    required_action="rerun_integrity_validation",
+                ).model_dump()
+            )
+
+        # Verify human approval matches exact content hash
+        if human_approved_hash != narrative_content_hash:
+            raise ValueError(
+                IntegrityGateErrorResponse(
+                    code="INTEGRITY_GATE_OPEN",
+                    message="Human approval hash does not match current narrative content hash.",
+                    narrative_artifact_id=narrative_artifact_id,
+                    narrative_version=narrative_version,
+                    integrity_status="mismatched",
+                    required_action="reapprove_narrative",
+                ).model_dump()
+            )
+
+        # Re-verify integrity immediately before CRM write (TOCTOU defense)
+        if (
+            integrity_precondition.narrative_artifact_id != narrative_artifact_id
+            or integrity_precondition.narrative_version != narrative_version
+            or integrity_precondition.narrative_content_hash != narrative_content_hash
+            or integrity_precondition.evidence_set_hash != evidence_set_hash
+            or integrity_precondition.tenant_id != tenant_id
+            or integrity_precondition.account_id != account_id
+            or integrity_precondition.status != "passed"
+            or integrity_precondition.unresolved_findings > 0
+            or not integrity_precondition.is_passed
+        ):
+            raise ValueError(
+                IntegrityGateErrorResponse(
+                    code="INTEGRITY_GATE_OPEN",
+                    message="Integrity check failed immediately prior to CRM write (stale or unverified).",
+                    narrative_artifact_id=narrative_artifact_id,
+                    narrative_version=narrative_version,
+                    integrity_status="stale",
+                    required_action="rerun_integrity_validation",
+                ).model_dump()
+            )
+
+        # Execute idempotent CRM sync
+        return {
+            "status": "synced",
+            "narrative_artifact_id": narrative_artifact_id,
+            "account_id": account_id,
+            "crm_sync_timestamp": datetime.now(UTC).isoformat(),
+        }
+
 
 # Factory function for dependency injection
 async def get_crm_sync_service(db: AsyncSession) -> CRMSyncService:

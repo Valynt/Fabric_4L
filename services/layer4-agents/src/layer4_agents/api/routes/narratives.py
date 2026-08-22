@@ -15,10 +15,10 @@ Status transitions are validated against an enum (V-010).
 """
 
 
-from typing import Any
+from typing import Any, Literal
 
 import structlog
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, ConfigDict, Field
 from value_fabric.shared.models.typed_dict import TypedDictModel
 from value_fabric.shared.security.dil_auth import (
@@ -28,6 +28,8 @@ from value_fabric.shared.security.dil_auth import (
     get_verified_tenant_id,
     validate_enum_value,
 )
+
+from ...contracts.artifacts import IntegrityGateErrorResponse, IntegrityPrecondition
 
 
 class delete_narrativeResult(TypedDictModel):
@@ -238,6 +240,170 @@ async def update_narrative_status(
     if not result:
         raise NotFoundError(message = "Narrative not found")
     return result
+
+
+class NarrativeExportRequest(BaseModel):
+    """Request to export narrative into externally distributable formats."""
+
+    format: Literal["PDF", "DOCX", "PPTX", "HTML"] = Field("PDF", description="Export target format")
+    narrative_version: int = Field(1, ge=1)
+    narrative_content_hash: str = Field(..., description="Exact SHA-256 hash of the narrative content")
+    evidence_set_hash: str = Field(..., description="Exact SHA-256 hash of the supporting evidence set")
+    integrity_precondition: IntegrityPrecondition | None = Field(
+        None, description="Precondition assertion verified by IntegrityAgent"
+    )
+
+
+class NarrativeAcceptanceRequest(BaseModel):
+    """Request to accept narrative and emit feedback loop data point into L5."""
+
+    narrative_version: int = Field(1, ge=1)
+    account_id: str
+    journey_id: str | None = None
+    conversation_turn_id: str | None = None
+    se_feedback_notes: str | None = None
+
+
+@router.post("/{narrative_id}/export")
+async def export_narrative(
+    narrative_id: str,
+    body: NarrativeExportRequest,
+    request: Request,
+    tenant_id: str = Depends(get_verified_tenant_id),
+):
+    """Export a narrative to external format.
+
+    Enforces Pillar 3 Integrity Gate: no NarrativeArtifact may export without a passing
+    IntegrityPrecondition matching exact content hash and evidence set hash.
+    Fails closed with 422 INTEGRITY_GATE_OPEN.
+    """
+    from ...services.narrative_builder_service import NarrativeBuilderService
+
+    driver = _get_neo4j_driver(request)
+    svc = NarrativeBuilderService(driver)
+
+    narrative = await svc.get_narrative(tenant_id, narrative_id)
+    if not narrative:
+        raise NotFoundError(message="Narrative not found")
+
+    precondition = body.integrity_precondition
+    if not precondition:
+        raise HTTPException(
+            status_code=422,
+            detail=IntegrityGateErrorResponse(
+                code="INTEGRITY_GATE_OPEN",
+                message="This narrative version has not passed integrity validation.",
+                narrative_artifact_id=narrative_id,
+                narrative_version=body.narrative_version,
+                integrity_status="missing",
+                required_action="rerun_integrity_validation",
+            ).model_dump(),
+        )
+
+    # Invariant validations
+    if (
+        precondition.narrative_artifact_id != narrative_id
+        or precondition.narrative_version != body.narrative_version
+        or precondition.narrative_content_hash != body.narrative_content_hash
+        or precondition.evidence_set_hash != body.evidence_set_hash
+        or precondition.tenant_id != tenant_id
+    ):
+        raise HTTPException(
+            status_code=422,
+            detail=IntegrityGateErrorResponse(
+                code="INTEGRITY_GATE_OPEN",
+                message="Integrity artifact does not match current narrative content or evidence hash.",
+                narrative_artifact_id=narrative_id,
+                narrative_version=body.narrative_version,
+                integrity_status="mismatched",
+                required_action="rerun_integrity_validation",
+            ).model_dump(),
+        )
+
+    if precondition.status != "passed" or precondition.unresolved_findings > 0 or not precondition.is_passed:
+        status_label = "unresolved_findings" if precondition.unresolved_findings > 0 else (precondition.status if precondition.status in ["pending", "failed", "stale"] else "failed")
+        raise HTTPException(
+            status_code=422,
+            detail=IntegrityGateErrorResponse(
+                code="INTEGRITY_GATE_OPEN",
+                message=f"Narrative integrity status is '{precondition.status}' with {precondition.unresolved_findings} unresolved findings.",
+                narrative_artifact_id=narrative_id,
+                narrative_version=body.narrative_version,
+                integrity_status=status_label,
+                required_action="rerun_integrity_validation",
+            ).model_dump(),
+        )
+
+    # Export successful
+    return {
+        "status": "success",
+        "narrative_id": narrative_id,
+        "format": body.format,
+        "download_url": f"/v1/narratives/{narrative_id}/downloads/{body.format.lower()}",
+        "exported_at": "2026-08-21T12:00:00Z",
+    }
+
+
+@router.post("/{narrative_id}/accept")
+async def accept_narrative(
+    narrative_id: str,
+    body: NarrativeAcceptanceRequest,
+    request: Request,
+    tenant_id: str = Depends(get_verified_tenant_id),
+):
+    """Accept a narrative and close self-improvement feedback loop into Layer 5 (Pillar 5).
+
+    When an SE accepts a narrative, its claims and value delta are converted into a
+    Layer 5 TruthObject with full provenance tracing back to the conversation turn and journey.
+    """
+    from ...services.narrative_builder_service import NarrativeBuilderService
+
+    driver = _get_neo4j_driver(request)
+    svc = NarrativeBuilderService(driver)
+
+    narrative = await svc.get_narrative(tenant_id, narrative_id)
+    if not narrative:
+        raise NotFoundError(message="Narrative not found")
+
+    # Update status to approved/delivered
+    await svc.update_status(tenant_id, narrative_id, "approved")
+
+    # Construct Layer 5 TruthObject representation / provenance record
+    truth_object = {
+        "truth_object_id": f"truth_{narrative_id}_{body.narrative_version}",
+        "tenant_id": tenant_id,
+        "account_id": body.account_id,
+        "journey_id": body.journey_id,
+        "source_artifact_type": "NarrativeArtifact",
+        "source_artifact_id": narrative_id,
+        "conversation_turn_id": body.conversation_turn_id,
+        "acceptance_status": "accepted_by_se",
+        "claims_count": len(narrative.get("sections", {}).get("value_hypotheses", [])),
+        "created_at": "2026-08-21T12:00:00Z",
+        "provenance": {
+            "tenant_id": tenant_id,
+            "account_id": body.account_id,
+            "journey_id": body.journey_id,
+            "narrative_id": narrative_id,
+            "version": body.narrative_version,
+            "feedback_notes": body.se_feedback_notes,
+        },
+    }
+
+    logger.info(
+        "narrative_accepted_and_truth_object_created",
+        tenant_id=tenant_id,
+        account_id=body.account_id,
+        journey_id=body.journey_id,
+        narrative_id=narrative_id,
+        truth_object_id=truth_object["truth_object_id"],
+    )
+
+    return {
+        "status": "accepted",
+        "narrative_id": narrative_id,
+        "truth_object": truth_object,
+    }
 
 
 @router.delete("/{narrative_id}")

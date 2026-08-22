@@ -9,6 +9,7 @@ Request/response models for the accounts surface.
 
 from datetime import datetime
 from decimal import Decimal
+from enum import Enum
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -270,5 +271,44 @@ class AccountFilterOptionsResponse(BaseModel):
     stages: list[str]
     regions: list[str]
     segments: list[str]
+
+
+# ============================================================================
+# Journey Timeline Schemas (Pillar 2)
+# ============================================================================
+
+
+class JourneyStageStatus(str, Enum):
+    NOT_STARTED = "not_started"
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
+    BLOCKED = "blocked"
+    FAILED = "failed"
+
+
+class JourneyTimelineStage(BaseModel):
+    id: str
+    label: str  # Signal, Hypothesis, Value drivers, ROI calculation, Evidence validation, Narrative, Export or CRM sync
+    stage_key: str  # signal, hypothesis, value_drivers, roi_calculation, evidence_validation, narrative, export_crm_sync
+    status: JourneyStageStatus = JourneyStageStatus.NOT_STARTED
+    updated_at: datetime | None = None
+    actor: str | None = None
+    source_artifact_id: str | None = None
+    target_artifact_id: str | None = None
+    evidence_links: list[str] = Field(default_factory=list)
+    truth_object_ids: list[str] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
+    degradation_reason: str | None = None
+    deep_link: str | None = None
+
+
+class AccountJourneyTimelineResponse(BaseModel):
+    tenant_id: str
+    account_id: str
+    journey_id: str
+    stages: list[JourneyTimelineStage]
+    current_stage_key: str
+    updated_at: datetime
+
     providers: list[CRMProvider]
     owners: list[dict[str, str]]  # [{"id": "...", "name": "..."}]
