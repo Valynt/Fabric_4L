@@ -30,11 +30,11 @@ from datetime import datetime
 
 from fastapi import FastAPI
 
+from layer2_extraction.api._shared import _current_environment
 from layer2_extraction.api.app_factory import (
     _S2S_INTERNAL_PATHS,
     _TENANT_CONTEXT_EXEMPT_PATHS,
     _app_start_time,
-    _current_environment,
     _is_strict_runtime,
     _pending_ingestion_probe,
     _quarantine_probe,

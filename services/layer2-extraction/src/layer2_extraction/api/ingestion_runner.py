@@ -15,9 +15,7 @@ from typing import Any, cast
 
 import structlog
 
-from layer2_extraction.api.pipeline_status import (
-    pipeline_response_payload,
-)
+from layer2_extraction.api.pipeline_status import pipeline_response_payload
 from layer2_extraction.api.retry_queue import (
     ExtractionArtifactsPayload,
     deserialize_artifacts,
@@ -28,7 +26,11 @@ from layer2_extraction.api.retry_queue import (
 )
 from layer2_extraction.api.schemas import ExtractionStatusResponse
 from layer2_extraction.api.websocket import get_pipeline_ws_manager
-from layer2_extraction.integration.job_store import JobStore, PipelineJob, build_job_store
+from layer2_extraction.integration.job_store import (
+    JobStore,
+    PipelineJob,
+    build_job_store,
+)
 from layer2_extraction.integration.layer3_client import Layer3KnowledgeClient
 from layer2_extraction.integration.pending_ingestion_store import (
     PendingIngestionRecord,
@@ -104,7 +106,7 @@ def _deserialize_artifacts(result_json: str, relationships_json: str) -> Any:
     if main_mod and hasattr(main_mod, "ExtractionArtifacts"):
         artifacts_cls = main_mod.ExtractionArtifacts
     else:
-        from layer2_extraction.api.pipeline_runner import ExtractionArtifacts
+        from layer2_extraction.api._shared import ExtractionArtifacts
 
         artifacts_cls = ExtractionArtifacts
     return artifacts_cls(result=artifacts.result, relationships=artifacts.relationships)
@@ -312,7 +314,9 @@ async def _process_pending_ingestions() -> None:
                 )
             )
 
-        artifacts = _deserialize_artifacts(record.extraction_result_json, record.relationships_json)
+        artifacts = _deserialize_artifacts(
+            record.extraction_result_json, record.relationships_json
+        )
         client = client_cls()
         try:
             healthy = await client.health_check()

@@ -9,18 +9,15 @@ from __future__ import annotations
 
 import sys
 from datetime import UTC, datetime
-from typing import Any
 from uuid import uuid4
 
 import structlog
 from fastapi import APIRouter, BackgroundTasks, Depends, Query
 from fastapi.responses import StreamingResponse
-from value_fabric.shared.error_handling.exceptions import (
-    AuthorizationError,
-    NotFoundError,
-)
+from value_fabric.shared.error_handling.exceptions import NotFoundError
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
+from layer2_extraction.api._shared import _require_authenticated_tenant_id
 from layer2_extraction.api.deps import RequestContext, require_authenticated
 from layer2_extraction.api.extraction_config import (
     build_idempotency_key as _build_idempotency_key,
@@ -40,7 +37,11 @@ from layer2_extraction.api.schemas import (
     RelationshipsResponse,
 )
 from layer2_extraction.api.sse_stream import _job_event_generator
-from layer2_extraction.integration.job_store import JobStore, PipelineJob, build_job_store
+from layer2_extraction.integration.job_store import (
+    JobStore,
+    PipelineJob,
+    build_job_store,
+)
 from layer2_extraction.integration.quarantine_store import (
     QuarantineStore,
     build_quarantine_store,
@@ -109,36 +110,6 @@ def _pipeline_response(job: PipelineJob) -> ExtractionStatusResponse:
     return ExtractionStatusResponse(**pipeline_response_payload(job))
 
 
-def _require_authenticated_tenant_id(tenant_id: Any, *, operation: str) -> str:
-    """Require authenticated tenant context and fail closed when missing."""
-    main_mod = sys.modules.get("layer2_extraction.api.main")
-    if (
-        main_mod
-        and hasattr(main_mod, "_require_authenticated_tenant_id")
-        and main_mod._require_authenticated_tenant_id is not _require_authenticated_tenant_id
-    ):
-        return main_mod._require_authenticated_tenant_id(tenant_id, operation=operation)
-
-    if tenant_id is None:
-        raise AuthorizationError(
-            message="Request failed",
-            details={
-                "code": "tenant_context_required",
-                "message": f"Authenticated tenant context is required for {operation}.",
-            },
-        )
-    normalized = str(tenant_id).strip()
-    if not normalized:
-        raise AuthorizationError(
-            message="Request failed",
-            details={
-                "code": "tenant_context_required",
-                "message": f"Authenticated tenant context is required for {operation}.",
-            },
-        )
-    return normalized
-
-
 @router.post("/v1/extract", response_model=ExtractResponse)
 async def extract(
     request: ExtractRequest,
@@ -150,7 +121,9 @@ async def extract(
     Extracts entities and relationships from provided Markdown content
     and generates RDF/OWL output.
     """
-    tenant_id = _require_authenticated_tenant_id(ctx.tenant_id, operation="extraction job creation")
+    tenant_id = _require_authenticated_tenant_id(
+        ctx.tenant_id, operation="extraction job creation"
+    )
 
     job_id = str(uuid4())
     job_store = _get_active_job_store()
@@ -289,7 +262,9 @@ async def extract_and_ingest(
 
 
 @router.get("/v1/extract/status/{job_id}", response_model=ExtractionStatusResponse)
-async def get_extraction_status(job_id: str, ctx: RequestContext = Depends(require_authenticated)):
+async def get_extraction_status(
+    job_id: str, ctx: RequestContext = Depends(require_authenticated)
+):
     """Get status of a combined extraction and ingestion job."""
     job_store = _get_active_job_store()
     job = await job_store.get(job_id, tenant_id=str(ctx.tenant_id))
@@ -300,7 +275,9 @@ async def get_extraction_status(job_id: str, ctx: RequestContext = Depends(requi
 
 
 @router.get("/v1/quarantine/{job_id}")
-async def get_quarantine_status(job_id: str, ctx: RequestContext = Depends(require_authenticated)):
+async def get_quarantine_status(
+    job_id: str, ctx: RequestContext = Depends(require_authenticated)
+):
     tenant_id = str(ctx.tenant_id)
     quarantine_store = _get_active_quarantine_store()
     record = await quarantine_store.get_by_job(tenant_id=tenant_id, job_id=job_id)
@@ -376,7 +353,9 @@ async def list_entities(
 
 
 @router.get("/v1/entities/{entity_id}/relationships")
-async def get_relationships(entity_id: str, ctx: RequestContext = Depends(require_authenticated)):
+async def get_relationships(
+    entity_id: str, ctx: RequestContext = Depends(require_authenticated)
+):
     """Get relationships for an entity.
 
     Note: In a full implementation, this would query the graph database.
@@ -424,7 +403,9 @@ async def get_entity_provenance(
 
 
 @router.get("/v1/extract/jobs/{job_id}/events")
-async def stream_job_events(job_id: str, ctx: RequestContext = Depends(require_authenticated)):
+async def stream_job_events(
+    job_id: str, ctx: RequestContext = Depends(require_authenticated)
+):
     """Stream real-time events for a pipeline job via SSE.
 
     Returns a Server-Sent Events stream with progress updates,

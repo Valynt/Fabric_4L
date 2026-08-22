@@ -10,9 +10,9 @@
   "description": "Baseline for Initiative E hotspot reduction. Regenerate only after approved refactors.",
   "high_complexity_functions": [
     {
-      "complexity": 36,
+      "complexity": 38,
       "function": "run_extraction",
-      "module": "layer2_extraction.api.main"
+      "module": "layer2_extraction.api.pipeline_runner"
     },
     {
       "complexity": 34,
@@ -76,10 +76,6 @@
       "size": 2255
     },
     {
-      "module": "layer2_extraction.api.main",
-      "size": 1641
-    },
-    {
       "module": "layer4_agents.agents.audit_orchestrator.persistence",
       "size": 1637
     },
@@ -89,7 +85,7 @@
     },
     {
       "module": "layer4_agents.engine.executor",
-      "size": 1522
+      "size": 1520
     },
     {
       "module": "layer4_agents.api.routes.analysis",
@@ -138,6 +134,10 @@
     {
       "module": "layer4_agents.tools.registry",
       "size": 1033
+    },
+    {
+      "module": "layer2_extraction.api.pipeline_runner",
+      "size": 1010
     }
   ],
   "size_threshold": 1000

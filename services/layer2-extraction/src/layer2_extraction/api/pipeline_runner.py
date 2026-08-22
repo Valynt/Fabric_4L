@@ -10,7 +10,6 @@ import hashlib
 import json
 import os
 import sys
-from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any, Protocol, TypeVar, cast
 from uuid import NAMESPACE_URL, uuid4, uuid5
@@ -19,10 +18,17 @@ import structlog
 from value_fabric.shared.error_handling.exceptions import AuthorizationError
 
 from layer2_extraction.alignment import SemanticAligner
+from layer2_extraction.api._shared import (
+    ExtractionArtifacts,
+    _require_authenticated_tenant_id,
+)
 from layer2_extraction.api.extraction_config import (
     validated_extraction_config as _validated_extraction_config,
 )
-from layer2_extraction.api.extractor_factory import LazyExtractorFactory, validated_openai_key
+from layer2_extraction.api.extractor_factory import (
+    LazyExtractorFactory,
+    validated_openai_key,
+)
 from layer2_extraction.api.websocket import PipelineStage, get_pipeline_ws_manager
 from layer2_extraction.extraction.chunker import chunk_markdown
 from layer2_extraction.extraction.deduplicator import deduplicate_entities
@@ -36,7 +42,11 @@ from layer2_extraction.extraction.prompt_loader import (
     ENTITY_PROMPT_TEMPLATE_VERSION,
     RELATIONSHIP_PROMPT_TEMPLATE_VERSION,
 )
-from layer2_extraction.integration.job_store import JobStore, PipelineJob, build_job_store
+from layer2_extraction.integration.job_store import (
+    JobStore,
+    PipelineJob,
+    build_job_store,
+)
 from layer2_extraction.integration.layer3_client import Layer3KnowledgeClient
 from layer2_extraction.integration.quarantine_store import (
     QuarantineRecord,
@@ -56,10 +66,7 @@ from layer2_extraction.models import (
     ValueCategory,
     ValueDriver,
 )
-from layer2_extraction.output.provenance import (
-    ExtractionStep,
-    get_provenance_tracker,
-)
+from layer2_extraction.output.provenance import ExtractionStep, get_provenance_tracker
 from layer2_extraction.output.rdf_generator import generate_rdf
 from layer2_extraction.validation import EntailmentValidator, ValidationSeverity
 from layer2_extraction.validation.artifact_validator import (
@@ -72,7 +79,9 @@ from layer2_extraction.validation.artifact_validator import (
 logger = structlog.get_logger(__name__)
 
 # Module-level prompt template metadata (referenced throughout extraction pipeline)
-prompt_template_version = f"{ENTITY_PROMPT_TEMPLATE_VERSION}+{RELATIONSHIP_PROMPT_TEMPLATE_VERSION}"
+prompt_template_version = (
+    f"{ENTITY_PROMPT_TEMPLATE_VERSION}+{RELATIONSHIP_PROMPT_TEMPLATE_VERSION}"
+)
 prompt_template_hash: str | None = None
 
 # Extraction configuration constants
@@ -131,13 +140,15 @@ def _get_active_is_strict_runtime():
     main_mod = sys.modules.get("layer2_extraction.api.main")
     if main_mod and hasattr(main_mod, "_is_strict_runtime"):
         return main_mod._is_strict_runtime
-    from layer2_extraction.api.app_factory import _is_strict_runtime
+    from layer2_extraction.api._shared import _is_strict_runtime
 
     return _is_strict_runtime
 
 
 def _get_validated_openai_key() -> str | None:
-    return validated_openai_key(is_strict_runtime=_get_active_is_strict_runtime(), logger=logger)
+    return validated_openai_key(
+        is_strict_runtime=_get_active_is_strict_runtime(), logger=logger
+    )
 
 
 _extractor_factory = LazyExtractorFactory(
@@ -156,14 +167,6 @@ def get_entity_extractor():
 def get_relationship_extractor():
     """Get or create the relationship extractor (lazy initialization)."""
     return _extractor_factory.get_relationship_extractor()
-
-
-@dataclass
-class ExtractionArtifacts:
-    """Outputs from extraction pipeline used by ingestion step."""
-
-    result: ExtractionResult
-    relationships: list[Relationship]
 
 
 class StampableEntity(Protocol):
@@ -254,7 +257,11 @@ def _build_e2e_local_extraction_artifacts(
                 "Generate ROI assumptions",
                 "Attach evidence for finance review",
             ],
-            kpis=["SE hours per opportunity", "late-stage win rate", "sales cycle days"],
+            kpis=[
+                "SE hours per opportunity",
+                "late-stage win rate",
+                "sales cycle days",
+            ],
             confidence=0.95,
         ),
         entity_type="usecase",
@@ -274,7 +281,11 @@ def _build_e2e_local_extraction_artifacts(
                 "ROI assumptions are inconsistent",
                 "Procurement challenges value claims",
             ],
-            success_metrics=["validated ROI", "payback period", "business case quality"],
+            success_metrics=[
+                "validated ROI",
+                "payback period",
+                "business case quality",
+            ],
             confidence=0.93,
         ),
         entity_type="persona",
@@ -306,7 +317,10 @@ def _build_e2e_local_extraction_artifacts(
         telemetry_context=telemetry_context,
     )
     relationship_id = str(
-        uuid5(NAMESPACE_URL, f"{tenant_id}|{content_hash}|{capability.id}|enables|{use_case.id}")
+        uuid5(
+            NAMESPACE_URL,
+            f"{tenant_id}|{content_hash}|{capability.id}|enables|{use_case.id}",
+        )
     )
     relationship = Relationship(
         id=relationship_id,
@@ -359,7 +373,6 @@ async def run_extraction(
     6. Generate RDF
     """
     from layer2_extraction.api.ingestion_runner import _set_pipeline_job
-    from layer2_extraction.api.routes_extract import _require_authenticated_tenant_id
 
     job_store = _get_active_job_store()
     ws_manager = _get_active_ws_manager()
@@ -369,7 +382,9 @@ async def run_extraction(
     tracker = get_provenance_tracker()
     content_hash = hashlib.sha256(content.encode()).hexdigest()
 
-    activity = tracker.start_activity(activity_id=job_id, url=source_url, content_hash=content_hash)
+    activity = tracker.start_activity(
+        activity_id=job_id, url=source_url, content_hash=content_hash
+    )
 
     tenant_id = _require_authenticated_tenant_id(
         config.get("tenant_id"), operation="extraction execution"
@@ -440,7 +455,10 @@ async def run_extraction(
         chunk_overlap = config.get("chunk_overlap", DEFAULT_CHUNK_OVERLAP)
 
         chunks = chunk_markdown(
-            content, source_url=source_url, chunk_size=chunk_size, chunk_overlap=chunk_overlap
+            content,
+            source_url=source_url,
+            chunk_size=chunk_size,
+            chunk_overlap=chunk_overlap,
         )
 
         step1.completed_at = dt_cls.now(UTC)
@@ -523,7 +541,9 @@ async def run_extraction(
             metadata={"total_chunks": len(chunks)},
         )
 
-        step2 = ExtractionStep(step_name="entity_extraction", started_at=dt_cls.now(UTC))
+        step2 = ExtractionStep(
+            step_name="entity_extraction", started_at=dt_cls.now(UTC)
+        )
 
         all_entities: dict[str, list[Any]] = {
             "capabilities": [],
@@ -534,10 +554,15 @@ async def run_extraction(
         }
         all_relationships = []
 
-        confidence_threshold = config.get("confidence_threshold", DEFAULT_CONFIDENCE_THRESHOLD)
+        confidence_threshold = config.get(
+            "confidence_threshold", DEFAULT_CONFIDENCE_THRESHOLD
+        )
 
         for i, chunk in enumerate(chunks):
-            if i % max(1, len(chunks) // PROGRESS_REPORT_INTERVAL) == 0 or i == len(chunks) - 1:
+            if (
+                i % max(1, len(chunks) // PROGRESS_REPORT_INTERVAL) == 0
+                or i == len(chunks) - 1
+            ):
                 await ws_manager.broadcast_stage_progress(
                     job_id=job_id,
                     stage=PipelineStage.ENTITY_EXTRACTION,
@@ -564,7 +589,8 @@ async def run_extraction(
                 entities=entities,
                 source_url=source_url,
                 extraction_job_id=job_id,
-                confidence_threshold=confidence_threshold - RELATIONSHIP_CONFIDENCE_OFFSET,
+                confidence_threshold=confidence_threshold
+                - RELATIONSHIP_CONFIDENCE_OFFSET,
                 telemetry_context=telemetry_context,
             )
             all_relationships.extend(relationships)
@@ -594,10 +620,13 @@ async def run_extraction(
             total_stages=6,
             metadata={"entity_types": list(all_entities.keys())},
         )
-        step_align = ExtractionStep(step_name="semantic_alignment", started_at=dt_cls.now(UTC))
+        step_align = ExtractionStep(
+            step_name="semantic_alignment", started_at=dt_cls.now(UTC)
+        )
 
         aligner = SemanticAligner(
-            similarity_threshold=DEFAULT_SIMILARITY_THRESHOLD, api_key=_get_validated_openai_key()
+            similarity_threshold=DEFAULT_SIMILARITY_THRESHOLD,
+            api_key=_get_validated_openai_key(),
         )
 
         aligned_entities = {}
@@ -614,7 +643,10 @@ async def run_extraction(
         activity.add_step(step_align)
 
         await ws_manager.broadcast_stage_complete(
-            job_id=job_id, stage=PipelineStage.SEMANTIC_ALIGNMENT, stage_number=3, total_stages=6
+            job_id=job_id,
+            stage=PipelineStage.SEMANTIC_ALIGNMENT,
+            stage_number=3,
+            total_stages=6,
         )
 
         # Stage 4: Deduplication
@@ -654,7 +686,10 @@ async def run_extraction(
 
         # Stage 5: Validation (EntailmentValidator with 6 validation rules)
         await ws_manager.broadcast_stage_start(
-            job_id=job_id, stage=PipelineStage.VALIDATION, stage_number=5, total_stages=6
+            job_id=job_id,
+            stage=PipelineStage.VALIDATION,
+            stage_number=5,
+            total_stages=6,
         )
         step4 = ExtractionStep(step_name="validation", started_at=dt_cls.now(UTC))
 
@@ -664,14 +699,18 @@ async def run_extraction(
             capabilities=cast(list[Capability], deduplicated.get("capabilities", [])),
             use_cases=cast(list[UseCase], deduplicated.get("use_cases", [])),
             personas=cast(list[Persona], deduplicated.get("personas", [])),
-            value_drivers=cast(list[ValueDriver], deduplicated.get("value_drivers", [])),
+            value_drivers=cast(
+                list[ValueDriver], deduplicated.get("value_drivers", [])
+            ),
             features=deduplicated.get("features", []),
             chunks_processed=len(chunks),
             tenant_id=telemetry_context["tenant_id"],
             schema_version=telemetry_context["schema_version"],
             prompt_version=telemetry_context["prompt_version"],
             prompt_template_version=str(prompt_template_version),
-            prompt_template_hash=str(prompt_template_hash) if prompt_template_hash else None,
+            prompt_template_hash=(
+                str(prompt_template_hash) if prompt_template_hash else None
+            ),
             model_version=telemetry_context["model_version"],
             security_metadata=(
                 get_entity_extractor().get_security_signals()
@@ -685,7 +724,9 @@ async def run_extraction(
         validation_results = validator.validate(result, all_relationships)
 
         errors = [
-            r for r in validation_results if r.severity == ValidationSeverity.ERROR and not r.passed
+            r
+            for r in validation_results
+            if r.severity == ValidationSeverity.ERROR and not r.passed
         ]
         warnings = [
             r
@@ -706,12 +747,16 @@ async def run_extraction(
                 model_version=telemetry_context["model_version"],
                 schema_version=telemetry_context["schema_version"],
                 prompt_template_version=str(prompt_template_version),
-                prompt_template_hash=str(prompt_template_hash) if prompt_template_hash else None,
+                prompt_template_hash=(
+                    str(prompt_template_hash) if prompt_template_hash else None
+                ),
                 reason="entailment_validation_failed",
             )
             return None
         if warnings:
-            result.errors.extend([f"[WARNING] {w.rule_id}: {w.message}" for w in warnings])
+            result.errors.extend(
+                [f"[WARNING] {w.rule_id}: {w.message}" for w in warnings]
+            )
 
         step4.completed_at = dt_cls.now(UTC)
         step4.entities_extracted = len(validation_results)
@@ -732,7 +777,10 @@ async def run_extraction(
 
         # Stage 6: RDF Generation
         await ws_manager.broadcast_stage_start(
-            job_id=job_id, stage=PipelineStage.RDF_GENERATION, stage_number=6, total_stages=6
+            job_id=job_id,
+            stage=PipelineStage.RDF_GENERATION,
+            stage_number=6,
+            total_stages=6,
         )
         step5 = ExtractionStep(step_name="rdf_generation", started_at=dt_cls.now(UTC))
 
@@ -785,7 +833,8 @@ async def run_extraction(
                 value_pack_id=telemetry_context["value_pack_id"],
             )
         logger.info(
-            "Extraction completed", extra={**telemetry_context, "extraction_job_id": job_id}
+            "Extraction completed",
+            extra={**telemetry_context, "extraction_job_id": job_id},
         )
 
         if mark_pipeline_complete:
@@ -817,7 +866,9 @@ async def run_extraction(
                 model_version=telemetry_context["model_version"],
                 schema_version=telemetry_context["schema_version"],
                 prompt_template_version=str(prompt_template_version),
-                prompt_template_hash=str(prompt_template_hash) if prompt_template_hash else None,
+                prompt_template_hash=(
+                    str(prompt_template_hash) if prompt_template_hash else None
+                ),
                 reason="llm_schema_validation_failed",
             )
         activity.fail(error_msg)
@@ -846,7 +897,10 @@ async def run_extraction(
                 value_pack_id=telemetry_context["value_pack_id"],
                 endpoint="run_extraction",
             )
-        logger.error("Extraction failed", extra={**telemetry_context, "extraction_job_id": job_id})
+        logger.error(
+            "Extraction failed",
+            extra={**telemetry_context, "extraction_job_id": job_id},
+        )
 
         await ws_manager.broadcast_error(
             job_id=job_id,
@@ -898,7 +952,9 @@ async def run_extract_and_ingest(
         and hasattr(main_mod, "run_extract_and_ingest")
         and main_mod.run_extract_and_ingest is not run_extract_and_ingest
     ):
-        return await main_mod.run_extract_and_ingest(job_id, source_url, content, config)
+        return await main_mod.run_extract_and_ingest(
+            job_id, source_url, content, config
+        )
 
     run_extraction_fn = run_extraction
     if main_mod and hasattr(main_mod, "run_extraction"):
@@ -925,7 +981,9 @@ async def run_extract_and_ingest(
         _artifact_payload = json.dumps(
             {
                 "result": artifacts.result.model_dump(mode="json"),
-                "relationships": [r.model_dump(mode="json") for r in artifacts.relationships],
+                "relationships": [
+                    r.model_dump(mode="json") for r in artifacts.relationships
+                ],
             }
         )
         await _quarantine_validation_failure(
@@ -935,7 +993,9 @@ async def run_extract_and_ingest(
             source_hash=hashlib.sha256(content.encode()).hexdigest(),
             payload=_artifact_payload,
             errors=["extraction_failed"],
-            model_version=str(config.get("model_version") or os.getenv("EXTRACTION_MODEL") or ""),
+            model_version=str(
+                config.get("model_version") or os.getenv("EXTRACTION_MODEL") or ""
+            ),
             schema_version=str(config.get("schema_version") or ""),
             prompt_template_version=str(config.get("prompt_template_version") or ""),
             reason="persistence_validation_failed",
@@ -999,7 +1059,8 @@ async def _quarantine_validation_failure(
     if (
         main_mod
         and hasattr(main_mod, "_quarantine_validation_failure")
-        and main_mod._quarantine_validation_failure is not _quarantine_validation_failure
+        and main_mod._quarantine_validation_failure
+        is not _quarantine_validation_failure
     ):
         return await main_mod._quarantine_validation_failure(
             tenant_id=tenant_id,

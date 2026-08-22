@@ -31,12 +31,14 @@ from value_fabric.shared.fastapi_framework.health import (
 )
 from value_fabric.shared.identity.middleware import GovernanceMiddleware
 from value_fabric.shared.models.typed_dict import TypedDictModel
-from value_fabric.shared.security.config import is_strict_environment
 from value_fabric.shared.startup import reject_insecure_bypass_in_production
 
 from layer2_extraction.api import s2s_auth
+from layer2_extraction.api._shared import _is_strict_runtime
 from layer2_extraction.api.routes import health as health_routes
-from layer2_extraction.api.routes.signal_lifecycle import router as signal_lifecycle_router
+from layer2_extraction.api.routes.signal_lifecycle import (
+    router as signal_lifecycle_router,
+)
 from layer2_extraction.api.routes_extract import router as extract_router
 from layer2_extraction.api.websocket import get_pipeline_ws_manager
 from layer2_extraction.integration.layer3_client import Layer3KnowledgeClient
@@ -56,6 +58,7 @@ from layer2_extraction.shared_bootstrap import (
 )
 
 logger = structlog.get_logger(__name__)
+
 
 # Bootstrap Infisical secrets on import (optional in dev, required in prod)
 def _bootstrap_secrets() -> None:
@@ -98,21 +101,6 @@ _TENANT_CONTEXT_EXEMPT_PATHS: frozenset[str] = frozenset(
 )
 
 
-def _current_environment() -> str | None:
-    """Return the normalized runtime environment for auth fail-closed policy checks."""
-    for key in ("LAYER2_ENV", "ENVIRONMENT", "APP_ENV"):
-        value = os.getenv(key, "").strip()
-        if value:
-            return value.lower()
-    return None
-
-
-def _is_strict_runtime() -> bool:
-    """Return whether Layer 2 must enforce strict startup safety checks."""
-    environment = _current_environment()
-    return is_strict_environment(environment or "unknown")
-
-
 def _get_active_pending_ingestion_store() -> PendingIngestionStore:
     main_mod = sys.modules.get("layer2_extraction.api.main")
     if main_mod and hasattr(main_mod, "pending_ingestion_store"):
@@ -150,7 +138,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
 async def _pending_ingestion_probe() -> ProbeResult:
     """Readiness probe for the pending-ingestion store."""
-    return await health_routes.pending_ingestion_probe(_get_active_pending_ingestion_store())
+    return await health_routes.pending_ingestion_probe(
+        _get_active_pending_ingestion_store()
+    )
 
 
 async def _quarantine_probe() -> ProbeResult:
@@ -197,7 +187,9 @@ def create_app() -> FastAPI:
         readiness_path="/ready",
         enforcement_rollout=EnforcementRolloutConfig(
             tenant_enforcement=EnforcementControlConfig(mode=EnforcementMode.ENFORCE),
-            health_checks=HealthChecksConfig(route_opt_out_paths=_TENANT_CONTEXT_EXEMPT_PATHS),
+            health_checks=HealthChecksConfig(
+                route_opt_out_paths=_TENANT_CONTEXT_EXEMPT_PATHS
+            ),
         ),
         enforce_tenant_context=True,
         instrument_telemetry=True,
@@ -254,23 +246,30 @@ def create_app() -> FastAPI:
     async def metrics_endpoint(request: Request):
         """Prometheus metrics endpoint."""
         if not verify_metrics_access(request):
-            raise AuthorizationError(message="Metrics endpoint requires internal access")
+            raise AuthorizationError(
+                message="Metrics endpoint requires internal access"
+            )
 
         metrics = _get_active_metrics()
         if not metrics:
             return Response(
-                content="# Metrics collection is disabled", status_code=503, media_type="text/plain"
+                content="# Metrics collection is disabled",
+                status_code=503,
+                media_type="text/plain",
             )
 
         try:
             metrics_data = metrics.get_metrics()
             return Response(
-                content=metrics_data, media_type="text/plain; version=0.0.4; charset=utf-8"
+                content=metrics_data,
+                media_type="text/plain; version=0.0.4; charset=utf-8",
             )
         except Exception:
             logger.exception("Failed to collect metrics")
             return Response(
-                content="# Error collecting metrics", status_code=500, media_type="text/plain"
+                content="# Error collecting metrics",
+                status_code=500,
+                media_type="text/plain",
             )
 
     app.include_router(extract_router)
