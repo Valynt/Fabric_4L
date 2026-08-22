@@ -33,7 +33,7 @@ The verifier fails closed when workflow files, registry entries, triggers, secre
 
 ## Inventory
 
-The repository currently contains **57** GitHub Actions workflow files.
+The repository currently contains **58** GitHub Actions workflow files.
 
 | Workflow | Owner | Blocking | Triggers | Local validation |
 |---|---|---:|---|---|
@@ -53,6 +53,7 @@ The repository currently contains **57** GitHub Actions workflow files.
 | `.github/workflows/critical-gates.yml` | `@value-fabric/sre-leads` | no | `merge_group, pull_request, push` | `make check-workflow-references` |
 | `.github/workflows/dependency-scan.yml` | `@value-fabric/sre-leads` | no | `pull_request, push, schedule, workflow_dispatch` | `make check-workflow-references` |
 | `.github/workflows/deploy.yml` | `@value-fabric/sre-leads` | no | `workflow_call, workflow_dispatch` | `make check-workflow-references` |
+| `.github/workflows/devcontainer-smoke.yml` | `@value-fabric/sre-leads` | no | `pull_request, push, workflow_dispatch` | `make check-workflow-references` |
 | `.github/workflows/dr-drill.yml` | `@value-fabric/sre-leads` | no | `schedule, workflow_dispatch` | `make check-workflow-references` |
 | `.github/workflows/drift-check.yml` | `@value-fabric/sre-leads` | no | `pull_request, workflow_dispatch` | `make check-workflow-references` |
 | `.github/workflows/environment-promotion.yml` | `@value-fabric/sre-leads` | no | `workflow_dispatch, workflow_run` | `make check-workflow-references` |
