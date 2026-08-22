@@ -76,10 +76,6 @@
       "size": 2255
     },
     {
-      "module": "layer4_agents.agents.audit_orchestrator.analyzers.finding_catalog",
-      "size": 1646
-    },
-    {
       "module": "layer2_extraction.api.main",
       "size": 1641
     },
@@ -88,12 +84,12 @@
       "size": 1637
     },
     {
-      "module": "layer5_ground_truth.api.governance_router",
-      "size": 1544
+      "module": "layer4_agents.engine.executor",
+      "size": 1562
     },
     {
-      "module": "layer4_agents.engine.executor",
-      "size": 1539
+      "module": "layer5_ground_truth.api.governance_router",
+      "size": 1544
     },
     {
       "module": "layer4_agents.api.routes.analysis",
@@ -104,8 +100,12 @@
       "size": 1333
     },
     {
+      "module": "layer4_agents.services.conversation",
+      "size": 1240
+    },
+    {
       "module": "api.routes.value_packs",
-      "size": 1223
+      "size": 1225
     },
     {
       "module": "layer4_agents.workflows.business_case",
@@ -121,11 +121,7 @@
     },
     {
       "module": "backup.backup_manager",
-      "size": 1134
-    },
-    {
-      "module": "layer4_agents.services.conversation",
-      "size": 1121
+      "size": 1147
     },
     {
       "module": "layer1_ingestion.shared.models",
