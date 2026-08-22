@@ -42,6 +42,12 @@ class WorkflowExecutionError(Exception):
     pass
 
 
+class WorkflowPauseValidationError(WorkflowExecutionError, ValueError):
+    """Raised when workflow pause request violates status or existence invariants."""
+
+    pass
+
+
 class CheckpointConflictError(WorkflowExecutionError):
     """Raised when checkpoint hash from caller is stale versus persisted latest state."""
 
@@ -53,8 +59,6 @@ class CheckpointConflictError(WorkflowExecutionError):
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
 from ..agents.base import BaseAgent
-from ..harness.models import GateStatus, GateType, HumanGate
-from ..harness.policies import PolicyViolationError, enforce_action_approval
 from ..messaging.bus import InMemoryMessageBus, MessageBus
 from ..messaging.router import MessageRouter
 from ..messaging.types import MessageType
@@ -68,14 +72,18 @@ from .checkpoint_replay import (
     resolve_resume_policy,
 )
 from .execution_checkpointing import persist_interruption_if_needed
-from .execution_dispatch import build_workflow_task
+from .execution_dispatch import build_workflow_task, initialize_workflow_run_context
 from .execution_persistence import (
     archive_workflow_state,
     mark_workflow_running,
     persist_workflow_failure,
     recover_orphaned_workflow_states,
 )
-from .execution_validation import ensure_controller_accepts_execution
+from .execution_validation import (
+    ensure_controller_accepts_execution,
+    parse_and_enforce_approval_gate,
+    validate_workflow_start_invariants,
+)
 from .output_contract import validate_final_output
 from .state_manager import StateManager
 
@@ -265,7 +273,7 @@ class OrchestrationController:
 
     def __init__(
         self,
-        tool_registry: ToolRegistry,
+        tool_registry: ToolRegistry | None = None,
         state_manager: StateManager | None = None,
         message_bus: MessageBus | None = None,
         max_concurrent: int = 100,
@@ -276,7 +284,7 @@ class OrchestrationController:
         """Initialize orchestration controller.
 
         Args:
-            tool_registry: Registry of available tools
+            tool_registry: Registry of available tools (optional, defaults to empty ToolRegistry)
             state_manager: State persistence manager
             message_bus: Message bus for agent communication
             max_concurrent: Maximum concurrent tasks
@@ -284,7 +292,7 @@ class OrchestrationController:
             checkpoint_saver: LangGraph checkpoint saver for workflow persistence
             task_scheduler: Optional scheduler implementation for dependency injection
         """
-        self.tool_registry = tool_registry
+        self.tool_registry = tool_registry if tool_registry is not None else ToolRegistry()
         self.state_manager = state_manager or StateManager()
         self.message_bus = message_bus or InMemoryMessageBus()
         self.checkpoint_saver = checkpoint_saver
@@ -298,9 +306,7 @@ class OrchestrationController:
         }
 
         # Task scheduling
-        self.scheduler = task_scheduler or TaskScheduler(
-            max_concurrent_tasks=max_concurrent
-        )
+        self.scheduler = task_scheduler or TaskScheduler(max_concurrent_tasks=max_concurrent)
         self.scheduler.set_callbacks(
             on_complete=self._on_task_complete,
             on_fail=self._on_task_fail,
@@ -369,9 +375,7 @@ class OrchestrationController:
             state.status = WorkflowStatus.INTERRUPTED
             state.metadata["interrupted_at"] = interrupted_at.isoformat()
             state.metadata["interruption_reason"] = reason
-            state.errors.append(
-                f"Workflow interrupted by {reason} at {interrupted_at.isoformat()}"
-            )
+            state.errors.append(f"Workflow interrupted by {reason} at {interrupted_at.isoformat()}")
             await self.state_manager.save_state(workflow_id, state)
 
     async def resolve_model(self, tenant_id: UUID, provider: str = "openai") -> str:
@@ -480,56 +484,20 @@ class OrchestrationController:
             error_cls=WorkflowExecutionError,
         )
 
-        # Validate workflow type early for clear error messages
-        if workflow_type not in WORKFLOW_TYPES:
-            raise WorkflowExecutionError(
-                f"Unknown workflow type: {workflow_type!r}. "
-                f"Supported types: {', '.join(sorted(WORKFLOW_TYPES))}"
-            )
+        validate_workflow_start_invariants(
+            workflow_type=workflow_type,
+            supported_types=WORKFLOW_TYPES,
+            tenant_id=tenant_id,
+            checkpoint_saver=self.checkpoint_saver,
+            error_cls=WorkflowExecutionError,
+        )
 
-        # HARDENING: Tenant scope is a mandatory workflow-start invariant
-        tenant_id_str = str(tenant_id) if tenant_id else ""
-        if not tenant_id_str or not tenant_id_str.strip():
-            raise WorkflowExecutionError(
-                "tenant_id is required: workflow start rejected"
-            )
-
-        action_class = input_data.get("action_class")
-        gate_data = input_data.get("approval_gate")
-        gate: HumanGate | None = None
-        if gate_data is not None:
-            gate = HumanGate(
-                id=str(gate_data["id"]),
-                run_id=str(gate_data.get("run_id") or ""),
-                tenant_id=tenant_id,
-                gate_type=GateType(gate_data["gate_type"]),
-                status=GateStatus(gate_data.get("status", GateStatus.APPROVED.value)),
-            )
-        try:
-            approval_evidence = enforce_action_approval(
-                run_id=workflow_id or "pending_workflow_id",
-                action_class=action_class,
-                gate=gate,
-            )
-        except (ValueError, PolicyViolationError) as exc:
-            raise WorkflowExecutionError(
-                f"{type(exc).__name__}: workflow_execution_failed"
-            ) from exc
-
-        if self.checkpoint_saver is None:
-            import os
-
-            from value_fabric.shared.security.config import (
-                is_production_like_environment,
-            )
-
-            environment = (
-                os.getenv("ENVIRONMENT") or os.getenv("ENV") or os.getenv("APP_ENV")
-            )
-            if is_production_like_environment(environment):
-                raise WorkflowExecutionError(
-                    "Production workflow execution requires a durable checkpoint saver"
-                )
+        approval_evidence = parse_and_enforce_approval_gate(
+            workflow_id=workflow_id,
+            input_data=input_data,
+            tenant_id=tenant_id,
+            error_cls=WorkflowExecutionError,
+        )
 
         # P1-42: Check concurrent workflow limit
         active_count = len(self._active_workflows)
@@ -542,8 +510,8 @@ class OrchestrationController:
             )
 
         # Resolve tenant-aware timeout and store metadata with timeout tracking
-        resolved_timeout_seconds, timeout_source = (
-            await self._resolve_workflow_timeout_seconds(tenant_id)
+        resolved_timeout_seconds, timeout_source = await self._resolve_workflow_timeout_seconds(
+            tenant_id
         )
 
         # Atomic deduplication: check if workflow_id already exists or is running
@@ -558,12 +526,8 @@ class OrchestrationController:
                 )
             existing_state = await self.state_manager.load_state(workflow_id)
             if existing_state is not None:
-                if existing_state.tenant_id and existing_state.tenant_id != str(
-                    tenant_id
-                ):
-                    raise WorkflowExecutionError(
-                        "tenant_id mismatch: workflow access forbidden"
-                    )
+                if existing_state.tenant_id and existing_state.tenant_id != str(tenant_id):
+                    raise WorkflowExecutionError("tenant_id mismatch: workflow access forbidden")
                 logger.info(
                     "Workflow %s already exists with status %s; returning existing execution",
                     workflow_id,
@@ -578,60 +542,28 @@ class OrchestrationController:
                     )
                 return existing_state
 
-        # Generate canonical run envelope with distinct IDs
-        from uuid import uuid4
-
-        from ..models.run_envelope import RunEnvelope
-
-        wf_id = workflow_id or str(uuid4())
-        run_id = str(uuid4())
-        trace_id = str(uuid4())
-
-        # Create workflow with checkpointing if available
-        workflow = create_workflow(
-            workflow_type, self.tool_registry, self.checkpoint_saver
-        )
-        initial_state = workflow.create_initial_state(
-            input_data,
+        (
+            wf_id,
+            run_id,
+            trace_id,
+            workflow,
+            initial_state,
+            workflow_metadata,
+        ) = initialize_workflow_run_context(
+            workflow_type=workflow_type,
+            input_data=input_data,
+            tool_registry=self.tool_registry,
+            checkpoint_saver=self.checkpoint_saver,
+            workflow_id=workflow_id,
             tenant_id=tenant_id,
-            run_id=run_id,
-            trace_id=trace_id,
-            workflow_id=wf_id,
+            user_id=user_id,
+            priority_value=priority.value,
+            approval_evidence=approval_evidence,
+            resolved_timeout_seconds=resolved_timeout_seconds,
+            timeout_source=timeout_source,
         )
         workflow_id = wf_id
-
-        envelope = RunEnvelope(
-            run_id=run_id,
-            workflow_id=workflow_id,
-            trace_id=trace_id,
-            tenant_id=str(tenant_id) if tenant_id else "",
-            workflow_type=workflow_type,
-        )
-
-        initial_state.run_envelope = envelope
-        if approval_evidence is not None:
-            initial_state.metadata["approval_decision"] = approval_evidence
-        initial_state.metadata["workflow_timeout_seconds"] = resolved_timeout_seconds
-        initial_state.metadata["workflow_timeout_source"] = timeout_source
-        self._workflow_metadata[workflow_id] = {
-            "workflow_type": workflow_type,
-            "tenant_id": tenant_id,
-            "user_id": user_id,
-            "priority": priority.value,
-            "started_at": datetime.now(UTC).isoformat(),
-            "timeout_seconds": resolved_timeout_seconds,
-            "timeout_resolution": {
-                "tenant_id": tenant_id,
-                "selected_timeout_seconds": resolved_timeout_seconds,
-                "source": timeout_source,
-            },
-            "run_envelope": envelope.model_dump(),
-            "approval_decision": approval_evidence,
-        }
-        if approval_evidence:
-            envelope_data = envelope.model_dump()
-            envelope_data["approval_decision"] = approval_evidence
-            self._workflow_metadata[workflow_id]["run_envelope"] = envelope_data
+        self._workflow_metadata[workflow_id] = workflow_metadata
 
         # Schedule workflow execution (Task 2.1: Capture tenant context)
         lifecycle_logger.emit(
@@ -786,16 +718,12 @@ class OrchestrationController:
         """
         # HARDENING: Tenant scope is a mandatory workflow-start invariant
         if not tenant_id or not tenant_id.strip():
-            raise WorkflowExecutionError(
-                "tenant_id is required: scheduled workflow start rejected"
-            )
+            raise WorkflowExecutionError("tenant_id is required: scheduled workflow start rejected")
 
         schedule_id = f"sched-{datetime.now(UTC).timestamp()}"
 
         execute_time = scheduled_time or datetime.now(UTC)
-        workflow = create_workflow(
-            workflow_type, self.tool_registry, self.checkpoint_saver
-        )
+        workflow = create_workflow(workflow_type, self.tool_registry, self.checkpoint_saver)
         initial_state = workflow.create_initial_state(
             input_data,
             tenant_id=tenant_id,
@@ -905,9 +833,7 @@ class OrchestrationController:
             task_id=task_id,
             workflow_instance_id=task_id,
             capability=capability,
-            agent_type=getattr(
-                self._registered_agents.get(agent_id), "agent_type", "Unknown"
-            ),
+            agent_type=getattr(self._registered_agents.get(agent_id), "agent_type", "Unknown"),
             context={"tenant_id": tenant_id},
             parameters=parameters,
             timeout_seconds=timeout_seconds,
@@ -971,18 +897,12 @@ class OrchestrationController:
                 "estimated_duration_seconds": metadata.get("estimated_duration"),
                 "error_count": len(state.errors),
                 "has_output": bool(state.output_data),
-                "tenant_id": (
-                    envelope.tenant_id if envelope else metadata.get("tenant_id")
-                ),
+                "tenant_id": (envelope.tenant_id if envelope else metadata.get("tenant_id")),
                 "user_id": metadata.get("user_id"),
                 "priority": metadata.get("priority"),
-                "scheduler_status": (
-                    scheduler_status.get("status") if scheduler_status else None
-                ),
+                "scheduler_status": (scheduler_status.get("status") if scheduler_status else None),
                 "run_id": (
-                    envelope.run_id
-                    if envelope
-                    else envelope_data.get("run_id") or state.run_id
+                    envelope.run_id if envelope else envelope_data.get("run_id") or state.run_id
                 ),
                 "trace_id": (
                     envelope.trace_id
@@ -993,9 +913,7 @@ class OrchestrationController:
             }
         )
 
-    async def cancel_workflow(
-        self, workflow_id: str, reason: str | None = None
-    ) -> bool:
+    async def cancel_workflow(self, workflow_id: str, reason: str | None = None) -> bool:
         """Cancel a workflow.
 
         Args:
@@ -1050,19 +968,19 @@ class OrchestrationController:
         """
         state = await self.state_manager.load_state(workflow_id)
         if not state:
-            raise ValueError(f"Workflow {workflow_id} not found")
+            raise WorkflowPauseValidationError(f"Workflow {workflow_id} not found")
 
         if state.status in [
             WorkflowStatus.COMPLETED,
             WorkflowStatus.FAILED,
             WorkflowStatus.CANCELLED,
         ]:
-            raise ValueError(
+            raise WorkflowPauseValidationError(
                 f"Workflow {workflow_id} is {state.status.value} and cannot be paused"
             )
 
         if state.status == WorkflowStatus.INTERRUPTED:
-            raise ValueError(f"Workflow {workflow_id} is already interrupted")
+            raise WorkflowPauseValidationError(f"Workflow {workflow_id} is already interrupted")
 
         await self.scheduler.cancel_task(f"wf-{workflow_id}")
         await self.scheduler.cancel_task(workflow_id)
@@ -1090,9 +1008,7 @@ class OrchestrationController:
         state.metadata["paused_at"] = paused_at.isoformat()
         state.metadata["checkpoint_hash"] = self._compute_state_hash(state)
         await self.state_manager.save_state(workflow_id, state)
-        logger.info(
-            "Interrupted workflow %s at node %s", workflow_id, state.current_node
-        )
+        logger.info("Interrupted workflow %s at node %s", workflow_id, state.current_node)
         tenant_id = str(
             (state.metadata or {}).get("tenant_id")
             or self._workflow_metadata.get(workflow_id, {}).get("tenant_id")
@@ -1196,9 +1112,7 @@ class OrchestrationController:
             raise WorkflowExecutionError(f"No workflow type found for {workflow_id}")
 
         # Re-create workflow with checkpoint saver.
-        workflow = create_workflow(
-            workflow_type, self.tool_registry, self.checkpoint_saver
-        )
+        workflow = create_workflow(workflow_type, self.tool_registry, self.checkpoint_saver)
 
         # Update metadata
         metadata["resumed_at"] = datetime.now(UTC).isoformat()
@@ -1206,17 +1120,13 @@ class OrchestrationController:
 
         # Resume execution
         try:
-            result = await workflow.run(
-                state, thread_id=workflow_id, resume_data=resume_data
-            )
+            result = await workflow.run(state, thread_id=workflow_id, resume_data=resume_data)
         except WorkflowExecutionError:
             raise
         except asyncio.CancelledError:
             raise
         except Exception as e:
-            raise WorkflowExecutionError(
-                f"Failed to resume workflow {workflow_id}: {e}"
-            ) from e
+            raise WorkflowExecutionError(f"Failed to resume workflow {workflow_id}: {e}") from e
 
         # Update run envelope with latest checkpoint reference
         if result.run_envelope is not None:
@@ -1308,9 +1218,7 @@ class OrchestrationController:
         if not workflow_type:
             raise WorkflowExecutionError(f"No workflow type found for {workflow_id}")
 
-        workflow = create_workflow(
-            workflow_type, self.tool_registry, self.checkpoint_saver
-        )
+        workflow = create_workflow(workflow_type, self.tool_registry, self.checkpoint_saver)
 
         metadata["resumed_at"] = datetime.now(UTC).isoformat()
         metadata["resumed_by"] = user_id
@@ -1417,9 +1325,7 @@ class OrchestrationController:
 
         return sorted(
             workflows,
-            key=lambda item: str(
-                item.get("completed_at") or item.get("started_at") or ""
-            ),
+            key=lambda item: str(item.get("completed_at") or item.get("started_at") or ""),
             reverse=True,
         )
 
@@ -1596,9 +1502,7 @@ class OrchestrationController:
             from ..config.settings import get_settings
 
             timeout_seconds = float(
-                task.parameters.get(
-                    "timeout_seconds", get_settings().workflow_timeout_seconds
-                )
+                task.parameters.get("timeout_seconds", get_settings().workflow_timeout_seconds)
             )
             wf_type = task.parameters.get("workflow_type", "unknown")
             tenant_id_for_trace = task.get_tenant_id() or "unknown"
@@ -1628,9 +1532,7 @@ class OrchestrationController:
 
             if result.status == WorkflowStatus.COMPLETED:
                 validation = validate_final_output(result)
-                result.metadata["output_validation"] = validation.model_dump(
-                    mode="json"
-                )
+                result.metadata["output_validation"] = validation.model_dump(mode="json")
                 if not validation.valid:
                     result.status = WorkflowStatus.FAILED
                     result.metadata["needs_review"] = True
@@ -1645,10 +1547,7 @@ class OrchestrationController:
                         },
                     }
                     result.errors.extend(
-                        [
-                            f"OUTPUT_SCHEMA_VALIDATION_FAILED: {err}"
-                            for err in validation.errors
-                        ]
+                        [f"OUTPUT_SCHEMA_VALIDATION_FAILED: {err}" for err in validation.errors]
                     )
 
             await self.state_manager.save_state(workflow_id, result)
@@ -1779,9 +1678,7 @@ class OrchestrationController:
 
             await asyncio.sleep(0.5)
 
-    def _extract_tenant_timeout(
-        self, tenant_settings: dict[str, Any] | None
-    ) -> int | None:
+    def _extract_tenant_timeout(self, tenant_settings: dict[str, Any] | None) -> int | None:
         if not tenant_settings:
             return None
         cursor: Any
@@ -1796,9 +1693,7 @@ class OrchestrationController:
                 return cursor
         return None
 
-    async def _resolve_workflow_timeout_seconds(
-        self, tenant_id: str | None
-    ) -> tuple[int, str]:
+    async def _resolve_workflow_timeout_seconds(self, tenant_id: str | None) -> tuple[int, str]:
         from ..config.settings import get_settings
 
         source = "service_default"
@@ -1812,9 +1707,7 @@ class OrchestrationController:
                 from ..tenants.service import get_tenant_settings
 
                 tenant_uuid = UUID(str(tenant_id))
-                async with db_session_for_context(
-                    RequestContext(tenant_id=tenant_uuid)
-                ) as db:
+                async with db_session_for_context(RequestContext(tenant_id=tenant_uuid)) as db:
                     tenant_settings = await get_tenant_settings(db, tenant_uuid)
                 tenant_timeout = self._extract_tenant_timeout(tenant_settings)
                 if tenant_timeout is not None:
@@ -1831,11 +1724,7 @@ class OrchestrationController:
 
         min_timeout = get_settings().workflow_timeout_min_seconds
         max_timeout = get_settings().workflow_timeout_max_seconds
-        if (
-            not isinstance(selected, int)
-            or selected < min_timeout
-            or selected > max_timeout
-        ):
+        if not isinstance(selected, int) or selected < min_timeout or selected > max_timeout:
             source = "safe_fallback"
             selected = get_settings().workflow_timeout_fallback_seconds
 
@@ -1930,9 +1819,7 @@ class OrchestrationController:
         except Exception:
             pass
 
-    async def detect_and_record_stuck_workflows(
-        self, threshold_seconds: int = 600
-    ) -> None:
+    async def detect_and_record_stuck_workflows(self, threshold_seconds: int = 600) -> None:
         """Detect workflows stuck longer than threshold and emit metric.
 
         Args:

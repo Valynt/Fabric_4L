@@ -48,6 +48,7 @@ class LLMOutputValidationError(RuntimeError):
         self.call_id = call_id
         self.errors = errors
 
+
 if TYPE_CHECKING:
     from layer4_agents.harness.models import HarnessRun
     from layer4_agents.harness.telemetry import TelemetryEmitter
@@ -78,6 +79,77 @@ class ModelResolutionError(RuntimeError):
 
 _SERVICE_ROOT = Path(__file__).resolve().parents[2]
 _RUNTIME_CONFIG_PATH = _SERVICE_ROOT / "config" / "harness.runtime.yaml"
+
+
+# ---------------------------------------------------------------------------
+# Extracted pure helper functions
+# ---------------------------------------------------------------------------
+
+
+def classify_llm_error(exc: Exception) -> str:
+    """Classify an LLM call exception into a standard error category.
+
+    Standard categories:
+    - TIMEOUT: timeouts / request deadlines
+    - RATE_LIMIT: rate limits / throttling
+    - AUTH: 401 / unauthorized
+    - PROVIDER: generic provider error
+    """
+    msg = str(exc).lower()
+    if "timeout" in msg:
+        return "TIMEOUT"
+    if "rate" in msg and "limit" in msg:
+        return "RATE_LIMIT"
+    if "401" in msg or "unauthorized" in msg:
+        return "AUTH"
+    return "PROVIDER"
+
+
+def estimate_prompt_tokens_from_messages(
+    messages: list[dict[str, Any]] | None,
+    fallback_tokens: int = 0,
+) -> int:
+    """Estimate prompt tokens from message content or fall back to budget cap.
+
+    Approximates ~4 characters per token when messages are present.
+    """
+    if messages is not None:
+        text = " ".join(m.get("content", "") for m in messages if isinstance(m, dict))
+        return max(1, len(text) // 4)
+    return fallback_tokens
+
+
+def calculate_llm_call_cost(
+    cost_calc: Any | None,
+    provider_name: str,
+    model: str,
+    prompt_tokens: int,
+    completion_tokens: int,
+) -> float:
+    """Calculate call cost in USD using the cost calculator if available."""
+    if cost_calc is None:
+        return 0.0
+    return cost_calc.calculate_cost(provider_name, model, prompt_tokens, completion_tokens)
+
+
+def format_structured_llm_messages(
+    messages: list[dict[str, str]],
+    schema: dict[str, Any],
+) -> list[dict[str, str]]:
+    """Append JSON schema instructions to message payload for structured LLM output."""
+    augmented = list(messages)
+    schema_hint = json.dumps(schema, indent=2)
+    json_instruction = (
+        f"\n\nRespond with valid JSON only, conforming to this schema:\n{schema_hint}"
+    )
+    if augmented and augmented[-1].get("role") == "user":
+        augmented[-1] = {
+            **augmented[-1],
+            "content": augmented[-1]["content"] + json_instruction,
+        }
+    else:
+        augmented.append({"role": "user", "content": json_instruction})
+    return augmented
 
 
 # ---------------------------------------------------------------------------
@@ -137,16 +209,14 @@ class GovernedLLMClient:
     ) -> None:
         self._provider = provider
         self._provider_name = (
-            provider_name.strip().lower()
-            if isinstance(provider_name, str)
-            else provider_name
+            provider_name.strip().lower() if isinstance(provider_name, str) else provider_name
         )
         self._run = run
         self._telemetry = telemetry
         self._config = self._load_runtime_config(runtime_config_path or _RUNTIME_CONFIG_PATH)
         self._cost_calc = self._build_cost_calculator()
-        self._max_cost_per_call_usd: float | None = (
-            self._config.get("llm", {}).get("max_cost_per_call_usd")
+        self._max_cost_per_call_usd: float | None = self._config.get("llm", {}).get(
+            "max_cost_per_call_usd"
         )
 
     # ------------------------------------------------------------------
@@ -219,7 +289,9 @@ class GovernedLLMClient:
         for attempt in range(1, max_attempts + 1):
             t0 = time.monotonic()
             try:
-                self._scan_for_prompt_injection(messages, model_task=model_task, model=model, call_id=call_id)
+                self._scan_for_prompt_injection(
+                    messages, model_task=model_task, model=model, call_id=call_id
+                )
                 response = await self._provider.complete_text(
                     model=model,
                     messages=messages,
@@ -278,7 +350,10 @@ class GovernedLLMClient:
                 category = self._classify_error(exc)
                 logger.warning(
                     "LLM call failed (attempt %d/%d, category=%s, model=%s)",
-                    attempt, max_attempts, category, model,
+                    attempt,
+                    max_attempts,
+                    category,
+                    model,
                 )
                 if category not in retryable or attempt == max_attempts:
                     self._emit_call_failed(model_task, model, category, call_id)
@@ -308,18 +383,7 @@ class GovernedLLMClient:
         Returns ``(parsed_dict, LLMCallResult)``.
         """
         # Append schema hint to the last user message so the model returns JSON
-        augmented = list(messages)
-        schema_hint = json.dumps(schema, indent=2)
-        json_instruction = (
-            f"\n\nRespond with valid JSON only, conforming to this schema:\n{schema_hint}"
-        )
-        if augmented and augmented[-1].get("role") == "user":
-            augmented[-1] = {
-                **augmented[-1],
-                "content": augmented[-1]["content"] + json_instruction,
-            }
-        else:
-            augmented.append({"role": "user", "content": json_instruction})
+        augmented = format_structured_llm_messages(messages, schema)
 
         result = await self.call(
             model_task=model_task,
@@ -354,12 +418,10 @@ class GovernedLLMClient:
     def _resolve_model(self, model_task: str) -> str:
         """Resolve model name from layer4_agents.harness.runtime.yaml for the active provider."""
         llm_cfg = self._config.get("llm", {})
-        raw_provider = os.getenv("LAYER4_LLM_PROVIDER", llm_cfg.get("provider", self._provider_name))
-        provider = (
-            raw_provider.strip().lower()
-            if isinstance(raw_provider, str)
-            else raw_provider
+        raw_provider = os.getenv(
+            "LAYER4_LLM_PROVIDER", llm_cfg.get("provider", self._provider_name)
         )
+        provider = raw_provider.strip().lower() if isinstance(raw_provider, str) else raw_provider
         models = llm_cfg.get("models", {}).get(provider, {})
         model = models.get(model_task)
         if not model:
@@ -423,26 +485,24 @@ class GovernedLLMClient:
             return 0.0
         budget = self._resolve_budget(model_task)
         max_completion = budget.get("max_completion_tokens", 0)
+        budget_prompt_tokens = budget.get("max_prompt_tokens", 0)
+        prompt_tokens = estimate_prompt_tokens_from_messages(messages, budget_prompt_tokens)
 
-        if messages is not None:
-            # Approximate prompt tokens from actual message content.
-            text = " ".join(
-                m.get("content", "") for m in messages if isinstance(m, dict)
-            )
-            prompt_tokens = max(1, len(text) // 4)
-        else:
-            # Fall back to budget cap — conservative, may block small prompts.
-            prompt_tokens = budget.get("max_prompt_tokens", 0)
-
-        return self._cost_calc.calculate_cost(
-            self._provider_name, model, prompt_tokens, max_completion
+        return calculate_llm_call_cost(
+            self._cost_calc,
+            self._provider_name,
+            model,
+            prompt_tokens,
+            max_completion,
         )
 
     def _calculate_cost(self, model: str, prompt_tokens: int, completion_tokens: int) -> float:
-        if self._cost_calc is None:
-            return 0.0
-        return self._cost_calc.calculate_cost(
-            self._provider_name, model, prompt_tokens, completion_tokens
+        return calculate_llm_call_cost(
+            self._cost_calc,
+            self._provider_name,
+            model,
+            prompt_tokens,
+            completion_tokens,
         )
 
     # ------------------------------------------------------------------
@@ -561,6 +621,7 @@ class GovernedLLMClient:
     def _build_cost_calculator() -> Any | None:
         try:
             from ..metrics.llm_cost_calculator import LLMCostCalculator
+
             return LLMCostCalculator()
         except asyncio.CancelledError:
             raise
@@ -569,13 +630,6 @@ class GovernedLLMClient:
 
     @staticmethod
     def _classify_error(exc: Exception) -> str:
-        msg = str(exc).lower()
-        if "timeout" in msg:
-            return "TIMEOUT"
-        if "rate" in msg and "limit" in msg:
-            return "RATE_LIMIT"
-        if "401" in msg or "unauthorized" in msg:
-            return "AUTH"
-        return "PROVIDER"
+        return classify_llm_error(exc)
 
     # _parse_json removed — use parse_llm_json (services.llm_output_parser) per §2.5
