@@ -1,28 +1,12 @@
 name: "Supply Chain Integrity Gate"
 
 "on":
+  # NOTE: the `07-supply-chain-integrity` check is REQUIRED by branch protection on
+  # main. A paths-filtered required check is never emitted for PRs that touch
+  # only unlisted paths, which blocks merging those PRs. The pull_request
+  # trigger therefore runs unconditionally.
   pull_request:
     branches: [main]
-    # Change-scoping: supply-chain checks are only relevant when the PR can
-    # affect dependencies, container images, or the pipeline itself.
-    # Push-to-main and dispatch/call events still run unscoped.
-    paths:
-      - 'services/**'
-      - 'apps/**'
-      - 'packages/**'
-      - 'infra/**'
-      - '**/Dockerfile*'
-      - '**/package.json'
-      - '**/pnpm-lock.yaml'
-      - 'pnpm-workspace.yaml'
-      - '**/requirements*.txt'
-      - '**/pyproject.toml'
-      - '**/uv.lock'
-      - '**/poetry.lock'
-      - '.github/**'
-      - 'scripts/**'
-      - 'config/**'
-      - 'Makefile'
   push:
     branches: [main]
   schedule:
@@ -33,20 +17,26 @@ name: "Supply Chain Integrity Gate"
   workflow_call:
     inputs:
       image_tag:
-        description: 'Image tag to verify'
+        description: "Image tag to verify"
         required: true
         type: string
       certify_images:
-        description: 'Require release image SBOM, provenance, and signature controls'
+        description: "Require release image SBOM, provenance, and signature controls"
         required: false
         default: false
         type: boolean
   workflow_dispatch:
     inputs:
       image_tag:
-        description: 'Image tag to verify'
+        description: "Image tag to verify"
         required: true
         type: string
+
+concurrency:
+  # Cancel only an obsolete run of this same workflow/ref. A global
+  # feature-branch group lets activity on an unrelated PR cancel required gates.
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 env:
   REGISTRY: ghcr.io
@@ -134,7 +124,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        layer: [layer1-ingestion, layer2-extraction, layer3-knowledge, layer4-agents, layer5-ground-truth, layer6-benchmarks]
+        layer:
+          [
+            layer1-ingestion,
+            layer2-extraction,
+            layer3-knowledge,
+            layer4-agents,
+            layer5-ground-truth,
+            layer6-benchmarks,
+          ]
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
@@ -243,7 +241,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        layer: [layer1-ingestion, layer2-extraction, layer3-knowledge, layer4-agents, layer5-ground-truth, layer6-benchmarks, apps-web]
+        layer:
+          [
+            layer1-ingestion,
+            layer2-extraction,
+            layer3-knowledge,
+            layer4-agents,
+            layer5-ground-truth,
+            layer6-benchmarks,
+            apps-web,
+          ]
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
@@ -303,7 +310,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        layer: [layer1-ingestion, layer2-extraction, layer3-knowledge, layer4-agents, layer5-ground-truth, layer6-benchmarks, apps-web]
+        layer:
+          [
+            layer1-ingestion,
+            layer2-extraction,
+            layer3-knowledge,
+            layer4-agents,
+            layer5-ground-truth,
+            layer6-benchmarks,
+            apps-web,
+          ]
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
@@ -355,7 +371,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        layer: [layer1-ingestion, layer2-extraction, layer3-knowledge, layer4-agents, layer5-ground-truth, layer6-benchmarks, apps-web]
+        layer:
+          [
+            layer1-ingestion,
+            layer2-extraction,
+            layer3-knowledge,
+            layer4-agents,
+            layer5-ground-truth,
+            layer6-benchmarks,
+            apps-web,
+          ]
 
     steps:
       - name: Verify image signature
@@ -557,7 +582,15 @@ jobs:
       IMAGE_TAG: ${{ inputs.image_tag || github.sha }}
     name: Supply Chain Summary
     runs-on: ubuntu-latest
-    needs: [source-sbom-scan, sbom-scan, provenance, verify-signatures, dependency-audit, license-check]
+    needs:
+      [
+        source-sbom-scan,
+        sbom-scan,
+        provenance,
+        verify-signatures,
+        dependency-audit,
+        license-check,
+      ]
     if: always()
 
     steps:
@@ -651,7 +684,6 @@ jobs:
           echo "| SBOM Generation | ${{ needs.sbom-scan.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| SLSA Provenance | ${{ needs.provenance.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Dependency Audit | ${{ needs.dependency-audit.result == 'success' && '✅' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
-
 
   # ---------------------------------------------------------------------------
   # V1-CI-001 Stage 1 (shadow): stable aggregate supply-chain check.

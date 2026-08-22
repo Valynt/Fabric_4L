@@ -23,7 +23,7 @@ concurrency:
   # Cancel only an obsolete run of this same workflow/ref. A global
   # feature-branch group lets activity on an unrelated PR cancel required gates.
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 permissions:
   contents: read
