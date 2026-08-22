@@ -302,6 +302,19 @@ def build_cases_router(
                 request_id=getattr(http_request.state, "request_id", None),
             )
 
+    @router.post("/cases", response_model=CreateCaseResponse)
+    async def create_case(
+        request: CreateCaseRequest,
+        db: AsyncSession = Depends(get_route_db),
+        context: RequestContext = Depends(require_authenticated),
+    ) -> CreateCaseResponse:
+        """Create a new case for an account.
+
+        Creates a case workspace for the specified account.
+        """
+        authorize_action("layer4.analysis.write_case", context)
+        return await create_workspace_case_record(request, db, context)
+
     @router.post("/cases/{case_id}/regenerate", response_model=BusinessCaseResponse)
     async def regenerate_business_case(
         case_id: str,

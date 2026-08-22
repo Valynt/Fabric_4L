@@ -1909,15 +1909,15 @@
         "tags": [
           "analysis"
         ],
-        "summary": "Generate Business Case",
-        "description": "Generate a business case document.",
-        "operationId": "generate_business_case_v1_cases_post",
+        "summary": "Create Case",
+        "description": "Create a new case for an account.\n\nCreates a case workspace for the specified account.",
+        "operationId": "create_case_v1_cases_post",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/BusinessCaseRequest"
+                "$ref": "#/components/schemas/CreateCaseRequest"
               }
             }
           }
@@ -1928,7 +1928,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/BusinessCaseResponse"
+                  "$ref": "#/components/schemas/CreateCaseResponse"
                 }
               }
             }
@@ -17338,6 +17338,85 @@
         ],
         "title": "CreateAccountRequest",
         "description": "Account creation request.\n\nSupports both CRM-imported accounts (provider=salesforce|hubspot)\nand manually created accounts (provider=manual).\nFor manual accounts, provider_record_id is auto-generated if omitted."
+      },
+      "CreateCaseRequest": {
+        "properties": {
+          "account_id": {
+            "type": "string",
+            "title": "Account Id",
+            "description": "Account identifier"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title",
+            "description": "Case title"
+          },
+          "case_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Case Id",
+            "description": "Optional deterministic case id. Generated if omitted."
+          }
+        },
+        "type": "object",
+        "required": [
+          "account_id"
+        ],
+        "title": "CreateCaseRequest",
+        "description": "Create a new case for an account."
+      },
+      "CreateCaseResponse": {
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "title": "Case Id"
+          },
+          "account_id": {
+            "type": "string",
+            "title": "Account Id"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "default": "created"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "case_id",
+          "account_id",
+          "created_at"
+        ],
+        "title": "CreateCaseResponse",
+        "description": "Created case response."
       },
       "CreateCommentRequest": {
         "properties": {
