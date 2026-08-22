@@ -36,7 +36,7 @@ from value_fabric.shared.identity.vault_check import is_vault_healthy
 from value_fabric.shared.security import validate_production_safety
 from value_fabric.shared.startup import reject_insecure_bypass_in_production
 
-from src.config import get_settings
+from src.config import Settings, get_settings
 from src.logging_config import get_logger, setup_logging
 
 from ..api.dependencies import close_app_state, init_app_state
@@ -118,74 +118,62 @@ def _exception_trace(exc: Exception) -> tuple:
     return (type(exc), exc, exc.__traceback__)
 
 
-# ---------------------------------------------------------------------------
-# Lifespan
-# ---------------------------------------------------------------------------
-
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Application lifespan — startup and shutdown."""
-    validate_production_safety()
-
-    settings = get_settings()
-    setup_logging(settings)
-    if os.getenv("TESTING", "").lower() != "true":
-        from ..retrieval.vector_store import Neo4jVectorStore
-
-        Neo4jVectorStore(settings=settings)._get_embedding_model()
-    logger.info(
-        "Starting Value Fabric Knowledge Graph API",
-        extra={"component": "layer3-knowledge", "version": "1.0.0"},
-    )
-
-    # Cache
-    cache_manager = None
+def _init_cache(settings: Settings) -> object | None:
+    """Initialize Redis cache manager if enabled."""
+    if not settings.cache_enabled:
+        return None
     try:
         from ..cache import CacheConfig, initialize_cache
 
-        if settings.cache_enabled:
-            cache_config = CacheConfig(
-                default_ttl=settings.cache_default_ttl,
-                max_ttl=settings.cache_max_ttl,
-                key_prefix=settings.cache_key_prefix,
-                serializer=settings.cache_serializer,
-                compression=settings.cache_compression,
-            )
-            cache_manager = initialize_cache(
-                redis_url=settings.cache_redis_url, config=cache_config
-            )
-            logger.info("Redis cache initialised")
+        cache_config = CacheConfig(
+            default_ttl=settings.cache_default_ttl,
+            max_ttl=settings.cache_max_ttl,
+            key_prefix=settings.cache_key_prefix,
+            serializer=settings.cache_serializer,
+            compression=settings.cache_compression,
+        )
+        cache_manager = initialize_cache(
+            redis_url=settings.cache_redis_url, config=cache_config
+        )
+        logger.info("Redis cache initialised")
+        return cache_manager
     except (ImportError, ConnectionError, TimeoutError, OSError) as e:
         logger.warning("Cache unavailable: %s", e)
+        return None
 
-    # Metrics
-    metrics = None
+
+def _init_metrics(app: FastAPI, settings: Settings) -> object | None:
+    """Initialize Prometheus metrics if enabled."""
+    if not settings.metrics_enabled:
+        return None
     try:
         from ..metrics import MetricsConfig, MetricsMiddleware, initialize_metrics
 
-        if settings.metrics_enabled:
-            metrics = initialize_metrics(
-                MetricsConfig(
-                    enabled=True,
-                    prefix=settings.metrics_prefix,
-                    label_namespace=settings.metrics_namespace,
-                )
+        metrics = initialize_metrics(
+            MetricsConfig(
+                enabled=True,
+                prefix=settings.metrics_prefix,
+                label_namespace=settings.metrics_namespace,
             )
-            logger.info("Prometheus metrics initialised")
-            try:
-                install_metrics_middleware(
-                    app,
-                    metrics=metrics,
-                    middleware_factory=MetricsMiddleware,
-                    logger=None,
-                )
-            except RuntimeError as exc:
-                logger.warning("Skipping metrics middleware: %s", exc)
+        )
+        logger.info("Prometheus metrics initialised")
+        try:
+            install_metrics_middleware(
+                app,
+                metrics=metrics,
+                middleware_factory=MetricsMiddleware,
+                logger=None,
+            )
+        except RuntimeError as exc:
+            logger.warning("Skipping metrics middleware: %s", exc)
+        return metrics
     except (ImportError, ConnectionError, RuntimeError, ValueError) as e:
         logger.warning("Metrics unavailable: %s", e)
+        return None
 
-    # Versioning
+
+def _init_versioning() -> object:
+    """Initialize API versioning and register migration handlers."""
     from ..api.versioning import (
         initialize_versioning,
         migrate_v1_to_v2_ingestion_request,
@@ -216,22 +204,55 @@ async def lifespan(app: FastAPI):
         "v1", "/health", transform_v1_health_response
     )
     logger.info("API versioning system initialised")
+    return version_compatibility
+
+
+async def _verify_production_vault() -> None:
+    """Verify Vault connectivity when running in production."""
+    if os.getenv("ENVIRONMENT", "development") == "production":
+        vault_addr = os.getenv("VAULT_ADDR")
+        if vault_addr:
+            logger.info(
+                "L3: Checking Vault connectivity", extra={"vault_addr": vault_addr}
+            )
+            if not await is_vault_healthy(vault_addr):
+                raise RuntimeError(
+                    "Vault unreachable — cannot start in production without secrets backend"
+                )
+            logger.info("L3: Vault connectivity verified")
+
+
+# ---------------------------------------------------------------------------
+# Lifespan
+# ---------------------------------------------------------------------------
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifespan — startup and shutdown."""
+    validate_production_safety()
+
+    settings = get_settings()
+    setup_logging(settings)
+    if os.getenv("TESTING", "").lower() != "true":
+        from ..retrieval.vector_store import Neo4jVectorStore
+
+        Neo4jVectorStore(settings=settings)._get_embedding_model()
+    logger.info(
+        "Starting Value Fabric Knowledge Graph API",
+        extra={"component": "layer3-knowledge", "version": "1.0.0"},
+    )
+
+    cache_manager = _init_cache(settings)
+    metrics = _init_metrics(app, settings)
+    version_compatibility = _init_versioning()
 
     app.state.cache_manager = cache_manager
     app.state.metrics = metrics
     app.state.version_compatibility = version_compatibility
     set_app_metrics(metrics)
 
-    # Production Vault gate
-    if os.getenv("ENVIRONMENT", "development") == "production":
-        vault_addr = os.getenv("VAULT_ADDR")
-        if vault_addr:
-            logger.info("L3: Checking Vault connectivity", extra={"vault_addr": vault_addr})
-            if not await is_vault_healthy(vault_addr):
-                raise RuntimeError(
-                    "Vault unreachable — cannot start in production without secrets backend"
-                )
-            logger.info("L3: Vault connectivity verified")
+    await _verify_production_vault()
 
     await init_app_state(app)
     yield
@@ -268,22 +289,32 @@ async def _neo4j_probe() -> ProbeResult:
     app = _probe_app[0]
     app_state = getattr(app.state, "app_state", None)
     if app_state is None:
-        return ProbeResult(name="neo4j", healthy=False, detail="app state not initialized")
+        return ProbeResult(
+            name="neo4j", healthy=False, detail="app state not initialized"
+        )
     if getattr(app_state, "neo4j_driver", None) is None:
-        return ProbeResult(name="neo4j", healthy=False, detail="neo4j driver not connected")
+        return ProbeResult(
+            name="neo4j", healthy=False, detail="neo4j driver not connected"
+        )
     return ProbeResult(name="neo4j", healthy=True)
 
 
 async def _vector_store_probe() -> ProbeResult:
     """Readiness probe for Neo4j-native vector store (embedding + index availability)."""
     if not _probe_app:
-        return ProbeResult(name="vector_store", healthy=False, detail="app not initialized")
+        return ProbeResult(
+            name="vector_store", healthy=False, detail="app not initialized"
+        )
     app = _probe_app[0]
     app_state = getattr(app.state, "app_state", None)
     if app_state is None:
-        return ProbeResult(name="vector_store", healthy=False, detail="app state not initialized")
+        return ProbeResult(
+            name="vector_store", healthy=False, detail="app state not initialized"
+        )
     if getattr(app_state, "vector_store", None) is None:
-        return ProbeResult(name="vector_store", healthy=False, detail="vector_store not initialized")
+        return ProbeResult(
+            name="vector_store", healthy=False, detail="vector_store not initialized"
+        )
     return ProbeResult(name="vector_store", healthy=True)
 
 
@@ -317,7 +348,9 @@ def _post_core_middleware_hook(app: FastAPI) -> None:
     # a misconfigured production deployment fails closed rather than unprotected.
     add_rate_limiting(
         app,
-        requests_per_minute=_settings.rate_limit_requests_per_minute if _settings else 100,
+        requests_per_minute=(
+            _settings.rate_limit_requests_per_minute if _settings else 100
+        ),
         burst_size=_settings.rate_limit_burst_size if _settings else 200,
         enabled=_settings.rate_limit_enabled if _settings else True,
     )
@@ -327,7 +360,9 @@ def _post_core_middleware_hook(app: FastAPI) -> None:
 # Application factory
 # ---------------------------------------------------------------------------
 
-reject_insecure_bypass_in_production(service_name="layer3-knowledge", settings=get_settings())
+reject_insecure_bypass_in_production(
+    service_name="layer3-knowledge", settings=get_settings()
+)
 
 app = create_fabric_app(
     service_name="layer3-knowledge",
@@ -393,6 +428,7 @@ app.middleware("http")(VersionMiddleware(get_version_compatibility()))
 # ---------------------------------------------------------------------------
 # Exception handlers (defined at module level for testability)
 # ---------------------------------------------------------------------------
+
 
 async def value_fabric_exception_handler(request: Request, exc: ValueFabricException):
     from fastapi.responses import JSONResponse
@@ -495,6 +531,7 @@ async def global_exception_handler(request: Request, exc: Exception):
 # Register canonical error envelope handlers from shared package
 try:
     from value_fabric.shared.error_handling.handlers import register_exception_handlers
+
     register_exception_handlers(app)
 except ImportError:
     # Fallback to local handlers if shared package not available
