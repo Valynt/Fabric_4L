@@ -49,7 +49,7 @@ from layer2_extraction.output.provenance import get_provenance_tracker
 
 logger = structlog.get_logger(__name__)
 
-router = APIRouter(tags=["extraction"])
+router = APIRouter()
 
 
 class extract_batchResult(TypedDictModel):
@@ -429,6 +429,20 @@ async def stream_job_events(job_id: str, ctx: RequestContext = Depends(require_a
 
     Returns a Server-Sent Events stream with progress updates,
     status changes, entity discovery, and log messages.
+
+    Event types:
+    - `progress`: Extraction progress percentage (0-100)
+    - `status`: Job status changes (pending, running, completed, failed)
+    - `log`: Pipeline log messages with timestamp and level
+    - `entity`: Newly discovered entities during extraction
+    - `complete`: Job completion event
+    - `error`: Error event with details
+
+    Args:
+        job_id: The pipeline job ID to stream events for
+
+    Returns:
+        StreamingResponse with text/event-stream content type
     """
     tenant_id = str(ctx.tenant_id)
     job_store = _get_active_job_store()

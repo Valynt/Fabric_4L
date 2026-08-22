@@ -11,7 +11,10 @@ import sys
 import time
 from collections.abc import AsyncGenerator, Awaitable, Callable
 
-import psutil
+try:
+    import psutil
+except ImportError:
+    psutil = None  # type: ignore[assignment]
 import structlog
 from fastapi import FastAPI, Request, Response
 from value_fabric.shared.error_handling.exceptions import AuthorizationError
