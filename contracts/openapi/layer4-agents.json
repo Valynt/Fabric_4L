@@ -14749,7 +14749,7 @@
             ],
             "title": "Workflow Triggered"
           },
-          "responseTier": {
+          "response_tier": {
             "anyOf": [
               {
                 "type": "string"
@@ -14758,7 +14758,7 @@
                 "type": "null"
               }
             ],
-            "title": "Responsetier"
+            "title": "Response Tier"
           },
           "provider": {
             "anyOf": [
@@ -14793,7 +14793,7 @@
             ],
             "title": "Degraded"
           },
-          "degradationReason": {
+          "degradation_reason": {
             "anyOf": [
               {
                 "type": "string"
@@ -14802,7 +14802,7 @@
                 "type": "null"
               }
             ],
-            "title": "Degradationreason"
+            "title": "Degradation Reason"
           }
         },
         "type": "object",

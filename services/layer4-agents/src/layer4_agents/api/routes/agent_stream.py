@@ -105,13 +105,11 @@ class AgentGovernanceMetadata(BaseModel):
     confidence: float | None = None
     workflow_triggered: bool | None = None
     # Authoritative tier degradation signals
-    response_tier: str | None = Field(default=None, alias="responseTier")
+    response_tier: str | None = None
     provider: str | None = None
     fallback: bool | None = None
     degraded: bool | None = None
-    degradation_reason: str | None = Field(default=None, alias="degradationReason")
-
-    model_config = ConfigDict(populate_by_name=True)
+    degradation_reason: str | None = None
 
 
 class AgentStreamResponse(BaseModel):

@@ -411,7 +411,7 @@ async def delete_narrative(
     request: Request,
     tenant_id: str = Depends(get_verified_tenant_id),
 ):
-    """Delete a narrative."""
+    """Remove a narrative."""
     from ...services.narrative_builder_service import NarrativeBuilderService
 
     driver = _get_neo4j_driver(request)
