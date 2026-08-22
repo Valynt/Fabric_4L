@@ -264,8 +264,11 @@ def create_app() -> FastAPI:
             return Response(
                 content=metrics_data, media_type="text/plain; version=0.0.4; charset=utf-8"
             )
-        except Exception as e:
-            return Response(content=f"# Error: {e}", status_code=500, media_type="text/plain")
+        except Exception:
+            logger.exception("Failed to collect metrics")
+            return Response(
+                content="# Error collecting metrics", status_code=500, media_type="text/plain"
+            )
 
     app.include_router(extract_router)
 
