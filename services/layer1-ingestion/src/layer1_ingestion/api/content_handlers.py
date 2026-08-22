@@ -79,7 +79,7 @@ async def get_raw_content(
 
 async def get_extracted_data(
     extracted_data_id: UUID,
-    format: str = Query(default="json", regex="^(json|markdown|flattened)$"),
+    format: str = Query(default="json", pattern="^(json|markdown|flattened)$"),
     org_id: UUID = Depends(get_tenant_id),
     db: Session = Depends(get_db_from_context),
 ):
