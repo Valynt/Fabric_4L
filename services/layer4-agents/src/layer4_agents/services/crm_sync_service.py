@@ -39,12 +39,7 @@ from ..integrations.core.observations import (
 from ..integrations.core.state import apply_observation
 from ..integrations.factory import get_connector
 from ..metrics import get_metrics
-from ..models.account import (
-    Account,
-    AccountSyncStatus,
-    CRMProvider,
-    SyncStatus,
-)
+from ..models.account import Account, AccountSyncStatus, CRMProvider, SyncStatus
 from ..models.integration import Integration
 from .encryption_service import EncryptionService
 
@@ -710,8 +705,7 @@ class CRMSyncService:
         2. Integrity precondition must be passed, non-stale, and match exact hashes immediately before sync.
         3. Fails closed with 422 INTEGRITY_GATE_OPEN if integrity is missing, stale, or human approval is mismatched.
         """
-        from ..contracts.artifacts import IntegrityGateErrorResponse, IntegrityPrecondition
-        from ..integrations.core.errors import IntegrityGateOpenError
+        from ..contracts.artifacts import IntegrityGateErrorResponse
 
         if not integrity_precondition:
             raise IntegrityGateOpenError(

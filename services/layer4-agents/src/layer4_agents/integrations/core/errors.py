@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 
 class CRMError(Exception):
     """Base class for all CRM-boundary errors."""
