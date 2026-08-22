@@ -13,9 +13,7 @@ resources:
   - ../../routing/nginx/oauth2-proxy.yaml
   - hostname-config.yaml
 
-# Propagate the single source of truth (routing-host ConfigMap) into every
-# host/TLS field of the routing resources. CI fails if any __HOST__ /
-# __API_HOST__ sentinel survives this render.
+# Propagate the single application host into every host/TLS/auth-signin field.
 replacements:
   - source:
       kind: ConfigMap
@@ -28,17 +26,28 @@ replacements:
         fieldPaths:
           - spec.rules.0.host
           - spec.tls.0.hosts.0
-  - source:
-      kind: ConfigMap
-      name: routing-host
-      fieldPath: data.apiHost
-    targets:
       - select:
           kind: Ingress
-          name: layer-apis
+          name: frontend
+        fieldPaths:
+          - metadata.annotations.nginx\.ingress\.kubernetes\.io/auth-signin
+        options:
+          delimiter: "/"
+          index: 2
+      - select:
+          kind: Ingress
+          name: application-api
         fieldPaths:
           - spec.rules.0.host
           - spec.tls.0.hosts.0
+      - select:
+          kind: Ingress
+          name: application-api
+        fieldPaths:
+          - metadata.annotations.nginx\.ingress\.kubernetes\.io/auth-signin
+        options:
+          delimiter: "/"
+          index: 2
   # Replace ingress namespace in NetworkPolicy
   - source:
       kind: ConfigMap
@@ -48,6 +57,11 @@ replacements:
       - select:
           kind: NetworkPolicy
           name: frontend-policy
+        fieldPaths:
+          - spec.ingress.0.from.0.namespaceSelector.matchLabels.[kubernetes.io/metadata.name]
+      - select:
+          kind: NetworkPolicy
+          name: api-gateway-policy
         fieldPaths:
           - spec.ingress.0.from.0.namespaceSelector.matchLabels.[kubernetes.io/metadata.name]
       - select:

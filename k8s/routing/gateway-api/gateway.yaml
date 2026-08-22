@@ -31,22 +31,3 @@ spec:
       allowedRoutes:
         namespaces:
           from: Same
-    - name: http-api
-      protocol: HTTP
-      port: 80
-      hostname: __API_HOST__
-      allowedRoutes:
-        namespaces:
-          from: Same
-    - name: https-api
-      protocol: HTTPS
-      port: 443
-      hostname: __API_HOST__
-      tls:
-        mode: Terminate
-        certificateRefs:
-          - kind: Secret
-            name: layer-apis-tls
-      allowedRoutes:
-        namespaces:
-          from: Same

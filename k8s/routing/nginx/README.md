@@ -4,12 +4,18 @@
 
 Default supported production routing path for Value Fabric with oauth2-proxy authentication, rate limiting, and security headers.
 
-## What this stack defines
+## Public routing contract
 
-- `Ingress` resources for the frontend (host `__HOST__`) and layer APIs (host `__API_HOST__`, path-prefixed `/layer1`..`/layer6`).
-- `ClusterIssuer` resources for cert-manager Let's Encrypt (prod + staging).
-- `oauth2-proxy` Deployment for edge authentication with encrypted cookie sessions.
-- `NetworkPolicy` for hardened ingress namespace restriction.
+NGINX is the canonical production edge. Two same-host Ingress resources keep API-only annotations from affecting frontend assets:
+
+```text
+/api/v1/<path> -> api-gateway:8000/v1/<path>
+/<path>        -> frontend:3000/<path>
+```
+
+The API rule uses an explicit rewrite and has higher path precedence than `/`. L1–L6 Services are `ClusterIP` only and have no public routes. Gateway API and Istio are parity modes; activate exactly one edge implementation.
+
+This stack also defines cert-manager issuers, oauth2-proxy authentication with encrypted cookie sessions, and hardened ingress NetworkPolicies.
 
 ## Security Features
 
@@ -27,6 +33,7 @@ To bypass authentication for specific paths (e.g., health checks), add an Ingres
 ### Rate Limiting
 
 Default rate limits applied to all Ingress resources:
+
 - **Frontend**: 10 req/sec, 100 req/min, 5 concurrent connections
 - **API Layer**: 20 req/sec, 200 req/min, 10 concurrent connections
 - **Burst Multiplier**: 5x base rate
@@ -34,6 +41,7 @@ Default rate limits applied to all Ingress resources:
 ### Security Headers
 
 All responses include:
+
 - `Strict-Transport-Security: max-age=31536000; includeSubDomains` (HSTS)
 - `X-Content-Type-Options: nosniff`
 - `X-Frame-Options: DENY`
@@ -48,16 +56,18 @@ All responses include:
 ### WAF Posture
 
 This stack does NOT include WAF rules. Production deployments require either:
+
 - **Option A**: Enable ModSecurity with OWASP Core Rule Set in NGINX controller ConfigMap
 - **Option B**: External WAF (Cloudflare, AWS WAF, etc.) as documented prerequisite
 
 ### CORS Enforcement
 
-CORS is enforced at the **application layer** (not at edge). Each layer service (L1-L6) implements its own CORS policy based on business requirements.
+CORS is enforced at the **application layer** (not at edge). Same-origin browsers call `/api/v1`; the API gateway owns downstream service delegation.
 
 ### DNSSEC
 
 DNSSEC must be enabled at your DNS provider (Route53, Cloudflare, etc.). This is an **external DNS prerequisite**, not a Kubernetes configuration. Without DNSSEC:
+
 - DNS spoofing can redirect traffic to attacker-controlled IPs
 - LetsEncrypt HTTP-01 validation is vulnerable to DNS-based attacks
 
@@ -68,12 +78,12 @@ DNSSEC must be enabled at your DNS provider (Route53, Cloudflare, etc.). This is
 - **cert-manager** v1.13+ installed cluster-wide.
   - Typical install: `helm upgrade --install cert-manager jetstack/cert-manager -n cert-manager --create-namespace --set installCRDs=true`.
 - **OIDC Provider** configured (e.g., Auth0, Okta, Keycloak, Google Workspace).
-- DNS A records for `__HOST__` and `__API_HOST__` pointing at the NGINX controller's external LoadBalancer IP.
+- One DNS A record for `__HOST__` pointing at the NGINX controller's external LoadBalancer IP.
 - DNSSEC enabled at DNS provider.
 
 This stack does **not** import `../../base`. It is composed with an env overlay
 under `k8s/deployments/<env>-nginx/`, which also provides the `routing-host`
-ConfigMap used to substitute `__HOST__` / `__API_HOST__`.
+ConfigMap used to substitute `__HOST__`.
 
 ## Apply (via deployment overlay)
 
@@ -97,6 +107,11 @@ kubectl -n value-fabric describe certificate frontend-tls
 
 # Verify ingress is reachable:
 curl -I https://<your-host>
+
+# Verify API routing returns JSON rather than frontend HTML:
+make production-edge-smoke APPLICATION_URL=https://<your-host>
+# If edge authentication requires credentials, set EDGE_SMOKE_AUTHORIZATION
+# (for example, "Bearer ...") or EDGE_SMOKE_COOKIE in the environment.
 ```
 
 ## Troubleshooting
