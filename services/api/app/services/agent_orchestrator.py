@@ -18,7 +18,7 @@ import os
 import time
 import uuid
 from datetime import UTC, datetime
-from typing import Any
+from typing import Mapping
 
 import httpx
 from value_fabric.shared.observability.http_trace_propagation import (
@@ -391,7 +391,7 @@ class AgentOrchestrator:
         tenant_id: str,
         workflow_type: str,
         account_id: str | None = None,
-        input_data: dict[str, Any] | None = None,
+        input_data: Mapping[str, object] | None = None,
         user_id: str | None = None,
     ) -> AgentRun:
         delegated = self.layer4_client.create_workflow(
@@ -475,7 +475,7 @@ class AgentOrchestrator:
         *,
         tenant_id: str,
         user_id: str | None = None,
-        resume_data: dict[str, Any] | None = None,
+        resume_data: Mapping[str, object] | None = None,
     ) -> AgentRun:
         run = db.agent_runs.get(run_id, tenant_id=tenant_id)
         if not run:
@@ -500,7 +500,7 @@ class AgentOrchestrator:
         return run
 
     def _apply_layer4_state(
-        self, run: AgentRun, delegated: dict[str, Any], *, default_status: str | None = None
+        self, run: AgentRun, delegated: Mapping[str, object], *, default_status: str | None = None
     ) -> None:
         run.status = _map_status(
             delegated.get("status"), default=default_status or run.status

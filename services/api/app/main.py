@@ -155,7 +155,7 @@ async def _api_redis_probe() -> ProbeResult:
 async def _api_layer_probe(name: str, base_url_attr: str) -> ProbeResult:
     """Generic readiness probe for a downstream layer service.
 
-    Hits the layer's ``/ready`` endpoint with a short timeout. Any non-200
+    Hits the layer's ``/ready`` endpoint with a short timeout. Non-200
     response or network error marks the dependency unhealthy without
     failing the whole gateway: ``/ready`` aggregates probes and the
     orchestrator only pulls traffic when the aggregate is healthy.

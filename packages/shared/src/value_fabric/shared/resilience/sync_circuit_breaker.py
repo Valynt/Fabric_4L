@@ -24,7 +24,7 @@ import threading
 import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Any, TypeVar
+from typing import TypeVar
 
 from ..error_handling import sanitize_log_error
 
@@ -150,7 +150,7 @@ class SyncCircuitBreaker:
                     },
                 )
 
-    def get_state(self) -> dict[str, Any]:
+    def get_state(self) -> dict[str, str | int | float]:
         with self._lock:
             return {
                 "service": self.service_name,

@@ -173,7 +173,7 @@ def _request_headers(request: Request, tenant_id: str) -> dict[str, str]:
     return headers
 
 
-class _DelegationTransient(RetryableError):  # type: ignore[misc]
+class _DelegationTransient(RetryableError):
     """Retryable upstream delegation failure (network error or 502/503/504/429).
 
     Wraps the response or exception so retry_transient_async + the breaker
@@ -181,15 +181,22 @@ class _DelegationTransient(RetryableError):  # type: ignore[misc]
     surface immediately to the caller.
     """
 
+    concurrency_exhausted: bool = False
+    circuit_open: bool = False
+
     def __init__(
         self,
         status_code: int | None = None,
         headers: httpx.Headers | dict[str, str] | None = None,
         content: bytes | None = None,
+        concurrency_exhausted: bool = False,
+        circuit_open: bool = False,
     ) -> None:
         self.status_code = status_code
         self.headers = headers
         self.content = content
+        self.concurrency_exhausted = concurrency_exhausted
+        self.circuit_open = circuit_open
         super().__init__("delegation_transient")
 
 
@@ -197,9 +204,7 @@ def _is_transient(exc: Exception) -> bool:
     if not isinstance(exc, _DelegationTransient):
         return False
     # Circuit-open and concurrency-exhausted failures fail fast: do not retry.
-    if getattr(exc, "_circuit_open", False):
-        return False
-    if getattr(exc, "_concurrency_exhausted", False):
+    if exc.circuit_open or exc.concurrency_exhausted:
         return False
     return True
 
@@ -427,9 +432,7 @@ async def _delegate(
         # exhausted — better to reject early than to queue indefinitely.
         semaphore = _get_semaphore()
         if semaphore.locked():
-            td = _DelegationTransient(status_code=503)
-            td._concurrency_exhausted = True  # type: ignore[attr-defined]
-            raise td
+            raise _DelegationTransient(status_code=503, concurrency_exhausted=True)
         await semaphore.acquire()
         try:
             response = await breaker.call(
@@ -439,9 +442,7 @@ async def _delegate(
             # Translate so retry_transient_async can decide. Circuit-open
             # failures are NOT retried (the breaker says stop) but surface
             # as a 503 to the caller.
-            td = _DelegationTransient()
-            td._circuit_open = True  # type: ignore[attr-defined]
-            raise td from exc
+            raise _DelegationTransient(circuit_open=True) from exc
         finally:
             semaphore.release()
         return response

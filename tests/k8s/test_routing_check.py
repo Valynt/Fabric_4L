@@ -340,7 +340,7 @@ def test_gate_detects_gateway_bypass_on_layer_apis_ingress(
 def test_gate_detects_bypass_path_prefix_on_any_ingress(
     tmp_path: Path, repo_root: Path
 ) -> None:
-    """Any Ingress routing a /layerN path to a non-gateway Service must fail.
+    """Every Ingress routing a /layerN path to a non-gateway Service must fail.
 
     Catches a bypass even when the Ingress is not named `layer-apis` (e.g.
     a stray Ingress exposing /layer4 directly to layer4-agents).
