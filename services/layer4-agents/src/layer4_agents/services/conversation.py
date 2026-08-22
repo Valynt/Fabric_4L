@@ -31,6 +31,9 @@ from value_fabric.shared.audit import AuditAction, AuditOutcome
 from value_fabric.shared.audit.emitter import emit_audit_event
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
+from .degradation_evaluator import DegradationEvaluator
+from .thesys_provider import ThesysProvider
+
 
 class ConversationService_handle_messageResult(TypedDictModel):
     content: Any
@@ -205,6 +208,7 @@ class ConversationService:
         intent_classifier: Any | None = None,
         tool_registry: Any | None = None,
         retrieval_engine: Any | None = None,
+        degradation_evaluator: DegradationEvaluator | None = None,
     ) -> None:
         self.conversation_agent = conversation_agent
         self.orchestration_controller = orchestration_controller
@@ -213,6 +217,11 @@ class ConversationService:
         self.intent_classifier = intent_classifier
         self.tool_registry = tool_registry
         self.retrieval_engine = retrieval_engine
+        self.degradation_evaluator = (
+            degradation_evaluator
+            if degradation_evaluator is not None
+            else DegradationEvaluator.from_task("conversation")
+        )
 
     def _semantic_contract_mode(self) -> str:
         """Resolve semantic-contract mode for Phase 2 rollout."""
@@ -907,16 +916,17 @@ class ConversationService:
         generation_metadata = generation_metadata if generation_metadata is not None else {}
         failed_tiers: list[str] = []
 
+        tracker = self.degradation_evaluator.create_tracker(
+            tenant_id=tenant_id,
+            trace_id=str(gate_context.get("trace_id")) if gate_context.get("trace_id") else None,
+            workflow_id=str(gate_context.get("workflow_id")) if gate_context.get("workflow_id") else None,
+        )
+
         def mark_result(*, tier: str, provider: str | None = None) -> None:
-            generation_metadata.update(
-                {
-                    "response_tier": tier,
-                    "provider": provider,
-                    "fallback": bool(failed_tiers) or tier == "heuristic",
-                    "degraded": bool(failed_tiers) or tier == "heuristic",
-                    "degradation_reason": ",".join(failed_tiers) or None,
-                }
-            )
+            tracker.record_success(tier=tier, provider=provider)
+            generation_metadata.update(tracker.build_generation_metadata())
+            failed_tiers.extend(tracker.failed_tiers)
+
         # Strategy 0: Mutation tool execution
         tool_result = None
         if intent in MUTATION_INTENTS:
@@ -958,11 +968,19 @@ class ConversationService:
                 if content:
                     mark_result(tier="conversation_agent")
                     return self._append_workflow_notice(content, workflow_result)
-                failed_tiers.append("conversation_agent_empty")
+                tracker.record_failure(
+                    rung_kind="retry",
+                    tier="conversation_agent",
+                    reason="conversation_agent_empty",
+                )
             except asyncio.CancelledError:
                 raise
             except Exception:
-                failed_tiers.append("conversation_agent_failed")
+                tracker.record_failure(
+                    rung_kind="retry",
+                    tier="conversation_agent",
+                    reason="conversation_agent_failed",
+                )
                 logger.warning("Full agent pipeline failed, falling back")
 
         # Strategy 2: C1 proxy with enriched context
@@ -974,22 +992,31 @@ class ConversationService:
                     active_tab=active_tab,
                     context_data=context_data,
                     account_name=account_name,
+                    tenant_id=tenant_id,
                 )
                 if content:
                     mark_result(tier="thesys_c1", provider="thesys")
-                    if generation_metadata["degraded"]:
+                    if tracker.is_degraded:
                         await self._emit_degradation_audit(
                             gate_context=gate_context,
                             tenant_id=tenant_id,
                             selected_tier="thesys_c1",
-                            reason=str(generation_metadata["degradation_reason"]),
+                            reason=str(generation_metadata.get("degradation_reason")),
                         )
                     return self._append_workflow_notice(content, workflow_result)
-                failed_tiers.append("thesys_c1_unavailable")
+                tracker.record_failure(
+                    rung_kind="failover",
+                    tier="thesys_c1",
+                    reason="thesys_c1_unavailable",
+                )
             except asyncio.CancelledError:
                 raise
             except Exception:
-                failed_tiers.append("thesys_c1_failed")
+                tracker.record_failure(
+                    rung_kind="failover",
+                    tier="thesys_c1",
+                    reason="thesys_c1_failed",
+                )
                 logger.warning("C1 generation failed, falling back to heuristic")
 
         # Strategy 3: Context-aware heuristic (always works)
@@ -1000,14 +1027,18 @@ class ConversationService:
             context_data=context_data,
             account_name=account_name,
         )
-        if not failed_tiers:
-            failed_tiers.append("llm_tiers_unavailable")
+        if not tracker.failed_tiers:
+            tracker.record_failure(
+                rung_kind="failover",
+                tier="llm_tiers",
+                reason="llm_tiers_unavailable",
+            )
         mark_result(tier="heuristic")
         await self._emit_degradation_audit(
             gate_context=gate_context,
             tenant_id=tenant_id,
             selected_tier="heuristic",
-            reason=str(generation_metadata["degradation_reason"]),
+            reason=str(generation_metadata.get("degradation_reason")),
         )
         return self._append_workflow_notice(content, workflow_result)
 
@@ -1018,15 +1049,14 @@ class ConversationService:
         tenant_id: str,
         selected_tier: str,
         reason: str,
+        tracker: Any | None = None,
     ) -> None:
         """Emit the first-class audit event required for an allowed fallback."""
         try:
-            await emit_audit_event(
-                AuditAction.AGENT_EXECUTION,
-                outcome=AuditOutcome.SUCCESS,
-                resource_type="llm_degradation",
-                resource_id="conversation-agent",
-                details={
+            if tracker is not None:
+                details = tracker.build_audit_details(selected_tier=selected_tier, reason=reason)
+            else:
+                details = {
                     "event_type": "llm_degradation_applied",
                     "tenant_id": tenant_id,
                     "run_id": gate_context.get("workflow_id"),
@@ -1034,7 +1064,13 @@ class ConversationService:
                     "selected_tier": selected_tier,
                     "reason": reason,
                     "degraded": True,
-                },
+                }
+            await emit_audit_event(
+                AuditAction.AGENT_EXECUTION,
+                outcome=AuditOutcome.SUCCESS,
+                resource_type="llm_degradation",
+                resource_id="conversation-agent",
+                details=details,
                 chain_id=f"conversation:{tenant_id}",
             )
         except asyncio.CancelledError:
@@ -1056,21 +1092,17 @@ class ConversationService:
         active_tab: str,
         context_data: dict[str, Any],
         account_name: str,
+        tenant_id: str = "unknown",
+        user_id: str = "unknown",
     ) -> str:
-        """Generate response via the Thesys C1 API.
+        """Generate response via ThesysProvider.
 
         Enriches the system prompt with gathered context data so the LLM
         has account-specific information to work with.
         """
-        import httpx
-
-        thesys_api_key = os.getenv("THESYS_API_KEY", "")
-        thesys_base_url = os.getenv(
-            "THESYS_BASE_URL", "https://api.thesys.dev/v1/embed"
-        )
-
-        if not thesys_api_key:
-            logger.info("THESYS_API_KEY not set — C1 generation unavailable")
+        provider = ThesysProvider()
+        if not provider.is_available():
+            logger.info("Thesys C1 integration is not configured")
             return ""
 
         # Build enriched system prompt
@@ -1090,7 +1122,7 @@ class ConversationService:
         enriched_prompt = base_prompt + context_section
 
         # Build message list with enriched system prompt
-        c1_messages = [{"role": "system", "content": enriched_prompt}]
+        c1_messages: list[dict[str, Any]] = [{"role": "system", "content": enriched_prompt}]
         # Include recent conversation history (last 10 messages)
         for msg in messages[-10:]:
             role = msg.get("role", "user")
@@ -1098,37 +1130,18 @@ class ConversationService:
                 continue  # Skip — we already have our enriched system prompt
             c1_messages.append({"role": role, "content": msg.get("content", "")})
 
-        payload = {
-            "messages": c1_messages,
-            "stream": False,
-            "metadata": {
-                "business_case_id": f"valuepilot_{active_tab}",
-                "account_name": account_name,
-            },
+        metadata = {
+            "business_case_id": f"valuepilot_{active_tab}",
+            "account_name": account_name,
         }
 
-        async with httpx.AsyncClient(
-            timeout=httpx.Timeout(30.0, connect=10.0)
-        ) as client:
-            response = await client.post(
-                thesys_base_url,
-                json=payload,
-                headers={
-                    "Authorization": f"Bearer {thesys_api_key}",
-                    "Content-Type": "application/json",
-                },
-            )
-            response.raise_for_status()
-            data = response.json()
-
-            # C1 API returns content in various formats
-            if isinstance(data, dict):
-                return (
-                    data.get("content", "")
-                    or data.get("choices", [{}])[0].get("message", {}).get("content", "")
-                    or data.get("text", "")
-                )
-            return str(data)
+        response = await provider.complete_text(
+            messages=c1_messages,
+            metadata=metadata,
+            tenant_id=tenant_id,
+            user_id=user_id,
+        )
+        return response.content
 
     def _heuristic_classify(self, message: str) -> dict[str, Any]:
         """Rule-based intent classification fallback."""
