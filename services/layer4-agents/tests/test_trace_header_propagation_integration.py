@@ -4,7 +4,7 @@ import httpx
 import pytest
 from fastapi import FastAPI, Request
 
-from src.integration.layer2_client import Layer2ExtractionClient
+from layer4_agents.integration.layer2_client import Layer2ExtractionClient
 
 # TracingMiddleware lives in services/layer3-knowledge/src — importing it here
 # requires layer3's internal bare imports to resolve without colliding with

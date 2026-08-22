@@ -12,27 +12,14 @@ Uses mock Neo4j driver to avoid external dependencies.
 
 
 import json
-import sys
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 # ---------------------------------------------------------------------------
-# Pre-import mocks for broken upstream modules
-# ---------------------------------------------------------------------------
-
-_signal_events_mock = MagicMock()
-_signal_events_mock.SignalStreamCompleteEvent = MagicMock
-_pain_signal_mock = MagicMock()
-_pain_signal_mock.ErrorCategory = MagicMock()
-sys.modules.setdefault("src.models.signal_events", _signal_events_mock)
-sys.modules.setdefault("src.models.pain_signal", _pain_signal_mock)
-
-# ---------------------------------------------------------------------------
 # Now safe to import
 # ---------------------------------------------------------------------------
-
 from value_fabric.shared.identity.context import (
     RequestContext,
     clear_current_context,

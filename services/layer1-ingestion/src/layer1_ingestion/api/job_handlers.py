@@ -196,9 +196,9 @@ async def list_jobs(
     priority_max: int | None = Query(None, ge=1, le=10),
     has_errors: bool | None = Query(None),
     sort_by: str = Query(
-        default="created_at", regex="^(created_at|started_at|completed_at|priority)$"
+        default="created_at", pattern="^(created_at|started_at|completed_at|priority)$"
     ),
-    sort_order: str = Query(default="desc", regex="^(asc|desc)$"),
+    sort_order: str = Query(default="desc", pattern="^(asc|desc)$"),
     org_id: UUID = Depends(get_tenant_id),
     db: Session = Depends(get_db_from_context_sync),
 ):

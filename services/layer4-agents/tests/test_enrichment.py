@@ -42,31 +42,6 @@ for mod_name in [
 if "src.database" not in sys.modules:
     sys.modules["src.database"] = _mock_database
 
-# The L4 models/__init__.py tries to import ErrorCategory from pain_signal
-# which doesn't exist in the current codebase. We need to patch the models
-# __init__.py import. We do this by pre-importing the pain_signal module
-# and adding the missing name before models/__init__.py runs.
-import importlib
-import importlib.util
-
-_ps_path = str(__import__('pathlib').Path(__file__).parent.parent / 'src' / 'models' / 'pain_signal.py')
-_spec = importlib.util.spec_from_file_location('src.models.pain_signal', _ps_path)
-if _spec and _spec.loader:
-    _ps_mod = importlib.util.module_from_spec(_spec)
-    sys.modules['src.models.pain_signal'] = _ps_mod
-    try:
-        _spec.loader.exec_module(_ps_mod)
-    except Exception:
-        pass
-    # Add missing ErrorCategory as a stub if not present
-    if not hasattr(_ps_mod, 'ErrorCategory'):
-        from enum import Enum as _Enum
-        class _ErrorCategory(str, _Enum):
-            VALIDATION = 'validation'
-            PROCESSING = 'processing'
-            SYSTEM = 'system'
-        _ps_mod.ErrorCategory = _ErrorCategory
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -183,7 +158,7 @@ class TestEnrichmentOrchestrator:
 
         with patch.object(orch, "_enrich_from_source", new_callable=AsyncMock) as mock_source:
             mock_source.return_value = {"success": True, "data": {}}
-            result = await orch.enrich_account(
+            await orch.enrich_account(
                 account.id,
                 sources=[EnrichmentSource.SEC_EDGAR],
             )

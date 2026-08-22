@@ -20,7 +20,8 @@ _repo_root = _layer4_dir.parent.parent.resolve()  # layer4-agents -> services ->
 if str(_repo_root) not in sys.path:
     sys.path.insert(0, str(_repo_root))
 
-# Add service root so legacy package imports like ``src.models`` resolve.
+# Add service root to path so legacy ``src.<module>`` imports resolve
+# (runtime relies on src.database and src.contracts during collection).
 if str(_layer4_dir) not in sys.path:
     sys.path.insert(0, str(_layer4_dir))
 
@@ -29,9 +30,8 @@ _src_dir = _layer4_dir / "src"
 if str(_src_dir) not in sys.path:
     sys.path.insert(0, str(_src_dir))
 
-# Ensure the real compatibility package is present before collection-time tests
-# that register targeted ``src.models.*`` mocks with sys.modules.setdefault().
-import src.models  # noqa: E402,F401
+# Ensure the canonical models package is present before collection-time imports.
+import layer4_agents.models  # noqa: E402,F401
 
 # Settings are instantiated by several service imports during collection.
 # Keep tests hermetic while still allowing callers to provide real endpoints.
