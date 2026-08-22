@@ -4,13 +4,13 @@ from datetime import UTC, datetime
 
 import pytest
 
+from layer4_agents.models.agent_state import WorkflowStatus, WorkflowType
 from layer4_agents.policies.replay_conflict import ReplayConflictError
 from layer4_agents.workflows.replay import (
     Layer4WorkflowReplayHarness,
     ReplayAuthorizationContext,
     ReplayEventEnvelopeV1,
 )
-from src.models.agent_state import WorkflowStatus, WorkflowType
 
 
 class _AuditSink:
