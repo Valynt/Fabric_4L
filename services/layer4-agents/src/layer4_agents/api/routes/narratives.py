@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from value_fabric.shared.error_handling.exceptions import NotFoundError
-
 """
 Narrative Builder API routes — Data Intelligence Layer Phase 3, Task 3.1.
 
@@ -18,8 +16,9 @@ Status transitions are validated against an enum (V-010).
 from typing import Any, Literal
 
 import structlog
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, Query, Request
 from pydantic import BaseModel, ConfigDict, Field
+from value_fabric.shared.error_handling.exceptions import NotFoundError, ValidationError
 from value_fabric.shared.models.typed_dict import TypedDictModel
 from value_fabric.shared.security.dil_auth import (
     VALID_NARRATIVE_AUDIENCES,
@@ -288,9 +287,9 @@ async def export_narrative(
 
     precondition = body.integrity_precondition
     if not precondition:
-        raise HTTPException(
-            status_code=422,
-            detail=IntegrityGateErrorResponse(
+        raise ValidationError(
+            message="This narrative version has not passed integrity validation.",
+            details=IntegrityGateErrorResponse(
                 code="INTEGRITY_GATE_OPEN",
                 message="This narrative version has not passed integrity validation.",
                 narrative_artifact_id=narrative_id,
@@ -308,9 +307,9 @@ async def export_narrative(
         or precondition.evidence_set_hash != body.evidence_set_hash
         or precondition.tenant_id != tenant_id
     ):
-        raise HTTPException(
-            status_code=422,
-            detail=IntegrityGateErrorResponse(
+        raise ValidationError(
+            message="Integrity artifact does not match current narrative content or evidence hash.",
+            details=IntegrityGateErrorResponse(
                 code="INTEGRITY_GATE_OPEN",
                 message="Integrity artifact does not match current narrative content or evidence hash.",
                 narrative_artifact_id=narrative_id,
@@ -322,9 +321,9 @@ async def export_narrative(
 
     if precondition.status != "passed" or precondition.unresolved_findings > 0 or not precondition.is_passed:
         status_label = "unresolved_findings" if precondition.unresolved_findings > 0 else (precondition.status if precondition.status in ["pending", "failed", "stale"] else "failed")
-        raise HTTPException(
-            status_code=422,
-            detail=IntegrityGateErrorResponse(
+        raise ValidationError(
+            message=f"Narrative integrity status is '{precondition.status}' with {precondition.unresolved_findings} unresolved findings.",
+            details=IntegrityGateErrorResponse(
                 code="INTEGRITY_GATE_OPEN",
                 message=f"Narrative integrity status is '{precondition.status}' with {precondition.unresolved_findings} unresolved findings.",
                 narrative_artifact_id=narrative_id,

@@ -14,11 +14,11 @@ from __future__ import annotations
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from fastapi import HTTPException
 from layer4_agents.api.routes.narratives import NarrativeExportRequest, export_narrative
 from layer4_agents.contracts.artifacts import IntegrityPrecondition
 from layer4_agents.integrations.core.errors import IntegrityGateOpenError
 from layer4_agents.services.crm_sync_service import CRMSyncService
+from value_fabric.shared.error_handling.exceptions import ValidationError
 
 
 @pytest.mark.unit
@@ -50,11 +50,11 @@ async def test_narrative_export_missing_integrity_fails_closed():
             integrity_precondition=None,
         )
 
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises(ValidationError) as exc_info:
             await export_narrative("nar_123", export_req, mock_request, tenant_id="tenant_001")
 
         assert exc_info.value.status_code == 422
-        detail = exc_info.value.detail
+        detail = exc_info.value.details
         assert detail["code"] == "INTEGRITY_GATE_OPEN"
         assert detail["integrity_status"] == "missing"
         assert detail["required_action"] == "rerun_integrity_validation"
@@ -101,11 +101,11 @@ async def test_narrative_export_mismatched_content_hash_fails_closed():
             integrity_precondition=precondition,
         )
 
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises(ValidationError) as exc_info:
             await export_narrative("nar_123", export_req, mock_request, tenant_id="tenant_001")
 
         assert exc_info.value.status_code == 422
-        detail = exc_info.value.detail
+        detail = exc_info.value.details
         assert detail["code"] == "INTEGRITY_GATE_OPEN"
         assert detail["integrity_status"] == "mismatched"
 
@@ -150,11 +150,11 @@ async def test_narrative_export_unresolved_findings_fails_closed():
             integrity_precondition=precondition,
         )
 
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises(ValidationError) as exc_info:
             await export_narrative("nar_123", export_req, mock_request, tenant_id="tenant_001")
 
         assert exc_info.value.status_code == 422
-        detail = exc_info.value.detail
+        detail = exc_info.value.details
         assert detail["code"] == "INTEGRITY_GATE_OPEN"
         assert detail["integrity_status"] == "unresolved_findings"
 
