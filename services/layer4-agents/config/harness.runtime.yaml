@@ -31,19 +31,22 @@ llm:
       reasoning: "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8"
       extraction: "meta-llama/Llama-4-Scout-17B-16E-Instruct"
       narrative: "meta-llama/Llama-3.3-70B-Instruct-Turbo"
+      conversation: "meta-llama/Llama-3.3-70B-Instruct-Turbo"
       embedding: "togethercomputer/m2-bert-80M-8k-retrieval"
 
     openai:
       reasoning: "gpt-4o"
       extraction: "gpt-4o-mini"
       narrative: "gpt-4o"
+      conversation: "gpt-4o"
       embedding: "text-embedding-3-small"
 
     anthropic:
       reasoning: "claude-3-5-sonnet-20241022"
       extraction: "claude-3-haiku-20240307"
       narrative: "claude-3-5-sonnet-20241022"
-      embedding: null   # Anthropic has no embedding API; falls back to together/openai
+      conversation: "claude-3-5-sonnet-20241022"
+      embedding: null   # Unsupported; embedding spaces must bind another approved provider.
 
   # Per-call token budget caps (applied by GovernedLLMClient before dispatch)
   token_budgets:
@@ -54,6 +57,9 @@ llm:
       max_prompt_tokens: 6000
       max_completion_tokens: 2000
     narrative:
+      max_prompt_tokens: 4000
+      max_completion_tokens: 1200
+    conversation:
       max_prompt_tokens: 4000
       max_completion_tokens: 1200
 
@@ -67,6 +73,33 @@ llm:
 
   # Cost guardrail: abort if a single call would exceed this threshold
   max_cost_per_call_usd: 0.50
+
+  # Degradation is a declared policy, never an implicit code-path decision.
+  # P0 records current behavior; later phases move evaluation into the gateway.
+  degradation_policies:
+    conversation:
+      ladder:
+        - retry:
+            same_model: 1
+        - failover:
+            tier: secondary_provider
+        - heuristic:
+            id: chat_deterministic_v1
+      output_marking: required
+    narrative:
+      ladder:
+        - retry:
+            same_model: 2
+        - failover:
+            tier: secondary_provider
+        - template:
+            id: narrative_fallback_v3
+      output_marking: required
+    reasoning:
+      ladder:
+        - retry:
+            same_model: 3
+      output_marking: required
 
 # ── Workflow-type runtime policies ────────────────────────────────────────────
 

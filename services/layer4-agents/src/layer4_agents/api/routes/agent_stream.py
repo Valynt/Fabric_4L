@@ -106,6 +106,7 @@ class AgentGovernanceMetadata(BaseModel):
     workflow_triggered: bool | None = None
     # Authoritative tier degradation signals
     response_tier: str | None = Field(default=None, alias="responseTier")
+    provider: str | None = None
     fallback: bool | None = None
     degraded: bool | None = None
     degradation_reason: str | None = Field(default=None, alias="degradationReason")
@@ -319,6 +320,7 @@ async def agent_stream_chat(
             confidence=metadata.get("confidence"),
             workflow_triggered=metadata.get("workflow_triggered"),
             response_tier=metadata.get("response_tier"),
+            provider=metadata.get("provider"),
             fallback=metadata.get("fallback"),
             degraded=metadata.get("degraded"),
             degradation_reason=metadata.get("degradation_reason"),

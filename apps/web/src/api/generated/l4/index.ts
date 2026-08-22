@@ -5710,6 +5710,8 @@ export interface components {
             workflow_triggered?: boolean | null;
             /** Responsetier */
             responseTier?: string | null;
+            /** Provider */
+            provider?: string | null;
             /** Fallback */
             fallback?: boolean | null;
             /** Degraded */

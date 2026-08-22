@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-"""Model Registry Client with observability for fallback scenarios.
+"""Model Registry Client with fail-closed bootstrap semantics.
 
 P2 Risk #14: Model Registry Observability
-Provides audit logging for registry fallback scenarios to ensure
-degraded mode operations are visible and traceable.
+Registry failure may use an explicitly enabled bootstrap model for local
+development or disaster recovery. Merely defining ``FALLBACK_MODEL`` is not
+authorization to change providers or models.
 """
 
 
@@ -30,7 +31,7 @@ class ModelSpec:
     """Model specification."""
 
     id: str
-    source: str  # "registry" or "env_fallback"
+    source: str  # "registry" or explicit "bootstrap"
     version: str | None = None
     metadata: dict | None = None
 
@@ -44,8 +45,8 @@ class RegistryUnavailable(Exception):
 class ModelRegistryClient:
     """Client for model registry with observable fallback behavior.
 
-    When registry is unavailable, falls back to environment variables
-    but logs audit events for observability.
+    Registry unavailability fails closed unless ``GATEWAY_BOOTSTRAP_MODE`` is
+    explicitly true and ``FALLBACK_MODEL`` names the approved bootstrap model.
     """
 
     def __init__(self, registry_url: str | None = None) -> None:
@@ -79,8 +80,8 @@ class ModelRegistryClient:
     async def get_model(self, model_id: str) -> ModelSpec:
         """Get model spec with observable fallback.
 
-        Attempts to fetch from registry first. If unavailable and
-        FALLBACK_MODEL is configured, returns fallback with audit logging.
+        Attempts to fetch from registry first. Bootstrap operation is an
+        explicit degraded mode, not an implicit environment-variable fallback.
 
         Args:
             model_id: The requested model identifier
@@ -89,19 +90,20 @@ class ModelRegistryClient:
             ModelSpec with source indicating origin
 
         Raises:
-            RegistryUnavailable: If registry unavailable and no fallback
-            RuntimeError: If STRICT_MODE=true and fallback would be used
+            RegistryUnavailable: If registry is unavailable and explicit
+                bootstrap operation is not fully enabled.
         """
         try:
             return await self._fetch_from_registry(model_id)
         except RegistryUnavailable:
             fallback = os.getenv("FALLBACK_MODEL")
-            if not fallback:
-                # No fallback configured - hard fail
+            bootstrap_enabled = os.getenv("GATEWAY_BOOTSTRAP_MODE", "false").lower() == "true"
+            if not bootstrap_enabled or not fallback:
                 audit_log.error(
-                    "model_registry_unavailable_no_fallback",
+                    "model_registry_unavailable_fail_closed",
                     requested_model=model_id,
                     registry_url=self.registry_url,
+                    bootstrap_enabled=bootstrap_enabled,
                     action="hard_failure",
                 )
                 raise
@@ -117,23 +119,14 @@ class ModelRegistryClient:
                 action="degraded_mode_activated",
             )
 
-            if os.getenv("STRICT_MODE") == "true":
-                audit_log.error(
-                    "model_registry_fallback_blocked",
-                    requested_model=model_id,
-                    fallback_model=fallback,
-                    reason="STRICT_MODE_enabled",
-                    action="blocked_degraded_mode",
-                )
-                raise RuntimeError(
-                    f"Registry fallback prohibited in STRICT_MODE. "
-                    f"Requested: {model_id}, Fallback: {fallback}"
-                )
-
             return ModelSpec(
                 id=fallback,
-                source="env_fallback",
-                metadata={"requested": model_id, "fallback_reason": "registry_unavailable"},
+                source="bootstrap",
+                metadata={
+                    "requested": model_id,
+                    "fallback_reason": "registry_unavailable",
+                    "degraded": True,
+                },
             )
 
     def get_fallback_stats(self) -> dict:
@@ -146,7 +139,7 @@ class ModelRegistryClient:
             {
                 "fallback_count": self._fallback_count,
                 "fallback_model": os.getenv("FALLBACK_MODEL"),
-                "strict_mode": os.getenv("STRICT_MODE") == "true",
+                "strict_mode": os.getenv("GATEWAY_BOOTSTRAP_MODE", "false").lower() != "true",
                 "registry_url": self.registry_url,
             }
         )

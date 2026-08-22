@@ -10,9 +10,8 @@ Request/response models for the accounts surface.
 from datetime import datetime
 from decimal import Decimal
 from enum import Enum
-from uuid import UUID
-
 from typing import Any
+from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 

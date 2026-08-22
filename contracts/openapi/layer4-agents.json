@@ -14760,6 +14760,17 @@
             ],
             "title": "Responsetier"
           },
+          "provider": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider"
+          },
           "fallback": {
             "anyOf": [
               {
