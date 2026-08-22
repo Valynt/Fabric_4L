@@ -16,7 +16,6 @@ from __future__ import annotations
 import os
 import sys
 from dataclasses import dataclass
-from typing import Any
 
 from value_fabric.shared.error_handling.exceptions import AuthorizationError
 from value_fabric.shared.security.config import is_strict_environment
@@ -54,7 +53,7 @@ def _is_strict_runtime() -> bool:
     return is_strict_environment(environment or "unknown")
 
 
-def _require_authenticated_tenant_id(tenant_id: Any, *, operation: str) -> str:
+def _require_authenticated_tenant_id(tenant_id: object, *, operation: str) -> str:
     """Require authenticated tenant context and fail closed when missing."""
     main_mod = sys.modules.get("layer2_extraction.api.main")
     if (

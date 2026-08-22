@@ -2732,49 +2732,49 @@
     },
     {
       "kind": "python-any",
-      "line": 6,
+      "line": 7,
       "path": "packages/shared/src/value_fabric/shared/identity/jwt_keys.py",
       "text": "from typing import Any, Dict"
     },
     {
       "kind": "python-any",
-      "line": 14,
+      "line": 18,
       "path": "packages/shared/src/value_fabric/shared/identity/jwt_keys.py",
       "text": "keys: list[Any]"
     },
     {
       "kind": "python-any",
-      "line": 18,
+      "line": 49,
       "path": "packages/shared/src/value_fabric/shared/identity/jwt_keys.py",
       "text": "active_kid: Any"
     },
     {
       "kind": "python-any",
-      "line": 19,
+      "line": 50,
       "path": "packages/shared/src/value_fabric/shared/identity/jwt_keys.py",
       "text": "algorithm: Any"
     },
     {
       "kind": "python-any",
-      "line": 20,
+      "line": 51,
       "path": "packages/shared/src/value_fabric/shared/identity/jwt_keys.py",
       "text": "signing_key: Any"
     },
     {
       "kind": "python-any",
-      "line": 21,
+      "line": 52,
       "path": "packages/shared/src/value_fabric/shared/identity/jwt_keys.py",
       "text": "verify: Any"
     },
     {
       "kind": "python-any",
-      "line": 51,
+      "line": 86,
       "path": "packages/shared/src/value_fabric/shared/identity/jwt_keys.py",
       "text": "def _build_keyset() -> Dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 77,
+      "line": 130,
       "path": "packages/shared/src/value_fabric/shared/identity/jwt_keys.py",
       "text": "def get_jwks() -> Dict[str, Any]:"
     },
@@ -3278,37 +3278,37 @@
     },
     {
       "kind": "python-any",
-      "line": 28,
+      "line": 27,
       "path": "packages/shared/src/value_fabric/shared/infrastructure/auth/api_keys.py",
       "text": "enabled_keys: Any"
     },
     {
       "kind": "python-any",
-      "line": 29,
+      "line": 28,
       "path": "packages/shared/src/value_fabric/shared/infrastructure/auth/api_keys.py",
       "text": "expired_keys: Any"
     },
     {
       "kind": "python-any",
-      "line": 30,
+      "line": 29,
       "path": "packages/shared/src/value_fabric/shared/infrastructure/auth/api_keys.py",
       "text": "recently_active: Any"
     },
     {
       "kind": "python-any",
-      "line": 31,
+      "line": 30,
       "path": "packages/shared/src/value_fabric/shared/infrastructure/auth/api_keys.py",
       "text": "total_keys: Any"
     },
     {
       "kind": "python-any",
-      "line": 32,
+      "line": 31,
       "path": "packages/shared/src/value_fabric/shared/infrastructure/auth/api_keys.py",
       "text": "total_usage: Any"
     },
     {
       "kind": "python-any",
-      "line": 33,
+      "line": 32,
       "path": "packages/shared/src/value_fabric/shared/infrastructure/auth/api_keys.py",
       "text": "usage_by_role: Any"
     },
@@ -3452,37 +3452,37 @@
     },
     {
       "kind": "python-any",
-      "line": 31,
+      "line": 30,
       "path": "packages/shared/src/value_fabric/shared/infrastructure/cache/redis_cache.py",
       "text": "connected_clients: Any | None = None"
     },
     {
       "kind": "python-any",
-      "line": 32,
+      "line": 31,
       "path": "packages/shared/src/value_fabric/shared/infrastructure/cache/redis_cache.py",
       "text": "keyspace_hits: Any | None = None"
     },
     {
       "kind": "python-any",
-      "line": 33,
+      "line": 32,
       "path": "packages/shared/src/value_fabric/shared/infrastructure/cache/redis_cache.py",
       "text": "keyspace_misses: Any | None = None"
     },
     {
       "kind": "python-any",
-      "line": 34,
+      "line": 33,
       "path": "packages/shared/src/value_fabric/shared/infrastructure/cache/redis_cache.py",
       "text": "total_commands_processed: Any | None = None"
     },
     {
       "kind": "python-any",
-      "line": 35,
+      "line": 34,
       "path": "packages/shared/src/value_fabric/shared/infrastructure/cache/redis_cache.py",
       "text": "used_memory: Any | None = None"
     },
     {
       "kind": "python-any",
-      "line": 36,
+      "line": 35,
       "path": "packages/shared/src/value_fabric/shared/infrastructure/cache/redis_cache.py",
       "text": "used_memory_human: Any | None = None"
     },
@@ -3494,55 +3494,55 @@
     },
     {
       "kind": "python-any",
-      "line": 175,
+      "line": 177,
       "path": "packages/shared/src/value_fabric/shared/infrastructure/cache/redis_cache.py",
       "text": "def _deserialize(self, data: str | bytes) -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 203,
+      "line": 207,
       "path": "packages/shared/src/value_fabric/shared/infrastructure/cache/redis_cache.py",
       "text": "async def get(self, key: str) -> Any | None:"
     },
     {
       "kind": "python-any",
-      "line": 227,
+      "line": 231,
       "path": "packages/shared/src/value_fabric/shared/infrastructure/cache/redis_cache.py",
       "text": "async def set(self, key: str, value: Any, ttl: int | None = None) -> bool:"
     },
     {
       "kind": "python-any",
-      "line": 338,
+      "line": 342,
       "path": "packages/shared/src/value_fabric/shared/infrastructure/cache/redis_cache.py",
       "text": "async def get_stats(self) -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 385,
+      "line": 390,
       "path": "packages/shared/src/value_fabric/shared/infrastructure/cache/redis_cache.py",
       "text": ") -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 489,
+      "line": 494,
       "path": "packages/shared/src/value_fabric/shared/infrastructure/cache/redis_cache.py",
       "text": "async def warm_cache(self, cache_entries: list[dict[str, Any]]) -> dict[str, bool]:"
     },
     {
       "kind": "python-any",
-      "line": 631,
+      "line": 636,
       "path": "packages/shared/src/value_fabric/shared/infrastructure/cache/redis_cache.py",
       "text": "def _generate_request_key(self, operation: str, params: dict[str, Any]) -> str:"
     },
     {
       "kind": "python-any",
-      "line": 649,
+      "line": 654,
       "path": "packages/shared/src/value_fabric/shared/infrastructure/cache/redis_cache.py",
       "text": "params: dict[str, Any],"
     },
     {
       "kind": "python-any",
-      "line": 654,
+      "line": 659,
       "path": "packages/shared/src/value_fabric/shared/infrastructure/cache/redis_cache.py",
       "text": ") -> Any:"
     },
@@ -11672,121 +11672,121 @@
     },
     {
       "kind": "python-any",
-      "line": 696,
+      "line": 697,
       "path": "services/layer1-ingestion/src/layer1_ingestion/api/target_handlers.py",
       "text": "def _decode_redis_value(value: Any) -> str | None:"
     },
     {
       "kind": "python-any",
-      "line": 706,
+      "line": 707,
       "path": "services/layer1-ingestion/src/layer1_ingestion/api/target_handlers.py",
       "text": "target: ScrapingTarget, override_config: dict[str, Any] | None"
     },
     {
       "kind": "python-any",
-      "line": 707,
+      "line": 708,
       "path": "services/layer1-ingestion/src/layer1_ingestion/api/target_handlers.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-type-ignore",
-      "line": 814,
+      "line": 815,
       "path": "services/layer1-ingestion/src/layer1_ingestion/api/target_handlers.py",
       "text": "id=target.id,  # type: ignore[arg-type]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 815,
+      "line": 816,
       "path": "services/layer1-ingestion/src/layer1_ingestion/api/target_handlers.py",
       "text": "tenant_id=target.tenant_id,  # type: ignore[arg-type]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 816,
+      "line": 817,
       "path": "services/layer1-ingestion/src/layer1_ingestion/api/target_handlers.py",
       "text": "name=target.name,  # type: ignore[arg-type]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 817,
+      "line": 818,
       "path": "services/layer1-ingestion/src/layer1_ingestion/api/target_handlers.py",
       "text": "description=target.description,  # type: ignore[arg-type]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 818,
+      "line": 819,
       "path": "services/layer1-ingestion/src/layer1_ingestion/api/target_handlers.py",
       "text": "url=target.url,  # type: ignore[arg-type]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 819,
+      "line": 820,
       "path": "services/layer1-ingestion/src/layer1_ingestion/api/target_handlers.py",
       "text": "url_pattern=target.url_pattern,  # type: ignore[arg-type]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 820,
+      "line": 821,
       "path": "services/layer1-ingestion/src/layer1_ingestion/api/target_handlers.py",
       "text": "target_type=target.target_type,  # type: ignore[arg-type]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 821,
+      "line": 822,
       "path": "services/layer1-ingestion/src/layer1_ingestion/api/target_handlers.py",
       "text": "source_category=target.source_category,  # type: ignore[arg-type]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 823,
+      "line": 824,
       "path": "services/layer1-ingestion/src/layer1_ingestion/api/target_handlers.py",
       "text": "status=target.status,  # type: ignore[arg-type]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 832,
+      "line": 833,
       "path": "services/layer1-ingestion/src/layer1_ingestion/api/target_handlers.py",
       "text": "created_at=target.created_at,  # type: ignore[arg-type]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 833,
+      "line": 834,
       "path": "services/layer1-ingestion/src/layer1_ingestion/api/target_handlers.py",
       "text": "updated_at=target.updated_at,  # type: ignore[arg-type]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 834,
+      "line": 835,
       "path": "services/layer1-ingestion/src/layer1_ingestion/api/target_handlers.py",
       "text": "created_by=target.created_by,  # type: ignore[arg-type]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 835,
+      "line": 836,
       "path": "services/layer1-ingestion/src/layer1_ingestion/api/target_handlers.py",
       "text": "last_success_at=target.last_success_at,  # type: ignore[arg-type]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 836,
+      "line": 837,
       "path": "services/layer1-ingestion/src/layer1_ingestion/api/target_handlers.py",
       "text": "last_error_at=target.last_error_at,  # type: ignore[arg-type]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 837,
+      "line": 838,
       "path": "services/layer1-ingestion/src/layer1_ingestion/api/target_handlers.py",
       "text": "success_count=target.success_count,  # type: ignore[arg-type]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 838,
+      "line": 839,
       "path": "services/layer1-ingestion/src/layer1_ingestion/api/target_handlers.py",
       "text": "error_count=target.error_count,  # type: ignore[arg-type]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 839,
+      "line": 840,
       "path": "services/layer1-ingestion/src/layer1_ingestion/api/target_handlers.py",
       "text": "average_execution_time_ms=target.average_execution_time_ms,  # type: ignore[arg-type]"
     },
@@ -13808,37 +13808,37 @@
     },
     {
       "kind": "python-any",
-      "line": 92,
+      "line": 94,
       "path": "services/layer2-extraction/src/layer2_extraction/api/ingestion_runner.py",
       "text": "def _serialize_artifacts(artifacts: Any) -> tuple[str, str]:"
     },
     {
       "kind": "python-any",
-      "line": 101,
+      "line": 103,
       "path": "services/layer2-extraction/src/layer2_extraction/api/ingestion_runner.py",
       "text": "def _deserialize_artifacts(result_json: str, relationships_json: str) -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 151,
+      "line": 153,
       "path": "services/layer2-extraction/src/layer2_extraction/api/ingestion_runner.py",
       "text": "artifacts: Any,"
     },
     {
       "kind": "python-any",
-      "line": 196,
+      "line": 198,
       "path": "services/layer2-extraction/src/layer2_extraction/api/ingestion_runner.py",
       "text": "async def _attempt_ingestion(job_id: str, source_url: str, artifacts: Any) -> bool:"
     },
     {
       "kind": "python-any",
-      "line": 15,
+      "line": 14,
       "path": "services/layer2-extraction/src/layer2_extraction/api/pipeline_runner.py",
       "text": "from typing import Any, Protocol, TypeVar, cast"
     },
     {
       "kind": "python-any",
-      "line": 528,
+      "line": 548,
       "path": "services/layer2-extraction/src/layer2_extraction/api/pipeline_runner.py",
       "text": "all_entities: dict[str, list[Any]] = {"
     },
@@ -13949,18 +13949,6 @@
       "line": 169,
       "path": "services/layer2-extraction/src/layer2_extraction/api/routes/health.py",
       "text": "return cast(dict[str, Any], normalize_probe_payload("
-    },
-    {
-      "kind": "python-any",
-      "line": 12,
-      "path": "services/layer2-extraction/src/layer2_extraction/api/routes_extract.py",
-      "text": "from typing import Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 112,
-      "path": "services/layer2-extraction/src/layer2_extraction/api/routes_extract.py",
-      "text": "def _require_authenticated_tenant_id(tenant_id: Any, *, operation: str) -> str:"
     },
     {
       "kind": "python-any",
@@ -27728,205 +27716,205 @@
     },
     {
       "kind": "python-any",
-      "line": 31,
+      "line": 32,
       "path": "services/layer4-agents/src/layer4_agents/engine/scheduler.py",
       "text": "agent_type: Any"
     },
     {
       "kind": "python-any",
-      "line": 32,
+      "line": 33,
       "path": "services/layer4-agents/src/layer4_agents/engine/scheduler.py",
       "text": "capability: Any"
     },
     {
       "kind": "python-any",
-      "line": 33,
+      "line": 34,
       "path": "services/layer4-agents/src/layer4_agents/engine/scheduler.py",
       "text": "completed_at: Any"
     },
     {
       "kind": "python-any",
-      "line": 34,
+      "line": 35,
       "path": "services/layer4-agents/src/layer4_agents/engine/scheduler.py",
       "text": "error: Any"
     },
     {
       "kind": "python-any",
-      "line": 35,
+      "line": 36,
       "path": "services/layer4-agents/src/layer4_agents/engine/scheduler.py",
       "text": "max_retries: Any"
     },
     {
       "kind": "python-any",
-      "line": 36,
+      "line": 37,
       "path": "services/layer4-agents/src/layer4_agents/engine/scheduler.py",
       "text": "priority: Any"
     },
     {
       "kind": "python-any",
-      "line": 37,
+      "line": 38,
       "path": "services/layer4-agents/src/layer4_agents/engine/scheduler.py",
       "text": "result: Any"
     },
     {
       "kind": "python-any",
-      "line": 38,
+      "line": 39,
       "path": "services/layer4-agents/src/layer4_agents/engine/scheduler.py",
       "text": "retry_count: Any"
     },
     {
       "kind": "python-any",
-      "line": 39,
+      "line": 40,
       "path": "services/layer4-agents/src/layer4_agents/engine/scheduler.py",
       "text": "scheduled_time: Any"
     },
     {
       "kind": "python-any",
-      "line": 40,
+      "line": 41,
       "path": "services/layer4-agents/src/layer4_agents/engine/scheduler.py",
       "text": "started_at: Any"
     },
     {
       "kind": "python-any",
-      "line": 41,
+      "line": 42,
       "path": "services/layer4-agents/src/layer4_agents/engine/scheduler.py",
       "text": "status: Any"
     },
     {
       "kind": "python-any",
-      "line": 42,
+      "line": 43,
       "path": "services/layer4-agents/src/layer4_agents/engine/scheduler.py",
       "text": "task_id: Any"
     },
     {
       "kind": "python-any",
-      "line": 43,
+      "line": 44,
       "path": "services/layer4-agents/src/layer4_agents/engine/scheduler.py",
       "text": "tenant_id: Any"
     },
     {
       "kind": "python-any",
-      "line": 44,
+      "line": 45,
       "path": "services/layer4-agents/src/layer4_agents/engine/scheduler.py",
       "text": "workflow_instance_id: Any"
     },
     {
       "kind": "python-any",
-      "line": 47,
+      "line": 49,
       "path": "services/layer4-agents/src/layer4_agents/engine/scheduler.py",
       "text": "completed_tasks: Any"
     },
     {
       "kind": "python-any",
-      "line": 48,
+      "line": 50,
       "path": "services/layer4-agents/src/layer4_agents/engine/scheduler.py",
       "text": "failed_tasks: Any"
     },
     {
       "kind": "python-any",
-      "line": 49,
+      "line": 51,
       "path": "services/layer4-agents/src/layer4_agents/engine/scheduler.py",
       "text": "max_concurrent: Any"
     },
     {
       "kind": "python-any",
-      "line": 50,
+      "line": 52,
       "path": "services/layer4-agents/src/layer4_agents/engine/scheduler.py",
       "text": "pending_tasks: Any"
     },
     {
       "kind": "python-any",
-      "line": 51,
+      "line": 53,
       "path": "services/layer4-agents/src/layer4_agents/engine/scheduler.py",
       "text": "running_tasks: Any"
     },
     {
       "kind": "python-any",
-      "line": 52,
+      "line": 54,
       "path": "services/layer4-agents/src/layer4_agents/engine/scheduler.py",
       "text": "utilization: Any"
     },
     {
       "kind": "python-any",
-      "line": 97,
+      "line": 100,
       "path": "services/layer4-agents/src/layer4_agents/engine/scheduler.py",
       "text": "self._task_history: list[dict[str, Any]] = []"
     },
     {
       "kind": "python-any",
-      "line": 107,
+      "line": 110,
       "path": "services/layer4-agents/src/layer4_agents/engine/scheduler.py",
       "text": "self._on_task_complete: Callable[[ScheduledTask], Any] | None = None"
     },
     {
       "kind": "python-any",
-      "line": 108,
+      "line": 111,
       "path": "services/layer4-agents/src/layer4_agents/engine/scheduler.py",
       "text": "self._on_task_fail: Callable[[ScheduledTask, Exception], Any] | None = None"
     },
     {
       "kind": "python-any",
-      "line": 109,
+      "line": 112,
       "path": "services/layer4-agents/src/layer4_agents/engine/scheduler.py",
       "text": "self._handlers: dict[str, Callable[[ScheduledTask], Any]] = {}"
     },
     {
       "kind": "python-any",
-      "line": 180,
+      "line": 183,
       "path": "services/layer4-agents/src/layer4_agents/engine/scheduler.py",
       "text": "async def get_task_status(self, task_id: str) -> dict[str, Any] | None:"
     },
     {
       "kind": "python-any",
-      "line": 211,
+      "line": 214,
       "path": "services/layer4-agents/src/layer4_agents/engine/scheduler.py",
       "text": ") -> list[dict[str, Any]]:"
     },
     {
       "kind": "python-any",
-      "line": 228,
+      "line": 231,
       "path": "services/layer4-agents/src/layer4_agents/engine/scheduler.py",
       "text": "async def list_running_tasks(self) -> list[dict[str, Any]]:"
     },
     {
       "kind": "python-any",
-      "line": 244,
+      "line": 247,
       "path": "services/layer4-agents/src/layer4_agents/engine/scheduler.py",
       "text": ") -> list[dict[str, Any]]:"
     },
     {
       "kind": "python-any",
-      "line": 290,
+      "line": 296,
       "path": "services/layer4-agents/src/layer4_agents/engine/scheduler.py",
       "text": "on_complete: Callable[[ScheduledTask], Any] | None = None,"
     },
     {
       "kind": "python-any",
-      "line": 291,
+      "line": 297,
       "path": "services/layer4-agents/src/layer4_agents/engine/scheduler.py",
       "text": "on_fail: Callable[[ScheduledTask, Exception], Any] | None = None,"
     },
     {
       "kind": "python-any",
-      "line": 302,
+      "line": 309,
       "path": "services/layer4-agents/src/layer4_agents/engine/scheduler.py",
-      "text": "def register_handler(self, capability: str, handler: Callable[[ScheduledTask], Any]) -> None:"
+      "text": "self, capability: str, handler: Callable[[ScheduledTask], Any]"
     },
     {
       "kind": "python-any",
-      "line": 411,
+      "line": 419,
       "path": "services/layer4-agents/src/layer4_agents/engine/scheduler.py",
       "text": "async def _run_task_handler(self, task: ScheduledTask) -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 525,
+      "line": 546,
       "path": "services/layer4-agents/src/layer4_agents/engine/scheduler.py",
       "text": "def _task_to_dict(self, task: ScheduledTask) -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 552,
+      "line": 576,
       "path": "services/layer4-agents/src/layer4_agents/engine/scheduler.py",
       "text": "def get_stats(self) -> dict[str, Any]:"
     },
