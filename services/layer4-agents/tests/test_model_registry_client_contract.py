@@ -26,7 +26,7 @@ async def test_registry_result_is_returned_without_fallback(
 @pytest.mark.asyncio
 async def test_registry_fallback_is_observable(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("FALLBACK_MODEL", "safe-fallback")
-    monkeypatch.delenv("STRICT_MODE", raising=False)
+    monkeypatch.setenv("GATEWAY_BOOTSTRAP_MODE", "true")
     warning = Mock()
     monkeypatch.setattr(module.audit_log, "warning", warning)
     client = ModelRegistryClient("https://registry.test")
@@ -35,8 +35,12 @@ async def test_registry_fallback_is_observable(monkeypatch: pytest.MonkeyPatch) 
 
     assert model == ModelSpec(
         id="safe-fallback",
-        source="env_fallback",
-        metadata={"requested": "requested", "fallback_reason": "registry_unavailable"},
+        source="bootstrap",
+        metadata={
+            "requested": "requested",
+            "fallback_reason": "registry_unavailable",
+            "degraded": True,
+        },
     )
     assert client.get_fallback_stats().model_dump() == {
         "fallback_count": 1,
@@ -50,6 +54,7 @@ async def test_registry_fallback_is_observable(monkeypatch: pytest.MonkeyPatch) 
 @pytest.mark.asyncio
 async def test_registry_without_fallback_fails_closed(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("FALLBACK_MODEL", raising=False)
+    monkeypatch.delenv("GATEWAY_BOOTSTRAP_MODE", raising=False)
     error = Mock()
     monkeypatch.setattr(module.audit_log, "error", error)
     client = ModelRegistryClient()
@@ -59,11 +64,13 @@ async def test_registry_without_fallback_fails_closed(monkeypatch: pytest.Monkey
 
 
 @pytest.mark.asyncio
-async def test_strict_mode_blocks_configured_fallback(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_fallback_model_without_bootstrap_mode_fails_closed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setenv("FALLBACK_MODEL", "fallback")
-    monkeypatch.setenv("STRICT_MODE", "true")
+    monkeypatch.delenv("GATEWAY_BOOTSTRAP_MODE", raising=False)
     error = Mock()
     monkeypatch.setattr(module.audit_log, "error", error)
-    with pytest.raises(RuntimeError, match="fallback prohibited"):
+    with pytest.raises(RegistryUnavailable):
         await ModelRegistryClient().get_model("requested")
     error.assert_called_once()

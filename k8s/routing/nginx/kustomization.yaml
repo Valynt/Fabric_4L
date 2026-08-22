@@ -6,8 +6,8 @@ kind: Kustomization
 # that bind to Services produced by the env overlay it is composed with under
 # k8s/deployments/<env>-nginx/.
 #
-# Hostnames in ingress.yaml use the sentinel value __HOST__ / __API_HOST__.
-# The deployment overlay is responsible for replacing those via Kustomize
+# Hostnames in ingress.yaml use the single application sentinel value __HOST__.
+# The deployment overlay is responsible for replacing it via Kustomize
 # `replacements:` keyed off a routing-host ConfigMap.
 
 resources:
