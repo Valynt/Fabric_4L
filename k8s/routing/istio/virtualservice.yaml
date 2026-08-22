@@ -2,7 +2,7 @@
 apiVersion: networking.istio.io/v1
 kind: VirtualService
 metadata:
-  name: frontend
+  name: application
   namespace: value-fabric
 spec:
   hosts:
@@ -12,30 +12,19 @@ spec:
   http:
     - match:
         - uri:
+            prefix: /api/v1
+      rewrite:
+        uri: /v1
+      route:
+        - destination:
+            host: api-gateway
+            port:
+              number: 8000
+    - match:
+        - uri:
             prefix: /
       route:
         - destination:
             host: frontend
             port:
               number: 3000
----
-apiVersion: networking.istio.io/v1
-kind: VirtualService
-metadata:
-  name: layer-apis
-  namespace: value-fabric
-spec:
-  hosts:
-    - __API_HOST__
-  gateways:
-    - value-fabric-gateway
-  http:
-    # The entire API host is served by the gateway. Per-segment paths
-    # (/v1/agents, /v1/ingest, /v1/extract, /v1/graph, /v1/truths,
-    # /v1/benchmarks) are routed inside the gateway by
-    # routers/layer_delegation.py. No VirtualService route points directly
-    # at a layer Service; scripts/ci/k8s_routing_check.py asserts this.
-    - match:
-        - uri: {prefix: /}
-      route:
-        - destination: {host: api-gateway, port: {number: 8000}}

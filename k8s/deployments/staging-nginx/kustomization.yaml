@@ -111,17 +111,17 @@ replacements:
   - source:
       kind: ConfigMap
       name: routing-host
-      fieldPath: data.apiHost
+      fieldPath: data.host
     targets:
       - select:
           kind: Ingress
-          name: layer-apis
+          name: application-api
         fieldPaths:
           - spec.rules.0.host
           - spec.tls.0.hosts.0
       - select:
           kind: Ingress
-          name: layer-apis
+          name: application-api
         fieldPaths:
           - metadata.annotations.nginx\.ingress\.kubernetes\.io/auth-signin
         options:
@@ -136,6 +136,11 @@ replacements:
       - select:
           kind: NetworkPolicy
           name: frontend-policy
+        fieldPaths:
+          - spec.ingress.0.from.0.namespaceSelector.matchLabels.[kubernetes.io/metadata.name]
+      - select:
+          kind: NetworkPolicy
+          name: api-gateway-policy
         fieldPaths:
           - spec.ingress.0.from.0.namespaceSelector.matchLabels.[kubernetes.io/metadata.name]
       - select:
@@ -156,7 +161,7 @@ replacements:
           - metadata.annotations.cert-manager\.io/cluster-issuer
       - select:
           kind: Ingress
-          name: layer-apis
+          name: application-api
         fieldPaths:
           - metadata.annotations.cert-manager\.io/cluster-issuer
   # Replace issuer email in ClusterIssuers
