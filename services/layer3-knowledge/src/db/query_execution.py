@@ -142,90 +142,76 @@ _DANGEROUS_PROCEDURE_PATTERN = re.compile(
 )
 
 
+def _skip_quoted(query: str, i: int, n: int, quote: str, allow_escape: bool) -> int:
+    """Consume a quoted body starting just after the opening quote.
+
+    Returns the index just past the closing quote (or the end of the string).
+    """
+    i += 1
+    while i < n:
+        c = query[i]
+        if allow_escape and c == "\\" and i + 1 < n:
+            i += 2
+            continue
+        i += 1
+        if c == quote:
+            break
+    return i
+
+
+def _skip_line_comment(query: str, i: int, n: int) -> int:
+    """Skip a line comment, returning just past the newline (or end of query)."""
+    while i < n and query[i] != "\n":
+        i += 1
+    if i < n:
+        i += 1
+    return i
+
+
+def _skip_block_comment(query: str, i: int, n: int) -> int:
+    """Skip a block comment, returning just past the closing ``*/``."""
+    while i < n:
+        if query[i] == "*" and i + 1 < n and query[i + 1] == "/":
+            return i + 2
+        i += 1
+    return i
+
+
+def _has_trailing_content(query: str, start: int) -> bool:
+    """True when a semicolon is followed by a second statement, not just comments."""
+    rest = query[start:]
+    cleaned = re.sub(r"//[^\n]*", "", rest)
+    cleaned = re.sub(r"/\*.*?\*/", "", cleaned, flags=re.DOTALL)
+    cleaned = cleaned.replace(";", "").strip()
+    return bool(cleaned)
+
+
 def _has_multiple_statements(query: str) -> bool:
     """Return True if query contains unquoted semicolons separating multiple statements."""
-    in_single_quote = False
-    in_double_quote = False
-    in_backtick = False
-    in_line_comment = False
-    in_block_comment = False
-
     i = 0
     n = len(query)
     while i < n:
         c = query[i]
-
-        if in_line_comment:
-            if c == "\n":
-                in_line_comment = False
-            i += 1
-            continue
-
-        if in_block_comment:
-            if c == "*" and i + 1 < n and query[i + 1] == "/":
-                in_block_comment = False
-                i += 2
-                continue
-            i += 1
-            continue
-
-        if in_single_quote:
-            if c == "\\" and i + 1 < n:
-                i += 2
-                continue
-            if c == "'":
-                in_single_quote = False
-            i += 1
-            continue
-
-        if in_double_quote:
-            if c == "\\" and i + 1 < n:
-                i += 2
-                continue
-            if c == '"':
-                in_double_quote = False
-            i += 1
-            continue
-
-        if in_backtick:
-            if c == "`":
-                in_backtick = False
-            i += 1
-            continue
-
-        if c == "/" and i + 1 < n:
-            if query[i + 1] == "/":
-                in_line_comment = True
-                i += 2
-                continue
-            elif query[i + 1] == "*":
-                in_block_comment = True
-                i += 2
-                continue
-
         if c == "'":
-            in_single_quote = True
-            i += 1
+            i = _skip_quoted(query, i, n, "'", True)
             continue
         if c == '"':
-            in_double_quote = True
-            i += 1
+            i = _skip_quoted(query, i, n, '"', True)
             continue
         if c == "`":
-            in_backtick = True
-            i += 1
+            i = _skip_quoted(query, i, n, "`", False)
             continue
-
+        if c == "/" and i + 1 < n:
+            if query[i + 1] == "/":
+                i = _skip_line_comment(query, i + 2, n)
+                continue
+            if query[i + 1] == "*":
+                i = _skip_block_comment(query, i + 2, n)
+                continue
         if c == ";":
-            rest = query[i + 1 :]
-            rest_cleaned = re.sub(r"//[^\n]*", "", rest)
-            rest_cleaned = re.sub(r"/\*.*?\*/", "", rest_cleaned, flags=re.DOTALL)
-            rest_cleaned = rest_cleaned.replace(";", "").strip()
-            if rest_cleaned:
+            if _has_trailing_content(query, i + 1):
                 return True
-
         i += 1
-
     return False
 
 

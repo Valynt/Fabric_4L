@@ -6,8 +6,17 @@ from datetime import date, datetime
 from typing import Any
 
 from neo4j import AsyncDriver
-from neo4j.time import Date as Neo4jDate
-from neo4j.time import DateTime as Neo4jDateTime
+try:
+    from neo4j.time import Date as Neo4jDate
+    from neo4j.time import DateTime as Neo4jDateTime
+except (ImportError, AttributeError):
+    try:
+        import neo4j.time
+        Neo4jDate = getattr(neo4j.time, "Date", None)
+        Neo4jDateTime = getattr(neo4j.time, "DateTime", None)
+    except Exception:
+        Neo4jDate = None
+        Neo4jDateTime = None
 from value_fabric.shared.identity.context import get_request_context
 from value_fabric.shared.identity.isolation import ScopedQuery, TenantScopedCypher
 from value_fabric.shared.models.typed_dict import TypedDictModel
@@ -83,8 +92,13 @@ def _serialize_neo4j_value(value: Any) -> Any:
     Returns:
         JSON-serializable value
     """
-    if isinstance(value, Neo4jDateTime) or isinstance(value, Neo4jDate):
+    if (Neo4jDateTime and isinstance(value, Neo4jDateTime)) or (Neo4jDate and isinstance(value, Neo4jDate)):
         return value.to_native().isoformat()
+    elif hasattr(value, "to_native") and callable(getattr(value, "to_native")):
+        native = value.to_native()
+        if hasattr(native, "isoformat") and callable(getattr(native, "isoformat")):
+            return native.isoformat()
+        return str(native)
     elif isinstance(value, datetime) or isinstance(value, date):
         return value.isoformat()
     elif isinstance(value, list):
