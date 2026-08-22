@@ -54,6 +54,7 @@
     "verify": "pnpm run check:default-scope && pnpm run verify:frontend",
     "check:test-skip-governance": "python scripts/ci/check_test_skip_governance.py --register config/ci/test_skip_register.yaml",
     "check:type-escapes": "make check-type-escape-ratchet",
+    "check:structural-fitness": "make check-structural-fitness-ratchet",
     "dev:web": "infisical run --env=dev --path=/shared --path=/apps/web -- pnpm --filter web dev",
     "dev:layer1": "infisical run --env=dev --path=/shared --path=/infra --path=/layer1-ingestion -- uvicorn services.layer1-ingestion.src.api.main:app --reload",
     "dev:layer2": "infisical run --env=dev --path=/shared --path=/infra --path=/layer2-extraction -- uvicorn services.layer2-extraction.src.api.main:app --reload",
