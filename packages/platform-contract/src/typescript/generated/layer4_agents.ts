@@ -3720,7 +3720,7 @@ export interface paths {
         post?: never;
         /**
          * Delete Narrative
-         * @description Delete a narrative.
+         * @description Remove a narrative.
          */
         delete: operations["delete_narrative_v1_narratives__narrative_id__delete"];
         options?: never;

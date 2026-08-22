@@ -9253,7 +9253,7 @@
           "Narratives"
         ],
         "summary": "Delete Narrative",
-        "description": "Delete a narrative.",
+        "description": "Remove a narrative.",
         "operationId": "delete_narrative_v1_narratives__narrative_id__delete",
         "parameters": [
           {
