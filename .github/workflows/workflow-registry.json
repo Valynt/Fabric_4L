@@ -355,6 +355,23 @@
       "deprecation_status": "active"
     },
     {
+      "path": ".github/workflows/devcontainer-smoke.yml",
+      "name": "Dev Container Smoke Test",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "pull_request",
+        "push",
+        "workflow_dispatch"
+      ],
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
+      "required_secrets": [],
+      "produced_artifacts": [],
+      "runtime_budget_minutes": 30,
+      "local_validation_command": "make check-workflow-references",
+      "deprecation_status": "active"
+    },
+    {
       "path": ".github/workflows/dr-drill.yml",
       "name": "dr-drill",
       "owner": "@value-fabric/sre-leads",
