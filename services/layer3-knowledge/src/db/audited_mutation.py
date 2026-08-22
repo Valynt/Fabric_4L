@@ -85,6 +85,17 @@ class AuditedGraphMutation:
             self._increment_mutation_failure("relationship_type_not_allowed")
             raise ValueError(f"Relationship type '{rel_type}' not in allowlist")
 
+        # Stamp the per-request correlation id on the relationship so the
+        # dual-store coordinator's compensating rollback
+        # (``delete_by_request``) can find and remove ONLY this
+        # transaction's writes — never unrelated historical entities.
+        # Without this, the compensation predicate ``n._request_id =
+        # $request_id`` matches nothing and a partial failure leaves
+        # orphan rows in the graph (P1 finding from the Layer 3
+        # dual-store review).
+        if self.request_id:
+            props["_request_id"] = self.request_id
+
         merge_query = f"""
         MATCH (src {{id: $src_id, tenant_id: $tenant_id}})
         MATCH (tgt {{id: $tgt_id, tenant_id: $tenant_id}})
@@ -257,6 +268,16 @@ class AuditedGraphMutation:
         props["tenant_id"] = self.tenant_id
         props["updated_at"] = now
 
+        # Stamp the per-request correlation id on the created/merged node so
+        # the dual-store coordinator's compensating rollback
+        # (``delete_by_request``) can find and remove ONLY this transaction's
+        # writes. Without this, the compensation predicate
+        # ``n._request_id = $request_id`` matches nothing and a partial
+        # failure leaves orphan rows in the graph (P1 finding from the
+        # Layer 3 dual-store review).
+        if self.request_id:
+            props["_request_id"] = self.request_id
+
         merge_query = f"""
         MERGE (n:{label} {{id: $id, tenant_id: $tenant_id}})
         SET n += $properties
@@ -375,6 +396,11 @@ class AuditedGraphMutation:
         now = datetime.now(UTC).isoformat()
         node_count = len(nodes)
 
+        # Pre-compute the per-request correlation id (if any) so each node
+        # in the batch is tagged for compensating rollback discovery
+        # (see ``write_node`` for rationale).
+        request_id_tag = self.request_id
+
         merge_query = f"""
         UNWIND $nodes as node
         MERGE (n:{label} {{id: node.id, tenant_id: $tenant_id}})
@@ -394,6 +420,11 @@ class AuditedGraphMutation:
                                 **n,
                                 "tenant_id": self.tenant_id,
                                 "updated_at": now,
+                                **(
+                                    {"_request_id": request_id_tag}
+                                    if request_id_tag
+                                    else {}
+                                ),
                             },
                         }
                         for n in nodes
@@ -443,6 +474,19 @@ class AuditedGraphMutation:
         now = datetime.now(UTC).isoformat()
         triple_count = len(triples)
 
+        # Stamp the per-request correlation id on every relationship in the
+        # batch so the dual-store coordinator's compensating rollback can
+        # discover and remove ONLY this transaction's edges (see
+        # ``write_relationship`` for rationale).
+        stamped_triples: list[dict[str, Any]] = []
+        for triple in triples:
+            stamped = dict(triple)
+            triple_props = dict(stamped.get("properties") or {})
+            if self.request_id:
+                triple_props["_request_id"] = self.request_id
+            stamped["properties"] = triple_props
+            stamped_triples.append(stamped)
+
         merge_query = f"""
         UNWIND $triples as triple
         MATCH (src {{id: triple.src_id, tenant_id: $tenant_id}})
@@ -457,7 +501,7 @@ class AuditedGraphMutation:
                 self.session,
                 merge_query,
                 {
-                    "triples": triples,
+                    "triples": stamped_triples,
                     "tenant_id": self.tenant_id,
                     "now": now,
                 },

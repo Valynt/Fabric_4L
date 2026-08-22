@@ -27,6 +27,15 @@ from ..db.audited_mutation import AuditedGraphMutation
 logger = logging.getLogger(__name__)
 
 
+# Import metrics lazily to avoid hard dependency on prometheus_client at
+# import time; ``get_metrics()`` returns None if metrics are not initialized,
+# which the coordinator handles by short-circuiting increments.
+try:  # pragma: no cover - import-time guard
+    from ..metrics.prometheus_metrics import get_metrics as _get_metrics
+except Exception:  # pragma: no cover - defensive
+    _get_metrics = None  # type: ignore[assignment]
+
+
 class DualStoreTransactionError(RuntimeError):
     """Raised when a dual-store transaction cannot proceed or must rollback."""
 
@@ -80,6 +89,7 @@ class DualStoreTransactionCoordinator:
         driver: AsyncDriver,
         tenant_id: str,
         request_id: str | None = None,
+        metrics: object | None = None,
     ) -> None:
         """Initialize the dual-store transaction coordinator.
 
@@ -87,6 +97,10 @@ class DualStoreTransactionCoordinator:
             driver: Neo4j async driver instance
             tenant_id: Authenticated tenant context for all operations
             request_id: Correlation ID for tracing across stores
+            metrics: Optional ``PrometheusMetrics`` instance. When omitted
+                the coordinator falls back to the global singleton returned
+                by ``get_metrics()`` (or skips increments if metrics are
+                not initialized). Pass an explicit instance in tests.
         """
         if not tenant_id or not tenant_id.strip():
             raise ValueError("tenant_id is required for dual-store coordination")
@@ -94,6 +108,20 @@ class DualStoreTransactionCoordinator:
         self.driver = driver
         self.request_id = request_id or self._generate_request_id()
         self._audit_mutations: list[dict[str, object]] = []
+        # Per-transaction postgres compensator; set by write_with_rollback
+        # before any store work begins so that emergency compensation has a
+        # real handle instead of a no-op. Always reset in the finally block.
+        self._active_postgres_rollback: (
+            Callable[[], Awaitable[dict[str, object]]] | None
+        ) = None
+        # Metrics collector. Use the caller-supplied instance when present;
+        # otherwise fall back to the global singleton so production wiring
+        # still records counters. ``_get_metrics`` may be None at import time
+        # in environments without prometheus_client installed.
+        if metrics is not None:
+            self._metrics = metrics
+        else:
+            self._metrics = _get_metrics() if _get_metrics is not None else None
 
     @staticmethod
     def _generate_request_id() -> str:
@@ -102,11 +130,37 @@ class DualStoreTransactionCoordinator:
 
         return str(uuid.uuid4())
 
+    def _record_mutation_metric(self, status: str) -> None:
+        """Record a terminal-path counter increment when metrics are wired up.
+
+        No-op if metrics are disabled or the collector is unavailable. The
+        source label is fixed to ``"dual_store.coordinator"`` so cardinality
+        is bounded; per-request correlation IDs intentionally do NOT become
+        Prometheus labels (they live in logs and audit events instead).
+        """
+        metrics = self._metrics
+        if metrics is None:
+            return
+        increment = getattr(metrics, "increment_dual_store_mutation", None)
+        if increment is None:
+            return
+        try:
+            increment(source="dual_store.coordinator", status=status)
+        except Exception as exc:  # pragma: no cover - defensive
+            logger.debug(
+                "Failed to record dual_store_mutation_total for status=%s: %s",
+                status,
+                exc,
+            )
+
     async def write_with_rollback(
         self,
         neo4j_op: Callable[[AsyncSession], Awaitable[dict[str, object]]],
         postgres_op: Callable[[], Awaitable[dict[str, object]]],
         request_id: str | None = None,
+        postgres_rollback: (
+            Callable[[], Awaitable[dict[str, object]]] | None
+        ) = None,
     ) -> dict[str, str]:
         """Execute coordinated Neo4j + PostgreSQL write with compensating rollback.
 
@@ -120,6 +174,12 @@ class DualStoreTransactionCoordinator:
             neo4j_op: Async callable(Neo4j session) -> dict with write results
             postgres_op: Async callable(Postgres session) -> dict with write results
             request_id: Optional correlation ID; generated if omitted
+            postgres_rollback: Optional idempotent async callable that rolls
+                back the postgres-side writes produced by ``postgres_op`` for
+                this ``request_id``. Required so that emergency compensation
+                can reconcile an uncertain postgres commit instead of logging
+                a no-op. The callback MUST be idempotent: a partial / repeated
+                rollback must be safe to invoke.
 
         Returns:
             DualStoreMutationResult with status of both stores and any errors
@@ -131,12 +191,17 @@ class DualStoreTransactionCoordinator:
         req_id = request_id or self.request_id
         neo4j_session = None
         postgres_session = None
+        # Register the postgres compensator for the duration of this transaction
+        # so that emergency compensation has a real handle to invoke if the
+        # transaction ends in an unexpected failure mode. Cleared in finally.
+        self._active_postgres_rollback = postgres_rollback
 
         try:
             # Phase 1: Execute Neo4j write
             neo4j_result = await self._execute_neo4j_write(neo4j_op, req_id)
             if neo4j_result["status"] == "failed":
                 # Neo4j already logged its own error; return early
+                self._record_mutation_metric("neo4j_failure")
                 return _build_result(
                     neo4j_status="failed",
                     neo4j_error=neo4j_result.get("error"),
@@ -158,10 +223,12 @@ class DualStoreTransactionCoordinator:
                     request_id=req_id,
                 )
                 if rollback_result["status"] == "failed":
+                    self._record_mutation_metric("rollback_failure")
                     raise DualStoreRollbackError(
                         f"PostgreSQL write failed and Neo4j compensating rollback also failed: "
                         f"{rollback_result.get('error')}"
                     )
+                self._record_mutation_metric("rolled_back")
                 return _build_result(
                     neo4j_status="rolled_back",
                     neo4j_error=rollback_result.get("error"),
@@ -177,6 +244,7 @@ class DualStoreTransactionCoordinator:
                 req_id,
                 self.tenant_id,
             )
+            self._record_mutation_metric("success")
             return _build_result(
                 neo4j_status="committed",
                 postgres_status="committed",
@@ -204,7 +272,12 @@ class DualStoreTransactionCoordinator:
                         req_id,
                         self.tenant_id,
                     )
+                self._record_mutation_metric(
+                    "emergency_compensated" if emergency_rollback
+                    else "emergency_compensation_failed"
+                )
             except Exception:
+                self._record_mutation_metric("emergency_compensation_failed")
                 logger.critical(
                     "Emergency compensation FAILED for unexpected error. "
                     "request_id=%s, tenant_id=%s - potential data inconsistency.",
@@ -227,13 +300,23 @@ class DualStoreTransactionCoordinator:
                     await postgres_session.close()
                 except Exception:
                     pass
+            # Drop the per-transaction postgres compensator handle so it
+            # cannot leak into the next write_with_rollback call.
+            self._active_postgres_rollback = None
 
     async def _execute_neo4j_write(
         self,
         neo4j_op: Callable[[AsyncSession], Awaitable[dict[str, object]]],
         request_id: str,
     ) -> dict[str, object]:
-        """Execute a Neo4j write operation through the validated gateway."""
+        """Execute a Neo4j write operation through the validated gateway.
+
+        Forwards the underlying ``neo4j_op`` result's ``status`` field so
+        downstream coordinators can branch on "failed" outcomes (mirrors the
+        postgres path). When the caller does not supply a status we default
+        to "committed" — a failure-mode that surfaces as "failed" must be
+        opted into by the caller, never silently coerced to "committed".
+        """
         async with self.driver.session(database="neo4j") as session:
             # Execute the user-provided operation
             result = await neo4j_op(session)
@@ -249,7 +332,11 @@ class DualStoreTransactionCoordinator:
             }
             self._audit_mutations.append(audit_entry)
 
-            return {"status": "committed", "result": result}
+            # Forward the actual status from neo4j_op (mirror of postgres path).
+            # Hardcoding "committed" would mask downstream failures and was the
+            # root cause of the P1 finding where neo4j_op returned a failure
+            # shape but the coordinator reported the write as committed.
+            return {"status": result.get("status", "committed"), "result": result}
 
     async def _execute_postgres_write(
         self,
@@ -369,9 +456,22 @@ class DualStoreTransactionCoordinator:
         """Emergency compensation for unexpected transaction failures.
 
         Attempts to rollback any partially committed state across both stores.
-        Returns True if compensation was attempted (even if it may not fully restore).
+        Returns True only when compensation was actually executed for at
+        least one store. For postgres, a real idempotent compensator
+        registered via ``write_with_rollback(postgres_rollback=...)`` is
+        invoked; without one, postgres compensation is impossible (not just
+        unlogged) and the caller is explicitly flagged.
+
+        Failure semantics:
+          - Returns ``True`` if at least one store was successfully
+            compensated.
+          - Returns ``False`` if neither store could be compensated (e.g. no
+            postgres compensator was registered AND neo4j purge failed).
+            Callers MUST treat False as "uncertain state, surface to
+            operators" — never as "no-op success".
         """
         emergency_success = False
+        postgres_compensated = False
 
         try:
             # Attempt Neo4j compensation
@@ -388,15 +488,55 @@ class DualStoreTransactionCoordinator:
         except Exception:
             pass
 
-        try:
-            # Attempt PostgreSQL compensation
-            # The postgres service layer should have its own rollback mechanisms
-            # Here we just log that we attempted it
-            logger.info(
-                "Emergency PostgreSQL compensation attempted for request_id=%s",
+        # Attempt PostgreSQL compensation through the caller-registered
+        # idempotent compensator. Without one we cannot reconcile postgres
+        # state — surface that explicitly so operators know the dual-store
+        # guarantee is broken for this transaction.
+        compensator = self._active_postgres_rollback
+        if compensator is not None:
+            try:
+                comp_result = await compensator()
+                status = comp_result.get("status", "unknown")
+                if status == "completed":
+                    postgres_compensated = True
+                    emergency_success = True
+                    logger.info(
+                        "Emergency PostgreSQL compensation completed for request_id=%s",
+                        request_id,
+                    )
+                elif status == "skipped":
+                    logger.info(
+                        "PostgreSQL compensator reported skipped "
+                        "(no rows to rollback) for request_id=%s",
+                        request_id,
+                    )
+                else:
+                    logger.warning(
+                        "PostgreSQL compensator returned status=%s for request_id=%s",
+                        status,
+                        request_id,
+                    )
+            except Exception as exc:
+                logger.error(
+                    "Emergency PostgreSQL compensation failed for request_id=%s: %s",
+                    request_id,
+                    exc,
+                    exc_info=True,
+                )
+        else:
+            logger.warning(
+                "No PostgreSQL compensator registered for request_id=%s; "
+                "postgres state cannot be reconciled automatically. "
+                "Operators must investigate and reconcile manually.",
                 request_id,
             )
-        except Exception:
-            pass
+
+        if not postgres_compensated:
+            logger.warning(
+                "Emergency PostgreSQL compensation NOT executed for request_id=%s "
+                "(compensator=%s)",
+                request_id,
+                "registered" if compensator is not None else "missing",
+            )
 
         return emergency_success

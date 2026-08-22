@@ -203,11 +203,15 @@ class PrometheusMetrics:
             registry=self.config.registry,
         )
 
-        # Phase 3 hardening: Dual-store mutation metrics (GOV-L3-METRICS-002)
+        # Phase 3 hardening: Dual-store mutation metrics (GOV-L3-METRICS-002).
+        # Cardinality is intentionally bounded: ``source`` is a small allowlist
+        # of component names and ``status`` is a small enum of terminal-path
+        # outcomes. Per-request correlation IDs MUST NOT become Prometheus
+        # labels — they live in structured logs and audit events instead.
         self._metrics["dual_store_mutation_total"] = Counter(
             f"{prefix}dual_store_mutation_total",
             "Total dual-store mutation operations",
-            ["source", "status", "request_id"],
+            ["source", "status"],
             registry=self.config.registry,
         )
 
@@ -660,14 +664,33 @@ class PrometheusMetrics:
         """Increment dual-store mutation counter.
 
         Args:
-            source: Source module/component (e.g. "dual_store.coordinator")
-            status: Mutation status ("success", "neo4j_failure", "postgres_failure_after_neo4j_success", etc.)
-            request_id: Correlation request ID for labeling
+            source: Source module/component (e.g. "dual_store.coordinator").
+                Must be a bounded allowlist value — never a free-form string
+                (would explode label cardinality).
+            status: Mutation status ("success", "neo4j_failure",
+                "postgres_failure_after_neo4j_success",
+                "rolled_back", "rollback_failure",
+                "emergency_compensated",
+                "emergency_compensation_failed", ...).
+            request_id: Deprecated. Retained for backwards-compatible call
+                sites but intentionally NOT used as a Prometheus label —
+                per-request correlation IDs belong in structured logs and
+                audit events. Pass None or omit to silence the deprecation
+                warning.
         """
+        if request_id is not None:
+            # Emit a debug log so callers notice the cardinality risk if
+            # they keep forwarding request ids. The value is NOT used as a
+            # label, so this is purely advisory.
+            logger.debug(
+                "increment_dual_store_mutation received request_id=%s; "
+                "request_id is not used as a Prometheus label.",
+                request_id,
+            )
         if not self.config.enabled:
             return
         self._metrics["dual_store_mutation_total"].labels(
-            source=source, status=status, request_id=request_id or "unknown"
+            source=source, status=status
         ).inc()
 
     def increment_graph_mutation_success(
