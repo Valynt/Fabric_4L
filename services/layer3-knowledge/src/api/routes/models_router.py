@@ -38,6 +38,7 @@ router = APIRouter()
 
 class ModelStatus(str, Enum):
     """Lifecycle states for a value model."""
+
     DRAFT = "draft"
     ACTIVE = "active"
     ARCHIVED = "archived"
@@ -57,7 +58,6 @@ ALLOWED_SORT_FIELD_MAP = {
 VALID_SORT_DIRS = {"asc", "desc"}
 
 
-
 # ───────────────────────────────────────────────────────────────────────────────
 # Pydantic Models
 # ───────────────────────────────────────────────────────────────────────────────
@@ -65,6 +65,7 @@ VALID_SORT_DIRS = {"asc", "desc"}
 
 class ModelSummary(BaseModel):
     """Summary view of a Value Model for list displays."""
+
     model_id: str = Field(..., description="Unique identifier for the model")
     name: str = Field(..., description="Display name")
     description: str = Field(default="", description="Brief description")
@@ -83,19 +84,31 @@ class ModelSummary(BaseModel):
 
 class ModelDetail(ModelSummary):
     """Detailed view of a Value Model including relationships."""
-    formula_ids: list[str] = Field(default_factory=list, description="Associated formula IDs")
-    entity_ids: list[str] = Field(default_factory=list, description="Associated entity IDs")
-    pack_ids: list[str] = Field(default_factory=list, description="Referenced value pack IDs")
+
+    formula_ids: list[str] = Field(
+        default_factory=list, description="Associated formula IDs"
+    )
+    entity_ids: list[str] = Field(
+        default_factory=list, description="Associated entity IDs"
+    )
+    pack_ids: list[str] = Field(
+        default_factory=list, description="Referenced value pack IDs"
+    )
 
 
 class ModelCreateRequest(BaseModel):
     """Request body for creating a new Value Model."""
+
     name: str = Field(..., min_length=1, max_length=200, description="Model name")
-    description: str = Field(default="", max_length=2000, description="Model description")
-    industry: str = Field(..., min_length=1, max_length=100, description="Industry vertical")
+    description: str = Field(
+        default="", max_length=2000, description="Model description"
+    )
+    industry: str = Field(
+        ..., min_length=1, max_length=100, description="Industry vertical"
+    )
     tags: list[str] = Field(default_factory=list, max_length=20, description="Tags")
-    
-    @field_validator('tags')
+
+    @field_validator("tags")
     @classmethod
     def validate_tags(cls, v: list[str]) -> list[str]:
         """Ensure no tag exceeds 50 characters."""
@@ -107,15 +120,19 @@ class ModelCreateRequest(BaseModel):
 
 class ModelListResponse(BaseModel):
     """Paginated list of models with metadata."""
+
     models: list[ModelSummary] = Field(..., description="Model summaries")
     total: int = Field(..., ge=0, description="Total matching models")
     offset: int = Field(..., ge=0, description="Current offset")
     limit: int = Field(..., ge=1, description="Page size")
-    filters_applied: dict[str, Any] = Field(default_factory=dict, description="Echo of filters")
+    filters_applied: dict[str, Any] = Field(
+        default_factory=dict, description="Echo of filters"
+    )
 
 
 class ModelFolderSummary(BaseModel):
     """Folder entry for sidebar navigation."""
+
     folder_id: str = Field(..., description="Folder identifier")
     name: str = Field(..., description="Display name")
     count: int = Field(..., ge=0, description="Model count in folder")
@@ -123,17 +140,20 @@ class ModelFolderSummary(BaseModel):
 
 class FoldersResponse(BaseModel):
     """Response for folder listing endpoint."""
+
     folders: list[ModelFolderSummary] = Field(..., description="Available folders")
 
 
 class CreateResponse(BaseModel):
     """Response after successful model creation."""
+
     model_id: str = Field(..., description="ID of created model")
     message: str = Field(default="Model created successfully")
 
 
 class DeleteResponse(BaseModel):
     """Response after successful model deletion."""
+
     model_id: str = Field(..., description="ID of deleted model")
     message: str = Field(default="Model deleted successfully")
 
@@ -141,8 +161,6 @@ class DeleteResponse(BaseModel):
 # ───────────────────────────────────────────────────────────────────────────────
 # Database Operations
 # ───────────────────────────────────────────────────────────────────────────────
-
-
 
 
 def _model_node_to_summary(record: dict[str, Any]) -> ModelSummary:
@@ -168,7 +186,7 @@ def _model_node_to_summary(record: dict[str, Any]) -> ModelSummary:
 
 async def _ensure_constraints(neo4j: Any) -> None:
     """Ensure required Neo4j constraints exist.
-    
+
     Idempotent - safe to call multiple times.
     """
     try:
@@ -177,7 +195,7 @@ async def _ensure_constraints(neo4j: Any) -> None:
             "SHOW CONSTRAINTS YIELD name WHERE name = 'model_id_unique' RETURN count(*) as cnt"
         )
         count = records[0].get("cnt", 0) if records else 0
-        
+
         if count == 0:
             await neo4j.execute_query(
                 "CREATE CONSTRAINT model_id_unique IF NOT EXISTS "
@@ -185,11 +203,27 @@ async def _ensure_constraints(neo4j: Any) -> None:
             )
             logger.info("Created ValueModel constraint: model_id_unique")
     except (ValidationError, DatabaseError):
-        context = {"tenant": "unknown", "endpoint": "/models", "operation": "ensure_constraints"}
-        logger.warning("Constraint check mapped exception", extra={"context": context}, exc_info=True)
+        context = {
+            "tenant": "unknown",
+            "endpoint": "/models",
+            "operation": "ensure_constraints",
+        }
+        logger.warning(
+            "Constraint check mapped exception",
+            extra={"context": context},
+            exc_info=True,
+        )
     except Exception:
-        context = {"tenant": "unknown", "endpoint": "/models", "operation": "ensure_constraints"}
-        logger.warning("Constraint check/creation skipped", extra={"context": context}, exc_info=True)
+        context = {
+            "tenant": "unknown",
+            "endpoint": "/models",
+            "operation": "ensure_constraints",
+        }
+        logger.warning(
+            "Constraint check/creation skipped",
+            extra={"context": context},
+            exc_info=True,
+        )
 
 
 def _validate_list_models_params(folder: str, sort_by: str, sort_dir: str) -> None:
@@ -213,10 +247,10 @@ def _build_list_models_query_and_params(
     sort_dir: str,
     limit: int,
     offset: int,
-) -> tuple[str, str, dict[str, Any]]:
+) -> tuple[str, str, dict[str, object]]:
     """Build count query, data query, and parameter dictionary for list_models."""
     where_clauses = ["m.tenant_id = $tenant_id"]
-    params: dict[str, Any] = {
+    params: dict[str, object] = {
         "user_id": current_user,
         "limit": limit,
         "offset": offset,
@@ -300,22 +334,26 @@ async def list_models(
     search: str | None = Query(None, description="Search in name, description, tags"),
     folder: str = Query(FOLDER_ALL, description="Filter by folder"),
     industry: str | None = Query(None, description="Filter by industry"),
-    status: str = Query("all", description="Filter by status: draft, active, archived, all"),
-    sort_by: str = Query("updated_at", description="Sort field: name, updated_at, created_at"),
+    status: str = Query(
+        "all", description="Filter by status: draft, active, archived, all"
+    ),
+    sort_by: str = Query(
+        "updated_at", description="Sort field: name, updated_at, created_at"
+    ),
     sort_dir: str = Query("desc", description="Sort direction: asc, desc"),
     limit: int = Query(50, ge=1, le=100, description="Maximum results to return"),
     offset: int = Query(0, ge=0, description="Results to skip"),
 ) -> ModelListResponse:
     """List value models with filtering and pagination."""
     current_tenant = str(ctx.tenant_id)
-    
+
     async with await create_neo4j_tenant_session(current_tenant) as neo4j:
         await _ensure_constraints(neo4j)
         current_user = str(ctx.user_id or "")
-        
+
         # Validate parameters
         _validate_list_models_params(folder, sort_by, sort_dir)
-        
+
         count_query, data_query, params = _build_list_models_query_and_params(
             current_tenant=current_tenant,
             current_user=current_user,
@@ -328,16 +366,20 @@ async def list_models(
             limit=limit,
             offset=offset,
         )
-        
+
         try:
             # Execute count
             count_records = await neo4j.execute_query(count_query, params)
             total = count_records[0].get("total", 0) if count_records else 0
-            
+
             # Execute data query
             data_records = await neo4j.execute_query(data_query, params)
-            models = [_model_node_to_summary(record) for record in data_records] if data_records else []
-            
+            models = (
+                [_model_node_to_summary(record) for record in data_records]
+                if data_records
+                else []
+            )
+
             return ModelListResponse(
                 models=models,
                 total=total,
@@ -350,7 +392,7 @@ async def list_models(
                     "status": status,
                     "sort_by": sort_by,
                     "sort_dir": sort_dir,
-                }
+                },
             )
         except Exception as e:
             logger.error(f"Failed to list models: {e}")
@@ -370,10 +412,10 @@ async def get_folder_counts(
     """Get folder counts for sidebar navigation."""
     current_user = str(ctx.user_id or "")
     current_tenant = str(ctx.tenant_id)
-    
+
     async with await create_neo4j_tenant_session(current_tenant) as neo4j:
         await _ensure_constraints(neo4j)
-        
+
         query = """
         MATCH (m:ValueModel)
         WHERE m.tenant_id = $tenant_id
@@ -385,23 +427,49 @@ async def get_folder_counts(
         RETURN all_count, my_models_count, shared_count, favorites_count
         """
         try:
-            records = await neo4j.execute_query(query, {"user_id": current_user, "tenant_id": current_tenant})
+            records = await neo4j.execute_query(
+                query, {"user_id": current_user, "tenant_id": current_tenant}
+            )
             if records:
                 record = records[0]
                 folders = [
-                    ModelFolderSummary(folder_id=FOLDER_ALL, name="All Models", count=record.get("all_count", 0)),
-                    ModelFolderSummary(folder_id=FOLDER_MY_MODELS, name="My Models", count=record.get("my_models_count", 0)),
-                    ModelFolderSummary(folder_id=FOLDER_SHARED, name="Shared With Me", count=record.get("shared_count", 0)),
-                    ModelFolderSummary(folder_id=FOLDER_FAVORITES, name="Favorites", count=record.get("favorites_count", 0)),
+                    ModelFolderSummary(
+                        folder_id=FOLDER_ALL,
+                        name="All Models",
+                        count=record.get("all_count", 0),
+                    ),
+                    ModelFolderSummary(
+                        folder_id=FOLDER_MY_MODELS,
+                        name="My Models",
+                        count=record.get("my_models_count", 0),
+                    ),
+                    ModelFolderSummary(
+                        folder_id=FOLDER_SHARED,
+                        name="Shared With Me",
+                        count=record.get("shared_count", 0),
+                    ),
+                    ModelFolderSummary(
+                        folder_id=FOLDER_FAVORITES,
+                        name="Favorites",
+                        count=record.get("favorites_count", 0),
+                    ),
                 ]
             else:
                 folders = [
-                    ModelFolderSummary(folder_id=FOLDER_ALL, name="All Models", count=0),
-                    ModelFolderSummary(folder_id=FOLDER_MY_MODELS, name="My Models", count=0),
-                    ModelFolderSummary(folder_id=FOLDER_SHARED, name="Shared With Me", count=0),
-                    ModelFolderSummary(folder_id=FOLDER_FAVORITES, name="Favorites", count=0),
+                    ModelFolderSummary(
+                        folder_id=FOLDER_ALL, name="All Models", count=0
+                    ),
+                    ModelFolderSummary(
+                        folder_id=FOLDER_MY_MODELS, name="My Models", count=0
+                    ),
+                    ModelFolderSummary(
+                        folder_id=FOLDER_SHARED, name="Shared With Me", count=0
+                    ),
+                    ModelFolderSummary(
+                        folder_id=FOLDER_FAVORITES, name="Favorites", count=0
+                    ),
                 ]
-            
+
             return FoldersResponse(folders=folders)
         except Exception as e:
             logger.error(f"Failed to get folder counts: {e}")
@@ -426,7 +494,7 @@ async def get_model_detail(
 ) -> ModelDetail:
     """Get detailed information about a specific model."""
     current_tenant = str(ctx.tenant_id)
-    
+
     query = """
     MATCH (m:ValueModel {model_id: $model_id})
     WHERE m.tenant_id = $tenant_id
@@ -439,16 +507,18 @@ async def get_model_detail(
          collect(DISTINCT p.pack_id) as pack_ids
     RETURN m, formula_ids, entity_ids, pack_ids
     """
-    
+
     async with await create_neo4j_tenant_session(current_tenant) as neo4j:
         try:
-            records = await neo4j.execute_query(query, {"model_id": model_id, "tenant_id": current_tenant})
+            records = await neo4j.execute_query(
+                query, {"model_id": model_id, "tenant_id": current_tenant}
+            )
             if not records:
-                raise NotFoundError(message = str(f"Model {model_id} not found"))
-            
+                raise NotFoundError(message=str(f"Model {model_id} not found"))
+
             record = records[0]
             summary = _model_node_to_summary(record)
-            
+
             return ModelDetail(
                 **summary.model_dump(),
                 formula_ids=record.get("formula_ids", []),
@@ -481,9 +551,9 @@ async def create_model(
     current_user = str(ctx.user_id or "")
     current_tenant = str(ctx.tenant_id)
     model_id = f"mdl_{datetime.now(UTC).strftime('%Y%m%d%H%M%S%f')[:-3]}"
-    
+
     now = datetime.now(UTC).isoformat()
-    
+
     query = """
     CREATE (m:ValueModel {
         model_id: $model_id,
@@ -518,7 +588,7 @@ async def create_model(
         "owner": current_user,
         "tenant_id": current_tenant,
     }
-    
+
     async with await create_neo4j_tenant_session(current_tenant) as neo4j:
         await _ensure_constraints(neo4j)
         try:
@@ -533,17 +603,17 @@ async def create_model(
 
 
 @router.delete(
-"/models/{model_id}",
-response_model=DeleteResponse,
-tags=["Models"],
-summary="Delete Value Model",
-description="Deletes a value model and its relationships.",
-responses={
-200: {"description": "Model deleted successfully"},
-404: {"description": "Model not found"},
-403: {"description": "Not authorized to delete this model"},
-500: {"description": "Database error"},
-},
+    "/models/{model_id}",
+    response_model=DeleteResponse,
+    tags=["Models"],
+    summary="Delete Value Model",
+    description="Deletes a value model and its relationships.",
+    responses={
+        200: {"description": "Model deleted successfully"},
+        404: {"description": "Model not found"},
+        403: {"description": "Not authorized to delete this model"},
+        500: {"description": "Database error"},
+    },
 )
 async def delete_model(
     model_id: str,
@@ -552,7 +622,7 @@ async def delete_model(
     """Delete a value model (owner only)."""
     current_user = str(ctx.user_id or "")
     current_tenant = str(ctx.tenant_id)
-    
+
     async with await create_neo4j_tenant_session(current_tenant) as neo4j:
         # Check ownership
         check_query = """
@@ -560,17 +630,19 @@ async def delete_model(
         WHERE m.tenant_id = $tenant_id
         RETURN m.owner as owner
         """
-        
+
         try:
-            check_records = await neo4j.execute_query(check_query, {"model_id": model_id, "tenant_id": current_tenant})
+            check_records = await neo4j.execute_query(
+                check_query, {"model_id": model_id, "tenant_id": current_tenant}
+            )
             if not check_records:
-                raise NotFoundError(message = str(f"Model {model_id} not found"))
-            
+                raise NotFoundError(message=str(f"Model {model_id} not found"))
+
             owner = check_records[0].get("owner")
             if owner != current_user:
                 # In production, also check admin/superuser roles
-                raise AuthorizationError(message = "Not authorized to delete this model")
-            
+                raise AuthorizationError(message="Not authorized to delete this model")
+
             # Delete with relationships
             delete_query = """
             MATCH (m:ValueModel {model_id: $model_id})
@@ -578,8 +650,10 @@ async def delete_model(
             OPTIONAL MATCH (m)-[r]-()
             DELETE r, m
             """
-            
-            await neo4j.execute_query(delete_query, {"model_id": model_id, "tenant_id": current_tenant})
+
+            await neo4j.execute_query(
+                delete_query, {"model_id": model_id, "tenant_id": current_tenant}
+            )
             return DeleteResponse(model_id=model_id)
         except HTTPException:
             raise

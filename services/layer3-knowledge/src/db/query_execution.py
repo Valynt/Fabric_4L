@@ -44,7 +44,12 @@ try:
 except Exception:
     get_metrics = None  # type: ignore[assignment]
 
-SYSTEM_SCOPES = {QueryScope.SYSTEM, QueryScope.SCHEMA, QueryScope.MIGRATION, QueryScope.BACKUP}
+SYSTEM_SCOPES = {
+    QueryScope.SYSTEM,
+    QueryScope.SCHEMA,
+    QueryScope.MIGRATION,
+    QueryScope.BACKUP,
+}
 
 # Backward-compatible aliases for existing imports.
 MAX_QUERY_DEPTH = DEFAULT_MAX_QUERY_DEPTH
@@ -57,7 +62,11 @@ class TenantQueryValidationError(ValueError):
 
 class CypherDepthLimitExceeded(TenantQueryValidationError):
     """Raised when a Cypher query exceeds the maximum allowed traversal depth."""
-_CLAUSE_KEYWORD_PATTERN = re.compile(r"\b(MATCH|OPTIONAL\s+MATCH|MERGE|CREATE)\b", re.IGNORECASE)
+
+
+_CLAUSE_KEYWORD_PATTERN = re.compile(
+    r"\b(MATCH|OPTIONAL\s+MATCH|MERGE|CREATE)\b", re.IGNORECASE
+)
 # Matches variable-length path patterns like [*1..4], [*..5], [*1..], [*3], [*$depth], [*1..$max_depth]
 _VAR_LENGTH_PATH_PATTERN = re.compile(
     r"\[\s*(?:[:!]?\s*[A-Za-z_][A-Za-z0-9_]*\s*\|?\s*)*\*\s*([^]]*?)\s*\]",
@@ -73,7 +82,9 @@ _TENANT_LABEL_PATTERN = re.compile(
 _TENANT_PREDICATE_PATTERN = re.compile(
     r"(?i)\b(?P<alias>[A-Za-z_][A-Za-z0-9_]*)\.tenant_id\s*(?:=|IN)\s*[$A-Za-z_]"
 )
-_CLAUSE_PATTERN = re.compile(r"\b(MATCH|OPTIONAL\s+MATCH|CALL\s*\{|UNION(?:\s+ALL)?|WITH)\b", re.IGNORECASE)
+_CLAUSE_PATTERN = re.compile(
+    r"\b(MATCH|OPTIONAL\s+MATCH|CALL\s*\{|UNION(?:\s+ALL)?|WITH)\b", re.IGNORECASE
+)
 
 
 def _tenant_scoped_aliases(query: str) -> set[str]:
@@ -100,7 +111,9 @@ def _structural_tenant_scope_errors(query: str, params: Mapping[str, Any]) -> li
         alias = (match.group("alias") or "").strip()
         prop_token = (match.group("props") or "").strip()
         has_tenant_in_props = bool(re.search(r"(?i)\btenant_id\b", prop_token))
-        has_tenant_param_map = prop_token.startswith("$") and _parameter_map_has_tenant_id(prop_token, params)
+        has_tenant_param_map = prop_token.startswith(
+            "$"
+        ) and _parameter_map_has_tenant_id(prop_token, params)
         has_tenant_predicate = bool(alias) and alias in scoped_aliases
 
         if not (has_tenant_in_props or has_tenant_param_map or has_tenant_predicate):
@@ -110,7 +123,10 @@ def _structural_tenant_scope_errors(query: str, params: Mapping[str, Any]) -> li
 
 
 def _touches_tenant_owned_label(query: str) -> bool:
-    return any(match.group("label") in TENANT_OWNED_LABELS for match in _TENANT_LABEL_PATTERN.finditer(query))
+    return any(
+        match.group("label") in TENANT_OWNED_LABELS
+        for match in _TENANT_LABEL_PATTERN.finditer(query)
+    )
 
 
 @dataclass(frozen=True)
@@ -154,7 +170,7 @@ class TenantQueryExecutor:
         return max_depth
 
     @classmethod
-    def _record_query_metrics(cls, elapsed: float, result: Any) -> None:
+    def _record_query_metrics(cls, elapsed: float, result: object) -> None:
         """Record execution metrics, result size, and slow query buckets."""
         metrics = get_metrics() if get_metrics else None
         if not metrics:
@@ -189,8 +205,8 @@ class TenantQueryExecutor:
         cls,
         run_callable,
         query: str,
-        params: dict[str, Any],
-    ) -> tuple[Any, float]:
+        params: dict[str, object],
+    ) -> tuple[object, float]:
         """Execute query coroutine wrapped in timeout with failure metrics."""
         import time
 
@@ -211,7 +227,9 @@ class TenantQueryExecutor:
             metrics = get_metrics() if get_metrics else None
             if metrics:
                 metrics.increment_graph_query_failure(
-                    category="execution_error", operation="run", route="tenant_query_executor"
+                    category="execution_error",
+                    operation="run",
+                    route="tenant_query_executor",
                 )
             raise
 
@@ -238,7 +256,9 @@ class TenantQueryExecutor:
         return result
 
     @classmethod
-    def _validate(cls, query: str, params: Mapping[str, Any], context: TenantExecutionContext) -> None:
+    def _validate(
+        cls, query: str, params: Mapping[str, Any], context: TenantExecutionContext
+    ) -> None:
         if context.is_bypass:
             return
         cls._guard_direct_mutation(query, context)
@@ -246,15 +266,19 @@ class TenantQueryExecutor:
         cls._guard_tenant_context(query, context)
         cls._guard_structural_scoping(
             query,
-            _structural_tenant_scope_errors(query, params)
-            if _touches_tenant_owned_label(query)
-            else [],
+            (
+                _structural_tenant_scope_errors(query, params)
+                if _touches_tenant_owned_label(query)
+                else []
+            ),
             context,
         )
         cls._guard_multi_clause(query, context)
 
     @classmethod
-    def _guard_direct_mutation(cls, query: str, context: TenantExecutionContext) -> None:
+    def _guard_direct_mutation(
+        cls, query: str, context: TenantExecutionContext
+    ) -> None:
         """Phase 1 hardening: block direct CREATE/MERGE/DELETE on tenant-owned labels.
 
         These must go through AuditedGraphMutation for audit trail.
@@ -265,7 +289,8 @@ class TenantQueryExecutor:
                 metrics = get_metrics() if get_metrics else None
                 if metrics:
                     metrics.increment_tenant_isolation_violation(
-                        component="query_execution", violation_type="direct_mutation_bypass"
+                        component="query_execution",
+                        violation_type="direct_mutation_bypass",
                     )
                     metrics.increment_unauthorized_traversal(
                         category="mutation_bypass",
@@ -283,12 +308,16 @@ class TenantQueryExecutor:
         cls, query: str, max_depth: int | None, context: TenantExecutionContext
     ) -> None:
         """Enforce the traversal depth limit (PERF-001)."""
-        safe_max_depth = sanitize_query_depth(MAX_QUERY_DEPTH, default_depth=MAX_QUERY_DEPTH)
+        safe_max_depth = sanitize_query_depth(
+            MAX_QUERY_DEPTH, default_depth=MAX_QUERY_DEPTH
+        )
         if max_depth is not None and max_depth > safe_max_depth:
             metrics = get_metrics() if get_metrics else None
             if metrics:
                 metrics.observe_graph_traversal_depth(
-                    depth=max_depth, endpoint="tenant_query_executor", operation="validate"
+                    depth=max_depth,
+                    endpoint="tenant_query_executor",
+                    operation="validate",
                 )
                 metrics.increment_unauthorized_traversal(
                     category="depth_limit",
@@ -302,7 +331,11 @@ class TenantQueryExecutor:
     @classmethod
     def _guard_tenant_context(cls, query: str, context: TenantExecutionContext) -> None:
         """Require a tenant id whenever a tenant-owned label is touched."""
-        if _touches_tenant_owned_label(query) and not context.tenant_id and not context.allow_system_query:
+        if (
+            _touches_tenant_owned_label(query)
+            and not context.tenant_id
+            and not context.allow_system_query
+        ):
             metrics = get_metrics() if get_metrics else None
             if metrics:
                 metrics.increment_tenant_isolation_violation(
@@ -313,7 +346,9 @@ class TenantQueryExecutor:
                     route="tenant_query_executor",
                     violation_type="missing_tenant_context",
                 )
-            raise TenantQueryValidationError("Tenant context is required for tenant-owned Cypher execution")
+            raise TenantQueryValidationError(
+                "Tenant context is required for tenant-owned Cypher execution"
+            )
 
     @classmethod
     def _guard_structural_scoping(
@@ -354,7 +389,9 @@ class TenantQueryExecutor:
 
 
 def _resolve_runner(session_or_run_callable):
-    if callable(session_or_run_callable) and not hasattr(session_or_run_callable, "run"):
+    if callable(session_or_run_callable) and not hasattr(
+        session_or_run_callable, "run"
+    ):
         return session_or_run_callable
     runner = getattr(session_or_run_callable, "run", None)
     if runner is None:
@@ -377,8 +414,14 @@ async def run_scoped_query(
     tenant only when their ``QueryScope`` explicitly declares that intent.
     """
 
-    if scoped_query.scope == QueryScope.TENANT and not scoped_query.tenant_id and not is_bypass:
-        raise TenantQueryValidationError("Tenant context is required for tenant-scoped Cypher execution")
+    if (
+        scoped_query.scope == QueryScope.TENANT
+        and not scoped_query.tenant_id
+        and not is_bypass
+    ):
+        raise TenantQueryValidationError(
+            "Tenant context is required for tenant-scoped Cypher execution"
+        )
 
     allow_system_query = scoped_query.scope != QueryScope.TENANT
     context = TenantExecutionContext(
@@ -429,7 +472,9 @@ async def run_validated_query(
         allow_multi_clause_tenant_query=True,
     )
     try:
-        return await TenantQueryExecutor.run(_resolve_runner(session_or_run_callable), query, params, context=context)
+        return await TenantQueryExecutor.run(
+            _resolve_runner(session_or_run_callable), query, params, context=context
+        )
     except TenantQueryValidationError as exc:
         name = f" '{query_name}'" if query_name else ""
         raise TenantQueryValidationError(f"Denied Cypher query{name}: {exc}") from exc

@@ -114,9 +114,15 @@ class HybridSearch:
         # Before: Sequential (BM25 time + vector time + graph time)
         # After: Parallel (max(BM25 time, vector time, graph time))
         effective_tenant_id = self._resolve_tenant_id(tenant_id)
-        bm25_task = self._bm25_search(query, entity_types, result_limit * 2, effective_tenant_id)
-        vector_task = self._vector_search(query, entity_types, result_limit * 2, effective_tenant_id)
-        graph_task = self._graph_search(query, entity_types, result_limit * 2, effective_tenant_id)
+        bm25_task = self._bm25_search(
+            query, entity_types, result_limit * 2, effective_tenant_id
+        )
+        vector_task = self._vector_search(
+            query, entity_types, result_limit * 2, effective_tenant_id
+        )
+        graph_task = self._graph_search(
+            query, entity_types, result_limit * 2, effective_tenant_id
+        )
 
         bm25_results, vector_results, graph_results = await asyncio.gather(
             bm25_task, vector_task, graph_task, return_exceptions=True
@@ -225,7 +231,12 @@ class HybridSearch:
         """Execute BM25 full-text search via Neo4j fulltext index."""
         driver = await self._get_driver()
         results: list[dict[str, Any]] = []
-        search_types = entity_types or ["Capability", "UseCase", "Persona", "ValueDriver"]
+        search_types = entity_types or [
+            "Capability",
+            "UseCase",
+            "Persona",
+            "ValueDriver",
+        ]
 
         async with driver.session(database=self.settings.neo4j_database) as session:
             escaped_query = query.replace('"', '\\"')
@@ -240,7 +251,7 @@ class HybridSearch:
         return results[:top_k]
 
     @staticmethod
-    def _normalize_vector_item(item: Any) -> dict[str, Any]:
+    def _normalize_vector_item(item: object) -> dict[str, object]:
         """Convert tuple or legacy dict from vector store into standard dict."""
         if isinstance(item, tuple):
             entity_id, score, meta = item
@@ -248,13 +259,21 @@ class HybridSearch:
                 "id": entity_id,
                 "entity_id": entity_id,
                 "score": score,
-                "entity_type": meta.get("entity_type", "Unknown"),
-                "name": meta.get("name", ""),
-                "description": meta.get("description", ""),
+                "entity_type": (
+                    meta.get("entity_type", "Unknown")
+                    if isinstance(meta, dict)
+                    else "Unknown"
+                ),
+                "name": meta.get("name", "") if isinstance(meta, dict) else "",
+                "description": (
+                    meta.get("description", "") if isinstance(meta, dict) else ""
+                ),
                 "metadata": meta,
             }
-        item.setdefault("id", item.get("entity_id", ""))
-        return item
+        if isinstance(item, dict):
+            item.setdefault("id", item.get("entity_id", ""))
+            return item
+        return {}
 
     async def _vector_search(
         self,
@@ -262,7 +281,7 @@ class HybridSearch:
         entity_types: list[str] | None,
         top_k: int,
         tenant_id: str | None = None,
-    ) -> list[dict[str, Any]]:
+    ) -> list[dict[str, object]]:
         """Execute vector similarity search.
 
         Adapts the Neo4jVectorStore return format — list of
@@ -290,12 +309,12 @@ class HybridSearch:
 
     async def _execute_graph_for_type(
         self,
-        session: Any,
+        session: object,
         builder: TenantScopedCypher,
         escaped_query: str,
         etype: str,
         top_k: int,
-    ) -> list[dict[str, Any]]:
+    ) -> list[dict[str, object]]:
         """Execute graph centrality search for a single entity type."""
         scoped = builder.custom_tenant_query(
             """
@@ -306,11 +325,15 @@ class HybridSearch:
             WHERE neighbor.tenant_id = $_tenant_id
             WITH node, score as text_score, count(r) as degree
             RETURN node.id as id, labels(node)[0] as entity_type, node.name as name,
-                   text_score * log(degree + 1) as score
+                       text_score * log(degree + 1) as score
             ORDER BY score DESC
             LIMIT $limit
             """,
-            params={"index_name": f"{etype.lower()}_fulltext", "query": escaped_query, "limit": top_k},
+            params={
+                "index_name": f"{etype.lower()}_fulltext",
+                "query": escaped_query,
+                "limit": top_k,
+            },
             operation="hybrid_search.graph",
             labels=(etype,),
             allowlist_key="hybrid_search.graph_fulltext_tenant_scoped",
@@ -329,11 +352,16 @@ class HybridSearch:
         entity_types: list[str] | None,
         top_k: int,
         tenant_id: str | None = None,
-    ) -> list[dict[str, Any]]:
+    ) -> list[dict[str, object]]:
         """Execute graph-based search (centrality-aware)."""
         driver = await self._get_driver()
-        results: list[dict[str, Any]] = []
-        search_types = entity_types or ["Capability", "UseCase", "Persona", "ValueDriver"]
+        results: list[dict[str, object]] = []
+        search_types = entity_types or [
+            "Capability",
+            "UseCase",
+            "Persona",
+            "ValueDriver",
+        ]
 
         async with driver.session(database=self.settings.neo4j_database) as session:
             escaped_query = query.replace('"', '\\"')
@@ -393,11 +421,20 @@ class HybridSearch:
         for entity_id in all_ids:
             # Clamp each per-signal normalized score to [0, 1] so a negative
             # raw score cannot flip the combined score's sign.
-            bm25_score = max(0.0, min(1.0, bm25_lookup.get(entity_id, {}).get("score", 0.0) / bm25_max))
-            vector_score = max(
-                0.0, min(1.0, vector_lookup.get(entity_id, {}).get("score", 0.0) / vector_max)
+            bm25_score = max(
+                0.0,
+                min(1.0, bm25_lookup.get(entity_id, {}).get("score", 0.0) / bm25_max),
             )
-            graph_score = max(0.0, min(1.0, graph_lookup.get(entity_id, {}).get("score", 0.0) / graph_max))
+            vector_score = max(
+                0.0,
+                min(
+                    1.0, vector_lookup.get(entity_id, {}).get("score", 0.0) / vector_max
+                ),
+            )
+            graph_score = max(
+                0.0,
+                min(1.0, graph_lookup.get(entity_id, {}).get("score", 0.0) / graph_max),
+            )
 
             combined = (
                 weights["bm25"] * bm25_score

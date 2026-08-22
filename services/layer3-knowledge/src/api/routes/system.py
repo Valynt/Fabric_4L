@@ -17,6 +17,7 @@ from typing import Any, Literal, cast
 try:
     import psutil  # type: ignore[import-untyped]
 except ImportError:  # pragma: no cover - exercised only in minimal test envs
+
     class _PsutilFallback:
         def virtual_memory(self) -> SimpleNamespace:
             return SimpleNamespace(used=0, total=0)
@@ -54,7 +55,10 @@ from ...api.models import (
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-SYSTEM_HEALTH_RESPONSES = {200: {"description": "Service health payload"}, 503: {"description": "Service unavailable"}}
+SYSTEM_HEALTH_RESPONSES = {
+    200: {"description": "Service health payload"},
+    503: {"description": "Service unavailable"},
+}
 __all__ = ["router", "get_system_metrics", "set_app_metrics"]
 
 
@@ -63,7 +67,10 @@ async def _check_neo4j_dependency(
     settings: Any,
 ) -> DependencyStatus:
     """Check Neo4j dependency health status."""
-    if schema_initializer is not None and getattr(schema_initializer, "_driver", None) is None:
+    if (
+        schema_initializer is not None
+        and getattr(schema_initializer, "_driver", None) is None
+    ):
         return DependencyStatus(
             name="neo4j",
             status="degraded",
@@ -80,7 +87,9 @@ async def _check_neo4j_dependency(
         from src.schema.initializer import SchemaInitializer
 
         neo4j_checker = (
-            schema_initializer if schema_initializer is not None else SchemaInitializer()
+            schema_initializer
+            if schema_initializer is not None
+            else SchemaInitializer()
         )
         if schema_initializer is None:
             neo4j_checker._owned_driver = False
@@ -94,9 +103,7 @@ async def _check_neo4j_dependency(
             response_time_ms=response_time,
             error=neo4j_health.get("error"),
             failure_reason=(
-                "neo4j_unhealthy"
-                if neo4j_health["status"] != "healthy"
-                else None
+                "neo4j_unhealthy" if neo4j_health["status"] != "healthy" else None
             ),
             details={
                 "uri": settings.neo4j_uri,
@@ -140,7 +147,9 @@ def _check_pinecone_dependency(settings: Any) -> DependencyStatus | None:
         )
 
 
-async def check_dependencies(schema_initializer: Any | None = None) -> list[DependencyStatus]:
+async def check_dependencies(
+    schema_initializer: Any | None = None,
+) -> list[DependencyStatus]:
     """Check health of Layer 3 dependencies."""
     settings = get_settings()
     dependencies: list[DependencyStatus] = []
@@ -155,21 +164,25 @@ async def check_dependencies(schema_initializer: Any | None = None) -> list[Depe
     return dependencies
 
 
-
 async def _attempt_neo4j_recovery(
     request: Request,
-    schema_initializer: Any | None,
+    schema_initializer: object | None,
     request_id: str,
-) -> Any:
+) -> object | None:
     """Attempt to recover Neo4j state if driver is None."""
-    if schema_initializer is not None and getattr(schema_initializer, "_driver", None) is None:
+    if (
+        schema_initializer is not None
+        and getattr(schema_initializer, "_driver", None) is None
+    ):
         try:
             from ...api.dependencies import recover_neo4j_state
+
             app = request.app
             recovered_state = await recover_neo4j_state(app)
             if (
                 recovered_state.schema_initializer is not None
-                and getattr(recovered_state.schema_initializer, "_driver", None) is not None
+                and getattr(recovered_state.schema_initializer, "_driver", None)
+                is not None
             ):
                 logger.info("Neo4j state recovered during health check")
                 return recovered_state.schema_initializer
@@ -183,9 +196,9 @@ async def _attempt_neo4j_recovery(
 
 
 async def _resolve_neo4j_and_schema_status(
-    schema_initializer: Any | None,
+    schema_initializer: object | None,
     request_id: str = "unknown",
-) -> tuple[dict[str, Any], dict[str, Any]]:
+) -> tuple[dict[str, object], dict[str, object]]:
     """Resolve Neo4j health and schema verification status."""
     if schema_initializer is None:
         return (
@@ -202,11 +215,20 @@ async def _resolve_neo4j_and_schema_status(
     try:
         health_result = await schema_initializer.health_check()
         neo4j_health = (
-            health_result.model_dump() if hasattr(health_result, "model_dump") else dict(health_result)
+            health_result.model_dump()
+            if hasattr(health_result, "model_dump")
+            else dict(health_result)
         )
         schema_status = await schema_initializer.verify_schema()
         return neo4j_health, schema_status
-    except (ConnectionError, OSError, RuntimeError, TimeoutError, ValueError, TypeError):
+    except (
+        ConnectionError,
+        OSError,
+        RuntimeError,
+        TimeoutError,
+        ValueError,
+        TypeError,
+    ):
         logger.warning(
             "Health check failed for Neo4j",
             exc_info=True,
@@ -244,17 +266,23 @@ def _build_configuration(settings: Any) -> dict[str, Any]:
 
 def _derive_overall_status(
     dependencies: list[DependencyStatus],
-    schema_initializer: Any | None,
-    schema_status: dict[str, Any] | None = None,
+    schema_initializer: object | None,
+    schema_status: dict[str, object] | None = None,
 ) -> Literal["healthy", "unhealthy", "degraded"]:
-    if schema_initializer is None or getattr(schema_initializer, "_driver", None) is None:
+    if (
+        schema_initializer is None
+        or getattr(schema_initializer, "_driver", None) is None
+    ):
         return "degraded"
     if any(dep.status == "unhealthy" for dep in dependencies):
         return "unhealthy"
     if any(dep.status == "degraded" for dep in dependencies):
         return "degraded"
     if schema_status is not None:
-        if schema_status.get("status") in ("error", "unhealthy") or schema_status.get("valid") is False:
+        if (
+            schema_status.get("status") in ("error", "unhealthy")
+            or schema_status.get("valid") is False
+        ):
             return "unhealthy"
         if schema_status.get("status") == "degraded":
             return "degraded"
@@ -264,11 +292,14 @@ def _derive_overall_status(
 def _derive_readiness(
     *,
     dependencies: list[DependencyStatus],
-    schema_initializer: Any | None,
-    schema_status: dict[str, Any],
-) -> dict[str, Any]:
+    schema_initializer: object | None,
+    schema_status: dict[str, object],
+) -> dict[str, object]:
     """Return readiness envelope gated by mandatory dependencies only."""
-    if schema_initializer is None or getattr(schema_initializer, "_driver", None) is None:
+    if (
+        schema_initializer is None
+        or getattr(schema_initializer, "_driver", None) is None
+    ):
         return {"is_ready": False, "reason": "neo4j_uninitialized"}
 
     neo4j_dependency = next((dep for dep in dependencies if dep.name == "neo4j"), None)
@@ -298,7 +329,7 @@ def _derive_readiness(
 async def get_metrics(request: Request) -> Response:
     """Get Prometheus metrics from the app state registry."""
     if not verify_metrics_access(request):
-        raise AuthorizationError(message = "Metrics endpoint requires internal access")
+        raise AuthorizationError(message="Metrics endpoint requires internal access")
 
     metrics = getattr(request.app.state, "metrics", None)
 
@@ -316,9 +347,24 @@ async def get_metrics(request: Request) -> Response:
             media_type="text/plain; version=0.0.4; charset=utf-8",
         )
     except (AttributeError, RuntimeError, ValueError, TypeError) as exc:
-        logger.error("Error generating metrics", extra={"context": {"endpoint": "/metrics", "operation": "get_metrics", "error_type": exc.__class__.__name__}}, exc_info=True)
-        error_payload = {"code": "METRICS_EXPORT_ERROR", "message": "Failed to generate metrics"}
-        return Response(content=str(error_payload), status_code=500, media_type="application/json")
+        logger.error(
+            "Error generating metrics",
+            extra={
+                "context": {
+                    "endpoint": "/metrics",
+                    "operation": "get_metrics",
+                    "error_type": exc.__class__.__name__,
+                }
+            },
+            exc_info=True,
+        )
+        error_payload = {
+            "code": "METRICS_EXPORT_ERROR",
+            "message": "Failed to generate metrics",
+        }
+        return Response(
+            content=str(error_payload), status_code=500, media_type="application/json"
+        )
 
 
 @router.get(
@@ -343,14 +389,20 @@ async def health_check(
     """Check service health and Neo4j connectivity."""
     start_time = time.time()
     request_id = getattr(request.state, "request_id", "unknown")
-    
-    schema_initializer = await _attempt_neo4j_recovery(request, schema_initializer, request_id)
+
+    schema_initializer = await _attempt_neo4j_recovery(
+        request, schema_initializer, request_id
+    )
     dependencies = await check_dependencies(schema_initializer=schema_initializer)
     metrics = get_system_metrics()
 
-    neo4j_health, schema_status = await _resolve_neo4j_and_schema_status(schema_initializer, request_id)
+    neo4j_health, schema_status = await _resolve_neo4j_and_schema_status(
+        schema_initializer, request_id
+    )
 
-    overall_status = _derive_overall_status(dependencies, schema_initializer, schema_status)
+    overall_status = _derive_overall_status(
+        dependencies, schema_initializer, schema_status
+    )
     response_time_ms = round((time.time() - start_time) * 1000, 2)
 
     logger.info(
@@ -397,7 +449,9 @@ async def detailed_health_check(
     dependencies = await check_dependencies(schema_initializer=schema_initializer)
     metrics = get_system_metrics()
 
-    neo4j_health, schema_status = await _resolve_neo4j_and_schema_status(schema_initializer)
+    neo4j_health, schema_status = await _resolve_neo4j_and_schema_status(
+        schema_initializer
+    )
 
     overall_status = cast(
         Literal["healthy", "unhealthy", "degraded"],
@@ -420,4 +474,3 @@ async def detailed_health_check(
         system_info=system_info,
         configuration=configuration,
     )
-

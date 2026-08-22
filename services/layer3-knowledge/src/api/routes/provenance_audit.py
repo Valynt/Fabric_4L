@@ -11,7 +11,7 @@ import json
 import logging
 import uuid
 from datetime import UTC, datetime
-from typing import Any, Literal
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
@@ -36,7 +36,7 @@ def _extract_tenant_id(request: Request | None) -> str | None:
     return None
 
 
-def _parse_audit_details(value: Any) -> dict[str, Any]:
+def _parse_audit_details(value: object) -> dict[str, object]:
     """Deserialize JSON-encoded audit details stored as a Neo4j string property."""
     if isinstance(value, dict):
         return value
@@ -54,39 +54,39 @@ def _require_tenant_id_from_context(
     missing_tenant_detail: str,
 ) -> str:
     if not request:
-        raise AuthenticationError(message = "Authentication context is required")
+        raise AuthenticationError(message="Authentication context is required")
 
     ctx = getattr(request.state, "governance_context", None)
     if ctx is None:
-        raise AuthenticationError(message = "Authentication context is required")
+        raise AuthenticationError(message="Authentication context is required")
 
     tenant_id = _extract_tenant_id(request)
     if not tenant_id:
-        raise ValidationError(message = str(missing_tenant_detail))
+        raise ValidationError(message=str(missing_tenant_detail))
 
     return tenant_id
 
 
-def _record_to_audit_log_entry(r: dict[str, Any]) -> AuditLogEntry:
+def _record_to_audit_log_entry(r: dict[str, object]) -> AuditLogEntry:
     """Convert raw Neo4j record into AuditLogEntry."""
     return AuditLogEntry(
-        id=r.get("id", str(uuid.uuid4())),
+        id=str(r.get("id", str(uuid.uuid4()))),
         timestamp=r.get("timestamp", datetime.now(UTC)),
         source="provenance",
-        event_type=r.get("event_type", "unknown"),
+        event_type=str(r.get("event_type", "unknown")),
         entity_id=r.get("entity_id"),
         entity_type=r.get("entity_type"),
-        action=r.get("action", "unknown"),
-        agent=r.get("agent", "system"),
+        action=str(r.get("action", "unknown")),
+        agent=str(r.get("agent", "system")),
         details=_parse_audit_details(r.get("details")),
     )
 
 
 async def _fetch_provenance_steps(
-    neo4j: Any,
+    neo4j: object,
     entity_id: str,
     tenant_id: str,
-    entity_created_at: Any,
+    entity_created_at: object,
 ) -> list[ProvenanceStep]:
     """Query and format provenance steps for an entity, providing fallback step if empty."""
     steps_query = """
@@ -128,7 +128,7 @@ async def _fetch_provenance_steps(
 
 
 async def _fetch_provenance_audit_logs(
-    neo4j: Any,
+    neo4j: object,
     tenant_id: str,
     from_date: datetime | None,
     to_date: datetime | None,
@@ -183,7 +183,7 @@ async def get_provenance(
     app_state: AppState = Depends(get_app_state),
 ):
     if not entity_id or not entity_id.strip():
-        raise ValidationError(message = "entity_id is required")
+        raise ValidationError(message="entity_id is required")
 
     tenant_id = _require_tenant_id_from_context(
         request,
@@ -192,12 +192,12 @@ async def get_provenance(
 
     entity_id = entity_id.strip()
     if len(entity_id) > 255:
-        raise ValidationError(message = "entity_id too long (max 255 chars)")
+        raise ValidationError(message="entity_id too long (max 255 chars)")
 
     try:
         neo4j = app_state.neo4j_driver
         if not neo4j:
-            raise ServiceUnavailableError(message = "Neo4j not available")
+            raise ServiceUnavailableError(message="Neo4j not available")
 
         entity_query = """
         MATCH (e:Entity {id: $entity_id, tenant_id: $tenant_id})
@@ -210,7 +210,7 @@ async def get_provenance(
         entity_result = await neo4j.execute_query(entity_query, query_params)
 
         if not entity_result:
-            raise NotFoundError(message = str(f"Entity {entity_id} not found"))
+            raise NotFoundError(message=str(f"Entity {entity_id} not found"))
 
         record = entity_result[0]
         steps = await _fetch_provenance_steps(
@@ -232,7 +232,9 @@ async def get_provenance(
         raise
     except Exception as e:
         logger.error(f"Provenance query failed: {e}")
-        raise ServiceUnavailableError(message="Provenance query failed. Please try again later.")
+        raise ServiceUnavailableError(
+            message="Provenance query failed. Please try again later."
+        )
 
 
 @router.get(

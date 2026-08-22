@@ -42,14 +42,17 @@ class Neo4jVectorStore_index_healthResult(TypedDictModel):
     indexes: dict[str, Any]
     status: str
 
+
 class Neo4jVectorStore_upsert_batchResult(TypedDictModel):
     failed: list[Any]
     upserted: int
+
 
 class Neo4jVectorStore_upsert_entityResult(TypedDictModel):
     entity_id: Any
     entity_type: Any
     upserted: Any
+
 
 logger = logging.getLogger(__name__)
 
@@ -139,7 +142,9 @@ class Neo4jVectorStore:
         ctx = get_request_context()
         if ctx and ctx.tenant_id:
             return str(ctx.tenant_id)
-        raise ValueError("tenant_id is required for tenant-scoped vector store operations")
+        raise ValueError(
+            "tenant_id is required for tenant-scoped vector store operations"
+        )
 
     async def _run_scoped_single(self, scoped: ScopedQuery) -> Record | None:
         """Execute a scoped query and consume the first record inside the session."""
@@ -161,7 +166,8 @@ class Neo4jVectorStore:
         return {
             k: v
             for k, v in (metadata or {}).items()
-            if k not in {"tenant_id", "tenantId"} and isinstance(v, (str, int, float, bool))
+            if k not in {"tenant_id", "tenantId"}
+            and isinstance(v, str | int | float | bool)
         }
 
     @staticmethod
@@ -199,7 +205,9 @@ class Neo4jVectorStore:
         )
 
     @staticmethod
-    def _format_search_record(record: Record | dict[str, Any]) -> tuple[str, float, dict[str, Any]]:
+    def _format_search_record(
+        record: Record | dict[str, Any]
+    ) -> tuple[str, float, dict[str, Any]]:
         """Format a Neo4j vector search record into standard (id, score, meta) tuple."""
         return (
             record["entity_id"],
@@ -230,12 +238,16 @@ class Neo4jVectorStore:
                 f"Unknown entity type '{entity_type}'. Supported: {VECTOR_ENTITY_TYPES}"
             )
 
-        tenant = self._resolve_tenant_id(tenant_id if tenant_id is not None else (metadata or {}).get("tenant_id"))
+        tenant = self._resolve_tenant_id(
+            tenant_id if tenant_id is not None else (metadata or {}).get("tenant_id")
+        )
         embedding = self._embed(text)
         clean_metadata = self._clean_entity_metadata(metadata)
         builder = TenantScopedCypher(tenant)
         scoped = builder.custom_tenant_query(
-            "MERGE (n:" + entity_type + " {id: $id, tenant_id: $_tenant_id})\n"  # cypher-dynamic-safe: validated against VECTOR_ENTITY_TYPES allowlist  # cypher-mutation-safe: label validated, tenant-scoped upsert
+            "MERGE (n:"
+            + entity_type
+            + " {id: $id, tenant_id: $_tenant_id})\n"  # cypher-dynamic-safe: validated against VECTOR_ENTITY_TYPES allowlist  # cypher-mutation-safe: label validated, tenant-scoped upsert
             "            ON CREATE SET n.created_at = datetime()\n"
             "            SET\n"
             "                n.embedding = $embedding,\n"
@@ -258,12 +270,13 @@ class Neo4jVectorStore:
 
         try:
             record = await self._run_scoped_single(scoped)
-            return Neo4jVectorStore_upsert_entityResult.model_validate({
-                "entity_id": record["entity_id"] if record else entity_id,
-                "entity_type": entity_type,
-                "upserted": record["upserted"] if record else False,
-            })
-
+            return Neo4jVectorStore_upsert_entityResult.model_validate(
+                {
+                    "entity_id": record["entity_id"] if record else entity_id,
+                    "entity_type": entity_type,
+                    "upserted": record["upserted"] if record else False,
+                }
+            )
 
         except (ClientError, ServiceUnavailable) as exc:
             raise VectorStoreError(
@@ -278,14 +291,18 @@ class Neo4jVectorStore:
     ) -> dict[str, Any]:
         """Batch upsert entity embeddings."""
         if not entities:
-            return Neo4jVectorStore_upsert_batchResult.model_validate({"upserted": 0, "failed": []})
+            return Neo4jVectorStore_upsert_batchResult.model_validate(
+                {"upserted": 0, "failed": []}
+            )
 
         if entity_type not in VECTOR_ENTITY_TYPES:
             raise VectorStoreError(
                 f"Unknown entity type '{entity_type}'. Supported: {VECTOR_ENTITY_TYPES}"
             )
 
-        tenant = self._resolve_tenant_id(tenant_id if tenant_id is not None else entities[0].get("tenant_id"))
+        tenant = self._resolve_tenant_id(
+            tenant_id if tenant_id is not None else entities[0].get("tenant_id")
+        )
         texts = [e.get("text", e.get("name", "")) for e in entities]
         embeddings = self._embed_batch(texts)
 
@@ -297,10 +314,10 @@ class Neo4jVectorStore:
                     "embedding": embedding,
                     "text": text[:2000],
                     "metadata": {
-                            k: v
-                            for k, v in entity.items()
-                            if k not in ("id", "text", "embedding", "tenant_id", "tenantId")
-                            and isinstance(v, (str, int, float, bool))
+                        k: v
+                        for k, v in entity.items()
+                        if k not in ("id", "text", "embedding", "tenant_id", "tenantId")
+                        and isinstance(v, str | int | float | bool)
                     },
                 }
             )
@@ -308,7 +325,9 @@ class Neo4jVectorStore:
         builder = TenantScopedCypher(tenant)
         scoped = builder.custom_tenant_query(
             "UNWIND $records AS rec\n"
-            "            MERGE (n:" + entity_type + " {id: rec.id, tenant_id: $_tenant_id})\n"  # cypher-dynamic-safe: validated against VECTOR_ENTITY_TYPES allowlist  # cypher-mutation-safe: label validated, tenant-scoped batch upsert
+            "            MERGE (n:"
+            + entity_type
+            + " {id: rec.id, tenant_id: $_tenant_id})\n"  # cypher-dynamic-safe: validated against VECTOR_ENTITY_TYPES allowlist  # cypher-mutation-safe: label validated, tenant-scoped batch upsert
             "            WITH n, rec\n"
             "            WHERE n.tenant_id = $_tenant_id\n"
             "            SET\n"
@@ -325,10 +344,14 @@ class Neo4jVectorStore:
 
         try:
             record = await self._run_scoped_single(scoped)
-            return Neo4jVectorStore_upsert_batchResult.model_validate({"upserted": record["upserted"] if record else 0, "failed": []})
+            return Neo4jVectorStore_upsert_batchResult.model_validate(
+                {"upserted": record["upserted"] if record else 0, "failed": []}
+            )
         except (ClientError, ServiceUnavailable) as exc:
             logger.error("Batch upsert failed for %s: %s", entity_type, exc)
-            return Neo4jVectorStore_upsert_batchResult.model_validate({"upserted": 0, "failed": [e["id"] for e in entities]})
+            return Neo4jVectorStore_upsert_batchResult.model_validate(
+                {"upserted": 0, "failed": [e["id"] for e in entities]}
+            )
 
     # ------------------------------------------------------------------
     # Read operations
@@ -381,20 +404,20 @@ class Neo4jVectorStore:
 
     async def delete_entity(self, entity_id: str, tenant_id: str) -> bool:
         """Remove the embedding property from an entity node with tenant filtering.
-        
+
         Args:
             entity_id: Entity identifier
             tenant_id: Tenant identifier (required for multi-tenant security)
-            
+
         Returns:
             True if embedding was deleted, False otherwise
-            
+
         Raises:
             ValueError: If tenant_id is None or empty
         """
         if not tenant_id:
             raise ValueError("tenant_id is required for delete_entity")
-        
+
         builder = TenantScopedCypher(tenant_id)
         scoped = builder.custom_tenant_query(
             """
@@ -411,13 +434,15 @@ class Neo4jVectorStore:
             record = await self._run_scoped_single(scoped)
             return bool(record and record["updated"] > 0)
         except (ClientError, ServiceUnavailable) as exc:
-            logger.error("Failed to delete embedding for %s: %s", entity_id, exc)  # cypher-mutation-safe: log message, not a Cypher query
+            logger.error(
+                "Failed to delete embedding for %s: %s", entity_id, exc
+            )  # cypher-mutation-safe: log message, not a Cypher query
             return False
 
-    async def index_health(self) -> dict[str, Any]:
+    async def index_health(self) -> dict[str, object]:
         """Check whether all expected vector indexes exist and are online."""
         driver = await self._get_driver()
-        details: dict[str, Any] = {}
+        details: dict[str, object] = {}
         all_online = True
         scoped = SystemCypher.schema_operation(
             "SHOW INDEXES YIELD name, type, state WHERE type = 'VECTOR'",
@@ -453,12 +478,21 @@ class Neo4jVectorStore:
                 metrics.increment_index_constraint_health_failure(
                     check_type="vector_index_query", component="neo4j_vector_store"
                 )
-            return Neo4jVectorStore_index_healthResult.model_validate({"status": "unhealthy", "error": "Neo4j vector store health check failed", "error_code": "NEO4J_VECTOR_STORE_ERROR", "indexes": {}})
+            return Neo4jVectorStore_index_healthResult.model_validate(
+                {
+                    "status": "unhealthy",
+                    "error": "Neo4j vector store health check failed",
+                    "error_code": "NEO4J_VECTOR_STORE_ERROR",
+                    "indexes": {},
+                }
+            )
 
-        return Neo4jVectorStore_index_healthResult.model_validate({
-            "status": "healthy" if all_online else "degraded",
-            "indexes": details,
-        })
+        return Neo4jVectorStore_index_healthResult.model_validate(
+            {
+                "status": "healthy" if all_online else "degraded",
+                "indexes": details,
+            }
+        )
 
 
 # Backwards-compatibility alias
