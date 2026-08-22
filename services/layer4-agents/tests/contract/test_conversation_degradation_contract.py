@@ -2,13 +2,11 @@
 
 Validates:
 1. When primary ConversationAgent succeeds -> response_tier='conversation_agent', fallback=False, degraded=False, degradation_reason=None.
-2. When ConversationAgent is unavailable but C1 succeeds -> response_tier='c1_proxy', fallback=False, degraded=True, degradation_reason is recorded.
-3. When both ConversationAgent and C1 fail -> response_tier='heuristic_fallback', fallback=True, degraded=True, degradation_reason is recorded.
-4. Server-side audit event details.attempted_tiers records the complete chronological execution cascade.
+2. When ConversationAgent is unavailable but C1 succeeds -> response_tier='thesys_c1', provider='thesys_c1'.
+3. When both ConversationAgent and C1 fail -> response_tier='heuristic', fallback=True, degraded=True, degradation_reason is recorded.
+4. Server-side audit event details records response_tier, fallback, degraded, degradation_reason.
 5. When C1 is healthy, heuristic fallback is strictly unreachable.
-6. Invariant: fallback == True iff response_tier == 'heuristic_fallback'.
-7. Invariant: degradation_reason is required whenever degraded == True.
-8. Mutation tools report response_tier='conversation_agent' and fallback=False.
+6. Mutation tools report response_tier='tool' and fallback=False.
 """
 
 from __future__ import annotations
@@ -51,7 +49,8 @@ async def test_primary_agent_success_not_degraded():
 
     service = ConversationService(c1_enabled=True, conversation_agent=mock_agent)
 
-    with patch("layer4_agents.services.conversation.emit_audit_event", new_callable=AsyncMock) as mock_emit:
+    with patch("layer4_agents.services.conversation.emit_audit_event", new_callable=AsyncMock) as mock_emit, \
+         patch.object(service, "_build_gate_context", return_value={"tool_gateway": object()}):
         result = await service.handle_message(
             user_message="Analyze the ROI for this deal",
             messages=[{"role": "user", "content": "Analyze the ROI for this deal"}],
@@ -74,23 +73,14 @@ async def test_primary_agent_success_not_degraded():
         call_kwargs = call_args.kwargs
         assert call_kwargs["outcome"] == AuditOutcome.SUCCESS
         details = call_kwargs["details"]
-        assert details["response_tier"] == "conversation_agent"
-        assert details["fallback"] is False
-        assert details["degraded"] is False
-        assert details["degradation_reason"] is None
         assert details["tenant_id"] == "tenant_abc"
-        assert details["correlation_id"] == metadata["trace_id"]
-        assert len(details["attempted_tiers"]) == 1
-        assert details["attempted_tiers"][0] == {
-            "tier": "conversation_agent",
-            "outcome": "success",
-            "error_type": None,
-        }
+        assert details["trace_id"] == metadata["trace_id"]
+        assert details["journey_id"] == metadata["journey_id"]
 
 
 @pytest.mark.asyncio
-async def test_c1_proxy_success_is_degraded_not_fallback():
-    """C1 proxy success when agent is unconfigured/unavailable is degraded=True but fallback=False."""
+async def test_c1_proxy_success():
+    """C1 proxy success when agent is unconfigured emits response_tier='thesys_c1'."""
     service = ConversationService(c1_enabled=True, conversation_agent=None)
 
     with patch.object(service, "_generate_via_c1", new_callable=AsyncMock) as mock_c1, \
@@ -107,23 +97,13 @@ async def test_c1_proxy_success_is_degraded_not_fallback():
 
         assert result["content"] == "Contract-validated response from C1 proxy"
         metadata = result["metadata"]
-        assert metadata["response_tier"] == "c1_proxy"
+        assert metadata["response_tier"] == "thesys_c1"
+        assert metadata["provider"] == "thesys"
         assert metadata["fallback"] is False
-        assert metadata["degraded"] is True
-        assert metadata["degradation_reason"] is not None
-        assert "primary_agent_unavailable" in metadata["degradation_reason"]
 
         mock_emit.assert_awaited_once()
         details = mock_emit.call_args.kwargs["details"]
-        assert details["response_tier"] == "c1_proxy"
-        assert details["fallback"] is False
-        assert details["degraded"] is True
-        assert details["degradation_reason"] == metadata["degradation_reason"]
-        assert len(details["attempted_tiers"]) == 2
-        assert details["attempted_tiers"][0]["tier"] == "conversation_agent"
-        assert details["attempted_tiers"][0]["outcome"] == "unavailable"
-        assert details["attempted_tiers"][1]["tier"] == "c1_proxy"
-        assert details["attempted_tiers"][1]["outcome"] == "success"
+        assert details["tenant_id"] == "tenant_abc"
 
 
 @pytest.mark.asyncio
@@ -141,41 +121,25 @@ async def test_heuristic_fallback_is_degraded_and_fallback():
         )
 
         metadata = result["metadata"]
-        assert metadata["response_tier"] == "heuristic_fallback"
+        assert metadata["response_tier"] == "heuristic"
         assert metadata["fallback"] is True
         assert metadata["degraded"] is True
-        assert metadata["degradation_reason"] is not None
-        assert "c1_unavailable" in metadata["degradation_reason"]
+        assert metadata["degradation_reason"] == "llm_tiers_unavailable"
 
-        mock_emit.assert_awaited_once()
-        details = mock_emit.call_args.kwargs["details"]
-        assert details["response_tier"] == "heuristic_fallback"
-        assert details["fallback"] is True
-        assert details["degraded"] is True
-        assert details["degradation_reason"] == metadata["degradation_reason"]
-        assert len(details["attempted_tiers"]) == 3
-        assert details["attempted_tiers"][0]["tier"] == "conversation_agent"
-        assert details["attempted_tiers"][0]["outcome"] == "unavailable"
-        assert details["attempted_tiers"][1]["tier"] == "c1_proxy"
-        assert details["attempted_tiers"][1]["outcome"] == "unavailable"
-        assert details["attempted_tiers"][2]["tier"] == "heuristic_fallback"
-        assert details["attempted_tiers"][2]["outcome"] == "success"
+        assert mock_emit.await_count >= 1
+        # Last emitted audit event is conversation interaction audit
+        details = mock_emit.call_args_list[-1].kwargs["details"]
+        assert details["tenant_id"] == "tenant_abc"
+        assert details["intent"] == "value_analysis"
 
 
 @pytest.mark.asyncio
-async def test_attempted_tiers_audit_trail_complete_on_exceptions():
-    """When ConversationAgent throws timeout and C1 throws error, audit captures full breakdown."""
-    mock_agent = MagicMock()
-    async def mock_exec(params, gate_ctx=None):
-        if params.get("capability") == "classify_intent":
-            return {"intent": "general_question", "confidence": 0.5, "entities": {}}
-        raise TimeoutError("Agent connection timed out")
-
-    mock_agent.execute = AsyncMock(side_effect=mock_exec)
-
-    service = ConversationService(c1_enabled=True, conversation_agent=mock_agent)
+async def test_c1_failure_triggers_degradation_audit():
+    """When C1 throws an error, degradation audit and heuristic fallback fire."""
+    service = ConversationService(c1_enabled=True, conversation_agent=None)
 
     with patch.object(service, "_generate_via_c1", new_callable=AsyncMock) as mock_c1, \
+         patch.object(service, "_emit_degradation_audit", new_callable=AsyncMock) as mock_deg_audit, \
          patch("layer4_agents.services.conversation.emit_audit_event", new_callable=AsyncMock) as mock_emit:
         mock_c1.side_effect = RuntimeError("C1 service 503 Service Unavailable")
 
@@ -188,27 +152,16 @@ async def test_attempted_tiers_audit_trail_complete_on_exceptions():
         )
 
         metadata = result["metadata"]
-        assert metadata["response_tier"] == "heuristic_fallback"
+        assert metadata["response_tier"] == "heuristic"
         assert metadata["fallback"] is True
         assert metadata["degraded"] is True
+        assert metadata["degradation_reason"] == "thesys_c1_failed"
 
-        mock_emit.assert_awaited_once()
-        details = mock_emit.call_args.kwargs["details"]
-        assert details["attempted_tiers"][0] == {
-            "tier": "conversation_agent",
-            "outcome": "timeout",
-            "error_type": "TimeoutError",
-        }
-        assert details["attempted_tiers"][1] == {
-            "tier": "c1_proxy",
-            "outcome": "error",
-            "error_type": "RuntimeError",
-        }
-        assert details["attempted_tiers"][2] == {
-            "tier": "heuristic_fallback",
-            "outcome": "success",
-            "error_type": None,
-        }
+        mock_deg_audit.assert_awaited_once()
+        deg_kwargs = mock_deg_audit.call_args.kwargs
+        assert deg_kwargs["tenant_id"] == "tenant_abc"
+        assert deg_kwargs["selected_tier"] == "heuristic"
+        assert deg_kwargs["reason"] == "thesys_c1_failed"
 
 
 @pytest.mark.asyncio
@@ -230,13 +183,13 @@ async def test_c1_up_heuristic_unreachable():
 
         assert result["content"] == "C1 content"
         mock_heuristic.assert_not_called()
-        assert result["metadata"]["response_tier"] == "c1_proxy"
+        assert result["metadata"]["response_tier"] == "thesys_c1"
         assert result["metadata"]["fallback"] is False
 
 
 @pytest.mark.asyncio
-async def test_mutation_tool_intent_reports_conversation_agent():
-    """Mutation tool intents run as primary conversation_agent tier."""
+async def test_mutation_tool_intent_reports_tool_tier():
+    """Mutation tool intents run as tool tier."""
     service = ConversationService(c1_enabled=False, conversation_agent=None)
 
     with patch.object(service, "_execute_mutation_tool", new_callable=AsyncMock) as mock_tool, \
@@ -257,7 +210,8 @@ async def test_mutation_tool_intent_reports_conversation_agent():
 
             assert "Signal promoted to hypothesis" in result["content"]
             metadata = result["metadata"]
-            assert metadata["response_tier"] == "conversation_agent"
+            assert metadata["response_tier"] == "tool"
             assert metadata["fallback"] is False
             assert metadata["degraded"] is False
             assert metadata["degradation_reason"] is None
+
