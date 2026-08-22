@@ -10,6 +10,12 @@ COPY packages/eslint-plugin-fabric-contracts/package.json ./packages/eslint-plug
 COPY packages/config/package.json ./packages/config/
 COPY scripts/enforce-package-manager.cjs ./scripts/
 
+# @fabric/platform-contract is a workspace:* dependency of apps/web. Its exports
+# map resolves to real files under packages/platform-contract/src/typescript/
+# (e.g. ./clerk-defaults, ./stores). Without the source present, pnpm links the
+# package but Vite fails to resolve those subpath imports at dev time.
+COPY packages/platform-contract/ ./packages/platform-contract/
+
 # Install from workspace root
 # --ignore-scripts: skip package prepare/build lifecycle scripts (e.g. eslint-plugin-fabric-contracts
 # runs `tsc`, whose source is not copied into this dev image). Vite dev does not need them.
