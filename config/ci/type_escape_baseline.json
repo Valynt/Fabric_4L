@@ -16556,33 +16556,33 @@
     },
     {
       "kind": "python-type-ignore",
-      "line": 41,
+      "line": 42,
       "path": "services/layer3-knowledge/src/api/dependencies_tenant_secured.py",
       "text": "QueryScope = None  # type: ignore[assignment]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 42,
+      "line": 43,
       "path": "services/layer3-knowledge/src/api/dependencies_tenant_secured.py",
       "text": "ScopedQuery = None  # type: ignore[assignment]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 57,
+      "line": 59,
       "path": "services/layer3-knowledge/src/api/dependencies_tenant_secured.py",
       "text": "RequestContext = None  # type: ignore"
     },
     {
       "kind": "python-any",
-      "line": 162,
+      "line": 192,
       "path": "services/layer3-knowledge/src/api/dependencies_tenant_secured.py",
-      "text": "async def run(self, query: Any, parameters: dict | None = None, **kwargs) -> Any:"
+      "text": "async def _run_scoped_query(self, query: Any, raw_params: dict) -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 254,
+      "line": 212,
       "path": "services/layer3-knowledge/src/api/dependencies_tenant_secured.py",
-      "text": "async def execute_query(self, query: Any, parameters: dict | None = None, **kwargs) -> list[dict]:"
+      "text": "async def run(self, query: Any, parameters: dict | None = None, **kwargs) -> Any:"
     },
     {
       "kind": "python-any",
@@ -17204,27 +17204,21 @@
     },
     {
       "kind": "python-any",
-      "line": 114,
+      "line": 128,
       "path": "services/layer3-knowledge/src/api/routes/models_router.py",
-      "text": "filters_applied: dict[str, Any] = Field(default_factory=dict, description=\"Echo of filters\")"
+      "text": "filters_applied: dict[str, Any] = Field("
     },
     {
       "kind": "python-any",
-      "line": 148,
+      "line": 166,
       "path": "services/layer3-knowledge/src/api/routes/models_router.py",
       "text": "def _model_node_to_summary(record: dict[str, Any]) -> ModelSummary:"
     },
     {
       "kind": "python-any",
-      "line": 169,
+      "line": 187,
       "path": "services/layer3-knowledge/src/api/routes/models_router.py",
       "text": "async def _ensure_constraints(neo4j: Any) -> None:"
-    },
-    {
-      "kind": "python-any",
-      "line": 240,
-      "path": "services/layer3-knowledge/src/api/routes/models_router.py",
-      "text": "params: dict[str, Any] = {\"user_id\": current_user, \"limit\": limit, \"offset\": offset, \"tenant_id\": current_tenant}"
     },
     {
       "kind": "python-any",
@@ -17297,18 +17291,6 @@
       "line": 124,
       "path": "services/layer3-knowledge/src/api/routes/products.py",
       "text": "products: list[dict[str, Any]]"
-    },
-    {
-      "kind": "python-any",
-      "line": 14,
-      "path": "services/layer3-knowledge/src/api/routes/provenance_audit.py",
-      "text": "from typing import Any, Literal"
-    },
-    {
-      "kind": "python-any",
-      "line": 39,
-      "path": "services/layer3-knowledge/src/api/routes/provenance_audit.py",
-      "text": "def _parse_audit_details(value: Any) -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
@@ -17498,87 +17480,69 @@
     },
     {
       "kind": "python-any",
-      "line": 24,
+      "line": 25,
       "path": "services/layer3-knowledge/src/api/routes/system.py",
       "text": "def cpu_percent(self, interval: Any = None) -> float:"
     },
     {
       "kind": "python-type-ignore",
-      "line": 38,
+      "line": 39,
       "path": "services/layer3-knowledge/src/api/routes/system.py",
       "text": "verify_metrics_access,  # type: ignore[import-untyped]"
     },
     {
       "kind": "python-any",
-      "line": 61,
-      "path": "services/layer3-knowledge/src/api/routes/system.py",
-      "text": "async def check_dependencies(schema_initializer: Any | None = None) -> list[DependencyStatus]:"
-    },
-    {
-      "kind": "python-any",
-      "line": 153,
+      "line": 66,
       "path": "services/layer3-knowledge/src/api/routes/system.py",
       "text": "schema_initializer: Any | None,"
     },
     {
       "kind": "python-any",
-      "line": 167,
+      "line": 67,
       "path": "services/layer3-knowledge/src/api/routes/system.py",
-      "text": "schema_initializer: Any | None,"
+      "text": "settings: Any,"
     },
     {
       "kind": "python-any",
-      "line": 168,
+      "line": 124,
       "path": "services/layer3-knowledge/src/api/routes/system.py",
-      "text": "schema_status: dict[str, Any],"
+      "text": "def _check_pinecone_dependency(settings: Any) -> DependencyStatus | None:"
     },
     {
       "kind": "python-any",
-      "line": 169,
+      "line": 151,
       "path": "services/layer3-knowledge/src/api/routes/system.py",
-      "text": ") -> dict[str, Any]:"
+      "text": "schema_initializer: Any | None = None,"
     },
     {
       "kind": "python-any",
-      "line": 241,
+      "line": 243,
+      "path": "services/layer3-knowledge/src/api/routes/system.py",
+      "text": "def _build_system_info() -> dict[str, Any]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 254,
+      "path": "services/layer3-knowledge/src/api/routes/system.py",
+      "text": "def _build_configuration(settings: Any) -> dict[str, Any]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 387,
       "path": "services/layer3-knowledge/src/api/routes/system.py",
       "text": "schema_initializer: Any = Depends(get_schema_initializer),"
     },
     {
       "kind": "python-any",
-      "line": 242,
+      "line": 388,
       "path": "services/layer3-knowledge/src/api/routes/system.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 266,
-      "path": "services/layer3-knowledge/src/api/routes/system.py",
-      "text": "neo4j_health: dict[str, Any] = {\"status\": \"unavailable\", \"message\": \"Neo4j not initialized\"}"
-    },
-    {
-      "kind": "python-any",
-      "line": 267,
-      "path": "services/layer3-knowledge/src/api/routes/system.py",
-      "text": "schema_status: dict[str, Any] = {\"status\": \"unknown\", \"message\": \"Schema initializer not available\"}"
-    },
-    {
-      "kind": "python-any",
-      "line": 332,
+      "line": 446,
       "path": "services/layer3-knowledge/src/api/routes/system.py",
       "text": "schema_initializer: Any = Depends(get_schema_initializer),"
-    },
-    {
-      "kind": "python-any",
-      "line": 339,
-      "path": "services/layer3-knowledge/src/api/routes/system.py",
-      "text": "neo4j_health: dict[str, Any] = {\"status\": \"unavailable\", \"message\": \"Neo4j not initialized\"}"
-    },
-    {
-      "kind": "python-any",
-      "line": 340,
-      "path": "services/layer3-knowledge/src/api/routes/system.py",
-      "text": "schema_status: dict[str, Any] = {"
     },
     {
       "kind": "python-any",
@@ -18812,97 +18776,97 @@
     },
     {
       "kind": "python-any",
-      "line": 83,
+      "line": 94,
       "path": "services/layer3-knowledge/src/db/query_execution.py",
       "text": "def _parameter_map_has_tenant_id(prop_token: str, params: Mapping[str, Any]) -> bool:"
     },
     {
       "kind": "python-any",
-      "line": 91,
+      "line": 102,
       "path": "services/layer3-knowledge/src/db/query_execution.py",
       "text": "def _structural_tenant_scope_errors(query: str, params: Mapping[str, Any]) -> list[str]:"
     },
     {
       "kind": "python-any",
-      "line": 128,
+      "line": 144,
       "path": "services/layer3-knowledge/src/db/query_execution.py",
       "text": "def _extract_max_depth(cls, query: str, params: Mapping[str, Any]) -> int | None:"
     },
     {
       "kind": "python-any",
-      "line": 161,
+      "line": 244,
       "path": "services/layer3-knowledge/src/db/query_execution.py",
       "text": "parameters: dict[str, Any] | None,"
     },
     {
       "kind": "python-any",
-      "line": 163,
+      "line": 246,
       "path": "services/layer3-knowledge/src/db/query_execution.py",
       "text": ") -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 227,
+      "line": 260,
       "path": "services/layer3-knowledge/src/db/query_execution.py",
-      "text": "def _validate(cls, query: str, params: Mapping[str, Any], context: TenantExecutionContext) -> None:"
+      "text": "cls, query: str, params: Mapping[str, Any], context: TenantExecutionContext"
     },
     {
       "kind": "python-any",
-      "line": 356,
+      "line": 407,
       "path": "services/layer3-knowledge/src/db/query_execution.py",
       "text": ") -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 386,
+      "line": 443,
       "path": "services/layer3-knowledge/src/db/query_execution.py",
       "text": "parameters: dict[str, Any] | None = None,"
-    },
-    {
-      "kind": "python-any",
-      "line": 393,
-      "path": "services/layer3-knowledge/src/db/query_execution.py",
-      "text": "**kwargs: Any,"
-    },
-    {
-      "kind": "python-any",
-      "line": 394,
-      "path": "services/layer3-knowledge/src/db/query_execution.py",
-      "text": ") -> Any:"
-    },
-    {
-      "kind": "python-any",
-      "line": 427,
-      "path": "services/layer3-knowledge/src/db/query_execution.py",
-      "text": "parameters: dict[str, Any] | None = None,"
-    },
-    {
-      "kind": "python-any",
-      "line": 432,
-      "path": "services/layer3-knowledge/src/db/query_execution.py",
-      "text": "**kwargs: Any,"
-    },
-    {
-      "kind": "python-any",
-      "line": 433,
-      "path": "services/layer3-knowledge/src/db/query_execution.py",
-      "text": ") -> Any:"
     },
     {
       "kind": "python-any",
       "line": 450,
       "path": "services/layer3-knowledge/src/db/query_execution.py",
+      "text": "**kwargs: Any,"
+    },
+    {
+      "kind": "python-any",
+      "line": 451,
+      "path": "services/layer3-knowledge/src/db/query_execution.py",
+      "text": ") -> Any:"
+    },
+    {
+      "kind": "python-any",
+      "line": 486,
+      "path": "services/layer3-knowledge/src/db/query_execution.py",
       "text": "parameters: dict[str, Any] | None = None,"
     },
     {
       "kind": "python-any",
-      "line": 454,
+      "line": 491,
       "path": "services/layer3-knowledge/src/db/query_execution.py",
       "text": "**kwargs: Any,"
     },
     {
       "kind": "python-any",
-      "line": 455,
+      "line": 492,
+      "path": "services/layer3-knowledge/src/db/query_execution.py",
+      "text": ") -> Any:"
+    },
+    {
+      "kind": "python-any",
+      "line": 509,
+      "path": "services/layer3-knowledge/src/db/query_execution.py",
+      "text": "parameters: dict[str, Any] | None = None,"
+    },
+    {
+      "kind": "python-any",
+      "line": 513,
+      "path": "services/layer3-knowledge/src/db/query_execution.py",
+      "text": "**kwargs: Any,"
+    },
+    {
+      "kind": "python-any",
+      "line": 514,
       "path": "services/layer3-knowledge/src/db/query_execution.py",
       "text": ") -> Any:"
     },
@@ -20264,51 +20228,51 @@
     },
     {
       "kind": "python-any",
-      "line": 147,
+      "line": 153,
       "path": "services/layer3-knowledge/src/retrieval/hybrid_search.py",
       "text": ") -> list[dict[str, Any]]:"
     },
     {
       "kind": "python-any",
-      "line": 159,
+      "line": 165,
       "path": "services/layer3-knowledge/src/retrieval/hybrid_search.py",
       "text": ") -> list[dict[str, Any]]:"
     },
     {
       "kind": "python-any",
-      "line": 171,
+      "line": 177,
       "path": "services/layer3-knowledge/src/retrieval/hybrid_search.py",
       "text": ") -> list[dict[str, Any]]:"
     },
     {
       "kind": "python-any",
-      "line": 187,
+      "line": 193,
       "path": "services/layer3-knowledge/src/retrieval/hybrid_search.py",
       "text": "async def _run_scoped(self, session: Any, scoped: ScopedQuery):"
     },
     {
       "kind": "python-any",
-      "line": 197,
+      "line": 199,
+      "path": "services/layer3-knowledge/src/retrieval/hybrid_search.py",
+      "text": "session: Any,"
+    },
+    {
+      "kind": "python-any",
+      "line": 204,
       "path": "services/layer3-knowledge/src/retrieval/hybrid_search.py",
       "text": ") -> list[dict[str, Any]]:"
     },
     {
       "kind": "python-any",
-      "line": 236,
+      "line": 230,
       "path": "services/layer3-knowledge/src/retrieval/hybrid_search.py",
       "text": ") -> list[dict[str, Any]]:"
     },
     {
       "kind": "python-any",
-      "line": 260,
+      "line": 233,
       "path": "services/layer3-knowledge/src/retrieval/hybrid_search.py",
       "text": "results: list[dict[str, Any]] = []"
-    },
-    {
-      "kind": "python-any",
-      "line": 289,
-      "path": "services/layer3-knowledge/src/retrieval/hybrid_search.py",
-      "text": ") -> list[dict[str, Any]]:"
     },
     {
       "kind": "python-any",
@@ -20366,75 +20330,81 @@
     },
     {
       "kind": "python-any",
-      "line": 46,
+      "line": 47,
       "path": "services/layer3-knowledge/src/retrieval/vector_store.py",
       "text": "failed: list[Any]"
     },
     {
       "kind": "python-any",
-      "line": 50,
+      "line": 52,
       "path": "services/layer3-knowledge/src/retrieval/vector_store.py",
       "text": "entity_id: Any"
     },
     {
       "kind": "python-any",
-      "line": 51,
+      "line": 53,
       "path": "services/layer3-knowledge/src/retrieval/vector_store.py",
       "text": "entity_type: Any"
     },
     {
       "kind": "python-any",
-      "line": 52,
+      "line": 54,
       "path": "services/layer3-knowledge/src/retrieval/vector_store.py",
       "text": "upserted: Any"
     },
     {
       "kind": "python-any",
-      "line": 167,
+      "line": 164,
+      "path": "services/layer3-knowledge/src/retrieval/vector_store.py",
+      "text": "def _clean_entity_metadata(metadata: dict[str, Any] | None) -> dict[str, Any]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 209,
+      "path": "services/layer3-knowledge/src/retrieval/vector_store.py",
+      "text": "record: Record | dict[str, Any]"
+    },
+    {
+      "kind": "python-any",
+      "line": 210,
+      "path": "services/layer3-knowledge/src/retrieval/vector_store.py",
+      "text": ") -> tuple[str, float, dict[str, Any]]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 232,
       "path": "services/layer3-knowledge/src/retrieval/vector_store.py",
       "text": "metadata: dict[str, Any] | None = None,"
     },
     {
       "kind": "python-any",
-      "line": 169,
+      "line": 234,
       "path": "services/layer3-knowledge/src/retrieval/vector_store.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 222,
+      "line": 288,
       "path": "services/layer3-knowledge/src/retrieval/vector_store.py",
       "text": "entities: list[dict[str, Any]],"
     },
     {
       "kind": "python-any",
-      "line": 225,
+      "line": 291,
       "path": "services/layer3-knowledge/src/retrieval/vector_store.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 291,
+      "line": 367,
       "path": "services/layer3-knowledge/src/retrieval/vector_store.py",
       "text": ") -> list[tuple[str, float, dict[str, Any]]]:"
     },
     {
       "kind": "python-any",
-      "line": 296,
+      "line": 372,
       "path": "services/layer3-knowledge/src/retrieval/vector_store.py",
       "text": "all_results: list[tuple[str, float, dict[str, Any]]] = []"
-    },
-    {
-      "kind": "python-any",
-      "line": 390,
-      "path": "services/layer3-knowledge/src/retrieval/vector_store.py",
-      "text": "async def index_health(self) -> dict[str, Any]:"
-    },
-    {
-      "kind": "python-any",
-      "line": 393,
-      "path": "services/layer3-knowledge/src/retrieval/vector_store.py",
-      "text": "details: dict[str, Any] = {}"
     },
     {
       "kind": "python-any",
