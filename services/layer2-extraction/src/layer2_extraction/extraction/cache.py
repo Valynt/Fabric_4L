@@ -6,9 +6,9 @@ Uses Redis when available, with an in-memory LRU fallback for local dev.
 from __future__ import annotations
 
 import hashlib
+import json
 import logging
 import os
-import pickle
 from collections import OrderedDict
 from typing import Any
 
@@ -163,10 +163,12 @@ class ExtractionCache:
             try:
                 raw = await self._redis.get(key)
                 if raw:
-                    return pickle.loads(raw)  # nosec B301
+                    if isinstance(raw, bytes):
+                        raw = raw.decode("utf-8")
+                    return json.loads(raw)
             except RedisError as exc:
                 self._log_cache_failure("read", exc, context)
-            except (pickle.UnpicklingError, AttributeError, EOFError, ValueError, TypeError) as exc:
+            except (json.JSONDecodeError, UnicodeDecodeError, AttributeError, ValueError, TypeError) as exc:
                 self._log_cache_failure("read", exc, context)
             except (RuntimeError, OSError) as exc:
                 self._log_cache_failure("read", exc, context)
@@ -193,11 +195,12 @@ class ExtractionCache:
         ttl = ttl or self._default_ttl
         if self._redis is not None:
             try:
-                await self._redis.setex(key, ttl, pickle.dumps(value))
+                serialized = json.dumps(value)
+                await self._redis.setex(key, ttl, serialized)
                 return
             except RedisError as exc:
                 self._log_cache_failure("write", exc, context)
-            except (pickle.PickleError, TypeError, AttributeError, ValueError) as exc:
+            except (TypeError, ValueError, AttributeError) as exc:
                 self._log_cache_failure("write", exc, context)
             except (RuntimeError, OSError) as exc:
                 self._log_cache_failure("write", exc, context)

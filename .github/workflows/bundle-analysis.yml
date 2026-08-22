@@ -160,7 +160,7 @@ jobs:
 
       # Fetch main branch stats from the last successful build
       - name: Download main baseline
-        uses: dawidd6/action-download-artifact@v3
+        uses: dawidd6/action-download-artifact@v6
         with:
           workflow: bundle-analysis.yml
           branch: main

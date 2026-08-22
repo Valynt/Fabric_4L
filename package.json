@@ -106,7 +106,9 @@
       "js-yaml": "^4.2.0",
       "undici@^7.0.0": "7.29.0",
       "nanoid@^5.0.0": "5.1.16",
-      "nanoid@^3.0.0": "3.3.18"
+      "nanoid@^3.0.0": "3.3.18",
+      "image-size": ">=1.2.2",
+      "extract-zip": ">=2.0.2"
     },
     "onlyBuiltDependencies": [
       "@clerk/shared",
