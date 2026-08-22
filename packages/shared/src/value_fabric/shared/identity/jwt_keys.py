@@ -1,4 +1,5 @@
 """JWT signing-key configuration and JWKS publication."""
+
 from __future__ import annotations
 
 import json
@@ -7,11 +8,20 @@ from typing import Any, Dict
 
 import jwt
 
+from pydantic import BaseModel, ConfigDict
+
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
 
-class get_jwksResult(TypedDictModel):
+class get_jwksResult(BaseModel):
+    model_config = ConfigDict(extra="allow")
     keys: list[Any]
+
+    def __getitem__(self, key: str) -> Any:
+        try:
+            return getattr(self, key)
+        except AttributeError as exc:
+            raise KeyError(key) from exc
 
 
 class _build_keysetResult(TypedDictModel):
@@ -45,7 +55,11 @@ def _get_jwt_algorithm() -> str:
 
 
 def _get_revoked_kids() -> set[str]:
-    return {kid.strip() for kid in os.getenv("JWT_REVOKED_KIDS", "").split(",") if kid.strip()}
+    return {
+        kid.strip()
+        for kid in os.getenv("JWT_REVOKED_KIDS", "").split(",")
+        if kid.strip()
+    }
 
 
 def _build_keyset() -> Dict[str, Any]:
@@ -58,19 +72,37 @@ def _build_keyset() -> Dict[str, Any]:
         verify = {active_kid: active_secret}
         if previous_kid and previous_secret:
             verify[previous_kid] = previous_secret
-        return _build_keysetResult.model_validate({"algorithm": algorithm, "active_kid": active_kid, "signing_key": active_secret, "verify": verify})
+        return _build_keysetResult.model_validate(
+            {
+                "algorithm": algorithm,
+                "active_kid": active_kid,
+                "signing_key": active_secret,
+                "verify": verify,
+            }
+        )
     if algorithm in {"RS256", "ES256"}:
         active_private = os.getenv("JWT_PRIVATE_KEY_PEM", "").strip()
         active_public = os.getenv("JWT_PUBLIC_KEY_PEM", "").strip()
         previous_public = os.getenv("JWT_PREVIOUS_PUBLIC_KEY_PEM", "").strip()
         if not active_private:
-            raise RuntimeError(f"JWT_PRIVATE_KEY_PEM is required when JWT_ALGORITHM={algorithm}")
+            raise RuntimeError(
+                f"JWT_PRIVATE_KEY_PEM is required when JWT_ALGORITHM={algorithm}"
+            )
         if not active_public:
-            raise RuntimeError(f"JWT_PUBLIC_KEY_PEM is required when JWT_ALGORITHM={algorithm}")
+            raise RuntimeError(
+                f"JWT_PUBLIC_KEY_PEM is required when JWT_ALGORITHM={algorithm}"
+            )
         verify = {active_kid: active_public}
         if previous_kid and previous_public:
             verify[previous_kid] = previous_public
-        return _build_keysetResult.model_validate({"algorithm": algorithm, "active_kid": active_kid, "signing_key": active_private, "verify": verify})
+        return _build_keysetResult.model_validate(
+            {
+                "algorithm": algorithm,
+                "active_kid": active_kid,
+                "signing_key": active_private,
+                "verify": verify,
+            }
+        )
     raise RuntimeError(f"Unsupported JWT_ALGORITHM: {algorithm}")
 
 

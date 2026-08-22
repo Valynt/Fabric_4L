@@ -18,7 +18,7 @@ from typing import Any
 
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
-from .types import ScheduledTask, TaskStatus
+from .types import ScheduledTask, TaskPriority, TaskStatus
 
 
 class TaskScheduler__run_task_handlerResult(TypedDictModel):
@@ -26,6 +26,7 @@ class TaskScheduler__run_task_handlerResult(TypedDictModel):
     result: dict[str, Any]
     status: str
     task_id: Any
+
 
 class TaskScheduler__task_to_dictResult(TypedDictModel):
     agent_type: Any
@@ -43,6 +44,7 @@ class TaskScheduler__task_to_dictResult(TypedDictModel):
     tenant_id: Any
     workflow_instance_id: Any
 
+
 class TaskScheduler_get_statsResult(TypedDictModel):
     completed_tasks: Any
     failed_tasks: Any
@@ -50,6 +52,7 @@ class TaskScheduler_get_statsResult(TypedDictModel):
     pending_tasks: Any
     running_tasks: Any
     utilization: Any
+
 
 logger = logging.getLogger(__name__)
 
@@ -270,7 +273,10 @@ class TaskScheduler:
         async with self._lock:
             tasks_to_cancel = []
             for i, (priority, scheduled_time, task) in enumerate(self._task_queue):
-                if task.get_tenant_id() == tenant_id and task.status == TaskStatus.PENDING:
+                if (
+                    task.get_tenant_id() == tenant_id
+                    and task.status == TaskStatus.PENDING
+                ):
                     task.status = TaskStatus.CANCELLED
                     tasks_to_cancel.append(i)
 
@@ -299,7 +305,9 @@ class TaskScheduler:
         self._on_task_complete = on_complete
         self._on_task_fail = on_fail
 
-    def register_handler(self, capability: str, handler: Callable[[ScheduledTask], Any]) -> None:
+    def register_handler(
+        self, capability: str, handler: Callable[[ScheduledTask], Any]
+    ) -> None:
         """Register an execution handler for a task capability."""
         self._handlers[capability] = handler
 
@@ -424,34 +432,45 @@ class TaskScheduler:
         if handler is None and task.capability == "workflow_execution":
             workflow = task.parameters.get("workflow")
             initial_state = task.parameters.get("initial_state")
-            workflow_id = task.parameters.get("workflow_id") or task.workflow_instance_id
+            workflow_id = (
+                task.parameters.get("workflow_id") or task.workflow_instance_id
+            )
             if workflow is None or initial_state is None:
                 raise RuntimeError(
                     f"Task {task.task_id} cannot execute workflow_execution without workflow and initial_state"
                 )
 
             result = await workflow.run(initial_state, thread_id=workflow_id)
-            return TaskScheduler__run_task_handlerResult.model_validate({
-                "task_id": task.task_id,
-                "capability": task.capability,
-                "status": "completed",
-                "result": result.model_dump() if hasattr(result, "model_dump") else result,
-            })
+            return TaskScheduler__run_task_handlerResult.model_validate(
+                {
+                    "task_id": task.task_id,
+                    "capability": task.capability,
+                    "status": "completed",
+                    "result": (
+                        result.model_dump() if hasattr(result, "model_dump") else result
+                    ),
+                }
+            )
 
         if handler is None:
-            raise RuntimeError(f"No task handler registered for capability: {task.capability}")
+            raise RuntimeError(
+                f"No task handler registered for capability: {task.capability}"
+            )
 
         result = handler(task)
         if asyncio.iscoroutine(result):
             result = await result
 
-        return TaskScheduler__run_task_handlerResult.model_validate({
-            "task_id": task.task_id,
-            "capability": task.capability,
-            "status": "completed",
-            "result": result.model_dump() if hasattr(result, "model_dump") else result,
-        })
-
+        return TaskScheduler__run_task_handlerResult.model_validate(
+            {
+                "task_id": task.task_id,
+                "capability": task.capability,
+                "status": "completed",
+                "result": (
+                    result.model_dump() if hasattr(result, "model_dump") else result
+                ),
+            }
+        )
 
     async def _handle_retry(self, task: ScheduledTask) -> None:
         """Handle task retry with exponential backoff.
@@ -460,7 +479,9 @@ class TaskScheduler:
             task: Failed task to potentially retry
         """
         if task.retry_count >= task.max_retries:
-            logger.warning(f"Task {task.task_id} exceeded max retries ({task.max_retries})")
+            logger.warning(
+                f"Task {task.task_id} exceeded max retries ({task.max_retries})"
+            )
             return
 
         # Calculate exponential backoff
@@ -531,23 +552,26 @@ class TaskScheduler:
         Returns:
             Dict representation
         """
-        return TaskScheduler__task_to_dictResult.model_validate({
-            "task_id": task.task_id,
-            "workflow_instance_id": task.workflow_instance_id,
-            "capability": task.capability,
-            "agent_type": task.agent_type,
-            "priority": task.priority,
-            "status": task.status.value,
-            "scheduled_time": task.scheduled_time.isoformat(),
-            "started_at": task.started_at.isoformat() if task.started_at else None,
-            "completed_at": task.completed_at.isoformat() if task.completed_at else None,
-            "retry_count": task.retry_count,
-            "max_retries": task.max_retries,
-            "result": task.result,
-            "error": task.error,
-            "tenant_id": task.get_tenant_id(),  # Task 2.1
-        })
-
+        return TaskScheduler__task_to_dictResult.model_validate(
+            {
+                "task_id": task.task_id,
+                "workflow_instance_id": task.workflow_instance_id,
+                "capability": task.capability,
+                "agent_type": task.agent_type,
+                "priority": task.priority,
+                "status": task.status.value,
+                "scheduled_time": task.scheduled_time.isoformat(),
+                "started_at": task.started_at.isoformat() if task.started_at else None,
+                "completed_at": (
+                    task.completed_at.isoformat() if task.completed_at else None
+                ),
+                "retry_count": task.retry_count,
+                "max_retries": task.max_retries,
+                "result": task.result,
+                "error": task.error,
+                "tenant_id": task.get_tenant_id(),  # Task 2.1
+            }
+        )
 
     def get_stats(self) -> dict[str, Any]:
         """Get scheduler statistics.
@@ -562,14 +586,19 @@ class TaskScheduler:
         completed_count = sum(
             1 for t in self._task_history if t["status"] == TaskStatus.COMPLETED.value
         )
-        failed_count = sum(1 for t in self._task_history if t["status"] == TaskStatus.FAILED.value)
+        failed_count = sum(
+            1 for t in self._task_history if t["status"] == TaskStatus.FAILED.value
+        )
 
-        return TaskScheduler_get_statsResult.model_validate({
-            "pending_tasks": pending_count,
-            "running_tasks": running_count,
-            "completed_tasks": completed_count,
-            "failed_tasks": failed_count,
-            "max_concurrent": self.max_concurrent_tasks,
-            "utilization": round(running_count / self.max_concurrent_tasks * 100, 2),
-        })
-
+        return TaskScheduler_get_statsResult.model_validate(
+            {
+                "pending_tasks": pending_count,
+                "running_tasks": running_count,
+                "completed_tasks": completed_count,
+                "failed_tasks": failed_count,
+                "max_concurrent": self.max_concurrent_tasks,
+                "utilization": round(
+                    running_count / self.max_concurrent_tasks * 100, 2
+                ),
+            }
+        )
