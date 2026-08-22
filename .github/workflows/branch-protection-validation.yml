@@ -2,7 +2,7 @@ name: Branch Protection Validation
 
 on:
   schedule:
-    - cron: '0 9 * * 1'  # Weekly on Mondays
+    - cron: "17 6 * * *" # Daily — drift detection target <24h (Plan E)
   workflow_dispatch:
 
 permissions:
