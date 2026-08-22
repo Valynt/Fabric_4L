@@ -1,0 +1,243 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/bmsull560/Fabric_4L/handbook/schemas/contract_manifest.schema.json",
+  "title": "Fabric_4L Control Plane — Contract Manifest",
+  "description": "JSON Schema (draft 2020-12) for control-plane/contract_manifest.yaml, the machine-readable hub artifact linking rules, stories, gaps, journey stages, behaviors, and release controls.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "generated_from",
+    "rules",
+    "stories",
+    "gaps",
+    "behaviors",
+    "controls"
+  ],
+  "$defs": {
+    "rule_id": {
+      "type": "string",
+      "pattern": "^R-\\d+$",
+      "description": "Normative product rule ID, e.g. R-1"
+    },
+    "story_id": {
+      "type": "string",
+      "pattern": "^VP-\\d{2}$",
+      "description": "User story / value proposition ID, e.g. VP-05"
+    },
+    "gap_id": {
+      "type": "string",
+      "pattern": "^GAP-\\d{2}$",
+      "description": "Product gap ID, e.g. GAP-04"
+    },
+    "journey_id": {
+      "type": "string",
+      "pattern": "^J-\\d+$",
+      "description": "Canonical journey stage ID, e.g. J-2"
+    },
+    "behavior_id": {
+      "type": "string",
+      "pattern": "^BEH-\\d{2}$",
+      "description": "Behavior card ID, e.g. BEH-02"
+    },
+    "gate_id": {
+      "type": "string",
+      "pattern": "^AG-\\d{2}$",
+      "description": "Aggregate release gate ID, e.g. AG-04"
+    },
+    "control_id": {
+      "type": "string",
+      "pattern": "^CTRL-\\d{2}-\\d{2}$",
+      "description": "Individual release control ID, e.g. CTRL-04-02"
+    },
+    "evidence_id": {
+      "type": "string",
+      "pattern": "^EV-\\d+$",
+      "description": "Evidence type ID, e.g. EV-1"
+    }
+  },
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Manifest format version."
+    },
+    "generated_from": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "required": ["product_contract", "release", "behaviors"],
+      "properties": {
+        "product_contract": {
+          "type": "string",
+          "description": "Directory containing the product contract, e.g. control-plane/product-contract/"
+        },
+        "release": {
+          "type": "string",
+          "description": "Directory containing release controls, e.g. control-plane/release/"
+        },
+        "behaviors": {
+          "type": "string",
+          "description": "Directory containing behavior cards, e.g. control-plane/behaviors/"
+        }
+      }
+    },
+    "rules": {
+      "type": "array",
+      "description": "Normative product rules (R-x).",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "statement", "source"],
+        "properties": {
+          "id": { "$ref": "#/$defs/rule_id" },
+          "statement": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Repo path (optionally with #anchor) where the rule is defined."
+          }
+        }
+      }
+    },
+    "stories": {
+      "type": "array",
+      "description": "User stories / value propositions (VP-xx).",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "title"],
+        "properties": {
+          "id": { "$ref": "#/$defs/story_id" },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "journey": {
+            "type": "array",
+            "items": { "$ref": "#/$defs/journey_id" }
+          },
+          "behaviors": {
+            "type": "array",
+            "items": { "$ref": "#/$defs/behavior_id" }
+          },
+          "closes_gaps": {
+            "type": "array",
+            "items": { "$ref": "#/$defs/gap_id" }
+          },
+          "rules": {
+            "type": "array",
+            "items": { "$ref": "#/$defs/rule_id" }
+          }
+        }
+      }
+    },
+    "gaps": {
+      "type": "array",
+      "description": "Product gap register (GAP-xx).",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "title", "status"],
+        "properties": {
+          "id": { "$ref": "#/$defs/gap_id" },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "closed_by": {
+            "type": "array",
+            "items": { "$ref": "#/$defs/story_id" }
+          },
+          "status": {
+            "type": "string",
+            "enum": ["open", "closed"]
+          }
+        }
+      }
+    },
+    "behaviors": {
+      "type": "array",
+      "description": "Behavior cards — the unit of navigation (BEH-xx).",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "name", "card"],
+        "properties": {
+          "id": { "$ref": "#/$defs/behavior_id" },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Kebab-case behavior name, e.g. hypothesis-promotion"
+          },
+          "stories": {
+            "type": "array",
+            "items": { "$ref": "#/$defs/story_id" }
+          },
+          "closes_gaps": {
+            "type": "array",
+            "items": { "$ref": "#/$defs/gap_id" }
+          },
+          "rules": {
+            "type": "array",
+            "items": { "$ref": "#/$defs/rule_id" }
+          },
+          "boundary": {
+            "type": "string",
+            "description": "Architecture layer boundary, e.g. 'L4 -> L5 -> L3'"
+          },
+          "components": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "journey": {
+            "type": "array",
+            "items": { "$ref": "#/$defs/journey_id" }
+          },
+          "card": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Repo-relative path to the behavior card markdown file, e.g. control-plane/behaviors/BEH-02-hypothesis-capture.md"
+          }
+        }
+      }
+    },
+    "controls": {
+      "type": "array",
+      "description": "Individual release controls (CTRL-xx-nn), children of aggregate gates (AG-xx).",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "gate", "title", "blocks"],
+        "properties": {
+          "id": { "$ref": "#/$defs/control_id" },
+          "gate": { "$ref": "#/$defs/gate_id" },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "blocks": {
+            "type": "string",
+            "enum": ["merge", "release", "promotion"],
+            "description": "The transition this control blocks when failing."
+          },
+          "evidence": {
+            "type": "array",
+            "items": { "$ref": "#/$defs/evidence_id" }
+          },
+          "behaviors": {
+            "type": "array",
+            "items": { "$ref": "#/$defs/behavior_id" }
+          }
+        }
+      }
+    }
+  }
+}
