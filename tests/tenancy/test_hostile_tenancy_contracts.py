@@ -93,16 +93,22 @@ def test_export_and_deletion_isolation(harness: HostileTenancyHarness):
     harness.seed_resource(TENANT_BETA_ID, "export_job", "export-beta-888", "Beta Full Export Dump")
     harness.assert_foreign_resource_exists(TENANT_BETA_ID, "export_job", "export-beta-888")
 
-    # Tenant Alpha attempts to delete or access Tenant Beta's export job
-    target = (TENANT_BETA_ID, "export-beta-888")
-    assert target in [(r.tenant_id, r.resource_id) for r in harness.resources.values() if r.resource_type == "export_job"]
+    # 1. Tenant Alpha attempts to access Tenant Beta's export job -> must raise PermissionError
+    with pytest.raises(PermissionError, match="Cross-tenant export job access denied"):
+        harness.get_export_job(requesting_tenant_id=TENANT_ALPHA_ID, export_id="export-beta-888")
 
-    # Simulated hostile cross-tenant operation
-    requesting_tenant = TENANT_ALPHA_ID
-    target_resource = harness.resources[("export_job", "export-beta-888")]
+    # 2. Tenant Alpha attempts to delete Tenant Beta's export job -> must raise PermissionError
+    with pytest.raises(PermissionError, match="Cross-tenant export job deletion denied"):
+        harness.delete_export_job(requesting_tenant_id=TENANT_ALPHA_ID, export_id="export-beta-888")
 
-    # Isolation invariant: requesting tenant cannot read/delete foreign export
-    assert target_resource.tenant_id != requesting_tenant
+    # 3. Tenant Beta can access own export job
+    beta_export = harness.get_export_job(requesting_tenant_id=TENANT_BETA_ID, export_id="export-beta-888")
+    assert beta_export.resource_id == "export-beta-888"
+
+    # 4. Tenant Beta can delete own export job
+    harness.delete_export_job(requesting_tenant_id=TENANT_BETA_ID, export_id="export-beta-888")
+    with pytest.raises(KeyError, match="Export job not found"):
+        harness.get_export_job(requesting_tenant_id=TENANT_BETA_ID, export_id="export-beta-888")
 
 
 # ---------------------------------------------------------------------------

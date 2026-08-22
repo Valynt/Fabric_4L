@@ -239,6 +239,25 @@ class HostileTenancyHarness:
         rec.used = True
         return self.get_object(rec.tenant_id, rec.tenant_id, rec.object_key)
 
+    # --- Export Jobs & Deletions ---
+    def get_export_job(self, requesting_tenant_id: str, export_id: str) -> SeededResource:
+        key = ("export_job", export_id)
+        if key not in self.resources:
+            raise KeyError(f"Export job not found: {export_id}")
+        res = self.resources[key]
+        if res.tenant_id != requesting_tenant_id:
+            raise PermissionError(f"Cross-tenant export job access denied: {requesting_tenant_id} -> {res.tenant_id}")
+        return res
+
+    def delete_export_job(self, requesting_tenant_id: str, export_id: str) -> None:
+        key = ("export_job", export_id)
+        if key not in self.resources:
+            raise KeyError(f"Export job not found: {export_id}")
+        res = self.resources[key]
+        if res.tenant_id != requesting_tenant_id:
+            raise PermissionError(f"Cross-tenant export job deletion denied: {requesting_tenant_id} -> {res.tenant_id}")
+        del self.resources[key]
+
     # --- Graph & Vector Isolation ---
     def get_graph_entity(self, requesting_tenant_id: str, entity_id: str) -> dict[str, object]:
         key = (requesting_tenant_id, entity_id)

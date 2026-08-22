@@ -13,40 +13,45 @@
       "staging": "/infra",
       "prod": "/infra"
     },
-    "layer1": {
-      "dev": "/layer1",
-      "staging": "/layer1",
-      "prod": "/layer1"
+    "layer1-ingestion": {
+      "dev": "/layer1-ingestion",
+      "staging": "/layer1-ingestion",
+      "prod": "/layer1-ingestion"
     },
-    "layer2": {
-      "dev": "/layer2",
-      "staging": "/layer2",
-      "prod": "/layer2"
+    "layer2-extraction": {
+      "dev": "/layer2-extraction",
+      "staging": "/layer2-extraction",
+      "prod": "/layer2-extraction"
     },
-    "layer3": {
-      "dev": "/layer3",
-      "staging": "/layer3",
-      "prod": "/layer3"
+    "layer2-5-signal-refinery": {
+      "dev": "/layer2-5-signal-refinery",
+      "staging": "/layer2-5-signal-refinery",
+      "prod": "/layer2-5-signal-refinery"
     },
-    "layer4": {
-      "dev": "/layer4",
-      "staging": "/layer4",
-      "prod": "/layer4"
+    "layer3-knowledge": {
+      "dev": "/layer3-knowledge",
+      "staging": "/layer3-knowledge",
+      "prod": "/layer3-knowledge"
     },
-    "layer5": {
-      "dev": "/layer5",
-      "staging": "/layer5",
-      "prod": "/layer5"
+    "layer4-agents": {
+      "dev": "/layer4-agents",
+      "staging": "/layer4-agents",
+      "prod": "/layer4-agents"
     },
-    "layer6": {
-      "dev": "/layer6",
-      "staging": "/layer6",
-      "prod": "/layer6"
+    "layer5-ground-truth": {
+      "dev": "/layer5-ground-truth",
+      "staging": "/layer5-ground-truth",
+      "prod": "/layer5-ground-truth"
     },
-    "frontend": {
-      "dev": "/frontend",
-      "staging": "/frontend",
-      "prod": "/frontend"
+    "layer6-benchmarks": {
+      "dev": "/layer6-benchmarks",
+      "staging": "/layer6-benchmarks",
+      "prod": "/layer6-benchmarks"
+    },
+    "apps/web": {
+      "dev": "/apps/web",
+      "staging": "/apps/web",
+      "prod": "/apps/web"
     },
     "auth": {
       "dev": "/auth",
