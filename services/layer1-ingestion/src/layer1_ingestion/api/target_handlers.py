@@ -122,9 +122,9 @@ async def list_targets(
     search: str | None = Query(None, description="Search in name, description, url"),
     tags: list[str] | None = Query(None),
     sort_by: str = Query(
-        default="created_at", regex="^(created_at|updated_at|last_success_at|name)$"
+        default="created_at", pattern="^(created_at|updated_at|last_success_at|name)$"
     ),
-    sort_order: str = Query(default="desc", regex="^(asc|desc)$"),
+    sort_order: str = Query(default="desc", pattern="^(asc|desc)$"),
     org_id: UUID = Depends(get_tenant_id),
     db: Session = Depends(get_db_from_context_sync),
 ):
@@ -612,9 +612,7 @@ async def _check_idempotency_key(
 
     for attempt in range(5):
         try:
-            existing_job_id = _decode_redis_value(
-                redis_client.get(idempotency_key_str)
-            )
+            existing_job_id = _decode_redis_value(redis_client.get(idempotency_key_str))
         except Exception as exc:
             logger.warning(
                 "idempotency_redis_get_failed",
@@ -649,13 +647,16 @@ async def _check_idempotency_key(
             metrics = get_metrics()
             if metrics and metrics.config.enabled:
                 metrics.increment_idempotency_key_hit()
-            return ExecuteTargetResponse(
-                job_id=UUID(existing_job_id),
-                status=existing_job.status,
-                estimated_start_time=existing_job.started_at,
-                queue_position=None,
-                queue_position_metadata=None,
-            ), None
+            return (
+                ExecuteTargetResponse(
+                    job_id=UUID(existing_job_id),
+                    status=existing_job.status,
+                    estimated_start_time=existing_job.started_at,
+                    queue_position=None,
+                    queue_position_metadata=None,
+                ),
+                None,
+            )
         try:
             redis_client.delete(idempotency_key_str)
         except Exception as exc:
