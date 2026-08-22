@@ -58,27 +58,27 @@
       "target_removal_date": "2026-12-31"
     },
     {
-      "id": "services/layer4-agents/src/layer4_agents/database.py:661:py_deprecated_message",
+      "id": "services/layer4-agents/src/layer4_agents/database.py:677:py_deprecated_message",
       "rationale": "Approved temporary deprecation compatibility surface; tracked for staged removal.",
       "target_removal_date": "2026-12-31"
     },
     {
-      "id": "services/layer4-agents/src/layer4_agents/database.py:692:py_deprecated_message",
+      "id": "services/layer4-agents/src/layer4_agents/database.py:708:py_deprecated_message",
       "rationale": "Approved temporary deprecation compatibility surface; tracked for staged removal.",
       "target_removal_date": "2026-12-31"
     },
     {
-      "id": "services/layer4-agents/src/layer4_agents/database.py:800:py_deprecated_message",
+      "id": "services/layer4-agents/src/layer4_agents/database.py:841:py_deprecated_message",
       "rationale": "Approved temporary deprecation compatibility surface; tracked for staged removal.",
       "target_removal_date": "2026-12-31"
     },
     {
-      "id": "services/layer4-agents/src/layer4_agents/database.py:888:py_deprecated_message",
+      "id": "services/layer4-agents/src/layer4_agents/database.py:929:py_deprecated_message",
       "rationale": "Approved temporary deprecation compatibility surface; tracked for staged removal.",
       "target_removal_date": "2026-12-31"
     },
     {
-      "id": "services/layer4-agents/src/layer4_agents/database.py:966:py_deprecated_message",
+      "id": "services/layer4-agents/src/layer4_agents/database.py:1007:py_deprecated_message",
       "rationale": "Approved temporary deprecation compatibility surface; tracked for staged removal.",
       "target_removal_date": "2026-12-31"
     },
