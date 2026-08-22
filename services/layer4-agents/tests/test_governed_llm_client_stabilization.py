@@ -100,6 +100,7 @@ async def test_governed_llm_client_cost_budget_check():
 
     mock_provider = MagicMock()
     client = GovernedLLMClient(provider=mock_provider, provider_name="openai", run=mock_run)
+    client._config = {"llm": {"provider": "openai", "models": {"openai": {"test_task": "gpt-4o"}}}}
     client._max_cost_per_call_usd = 0.05
     # Set a mock cost calculator and high estimated cost
     mock_calc = MagicMock()
