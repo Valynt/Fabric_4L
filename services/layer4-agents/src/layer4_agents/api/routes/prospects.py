@@ -18,13 +18,11 @@ Provides endpoints for:
 
 
 import uuid
-from datetime import UTC, datetime
 from enum import Enum
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from value_fabric.shared.audit import AuditAction, AuditOutcome, emit_audit_event
 from value_fabric.shared.identity.context import RequestContext
@@ -34,7 +32,6 @@ from value_fabric.shared.security.dil_auth import get_verified_tenant_id
 from ...config.settings import get_settings
 from ...database import get_db_from_context
 from ...interfaces.prospect_context import ProspectContextPort
-from ...models.account import Account
 from ...startup.agent_composition import create_prospect_context_client
 from .prospects_helpers import (
     create_or_update_prospect_account,

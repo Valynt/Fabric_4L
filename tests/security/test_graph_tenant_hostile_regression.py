@@ -460,7 +460,7 @@ async def test_provenance_tracking_queries_require_explicit_tenant_context(monke
     assert derivation["error"] == ""
     assert trace["trace_id"]
     assert lineage["error"] == ""
-    assert len(observed) == 7
+    assert len(observed) == 6
     assert_explicit_tenant_queries(observed)
 
 

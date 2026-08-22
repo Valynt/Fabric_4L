@@ -15,6 +15,10 @@ x-from-full: &from-full
   file: ./docker-compose.full.yml
 
 services:
+  layer3-hf-cache:
+    image: huggingface/transformers-cache
+    volumes:
+      - layer3-hf-cache:/root/.cache/huggingface
   api-gateway:
     extends:
       <<: *from-full
