@@ -571,6 +571,110 @@ class TestMCPGatewayMetrics:
         """Different error types tracked separately."""
         gateway.metrics["auth_errors_total"] = gateway.metrics.get("auth_errors_total", 0) + 1
         gateway.metrics["manifest_errors_total"] = gateway.metrics.get("manifest_errors_total", 0) + 1
-        
+
         assert gateway.metrics["auth_errors_total"] >= 1
         assert gateway.metrics["manifest_errors_total"] >= 1
+
+
+@pytest.mark.unit
+class TestMCPGatewayExecuteTool:
+    """Test the real HTTP dispatch in _execute_tool."""
+
+    @pytest.fixture
+    def gateway(self, sample_rsa_keypair):
+        return MCPGateway(
+            auth_handler=None,
+            token_exchanger=None,
+            manifest_verifier=None,
+            tool_registry=ToolRegistry(),
+            enable_audit_logging=False,
+        )
+
+    @pytest.mark.asyncio
+    async def test_execute_tool_returns_error_for_unknown_tool(self, gateway, sample_tool_request):
+        """Unknown tool returns an error response without an HTTP call."""
+        import time
+
+        response = await gateway._execute_tool(sample_tool_request, None, time.time())
+        assert response.success is False
+        assert "endpoint not configured" in response.error
+
+    @pytest.mark.asyncio
+    async def test_execute_tool_dispatches_to_endpoint_and_parses_json(
+        self, gateway, sample_tool_manifest, sample_tool_request
+    ):
+        """A registered tool is invoked via HTTP and the JSON body is returned."""
+        import time
+        from unittest.mock import AsyncMock, MagicMock, patch
+
+        gateway.tool_registry.register_tool(sample_tool_manifest)
+
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = {"hits": ["a", "b"]}
+        mock_resp.text = '{"hits": ["a", "b"]}'
+
+        mock_client = MagicMock()
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=None)
+        mock_client.post = AsyncMock(return_value=mock_resp)
+
+        with patch("httpx.AsyncClient", return_value=mock_client):
+            response = await gateway._execute_tool(sample_tool_request, None, time.time())
+
+        assert response.success is True
+        assert response.result == {"hits": ["a", "b"]}
+        assert response.tool_name == sample_tool_request.tool_name
+        mock_client.post.assert_awaited_once()
+        call_kwargs = mock_client.post.await_args.kwargs
+        assert call_kwargs["json"] == sample_tool_request.parameters
+
+    @pytest.mark.asyncio
+    async def test_execute_tool_returns_error_on_http_failure_status(
+        self, gateway, sample_tool_manifest, sample_tool_request
+    ):
+        """A 4xx/5xx from the tool endpoint is surfaced as an error response."""
+        import time
+        from unittest.mock import AsyncMock, MagicMock, patch
+
+        gateway.tool_registry.register_tool(sample_tool_manifest)
+
+        mock_resp = MagicMock()
+        mock_resp.status_code = 503
+        mock_resp.json.return_value = {"detail": "down"}
+        mock_resp.text = '{"detail": "down"}'
+
+        mock_client = MagicMock()
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=None)
+        mock_client.post = AsyncMock(return_value=mock_resp)
+
+        with patch("httpx.AsyncClient", return_value=mock_client):
+            response = await gateway._execute_tool(sample_tool_request, None, time.time())
+
+        assert response.success is False
+        assert "HTTP 503" in response.error
+
+    @pytest.mark.asyncio
+    async def test_execute_tool_surfaces_httpx_error_as_failure(
+        self, gateway, sample_tool_manifest, sample_tool_request
+    ):
+        """A transport-level error is caught and returned as an error response."""
+        import time
+        from unittest.mock import AsyncMock, MagicMock, patch
+        import httpx
+
+        gateway.tool_registry.register_tool(sample_tool_manifest)
+
+        mock_client = MagicMock()
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=None)
+        mock_client.post = AsyncMock(side_effect=httpx.ConnectError("boom"))
+
+        with patch("httpx.AsyncClient", return_value=mock_client):
+            response = await gateway._execute_tool(sample_tool_request, None, time.time())
+
+        assert response.success is False
+        assert "Tool dispatch failed" in response.error
+        assert gateway._metrics["execution_failures"] == 1
+

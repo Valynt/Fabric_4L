@@ -525,6 +525,34 @@ class OrchestrationController:
                 f"Current active: {active_count}. Retry after existing workflows complete."
             )
 
+        # Resolve tenant-aware timeout and store metadata with timeout tracking
+        resolved_timeout_seconds, timeout_source = await self._resolve_workflow_timeout_seconds(tenant_id)
+
+        # Atomic deduplication: check if workflow_id already exists or is running
+        if workflow_id:
+            if workflow_id in self._active_workflows:
+                logger.info(
+                    "Workflow %s is currently active; awaiting completion for deduplication",
+                    workflow_id,
+                )
+                return await self._wait_for_workflow_with_timeout(
+                    workflow_id, timeout_seconds=resolved_timeout_seconds
+                )
+            existing_state = await self.state_manager.load_state(workflow_id)
+            if existing_state is not None:
+                if existing_state.tenant_id and existing_state.tenant_id != str(tenant_id):
+                    raise WorkflowExecutionError("tenant_id mismatch: workflow access forbidden")
+                logger.info(
+                    "Workflow %s already exists with status %s; returning existing execution",
+                    workflow_id,
+                    existing_state.status,
+                )
+                if existing_state.status in (WorkflowStatus.PENDING, WorkflowStatus.RUNNING):
+                    return await self._wait_for_workflow_with_timeout(
+                        workflow_id, timeout_seconds=resolved_timeout_seconds
+                    )
+                return existing_state
+
         # Generate canonical run envelope with distinct IDs
         from uuid import uuid4
 
@@ -552,8 +580,6 @@ class OrchestrationController:
             tenant_id=str(tenant_id) if tenant_id else "",
             workflow_type=workflow_type,
         )
-        # Resolve tenant-aware timeout and store metadata with timeout tracking
-        resolved_timeout_seconds, timeout_source = await self._resolve_workflow_timeout_seconds(tenant_id)
 
         initial_state.run_envelope = envelope
         if approval_evidence is not None:

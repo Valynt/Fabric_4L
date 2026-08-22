@@ -31,33 +31,15 @@ spec:
   hostnames:
     - __API_HOST__
   rules:
+    # The entire API host is served by the gateway. Per-segment paths
+    # (/v1/agents, /v1/ingest, /v1/extract, /v1/graph, /v1/truths,
+    # /v1/benchmarks) are routed inside the gateway by
+    # routers/layer_delegation.py. No HTTPRoute backend points directly
+    # at a layer Service; scripts/ci/k8s_routing_check.py asserts this.
     - matches:
-        - path: {type: PathPrefix, value: /layer1}
+        - path:
+            type: PathPrefix
+            value: /
       backendRefs:
-        - name: layer1-ingestion
+        - name: api-gateway
           port: 8000
-    - matches:
-        - path: {type: PathPrefix, value: /layer2}
-      backendRefs:
-        - name: layer2-extraction
-          port: 8000
-    - matches:
-        - path: {type: PathPrefix, value: /layer3}
-      backendRefs:
-        - name: layer3-knowledge
-          port: 8001
-    - matches:
-        - path: {type: PathPrefix, value: /layer4}
-      backendRefs:
-        - name: layer4-agents
-          port: 8000
-    - matches:
-        - path: {type: PathPrefix, value: /layer5}
-      backendRefs:
-        - name: layer5-ground-truth
-          port: 8005
-    - matches:
-        - path: {type: PathPrefix, value: /layer6}
-      backendRefs:
-        - name: layer6-benchmarks
-          port: 8006

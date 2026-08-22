@@ -152,26 +152,39 @@ async def _api_redis_probe() -> ProbeResult:
     return ProbeResult(name="redis", healthy=True)
 
 
-async def _api_layer4_probe() -> ProbeResult:
-    """Readiness probe for downstream Layer 4 agent orchestration service."""
+async def _api_layer_probe(name: str, base_url_attr: str) -> ProbeResult:
+    """Generic readiness probe for a downstream layer service.
+
+    Hits the layer's ``/ready`` endpoint with a short timeout. Non-200
+    response or network error marks the dependency unhealthy without
+    failing the whole gateway: ``/ready`` aggregates probes and the
+    orchestrator only pulls traffic when the aggregate is healthy.
+    """
     import httpx
 
     try:
-        url = f"{settings.layer4_api_base_url.rstrip('/')}/ready"
-        response = httpx.get(url, timeout=2.0)
+        base_url = getattr(settings, base_url_attr).rstrip("/")
+        url = f"{base_url}/ready"
+        async with httpx.AsyncClient(timeout=2.0) as client:
+            response = await client.get(url)
         if response.status_code == 200:
-            return ProbeResult(name="layer4", healthy=True)
+            return ProbeResult(name=name, healthy=True)
         return ProbeResult(
-            name="layer4", healthy=False, detail=f"layer4:status_{response.status_code}"
+            name=name, healthy=False, detail=f"{name}:status_{response.status_code}"
         )
     except Exception as exc:
         logger.warning(
-            "API gateway Layer 4 readiness probe failed",
-            dependency="layer4",
+            f"API gateway {name} readiness probe failed",
+            dependency=name,
             status="unhealthy",
             error=str(exc),
         )
-        return ProbeResult(name="layer4", healthy=False, detail="layer4:unavailable")
+        return ProbeResult(name=name, healthy=False, detail=f"{name}:unavailable")
+
+
+async def _api_layer4_probe() -> ProbeResult:
+    """Readiness probe for downstream Layer 4 agent orchestration service."""
+    return await _api_layer_probe("layer4", "layer4_api_base_url")
 
 
 app = create_fabric_app(
@@ -184,7 +197,22 @@ app = create_fabric_app(
     health_probes=[
         CallableProbe(name="database", fn=_api_db_probe),
         CallableProbe(name="redis", fn=_api_redis_probe),
+        CallableProbe(
+            name="layer1", fn=lambda: _api_layer_probe("layer1", "layer1_api_base_url")
+        ),
+        CallableProbe(
+            name="layer2", fn=lambda: _api_layer_probe("layer2", "layer2_api_base_url")
+        ),
+        CallableProbe(
+            name="layer3", fn=lambda: _api_layer_probe("layer3", "layer3_api_base_url")
+        ),
         CallableProbe(name="layer4", fn=_api_layer4_probe),
+        CallableProbe(
+            name="layer5", fn=lambda: _api_layer_probe("layer5", "layer5_api_base_url")
+        ),
+        CallableProbe(
+            name="layer6", fn=lambda: _api_layer_probe("layer6", "layer6_api_base_url")
+        ),
     ],
     readiness_path="/ready",
     enforcement_rollout=EnforcementRolloutConfig(

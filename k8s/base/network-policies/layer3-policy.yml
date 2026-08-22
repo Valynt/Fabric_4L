@@ -11,6 +11,14 @@ spec:
     - Ingress
     - Egress
   ingress:
+    # Allow from the API gateway, L4 agents, and L5 ground truth (mesh).
+    - from:
+        - podSelector:
+            matchLabels:
+              app: api-gateway
+      ports:
+        - protocol: TCP
+          port: 8001
     # Allow from L4 agents
     - from:
         - podSelector:

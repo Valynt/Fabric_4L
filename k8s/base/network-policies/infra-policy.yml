@@ -28,6 +28,9 @@ spec:
         - podSelector:
             matchLabels:
               app: layer5-ground-truth
+        - podSelector:
+            matchLabels:
+              app: api-gateway
       ports:
         - protocol: TCP
           port: 5432  # Postgres
