@@ -446,12 +446,12 @@ export const router = createBrowserRouter([
           {
             index: true,
             element: <AccountOverviewRedirect />,
-            handle: { accessPolicy: accountStdPolicy("accounts.overview-redirect") },
+            handle: { accessPolicy: accountStdPolicy("accounts.overview-redirect"), requiresAuth: true },
           },
           {
             path: "overview",
             element: <Accounts />,
-            handle: { accessPolicy: accountStdPolicy("accounts.overview") },
+            handle: { accessPolicy: accountStdPolicy("accounts.overview"), requiresAuth: true },
           },
 
           // ═══════════════════════════════════════════════════════════════
@@ -460,7 +460,7 @@ export const router = createBrowserRouter([
           {
             path: "intelligence",
             element: <Navigate to="signals" replace />,
-            handle: { accessPolicy: accountStdPolicy("intelligence.workspace"), journeyTimeline: true },
+            handle: { accessPolicy: accountStdPolicy("intelligence.workspace"), journeyTimeline: true, requiresAuth: true },
           },
           {
             path: "intelligence/:tabId",
@@ -469,7 +469,7 @@ export const router = createBrowserRouter([
                 <IntelligenceWorkspace />
               </Suspense>
             ),
-            handle: { accessPolicy: accountStdPolicy("intelligence.workspace"), journeyTimeline: true },
+            handle: { accessPolicy: accountStdPolicy("intelligence.workspace"), journeyTimeline: true, requiresAuth: true },
           },
 
           // ═══════════════════════════════════════════════════════════════
@@ -483,6 +483,7 @@ export const router = createBrowserRouter([
               title: "Value Studio",
               category: "Workspace",
               journeyTimeline: true,
+              requiresAuth: true,
             },
           },
           {
@@ -497,6 +498,7 @@ export const router = createBrowserRouter([
               title: "Value Studio",
               category: "Workspace",
               journeyTimeline: true,
+              requiresAuth: true,
             },
           },
 
@@ -506,27 +508,27 @@ export const router = createBrowserRouter([
           {
             path: "deliverables",
             element: <Navigate to="business-cases" replace />,
-            handle: { accessPolicy: accountStdPolicy("deliverables.workspace"), journeyTimeline: true },
+            handle: { accessPolicy: accountStdPolicy("deliverables.workspace"), journeyTimeline: true, requiresAuth: true },
           },
           {
             path: "deliverables/business-cases",
             element: <BusinessCaseList />,
-            handle: { accessPolicy: accountStdPolicy("deliverables.business-cases"), journeyTimeline: true },
+            handle: { accessPolicy: accountStdPolicy("deliverables.business-cases"), journeyTimeline: true, requiresAuth: true },
           },
           {
             path: "deliverables/business-cases/:caseId",
             element: <BusinessCase />,
-            handle: { accessPolicy: accountStdPolicy("deliverables.business-case-detail"), journeyTimeline: true },
+            handle: { accessPolicy: accountStdPolicy("deliverables.business-case-detail"), journeyTimeline: true, requiresAuth: true },
           },
           {
             path: "deliverables/proposals",
             element: <BusinessCaseList />,
-            handle: { accessPolicy: accountStdPolicy("deliverables.proposals"), journeyTimeline: true },
+            handle: { accessPolicy: accountStdPolicy("deliverables.proposals"), journeyTimeline: true, requiresAuth: true },
           },
           {
             path: "deliverables/exports",
             element: <BusinessCaseList />,
-            handle: { accessPolicy: accountStdPolicy("deliverables.exports"), journeyTimeline: true },
+            handle: { accessPolicy: accountStdPolicy("deliverables.exports"), journeyTimeline: true, requiresAuth: true },
           },
           {
             path: "deliverables/views/cfo",
@@ -535,6 +537,7 @@ export const router = createBrowserRouter([
               accessPolicy: accountStdPolicy("deliverables.cfo-view"),
               title: "CFO View",
               category: "Deliverables",
+              requiresAuth: true,
             },
           },
           {
@@ -544,6 +547,7 @@ export const router = createBrowserRouter([
               accessPolicy: accountStdPolicy("deliverables.executive-view"),
               title: "Executive View",
               category: "Deliverables",
+              requiresAuth: true,
             },
           },
           {
@@ -553,6 +557,7 @@ export const router = createBrowserRouter([
               accessPolicy: accountStdPolicy("deliverables.technical-view"),
               title: "Technical View",
               category: "Deliverables",
+              requiresAuth: true,
             },
           },
 
@@ -562,22 +567,22 @@ export const router = createBrowserRouter([
           {
             path: "agents",
             element: <AgentWorkflows />,
-            handle: { accessPolicy: accountStdPolicy("agents.console") },
+            handle: { accessPolicy: accountStdPolicy("agents.console"), requiresAuth: true },
           },
           {
             path: "agents/threads/:threadId",
             element: <AgentWorkflows />,
-            handle: { accessPolicy: accountStdPolicy("agents.thread") },
+            handle: { accessPolicy: accountStdPolicy("agents.thread"), requiresAuth: true },
           },
           {
             path: "workflows",
             element: <AgentWorkflows />,
-            handle: { accessPolicy: accountStdPolicy("agents.workflows") },
+            handle: { accessPolicy: accountStdPolicy("agents.workflows"), requiresAuth: true },
           },
           {
             path: "workflows/:workflowRunId",
             element: <AgentWorkflows />,
-            handle: { accessPolicy: accountStdPolicy("agents.workflow-run") },
+            handle: { accessPolicy: accountStdPolicy("agents.workflow-run"), requiresAuth: true },
           },
         ],
       },
