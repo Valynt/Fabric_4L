@@ -72,12 +72,42 @@ CERTIFICATION_STEPS: tuple[Step, ...] = (
         ("pnpm", "--dir", "apps/web", "run", "build"),
         "release evidence",
     ),
-    Step("04b-docker-build", ("make", "docker-build"), "release evidence", live_only=True),
+    Step(
+        "04b-docker-build", ("make", "docker-build"), "release evidence", live_only=True
+    ),
     Step(
         "05-sbom-provenance",
-        ("make", "generate-sbom-and-provenance"),  # does not exist yet; recorded unimplemented
-        "release evidence",
-        unimplemented=True,
+        ("make", "generate-sbom-and-provenance"),
+        "release evidence: deterministic source-bound SBOM",
+    ),
+    Step(
+        "05b-build-reproducibility",
+        ("make", "build-reproducibility-check"),
+        "release evidence: every deployable image must build byte-identical (deterministic)",
+        live_only=True,
+    ),
+    Step(
+        "05c-compose-config-validate",
+        ("make", "compose-config-validate"),
+        "deployment topology: all release-significant Docker Compose definitions render and harden consistently",
+        live_only=True,
+    ),
+    Step(
+        "05d-helm-dependency-validate",
+        ("make", "helm-dependency-validate"),
+        "deployment topology: locked Helm chart dependencies render from Chart.lock and validate against live archives",
+        live_only=True,
+    ),
+    Step(
+        "05e-k8s-production-overlay-validate",
+        ("make", "k8s-production-overlay-validate"),
+        "deployment topology: Kubernetes production overlays render and validate (kustomize/kubeconform)",
+        live_only=True,
+    ),
+    Step(
+        "05f-k8s-manifest-consistency-check",
+        ("make", "k8s-manifest-consistency-check"),
+        "deployment topology: static cross-service Kubernetes manifest consistency (no cluster)",
     ),
     Step(
         "06-staging-preflight",
@@ -144,6 +174,13 @@ CERTIFICATION_STEPS: tuple[Step, ...] = (
         ),
         "observability: static deployment-readiness policy only — not deployed "
         "dashboard/alert proof",
+    ),
+    Step(
+        "16b-observability-stack-validation",
+        ("make", "validate-monitoring-stack"),
+        "observability: monitoring stack definition readiness (YAML + compose + "
+        "runbook coverage) — static configuration validation only, not live telemetry proof",
+        live_only=True,
     ),
 )
 

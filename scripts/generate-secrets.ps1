@@ -1,4 +1,4 @@
-#!/usr/bin/env pwsh
+﻿#!/usr/bin/env pwsh
 # Generate secrets for Value Fabric security hardening
 # Usage: .\generate-secrets.ps1 [output_file]
 
@@ -47,14 +47,23 @@ $secrets += "REDIS_PASSWORD=$redisPassword"
 $secrets += ""
 Write-Host "✓ REDIS_PASSWORD generated" -ForegroundColor Green
 
-# Credentials Master Key (Fernet - 32 bytes base64 = 44 chars)
+# Credentials Master Key (Fernet - 32 bytes URL-safe base64 = 43 chars)
 Add-Type -AssemblyName System.Security
 $fernetKeyBytes = New-Object byte[] 32
 [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($fernetKeyBytes)
-$fernetKey = [Convert]::ToBase64String($fernetKeyBytes) + "="
-$secrets += "# Credentials Master Key (Fernet - 32 bytes base64-encoded)"
+# Layer 4 validates this as URL-safe Base64 of 32 bytes and only accepts
+# 43- or 44-character values. Convert to URL-safe alphabet and strip any
+# padding so a 32-byte input yields a 43-character key (never 45).
+$fernetKey = [Convert]::ToBase64String($fernetKeyBytes).
+    Replace("+", "-").
+    Replace("/", "_").
+    TrimEnd("=")
+if ($fernetKey.Length -notin 43, 44) {
+    throw "CREDENTIALS_MASTER_KEY must be 43 or 44 characters, got $($fernetKey.Length)"
+}
+$secrets += "# Credentials Master Key (Fernet - 32 bytes URL-safe base64-encoded)"
 $secrets += "CREDENTIALS_MASTER_KEY=$fernetKey"
-Write-Host "✓ CREDENTIALS_MASTER_KEY generated" -ForegroundColor Green
+Write-Host "✓ CREDENTIALS_MASTER_KEY generated ($($fernetKey.Length) chars)" -ForegroundColor Green
 
 # Write to file
 $secrets | Out-File -FilePath $OutputFile -Encoding UTF8
