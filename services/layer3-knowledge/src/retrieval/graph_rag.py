@@ -6,23 +6,25 @@ from datetime import date, datetime
 from typing import Any
 
 from neo4j import AsyncDriver
-try:
-    from neo4j.time import Date as Neo4jDate
-    from neo4j.time import DateTime as Neo4jDateTime
-except (ImportError, AttributeError):
-    try:
-        import neo4j.time
-        Neo4jDate = getattr(neo4j.time, "Date", None)
-        Neo4jDateTime = getattr(neo4j.time, "DateTime", None)
-    except Exception:
-        Neo4jDate = None
-        Neo4jDateTime = None
 from value_fabric.shared.identity.context import get_request_context
 from value_fabric.shared.identity.isolation import ScopedQuery, TenantScopedCypher
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
 from ..config import Settings, get_settings
 from ..db.driver import get_driver
+
+try:
+    from neo4j.time import Date as Neo4jDate
+    from neo4j.time import DateTime as Neo4jDateTime
+except (ImportError, AttributeError):
+    try:
+        import neo4j.time
+
+        Neo4jDate = getattr(neo4j.time, "Date", None)
+        Neo4jDateTime = getattr(neo4j.time, "DateTime", None)
+    except Exception:
+        Neo4jDate = None
+        Neo4jDateTime = None
 from ..db.query_execution import run_scoped_query
 from ..retrieval.vector_store import VectorStore
 from ..schema.constraints import get_entity_types, get_relationship_types
@@ -94,9 +96,9 @@ def _serialize_neo4j_value(value: Any) -> Any:
     """
     if (Neo4jDateTime and isinstance(value, Neo4jDateTime)) or (Neo4jDate and isinstance(value, Neo4jDate)):
         return value.to_native().isoformat()
-    elif hasattr(value, "to_native") and callable(getattr(value, "to_native")):
+    elif hasattr(value, "to_native") and callable(value.to_native):
         native = value.to_native()
-        if hasattr(native, "isoformat") and callable(getattr(native, "isoformat")):
+        if hasattr(native, "isoformat") and callable(native.isoformat):
             return native.isoformat()
         return str(native)
     elif isinstance(value, datetime) or isinstance(value, date):
