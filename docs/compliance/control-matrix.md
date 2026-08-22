@@ -6,7 +6,7 @@ This matrix maps major SOC 2, GDPR, HIPAA, and CCPA control themes to concrete *
 
 - **Scope:** Current repository implementation.
 - **Last reviewed:** 2026-08-21.
-- **Update trigger:** Any PR that changes security/governance-sensitive files must also evaluate (and, when needed, update) this matrix.
+- **Update trigger:** Any PR that changes security/governance-sensitive files must also evaluate (and, when needed, update) this matrix. Evaluated and refreshed for Security & Tenancy Hardening (PR #1392) covering hostile multi-tenant fixtures, security exception lifecycle governance, canonical Infisical secrets hierarchy, and production fail-closed controls.
 
 ---
 
