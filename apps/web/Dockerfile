@@ -81,6 +81,6 @@ COPY --from=builder /app/apps/web/dist ./dist
 EXPOSE 3000
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3000/', (r) => r.statusCode === 200 ? process.exit(0) : process.exit(1))"
+  CMD node -e "require('http').get({ host: 'localhost', port: process.env.PORT || 3000, path: '/' }, (r) => r.statusCode === 200 ? process.exit(0) : process.exit(1))"
 
 CMD ["node", "dist/index.js"]
