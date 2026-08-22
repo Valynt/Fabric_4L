@@ -16,7 +16,7 @@ from src.api.routes.models_router import (
     ModelStatus,
     ModelSummary,
     ValidationError,
-    _build_list_models_query_and_params,
+    _build_list_models_predicates_and_params,
     _model_node_to_summary,
     _validate_list_models_params,
 )
@@ -44,9 +44,9 @@ def test_validate_list_models_params_invalid():
 
 
 @pytest.mark.unit
-def test_build_list_models_query_and_params():
-    """Verify query string construction and parameter binding for list_models."""
-    count_q, data_q, params = _build_list_models_query_and_params(
+def test_build_list_models_predicates_and_params():
+    """Verify predicate construction and parameter binding for list_models."""
+    where_clauses, params, extra_where, sort_field, sort_direction = _build_list_models_predicates_and_params(
         current_tenant="tenant-99",
         current_user="user-1",
         folder=FOLDER_MY_MODELS,
@@ -58,12 +58,14 @@ def test_build_list_models_query_and_params():
         limit=20,
         offset=0,
     )
-    assert "m.tenant_id = $tenant_id" in count_q
-    assert "m.owner = $user_id" in count_q
-    assert "m.status = $status" in count_q
-    assert "m.industry = $industry" in count_q
-    assert "m.name CONTAINS $search" in count_q
-    assert "ORDER BY m.name ASC" in data_q
+    combined = " AND ".join(where_clauses)
+    assert "m.tenant_id = $tenant_id" in combined
+    assert "m.owner = $user_id" in combined
+    assert "m.status = $status" in combined
+    assert "m.industry = $industry" in combined
+    assert "m.name CONTAINS $search" in combined
+    assert sort_field == "m.name"
+    assert sort_direction == "ASC"
     assert params["tenant_id"] == "tenant-99"
     assert params["user_id"] == "user-1"
     assert params["status"] == "active"
