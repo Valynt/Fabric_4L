@@ -1,6 +1,6 @@
 # NGINX Ingress resources.
-# Hosts use sentinel values __HOST__ (frontend) and __API_HOST__ (layer APIs).
-# These are replaced by the deployment overlay via Kustomize `replacements:`
+# Both resources use the __HOST__ application-host sentinel.
+# It is replaced by the deployment overlay via Kustomize `replacements:`
 # keyed off a `routing-host` ConfigMap. CI fails if any sentinel survives a render.
 ---
 apiVersion: networking.k8s.io/v1
@@ -59,10 +59,12 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: layer-apis
+  name: application-api
   namespace: value-fabric
   annotations:
     cert-manager.io/cluster-issuer: __TLS_ISSUER__
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /v1/$2
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
     nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
     nginx.ingress.kubernetes.io/proxy-body-size: "32m"
@@ -80,7 +82,7 @@ metadata:
       proxy_set_header Authorization "";
       proxy_set_header X-Auth-Request-User "";
       proxy_set_header X-Auth-Request-Email "";
-    nginx.ingress.kubernetes.io/auth-signin: "https://__API_HOST__/oauth2/start?rd=$escaped_request_uri"
+    nginx.ingress.kubernetes.io/auth-signin: "https://__HOST__/oauth2/start?rd=$escaped_request_uri"
     nginx.ingress.kubernetes.io/auth-response-headers: "X-Auth-Request-User,X-Auth-Request-Email,Authorization"
     # Rate limiting: 20 req/sec, 200 req/min for API (higher than frontend)
     nginx.ingress.kubernetes.io/limit-rps: "20"
@@ -97,51 +99,16 @@ spec:
   ingressClassName: nginx
   tls:
     - hosts:
-        - __API_HOST__
-      secretName: layer-apis-tls
+        - __HOST__
+      secretName: frontend-tls
   rules:
-    - host: __API_HOST__
+    - host: __HOST__
       http:
         paths:
-          - path: /layer1
-            pathType: Prefix
+          - path: /api/v1(/|$)(.*)
+            pathType: ImplementationSpecific
             backend:
               service:
-                name: layer1-ingestion
+                name: api-gateway
                 port:
                   number: 8000
-          - path: /layer2
-            pathType: Prefix
-            backend:
-              service:
-                name: layer2-extraction
-                port:
-                  number: 8000
-          - path: /layer3
-            pathType: Prefix
-            backend:
-              service:
-                name: layer3-knowledge
-                port:
-                  number: 8001
-          - path: /layer4
-            pathType: Prefix
-            backend:
-              service:
-                name: layer4-agents
-                port:
-                  number: 8000
-          - path: /layer5
-            pathType: Prefix
-            backend:
-              service:
-                name: layer5-ground-truth
-                port:
-                  number: 8005
-          - path: /layer6
-            pathType: Prefix
-            backend:
-              service:
-                name: layer6-benchmarks
-                port:
-                  number: 8006

@@ -19,11 +19,11 @@ spec:
       ports:
         - protocol: TCP
           port: 8005
-    # Allow from frontend
+    # Allow public API delegation from the gateway.
     - from:
         - podSelector:
             matchLabels:
-              app: frontend
+              app: api-gateway
       ports:
         - protocol: TCP
           port: 8005

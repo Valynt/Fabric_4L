@@ -40,6 +40,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
 
@@ -110,149 +111,158 @@ def _walk_strings(node: object) -> Iterable[str]:
             yield from _walk_strings(v)
 
 
-FRONTEND_BUCKET = "frontend"
-API_BUCKET = "api"
-EITHER_BUCKET = "either"  # listener legitimately carries both hosts (e.g. HTTP->HTTPS redirect)
-
-# Map resource-name suffix -> expected bucket. Used to derive which
-# host bucket a host-bearing resource belongs to.
-NAME_TO_BUCKET: dict[str, str] = {
-    "frontend": FRONTEND_BUCKET,
-    "frontend-tls": FRONTEND_BUCKET,
-    "layer-apis": API_BUCKET,
-    "layer-apis-tls": API_BUCKET,
+LAYER_SERVICE_NAMES = {
+    "layer1-ingestion",
+    "layer2-extraction",
+    "layer3-knowledge",
+    "layer4-agents",
+    "layer5-ground-truth",
+    "layer6-benchmarks",
 }
+LAYER_COMPONENT_SUFFIXES = tuple(f"-layer{i}" for i in range(1, 7))
 
 
-def _classify_listener(listener_name: str) -> str | None:
-    """Map a Gateway API listener name or Istio server port name to a bucket.
-
-    Returns:
-        FRONTEND_BUCKET / API_BUCKET / EITHER_BUCKET, or None if not classifiable.
-
-    Listener names follow the convention:
-      - `*-frontend` (e.g. `http-frontend`, `https-frontend`) -> frontend.
-      - `*-api` (e.g. `http-api`, `https-api`) -> api.
-      - bare `http` (Istio's combined HTTP->HTTPS redirect server) carries
-        both hosts and is treated as EITHER_BUCKET.
-    """
-    if not listener_name:
-        return None
-    n = listener_name.lower()
-    if n == "http":
-        return EITHER_BUCKET
-    if n.endswith("-frontend"):
-        return FRONTEND_BUCKET
-    if n.endswith("-api"):
-        return API_BUCKET
-    return None
+@dataclass(frozen=True)
+class Route:
+    resource: str
+    host: str
+    external_path: str
+    backend: str
+    port: int | None
+    upstream_prefix: str | None
+    order: int
 
 
-def _collect_host_fields(doc: dict) -> list[tuple[str, str]]:
-    """Return [(bucket, host), ...] tuples extracted from a host-bearing routing doc.
+def _is_layer_service(name: str) -> bool:
+    return name in LAYER_SERVICE_NAMES or name.endswith(LAYER_COMPONENT_SUFFIXES)
 
-    Each entry binds a host string to the bucket it is *expected* to belong to:
-      - `frontend` (must equal the frontend host from routing-host ConfigMap)
-      - `api` (must equal the API host)
-      - `either` (must equal one of the two; used for HTTP redirect listeners)
 
-    For Gateway API `Gateway` and Istio `Gateway` resources, classification is
-    derived per-listener / per-server from the listener/port name. This means a
-    swap bug (e.g. an `https-api` listener carrying the frontend host) is
-    caught, not silently accepted.
+def _is_gateway_service(name: str) -> bool:
+    return name == "api-gateway" or name.endswith("-api")
 
-    Non-host-bearing routing resources return `[]`.
-    """
-    name = doc.get("metadata", {}).get("name", "")
+
+def _is_frontend_service(name: str) -> bool:
+    return name == "frontend" or name.endswith("-frontend")
+
+
+def _collect_host_fields(doc: dict) -> list[str]:
+    """Return every public hostname declared by a routing or certificate resource."""
     spec = doc.get("spec", {}) or {}
     kind = doc.get("kind", "")
     group = _api_group(doc.get("apiVersion", ""))
-    bucket_for_name = NAME_TO_BUCKET.get(name)
-
-    out: list[tuple[str, str]] = []
+    out: list[str] = []
 
     if group == "networking.k8s.io" and kind == "Ingress":
-        if bucket_for_name is None:
-            return out
-        for rule in spec.get("rules", []) or []:
-            if rule.get("host"):
-                out.append((bucket_for_name, rule["host"]))
+        out.extend(r["host"] for r in spec.get("rules", []) or [] if r.get("host"))
         for tls in spec.get("tls", []) or []:
-            for h in tls.get("hosts", []) or []:
-                out.append((bucket_for_name, h))
-
+            out.extend(tls.get("hosts", []) or [])
     elif group == "cert-manager.io" and kind == "Certificate":
-        if bucket_for_name is None:
-            return out
-        for h in spec.get("dnsNames", []) or []:
-            out.append((bucket_for_name, h))
-
+        out.extend(spec.get("dnsNames", []) or [])
     elif group == "gateway.networking.k8s.io" and kind == "Gateway":
-        for listener in spec.get("listeners", []) or []:
-            host = listener.get("hostname")
-            if not host:
-                continue
-            bucket = _classify_listener(listener.get("name", ""))
-            if bucket is None:
-                # Unclassifiable listener name -> accept either bucket but
-                # surface as a soft observation through EITHER_BUCKET so a
-                # rogue host still fails the {host, apiHost} check.
-                bucket = EITHER_BUCKET
-            out.append((bucket, host))
-
+        out.extend(
+            listener["hostname"]
+            for listener in spec.get("listeners", []) or []
+            if listener.get("hostname")
+        )
     elif group == "gateway.networking.k8s.io" and kind == "HTTPRoute":
-        if bucket_for_name is None:
-            return out
-        for h in spec.get("hostnames", []) or []:
-            out.append((bucket_for_name, h))
-
+        out.extend(spec.get("hostnames", []) or [])
     elif group == "networking.istio.io" and kind == "Gateway":
         for server in spec.get("servers", []) or []:
-            port_name = (server.get("port") or {}).get("name", "")
-            bucket = _classify_listener(port_name)
-            if bucket is None:
-                bucket = EITHER_BUCKET
-            for h in server.get("hosts", []) or []:
-                out.append((bucket, h))
-
+            out.extend(server.get("hosts", []) or [])
     elif group == "networking.istio.io" and kind == "VirtualService":
-        if bucket_for_name is None:
-            return out
-        for h in spec.get("hosts", []) or []:
-            out.append((bucket_for_name, h))
-
+        out.extend(spec.get("hosts", []) or [])
     return out
 
 
-def _collect_backends(doc: dict) -> list[str]:
-    """Return Service names referenced as backends by this routing resource."""
+def _ingress_upstream_prefix(doc: dict, path: str) -> str | None:
+    if not path.startswith("/api/v1"):
+        return None
+    annotations = (doc.get("metadata") or {}).get("annotations") or {}
+    target = str(annotations.get("nginx.ingress.kubernetes.io/rewrite-target", ""))
+    if target in {"/v1", "/v1/$2"}:
+        return "/v1"
+    return target or None
+
+
+def _gateway_upstream_prefix(rule: dict, path: str) -> str | None:
+    if path != "/api/v1":
+        return None
+    for route_filter in rule.get("filters", []) or []:
+        rewrite = route_filter.get("urlRewrite") or {}
+        rewrite_path = rewrite.get("path") or {}
+        if route_filter.get("type") == "URLRewrite":
+            return rewrite_path.get("replacePrefixMatch")
+    return None
+
+
+def _collect_routes(doc: dict) -> list[Route]:
     spec = doc.get("spec", {}) or {}
     kind = doc.get("kind", "")
     group = _api_group(doc.get("apiVersion", ""))
-    backends: list[str] = []
+    name = (doc.get("metadata") or {}).get("name", "?")
+    resource = f"{kind}/{name}"
+    routes: list[Route] = []
 
     if group == "networking.k8s.io" and kind == "Ingress":
+        order = 0
         for rule in spec.get("rules", []) or []:
-            for path in (rule.get("http") or {}).get("paths", []) or []:
-                svc = ((path.get("backend") or {}).get("service") or {}).get("name")
-                if svc:
-                    backends.append(svc)
-
+            for path_entry in (rule.get("http") or {}).get("paths", []) or []:
+                service = (path_entry.get("backend") or {}).get("service") or {}
+                port = (service.get("port") or {}).get("number")
+                path = str(path_entry.get("path", ""))
+                routes.append(
+                    Route(
+                        resource,
+                        str(rule.get("host", "")),
+                        "/api/v1" if path.startswith("/api/v1") else path,
+                        str(service.get("name", "")),
+                        port,
+                        _ingress_upstream_prefix(doc, path),
+                        order,
+                    )
+                )
+                order += 1
     elif group == "gateway.networking.k8s.io" and kind == "HTTPRoute":
-        for rule in spec.get("rules", []) or []:
-            for ref in rule.get("backendRefs", []) or []:
-                if ref.get("name"):
-                    backends.append(ref["name"])
-
+        hosts = spec.get("hostnames", []) or [""]
+        for order, rule in enumerate(spec.get("rules", []) or []):
+            matches = rule.get("matches", []) or [{}]
+            refs = rule.get("backendRefs", []) or []
+            for match in matches:
+                path = ((match.get("path") or {}).get("value")) or "/"
+                for ref in refs:
+                    for host in hosts:
+                        routes.append(
+                            Route(
+                                resource,
+                                host,
+                                path,
+                                str(ref.get("name", "")),
+                                ref.get("port"),
+                                _gateway_upstream_prefix(rule, path),
+                                order,
+                            )
+                        )
     elif group == "networking.istio.io" and kind == "VirtualService":
-        for http in spec.get("http", []) or []:
-            for route in http.get("route", []) or []:
-                host = (route.get("destination") or {}).get("host")
-                if host:
-                    # host may be a short Service name or FQDN; take first label.
-                    backends.append(host.split(".")[0])
+        hosts = spec.get("hosts", []) or [""]
+        for order, http in enumerate(spec.get("http", []) or []):
+            matches = http.get("match", []) or [{}]
+            destinations = http.get("route", []) or []
+            for match in matches:
+                path = ((match.get("uri") or {}).get("prefix")) or "/"
+                rewrite = (http.get("rewrite") or {}).get("uri")
+                for destination_entry in destinations:
+                    destination = destination_entry.get("destination") or {}
+                    service = str(destination.get("host", "")).split(".")[0]
+                    port = (destination.get("port") or {}).get("number")
+                    for host in hosts:
+                        routes.append(
+                            Route(resource, host, path, service, port, rewrite, order)
+                        )
+    return routes
 
-    return backends
+
+def _collect_backends(doc: dict) -> list[str]:
+    return [route.backend for route in _collect_routes(doc) if route.backend]
 
 
 def _check_deployment(name: str, axis: str, rendered: Path) -> list[str]:
@@ -263,25 +273,18 @@ def _check_deployment(name: str, axis: str, rendered: Path) -> list[str]:
 
     docs = _load_docs(rendered)
     errors: list[str] = []
+    if not docs:
+        return [f"{name}: rendered output is empty"]
 
     # 1. Sentinel survival.
     raw = rendered.read_text(encoding="utf-8")
     for sentinel in SENTINELS:
         if sentinel in raw:
-            errors.append(f"{name}: sentinel '{sentinel}' survived into rendered output")
-
-    # 2. Mutual exclusivity.
-    allowed = ROUTING_KIND_MATRIX[axis]
-    for d in docs:
-        gk = (_api_group(d.get("apiVersion", "")), d.get("kind", ""))
-        if gk in ALL_ROUTING_KINDS and gk not in allowed:
-            md_name = d.get("metadata", {}).get("name", "?")
             errors.append(
-                f"{name}: forbidden routing resource for axis '{axis}': "
-                f"{gk[0]}/{gk[1]} (name={md_name})"
+                f"{name}: sentinel '{sentinel}' survived into rendered output"
             )
 
-    # 3. routing-host ConfigMap presence + 4. hostname consistency.
+    # 2. Resolve the canonical application host before selecting edge resources.
     cm = next(
         (
             d
@@ -291,36 +294,85 @@ def _check_deployment(name: str, axis: str, rendered: Path) -> list[str]:
         ),
         None,
     )
+    application_host: str | None = None
     if cm is None:
         errors.append(f"{name}: missing 'routing-host' ConfigMap")
     else:
         data = cm.get("data") or {}
-        host = data.get("host")
-        api_host = data.get("apiHost")
-        if not host or not api_host:
-            errors.append(f"{name}: routing-host ConfigMap must define 'host' and 'apiHost'")
-        else:
-            bucket_to_expected = {
-                FRONTEND_BUCKET: {host},
-                API_BUCKET: {api_host},
-                EITHER_BUCKET: {host, api_host},
-            }
-            for d in docs:
-                gk = (_api_group(d.get("apiVersion", "")), d.get("kind", ""))
-                if gk not in ALL_ROUTING_KINDS:
-                    continue
-                md_name = d.get("metadata", {}).get("name", "?")
-                for bucket, observed in _collect_host_fields(d):
-                    expected = bucket_to_expected[bucket]
-                    if observed not in expected:
-                        errors.append(
-                            f"{name}: host '{observed}' on {gk[1]}/{md_name} "
-                            f"(bucket={bucket}) does not match routing-host "
-                            f"ConfigMap (expected one of {sorted(expected)}; "
-                            f"host={host}, apiHost={api_host})"
-                        )
+        application_host = data.get("host")
+        if not application_host:
+            errors.append(f"{name}: routing-host ConfigMap must define 'host'")
 
-    # 5. Service-existence.
+    def has_canonical_application_backend(doc: dict) -> bool:
+        return any(
+            (route.external_path == "/api/v1" and _is_gateway_service(route.backend))
+            or (route.external_path == "/" and _is_frontend_service(route.backend))
+            for route in _collect_routes(doc)
+        )
+
+    application_route_docs = [d for d in docs if has_canonical_application_backend(d)]
+    referenced_gateways = {
+        ref.get("name")
+        for d in application_route_docs
+        for ref in ((d.get("spec") or {}).get("parentRefs") or [])
+        if ref.get("name")
+    }
+    referenced_tls_secrets: set[str] = set()
+    for d in docs:
+        metadata_name = (d.get("metadata") or {}).get("name")
+        if d not in application_route_docs and metadata_name not in referenced_gateways:
+            continue
+        spec = d.get("spec") or {}
+        for tls in spec.get("tls", []) or []:
+            if tls.get("secretName"):
+                referenced_tls_secrets.add(tls["secretName"])
+        for listener in spec.get("listeners", []) or []:
+            for ref in (listener.get("tls") or {}).get("certificateRefs") or []:
+                if ref.get("name"):
+                    referenced_tls_secrets.add(ref["name"])
+
+    def is_application_edge_resource(doc: dict) -> bool:
+        metadata_name = (doc.get("metadata") or {}).get("name")
+        return bool(
+            has_canonical_application_backend(doc)
+            or metadata_name == "value-fabric-gateway"
+            or metadata_name in referenced_gateways
+            or metadata_name in referenced_tls_secrets
+            or (application_host and application_host in _collect_host_fields(doc))
+        )
+
+    # Host consistency is enforced only for the application edge. Internal
+    # service certificates and unrelated admin routes may use other DNS names.
+    if application_host:
+        for d in docs:
+            if not is_application_edge_resource(d):
+                continue
+            gk = (_api_group(d.get("apiVersion", "")), d.get("kind", ""))
+            md_name = d.get("metadata", {}).get("name", "?")
+            for observed in _collect_host_fields(d):
+                if observed != application_host:
+                    errors.append(
+                        f"{name}: host '{observed}' on {gk[1]}/{md_name} "
+                        f"does not match application host '{application_host}'"
+                    )
+
+    # 3. Mutual exclusivity applies to the application edge, not unrelated
+    # monitoring/admin routes bundled into the same production overlay.
+    allowed = ROUTING_KIND_MATRIX[axis]
+    for d in docs:
+        gk = (_api_group(d.get("apiVersion", "")), d.get("kind", ""))
+        if (
+            gk in ALL_ROUTING_KINDS
+            and gk not in allowed
+            and is_application_edge_resource(d)
+        ):
+            md_name = d.get("metadata", {}).get("name", "?")
+            errors.append(
+                f"{name}: forbidden routing resource for axis '{axis}': "
+                f"{gk[0]}/{gk[1]} (name={md_name})"
+            )
+
+    # 4. Service-existence.
     rendered_services = {
         d.get("metadata", {}).get("name")
         for d in docs
@@ -338,13 +390,98 @@ def _check_deployment(name: str, axis: str, rendered: Path) -> list[str]:
                     f"references Service '{svc}' which is not in the rendered output"
                 )
 
-    # 7. Mandatory nginx ingress controls (rendered manifests).
+    # 6. Canonical same-origin route topology and internal-only layer Services.
+    routes = [route for d in docs for route in _collect_routes(d)]
+    application_routes = [route for route in routes if route.host == application_host]
+    api_routes = [
+        route for route in application_routes if route.external_path == "/api/v1"
+    ]
+    frontend_routes = [
+        route for route in application_routes if route.external_path == "/"
+    ]
+
+    if len(api_routes) != 1:
+        errors.append(
+            f"{name}: expected exactly one /api/v1 route, found {len(api_routes)}"
+        )
+    else:
+        api_route = api_routes[0]
+        if not _is_gateway_service(api_route.backend) or api_route.port != 8000:
+            errors.append(
+                f"{name}: /api/v1 route must target only api-gateway:8000 "
+                f"(got {api_route.backend}:{api_route.port})"
+            )
+        if api_route.upstream_prefix != "/v1":
+            errors.append(
+                f"{name}: /api/v1 route must rewrite /api/v1 to /v1 "
+                f"(got {api_route.upstream_prefix!r})"
+            )
+        if application_host and api_route.host != application_host:
+            errors.append(f"{name}: /api/v1 route is not on the application host")
+
+    if len(frontend_routes) != 1:
+        errors.append(
+            f"{name}: expected exactly one / frontend route, found {len(frontend_routes)}"
+        )
+    else:
+        frontend_route = frontend_routes[0]
+        if (
+            not _is_frontend_service(frontend_route.backend)
+            or frontend_route.port != 3000
+        ):
+            errors.append(
+                f"{name}: / route must target only frontend:3000 "
+                f"(got {frontend_route.backend}:{frontend_route.port})"
+            )
+        if application_host and frontend_route.host != application_host:
+            errors.append(f"{name}: / route is not on the application host")
+        if (
+            axis == "istio"
+            and api_routes
+            and api_routes[0].order >= frontend_route.order
+        ):
+            errors.append(f"{name}: /api/v1 route must precede the frontend catch-all")
+
+    for route in routes:
+        if _is_layer_service(route.backend):
+            errors.append(
+                f"{name}: external route references internal layer Service '{route.backend}'"
+            )
+
+    for service in (d for d in docs if d.get("kind") == "Service"):
+        service_name = (service.get("metadata") or {}).get("name", "")
+        service_type = (service.get("spec") or {}).get("type", "ClusterIP")
+        if _is_layer_service(service_name) and service_type != "ClusterIP":
+            errors.append(
+                f"{name}: Service/{service_name} must remain internal-only "
+                f"(type ClusterIP, got {service_type})"
+            )
+
+    expected_route_kind = {
+        "nginx": ("networking.k8s.io", "Ingress"),
+        "gateway-api": ("gateway.networking.k8s.io", "HTTPRoute"),
+        "istio": ("networking.istio.io", "VirtualService"),
+    }[axis]
+    if not any(
+        (_api_group(d.get("apiVersion", "")), d.get("kind", "")) == expected_route_kind
+        and is_application_edge_resource(d)
+        for d in docs
+    ):
+        errors.append(
+            f"{name}: missing required {expected_route_kind[1]} routing resource"
+        )
+
+    # 7. Mandatory controls apply to API ingress, not the frontend SPA.
     if axis == "nginx":
+        api_resources = {route.resource for route in api_routes}
         for d in docs:
             gk = (_api_group(d.get("apiVersion", "")), d.get("kind", ""))
-            if gk != ("networking.k8s.io", "Ingress"):
-                continue
             md_name = d.get("metadata", {}).get("name", "?")
+            if (
+                gk != ("networking.k8s.io", "Ingress")
+                or f"Ingress/{md_name}" not in api_resources
+            ):
+                continue
             annotations = (d.get("metadata", {}) or {}).get("annotations") or {}
             for control, keys in REQUIRED_NGINX_ANNOTATIONS.items():
                 for key in keys:
@@ -353,16 +490,22 @@ def _check_deployment(name: str, axis: str, rendered: Path) -> list[str]:
                             f"{name}: Ingress/{md_name} missing required {control} annotation '{key}'"
                         )
 
-    # 6. Deployment securityContext baseline for rendered deployment bundles.
+    # 8. Security baseline for workloads that implement or authenticate the
+    # application edge. Unrelated monitoring workloads have their own gates.
+    edge_workloads = {route.backend for route in application_routes if route.backend}
     for d in docs:
         if d.get("kind") != "Deployment":
             continue
         md_name = d.get("metadata", {}).get("name", "?")
-        pod_spec = (((d.get("spec") or {}).get("template") or {}).get("spec") or {})
+        if md_name not in edge_workloads and "oauth2-proxy" not in md_name:
+            continue
+        pod_spec = ((d.get("spec") or {}).get("template") or {}).get("spec") or {}
         pod_sc = pod_spec.get("securityContext") or {}
         if pod_sc.get("runAsNonRoot") is not True:
-            errors.append(f"{name}: Deployment/{md_name} pod securityContext.runAsNonRoot must be true")
-        seccomp_type = ((pod_sc.get("seccompProfile") or {}).get("type"))
+            errors.append(
+                f"{name}: Deployment/{md_name} pod securityContext.runAsNonRoot must be true"
+            )
+        seccomp_type = (pod_sc.get("seccompProfile") or {}).get("type")
         if seccomp_type != "RuntimeDefault":
             errors.append(
                 f"{name}: Deployment/{md_name} pod securityContext.seccompProfile.type "
@@ -382,7 +525,7 @@ def _check_deployment(name: str, axis: str, rendered: Path) -> list[str]:
                     f"{name}: Deployment/{md_name} container/{c_name} "
                     "securityContext.readOnlyRootFilesystem must be true"
                 )
-            dropped = ((c_sc.get("capabilities") or {}).get("drop") or [])
+            dropped = (c_sc.get("capabilities") or {}).get("drop") or []
             if "ALL" not in dropped:
                 errors.append(
                     f"{name}: Deployment/{md_name} container/{c_name} "

@@ -1,0 +1,56 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: api-gateway-policy
+  namespace: value-fabric
+spec:
+  podSelector:
+    matchLabels:
+      app: api-gateway
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: __INGRESS_NAMESPACE__
+      ports:
+        - protocol: TCP
+          port: 8000
+  egress:
+    - to:
+        - podSelector: { matchLabels: { app: layer1-ingestion } }
+      ports: [{ protocol: TCP, port: 8000 }]
+    - to:
+        - podSelector: { matchLabels: { app: layer2-extraction } }
+      ports: [{ protocol: TCP, port: 8000 }]
+    - to:
+        - podSelector: { matchLabels: { app: layer3-knowledge } }
+      ports: [{ protocol: TCP, port: 8001 }]
+    - to:
+        - podSelector: { matchLabels: { app: layer4-agents } }
+      ports: [{ protocol: TCP, port: 8000 }]
+    - to:
+        - podSelector: { matchLabels: { app: layer5-ground-truth } }
+      ports: [{ protocol: TCP, port: 8005 }]
+    - to:
+        - podSelector: { matchLabels: { app: layer6-benchmarks } }
+      ports: [{ protocol: TCP, port: 8006 }]
+    - to:
+        - podSelector: { matchLabels: { app: redis } }
+      ports: [{ protocol: TCP, port: 6379 }]
+    # Clerk JWKS and other configured HTTPS control-plane dependencies.
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+      ports: [{ protocol: TCP, port: 443 }]
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53

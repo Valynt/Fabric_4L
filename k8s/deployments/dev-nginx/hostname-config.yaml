@@ -5,6 +5,5 @@ metadata:
   namespace: value-fabric
 data:
   host: dev.value-fabric.local
-  apiHost: dev-api.value-fabric.local
   # Ingress controller namespace for NetworkPolicy
   ingressNamespace: ingress-nginx

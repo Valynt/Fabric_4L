@@ -21,20 +21,34 @@ serviceAccount:
   create: true
   name: ""
 
-# ─── Ingress ────────────────────────────────────────────────────────────────
+# ─── Same-origin application edge ──────────────────────────────────────────
 ingress:
   enabled: true
   className: "nginx"
+  application:
+    host: app.fabric.local
+  tlsSecretName: ""
   annotations:
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
-    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
-    nginx.ingress.kubernetes.io/rate-limit: "100"
-  hosts:
-    - host: api.fabric.local
-      paths:
-        - path: /
-          pathType: Prefix
-  tls: []
+  api:
+    externalPrefix: /api/v1
+    upstreamPrefix: /v1
+    annotations:
+      nginx.ingress.kubernetes.io/use-regex: "true"
+      nginx.ingress.kubernetes.io/rewrite-target: /v1/$2
+      nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+      nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+      nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+      nginx.ingress.kubernetes.io/enable-cors: "true"
+      nginx.ingress.kubernetes.io/auth-url: http://oauth2-proxy.value-fabric.svc.cluster.local:4180/oauth2/auth
+      nginx.ingress.kubernetes.io/auth-signin: https://$host/oauth2/start?rd=$escaped_request_uri
+      nginx.ingress.kubernetes.io/auth-response-headers: X-Auth-Request-User,X-Auth-Request-Email,Authorization
+      nginx.ingress.kubernetes.io/limit-rps: "20"
+      nginx.ingress.kubernetes.io/limit-rpm: "100"
+      nginx.ingress.kubernetes.io/limit-connections: "10"
+      nginx.ingress.kubernetes.io/limit-burst-multiplier: "5"
+  frontend:
+    externalPrefix: /
 
 # ─── Services (L1-L7) ───────────────────────────────────────────────────────
 services:
@@ -189,6 +203,29 @@ services:
         periodSeconds: 10
       readiness:
         path: /ready
+        initialDelaySeconds: 10
+        periodSeconds: 5
+
+  frontend:
+    enabled: true
+    replicaCount: 2
+    port: 3000
+    resources:
+      limits:
+        cpu: 1000m
+        memory: 1Gi
+      requests:
+        cpu: 250m
+        memory: 256Mi
+    env:
+      OTEL_SERVICE_NAME: frontend
+    probes:
+      liveness:
+        path: /health
+        initialDelaySeconds: 30
+        periodSeconds: 10
+      readiness:
+        path: /health
         initialDelaySeconds: 10
         periodSeconds: 5
 

@@ -19,6 +19,14 @@ async function startServer() {
     next();
   });
 
+  app.all("/api/*", (_req, res) => {
+    res.status(502).json({
+      code: "API_GATEWAY_ROUTE_MISCONFIGURED",
+      message:
+        "API traffic reached the frontend service instead of the API gateway.",
+    });
+  });
+
   // Serve static files from dist/public in production
   const staticPath =
     process.env.NODE_ENV === "production"

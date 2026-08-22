@@ -5,6 +5,7 @@ resources:
   - deny-all.yml
   - allow-dns.yml
   - infra-policy.yml
+  - api-gateway-policy.yml
   - layer1-policy.yml
   - layer2-policy.yml
   - layer3-policy.yml
