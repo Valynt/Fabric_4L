@@ -104,6 +104,11 @@ class AgentGovernanceMetadata(BaseModel):
     intent: str | None = None
     confidence: float | None = None
     workflow_triggered: bool | None = None
+    response_tier: str | None = None
+    provider: str | None = None
+    fallback: bool | None = None
+    degraded: bool | None = None
+    degradation_reason: str | None = None
 
 
 class AgentStreamResponse(BaseModel):
@@ -311,6 +316,11 @@ async def agent_stream_chat(
             intent=metadata.get("intent"),
             confidence=metadata.get("confidence"),
             workflow_triggered=metadata.get("workflow_triggered"),
+            response_tier=metadata.get("response_tier"),
+            provider=metadata.get("provider"),
+            fallback=metadata.get("fallback"),
+            degraded=metadata.get("degraded"),
+            degradation_reason=metadata.get("degradation_reason"),
         ),
     )
 

@@ -441,6 +441,7 @@ class ConversationService:
 
             # ── Generate ──
             yield {"type": "STEP_STARTED", "timestamp": now(), "runId": run_id, "stepId": "generate", "label": "Generating response"}
+            generation_metadata: dict[str, object] = {}
             response_content = await self._generate_response(
                 user_message=user_message,
                 messages=messages,
@@ -452,6 +453,7 @@ class ConversationService:
                 gate_context=gate_context,
                 tenant_id=tenant_id,
                 entities=entities,
+                generation_metadata=generation_metadata,
             )
             yield {"type": "STEP_FINISHED", "timestamp": now(), "runId": run_id, "stepId": "generate", "status": "done"}
 
@@ -473,6 +475,7 @@ class ConversationService:
                     "journeyId": journey_id,
                     "intent": intent,
                     "confidence": confidence,
+                    **generation_metadata,
                     **self._semantic_agent_metadata(
                         agent_type="ConversationAgent",
                         output={"content": response_content, "intent": intent},
@@ -604,6 +607,7 @@ class ConversationService:
             )
 
         # Step 4: Generate response
+        generation_metadata: dict[str, object] = {}
         response_content = await self._generate_response(
             user_message=user_message,
             messages=messages,
@@ -615,6 +619,7 @@ class ConversationService:
             gate_context=gate_context,
             tenant_id=tenant_id,
             entities=entities,
+            generation_metadata=generation_metadata,
         )
 
         # Step 5: Emit audit event
@@ -645,6 +650,7 @@ class ConversationService:
                 "confidence": confidence,
                 "workflow_triggered": workflow_result is not None,
                 "entity_context": entity_context or {},
+                **generation_metadata,
                 **self._semantic_agent_metadata(
                     agent_type="ConversationAgent",
                     output={"content": response_content, "intent": intent},
@@ -887,6 +893,7 @@ class ConversationService:
         gate_context: dict[str, Any],
         tenant_id: str,
         entities: dict[str, Any] | None = None,
+        generation_metadata: dict[str, object] | None = None,
     ) -> str:
         """Generate the response content.
 
@@ -897,6 +904,19 @@ class ConversationService:
         4. Context-aware heuristic response (no LLM)
         """
         tenant_id = self._require_tenant_id(tenant_id)
+        generation_metadata = generation_metadata if generation_metadata is not None else {}
+        failed_tiers: list[str] = []
+
+        def mark_result(*, tier: str, provider: str | None = None) -> None:
+            generation_metadata.update(
+                {
+                    "response_tier": tier,
+                    "provider": provider,
+                    "fallback": bool(failed_tiers) or tier == "heuristic",
+                    "degraded": bool(failed_tiers) or tier == "heuristic",
+                    "degradation_reason": ",".join(failed_tiers) or None,
+                }
+            )
         # Strategy 0: Mutation tool execution
         tool_result = None
         if intent in MUTATION_INTENTS:
@@ -907,6 +927,7 @@ class ConversationService:
                 tenant_id=tenant_id,
             )
             if tool_result:
+                mark_result(tier="tool")
                 context_data = {**context_data, "tool_result": tool_result}
                 if tool_result.get("success"):
                     return self._append_workflow_notice(
@@ -935,10 +956,13 @@ class ConversationService:
                 )
                 content = result.get("response", "")
                 if content:
+                    mark_result(tier="conversation_agent")
                     return self._append_workflow_notice(content, workflow_result)
+                failed_tiers.append("conversation_agent_empty")
             except asyncio.CancelledError:
                 raise
             except Exception:
+                failed_tiers.append("conversation_agent_failed")
                 logger.warning("Full agent pipeline failed, falling back")
 
         # Strategy 2: C1 proxy with enriched context
@@ -952,10 +976,20 @@ class ConversationService:
                     account_name=account_name,
                 )
                 if content:
+                    mark_result(tier="thesys_c1", provider="thesys")
+                    if generation_metadata["degraded"]:
+                        await self._emit_degradation_audit(
+                            gate_context=gate_context,
+                            tenant_id=tenant_id,
+                            selected_tier="thesys_c1",
+                            reason=str(generation_metadata["degradation_reason"]),
+                        )
                     return self._append_workflow_notice(content, workflow_result)
+                failed_tiers.append("thesys_c1_unavailable")
             except asyncio.CancelledError:
                 raise
             except Exception:
+                failed_tiers.append("thesys_c1_failed")
                 logger.warning("C1 generation failed, falling back to heuristic")
 
         # Strategy 3: Context-aware heuristic (always works)
@@ -966,7 +1000,47 @@ class ConversationService:
             context_data=context_data,
             account_name=account_name,
         )
+        if not failed_tiers:
+            failed_tiers.append("llm_tiers_unavailable")
+        mark_result(tier="heuristic")
+        await self._emit_degradation_audit(
+            gate_context=gate_context,
+            tenant_id=tenant_id,
+            selected_tier="heuristic",
+            reason=str(generation_metadata["degradation_reason"]),
+        )
         return self._append_workflow_notice(content, workflow_result)
+
+    async def _emit_degradation_audit(
+        self,
+        *,
+        gate_context: dict[str, object],
+        tenant_id: str,
+        selected_tier: str,
+        reason: str,
+    ) -> None:
+        """Emit the first-class audit event required for an allowed fallback."""
+        try:
+            await emit_audit_event(
+                AuditAction.AGENT_EXECUTION,
+                outcome=AuditOutcome.SUCCESS,
+                resource_type="llm_degradation",
+                resource_id="conversation-agent",
+                details={
+                    "event_type": "llm_degradation_applied",
+                    "tenant_id": tenant_id,
+                    "run_id": gate_context.get("workflow_id"),
+                    "trace_id": gate_context.get("trace_id"),
+                    "selected_tier": selected_tier,
+                    "reason": reason,
+                    "degraded": True,
+                },
+                chain_id=f"conversation:{tenant_id}",
+            )
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            logger.warning("Failed to emit LLM degradation audit event", exc_info=True)
 
     def _require_tenant_id(self, tenant_id: str) -> str:
         normalized = tenant_id.strip() if isinstance(tenant_id, str) else ""
