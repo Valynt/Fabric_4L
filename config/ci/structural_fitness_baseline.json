@@ -84,12 +84,12 @@
       "size": 1637
     },
     {
-      "module": "layer4_agents.engine.executor",
-      "size": 1562
-    },
-    {
       "module": "layer5_ground_truth.api.governance_router",
       "size": 1544
+    },
+    {
+      "module": "layer4_agents.engine.executor",
+      "size": 1522
     },
     {
       "module": "layer4_agents.api.routes.analysis",
@@ -112,10 +112,6 @@
       "size": 1199
     },
     {
-      "module": "layer4_agents.api.routes.billing",
-      "size": 1179
-    },
-    {
       "module": "api.routes.formulas",
       "size": 1156
     },
@@ -132,8 +128,16 @@
       "size": 1072
     },
     {
+      "module": "layer4_agents.api.routes.billing",
+      "size": 1061
+    },
+    {
       "module": "layer4_agents.agents.audit_orchestrator.models",
       "size": 1037
+    },
+    {
+      "module": "layer4_agents.tools.registry",
+      "size": 1033
     }
   ],
   "size_threshold": 1000
