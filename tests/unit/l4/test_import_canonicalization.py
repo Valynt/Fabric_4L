@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 from datetime import UTC, datetime
@@ -25,6 +26,16 @@ def test_low_level_task_types_do_not_depend_on_layer4_runtime() -> None:
 
 
 def test_canonical_type_and_core_package_imports_are_lazy() -> None:
+    env = dict(os.environ)
+    pythonpath = os.pathsep.join(
+        [
+            "services/layer4-agents/src",
+            "packages/shared/src",
+            ".",
+            env.get("PYTHONPATH", ""),
+        ]
+    )
+    env["PYTHONPATH"] = pythonpath
     result = subprocess.run(
         [
             sys.executable,
@@ -37,6 +48,7 @@ def test_canonical_type_and_core_package_imports_are_lazy() -> None:
             ),
         ],
         cwd=".",
+        env=env,
         check=False,
     )
 

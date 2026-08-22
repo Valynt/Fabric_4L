@@ -17,10 +17,18 @@ import pytest
 
 pytestmark = [pytest.mark.unit]
 
-_HARNESS_MODELS = pathlib.Path("services/layer4-agents/src/harness/models.py")
-_OBSERVABILITY = pathlib.Path("services/layer4-agents/src/observability.py")
-_HARNESS_ROUTES = pathlib.Path("services/layer4-agents/src/api/routes/harness.py")
-_GOVERNED_LLM = pathlib.Path("services/layer4-agents/src/services/governed_llm_client.py")
+_HARNESS_MODELS = pathlib.Path(
+    "services/layer4-agents/src/layer4_agents/harness/models.py"
+)
+_OBSERVABILITY = pathlib.Path(
+    "services/layer4-agents/src/layer4_agents/observability.py"
+)
+_HARNESS_ROUTES = pathlib.Path(
+    "services/layer4-agents/src/layer4_agents/api/routes/harness.py"
+)
+_GOVERNED_LLM = pathlib.Path(
+    "services/layer4-agents/src/layer4_agents/services/governed_llm_client.py"
+)
 
 
 # ---------------------------------------------------------------------------
@@ -38,9 +46,9 @@ class TestHarnessTraceEventSchema:
         for node in ast.walk(tree):
             if isinstance(node, ast.ClassDef) and node.name == "HarnessTraceEvent":
                 class_src = ast.get_source_segment(source, node) or ""
-                assert "tenant_id" in class_src, (
-                    "HarnessTraceEvent must have tenant_id field"
-                )
+                assert (
+                    "tenant_id" in class_src
+                ), "HarnessTraceEvent must have tenant_id field"
                 return
         pytest.fail("HarnessTraceEvent not found")
 
@@ -51,9 +59,7 @@ class TestHarnessTraceEventSchema:
         for node in ast.walk(tree):
             if isinstance(node, ast.ClassDef) and node.name == "HarnessTraceEvent":
                 class_src = ast.get_source_segment(source, node) or ""
-                assert "run_id" in class_src, (
-                    "HarnessTraceEvent must have run_id field"
-                )
+                assert "run_id" in class_src, "HarnessTraceEvent must have run_id field"
                 return
         pytest.fail("HarnessTraceEvent not found")
 
@@ -64,9 +70,9 @@ class TestHarnessTraceEventSchema:
         for node in ast.walk(tree):
             if isinstance(node, ast.ClassDef) and node.name == "HarnessTraceEvent":
                 class_src = ast.get_source_segment(source, node) or ""
-                assert "workflow_type" in class_src, (
-                    "HarnessTraceEvent must have workflow_type field"
-                )
+                assert (
+                    "workflow_type" in class_src
+                ), "HarnessTraceEvent must have workflow_type field"
                 return
         pytest.fail("HarnessTraceEvent not found")
 
@@ -77,9 +83,9 @@ class TestHarnessTraceEventSchema:
         for node in ast.walk(tree):
             if isinstance(node, ast.ClassDef) and node.name == "HarnessTraceEvent":
                 class_src = ast.get_source_segment(source, node) or ""
-                assert "trace_id" in class_src, (
-                    "HarnessTraceEvent must have trace_id field"
-                )
+                assert (
+                    "trace_id" in class_src
+                ), "HarnessTraceEvent must have trace_id field"
                 return
         pytest.fail("HarnessTraceEvent not found")
 
@@ -90,9 +96,9 @@ class TestHarnessTraceEventSchema:
         for node in ast.walk(tree):
             if isinstance(node, ast.ClassDef) and node.name == "HarnessTraceEvent":
                 class_src = ast.get_source_segment(source, node) or ""
-                assert "event_type" in class_src, (
-                    "HarnessTraceEvent must have event_type field (serves as stage)"
-                )
+                assert (
+                    "event_type" in class_src
+                ), "HarnessTraceEvent must have event_type field (serves as stage)"
                 return
         pytest.fail("HarnessTraceEvent not found")
 
@@ -103,9 +109,9 @@ class TestHarnessTraceEventSchema:
         for node in ast.walk(tree):
             if isinstance(node, ast.ClassDef) and node.name == "HarnessTraceEvent":
                 class_src = ast.get_source_segment(source, node) or ""
-                assert "field_validator" in class_src or "validator" in class_src, (
-                    "HarnessTraceEvent must validate required ID fields"
-                )
+                assert (
+                    "field_validator" in class_src or "validator" in class_src
+                ), "HarnessTraceEvent must validate required ID fields"
                 return
         pytest.fail("HarnessTraceEvent not found")
 
@@ -116,9 +122,9 @@ class TestHarnessTraceEventSchema:
         for node in ast.walk(tree):
             if isinstance(node, ast.FunctionDef) and node.name == "emit":
                 fn_src = ast.get_source_segment(source, node) or ""
-                assert "event_stage" in fn_src or "stage" in fn_src, (
-                    "Layer4LifecycleLogger.emit() must include stage/event_stage in payload"
-                )
+                assert (
+                    "event_stage" in fn_src or "stage" in fn_src
+                ), "Layer4LifecycleLogger.emit() must include stage/event_stage in payload"
                 return
         pytest.fail("Layer4LifecycleLogger.emit() not found")
 
@@ -138,9 +144,7 @@ class TestValidationOutcomeSchema:
         for node in ast.walk(tree):
             if isinstance(node, ast.AsyncFunctionDef) and node.name == "decide_gate":
                 fn_src = ast.get_source_segment(source, node) or ""
-                assert "gate_id" in fn_src, (
-                    "decide_gate must use gate_id in its logic"
-                )
+                assert "gate_id" in fn_src, "decide_gate must use gate_id in its logic"
                 return
         pytest.fail("decide_gate not found in harness.py")
 
@@ -151,12 +155,12 @@ class TestValidationOutcomeSchema:
         for node in ast.walk(tree):
             if isinstance(node, ast.AsyncFunctionDef) and node.name == "decide_gate":
                 fn_src = ast.get_source_segment(source, node) or ""
-                assert "ctx.user_id" in fn_src, (
-                    "decide_gate must derive decision_by from ctx.user_id"
-                )
-                assert "server_decision_by" in fn_src, (
-                    "decide_gate must use server_decision_by variable"
-                )
+                assert (
+                    "ctx.user_id" in fn_src
+                ), "decide_gate must derive decision_by from ctx.user_id"
+                assert (
+                    "server_decision_by" in fn_src
+                ), "decide_gate must use server_decision_by variable"
                 return
         pytest.fail("decide_gate not found in harness.py")
 
@@ -167,18 +171,18 @@ class TestValidationOutcomeSchema:
         for node in ast.walk(tree):
             if isinstance(node, ast.AsyncFunctionDef) and node.name == "decide_gate":
                 fn_src = ast.get_source_segment(source, node) or ""
-                assert "ctx.tenant_id" in fn_src, (
-                    "decide_gate must pass ctx.tenant_id to registry"
-                )
+                assert (
+                    "ctx.tenant_id" in fn_src
+                ), "decide_gate must pass ctx.tenant_id to registry"
                 return
         pytest.fail("decide_gate not found in harness.py")
 
     def test_harness_run_has_validation_state(self) -> None:
         """HarnessRun model includes validation_state for outcome tracking."""
         source = _HARNESS_MODELS.read_text()
-        assert "validation_state" in source or "ValidationState" in source, (
-            "harness/models.py must include validation_state for outcome tracking"
-        )
+        assert (
+            "validation_state" in source or "ValidationState" in source
+        ), "harness/models.py must include validation_state for outcome tracking"
 
     def test_gate_response_includes_outcome_fields(self) -> None:
         """GateResponse includes status (outcome) and decision_by fields."""
@@ -187,21 +191,23 @@ class TestValidationOutcomeSchema:
         for node in ast.walk(tree):
             if isinstance(node, ast.ClassDef) and node.name == "GateResponse":
                 class_src = ast.get_source_segment(source, node) or ""
-                assert "status" in class_src or "decision" in class_src, (
-                    "GateResponse must include status/outcome field"
-                )
-                assert "decision_by" in class_src or "decided_by" in class_src, (
-                    "GateResponse must include decision_by field"
-                )
+                assert (
+                    "status" in class_src or "decision" in class_src
+                ), "GateResponse must include status/outcome field"
+                assert (
+                    "decision_by" in class_src or "decided_by" in class_src
+                ), "GateResponse must include decision_by field"
                 return
         # GateResponse may be in api_models.py
-        api_models = pathlib.Path("services/layer4-agents/src/harness/api_models.py")
+        api_models = pathlib.Path(
+            "services/layer4-agents/src/layer4_agents/harness/api_models.py"
+        )
         if api_models.exists():
             source2 = api_models.read_text()
             if "GateResponse" in source2:
-                assert "decision_by" in source2 or "decided_by" in source2, (
-                    "GateResponse must include decision_by field"
-                )
+                assert (
+                    "decision_by" in source2 or "decided_by" in source2
+                ), "GateResponse must include decision_by field"
                 return
         pytest.fail("GateResponse not found in harness models")
 
@@ -221,9 +227,9 @@ class TestFailedWorkflowSchema:
         for node in ast.walk(tree):
             if isinstance(node, ast.FunctionDef) and node.name == "emit":
                 fn_src = ast.get_source_segment(source, node) or ""
-                assert "error_class" in fn_src, (
-                    "Layer4LifecycleLogger.emit() must accept error_class parameter"
-                )
+                assert (
+                    "error_class" in fn_src
+                ), "Layer4LifecycleLogger.emit() must accept error_class parameter"
                 return
         pytest.fail("Layer4LifecycleLogger.emit() not found")
 
@@ -234,9 +240,9 @@ class TestFailedWorkflowSchema:
         for node in ast.walk(tree):
             if isinstance(node, ast.FunctionDef) and node.name == "emit":
                 fn_src = ast.get_source_segment(source, node) or ""
-                assert "error_code" in fn_src, (
-                    "Layer4LifecycleLogger.emit() must accept error_code parameter"
-                )
+                assert (
+                    "error_code" in fn_src
+                ), "Layer4LifecycleLogger.emit() must accept error_code parameter"
                 return
         pytest.fail("Layer4LifecycleLogger.emit() not found")
 
@@ -247,9 +253,9 @@ class TestFailedWorkflowSchema:
         for node in ast.walk(tree):
             if isinstance(node, ast.FunctionDef) and node.name == "emit":
                 fn_src = ast.get_source_segment(source, node) or ""
-                assert "tenant_id" in fn_src, (
-                    "Layer4LifecycleLogger.emit() must include tenant_id in payload"
-                )
+                assert (
+                    "tenant_id" in fn_src
+                ), "Layer4LifecycleLogger.emit() must include tenant_id in payload"
                 return
         pytest.fail("Layer4LifecycleLogger.emit() not found")
 
@@ -260,30 +266,30 @@ class TestFailedWorkflowSchema:
         for node in ast.walk(tree):
             if isinstance(node, ast.FunctionDef) and node.name == "emit":
                 fn_src = ast.get_source_segment(source, node) or ""
-                assert "run_id" in fn_src, (
-                    "Layer4LifecycleLogger.emit() must include run_id in payload"
-                )
+                assert (
+                    "run_id" in fn_src
+                ), "Layer4LifecycleLogger.emit() must include run_id in payload"
                 return
         pytest.fail("Layer4LifecycleLogger.emit() not found")
 
     def test_executor_emits_lifecycle_event_on_workflow_start(self) -> None:
         """executor.py emits a lifecycle event at workflow start with stage='start'."""
         source = pathlib.Path(
-            "services/layer4-agents/src/engine/executor.py"
+            "services/layer4-agents/src/layer4_agents/engine/executor.py"
         ).read_text()
-        assert "lifecycle_logger.emit" in source, (
-            "executor.py must call lifecycle_logger.emit() for workflow lifecycle events"
-        )
-        assert '"start"' in source or "'start'" in source, (
-            "executor.py must emit a 'start' stage event"
-        )
+        assert (
+            "lifecycle_logger.emit" in source
+        ), "executor.py must call lifecycle_logger.emit() for workflow lifecycle events"
+        assert (
+            '"start"' in source or "'start'" in source
+        ), "executor.py must emit a 'start' stage event"
 
     def test_governed_llm_client_emits_failed_event(self) -> None:
         """GovernedLLMClient emits llm_call_failed event on error."""
         source = _GOVERNED_LLM.read_text()
-        assert "llm_call_failed" in source, (
-            "governed_llm_client.py must emit 'llm_call_failed' event on error"
-        )
+        assert (
+            "llm_call_failed" in source
+        ), "governed_llm_client.py must emit 'llm_call_failed' event on error"
 
     def test_governed_llm_client_failed_event_includes_error(self) -> None:
         """llm_call_failed event metadata includes error field."""
@@ -292,11 +298,11 @@ class TestFailedWorkflowSchema:
         for node in ast.walk(tree):
             if isinstance(node, ast.FunctionDef) and node.name == "_emit_call_failed":
                 fn_src = ast.get_source_segment(source, node) or ""
-                assert '"error"' in fn_src or "'error'" in fn_src, (
-                    "_emit_call_failed must include 'error' field in metadata"
-                )
-                assert "model" in fn_src, (
-                    "_emit_call_failed must include 'model' field in metadata"
-                )
+                assert (
+                    '"error"' in fn_src or "'error'" in fn_src
+                ), "_emit_call_failed must include 'error' field in metadata"
+                assert (
+                    "model" in fn_src
+                ), "_emit_call_failed must include 'model' field in metadata"
                 return
         pytest.fail("_emit_call_failed not found in governed_llm_client.py")

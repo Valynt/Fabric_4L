@@ -7,7 +7,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 
-from logging_config import get_logger
+from value_fabric.shared.observability.logging import get_logger
 
 from .api_keys import (
     APIKey,
