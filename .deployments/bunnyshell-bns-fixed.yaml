@@ -13,7 +13,7 @@ environmentVariables:
     REDIS_PASSWORD: 'ENCRYPTED[3Qzpb//88Lo9R7k1ACRdRvcMKKP7qM1bjNFI7lMp7R0y+4s6e8C1BIWPRizFEWdeF5eCcKykp4qdjyzeNyFmFbAuTeMDww7ilZFrd25vaHc=]'
     SECRET_KEY: 'ENCRYPTED[CSzocaP/WwIXjOK8fMUmjRNLmMtDEUPgDjE0BbpdvLZFE9NRAW6TuglypxHYmBEDCoLmI8qaCG8fCmCVzUD94i40qykk+rUV1F8O8TYUXo8KSkzpF34Zca3FLm3ilZFrd25vaHc=]'
     SERVICE_AUTH_SECRET: 'ENCRYPTED[p7HUmenBnZjnhjH/CNGs3TedBee97M38uRoS7O3b37jKsWBmtyDd9i0ieAtCXVCbRdZ5aa3072a9RUdcHpFwtgUixUDKDtagAYSIkbYO5ufV7+lynBQda3jiSfrilZFrd25vaHc=]'
-    NEO4J_DB_PASSWORD: 'ENCRYPTED[bOOqN4QNrRlct+UUY/H/vgvwPygDg6AoT6RmY8Sd/ENh2T2pdHo/vA9zAapdBe6bk8O5vufDvT+trVffK1xu/vhKDXFkef7ilZFrd25vaHc=]'
+    GRAPH_DB_PASSWORD: 'ENCRYPTED[bOOqN4QNrRlct+UUY/H/vgvwPygDg6AoT6RmY8Sd/ENh2T2pdHo/vA9zAapdBe6bk8O5vufDvT+trVffK1xu/vhKDXFkef7ilZFrd25vaHc=]'
 components:
     -
         kind: Application
@@ -249,7 +249,7 @@ components:
                 LAYER3_API_URL: 'http://layer3:8001'
                 LLM_MODEL: gpt-4o
                 LOG_LEVEL: info
-                NEO4J_PASSWORD: '{{ env.vars.NEO4J_DB_PASSWORD }}'
+                NEO4J_PASSWORD: '{{ env.vars.GRAPH_DB_PASSWORD }}'
                 NEO4J_URI: 'bolt://neo4j:7687'
                 NEO4J_USER: neo4j
                 OPENAI_API_KEY: ''
@@ -292,8 +292,8 @@ components:
                 CACHE_REDIS_URL: 'redis://:@redis:6379/0'
                 JWT_SECRET: '{{ env.vars.JWT_SECRET }}'
                 LOG_LEVEL: info
-                NEO4J_AUTH: 'neo4j/${NEO4J_DB_PASSWORD}'
-                NEO4J_PASSWORD: '${NEO4J_DB_PASSWORD}'
+                NEO4J_AUTH: 'neo4j/${GRAPH_DB_PASSWORD}'
+                NEO4J_PASSWORD: '${GRAPH_DB_PASSWORD}'
                 NEO4J_URI: 'bolt://neo4j:7687'
                 NEO4J_USER: neo4j
                 REDIS_URL: 'redis://:{{ env.vars.REDIS_PASSWORD }}@redis:6379/0'
@@ -340,8 +340,8 @@ components:
                         cpus: '0.25'
                         memory: '536870912'
             environment:
-                NEO4J_AUTH: 'neo4j/${NEO4J_DB_PASSWORD}'
-                NEO4J_PASSWORD: '${NEO4J_DB_PASSWORD}'
+                NEO4J_AUTH: 'neo4j/${GRAPH_DB_PASSWORD}'
+                NEO4J_PASSWORD: '${GRAPH_DB_PASSWORD}'
                 NEO4J_URI: 'bolt://neo4j:7687'
                 NEO4J_USER: neo4j
     -
@@ -383,7 +383,7 @@ components:
                 LAYER6_BENCHMARKS_URL: 'http://layer6:8006'
                 LLM_MODEL: gpt-4o
                 LOG_LEVEL: debug
-                NEO4J_PASSWORD: '{{ env.vars.NEO4J_DB_PASSWORD }}'
+                NEO4J_PASSWORD: '{{ env.vars.GRAPH_DB_PASSWORD }}'
                 NEO4J_URI: 'bolt://neo4j:7687'
                 NEO4J_USER: neo4j
                 OPENAI_API_KEY: ''
@@ -506,7 +506,7 @@ components:
                 LAYER3_API_KEY: dev-layer3-api-key-placeholder-min-16-chars
                 LAYER5_API_KEY: dev-layer5-api-key-placeholder-min-16-chars
                 LOG_LEVEL: INFO
-                NEO4J_PASSWORD: '{{ env.vars.NEO4J_DB_PASSWORD }}'
+                NEO4J_PASSWORD: '{{ env.vars.GRAPH_DB_PASSWORD }}'
                 NEO4J_URI: 'bolt://neo4j:7687'
                 NEO4J_USER: neo4j
                 PORT: '8006'
@@ -580,7 +580,7 @@ components:
                         cpus: '0.75'
                         memory: '2147483648'
             environment:
-                NEO4J_AUTH: 'neo4j/${NEO4J_DB_PASSWORD}'
+                NEO4J_AUTH: 'neo4j/${GRAPH_DB_PASSWORD}'
                 NEO4J_PLUGINS: '["apoc"]'
                 NEO4J_dbms_memory_heap_max__size: 512m
                 NEO4J_dbms_memory_pagecache_size: 512m
