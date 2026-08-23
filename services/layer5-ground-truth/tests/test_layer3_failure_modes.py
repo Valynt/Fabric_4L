@@ -17,6 +17,7 @@ from layer5_ground_truth.integration.layer3_client import (
     ERR_LAYER3_TENANT_MISMATCH,
     ERR_LAYER3_TIMEOUT,
     Layer3Client,
+    Layer3ClientError,
     Layer3PolicyDeniedError,
     Layer3TenantMismatchError,
 )
@@ -200,6 +201,38 @@ async def test_main_returns_explicit_response_for_layer3_security_failures() -> 
     assert payload["code"] == ERR_LAYER3_POLICY_DENIED
     assert payload["trace_id"] == "req-layer3-policy-test"
     assert payload["details"]["tenant_id"] == str(TEST_ORG_ID)
+
+
+@pytest.mark.asyncio
+async def test_layer3_operational_exception_handler_returns_503() -> None:
+    app = create_app()
+    patch_governance_middleware_for_tests(app)
+
+    @app.get("/api/v1/test-layer3-operational-failure")
+    async def _raise_operational_failure():
+        exc = Layer3ClientError(
+            "Layer3 unavailable", tenant_id=TEST_ORG_ID
+        )
+        exc.status_code = 503
+        raise exc
+
+    async with AsyncClient(
+        transport=ASGITransport(app=app),
+        base_url="http://test",
+        headers={
+            "X-Tenant-ID": str(TEST_ORG_ID),
+            "X-Service-Auth": os.environ["SERVICE_AUTH_SECRET"],
+            "X-Request-ID": "req-layer3-op-test",
+        },
+    ) as client:
+        response = await client.get("/api/v1/test-layer3-operational-failure")
+
+    assert response.status_code == 503
+    payload = response.json()
+    assert payload["error"]["code"] == ERR_LAYER3_HTTP_CLIENT
+    assert payload["error"]["request_id"] == "req-layer3-op-test"
+    assert payload["error"]["details"] is None
+
 from fastapi import HTTPException
 
 from layer5_ground_truth.api.main import create_app
