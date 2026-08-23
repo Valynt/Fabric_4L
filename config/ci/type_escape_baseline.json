@@ -2380,113 +2380,113 @@
       "kind": "python-any",
       "line": 17,
       "path": "packages/shared/src/value_fabric/shared/identity/governance_core.py",
-      "text": "from typing import Any, Callable, Optional, Protocol"
+      "text": "from typing import Any, Protocol"
     },
     {
       "kind": "python-any",
-      "line": 33,
+      "line": 32,
       "path": "packages/shared/src/value_fabric/shared/identity/governance_core.py",
       "text": "api_key_id: Any"
     },
     {
       "kind": "python-any",
-      "line": 34,
+      "line": 33,
       "path": "packages/shared/src/value_fabric/shared/identity/governance_core.py",
       "text": "auth_method: Any"
     },
     {
       "kind": "python-any",
-      "line": 35,
+      "line": 34,
       "path": "packages/shared/src/value_fabric/shared/identity/governance_core.py",
       "text": "failure_reason: Any"
     },
     {
       "kind": "python-any",
-      "line": 37,
+      "line": 36,
       "path": "packages/shared/src/value_fabric/shared/identity/governance_core.py",
       "text": "is_super_admin: Any"
     },
     {
       "kind": "python-any",
-      "line": 38,
+      "line": 37,
       "path": "packages/shared/src/value_fabric/shared/identity/governance_core.py",
       "text": "isolation_tier: Any"
     },
     {
       "kind": "python-any",
-      "line": 39,
+      "line": 38,
       "path": "packages/shared/src/value_fabric/shared/identity/governance_core.py",
       "text": "org_id: Any"
     },
     {
       "kind": "python-any",
-      "line": 40,
+      "line": 39,
       "path": "packages/shared/src/value_fabric/shared/identity/governance_core.py",
       "text": "outcome: Any"
     },
     {
       "kind": "python-any",
-      "line": 41,
+      "line": 40,
       "path": "packages/shared/src/value_fabric/shared/identity/governance_core.py",
       "text": "request_method: Any"
     },
     {
       "kind": "python-any",
-      "line": 42,
+      "line": 41,
       "path": "packages/shared/src/value_fabric/shared/identity/governance_core.py",
       "text": "request_path: Any"
     },
     {
       "kind": "python-any",
-      "line": 43,
+      "line": 42,
       "path": "packages/shared/src/value_fabric/shared/identity/governance_core.py",
       "text": "resolution_source: Any"
     },
     {
       "kind": "python-any",
-      "line": 44,
+      "line": 43,
       "path": "packages/shared/src/value_fabric/shared/identity/governance_core.py",
       "text": "resolved_tenant_id: Any"
     },
     {
       "kind": "python-any",
-      "line": 46,
+      "line": 45,
       "path": "packages/shared/src/value_fabric/shared/identity/governance_core.py",
       "text": "service_account_id: Any"
     },
     {
       "kind": "python-any",
-      "line": 47,
+      "line": 46,
       "path": "packages/shared/src/value_fabric/shared/identity/governance_core.py",
       "text": "tenant_role: Any"
     },
     {
       "kind": "python-any",
-      "line": 48,
+      "line": 47,
       "path": "packages/shared/src/value_fabric/shared/identity/governance_core.py",
       "text": "user_id: Any"
     },
     {
       "kind": "python-any",
-      "line": 110,
+      "line": 108,
       "path": "packages/shared/src/value_fabric/shared/identity/governance_core.py",
       "text": "query_params: dict[str, Any] | None = None,"
     },
     {
       "kind": "python-any",
-      "line": 185,
+      "line": 188,
       "path": "packages/shared/src/value_fabric/shared/identity/governance_core.py",
       "text": "def _build_context_from_jwt(self, payload: dict[str, Any]) -> RequestContext:"
     },
     {
       "kind": "python-any",
-      "line": 222,
+      "line": 225,
       "path": "packages/shared/src/value_fabric/shared/identity/governance_core.py",
       "text": "def _build_context_from_api_key(self, record: dict[str, Any]) -> RequestContext:"
     },
     {
       "kind": "python-any",
-      "line": 301,
+      "line": 304,
       "path": "packages/shared/src/value_fabric/shared/identity/governance_core.py",
       "text": ") -> dict[str, Any]:"
     },
@@ -2804,135 +2804,63 @@
     },
     {
       "kind": "python-any",
-      "line": 46,
+      "line": 45,
       "path": "packages/shared/src/value_fabric/shared/identity/middleware_sync.py",
       "text": "user_id: Optional[Any] = None"
     },
     {
       "kind": "python-any",
-      "line": 51,
+      "line": 52,
       "path": "packages/shared/src/value_fabric/shared/identity/middleware_sync.py",
       "text": "raw: Dict[str, Any] = field(default_factory=dict)"
     },
     {
       "kind": "python-any",
-      "line": 54,
+      "line": 55,
       "path": "packages/shared/src/value_fabric/shared/identity/middleware_sync.py",
       "text": "org_id: Optional[Any] = None"
     },
     {
       "kind": "python-any",
-      "line": 90,
+      "line": 97,
       "path": "packages/shared/src/value_fabric/shared/identity/middleware_sync.py",
       "text": "def to_dict(self) -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 109,
-      "path": "packages/shared/src/value_fabric/shared/identity/middleware_sync.py",
-      "text": "api_key_id: Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 110,
-      "path": "packages/shared/src/value_fabric/shared/identity/middleware_sync.py",
-      "text": "auth_source: Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 111,
-      "path": "packages/shared/src/value_fabric/shared/identity/middleware_sync.py",
-      "text": "isolation_tier: Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 112,
-      "path": "packages/shared/src/value_fabric/shared/identity/middleware_sync.py",
-      "text": "org_id: Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 113,
-      "path": "packages/shared/src/value_fabric/shared/identity/middleware_sync.py",
-      "text": "permissions: Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 114,
-      "path": "packages/shared/src/value_fabric/shared/identity/middleware_sync.py",
-      "text": "request_id: Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 115,
-      "path": "packages/shared/src/value_fabric/shared/identity/middleware_sync.py",
-      "text": "roles: Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 116,
-      "path": "packages/shared/src/value_fabric/shared/identity/middleware_sync.py",
-      "text": "service_account_id: Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 117,
-      "path": "packages/shared/src/value_fabric/shared/identity/middleware_sync.py",
-      "text": "service_account_scopes: Any"
-    },
-    {
-      "kind": "python-any",
       "line": 118,
-      "path": "packages/shared/src/value_fabric/shared/identity/middleware_sync.py",
-      "text": "tenant_id: Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 119,
-      "path": "packages/shared/src/value_fabric/shared/identity/middleware_sync.py",
-      "text": "tenant_role: Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 120,
-      "path": "packages/shared/src/value_fabric/shared/identity/middleware_sync.py",
-      "text": "user_id: Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 123,
       "path": "packages/shared/src/value_fabric/shared/identity/middleware_sync.py",
       "text": "def _parse_uuid(value: Any) -> UUID | None:"
     },
     {
       "kind": "python-any",
-      "line": 160,
+      "line": 155,
       "path": "packages/shared/src/value_fabric/shared/identity/middleware_sync.py",
       "text": "def _from_fabric_auth(auth: Any) -> SyncRequestContext:"
     },
     {
       "kind": "python-any",
-      "line": 249,
+      "line": 252,
       "path": "packages/shared/src/value_fabric/shared/identity/middleware_sync.py",
       "text": "app: Any,"
     },
     {
       "kind": "python-any",
-      "line": 258,
+      "line": 261,
       "path": "packages/shared/src/value_fabric/shared/identity/middleware_sync.py",
       "text": "def __call__(self, environ: dict, start_response: Callable) -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 348,
+      "line": 357,
       "path": "packages/shared/src/value_fabric/shared/identity/middleware_sync.py",
-      "text": "def _build_context_from_jwt_sync(self, payload: dict[str, Any]) -> SyncRequestContext:"
+      "text": "self, payload: dict[str, Any]"
     },
     {
       "kind": "python-any",
-      "line": 371,
+      "line": 386,
       "path": "packages/shared/src/value_fabric/shared/identity/middleware_sync.py",
-      "text": "def _build_context_from_api_key_sync(self, record: dict[str, Any]) -> SyncRequestContext:"
+      "text": "self, record: dict[str, Any]"
     },
     {
       "kind": "python-any",
@@ -4724,49 +4652,43 @@
     },
     {
       "kind": "python-any",
-      "line": 281,
-      "path": "packages/shared/src/value_fabric/shared/security_middleware.py",
-      "text": "endpoint: Callable[..., Any]"
-    },
-    {
-      "kind": "python-any",
-      "line": 282,
-      "path": "packages/shared/src/value_fabric/shared/security_middleware.py",
-      "text": ") -> Callable[..., Any]:"
-    },
-    {
-      "kind": "python-any",
       "line": 293,
+      "path": "packages/shared/src/value_fabric/shared/security_middleware.py",
+      "text": "def disable_security_headers(endpoint: Callable[..., Any]) -> Callable[..., Any]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 305,
       "path": "packages/shared/src/value_fabric/shared/security_middleware.py",
       "text": "async def wrapper(*args: Any, **kwargs: Any) -> Any:"
     },
     {
       "kind": "python-type-ignore",
-      "line": 305,
+      "line": 322,
       "path": "packages/shared/src/value_fabric/shared/security_middleware.py",
       "text": "wrapper._security_headers_disabled = True  # type: ignore[attr-defined]"
     },
     {
       "kind": "python-any",
-      "line": 311,
+      "line": 328,
       "path": "packages/shared/src/value_fabric/shared/security_middleware.py",
       "text": ") -> Callable[[Callable[..., Any]], Callable[..., Any]]:"
     },
     {
       "kind": "python-any",
-      "line": 321,
+      "line": 339,
       "path": "packages/shared/src/value_fabric/shared/security_middleware.py",
       "text": "def decorator(endpoint: Callable[..., Any]) -> Callable[..., Any]:"
     },
     {
       "kind": "python-any",
-      "line": 323,
+      "line": 341,
       "path": "packages/shared/src/value_fabric/shared/security_middleware.py",
       "text": "async def wrapper(*args: Any, **kwargs: Any) -> Any:"
     },
     {
       "kind": "python-type-ignore",
-      "line": 335,
+      "line": 358,
       "path": "packages/shared/src/value_fabric/shared/security_middleware.py",
       "text": "wrapper._security_header_overrides = {name: value}  # type: ignore[attr-defined]"
     },
@@ -11066,13 +10988,13 @@
     },
     {
       "kind": "python-any",
-      "line": 63,
+      "line": 56,
       "path": "services/layer1-ingestion/src/layer1_ingestion/api/consent_routes.py",
       "text": "scope: dict[str, Any] = Field(default_factory=dict)"
     },
     {
       "kind": "python-any",
-      "line": 89,
+      "line": 82,
       "path": "services/layer1-ingestion/src/layer1_ingestion/api/consent_routes.py",
       "text": "scope: dict[str, Any]"
     },
@@ -11986,29 +11908,23 @@
       "kind": "python-any",
       "line": 37,
       "path": "services/layer1-ingestion/src/layer1_ingestion/compliance/robots_checker.py",
-      "text": "parse_error: Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 41,
-      "path": "services/layer1-ingestion/src/layer1_ingestion/compliance/robots_checker.py",
       "text": "content: Any"
     },
     {
       "kind": "python-any",
-      "line": 42,
+      "line": 38,
       "path": "services/layer1-ingestion/src/layer1_ingestion/compliance/robots_checker.py",
       "text": "expires_at: Any"
     },
     {
       "kind": "python-any",
-      "line": 43,
+      "line": 39,
       "path": "services/layer1-ingestion/src/layer1_ingestion/compliance/robots_checker.py",
       "text": "fetched_at: Any"
     },
     {
       "kind": "python-any",
-      "line": 44,
+      "line": 40,
       "path": "services/layer1-ingestion/src/layer1_ingestion/compliance/robots_checker.py",
       "text": "rules: Any"
     },
@@ -12016,41 +11932,41 @@
       "kind": "python-any",
       "line": 116,
       "path": "services/layer1-ingestion/src/layer1_ingestion/compliance/robots_checker.py",
-      "text": "def _strict_fetch_failure_response(self, domain: str) -> tuple[bool, str, dict[str, Any]]:"
+      "text": ") -> tuple[bool, str, dict[str, Any]]:"
     },
     {
       "kind": "python-any",
-      "line": 128,
+      "line": 130,
       "path": "services/layer1-ingestion/src/layer1_ingestion/compliance/robots_checker.py",
-      "text": "def _strict_missing_robots_response(self, domain: str) -> tuple[bool, str, dict[str, Any]]:"
+      "text": ") -> tuple[bool, str, dict[str, Any]]:"
     },
     {
       "kind": "python-any",
-      "line": 138,
+      "line": 140,
       "path": "services/layer1-ingestion/src/layer1_ingestion/compliance/robots_checker.py",
       "text": "def _parse_failure_response(self) -> tuple[bool, str | None, dict[str, Any]]:"
     },
     {
       "kind": "python-any",
-      "line": 266,
+      "line": 274,
       "path": "services/layer1-ingestion/src/layer1_ingestion/compliance/robots_checker.py",
       "text": ") -> dict[str, Any] | None:"
     },
     {
       "kind": "python-any",
-      "line": 377,
+      "line": 401,
       "path": "services/layer1-ingestion/src/layer1_ingestion/compliance/robots_checker.py",
       "text": "def _get_cached_robots_txt(self, domain: str) -> dict[str, Any] | None:"
     },
     {
       "kind": "python-any",
-      "line": 436,
+      "line": 461,
       "path": "services/layer1-ingestion/src/layer1_ingestion/compliance/robots_checker.py",
       "text": "rules: dict[str, Any],"
     },
     {
       "kind": "python-any",
-      "line": 510,
+      "line": 537,
       "path": "services/layer1-ingestion/src/layer1_ingestion/compliance/robots_checker.py",
       "text": "def _parse_robots_txt(self, content: str) -> dict[str, Any]:"
     },
@@ -16640,27 +16556,21 @@
     },
     {
       "kind": "python-any",
-      "line": 29,
+      "line": 30,
       "path": "services/layer3-knowledge/src/api/metrics_state.py",
       "text": "def cpu_percent(interval: Any = None) -> float:"
     },
     {
       "kind": "python-any",
-      "line": 39,
+      "line": 40,
       "path": "services/layer3-knowledge/src/api/metrics_state.py",
       "text": "_app_metrics: Any | None = None"
     },
     {
       "kind": "python-any",
-      "line": 42,
+      "line": 43,
       "path": "services/layer3-knowledge/src/api/metrics_state.py",
       "text": "def set_app_metrics(metrics: Any | None) -> None:"
-    },
-    {
-      "kind": "python-any",
-      "line": 48,
-      "path": "services/layer3-knowledge/src/api/metrics_state.py",
-      "text": "def get_app_metrics() -> Any | None:"
     },
     {
       "kind": "python-any",
@@ -19270,61 +19180,61 @@
       "kind": "python-any",
       "line": 8,
       "path": "services/layer3-knowledge/src/ingestion/neo4j/protocols.py",
-      "text": "async def single(self) -> dict[str, Any] | None:"
+      "text": "async def single(self) -> dict[str, Any] | None: ..."
     },
     {
       "kind": "python-any",
-      "line": 15,
+      "line": 14,
       "path": "services/layer3-knowledge/src/ingestion/neo4j/protocols.py",
       "text": "self, query: str, parameters: dict[str, Any] | None = None"
     },
     {
       "kind": "python-any",
-      "line": 22,
+      "line": 19,
       "path": "services/layer3-knowledge/src/ingestion/neo4j/protocols.py",
-      "text": "async def __aexit__(self, exc_type: Any, exc: Any, tb: Any) -> bool | None:"
+      "text": "async def __aexit__(self, exc_type: Any, exc: Any, tb: Any) -> bool | None: ..."
     },
     {
       "kind": "python-any",
-      "line": 34,
+      "line": 24,
       "path": "services/layer3-knowledge/src/ingestion/neo4j/protocols.py",
-      "text": "def encode(self, text: str, normalize_embeddings: bool = True) -> Any:"
+      "text": "def encode(self, text: str, normalize_embeddings: bool = True) -> Any: ..."
     },
     {
       "kind": "python-any",
-      "line": 41,
+      "line": 30,
       "path": "services/layer3-knowledge/src/ingestion/neo4j/protocols.py",
       "text": "self, label: str, nodes: list[dict[str, Any]]"
     },
     {
       "kind": "python-any",
+      "line": 31,
+      "path": "services/layer3-knowledge/src/ingestion/neo4j/protocols.py",
+      "text": ") -> dict[str, Any]: ..."
+    },
+    {
+      "kind": "python-any",
+      "line": 35,
+      "path": "services/layer3-knowledge/src/ingestion/neo4j/protocols.py",
+      "text": ") -> dict[str, Any]: ..."
+    },
+    {
+      "kind": "python-any",
       "line": 42,
-      "path": "services/layer3-knowledge/src/ingestion/neo4j/protocols.py",
-      "text": ") -> dict[str, Any]:"
-    },
-    {
-      "kind": "python-any",
-      "line": 47,
-      "path": "services/layer3-knowledge/src/ingestion/neo4j/protocols.py",
-      "text": ") -> dict[str, Any]:"
-    },
-    {
-      "kind": "python-any",
-      "line": 55,
       "path": "services/layer3-knowledge/src/ingestion/neo4j/protocols.py",
       "text": "properties: dict[str, Any] | None = None,"
     },
     {
       "kind": "python-any",
-      "line": 56,
+      "line": 43,
       "path": "services/layer3-knowledge/src/ingestion/neo4j/protocols.py",
-      "text": ") -> dict[str, Any]:"
+      "text": ") -> dict[str, Any]: ..."
     },
     {
       "kind": "python-any",
-      "line": 59,
+      "line": 45,
       "path": "services/layer3-knowledge/src/ingestion/neo4j/protocols.py",
-      "text": "async def delete_by_source(self, source_id: str) -> dict[str, Any]:"
+      "text": "async def delete_by_source(self, source_id: str) -> dict[str, Any]: ..."
     },
     {
       "kind": "python-any",
@@ -19442,25 +19352,25 @@
     },
     {
       "kind": "python-any",
-      "line": 107,
+      "line": 101,
       "path": "services/layer3-knowledge/src/ingestion/validators.py",
       "text": "data: dict[str, Any],"
     },
     {
       "kind": "python-any",
-      "line": 161,
+      "line": 155,
       "path": "services/layer3-knowledge/src/ingestion/validators.py",
       "text": "entities: list[dict[str, Any]],"
     },
     {
       "kind": "python-any",
-      "line": 182,
+      "line": 176,
       "path": "services/layer3-knowledge/src/ingestion/validators.py",
       "text": "data: dict[str, Any],"
     },
     {
       "kind": "python-any",
-      "line": 222,
+      "line": 216,
       "path": "services/layer3-knowledge/src/ingestion/validators.py",
       "text": "data: dict[str, Any],"
     },
@@ -19778,27 +19688,27 @@
     },
     {
       "kind": "python-any",
-      "line": 307,
+      "line": 342,
       "path": "services/layer3-knowledge/src/models/valuepack.py",
-      "text": "shared_drivers: list[dict[str, Any]] = Field(..., description=\"Value drivers appearing across industries\")"
+      "text": "shared_drivers: list[dict[str, Any]] = Field("
     },
     {
       "kind": "python-any",
-      "line": 308,
+      "line": 345,
       "path": "services/layer3-knowledge/src/models/valuepack.py",
-      "text": "shared_model_types: list[dict[str, Any]] = Field(..., description=\"Model types used across industries\")"
+      "text": "shared_model_types: list[dict[str, Any]] = Field("
     },
     {
       "kind": "python-any",
-      "line": 309,
+      "line": 348,
       "path": "services/layer3-knowledge/src/models/valuepack.py",
-      "text": "shared_proof_patterns: list[dict[str, Any]] = Field(..., description=\"Proof patterns used across industries\")"
+      "text": "shared_proof_patterns: list[dict[str, Any]] = Field("
     },
     {
       "kind": "python-any",
-      "line": 328,
+      "line": 382,
       "path": "services/layer3-knowledge/src/models/valuepack.py",
-      "text": "comparison_matrix: dict[str, dict[str, Any]] = Field(..., description=\"Dimension-by-dimension comparison\")"
+      "text": "comparison_matrix: dict[str, dict[str, Any]] = Field("
     },
     {
       "kind": "python-any",
@@ -20468,7 +20378,7 @@
     },
     {
       "kind": "python-any",
-      "line": 109,
+      "line": 111,
       "path": "services/layer3-knowledge/src/security/account_authorization.py",
       "text": ") -> tuple[str, dict[str, Any]]:"
     },
@@ -21716,9 +21626,9 @@
     },
     {
       "kind": "python-any",
-      "line": 86,
+      "line": 89,
       "path": "services/layer3-knowledge/src/utils/logging_context.py",
-      "text": "def __call__(self, logger: Any, method_name: str, event_dict: EventDict) -> EventDict:"
+      "text": "self, logger: Any, method_name: str, event_dict: EventDict"
     },
     {
       "kind": "python-any",
@@ -22655,24 +22565,6 @@
       "line": 80,
       "path": "services/layer4-agents/src/layer4_agents/adapters/company_knowledge_pipeline.py",
       "text": "dict[str, Any],"
-    },
-    {
-      "kind": "python-any",
-      "line": 6,
-      "path": "services/layer4-agents/src/layer4_agents/adapters/context_clients.py",
-      "text": "from typing import Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 14,
-      "path": "services/layer4-agents/src/layer4_agents/adapters/context_clients.py",
-      "text": "def create_context_ingestion_client(config: Mapping[str, Any]) -> ContextIngestionPort:"
-    },
-    {
-      "kind": "python-any",
-      "line": 26,
-      "path": "services/layer4-agents/src/layer4_agents/adapters/context_clients.py",
-      "text": "config: Mapping[str, Any],"
     },
     {
       "kind": "python-any",
@@ -23864,217 +23756,217 @@
     },
     {
       "kind": "python-type-ignore",
-      "line": 36,
+      "line": 42,
       "path": "services/layer4-agents/src/layer4_agents/agents/base.py",
       "text": "build_agent_output_envelope = None  # type: ignore[assignment]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 37,
+      "line": 43,
       "path": "services/layer4-agents/src/layer4_agents/agents/base.py",
       "text": "validate_agent_output = None  # type: ignore[assignment]"
     },
     {
       "kind": "python-any",
-      "line": 44,
+      "line": 50,
       "path": "services/layer4-agents/src/layer4_agents/agents/base.py",
       "text": "agent_id: Any"
     },
     {
       "kind": "python-any",
-      "line": 45,
+      "line": 51,
       "path": "services/layer4-agents/src/layer4_agents/agents/base.py",
       "text": "agent_type: Any"
     },
     {
       "kind": "python-any",
-      "line": 46,
+      "line": 52,
       "path": "services/layer4-agents/src/layer4_agents/agents/base.py",
       "text": "completed_at: Any"
     },
     {
       "kind": "python-any",
-      "line": 47,
+      "line": 53,
       "path": "services/layer4-agents/src/layer4_agents/agents/base.py",
       "text": "context: Any"
     },
     {
       "kind": "python-any",
-      "line": 48,
+      "line": 54,
       "path": "services/layer4-agents/src/layer4_agents/agents/base.py",
       "text": "current_task: Any"
     },
     {
       "kind": "python-any",
-      "line": 49,
+      "line": 55,
       "path": "services/layer4-agents/src/layer4_agents/agents/base.py",
       "text": "errors: Any"
     },
     {
       "kind": "python-any",
-      "line": 50,
+      "line": 56,
       "path": "services/layer4-agents/src/layer4_agents/agents/base.py",
       "text": "metadata: Any"
     },
     {
       "kind": "python-any",
-      "line": 51,
+      "line": 57,
       "path": "services/layer4-agents/src/layer4_agents/agents/base.py",
       "text": "started_at: Any"
     },
     {
       "kind": "python-any",
-      "line": 52,
+      "line": 58,
       "path": "services/layer4-agents/src/layer4_agents/agents/base.py",
       "text": "status: Any"
     },
     {
       "kind": "python-type-ignore",
-      "line": 58,
+      "line": 70,
       "path": "services/layer4-agents/src/layer4_agents/agents/base.py",
       "text": "class Clock:  # type: ignore[no-redef]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 63,
+      "line": 75,
       "path": "services/layer4-agents/src/layer4_agents/agents/base.py",
       "text": "class SystemClock(Clock):  # type: ignore[no-redef]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 66,
+      "line": 78,
       "path": "services/layer4-agents/src/layer4_agents/agents/base.py",
       "text": "class IDGenerator:  # type: ignore[no-redef]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 72,
+      "line": 85,
       "path": "services/layer4-agents/src/layer4_agents/agents/base.py",
       "text": "class UUIDGenerator(IDGenerator):  # type: ignore[no-redef]"
     },
     {
       "kind": "python-any",
-      "line": 102,
+      "line": 115,
       "path": "services/layer4-agents/src/layer4_agents/agents/base.py",
       "text": "input_schema: dict[str, Any] = field(default_factory=dict)"
     },
     {
       "kind": "python-any",
-      "line": 103,
+      "line": 116,
       "path": "services/layer4-agents/src/layer4_agents/agents/base.py",
       "text": "output_schema: dict[str, Any] = field(default_factory=dict)"
     },
     {
       "kind": "python-any",
-      "line": 127,
+      "line": 140,
       "path": "services/layer4-agents/src/layer4_agents/agents/base.py",
       "text": "context: dict[str, Any] = field(default_factory=dict)"
     },
     {
       "kind": "python-any",
-      "line": 131,
+      "line": 144,
       "path": "services/layer4-agents/src/layer4_agents/agents/base.py",
       "text": "metadata: dict[str, Any] = field(default_factory=dict)"
     },
     {
       "kind": "python-any",
-      "line": 133,
+      "line": 146,
       "path": "services/layer4-agents/src/layer4_agents/agents/base.py",
       "text": "def to_dict(self) -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 162,
+      "line": 183,
       "path": "services/layer4-agents/src/layer4_agents/agents/base.py",
       "text": "async def execute(self, task: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 173,
+      "line": 194,
       "path": "services/layer4-agents/src/layer4_agents/agents/base.py",
       "text": "config: dict[str, Any] | None = None,"
     },
     {
       "kind": "python-any",
-      "line": 174,
+      "line": 195,
       "path": "services/layer4-agents/src/layer4_agents/agents/base.py",
       "text": "message_bus: Any | None = None,"
     },
     {
       "kind": "python-any",
-      "line": 244,
+      "line": 267,
       "path": "services/layer4-agents/src/layer4_agents/agents/base.py",
       "text": "task: dict[str, Any],"
     },
     {
       "kind": "python-any",
-      "line": 245,
+      "line": 268,
       "path": "services/layer4-agents/src/layer4_agents/agents/base.py",
       "text": "context: dict[str, Any],"
     },
     {
       "kind": "python-any",
-      "line": 246,
+      "line": 269,
       "path": "services/layer4-agents/src/layer4_agents/agents/base.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 271,
+      "line": 294,
       "path": "services/layer4-agents/src/layer4_agents/agents/base.py",
       "text": "result: dict[str, Any],"
     },
     {
       "kind": "python-any",
-      "line": 272,
+      "line": 295,
       "path": "services/layer4-agents/src/layer4_agents/agents/base.py",
       "text": "task: dict[str, Any],"
     },
     {
       "kind": "python-any",
-      "line": 273,
+      "line": 296,
       "path": "services/layer4-agents/src/layer4_agents/agents/base.py",
       "text": "context: dict[str, Any],"
     },
     {
       "kind": "python-any",
-      "line": 274,
+      "line": 297,
       "path": "services/layer4-agents/src/layer4_agents/agents/base.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 342,
+      "line": 377,
       "path": "services/layer4-agents/src/layer4_agents/agents/base.py",
       "text": "task: dict[str, Any],"
     },
     {
       "kind": "python-any",
-      "line": 343,
+      "line": 378,
       "path": "services/layer4-agents/src/layer4_agents/agents/base.py",
       "text": "context: dict[str, Any] | None = None,"
     },
     {
       "kind": "python-any",
-      "line": 344,
+      "line": 379,
       "path": "services/layer4-agents/src/layer4_agents/agents/base.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 550,
+      "line": 586,
       "path": "services/layer4-agents/src/layer4_agents/agents/base.py",
       "text": "payload: dict[str, Any]"
     },
     {
       "kind": "python-any",
-      "line": 562,
+      "line": 598,
       "path": "services/layer4-agents/src/layer4_agents/agents/base.py",
       "text": "metadata: dict[str, Any] = field(default_factory=dict)"
     },
     {
       "kind": "python-any",
-      "line": 612,
+      "line": 648,
       "path": "services/layer4-agents/src/layer4_agents/agents/base.py",
       "text": "def to_dict(self) -> dict[str, Any]:"
     },
@@ -24230,469 +24122,223 @@
     },
     {
       "kind": "python-any",
-      "line": 42,
-      "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
-      "text": "categories: list[Any]"
-    },
-    {
-      "kind": "python-any",
-      "line": 43,
-      "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
-      "text": "confidence: Any | None = None"
-    },
-    {
-      "kind": "python-any",
-      "line": 44,
-      "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
-      "text": "pain_points: Any | None = None"
-    },
-    {
-      "kind": "python-any",
-      "line": 45,
-      "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
-      "text": "profile: dict[str, Any] | None = None"
-    },
-    {
-      "kind": "python-any",
-      "line": 46,
-      "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
-      "text": "risks: Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 47,
-      "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
-      "text": "stakeholders: Any | None = None"
-    },
-    {
-      "kind": "python-any",
-      "line": 50,
-      "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
-      "text": "coverage_percentage: Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 51,
-      "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
-      "text": "gaps: Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 52,
-      "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
-      "text": "nodes_created: Any | None = None"
-    },
-    {
-      "kind": "python-any",
-      "line": 53,
-      "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
-      "text": "value_tree: Any | None = None"
-    },
-    {
-      "kind": "python-any",
-      "line": 56,
-      "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
-      "text": "audit_result: dict[str, Any]"
-    },
-    {
-      "kind": "python-any",
-      "line": 57,
-      "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
-      "text": "discrepancies: Any | None = None"
-    },
-    {
-      "kind": "python-any",
-      "line": 58,
-      "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
-      "text": "stale_evidence: Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 59,
-      "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
-      "text": "validated: Any | None = None"
-    },
-    {
-      "kind": "python-any",
-      "line": 60,
-      "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
-      "text": "verified: Any | None = None"
-    },
-    {
-      "kind": "python-any",
-      "line": 61,
-      "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
-      "text": "violations: Any | None = None"
-    },
-    {
-      "kind": "python-any",
-      "line": 64,
-      "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
-      "text": "key_points: Any | None = None"
-    },
-    {
-      "kind": "python-any",
-      "line": 65,
-      "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
-      "text": "proposal: Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 66,
-      "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
-      "text": "risk_mitigation: Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 67,
-      "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
-      "text": "slides: Any | None = None"
-    },
-    {
-      "kind": "python-any",
-      "line": 68,
-      "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
-      "text": "speaker_notes: list[Any] | None = None"
-    },
-    {
-      "kind": "python-any",
-      "line": 69,
-      "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
-      "text": "summary: Any | None = None"
-    },
-    {
-      "kind": "python-any",
-      "line": 70,
-      "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
-      "text": "word_count: Any | None = None"
-    },
-    {
-      "kind": "python-any",
-      "line": 73,
-      "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
-      "text": "analysis: Any | None = None"
-    },
-    {
-      "kind": "python-any",
-      "line": 74,
-      "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
-      "text": "battlecard: Any | None = None"
-    },
-    {
-      "kind": "python-any",
-      "line": 75,
-      "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
-      "text": "differentiators: Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 76,
-      "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
-      "text": "factors: Any | None = None"
-    },
-    {
-      "kind": "python-any",
-      "line": 77,
-      "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
-      "text": "positioning: Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 78,
-      "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
-      "text": "win_rate: Any | None = None"
-    },
-    {
-      "kind": "python-any",
-      "line": 81,
-      "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
-      "text": "actions_taken: Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 82,
-      "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
-      "text": "confidence: Any | None = None"
-    },
-    {
-      "kind": "python-any",
-      "line": 83,
-      "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
-      "text": "context_data: Any | None = None"
-    },
-    {
-      "kind": "python-any",
-      "line": 84,
-      "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
-      "text": "entities: Any | None = None"
-    },
-    {
-      "kind": "python-any",
-      "line": 85,
-      "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
-      "text": "intent: Any | None = None"
-    },
-    {
-      "kind": "python-any",
-      "line": 86,
-      "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
-      "text": "response: Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 87,
-      "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
-      "text": "sources: Any | None = None"
-    },
-    {
-      "kind": "python-any",
-      "line": 90,
-      "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
-      "text": "agent_load: dict[str, Any] | None = None"
-    },
-    {
-      "kind": "python-any",
-      "line": 91,
-      "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
-      "text": "assignments: Any | None = None"
-    },
-    {
-      "kind": "python-any",
-      "line": 92,
-      "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
-      "text": "current_instances: Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 93,
-      "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
-      "text": "estimated_start: Any | None = None"
-    },
-    {
-      "kind": "python-any",
-      "line": 97,
-      "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
-      "text": "schedule_id: Any | None = None"
-    },
-    {
-      "kind": "python-any",
-      "line": 135,
+      "line": 79,
       "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
       "text": "ctx: dict[str, Any],"
     },
     {
       "kind": "python-any",
-      "line": 137,
+      "line": 81,
       "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
       "text": "input_data: dict[str, Any],"
     },
     {
       "kind": "python-any",
-      "line": 139,
+      "line": 83,
       "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 184,
+      "line": 129,
       "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
       "text": "payload: dict[str, Any],"
     },
     {
       "kind": "python-any",
-      "line": 186,
+      "line": 131,
       "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
       "text": "context: dict[str, Any],"
     },
     {
       "kind": "python-any",
-      "line": 190,
+      "line": 135,
       "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 234,
+      "line": 181,
       "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
       "text": "context: dict[str, Any],"
     },
     {
       "kind": "python-any",
-      "line": 236,
+      "line": 183,
       "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 277,
+      "line": 225,
       "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
-      "text": "layer1_client_factory: Callable[[Mapping[str, Any]], ContextIngestionPort] | None = None,"
+      "text": "Callable[[Mapping[str, Any]], ContextIngestionPort] | None"
     },
     {
       "kind": "python-any",
-      "line": 278,
+      "line": 228,
       "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
-      "text": "layer2_client_factory: Callable[[Mapping[str, Any]], ContextFinancialExtractionPort] | None = None,"
+      "text": "Callable[[Mapping[str, Any]], ContextFinancialExtractionPort] | None"
     },
     {
       "kind": "python-any",
-      "line": 279,
+      "line": 230,
       "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
       "text": "**kwargs: Any,"
     },
     {
       "kind": "python-any",
-      "line": 341,
+      "line": 300,
       "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
       "text": "task: dict[str, Any],"
     },
     {
       "kind": "python-any",
-      "line": 342,
+      "line": 301,
       "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
       "text": "context: dict[str, Any],"
     },
     {
       "kind": "python-any",
-      "line": 343,
+      "line": 302,
       "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 488,
+      "line": 477,
       "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
       "text": "task: dict[str, Any],"
     },
     {
       "kind": "python-any",
-      "line": 489,
+      "line": 478,
       "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
       "text": "context: dict[str, Any],"
     },
     {
       "kind": "python-any",
-      "line": 490,
+      "line": 479,
       "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 622,
+      "line": 629,
       "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
       "text": "task: dict[str, Any],"
     },
     {
       "kind": "python-any",
-      "line": 623,
+      "line": 630,
       "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
       "text": "context: dict[str, Any],"
     },
     {
       "kind": "python-any",
-      "line": 624,
+      "line": 631,
       "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 740,
+      "line": 769,
       "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
       "text": "def __init__(self, **kwargs: Any) -> None:"
     },
     {
       "kind": "python-any",
-      "line": 782,
+      "line": 827,
       "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
       "text": "task: dict[str, Any],"
     },
     {
       "kind": "python-any",
-      "line": 783,
+      "line": 828,
       "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
       "text": "context: dict[str, Any],"
     },
     {
       "kind": "python-any",
-      "line": 784,
+      "line": 829,
       "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 908,
+      "line": 966,
       "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
       "text": "task: dict[str, Any],"
     },
     {
       "kind": "python-any",
-      "line": 909,
+      "line": 967,
       "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
       "text": "context: dict[str, Any],"
     },
     {
       "kind": "python-any",
-      "line": 910,
+      "line": 968,
       "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 1024,
+      "line": 1106,
       "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
       "text": "task: dict[str, Any],"
     },
     {
       "kind": "python-any",
-      "line": 1025,
+      "line": 1107,
       "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
       "text": "context: dict[str, Any],"
     },
     {
       "kind": "python-any",
-      "line": 1026,
+      "line": 1108,
       "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
       "text": ") -> dict[str, Any]:"
-    },
-    {
-      "kind": "python-any",
-      "line": 1048,
-      "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
-      "text": "context_data: dict[str, Any] = {}"
-    },
-    {
-      "kind": "python-any",
-      "line": 1131,
-      "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
-      "text": "def __init__(self, **kwargs: Any) -> None:"
-    },
-    {
-      "kind": "python-any",
-      "line": 1134,
-      "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
-      "text": "self.task_queue: list[dict[str, Any]] = []"
     },
     {
       "kind": "python-any",
       "line": 1135,
       "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
+      "text": "context_data: dict[str, Any] = {}"
+    },
+    {
+      "kind": "python-any",
+      "line": 1228,
+      "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
+      "text": "def __init__(self, **kwargs: Any) -> None:"
+    },
+    {
+      "kind": "python-any",
+      "line": 1231,
+      "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
+      "text": "self.task_queue: list[dict[str, Any]] = []"
+    },
+    {
+      "kind": "python-any",
+      "line": 1232,
+      "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
       "text": "self.running_tasks: dict[str, Any] = {}"
     },
     {
       "kind": "python-any",
-      "line": 1188,
+      "line": 1295,
       "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
       "text": "task: dict[str, Any],"
     },
     {
       "kind": "python-any",
-      "line": 1189,
+      "line": 1296,
       "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
       "text": "context: dict[str, Any],"
     },
     {
       "kind": "python-any",
-      "line": 1190,
+      "line": 1297,
       "path": "services/layer4-agents/src/layer4_agents/agents/taxonomy.py",
       "text": ") -> dict[str, Any]:"
     },
@@ -26018,31 +25664,31 @@
     },
     {
       "kind": "python-any",
-      "line": 62,
+      "line": 63,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/crm_webhooks.py",
       "text": "webhooks: list[Any]"
     },
     {
       "kind": "python-any",
-      "line": 65,
+      "line": 67,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/crm_webhooks.py",
       "text": "event_type: Any"
     },
     {
       "kind": "python-any",
-      "line": 67,
+      "line": 69,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/crm_webhooks.py",
       "text": "record_id: Any"
     },
     {
       "kind": "python-any",
-      "line": 71,
+      "line": 74,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/crm_webhooks.py",
       "text": "companies_to_sync: Any"
     },
     {
       "kind": "python-any",
-      "line": 72,
+      "line": 75,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/crm_webhooks.py",
       "text": "events_processed: Any"
     },
@@ -26054,61 +25700,61 @@
     },
     {
       "kind": "python-any",
-      "line": 173,
+      "line": 175,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/crm_webhooks.py",
       "text": "async def _decrypt_integration_credentials(integration: Integration) -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 348,
+      "line": 360,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/crm_webhooks.py",
       "text": ") -> tuple[dict[str, Any], str]:"
     },
     {
       "kind": "python-any",
-      "line": 393,
+      "line": 409,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/crm_webhooks.py",
       "text": "def _collect_nested_values(node: Any, keys: set[str]) -> set[str]:"
     },
     {
       "kind": "python-any",
-      "line": 410,
+      "line": 426,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/crm_webhooks.py",
       "text": "credentials: dict[str, Any],"
     },
     {
       "kind": "python-any",
-      "line": 411,
+      "line": 427,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/crm_webhooks.py",
       "text": "payload: Any,"
     },
     {
       "kind": "python-any",
-      "line": 466,
+      "line": 488,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/crm_webhooks.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 647,
+      "line": 686,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/crm_webhooks.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 668,
+      "line": 710,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/crm_webhooks.py",
       "text": "details: dict[str, Any] = {"
     },
     {
       "kind": "python-any",
-      "line": 718,
+      "line": 768,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/crm_webhooks.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 900,
+      "line": 955,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/crm_webhooks.py",
       "text": "async def webhook_health() -> dict[str, Any]:"
     },
@@ -28550,7 +28196,7 @@
     },
     {
       "kind": "python-any",
-      "line": 155,
+      "line": 148,
       "path": "services/layer4-agents/src/layer4_agents/harness/telemetry.py",
       "text": "metadata: dict[str, Any] | None = None,"
     },
@@ -31808,115 +31454,85 @@
     },
     {
       "kind": "python-any",
-      "line": 32,
+      "line": 30,
       "path": "services/layer4-agents/src/layer4_agents/services/context_gatherer.py",
       "text": "def _hypothesis_dedup_key(hypothesis: dict[str, Any]) -> Hashable:"
     },
     {
       "kind": "python-any",
-      "line": 50,
-      "path": "services/layer4-agents/src/layer4_agents/services/context_gatherer.py",
-      "text": "account: dict[str, Any]"
-    },
-    {
-      "kind": "python-any",
-      "line": 51,
-      "path": "services/layer4-agents/src/layer4_agents/services/context_gatherer.py",
-      "text": "signals: list[dict[str, Any]]"
-    },
-    {
-      "kind": "python-any",
-      "line": 52,
-      "path": "services/layer4-agents/src/layer4_agents/services/context_gatherer.py",
-      "text": "hypotheses: list[dict[str, Any]]"
-    },
-    {
-      "kind": "python-any",
       "line": 53,
-      "path": "services/layer4-agents/src/layer4_agents/services/context_gatherer.py",
-      "text": "evidence_summary: dict[str, Any]"
-    },
-    {
-      "kind": "python-any",
-      "line": 54,
-      "path": "services/layer4-agents/src/layer4_agents/services/context_gatherer.py",
-      "text": "competitive: dict[str, Any]"
-    },
-    {
-      "kind": "python-any",
-      "line": 63,
       "path": "services/layer4-agents/src/layer4_agents/services/context_gatherer.py",
       "text": "neo4j_driver: Any | None = None,"
     },
     {
       "kind": "python-any",
-      "line": 64,
+      "line": 54,
       "path": "services/layer4-agents/src/layer4_agents/services/context_gatherer.py",
       "text": "db: Any | None = None,"
     },
     {
       "kind": "python-any",
-      "line": 75,
+      "line": 65,
       "path": "services/layer4-agents/src/layer4_agents/services/context_gatherer.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 89,
+      "line": 79,
       "path": "services/layer4-agents/src/layer4_agents/services/context_gatherer.py",
       "text": "result: dict[str, Any] = {"
     },
     {
       "kind": "python-any",
-      "line": 106,
+      "line": 96,
       "path": "services/layer4-agents/src/layer4_agents/services/context_gatherer.py",
       "text": "dict[str, Any] | None,"
     },
     {
       "kind": "python-any",
-      "line": 107,
+      "line": 97,
       "path": "services/layer4-agents/src/layer4_agents/services/context_gatherer.py",
       "text": "list[dict[str, Any]],"
     },
     {
       "kind": "python-any",
-      "line": 108,
+      "line": 98,
       "path": "services/layer4-agents/src/layer4_agents/services/context_gatherer.py",
       "text": "list[dict[str, Any]],"
     },
     {
       "kind": "python-any",
-      "line": 109,
+      "line": 99,
       "path": "services/layer4-agents/src/layer4_agents/services/context_gatherer.py",
       "text": "dict[str, Any] | None,"
     },
     {
       "kind": "python-any",
-      "line": 138,
+      "line": 128,
       "path": "services/layer4-agents/src/layer4_agents/services/context_gatherer.py",
       "text": ") -> dict[str, Any] | None:"
     },
     {
       "kind": "python-any",
-      "line": 176,
+      "line": 166,
       "path": "services/layer4-agents/src/layer4_agents/services/context_gatherer.py",
       "text": ") -> list[dict[str, Any]]:"
     },
     {
       "kind": "python-any",
-      "line": 221,
+      "line": 211,
       "path": "services/layer4-agents/src/layer4_agents/services/context_gatherer.py",
       "text": ") -> list[dict[str, Any]]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 257,
+      "path": "services/layer4-agents/src/layer4_agents/services/context_gatherer.py",
+      "text": ") -> dict[str, Any] | None:"
     },
     {
       "kind": "python-any",
       "line": 267,
-      "path": "services/layer4-agents/src/layer4_agents/services/context_gatherer.py",
-      "text": ") -> dict[str, Any] | None:"
-    },
-    {
-      "kind": "python-any",
-      "line": 277,
       "path": "services/layer4-agents/src/layer4_agents/services/context_gatherer.py",
       "text": "params: dict[str, Any] = {}"
     },
@@ -32264,19 +31880,19 @@
     },
     {
       "kind": "python-any",
-      "line": 126,
+      "line": 128,
       "path": "services/layer4-agents/src/layer4_agents/services/crm_sync_service.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 556,
+      "line": 587,
       "path": "services/layer4-agents/src/layer4_agents/services/crm_sync_service.py",
-      "text": "async def _get_crm_config(self, provider: CRMProvider, tenant_id: str) -> dict[str, Any] | None:"
+      "text": ") -> dict[str, Any] | None:"
     },
     {
       "kind": "python-any",
-      "line": 606,
+      "line": 642,
       "path": "services/layer4-agents/src/layer4_agents/services/crm_sync_service.py",
       "text": "async def persist_refreshed_tokens(token_result: dict[str, Any]) -> None:"
     },
@@ -39590,13 +39206,13 @@
     },
     {
       "kind": "python-any",
-      "line": 130,
+      "line": 122,
       "path": "services/layer5-ground-truth/src/layer5_ground_truth/cache.py",
       "text": "async def wrapper(*args: Any, **kwargs: Any) -> T:"
     },
     {
       "kind": "python-type-ignore",
-      "line": 156,
+      "line": 150,
       "path": "services/layer5-ground-truth/src/layer5_ground_truth/cache.py",
       "text": "wrapper.__signature__ = inspect.signature(func)  # type: ignore[attr-defined]"
     },
