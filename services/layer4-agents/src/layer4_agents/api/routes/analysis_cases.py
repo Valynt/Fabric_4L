@@ -81,42 +81,42 @@ def compute_case_diff(previous: dict[str, Any], current: dict[str, Any]) -> dict
     }
 
 
-def _resolve_account_service() -> Any:
+def _resolve_account_service() -> type[AccountService]:
     mod = _get_analysis_module()
     return getattr(mod, "AccountService", AccountService)
 
 
-def _resolve_business_case_service() -> Any:
+def _resolve_business_case_service() -> type[BusinessCaseService]:
     mod = _get_analysis_module()
     return getattr(mod, "BusinessCaseService", BusinessCaseService)
 
 
-def _resolve_emit_and_persist_audit() -> Any:
+def _resolve_emit_and_persist_audit() -> object:
     mod = _get_analysis_module()
     return getattr(mod, "emit_and_persist_audit", emit_and_persist_audit)
 
 
-def _resolve_require_approved_case() -> Any:
+def _resolve_require_approved_case() -> object:
     mod = _get_analysis_module()
     return getattr(mod, "_require_approved_case", require_approved_case)
 
 
-def _resolve_get_settings() -> Any:
+def _resolve_get_settings() -> object:
     mod = _get_analysis_module()
     return getattr(mod, "get_settings", get_settings)
 
 
-def _resolve_upload_bytes() -> Any:
+def _resolve_upload_bytes() -> object:
     mod = _get_analysis_module()
     return getattr(mod, "upload_bytes", upload_bytes)
 
 
-def _resolve_generate_download_url() -> Any:
+def _resolve_generate_download_url() -> object:
     mod = _get_analysis_module()
     return getattr(mod, "generate_download_url", generate_download_url)
 
 
-def _get_analysis_module() -> Any:
+def _get_analysis_module() -> object:
     return sys.modules.get("layer4_agents.api.routes.analysis")
 
 
@@ -535,32 +535,29 @@ def build_cases_router(
                     "truth_gate_passed": truth_gate.get("passed", False),
                 },
             )
-            return cast(
-                dict[str, Any],
-                export_business_caseResult.model_validate(
-                    {
+            return export_business_caseResult.model_validate(
+                {
+                    "case_id": case_id,
+                    "export_id": export_id,
+                    "format": format,
+                    "document_url": assemble_data.get("document_url"),
+                    "download_ready": False,
+                    "blocked": True,
+                    "remediation_items": remediation_items,
+                    "truth_references": truth_references,
+                    "manifest": {
                         "case_id": case_id,
-                        "export_id": export_id,
                         "format": format,
-                        "document_url": assemble_data.get("document_url"),
-                        "download_ready": False,
                         "blocked": True,
-                        "remediation_items": remediation_items,
                         "truth_references": truth_references,
-                        "manifest": {
-                            "case_id": case_id,
-                            "format": format,
-                            "blocked": True,
-                            "truth_references": truth_references,
-                            "remediation_items": remediation_items,
-                            "truth_gate": {
-                                "passed": truth_gate.get("passed", False),
-                                "requirements": truth_gate.get("requirements", []),
-                            },
+                        "remediation_items": remediation_items,
+                        "truth_gate": {
+                            "passed": truth_gate.get("passed", False),
+                            "requirements": truth_gate.get("requirements", []),
                         },
-                    }
-                ).model_dump(),
-            )
+                    },
+                }
+            ).model_dump()
 
         if not document_bytes:
             raise ConflictError(message="Business case document bytes unavailable")
