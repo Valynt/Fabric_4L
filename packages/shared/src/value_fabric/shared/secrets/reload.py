@@ -126,9 +126,13 @@ def reload_on_secret_change(
 
         try:
             asyncio.get_event_loop().create_task(watcher.run_async())
-            logger.info(f"Hot-reload enabled for {func.__name__} (watching {secret_name})")
+            logger.info(
+                f"Hot-reload enabled for {func.__name__} (watching {secret_name})"
+            )
         except RuntimeError:
-            logger.warning(f"No event loop available, hot-reload disabled for {func.__name__}")
+            logger.warning(
+                f"No event loop available, hot-reload disabled for {func.__name__}"
+            )
 
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
@@ -139,20 +143,3 @@ def reload_on_secret_change(
         return wrapper
 
     return decorator
-
-
-def notify_secret_rotation(secret_name: str) -> None:
-    """Manually trigger reload handlers for a secret.
-
-    This can be called from webhook handlers or external triggers.
-
-    Args:
-        secret_name: Name of the secret that rotated
-    """
-    logger.info(f"Manual rotation notification for secret: {secret_name}")
-
-    for handler in _reload_handlers.get(secret_name, []):
-        try:
-            handler()
-        except Exception as e:
-            logger.error(f"Reload handler failed for {secret_name}: {e}")

@@ -9,7 +9,7 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiGet, apiPost, apiPut } from "@/api/typedClient";
+import { apiGet, apiPost } from "@/api/typedClient";
 import { QK } from "./queryKeys";
 import {
   withApiError,
@@ -122,19 +122,6 @@ async function createValueCase(
   return response.data;
 }
 
-async function fetchValueCase(caseId: string): Promise<ValueCaseResponse> {
-  const response = await apiGet<ValueCaseResponse>("l3", `/v1/calculators/value-cases/${caseId}`);
-  return response.data;
-}
-
-async function updateValueCase(
-  caseId: string,
-  data: ValueCaseRequest
-): Promise<ValueCaseResponse> {
-  const response = await apiPut<ValueCaseResponse>("l3", `/v1/calculators/value-cases/${caseId}`, data);
-  return response.data;
-}
-
 // ── Query Hooks ────────────────────────────────────────────────────────────
 
 export function useValueLevers(
@@ -146,20 +133,6 @@ export function useValueLevers(
     queryFn: () => withApiError(fetchValueLevers(filters), CalculatorsApiError),
     enabled: options.enabled ?? true,
     staleTime: STALE_TIME.list,
-    retry: RETRY_CONFIG.maxRetries,
-    retryDelay: RETRY_CONFIG.retryDelay,
-  });
-}
-
-export function useValueCase(caseId: string | null) {
-  return useQuery<ValueCaseResponse, CalculatorsApiError>({
-    queryKey: QK.calculators.detail(caseId || ""),
-    queryFn: async () => {
-      if (!caseId) throw new CalculatorsApiError("No case ID provided");
-      return withApiError(fetchValueCase(caseId), CalculatorsApiError);
-    },
-    enabled: !!caseId,
-    staleTime: STALE_TIME.detail,
     retry: RETRY_CONFIG.maxRetries,
     retryDelay: RETRY_CONFIG.retryDelay,
   });
@@ -177,22 +150,6 @@ export function useCreateValueCase() {
     mutationFn: (data) => withApiError(createValueCase(data), CalculatorsApiError),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["calculators"] });
-    },
-  });
-}
-
-export function useUpdateValueCase() {
-  const queryClient = useQueryClient();
-  return useMutation<
-    ValueCaseResponse,
-    CalculatorsApiError,
-    { caseId: string; data: ValueCaseRequest }
-  >({
-    mutationFn: ({ caseId, data }) =>
-      withApiError(updateValueCase(caseId, data), CalculatorsApiError),
-    onSuccess: (_, { caseId }) => {
-      queryClient.invalidateQueries({ queryKey: ["calculators"] });
-      queryClient.invalidateQueries({ queryKey: ["calculators", "detail", caseId] });
     },
   });
 }

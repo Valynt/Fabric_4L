@@ -20,6 +20,7 @@ from typing import Any
 try:
     import psutil  # type: ignore[import-untyped]
 except ImportError:  # pragma: no cover - exercised only in minimal test envs
+
     class _PsutilFallback:
         @staticmethod
         def virtual_memory() -> SimpleNamespace:
@@ -43,16 +44,6 @@ def set_app_metrics(metrics: Any | None) -> None:
     """Set the global metrics instance for health check access."""
     global _app_metrics
     _app_metrics = metrics
-
-
-def get_app_metrics() -> Any | None:
-    """Return the current application metrics instance, if one has been set."""
-    return _app_metrics
-
-
-def get_app_start_time() -> float:
-    """Return the process-local application start timestamp."""
-    return _app_start_time
 
 
 def get_system_metrics() -> ServiceMetrics:

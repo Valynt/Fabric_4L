@@ -11,14 +11,16 @@ Provides context enrichment for all Layer 3 logs with:
 from contextvars import ContextVar
 from typing import Any
 
-from structlog.types import EventDict, Processor
+from structlog.types import EventDict
 
 # Context variables for request-scoped data
 _tenant_id_ctx: ContextVar[str | None] = ContextVar("tenant_id", default=None)
 _account_id_ctx: ContextVar[str | None] = ContextVar("account_id", default=None)
 _request_id_ctx: ContextVar[str | None] = ContextVar("request_id", default=None)
 _entity_id_ctx: ContextVar[str | None] = ContextVar("entity_id", default=None)
-_operation_source_ctx: ContextVar[str | None] = ContextVar("operation_source", default=None)
+_operation_source_ctx: ContextVar[str | None] = ContextVar(
+    "operation_source", default=None
+)
 
 
 def set_tenant_context(tenant_id: str | None) -> None:
@@ -83,7 +85,9 @@ def clear_context() -> None:
 class ContextEnrichmentProcessor:
     """Structlog processor to enrich logs with context variables."""
 
-    def __call__(self, logger: Any, method_name: str, event_dict: EventDict) -> EventDict:
+    def __call__(
+        self, logger: Any, method_name: str, event_dict: EventDict
+    ) -> EventDict:
         """Enrich event dict with context variables."""
         tenant_id = _tenant_id_ctx.get()
         if tenant_id:
@@ -106,11 +110,6 @@ class ContextEnrichmentProcessor:
             event_dict["operation_source"] = operation_source
 
         return event_dict
-
-
-def get_context_enrichment_processor() -> Processor:
-    """Get the context enrichment processor for structlog."""
-    return ContextEnrichmentProcessor()
 
 
 class LoggingContextManager:

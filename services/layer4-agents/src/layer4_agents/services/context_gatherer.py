@@ -19,8 +19,6 @@ import logging
 from collections.abc import Hashable
 from typing import Any
 
-from value_fabric.shared.models.typed_dict import TypedDictModel
-
 from .tenant_query_helper import run_tenant_validated_query
 
 logger = logging.getLogger(__name__)
@@ -44,14 +42,6 @@ def _hypothesis_dedup_key(hypothesis: dict[str, Any]) -> Hashable:
         hypothesis.get("capability_name"),
         hypothesis.get("signal_name"),
     )
-
-
-class ContextGathererResult(TypedDictModel):
-    account: dict[str, Any]
-    signals: list[dict[str, Any]]
-    hypotheses: list[dict[str, Any]]
-    evidence_summary: dict[str, Any]
-    competitive: dict[str, Any]
 
 
 class ContextGatheringService:

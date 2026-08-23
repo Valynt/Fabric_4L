@@ -95,7 +95,7 @@ VERIFY_CHECKS := check-conflict-markers check-no-nul-bytes check-migration-heads
 	check-workflow-matrix check-test-skip-register-uniqueness \
 	check-pytest-skip-governance check-layer3-legacy-tenant-dependency-imports \
 	check-hermetic-build-inputs check-production-k8s-mutable-tags check-k8s-image-digests \
-	check-value-fabric-public-imports check-legacy-debt check-structural-fitness-ratchet check-operational-debt check-behavior-contract check-behavior-readiness-audit check-compatibility-shims verify-structure docs-harness
+	check-value-fabric-public-imports check-legacy-debt check-structural-fitness-ratchet check-operational-debt check-behavior-contract check-behavior-readiness-audit check-compatibility-shims check-dead-code verify-structure docs-harness
 
 verify: $(VERIFY_CHECKS) ## Run all checks before PR
 	@echo "✅  All checks passed"
@@ -853,6 +853,11 @@ check-compatibility-shims: ## CI gate — run registry-driven compatibility shim
 	@echo "→ Running registry-driven compatibility shim checks..."
 	$(PYTHON) scripts/ci/check_compatibility_shims.py run-all --strict
 	@echo "✅ Compatibility shim gate passed"
+
+check-dead-code: ## Fail on unreferenced top-level symbols outside the dead-code allowlist
+	@echo "→ Checking for unreferenced top-level symbols..."
+	$(PYTHON) scripts/ci/check_dead_code.py
+	@echo "✅ Dead-code guard passed"
 
 # ─── Developer Setup ─────────────────────────────────────────────────────────
 

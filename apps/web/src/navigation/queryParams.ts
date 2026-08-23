@@ -5,7 +5,6 @@
  * of query parameters for shareable view state.
  */
 
-import { useSearchParams } from "react-router-dom";
 import { z } from "zod";
 
 // ── Schemas ──────────────────────────────────────────────────────────────────
@@ -22,28 +21,6 @@ export const SortParams = z.object({
 export const DateRangeParams = z.object({
   from: z.iso.datetime().optional(),
   to: z.iso.datetime().optional(),
-});
-
-export const SignalFilterParams = z.object({
-  status: z.string().optional(),
-  confidence_gte: z.coerce.number().min(0).max(1).optional(),
-  source: z.string().optional(),
-  persona: z.string().optional(),
-  q: z.string().optional(),
-  ...PaginationParams.shape,
-  ...SortParams.shape,
-  ...DateRangeParams.shape,
-});
-
-export const PanelParams = z.object({
-  panel: z.enum(["detail", "agent", "none"]).optional(),
-  entity: z.string().optional(),
-  thread: z.string().optional(),
-});
-
-export const ValuePilotParams = z.object({
-  mode: z.literal("value-pilot").optional(),
-  step: z.coerce.number().int().min(0).max(6).optional(),
 });
 
 // ── Serialization ────────────────────────────────────────────────────────────
@@ -85,16 +62,6 @@ export function parseQueryParams<T extends z.ZodTypeAny>(
   return schema.parse(raw);
 }
 
-// ── Safe array parsing ───────────────────────────────────────────────────────
-
-export function parseCommaSeparated(value: string | undefined): string[] {
-  if (!value) return [];
-  return value
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
-}
-
 // ── Unknown param preservation ───────────────────────────────────────────────
 
 /**
@@ -120,20 +87,3 @@ export function mergeQueryParams(
   return merged;
 }
 
-// ── Hook ─────────────────────────────────────────────────────────────────────
-
-export function useFabricQueryParams<T extends z.ZodTypeAny>(schema: T) {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const parsed = parseQueryParams(searchParams, schema);
-
-  const update = (
-    updates: Partial<
-      Record<string, string | number | boolean | undefined | string[]>
-    >
-  ) => {
-    const merged = mergeQueryParams(searchParams, updates);
-    setSearchParams(merged, { replace: true });
-  };
-
-  return { params: parsed, searchParams, update };
-}

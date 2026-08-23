@@ -107,20 +107,6 @@ interface RawWorkflow {
   lineage_key?: string;
 }
 
-const WorkflowCheckpointSchema = z
-  .object({
-    id: z.string().min(1),
-    created_at: z.string().min(1),
-  })
-  .passthrough();
-
-const WorkflowDetailSchema = z
-  .object({
-    result: z.unknown().optional(),
-    checkpoints: z.array(WorkflowCheckpointSchema).optional(),
-  })
-  .passthrough();
-
 const WorkflowTypeSchema = z.object({
   type: z.string().min(1),
   name: z.string().min(1),
@@ -154,24 +140,6 @@ function normalizeWorkflow(raw: RawWorkflow): Workflow | null {
     traceId: raw.trace_id,
     correlationId: raw.correlation_id,
     lineageKey: raw.trace_id || raw.correlation_id || raw.lineage_key,
-  };
-}
-
-export type WorkflowDetail = Workflow & {
-  result?: unknown;
-  checkpoints?: Array<z.infer<typeof WorkflowCheckpointSchema>>;
-};
-
-function parseWorkflowDetail(data: unknown): WorkflowDetail {
-  const parsed = WorkflowDetailSchema.parse(data);
-  const workflow = normalizeWorkflow(data as RawWorkflow);
-  if (!workflow) {
-    throw new Error("Workflow detail response missing workflow id");
-  }
-  return {
-    ...workflow,
-    result: parsed.result,
-    checkpoints: parsed.checkpoints,
   };
 }
 
@@ -479,25 +447,6 @@ export function useResumeWorkflow() {
     onError: (error) => {
       log.error('ResumeWorkflow failed', { error: error instanceof Error ? error.message : String(error) });
     },
-  });
-}
-
-/**
- * Get detailed workflow state including performance metrics.
- * GET /workflows/{id}
- */
-export function useWorkflowDetail(workflowId: string | null) {
-  return useQuery({
-    queryKey: QK.workflows.detail(workflowId ?? ""),
-    queryFn: async () => {
-      const response = await apiGet<l4.components["schemas"]["WorkflowStatusResponse"]>(
-        "l4",
-        `/workflows/${workflowId}`
-      );
-      return parseWorkflowDetail(response.data);
-    },
-    enabled: !!workflowId,
-    staleTime: 5_000,
   });
 }
 

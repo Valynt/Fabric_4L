@@ -12,7 +12,6 @@
  */
 
 import { createFeatureLogger } from '@/lib/telemetry';
-import type { components } from '@/api/generated/l3';
 import {
   validateGraphTopology,
   type GraphNodeDto,
@@ -232,31 +231,3 @@ function mapGraphStatsDtoToDomain(
 }
 
 // ── Convenience: Map from generated OpenAPI types ────────────────────────────
-
-/**
- * Maps the raw L3 SubgraphResponse OpenAPI type to domain model.
- * Use this when you have the generated type but haven't run Zod validation yet.
- */
-export function mapGeneratedSubgraphToDomain(
-  raw: components['schemas']['SubgraphResponse']
-): GraphSubgraph {
-  return mapSubgraphResponseDtoToDomain(raw as unknown as GraphSubgraphResponseDto);
-}
-
-/**
- * Maps the raw L3 GraphRAGResponse OpenAPI type to domain model.
- */
-export function mapGeneratedQueryResultToDomain(
-  raw: components['schemas']['GraphRAGResponse']
-): GraphQueryResult {
-  return mapGraphQueryResponseDtoToDomain(raw as unknown as GraphQueryResponseDto);
-}
-
-/**
- * Maps the raw L3 EntityContextResponse OpenAPI type to domain model.
- */
-export function mapGeneratedEntityContextToDomain(
-  raw: unknown
-): EntityContext {
-  return mapEntityContextResponseDtoToDomain(raw as unknown as EntityContextResponseDto);
-}

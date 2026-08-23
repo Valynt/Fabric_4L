@@ -22,7 +22,9 @@ from ..schema.entity_scope import (
 class AccountAuthorizationError(AuthorizationError):
     """Raised when account authorization fails."""
 
-    def __init__(self, message: str, entity_id: str | None = None, account_id: str | None = None):
+    def __init__(
+        self, message: str, entity_id: str | None = None, account_id: str | None = None
+    ):
         self.entity_id = entity_id
         self.account_id = account_id
         super().__init__(message)
@@ -129,8 +131,8 @@ def enrich_query_with_account_filter(
     # Add account_id filter to WHERE clause using regex for safer replacement
     import re
 
-    where_pattern = re.compile(r'\bWHERE\b', re.IGNORECASE)
-    return_pattern = re.compile(r'\bRETURN\b', re.IGNORECASE)
+    where_pattern = re.compile(r"\bWHERE\b", re.IGNORECASE)
+    return_pattern = re.compile(r"\bRETURN\b", re.IGNORECASE)
 
     if where_pattern.search(cypher_query):
         # Append to existing WHERE clause
@@ -148,7 +150,9 @@ def enrich_query_with_account_filter(
         )
     else:
         # Append WHERE clause at end
-        enriched_query = f"{cypher_query}\nWHERE n.{account_id_param} = ${account_id_param}"
+        enriched_query = (
+            f"{cypher_query}\nWHERE n.{account_id_param} = ${account_id_param}"
+        )
 
     return enriched_query, {account_id_param: request_account_id}
 
@@ -228,17 +232,7 @@ def require_account_context(request: Request) -> str:
     """
     account_id = getattr(request.state, "account_id", None)
     if account_id is None:
-        raise AuthorizationError(message = "Account context is required for this operation")
+        raise AuthorizationError(
+            message="Account context is required for this operation"
+        )
     return account_id
-
-
-def optional_account_context(request: Request) -> str | None:
-    """Get optional account context from the request.
-
-    Args:
-        request: FastAPI request object
-
-    Returns:
-        Account ID if present, None otherwise
-    """
-    return getattr(request.state, "account_id", None)

@@ -9,7 +9,6 @@
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiGet, apiPost, apiPut, apiDelete } from "@/api/typedClient";
-import type { l3 } from "@/api/generated";
 import { QK } from "./queryKeys";
 import {
   withApiError,
@@ -19,14 +18,12 @@ import {
 } from "./useApiShared";
 import { createLogger } from "@/lib/telemetry";
 import {
-  parseBulkImportResponse,
   parseCaseStudy,
   parseCaseStudyListResponse,
   parseCaseStudyMutationResponse,
   parseDeleteCaseStudyResponse,
   parseEvidenceSearchResponse,
   parseEvidenceStatsResponse,
-  type BulkImportResponse,
   type CaseStudy,
   type CaseStudyListResponse,
   type CaseStudyMutationResponse,
@@ -34,13 +31,11 @@ import {
   type EvidenceSearchResponse,
   type EvidenceSearchResult,
   type IndustryStats,
-  type ProductStats,
 } from "@/lib/schemas/evidence";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
 export type {
-  BulkImportResponse,
   CaseStudy,
   CaseStudyListResponse,
   CaseStudyMutationResponse,
@@ -48,7 +43,6 @@ export type {
   EvidenceSearchResponse,
   EvidenceSearchResult,
   IndustryStats,
-  ProductStats,
 } from "@/lib/schemas/evidence";
 
 export interface CaseStudyOutcomeInput {
@@ -124,10 +118,6 @@ export interface EvidenceSearchRequest {
   product_id?: string;
 }
 
-export interface BulkImportRequest {
-  case_studies: CreateCaseStudyRequest[];
-}
-
 // ── Domain Error ───────────────────────────────────────────────────────────
 
 export class EvidenceApiError extends BaseApiError {
@@ -179,11 +169,6 @@ async function fetchIndustryStats(): Promise<IndustryStats> {
   return parseEvidenceStatsResponse(response.data);
 }
 
-async function fetchProductStats(): Promise<ProductStats> {
-  const response = await apiGet<ProductStats>("l3", "/v1/evidence/stats/by-product");
-  return parseEvidenceStatsResponse(response.data);
-}
-
 // ── Query Hooks ────────────────────────────────────────────────────────────
 
 export function useCaseStudies(filters: CaseStudyListFilters = {}) {
@@ -214,16 +199,6 @@ export function useEvidenceIndustryStats() {
   return useQuery<IndustryStats, EvidenceApiError>({
     queryKey: QK.evidence.industryStats(),
     queryFn: () => withApiError(fetchIndustryStats(), EvidenceApiError),
-    staleTime: STALE_TIME.stats,
-    retry: RETRY_CONFIG.maxRetries,
-    retryDelay: RETRY_CONFIG.retryDelay,
-  });
-}
-
-export function useEvidenceProductStats() {
-  return useQuery<ProductStats, EvidenceApiError>({
-    queryKey: QK.evidence.productStats(),
-    queryFn: () => withApiError(fetchProductStats(), EvidenceApiError),
     staleTime: STALE_TIME.stats,
     retry: RETRY_CONFIG.maxRetries,
     retryDelay: RETRY_CONFIG.retryDelay,
@@ -300,26 +275,6 @@ export function useDeleteCaseStudy() {
   });
 }
 
-export function useBulkImportCaseStudies() {
-  const queryClient = useQueryClient();
-  return useMutation<BulkImportResponse, EvidenceApiError, BulkImportRequest>({
-    mutationFn: async params => {
-      const response = await apiPost<BulkImportResponse>(
-        "l3",
-        "/v1/evidence/case-studies/bulk-import",
-        params
-      );
-      return parseBulkImportResponse(response.data);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QK.evidence.all });
-    },
-    onError: (error) => {
-      log.error('BulkImportCaseStudies failed', { error: error instanceof Error ? error.message : String(error) });
-    },
-  });
-}
-
 export function useEvidenceSearch() {
   return useMutation<
     EvidenceSearchResponse,
@@ -337,66 +292,5 @@ export function useEvidenceSearch() {
     onError: (error) => {
       log.error('EvidenceSearch failed', { error: error instanceof Error ? error.message : String(error) });
     },
-  });
-}
-
-// ---------------------------------------------------------------------------
-// Evidence-to-Driver Linking
-// ---------------------------------------------------------------------------
-
-export interface EvidenceLinkItem {
-  evidence_id: string;
-  evidence_title: string;
-  driver_id: string;
-  linked_at: string;
-}
-
-export interface LinkEvidenceRequest {
-  evidence_id: string;
-  driver_id: string;
-}
-
-export interface LinkEvidenceResponse {
-  evidence_id: string;
-  driver_id: string;
-  linked: boolean;
-  linked_at: string;
-}
-
-export interface EvidenceLinkListResponse {
-  driver_id: string;
-  links: Array<{
-    evidence_id: string;
-    evidence_title: string;
-    evidence_type: string;
-  }>;
-}
-
-export function useLinkEvidence() {
-  const queryClient = useQueryClient();
-  return useMutation<LinkEvidenceResponse, EvidenceApiError, LinkEvidenceRequest>({
-    mutationFn: async params => {
-      const response = await apiPost<LinkEvidenceResponse>("l3", "/v1/evidence/links", params);
-      return response.data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QK.evidence.all });
-    },
-    onError: (error) => {
-      log.error('LinkEvidence failed', { error: error instanceof Error ? error.message : String(error) });
-    },
-  });
-}
-
-export function useEvidenceLinks(driverId: string | null) {
-  return useQuery<EvidenceLinkListResponse, EvidenceApiError>({
-    queryKey: ["evidence", "links", driverId],
-    queryFn: async () => {
-      const response = await apiGet<EvidenceLinkListResponse>("l3", "/v1/evidence/links", {
-        params: { driver_id: driverId },
-      });
-      return response.data;
-    },
-    enabled: !!driverId,
   });
 }

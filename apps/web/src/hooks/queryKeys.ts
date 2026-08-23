@@ -155,7 +155,6 @@ export const QK = {
     all: ["workflows"] as const,
     active: () => ["workflows", "active"] as const,
     history: () => ["workflows", "history"] as const,
-    detail: (id: string) => ["workflows", "detail", id] as const,
   },
 
   businessCases: {
@@ -268,7 +267,6 @@ export const QK = {
       ["evidence", "list", stableKey(filters)] as const,
     detail: (id: string) => ["evidence", "detail", id] as const,
     industryStats: () => ["evidence", "stats", "industry"] as const,
-    productStats: () => ["evidence", "stats", "product"] as const,
   },
 
   // L3 — Competitive Intelligence
@@ -292,8 +290,6 @@ export const QK = {
     all: ["roi"] as const,
     list: (filters: ROICalculationListFilters) =>
       ["roi", "list", stableKey(filters)] as const,
-    detail: (id: string) => ["roi", "detail", id] as const,
-    templates: () => ["roi", "templates"] as const,
     /**
      * L3 ROI benchmark assumptions (separate from L6 benchmark datasets).
      */
@@ -311,13 +307,11 @@ export const QK = {
     all: ["calculators"] as const,
     levers: (filters: unknown) =>
       ["calculators", "levers", stableKey(filters)] as const,
-    detail: (id: string) => ["calculators", "detail", id] as const,
   },
 
   // L4 — Account Enrichment
   enrichment: {
     all: ["enrichment"] as const,
-    status: () => ["enrichment", "status"] as const,
     detail: (accountId: string) => ["enrichment", "detail", accountId] as const,
   },
 

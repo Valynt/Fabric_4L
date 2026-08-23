@@ -14,14 +14,13 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Any, Callable, Optional, Protocol
+from typing import Any, Protocol
 from uuid import UUID
 
 from .context import (
     AUTH_SOURCE_API_KEY,
     AUTH_SOURCE_JWT,
     AUTH_SOURCE_SERVICE_ACCOUNT,
-    AUTH_SOURCE_UNKNOWN,
     ISOLATION_TIER_SHARED,
     RequestContext,
 )
@@ -47,21 +46,20 @@ class GovernanceCore_create_audit_payloadResult(TypedDictModel):
     tenant_role: Any
     user_id: Any
 
+
 logger = logging.getLogger(__name__)
 
 
 class APIKeyResolver(Protocol):
     """Protocol for API key resolution."""
 
-    async def __call__(self, raw_key: str) -> dict | None:
-        ...
+    async def __call__(self, raw_key: str) -> dict | None: ...
 
 
 class TenantSettingsResolver(Protocol):
     """Protocol for tenant settings resolution."""
 
-    async def __call__(self, tenant_id: UUID) -> dict | None:
-        ...
+    async def __call__(self, tenant_id: UUID) -> dict | None: ...
 
 
 class GovernanceCore:
@@ -157,12 +155,17 @@ class GovernanceCore:
         if x_tenant_header:
             expected_secret = os.getenv("SERVICE_AUTH_SECRET", "")
             if not expected_secret:
-                logger.warning("X-Tenant-ID rejected: SERVICE_AUTH_SECRET not configured")
+                logger.warning(
+                    "X-Tenant-ID rejected: SERVICE_AUTH_SECRET not configured"
+                )
                 return None
-            provided_secret = query_params.get("x_service_auth") if query_params else None
+            provided_secret = (
+                query_params.get("x_service_auth") if query_params else None
+            )
             if not provided_secret:
                 provided_secret = ""
             import hmac
+
             if not hmac.compare_digest(provided_secret, expected_secret):
                 logger.warning("X-Tenant-ID rejected: invalid service auth secret")
                 return None
@@ -312,40 +315,29 @@ class GovernanceCore:
         Returns:
             Dictionary suitable for audit event details
         """
-        return GovernanceCore_create_audit_payloadResult.model_validate({
-            "resolution_source": source,
-            "resolved_tenant_id": str(context.tenant_id) if context.tenant_id else None,
-            "user_id": str(context.user_id) if context.user_id else None,
-            "api_key_id": str(context.api_key_id) if context.api_key_id else None,
-            "service_account_id": str(context.service_account_id) if context.service_account_id else None,
-            "auth_method": context.auth_source,
-            "has_org_id": context.org_id is not None,
-            "org_id": str(context.org_id) if context.org_id else None,
-            "tenant_role": context.tenant_role,
-            "isolation_tier": context.isolation_tier,
-            "roles": context.roles or [],
-            "is_super_admin": context.is_super_admin(),
-            "outcome": outcome,
-            "failure_reason": failure_reason,
-            "request_path": request_path,
-            "request_method": request_method,
-        })
-
-
-# Singleton instance for simple use cases
-_governance_core: GovernanceCore | None = None
-
-
-def get_governance_core(
-    *,
-    api_key_resolver: APIKeyResolver | None = None,
-    jwt_secret: str | None = None,
-) -> GovernanceCore:
-    """Get or create singleton governance core instance."""
-    global _governance_core
-    if _governance_core is None:
-        _governance_core = GovernanceCore(
-            api_key_resolver=api_key_resolver,
-            jwt_secret=jwt_secret,
+        return GovernanceCore_create_audit_payloadResult.model_validate(
+            {
+                "resolution_source": source,
+                "resolved_tenant_id": (
+                    str(context.tenant_id) if context.tenant_id else None
+                ),
+                "user_id": str(context.user_id) if context.user_id else None,
+                "api_key_id": str(context.api_key_id) if context.api_key_id else None,
+                "service_account_id": (
+                    str(context.service_account_id)
+                    if context.service_account_id
+                    else None
+                ),
+                "auth_method": context.auth_source,
+                "has_org_id": context.org_id is not None,
+                "org_id": str(context.org_id) if context.org_id else None,
+                "tenant_role": context.tenant_role,
+                "isolation_tier": context.isolation_tier,
+                "roles": context.roles or [],
+                "is_super_admin": context.is_super_admin(),
+                "outcome": outcome,
+                "failure_reason": failure_reason,
+                "request_path": request_path,
+                "request_method": request_method,
+            }
         )
-    return _governance_core

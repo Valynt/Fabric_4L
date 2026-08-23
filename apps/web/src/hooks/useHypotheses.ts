@@ -85,34 +85,6 @@ export interface ValidateHypothesisResponse {
   promoted_artifacts?: PromotedArtifacts | null;
 }
 
-export interface RankHypothesesRequest {
-  hypothesis_ids: string[];
-  strategy?: 'impact' | 'confidence' | 'balanced' | 'evidence' | 'recency';
-}
-
-export interface RankedHypothesis extends ValueHypothesis {
-  rank: number;
-  composite_score: number;
-}
-
-export interface PromoteSignalRequest {
-  account_id: string;
-  signal_id: string;
-  value_path_category?: 'revenue_uplift' | 'cost_savings' | 'risk_reduction' | 'blended';
-  product_id?: string;
-  product_name?: string;
-  capability_id?: string;
-  capability_name?: string;
-}
-
-export interface PromoteSignalResponse {
-  status: string;
-  hypothesis_id: string;
-  signal_id: string;
-  account_id: string;
-  value_path_category: string | null;
-}
-
 export interface HypothesisStats {
   total: number;
   by_status: Record<HypothesisStatus, number>;
@@ -288,33 +260,6 @@ export function useConvertHypothesisToTree() {
       queryClient.invalidateQueries({ queryKey: QK.hypotheses.detail(hypothesisId) });
       queryClient.invalidateQueries({ queryKey: QK.accounts.all });
       queryClient.invalidateQueries({ queryKey: QK.valueTrees.all });
-    },
-  });
-}
-
-export function useRankHypotheses() {
-  return useMutation<RankedHypothesis[], HypothesisApiError, RankHypothesesRequest>({
-    mutationFn: async (params) => {
-      const response = await apiPost<RankedHypothesis[]>('l4', '/hypotheses/rank', params);
-      return response.data;
-    },
-  });
-}
-
-export function usePromoteSignal() {
-  const queryClient = useQueryClient();
-  return useMutation<PromoteSignalResponse, HypothesisApiError, PromoteSignalRequest>({
-    mutationFn: async (params) => {
-      const backendAccountId = await resolveBackendAccountId(params.account_id);
-      const response = await apiPost<PromoteSignalResponse>('l4', '/hypotheses/from-signal', {
-        ...params,
-        account_id: backendAccountId,
-      });
-      return response.data;
-    },
-    onSuccess: (_data, { account_id }) => {
-      queryClient.invalidateQueries({ queryKey: QK.hypotheses.all });
-      queryClient.invalidateQueries({ queryKey: QK.intelligence.briefing(account_id) });
     },
   });
 }

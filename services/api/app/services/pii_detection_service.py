@@ -12,7 +12,9 @@ _PII_PATTERNS: dict[PiiType, re.Pattern] = {
     "phone": re.compile(r"\b(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b"),
     "ssn": re.compile(r"\b\d{3}-\d{2}-\d{4}\b"),
     "credit_card": re.compile(r"\b(?:\d{4}[-\s]?){3}\d{4}\b"),
-    "address": re.compile(r"\d+\s+\w+\s+(?:Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Drive|Dr|Lane|Ln|Court|Ct)"),
+    "address": re.compile(
+        r"\d+\s+\w+\s+(?:Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Drive|Dr|Lane|Ln|Court|Ct)"
+    ),
 }
 
 
@@ -21,21 +23,15 @@ def detect_pii(text: str) -> list[dict]:
     findings: list[dict] = []
     for pii_type, pattern in _PII_PATTERNS.items():
         for match in pattern.finditer(text):
-            findings.append({
-                "type": pii_type,
-                "start": match.start(),
-                "end": match.end(),
-                "value": match.group(),
-            })
+            findings.append(
+                {
+                    "type": pii_type,
+                    "start": match.start(),
+                    "end": match.end(),
+                    "value": match.group(),
+                }
+            )
     return findings
-
-
-def redact_pii(text: str) -> str:
-    """Replace detected PII values with [REDACTED-<TYPE>] placeholders."""
-    result = text
-    for pii_type, pattern in _PII_PATTERNS.items():
-        result = pattern.sub(lambda m: f"[REDACTED-{pii_type.upper()}]", result)
-    return result
 
 
 def pii_summary(text: str) -> dict:

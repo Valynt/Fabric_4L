@@ -50,7 +50,9 @@ class DistributedStore(ABC):
     def get_json(self, key: str) -> dict[str, object] | None: ...
 
     @abstractmethod
-    def set_json(self, key: str, value: dict[str, object], ttl_seconds: int) -> None: ...
+    def set_json(
+        self, key: str, value: dict[str, object], ttl_seconds: int
+    ) -> None: ...
 
     @abstractmethod
     def delete(self, key: str) -> bool: ...
@@ -72,7 +74,10 @@ class RedisDistributedStore(DistributedStore):
     def _ensure_circuit_closed(self) -> None:
         if self._circuit_opened_at is None:
             return
-        if time.monotonic() - self._circuit_opened_at >= self.circuit_breaker_reset_seconds:
+        if (
+            time.monotonic() - self._circuit_opened_at
+            >= self.circuit_breaker_reset_seconds
+        ):
             self._circuit_opened_at = None
             self._consecutive_failures = 0
             return
@@ -110,14 +115,16 @@ class RedisDistributedStore(DistributedStore):
             except RedisError as exc:
                 last_exc = exc
                 if attempt < self.max_retries:
-                    time.sleep(self.retry_backoff_seconds * (2 ** attempt))
+                    time.sleep(self.retry_backoff_seconds * (2**attempt))
                     continue
                 self._mark_failure(exc, operation=operation_name)
             else:
                 self._consecutive_failures = 0
                 self._circuit_opened_at = None
                 return result
-        raise StoreUnavailableError(ERR_REDIS_UNAVAILABLE, operation=operation_name) from last_exc
+        raise StoreUnavailableError(
+            ERR_REDIS_UNAVAILABLE, operation=operation_name
+        ) from last_exc
 
     def get_json(self, key: str) -> dict[str, object] | None:
         payload = self._with_resilience("get", lambda: self.client.get(key))
@@ -138,7 +145,9 @@ class RedisDistributedStore(DistributedStore):
             payload = json.dumps(value)
         except (TypeError, ValueError) as exc:
             raise StorePayloadError(ERR_SERIALIZATION_FAILED) from exc
-        self._with_resilience("set", lambda: self.client.set(name=key, value=payload, ex=ttl_seconds))
+        self._with_resilience(
+            "set", lambda: self.client.set(name=key, value=payload, ex=ttl_seconds)
+        )
 
     def delete(self, key: str) -> bool:
         deleted = self._with_resilience("delete", lambda: self.client.delete(key))
@@ -211,9 +220,3 @@ def get_distributed_store() -> DistributedStore:
             client = Redis.from_url(settings.redis_url, decode_responses=False)
             _store_singleton = RedisDistributedStore(client=client)
     return _store_singleton
-
-
-def reset_distributed_store() -> None:
-    """Reset the module-level store singleton; intended for tests."""
-    global _store_singleton
-    _store_singleton = None

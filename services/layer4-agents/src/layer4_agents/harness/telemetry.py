@@ -23,13 +23,6 @@ from .models import (
     ValidationState,
 )
 
-
-class TelemetryError(ValueError):
-    """Raised when telemetry emission fails."""
-
-    pass
-
-
 # Event handler type
 EventHandler = Callable[[HarnessTraceEvent], None]
 
@@ -187,6 +180,7 @@ class TelemetryEmitter:
                 # Telemetry handlers must not break workflow.
                 # Log but don't raise.
                 import logging
+
                 logging.getLogger(__name__).warning(
                     f"Telemetry handler failed: {exc}",
                     exc_info=True,

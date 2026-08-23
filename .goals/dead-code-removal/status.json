@@ -1,0 +1,10 @@
+{
+  "goal_id": "dead-code-removal",
+  "status": "building",
+  "iteration": 1,
+  "builder_model": "OpenAI:GPT-5.6 Luna",
+  "inspector_model": "OpenAI:GPT-5.6 Sol",
+  "initial_sha": "cfec0a864caad2cacbf54960907a22391196942e",
+  "created_at": "2026-08-22T19:39:00Z",
+  "history": []
+}

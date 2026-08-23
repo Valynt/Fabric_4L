@@ -40,6 +40,7 @@ from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoin
 # Environment detection
 # ---------------------------------------------------------------------------
 
+
 class Environment(str, Enum):
     DEVELOPMENT = "development"
     STAGING = "staging"
@@ -49,6 +50,7 @@ class Environment(str, Enum):
 
 def _get_env() -> Environment:
     import os
+
     env_str = os.environ.get("FABRIC_ENV", "development").lower()
     try:
         return Environment(env_str)
@@ -113,6 +115,7 @@ CORP_DEV = "cross-origin"
 # ---------------------------------------------------------------------------
 # Middleware
 # ---------------------------------------------------------------------------
+
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     """
@@ -207,19 +210,28 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         headers["Permissions-Policy"] = PERMISSIONS_POLICY
 
         # 7. Cross-Origin-Embedder-Policy
-        headers["Cross-Origin-Embedder-Policy"] = COEP_PROD if self.env in (
-            Environment.PRODUCTION, Environment.STAGING, Environment.TEST
-        ) else COEP_DEV
+        headers["Cross-Origin-Embedder-Policy"] = (
+            COEP_PROD
+            if self.env
+            in (Environment.PRODUCTION, Environment.STAGING, Environment.TEST)
+            else COEP_DEV
+        )
 
         # 8. Cross-Origin-Opener-Policy
-        headers["Cross-Origin-Opener-Policy"] = COOP_PROD if self.env in (
-            Environment.PRODUCTION, Environment.STAGING, Environment.TEST
-        ) else COOP_DEV
+        headers["Cross-Origin-Opener-Policy"] = (
+            COOP_PROD
+            if self.env
+            in (Environment.PRODUCTION, Environment.STAGING, Environment.TEST)
+            else COOP_DEV
+        )
 
         # 9. Cross-Origin-Resource-Policy
-        headers["Cross-Origin-Resource-Policy"] = CORP_PROD if self.env in (
-            Environment.PRODUCTION, Environment.STAGING, Environment.TEST
-        ) else CORP_DEV
+        headers["Cross-Origin-Resource-Policy"] = (
+            CORP_PROD
+            if self.env
+            in (Environment.PRODUCTION, Environment.STAGING, Environment.TEST)
+            else CORP_DEV
+        )
 
         return headers
 
@@ -277,9 +289,8 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 # Decorators for per-route header overrides
 # ---------------------------------------------------------------------------
 
-def disable_security_headers(
-    endpoint: Callable[..., Any]
-) -> Callable[..., Any]:
+
+def disable_security_headers(endpoint: Callable[..., Any]) -> Callable[..., Any]:
     """
     Decorator to disable security headers for a specific route.
 
@@ -289,17 +300,23 @@ def disable_security_headers(
         async def health():
             ...
     """
+
     @functools.wraps(endpoint)
     async def wrapper(*args: Any, **kwargs: Any) -> Any:
         # Extract request from args (FastAPI injects it as first arg if declared)
         request = kwargs.get("request")
         if request is None and args:
             from starlette.requests import Request as StarletteRequest
+
             if isinstance(args[0], StarletteRequest):
                 request = args[0]
         if request is not None:
             request.state.security_headers_disabled = True
-        return await endpoint(*args, **kwargs) if asyncio.iscoroutinefunction(endpoint) else endpoint(*args, **kwargs)
+        return (
+            await endpoint(*args, **kwargs)
+            if asyncio.iscoroutinefunction(endpoint)
+            else endpoint(*args, **kwargs)
+        )
 
     # Mark for middleware detection
     wrapper._security_headers_disabled = True  # type: ignore[attr-defined]
@@ -318,36 +335,30 @@ def security_header_override(
         async def embed_widget():
             ...
     """
+
     def decorator(endpoint: Callable[..., Any]) -> Callable[..., Any]:
         @functools.wraps(endpoint)
         async def wrapper(*args: Any, **kwargs: Any) -> Any:
             request = kwargs.get("request")
             if request is None and args:
                 from starlette.requests import Request as StarletteRequest
+
                 if isinstance(args[0], StarletteRequest):
                     request = args[0]
             if request is not None:
                 overrides = getattr(request.state, "security_header_overrides", {})
                 overrides[name] = value
                 request.state.security_header_overrides = overrides
-            return await endpoint(*args, **kwargs) if asyncio.iscoroutinefunction(endpoint) else endpoint(*args, **kwargs)
+            return (
+                await endpoint(*args, **kwargs)
+                if asyncio.iscoroutinefunction(endpoint)
+                else endpoint(*args, **kwargs)
+            )
 
         wrapper._security_header_overrides = {name: value}  # type: ignore[attr-defined]
         return wrapper
+
     return decorator
-
-
-# ---------------------------------------------------------------------------
-# Utility: Apply middleware to a FastAPI app
-# ---------------------------------------------------------------------------
-
-def add_security_headers(app: FastAPI, environment: Optional[Environment] = None) -> None:
-    """
-    Convenience function to register the security headers middleware
-    on a FastAPI application.
-    """
-    env = environment or _get_env()
-    app.add_middleware(SecurityHeadersMiddleware, environment=env)
 
 
 # ---------------------------------------------------------------------------

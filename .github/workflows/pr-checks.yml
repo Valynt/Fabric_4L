@@ -197,6 +197,9 @@ jobs:
       - name: Check Layer 4 canonical paths
         run: python scripts/ci/check_layer4_canonical_paths.py
 
+      - name: Enforce dead-code regression guard
+        run: python scripts/ci/check_dead_code.py
+
       - name: Validate staging namespace consistency
         run: |
           bash scripts/ci/validate-staging-namespace.sh k8s/envs/staging

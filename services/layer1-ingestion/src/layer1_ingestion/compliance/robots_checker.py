@@ -33,10 +33,6 @@ class RobotsChecker__get_robots_txtResult(TypedDictModel):
     rules: Any
 
 
-class RobotsChecker__parse_robots_txtResult(TypedDictModel):
-    parse_error: Any
-
-
 class RobotsChecker__get_cached_robots_txtResult(TypedDictModel):
     content: Any
     expires_at: Any
@@ -104,7 +100,9 @@ class RobotsChecker:
         """Get or create HTTP client."""
         if self._http_client is None or self._http_client.is_closed:
             self._http_client = httpx.AsyncClient(
-                timeout=10.0, headers={"User-Agent": self.user_agent}, follow_redirects=True
+                timeout=10.0,
+                headers={"User-Agent": self.user_agent},
+                follow_redirects=True,
             )
         return self._http_client
 
@@ -113,7 +111,9 @@ class RobotsChecker:
         if self._http_client and not self._http_client.is_closed:
             await self._http_client.aclose()
 
-    def _strict_fetch_failure_response(self, domain: str) -> tuple[bool, str, dict[str, Any]]:
+    def _strict_fetch_failure_response(
+        self, domain: str
+    ) -> tuple[bool, str, dict[str, Any]]:
         return (
             False,
             "robots.txt fetch failed (strict mode): internal error",
@@ -125,7 +125,9 @@ class RobotsChecker:
             },
         )
 
-    def _strict_missing_robots_response(self, domain: str) -> tuple[bool, str, dict[str, Any]]:
+    def _strict_missing_robots_response(
+        self, domain: str
+    ) -> tuple[bool, str, dict[str, Any]]:
         return (
             False,
             "robots.txt required but not available (strict mode)",
@@ -187,11 +189,15 @@ class RobotsChecker:
 
                 metrics = get_metrics()
                 if metrics:
-                    metrics.increment_strict_robots_block(domain=domain, reason="fetch_error")
+                    metrics.increment_strict_robots_block(
+                        domain=domain, reason="fetch_error"
+                    )
 
                 # Audit log entry
                 logger.error(
-                    "robots.txt fetch failed in strict mode", exc_info=e, extra={"domain": domain}
+                    "robots.txt fetch failed in strict mode",
+                    exc_info=e,
+                    extra={"domain": domain},
                 )
                 return self._strict_fetch_failure_response(domain)
             # In permissive mode, re-raise so caller can decide to allow
@@ -204,7 +210,9 @@ class RobotsChecker:
 
                 metrics = get_metrics()
                 if metrics:
-                    metrics.increment_strict_robots_block(domain=domain, reason="not_available")
+                    metrics.increment_strict_robots_block(
+                        domain=domain, reason="not_available"
+                    )
 
                 # Audit log entry
                 logger.warning(
@@ -284,7 +292,9 @@ class RobotsChecker:
             except RobotsCacheError as e:
                 # Log cache error but continue to fetch fresh
                 self.logger.warning(
-                    "Cache error, fetching fresh robots.txt", domain=domain, error=repr(e)
+                    "Cache error, fetching fresh robots.txt",
+                    domain=domain,
+                    error=repr(e),
                 )
 
         # Fetch fresh robots.txt
@@ -310,7 +320,9 @@ class RobotsChecker:
                 parsed_rules = self._parse_robots_txt(content)
             except RobotsParseError as e:
                 # Log parse error but cache the failure
-                self.logger.warning("Parse error, caching failure", domain=domain, error=repr(e))
+                self.logger.warning(
+                    "Parse error, caching failure", domain=domain, error=repr(e)
+                )
                 self._cache_robots_txt(
                     domain=domain,
                     url=robots_url,
@@ -333,12 +345,20 @@ class RobotsChecker:
                 )
             except RobotsCacheError as e:
                 # Log cache error but continue with fetched data
-                self.logger.warning("Failed to cache robots.txt", domain=domain, error=repr(e))
+                self.logger.warning(
+                    "Failed to cache robots.txt", domain=domain, error=repr(e)
+                )
 
-            self.logger.info("Fetched and cached robots.txt", domain=domain, size=len(content))
+            self.logger.info(
+                "Fetched and cached robots.txt", domain=domain, size=len(content)
+            )
 
             return RobotsChecker__get_robots_txtResult.model_validate(
-                {"content": content, "rules": parsed_rules, "http_status": response.status_code}
+                {
+                    "content": content,
+                    "rules": parsed_rules,
+                    "http_status": response.status_code,
+                }
             )
 
         except httpx.HTTPStatusError as e:
@@ -346,7 +366,9 @@ class RobotsChecker:
                 return None
 
             self.logger.error(
-                "HTTP error fetching robots.txt", domain=domain, status=e.response.status_code
+                "HTTP error fetching robots.txt",
+                domain=domain,
+                status=e.response.status_code,
             )
 
             # Cache the error state
@@ -366,12 +388,14 @@ class RobotsChecker:
         except httpx.RequestError as e:
             # Network/connection errors - these are recoverable
             raise RobotsFetchError(
-                f"Network error fetching robots.txt for domain {domain}: {e!r}", domain=domain
+                f"Network error fetching robots.txt for domain {domain}: {e!r}",
+                domain=domain,
             )
         except Exception as e:
             # Convert other errors to RobotsFetchError
             raise RobotsFetchError(
-                f"Unexpected error fetching robots.txt for domain {domain}: {e!r}", domain=domain
+                f"Unexpected error fetching robots.txt for domain {domain}: {e!r}",
+                domain=domain,
             )
 
     def _get_cached_robots_txt(self, domain: str) -> dict[str, Any] | None:
@@ -425,7 +449,8 @@ class RobotsChecker:
         except Exception as e:
             # Convert to specific RobotsCacheError for proper error classification
             raise RobotsCacheError(
-                f"Failed to retrieve cached robots.txt for domain {domain}: {e!r}", domain=domain
+                f"Failed to retrieve cached robots.txt for domain {domain}: {e!r}",
+                domain=domain,
             )
 
     def _cache_robots_txt(
@@ -464,7 +489,9 @@ class RobotsChecker:
             with get_db_session(tenant_id=tenant_uuid, require_tenant=False) as session:
                 # Check if entry exists (global cache - no tenant filtering)
                 existing = (
-                    session.query(RobotsTxtCache).filter(RobotsTxtCache.domain == domain).first()
+                    session.query(RobotsTxtCache)
+                    .filter(RobotsTxtCache.domain == domain)
+                    .first()
                 )
 
                 now = datetime.now(UTC)

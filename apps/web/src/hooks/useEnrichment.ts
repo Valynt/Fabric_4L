@@ -53,32 +53,6 @@ export interface EnrichAccountRequest {
   sources?: string[];
 }
 
-export interface BatchEnrichRequest {
-  account_ids: string[];
-  force?: boolean;
-  sources?: string[];
-}
-
-export interface BatchEnrichResponse {
-  results: Array<{
-    account_id: string;
-    status: 'success' | 'failed' | 'skipped';
-    message?: string;
-  }>;
-  total_enriched: number;
-  total_failed: number;
-  total_skipped: number;
-}
-
-export interface EnrichmentCoverageStats {
-  total_accounts: number;
-  enriched_accounts: number;
-  stale_accounts: number;
-  never_enriched: number;
-  coverage_pct: number;
-  avg_sources_per_account: number;
-}
-
 // ── Domain Error ───────────────────────────────────────────────────────────
 
 export class EnrichmentApiError extends BaseApiError {
@@ -90,27 +64,12 @@ export class EnrichmentApiError extends BaseApiError {
 
 // ── Fetch Functions ────────────────────────────────────────────────────────
 
-async function fetchEnrichmentStatus(): Promise<EnrichmentCoverageStats> {
-  const response = await apiGet<EnrichmentCoverageStats>('l4', '/v1/enrichment/status');
-  return response.data;
-}
-
 async function fetchEnrichmentDetails(accountId: string): Promise<EnrichmentResult> {
   const response = await apiGet<EnrichmentResult>('l4', `/v1/enrichment/${accountId}`);
   return response.data;
 }
 
 // ── Query Hooks ────────────────────────────────────────────────────────────
-
-export function useEnrichmentStatus() {
-  return useQuery<EnrichmentCoverageStats, EnrichmentApiError>({
-    queryKey: QK.enrichment.status(),
-    queryFn: () => withApiError(fetchEnrichmentStatus(), EnrichmentApiError),
-    staleTime: STALE_TIME.stats,
-    retry: RETRY_CONFIG.maxRetries,
-    retryDelay: RETRY_CONFIG.retryDelay,
-  });
-}
 
 export function useEnrichmentDetails(accountId: string | null) {
   return useQuery<EnrichmentResult, EnrichmentApiError>({
@@ -140,20 +99,6 @@ export function useEnrichAccount() {
       queryClient.invalidateQueries({ queryKey: QK.enrichment.detail(accountId) });
       // Also invalidate account detail since enrichment updates account fields
       queryClient.invalidateQueries({ queryKey: QK.accounts.detail(accountId) });
-    },
-  });
-}
-
-export function useBatchEnrich() {
-  const queryClient = useQueryClient();
-  return useMutation<BatchEnrichResponse, EnrichmentApiError, BatchEnrichRequest>({
-    mutationFn: async (params) => {
-      const response = await apiPost<BatchEnrichResponse>('l4', '/v1/enrichment/batch', params);
-      return response.data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QK.enrichment.all });
-      queryClient.invalidateQueries({ queryKey: QK.accounts.all });
     },
   });
 }

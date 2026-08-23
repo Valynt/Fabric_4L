@@ -25,12 +25,3 @@ export function getClerkTenantRouteSlug(
     normalizeTenantSlug(organization.id)
   );
 }
-
-export function matchesClerkTenantRouteSlug(
-  organization: ClerkOrganizationLike,
-  tenantSlug: string | undefined,
-): boolean {
-  const expected = normalizeTenantSlug(tenantSlug);
-  const actual = getClerkTenantRouteSlug(organization);
-  return expected !== null && actual === expected;
-}

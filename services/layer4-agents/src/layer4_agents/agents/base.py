@@ -22,7 +22,11 @@ from value_fabric.shared.governance.abom import AgentBillOfMaterials
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
 _PLATFORM_CONTRACT_PYTHON = next(
-    (parent / "packages" / "platform-contract" / "src" / "python" for parent in Path(__file__).resolve().parents if (parent / "packages" / "platform-contract" / "src" / "python").exists()),
+    (
+        parent / "packages" / "platform-contract" / "src" / "python"
+        for parent in Path(__file__).resolve().parents
+        if (parent / "packages" / "platform-contract" / "src" / "python").exists()
+    ),
     None,
 )
 if _PLATFORM_CONTRACT_PYTHON and str(_PLATFORM_CONTRACT_PYTHON) not in sys.path:
@@ -32,7 +36,9 @@ try:  # pragma: no cover - contract tests configure this path explicitly
     from agent_contracts import build_agent_output_envelope, validate_agent_output
 except asyncio.CancelledError:
     raise
-except Exception:  # pragma: no cover - runtime remains warning-only if package import fails
+except (
+    Exception
+):  # pragma: no cover - runtime remains warning-only if package import fails
     build_agent_output_envelope = None  # type: ignore[assignment]
     validate_agent_output = None  # type: ignore[assignment]
 
@@ -51,24 +57,31 @@ class AgentState_to_dictResult(TypedDictModel):
     started_at: Any
     status: Any
 
+
 try:
-    from value_fabric.shared.testability import Clock, IDGenerator, SystemClock, UUIDGenerator
+    from value_fabric.shared.testability import (
+        Clock,
+        IDGenerator,
+        SystemClock,
+        UUIDGenerator,
+    )
 except ImportError:
     # Fallback implementations when shared package unavailable
     class Clock:  # type: ignore[no-redef]
         @staticmethod
         def now() -> datetime:
             return datetime.now()
-    
+
     class SystemClock(Clock):  # type: ignore[no-redef]
         pass
-    
+
     class IDGenerator:  # type: ignore[no-redef]
         @staticmethod
         def generate() -> str:
             import uuid
+
             return str(uuid.uuid4())
-    
+
     class UUIDGenerator(IDGenerator):  # type: ignore[no-redef]
         pass
 
@@ -132,17 +145,25 @@ class AgentState:
 
     def to_dict(self) -> dict[str, Any]:
         """Convert state to dictionary."""
-        return dict(AgentState_to_dictResult.model_validate({
-            "agent_id": self.agent_id,
-            "agent_type": self.agent_type,
-            "status": self.status.name,
-            "current_task": self.current_task,
-            "context": self.context,
-            "started_at": self.started_at.isoformat() if self.started_at else None,
-            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
-            "errors": self.errors,
-            "metadata": self.metadata,
-        }).model_dump())
+        return dict(
+            AgentState_to_dictResult.model_validate(
+                {
+                    "agent_id": self.agent_id,
+                    "agent_type": self.agent_type,
+                    "status": self.status.name,
+                    "current_task": self.current_task,
+                    "context": self.context,
+                    "started_at": (
+                        self.started_at.isoformat() if self.started_at else None
+                    ),
+                    "completed_at": (
+                        self.completed_at.isoformat() if self.completed_at else None
+                    ),
+                    "errors": self.errors,
+                    "metadata": self.metadata,
+                }
+            ).model_dump()
+        )
 
 
 class BaseAgent(ABC):
@@ -187,7 +208,9 @@ class BaseAgent(ABC):
         """
         self._clock: Clock = clock or SystemClock()
         self._id_gen: IDGenerator = id_generator or UUIDGenerator()
-        self.agent_id = agent_id or f"{self.agent_type.lower()}-{self._id_gen.generate()[:8]}"
+        self.agent_id = (
+            agent_id or f"{self.agent_type.lower()}-{self._id_gen.generate()[:8]}"
+        )
         self.config = config or {}
         self.message_bus = message_bus
         self.abom: AgentBillOfMaterials | None = None
@@ -292,8 +315,12 @@ class BaseAgent(ABC):
             self.state.metadata["semantic_contract"] = validation_metadata
             return validation_metadata
 
-        tenant_id = str(context.get("tenant_id") or context.get("tenantId") or "unknown")
-        trace_id = str(context.get("trace_id") or context.get("traceId") or self.agent_id)
+        tenant_id = str(
+            context.get("tenant_id") or context.get("tenantId") or "unknown"
+        )
+        trace_id = str(
+            context.get("trace_id") or context.get("traceId") or self.agent_id
+        )
         workflow_id = context.get("workflow_id") or context.get("workflowId")
         audit_event_id = context.get("audit_event_id") or context.get("auditEventId")
         capability = str(task.get("capability", "unknown"))
@@ -306,7 +333,11 @@ class BaseAgent(ABC):
             workflow_id=str(workflow_id) if workflow_id else None,
             audit_event_id=str(audit_event_id) if audit_event_id else None,
             source_node=f"{self.agent_type}.{capability}",
-            confidence=result.get("confidence") if isinstance(result.get("confidence"), (int, float)) else None,
+            confidence=(
+                result.get("confidence")
+                if isinstance(result.get("confidence"), (int, float))
+                else None
+            ),
             explainability={"capability": capability},
             contract_versions={
                 "semantic_contract": SEMANTIC_CONTRACT_VERSION,
@@ -320,7 +351,11 @@ class BaseAgent(ABC):
         ]
         validation_metadata = {
             "version": SEMANTIC_CONTRACT_VERSION,
-            "mode": validation.mode.value if hasattr(validation.mode, "value") else str(validation.mode),
+            "mode": (
+                validation.mode.value
+                if hasattr(validation.mode, "value")
+                else str(validation.mode)
+            ),
             "valid": validation.valid,
             "violations": violations,
         }
@@ -442,7 +477,11 @@ class BaseAgent(ABC):
             self.state.completed_at = self._clock.now()
 
             # ── GATE Phase 3: Commit replay snapshot ──
-            if self._replay_enabled() and replay_recorder is not None and tool_gateway is not None:
+            if (
+                self._replay_enabled()
+                and replay_recorder is not None
+                and tool_gateway is not None
+            ):
                 replay_recorder.record_tool_invocations(tool_gateway.invocation_log)
                 if memory_gateway is not None:
                     replay_recorder.record_memory_accesses(memory_gateway.access_log)
@@ -471,7 +510,10 @@ class BaseAgent(ABC):
                 await self.message_bus.publish(
                     agent_id=self.agent_id,
                     event_type="AGENT_FAILED",
-                    payload={"error": "Agent execution failed", "error_code": "AGENT_EXECUTION_ERROR"},
+                    payload={
+                        "error": "Agent execution failed",
+                        "error_code": "AGENT_EXECUTION_ERROR",
+                    },
                 )
 
             raise AgentExecutionError(f"Agent {self.agent_id} failed") from e
@@ -502,12 +544,6 @@ class BaseAgent(ABC):
 
 class AgentExecutionError(Exception):
     """Raised when agent execution fails."""
-
-    pass
-
-
-class AgentNotFoundError(Exception):
-    """Raised when requested agent type is not found."""
 
     pass
 

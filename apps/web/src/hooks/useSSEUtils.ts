@@ -30,10 +30,3 @@ export const SSEBuilders = {
  * Default SSE connection timeout
  */
 export const SSE_TIMEOUT_MS = 30 * 1000;
-
-/**
- * Check if EventSource is supported in current environment
- */
-export function isSSESupported(): boolean {
-  return typeof EventSource !== 'undefined';
-}

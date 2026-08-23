@@ -12,20 +12,14 @@ import { apiGet, apiPost, apiPut, apiDelete } from "@/api/typedClient";
 import {
   parseBattlecard,
   parseBattlecardList,
-  parseCompetitiveLandscapeResponse,
   parseCompetitor,
   parseCompetitorListResponse,
-  parseWinLossRecord,
-  parseWinLossSummaryResponse,
 } from "@/lib/schemas/competitiveIntel";
 import type {
   Battlecard,
-  CompetitiveLandscapeResponse,
   Competitor,
   CompetitorListResponse,
   WinLossOutcome,
-  WinLossRecord,
-  WinLossSummaryResponse,
 } from "@/lib/schemas/competitiveIntel";
 import { QK } from "./queryKeys";
 import {
@@ -37,15 +31,9 @@ import {
 
 export type {
   Battlecard,
-  CompetitiveLandscapeResponse,
   Competitor,
   CompetitorListResponse,
-  LandscapeEntry,
   WinLossOutcome,
-  WinLossRecord,
-  WinLossSummaryEntry,
-  WinLossSummaryEntry as WinLossSummary,
-  WinLossSummaryResponse,
 } from "@/lib/schemas/competitiveIntel";
 
 // ── Request Types ────────────────────────────────────────────────────────────
@@ -81,25 +69,6 @@ export interface CompetitorListFilters {
   limit?: number;
 }
 
-export interface CreateBattlecardRequest {
-  product_id: string;
-  positioning: string;
-  differentiators?: string[];
-  objection_handlers?: Array<Record<string, string>>;
-  talk_tracks?: string[];
-  win_themes?: string[];
-  trap_questions?: string[];
-}
-
-export interface RecordWinLossRequest {
-  competitor_id: string;
-  product_id: string;
-  outcome: Extract<WinLossOutcome, "won" | "lost">;
-  deal_size_usd?: number;
-  reason?: string;
-  industry?: string;
-}
-
 // ── Domain Error ───────────────────────────────────────────────────────────
 
 export class CompetitiveIntelApiError extends BaseApiError {
@@ -118,13 +87,6 @@ function buildCompetitorParams(filters: CompetitorListFilters): string {
     params.set("market_position", filters.market_position);
   if (filters.skip != null) params.set("skip", filters.skip.toString());
   if (filters.limit != null) params.set("limit", filters.limit.toString());
-  const qs = params.toString();
-  return qs ? `?${qs}` : "";
-}
-
-function buildOptionalProductParams(productId?: string): string {
-  const params = new URLSearchParams();
-  if (productId) params.set("product_id", productId);
   const qs = params.toString();
   return qs ? `?${qs}` : "";
 }
@@ -164,24 +126,6 @@ async function fetchBattlecard(
     `/v1/competitive/competitors/${encodeURIComponent(competitorId)}/battlecard?product_id=${encodeURIComponent(productId)}`
   );
   return parseBattlecard(response.data);
-}
-
-async function fetchWinLossSummary(): Promise<WinLossSummaryResponse> {
-  const response = await apiGet<unknown>(
-    "l3",
-    "/v1/competitive/win-loss/summary"
-  );
-  return parseWinLossSummaryResponse(response.data);
-}
-
-async function fetchLandscape(
-  productId?: string
-): Promise<CompetitiveLandscapeResponse> {
-  const response = await apiGet<unknown>(
-    "l3",
-    `/v1/competitive/landscape${buildOptionalProductParams(productId)}`
-  );
-  return parseCompetitiveLandscapeResponse(response.data);
 }
 
 // ── Query Hooks ────────────────────────────────────────────────────────────
@@ -250,28 +194,6 @@ export function useBattlecard(
   });
 }
 
-export function useWinLossSummary(competitorId?: string) {
-  return useQuery<WinLossSummaryResponse, CompetitiveIntelApiError>({
-    queryKey: QK.competitive.winLoss(competitorId),
-    queryFn: () =>
-      withApiError(fetchWinLossSummary(), CompetitiveIntelApiError),
-    staleTime: STALE_TIME.stats,
-    retry: RETRY_CONFIG.maxRetries,
-    retryDelay: RETRY_CONFIG.retryDelay,
-  });
-}
-
-export function useLandscape(productId?: string) {
-  return useQuery<CompetitiveLandscapeResponse, CompetitiveIntelApiError>({
-    queryKey: QK.competitive.landscape(productId),
-    queryFn: () =>
-      withApiError(fetchLandscape(productId), CompetitiveIntelApiError),
-    staleTime: STALE_TIME.stats,
-    retry: RETRY_CONFIG.maxRetries,
-    retryDelay: RETRY_CONFIG.retryDelay,
-  });
-}
-
 // ── Mutation Hooks ─────────────────────────────────────────────────────────
 
 export function useCreateCompetitor() {
@@ -325,51 +247,6 @@ export function useDeleteCompetitor() {
         "l3",
         `/v1/competitive/competitors/${encodeURIComponent(id)}`
       );
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QK.competitive.all });
-    },
-  });
-}
-
-export function useCreateBattlecard() {
-  const queryClient = useQueryClient();
-  return useMutation<
-    Battlecard,
-    CompetitiveIntelApiError,
-    { competitorId: string; data: CreateBattlecardRequest }
-  >({
-    mutationFn: async ({ competitorId, data }) => {
-      const response = await apiPost<unknown>(
-        "l3",
-        `/v1/competitive/competitors/${encodeURIComponent(competitorId)}/battlecards`,
-        data
-      );
-      return parseBattlecard(response.data);
-    },
-    onSuccess: (_data, { competitorId }) => {
-      queryClient.invalidateQueries({
-        queryKey: QK.competitive.battlecards(competitorId),
-      });
-      queryClient.invalidateQueries({ queryKey: QK.competitive.all });
-    },
-  });
-}
-
-export function useRecordWinLoss() {
-  const queryClient = useQueryClient();
-  return useMutation<
-    WinLossRecord,
-    CompetitiveIntelApiError,
-    RecordWinLossRequest
-  >({
-    mutationFn: async params => {
-      const response = await apiPost<unknown>(
-        "l3",
-        "/v1/competitive/win-loss",
-        params
-      );
-      return parseWinLossRecord(response.data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QK.competitive.all });

@@ -119,19 +119,6 @@ export function usePersistWorkspaceTab(tabKey: string) {
   return { ...mutation, persistState };
 }
 
-export function useValidateEvidenceClaim() {
-  return useMutation({
-    mutationFn: async ({ caseId, evidenceId, claim }: { caseId: string; evidenceId: string; claim: string }) => {
-      const response = await apiPost<unknown>('l5', '/claims/validate', {
-        case_id: caseId,
-        evidence_id: evidenceId,
-        claim,
-      });
-      return response.data;
-    },
-  });
-}
-
 /**
  * Generate workspace intelligence data (signals, drivers, evidence, stakeholders)
  * for a case. Should be called when workspace is first loaded with empty data.

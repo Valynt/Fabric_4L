@@ -52,36 +52,6 @@ export interface ScenarioResult {
   multiplier: number;
 }
 
-export interface ROICompareRequest {
-  calculations: ROICalculationRequest[];
-  labels?: string[];
-}
-
-export interface ROICompareResult {
-  comparisons: Array<{
-    label: string;
-    result: ROICalculationResult;
-  }>;
-  best_npv_index: number;
-  best_roi_index: number;
-}
-
-export interface ROITemplate {
-  id: string;
-  name: string;
-  description?: string;
-  defaults: Partial<ROICalculationRequest>;
-  industry?: string;
-  created_at: string;
-}
-
-export interface CreateROITemplateRequest {
-  name: string;
-  description?: string;
-  defaults: Partial<ROICalculationRequest>;
-  industry?: string;
-}
-
 export interface ROICalculationListFilters {
   product_id?: string;
   account_id?: string;
@@ -158,18 +128,8 @@ function buildCalcParams(filters: ROICalculationListFilters): string {
   return qs ? `?${qs}` : '';
 }
 
-async function fetchTemplates(): Promise<ROITemplate[]> {
-  const response = await apiGet<ROITemplate[]>('l3', '/v1/roi/templates');
-  return response.data;
-}
-
 async function fetchCalculations(filters: ROICalculationListFilters): Promise<ROICalculationListResponse> {
   const response = await apiGet<ROICalculationListResponse>('l3', `/v1/roi/calculations${buildCalcParams(filters)}`);
-  return response.data;
-}
-
-async function fetchCalculation(calcId: string): Promise<ROICalculationResult> {
-  const response = await apiGet<ROICalculationResult>('l3', `/v1/roi/calculations/${calcId}`);
   return response.data;
 }
 
@@ -195,35 +155,11 @@ type ROIQueryOptions = {
   retry?: typeof RETRY_CONFIG.maxRetries | false;
 };
 
-export function useROITemplates() {
-  return useQuery<ROITemplate[], ROIApiError>({
-    queryKey: QK.roi.templates(),
-    queryFn: () => withApiError(fetchTemplates(), ROIApiError),
-    staleTime: STALE_TIME.reference,
-    retry: RETRY_CONFIG.maxRetries,
-    retryDelay: RETRY_CONFIG.retryDelay,
-  });
-}
-
 export function useROICalculations(filters: ROICalculationListFilters = {}) {
   return useQuery<ROICalculationListResponse, ROIApiError>({
     queryKey: QK.roi.list(filters),
     queryFn: () => withApiError(fetchCalculations(filters), ROIApiError),
     staleTime: STALE_TIME.list,
-    retry: RETRY_CONFIG.maxRetries,
-    retryDelay: RETRY_CONFIG.retryDelay,
-  });
-}
-
-export function useROICalculation(calcId: string | null) {
-  return useQuery<ROICalculationResult, ROIApiError>({
-    queryKey: QK.roi.detail(calcId || ''),
-    queryFn: async () => {
-      if (!calcId) throw new ROIApiError('No calculation ID provided');
-      return withApiError(fetchCalculation(calcId), ROIApiError);
-    },
-    enabled: !!calcId,
-    staleTime: STALE_TIME.detail,
     retry: RETRY_CONFIG.maxRetries,
     retryDelay: RETRY_CONFIG.retryDelay,
   });
@@ -279,28 +215,6 @@ export function useCalculateROI() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QK.roi.all });
-    },
-  });
-}
-
-export function useCompareROI() {
-  return useMutation<ROICompareResult, ROIApiError, ROICompareRequest>({
-    mutationFn: async (params) => {
-      const response = await apiPost<ROICompareResult>('l3', '/v1/roi/compare', params);
-      return response.data;
-    },
-  });
-}
-
-export function useCreateROITemplate() {
-  const queryClient = useQueryClient();
-  return useMutation<ROITemplate, ROIApiError, CreateROITemplateRequest>({
-    mutationFn: async (params) => {
-      const response = await apiPost<ROITemplate>('l3', '/v1/roi/templates', params);
-      return response.data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QK.roi.templates() });
     },
   });
 }

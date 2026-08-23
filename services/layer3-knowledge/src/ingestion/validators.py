@@ -8,13 +8,7 @@ rules on Community Edition without relying on database-level constraints.
 from dataclasses import dataclass
 from typing import Any
 
-from value_fabric.shared.models.typed_dict import TypedDictModel
-
 from ..api.exceptions import IngestionError
-
-
-class RequiredFieldValidator_get_missing_fieldsResult(TypedDictModel):
-    pass
 
 
 @dataclass

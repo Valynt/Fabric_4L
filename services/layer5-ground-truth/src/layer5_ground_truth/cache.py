@@ -105,14 +105,6 @@ def get_cache_manager() -> CacheManager:
     return _cache_manager
 
 
-async def close_cache() -> None:
-    """Close global cache manager."""
-    global _cache_manager
-    if _cache_manager:
-        await _cache_manager.close()
-        _cache_manager = None
-
-
 def cached(ttl: int | None = None, key_prefix: str = ""):
     """Decorator for caching async function results.
 
@@ -136,7 +128,9 @@ def cached(ttl: int | None = None, key_prefix: str = ""):
             key_data = {"args": args, "kwargs": kwargs}
             key_hash = hashlib.sha256(
                 json.dumps(key_data, sort_keys=True, default=str).encode()
-            ).hexdigest()[:16]  # Use first 16 chars for shorter keys
+            ).hexdigest()[
+                :16
+            ]  # Use first 16 chars for shorter keys
             cache_key = f"{func_name}:{key_hash}"
 
             # Try to get from cache

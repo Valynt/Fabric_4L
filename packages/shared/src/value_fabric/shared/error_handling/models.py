@@ -150,22 +150,3 @@ class ErrorResponse(BaseModel):
             }
         }
     )
-
-
-def error_response_to_envelope(error_response: ErrorResponse) -> ErrorEnvelope:
-    """Convert legacy ErrorResponse to canonical ErrorEnvelope.
-
-    Args:
-        error_response: Legacy flat error response
-
-    Returns:
-        ErrorEnvelope with nested structure, mapping trace_id to request_id
-    """
-    return ErrorEnvelope(
-        error=ErrorDetail(
-            code=error_response.code,
-            message=error_response.message,
-            request_id=error_response.trace_id,
-            details=error_response.details,
-        )
-    )

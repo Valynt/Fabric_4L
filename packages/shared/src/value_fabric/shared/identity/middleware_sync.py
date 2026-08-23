@@ -30,7 +30,6 @@ from .context import (
     RequestContext,
 )
 from .permissions import Permission, Role, ROLE_PERMISSIONS
-from value_fabric.shared.models.typed_dict import TypedDictModel
 
 logger = logging.getLogger(__name__)
 _thread_local = threading.local()
@@ -46,7 +45,9 @@ class SyncRequestContext:
     user_id: Optional[Any] = None
     roles: List[str] = field(default_factory=list)
     api_key_id: Optional[str] = None
-    permissions: FrozenSet[Permission | str] | Iterable[Permission | str] = field(default_factory=frozenset)
+    permissions: FrozenSet[Permission | str] | Iterable[Permission | str] = field(
+        default_factory=frozenset
+    )
     source: str = AUTH_SOURCE_UNKNOWN
     raw: Dict[str, Any] = field(default_factory=dict)
     auth_source: Optional[str] = None
@@ -60,7 +61,9 @@ class SyncRequestContext:
     def __post_init__(self) -> None:
         self.roles = [str(role) for role in (self.roles or [])]
         self.permissions = frozenset(self.permissions or [])
-        self.service_account_scopes = [str(scope) for scope in (self.service_account_scopes or [])]
+        self.service_account_scopes = [
+            str(scope) for scope in (self.service_account_scopes or [])
+        ]
         if self.auth_source is None:
             self.auth_source = self.source
         if self.source == AUTH_SOURCE_UNKNOWN and self.auth_source:
@@ -76,12 +79,16 @@ class SyncRequestContext:
         if not self.auth_source or not self.is_auth_source_valid():
             errors.append(f"auth_source must be one of {sorted(VALID_AUTH_SOURCES)}")
         if self.isolation_tier not in VALID_ISOLATION_TIERS:
-            errors.append(f"isolation_tier must be one of {sorted(VALID_ISOLATION_TIERS)}")
+            errors.append(
+                f"isolation_tier must be one of {sorted(VALID_ISOLATION_TIERS)}"
+            )
         if self.auth_source == AUTH_SOURCE_SERVICE_ACCOUNT:
             if not self.service_account_id:
                 errors.append("service account auth_source requires service_account_id")
             if not self.service_account_scopes:
-                errors.append("service account auth_source requires non-empty service_account_scopes")
+                errors.append(
+                    "service account auth_source requires non-empty service_account_scopes"
+                )
         return errors
 
     def is_super_admin(self) -> bool:
@@ -95,7 +102,10 @@ class SyncRequestContext:
             "org_id": str(self.org_id) if self.org_id is not None else None,
             "service_account_id": self.service_account_id,
             "roles": list(self.roles),
-            "permissions": [value.value if isinstance(value, Permission) else str(value) for value in self.permissions],
+            "permissions": [
+                value.value if isinstance(value, Permission) else str(value)
+                for value in self.permissions
+            ],
             "tenant_role": self.tenant_role,
             "isolation_tier": self.isolation_tier,
             "auth_source": self.auth_source,
@@ -103,21 +113,6 @@ class SyncRequestContext:
             "service_account_scopes": list(self.service_account_scopes),
             "request_id": self.request_id,
         }
-
-
-class SyncRequestContext_to_dictResult(TypedDictModel):
-    api_key_id: Any
-    auth_source: Any
-    isolation_tier: Any
-    org_id: Any
-    permissions: Any
-    request_id: Any
-    roles: Any
-    service_account_id: Any
-    service_account_scopes: Any
-    tenant_id: Any
-    tenant_role: Any
-    user_id: Any
 
 
 def _parse_uuid(value: Any) -> UUID | None:
@@ -163,9 +158,15 @@ def _from_fabric_auth(auth: Any) -> SyncRequestContext:
     return _from_request_context(request_context_from_auth(auth))
 
 
-def _service_auth_context(x_tenant_id: str, x_service_auth: Optional[str]) -> SyncRequestContext:
+def _service_auth_context(
+    x_tenant_id: str, x_service_auth: Optional[str]
+) -> SyncRequestContext:
     expected_secret = os.getenv("SERVICE_AUTH_SECRET", "")
-    if not expected_secret or not x_service_auth or not hmac.compare_digest(x_service_auth, expected_secret):
+    if (
+        not expected_secret
+        or not x_service_auth
+        or not hmac.compare_digest(x_service_auth, expected_secret)
+    ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid service authentication",
@@ -234,15 +235,17 @@ def require_request_context_sync(request: Request) -> SyncRequestContext:
 class GovernanceMiddlewareSync:
     """Sync SQLAlchemy-compatible governance middleware."""
 
-    _EXTERNAL_AUTH_BOOTSTRAP_PATHS: frozenset[str] = frozenset({
-        "/health",
-        "/health/detailed",
-        "/metrics",
-        "/docs",
-        "/openapi.json",
-        "/redoc",
-        "/",
-    })
+    _EXTERNAL_AUTH_BOOTSTRAP_PATHS: frozenset[str] = frozenset(
+        {
+            "/health",
+            "/health/detailed",
+            "/metrics",
+            "/docs",
+            "/openapi.json",
+            "/redoc",
+            "/",
+        }
+    )
 
     def __init__(
         self,
@@ -315,7 +318,10 @@ class GovernanceMiddlewareSync:
                         logger.warning(
                             "API key context rejected: %s",
                             INVALID_API_KEY_CONTEXT_ERROR_CODE,
-                            extra={"error_code": INVALID_API_KEY_CONTEXT_ERROR_CODE, "reason": "missing_or_empty_metadata"},
+                            extra={
+                                "error_code": INVALID_API_KEY_CONTEXT_ERROR_CODE,
+                                "reason": "missing_or_empty_metadata",
+                            },
                         )
                         return None
                     candidate = self._build_context_from_api_key_sync(record)
@@ -332,7 +338,9 @@ class GovernanceMiddlewareSync:
 
         if x_tenant_header:
             if not self._service_auth_secret:
-                logger.warning("X-Tenant-ID rejected: SERVICE_AUTH_SECRET not configured")
+                logger.warning(
+                    "X-Tenant-ID rejected: SERVICE_AUTH_SECRET not configured"
+                )
                 return None
             if not hmac.compare_digest(x_service_auth, self._service_auth_secret):
                 logger.warning("X-Tenant-ID rejected: invalid X-Service-Auth")
@@ -345,13 +353,19 @@ class GovernanceMiddlewareSync:
 
         return None
 
-    def _build_context_from_jwt_sync(self, payload: dict[str, Any]) -> SyncRequestContext:
+    def _build_context_from_jwt_sync(
+        self, payload: dict[str, Any]
+    ) -> SyncRequestContext:
         tenant_id = _parse_uuid(payload.get("tenant_id"))
         user_id = _parse_uuid(payload.get("sub") or payload.get("user_id"))
         org_id = _parse_uuid(payload.get("org_id"))
         service_account_id = payload.get("service_account_id")
         service_account_scopes = payload.get("scopes", [])
-        auth_source = AUTH_SOURCE_SERVICE_ACCOUNT if service_account_id else payload.get("auth_source", AUTH_SOURCE_JWT)
+        auth_source = (
+            AUTH_SOURCE_SERVICE_ACCOUNT
+            if service_account_id
+            else payload.get("auth_source", AUTH_SOURCE_JWT)
+        )
         roles = [str(role) for role in payload.get("roles", [])]
 
         return SyncRequestContext(
@@ -368,7 +382,9 @@ class GovernanceMiddlewareSync:
             service_account_scopes=service_account_scopes,
         )
 
-    def _build_context_from_api_key_sync(self, record: dict[str, Any]) -> SyncRequestContext:
+    def _build_context_from_api_key_sync(
+        self, record: dict[str, Any]
+    ) -> SyncRequestContext:
         tenant_id = _parse_uuid(record.get("tenant_id"))
         user_id = _parse_uuid(record.get("user_id"))
         role = record.get("role", DEFAULT_API_KEY_ROLE)
@@ -383,7 +399,9 @@ class GovernanceMiddlewareSync:
         return SyncRequestContext(
             tenant_id=tenant_id,
             user_id=user_id,
-            api_key_id=str(record.get("key_id")) if record.get("key_id") is not None else None,
+            api_key_id=(
+                str(record.get("key_id")) if record.get("key_id") is not None else None
+            ),
             roles=roles,
             permissions=frozenset(permissions),
             auth_source=AUTH_SOURCE_API_KEY,

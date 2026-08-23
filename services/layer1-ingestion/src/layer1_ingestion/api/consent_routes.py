@@ -33,26 +33,19 @@ router = APIRouter()
 # Lazy dependency imports to avoid circular imports with the main router module.
 def _get_tenant_id(request: Request) -> uuid.UUID:
     from .main import get_tenant_id
+
     return get_tenant_id(request)
 
 
 def _get_current_user_id(request: Request) -> uuid.UUID:
     from .main import get_current_user_id
+
     return get_current_user_id(request)
 
 
 # =============================================================================
 # PYDANTIC SCHEMAS
 # =============================================================================
-
-
-class ConsentScope(BaseModel):
-    """Scope of a consent grant."""
-
-    source_type: str | None = None
-    connector: str | None = None
-    data_categories: list[str] = Field(default_factory=list)
-    purpose: str | None = None
 
 
 class ConsentCreateRequest(BaseModel):

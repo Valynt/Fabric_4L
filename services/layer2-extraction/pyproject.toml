@@ -133,7 +133,6 @@ ignore_missing_imports = true
 [[tool.mypy.overrides]]
 module = [
     "layer2_extraction.api.main",
-    "layer2_extraction.api.service",
     "layer2_extraction.models.ontology",
     "layer2_extraction.integration.job_store",
     "layer2_extraction.extraction.llm_extractor",

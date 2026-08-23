@@ -7,8 +7,6 @@
 import type { IntelligenceTabId } from "./types";
 import { getTabOrDefault } from "./workspaceTabRegistry";
 
-export const WORKSPACE_BASE = "/accounts";
-
 export function workspacePath(
   tenantSlug: string,
   accountId: string,

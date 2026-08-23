@@ -34,6 +34,7 @@ def _get_cache_secret() -> str:
         return "dev-insecure-api-key-fingerprint-secret"
     return secret
 
+
 # Redis client singleton
 _redis_client: redis.Redis | None = None
 
@@ -41,61 +42,59 @@ _redis_client: redis.Redis | None = None
 async def get_redis_client() -> redis.Redis:
     """Get or create Redis client singleton."""
     global _redis_client
-    
+
     if _redis_client is None:
         redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")
         _redis_client = redis.from_url(redis_url, decode_responses=True)
-    
+
     return _redis_client
 
 
 def _build_api_key_cache_key(api_key: str, tenant_id: UUID) -> str:
     """Build tenant-scoped API key cache key.
-    
+
     Uses HMAC-SHA256 for cryptographically secure key fingerprinting.
     This prevents:
     - Process-randomized hash collisions (Python hash() is not stable across runs)
     - Timing attacks on key comparison
     - Information leakage via hash values
-    
+
     Args:
         api_key: API key string
         tenant_id: Tenant UUID
-    
+
     Returns:
         Tenant-scoped cache key with HMAC-SHA256 fingerprint
     """
     # SECURITY: Use HMAC-SHA256 for stable, secure key fingerprinting
     key_hash = hmac.new(
-        _get_cache_secret().encode('utf-8'),
-        api_key.encode('utf-8'),
-        hashlib.sha256
-    ).hexdigest()[:32]  # First 32 chars (128 bits) sufficient for cache keys
+        _get_cache_secret().encode("utf-8"), api_key.encode("utf-8"), hashlib.sha256
+    ).hexdigest()[
+        :32
+    ]  # First 32 chars (128 bits) sufficient for cache keys
     return f"{_CACHE_KEY_NAMESPACE}:{_CACHE_KEY_VERSION}:tenant:{tenant_id}:hash:{key_hash}"
 
 
 async def validate_api_key(
-    api_key: str,
-    tenant_id: UUID,
-    is_valid: bool | None = None
+    api_key: str, tenant_id: UUID, is_valid: bool | None = None
 ) -> bool | None:
     """Validate API key with tenant-scoped caching.
-    
+
     If is_valid is provided, caches the validation result.
     If is_valid is None, checks cache for existing validation.
-    
+
     Args:
         api_key: API key to validate
         tenant_id: Tenant UUID
         is_valid: Validation result to cache, or None to check cache
-    
+
     Returns:
         Cached validation result, or None if not cached
     """
     try:
         client = await get_redis_client()
         key = _build_api_key_cache_key(api_key, tenant_id)
-        
+
         if is_valid is not None:
             # Cache validation result
             await client.set(key, "1" if is_valid else "0", ex=300)  # 5 min TTL
@@ -109,24 +108,3 @@ async def validate_api_key(
     except Exception as e:
         logger.warning(f"API key cache operation failed: {e}")
         return None if is_valid is None else is_valid
-
-
-async def invalidate_api_key_cache(api_key: str, tenant_id: UUID) -> bool:
-    """Invalidate cached API key validation.
-    
-    Args:
-        api_key: API key to invalidate
-        tenant_id: Tenant UUID
-    
-    Returns:
-        True if invalidated successfully
-    """
-    try:
-        client = await get_redis_client()
-        key = _build_api_key_cache_key(api_key, tenant_id)
-        
-        await client.delete(key)
-        return True
-    except Exception as e:
-        logger.warning(f"API key cache invalidation failed: {e}")
-        return False

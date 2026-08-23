@@ -115,7 +115,9 @@ class CRMSyncService:
     def __init__(self, db: AsyncSession, batch_size: int = DEFAULT_SYNC_BATCH_SIZE):
         self.db = db
         self.sync_batch_size = batch_size
-        self._provider_timeout: float = float(os.getenv("CRM_PROVIDER_TIMEOUT_SECONDS", "30.0"))
+        self._provider_timeout: float = float(
+            os.getenv("CRM_PROVIDER_TIMEOUT_SECONDS", "30.0")
+        )
 
     async def sync_provider(
         self,
@@ -191,7 +193,9 @@ class CRMSyncService:
             else:
                 # Fetch all accounts from CRM (would use CRM API query)
                 # For now, we rely on accounts already in our DB
-                prospect_ids = await self._get_accounts_to_sync(tenant_id, provider, incremental)
+                prospect_ids = await self._get_accounts_to_sync(
+                    tenant_id, provider, incremental
+                )
 
             # Sync each account
             has_truncation = False
@@ -245,10 +249,14 @@ class CRMSyncService:
                     await apply_observation(self.db, integration, sync_succeeded())
                     integration.last_error_message = None
                 elif final_status == "degraded":
-                    await apply_observation(self.db, integration, sync_partial(message=final_error))
+                    await apply_observation(
+                        self.db, integration, sync_partial(message=final_error)
+                    )
                     integration.last_error_message = final_error
                 elif final_status == "failed":
-                    await apply_observation(self.db, integration, sync_failed(message=final_error))
+                    await apply_observation(
+                        self.db, integration, sync_failed(message=final_error)
+                    )
                     integration.last_error_message = final_error
 
             await self._update_account_sync_status(
@@ -265,12 +273,17 @@ class CRMSyncService:
             if final_status == "idle":
                 _increment_metric("crm_salesforce_sync_completed_total")
                 _increment_metric(
-                    "crm_salesforce_records_synced_total", stats["synced"] + stats["updated"]
+                    "crm_salesforce_records_synced_total",
+                    stats["synced"] + stats["updated"],
                 )
                 if prom:
-                    prom.increment_crm_salesforce_sync_completed(tenant_id, sync_type=sync_type)
+                    prom.increment_crm_salesforce_sync_completed(
+                        tenant_id, sync_type=sync_type
+                    )
                     prom.increment_crm_salesforce_records_synced(
-                        tenant_id, record_type="account", count=stats["synced"] + stats["updated"]
+                        tenant_id,
+                        record_type="account",
+                        count=stats["synced"] + stats["updated"],
                     )
                     prom.observe_crm_salesforce_sync_duration(
                         tenant_id, duration, sync_type=sync_type
@@ -288,7 +301,9 @@ class CRMSyncService:
             elif final_status == "degraded":
                 _increment_metric("crm_salesforce_sync_failed_total")
                 if prom:
-                    prom.increment_crm_salesforce_sync_failed(tenant_id, error_type="truncated")
+                    prom.increment_crm_salesforce_sync_failed(
+                        tenant_id, error_type="truncated"
+                    )
                     prom.observe_crm_salesforce_sync_duration(
                         tenant_id, duration, sync_type=sync_type
                     )
@@ -310,9 +325,15 @@ class CRMSyncService:
         except Exception as e:
             # Emit failure observation on Integration row
             if isinstance(integration, Integration):
-                error_cls = ErrorClass.AUTH if isinstance(e, AuthError) else ErrorClass.TRANSIENT
+                error_cls = (
+                    ErrorClass.AUTH
+                    if isinstance(e, AuthError)
+                    else ErrorClass.TRANSIENT
+                )
                 await apply_observation(
-                    self.db, integration, sync_failed(error_class=error_cls, message="SYNC_ERROR")
+                    self.db,
+                    integration,
+                    sync_failed(error_class=error_cls, message="SYNC_ERROR"),
                 )
                 integration.last_error_message = "SYNC_ERROR"[:1000]
             await self._update_account_sync_status(
@@ -322,8 +343,12 @@ class CRMSyncService:
             duration = time.monotonic() - sync_start
             error_type = type(e).__name__
             if prom:
-                prom.increment_crm_salesforce_sync_failed(tenant_id, error_type=error_type)
-                prom.observe_crm_salesforce_sync_duration(tenant_id, duration, sync_type=sync_type)
+                prom.increment_crm_salesforce_sync_failed(
+                    tenant_id, error_type=error_type
+                )
+                prom.observe_crm_salesforce_sync_duration(
+                    tenant_id, duration, sync_type=sync_type
+                )
             _log_sync_event(
                 "sync_failed",
                 tenant_id,
@@ -361,7 +386,9 @@ class CRMSyncService:
             True if account was updated (existed), False if created (new)
         """
         # Fetch account record via connector
-        record = await connector.get_account(prospect_id, timeout=self._provider_timeout)
+        record = await connector.get_account(
+            prospect_id, timeout=self._provider_timeout
+        )
 
         if record is None:
             raise ValueError(f"No profile data returned for {prospect_id}")
@@ -408,7 +435,9 @@ class CRMSyncService:
                 prospect_id, timeout=self._provider_timeout
             )
         except TransientError as exc:
-            raise SyncTruncatedError("Opportunity sync returned a truncated result set") from exc
+            raise SyncTruncatedError(
+                "Opportunity sync returned a truncated result set"
+            ) from exc
         except Exception:
             opp_records = []
 
@@ -553,7 +582,9 @@ class CRMSyncService:
 
         await self.db.commit()
 
-    async def _get_crm_config(self, provider: CRMProvider, tenant_id: str) -> dict[str, Any] | None:
+    async def _get_crm_config(
+        self, provider: CRMProvider, tenant_id: str
+    ) -> dict[str, Any] | None:
         """Get CRM configuration from tenant integration table.
 
         SECURITY: Never falls back to environment variables in production.
@@ -568,13 +599,17 @@ class CRMSyncService:
 
         if not integration:
             logger.warning(
-                "No integration configured for tenant=%s provider=%s", tenant_id, provider.value
+                "No integration configured for tenant=%s provider=%s",
+                tenant_id,
+                provider.value,
             )
             return None
 
         if not integration.enabled:
             logger.debug(
-                "Integration disabled for tenant=%s provider=%s", tenant_id, provider.value
+                "Integration disabled for tenant=%s provider=%s",
+                tenant_id,
+                provider.value,
             )
             return None
 
@@ -585,7 +620,8 @@ class CRMSyncService:
                 "api_key": decrypted.get("api_key"),
                 "crm_api_key": decrypted.get("api_key"),
                 "crm_api_secret": decrypted.get("api_secret"),
-                "crm_instance_url": integration.instance_url or decrypted.get("instance_url"),
+                "crm_instance_url": integration.instance_url
+                or decrypted.get("instance_url"),
             }
         )
         # Pass refresh token to connector config so it can handle 401→refresh→retry
@@ -681,14 +717,10 @@ class CRMSyncService:
 
         # Sync the account via connector
         connector = get_connector(provider, config)
-        await self._sync_single_account(connector, tenant_id, provider, account.provider_record_id)
+        await self._sync_single_account(
+            connector, tenant_id, provider, account.provider_record_id
+        )
 
         # Refresh and return
         await self.db.refresh(account)
         return account
-
-
-# Factory function for dependency injection
-async def get_crm_sync_service(db: AsyncSession) -> CRMSyncService:
-    """Factory for creating CRMSyncService with database session."""
-    return CRMSyncService(db)

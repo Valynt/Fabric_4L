@@ -57,9 +57,11 @@ class _handle_webhook_errorResult(TypedDictModel):
     provider: Any
     status: str
 
+
 class webhook_healthResult(TypedDictModel):
     status: str
     webhooks: list[Any]
+
 
 class salesforce_webhookResult(TypedDictModel):
     event_type: Any
@@ -67,11 +69,13 @@ class salesforce_webhookResult(TypedDictModel):
     record_id: Any
     status: str
 
+
 class hubspot_webhookResult(TypedDictModel):
     companies_to_sync: Any
     events_processed: Any
     provider: str
     status: str
+
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/webhooks/crm", tags=["CRM Webhooks"])
@@ -92,24 +96,20 @@ _DEV_RELAXED_TENANT_FLAG = "CRM_WEBHOOKS_ALLOW_DEV_RELAXED_TENANT_RESOLUTION"
 # CONTRACT §2.5: Pydantic schemas for webhook payload validation
 class SalesforceSObject(BaseModel):
     """Salesforce sObject in outbound message."""
+
     Id: str | None = None
     Name: str | None = None
 
 
 class SalesforceNotification(BaseModel):
     """Salesforce outbound message notification wrapper."""
+
     sObject: SalesforceSObject = Field(default_factory=SalesforceSObject)  # noqa: N815
-
-
-class SalesforceChangeEventHeader(BaseModel):
-    """Salesforce ChangeEventHeader for platform events."""
-    recordIds: list[str] = Field(default_factory=list)  # noqa: N815
-    changeType: str = ""  # noqa: N815
-    entityName: str = ""  # noqa: N815
 
 
 class SalesforcePayloadData(BaseModel):
     """Salesforce platform event data wrapper."""
+
     payload: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -120,6 +120,7 @@ class SalesforceWebhookPayload(BaseModel):
     - Platform events: {"data": {"payload": {"ChangeEventHeader": {...}}}}
     - Outbound messages: {"Notification": {"sObject": {"Id": "..."}}}
     """
+
     Notification: SalesforceNotification | None = None
     data: SalesforcePayloadData | None = None
     # Allow extra fields for flexibility
@@ -131,6 +132,7 @@ class HubSpotWebhookEvent(BaseModel):
 
     HubSpot sends arrays of these events for object changes.
     """
+
     eventId: int | None = None  # noqa: N815
     subscriptionId: int | None = None  # noqa: N815
     portalId: int | None = None  # noqa: N815
@@ -239,13 +241,15 @@ async def _resolve_integration_from_token(
     for integration in result.scalars().all():
         credentials = await _decrypt_integration_credentials(integration)
         stored_token = credentials.get("webhook_token")
-        if isinstance(stored_token, str) and hmac.compare_digest(stored_token, provided_token):
+        if isinstance(stored_token, str) and hmac.compare_digest(
+            stored_token, provided_token
+        ):
             if matched_integration is not None:
                 logger.warning(
                     "CRM webhook token matched multiple integrations; refusing relaxed dev resolution",
                     extra={"provider": provider.value},
                 )
-                raise AuthenticationError(message = "Invalid webhook credentials")
+                raise AuthenticationError(message="Invalid webhook credentials")
             matched_integration = integration
 
     return matched_integration
@@ -270,7 +274,11 @@ async def _resolve_webhook_integration(
                 provider.value.capitalize(),
                 tenant_id,
             )
-            raise NotFoundError(message = str(f"No {provider.value.capitalize()} integration configured for tenant {tenant_id}"))
+            raise NotFoundError(
+                message=str(
+                    f"No {provider.value.capitalize()} integration configured for tenant {tenant_id}"
+                )
+            )
         if not integration.enabled:
             logger.warning(
                 "%s webhook rejected: %s integration disabled for tenant=%s",
@@ -278,7 +286,11 @@ async def _resolve_webhook_integration(
                 provider.value.capitalize(),
                 tenant_id,
             )
-            raise AuthorizationError(message = str(f"{provider.value.capitalize()} integration is disabled for this tenant"))
+            raise AuthorizationError(
+                message=str(
+                    f"{provider.value.capitalize()} integration is disabled for this tenant"
+                )
+            )
         return integration, False
 
     if not _allow_dev_relaxed_tenant_resolution():
@@ -286,7 +298,7 @@ async def _resolve_webhook_integration(
             "%s webhook rejected: tenant_id query parameter is required",
             provider.value.capitalize(),
         )
-        raise ValidationError(message = "tenant_id query parameter is required")
+        raise ValidationError(message="tenant_id query parameter is required")
 
     integration = await _resolve_integration_from_token(
         db=db,
@@ -298,7 +310,7 @@ async def _resolve_webhook_integration(
             "%s webhook rejected: dev relaxed mode could not resolve tenant from authenticated token",
             provider.value.capitalize(),
         )
-        raise AuthenticationError(message = "Invalid webhook credentials")
+        raise AuthenticationError(message="Invalid webhook credentials")
 
     logger.warning(
         "%s webhook resolved tenant=%s via development-only relaxed token binding. "
@@ -360,7 +372,11 @@ async def _authenticate_webhook(
         token_valid = hmac.compare_digest(stored_webhook_token, provided_token)
 
     if not token_valid:
-        if _allow_dev_relaxed_tenant_resolution() and app_state_webhook_secret and provided_signature:
+        if (
+            _allow_dev_relaxed_tenant_resolution()
+            and app_state_webhook_secret
+            and provided_signature
+        ):
             expected = _build_signature(app_state_webhook_secret, body)
             if hmac.compare_digest(expected, provided_signature):
                 logger.warning(
@@ -375,7 +391,7 @@ async def _authenticate_webhook(
             integration.tenant_id,
             integration.provider,
         )
-        raise AuthenticationError(message = "Invalid webhook credentials")
+        raise AuthenticationError(message="Invalid webhook credentials")
 
     # Secondary auth: HMAC signature verification (defense-in-depth)
     if app_state_webhook_secret and provided_signature:
@@ -386,7 +402,7 @@ async def _authenticate_webhook(
                 integration.tenant_id,
                 integration.provider,
             )
-            raise AuthenticationError(message = "Invalid webhook signature")
+            raise AuthenticationError(message="Invalid webhook signature")
     return creds, "token"
 
 
@@ -422,7 +438,7 @@ def _validate_webhook_metadata(
                 integration.salesforce_org_id,
                 sorted(payload_org_ids),
             )
-            raise AuthenticationError(message = "Invalid webhook tenant binding")
+            raise AuthenticationError(message="Invalid webhook tenant binding")
 
     if provider == CRMProvider.HUBSPOT:
         configured_portal_id = (
@@ -440,7 +456,7 @@ def _validate_webhook_metadata(
                     configured_portal_id,
                     sorted(payload_portal_ids),
                 )
-                raise AuthenticationError(message = "Invalid webhook tenant binding")
+                raise AuthenticationError(message="Invalid webhook tenant binding")
 
 
 # ============================================================================
@@ -458,10 +474,16 @@ def _validate_webhook_metadata(
 async def salesforce_webhook(
     request: Request,
     background_tasks: BackgroundTasks,
-    tenant_id: str | None = Query(None, description="Tenant identifier for multi-tenant webhook routing"),
-    webhook_token: str | None = Query(None, description="Per-tenant webhook token for authentication"),
+    tenant_id: str | None = Query(
+        None, description="Tenant identifier for multi-tenant webhook routing"
+    ),
+    webhook_token: str | None = Query(
+        None, description="Per-tenant webhook token for authentication"
+    ),
     x_webhook_token: str | None = Header(None, alias="X-Webhook-Token"),
-    x_salesforce_signature: str | None = Header(None, alias=SALESFORCE_SIGNATURE_HEADER),
+    x_salesforce_signature: str | None = Header(
+        None, alias=SALESFORCE_SIGNATURE_HEADER
+    ),
     db: AsyncSession = Depends(get_db_from_context),
 ) -> dict[str, Any]:
     """Handle Salesforce outbound message or platform event webhook.
@@ -520,8 +542,18 @@ async def salesforce_webhook(
     except asyncio.CancelledError:
         raise
     except Exception as e:
-        logger.warning("Salesforce webhook received invalid payload", extra={"error_code": "WEBHOOK_PARSE_ERROR", "error": sanitize_log_error(e), "body_preview": body[:200].decode(errors='replace')})
-        data = {"raw_body": body.decode(errors='replace'), "parse_error": "Webhook payload parse failed"}
+        logger.warning(
+            "Salesforce webhook received invalid payload",
+            extra={
+                "error_code": "WEBHOOK_PARSE_ERROR",
+                "error": sanitize_log_error(e),
+                "body_preview": body[:200].decode(errors="replace"),
+            },
+        )
+        data = {
+            "raw_body": body.decode(errors="replace"),
+            "parse_error": "Webhook payload parse failed",
+        }
 
     # Extract record info from Salesforce payload
     # Platform events: {"data": {"payload": {"RecordId": "...", "ChangeEventHeader": {...}}}}
@@ -543,7 +575,9 @@ async def salesforce_webhook(
         effective_tenant_id,
         extra={
             "tenant_resolution_mode": (
-                "query_tenant_id" if not tenant_resolved_without_query else "dev_relaxed_token"
+                "query_tenant_id"
+                if not tenant_resolved_without_query
+                else "dev_relaxed_token"
             ),
             "auth_mode": auth_mode,
         },
@@ -578,20 +612,25 @@ async def salesforce_webhook(
                 effective_tenant_id,
             )
 
-        return salesforce_webhookResult.model_validate({
-            "status": "accepted",
-            "provider": "salesforce",
-            "event_type": event_type,
-            "record_id": record_id,
-            "tenant_id": effective_tenant_id,
-        }).model_dump()
-
+        return salesforce_webhookResult.model_validate(
+            {
+                "status": "accepted",
+                "provider": "salesforce",
+                "event_type": event_type,
+                "record_id": record_id,
+                "tenant_id": effective_tenant_id,
+            }
+        ).model_dump()
 
     except asyncio.CancelledError:
         raise
     except Exception as e:
         return _handle_webhook_error(
-            logger, e, "salesforce", record_id=record_id, event_type=event_type,
+            logger,
+            e,
+            "salesforce",
+            record_id=record_id,
+            event_type=event_type,
             request_id=getattr(request.state, "request_id", None),
         )
 
@@ -658,7 +697,10 @@ def _handle_webhook_error(
     if event_count:
         extra["event_count"] = event_count
 
-    logger.error(f"Failed to process {provider} webhook: {type(error).__name__}", extra={**extra, "error_type": type(error).__name__})
+    logger.error(
+        f"Failed to process {provider} webhook: {type(error).__name__}",
+        extra={**extra, "error_type": type(error).__name__},
+    )
 
     # Build resource_id based on provider and available context
     resource_id = record_id or f"{provider}_{event_count}_events"
@@ -686,12 +728,14 @@ def _handle_webhook_error(
         details=details,
     )
 
-    return _handle_webhook_errorResult.model_validate({
-        "status": "error",
-        "provider": provider,
-        "error_type": type(error).__name__,
-        "audit_event_id": str(event.id),
-    }).model_dump()
+    return _handle_webhook_errorResult.model_validate(
+        {
+            "status": "error",
+            "provider": provider,
+            "error_type": type(error).__name__,
+            "audit_event_id": str(event.id),
+        }
+    ).model_dump()
 
 
 # ============================================================================
@@ -709,11 +753,17 @@ def _handle_webhook_error(
 async def hubspot_webhook(
     request: Request,
     background_tasks: BackgroundTasks,
-    tenant_id: str | None = Query(None, description="Tenant identifier for multi-tenant webhook routing"),
-    webhook_token: str | None = Query(None, description="Per-tenant webhook token for authentication"),
+    tenant_id: str | None = Query(
+        None, description="Tenant identifier for multi-tenant webhook routing"
+    ),
+    webhook_token: str | None = Query(
+        None, description="Per-tenant webhook token for authentication"
+    ),
     x_webhook_token: str | None = Header(None, alias="X-Webhook-Token"),
     x_hubspot_signature: str | None = Header(None, alias=HUBSPOT_SIGNATURE_HEADER),
-    x_hubspot_signature_v3: str | None = Header(None, alias=HUBSPOT_SIGNATURE_V3_HEADER),
+    x_hubspot_signature_v3: str | None = Header(
+        None, alias=HUBSPOT_SIGNATURE_V3_HEADER
+    ),
     db: AsyncSession = Depends(get_db_from_context),
 ) -> dict[str, Any]:
     """Handle HubSpot webhook for contact/company/deal changes.
@@ -790,7 +840,7 @@ async def hubspot_webhook(
         raise
     except Exception as e:
         logger.warning(f"HubSpot webhook received invalid payload: {e}")
-        raise ValidationError(message = "Invalid JSON payload") from e
+        raise ValidationError(message="Invalid JSON payload") from e
     _validate_webhook_metadata(
         provider=CRMProvider.HUBSPOT,
         integration=integration,
@@ -814,7 +864,9 @@ async def hubspot_webhook(
 
         # Validate subscription_type is string before .lower()
         if not isinstance(subscription_type, str):
-            logger.warning(f"Skipping event with non-string subscriptionType: {type(subscription_type)}")
+            logger.warning(
+                f"Skipping event with non-string subscriptionType: {type(subscription_type)}"
+            )
             continue
 
         # Handle company events directly
@@ -834,7 +886,9 @@ async def hubspot_webhook(
         effective_tenant_id,
         extra={
             "tenant_resolution_mode": (
-                "query_tenant_id" if not tenant_resolved_without_query else "dev_relaxed_token"
+                "query_tenant_id"
+                if not tenant_resolved_without_query
+                else "dev_relaxed_token"
             ),
             "auth_mode": auth_mode,
         },
@@ -869,14 +923,15 @@ async def hubspot_webhook(
                 effective_tenant_id,
             )
 
-        return hubspot_webhookResult.model_validate({
-            "status": "accepted",
-            "provider": "hubspot",
-            "events_processed": event_count,
-            "companies_to_sync": len(company_ids),
-            "tenant_id": effective_tenant_id,
-        }).model_dump()
-
+        return hubspot_webhookResult.model_validate(
+            {
+                "status": "accepted",
+                "provider": "hubspot",
+                "events_processed": event_count,
+                "companies_to_sync": len(company_ids),
+                "tenant_id": effective_tenant_id,
+            }
+        ).model_dump()
 
     except asyncio.CancelledError:
         raise
@@ -905,5 +960,3 @@ async def webhook_health() -> dict[str, Any]:
         extra={"webhooks": ["salesforce", "hubspot"]},
     )
     return webhook_healthResult.model_validate(payload).model_dump()
-
-
