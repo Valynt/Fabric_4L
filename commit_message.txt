@@ -1,0 +1,15 @@
+test: add comprehensive test suite for canonical tenant-context module
+
+🎯 What: The `getTenantContext` function (and the rest of the `tenant-context.ts` module) was completely untested, creating a significant testing gap for the canonical context propagation implementation.
+
+📊 Coverage: This PR introduces an exhaustive test suite covering:
+- `getTenantContext` / `withTenantContext`: Scope establishment, null returns outside of scope, leakage prevention, nested scopes, and context immutability.
+- `withTenantContextOverride`: Verifying override logic, `tenant_id` immutability, and returned object freezing.
+- Cross-Service Propagation (`generatePropagationHeaders`, `extractTenantFromHeaders`): Correct header generation and validation.
+- Message Queue Propagation (`injectContextIntoMessage`, `extractContextFromMessage`): Valid context payload injection and extraction.
+
+✨ Result: Test coverage for `examples/canonical/context/tenant-context.ts` is dramatically improved. 16/16 test cases now pass, ensuring that refactoring or future developments on this foundational tenant-context layer are safely guarded against regressions.
+
+Contract shape impact: None. Tests added, no source changes.
+Tenant isolation impact: None directly, tests ensure tenant isolation mechanisms work as expected.
+Compatibility shim impact: None.
