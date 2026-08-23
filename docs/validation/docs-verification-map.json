@@ -29,7 +29,7 @@
       "checks": [
         {
           "name": "make_verify_target_exists",
-          "command": "make -n verify >/dev/null"
+          "command": "make -n verify"
         }
       ]
     }
