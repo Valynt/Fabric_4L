@@ -18,7 +18,7 @@ import pytest
 pytestmark = [pytest.mark.security, pytest.mark.p0, pytest.mark.tenant_boundary, pytest.mark.unit]
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-L2_MAIN = REPO_ROOT / "services/layer2-extraction/src/layer2_extraction/api/main.py"
+L2_MAIN = REPO_ROOT / "services/layer2-extraction/src/layer2_extraction/api/pipeline_runner.py"
 L2_JOB_STORE = REPO_ROOT / "services/layer2-extraction/src/layer2_extraction/integration/job_store.py"
 
 
