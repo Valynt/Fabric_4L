@@ -116,7 +116,7 @@ class DegradationExecutionTracker:
         """True if any fallback was needed or a non-primary tier was selected."""
         if bool(self.failed_rungs):
             return True
-        if self.selected_tier in ("heuristic", "template", "secondary_provider", "thesys_c1"):
+        if self.selected_tier in ("heuristic", "template"):
             return True
         return False
 
