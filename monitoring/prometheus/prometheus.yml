@@ -13,6 +13,7 @@ alerting:
 rule_files:
   - 'recording-rules.yml'
   - 'alerting/rules.yml'
+  - 'alerting/layer-sli-rules-production.yml'
 
 scrape_configs:
   - job_name: 'prometheus'
