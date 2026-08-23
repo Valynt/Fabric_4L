@@ -156,6 +156,10 @@ class QueryGraphTool(BaseTool):
         """
         params = dict(parameters) if parameters else {}
         # Override any tenant_id parameter with the authenticated context
+        for key in list(params.keys()):
+            if "tenant_id" in key.lower():
+                params[key] = str(tenant_id)
+
         params["tenant_id"] = str(tenant_id)
         return params
 
