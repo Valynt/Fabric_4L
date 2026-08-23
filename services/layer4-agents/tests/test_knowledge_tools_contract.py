@@ -359,8 +359,18 @@ async def test_find_paths_uses_max_length_and_shortest_result() -> None:
     ],
 )
 @pytest.mark.asyncio
-async def test_graph_tools_propagate_cancellation(tool_cls, input_data) -> None:
+async def test_graph_tools_propagate_cancellation(tool_cls, input_data, monkeypatch) -> None:
     tool = tool_cls(tool_config())
     tool._driver = Driver([asyncio.CancelledError()])
     with pytest.raises(asyncio.CancelledError):
         await tool.execute(input_data)
+
+    def missing():
+        raise TenantContextError("missing")
+
+    monkeypatch.setattr(
+        "layer4_agents.tools.knowledge_tools.tenant_context.get_current_tenant_context", missing
+    )
+
+    result = await tool.execute(input_data)
+    assert hasattr(result, "error") and "Tenant context required" in result.error
