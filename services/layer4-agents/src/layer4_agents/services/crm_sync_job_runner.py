@@ -85,6 +85,8 @@ class CRMSyncJobRunner:
                 await self._handle_payload(payload)
             except asyncio.CancelledError:
                 raise
+            except TimeoutError:
+                pass
             except Exception:
                 logger.exception("CRM sync job runner loop failed")
 
