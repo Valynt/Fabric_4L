@@ -592,7 +592,14 @@ class GetRelationshipsTool(BaseTool):
                 # P0 FIX: Build query with mandatory tenant filter and optional predicate
                 tenant_id_str = str(tenant_ctx.tenant_id)
 
-                rel_pattern = f"[r:{predicate}]" if predicate else "[r]"
+                predicate = input_data.predicate
+
+                # Relationship type is optional.
+                # Predicate must come from validated enum/domain values before interpolation.
+                if predicate:
+                    rel_pattern = f"[r:{predicate}]"
+                else:
+                    rel_pattern = "[r]"
 
                 query = f"""
                     MATCH (n {{id: $entity_id, tenant_id: $tenant_id}})-{rel_pattern}->(m {{tenant_id: $tenant_id}})
