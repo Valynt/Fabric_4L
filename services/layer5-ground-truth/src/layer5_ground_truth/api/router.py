@@ -1,3 +1,5 @@
+import asyncio
+
 from value_fabric.shared.error_handling.exceptions import (
     BadRequestError,
     ConflictError,
@@ -296,9 +298,8 @@ async def sync_to_kg(
 
     client = get_layer3_client()
     request_id = getattr(request.state, "trace_id", None)
-    synced = 0
-    failed = 0
-    for truth in pending:
+
+    async def _sync_single_truth(truth):
         node_id = await client.sync_truth_object(
             truth_object_id=truth.id,
             tenant_id=truth.tenant_id,
@@ -315,9 +316,12 @@ async def sync_to_kg(
         if node_id:
             truth.kg_node_id = node_id
             truth.kg_synced_at = datetime.now(UTC)
-            synced += 1
-        else:
-            failed += 1
+            return True
+        return False
+
+    results = await asyncio.gather(*(_sync_single_truth(t) for t in pending))
+    synced = sum(1 for r in results if r)
+    failed = len(results) - synced
 
     try:
         emit_audit_event(
