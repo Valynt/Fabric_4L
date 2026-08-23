@@ -22,11 +22,7 @@ from ...models.account import Account
 
 if TYPE_CHECKING:
     from .prospects import (
-        BuyerRoleInferenceResult,
-        CrmMatchResult,
-        EnrichmentStatus,
         ProspectSetupData,
-        WorkflowStartStatus,
     )
 
 logger = logging.getLogger(__name__)
