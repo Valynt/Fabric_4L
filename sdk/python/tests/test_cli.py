@@ -399,3 +399,29 @@ class TestConfigErrorHandling:
         monkeypatch.setattr(config_mod, "CONFIG_FILE", corrupted_file)
         with pytest.raises(ConfigurationError, match="Config file is corrupted"):
             config_mod._load_config()
+
+    def test_load_config_missing_file(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        missing_file = tmp_path / "missing.toml"
+        monkeypatch.setattr(config_mod, "CONFIG_FILE", missing_file)
+        assert config_mod._load_config() == {}
+
+    def test_load_config_read_error(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        error_file = tmp_path / "error.toml"
+        error_file.write_text("", encoding="utf-8")
+        monkeypatch.setattr(config_mod, "CONFIG_FILE", error_file)
+
+        def mock_load_profile_toml(*args: Any, **kwargs: Any) -> Any:
+            raise ValueError("mock error")
+
+        monkeypatch.setattr(config_mod, "_load_profile_toml", mock_load_profile_toml)
+
+        with pytest.raises(ConfigurationError) as exc_info:
+            config_mod._load_config()
+
+        assert "Config file is corrupted" in str(exc_info.value)
+        assert "mock error" in str(exc_info.value)
+        assert isinstance(exc_info.value.__cause__, ValueError)
