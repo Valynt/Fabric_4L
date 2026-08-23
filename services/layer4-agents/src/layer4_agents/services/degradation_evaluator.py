@@ -154,7 +154,7 @@ class DegradationExecutionTracker:
             "tier": tier,
             "reason": reason,
             "attempt": self.attempts,
-            "error": str(exc) if exc is not None else None,
+            "error": str(exc) if exc is not None else None,  # ban-str-e-allow: structured-log
         }
         self.failed_rungs.append(failure_record)
         logger.warning(
