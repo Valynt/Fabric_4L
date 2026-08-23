@@ -49,6 +49,7 @@ class LLMOutputValidationError(RuntimeError):
         self.call_id = call_id
         self.errors = errors
 
+
 if TYPE_CHECKING:
     from layer4_agents.harness.models import HarnessRun
     from layer4_agents.harness.telemetry import TelemetryEmitter
@@ -114,9 +115,7 @@ def estimate_prompt_tokens_from_messages(
     Approximates ~4 characters per token when messages are present.
     """
     if messages is not None:
-        text = " ".join(
-            m.get("content", "") for m in messages if isinstance(m, dict)
-        )
+        text = " ".join(m.get("content", "") for m in messages if isinstance(m, dict))
         return max(1, len(text) // 4)
     return fallback_tokens
 
@@ -131,9 +130,7 @@ def calculate_llm_call_cost(
     """Calculate call cost in USD using the cost calculator if available."""
     if cost_calc is None:
         return 0.0
-    return cost_calc.calculate_cost(
-        provider_name, model, prompt_tokens, completion_tokens
-    )
+    return cost_calc.calculate_cost(provider_name, model, prompt_tokens, completion_tokens)
 
 
 def format_structured_llm_messages(
@@ -213,17 +210,15 @@ class GovernedLLMClient:
     ) -> None:
         self._provider = provider
         self._provider_name = (
-            provider_name.strip().lower()
-            if isinstance(provider_name, str)
-            else provider_name
+            provider_name.strip().lower() if isinstance(provider_name, str) else provider_name
         )
         self._run = run
         self._telemetry = telemetry
         self._config = self._load_runtime_config(runtime_config_path or _RUNTIME_CONFIG_PATH)
         self._degradation_policies: DegradationPoliciesConfig | None = self._load_degradation_policies(self._config)
         self._cost_calc = self._build_cost_calculator()
-        self._max_cost_per_call_usd: float | None = (
-            self._config.get("llm", {}).get("max_cost_per_call_usd")
+        self._max_cost_per_call_usd: float | None = self._config.get("llm", {}).get(
+            "max_cost_per_call_usd"
         )
 
     # ------------------------------------------------------------------
@@ -318,7 +313,9 @@ class GovernedLLMClient:
         for attempt in range(1, max_attempts + 1):
             t0 = time.monotonic()
             try:
-                self._scan_for_prompt_injection(messages, model_task=model_task, model=model, call_id=call_id)
+                self._scan_for_prompt_injection(
+                    messages, model_task=model_task, model=model, call_id=call_id
+                )
                 response = await self._provider.complete_text(
                     model=model,
                     messages=messages,
@@ -377,7 +374,10 @@ class GovernedLLMClient:
                 category = self._classify_error(exc)
                 logger.warning(
                     "LLM call failed (attempt %d/%d, category=%s, model=%s)",
-                    attempt, max_attempts, category, model,
+                    attempt,
+                    max_attempts,
+                    category,
+                    model,
                 )
                 if category not in retryable or attempt == max_attempts:
                     self._emit_call_failed(model_task, model, category, call_id)
@@ -442,12 +442,10 @@ class GovernedLLMClient:
     def _resolve_model(self, model_task: str) -> str:
         """Resolve model name from layer4_agents.harness.runtime.yaml for the active provider."""
         llm_cfg = self._config.get("llm", {})
-        raw_provider = os.getenv("LAYER4_LLM_PROVIDER", llm_cfg.get("provider", self._provider_name))
-        provider = (
-            raw_provider.strip().lower()
-            if isinstance(raw_provider, str)
-            else raw_provider
+        raw_provider = os.getenv(
+            "LAYER4_LLM_PROVIDER", llm_cfg.get("provider", self._provider_name)
         )
+        provider = raw_provider.strip().lower() if isinstance(raw_provider, str) else raw_provider
         models = llm_cfg.get("models", {}).get(provider, {})
         model = models.get(model_task)
         if not model:
@@ -657,6 +655,7 @@ class GovernedLLMClient:
     def _build_cost_calculator() -> Any | None:
         try:
             from ..metrics.llm_cost_calculator import LLMCostCalculator
+
             return LLMCostCalculator()
         except asyncio.CancelledError:
             raise
