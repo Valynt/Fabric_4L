@@ -42,7 +42,6 @@ EXTERNAL_AUTH_BOOTSTRAP_ALLOWLIST: frozenset[str] = frozenset(
         "/v1/auth/accept-invite",
         "/v1/auth/clerk/tenant",
         "/",
-        "/robots.txt",
     }
 )
 

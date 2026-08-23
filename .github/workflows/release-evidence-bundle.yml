@@ -285,7 +285,6 @@ jobs:
           target: "http://localhost:8001"
           rules_file_name: ".zap/rules.tsv"
           cmd_options: "-a"
-          allow_issue_writing: false
 
       - name: Upload live evidence
         uses: actions/upload-artifact@v4

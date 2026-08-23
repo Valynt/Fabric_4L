@@ -428,8 +428,6 @@ _security_config_l1 = SecurityConfig.from_env(
         {
             "/health",
             "/metrics",
-            "/",
-            "/robots.txt",
         }
     ),
     strict_mode=True,
@@ -543,18 +541,6 @@ from .admin_handlers import legacy_health_check
 
 app.get("/health", tags=["health"])(legacy_health_check)
 app.get("/metrics", include_in_schema=False)(legacy_metrics)
-
-
-@app.get("/", include_in_schema=False)
-async def root():
-    return {"status": "ok"}
-
-
-@app.get("/robots.txt", include_in_schema=False)
-async def robots():
-    from fastapi.responses import PlainTextResponse
-
-    return PlainTextResponse("User-agent: *\nDisallow: /\n")
 
 
 if __name__ == "__main__":
