@@ -158,9 +158,7 @@ def _serialize_entity(entity: dict[str, Any]) -> dict[str, Any]:
     return serialized
 
 
-def _serialize_relationship(
-    rel: Any, include_hops: bool = False, hops: int = 0
-) -> dict[str, Any]:
+def _serialize_relationship(rel: Any, include_hops: bool = False, hops: int = 0) -> dict[str, Any]:
     """Serialize a Neo4j relationship.
 
     Centralizes relationship serialization to ensure consistent field
