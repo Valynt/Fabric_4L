@@ -6,6 +6,7 @@ import json
 from collections.abc import Iterator
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 from unittest.mock import patch
 from uuid import UUID
 
@@ -366,9 +367,7 @@ class TestConfigErrorHandling:
         monkeypatch.setattr(config_mod, "CONFIG_FILE", missing_file)
         assert config_mod._load_config() == {}
 
-    def test_load_config_read_error(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_load_config_read_error(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         error_file = tmp_path / "error.toml"
         error_file.write_text("", encoding="utf-8")
         monkeypatch.setattr(config_mod, "CONFIG_FILE", error_file)
