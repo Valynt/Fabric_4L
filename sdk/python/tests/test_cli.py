@@ -352,9 +352,7 @@ class TestFeatureFlagCommands:
         with patch("valuefabric.cli.flags.get_client") as mock_client_factory:
             mock_client = mock_client_factory.return_value
             mock_client.set_feature_flag.return_value = flag
-            result = runner.invoke(
-                app, ["feature-flags", "set", "new_ui", "--disabled", "--json"]
-            )
+            result = runner.invoke(app, ["feature-flags", "set", "new_ui", "--disabled", "--json"])
             assert result.exit_code == 0
             data = json.loads(result.output)
             assert data["flag_key"] == "new_ui"
