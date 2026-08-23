@@ -435,27 +435,71 @@ export const Errors = {
 // HTTP Response Helpers
 // ============================================================================
 
-/**
- * Create HTTP error response with status code mapping.
- */
+export function isCanonicalError(error: unknown): error is CanonicalError {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    "message" in error &&
+    "recoverable" in error
+  );
+}
+
+// Overload 1: New signature from task description
+export function createErrorResponse(
+  error: unknown,
+  context?: Record<string, unknown>
+): ErrorResponse | CanonicalError;
+
+// Overload 2: Legacy signature for existing call-sites
 export function createErrorResponse(
   error: CanonicalError,
   requestId: string,
   traceId: string
-): { response: ErrorResponse; statusCode: number } {
-  const statusCode = mapErrorCodeToStatus(error.code);
+): { response: ErrorResponse; statusCode: number };
 
-  return {
-    response: {
-      success: false,
-      error,
-      meta: {
-        request_id: requestId,
-        trace_id: traceId,
-        timestamp: new Date().toISOString(),
+// Implementation
+export function createErrorResponse(
+  error: unknown,
+  arg2?: string | Record<string, unknown>,
+  arg3?: string
+): ErrorResponse | CanonicalError | { response: ErrorResponse; statusCode: number } {
+  // Legacy signature path
+  if (typeof arg2 === "string" && typeof arg3 === "string" && isCanonicalError(error)) {
+    const statusCode = mapErrorCodeToStatus(error.code);
+    return {
+      response: {
+        success: false,
+        error,
+        meta: {
+          request_id: arg2,
+          trace_id: arg3,
+          timestamp: new Date().toISOString(),
+        },
       },
+      statusCode,
+    };
+  }
+
+  // New signature path
+  if (isCanonicalError(error)) {
+    return error;
+  }
+
+  const context = typeof arg2 === "object" ? arg2 : undefined;
+  return {
+    success: false,
+    error: {
+      code: "INTERNAL_ERROR",
+      message: error instanceof Error ? error.message : String(error),
+      recoverable: false,
+      details: context,
     },
-    statusCode,
+    meta: {
+      request_id: (context?.requestId as string) || "unknown",
+      trace_id: (context?.traceId as string) || "unknown",
+      timestamp: new Date().toISOString(),
+    },
   };
 }
 
