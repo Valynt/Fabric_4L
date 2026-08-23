@@ -2,8 +2,6 @@
 
 import logging
 
-import pytest
-
 from .llm_output_parser import _find_matching_close, parse_llm_json
 
 
