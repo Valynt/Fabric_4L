@@ -488,7 +488,7 @@ class GetEntityTool(BaseTool):
 
                 relationships = []
                 if input_data.include_relationships:
-                    # P0 FIX: Query relationships with mandatory tenant filter on both nodes
+                    # P0 FIX: Query relationships with mandatory tenant filter on both nodes (implemented)
                     rel_query = """
                         MATCH (n {id: $entity_id, tenant_id: $tenant_id})-[r]-(m {tenant_id: $tenant_id})
                         RETURN type(r) as predicate, m.id as target_id, 
