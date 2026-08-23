@@ -99,7 +99,14 @@ class ModelRegistryClient:
         Raises:
             RegistryUnavailable: If registry cannot be reached or returns an error
         """
-        url = f"{self.registry_url}/models/{model_id}"
+        base_url = self.registry_url.rstrip("/")
+        if base_url.endswith("/models"):
+            url = f"{base_url}/{model_id}"
+        elif base_url.endswith("/v1"):
+            url = f"{base_url}/models/{model_id}"
+        else:
+            url = f"{base_url}/models/{model_id}"
+
         headers: dict[str, str] = {
             "Accept": "application/json",
         }
@@ -116,11 +123,15 @@ class ModelRegistryClient:
 
             if resp.status_code == 200:
                 data = resp.json()
+                if not isinstance(data, dict):
+                    raise RegistryUnavailable(
+                        f"Registry at {self.registry_url} returned non-object JSON payload: {type(data).__name__}"
+                    )
                 spec = ModelSpec(
-                    id=data.get("model_name") or data.get("id") or model_id,
+                    id=str(data.get("model_name") or data.get("id") or model_id),
                     source="registry",
                     version=data.get("model_version") or data.get("version"),
-                    metadata=data if isinstance(data, dict) else {"raw": data},
+                    metadata=data,
                 )
                 if self.cache_ttl > 0:
                     self._cache[(model_id, tenant_str)] = (
@@ -136,7 +147,7 @@ class ModelRegistryClient:
                 raise RegistryUnavailable(
                     f"Registry at {self.registry_url} returned HTTP {resp.status_code}: {resp.text[:200]}"
                 )
-        except (httpx.RequestError, httpx.TimeoutException, json.JSONDecodeError, ValueError) as exc:
+        except (httpx.RequestError, httpx.TimeoutException, json.JSONDecodeError, ValueError, AttributeError) as exc:
             if isinstance(exc, RegistryUnavailable):
                 raise
             raise RegistryUnavailable(

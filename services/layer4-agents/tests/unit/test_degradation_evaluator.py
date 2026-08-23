@@ -207,7 +207,7 @@ async def test_evaluator_raises_when_no_fallback_allowed() -> None:
 
 
 def test_governed_llm_client_resolves_policy_and_retries() -> None:
-    """Test GovernedLLMClient initializes degradation config and respects policy retry counts."""
+    """Test GovernedLLMClient initializes degradation config and respects policy retry and attempt counts."""
     mock_provider = MagicMock()
     client = GovernedLLMClient(provider=mock_provider, provider_name="together")
     assert client.degradation_policies is not None
@@ -218,7 +218,16 @@ def test_governed_llm_client_resolves_policy_and_retries() -> None:
 
     max_retries = client.get_max_retries_for_task("reasoning")
     assert max_retries == 3
+    max_attempts = client.get_max_attempts_for_task("reasoning")
+    assert max_attempts == 4
 
-    # Unknown task returns default max retries of 3 from llm.retry.max_attempts
+    # Conversation has 1 retry -> 2 total attempts (initial + 1 retry)
+    assert client.get_max_retries_for_task("conversation") == 1
+    assert client.get_max_attempts_for_task("conversation") == 2
+
+    # Unknown task returns default max retries of 2 (max_attempts 3 - 1) from llm.retry.max_attempts
     default_retries = client.get_max_retries_for_task("nonexistent_task")
-    assert default_retries == 3
+    assert default_retries == 2
+    default_attempts = client.get_max_attempts_for_task("nonexistent_task")
+    assert default_attempts == 3
+

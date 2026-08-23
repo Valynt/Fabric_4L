@@ -1134,12 +1134,13 @@ class ConversationService:
             "business_case_id": f"valuepilot_{active_tab}",
             "account_name": account_name,
         }
+        if user_id:
+            metadata["user_id"] = user_id
 
         response = await provider.complete_text(
             messages=c1_messages,
             metadata=metadata,
             tenant_id=tenant_id,
-            user_id=user_id,
         )
         return response.content
 

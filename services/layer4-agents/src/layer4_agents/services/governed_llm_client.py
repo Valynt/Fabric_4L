@@ -239,8 +239,16 @@ class GovernedLLMClient:
     def get_max_retries_for_task(self, model_task: str) -> int:
         """Resolve maximum retry attempts for a task from degradation policy or default config."""
         task_policy = self.get_degradation_policy(model_task)
-        if task_policy is not None and task_policy.max_retries > 0:
+        if task_policy is not None:
             return task_policy.max_retries
+        retry_cfg = self._config.get("llm", {}).get("retry", {})
+        return max(0, int(retry_cfg.get("max_attempts", 3)) - 1)
+
+    def get_max_attempts_for_task(self, model_task: str) -> int:
+        """Resolve total execution attempts (1 initial attempt + retries) for a task."""
+        task_policy = self.get_degradation_policy(model_task)
+        if task_policy is not None:
+            return 1 + task_policy.max_retries
         retry_cfg = self._config.get("llm", {}).get("retry", {})
         return int(retry_cfg.get("max_attempts", 3))
 
@@ -305,7 +313,7 @@ class GovernedLLMClient:
 
         self._emit_call_start(model_task, model, call_id)
 
-        max_attempts = self.get_max_retries_for_task(model_task)
+        max_attempts = self.get_max_attempts_for_task(model_task)
         backoff = float(self._config.get("llm", {}).get("retry", {}).get("backoff_seconds", 2.0))
         retryable = set(self._config.get("llm", {}).get("retry", {}).get("retryable_categories", ["TIMEOUT", "RATE_LIMIT"]))
 

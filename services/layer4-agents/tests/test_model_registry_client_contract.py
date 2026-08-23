@@ -184,3 +184,38 @@ async def test_http_network_error_raises_registry_unavailable() -> None:
             await client._fetch_from_registry("any-model")
         assert "Failed to connect" in str(exc.value)
 
+
+@pytest.mark.asyncio
+async def test_http_non_dict_response_raises_registry_unavailable() -> None:
+    import httpx
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json=["invalid", "array", "payload"])
+
+    transport = httpx.MockTransport(handler)
+    async with httpx.AsyncClient(transport=transport) as http_client:
+        client = ModelRegistryClient("https://registry.local", http_client=http_client)
+        with pytest.raises(RegistryUnavailable) as exc:
+            await client._fetch_from_registry("any-model")
+        assert "non-object" in str(exc.value)
+
+
+@pytest.mark.asyncio
+async def test_http_canonical_v1_path_resolution() -> None:
+    import httpx
+
+    requested_paths: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requested_paths.append(request.url.path)
+        return httpx.Response(200, json={"model_name": "gpt-4o", "version": "v1"})
+
+    transport = httpx.MockTransport(handler)
+    async with httpx.AsyncClient(transport=transport) as http_client:
+        client = ModelRegistryClient("https://registry.local/v1", http_client=http_client)
+        spec = await client.get_model("gpt-4o")
+
+    assert spec.id == "gpt-4o"
+    assert requested_paths == ["/v1/models/gpt-4o"]
+
+

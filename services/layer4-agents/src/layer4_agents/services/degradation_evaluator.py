@@ -25,6 +25,8 @@ from ..models.degradation_policy import (
 
 logger = logging.getLogger(__name__)
 
+import os
+
 _SERVICE_ROOT = Path(__file__).resolve().parents[3]
 _DEFAULT_RUNTIME_CONFIG_PATH = _SERVICE_ROOT / "config" / "harness.runtime.yaml"
 
@@ -35,12 +37,34 @@ class DegradationPolicyError(RuntimeError):
     """Raised when degradation policy evaluation encounters an unrecoverable failure."""
 
 
+def _resolve_runtime_config_path(path: Path | None = None) -> Path:
+    """Resolve runtime config path from candidates if default does not exist."""
+    if path is not None and path.exists():
+        return path
+    env_path = os.getenv("HARNESS_RUNTIME_CONFIG_PATH")
+    if env_path:
+        p = Path(env_path)
+        if p.exists():
+            return p
+    candidate_paths = [
+        _DEFAULT_RUNTIME_CONFIG_PATH,
+        Path("/app/config/harness.runtime.yaml"),
+        Path("/app/src/config/harness.runtime.yaml"),
+        Path.cwd() / "services" / "layer4-agents" / "config" / "harness.runtime.yaml",
+        Path.cwd() / "config" / "harness.runtime.yaml",
+    ]
+    for cp in candidate_paths:
+        if cp.exists():
+            return cp
+    return path or _DEFAULT_RUNTIME_CONFIG_PATH
+
+
 def load_degradation_policies(path: Path | None = None) -> DegradationPoliciesConfig:
     """Load and validate all degradation policies from harness.runtime.yaml.
 
     Fails closed if the configuration file is missing, unreadable, or invalid.
     """
-    config_path = path or _DEFAULT_RUNTIME_CONFIG_PATH
+    config_path = _resolve_runtime_config_path(path)
     if not config_path.exists():
         raise FileNotFoundError(f"Runtime configuration file not found at {config_path}")
 
@@ -195,13 +219,21 @@ class DegradationEvaluator:
         if policy is not None:
             self.policy = policy
         else:
-            all_policies = load_degradation_policies(runtime_config_path)
-            resolved_policy = all_policies.get_policy(task_name)
-            if resolved_policy is None:
-                # Default minimal policy with 1 retry and required marking
+            try:
+                all_policies = load_degradation_policies(runtime_config_path)
+                resolved_policy = all_policies.get_policy(task_name)
+                if resolved_policy is None:
+                    # Default minimal policy with 1 retry and required marking
+                    self.policy = DegradationPolicy()
+                else:
+                    self.policy = resolved_policy
+            except (FileNotFoundError, ValueError) as exc:
+                logger.warning(
+                    "Degradation runtime config not loadable (%s); using default DegradationPolicy for task=%s",
+                    exc,
+                    task_name,
+                )
                 self.policy = DegradationPolicy()
-            else:
-                self.policy = resolved_policy
 
     @classmethod
     def from_task(

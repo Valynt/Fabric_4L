@@ -145,3 +145,33 @@ class TestThesysProvider:
         full_stream = "".join(chunks)
         assert "Prompt injection detected" in full_stream
         assert '{"type": "error"' in full_stream
+
+    async def test_complete_text_with_user_and_trace_metadata(self):
+        provider = ThesysProvider(api_key="test-key")
+
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = {"content": "Value analysis"}
+        mock_resp.raise_for_status = MagicMock()
+
+        mock_client = AsyncMock()
+        mock_client.post = AsyncMock(return_value=mock_resp)
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=False)
+
+        with patch("layer4_agents.services.thesys_provider.httpx.AsyncClient", return_value=mock_client):
+            result = await provider.complete_text(
+                messages=[{"role": "user", "content": "Calculate ROI"}],
+                tenant_id="tenant-1",
+                user_id="user-456",
+                trace_id="trace-789",
+                run_id="run-012",
+            )
+
+        assert result.content == "Value analysis"
+        mock_client.post.assert_called_once()
+        payload = mock_client.post.call_args.kwargs["json"]
+        assert payload["metadata"]["user_id"] == "user-456"
+        assert payload["metadata"]["trace_id"] == "trace-789"
+        assert payload["metadata"]["run_id"] == "run-012"
+

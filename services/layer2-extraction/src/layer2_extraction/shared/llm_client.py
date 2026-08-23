@@ -9,7 +9,7 @@ from datetime import UTC, datetime
 from enum import Enum
 from typing import Any
 
-from value_fabric.shared.llm_safety import PromptGuard
+from value_fabric.shared.llm_safety import PromptGuard, PromptInjectionError
 
 from layer2_extraction.metrics.prometheus_metrics import get_metrics
 from layer2_extraction.shared.llm_output_parser import parse_llm_json
@@ -86,15 +86,25 @@ class LLMClient:
 
     def _scan_messages(self, messages: list[dict[str, str]]) -> None:
         """Scan input messages for prompt injection attempts."""
-        guard = PromptGuard()
+        guard = PromptGuard(fail_closed=True)
         for msg in messages:
             if msg.get("role") != "system":
                 content = msg.get("content", "")
                 if content and isinstance(content, str):
-                    guard.check(
+                    result = guard.check(
                         content,
                         context={"tenant_id": self._tenant_id, "job_id": self._job_id},
                     )
+                    if result.is_injection:
+                        raise PromptInjectionError(
+                            message=f"Prompt injection detected: {result.severity.value} severity",
+                            severity=result.severity.value,
+                            matched_patterns=result.matched_patterns,
+                            details={
+                                "confidence": result.confidence,
+                                "context": {"tenant_id": self._tenant_id, "job_id": self._job_id},
+                            },
+                        )
 
     async def complete(self, messages: list[dict[str, str]], **kwargs: Any) -> str:
         """Send a completion request and return the text response with cost tracking."""

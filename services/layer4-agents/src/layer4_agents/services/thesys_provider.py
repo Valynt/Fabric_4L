@@ -124,6 +124,9 @@ class ThesysProvider(CompletionAdapter):
         response_format: dict[str, Any] | None = None,
         metadata: dict[str, Any] | None = None,
         tenant_id: str | None = None,
+        user_id: str | None = None,
+        trace_id: str | None = None,
+        run_id: str | None = None,
     ) -> LLMTextResponse:
         """Execute a non-streaming text completion against Thesys C1."""
         if not self.is_configured():
@@ -132,10 +135,18 @@ class ThesysProvider(CompletionAdapter):
         if not self._scan_messages(messages, tenant_id=tenant_id):
             raise ValueError("Prompt injection detected in input messages")
 
+        meta = dict(metadata or {})
+        if user_id and "user_id" not in meta:
+            meta["user_id"] = user_id
+        if trace_id and "trace_id" not in meta:
+            meta["trace_id"] = trace_id
+        if run_id and "run_id" not in meta:
+            meta["run_id"] = run_id
+
         payload: dict[str, Any] = {
             "messages": messages,
             "stream": False,
-            "metadata": metadata or {},
+            "metadata": meta,
         }
         if temperature is not None:
             payload["temperature"] = temperature
