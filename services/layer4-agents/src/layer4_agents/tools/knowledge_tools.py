@@ -182,7 +182,6 @@ class QueryGraphTool(BaseTool):
         """
         start_time = time.time()
 
-        # P0 FIX: Extract and validate tenant context (FAIL-CLOSED)
         try:
             tenant_ctx = tenant_context.get_current_tenant_context()
             tenant_ctx.assert_valid()
@@ -333,7 +332,6 @@ class SemanticSearchTool(BaseTool):
         """
         start_time = time.time()
 
-        # P0 FIX: Extract and validate tenant context (FAIL-CLOSED)
         try:
             tenant_ctx = tenant_context.get_current_tenant_context()
             tenant_ctx.assert_valid()
@@ -453,7 +451,6 @@ class GetEntityTool(BaseTool):
         SECURITY: This tool enforces tenant isolation by requiring valid TenantContext
         and injecting tenant_id filter into Cypher queries.
         """
-        # P0 FIX: Extract and validate tenant context (FAIL-CLOSED)
         try:
             tenant_ctx = tenant_context.get_current_tenant_context()
             tenant_ctx.assert_valid()
@@ -567,7 +564,6 @@ class GetRelationshipsTool(BaseTool):
         SECURITY: This tool enforces tenant isolation by requiring valid TenantContext
         and injecting tenant_id filter into Cypher queries.
         """
-        # P0 FIX: Extract and validate tenant context (FAIL-CLOSED)
         try:
             tenant_ctx = tenant_context.get_current_tenant_context()
             tenant_ctx.assert_valid()
@@ -669,7 +665,6 @@ class TraverseTreeTool(BaseTool):
         SECURITY: This tool enforces tenant isolation by requiring valid TenantContext
         and injecting tenant_id filter into Cypher queries.
         """
-        # P0 FIX: Extract and validate tenant context (FAIL-CLOSED)
         try:
             tenant_ctx = tenant_context.get_current_tenant_context()
             tenant_ctx.assert_valid()
@@ -767,7 +762,6 @@ class FindPathsTool(BaseTool):
         SECURITY: This tool enforces tenant isolation by requiring valid TenantContext
         and injecting tenant_id filter into Cypher queries.
         """
-        # P0 FIX: Extract and validate tenant context (FAIL-CLOSED)
         try:
             tenant_ctx = tenant_context.get_current_tenant_context()
             tenant_ctx.assert_valid()
