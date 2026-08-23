@@ -1,6 +1,6 @@
 {
   "goal_id": "dead-code-removal",
-  "status": "building",
+  "status": "inspecting",
   "iteration": 1,
   "builder_model": "OpenAI:GPT-5.6 Luna",
   "inspector_model": "OpenAI:GPT-5.6 Sol",
