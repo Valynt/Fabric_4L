@@ -9,6 +9,8 @@ from datetime import UTC, datetime
 from enum import Enum
 from typing import Any
 
+from value_fabric.shared.llm_safety import PromptGuard
+
 from layer2_extraction.metrics.prometheus_metrics import get_metrics
 from layer2_extraction.shared.llm_output_parser import parse_llm_json
 
@@ -82,8 +84,21 @@ class LLMClient:
                 self._client = None
         return self._client
 
+    def _scan_messages(self, messages: list[dict[str, str]]) -> None:
+        """Scan input messages for prompt injection attempts."""
+        guard = PromptGuard()
+        for msg in messages:
+            if msg.get("role") != "system":
+                content = msg.get("content", "")
+                if content and isinstance(content, str):
+                    guard.check(
+                        content,
+                        context={"tenant_id": self._tenant_id, "job_id": self._job_id},
+                    )
+
     async def complete(self, messages: list[dict[str, str]], **kwargs: Any) -> str:
         """Send a completion request and return the text response with cost tracking."""
+        self._scan_messages(messages)
         client = self._get_client()
         if client is None:
             raise ValueError(f"Unsupported provider: {self.provider}")
