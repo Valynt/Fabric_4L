@@ -1700,7 +1700,7 @@ class OrchestrationController:
         if task is not None and timeout_seconds > 0:
             try:
                 await asyncio.wait_for(asyncio.shield(task), timeout=timeout_seconds)
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 # Preserve the existing global-timeout behavior: cancel the
                 # workflow, then raise WorkflowTimeoutError.
                 await self.cancel_workflow(
