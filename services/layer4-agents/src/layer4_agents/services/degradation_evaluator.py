@@ -16,6 +16,8 @@ from typing import Any, TypeVar
 
 import yaml
 
+from value_fabric.shared.error_handling import sanitize_log_error
+
 from ..models.degradation_policy import (
     DegradationPoliciesConfig,
     DegradationPolicy,
@@ -154,7 +156,7 @@ class DegradationExecutionTracker:
             "tier": tier,
             "reason": reason,
             "attempt": self.attempts,
-            "error": str(exc) if exc is not None else None,  # ban-str-e-allow: structured-log
+            "error": sanitize_log_error(exc) if exc is not None else None,
         }
         self.failed_rungs.append(failure_record)
         logger.warning(
