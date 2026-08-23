@@ -173,6 +173,13 @@ class TestSearchCommands:
         assert result.exit_code == 1
         assert "Invalid entity type" in result.output
 
+    def test_search_invalid_search_type(self, mock_config: None) -> None:
+        """Test search with invalid search type shows error."""
+        result = runner.invoke(app, ["search", "query", "--search-type", "invalid_algo"])
+        assert result.exit_code == 1
+        assert "Invalid search type: invalid_algo" in result.output
+        assert "Valid types: hybrid, vector, bm25, graph" in result.output
+
     def test_search_no_results(self, mock_config: None) -> None:
         """Test search with no results shows appropriate message."""
         mock_response = SearchResponse(
