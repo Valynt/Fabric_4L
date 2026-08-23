@@ -182,17 +182,15 @@ class Layer3Client:
         """Execute POST through circuit breaker."""
         client = self._get_client()
         headers = inject_trace_headers(self._headers)
-        return await self._breaker.call(
-            client.post, url, json=json, headers=headers
-        )
+        return await self._breaker.call(client.post, url, json=json, headers=headers)
 
-    async def _get_with_breaker(self, url: str, params: dict | None = None) -> httpx.Response:
+    async def _get_with_breaker(
+        self, url: str, params: dict | None = None
+    ) -> httpx.Response:
         """Execute GET through circuit breaker."""
         client = self._get_client()
         headers = inject_trace_headers(self._headers)
-        return await self._breaker.call(
-            client.get, url, params=params, headers=headers
-        )
+        return await self._breaker.call(client.get, url, params=params, headers=headers)
 
     # ------------------------------------------------------------------
     # Health check
@@ -830,7 +828,9 @@ class Layer3Client:
                     "entity_id": entity_id,
                 },
             )
-            logger.debug("Layer 3 HTTP client failure for entity %s: %s", entity_id, exc)
+            logger.debug(
+                "Layer 3 HTTP client failure for entity %s: %s", entity_id, exc
+            )
             return None
         except json.JSONDecodeError as exc:
             logger.warning(
@@ -842,7 +842,9 @@ class Layer3Client:
                     sync_status="contract_invalid",
                 ),
             )
-            logger.debug("Layer 3 HTTP client failure for entity %s: %s", entity_id, exc)
+            logger.debug(
+                "Layer 3 HTTP client failure for entity %s: %s", entity_id, exc
+            )
             return None
         except ValidationError as exc:
             logger.warning(
@@ -854,7 +856,9 @@ class Layer3Client:
                     "entity_id": entity_id,
                 },
             )
-            logger.debug("Layer 3 contract validation details for entity %s: %s", entity_id, exc)
+            logger.debug(
+                "Layer 3 contract validation details for entity %s: %s", entity_id, exc
+            )
             return None
         except CircuitBreakerOpen as exc:
             logger.warning(
@@ -869,7 +873,9 @@ class Layer3Client:
             )
             return None
         except Exception as exc:
-            logger.debug("Layer 3 entity context fetch failed for %s: %s", entity_id, exc)
+            logger.debug(
+                "Layer 3 entity context fetch failed for %s: %s", entity_id, exc
+            )
             return None
 
     # ------------------------------------------------------------------
@@ -885,8 +891,8 @@ class Layer3Client:
 
         Returns a mapping of truth_object_id → kg_node_id (or None on failure).
         """
-        results: dict[str, str | None] = {}
-        for obj in truth_objects:
+
+        async def _sync_one(obj: dict[str, Any]) -> tuple[str, str | None]:
             node_id = await self.sync_truth_object(
                 truth_object_id=obj["id"],
                 tenant_id=obj["tenant_id"],
@@ -899,8 +905,10 @@ class Layer3Client:
                 applies_to=obj.get("applies_to"),
                 source_count=obj.get("source_count", 0),
             )
-            results[str(obj["id"])] = node_id
-        return results
+            return str(obj["id"]), node_id
+
+        results_list = await asyncio.gather(*[_sync_one(obj) for obj in truth_objects])
+        return dict(results_list)
 
 
 # ---------------------------------------------------------------------------

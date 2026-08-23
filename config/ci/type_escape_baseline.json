@@ -39566,15 +39566,21 @@
     },
     {
       "kind": "python-any",
-      "line": 752,
+      "line": 750,
       "path": "services/layer5-ground-truth/src/layer5_ground_truth/integration/layer3_client.py",
       "text": ") -> dict[str, Any] | None:"
     },
     {
       "kind": "python-any",
-      "line": 881,
+      "line": 887,
       "path": "services/layer5-ground-truth/src/layer5_ground_truth/integration/layer3_client.py",
       "text": "truth_objects: list[dict[str, Any]],"
+    },
+    {
+      "kind": "python-any",
+      "line": 895,
+      "path": "services/layer5-ground-truth/src/layer5_ground_truth/integration/layer3_client.py",
+      "text": "async def _sync_one(obj: dict[str, Any]) -> tuple[str, str | None]:"
     },
     {
       "kind": "python-any",
