@@ -104,42 +104,40 @@ def _serialize_neo4j_value(value: Any) -> Any:
 def _serialize_entity(entity: dict[str, Any]) -> dict[str, Any]:
     """Serialize an entity dict, converting Neo4j temporal types to strings.
 
-    Adds backward-compatible alias fields for frontend contract alignment:
-    - 'name' alias for 'label' or 'name'
-    - 'entity_type' alias for 'type' or first label
-    - 'confidence_score' alias for 'confidence'
+    Ensures canonical fields ('name', 'entity_type', 'confidence_score') are present
+    and strips legacy node keys ('label', 'type', 'confidence', 'relationship_type')
+    to ensure the canonical-only v2.5 contract.
 
     Args:
         entity: Entity dictionary from Neo4j
 
     Returns:
-        JSON-serializable entity dictionary with alias fields
+        JSON-serializable entity dictionary with canonical fields only
     """
     # Base serialization of Neo4j values
     serialized = {k: _serialize_neo4j_value(v) for k, v in entity.items()}
 
-    # ═════════════════════════════════════════════════════════════════════════
-    # Backward-compatible alias fields for frontend contract alignment
-    # ═════════════════════════════════════════════════════════════════════════
-
-    # Add 'name' alias (prefer 'label', fallback to 'name')
+    # Populate canonical fields if not already set
     if "name" not in serialized:
         if "label" in serialized:
             serialized["name"] = serialized["label"]
         elif "name" in entity:
             serialized["name"] = entity["name"]
 
-    # Add 'entity_type' alias (prefer 'type', fallback to first label)
     if "entity_type" not in serialized:
         if "type" in serialized:
             serialized["entity_type"] = serialized["type"]
         elif "labels" in serialized and serialized["labels"]:
-            # Use first label as entity type
             serialized["entity_type"] = serialized["labels"][0]
 
-    # Add 'confidence_score' alias (from 'confidence')
     if "confidence_score" not in serialized and "confidence" in serialized:
         serialized["confidence_score"] = serialized["confidence"]
+
+    # Drop legacy node/edge alias keys to adhere to v2.5 canonical-only schema
+    serialized.pop("label", None)
+    serialized.pop("type", None)
+    serialized.pop("confidence", None)
+    serialized.pop("relationship_type", None)
 
     return serialized
 
