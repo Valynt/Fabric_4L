@@ -12224,19 +12224,19 @@
     },
     {
       "kind": "python-any",
-      "line": 41,
+      "line": 47,
       "path": "services/layer1-ingestion/src/layer1_ingestion/crawler/smart_router.py",
       "text": "stagehand_config: dict[str, Any] | None = None"
     },
     {
       "kind": "python-any",
-      "line": 373,
+      "line": 380,
       "path": "services/layer1-ingestion/src/layer1_ingestion/crawler/smart_router.py",
       "text": "def _browser_config_for(self, page_type: str) -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 417,
+      "line": 424,
       "path": "services/layer1-ingestion/src/layer1_ingestion/crawler/smart_router.py",
       "text": "def _default_browser_config(self) -> dict[str, Any]:"
     },
@@ -17594,67 +17594,67 @@
     },
     {
       "kind": "python-any",
-      "line": 489,
+      "line": 505,
       "path": "services/layer3-knowledge/src/api/routes/value_packs.py",
       "text": "params: dict[str, Any] = {\"limit\": limit, \"tenant_id\": tenant_id}"
     },
     {
       "kind": "python-any",
-      "line": 619,
+      "line": 635,
       "path": "services/layer3-knowledge/src/api/routes/value_packs.py",
       "text": ") -> tuple[list[str], dict[str, Any]]:"
     },
     {
       "kind": "python-any",
-      "line": 626,
+      "line": 642,
       "path": "services/layer3-knowledge/src/api/routes/value_packs.py",
       "text": "params: dict[str, Any] = {"
     },
     {
       "kind": "python-any",
-      "line": 774,
+      "line": 790,
       "path": "services/layer3-knowledge/src/api/routes/value_packs.py",
       "text": ") -> list[dict[str, Any]]:"
     },
     {
       "kind": "python-any",
-      "line": 808,
+      "line": 824,
       "path": "services/layer3-knowledge/src/api/routes/value_packs.py",
       "text": "formula_defaults: list[VariableDefault], user_variables: dict[str, Any]"
     },
     {
       "kind": "python-any",
-      "line": 905,
+      "line": 921,
       "path": "services/layer3-knowledge/src/api/routes/value_packs.py",
       "text": "outputs: dict[str, Any] = {\"pack_id\": pack_id, \"formulas_evaluated\": 0}"
     },
     {
       "kind": "python-type-ignore",
-      "line": 922,
+      "line": 938,
       "path": "services/layer3-knowledge/src/api/routes/value_packs.py",
       "text": "variables_spec,  # type: ignore[arg-type]"
     },
     {
       "kind": "python-any",
-      "line": 978,
+      "line": 994,
       "path": "services/layer3-knowledge/src/api/routes/value_packs.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 1000,
+      "line": 1016,
       "path": "services/layer3-knowledge/src/api/routes/value_packs.py",
       "text": "orig: dict[str, Any], request: PackForkRequest, new_pack_id: str"
     },
     {
       "kind": "python-any",
-      "line": 1001,
+      "line": 1017,
       "path": "services/layer3-knowledge/src/api/routes/value_packs.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 1028,
+      "line": 1044,
       "path": "services/layer3-knowledge/src/api/routes/value_packs.py",
       "text": "async def _execute_fork(driver: AsyncDriver, params: dict[str, Any]) -> dict[str, Any]:"
     },
@@ -18662,13 +18662,13 @@
     },
     {
       "kind": "python-any",
-      "line": 433,
+      "line": 434,
       "path": "services/layer3-knowledge/src/db/audited_mutation.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 493,
+      "line": 585,
       "path": "services/layer3-knowledge/src/db/audited_mutation.py",
       "text": ") -> dict[str, Any]:"
     },
@@ -19802,97 +19802,97 @@
     },
     {
       "kind": "python-any",
-      "line": 161,
+      "line": 164,
       "path": "services/layer3-knowledge/src/performance/cache.py",
       "text": "async def get(self, key: str) -> Any | None:"
     },
     {
       "kind": "python-any",
-      "line": 200,
+      "line": 203,
       "path": "services/layer3-knowledge/src/performance/cache.py",
       "text": "self, key: str, value: Any, ttl: int | None = None, tags: set[str] | None = None"
     },
     {
       "kind": "python-any",
-      "line": 376,
+      "line": 385,
       "path": "services/layer3-knowledge/src/performance/cache.py",
       "text": "def _serialize(self, value: Any) -> bytes:"
     },
     {
       "kind": "python-any",
-      "line": 455,
+      "line": 464,
       "path": "services/layer3-knowledge/src/performance/cache.py",
       "text": "def _deserialize(self, data: bytes) -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 480,
+      "line": 489,
       "path": "services/layer3-knowledge/src/performance/cache.py",
       "text": "async def get_with_deserialization(self, key: str) -> Any | None:"
     },
     {
       "kind": "python-any",
-      "line": 501,
+      "line": 510,
       "path": "services/layer3-knowledge/src/performance/cache.py",
       "text": "self, key: str, value: Any, ttl: int | None = None, tags: builtins.set[str] | None = None"
     },
     {
       "kind": "python-any",
-      "line": 603,
+      "line": 612,
       "path": "services/layer3-knowledge/src/performance/cache.py",
       "text": "async def get(self, key: str) -> Any | None:"
     },
     {
       "kind": "python-any",
-      "line": 652,
+      "line": 661,
       "path": "services/layer3-knowledge/src/performance/cache.py",
       "text": "self, key: str, value: Any, ttl: int | None = None, tags: set[str] | None = None"
     },
     {
       "kind": "python-any",
-      "line": 742,
+      "line": 751,
       "path": "services/layer3-knowledge/src/performance/cache.py",
       "text": "def _serialize(self, value: Any) -> bytes:"
     },
     {
       "kind": "python-any",
-      "line": 800,
+      "line": 809,
       "path": "services/layer3-knowledge/src/performance/cache.py",
       "text": "def _deserialize(self, data: bytes) -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 859,
+      "line": 868,
       "path": "services/layer3-knowledge/src/performance/cache.py",
       "text": "async def get(self, key: str, cache_type: str = \"auto\") -> Any | None:"
     },
     {
       "kind": "python-any",
-      "line": 895,
+      "line": 904,
       "path": "services/layer3-knowledge/src/performance/cache.py",
       "text": "value: Any,"
     },
     {
       "kind": "python-any",
-      "line": 1007,
+      "line": 1016,
       "path": "services/layer3-knowledge/src/performance/cache.py",
       "text": "self.query_cache: dict[str, Any] = {}"
     },
     {
       "kind": "python-any",
-      "line": 1008,
+      "line": 1017,
       "path": "services/layer3-knowledge/src/performance/cache.py",
       "text": "self.response_cache: dict[str, Any] = {}"
     },
     {
       "kind": "python-any",
-      "line": 1071,
+      "line": 1080,
       "path": "services/layer3-knowledge/src/performance/cache.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 1092,
+      "line": 1101,
       "path": "services/layer3-knowledge/src/performance/cache.py",
       "text": "items: dict[str, Any],"
     },
@@ -27572,13 +27572,13 @@
     },
     {
       "kind": "python-any",
-      "line": 1716,
+      "line": 1752,
       "path": "services/layer4-agents/src/layer4_agents/engine/executor.py",
       "text": "def _extract_tenant_timeout(self, tenant_settings: dict[str, Any] | None) -> int | None:"
     },
     {
       "kind": "python-any",
-      "line": 1719,
+      "line": 1755,
       "path": "services/layer4-agents/src/layer4_agents/engine/executor.py",
       "text": "cursor: Any"
     },
@@ -39386,15 +39386,21 @@
     },
     {
       "kind": "python-any",
-      "line": 752,
+      "line": 750,
       "path": "services/layer5-ground-truth/src/layer5_ground_truth/integration/layer3_client.py",
       "text": ") -> dict[str, Any] | None:"
     },
     {
       "kind": "python-any",
-      "line": 881,
+      "line": 887,
       "path": "services/layer5-ground-truth/src/layer5_ground_truth/integration/layer3_client.py",
       "text": "truth_objects: list[dict[str, Any]],"
+    },
+    {
+      "kind": "python-any",
+      "line": 895,
+      "path": "services/layer5-ground-truth/src/layer5_ground_truth/integration/layer3_client.py",
+      "text": "async def _sync_one(obj: dict[str, Any]) -> tuple[str, str | None]:"
     },
     {
       "kind": "python-any",
@@ -41012,7 +41018,7 @@
     },
     {
       "kind": "python-any",
-      "line": 164,
+      "line": 174,
       "path": "tests/contract/test_otel_instrumentation.py",
       "text": "collector_doc: dict[str, Any] | None = None"
     },
