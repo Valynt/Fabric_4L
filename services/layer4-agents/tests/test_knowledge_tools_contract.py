@@ -109,7 +109,9 @@ def test_query_graph_tenant_injection_and_read_only_guards() -> None:
         tool._inject_tenant_filter("RETURN 1", TENANT_ID)
     assert "Write operations" in tool._validate_read_only("MATCH (n) DELETE n")
     assert tool._validate_read_only("MATCH (n) RETURN n") is None
-    assert tool._ensure_tenant_parameters({"tenant_id": "spoof", "x": 1}, TENANT_ID) == {
+    with pytest.raises(ValueError, match="Tenant spoofing detected"):
+        tool._ensure_tenant_parameters({"tenant_id": "spoof", "x": 1}, TENANT_ID)
+    assert tool._ensure_tenant_parameters({"x": 1}, TENANT_ID) == {
         "tenant_id": str(TENANT_ID),
         "x": 1,
     }
