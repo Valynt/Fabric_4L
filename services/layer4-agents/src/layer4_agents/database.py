@@ -440,12 +440,8 @@ def _allow_compat_only_db_dependency(dep_name: str) -> None:
 
 # Try to import shared tenant validation
 try:
-    from value_fabric.shared.database import (
-        TenantContextError as SharedTenantContextError,
-    )
-    from value_fabric.shared.database import (
-        validate_tenant_id as shared_validate_tenant_id,
-    )
+    from value_fabric.shared.database import TenantContextError as SharedTenantContextError
+    from value_fabric.shared.database import validate_tenant_id as shared_validate_tenant_id
 
     SHARED_TENANT_VALIDATION_AVAILABLE = True
 except ImportError:

@@ -224,3 +224,82 @@ async def get_latest_persisted_checkpoint_hash(
             f"workflow_id={workflow_id} checkpoint_id={checkpoint_id}"
         )
     return controller._compute_state_hash(latest_state)
+
+
+class CheckpointReplayService:
+    """Service implementing checkpoint and replay policy behind narrow protocols."""
+
+    def __init__(
+        self,
+        state_manager: Any,
+        checkpoint_saver: Any = None,
+        seen_replay_fingerprints: set[str] | None = None,
+    ):
+        self.state_manager = state_manager
+        self.checkpoint_saver = checkpoint_saver
+        self._seen_replay_fingerprints = (
+            seen_replay_fingerprints if seen_replay_fingerprints is not None else set()
+        )
+
+    def _compute_state_hash(self, state: AgentState) -> str:
+        return compute_state_hash(state)
+
+    def compute_state_hash(self, state: AgentState) -> str:
+        return compute_state_hash(state)
+
+    def _lifecycle_context(
+        self,
+        workflow_id: str,
+        *,
+        tenant_id: str | None = None,
+        checkpoint_id: str | None = None,
+    ) -> Any:
+        from ..observability import Layer4EventContext
+
+        kwargs: dict[str, Any] = {
+            "request_id": workflow_id,
+            "trace_id": workflow_id,
+            "tenant_id": tenant_id or "unknown",
+            "workflow_id": workflow_id,
+            "run_id": workflow_id,
+            "provider_name": "langgraph",
+        }
+        if checkpoint_id is not None:
+            kwargs["checkpoint_id"] = checkpoint_id
+        return Layer4EventContext(**kwargs)
+
+    async def get_latest_persisted_checkpoint_hash(
+        self,
+        *,
+        tenant_id: str,
+        workflow_id: str,
+        run_id: str,
+        checkpoint_id: str,
+        workflow_execution_error_type: type[Exception] = RuntimeError,
+    ) -> str:
+        return await get_latest_persisted_checkpoint_hash(
+            self,
+            tenant_id=tenant_id,
+            workflow_id=workflow_id,
+            run_id=run_id,
+            checkpoint_id=checkpoint_id,
+            workflow_execution_error_type=workflow_execution_error_type,
+        )
+
+    async def resolve_resume_policy(
+        self,
+        *,
+        workflow_id: str,
+        state: AgentState,
+        workflow_execution_error_type: type[Exception] = RuntimeError,
+        checkpoint_conflict_error_type: type[Exception] = RuntimeError,
+        target_checkpoint_id: str | None = None,
+    ) -> None:
+        await resolve_resume_policy(
+            self,
+            workflow_id=workflow_id,
+            state=state,
+            workflow_execution_error_type=workflow_execution_error_type,
+            checkpoint_conflict_error_type=checkpoint_conflict_error_type,
+            target_checkpoint_id=target_checkpoint_id,
+        )

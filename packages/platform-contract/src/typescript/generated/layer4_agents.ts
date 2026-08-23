@@ -712,56 +712,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/validation/seed/auth-context": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Seed Validation Auth Context
-         * @description Seed deterministic auth context for backend-integrated validation.
-         *
-         *     This endpoint is non-production only and persists no raw secrets. It is
-         *     designed to make local/CI backend-integrated tests reproducible while
-         *     keeping runtime secrets sourced exclusively from environment or a secret
-         *     manager.
-         */
-        post: operations["seed_validation_auth_context_v1_validation_seed_auth_context_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/validation/session": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Issue Validation Session
-         * @description Issue a non-production browser session for backend-integrated Playwright validation.
-         *
-         *     The endpoint is deliberately gated by the same service-authenticated,
-         *     privileged, non-production boundary as deterministic seed data. It uses the
-         *     canonical JWT and CSRF cookie mechanics, and returns only non-secret UI
-         *     metadata.
-         */
-        post: operations["issue_validation_session_v1_validation_session_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/v1/analysis/roi": {
         parameters: {
             query?: never;
@@ -774,16 +724,6 @@ export interface paths {
         /**
          * Quick Roi Analysis
          * @description Quick ROI analysis for a prospect.
-         *
-         *     Calculates ROI for specified value drivers using prospect data.
-         *
-         *     Example:
-         *         POST /v1/analysis/roi
-         *         {
-         *             "prospect_id": "prospect-001",
-         *             "value_driver_ids": ["vd-001", "vd-002"],
-         *             "industry_vertical": "manufacturing"
-         *         }
          */
         post: operations["quick_roi_analysis_v1_analysis_roi_post"];
         delete?: never;
@@ -804,17 +744,68 @@ export interface paths {
         /**
          * Quick Whitespace Analysis
          * @description Quick whitespace analysis for a prospect.
-         *
-         *     Identifies gaps between prospect needs and solution capabilities.
-         *
-         *     Example:
-         *         POST /v1/analysis/whitespace
-         *         {
-         *             "prospect_id": "prospect-001",
-         *             "prospect_needs": "We need to automate invoice processing and get real-time visibility into cash flow"
-         *         }
          */
         post: operations["quick_whitespace_analysis_v1_analysis_whitespace_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/validation/seed/auth-context": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Seed Validation Auth Context
+         * @description Seed deterministic auth context for backend-integrated validation.
+         */
+        post: operations["seed_validation_auth_context_v1_validation_seed_auth_context_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/validation/session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Issue Validation Session
+         * @description Issue a non-production browser session for backend-integrated Playwright validation.
+         */
+        post: operations["issue_validation_session_v1_validation_session_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/validation/seed/business-case-lifecycle": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Seed Business Case Lifecycle
+         * @description Seed deterministic business-case lifecycle state for non-production E2E validation.
+         */
+        post: operations["seed_business_case_lifecycle_v1_validation_seed_business_case_lifecycle_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -831,8 +822,6 @@ export interface paths {
         /**
          * List Cases
          * @description List cases for an account.
-         *
-         *     Returns all cases associated with the specified account.
          */
         get: operations["list_cases_v1_cases_get"];
         put?: never;
@@ -889,26 +878,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/validation/seed/business-case-lifecycle": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Seed Business Case Lifecycle
-         * @description Seed deterministic business-case lifecycle state for non-production E2E validation.
-         */
-        post: operations["seed_business_case_lifecycle_v1_validation_seed_business_case_lifecycle_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/v1/cases/{case_id}/export": {
         parameters: {
             query?: never;
@@ -919,10 +888,6 @@ export interface paths {
         /**
          * Export Business Case
          * @description Export a generated business case.
-         *
-         *     This version resolves the merge conflict by preserving both:
-         *     1. Truth-gating / blocking behavior
-         *     2. Provenance manifest generation, storage upload, and audit events
          */
         get: operations["export_business_case_v1_cases__case_id__export_get"];
         put?: never;
@@ -13387,6 +13352,72 @@ export interface operations {
             };
         };
     };
+    quick_roi_analysis_v1_analysis_roi_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ROIAnalysisRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ROIAnalysisResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    quick_whitespace_analysis_v1_analysis_whitespace_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WhitespaceAnalysisRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WhitespaceAnalysisResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     seed_validation_auth_context_v1_validation_seed_auth_context_post: {
         parameters: {
             query?: never;
@@ -13457,7 +13488,7 @@ export interface operations {
             };
         };
     };
-    quick_roi_analysis_v1_analysis_roi_post: {
+    seed_business_case_lifecycle_v1_validation_seed_business_case_lifecycle_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -13466,7 +13497,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["ROIAnalysisRequest"];
+                "application/json": components["schemas"]["BusinessCaseLifecycleSeedRequest"];
             };
         };
         responses: {
@@ -13476,40 +13507,9 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ROIAnalysisResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    quick_whitespace_analysis_v1_analysis_whitespace_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["WhitespaceAnalysisRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WhitespaceAnalysisResponse"];
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
             /** @description Validation Error */
@@ -13640,41 +13640,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BusinessCaseResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    seed_business_case_lifecycle_v1_validation_seed_business_case_lifecycle_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["BusinessCaseLifecycleSeedRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
                 };
             };
             /** @description Validation Error */
