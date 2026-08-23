@@ -42,8 +42,12 @@ from ...models.agent_state import (
 )
 from ...services.account_service import AccountService
 from ...services.business_case_service import BusinessCaseService
+from ...services.export_provenance import build_export_provenance_manifest
+from ...services.export_storage import generate_download_url, upload_bytes
+from ..common.audit import emit_and_persist_audit
 from ..common.db import get_route_db
 from ..common.errors import normalize_exception
+from . import analysis_cases
 from .analysis_schemas import (
     BusinessCaseRequest,
     BusinessCaseResponse,
@@ -147,7 +151,8 @@ async def _smoke_roi_response(
 ) -> ROIAnalysisResponse:
     """Build deterministic smoke-mode ROI response without invoking the workflow executor."""
     trace_id = _validation_trace_id(http_request)
-    emit_audit_event(
+    audit_fn = globals().get("emit_audit_event", emit_audit_event)
+    audit_res = audit_fn(
         AuditAction.ROI_CALCULATED,
         tenant_id=context.tenant_id,
         user_id=context.user_id,
@@ -162,6 +167,8 @@ async def _smoke_roi_response(
             "requires_full_analysis": True,
         },
     )
+    if asyncio.iscoroutine(audit_res):
+        await audit_res
     return ROIAnalysisResponse(
         prospect_id=prospect_id,
         aggregated_roi={
@@ -193,8 +200,9 @@ async def _smoke_business_case_response(
     """Build deterministic smoke-mode business case response without invoking the workflow executor."""
     trace_id = _validation_trace_id(http_request)
     case_id = f"smoke-case-{uuid4()}"
-    business_case_service = BusinessCaseService(db)
-    await business_case_service.upsert_case_record(
+    business_case_cls = globals().get("BusinessCaseService", BusinessCaseService)
+    business_case_service = business_case_cls(db)
+    res = business_case_service.upsert_case_record(
         case_id=case_id,
         workflow_id=case_id,
         account_id=request.account_id,
@@ -203,7 +211,10 @@ async def _smoke_business_case_response(
         document_url=None,
         tenant_id=str(context.tenant_id),
     )
-    emit_audit_event(
+    if asyncio.iscoroutine(res):
+        await res
+    audit_fn = globals().get("emit_audit_event", emit_audit_event)
+    audit_res = audit_fn(
         AuditAction.BUSINESS_CASE_GENERATED,
         tenant_id=context.tenant_id,
         user_id=context.user_id,
@@ -214,6 +225,30 @@ async def _smoke_business_case_response(
         details={
             "mode": "smoke",
             "status": "draft",
+            "account_id": str(account.id),
+            "approval_required": True,
+            "export_allowed": False,
+            "requires_full_generation": True,
+        },
+    )
+    if asyncio.iscoroutine(audit_res):
+        await audit_res
+    return BusinessCaseResponse(
+        case_id=case_id,
+        title="Business Case Draft",
+        summary="Draft smoke-mode business case; full generation is still required.",
+        status="draft",
+        created_at=datetime.now(UTC).isoformat(),
+        remediation_items=[
+            {
+                "code": "FULL_GENERATION_REQUIRED",
+                "message": "Run full business-case generation before approval or export.",
+            }
+        ],
+        case_metadata={
+            "mode": "smoke",
+            "trace_id": trace_id,
+            "tenant_id": str(context.tenant_id),
             "account_id": str(account.id),
             "approval_required": True,
             "export_allowed": False,
@@ -381,7 +416,10 @@ async def quick_whitespace_analysis(
 
 
 # Import sub-routers
-from .analysis_cases import build_cases_router
+from .analysis_cases import (
+    build_cases_router,
+    require_approved_case as _require_approved_case,
+)
 from .analysis_scenarios import build_scenarios_router
 from .analysis_validation import build_validation_seed_router
 from .analysis_workspace import build_workspace_router

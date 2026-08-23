@@ -18,6 +18,7 @@ from fastapi import (
     APIRouter,
     BackgroundTasks,
     Depends,
+    HTTPException,
     Request,
 )
 from sqlalchemy import select
@@ -151,7 +152,7 @@ async def require_approved_case(
 ) -> None:
     """Raise if the business case is not in an export-allowed status."""
     if str(record.status).lower() not in {"approved", "exported", "delivered"}:
-        await emit_and_persist_audit(
+        await analysis.emit_and_persist_audit(
             action=AuditAction.EXPORT_REQUESTED,
             context=context,
             resource_type="BusinessCaseExport",
@@ -214,8 +215,7 @@ def build_cases_router(
                     },
                 )
 
-            executor = get_executor()
-            account = await AccountService(db).get_account(
+            account = await analysis.AccountService(db).get_account(
                 request.account_id, tenant_id=str(context.tenant_id)
             )
             if not account:
@@ -233,6 +233,8 @@ def build_cases_router(
                         http_request, request, account, db, context
                     ),
                 )
+
+            executor = get_executor()
 
             input_data = BusinessCaseInputData(
                 account_id=request.account_id,
@@ -257,7 +259,7 @@ def build_cases_router(
             case_metadata = dict(assemble_data.get("case_metadata", {}))
             case_metadata["account_id"] = str(request.account_id)
 
-            business_case_service = BusinessCaseService(db)
+            business_case_service = analysis.BusinessCaseService(db)
             await business_case_service.upsert_case_record(
                 case_id=result.workflow_id,
                 workflow_id=result.workflow_id,
@@ -294,6 +296,8 @@ def build_cases_router(
             )
 
         except asyncio.CancelledError:
+            raise
+        except (ValueFabricException, HTTPException):
             raise
         except Exception as e:
             logger.exception("Business case generation failed: %s", e)
@@ -451,7 +455,7 @@ def build_cases_router(
         try:
             account = await require_tenant_account_fn(db, record.account_id, context)
         except ValueFabricException as exc:
-            await emit_and_persist_audit(
+            await analysis.emit_and_persist_audit(
                 action=AuditAction.EXPORT_REQUESTED,
                 context=context,
                 resource_type="BusinessCaseExport",
@@ -467,7 +471,7 @@ def build_cases_router(
             )
             raise exc
 
-        await require_approved_case(record, context, account, format)
+        await analysis._require_approved_case(record, context, account, format)
 
         result = await executor.get_result(case_id)
         if not result:
@@ -493,7 +497,7 @@ def build_cases_router(
         export_id = str(uuid4())
 
         if blocked:
-            await emit_and_persist_audit(
+            await analysis.emit_and_persist_audit(
                 action=AuditAction.EXPORT_REQUESTED,
                 context=context,
                 resource_type="BusinessCaseExport",
@@ -542,7 +546,7 @@ def build_cases_router(
         if not isinstance(document_bytes, bytes):
             document_bytes = bytes(document_bytes)
 
-        effective_settings = get_settings()
+        effective_settings = analysis.get_settings()
         if not getattr(effective_settings, "export_storage_endpoint", None):
             raise ServiceUnavailableError(
                 message="Export storage endpoint is not configured"
@@ -582,14 +586,14 @@ def build_cases_router(
             "application/pdf" if format == "pdf" else "application/octet-stream"
         )
 
-        await upload_bytes(
+        await analysis.upload_bytes(
             tenant_id=str(context.tenant_id),
             object_key=object_key,
             content=document_bytes,
             content_type=content_type,
             metadata=metadata,
         )
-        await upload_bytes(
+        await analysis.upload_bytes(
             tenant_id=str(context.tenant_id),
             object_key=manifest_key,
             content=manifest_bytes,
@@ -597,10 +601,10 @@ def build_cases_router(
             metadata=metadata,
         )
 
-        document_url = await generate_download_url(
+        document_url = await analysis.generate_download_url(
             tenant_id=str(context.tenant_id), object_key=object_key
         )
-        manifest_url = await generate_download_url(
+        manifest_url = await analysis.generate_download_url(
             tenant_id=str(context.tenant_id), object_key=manifest_key
         )
         expires_at = datetime.fromtimestamp(
@@ -609,7 +613,7 @@ def build_cases_router(
             tz=UTC,
         ).isoformat()
 
-        await emit_and_persist_audit(
+        await analysis.emit_and_persist_audit(
             action=AuditAction.EXPORT_REQUESTED,
             context=context,
             resource_type="BusinessCaseExport",
@@ -623,7 +627,7 @@ def build_cases_router(
             },
         )
 
-        await emit_and_persist_audit(
+        await analysis.emit_and_persist_audit(
             action=AuditAction.EXPORT_PACKAGE_GENERATED,
             context=context,
             resource_type="BusinessCaseExport",
@@ -640,7 +644,7 @@ def build_cases_router(
             },
         )
 
-        await emit_and_persist_audit(
+        await analysis.emit_and_persist_audit(
             action=AuditAction.EXPORT_DOWNLOAD_ACCESSED,
             context=context,
             resource_type="BusinessCaseExport",
@@ -654,24 +658,21 @@ def build_cases_router(
             },
         )
 
-        return cast(
-            dict[str, Any],
-            export_business_caseResult.model_validate(
-                {
-                    "case_id": case_id,
-                    "export_id": export_id,
-                    "format": format,
-                    "document_url": document_url,
-                    "manifest_url": manifest_url,
-                    "download_ready": True,
-                    "blocked": False,
-                    "manifest": manifest,
-                    "remediation_items": remediation_items,
-                    "truth_references": truth_references,
-                    "url_expires_at": expires_at,
-                }
-            ).model_dump(),
-        )
+        return export_business_caseResult.model_validate(
+            {
+                "case_id": case_id,
+                "export_id": export_id,
+                "format": format,
+                "document_url": document_url,
+                "manifest_url": manifest_url,
+                "download_ready": True,
+                "blocked": False,
+                "manifest": manifest,
+                "remediation_items": remediation_items,
+                "truth_references": truth_references,
+                "url_expires_at": expires_at,
+            }
+        ).model_dump()
 
     @router.get("/cases", response_model=CaseListResponse)
     async def list_cases(
