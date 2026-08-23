@@ -43,6 +43,8 @@ from .billing_helpers import serialize_invoice as _serialize_invoice
 from .billing_helpers import serialize_subscription as _serialize_subscription
 from .billing_helpers import serialize_usage_event as _serialize_usage_event
 
+__all__ = ["_is_stripe_webhook_ip"]
+
 logger = logging.getLogger(__name__)
 
 # Known Stripe webhook IPs (documented by Stripe) + loopback for local dev

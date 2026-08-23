@@ -42,9 +42,6 @@ from ...models.agent_state import (
 )
 from ...services.account_service import AccountService
 from ...services.business_case_service import BusinessCaseService
-from ...services.export_provenance import build_export_provenance_manifest
-from ...services.export_storage import generate_download_url, upload_bytes
-from ..common.audit import emit_and_persist_audit
 from ..common.db import get_route_db
 from ..common.errors import normalize_exception
 from .analysis_schemas import (
@@ -409,13 +406,26 @@ async def quick_whitespace_analysis(
 
 
 # Import sub-routers
+# Test monkeypatch seam re-exports
+from ...services.export_provenance import (  # noqa: F401
+    build_export_provenance_manifest,
+)
+from ...services.export_storage import (  # noqa: F401
+    generate_download_url,
+    upload_bytes,
+)
+from ..common.audit import emit_and_persist_audit  # noqa: F401
 from .analysis_cases import (
     build_cases_router,
+)
+from .analysis_cases import (
     require_approved_case as _require_approved_case,
 )
 from .analysis_scenarios import build_scenarios_router
 from .analysis_validation import build_validation_seed_router
 from .analysis_workspace import build_workspace_router
+
+_unused_seams = (_require_approved_case, emit_and_persist_audit, upload_bytes, generate_download_url, build_export_provenance_manifest)
 
 validation_router = build_validation_seed_router(
     get_executor=get_executor,
