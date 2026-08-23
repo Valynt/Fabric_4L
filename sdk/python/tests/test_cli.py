@@ -320,7 +320,9 @@ class TestFeatureFlagCommands:
         with patch("valuefabric.cli.flags.get_client") as mock_client_factory:
             mock_client = mock_client_factory.return_value
             mock_client.list_feature_flags.return_value = []
-            result = runner.invoke(app, ["feature-flags", "list", "--limit", "50", "--offset", "10"])
+            result = runner.invoke(
+                app, ["feature-flags", "list", "--limit", "50", "--offset", "10"]
+            )
             assert result.exit_code == 0
             mock_client.list_feature_flags.assert_called_once_with(limit=50, offset=10)
 
@@ -356,9 +358,7 @@ class TestFeatureFlagCommands:
         with patch("valuefabric.cli.flags.get_client") as mock_client_factory:
             mock_client = mock_client_factory.return_value
             mock_client.set_feature_flag.return_value = flag
-            result = runner.invoke(
-                app, ["feature-flags", "set", "new_ui", "--enabled", "--json"]
-            )
+            result = runner.invoke(app, ["feature-flags", "set", "new_ui", "--enabled", "--json"])
             assert result.exit_code == 0
             assert '"new_ui"' in result.output
             assert json.loads(result.output)
