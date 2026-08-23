@@ -7832,13 +7832,13 @@
     },
     {
       "kind": "python-any",
-      "line": 11,
+      "line": 12,
       "path": "scripts/ci/validate_docs_claims.py",
       "text": "from typing import Any"
     },
     {
       "kind": "python-any",
-      "line": 85,
+      "line": 86,
       "path": "scripts/ci/validate_docs_claims.py",
       "text": "payload: dict[str, Any] = {"
     },
@@ -35720,37 +35720,37 @@
     },
     {
       "kind": "python-any",
-      "line": 9,
+      "line": 10,
       "path": "services/layer4-agents/src/layer4_agents/tools/generation_tools.py",
       "text": "from typing import Any"
     },
     {
       "kind": "python-type-ignore",
-      "line": 21,
+      "line": 22,
       "path": "services/layer4-agents/src/layer4_agents/tools/generation_tools.py",
       "text": "HTML = None  # type: ignore"
     },
     {
       "kind": "python-type-ignore",
-      "line": 22,
+      "line": 23,
       "path": "services/layer4-agents/src/layer4_agents/tools/generation_tools.py",
       "text": "CSS = None  # type: ignore"
     },
     {
       "kind": "python-any",
-      "line": 294,
+      "line": 297,
       "path": "services/layer4-agents/src/layer4_agents/tools/generation_tools.py",
       "text": "def _format_html(self, headers: list[str], rows: list[list[Any]]) -> str:"
     },
     {
       "kind": "python-any",
-      "line": 316,
+      "line": 319,
       "path": "services/layer4-agents/src/layer4_agents/tools/generation_tools.py",
       "text": "def _format_markdown(self, headers: list[str], rows: list[list[Any]]) -> str:"
     },
     {
       "kind": "python-any",
-      "line": 332,
+      "line": 335,
       "path": "services/layer4-agents/src/layer4_agents/tools/generation_tools.py",
       "text": "def _format_csv(self, headers: list[str], rows: list[list[Any]]) -> str:"
     },
@@ -35810,37 +35810,43 @@
     },
     {
       "kind": "python-any",
-      "line": 276,
+      "line": 299,
       "path": "services/layer4-agents/src/layer4_agents/tools/knowledge_tools.py",
       "text": "def __init__(self, config: dict[str, Any] | None = None):"
     },
     {
       "kind": "python-any",
-      "line": 299,
+      "line": 322,
       "path": "services/layer4-agents/src/layer4_agents/tools/knowledge_tools.py",
       "text": "def _get_pinecone_client(self) -> Any | None:"
     },
     {
       "kind": "python-any",
-      "line": 428,
+      "line": 390,
+      "path": "services/layer4-agents/src/layer4_agents/tools/knowledge_tools.py",
+      "text": "filter_dict: dict[str, Any] = {\"tenant_id\": str(tenant_ctx.tenant_id)}"
+    },
+    {
+      "kind": "python-any",
+      "line": 451,
       "path": "services/layer4-agents/src/layer4_agents/tools/knowledge_tools.py",
       "text": "def __init__(self, config: dict[str, Any] | None = None):"
     },
     {
       "kind": "python-any",
-      "line": 542,
+      "line": 565,
       "path": "services/layer4-agents/src/layer4_agents/tools/knowledge_tools.py",
       "text": "def __init__(self, config: dict[str, Any] | None = None):"
     },
     {
       "kind": "python-any",
-      "line": 644,
+      "line": 674,
       "path": "services/layer4-agents/src/layer4_agents/tools/knowledge_tools.py",
       "text": "def __init__(self, config: dict[str, Any] | None = None):"
     },
     {
       "kind": "python-any",
-      "line": 742,
+      "line": 772,
       "path": "services/layer4-agents/src/layer4_agents/tools/knowledge_tools.py",
       "text": "def __init__(self, config: dict[str, Any] | None = None):"
     },
@@ -42327,6 +42333,12 @@
     {
       "kind": "python-type-ignore",
       "line": 89,
+      "path": "tests/security/test_prompt_injection.py",
+      "text": "tool._call_llm = _capture_prompt  # type: ignore[method-assign]"
+    },
+    {
+      "kind": "python-type-ignore",
+      "line": 123,
       "path": "tests/security/test_prompt_injection.py",
       "text": "tool._call_llm = _capture_prompt  # type: ignore[method-assign]"
     },
