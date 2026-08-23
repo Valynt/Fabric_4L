@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import uuid
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from fastapi import HTTPException
@@ -25,7 +25,6 @@ from layer4_agents.database import (
     _validate_tenant_id_fallback,
     db_session_for_context,
     get_db_from_context,
-    get_engine,
     get_tenant_validation_metrics,
     reset_tenant_validation_metrics,
     validate_tenant_id,
@@ -123,12 +122,8 @@ class TestSessionTenantEnforcement:
         assert mock_session.info["tenant_context_state"] == "bypass"
 
     def test_statement_sets_tenant_context_detection(self) -> None:
-        assert _statement_sets_tenant_context(
-            "SELECT set_config('app.tenant_id', '123', true)"
-        )
-        assert _statement_sets_tenant_context(
-            text("SET LOCAL app.tenant_id = '123'")
-        )
+        assert _statement_sets_tenant_context("SELECT set_config('app.tenant_id', '123', true)")
+        assert _statement_sets_tenant_context(text("SET LOCAL app.tenant_id = '123'"))
         assert not _statement_sets_tenant_context("SELECT * FROM accounts")
         assert not _statement_sets_tenant_context(text("SELECT 1"))
 
@@ -138,7 +133,9 @@ class TestSessionTenantEnforcement:
         engine = create_async_engine("sqlite+aiosqlite:///:memory:")
         session = TenantEnforcedAsyncSession(bind=engine)
         try:
-            with pytest.raises(TenantContextError, match="must be established before statement execution"):
+            with pytest.raises(
+                TenantContextError, match="must be established before statement execution"
+            ):
                 await session.execute(text("SELECT 1"))
         finally:
             await session.close()
@@ -166,7 +163,9 @@ class TestSessionTenantEnforcement:
             # Statement containing app.tenant_id setup pattern should bypass the pre-execution assert
             with patch.object(TenantEnforcedAsyncSession, "execute", wraps=session.execute):
                 # When _statement_sets_tenant_context is True, it doesn't raise TenantContextError
-                assert _statement_sets_tenant_context("SELECT set_config('app.tenant_id', 't-1', true)")
+                assert _statement_sets_tenant_context(
+                    "SELECT set_config('app.tenant_id', 't-1', true)"
+                )
         finally:
             await session.close()
             await engine.dispose()
@@ -297,7 +296,9 @@ class TestProductionRlsEngineGuard:
         old_engine = db_mod._engine
         try:
             db_mod._engine = None
-            with pytest.raises(RuntimeError, match="must use PostgreSQL with RLS-capable tenant isolation"):
+            with pytest.raises(
+                RuntimeError, match="must use PostgreSQL with RLS-capable tenant isolation"
+            ):
                 db_mod.get_engine()
         finally:
             db_mod._engine = old_engine
