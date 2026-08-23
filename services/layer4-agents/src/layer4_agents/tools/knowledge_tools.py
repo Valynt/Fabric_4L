@@ -191,14 +191,34 @@ class QueryGraphTool(BaseTool):
             tenant_ctx = tenant_context.get_current_tenant_context()
             tenant_ctx.assert_valid()
             effective_tenant_id = tenant_ctx.tenant_id
+
+            # Never allow request payload tenant override
+            if (
+                input_data.tenant_id is not None
+                and input_data.tenant_id != str(effective_tenant_id)
+            ):
+                logger.warning(
+                    "Tenant mismatch in query_graph: "
+                    "context tenant=%s input tenant=%s",
+                    effective_tenant_id,
+                    input_data.tenant_id,
+                )
+                return QueryGraphOutput(
+                    results=[],
+                    columns=[],
+                    row_count=0,
+                    error="Tenant context mismatch",
+                )
         except TenantContextError as e:
-            logger.warning(f"Tenant context error in query_graph: {e}")
+            logger.warning(
+                "Tenant context error in query_graph: %s",
+                e,
+            )
             return QueryGraphOutput(
                 results=[],
                 columns=[],
                 row_count=0,
-                execution_time_ms=0,
-                error=f"Tenant context required: {e}. Authentication required.",
+                error="Invalid tenant context",
             )
 
         # P1-11 FIX: Validate query is read-only before execution
