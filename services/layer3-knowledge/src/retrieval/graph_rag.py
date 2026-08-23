@@ -41,6 +41,7 @@ class GraphRAGEngine__expand_contextResult(TypedDictModel):
     seed_count: Any
     traversal_path: Any
 
+
 class GraphRAGEngine_get_entity_contextResult(TypedDictModel):
     center: Any
     entity_count: Any | None = None
@@ -48,11 +49,13 @@ class GraphRAGEngine_get_entity_contextResult(TypedDictModel):
     relationship_count: Any | None = None
     relationships: list[Any]
 
+
 class GraphRAGEngine_traverse_value_treeResult(TypedDictModel):
     direction: Any
     path_count: Any
     paths: Any
     start_entity_id: Any
+
 
 logger = logging.getLogger(__name__)
 
@@ -71,7 +74,9 @@ def _validate_hops(hops: int, *, max_hops: int = 5) -> int:
 def _validate_relationship_types(relationship_types: list[str] | None) -> list[str]:
     if not relationship_types:
         return []
-    invalid = [rel for rel in relationship_types if rel not in _ALLOWED_RELATIONSHIP_TYPES]
+    invalid = [
+        rel for rel in relationship_types if rel not in _ALLOWED_RELATIONSHIP_TYPES
+    ]
     if invalid:
         raise ValueError(f"Invalid relationship type(s): {', '.join(invalid)}")
     return list(dict.fromkeys(relationship_types))
@@ -106,57 +111,57 @@ def _serialize_neo4j_value(value: Any) -> Any:
     elif isinstance(value, list):
         return [_serialize_neo4j_value(item) for item in value]
     elif isinstance(value, dict):
-        return _serialize_neo4j_valueResult.model_validate({k: _serialize_neo4j_value(v) for k, v in value.items()})
+        return _serialize_neo4j_valueResult.model_validate(
+            {k: _serialize_neo4j_value(v) for k, v in value.items()}
+        )
     return value
 
 
 def _serialize_entity(entity: dict[str, Any]) -> dict[str, Any]:
     """Serialize an entity dict, converting Neo4j temporal types to strings.
 
-    Adds backward-compatible alias fields for frontend contract alignment:
-    - 'name' alias for 'label' or 'name'
-    - 'entity_type' alias for 'type' or first label
-    - 'confidence_score' alias for 'confidence'
+    Ensures canonical fields ('name', 'entity_type', 'confidence_score') are present
+    and strips legacy node keys ('label', 'type', 'confidence', 'relationship_type')
+    to ensure the canonical-only v2.5 contract.
 
     Args:
         entity: Entity dictionary from Neo4j
 
     Returns:
-        JSON-serializable entity dictionary with alias fields
+        JSON-serializable entity dictionary with canonical fields only
     """
     # Base serialization of Neo4j values
     serialized = {k: _serialize_neo4j_value(v) for k, v in entity.items()}
 
-    # ═════════════════════════════════════════════════════════════════════════
-    # Backward-compatible alias fields for frontend contract alignment
-    # ═════════════════════════════════════════════════════════════════════════
-
-    # Add 'name' alias (prefer 'label', fallback to 'name')
+    # Populate canonical fields if not already set
     if "name" not in serialized:
         if "label" in serialized:
             serialized["name"] = serialized["label"]
         elif "name" in entity:
             serialized["name"] = entity["name"]
 
-    # Add 'entity_type' alias (prefer 'type', fallback to first label)
     if "entity_type" not in serialized:
         if "type" in serialized:
             serialized["entity_type"] = serialized["type"]
         elif "labels" in serialized and serialized["labels"]:
-            # Use first label as entity type
             serialized["entity_type"] = serialized["labels"][0]
 
-    # Add 'confidence_score' alias (from 'confidence')
     if "confidence_score" not in serialized and "confidence" in serialized:
         serialized["confidence_score"] = serialized["confidence"]
+
+    # Drop legacy node/edge alias keys to adhere to v2.5 canonical-only schema
+    serialized.pop("label", None)
+    serialized.pop("type", None)
+    serialized.pop("confidence", None)
+    serialized.pop("relationship_type", None)
 
     return serialized
 
 
 def _serialize_relationship(rel: Any, include_hops: bool = False, hops: int = 0) -> dict[str, Any]:
-    """Serialize a Neo4j relationship with alias fields.
+    """Serialize a Neo4j relationship.
 
-    Centralizes relationship serialization to ensure consistent alias field
+    Centralizes relationship serialization to ensure consistent field
     handling across all GraphRAG query paths.
 
     Args:
@@ -165,11 +170,10 @@ def _serialize_relationship(rel: Any, include_hops: bool = False, hops: int = 0)
         hops: Number of hops (only included if include_hops=True)
 
     Returns:
-        JSON-serializable relationship dictionary with alias fields
+        JSON-serializable relationship dictionary
     """
     data: dict[str, Any] = {
         "type": rel.type,
-        "relationship_type": rel.type,  # Frontend alias
         "source": rel.start_node["id"],
         "target": rel.end_node["id"],
         "properties": _serialize_entity(dict(rel)),
@@ -354,7 +358,9 @@ class GraphRAGEngine:
             record = await result.single()
 
             if not record:
-                return GraphRAGEngine_get_entity_contextResult.model_validate({"center": None, "neighbors": [], "relationships": []})
+                return GraphRAGEngine_get_entity_contextResult.model_validate(
+                    {"center": None, "neighbors": [], "relationships": []}
+                )
 
             center = _serialize_entity(dict(record["center"]))
             neighbors = [_serialize_entity(dict(n)) for n in record["neighbors"]]
@@ -372,14 +378,15 @@ class GraphRAGEngine:
                             seen_rel_ids.add(rel_id)
                             relationships.append(_serialize_relationship(rel))
 
-            return GraphRAGEngine_get_entity_contextResult.model_validate({
-                "center": center,
-                "neighbors": neighbors,
-                "relationships": relationships,
-                "entity_count": 1 + len(neighbors),
-                "relationship_count": len(relationships),
-            })
-
+            return GraphRAGEngine_get_entity_contextResult.model_validate(
+                {
+                    "center": center,
+                    "neighbors": neighbors,
+                    "relationships": relationships,
+                    "entity_count": 1 + len(neighbors),
+                    "relationship_count": len(relationships),
+                }
+            )
 
     async def traverse_value_tree(
         self,
@@ -396,12 +403,12 @@ class GraphRAGEngine:
 
         Returns:
             Value tree paths from the starting entity
-            
+
         Raises:
             ValueError: If tenant_id is None or empty
         """
         tenant = self._resolve_tenant_id(tenant_id)
-        
+
         driver = await self._get_driver()
 
         # Define traversal patterns based on the 4-layer ontology
@@ -455,13 +462,14 @@ class GraphRAGEngine:
 
                 paths.append({"nodes": nodes, "relationships": relationships})
 
-            return GraphRAGEngine_traverse_value_treeResult.model_validate({
-                "start_entity_id": start_entity_id,
-                "direction": direction,
-                "paths": paths,
-                "path_count": len(paths),
-            })
-
+            return GraphRAGEngine_traverse_value_treeResult.model_validate(
+                {
+                    "start_entity_id": start_entity_id,
+                    "direction": direction,
+                    "paths": paths,
+                    "path_count": len(paths),
+                }
+            )
 
     async def _find_seed_entities(
         self,
@@ -473,7 +481,9 @@ class GraphRAGEngine:
         """Find seed entities using vector search."""
         if not self.vector_store:
             # Fallback to Neo4j full-text search
-            return await self._fulltext_search(query_text, entity_type, max_results, tenant_id=tenant_id)
+            return await self._fulltext_search(
+                query_text, entity_type, max_results, tenant_id=tenant_id
+            )
 
         # Use vector store for semantic search
         # New VectorStore.search() uses query_text= kwarg and returns tuples
@@ -662,14 +672,15 @@ class GraphRAGEngine:
                 if path_str not in traversal_path:
                     traversal_path.append(path_str)
 
-        return GraphRAGEngine__expand_contextResult.model_validate({
-            "entities": list(all_entities.values()),
-            "relationships": all_relationships,
-            "traversal_path": traversal_path,
-            "seed_count": len(seed_entities),
-            "expanded_count": len(all_entities) - len(seed_entities),
-        })
-
+        return GraphRAGEngine__expand_contextResult.model_validate(
+            {
+                "entities": list(all_entities.values()),
+                "relationships": all_relationships,
+                "traversal_path": traversal_path,
+                "seed_count": len(seed_entities),
+                "expanded_count": len(all_entities) - len(seed_entities),
+            }
+        )
 
     def _build_result(
         self,
@@ -751,7 +762,9 @@ class GraphRAGEngine:
             Dict representing streaming event with event_type and data
         """
         tenant = self._resolve_tenant_id(tenant_id)
-        max_hops = _validate_hops(max_hops or self.settings.graphrag_max_hops, max_hops=5)
+        max_hops = _validate_hops(
+            max_hops or self.settings.graphrag_max_hops, max_hops=5
+        )
         min_confidence = min_confidence or self.settings.graphrag_min_confidence
 
         # Start event
