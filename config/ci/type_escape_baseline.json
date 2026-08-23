@@ -1484,13 +1484,13 @@
     },
     {
       "kind": "python-any",
-      "line": 86,
+      "line": 87,
       "path": "packages/shared/src/value_fabric/shared/error_handling/models.py",
       "text": "details: Optional[dict[str, Any]] = Field("
     },
     {
       "kind": "python-any",
-      "line": 138,
+      "line": 139,
       "path": "packages/shared/src/value_fabric/shared/error_handling/models.py",
       "text": "details: Optional[dict[str, Any]] = Field("
     },
@@ -40178,7 +40178,7 @@
     },
     {
       "kind": "python-type-ignore",
-      "line": 59,
+      "line": 62,
       "path": "services/layer5-ground-truth/tests/test_layer3_failure_modes.py",
       "text": "client._client = fake_post_client  # type: ignore[assignment]"
     },
