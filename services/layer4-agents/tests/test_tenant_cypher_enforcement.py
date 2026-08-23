@@ -29,6 +29,10 @@ def mock_tenant_context():
     ctx.assert_valid = MagicMock()
     return ctx
 
+async def empty_async_gen():
+    for item in []:
+        yield item
+
 @pytest.mark.asyncio
 @patch("layer4_agents.tools.knowledge_tools.tenant_context.get_current_tenant_context")
 async def test_get_relationships_without_predicate_builds_query(mock_get_ctx, mock_tenant_context):
@@ -41,7 +45,7 @@ async def test_get_relationships_without_predicate_builds_query(mock_get_ctx, mo
 
     mock_session = AsyncMock()
     mock_session.run = AsyncMock()
-    mock_session.run.return_value.__aiter__.return_value = []
+    mock_session.run.return_value.__aiter__.side_effect = lambda: empty_async_gen()
 
     mock_driver = MagicMock()
     mock_driver.session.return_value.__aenter__.return_value = mock_session
@@ -67,7 +71,7 @@ async def test_get_relationships_with_predicate_filters_relationship_type(mock_g
 
     mock_session = AsyncMock()
     mock_session.run = AsyncMock()
-    mock_session.run.return_value.__aiter__.return_value = []
+    mock_session.run.return_value.__aiter__.side_effect = lambda: empty_async_gen()
 
     mock_driver = MagicMock()
     mock_driver.session.return_value.__aenter__.return_value = mock_session
@@ -92,7 +96,7 @@ async def test_get_relationships_always_applies_tenant_filter(mock_get_ctx, mock
 
     mock_session = AsyncMock()
     mock_session.run = AsyncMock()
-    mock_session.run.return_value.__aiter__.return_value = []
+    mock_session.run.return_value.__aiter__.side_effect = lambda: empty_async_gen()
 
     mock_driver = MagicMock()
     mock_driver.session.return_value.__aenter__.return_value = mock_session

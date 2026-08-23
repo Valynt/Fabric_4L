@@ -597,6 +597,7 @@ class GetRelationshipsTool(BaseTool):
                 # Relationship type is optional.
                 # Predicate must come from validated enum/domain values before interpolation.
                 if predicate:
+                    # cypher-dynamic-safe: validated against regex
                     rel_pattern = f"[r:{predicate}]"
                 else:
                     rel_pattern = "[r]"
