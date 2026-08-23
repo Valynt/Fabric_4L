@@ -22,7 +22,7 @@ MAINTAINED_SERVICES: dict[str, dict[str, str]] = {
         "metrics": "services/layer1-ingestion/src/metrics/prometheus_metrics.py",
     },
     "layer2": {
-        "entrypoint": "services/layer2-extraction/src/layer2_extraction/api/main.py",
+        "entrypoint": "services/layer2-extraction/src/layer2_extraction/api/app_factory.py",
         "logging": "services/layer2-extraction/src/layer2_extraction/logging_config.py",
         "metrics": "services/layer2-extraction/src/layer2_extraction/metrics/prometheus_metrics.py",
     },

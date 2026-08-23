@@ -24,13 +24,13 @@ import pytest
 pytestmark = [pytest.mark.unit]
 
 _GOVERNED_LLM = pathlib.Path(
-    "services/layer4-agents/src/services/governed_llm_client.py"
+    "services/layer4-agents/src/layer4_agents/services/governed_llm_client.py"
 )
 _OBSERVABILITY = pathlib.Path(
-    "services/layer4-agents/src/observability.py"
+    "services/layer4-agents/src/layer4_agents/observability.py"
 )
 _HARNESS_MODELS = pathlib.Path(
-    "services/layer4-agents/src/harness/models.py"
+    "services/layer4-agents/src/layer4_agents/harness/models.py"
 )
 
 
@@ -45,9 +45,9 @@ class TestLLMCostLogSchema:
         for node in ast.walk(tree):
             if isinstance(node, ast.FunctionDef) and node.name == "_emit_call_complete":
                 fn_src = ast.get_source_segment(source, node) or ""
-                assert '"model"' in fn_src or "'model'" in fn_src, (
-                    "_emit_call_complete must include 'model' in metadata"
-                )
+                assert (
+                    '"model"' in fn_src or "'model'" in fn_src
+                ), "_emit_call_complete must include 'model' in metadata"
                 return
 
         pytest.fail("_emit_call_complete not found in governed_llm_client.py")
@@ -60,9 +60,9 @@ class TestLLMCostLogSchema:
         for node in ast.walk(tree):
             if isinstance(node, ast.FunctionDef) and node.name == "_emit_call_complete":
                 fn_src = ast.get_source_segment(source, node) or ""
-                assert "prompt_tokens" in fn_src, (
-                    "_emit_call_complete must include 'prompt_tokens' in metadata"
-                )
+                assert (
+                    "prompt_tokens" in fn_src
+                ), "_emit_call_complete must include 'prompt_tokens' in metadata"
                 return
 
         pytest.fail("_emit_call_complete not found in governed_llm_client.py")
@@ -75,9 +75,9 @@ class TestLLMCostLogSchema:
         for node in ast.walk(tree):
             if isinstance(node, ast.FunctionDef) and node.name == "_emit_call_complete":
                 fn_src = ast.get_source_segment(source, node) or ""
-                assert "completion_tokens" in fn_src, (
-                    "_emit_call_complete must include 'completion_tokens' in metadata"
-                )
+                assert (
+                    "completion_tokens" in fn_src
+                ), "_emit_call_complete must include 'completion_tokens' in metadata"
                 return
 
         pytest.fail("_emit_call_complete not found in governed_llm_client.py")
@@ -90,9 +90,9 @@ class TestLLMCostLogSchema:
         for node in ast.walk(tree):
             if isinstance(node, ast.FunctionDef) and node.name == "_emit_call_complete":
                 fn_src = ast.get_source_segment(source, node) or ""
-                assert "cost_usd" in fn_src, (
-                    "_emit_call_complete must include 'cost_usd' in metadata"
-                )
+                assert (
+                    "cost_usd" in fn_src
+                ), "_emit_call_complete must include 'cost_usd' in metadata"
                 return
 
         pytest.fail("_emit_call_complete not found in governed_llm_client.py")
@@ -105,12 +105,12 @@ class TestLLMCostLogSchema:
         for node in ast.walk(tree):
             if isinstance(node, ast.FunctionDef) and node.name == "_emit_raw":
                 fn_src = ast.get_source_segment(source, node) or ""
-                assert "tenant_id" in fn_src, (
-                    "_emit_raw must include tenant_id from self._run"
-                )
-                assert "self._run.tenant_id" in fn_src, (
-                    "_emit_raw must use self._run.tenant_id for tenant context"
-                )
+                assert (
+                    "tenant_id" in fn_src
+                ), "_emit_raw must include tenant_id from self._run"
+                assert (
+                    "self._run.tenant_id" in fn_src
+                ), "_emit_raw must use self._run.tenant_id for tenant context"
                 return
 
         pytest.fail("_emit_raw not found in governed_llm_client.py")
@@ -123,15 +123,15 @@ class TestLLMCostLogSchema:
         for node in ast.walk(tree):
             if isinstance(node, ast.ClassDef) and node.name == "HarnessTraceEvent":
                 class_src = ast.get_source_segment(source, node) or ""
-                assert "workflow_type" in class_src, (
-                    "HarnessTraceEvent must include workflow_type field"
-                )
-                assert "run_id" in class_src, (
-                    "HarnessTraceEvent must include run_id field (workflow run identifier)"
-                )
-                assert "tenant_id" in class_src, (
-                    "HarnessTraceEvent must include tenant_id field"
-                )
+                assert (
+                    "workflow_type" in class_src
+                ), "HarnessTraceEvent must include workflow_type field"
+                assert (
+                    "run_id" in class_src
+                ), "HarnessTraceEvent must include run_id field (workflow run identifier)"
+                assert (
+                    "tenant_id" in class_src
+                ), "HarnessTraceEvent must include tenant_id field"
                 return
 
         pytest.fail("HarnessTraceEvent not found in harness/models.py")
@@ -144,12 +144,12 @@ class TestLLMCostLogSchema:
         for node in ast.walk(tree):
             if isinstance(node, ast.FunctionDef) and node.name == "emit":
                 fn_src = ast.get_source_segment(source, node) or ""
-                assert '"workflow_id"' in fn_src or "'workflow_id'" in fn_src, (
-                    "Layer4LifecycleLogger.emit() must include 'workflow_id' in payload"
-                )
-                assert '"tenant_id"' in fn_src or "'tenant_id'" in fn_src, (
-                    "Layer4LifecycleLogger.emit() must include 'tenant_id' in payload"
-                )
+                assert (
+                    '"workflow_id"' in fn_src or "'workflow_id'" in fn_src
+                ), "Layer4LifecycleLogger.emit() must include 'workflow_id' in payload"
+                assert (
+                    '"tenant_id"' in fn_src or "'tenant_id'" in fn_src
+                ), "Layer4LifecycleLogger.emit() must include 'tenant_id' in payload"
                 return
 
         pytest.fail("Layer4LifecycleLogger.emit() not found in observability.py")
@@ -164,9 +164,9 @@ class TestLLMCostLogSchema:
                 class_src = ast.get_source_segment(source, node) or ""
                 required = ["tenant_id", "workflow_id", "run_id", "trace_id"]
                 for field in required:
-                    assert field in class_src, (
-                        f"Layer4EventContext must have '{field}' field"
-                    )
+                    assert (
+                        field in class_src
+                    ), f"Layer4EventContext must have '{field}' field"
                 return
 
         pytest.fail("Layer4EventContext not found in observability.py")

@@ -5,7 +5,7 @@ import time
 
 import pytest
 
-from src.shared.identity.oidc_state import (
+from layer4_agents.shared.identity.oidc_state import (
     InMemoryOIDCStateStore,
     RedisOIDCStateStore,
     create_oidc_state_store,

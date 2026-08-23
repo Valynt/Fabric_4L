@@ -25,27 +25,38 @@ Six-layer architecture — from ingestion to benchmarks — built for teams that
 
 ---
 
-## Quickstart
+## Quickstart (Canonical Development Environment)
 
-The canonical command references are [docs/development/BUILD_SYSTEM.md](docs/development/BUILD_SYSTEM.md), [docs/development/COMMANDS.md](docs/development/COMMANDS.md), [docs/development/DISCOVERY_MAP.md](docs/development/DISCOVERY_MAP.md), and [AGENTS.md](AGENTS.md). Use those files as the source of truth when local setup, Makefile targets, or contributor-agent workflows drift.
+Fabric_4L uses Dev Containers as the single canonical development environment to eliminate toolchain drift across contributors and AI agents. The container provides all pinned dependencies (Python 3.11, Node 22, pnpm, uv, rootless Docker-in-Docker, kubectl, Infisical, cosign, etc.) out of the box.
 
-Prerequisites: Python 3.11+, Node.js 22.x with pnpm 10.18.1 via Corepack, Docker with Docker Compose, `make`, and the Infisical CLI if you want the recommended generated environment file.
+### 1. Launch Canonical Dev Container
+
+Prerequisites on host: Git and Docker Engine (or Docker Desktop / Nebius VM bootstrapped via [`infra/nebius/cloud-init.yaml`](infra/nebius/README.md)).
 
 ```bash
 git clone https://github.com/bmsull560/Fabric_4L.git
 cd Fabric_4L
-corepack enable
-corepack prepare pnpm@10.18.1 --activate
-pnpm install --frozen-lockfile
-make setup
-pnpm env:dev && docker compose -f infra/compose/docker-compose.dev.yml --env-file .env.generated up -d
-make migrate
-make verify
+devcontainer up --workspace-folder .
+devcontainer exec --workspace-folder . bash
 ```
 
-`make setup` installs Python service development dependencies into the pytest Python environment; it does not install frontend dependencies, start Docker infrastructure, or apply migrations. Start the dev stack and run `make migrate` separately before using commands that require live services. If you do not have Infisical access, follow the environment guidance in [AGENTS.md](AGENTS.md) and use the legacy `.env` flow instead of `pnpm env:dev`.
+*Alternatively, open in VS Code / Cursor and select **"Reopen in Container"** or launch via [GitHub Codespaces](.github/codespaces.md).*
 
-> **New contributor?** See the [GitHub Codespaces guide](codespaces.md) for a one-click dev environment.
+### 2. Verify and Develop
+
+The devcontainer automatically runs bootstrap and environment verification on creation:
+
+```bash
+# Verify all toolchains and rootless DinD connectivity:
+.devcontainer/verify.sh
+
+# Start development services inside container:
+.devcontainer/dev-stack.sh infra     # PostgreSQL, Redis, Neo4j
+.devcontainer/dev-stack.sh migrate   # Run database migrations
+make verify                          # Run platform verification
+```
+
+For detailed architecture commands, see [docs/development/DEV_CONTAINERS.md](docs/development/DEV_CONTAINERS.md), [docs/development/BUILD_SYSTEM.md](docs/development/BUILD_SYSTEM.md), and [docs/development/COMMANDS.md](docs/development/COMMANDS.md).
 
 ---
 

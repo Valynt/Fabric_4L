@@ -15,6 +15,12 @@ from urllib.parse import urlparse
 
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
+# Precompiled regexes (compiled once at import instead of per-call).
+_TAG_RE = re.compile(r"<[^>]+>")
+_EMPTY_ROOT_RE = re.compile(
+    r'<div\s+id=["\']root["\']\s*>\s*</div>', re.IGNORECASE
+)
+
 
 class SmartRouter__default_browser_configResult(TypedDictModel):
     scroll_percent: int
@@ -64,7 +70,7 @@ class SmartRouter:
     """
 
     # Patterns that strongly indicate dynamic content
-    DYNAMIC_PATTERNS = [
+    DYNAMIC_PATTERNS = (
         "/solutions/",
         "/platform/",
         "/pricing",
@@ -76,10 +82,11 @@ class SmartRouter:
         "/integrations",
         "/products/",
         "/features/",
-    ]
+    )
 
-    # Static asset patterns (always fast)
-    STATIC_EXTENSIONS = [
+    # Static asset extensions (always fast). Tuple so `str.endswith` uses the
+    # C-level fast path instead of a Python-side scan.
+    STATIC_EXTENSIONS = (
         ".css",
         ".js",
         ".png",
@@ -90,31 +97,33 @@ class SmartRouter:
         ".ico",
         ".pdf",
         ".zip",
-    ]
+    )
 
-    STATIC_PATH_PATTERNS = [
+    STATIC_PATH_PATTERNS = (
         "/wp-content/",
         "/assets/",
         "/static/",
         "/uploads/",
-    ]
+    )
 
     # URL patterns that need browser navigation
-    NAVIGATION_PATTERNS = ["#", "?", "/search", "/filter"]
+    NAVIGATION_PATTERNS = ("#", "?", "/search", "/filter")
 
-    # SPA detection markers (lightweight heuristic)
-    SPA_MARKERS = [
-        '<div id="root"></div>',
-        '<div id="app"></div>',
-        '<div id="__next"></div>',
-        'data-reactroot',
-        'ng-version=',
-        'data-server-rendered="false"',
-        'window.__INITIAL_STATE__',
-    ]
+    # SPA detection markers (lightweight heuristic); frozenset for O(1) scans
+    SPA_MARKERS = frozenset(
+        {
+            '<div id="root"></div>',
+            '<div id="app"></div>',
+            '<div id="__next"></div>',
+            "data-reactroot",
+            "ng-version=",
+            'data-server-rendered="false"',
+            "window.__INITIAL_STATE__",
+        }
+    )
 
     # Sitemap/robots patterns (always fast)
-    SITEMAP_PATTERNS = ["/sitemap.xml", "/robots.txt", "/sitemap_index.xml"]
+    SITEMAP_PATTERNS = ("/sitemap.xml", "/robots.txt", "/sitemap_index.xml")
 
     def __init__(
         self,
@@ -189,7 +198,7 @@ class SmartRouter:
             )
 
         # Rule 3: Sitemap / robots.txt -> FAST
-        if any(path == smp for smp in self.SITEMAP_PATTERNS):
+        if path in self.SITEMAP_PATTERNS:
             return RoutingDecision(
                 url=url,
                 route=RouteType.FAST,
@@ -262,7 +271,7 @@ class SmartRouter:
 
         # Indicator 2: Low content ratio (rough heuristic)
         # Strip tags and check text length
-        text_content = re.sub(r"<[^>]+>", "", html)
+        text_content = _TAG_RE.sub("", html)
         content_ratio = len(text_content) / max(len(html), 1)
         low_content = content_ratio < self.min_content_ratio
 
@@ -273,9 +282,7 @@ class SmartRouter:
         has_spa_markers = markers_found >= 1
 
         # Indicator 4: Empty root containers
-        has_empty_root = bool(
-            re.search(r'<div\s+id=["\']root["\']\s*>\s*</div>', html, re.IGNORECASE)
-        )
+        has_empty_root = bool(_EMPTY_ROOT_RE.search(html))
 
         indicators = [
             high_script_density,
