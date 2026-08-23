@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import shlex
 import subprocess
 import sys
 from collections import Counter
@@ -297,7 +298,7 @@ class CIFailureHealthCollector:
 
 
 REQUIRED_EVIDENCE: tuple[EvidenceItem, ...] = (
-    EvidenceItem("baseline-validators", "baseline", "python scripts/ci/validate_final_testing_launch_gate.py && python scripts/ci/validate_core_ga_launch_evidence.py", "docs/launch/evidence/baseline-validators.json", True, True),
+    EvidenceItem("baseline-validators", "baseline", "bash -c 'python scripts/ci/validate_final_testing_launch_gate.py && python scripts/ci/validate_core_ga_launch_evidence.py'", "docs/launch/evidence/baseline-validators.json", True, True),
     EvidenceItem("frontend-test-report", "local_quality", "pnpm --dir apps/web run test", "apps/web/test-results/frontend-test-report.json", False, False),
     EvidenceItem("frontend-build", "local_quality", "pnpm --dir apps/web run build", "docs/launch/evidence/frontend-build.json", True, True),
     EvidenceItem("contract-tests", "contract_security", "python -m pytest tests/contract -n 0 --json-report --json-report-file=contract-report.json", "contract-report.json", True, True),
@@ -337,7 +338,11 @@ class LaunchEvidenceCollector:
             return EvidenceResult(item, "missing", "dry_run_not_executed", False, item.command, item.artifact_path)
 
         try:
-            proc = subprocess.run(item.command, cwd=self.repo_root, shell=True, text=True, capture_output=True, timeout=600)
+            tokens = shlex.split(item.command)
+            proc = subprocess.run(tokens, cwd=self.repo_root, shell=False, text=True, capture_output=True, timeout=600)
+        except OSError as exc:
+            output = str(exc)
+            return EvidenceResult(item, "failed", "command_not_found", False, item.command, item.artifact_path, 127, output[-1000:])
         except subprocess.TimeoutExpired as exc:
             output = "\n".join(part for part in (exc.stdout or "", exc.stderr or "") if part)
             return EvidenceResult(item, "timeout", self._classify(output), False, item.command, item.artifact_path, None, output[-1000:])
