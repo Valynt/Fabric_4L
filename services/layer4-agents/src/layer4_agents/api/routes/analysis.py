@@ -1063,7 +1063,7 @@ async def seed_business_case_lifecycle(
     for case in cases:
         case_id = str(case["case_id"])
         lifecycle_status = str(case["status"])
-        document_url = case["document_url"]
+        document_url = str(case["document_url"]) if case["document_url"] is not None else None
         output_data = _seeded_business_case_output(
             case_id=case_id,
             account_id=payload.account_id,
