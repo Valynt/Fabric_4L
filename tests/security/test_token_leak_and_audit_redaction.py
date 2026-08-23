@@ -8,16 +8,17 @@ Uses production-grade redaction and error sanitization implementations from shar
 from __future__ import annotations
 
 import logging
+
 import pytest
+from value_fabric.shared.error_handling.sanitizer import (
+    sanitize_error_message,
+)
 from value_fabric.shared.security.redaction import (
     REDACTED_VALUE,
     RedactionFilter,
     is_sensitive_key,
     redact_credentials,
     redact_value,
-)
-from value_fabric.shared.error_handling.sanitizer import (
-    sanitize_error_message,
 )
 
 pytestmark = [pytest.mark.security, pytest.mark.production_readiness]

@@ -9,6 +9,9 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Security
+- **Dependency vulnerability triage (2026-08-22)**: `pnpm audit --prod` clean of Critical; 2 High advisories live in `image-size@2.0.2` (GHSA-5p2g-fcmc-qvqq, GHSA-w3rx-r6r6-pgpr), transitive via `@clerk/ui > @solana/wallet-adapter-react > react-native > metro`. No patched release exists upstream (registry latest = 2.0.2; all metro 0.84–0.87 still pin `image-size@^1.0.2`), so we followed the SLA exception path: added time-boxed exceptions to `config/security/vulnerability-exceptions.yaml` (expires 2026-09-21) pending Security Engineering approval and an upstream fix.
+
 ## [1.2.0] — 2026-06-25
 
 ### Added

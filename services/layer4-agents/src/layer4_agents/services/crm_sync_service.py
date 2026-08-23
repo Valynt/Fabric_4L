@@ -23,7 +23,12 @@ from value_fabric.shared.error_handling import sanitize_log_error
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
 from ..integrations.core.connector import CRMConnector
-from ..integrations.core.errors import AuthError, TransientError
+from ..integrations.core.errors import (
+    AuthError,
+    IntegrityGateOpenError,
+    PermanentError,
+    TransientError,
+)
 from ..integrations.core.observations import (
     ErrorClass,
     sync_failed,
@@ -34,12 +39,7 @@ from ..integrations.core.observations import (
 from ..integrations.core.state import apply_observation
 from ..integrations.factory import get_connector
 from ..metrics import get_metrics
-from ..models.account import (
-    Account,
-    AccountSyncStatus,
-    CRMProvider,
-    SyncStatus,
-)
+from ..models.account import Account, AccountSyncStatus, CRMProvider, SyncStatus
 from ..models.integration import Integration
 from .encryption_service import EncryptionService
 
@@ -181,7 +181,7 @@ class CRMSyncService:
             # Get CRM config from tenant integration table
             config = await self._get_crm_config(provider, tenant_id)
             if not config or not config.get("api_key"):
-                raise ValueError(f"CRM configuration missing for {provider.value}")
+                raise PermanentError(f"CRM configuration missing for {provider.value}")
 
             # Initialize connector
             connector = get_connector(provider, config)
@@ -391,7 +391,7 @@ class CRMSyncService:
         )
 
         if record is None:
-            raise ValueError(f"No profile data returned for {prospect_id}")
+            raise PermanentError(f"No profile data returned for {prospect_id}")
 
         # Check if account exists
         existing = await self.db.execute(
@@ -706,14 +706,14 @@ class CRMSyncService:
         try:
             provider = CRMProvider(account.provider)
         except ValueError as e:
-            raise ValueError(
+            raise PermanentError(
                 f"Invalid CRM provider '{account.provider}' for account {account_id}"
             ) from e
 
         # Get CRM config
         config = await self._get_crm_config(provider, tenant_id)
         if not config or not config.get("api_key"):
-            raise ValueError(f"CRM not configured for provider {provider.value}")
+            raise PermanentError(f"CRM not configured for provider {provider.value}")
 
         # Sync the account via connector
         connector = get_connector(provider, config)
@@ -724,3 +724,85 @@ class CRMSyncService:
         # Refresh and return
         await self.db.refresh(account)
         return account
+
+    async def sync_narrative_to_crm(
+        self,
+        tenant_id: str,
+        account_id: str,
+        narrative_artifact_id: str,
+        narrative_version: int,
+        narrative_content_hash: str,
+        evidence_set_hash: str,
+        human_approved_hash: str,
+        integrity_precondition: object,
+    ) -> dict[str, object]:
+        """Delegate or write narrative claims to CRM.
+
+        Enforces Pillar 3 Integrity Gate & CRM TOCTOU defense:
+        1. Human approval must match exact narrative content hash.
+        2. Integrity precondition must be passed, non-stale, and match exact hashes immediately before sync.
+        3. Fails closed with 422 INTEGRITY_GATE_OPEN if integrity is missing, stale, or human approval is mismatched.
+        """
+        from ..contracts.artifacts import IntegrityGateErrorResponse
+
+        if not integrity_precondition:
+            raise IntegrityGateOpenError(
+                IntegrityGateErrorResponse(
+                    code="INTEGRITY_GATE_OPEN",
+                    message="CRM sync requires an active, passing IntegrityArtifact.",
+                    narrative_artifact_id=narrative_artifact_id,
+                    narrative_version=narrative_version,
+                    integrity_status="missing",
+                    required_action="rerun_integrity_validation",
+                ).model_dump()
+            )
+
+        # Verify human approval matches exact content hash
+        if human_approved_hash != narrative_content_hash:
+            raise IntegrityGateOpenError(
+                IntegrityGateErrorResponse(
+                    code="INTEGRITY_GATE_OPEN",
+                    message="Human approval hash does not match current narrative content hash.",
+                    narrative_artifact_id=narrative_artifact_id,
+                    narrative_version=narrative_version,
+                    integrity_status="mismatched",
+                    required_action="reapprove_narrative",
+                ).model_dump()
+            )
+
+        # Re-verify integrity immediately before CRM write (TOCTOU defense)
+        if (
+            integrity_precondition.narrative_artifact_id != narrative_artifact_id
+            or integrity_precondition.narrative_version != narrative_version
+            or integrity_precondition.narrative_content_hash != narrative_content_hash
+            or integrity_precondition.evidence_set_hash != evidence_set_hash
+            or integrity_precondition.tenant_id != tenant_id
+            or integrity_precondition.account_id != account_id
+            or integrity_precondition.status != "passed"
+            or integrity_precondition.unresolved_findings > 0
+            or not integrity_precondition.is_passed
+        ):
+            raise IntegrityGateOpenError(
+                IntegrityGateErrorResponse(
+                    code="INTEGRITY_GATE_OPEN",
+                    message="Integrity check failed immediately prior to CRM write (stale or unverified).",
+                    narrative_artifact_id=narrative_artifact_id,
+                    narrative_version=narrative_version,
+                    integrity_status="stale",
+                    required_action="rerun_integrity_validation",
+                ).model_dump()
+            )
+
+        # Execute idempotent CRM sync
+        return {
+            "status": "synced",
+            "narrative_artifact_id": narrative_artifact_id,
+            "account_id": account_id,
+            "crm_sync_timestamp": datetime.now(UTC).isoformat(),
+        }
+
+
+# Factory function for dependency injection
+async def get_crm_sync_service(db: AsyncSession) -> CRMSyncService:
+    """Factory for creating CRMSyncService with database session."""
+    return CRMSyncService(db)

@@ -8,7 +8,7 @@ import json
 import logging
 import lzma
 import zlib
-from collections import defaultdict, deque
+from collections import OrderedDict, defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
@@ -149,7 +149,10 @@ class MemoryCache:
         self.config = config
         self._clock: Clock = clock or SystemClock()
         self.cache: dict[str, CacheEntry] = {}
-        self.access_order: deque = deque()  # For LRU
+        # O(1) LRU order tracking. Insertion order is recency order; the
+        # least-recently-used key is always first. ``popitem(last=False)``
+        # evicts in O(1) and ``move_to_end`` refreshes on access in O(1).
+        self.access_order: OrderedDict[str, None] = OrderedDict()  # For LRU
         self.frequency_map: dict[str, int] = defaultdict(int)  # For LFU
         self.stats = CacheStats()
         self.current_memory_bytes = 0
@@ -177,7 +180,7 @@ class MemoryCache:
         entry = self.cache[key]
 
         if entry.is_expired():
-            await self._remove_entry(key)
+            self._remove_entry_sync(key)
             self.stats.misses += 1
             self.stats.update_hit_rate()
             return None
@@ -262,7 +265,7 @@ class MemoryCache:
         Returns:
             True if deleted
         """
-        return await self._remove_entry(key)
+        return self._remove_entry_sync(key)
 
     async def clear(self, pattern: str | None = None, tags: builtins.set[str] | None = None):
         """Clear cache entries.
@@ -286,9 +289,18 @@ class MemoryCache:
                 keys_to_remove.append(key)
 
         for key in keys_to_remove:
-            await self._remove_entry(key)
+            self._remove_entry_sync(key)
 
     async def _remove_entry(self, key: str) -> bool:
+        """Async compatibility shim retained for external callers.
+
+        The removal path is synchronous (no I/O), so callers run it
+        directly via :meth:`_remove_entry_sync` to avoid coroutine
+        scheduling overhead; this shim preserves the old awaited API.
+        """
+        return self._remove_entry_sync(key)
+
+    def _remove_entry_sync(self, key: str) -> bool:
         """Remove entry from cache.
 
         Args:
@@ -304,11 +316,8 @@ class MemoryCache:
         self.current_memory_bytes -= entry.size_bytes
         del self.cache[key]
 
-        # Update access order
-        try:
-            self.access_order.remove(key)
-        except ValueError:
-            pass
+        # Update access order (O(1) removal from the OrderedDict)
+        self.access_order.pop(key, None)
 
         # Update frequency map
         if key in self.frequency_map:
@@ -322,11 +331,10 @@ class MemoryCache:
     def _update_access_order(self, key: str):
         """Update access order for LRU strategy."""
         if self.config.strategy == CacheStrategy.LRU:
-            try:
-                self.access_order.remove(key)
-            except ValueError:
-                pass
-            self.access_order.append(key)
+            # ``pop`` + re-insert moves the key to the most-recent end of the
+            # OrderedDict in O(1) (no linear scan of the whole LRU list).
+            self.access_order.pop(key, None)
+            self.access_order[key] = None
 
     async def _evict_entries(self, required_space: int):
         """Evict entries based on strategy.
@@ -340,7 +348,8 @@ class MemoryCache:
         if self.config.strategy == CacheStrategy.LRU:
             # Remove least recently used
             while freed_space < required_space and self.access_order:
-                key = self.access_order.popleft()
+                # popitem(last=False) evicts the least-recently-used entry in O(1)
+                key, _ = self.access_order.popitem(last=False)
                 if key in self.cache:
                     entry = self.cache[key]
                     freed_space += entry.size_bytes
@@ -370,7 +379,7 @@ class MemoryCache:
 
         # Remove entries
         for key in entries_to_remove:
-            await self._remove_entry(key)
+            self._remove_entry_sync(key)
             self.stats.evictions += 1
 
     def _serialize(self, value: Any) -> bytes:
@@ -533,7 +542,7 @@ class MemoryCache:
                 expired_keys.append(key)
 
         for key in expired_keys:
-            await self._remove_entry(key)
+            self._remove_entry_sync(key)
 
         if expired_keys:
             logger.info(f"Cleaned up {len(expired_keys)} expired cache entries")

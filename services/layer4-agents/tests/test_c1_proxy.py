@@ -76,7 +76,7 @@ class TestStreamC1Endpoint:
 
     def test_returns_503_when_api_key_not_set(self, client: TestClient):
         """Without THESYS_API_KEY the endpoint should return 503."""
-        with patch("layer4_agents.api.routes.c1.THESYS_API_KEY", ""):
+        with patch.dict("os.environ", {"THESYS_API_KEY": ""}, clear=False), patch("layer4_agents.services.thesys_provider.THESYS_API_KEY", ""):
             resp = client.post("/v1/c1/stream", json=self._VALID_BODY)
         assert resp.status_code == 503
         assert "not configured" in resp.json()["error"]["message"]
@@ -108,8 +108,8 @@ class TestStreamC1Endpoint:
         mock_client_instance.__aexit__ = AsyncMock(return_value=False)
 
         with (
-            patch("layer4_agents.api.routes.c1.THESYS_API_KEY", "test-key"),
-            patch("layer4_agents.api.routes.c1.httpx.AsyncClient", return_value=mock_client_instance),
+            patch("layer4_agents.services.thesys_provider.THESYS_API_KEY", "test-key"),
+            patch("layer4_agents.services.thesys_provider.httpx.AsyncClient", return_value=mock_client_instance),
         ):
             resp = client.post("/v1/c1/stream", json=self._VALID_BODY)
 
@@ -136,8 +136,8 @@ class TestStreamC1Endpoint:
         mock_client_instance.__aexit__ = AsyncMock(return_value=False)
 
         with (
-            patch("layer4_agents.api.routes.c1.THESYS_API_KEY", "test-key"),
-            patch("layer4_agents.api.routes.c1.httpx.AsyncClient", return_value=mock_client_instance),
+            patch("layer4_agents.services.thesys_provider.THESYS_API_KEY", "test-key"),
+            patch("layer4_agents.services.thesys_provider.httpx.AsyncClient", return_value=mock_client_instance),
         ):
             resp = client.post("/v1/c1/stream", json=self._VALID_BODY)
 
@@ -154,8 +154,8 @@ class TestStreamC1Endpoint:
         mock_client_instance.__aexit__ = AsyncMock(return_value=False)
 
         with (
-            patch("layer4_agents.api.routes.c1.THESYS_API_KEY", "test-key"),
-            patch("layer4_agents.api.routes.c1.httpx.AsyncClient", return_value=mock_client_instance),
+            patch("layer4_agents.services.thesys_provider.THESYS_API_KEY", "test-key"),
+            patch("layer4_agents.services.thesys_provider.httpx.AsyncClient", return_value=mock_client_instance),
         ):
             resp = client.post("/v1/c1/stream", json=self._VALID_BODY)
 

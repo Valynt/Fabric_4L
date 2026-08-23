@@ -28,6 +28,7 @@ from typing import TYPE_CHECKING, Any
 import yaml
 from value_fabric.shared.llm_safety import PromptGuard
 
+from ..models.degradation_policy import DegradationPoliciesConfig, DegradationPolicy
 from .llm_output_parser import parse_llm_json, validate_llm_output_schema
 
 
@@ -47,6 +48,7 @@ class LLMOutputValidationError(RuntimeError):
         self.model_task = model_task
         self.call_id = call_id
         self.errors = errors
+
 
 if TYPE_CHECKING:
     from layer4_agents.harness.models import HarnessRun
@@ -76,7 +78,7 @@ class ModelResolutionError(RuntimeError):
 # Config path
 # ---------------------------------------------------------------------------
 
-_SERVICE_ROOT = Path(__file__).resolve().parents[2]
+_SERVICE_ROOT = Path(__file__).resolve().parents[3]
 _RUNTIME_CONFIG_PATH = _SERVICE_ROOT / "config" / "harness.runtime.yaml"
 
 
@@ -113,9 +115,7 @@ def estimate_prompt_tokens_from_messages(
     Approximates ~4 characters per token when messages are present.
     """
     if messages is not None:
-        text = " ".join(
-            m.get("content", "") for m in messages if isinstance(m, dict)
-        )
+        text = " ".join(m.get("content", "") for m in messages if isinstance(m, dict))
         return max(1, len(text) // 4)
     return fallback_tokens
 
@@ -130,9 +130,7 @@ def calculate_llm_call_cost(
     """Calculate call cost in USD using the cost calculator if available."""
     if cost_calc is None:
         return 0.0
-    return cost_calc.calculate_cost(
-        provider_name, model, prompt_tokens, completion_tokens
-    )
+    return cost_calc.calculate_cost(provider_name, model, prompt_tokens, completion_tokens)
 
 
 def format_structured_llm_messages(
@@ -212,17 +210,47 @@ class GovernedLLMClient:
     ) -> None:
         self._provider = provider
         self._provider_name = (
-            provider_name.strip().lower()
-            if isinstance(provider_name, str)
-            else provider_name
+            provider_name.strip().lower() if isinstance(provider_name, str) else provider_name
         )
         self._run = run
         self._telemetry = telemetry
         self._config = self._load_runtime_config(runtime_config_path or _RUNTIME_CONFIG_PATH)
+        self._degradation_policies: DegradationPoliciesConfig | None = self._load_degradation_policies(self._config)
         self._cost_calc = self._build_cost_calculator()
-        self._max_cost_per_call_usd: float | None = (
-            self._config.get("llm", {}).get("max_cost_per_call_usd")
+        self._max_cost_per_call_usd: float | None = self._config.get("llm", {}).get(
+            "max_cost_per_call_usd"
         )
+
+    # ------------------------------------------------------------------
+    # Properties & Policy Inspection
+    # ------------------------------------------------------------------
+
+    @property
+    def degradation_policies(self) -> DegradationPoliciesConfig | None:
+        """Access validated degradation policies config if present."""
+        return self._degradation_policies
+
+    def get_degradation_policy(self, model_task: str) -> DegradationPolicy | None:
+        """Resolve degradation policy for a specific model task."""
+        if self._degradation_policies is not None:
+            return self._degradation_policies.get_policy(model_task)
+        return None
+
+    def get_max_retries_for_task(self, model_task: str) -> int:
+        """Resolve maximum retry attempts for a task from degradation policy or default config."""
+        task_policy = self.get_degradation_policy(model_task)
+        if task_policy is not None:
+            return task_policy.max_retries
+        retry_cfg = self._config.get("llm", {}).get("retry", {})
+        return max(0, int(retry_cfg.get("max_attempts", 3)) - 1)
+
+    def get_max_attempts_for_task(self, model_task: str) -> int:
+        """Resolve total execution attempts (1 initial attempt + retries) for a task."""
+        task_policy = self.get_degradation_policy(model_task)
+        if task_policy is not None:
+            return 1 + task_policy.max_retries
+        retry_cfg = self._config.get("llm", {}).get("retry", {})
+        return int(retry_cfg.get("max_attempts", 3))
 
     # ------------------------------------------------------------------
     # Public API
@@ -285,16 +313,17 @@ class GovernedLLMClient:
 
         self._emit_call_start(model_task, model, call_id)
 
-        retry_cfg = self._config.get("llm", {}).get("retry", {})
-        max_attempts = int(retry_cfg.get("max_attempts", 3))
-        backoff = float(retry_cfg.get("backoff_seconds", 2.0))
-        retryable = set(retry_cfg.get("retryable_categories", ["TIMEOUT", "RATE_LIMIT"]))
+        max_attempts = self.get_max_attempts_for_task(model_task)
+        backoff = float(self._config.get("llm", {}).get("retry", {}).get("backoff_seconds", 2.0))
+        retryable = set(self._config.get("llm", {}).get("retry", {}).get("retryable_categories", ["TIMEOUT", "RATE_LIMIT"]))
 
         last_exc: Exception | None = None
         for attempt in range(1, max_attempts + 1):
             t0 = time.monotonic()
             try:
-                self._scan_for_prompt_injection(messages, model_task=model_task, model=model, call_id=call_id)
+                self._scan_for_prompt_injection(
+                    messages, model_task=model_task, model=model, call_id=call_id
+                )
                 response = await self._provider.complete_text(
                     model=model,
                     messages=messages,
@@ -353,7 +382,10 @@ class GovernedLLMClient:
                 category = self._classify_error(exc)
                 logger.warning(
                     "LLM call failed (attempt %d/%d, category=%s, model=%s)",
-                    attempt, max_attempts, category, model,
+                    attempt,
+                    max_attempts,
+                    category,
+                    model,
                 )
                 if category not in retryable or attempt == max_attempts:
                     self._emit_call_failed(model_task, model, category, call_id)
@@ -418,12 +450,10 @@ class GovernedLLMClient:
     def _resolve_model(self, model_task: str) -> str:
         """Resolve model name from layer4_agents.harness.runtime.yaml for the active provider."""
         llm_cfg = self._config.get("llm", {})
-        raw_provider = os.getenv("LAYER4_LLM_PROVIDER", llm_cfg.get("provider", self._provider_name))
-        provider = (
-            raw_provider.strip().lower()
-            if isinstance(raw_provider, str)
-            else raw_provider
+        raw_provider = os.getenv(
+            "LAYER4_LLM_PROVIDER", llm_cfg.get("provider", self._provider_name)
         )
+        provider = raw_provider.strip().lower() if isinstance(raw_provider, str) else raw_provider
         models = llm_cfg.get("models", {}).get(provider, {})
         model = models.get(model_task)
         if not model:
@@ -620,9 +650,20 @@ class GovernedLLMClient:
             return {}
 
     @staticmethod
+    def _load_degradation_policies(config: dict[str, Any]) -> DegradationPoliciesConfig | None:
+        try:
+            return DegradationPoliciesConfig.model_validate(config)
+        except asyncio.CancelledError:
+            raise
+        except Exception as exc:
+            logger.warning("Could not parse degradation_policies from runtime config: %s", exc)
+            return None
+
+    @staticmethod
     def _build_cost_calculator() -> Any | None:
         try:
             from ..metrics.llm_cost_calculator import LLMCostCalculator
+
             return LLMCostCalculator()
         except asyncio.CancelledError:
             raise

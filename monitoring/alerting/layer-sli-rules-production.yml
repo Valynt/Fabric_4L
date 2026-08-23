@@ -113,7 +113,7 @@ groups:
         labels: {severity: warning, layer: layer6, environment: production, oncall_owner: sre-l6}
         annotations: {summary: "L6 benchmarks error SLI violated", description: "Layer 6 5xx ratio exceeded 1% for 10m.", runbook_url: "https://github.com/bmsull560/Fabric_4L/blob/main/docs/troubleshooting/runbooks/application/high-error-rate.md"}
       - alert: L6AvailabilitySLOViolation
-        expr: avg_over_time(layer6_health_status{component="api"}[10m]) < 1
+        expr: avg_over_time(layer6_health_status{service="layer6-benchmarks"}[10m]) < 1
         for: 5m
         labels: {severity: critical, layer: layer6, environment: production, oncall_owner: sre-l6}
         annotations: {summary: "L6 benchmarks availability SLI violated", description: "Layer 6 API health failed during 10m window.", runbook_url: "https://github.com/bmsull560/Fabric_4L/blob/main/docs/troubleshooting/runbooks/infrastructure/service-down.md"}

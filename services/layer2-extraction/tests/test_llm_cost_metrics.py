@@ -23,15 +23,12 @@ class TestLLMCostMetrics:
     def test_record_llm_cost(self):
         """LLM cost can be recorded."""
         metrics = PrometheusMetrics()
-        
+
         # Record a cost
         metrics.record_llm_cost(
-            provider="openai",
-            model="gpt-4o",
-            tenant_id="test-tenant",
-            cost_usd=0.025
+            provider="openai", model="gpt-4o", tenant_id="test-tenant", cost_usd=0.025
         )
-        
+
         # Verify the cost was accumulated
         key = ("openai", "gpt-4o", "test-tenant")
         assert metrics._accumulated_costs[key] == 0.025
@@ -39,37 +36,34 @@ class TestLLMCostMetrics:
     def test_accumulate_multiple_costs(self):
         """Multiple costs accumulate correctly."""
         metrics = PrometheusMetrics()
-        
+
         # Record multiple costs for same provider/model/tenant
         metrics.record_llm_cost("openai", "gpt-4o", "tenant-1", 0.01)
         metrics.record_llm_cost("openai", "gpt-4o", "tenant-1", 0.02)
         metrics.record_llm_cost("openai", "gpt-4o", "tenant-1", 0.03)
-        
+
         key = ("openai", "gpt-4o", "tenant-1")
         assert metrics._accumulated_costs[key] == 0.06
 
     def test_record_llm_tokens(self):
         """LLM token counts can be recorded."""
         metrics = PrometheusMetrics()
-        
+
         # Record tokens
         metrics.record_llm_tokens(
-            provider="openai",
-            model="gpt-4o",
-            token_type="prompt",
-            count=1000
+            provider="openai", model="gpt-4o", token_type="prompt", count=1000
         )
-        
+
         # Just verify no exception is raised
         assert True
 
     def test_get_metrics_output(self):
         """Metrics output can be generated."""
         metrics = PrometheusMetrics()
-        
+
         # Record some data
         metrics.record_llm_cost("anthropic", "claude-3-5-sonnet", "tenant-2", 0.05)
-        
+
         # Get metrics output
         output = metrics.get_metrics()
         assert isinstance(output, str)
@@ -80,11 +74,11 @@ class TestLLMCostMetrics:
     def test_tenant_isolation(self):
         """Costs are isolated by tenant."""
         metrics = PrometheusMetrics()
-        
+
         # Record costs for different tenants
         metrics.record_llm_cost("openai", "gpt-4o", "tenant-a", 0.10)
         metrics.record_llm_cost("openai", "gpt-4o", "tenant-b", 0.20)
-        
+
         # Verify separate accumulation
         assert metrics._accumulated_costs[("openai", "gpt-4o", "tenant-a")] == 0.10
         assert metrics._accumulated_costs[("openai", "gpt-4o", "tenant-b")] == 0.20
@@ -96,8 +90,60 @@ class TestLLMCostMetrics:
         metrics.set_health_status(False, component="layer3")
         output = metrics.get_metrics()
         assert "vf_health_status" in output
+        assert "layer2_health_status" in output
+        assert "value_fabric_health_status" in output
         assert 'component="api"' in output
         assert 'component="layer3"' in output
+
+    def test_record_http_request_and_duration(self):
+        """HTTP SLI request and latency metrics can be recorded."""
+        metrics = PrometheusMetrics()
+        metrics.record_http_request(
+            method="POST",
+            endpoint="/api/v1/extract",
+            status_code=200,
+            tenant_id="tenant-123",
+        )
+        metrics.record_http_duration(
+            method="POST",
+            endpoint="/api/v1/extract",
+            duration_seconds=0.35,
+            tenant_id="tenant-123",
+        )
+        output = metrics.get_metrics()
+        assert "layer2_http_requests_total" in output
+        assert "value_fabric_http_requests_total" in output
+        assert 'method="POST"' in output
+        assert 'endpoint="/api/v1/extract"' in output
+        assert 'status_code="200"' in output
+        assert "layer2_http_request_duration_seconds_bucket" in output
+        assert 'le="0.5"' in output
+        assert "layer2_http_request_duration_seconds_count" in output
+        assert "layer2_http_request_duration_seconds_sum" in output
+
+    def test_metrics_middleware_integration(self):
+        """MetricsMiddleware records live HTTP requests through ASGI application."""
+        from fastapi import FastAPI
+        from fastapi.testclient import TestClient
+        from layer2_extraction.metrics import MetricsMiddleware, PrometheusMetrics
+
+        app = FastAPI()
+        metrics = PrometheusMetrics()
+        app.add_middleware(MetricsMiddleware, metrics=metrics)
+
+        @app.get("/test-route")
+        def test_route():
+            return {"status": "ok"}
+
+        client = TestClient(app)
+        res = client.get("/test-route")
+        assert res.status_code == 200
+
+        output = metrics.get_metrics()
+        assert "layer2_http_requests_total" in output
+        assert 'endpoint="/test-route"' in output
+        assert 'status_code="200"' in output
+        assert "layer2_http_request_duration_seconds_count" in output
 
 
 class TestGlobalMetrics:
@@ -108,7 +154,7 @@ class TestGlobalMetrics:
         # First initialize
         initialized = initialize_metrics()
         assert initialized is not None
-        
+
         # Then get via global accessor
         retrieved = get_metrics()
         assert retrieved is initialized

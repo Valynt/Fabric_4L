@@ -1,0 +1,43 @@
+#cloud-config
+# Fabric 4L Host OS Bootstrap for Nebius Cloud (Ubuntu 24.04 LTS)
+# Strictly host-level infrastructure: Docker + Git + Host Security Hardening.
+# Application dependencies (Python, Node.js, pnpm, etc.) live exclusively in .devcontainer.
+
+package_update: true
+package_upgrade: true
+
+packages:
+  - git
+  - ufw
+  - fail2ban
+  - unattended-upgrades
+  - ca-certificates
+  - curl
+  - gnupg
+
+runcmd:
+  # 1. Install Docker Engine via official Docker installation script
+  - curl -fsSL https://get.docker.com | sh
+
+  # 2. Add default ubuntu user to docker group
+  - usermod -aG docker ubuntu
+
+  # 3. Configure UFW firewall (default deny incoming, allow SSH)
+  - ufw default deny incoming
+  - ufw default allow outgoing
+  - ufw allow OpenSSH
+  - ufw --force enable
+
+  # 4. Enable and configure fail2ban
+  - systemctl enable fail2ban
+  - systemctl start fail2ban
+
+  # 5. Enable automatic security updates
+  - systemctl enable unattended-upgrades
+  - systemctl start unattended-upgrades
+
+  # 6. SSH Hardening: Disable password authentication and root login
+  - sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config
+  - sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config
+  - if [ -d /etc/ssh/sshd_config.d ]; then printf "PasswordAuthentication no\nPermitRootLogin no\n" > /etc/ssh/sshd_config.d/50-cloud-init-hardening.conf; fi
+  - systemctl restart ssh || systemctl restart sshd

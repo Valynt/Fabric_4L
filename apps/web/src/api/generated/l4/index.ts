@@ -714,56 +714,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/validation/seed/auth-context": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Seed Validation Auth Context
-         * @description Seed deterministic auth context for backend-integrated validation.
-         *
-         *     This endpoint is non-production only and persists no raw secrets. It is
-         *     designed to make local/CI backend-integrated tests reproducible while
-         *     keeping runtime secrets sourced exclusively from environment or a secret
-         *     manager.
-         */
-        post: operations["seed_validation_auth_context_v1_validation_seed_auth_context_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/validation/session": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Issue Validation Session
-         * @description Issue a non-production browser session for backend-integrated Playwright validation.
-         *
-         *     The endpoint is deliberately gated by the same service-authenticated,
-         *     privileged, non-production boundary as deterministic seed data. It uses the
-         *     canonical JWT and CSRF cookie mechanics, and returns only non-secret UI
-         *     metadata.
-         */
-        post: operations["issue_validation_session_v1_validation_session_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/v1/analysis/roi": {
         parameters: {
             query?: never;
@@ -776,16 +726,6 @@ export interface paths {
         /**
          * Quick Roi Analysis
          * @description Quick ROI analysis for a prospect.
-         *
-         *     Calculates ROI for specified value drivers using prospect data.
-         *
-         *     Example:
-         *         POST /v1/analysis/roi
-         *         {
-         *             "prospect_id": "prospect-001",
-         *             "value_driver_ids": ["vd-001", "vd-002"],
-         *             "industry_vertical": "manufacturing"
-         *         }
          */
         post: operations["quick_roi_analysis_v1_analysis_roi_post"];
         delete?: never;
@@ -806,17 +746,68 @@ export interface paths {
         /**
          * Quick Whitespace Analysis
          * @description Quick whitespace analysis for a prospect.
-         *
-         *     Identifies gaps between prospect needs and solution capabilities.
-         *
-         *     Example:
-         *         POST /v1/analysis/whitespace
-         *         {
-         *             "prospect_id": "prospect-001",
-         *             "prospect_needs": "We need to automate invoice processing and get real-time visibility into cash flow"
-         *         }
          */
         post: operations["quick_whitespace_analysis_v1_analysis_whitespace_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/validation/seed/auth-context": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Seed Validation Auth Context
+         * @description Seed deterministic auth context for backend-integrated validation.
+         */
+        post: operations["seed_validation_auth_context_v1_validation_seed_auth_context_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/validation/session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Issue Validation Session
+         * @description Issue a non-production browser session for backend-integrated Playwright validation.
+         */
+        post: operations["issue_validation_session_v1_validation_session_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/validation/seed/business-case-lifecycle": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Seed Business Case Lifecycle
+         * @description Seed deterministic business-case lifecycle state for non-production E2E validation.
+         */
+        post: operations["seed_business_case_lifecycle_v1_validation_seed_business_case_lifecycle_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -833,8 +824,6 @@ export interface paths {
         /**
          * List Cases
          * @description List cases for an account.
-         *
-         *     Returns all cases associated with the specified account.
          */
         get: operations["list_cases_v1_cases_get"];
         put?: never;
@@ -891,26 +880,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/validation/seed/business-case-lifecycle": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Seed Business Case Lifecycle
-         * @description Seed deterministic business-case lifecycle state for non-production E2E validation.
-         */
-        post: operations["seed_business_case_lifecycle_v1_validation_seed_business_case_lifecycle_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/v1/cases/{case_id}/export": {
         parameters: {
             query?: never;
@@ -921,10 +890,6 @@ export interface paths {
         /**
          * Export Business Case
          * @description Export a generated business case.
-         *
-         *     This version resolves the merge conflict by preserving both:
-         *     1. Truth-gating / blocking behavior
-         *     2. Provenance manifest generation, storage upload, and audit events
          */
         get: operations["export_business_case_v1_cases__case_id__export_get"];
         put?: never;
@@ -1206,6 +1171,29 @@ export interface paths {
          * @description Refresh account data from CRM provider.
          */
         post: operations["refresh_account_v1_accounts__account_id__refresh_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/accounts/{account_id}/journey-timeline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Account Journey Timeline
+         * @description Get the authoritative 7-stage ValuePilot business journey progression for an account.
+         *
+         *     Reconstructed from tenant/account/journey scoped events and artifacts.
+         *     Keyed by (tenant_id, account_id, journey_id).
+         */
+        get: operations["get_account_journey_timeline_v1_accounts__account_id__journey_timeline_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -3699,7 +3687,7 @@ export interface paths {
         post?: never;
         /**
          * Delete Narrative
-         * @description Delete a narrative.
+         * @description Remove a narrative.
          */
         delete: operations["delete_narrative_v1_narratives__narrative_id__delete"];
         options?: never;
@@ -3727,6 +3715,53 @@ export interface paths {
          *     V-010: Status is validated against the allowed enum.
          */
         patch: operations["update_narrative_status_v1_narratives__narrative_id__status_patch"];
+        trace?: never;
+    };
+    "/v1/narratives/{narrative_id}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Export Narrative
+         * @description Export a narrative to external format.
+         *
+         *     Enforces Pillar 3 Integrity Gate: no NarrativeArtifact may export without a passing
+         *     IntegrityPrecondition matching exact content hash and evidence set hash.
+         *     Fails closed with 422 INTEGRITY_GATE_OPEN.
+         */
+        post: operations["export_narrative_v1_narratives__narrative_id__export_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/narratives/{narrative_id}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Accept Narrative
+         * @description Accept a narrative and close self-improvement feedback loop into Layer 5 (Pillar 5).
+         *
+         *     When an SE accepts a narrative, its claims and value delta are converted into a
+         *     Layer 5 TruthObject with full provenance tracing back to the conversation turn and journey.
+         */
+        post: operations["accept_narrative_v1_narratives__narrative_id__accept_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/v1/intelligence/account/{account_id}/briefing": {
@@ -5388,6 +5423,30 @@ export interface components {
             regions: string[];
             /** Segments */
             segments: string[];
+            /** Providers */
+            providers: components["schemas"]["CRMProvider"][];
+            /** Owners */
+            owners: {
+                [key: string]: unknown;
+            }[];
+        };
+        /** AccountJourneyTimelineResponse */
+        AccountJourneyTimelineResponse: {
+            /** Tenant Id */
+            tenant_id: string;
+            /** Account Id */
+            account_id: string;
+            /** Journey Id */
+            journey_id: string;
+            /** Stages */
+            stages: components["schemas"]["JourneyTimelineStage"][];
+            /** Current Stage Key */
+            current_stage_key: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
             /** Providers */
             providers: components["schemas"]["CRMProvider"][];
             /** Owners */
@@ -8048,6 +8107,118 @@ export interface components {
             updated_at: string;
         };
         /**
+         * IntegrityPrecondition
+         * @description Precondition required before any externally consequential action on a NarrativeArtifact version.
+         *     Validates that a passing IntegrityArtifact matches exact narrative and evidence hashes.
+         */
+        IntegrityPrecondition: {
+            /** Narrative Artifact Id */
+            narrative_artifact_id: string;
+            /**
+             * Narrative Version
+             * @default 1
+             */
+            narrative_version: number;
+            /** Narrative Content Hash */
+            narrative_content_hash: string;
+            /** Evidence Set Hash */
+            evidence_set_hash: string;
+            /** Tenant Id */
+            tenant_id: string;
+            /** Account Id */
+            account_id: string;
+            /**
+             * Integrity Policy Version
+             * @default 1.0.0
+             */
+            integrity_policy_version: string;
+            /**
+             * Narrative Artifact Id Matches
+             * @default true
+             */
+            narrative_artifact_id_matches: boolean;
+            /**
+             * Narrative Version Matches
+             * @default true
+             */
+            narrative_version_matches: boolean;
+            /**
+             * Narrative Content Hash Matches
+             * @default true
+             */
+            narrative_content_hash_matches: boolean;
+            /**
+             * Evidence Set Hash Matches
+             * @default true
+             */
+            evidence_set_hash_matches: boolean;
+            /**
+             * Tenant And Account Match
+             * @default true
+             */
+            tenant_and_account_match: boolean;
+            /**
+             * Status
+             * @default passed
+             * @enum {string}
+             */
+            status: "passed" | "pending" | "failed" | "stale";
+            /**
+             * Unresolved Findings
+             * @default 0
+             */
+            unresolved_findings: number;
+            /**
+             * Integrity Policy Version Accepted
+             * @default true
+             */
+            integrity_policy_version_accepted: boolean;
+            /**
+             * Evidence References Resolvable
+             * @default true
+             */
+            evidence_references_resolvable: boolean;
+            /**
+             * Expired
+             * @default false
+             */
+            expired: boolean;
+        };
+        /**
+         * JourneyStageStatus
+         * @enum {string}
+         */
+        JourneyStageStatus: "not_started" | "in_progress" | "completed" | "blocked" | "failed";
+        /** JourneyTimelineStage */
+        JourneyTimelineStage: {
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+            /** Stage Key */
+            stage_key: string;
+            /** @default not_started */
+            status: components["schemas"]["JourneyStageStatus"];
+            /** Updated At */
+            updated_at?: string | null;
+            /** Actor */
+            actor?: string | null;
+            /** Source Artifact Id */
+            source_artifact_id?: string | null;
+            /** Target Artifact Id */
+            target_artifact_id?: string | null;
+            /** Evidence Links */
+            evidence_links?: string[];
+            /** Truth Object Ids */
+            truth_object_ids?: string[];
+            /** Warnings */
+            warnings?: string[];
+            /** Degradation Reason */
+            degradation_reason?: string | null;
+            /** Deep Link */
+            deep_link?: string | null;
+        };
+        /**
          * KnowledgeSourceCreateRequest
          * @description Request to add a new knowledge source.
          */
@@ -8229,6 +8400,55 @@ export interface components {
             };
             /** Created At */
             created_at: string;
+        };
+        /**
+         * NarrativeAcceptanceRequest
+         * @description Request to accept narrative and emit feedback loop data point into L5.
+         */
+        NarrativeAcceptanceRequest: {
+            /**
+             * Narrative Version
+             * @default 1
+             */
+            narrative_version: number;
+            /** Account Id */
+            account_id: string;
+            /** Journey Id */
+            journey_id?: string | null;
+            /** Conversation Turn Id */
+            conversation_turn_id?: string | null;
+            /** Se Feedback Notes */
+            se_feedback_notes?: string | null;
+        };
+        /**
+         * NarrativeExportRequest
+         * @description Request to export narrative into externally distributable formats.
+         */
+        NarrativeExportRequest: {
+            /**
+             * Format
+             * @description Export target format
+             * @default PDF
+             * @enum {string}
+             */
+            format: "PDF" | "DOCX" | "PPTX" | "HTML";
+            /**
+             * Narrative Version
+             * @default 1
+             */
+            narrative_version: number;
+            /**
+             * Narrative Content Hash
+             * @description Exact SHA-256 hash of the narrative content
+             */
+            narrative_content_hash: string;
+            /**
+             * Evidence Set Hash
+             * @description Exact SHA-256 hash of the supporting evidence set
+             */
+            evidence_set_hash: string;
+            /** @description Precondition assertion verified by IntegrityAgent */
+            integrity_precondition?: components["schemas"]["IntegrityPrecondition"] | null;
         };
         /**
          * NarrativeGenerateRequest
@@ -13134,6 +13354,72 @@ export interface operations {
             };
         };
     };
+    quick_roi_analysis_v1_analysis_roi_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ROIAnalysisRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ROIAnalysisResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    quick_whitespace_analysis_v1_analysis_whitespace_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WhitespaceAnalysisRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WhitespaceAnalysisResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     seed_validation_auth_context_v1_validation_seed_auth_context_post: {
         parameters: {
             query?: never;
@@ -13204,7 +13490,7 @@ export interface operations {
             };
         };
     };
-    quick_roi_analysis_v1_analysis_roi_post: {
+    seed_business_case_lifecycle_v1_validation_seed_business_case_lifecycle_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -13213,7 +13499,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["ROIAnalysisRequest"];
+                "application/json": components["schemas"]["BusinessCaseLifecycleSeedRequest"];
             };
         };
         responses: {
@@ -13223,40 +13509,9 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ROIAnalysisResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    quick_whitespace_analysis_v1_analysis_whitespace_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["WhitespaceAnalysisRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WhitespaceAnalysisResponse"];
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
             /** @description Validation Error */
@@ -13387,41 +13642,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BusinessCaseResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    seed_business_case_lifecycle_v1_validation_seed_business_case_lifecycle_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["BusinessCaseLifecycleSeedRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
                 };
             };
             /** @description Validation Error */
@@ -13999,6 +14219,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AccountDetailSchema"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_account_journey_timeline_v1_accounts__account_id__journey_timeline_get: {
+        parameters: {
+            query?: {
+                /** @description Optional journey ID; defaults to account default journey */
+                journey_id?: string | null;
+            };
+            header?: never;
+            path: {
+                account_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountJourneyTimelineResponse"];
                 };
             };
             /** @description Validation Error */
@@ -18002,6 +18256,76 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["StatusUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_narrative_v1_narratives__narrative_id__export_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                narrative_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NarrativeExportRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    accept_narrative_v1_narratives__narrative_id__accept_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                narrative_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NarrativeAcceptanceRequest"];
             };
         };
         responses: {
