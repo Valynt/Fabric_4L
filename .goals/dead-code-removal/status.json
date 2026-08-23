@@ -1,10 +1,16 @@
 {
   "goal_id": "dead-code-removal",
-  "status": "inspecting",
+  "status": "completed",
   "iteration": 1,
   "builder_model": "OpenAI:GPT-5.6 Luna",
   "inspector_model": "OpenAI:GPT-5.6 Sol",
   "initial_sha": "cfec0a864caad2cacbf54960907a22391196942e",
   "created_at": "2026-08-22T19:39:00Z",
-  "history": []
+  "history": [
+    {
+      "iteration": 1,
+      "verdict": "PASS",
+      "summary": "All 6 criteria met: confirmed-dead symbols hard-deleted with zero remaining references, public/barrel surface preserved, out-of-scope dynamic-reference paths untouched, full repo gates green (ruff, tsc, pnpm lint/test, py_compile), dead-code guard wired into Makefile+CI and passing, allowlist baseline captured. Layer4 env failures (no pq wrapper / ModelResolutionError) proven pre-existing at HEAD~1 baseline."
+    }
+  ]
 }
