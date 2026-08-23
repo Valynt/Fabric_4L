@@ -403,8 +403,10 @@ async def _update_relationships(
         operation_source="value_packs._update_relationships",
     )
 
-    # Delete existing relationships of this type from the pack
-    # First, find all existing targets to delete individually through the gateway
+    # Delete existing relationships of this type from the pack through the
+    # audited gateway — one batch round trip. First scan for the existing
+    # targets (single round trip, read-only) so the audited helper knows
+    # which triples to remove.
     existing_query = (
         "MATCH (vp:ValuePack {id: $pack_id, tenant_id: $tenant_id})\n"
         f"MATCH (vp)-[r:{rel_type}]->(t)\n"  # cypher-dynamic-safe: validated against ALLOWED_REL_TYPES allowlist
@@ -420,12 +422,26 @@ async def _update_relationships(
         query_name="value_packs.list_existing_relationship_targets",
     )
     existing_records = await existing_result.data()
-    for record in existing_records:
-        await mutation.delete_relationship(pack_id, rel_type, record["target_id"])
+    removed_targets = [record["target_id"] for record in existing_records]
+    if removed_targets:
+        await mutation.delete_relationships_batch(
+            rel_type,
+            [
+                {"src_id": pack_id, "tgt_id": target_id}
+                for target_id in removed_targets
+            ],
+        )
 
-    # Create new relationships through the gateway
-    for target_id in target_ids:
-        await mutation.write_relationship(pack_id, rel_type, target_id)
+    # Create new relationships through the gateway in one round-trip batch.
+    # versioned=True mirrors the original per-record write_relationship path
+    # (which defaults to versioned=True), so RelationshipVersion provenance
+    # is preserved identically.
+    if target_ids:
+        await mutation.write_relationships_batch(
+            rel_type,
+            [{"src_id": pack_id, "tgt_id": target_id} for target_id in target_ids],
+            versioned=True,
+        )
 
 
 async def _get_pack_detail(

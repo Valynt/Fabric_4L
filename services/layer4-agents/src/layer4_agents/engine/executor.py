@@ -1691,6 +1691,42 @@ class OrchestrationController:
 
         start_time = datetime.now(UTC)
 
+        # Fast path: if this pod owns the live task, await the asyncio task
+        # directly instead of polling the state store every 500ms.
+        # _run_workflow_task persists the final state before returning (and
+        # persists failures), so awaiting the task yields the identical state
+        # the polling loop would read back — no save_state semantics change.
+        task = self._active_workflows.get(workflow_id)
+        if task is not None and timeout_seconds > 0:
+            try:
+                await asyncio.wait_for(asyncio.shield(task), timeout=timeout_seconds)
+            except asyncio.TimeoutError:
+                # Preserve the existing global-timeout behavior: cancel the
+                # workflow, then raise WorkflowTimeoutError.
+                await self.cancel_workflow(
+                    workflow_id,
+                    reason=f"Global timeout exceeded ({timeout_seconds}s)",
+                )
+                raise WorkflowTimeoutError(
+                    f"Workflow {workflow_id} timed out after {timeout_seconds} seconds"
+                )
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                # _run_workflow_task persists failures before re-raising; the
+                # terminal FAILED state is already in the store. Fall through
+                # to the polling loop to read it.
+                pass
+
+            state = await self.state_manager.load_state(workflow_id)
+            if state and state.status in [
+                WorkflowStatus.COMPLETED,
+                WorkflowStatus.FAILED,
+                WorkflowStatus.CANCELLED,
+                WorkflowStatus.INTERRUPTED,
+            ]:
+                return state
+
         while True:
             # Check for timeout
             elapsed = (datetime.now(UTC) - start_time).total_seconds()
