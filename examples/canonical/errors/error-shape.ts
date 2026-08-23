@@ -465,12 +465,14 @@ export function createErrorResponse(
   arg3?: string
 ): ErrorResponse | CanonicalError | { response: ErrorResponse; statusCode: number } {
   // Legacy signature path
-  if (typeof arg2 === "string" && typeof arg3 === "string" && isCanonicalError(error)) {
-    const statusCode = mapErrorCodeToStatus(error.code);
+  if (typeof arg2 === "string" && typeof arg3 === "string") {
+    const code = (error as any)?.code || "INTERNAL_ERROR";
+    const statusCode = mapErrorCodeToStatus(code);
+
     return {
       response: {
         success: false,
-        error,
+        error: error as CanonicalError,
         meta: {
           request_id: arg2,
           trace_id: arg3,
