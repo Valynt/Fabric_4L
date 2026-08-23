@@ -38,7 +38,7 @@
       "target_removal_date": "2026-12-31"
     },
     {
-      "id": "apps/web/src/api/generated/l4/index.ts:2341:ts_js_doc_deprecated",
+      "id": "apps/web/src/api/generated/l4/index.ts:2306:ts_js_doc_deprecated",
       "rationale": "Approved temporary deprecation compatibility surface; tracked for staged removal.",
       "target_removal_date": "2026-12-31"
     },
@@ -58,27 +58,27 @@
       "target_removal_date": "2026-12-31"
     },
     {
-      "id": "services/layer4-agents/src/layer4_agents/database.py:677:py_deprecated_message",
+      "id": "services/layer4-agents/src/layer4_agents/database.py:673:py_deprecated_message",
       "rationale": "Approved temporary deprecation compatibility surface; tracked for staged removal.",
       "target_removal_date": "2026-12-31"
     },
     {
-      "id": "services/layer4-agents/src/layer4_agents/database.py:708:py_deprecated_message",
+      "id": "services/layer4-agents/src/layer4_agents/database.py:704:py_deprecated_message",
       "rationale": "Approved temporary deprecation compatibility surface; tracked for staged removal.",
       "target_removal_date": "2026-12-31"
     },
     {
-      "id": "services/layer4-agents/src/layer4_agents/database.py:841:py_deprecated_message",
+      "id": "services/layer4-agents/src/layer4_agents/database.py:837:py_deprecated_message",
       "rationale": "Approved temporary deprecation compatibility surface; tracked for staged removal.",
       "target_removal_date": "2026-12-31"
     },
     {
-      "id": "services/layer4-agents/src/layer4_agents/database.py:929:py_deprecated_message",
+      "id": "services/layer4-agents/src/layer4_agents/database.py:925:py_deprecated_message",
       "rationale": "Approved temporary deprecation compatibility surface; tracked for staged removal.",
       "target_removal_date": "2026-12-31"
     },
     {
-      "id": "services/layer4-agents/src/layer4_agents/database.py:1007:py_deprecated_message",
+      "id": "services/layer4-agents/src/layer4_agents/database.py:1003:py_deprecated_message",
       "rationale": "Approved temporary deprecation compatibility surface; tracked for staged removal.",
       "target_removal_date": "2026-12-31"
     },

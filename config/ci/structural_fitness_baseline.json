@@ -85,11 +85,7 @@
     },
     {
       "module": "layer4_agents.engine.executor",
-      "size": 1520
-    },
-    {
-      "module": "layer4_agents.api.routes.analysis",
-      "size": 1429
+      "size": 1536
     },
     {
       "module": "models.valuepack",
@@ -101,7 +97,7 @@
     },
     {
       "module": "api.routes.value_packs",
-      "size": 1225
+      "size": 1236
     },
     {
       "module": "layer4_agents.workflows.business_case",
@@ -109,7 +105,7 @@
     },
     {
       "module": "api.routes.formulas",
-      "size": 1156
+      "size": 1168
     },
     {
       "module": "backup.backup_manager",
@@ -125,7 +121,7 @@
     },
     {
       "module": "layer4_agents.api.routes.billing",
-      "size": 1061
+      "size": 1049
     },
     {
       "module": "layer4_agents.agents.audit_orchestrator.models",
@@ -133,7 +129,7 @@
     },
     {
       "module": "layer4_agents.tools.registry",
-      "size": 1033
+      "size": 1029
     },
     {
       "module": "layer2_extraction.api.pipeline_runner",
