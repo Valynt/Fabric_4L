@@ -47,7 +47,6 @@ from ...services.export_storage import generate_download_url, upload_bytes
 from ..common.audit import emit_and_persist_audit
 from ..common.db import get_route_db
 from ..common.errors import normalize_exception
-from . import analysis_cases
 from .analysis_schemas import (
     BusinessCaseRequest,
     BusinessCaseResponse,
@@ -283,9 +282,7 @@ async def _require_tenant_account(
     db: AsyncSession, account_id: UUID, context: RequestContext
 ) -> Any:
     """Load an account through the authenticated tenant boundary or fail closed."""
-    account = await AccountService(db).get_account(
-        account_id, tenant_id=str(context.tenant_id)
-    )
+    account = await AccountService(db).get_account(account_id, tenant_id=str(context.tenant_id))
     if not account:
         raise NotFoundError(message=f"Account not found: {account_id}")
     return account
@@ -305,9 +302,7 @@ async def quick_roi_analysis(
         if not prospect_id:
             raise ValidationError(message="prospect_id or account_id is required")
         value_driver_ids = request.value_driver_ids or (
-            [request.formula_id]
-            if request.formula_id
-            else list(request.variables.keys())
+            [request.formula_id] if request.formula_id else list(request.variables.keys())
         )
         if not value_driver_ids:
             value_driver_ids = ["roi"]
@@ -325,9 +320,7 @@ async def quick_roi_analysis(
                     message="account_id must be a UUID for smoke-mode ROI validation"
                 ) from exc
             account = await _require_tenant_account(db, account_uuid, context)
-            return await _smoke_roi_response(
-                http_request, prospect_id, account, context
-            )
+            return await _smoke_roi_response(http_request, prospect_id, account, context)
 
         input_data = ROIInputData(
             prospect_id=prospect_id,

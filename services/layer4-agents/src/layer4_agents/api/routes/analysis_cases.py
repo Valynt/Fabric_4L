@@ -9,6 +9,7 @@ regeneration with lineage diffs, and evidence-governed export.
 import asyncio
 import json
 import logging
+import sys
 from collections.abc import Callable
 from datetime import UTC, datetime
 from typing import Any, cast
@@ -49,7 +50,6 @@ from ...services.export_storage import generate_download_url, upload_bytes
 from ..common.audit import emit_and_persist_audit
 from ..common.db import get_route_db
 from ..common.errors import normalize_exception
-from . import analysis
 from .analysis_schemas import (
     BusinessCaseRequest,
     BusinessCaseResponse,
@@ -64,9 +64,7 @@ from .analysis_schemas import (
 logger = logging.getLogger(__name__)
 
 
-def compute_case_diff(
-    previous: dict[str, Any], current: dict[str, Any]
-) -> dict[str, Any]:
+def compute_case_diff(previous: dict[str, Any], current: dict[str, Any]) -> dict[str, Any]:
     prev_total = float(previous.get("total_estimated_value", 0.0) or 0.0)
     curr_total = float(current.get("total_estimated_value", 0.0) or 0.0)
     prev_narrative = str(previous.get("executive_summary", "") or "")
@@ -81,6 +79,45 @@ def compute_case_diff(
             "executive_summary": prev_narrative != curr_narrative,
         },
     }
+
+
+def _resolve_account_service() -> Any:
+    mod = _get_analysis_module()
+    return getattr(mod, "AccountService", AccountService)
+
+
+def _resolve_business_case_service() -> Any:
+    mod = _get_analysis_module()
+    return getattr(mod, "BusinessCaseService", BusinessCaseService)
+
+
+def _resolve_emit_and_persist_audit() -> Any:
+    mod = _get_analysis_module()
+    return getattr(mod, "emit_and_persist_audit", emit_and_persist_audit)
+
+
+def _resolve_require_approved_case() -> Any:
+    mod = _get_analysis_module()
+    return getattr(mod, "_require_approved_case", require_approved_case)
+
+
+def _resolve_get_settings() -> Any:
+    mod = _get_analysis_module()
+    return getattr(mod, "get_settings", get_settings)
+
+
+def _resolve_upload_bytes() -> Any:
+    mod = _get_analysis_module()
+    return getattr(mod, "upload_bytes", upload_bytes)
+
+
+def _resolve_generate_download_url() -> Any:
+    mod = _get_analysis_module()
+    return getattr(mod, "generate_download_url", generate_download_url)
+
+
+def _get_analysis_module() -> Any:
+    return sys.modules.get("layer4_agents.api.routes.analysis")
 
 
 def parse_case_account_uuid(account_id: str) -> UUID:
@@ -104,11 +141,7 @@ def is_workspace_case_create_body(body: object) -> bool:
     if not isinstance(body, dict):
         return False
     generation_keys = {"sections", "output_format", "custom_inputs", "opportunity_id"}
-    return (
-        "account_id" in body
-        and "title" in body
-        and not generation_keys.intersection(body)
-    )
+    return "account_id" in body and "title" in body and not generation_keys.intersection(body)
 
 
 async def create_workspace_case_record(
@@ -118,9 +151,8 @@ async def create_workspace_case_record(
 ) -> CreateCaseResponse:
     account_uuid = parse_case_account_uuid(request.account_id)
     tenant_id = str(context.tenant_id)
-    account = await analysis.AccountService(db).get_account(
-        account_uuid, tenant_id=tenant_id
-    )
+    account_service_cls = _resolve_account_service()
+    account = await account_service_cls(db).get_account(account_uuid, tenant_id=tenant_id)
     if account is None:
         raise NotFoundError(message=f"Account not found: {request.account_id}")
 
@@ -152,7 +184,8 @@ async def require_approved_case(
 ) -> None:
     """Raise if the business case is not in an export-allowed status."""
     if str(record.status).lower() not in {"approved", "exported", "delivered"}:
-        await analysis.emit_and_persist_audit(
+        emit_audit = _resolve_emit_and_persist_audit()
+        await emit_audit(
             action=AuditAction.EXPORT_REQUESTED,
             context=context,
             resource_type="BusinessCaseExport",
@@ -215,7 +248,8 @@ def build_cases_router(
                     },
                 )
 
-            account = await analysis.AccountService(db).get_account(
+            account_service_cls = _resolve_account_service()
+            account = await account_service_cls(db).get_account(
                 request.account_id, tenant_id=str(context.tenant_id)
             )
             if not account:
@@ -224,9 +258,7 @@ def build_cases_router(
             custom_inputs = dict(request.custom_inputs)
             custom_inputs["provider_record_id"] = account.provider_record_id
 
-            if is_smoke_mode_fn(
-                http_request, body_mode=str(custom_inputs.get("mode", ""))
-            ):
+            if is_smoke_mode_fn(http_request, body_mode=str(custom_inputs.get("mode", ""))):
                 return cast(
                     BusinessCaseResponse,
                     await smoke_business_case_response_fn(
@@ -259,7 +291,8 @@ def build_cases_router(
             case_metadata = dict(assemble_data.get("case_metadata", {}))
             case_metadata["account_id"] = str(request.account_id)
 
-            business_case_service = analysis.BusinessCaseService(db)
+            business_case_service_cls = _resolve_business_case_service()
+            business_case_service = business_case_service_cls(db)
             await business_case_service.upsert_case_record(
                 case_id=result.workflow_id,
                 workflow_id=result.workflow_id,
@@ -337,16 +370,12 @@ def build_cases_router(
         if request.previous_case_id != case_id:
             raise ValidationError(message="previous_case_id must match route case_id")
         previous_result = await executor.get_result(case_id)
-        previous_assemble = (
-            (previous_result or {}).get("output", {}).get("assemble_document", {})
-        )
+        previous_assemble = (previous_result or {}).get("output", {}).get("assemble_document", {})
         response = await generate_business_case(
             request, background_tasks, http_request, db, context
         )
         current_result = await executor.get_result(response.case_id)
-        current_assemble = (
-            (current_result or {}).get("output", {}).get("assemble_document", {})
-        )
+        current_assemble = (current_result or {}).get("output", {}).get("assemble_document", {})
         diff_summary = compute_case_diff(previous_assemble, current_assemble)
         source_version = str(request.custom_inputs.get("value_case_version", "latest"))
         source_hash = str(request.custom_inputs.get("value_case_hash", "unknown"))
@@ -364,9 +393,7 @@ def build_cases_router(
             },
             {
                 "case_id": response.case_id,
-                "created_at": (
-                    current_result.get("created_at") if current_result else None
-                ),
+                "created_at": (current_result.get("created_at") if current_result else None),
             },
         ]
         response.diff_summary = diff_summary
@@ -408,9 +435,7 @@ def build_cases_router(
         return BusinessCaseResponse(
             case_id=case_id,
             title=assemble_data.get("title", "Business Case"),
-            summary=assemble_data.get(
-                "executive_summary", narrative_data.get("narrative", "")
-            ),
+            summary=assemble_data.get("executive_summary", narrative_data.get("narrative", "")),
             total_value=assemble_data.get("total_estimated_value", 0.0),
             implementation_cost=assemble_data.get("implementation_cost_estimate", 0.0),
             roi_ratio=assemble_data.get("roi_ratio", 0.0),
@@ -421,9 +446,7 @@ def build_cases_router(
             status=assemble_data.get(
                 "status", record.status if record else result.get("status", "unknown")
             ),
-            document_url=assemble_data.get(
-                "document_url", record.document_url if record else None
-            ),
+            document_url=assemble_data.get("document_url", record.document_url if record else None),
             page_count=assemble_data.get("page_count", 0),
             file_size_bytes=assemble_data.get("file_size_bytes", 0),
             truth_references=assemble_data.get(
@@ -447,15 +470,14 @@ def build_cases_router(
         """Export a generated business case."""
         authorize_action("layer4.analysis.export_case", context)
         record = await db.get(BusinessCaseRecord, case_id)
-        if not record or str(getattr(record, "tenant_id", None)) != str(
-            context.tenant_id
-        ):
+        if not record or str(getattr(record, "tenant_id", None)) != str(context.tenant_id):
             raise NotFoundError(message=f"Business case {case_id} not found")
 
         try:
             account = await require_tenant_account_fn(db, record.account_id, context)
         except ValueFabricException as exc:
-            await analysis.emit_and_persist_audit(
+            emit_audit = _resolve_emit_and_persist_audit()
+            await emit_audit(
                 action=AuditAction.EXPORT_REQUESTED,
                 context=context,
                 resource_type="BusinessCaseExport",
@@ -471,7 +493,8 @@ def build_cases_router(
             )
             raise exc
 
-        await analysis._require_approved_case(record, context, account, format)
+        require_approved = _resolve_require_approved_case()
+        await require_approved(record, context, account, format)
 
         result = await executor.get_result(case_id)
         if not result:
@@ -483,9 +506,7 @@ def build_cases_router(
         assemble_data = output.get("assemble_document", {})
         truth_gate = output.get("verify_truth_requirements", {})
 
-        blocked = bool(assemble_data.get("blocked")) or not truth_gate.get(
-            "passed", True
-        )
+        blocked = bool(assemble_data.get("blocked")) or not truth_gate.get("passed", True)
         truth_references = assemble_data.get(
             "truth_references", truth_gate.get("truth_references", [])
         )
@@ -497,7 +518,8 @@ def build_cases_router(
         export_id = str(uuid4())
 
         if blocked:
-            await analysis.emit_and_persist_audit(
+            emit_audit = _resolve_emit_and_persist_audit()
+            await emit_audit(
                 action=AuditAction.EXPORT_REQUESTED,
                 context=context,
                 resource_type="BusinessCaseExport",
@@ -546,16 +568,13 @@ def build_cases_router(
         if not isinstance(document_bytes, bytes):
             document_bytes = bytes(document_bytes)
 
-        effective_settings = analysis.get_settings()
+        get_settings_fn = _resolve_get_settings()
+        effective_settings = get_settings_fn()
         if not getattr(effective_settings, "export_storage_endpoint", None):
-            raise ServiceUnavailableError(
-                message="Export storage endpoint is not configured"
-            )
+            raise ServiceUnavailableError(message="Export storage endpoint is not configured")
 
         workflow_id = (
-            result.get("workflow_id")
-            or result.get("metadata", {}).get("workflow_id")
-            or case_id
+            result.get("workflow_id") or result.get("metadata", {}).get("workflow_id") or case_id
         )
         filename = f"business_case_{case_id}.{format}"
         manifest_filename = f"business_case_{case_id}.provenance.json"
@@ -582,18 +601,17 @@ def build_cases_router(
             "account-id": str(account.id),
         }
 
-        content_type = (
-            "application/pdf" if format == "pdf" else "application/octet-stream"
-        )
+        content_type = "application/pdf" if format == "pdf" else "application/octet-stream"
 
-        await analysis.upload_bytes(
+        upload_bytes_fn = _resolve_upload_bytes()
+        await upload_bytes_fn(
             tenant_id=str(context.tenant_id),
             object_key=object_key,
             content=document_bytes,
             content_type=content_type,
             metadata=metadata,
         )
-        await analysis.upload_bytes(
+        await upload_bytes_fn(
             tenant_id=str(context.tenant_id),
             object_key=manifest_key,
             content=manifest_bytes,
@@ -601,10 +619,11 @@ def build_cases_router(
             metadata=metadata,
         )
 
-        document_url = await analysis.generate_download_url(
+        generate_url_fn = _resolve_generate_download_url()
+        document_url = await generate_url_fn(
             tenant_id=str(context.tenant_id), object_key=object_key
         )
-        manifest_url = await analysis.generate_download_url(
+        manifest_url = await generate_url_fn(
             tenant_id=str(context.tenant_id), object_key=manifest_key
         )
         expires_at = datetime.fromtimestamp(
@@ -613,7 +632,8 @@ def build_cases_router(
             tz=UTC,
         ).isoformat()
 
-        await analysis.emit_and_persist_audit(
+        emit_audit = _resolve_emit_and_persist_audit()
+        await emit_audit(
             action=AuditAction.EXPORT_REQUESTED,
             context=context,
             resource_type="BusinessCaseExport",
@@ -627,7 +647,7 @@ def build_cases_router(
             },
         )
 
-        await analysis.emit_and_persist_audit(
+        await emit_audit(
             action=AuditAction.EXPORT_PACKAGE_GENERATED,
             context=context,
             resource_type="BusinessCaseExport",
@@ -644,7 +664,7 @@ def build_cases_router(
             },
         )
 
-        await analysis.emit_and_persist_audit(
+        await emit_audit(
             action=AuditAction.EXPORT_DOWNLOAD_ACCESSED,
             context=context,
             resource_type="BusinessCaseExport",
@@ -685,9 +705,7 @@ def build_cases_router(
         account_uuid = parse_case_account_uuid(account_id)
         tenant_id = str(context.tenant_id)
 
-        account = await AccountService(db).get_account(
-            account_uuid, tenant_id=tenant_id
-        )
+        account = await AccountService(db).get_account(account_uuid, tenant_id=tenant_id)
         if account is None:
             return CaseListResponse(items=[], total=0)
 
