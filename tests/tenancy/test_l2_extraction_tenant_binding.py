@@ -18,17 +18,18 @@ import pytest
 pytestmark = [pytest.mark.security, pytest.mark.p0, pytest.mark.tenant_boundary, pytest.mark.unit]
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-L2_MAIN = REPO_ROOT / "services/layer2-extraction/src/layer2_extraction/api/main.py"
+L2_PIPELINE_RUNNER = REPO_ROOT / "services/layer2-extraction/src/layer2_extraction/api/pipeline_runner.py"
+L2_ROUTES_EXTRACT = REPO_ROOT / "services/layer2-extraction/src/layer2_extraction/api/routes_extract.py"
 L2_JOB_STORE = REPO_ROOT / "services/layer2-extraction/src/layer2_extraction/integration/job_store.py"
 
 
 class TestTenantBoundJobWiring:
     def test_job_created_with_tenant_binding(self) -> None:
-        text = L2_MAIN.read_text(encoding="utf-8")
+        text = L2_PIPELINE_RUNNER.read_text(encoding="utf-8") + L2_ROUTES_EXTRACT.read_text(encoding="utf-8")
         assert "tenant_id=tenant_id," in text, "PipelineJob must be bound to the authenticated tenant at creation"
 
     def test_forged_payload_raises_tenant_mismatch(self) -> None:
-        text = L2_MAIN.read_text(encoding="utf-8")
+        text = L2_PIPELINE_RUNNER.read_text(encoding="utf-8") + L2_ROUTES_EXTRACT.read_text(encoding="utf-8")
         assert '"code": "tenant_context_mismatch"' in text
         assert "AuthorizationError" in text
         # The mismatch check must run when the job already exists
