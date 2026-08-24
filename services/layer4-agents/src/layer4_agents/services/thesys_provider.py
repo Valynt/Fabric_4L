@@ -1,11 +1,11 @@
-from __future__ import annotations
-
 """Thesys C1 provider adapter for Layer 4 LLM orchestration.
 
 Implements the CompletionAdapter and LLMProvider protocols for Thesys C1,
 providing governed streaming and non-streaming text completion with prompt
 safety checks, error normalization, timeout handling, and telemetry.
 """
+
+from __future__ import annotations
 
 import asyncio
 import json

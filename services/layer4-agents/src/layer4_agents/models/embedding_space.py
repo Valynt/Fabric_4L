@@ -1,6 +1,7 @@
+"""Declarative specification for an embedding vector space."""
+
 from __future__ import annotations
 
-import os
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field

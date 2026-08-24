@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """Degradation policy evaluation and execution tracking (ADR-031, Pass 1).
 
 Evaluates declarative degradation ladders defined in `harness.runtime.yaml`,
@@ -7,15 +5,17 @@ tracks ladder rungs and fallback transitions, and produces contract-compliant
 audit payloads and generation metadata.
 """
 
+from __future__ import annotations
+
 import asyncio
 import inspect
 import logging
+import os
 from collections.abc import Awaitable, Callable
 from pathlib import Path
 from typing import Any, TypeVar
 
 import yaml
-
 from value_fabric.shared.error_handling import sanitize_log_error
 
 from ..models.degradation_policy import (
@@ -26,8 +26,6 @@ from ..models.degradation_policy import (
 )
 
 logger = logging.getLogger(__name__)
-
-import os
 
 _SERVICE_ROOT = Path(__file__).resolve().parents[3]
 _DEFAULT_RUNTIME_CONFIG_PATH = _SERVICE_ROOT / "config" / "harness.runtime.yaml"

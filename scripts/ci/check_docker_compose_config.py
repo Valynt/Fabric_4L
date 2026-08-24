@@ -74,6 +74,7 @@ ONE_SHOT_SERVICE_PATTERNS = (
 
 SKIPPED_BIND_SOURCES = {
     "/var/run/docker.sock",
+    "/var/lib/docker/containers",
 }
 
 FULL_COMPOSE_FILE = "docker-compose.full.yml"
