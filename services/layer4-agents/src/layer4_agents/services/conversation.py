@@ -36,8 +36,12 @@ try:
     from .thesys_provider import ThesysProvider
 except (ImportError, ValueError):
     try:
-        from layer4_agents.services.degradation_evaluator import DegradationEvaluator  # type: ignore[no-redef]
-        from layer4_agents.services.thesys_provider import ThesysProvider  # type: ignore[no-redef]
+        from layer4_agents.services.degradation_evaluator import (
+            DegradationEvaluator,  # type: ignore[no-redef]
+        )
+        from layer4_agents.services.thesys_provider import (
+            ThesysProvider,  # type: ignore[no-redef]
+        )
     except (ImportError, ValueError):
         DegradationEvaluator = None  # type: ignore[assignment,misc]
         ThesysProvider = None  # type: ignore[assignment,misc]

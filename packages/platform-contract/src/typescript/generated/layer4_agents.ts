@@ -938,7 +938,7 @@ export interface paths {
         post?: never;
         /**
          * Delete Saved Scenario
-         * @description Delete a saved scenario only within the authenticated tenant scope.
+         * @description Remove a saved scenario only within the authenticated tenant scope.
          */
         delete: operations["delete_saved_scenario_v1_cases__case_id__scenarios__scenario_id__delete"];
         options?: never;
