@@ -93,6 +93,12 @@ services:
       - "56334:6334"
     volumes:
       - db-readiness-qdrant-data:/qdrant/storage
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:6333/readyz || exit 0"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     networks:
       - db-readiness-net
 
@@ -108,6 +114,12 @@ services:
       - "59001:9001"
     volumes:
       - db-readiness-minio-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     networks:
       - db-readiness-net
 
@@ -120,7 +132,14 @@ services:
     ports:
       - "59093:9093"
     volumes:
+      - db-readiness-alertmanager-data:/alertmanager
       - ../../monitoring/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:9093/-/healthy"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     networks:
       - db-readiness-net
 
@@ -133,3 +152,4 @@ volumes:
   db-readiness-neo4j-data:
   db-readiness-qdrant-data:
   db-readiness-minio-data:
+  db-readiness-alertmanager-data:

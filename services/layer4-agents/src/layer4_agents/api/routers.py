@@ -67,7 +67,7 @@ def register_routers(app: FastAPI) -> None:
         audit_orchestrator_router, prefix="/v1/repo-audit", tags=["repo-audit"]
     )
     app.include_router(analysis.router, prefix="/v1", tags=["analysis"])
-    app.include_router(accounts.router, prefix="/v1", tags=["Accounts"])
+    app.include_router(accounts.router, prefix="/v1")
     app.include_router(signals.router, prefix="/v1", tags=["signals"])
     app.include_router(tasks.router, prefix="/v1", tags=["tasks"])
     app.include_router(comments.router, prefix="/v1", tags=["comments"])

@@ -240,7 +240,7 @@ export function mapEntityContextResponseDtoToDomain(
   };
 }
 
-function mapGraphStatsDtoToDomain(dto: Record<string, unknown>): GraphStats {
+export function mapGraphStatsDtoToDomain(dto: Record<string, unknown>): GraphStats {
   return {
     totalNodes: Number(dto.total_nodes ?? 0),
     totalEdges: Number(dto.total_edges ?? 0),

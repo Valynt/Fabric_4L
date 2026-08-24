@@ -2539,7 +2539,6 @@
     "/v1/accounts": {
       "get": {
         "tags": [
-          "Accounts",
           "Accounts"
         ],
         "summary": "List Accounts",
@@ -2729,7 +2728,6 @@
       },
       "post": {
         "tags": [
-          "Accounts",
           "Accounts"
         ],
         "summary": "Create Account",
@@ -2772,7 +2770,6 @@
     "/v1/accounts/search": {
       "post": {
         "tags": [
-          "Accounts",
           "Accounts"
         ],
         "summary": "Search Accounts",
@@ -2815,7 +2812,6 @@
     "/v1/accounts/filters": {
       "get": {
         "tags": [
-          "Accounts",
           "Accounts"
         ],
         "summary": "Get Filter Options",
@@ -2838,7 +2834,6 @@
     "/v1/accounts/sync-status": {
       "get": {
         "tags": [
-          "Accounts",
           "Accounts"
         ],
         "summary": "Get Sync Status All",
@@ -2861,7 +2856,6 @@
     "/v1/accounts/sync": {
       "post": {
         "tags": [
-          "Accounts",
           "Accounts"
         ],
         "summary": "Sync Accounts",
@@ -2904,7 +2898,6 @@
     "/v1/accounts/{account_id}": {
       "get": {
         "tags": [
-          "Accounts",
           "Accounts"
         ],
         "summary": "Get Account",
@@ -2949,7 +2942,6 @@
     "/v1/accounts/{account_id}/activity": {
       "get": {
         "tags": [
-          "Accounts",
           "Accounts"
         ],
         "summary": "Get Account Activity",
@@ -3018,7 +3010,6 @@
     "/v1/accounts/{account_id}/refresh": {
       "post": {
         "tags": [
-          "Accounts",
           "Accounts"
         ],
         "summary": "Refresh Account",
@@ -3063,7 +3054,6 @@
     "/v1/accounts/{account_id}/journey-timeline": {
       "get": {
         "tags": [
-          "Accounts",
           "Accounts"
         ],
         "summary": "Get Account Journey Timeline",

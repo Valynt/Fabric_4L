@@ -1,3 +1,5 @@
+"""Declarative specification for an embedding vector space."""
+
 from __future__ import annotations
 
 import os

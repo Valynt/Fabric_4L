@@ -1182,7 +1182,7 @@ class ConversationService:
             "with a grounded, tenant-scoped draft using approved evidence."
         )
         rules: list[tuple[str, tuple[str, ...]]] = [
-            ("prompt_injection", ("ignore previous instructions", "system override", "remove approval gates")),
+            ("prompt_injection", ("ignore previous instructions", "system override", "remove approval gates", "delete approval gates")),
             ("cross_tenant_access", ("every tenant", "all tenants", "cross-tenant", "other tenant")),
             ("secret_exfiltration", ("reveal internal secret", "reveal secrets", "api key", "token", "password")),
             ("approval_bypass", ("bypass approval", "mark them approved", "export immediately", "approval gates")),

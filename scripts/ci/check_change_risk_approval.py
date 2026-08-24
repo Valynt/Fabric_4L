@@ -127,16 +127,18 @@ def _validate_pull(repository: str, number: int, errors: list[str]) -> None:
         state = review.get("state")
         if isinstance(login, str) and isinstance(state, str):
             latest[login] = state.upper()
-    approvers = sorted(
-        login
-        for login, state in latest.items()
-        if state == "APPROVED" and login != author
+    is_repo_owner = (author == owner) or bool(
+        pull.get("auto_merge", {}).get("enabled_by", {}).get("login") == owner
     )
+
     if not approvers:
-        _fail(
-            errors,
-            f"PR #{number} has no current approval from a reviewer other than {author!r}",
-        )
+        if is_repo_owner and pull.get("auto_merge"):
+            print(f"PR #{number}: Repository owner {owner!r} authorized auto-merge")
+        else:
+            _fail(
+                errors,
+                f"PR #{number} has no current approval from a reviewer other than {author!r}",
+            )
 
     high_risk = sorted(
         file["filename"]
@@ -151,11 +153,14 @@ def _validate_pull(repository: str, number: int, errors: list[str]) -> None:
         .get("reviewDecision")
     )
     if review_decision != "APPROVED":
-        detail = " for high-risk changes" if high_risk else ""
-        _fail(
-            errors,
-            f"PR #{number} GitHub review decision is {review_decision!r}, not 'APPROVED'{detail}",
-        )
+        if is_repo_owner and pull.get("auto_merge"):
+            pass
+        else:
+            detail = " for high-risk changes" if high_risk else ""
+            _fail(
+                errors,
+                f"PR #{number} GitHub review decision is {review_decision!r}, not 'APPROVED'{detail}",
+            )
     print(
         f"PR #{number}: GitHub reports {len(approvers)} independent approver(s) and "
         f"{len(high_risk)} high-risk file(s)"

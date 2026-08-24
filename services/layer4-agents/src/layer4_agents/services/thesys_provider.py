@@ -1,11 +1,11 @@
-from __future__ import annotations
-
 """Thesys C1 provider adapter for Layer 4 LLM orchestration.
 
 Implements the CompletionAdapter and LLMProvider protocols for Thesys C1,
 providing governed streaming and non-streaming text completion with prompt
 safety checks, error normalization, timeout handling, and telemetry.
 """
+
+from __future__ import annotations
 
 import asyncio
 import json
@@ -16,6 +16,7 @@ from collections.abc import AsyncIterator
 from typing import Any
 
 import httpx
+from value_fabric.shared.error_handling import sanitize_log_error
 from value_fabric.shared.llm_safety import PromptGuard
 
 from .llm_adapter_interfaces import (
@@ -77,7 +78,7 @@ class ThesysProvider(CompletionAdapter):
 
     def _normalize_error(self, exc: Exception) -> AdapterError:
         """Normalize exceptions to Layer 4 standard AdapterError."""
-        msg = str(exc)
+        msg = sanitize_log_error(exc)
         lowered = msg.lower()
         logger.error("thesys_provider_error", exc_info=exc)
         if "prompt injection" in lowered or "injection" in lowered:

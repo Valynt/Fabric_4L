@@ -1,11 +1,11 @@
-from __future__ import annotations
-
 """Pydantic v2 models for LLM degradation policies (ADR-031, Pass 1).
 
 Degradation is a declared policy, never an implicit code-path decision.
 These models represent the declarative degradation ladders defined in
 `harness.runtime.yaml` under `llm.degradation_policies`.
 """
+
+from __future__ import annotations
 
 from enum import Enum
 from typing import Any

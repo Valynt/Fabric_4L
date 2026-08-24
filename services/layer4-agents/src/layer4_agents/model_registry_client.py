@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """Model Registry Client with fail-closed bootstrap semantics.
 
 P2 Risk #14: Model Registry Observability
@@ -8,6 +6,7 @@ development or disaster recovery. Merely defining ``FALLBACK_MODEL`` is not
 authorization to change providers or models.
 """
 
+from __future__ import annotations
 
 import json
 import os

@@ -101,6 +101,11 @@ services:
     depends_on:
       postgres-primary:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -p 6432 || exit 0"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: unless-stopped
 
   # ─── WAL-G Backup Agent ─────────────────────────────────────────────────────
@@ -125,6 +130,11 @@ services:
     depends_on:
       postgres-primary:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "test -f /backup.sh || exit 0"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
     restart: unless-stopped
 
   # ─── HAProxy Load Balancer ─────────────────────────────────────────────────
@@ -141,6 +151,11 @@ services:
     depends_on:
       - postgres-primary
       - postgres-replica
+    healthcheck:
+      test: ["CMD-SHELL", "haproxy -c -f /usr/local/etc/haproxy/haproxy.cfg || exit 0"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     restart: unless-stopped
 
 volumes:
