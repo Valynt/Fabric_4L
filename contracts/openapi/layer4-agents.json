@@ -12068,7 +12068,7 @@
           "c1"
         ],
         "summary": "Stream C1",
-        "description": "Proxy a streaming request to the Thesys C1 API.\n\nThe server attaches the ``THESYS_API_KEY`` so the secret is never\nexposed to the browser.  The response is forwarded as-is in SSE\nformat (``text/event-stream``).",
+        "description": "Proxy a streaming request to the Thesys C1 API via ThesysProvider.\n\nThe server attaches the ``THESYS_API_KEY`` so the secret is never\nexposed to the browser. The response is forwarded as-is in SSE\nformat (``text/event-stream``).",
         "operationId": "stream_c1_v1_c1_stream_post",
         "requestBody": {
           "content": {
