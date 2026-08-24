@@ -9,8 +9,12 @@ from __future__ import annotations
 
 import hashlib
 import time
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
+from starlette.requests import Request
+from starlette.responses import Response
 
 
 def _tenant_bucket(tenant_id: str, count: int = 64) -> str:
@@ -335,11 +339,16 @@ class PrometheusMetrics:
         return "\n".join(lines)
 
 
-class MetricsMiddleware:
+class MetricsMiddleware(BaseHTTPMiddleware):
     """FastAPI / ASGI middleware for collecting Layer 2 HTTP metrics."""
 
-    def __init__(self, metrics: PrometheusMetrics) -> None:
-        self.metrics = metrics
+    def __init__(self, app: Any = None, metrics: PrometheusMetrics | None = None) -> None:
+        if isinstance(app, PrometheusMetrics) and metrics is None:
+            super().__init__(None)  # type: ignore[arg-type]
+            self.metrics = app
+        else:
+            super().__init__(app)
+            self.metrics = metrics if metrics is not None else PrometheusMetrics()
         try:
             from value_fabric.shared.observability import PathNormalizer
             self._normalizer = PathNormalizer()
@@ -351,7 +360,7 @@ class MetricsMiddleware:
             return path.rstrip("/") or "/"
         return self._normalizer.normalize(path)
 
-    async def __call__(self, request, call_next):
+    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         start_time = time.perf_counter()
         try:
             response = await call_next(request)
@@ -382,8 +391,10 @@ class MetricsMiddleware:
                 self.metrics.record_auth_failure(reason="insufficient_role", component="http")
         return response
 
-    async def dispatch(self, request, call_next):
-        return await self.__call__(request, call_next)
+    async def __call__(self, scope_or_request: Any, receive_or_call_next: Any = None, send: Any = None) -> Any:
+        if receive_or_call_next is not None and send is None and callable(receive_or_call_next):
+            return await self.dispatch(scope_or_request, receive_or_call_next)
+        return await super().__call__(scope_or_request, receive_or_call_next, send)
 
 
 _metrics_instance: PrometheusMetrics | None = None

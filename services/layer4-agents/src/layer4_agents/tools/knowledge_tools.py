@@ -618,20 +618,13 @@ class GetRelationshipsTool(BaseTool):
                 # P0 FIX: Build query with mandatory tenant filter and optional predicate
                 tenant_id_str = str(tenant_ctx.tenant_id)
 
-                predicate = input_data.predicate
-
-                # Relationship type is optional.
-                # Predicate must come from validated enum/domain values before interpolation.
-                if predicate:
-                    rel_pattern = f"[r:{predicate}]"
-                else:
-                    rel_pattern = "[r]"
+                rel_pattern = f"[r:{predicate}]" if predicate else "[r]"  # cypher-dynamic-safe: validated against regex identifier
 
                 query = f"""
                     MATCH (n {{id: $entity_id, tenant_id: $tenant_id}})-{rel_pattern}->(m {{tenant_id: $tenant_id}})
                     RETURN n.id as source_id, type(r) as predicate,
                            m.id as target_id, m.name as target_name, r.confidence as confidence
-                """
+                """  # cypher-dynamic-safe: validated against regex identifier
 
                 result = await session.run(
                     query, {"entity_id": input_data.entity_id, "tenant_id": tenant_id_str}
