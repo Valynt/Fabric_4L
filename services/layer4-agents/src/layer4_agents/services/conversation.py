@@ -31,20 +31,8 @@ from value_fabric.shared.audit import AuditAction, AuditOutcome
 from value_fabric.shared.audit.emitter import emit_audit_event
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
-try:
-    from .degradation_evaluator import DegradationEvaluator
-    from .thesys_provider import ThesysProvider
-except (ImportError, ValueError):
-    try:
-        from layer4_agents.services.degradation_evaluator import (
-            DegradationEvaluator,  # type: ignore[no-redef]
-        )
-        from layer4_agents.services.thesys_provider import (
-            ThesysProvider,  # type: ignore[no-redef]
-        )
-    except (ImportError, ValueError):
-        DegradationEvaluator = None  # type: ignore[assignment,misc]
-        ThesysProvider = None  # type: ignore[assignment,misc]
+from .degradation_evaluator import DegradationEvaluator
+from .thesys_provider import ThesysProvider
 
 
 class ConversationService_handle_messageResult(TypedDictModel):
@@ -87,8 +75,8 @@ try:  # pragma: no cover - exercised by contract tests with PYTHONPATH configure
 except asyncio.CancelledError:
     raise
 except Exception:  # pragma: no cover - service remains available if package import is unavailable
-    build_agent_output_envelope = None  # type: ignore[assignment]
-    validate_agent_output = None  # type: ignore[assignment]
+    build_agent_output_envelope = None
+    validate_agent_output = None
 
 SEMANTIC_CONTRACT_VERSION = "2.0.0"
 

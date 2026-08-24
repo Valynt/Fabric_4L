@@ -9,12 +9,12 @@ from __future__ import annotations
 
 import hashlib
 import time
-from typing import Any
 
 from pydantic import BaseModel, ConfigDict
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.requests import Request
 from starlette.responses import Response
+from starlette.types import ASGIApp, Receive, Scope, Send
 
 
 def _tenant_bucket(tenant_id: str, count: int = 64) -> str:
@@ -342,9 +342,9 @@ class PrometheusMetrics:
 class MetricsMiddleware(BaseHTTPMiddleware):
     """FastAPI / ASGI middleware for collecting Layer 2 HTTP metrics."""
 
-    def __init__(self, app: Any = None, metrics: PrometheusMetrics | None = None) -> None:
+    def __init__(self, app: ASGIApp | PrometheusMetrics | None = None, metrics: PrometheusMetrics | None = None) -> None:
         if isinstance(app, PrometheusMetrics) and metrics is None:
-            super().__init__(None)  # type: ignore[arg-type]
+            super().__init__(None)
             self.metrics = app
         else:
             super().__init__(app)
@@ -391,10 +391,10 @@ class MetricsMiddleware(BaseHTTPMiddleware):
                 self.metrics.record_auth_failure(reason="insufficient_role", component="http")
         return response
 
-    async def __call__(self, scope_or_request: Any, receive_or_call_next: Any = None, send: Any = None) -> Any:
-        if receive_or_call_next is not None and send is None and callable(receive_or_call_next):
-            return await self.dispatch(scope_or_request, receive_or_call_next)
-        return await super().__call__(scope_or_request, receive_or_call_next, send)
+    async def __call__(self, scope: Scope | Request, receive: Receive | RequestResponseEndpoint | None = None, send: Send | None = None) -> Response | None:
+        if receive is not None and send is None and callable(receive) and isinstance(scope, Request):
+            return await self.dispatch(scope, receive)
+        return await super().__call__(scope, receive, send)
 
 
 _metrics_instance: PrometheusMetrics | None = None
