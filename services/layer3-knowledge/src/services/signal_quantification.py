@@ -9,6 +9,7 @@ formulas and prospect data.
 
 import ast
 import logging
+import math
 import operator
 import re
 from dataclasses import dataclass
@@ -21,6 +22,56 @@ from value_fabric.shared.models.typed_dict import TypedDictModel
 from ..db.query_execution import run_validated_query
 
 logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Formula evaluation safety limits.
+#
+# These bounds guard user- or configuration-supplied formulas before any
+# numeric work happens. The values are intentionally conservative: formulas
+# come from untrusted sources and must fail closed rather than consume
+# unbounded CPU, blow the stack, or overflow into non-finite numbers.
+# ---------------------------------------------------------------------------
+MAX_EXPRESSION_LENGTH = 500  # Maximum characters in a formula expression
+MAX_AST_NODES = 100          # Maximum number of AST nodes in a formula
+MAX_AST_DEPTH = 20           # Maximum nesting depth of a formula
+MAX_POW_EXPONENT = 100       # Maximum absolute integer exponent for `**`
+MAX_POW_BASE = 10_000        # Maximum absolute base for `**`
+
+# Stable, user-safe error codes returned through execute_formula. These are
+# deliberately terse and do not contain raw parser or arithmetic text; detailed
+# diagnostics are emitted only to structured server logs.
+ERROR_CODE_TOO_LONG = "FORMULA_TOO_LONG"
+ERROR_CODE_TOO_COMPLEX = "FORMULA_TOO_COMPLEX"
+ERROR_CODE_TOO_DEEP = "FORMULA_TOO_DEEP"
+ERROR_CODE_POW_LIMIT = "FORMULA_POW_LIMIT"
+ERROR_CODE_NON_FINITE = "FORMULA_NON_FINITE"
+ERROR_CODE_INVALID_EXPRESSION = "FORMULA_INVALID_EXPRESSION"
+ERROR_CODE_GENERIC = "FORMULA_EVALUATION_FAILED"
+
+ERROR_MESSAGE_TOO_LONG = "Formula expression exceeds the maximum allowed length."
+ERROR_MESSAGE_TOO_COMPLEX = "Formula expression contains too many components."
+ERROR_MESSAGE_TOO_DEEP = "Formula expression is nested too deeply."
+ERROR_MESSAGE_POW_LIMIT = "Formula exponentiation uses values outside the allowed range."
+ERROR_MESSAGE_NON_FINITE = "Formula produced or used a non-finite numeric value."
+ERROR_MESSAGE_INVALID_EXPRESSION = "Formula expression is invalid or uses unsupported constructs."
+ERROR_MESSAGE_GENERIC = "Formula evaluation failed."
+
+
+class FormulaEvalError(ValueError):
+    """Raised when a formula expression is rejected by safety checks.
+
+    Carries a stable, user-safe ``code`` so callers can program against the
+    failure without depending on raw parser or arithmetic exception text. The
+    ``message`` is safe to surface to end users; detailed ``detail`` must only
+    be emitted to structured server logs, never returned through the public
+    formula API.
+    """
+
+    def __init__(self, code: str, message: str, *, detail: str = "") -> None:
+        super().__init__(message)
+        self.code = code
+        self.message = message
+        self.detail = detail
 
 
 class SignalQuantificationService__select_formulaResult(TypedDictModel):
@@ -35,6 +86,7 @@ class SignalQuantificationService__execute_formulaResult(TypedDictModel):
     expression: Any | None = None
     success: bool
     value: Any | None = None
+    error_code: str | None = None
 
 
 
@@ -107,6 +159,13 @@ class SignalQuantificationService:
     DEFAULT_FORMULA_ID = "ai-f-001"
     DEFAULT_OUTPUT_UNIT = "USD/year"
     DEFAULT_FALLBACK_INDUSTRY = "manufacturing"
+
+    # Formula security limits (module-level constants, aliased for concise use)
+    MAX_EXPRESSION_LENGTH = MAX_EXPRESSION_LENGTH
+    MAX_AST_NODES = MAX_AST_NODES
+    MAX_AST_DEPTH = MAX_AST_DEPTH
+    MAX_POW_EXPONENT = MAX_POW_EXPONENT
+    MAX_POW_BASE = MAX_POW_BASE
 
     # Multiplier constants for indicator parsing
     THOUSAND_MULTIPLIER = 1_000
@@ -464,14 +523,41 @@ class SignalQuantificationService:
                 "value": result,
                 "expression": expression,
                 "error": "",
+                "error_code": "",
             })
 
-
-        except Exception as e:
-            logger.error(f"Formula execution failed: {e}")
+        except FormulaEvalError as e:
+            # Safety-limit rejections carry a stable, user-safe code/message.
+            # Raw diagnostics stay in the structured server log only.
+            logger.error(
+                "Formula evaluation rejected",
+                extra={
+                    "error_code": e.code,
+                    "expression": expression,
+                    "detail": e.detail,
+                },
+            )
             return SignalQuantificationService__execute_formulaResult.model_validate({
                 "success": False,
-                "error": f"Formula execution failed: {e}",
+                "expression": expression,
+                "error": e.message,
+                "error_code": e.code,
+            })
+        except Exception as e:
+            # Never propagate raw parser/arithmetic exception text to callers.
+            logger.error(
+                "Formula execution failed",
+                extra={
+                    "error_code": ERROR_CODE_GENERIC,
+                    "expression": expression,
+                },
+                exc_info=e,
+            )
+            return SignalQuantificationService__execute_formulaResult.model_validate({
+                "success": False,
+                "expression": expression,
+                "error": ERROR_MESSAGE_GENERIC,
+                "error_code": ERROR_CODE_GENERIC,
             })
 
 
@@ -481,6 +567,13 @@ class SignalQuantificationService:
         P0-2 FIX: Replaced eval() with AST-based evaluation to prevent
         arbitrary code execution via object traversal bypasses.
 
+        Hardening limits applied before any numeric work:
+          * Expressions longer than ``MAX_EXPRESSION_LENGTH`` are rejected.
+          * AST trees exceeding ``MAX_AST_NODES`` or ``MAX_AST_DEPTH`` are
+            rejected before evaluation.
+          * Exponentiation is bounded to ``MAX_POW_BASE`` ** ``MAX_POW_EXPONENT``.
+          * Non-finite inputs and results are rejected with ``math.isfinite``.
+
         Args:
             expression: Formula expression string
             context: Variable values
@@ -489,12 +582,26 @@ class SignalQuantificationService:
             Calculated result
 
         Raises:
-            ValueError: If expression contains unsafe constructs
+            FormulaEvalError: If expression violates a safety limit or is
+                otherwise invalid. Subclass of ``ValueError`` carrying a stable
+                ``code``.
             NameError: If expression references undefined variables
         """
-        # Direct variable lookup
+        if len(expression) > self.MAX_EXPRESSION_LENGTH:
+            raise FormulaEvalError(
+                ERROR_CODE_TOO_LONG,
+                ERROR_MESSAGE_TOO_LONG,
+                detail=(
+                    f"length={len(expression)} max={self.MAX_EXPRESSION_LENGTH}"
+                ),
+            )
+
+        # Direct variable lookup (single, short identifier only)
         if expression in context:
-            return float(context[expression])
+            return self._require_finite(
+                context[expression],
+                detail=f"variable '{expression}' is not a finite number",
+            )
 
         # AST-based safe evaluation (no eval())
         allowed_names = {
@@ -503,63 +610,282 @@ class SignalQuantificationService:
         }
         try:
             tree = ast.parse(expression, mode="eval")
-            return float(self._eval_node(tree.body, allowed_names))
-        except (ValueError, NameError, TypeError) as e:
-            logger.error(f"Expression evaluation failed: {e}")
+        except Exception as e:
+            logger.error(
+                "Formula parse failed",
+                extra={"expression": expression, "detail": repr(e)},
+            )
+            raise FormulaEvalError(
+                ERROR_CODE_INVALID_EXPRESSION,
+                ERROR_MESSAGE_INVALID_EXPRESSION,
+                detail=f"parse error: {e}",
+            ) from e
+
+        # Structural safety checks BEFORE evaluation.
+        self._validate_tree_limits(tree)
+
+        try:
+            raw = self._eval_node(tree.body, allowed_names)
+        except FormulaEvalError:
+            raise
+        except (NameError, TypeError):
+            # Undefined variables and type errors are expected user-facing
+            # signals. Raw text is never returned through execute_formula.
+            logger.error(
+                "Expression evaluation rejected",
+                extra={"expression": expression},
+                exc_info=True,
+            )
             raise
         except Exception as e:
-            logger.error(f"Expression parse failed: {e}")
-            raise ValueError(f"Invalid formula expression: {e}") from e
+            if isinstance(e, OverflowError):
+                # Overflow from finite inputs yields a non-finite result.
+                logger.error(
+                    "Formula evaluation overflow",
+                    extra={"expression": expression, "detail": repr(e)},
+                )
+                raise FormulaEvalError(
+                    ERROR_CODE_NON_FINITE,
+                    ERROR_MESSAGE_NON_FINITE,
+                    detail=f"numeric overflow: {e}",
+                ) from e
+            logger.error(
+                "Expression evaluation failed",
+                extra={"expression": expression, "detail": repr(e)},
+            )
+            raise FormulaEvalError(
+                ERROR_CODE_INVALID_EXPRESSION,
+                ERROR_MESSAGE_INVALID_EXPRESSION,
+                detail=f"evaluation error: {e}",
+            ) from e
+
+        return self._require_finite(
+            raw,
+            detail="formula result is not a finite number",
+        )
+
+    def _require_finite(self, value: Any, *, detail: str = "") -> float:
+        """Coerce ``value`` to ``float`` and reject non-finite numbers.
+
+        Args:
+            value: Value to validate
+            detail: Diagnostic detail for the structured log
+
+        Returns:
+            Finite float
+
+        Raises:
+            FormulaEvalError: If the value is not a finite number
+        """
+        try:
+            fvalue = float(value)
+        except (TypeError, ValueError) as e:
+            raise FormulaEvalError(
+                ERROR_CODE_NON_FINITE,
+                ERROR_MESSAGE_NON_FINITE,
+                detail=f"{detail} (not numeric: {e!r})",
+            ) from e
+        if not math.isfinite(fvalue):
+            raise FormulaEvalError(
+                ERROR_CODE_NON_FINITE,
+                ERROR_MESSAGE_NON_FINITE,
+                detail=detail or f"value {fvalue!r} is not finite",
+            )
+        return fvalue
+
+    def _validate_tree_limits(self, tree: ast.AST) -> None:
+        """Walk the AST iteratively enforcing node-count and depth limits.
+
+        Uses an explicit stack (not recursion) so deeply nested hostile input
+        cannot trigger Python's recursion limit during validation.
+
+        Args:
+            tree: Parsed AST to validate
+
+        Raises:
+            FormulaEvalError: If the tree exceeds node-count or depth limits
+        """
+        stack = [(tree, 1)]
+        node_count = 0
+        while stack:
+            node, depth = stack.pop()
+            node_count += 1
+            if node_count > self.MAX_AST_NODES:
+                raise FormulaEvalError(
+                    ERROR_CODE_TOO_COMPLEX,
+                    ERROR_MESSAGE_TOO_COMPLEX,
+                    detail=(
+                        f"node_count={node_count} max={self.MAX_AST_NODES}"
+                    ),
+                )
+            if depth > self.MAX_AST_DEPTH:
+                raise FormulaEvalError(
+                    ERROR_CODE_TOO_DEEP,
+                    ERROR_MESSAGE_TOO_DEEP,
+                    detail=f"depth={depth} max={self.MAX_AST_DEPTH}",
+                )
+            for child in ast.iter_child_nodes(node):
+                stack.append((child, depth + 1))
+
+    def _eval_pow(self, node: ast.AST, context: dict[str, Any]) -> float:
+        """Evaluate ``base ** exponent`` under explicit power safety bounds.
+
+        Requirement: bounded integer exponent and bounded base must be
+        satisfied before the operator is invoked, so hostile formulas cannot
+        drive exponentiation to overflow or burn CPU.
+
+        Args:
+            node: The Pow binary operator node
+            context: Variable context (already finite-checked at this point)
+
+        Returns:
+            Finite result
+
+        Raises:
+            FormulaEvalError: If exponent/base are out of bounds or non-finite
+        """
+        base = self._require_finite(
+            self._eval_node(node.left, context),
+            detail="exponentiation base is not a finite number",
+        )
+        exponent = self._require_finite(
+            self._eval_node(node.right, context),
+            detail="exponentiation exponent is not a finite number",
+        )
+
+        if exponent != int(exponent):
+            raise FormulaEvalError(
+                ERROR_CODE_POW_LIMIT,
+                ERROR_MESSAGE_POW_LIMIT,
+                detail=f"non-integer exponent {exponent!r}",
+            )
+        exp_int = int(exponent)
+        if abs(exp_int) > self.MAX_POW_EXPONENT:
+            raise FormulaEvalError(
+                ERROR_CODE_POW_LIMIT,
+                ERROR_MESSAGE_POW_LIMIT,
+                detail=(
+                    f"exponent {exp_int} exceeds max {self.MAX_POW_EXPONENT}"
+                ),
+            )
+        if abs(base) > self.MAX_POW_BASE:
+            raise FormulaEvalError(
+                ERROR_CODE_POW_LIMIT,
+                ERROR_MESSAGE_POW_LIMIT,
+                detail=f"base {base!r} exceeds max {self.MAX_POW_BASE}",
+            )
+
+        result = base ** exp_int
+        return self._require_finite(
+            result,
+            detail="exponentiation result is not a finite number",
+        )
 
     def _eval_node(self, node: ast.AST, context: dict[str, Any]) -> Any:
         """Recursively evaluate AST node safely.
 
         Only allows: constants, variable names, binary ops, unary ops,
         and safe function calls. Rejects attribute access, subscripts,
-        imports, lambdas, and all other constructs.
+        imports, lambdas, and all other constructs. Every produced value is
+        finite-checked to keep the evaluation closed under non-finite numbers.
 
         Args:
             node: AST node to evaluate
             context: Variable context
 
         Returns:
-            Evaluated value
+            Finite numeric result
 
         Raises:
-            ValueError: If node type is not allowed
+            FormulaEvalError: If node type is not allowed or a safety limit is hit
             NameError: If variable not found
         """
         if isinstance(node, ast.Constant):
             if not isinstance(node.value, (int, float)):
-                raise ValueError(f"Only numeric constants allowed, got {type(node.value).__name__}")
-            return node.value
+                raise FormulaEvalError(
+                    ERROR_CODE_INVALID_EXPRESSION,
+                    ERROR_MESSAGE_INVALID_EXPRESSION,
+                    detail=(
+                        "only numeric constants allowed, "
+                        f"got {type(node.value).__name__}"
+                    ),
+                )
+            return self._require_finite(
+                node.value,
+                detail="constant is not a finite number",
+            )
         elif isinstance(node, ast.Name):
             if node.id in context:
-                return context[node.id]
+                return self._require_finite(
+                    context[node.id],
+                    detail=f"variable '{node.id}' is not a finite number",
+                )
             raise NameError(f"Variable '{node.id}' not defined")
         elif isinstance(node, ast.BinOp):
+            if isinstance(node.op, ast.Pow):
+                return self._eval_pow(node, context)
             op_type = type(node.op)
             if op_type not in self.SAFE_AST_OPERATORS:
-                raise ValueError(f"Unsupported operator: {op_type.__name__}")
+                raise FormulaEvalError(
+                    ERROR_CODE_INVALID_EXPRESSION,
+                    ERROR_MESSAGE_INVALID_EXPRESSION,
+                    detail=f"Unsupported operator: {op_type.__name__}",
+                )
             left = self._eval_node(node.left, context)
             right = self._eval_node(node.right, context)
-            return self.SAFE_AST_OPERATORS[op_type](left, right)
+            result = self.SAFE_AST_OPERATORS[op_type](left, right)
+            return self._require_finite(
+                result,
+                detail=(
+                    f"operator {op_type.__name__} produced a "
+                    "non-finite result"
+                ),
+            )
         elif isinstance(node, ast.UnaryOp):
             op_type = type(node.op)
             if op_type not in self.SAFE_UNARY_OPERATORS:
-                raise ValueError(f"Unsupported unary operator: {op_type.__name__}")
+                raise FormulaEvalError(
+                    ERROR_CODE_INVALID_EXPRESSION,
+                    ERROR_MESSAGE_INVALID_EXPRESSION,
+                    detail=f"Unsupported unary operator: {op_type.__name__}",
+                )
             operand = self._eval_node(node.operand, context)
-            return self.SAFE_UNARY_OPERATORS[op_type](operand)
+            result = self.SAFE_UNARY_OPERATORS[op_type](operand)
+            return self._require_finite(
+                result,
+                detail=(
+                    f"unary operator {op_type.__name__} produced a "
+                    "non-finite result"
+                ),
+            )
         elif isinstance(node, ast.Call):
             if not isinstance(node.func, ast.Name):
-                raise ValueError("Only direct function calls allowed")
+                raise FormulaEvalError(
+                    ERROR_CODE_INVALID_EXPRESSION,
+                    ERROR_MESSAGE_INVALID_EXPRESSION,
+                    detail="Only direct function calls allowed",
+                )
             func_name = node.func.id
             if func_name not in self.SAFE_FUNCTIONS:
-                raise ValueError(f"Function '{func_name}' not allowed")
-            args = [self._eval_node(arg, context) for arg in node.args]
-            return self.SAFE_FUNCTIONS[func_name](*args)
+                raise FormulaEvalError(
+                    ERROR_CODE_INVALID_EXPRESSION,
+                    ERROR_MESSAGE_INVALID_EXPRESSION,
+                    detail=f"Function '{func_name}' not allowed",
+                )
+            values = [self._eval_node(arg, context) for arg in node.args]
+            result = self.SAFE_FUNCTIONS[func_name](*values)
+            return self._require_finite(
+                result,
+                detail=(
+                    f"function '{func_name}' produced a non-finite result"
+                ),
+            )
         else:
-            raise ValueError(f"Unsupported expression type: {type(node).__name__}")
+            raise FormulaEvalError(
+                ERROR_CODE_INVALID_EXPRESSION,
+                ERROR_MESSAGE_INVALID_EXPRESSION,
+                detail=f"Unsupported expression type: {type(node).__name__}",
+            )
 
     def get_supported_units(self) -> list[str]:
         """Get list of supported impact units.

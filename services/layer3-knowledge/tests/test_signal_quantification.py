@@ -8,6 +8,7 @@ from __future__ import annotations
 import pytest
 
 from src.services.signal_quantification import (
+    FormulaEvalError,
     FormulaVariable,
     SignalQuantificationService,
 )
@@ -64,13 +65,136 @@ class TestSafeEval:
 
     def test_safe_eval_rejects_unsafe_call(self):
         service = SignalQuantificationService(driver=FakeDriver())
-        with pytest.raises(ValueError, match="Only direct function calls allowed"):
+        with pytest.raises(FormulaEvalError) as exc_info:
             service._safe_eval("__import__('os').system('x')", {})
+        assert exc_info.value.code == "FORMULA_INVALID_EXPRESSION"
+        # Raw parser/exception text must not be surfaced to callers.
+        assert "__import__" not in exc_info.value.message
 
     def test_safe_eval_missing_variable_raises(self):
         service = SignalQuantificationService(driver=FakeDriver())
         with pytest.raises(NameError):
             service._safe_eval("a + missing", {"a": 1})
+
+
+class TestSafeEvalHardening:
+    """Hostile-input regression tests for formula evaluation safety bounds."""
+
+    async def _execute(self, expression, context=None):
+        service = SignalQuantificationService(driver=FakeDriver())
+        return await service._execute_formula(
+            {"expression": expression}, context or {}
+        )
+
+    @pytest.mark.asyncio
+    async def test_oversized_expression_rejected(self):
+        # Many operands -> expression string far exceeds MAX_EXPRESSION_LENGTH
+        long_expr = " + ".join(["1"] * 300)
+        assert len(long_expr) > 500
+        result = await self._execute(long_expr, {})
+        assert not result["success"]
+        assert result["error_code"] == "FORMULA_TOO_LONG"
+        # Message is a stable, safe constant, not raw text.
+        assert result["error"] == "Formula expression exceeds the maximum allowed length."
+
+    @pytest.mark.asyncio
+    async def test_huge_exponent_rejected(self):
+        # 2 ** 100000 -> exponent far exceeds MAX_POW_EXPONENT
+        result = await self._execute("a ** 100000", {"a": 2})
+        assert not result["success"]
+        assert result["error_code"] == "FORMULA_POW_LIMIT"
+        assert result["error"] == "Formula exponentiation uses values outside the allowed range."
+
+    @pytest.mark.asyncio
+    async def test_overflowing_power_rejected(self):
+        # 10000 ** 100 would overflow to inf even though each side is bounded;
+        # the result must be rejected as non-finite.
+        result = await self._execute("a ** b", {"a": 10000, "b": 100})
+        assert not result["success"]
+        assert result["error_code"] == "FORMULA_NON_FINITE"
+
+    @pytest.mark.asyncio
+    async def test_deeply_nested_expression_rejected(self):
+        # Parentheses create NO AST nodes in Python, so use nested unary
+        # minus operators to build genuine AST depth exceeding MAX_AST_DEPTH.
+        # 40 nested negations -> 41 AST nodes, depth 41 > MAX_AST_DEPTH.
+        deep = "".join(["- " for _ in range(40)]) + "1"
+        result = await self._execute(deep, {})
+        assert not result["success"]
+        assert result["error_code"] == "FORMULA_TOO_DEEP"
+        assert result["error"] == "Formula expression is nested too deeply."
+
+    @pytest.mark.asyncio
+    async def test_many_nodes_expression_rejected(self):
+        # A single shallow `min` call with ~110 args yields >MAX_AST_NODES
+        # (1 Call + 110 constants) while staying under the character limit
+        # and safely within the depth limit, exercising the node-count bound.
+        expr = "min(" + ",".join(str(i) for i in range(1, 110)) + ")"
+        assert len(expr) <= 500
+        result = await self._execute(expr, {})
+        assert not result["success"]
+        assert result["error_code"] == "FORMULA_TOO_COMPLEX"
+
+    @pytest.mark.asyncio
+    async def test_non_finite_constant_rejected(self):
+        # 1e400 parses to an infinite float constant.
+        result = await self._execute("1e400", {})
+        assert not result["success"]
+        assert result["error_code"] == "FORMULA_NON_FINITE"
+
+    @pytest.mark.asyncio
+    async def test_non_finite_input_variable_rejected(self):
+        # Variable bound to inf must be rejected as a non-finite input.
+        result = await self._execute("a + 1", {"a": float("inf")})
+        assert not result["success"]
+        assert result["error_code"] == "FORMULA_NON_FINITE"
+
+    @pytest.mark.asyncio
+    async def test_non_finite_negative_inf_rejected(self):
+        result = await self._execute("a * 2", {"a": float("-inf")})
+        assert not result["success"]
+        assert result["error_code"] == "FORMULA_NON_FINITE"
+
+    @pytest.mark.asyncio
+    async def test_nan_rejected(self):
+        result = await self._execute("a", {"a": float("nan")})
+        assert not result["success"]
+        assert result["error_code"] == "FORMULA_NON_FINITE"
+
+    @pytest.mark.asyncio
+    async def test_division_by_zero_does_not_leak(self):
+        # Arithmetic failure must NOT surface raw exception text to the caller.
+        result = await self._execute("1 / 0", {})
+        assert not result["success"]
+        assert result["error_code"] == "FORMULA_INVALID_EXPRESSION"
+        assert "ZeroDivisionError" not in result["error"]
+        assert result["error"] == "Formula expression is invalid or uses unsupported constructs."
+
+    @pytest.mark.asyncio
+    async def test_non_finite_does_not_leak_raw_text(self):
+        result = await self._execute("1e400", {})
+        assert not result["success"]
+        assert "inf" not in result["error"].lower()
+        assert result["error"] == "Formula produced or used a non-finite numeric value."
+
+    @pytest.mark.asyncio
+    async def test_ordinary_arithmetic_allowed(self):
+        result = await self._execute("a * b + c", {"a": 2, "b": 3, "c": 4})
+        assert result["success"]
+        assert result["value"] == 10.0
+        assert result["error_code"] == ""
+
+    @pytest.mark.asyncio
+    async def test_bounded_power_allowed(self):
+        result = await self._execute("a ** b", {"a": 10, "b": 3})
+        assert result["success"]
+        assert result["value"] == 1000.0
+
+    @pytest.mark.asyncio
+    async def test_unsafe_call_entrypoint_rejected(self):
+        result = await self._execute("__import__('os').system('x')", {})
+        assert not result["success"]
+        assert result["error_code"] == "FORMULA_INVALID_EXPRESSION"
 
 
 class TestExtractFromIndicators:
