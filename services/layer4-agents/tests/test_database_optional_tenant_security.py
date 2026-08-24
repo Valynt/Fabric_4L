@@ -95,7 +95,6 @@ async def test_optional_tenant_super_admin_uses_privileged_mode_without_empty_te
     metrics = MagicMock()
     monkeypatch.setattr(database, "get_session_factory", lambda: _AsyncFactory(fake_session))
     monkeypatch.setattr(_layer4_db, "get_session_factory", lambda: _AsyncFactory(fake_session))
-    monkeypatch.setattr("src.metrics.get_metrics", lambda: metrics)
     monkeypatch.setattr(_layer4_metrics, "get_metrics", lambda: metrics)
     audit_mock = AsyncMock()
     monkeypatch.setattr(database, "_emit_tenant_context_set_audit", audit_mock)
