@@ -127,6 +127,12 @@ def _validate_pull(repository: str, number: int, errors: list[str]) -> None:
         state = review.get("state")
         if isinstance(login, str) and isinstance(state, str):
             latest[login] = state.upper()
+
+    approvers = sorted(
+        login
+        for login, state in latest.items()
+        if state == "APPROVED" and login != author
+    )
     is_repo_owner = (author == owner) or bool(
         pull.get("auto_merge", {}).get("enabled_by", {}).get("login") == owner
     )
