@@ -1,0 +1,38 @@
+# Depot CI Migration
+# Source: .github/workflows/devcontainer-smoke.yml
+#
+# Changes made:
+# - Rewrote .github/ path references to .depot/
+# - Changed GitHub runs-on labels to their Depot equivalents
+
+name: Dev Container Smoke Test
+permissions:
+  contents: read
+on:
+  pull_request:
+    paths:
+      - ".devcontainer/**"
+      - ".depot/workflows/devcontainer-smoke.yml"
+  push:
+    branches: [main]
+    paths:
+      - ".devcontainer/**"
+      - ".depot/workflows/devcontainer-smoke.yml"
+  workflow_dispatch:
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+jobs:
+  devcontainer-smoke:
+    name: Dev Container Smoke Test
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - name: Build and verify devcontainer
+        uses: devcontainers/ci@v0.3
+        with:
+          runCmd: bash .devcontainer/verify.sh

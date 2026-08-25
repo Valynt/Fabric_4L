@@ -1,0 +1,692 @@
+# Depot CI Migration
+# Source: .github/workflows/prod-readiness.yml
+#
+# Changes made:
+# - Rewrote .github/ path references to .depot/
+# - Changed GitHub runs-on labels to their Depot equivalents
+
+name: Prod Readiness Gates
+permissions:
+  contents: read
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main, "release/**"]
+  # V1-CI-001: merge queue support (Stage 1 shadow; aggregates become
+  # required at Stage 3).
+  merge_group:
+  workflow_dispatch:
+concurrency:
+  # Cancel only an obsolete run of this same workflow/ref. A global
+  # feature-branch group lets activity on an unrelated PR cancel required gates.
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+env:
+  POLICY_FILE: .fabric/prod-gates.policy.yaml
+  ARTIFACT_DIR: artifacts
+jobs:
+  determine-profile:
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      profile: ${{steps.profile.outputs.profile}}
+      # 'true' when the change can affect the running product (anything
+      # except pure documentation). PR-time readiness jobs skip when false;
+      # push/release/dispatch events always resolve to 'true'.
+      runtime: ${{steps.scope.outputs.runtime}}
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - name: Resolve change scopes
+        id: scope
+        uses: ./.depot/actions/change-scope
+      - id: profile
+        run: |
+          if [[ "${GITHUB_REF}" == refs/heads/main ]]; then
+            echo "profile=mainline-full" >> $GITHUB_OUTPUT
+          elif [[ "${GITHUB_REF}" == refs/heads/release/* ]]; then
+            echo "profile=release-candidate" >> $GITHUB_OUTPUT
+          else
+            echo "profile=pr-fast" >> $GITHUB_OUTPUT
+          fi
+  setup:
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    if: github.event_name != 'pull_request' || needs.determine-profile.outputs.runtime == 'true'
+    needs: [determine-profile]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Enforce release P0 skip policy
+        if: needs.determine-profile.outputs.profile == 'release-candidate'
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyyaml
+          python scripts/ci/check_test_skip_governance.py \
+            --register config/ci/test_skip_register.yaml \
+            --fail-mandatory-p0
+      - name: Create artifact directories
+        run: |
+          mkdir -p ${ARTIFACT_DIR}/{arch,security,chaos,smoke,agent,state,obs,readiness,release,junit}
+      - name: Validate policy schema
+        run: make gate-policy POLICY_FILE=${POLICY_FILE}
+      - name: Validate policy enforcement matrix coverage
+        run: python scripts/ci/validate_policy_enforcement_matrix.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: setup-artifacts
+          path: artifacts/
+  arch-conformance:
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    if: github.event_name != 'pull_request' || needs.determine-profile.outputs.runtime == 'true'
+    needs: [determine-profile, setup]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install gate dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r tests/requirements-test.txt psycopg2-binary "psycopg[pool]"
+      - name: Run architecture conformance gate
+        run: make gate-arch PROFILE=${{needs.determine-profile.outputs.profile}} POLICY_FILE=${POLICY_FILE}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: arch-artifacts
+          path: artifacts/arch/
+  security-isolation:
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    if: github.event_name != 'pull_request' || needs.determine-profile.outputs.runtime == 'true'
+    needs: [determine-profile, setup]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install gate dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r tests/requirements-test.txt psycopg2-binary "psycopg[pool]" \
+            -r services/layer1-ingestion/requirements.txt boto3
+      - name: Setup Node.js + pnpm
+        uses: ./.depot/actions/setup-pnpm
+      - name: Install pnpm dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Run security & isolation gate
+        run: make gate-security PROFILE=${{needs.determine-profile.outputs.profile}} POLICY_FILE=${POLICY_FILE}
+      - name: Enforce tenant boundary release tests
+        if: needs.determine-profile.outputs.profile == 'release-candidate'
+        run: |
+          python -m pip install --upgrade pip pytest
+
+          TENANT_BUNDLE_DIR="${ARTIFACT_DIR}/security/tenant-isolation"
+          mkdir -p "${TENANT_BUNDLE_DIR}"
+
+          BUNDLE_TS="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          BUNDLE_TS_SAFE="$(date -u +%Y%m%dT%H%M%SZ)"
+          BUNDLE_SHA="${GITHUB_SHA}"
+
+          mapfile -t SECURITY_TENANT_TESTS < <(find tests/security -maxdepth 1 -type f -name 'test_*.py' | sort)
+          mapfile -t SERVICE_TENANT_TESTS < <(find services -type f -path '*/tests/test_*.py' | rg 'tenant|isolation|boundary' | sort)
+
+          if [[ ${#SECURITY_TENANT_TESTS[@]} -eq 0 ]]; then
+            echo "ERROR: no tests found under tests/security"
+            exit 1
+          fi
+
+          if [[ ${#SERVICE_TENANT_TESTS[@]} -eq 0 ]]; then
+            echo "ERROR: no per-service tenant tests found under services/**/tests"
+            exit 1
+          fi
+
+          echo "Running dedicated tenant-boundary suite"
+          python -m pytest -v -m tenant_boundary "${SECURITY_TENANT_TESTS[@]}" "${SERVICE_TENANT_TESTS[@]}" --maxfail=1 \
+            --junitxml "${TENANT_BUNDLE_DIR}/junit-${BUNDLE_TS_SAFE}.xml"
+
+          python -m pytest -v -m tenant_matrix tests/security/test_cross_layer_tenant_isolation_matrix.py --maxfail=1
+
+          python scripts/ci/generate_tenant_isolation_bundle.py \
+            "${TENANT_BUNDLE_DIR}/bundle-latest.json" \
+            "${BUNDLE_TS}" \
+            "${BUNDLE_SHA}" \
+            "${#SECURITY_TENANT_TESTS[@]}" \
+            "${#SERVICE_TENANT_TESTS[@]}"
+
+          cp "${TENANT_BUNDLE_DIR}/bundle-latest.json" "${TENANT_BUNDLE_DIR}/bundle-${BUNDLE_TS_SAFE}-${BUNDLE_SHA}.json"
+      - name: Enforce tenant-isolation bundle freshness for release-candidate
+        if: needs.determine-profile.outputs.profile == 'release-candidate'
+        run: |
+          python scripts/ci/check_tenant_isolation_bundle_freshness.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: security-artifacts
+          path: artifacts/security/
+  dependency-chaos:
+    if: needs.determine-profile.outputs.profile != 'pr-fast'
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    needs: [determine-profile, setup]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install gate dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r tests/requirements-test.txt psycopg2-binary "psycopg[pool]"
+      - name: Run dependency chaos gate
+        run: make gate-chaos PROFILE=${{needs.determine-profile.outputs.profile}} POLICY_FILE=${POLICY_FILE}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: chaos-artifacts
+          path: artifacts/chaos/
+  cross-domain-smoke:
+    if: needs.determine-profile.outputs.profile != 'pr-fast'
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    needs: [determine-profile, setup]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install gate dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r tests/requirements-test.txt psycopg2-binary "psycopg[pool]"
+      - name: Run cross-domain smoke gate
+        run: make gate-smoke PROFILE=${{needs.determine-profile.outputs.profile}} POLICY_FILE=${POLICY_FILE}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: smoke-artifacts
+          path: artifacts/smoke/
+  agent-provenance:
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    if: github.event_name != 'pull_request' || needs.determine-profile.outputs.runtime == 'true'
+    needs: [determine-profile, setup]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install gate dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r tests/requirements-test.txt psycopg2-binary "psycopg[pool]"
+      - name: Run agent provenance gate
+        run: make gate-agent PROFILE=${{needs.determine-profile.outputs.profile}} POLICY_FILE=${POLICY_FILE}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: agent-artifacts
+          path: artifacts/agent/
+  state-consistency:
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    if: github.event_name != 'pull_request' || needs.determine-profile.outputs.runtime == 'true'
+    needs: [determine-profile, setup]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install gate dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r tests/requirements-test.txt psycopg2-binary "psycopg[pool]"
+      - name: Run state consistency gate
+        run: make gate-state PROFILE=${{needs.determine-profile.outputs.profile}} POLICY_FILE=${POLICY_FILE}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: state-artifacts
+          path: artifacts/state/
+  db-production-readiness-gate:
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    if: github.event_name != 'pull_request' || needs.determine-profile.outputs.runtime == 'true'
+    needs: [determine-profile, setup]
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: valuefabric
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 10s --health-timeout 5s --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install gate dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r tests/requirements-test.txt psycopg2-binary "psycopg[pool]"
+      - name: Create per-service databases
+        env:
+          PGPASSWORD: postgres
+        run: |
+          for db in ingestion extraction signal_refinery layer4_agents ground_truth; do
+            psql -h localhost -U postgres -d valuefabric -c "CREATE DATABASE $db;"
+          done
+      - name: Run DB production readiness gate
+        run: |
+          make gate-database PROFILE=${{needs.determine-profile.outputs.profile}} POLICY_FILE=${POLICY_FILE}
+          test -s artifacts/database/migration-status.json
+          test -s artifacts/database/migration-status.md
+      - uses: actions/upload-artifact@v4
+        with:
+          name: db-readiness-artifacts
+          path: |
+            artifacts/database/**
+  observability-readiness:
+    if: needs.determine-profile.outputs.profile != 'pr-fast'
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    needs: [determine-profile, setup]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install gate dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r tests/requirements-test.txt psycopg2-binary "psycopg[pool]"
+      - name: Run observability readiness gate
+        run: make gate-obs PROFILE=${{needs.determine-profile.outputs.profile}} POLICY_FILE=${POLICY_FILE}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: obs-artifacts
+          path: artifacts/obs/
+  repo-maturity-scorecard:
+    if: needs.determine-profile.outputs.profile != 'pr-fast'
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    needs: [determine-profile, setup]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate repo maturity scorecard
+        id: scorecard
+        shell: bash
+        run: |
+          set +e
+          python scripts/reports/generate_repo_maturity_scorecard.py
+          exit_code=$?
+          echo "exit_code=${exit_code}" >> "$GITHUB_OUTPUT"
+          exit 0
+      - name: Upload repo maturity scorecard
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: repo-maturity-scorecard
+          path: |
+            reports/scorecards/repo-maturity.json
+            reports/scorecards/repo-maturity.schema.json
+      - name: Publish repo maturity summary
+        if: always()
+        shell: bash
+        run: |
+          python -c "import json; d=json.load(open('reports/scorecards/repo-maturity.json', encoding='utf-8')); print(f\"Repo maturity: {d['overall_score']}/{d['max_score']} ({d['status']})\")" >> "$GITHUB_STEP_SUMMARY"
+      - name: Enforce repo maturity scorecard
+        if: always()
+        run: exit ${{steps.scorecard.outputs.exit_code}}
+  readiness-10:
+    if: needs.determine-profile.outputs.profile != 'pr-fast'
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    needs: [determine-profile, setup]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install gate dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r tests/requirements-test.txt psycopg2-binary "psycopg[pool]" \
+            -r services/layer1-ingestion/requirements.txt boto3
+      - name: Setup Node.js + pnpm
+        uses: ./.depot/actions/setup-pnpm
+      - name: Install pnpm dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Run readiness 10 gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm readiness:10
+          test -s artifacts/readiness-10/readiness-10-summary.json
+          test -s artifacts/readiness-10/readiness-10-summary.md
+      - name: Upload readiness 10 artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: readiness-10-artifacts
+          path: artifacts/readiness-10/**
+  gate-engineering:
+    if: needs.determine-profile.outputs.profile != 'pr-fast'
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    needs: [determine-profile, setup]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install jsonschema pyyaml -r tests/requirements-test.txt
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.18.0"
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Check canonical gate artifact paths
+        run: |
+          python scripts/ci/canonicalize_gate_artifact_paths.py --check
+      - name: Generate gate-engineering evidence
+        run: |
+          python scripts/ci/generate_gate_evidence.py --run-real-producers
+      - name: Validate release readiness report
+        run: |
+          python scripts/ci/gate_engineering_validator.py report \
+            --release-id "checkpoint-5" \
+            --artifact-digest "sha256:${GITHUB_SHA}" \
+            --environment production \
+            --risk-class release-candidate \
+            --mode release \
+            --strict
+          test -n "$(find artifacts/release -name 'gate-*.json' -print -quit)"
+          test -s artifacts/release/release-readiness-report.json
+          test -s artifacts/release/release-readiness-report.md
+      - name: Upload gate-engineering artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gate-engineering-results
+          path: |
+            artifacts/release/gate-*.json
+            artifacts/release/release-readiness-report.json
+            artifacts/release/release-readiness-report.md
+          retention-days: 14
+  release-policy:
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: valuefabric
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 10s --health-timeout 5s --health-retries 5
+    needs:
+      - determine-profile
+      - arch-conformance
+      - security-isolation
+      - agent-provenance
+      - state-consistency
+      - db-production-readiness-gate
+      - dependency-chaos
+      - cross-domain-smoke
+      - observability-readiness
+      - repo-maturity-scorecard
+      - readiness-10
+      - gate-engineering
+    if: always() && needs.determine-profile.outputs.profile != 'pr-fast'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install gate dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r tests/requirements-test.txt psycopg2-binary "psycopg[pool]" \
+            ruff boto3 -r services/layer1-ingestion/requirements.txt
+      - name: Setup Node.js + pnpm
+        uses: ./.depot/actions/setup-pnpm
+      - name: Install pnpm dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Create per-service databases
+        env:
+          PGPASSWORD: postgres
+        run: |
+          for db in ingestion extraction signal_refinery layer4_agents ground_truth; do
+            psql -h localhost -U postgres -d valuefabric -c "CREATE DATABASE $db;"
+          done
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+      - name: Build launch-readiness evidence bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          BUNDLE_STAMP="$(date -u +%Y%m%d)"
+          SECURITY_DIR="${ARTIFACT_DIR}/security"
+          READINESS_DIR="${ARTIFACT_DIR}/readiness"
+          mkdir -p artifacts/readiness
+          mkdir -p "${SECURITY_DIR}" "${READINESS_DIR}"
+          ENV_REQUIRED_FILE="${READINESS_DIR}/environment-required-evidence-${BUNDLE_STAMP}.json"
+          PROFILE="${{needs.determine-profile.outputs.profile}}"
+
+          resolve_required_artifact() {
+            local pattern="$1"
+            local label="$2"
+            local resolved
+            resolved="$(find . -type f -path "${pattern}" | head -n 1 || true)"
+            if [[ -z "${resolved}" ]]; then
+              echo "Missing required artifact for ${label}: ${pattern}" >&2
+              exit 1
+            fi
+            printf '%s\n' "${resolved}"
+          }
+
+          resolve_first_artifact() {
+            local label="$1"
+            shift
+            local pattern
+            local resolved
+            for pattern in "$@"; do
+              resolved="$(find . -type f -path "${pattern}" | head -n 1 || true)"
+              if [[ -n "${resolved}" ]]; then
+                printf '%s\n' "${resolved}"
+                return 0
+              fi
+            done
+            python scripts/ci/record_environment_required_artifact.py "$ENV_REQUIRED_FILE" "$label" "$*"
+            if [[ "${PROFILE}" == "release-candidate" ]]; then
+              echo "Missing release-candidate artifact for ${label}: $*" >&2
+              exit 1
+            fi
+            return 1
+          }
+
+          record_environment_required_artifact() {
+            local label="$1"
+            local pattern="$2"
+            local resolved
+            resolved="$(find . -type f -path "${pattern}" | head -n 1 || true)"
+            if [[ -n "${resolved}" ]]; then
+              printf '%s\n' "${resolved}"
+              return 0
+            fi
+            python scripts/ci/record_environment_required_artifact.py "$ENV_REQUIRED_FILE" "$label" "$pattern"
+            if [[ "${PROFILE}" == "release-candidate" ]]; then
+              echo "Missing release-candidate environment artifact for ${label}: ${pattern}" >&2
+              exit 1
+            fi
+            return 1
+          }
+
+          tenant_isolation_file=""
+          if tenant_candidate="$(resolve_first_artifact \
+            "tenant isolation test results" \
+            "*/artifacts/security/tenant-isolation-results.json" \
+            "*/artifacts/security/tenant-isolation/bundle-latest.json" \
+            "*/artifacts/tenant-isolation/summary.json")"; then
+            tenant_isolation_file="${tenant_candidate}"
+          fi
+          auth_coverage_file=""
+          if auth_candidate="$(resolve_first_artifact \
+            "auth endpoint coverage report" \
+            "*/artifacts/security/auth-endpoint-coverage.json" \
+            "*/artifacts/security/report.json" \
+            "*/artifacts/route-tenant-propagation.json")"; then
+            auth_coverage_file="${auth_candidate}"
+          fi
+          migration_rollback_file=""
+          if migration_candidate="$(record_environment_required_artifact "migration rollback test output" "*/artifacts/state/migration-rollback-test-output.txt")"; then
+            migration_rollback_file="${migration_candidate}"
+          fi
+          red_snapshot_file=""
+          if red_candidate="$(record_environment_required_artifact "RED dashboard snapshot metadata" "*/artifacts/obs/red-dashboard-snapshot-metadata.json")"; then
+            red_snapshot_file="${red_candidate}"
+          fi
+
+          if [[ -n "${tenant_isolation_file}" ]]; then
+            cp "${tenant_isolation_file}" "${SECURITY_DIR}/tenant-isolation-results-${BUNDLE_STAMP}.json"
+            cp "${tenant_isolation_file}" "${SECURITY_DIR}/tenant-isolation-results.json"
+          fi
+          if [[ -n "${auth_coverage_file}" ]]; then
+            cp "${auth_coverage_file}" "${SECURITY_DIR}/auth-endpoint-coverage-${BUNDLE_STAMP}.json"
+            cp "${auth_coverage_file}" "${SECURITY_DIR}/auth-endpoint-coverage.json"
+          fi
+
+          if [[ -n "${migration_rollback_file}" ]]; then
+            cp "${migration_rollback_file}" "${READINESS_DIR}/migration-rollback-test-output-${BUNDLE_STAMP}.txt"
+            cp "${migration_rollback_file}" "${READINESS_DIR}/migration-rollback-test-output.txt"
+          fi
+          if [[ -n "${red_snapshot_file}" ]]; then
+            cp "${red_snapshot_file}" "${READINESS_DIR}/red-dashboard-snapshot-metadata-${BUNDLE_STAMP}.json"
+            cp "${red_snapshot_file}" "${READINESS_DIR}/red-dashboard-snapshot-metadata.json"
+          fi
+          if [[ -f "${ENV_REQUIRED_FILE}" ]]; then
+            cp "${ENV_REQUIRED_FILE}" "${READINESS_DIR}/environment-required-evidence.json"
+          fi
+      - name: Evaluate release policy
+        run: make gate-release-policy PROFILE=${{needs.determine-profile.outputs.profile}} POLICY_FILE=${POLICY_FILE}
+      - name: Run canonical release gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash scripts/ops/release-gate.sh "${{needs.determine-profile.outputs.profile}}"
+      - name: Sign release manifest
+        if: success() && needs.determine-profile.outputs.profile != 'pr-fast'
+        run: make gate-sign-manifest
+      - name: Validate canonical release artifacts
+        if: success()
+        run: |
+          test -s artifacts/release/gate-result.json
+          test -s artifacts/release/summary.md
+          python scripts/ops/validate-release-manifest.py artifacts/release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-artifacts
+          path: |
+            artifacts/release/
+            artifacts/security/
+            artifacts/readiness/
+  prod-readiness-summary:
+    name: prod-readiness
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    if: always()
+    needs: [determine-profile, release-policy, repo-maturity-scorecard, readiness-10, gate-engineering]
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - name: PR-fast summary
+        if: needs.determine-profile.outputs.profile == 'pr-fast'
+        run: |
+          echo "## Prod Readiness (pr-fast)" >> $GITHUB_STEP_SUMMARY
+          echo "Release-readiness gates skipped for PR profile." >> $GITHUB_STEP_SUMMARY
+      - name: Download release artifacts
+        if: needs.determine-profile.outputs.profile != 'pr-fast'
+        uses: actions/download-artifact@v4
+        with:
+          # Extract the release-policy bundle contents directly at the repo
+          # root so they land at artifacts/release/... (exact name avoids the
+          # per-artifact subdirectory that pattern/all-artifact downloads add).
+          name: release-artifacts
+          path: .
+      - name: Build PR summary
+        if: needs.determine-profile.outputs.profile != 'pr-fast'
+        run: make gate-summary
+      - name: Assert machine-readable gate result exists
+        if: needs.determine-profile.outputs.profile != 'pr-fast'
+        # The release-artifacts bundle strips the leading artifacts/ prefix
+        # (upload common-ancestor semantics), so the extracted path is
+        # release/gate-result.json, not artifacts/release/gate-result.json.
+        run: test -s release/gate-result.json
+      - name: Publish summary
+        if: needs.determine-profile.outputs.profile != 'pr-fast'
+        run: cat artifacts/release/summary.md >> $GITHUB_STEP_SUMMARY
+  # ---------------------------------------------------------------------------
+  # V1-CI-001 Stage 1 (shadow): stable aggregate production-readiness check.
+  # Informational until Stage 3. Summarizes existing jobs only
+  # (scripts/ci/aggregate_gate.py).
+  # ---------------------------------------------------------------------------
+  aggregate-06-production-readiness:
+    name: 06-production-readiness
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    if: always()
+    needs:
+      - determine-profile
+      - arch-conformance
+      - security-isolation
+      - dependency-chaos
+      - cross-domain-smoke
+      - agent-provenance
+      - state-consistency
+      - db-production-readiness-gate
+      - observability-readiness
+      - repo-maturity-scorecard
+      - readiness-10
+      - gate-engineering
+      - release-policy
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - name: Summarize production-readiness gates
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+          # Runtime-gated jobs skip on documentation-only PRs (runtime=false).
+          SKIPSAFE_RUNTIME: ${{ github.event_name == 'pull_request' && needs.determine-profile.outputs.runtime == 'false' }}
+          # Profile-gated jobs skip on the fast PR profile by design.
+          SKIPSAFE_PROFILE: ${{ needs.determine-profile.outputs.profile == 'pr-fast' }}
+        run: |
+          python3 scripts/ci/aggregate_gate.py \
+            --needs-json "$NEEDS_JSON" \
+            --skip-safe arch-conformance=SKIPSAFE_RUNTIME \
+            --skip-safe security-isolation=SKIPSAFE_RUNTIME \
+            --skip-safe agent-provenance=SKIPSAFE_RUNTIME \
+            --skip-safe state-consistency=SKIPSAFE_RUNTIME \
+            --skip-safe db-production-readiness-gate=SKIPSAFE_RUNTIME \
+            --skip-safe dependency-chaos=SKIPSAFE_PROFILE \
+            --skip-safe cross-domain-smoke=SKIPSAFE_PROFILE \
+            --skip-safe observability-readiness=SKIPSAFE_PROFILE \
+            --skip-safe repo-maturity-scorecard=SKIPSAFE_PROFILE \
+            --skip-safe readiness-10=SKIPSAFE_PROFILE \
+            --skip-safe gate-engineering=SKIPSAFE_PROFILE \
+            --skip-safe release-policy=SKIPSAFE_PROFILE

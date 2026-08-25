@@ -1,0 +1,162 @@
+# Depot CI Migration
+# Source: .github/workflows/poc-governance-automation.yml
+#
+# Changes made:
+# - Rewrote .github/ path references to .depot/
+# - Changed GitHub runs-on labels to their Depot equivalents
+
+name: PoC — Governance Automation (Composite + Profile Selection)
+# Draft / proof-of-concept workflow for RFC: Governance Automation.
+# This workflow is not required by branch protection and must not be merged
+# until the RFC is approved. It demonstrates:
+#   1. A reusable composite for canonical CI setup (.depot/actions/setup-fabric-ci).
+#   2. A reusable composite for environment-aware profile selection
+#      (.depot/actions/determine-ci-profile).
+#   3. Explicit, documented selection rules for PR, release-candidate, and
+#      production-oriented validation. Production-oriented gate steps are
+#      routed to the correct context; infrastructure-dependent implementations
+#      remain unchanged and are not executed by this demonstration workflow.
+"on":
+  pull_request:
+    branches: [main]
+    # Change-scoping: this PoC only demonstrates the CI composites and
+    # profile selection; run it only when those surfaces change.
+    paths:
+      - '.depot/actions/**'
+      - '.depot/workflows/poc-governance-automation.yml'
+      - 'scripts/ci/**'
+      - 'config/ci/**'
+  push:
+    branches:
+      - main
+      - 'release/**'
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: 'Override CI profile'
+        required: true
+        default: 'pr-fast'
+        type: choice
+        options:
+          - pr-fast
+          - mainline-full
+          - release-candidate
+          - production-core
+permissions:
+  contents: read
+jobs:
+  determine-profile:
+    name: Determine CI Profile
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    timeout-minutes: 5
+    outputs:
+      profile: ${{ steps.profile.outputs.profile }}
+      gates: ${{ steps.profile.outputs.gates }}
+      matched: ${{ steps.profile.outputs.matched }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - name: Determine profile from registry
+        id: profile
+        uses: ./.depot/actions/determine-ci-profile
+        with:
+          workflow-inputs: ${{ toJSON(github.event.inputs) }}
+  validate-setup:
+    name: Validate Fabric CI Setup
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    timeout-minutes: 10
+    needs: [determine-profile]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - name: Setup Fabric CI
+        uses: ./.depot/actions/setup-fabric-ci
+        with:
+          python-dependency-mode: root-test
+          install-node-deps: 'true'
+      - name: Verify canonical tool versions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python --version | grep -E '^Python 3\.11'
+          node --version | grep -E '^v22\.'
+          pnpm --version | grep -E '^10\.18'
+  profile-aware-gates:
+    name: Profile-Aware Gates (${{ needs.determine-profile.outputs.profile }})
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    timeout-minutes: 10
+    needs: [determine-profile]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - name: Emit selected profile
+        shell: bash
+        env:
+          PROFILE: ${{ needs.determine-profile.outputs.profile }}
+          GATES: ${{ needs.determine-profile.outputs.gates }}
+          MATCHED: ${{ needs.determine-profile.outputs.matched }}
+        run: |
+          set -euo pipefail
+          echo "Profile: ${PROFILE}"
+          echo "Matched explicit trigger: ${MATCHED}"
+          echo "Gates: ${GATES}"
+      # PR-fast checks: cheap, local, no external dependencies.
+      - name: PR-fast gate — structural policy check
+        if: needs.determine-profile.outputs.profile == 'pr-fast'
+        shell: bash
+        run: |
+          echo "Running PR-fast structural policy check (no external deps)"
+          test -f .github/ci-profiles.yml
+          test -f .fabric/prod-gates.policy.yaml
+      # Mainline checks: add integration points that do not require live infra.
+      - name: Mainline gate — contract static checks
+        if: contains(fromJSON(needs.determine-profile.outputs.gates), 'api-contracts') || contains(fromJSON(needs.determine-profile.outputs.gates), 'arch')
+        shell: bash
+        run: |
+          echo "Running mainline-compatible architecture/contract checks"
+      # Release-candidate checks: routed only in release-candidate context.
+      - name: Release-candidate gate — tenant isolation bundle freshness
+        if: needs.determine-profile.outputs.profile == 'release-candidate'
+        shell: bash
+        run: |
+          echo "Routing release-candidate tenant-isolation bundle freshness gate"
+          echo "(Infrastructure-dependent implementation is preserved but not executed by this PoC)"
+      - name: Release-candidate gate — manifest signing readiness
+        if: needs.determine-profile.outputs.profile == 'release-candidate'
+        shell: bash
+        run: |
+          echo "Routing release-candidate manifest signing readiness gate"
+          echo "(Infrastructure-dependent implementation is preserved but not executed by this PoC)"
+      # Production-core checks: routed only in production-core context.
+      - name: Production-core gate — deployment readiness verification
+        if: needs.determine-profile.outputs.profile == 'production-core'
+        shell: bash
+        run: |
+          echo "Routing production-core deployment readiness verification gate"
+          echo "(Infrastructure-dependent implementation is preserved but not executed by this PoC)"
+      - name: Production-core gate — backup/restore readiness
+        if: needs.determine-profile.outputs.profile == 'production-core'
+        shell: bash
+        run: |
+          echo "Routing production-core backup/restore readiness gate"
+          echo "(Infrastructure-dependent implementation is preserved but not executed by this PoC)"
+  summarize:
+    name: PoC Summary
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    timeout-minutes: 5
+    needs: [determine-profile, validate-setup, profile-aware-gates]
+    if: always()
+    steps:
+      - name: Summary
+        shell: bash
+        env:
+          PROFILE: ${{ needs.determine-profile.outputs.profile }}
+          SETUP_RESULT: ${{ needs.validate-setup.result }}
+          GATES_RESULT: ${{ needs.profile-aware-gates.result }}
+        run: |
+          echo "## PoC — Governance Automation Summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Selected profile: **${PROFILE}**" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Setup composite result: ${SETUP_RESULT}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Profile-aware gates result: ${GATES_RESULT}" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "> This is a draft PoC for review; do not merge without RFC approval." >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,35 @@
+# Depot CI Migration
+# Source: .github/workflows/merge-group.yml
+#
+# Changes made:
+# - Changed GitHub runs-on labels to their Depot equivalents
+
+name: Merge Group
+"on":
+  merge_group:
+    types: [checks_requested]
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+jobs:
+  aggregate-checks:
+    name: Merge Group Aggregate Checks
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - name: Set up Python
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
+        with:
+          python-version: "3.11"
+      - name: Install workflow validation dependencies
+        run: python -m pip install --require-hashes -r tests/requirements-test.lock
+      - name: Validate workflow target and artifact references
+        run: make check-workflow-references
+      - name: Validate workflow ownership registry
+        run: make check-workflow-registry

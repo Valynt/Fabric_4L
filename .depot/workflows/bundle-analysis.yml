@@ -1,0 +1,190 @@
+# Depot CI Migration
+# Source: .github/workflows/bundle-analysis.yml
+#
+# Changes made:
+# - Rewrote .github/ path references to .depot/
+# - Changed GitHub runs-on labels to their Depot equivalents
+
+# Bundle Analysis CI Workflow
+# =============================
+# Runs on every PR to analyze and report bundle size changes.
+#
+# - Builds the app with @vitejs/plugin-visualizer
+# - Generates stats.json artifact
+# - Compares against main branch baseline
+# - Comments on PR with size changes table
+# - Fails CI if performance-budget.json thresholds exceeded
+#
+# DESIGN.md § CI: "Performance budgets must be enforced in CI"
+
+name: Bundle Analysis
+permissions:
+  contents: read
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "apps/web/**"
+      - "packages/**"
+      - "pnpm-lock.yaml"
+      - "**/vite.config.*"
+  push:
+    branches: [main]
+    paths:
+      - "apps/web/**"
+      - "packages/**"
+      - "pnpm-lock.yaml"
+      - "**/vite.config.*"
+concurrency:
+  group: bundle-analysis-${{ github.ref }}
+  cancel-in-progress: true
+env:
+  NODE_VERSION: "22.18.0"
+jobs:
+  # ---------------------------------------------------------------------------
+  # Build with analyzer and generate stats
+  # ---------------------------------------------------------------------------
+  analyze:
+    name: Analyze Bundle
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    env:
+      VITE_API_BASE: /api/v1
+      VITE_L1_PREFIX: /ingest
+      VITE_L2_PREFIX: /extract
+      VITE_L2_5_PREFIX: /signals
+      VITE_L3_PREFIX: /graph
+      VITE_L4_PREFIX: /agents
+      VITE_L5_PREFIX: /truths
+      VITE_L6_PREFIX: /benchmarks
+      VITE_L7_PREFIX: /billing
+    steps:
+      - name: Checkout (PR)
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Checkout (main)
+        if: github.event_name == 'push'
+        uses: actions/checkout@v4
+      - name: Setup Node.js + pnpm
+        uses: ./.depot/actions/setup-pnpm
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Create vite.analyzer.config.ts
+        run: |
+          cat > apps/web/vite.analyzer.config.ts << 'EOF'
+          import { defineConfig, mergeConfig } from 'vite';
+          import baseConfig from './vite.config';
+          import { visualizer } from 'rollup-plugin-visualizer';
+
+          export default defineConfig(mergeConfig(baseConfig, {
+            plugins: [
+              visualizer({
+                filename: './dist/stats.json',
+                template: 'raw-data',
+                gzipSize: true,
+                brotliSize: true,
+                open: false,
+              }),
+            ],
+            build: {
+              sourcemap: false,
+              rollupOptions: {
+                output: {
+                  manualChunks: {
+                    vendor: ['react', 'react-dom'],
+                    ui: ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu'],
+                    query: ['@tanstack/react-query'],
+                    router: ['react-router-dom'],
+                  },
+                },
+              },
+            },
+          }));
+          EOF
+      - name: Build with analyzer
+        run: pnpm --filter ./apps/web exec vite build --config vite.analyzer.config.ts
+        env:
+          NODE_ENV: production
+      # actions/upload-artifact@v4 preserves directory structure, so a download
+      # into artifacts/pr would place the file at
+      # artifacts/pr/apps/web/dist/stats.json. Stage the stats file into a flat
+      # directory so consumers can rely on artifacts/pr/stats.json.
+      - name: Stage stats file for flat artifact
+        run: |
+          mkdir -p .bundle-stats
+          cp apps/web/dist/stats.json .bundle-stats/stats.json
+      - name: Upload stats.json artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bundle-stats
+          path: .bundle-stats/stats.json
+          retention-days: 30
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-build-bundle
+          path: apps/web/dist
+          retention-days: 7
+  # ---------------------------------------------------------------------------
+  # Compare against main branch baseline
+  # ---------------------------------------------------------------------------
+  compare:
+    name: Compare with Main
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    needs: [analyze]
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      pull-requests: write # Updates the pull request with the bundle-size report.
+    steps:
+      - name: Checkout PR
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Download PR stats
+        uses: actions/download-artifact@v4
+        with:
+          name: bundle-stats
+          path: artifacts/pr
+      # Fetch main branch stats from the last successful build
+      - name: Download main baseline
+        uses: dawidd6/action-download-artifact@v6
+        with:
+          workflow: bundle-analysis.yml
+          branch: main
+          name: bundle-stats
+          path: artifacts/main
+          if_no_artifact_found: warn
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Run bundle analyzer
+        id: analyzer
+        run: |
+          node scripts/ci/bundle-analyzer-ci.js \
+            --stats artifacts/pr/stats.json \
+            --baseline artifacts/main/stats.json \
+            --budget apps/web/performance-budget.json \
+            --comment artifacts/bundle-comment.md \
+            --verbose
+        continue-on-error: true
+      - name: Upload analysis results
+        uses: actions/upload-artifact@v4
+        with:
+          name: bundle-analysis
+          path: artifacts/bundle-comment.md
+          retention-days: 7
+      - name: Comment on PR
+        uses: actions/github-script@v7
+        if: always()
+        with:
+          script: "const fs = require('fs');\nconst commentPath = 'artifacts/bundle-comment.md';\n\nlet body;\nif (fs.existsSync(commentPath)) {\n  body = fs.readFileSync(commentPath, 'utf-8');\n} else {\n  body = '### \U0001F4E6 Bundle Size Report\\n\\n⚠️ Unable to generate bundle analysis report.';\n}\n\n// Find existing bot comment\nconst { data: comments } = await github.rest.issues.listComments({\n  owner: context.repo.owner,\n  repo: context.repo.repo,\n  issue_number: context.issue.number,\n});\n\nconst botComment = comments.find(c =>\n  c.user?.type === 'Bot' &&\n  c.body?.includes('Bundle Size Report')\n);\n\nif (botComment) {\n  await github.rest.issues.updateComment({\n    owner: context.repo.owner,\n    repo: context.repo.repo,\n    comment_id: botComment.id,\n    body,\n  });\n} else {\n  await github.rest.issues.createComment({\n    owner: context.repo.owner,\n    repo: context.repo.repo,\n    issue_number: context.issue.number,\n    body,\n  });\n}\n"
+      - name: Fail on budget exceeded
+        if: steps.analyzer.outcome == 'failure'
+        run: |
+          echo "❌ Bundle size exceeds performance budget. See PR comment for details."
+          exit 1

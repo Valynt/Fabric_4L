@@ -1,0 +1,47 @@
+# Depot CI Migration
+# Source: .github/workflows/contract-rfc-enforcer.yml
+#
+# Changes made:
+# - Changed GitHub runs-on labels to their Depot equivalents
+
+name: Contract RFC Enforcer
+# Blocks PRs that modify contracts/openapi/ or contracts/jsonschema/ without
+# referencing an approved RFC issue in the PR description.
+# See contracts/GOVERNANCE.md §3 for the RFC process.
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "contracts/openapi/**"
+      - "contracts/jsonschema/**"
+permissions:
+  contents: read
+  pull-requests: read
+jobs:
+  contract-rfc-check:
+    name: Contract RFC Reference Check
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+        with:
+          fetch-depth: 0
+      - name: Collect changed contract files
+        id: changed
+        run: |
+          files=$(git diff --name-only origin/${{ github.base_ref }}...HEAD \
+            | grep -E '^contracts/(openapi|jsonschema)/' || true)
+          {
+            echo 'files<<EOF'
+            echo "$files"
+            echo 'EOF'
+          } >> $GITHUB_OUTPUT
+          if [ -n "$files" ]; then
+            echo "Contract files changed:"
+            echo "$files"
+          fi
+      - name: Enforce RFC reference in PR description
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+          CHANGED_FILES: ${{ steps.changed.outputs.files }}
+        run: |
+          bash .github/scripts/contract-rfc-enforcer.sh "$PR_BODY" "$CHANGED_FILES"

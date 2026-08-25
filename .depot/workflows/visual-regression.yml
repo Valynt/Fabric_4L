@@ -1,0 +1,227 @@
+# Depot CI Migration
+# Source: .github/workflows/visual-regression.yml
+#
+# Changes made:
+# - Changed GitHub runs-on labels to their Depot equivalents
+
+# Visual Regression CI Workflow
+# ==============================
+# Runs Playwright visual regression tests on every PR and push to main.
+#
+# - Builds the app, starts a preview server, then captures screenshots.
+# - Uploads failed comparisons as artifacts for human review.
+# - Comments on PRs with a summary of diffs (via GitHub script).
+#
+# DESIGN.md § CI: "Playwright smoke tests for critical user flows"
+
+name: Visual Regression
+permissions:
+  contents: read
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "apps/web/**"
+      - "packages/**"
+      - "pnpm-lock.yaml"
+  push:
+    branches: [main]
+    paths:
+      - "apps/web/**"
+      - "packages/**"
+      - "pnpm-lock.yaml"
+  workflow_dispatch:
+    inputs:
+      update_snapshots:
+        description: "Update baseline screenshots"
+        type: boolean
+        default: false
+concurrency:
+  group: visual-regression-${{ github.ref }}
+  cancel-in-progress: true
+env:
+  NODE_VERSION: "22.18.0"
+  PNPM_VERSION: "10.18.1"
+  PLAYWRIGHT_VERSION: "1.49"
+jobs:
+  # ---------------------------------------------------------------------------
+  # Build the app and cache the production bundle
+  # ---------------------------------------------------------------------------
+  build:
+    name: Build App
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    env:
+      # Safe, non-secret route defaults required by the production Vite build.
+      VITE_API_BASE: /api/v1
+      VITE_L1_PREFIX: /ingest
+      VITE_L2_PREFIX: /extract
+      VITE_L2_5_PREFIX: /signals
+      VITE_L3_PREFIX: /graph
+      VITE_L4_PREFIX: /agents
+      VITE_L5_PREFIX: /truths
+      VITE_L6_PREFIX: /benchmarks
+      VITE_L7_PREFIX: /billing
+      VITE_AUTH_PROVIDER: legacy
+      VITE_ENABLE_MOCK_AUTH: "true"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build production bundle
+        run: pnpm --filter ./apps/web run build
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-build
+          path: apps/web/dist
+          retention-days: 1
+  # ---------------------------------------------------------------------------
+  # Run visual regression tests
+  # ---------------------------------------------------------------------------
+  test:
+    name: Visual Tests (${{ matrix.project }})
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    needs: [build]
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [journeys]
+        shard: [1/1]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+        working-directory: apps/web
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: web-build
+          path: apps/web/dist
+      - name: Start preview server
+        run: pnpm exec vite preview --port 4173 --host &
+        working-directory: apps/web
+        env:
+          # Safe, non-secret route defaults required by the production Vite preview server.
+          VITE_API_BASE: /api/v1
+          VITE_L1_PREFIX: /ingest
+          VITE_L2_PREFIX: /extract
+          VITE_L2_5_PREFIX: /signals
+          VITE_L3_PREFIX: /graph
+          VITE_L4_PREFIX: /agents
+          VITE_L5_PREFIX: /truths
+          VITE_L6_PREFIX: /benchmarks
+          VITE_L7_PREFIX: /billing
+          VITE_AUTH_PROVIDER: legacy
+          VITE_ENABLE_MOCK_AUTH: "true"
+      - name: Wait for server
+        run: npx wait-on http://localhost:4173 --timeout 30000
+      - name: Run visual regression tests
+        id: visual_test
+        run: |
+          mkdir -p playwright-report test-results
+          pnpm exec playwright test e2e/visual/regression.spec.ts \
+            --project=${{ matrix.project }} \
+            --update-snapshots=${{ inputs.update_snapshots && 'all' || 'none' }}
+        working-directory: apps/web
+        continue-on-error: true
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report-${{ matrix.project }}
+          path: |
+            apps/web/playwright-report/
+            apps/web/test-results/
+          retention-days: 7
+      - name: Upload failed screenshots
+        uses: actions/upload-artifact@v4
+        if: steps.visual_test.outcome == 'failure'
+        with:
+          name: visual-diff-${{ matrix.project }}
+          path: |
+            apps/web/e2e/visual/**/*.diff.png
+            apps/web/e2e/visual/**/*.actual.png
+            apps/web/e2e/visual/**/*.expected.png
+          retention-days: 7
+      - name: Upload generated baseline screenshots
+        uses: actions/upload-artifact@v4
+        if: github.event_name == 'workflow_dispatch' && inputs.update_snapshots
+        with:
+          name: visual-baselines-${{ matrix.project }}
+          path: apps/web/e2e/visual/**/*-snapshots/*.png
+          if-no-files-found: error
+          retention-days: 7
+      - name: Fail on test failure
+        if: steps.visual_test.outcome == 'failure'
+        run: exit 1
+  # ---------------------------------------------------------------------------
+  # PR comment with diff summary
+  # ---------------------------------------------------------------------------
+  comment:
+    name: Post PR Comment
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    needs: [test]
+    if: always() && github.event_name == 'pull_request'
+    permissions:
+      pull-requests: write # Updates the pull request with visual regression results.
+    steps:
+      - name: Download all test artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: Summarize results
+        id: summary
+        run: "REPORT=\"### \U0001F4F8 Visual Regression Results\\n\\n\"\nif [ \"${{ needs.test.result }}\" = \"success\" ]; then\n  REPORT+=\"✅ **All visual tests passed** — no pixel differences detected.\\n\"\nelse\n  REPORT+=\"⚠️ **Visual differences detected.**\\n\\n\"\n  REPORT+=\"Review the artifacts in the GitHub Actions summary:\\n\"\n  REPORT+=\"- \\\\\"playwright-report-journeys\\\\\" — full HTML report\\n\"\n  REPORT+=\"- \\\\\"visual-diff-journeys\\\\\" — diff, actual, and expected screenshots\\n\\n\"\n  REPORT+=\"> To update baselines, re-run this workflow with **Update baseline screenshots** enabled.\\n\"\nfi\necho \"report<<EOF\" >> \"$GITHUB_OUTPUT\"\necho -e \"$REPORT\" >> \"$GITHUB_OUTPUT\"\necho \"EOF\" >> \"$GITHUB_OUTPUT\"\n"
+      - name: Comment on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const botComment = comments.find(c =>
+              c.user?.type === 'Bot' &&
+              c.body?.includes('Visual Regression Results')
+            );
+
+            const body = `${{ steps.summary.outputs.report }}`;
+
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }

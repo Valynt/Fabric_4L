@@ -1,0 +1,148 @@
+name: 'Determine CI Profile'
+description: >
+  Select the canonical CI profile for the current GitHub Actions execution
+  context based on .github/ci-profiles.yml. Emits the profile name and the
+  list of gates that should run.
+
+inputs:
+  registry-path:
+    description: 'Path to the CI profile registry YAML'
+    required: false
+    default: '.github/ci-profiles.yml'
+  fallback-profile:
+    description: 'Explicit profile to use when no trigger matches; leave empty to fail closed'
+    required: false
+    default: ''
+  workflow-inputs:
+    description: 'JSON object of workflow_dispatch inputs (e.g., {"profile":"release-candidate"})'
+    required: false
+    default: '{}'
+
+outputs:
+  profile:
+    description: 'Selected CI profile name'
+    value: ${{ steps.select.outputs.profile }}
+  gates:
+    description: 'JSON array of gates for the selected profile'
+    value: ${{ steps.select.outputs.gates }}
+  description:
+    description: 'Human-readable profile description'
+    value: ${{ steps.select.outputs.description }}
+  matched:
+    description: 'true if a profile trigger matched explicitly'
+    value: ${{ steps.select.outputs.matched }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Select CI profile
+      id: select
+      shell: bash
+      env:
+        REGISTRY_PATH: ${{ inputs.registry-path }}
+        FALLBACK_PROFILE: ${{ inputs.fallback-profile }}
+        WORKFLOW_INPUTS: ${{ inputs.workflow-inputs }}
+      run: |
+        set -euo pipefail
+
+        python3 - <<'PY'
+        import json
+        import os
+        import re
+        import sys
+
+        try:
+            import yaml
+        except ImportError:
+            import subprocess
+            subprocess.check_call([sys.executable, "-m", "pip", "install", "--quiet", "pyyaml"])
+            import yaml
+
+        registry_path = os.environ["REGISTRY_PATH"]
+        fallback = os.environ["FALLBACK_PROFILE"]
+        event_name = os.environ.get("GITHUB_EVENT_NAME", "")
+        # For pull_request events the target branch is GITHUB_BASE_REF, not GITHUB_REF
+        # (which points to refs/pull/<number>/merge).
+        if event_name == "pull_request":
+            ref = os.environ.get("GITHUB_BASE_REF", "")
+        else:
+            ref = os.environ.get("GITHUB_REF", "")
+        workflow_inputs = json.loads(os.environ.get("WORKFLOW_INPUTS", "{}") or "{}")
+
+        def branch_matches(pattern: str, ref: str) -> bool:
+            if not ref.startswith("refs/heads/") and not ref.startswith("refs/tags/"):
+                return pattern == ref
+            bare = ref.replace("refs/heads/", "").replace("refs/tags/", "")
+            if pattern.endswith("/**"):
+                return bare.startswith(pattern[:-3])
+            return bare == pattern
+
+        with open(registry_path, encoding="utf-8") as fh:
+            registry = yaml.safe_load(fh)
+
+        selected = None
+        selected_trigger = None
+        for name, spec in registry.get("profiles", {}).items():
+            for trigger in spec.get("triggers", []):
+                if trigger.get("event") != event_name:
+                    continue
+                branches = trigger.get("branches", [])
+                if branches and not any(branch_matches(p, ref) for p in branches):
+                    continue
+                expected_inputs = trigger.get("inputs", {})
+                if expected_inputs and not all(workflow_inputs.get(k) == v for k, v in expected_inputs.items()):
+                    continue
+                selected = name
+                selected_trigger = trigger
+                break
+            if selected:
+                break
+
+        matched = "true"
+        used_fallback = False
+        if not selected:
+            if not fallback:
+                print(
+                    f"::error::No CI profile trigger matched for event={event_name} ref={ref} "
+                    f"and no fallback-profile was provided. Failing closed.",
+                    file=sys.stderr,
+                )
+                sys.exit(1)
+            if fallback not in registry.get("profiles", {}):
+                print(
+                    f"::error::Explicit fallback profile '{fallback}' is not defined in {registry_path}.",
+                    file=sys.stderr,
+                )
+                sys.exit(1)
+            selected = fallback
+            matched = "false"
+            used_fallback = True
+            spec = registry["profiles"][selected]
+
+        gates = spec.get("gates", [])
+        description = spec.get("description", "")
+
+        print(f"Selected profile: {selected}")
+        print(f"Matched explicit trigger: {matched}")
+        print(f"Description: {description}")
+        print(f"Gates: {gates}")
+
+        with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as out:
+            out.write(f"profile={selected}\n")
+            out.write(f"gates={json.dumps(gates)}\n")
+            out.write(f"description={description}\n")
+            out.write(f"matched={matched}\n")
+        PY
+
+    - name: Annotate profile selection
+      shell: bash
+      env:
+        PROFILE: ${{ steps.select.outputs.profile }}
+        MATCHED: ${{ steps.select.outputs.matched }}
+        DESCRIPTION: ${{ steps.select.outputs.description }}
+      run: |
+        echo "## CI Profile: ${PROFILE}" >> "$GITHUB_STEP_SUMMARY"
+        echo "${DESCRIPTION}" >> "$GITHUB_STEP_SUMMARY"
+        if [[ "${MATCHED}" != "true" ]]; then
+          echo "::warning::No explicit profile trigger matched; using authorized fallback profile ${PROFILE}"
+        fi
