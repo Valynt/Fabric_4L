@@ -13,7 +13,7 @@ This is the authoritative human-readable CI classification and triage map. Its m
 
 The owner is the first-response triage contact. Start with the local command, then inspect the named workflow run and its retained artifacts. Required secrets are runtime dependencies, not values that belong in logs or documentation.
 
-## Active inventory (58 workflows)
+## Active inventory (59 workflows)
 
 | Workflow | Classification | Triggers | Owner / triage | Local command | Dependencies | Artifacts | Runtime budget |
 |---|---|---|---|---|---|---|---:|
@@ -48,6 +48,7 @@ The owner is the first-response triage contact. Start with the local command, th
 | `layer6-wrapper-drift.yml` | pull request validation | `pull_request, push` | `@value-fabric/sre-leads` | `make check-workflow-references` | none | none | 30 min |
 | `live-continuous-suite.yml` | scheduled assurance | `schedule, workflow_dispatch` | `@value-fabric/sre-leads` | `make check-workflow-references` | none | apps/web/e2e-results/**, apps/web/playwright-report/** | 75 min |
 | `merge-group.yml` | manual automation | `merge_group` | `@value-fabric/sre-leads` | `make check-workflow-references` | none | none | 10 min |
+| `migrate-secrets-to-depot-ci-1787645158581.yml` | delivery / continuous automation | `push` | `@value-fabric/sre-leads` | `make check-workflow-references` | AWS_DEPLOY_ROLE_ARN, AWS_TERRAFORM_ROLE_ARN, DR_BACKUP_BUCKET, DR_IAM_ROLE_ARN, INFISICAL_IDENTITY_ID, NPM_TOKEN, PROMETHEUS_URL, PYPI_API_TOKEN, SLACK_DR_WEBHOOK, SLACK_WEBHOOK_URL_API_CHANGES, VAULT_ADDR, VAULT_ROLE, VAULT_ROLE_STAGING | none | 30 min |
 | `monthly-debt-burndown.yml` | scheduled assurance | `schedule, workflow_dispatch` | `@value-fabric/sre-leads` | `make check-workflow-references` | none | artifacts/debt-burndown | 30 min |
 | `openapi-drift-check.yml` | pull request validation | `pull_request, push` | `@value-fabric/sre-leads` | `make check-workflow-references` | none | none | 30 min |
 | `penetration-testing.yml` | scheduled assurance | `schedule, workflow_dispatch` | `@value-fabric/sre-leads` | `make check-workflow-references` | none | nikto-results/, penetration-results/, zap-results/ | 45 min |
