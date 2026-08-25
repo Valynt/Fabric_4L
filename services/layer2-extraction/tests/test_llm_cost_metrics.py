@@ -125,11 +125,13 @@ class TestLLMCostMetrics:
         """MetricsMiddleware records live HTTP requests through ASGI application."""
         from fastapi import FastAPI
         from fastapi.testclient import TestClient
+
         from layer2_extraction.metrics import MetricsMiddleware, PrometheusMetrics
+        from value_fabric.shared.fastapi_framework import install_metrics_middleware
 
         app = FastAPI()
         metrics = PrometheusMetrics()
-        app.add_middleware(MetricsMiddleware, metrics=metrics)
+        install_metrics_middleware(app, metrics=metrics, middleware_factory=MetricsMiddleware)
 
         @app.get("/test-route")
         def test_route():

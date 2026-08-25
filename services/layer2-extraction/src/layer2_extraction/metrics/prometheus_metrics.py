@@ -9,12 +9,19 @@ from __future__ import annotations
 
 import hashlib
 import time
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict
-from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
+from starlette.middleware.base import RequestResponseEndpoint
 from starlette.requests import Request
 from starlette.responses import Response
-from starlette.types import ASGIApp, Receive, Scope, Send
+
+try:
+    from value_fabric.shared.observability import PathNormalizer as _PathNormalizerCls
+except ImportError:  # pragma: no cover
+    _PathNormalizerCls = None
+
+_NormalizerCls: Any = _PathNormalizerCls
 
 
 def _tenant_bucket(tenant_id: str, count: int = 64) -> str:
@@ -339,28 +346,30 @@ class PrometheusMetrics:
         return "\n".join(lines)
 
 
-class MetricsMiddleware(BaseHTTPMiddleware):
-    """FastAPI / ASGI middleware for collecting Layer 2 HTTP metrics."""
+class MetricsMiddleware:
+    """FastAPI HTTP middleware for collecting Layer 2 metrics.
 
-    def __init__(self, app: ASGIApp | PrometheusMetrics | None = None, metrics: PrometheusMetrics | None = None) -> None:
-        if isinstance(app, PrometheusMetrics) and metrics is None:
-            super().__init__(None)
-            self.metrics = app
-        else:
-            super().__init__(app)
-            self.metrics = metrics if metrics is not None else PrometheusMetrics()
-        try:
-            from value_fabric.shared.observability import PathNormalizer
-            self._normalizer = PathNormalizer()
-        except ImportError:
-            self._normalizer = None
+    Implemented as a plain async-callable (the canonical pattern used across
+    services) so it works both when installed via ``install_metrics_middleware``
+    (factory style) and via ``app.add_middleware(...)`` in tests.
+    """
+
+    def __init__(self, metrics: PrometheusMetrics | None = None) -> None:
+        self.metrics = metrics if metrics is not None else PrometheusMetrics()
+        normalizer: Any = None
+        if _NormalizerCls is not None:
+            normalizer = _NormalizerCls()
+        self._normalizer = normalizer
 
     def _normalize_path(self, path: str) -> str:
         if self._normalizer is None:
             return path.rstrip("/") or "/"
-        return self._normalizer.normalize(path)
+        normalized: Any = self._normalizer.normalize(path)
+        return normalized if isinstance(normalized, str) else path
 
-    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
+    async def __call__(
+        self, request: Request, call_next: RequestResponseEndpoint
+    ) -> Response:
         start_time = time.perf_counter()
         try:
             response = await call_next(request)
@@ -391,10 +400,10 @@ class MetricsMiddleware(BaseHTTPMiddleware):
                 self.metrics.record_auth_failure(reason="insufficient_role", component="http")
         return response
 
-    async def __call__(self, scope: Scope | Request, receive: Receive | RequestResponseEndpoint | None = None, send: Send | None = None) -> Response | None:
-        if receive is not None and send is None and callable(receive) and isinstance(scope, Request):
-            return await self.dispatch(scope, receive)
-        return await super().__call__(scope, receive, send)
+    async def dispatch(
+        self, request: Request, call_next: RequestResponseEndpoint
+    ) -> Response:
+        return await self.__call__(request, call_next)
 
 
 _metrics_instance: PrometheusMetrics | None = None
