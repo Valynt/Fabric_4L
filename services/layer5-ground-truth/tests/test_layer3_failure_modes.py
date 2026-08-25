@@ -8,7 +8,8 @@ import httpx
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-from layer5_ground_truth.api.main import create_app
+from layer5_ground_truth.api.main import create_app, layer3_security_exception_handler
+from layer5_ground_truth.api.main import Layer3ClientError
 from layer5_ground_truth.integration.layer3_client import (
     ERR_LAYER3_CONTRACT_INVALID,
     ERR_LAYER3_HTTP_CLIENT,
@@ -317,6 +318,39 @@ def test_security_http_exception_uses_explicit_security_error_payload() -> None:
     payload = response.json()
     assert payload["error"]["code"] == "INSUFFICIENT_SCOPE"
     assert payload["error"]["message"] == "Denied"
+
+
+@pytest.mark.asyncio
+async def test_layer3_security_exception_handler() -> None:
+    app = create_app()
+    patch_governance_middleware_for_tests(app)
+
+    # We want to test layer3_security_exception_handler specifically with a Base Layer3ClientError
+    # Normally this maps to layer3_operational_exception_handler.
+    app.add_exception_handler(Layer3ClientError, layer3_security_exception_handler)
+
+    @app.get("/api/v1/test-layer3-client-error-security")
+    async def _raise_client_error():
+        raise Layer3ClientError(
+            "Layer 3 client error for security testing", tenant_id=TEST_ORG_ID
+        )
+
+    async with AsyncClient(
+        transport=ASGITransport(app=app),
+        base_url="http://test",
+        headers={
+            "X-Tenant-ID": str(TEST_ORG_ID),
+            "X-Service-Auth": os.environ["SERVICE_AUTH_SECRET"],
+            "X-Request-ID": "req-layer3-client-error-test",
+        },
+    ) as client:
+        response = await client.get("/api/v1/test-layer3-client-error-security")
+
+    assert response.status_code == 502
+    payload = response.json()
+    assert payload["code"] == ERR_LAYER3_HTTP_CLIENT
+    assert payload["trace_id"] == "req-layer3-client-error-test"
+    assert payload["details"]["tenant_id"] == str(TEST_ORG_ID)
 
 
 @pytest.mark.asyncio

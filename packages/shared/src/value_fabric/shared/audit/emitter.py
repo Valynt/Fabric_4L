@@ -20,7 +20,7 @@ import asyncio
 import json
 import logging
 import os
-from datetime import UTC, datetime
+from datetime import datetime
 from typing import Any, Callable, Dict, Optional, Set
 from uuid import UUID, uuid4
 
