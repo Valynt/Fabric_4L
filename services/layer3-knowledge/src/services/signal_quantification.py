@@ -614,12 +614,12 @@ class SignalQuantificationService:
         except Exception as e:
             logger.error(
                 "Formula parse failed",
-                extra={"expression": expression, "detail": repr(e)},
+                extra={"expression": expression, "exception": repr(e)},
             )
             raise FormulaEvalError(
                 ERROR_CODE_INVALID_EXPRESSION,
                 ERROR_MESSAGE_INVALID_EXPRESSION,
-                detail=f"parse error: {e}",
+                detail="expression could not be parsed",
             ) from e
 
         # Structural safety checks BEFORE evaluation.
@@ -643,21 +643,21 @@ class SignalQuantificationService:
                 # Overflow from finite inputs yields a non-finite result.
                 logger.error(
                     "Formula evaluation overflow",
-                    extra={"expression": expression, "detail": repr(e)},
+                    extra={"expression": expression, "exception": repr(e)},
                 )
                 raise FormulaEvalError(
                     ERROR_CODE_NON_FINITE,
                     ERROR_MESSAGE_NON_FINITE,
-                    detail=f"numeric overflow: {e}",
+                    detail="numeric overflow while evaluating",
                 ) from e
             logger.error(
                 "Expression evaluation failed",
-                extra={"expression": expression, "detail": repr(e)},
+                extra={"expression": expression, "exception": repr(e)},
             )
             raise FormulaEvalError(
                 ERROR_CODE_INVALID_EXPRESSION,
                 ERROR_MESSAGE_INVALID_EXPRESSION,
-                detail=f"evaluation error: {e}",
+                detail="expression evaluation failed",
             ) from e
 
         return self._require_finite(
