@@ -195,7 +195,7 @@ journeyTest.describe('J3 Allowed Behaviors: Value Studio', () => {
     await expectNoErrors(authedPage);
 
     await expect(authedPage.getByText('Projected Savings')).toBeVisible({ timeout: 10000 });
-    await expect(authedPage.getByText('ROI Calculation')).toBeVisible({ timeout: 10000 });
+    await expect(authedPage.getByText('ROI Calculation', { exact: true })).toBeVisible({ timeout: 10000 });
     await expect(authedPage.getByText('$2.10M').first()).toBeVisible({ timeout: 10000 });
   });
 
