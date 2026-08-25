@@ -165,10 +165,10 @@ class BaseAgentState(BaseModel):
     pause_point: dict[str, Any] | None = Field(
         default=None, description="Structured pause point when workflow requires human input"
     )
-    paused_by: str | None = Field(None, description="User who paused the workflow")
-    paused_at: datetime | None = Field(None, description="When workflow was paused")
-    resumed_by: str | None = Field(None, description="User who resumed the workflow")
-    resumed_at: datetime | None = Field(None, description="When the workflow was resumed")
+    paused_by: str | None = Field(default=None, description="User who paused the workflow")
+    paused_at: datetime | None = Field(default=None, description="When workflow was paused")
+    resumed_by: str | None = Field(default=None, description="User who resumed the workflow")
+    resumed_at: datetime | None = Field(default=None, description="When the workflow was resumed")
     pause_count: int = Field(default=0, description="Number of times workflow has been paused")
 
     model_config = ConfigDict()

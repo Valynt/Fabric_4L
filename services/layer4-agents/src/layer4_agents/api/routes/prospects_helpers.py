@@ -13,7 +13,7 @@ import asyncio
 import logging
 import uuid
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -21,13 +21,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ...models.account import Account
 
 if TYPE_CHECKING:
-    from .prospects import (
-        BuyerRoleInferenceResult,
-        CrmMatchResult,
-        EnrichmentStatus,
-        ProspectSetupData,
-        WorkflowStartStatus,
-    )
+    from ...engine.executor import WorkflowExecutor
+    from .prospects import ProspectSetupData
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +57,9 @@ def resolve_enrichment_and_crm_status(
     message = initial_message
 
     try:
-        __import__("layer4_agents.services.enrichment_orchestrator", fromlist=["EnrichmentOrchestrator"])
+        __import__(
+            "layer4_agents.services.enrichment_orchestrator", fromlist=["EnrichmentOrchestrator"]
+        )
         enrichment_status = "queued"
         message = message or f"Enrichment queued for {company_name}"
     except ImportError:
@@ -138,7 +135,7 @@ async def create_or_update_prospect_account(
 
 
 async def trigger_prospect_workflow(
-    executor: Any | None,
+    executor: WorkflowExecutor | None,
     prospect_uuid: uuid.UUID,
     setup_data: ProspectSetupData,
     workflow_type: str,

@@ -2,25 +2,22 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import MagicMock
 
 from layer4_agents.api.routes.billing_helpers import (
     dt_iso,
     get_client_ip,
     is_stripe_webhook_ip,
-    serialize_subscription,
-    serialize_invoice_item,
-    serialize_charge,
-    serialize_invoice,
-    serialize_usage_event,
     serialize_customer,
+    serialize_invoice_item,
+    serialize_subscription,
 )
 
 
 def test_dt_iso_and_ip_checks():
     assert dt_iso(None) is None
-    dt = datetime(2025, 1, 15, 12, 0, 0, tzinfo=timezone.utc)
+    dt = datetime(2025, 1, 15, 12, 0, 0, tzinfo=UTC)
     assert dt_iso(dt) == "2025-01-15T12:00:00+00:00"
 
     assert is_stripe_webhook_ip("3.18.12.63") is True
@@ -51,8 +48,8 @@ def test_serialize_subscription_default_and_populated():
     sub.id = "sub_123"
     sub.plan_id = "enterprise"
     sub.status = "active"
-    sub.current_period_start = datetime(2025, 1, 1, tzinfo=timezone.utc)
-    sub.current_period_end = datetime(2025, 2, 1, tzinfo=timezone.utc)
+    sub.current_period_start = datetime(2025, 1, 1, tzinfo=UTC)
+    sub.current_period_end = datetime(2025, 2, 1, tzinfo=UTC)
     sub.cancel_at_period_end = True
 
     serialized = serialize_subscription(sub)
