@@ -26300,49 +26300,49 @@
     },
     {
       "kind": "python-any",
-      "line": 18,
+      "line": 16,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/narratives.py",
-      "text": "from typing import Any"
+      "text": "from typing import Any, Literal"
     },
     {
       "kind": "python-any",
-      "line": 34,
+      "line": 35,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/narratives.py",
       "text": "narrative_id: Any"
     },
     {
       "kind": "python-any",
-      "line": 74,
+      "line": 75,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/narratives.py",
       "text": "account_data: dict[str, Any] | None = Field(None, description=\"Pre-fetched account data (flagged as unverified)\")"
     },
     {
       "kind": "python-any",
-      "line": 75,
+      "line": 76,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/narratives.py",
       "text": "signals_data: list[dict[str, Any]] | None = Field(None, description=\"Pre-fetched signals (flagged as unverified)\")"
     },
     {
       "kind": "python-any",
-      "line": 76,
+      "line": 77,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/narratives.py",
       "text": "hypotheses_data: list[dict[str, Any]] | None = Field(None, description=\"Pre-fetched hypotheses (flagged as unverified)\")"
     },
     {
       "kind": "python-any",
-      "line": 77,
+      "line": 78,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/narratives.py",
       "text": "competitive_data: dict[str, Any] | None = Field(None, description=\"Pre-fetched competitive landscape (flagged as unverified)\")"
     },
     {
       "kind": "python-any",
-      "line": 78,
+      "line": 79,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/narratives.py",
       "text": "roi_data: dict[str, Any] | None = Field(None, description=\"Pre-fetched ROI results (flagged as unverified)\")"
     },
     {
       "kind": "python-any",
-      "line": 79,
+      "line": 80,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/narratives.py",
       "text": "evidence_data: list[dict[str, Any]] | None = Field(None, description=\"Pre-fetched evidence (flagged as unverified)\")"
     },
@@ -26675,6 +26675,18 @@
       "line": 35,
       "path": "services/layer4-agents/src/layer4_agents/api/runtime_state.py",
       "text": "gate_timeout_scheduler: Any | None = None"
+    },
+    {
+      "kind": "python-any",
+      "line": 13,
+      "path": "services/layer4-agents/src/layer4_agents/api/schemas/accounts.py",
+      "text": "from typing import Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 283,
+      "path": "services/layer4-agents/src/layer4_agents/api/schemas/accounts.py",
+      "text": "owners: list[dict[str, Any]]"
     },
     {
       "kind": "python-any",
@@ -27140,13 +27152,13 @@
     },
     {
       "kind": "python-any",
-      "line": 243,
+      "line": 244,
       "path": "services/layer4-agents/src/layer4_agents/contracts/artifacts.py",
       "text": "default_value: Any | None = None"
     },
     {
       "kind": "python-any",
-      "line": 244,
+      "line": 245,
       "path": "services/layer4-agents/src/layer4_agents/contracts/artifacts.py",
       "text": "resolved_value: Any | None = None"
     },
@@ -32111,36 +32123,6 @@
       "line": 893,
       "path": "services/layer4-agents/src/layer4_agents/services/conversation.py",
       "text": "gate_context: dict[str, Any],"
-    },
-    {
-      "kind": "python-any",
-      "line": 895,
-      "path": "services/layer4-agents/src/layer4_agents/services/conversation.py",
-      "text": "entities: dict[str, Any] | None = None,"
-    },
-    {
-      "kind": "python-any",
-      "line": 1057,
-      "path": "services/layer4-agents/src/layer4_agents/services/conversation.py",
-      "text": "context_data: dict[str, Any],"
-    },
-    {
-      "kind": "python-any",
-      "line": 1133,
-      "path": "services/layer4-agents/src/layer4_agents/services/conversation.py",
-      "text": "def _heuristic_classify(self, message: str) -> dict[str, Any]:"
-    },
-    {
-      "kind": "python-any",
-      "line": 1194,
-      "path": "services/layer4-agents/src/layer4_agents/services/conversation.py",
-      "text": "context_data: dict[str, Any],"
-    },
-    {
-      "kind": "python-any",
-      "line": 1313,
-      "path": "services/layer4-agents/src/layer4_agents/services/conversation.py",
-      "text": "workflow_result: dict[str, Any] | None,"
     },
     {
       "kind": "python-type-ignore",
@@ -39172,17 +39154,17 @@
       "kind": "python-any",
       "line": 60,
       "path": "services/layer4-agents/tests/unit/test_layer4_correctness_patch.py",
-      "text": "config: dict[str, Any] = {\"llm\": {\"retry\": {\"max_attempts\": 3, \"backoff_seconds\": 0}}}"
+      "text": "config: dict[str, Any] = {"
     },
     {
       "kind": "python-type-ignore",
-      "line": 66,
+      "line": 77,
       "path": "services/layer4-agents/tests/unit/test_layer4_correctness_patch.py",
       "text": "client = GovernedLLMClient(  # type: ignore[call-arg]"
     },
     {
       "kind": "python-any",
-      "line": 566,
+      "line": 577,
       "path": "services/layer4-agents/tests/unit/test_layer4_correctness_patch.py",
       "text": "async def _fake_emit(event: Any) -> None:"
     },
