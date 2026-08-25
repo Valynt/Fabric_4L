@@ -73,7 +73,30 @@ async def test_query_graph_rejects_input_tenant_without_context(mock_neo4j_sessi
     )
 
     assert result.error is not None
-    assert "tenant context required" in result.error.lower()
+    assert "invalid tenant context" in result.error.lower()
+    mock_neo4j_session.run.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_query_graph_rejects_tenant_context_input_mismatch(
+    mock_neo4j_session,
+    mock_tenant_context,
+):
+    tool = QueryGraphTool(config={"neo4j_uri": "bolt://localhost:7687"})
+    mock_driver = MagicMock()
+    mock_driver.session = MagicMock(return_value=mock_neo4j_session)
+    tool._driver = mock_driver
+
+    result = await tool.execute(
+        QueryGraphInput(
+            cypher_query="MATCH (n:Account) RETURN n LIMIT 10",
+            parameters={},
+            tenant_id=str(TENANT_B_ID),
+        )
+    )
+
+    assert result.error is not None
+    assert "tenant context mismatch" in result.error.lower()
     mock_neo4j_session.run.assert_not_called()
 
 

@@ -140,7 +140,7 @@ async def test_query_graph_success_validation_error_failure_and_cancellation(mon
         "layer4_agents.tools.knowledge_tools.tenant_context.get_current_tenant_context", missing
     )
     assert (
-        "Tenant context required"
+        "Invalid tenant context"
         in (
             await tool.execute(QueryGraphInput(cypher_query="MATCH (n) RETURN n", parameters={}))
         ).error
