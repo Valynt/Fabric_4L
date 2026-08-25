@@ -302,10 +302,10 @@ def resolve_repo_path(
         return None
     if source in SKIPPED_BIND_SOURCES:
         return None
-    source_path = Path(source)
-    if source_path.is_absolute():
-        return source_path
-    return ((base_dir or repo_root) / source_path).resolve()
+    normalized = source.replace("\\", "/")
+    if normalized.startswith(("/", "~")) or re.match(r"^[A-Za-z]:/", normalized):
+        return None
+    return ((base_dir or repo_root) / Path(source)).resolve()
 
 
 def split_short_volume(volume: str) -> tuple[str | None, str | None]:

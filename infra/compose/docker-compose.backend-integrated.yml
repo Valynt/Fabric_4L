@@ -186,7 +186,7 @@ services:
       LAYER1_S3_ENDPOINT: http://host.docker.internal:9000
       LAYER1_S3_ACCESS_KEY: ${LAYER1_S3_ACCESS_KEY:-minioadmin}
       LAYER1_S3_SECRET_KEY: ${LAYER1_S3_SECRET_KEY:-minioadmin}
-      PYTHONPATH: /app:/app/src:/app/value_fabric:/app/value_fabric/layer4:/app/canonical
+      PYTHONPATH: /app:/app/src
     volumes:
       - ../../services/layer1-ingestion/src:/app/src:ro
       - ../../packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
@@ -231,7 +231,7 @@ services:
       LLM_MODEL: gpt-4o
       LOG_LEVEL: info
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@host.docker.internal:5432/layer2_extraction
-      PYTHONPATH: /app:/app/src:/app/value_fabric:/app/canonical
+      PYTHONPATH: /app:/app/src:/app/canonical
     volumes:
       - ../../services/layer2-extraction/src:/app/src:ro
       - ../../packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
@@ -450,7 +450,7 @@ services:
       NEO4J_USER: neo4j
       NEO4J_PASSWORD: devpassword123
       REDIS_URL: redis://host.docker.internal:6379/0
-      PYTHONPATH: /app:/app/src:/app/value_fabric:/app/value_fabric/layer6
+      PYTHONPATH: /app:/app/src
       DATABASE_URL_SYNC: postgresql+psycopg2://postgres:postgres@host.docker.internal:5432/ground_truth
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@host.docker.internal:5432/layer6_benchmarks
       LAYER6_DATABASE_URL: postgresql+asyncpg://postgres:postgres@host.docker.internal:5432/layer6_benchmarks
@@ -466,7 +466,6 @@ services:
         condition: service_healthy
     volumes:
       - ../../services/layer6-benchmarks/src:/app/src:ro
-      - ../../value_fabric/layer6:/app/value_fabric/layer6:ro
       - ../../packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
       - ../../contracts/observability:/contracts/observability:ro
     extra_hosts:
