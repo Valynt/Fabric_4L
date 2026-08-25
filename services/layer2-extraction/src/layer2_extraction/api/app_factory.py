@@ -50,10 +50,9 @@ from layer2_extraction.integration.quarantine_store import (
     QuarantineStore,
     build_quarantine_store,
 )
-from layer2_extraction.metrics import MetricsMiddleware, get_metrics, initialize_metrics
+from layer2_extraction.metrics import get_metrics
 from layer2_extraction.shared_bootstrap import (
     create_fabric_app,
-    install_metrics_middleware,
     register_health_endpoint,
     verify_metrics_access,
 )
@@ -139,9 +138,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
 async def _pending_ingestion_probe() -> ProbeResult:
     """Readiness probe for the pending-ingestion store."""
-    return await health_routes.pending_ingestion_probe(
-        _get_active_pending_ingestion_store()
-    )
+    return await health_routes.pending_ingestion_probe(_get_active_pending_ingestion_store())
 
 
 async def _quarantine_probe() -> ProbeResult:
@@ -188,23 +185,13 @@ def create_app() -> FastAPI:
         readiness_path="/ready",
         enforcement_rollout=EnforcementRolloutConfig(
             tenant_enforcement=EnforcementControlConfig(mode=EnforcementMode.ENFORCE),
-            health_checks=HealthChecksConfig(
-                route_opt_out_paths=_TENANT_CONTEXT_EXEMPT_PATHS
-            ),
+            health_checks=HealthChecksConfig(route_opt_out_paths=_TENANT_CONTEXT_EXEMPT_PATHS),
         ),
         enforce_tenant_context=True,
         instrument_telemetry=True,
     )
 
     register_health_endpoint(app, service_name="layer2-extraction")
-
-    # Install Layer 2 Prometheus metrics middleware
-    install_metrics_middleware(
-        app,
-        metrics=initialize_metrics(),
-        middleware_factory=MetricsMiddleware,
-        logger=logger,
-    )
 
     app.add_middleware(
         GovernanceMiddleware,
@@ -255,9 +242,7 @@ def create_app() -> FastAPI:
     async def metrics_endpoint(request: Request):
         """Prometheus metrics endpoint."""
         if not verify_metrics_access(request):
-            raise AuthorizationError(
-                message="Metrics endpoint requires internal access"
-            )
+            raise AuthorizationError(message="Metrics endpoint requires internal access")
 
         metrics = _get_active_metrics()
         if not metrics:
