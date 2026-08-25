@@ -1731,6 +1731,7 @@ async def update_knowledge_graph(
     scorecard: Scorecard,
     findings: Sequence[Finding],
     sprints: Sequence[Sprint],
+    tenant_id: str,
     neo4j_uri: str,
     neo4j_user: str | None = None,
     neo4j_password: str | None = None,
@@ -1747,6 +1748,7 @@ async def update_knowledge_graph(
         scorecard: Scorecard produced by the run.
         findings: Findings to link to the run.
         sprints: Sprints to link to findings.
+        tenant_id: Tenant that owns every graph node and relationship written.
         neo4j_uri: Bolt URI of the Neo4j instance.
         neo4j_user: Neo4j username.
         neo4j_password: Neo4j password.
@@ -1766,6 +1768,7 @@ async def update_knowledge_graph(
                 scorecard=scorecard,
                 findings=findings,
                 sprints=sprints,
+                tenant_id=tenant_id,
             )
     finally:
         await driver.close()
@@ -1779,17 +1782,19 @@ async def _write_kg_tx(
     scorecard: Scorecard,
     findings: Sequence[Finding],
     sprints: Sequence[Sprint],
+    tenant_id: str,
 ) -> None:
     """Cypher transaction writing the audit graph."""
     await tx.run(
         """
-        MERGE (run:AuditRun {id: $run_id})
+        MERGE (run:AuditRun {id: $run_id, tenant_id: $tenant_id}) // cypher-mutation-safe: composite key includes authenticated tenant_id
         SET run.repo = $repo_name,
             run.timestamp = $timestamp,
             run.score = $overall_score,
             run.grade = $overall_grade
         """,
         run_id=run_id,
+        tenant_id=tenant_id,
         repo_name=repo_name,
         timestamp=scorecard.audit_timestamp.isoformat(),
         overall_score=scorecard.overall_score,
@@ -1799,15 +1804,16 @@ async def _write_kg_tx(
     for finding in findings:
         await tx.run(
             """
-            MERGE (finding:Finding {id: $finding_id})
+            MERGE (finding:Finding {id: $finding_id, tenant_id: $tenant_id}) // cypher-mutation-safe: composite key includes authenticated tenant_id
             SET finding.severity = $severity,
                 finding.area = $area,
                 finding.status = $status
             WITH finding
-            MATCH (run:AuditRun {id: $run_id})
-            MERGE (run)-[:IDENTIFIED]->(finding)
+            MATCH (run:AuditRun {id: $run_id, tenant_id: $tenant_id})
+            MERGE (run)-[:IDENTIFIED]->(finding) // cypher-mutation-safe: both endpoints are tenant scoped
             """,
             finding_id=finding.id,
+            tenant_id=tenant_id,
             severity=finding.severity.value,
             area=finding.area.value,
             status=finding.status.value,
@@ -1819,26 +1825,28 @@ async def _write_kg_tx(
                 if ev_path:
                     await tx.run(
                         """
-                        MERGE (file:SourceFile {path: $path})
+                        MERGE (file:SourceFile {path: $path, tenant_id: $tenant_id}) // cypher-mutation-safe: composite key includes authenticated tenant_id
                         WITH file
-                        MATCH (finding:Finding {id: $finding_id})
-                        MERGE (finding)-[:EVIDENCE_IN]->(file)
+                        MATCH (finding:Finding {id: $finding_id, tenant_id: $tenant_id})
+                        MERGE (finding)-[:EVIDENCE_IN]->(file) // cypher-mutation-safe: both endpoints are tenant scoped
                         """,
                         path=ev_path,
                         finding_id=finding.id,
+                        tenant_id=tenant_id,
                     )
 
     for area in scorecard.area_scores:
         await tx.run(
             """
-            MERGE (area:AuditArea {name: $area_name})
+            MERGE (area:AuditArea {name: $area_name, tenant_id: $tenant_id}) // cypher-mutation-safe: composite key includes authenticated tenant_id
             SET area.weight = $weight,
                 area.score = $score
             WITH area
-            MATCH (run:AuditRun {id: $run_id})
-            MERGE (run)-[:SCORED {score: $score}]->(area)
+            MATCH (run:AuditRun {id: $run_id, tenant_id: $tenant_id})
+            MERGE (run)-[:SCORED {score: $score}]->(area) // cypher-mutation-safe: both endpoints are tenant scoped
             """,
             area_name=area.area.value,
+            tenant_id=tenant_id,
             weight=area.weight,
             score=area.score,
             run_id=run_id,
@@ -1847,16 +1855,17 @@ async def _write_kg_tx(
     for sprint in sprints:
         await tx.run(
             """
-            MERGE (sprint:Sprint {number: $num, run_id: $run_id})
+            MERGE (sprint:Sprint {number: $num, run_id: $run_id, tenant_id: $tenant_id}) // cypher-mutation-safe: composite key includes authenticated tenant_id
             SET sprint.theme = $theme,
                 sprint.status = $status
             WITH sprint
             UNWIND $finding_ids AS fid
-            MATCH (finding:Finding {id: fid})
-            MERGE (sprint)-[:ADDRESSES]->(finding)
+            MATCH (finding:Finding {id: fid, tenant_id: $tenant_id})
+            MERGE (sprint)-[:ADDRESSES]->(finding) // cypher-mutation-safe: both endpoints are tenant scoped
             """,
             num=sprint.id,
             run_id=run_id,
+            tenant_id=tenant_id,
             theme=sprint.theme,
             status=sprint.status.value,
             finding_ids=sprint.findings_targeted,

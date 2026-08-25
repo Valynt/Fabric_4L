@@ -26,6 +26,7 @@ from layer4_agents.agents.audit_orchestrator.persistence import (
     PersistenceManager,
     _repo_name_from_git_url,
     _repo_name_from_path,
+    _write_kg_tx,
     clear_engine_cache,
 )
 from layer4_agents.agents.audit_orchestrator.scoring import build_scorecard
@@ -676,6 +677,40 @@ async def test_db_tenant_isolation_for_runs(
 
     b_run = await db_manager.get_run(sample_run.id, tenant_id=tenant_b)
     assert b_run is None
+
+
+@pytest.mark.unit
+async def test_knowledge_graph_writes_scope_every_node_to_tenant(
+    sample_scorecard: Any,
+    sample_finding: Finding,
+    sample_sprints: list[Sprint],
+) -> None:
+    """Neo4j audit writes cannot share node identities across tenants."""
+
+    class RecordingTransaction:
+        def __init__(self) -> None:
+            self.calls: list[tuple[str, dict[str, Any]]] = []
+
+        async def run(self, query: str, **parameters: Any) -> None:
+            self.calls.append((query, parameters))
+
+    tx = RecordingTransaction()
+    await _write_kg_tx(
+        tx,
+        run_id="run-1",
+        repo_name="owner/repo",
+        scorecard=sample_scorecard,
+        findings=[sample_finding],
+        sprints=sample_sprints,
+        tenant_id="tenant-a",
+    )
+
+    assert tx.calls
+    assert all(parameters["tenant_id"] == "tenant-a" for _, parameters in tx.calls)
+    for query, _ in tx.calls:
+        for line in query.splitlines():
+            if "MERGE (" in line and "-[" not in line:
+                assert "tenant_id:" in line
 
 
 # ---------------------------------------------------------------------------
