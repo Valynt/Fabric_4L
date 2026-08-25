@@ -550,7 +550,7 @@ def get_tenant_constraints(edition: str = "community") -> list[Constraint]:
     Returns:
         List of tenant constraints for Enterprise, empty list for Community
     """
-    if edition.lower() == "enterprise":
+    if "enterprise" in edition.lower():
         return TENANT_CONSTRAINTS
     return []  # Community Edition doesn't support EXISTS constraints
 

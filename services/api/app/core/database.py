@@ -17,7 +17,7 @@ from datetime import UTC, datetime
 from typing import Any, Generic, TypeVar
 
 from pydantic import BaseModel
-from value_fabric.shared.database import MissingTenantContextError, require_tenant_context
+from value_fabric.shared.database import require_tenant_context
 from value_fabric.shared.database.tenant_validation import RESERVED_TENANT_KEYWORDS
 
 try:

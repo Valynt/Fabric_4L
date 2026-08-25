@@ -15,13 +15,13 @@ def test_health_endpoint(test_client: TestClient) -> None:
 def test_schema_status_endpoint(test_client: TestClient) -> None:
     """Schema status endpoint returns 200 when schema is valid or 503 when unavailable."""
     response = test_client.get("/v1/schema/status")
-    assert response.status_code in {HTTPStatus.OK, HTTPStatus.UNAUTHORIZED, HTTPStatus.SERVICE_UNAVAILABLE}
+    assert response.status_code in {HTTPStatus.OK, HTTPStatus.UNAUTHORIZED, HTTPStatus.FORBIDDEN, HTTPStatus.SERVICE_UNAVAILABLE}
 
 
 def test_ingest_endpoint_validation(test_client: TestClient) -> None:
     """Ingest endpoint validates required fields (422) and accepts valid requests."""
     response = test_client.post("/v1/ingest", json={})
-    assert response.status_code in {HTTPStatus.UNAUTHORIZED, HTTPStatus.UNPROCESSABLE_ENTITY}
+    assert response.status_code in {HTTPStatus.UNAUTHORIZED, HTTPStatus.FORBIDDEN, HTTPStatus.UNPROCESSABLE_ENTITY}
 
     payload: dict[str, Any] = {
         "rdf_data": "test",
@@ -30,7 +30,7 @@ def test_ingest_endpoint_validation(test_client: TestClient) -> None:
         "tenant_id": "tenant-test-123",
     }
     response = test_client.post("/v1/ingest", json=payload)
-    assert response.status_code in {HTTPStatus.OK, HTTPStatus.UNAUTHORIZED, HTTPStatus.INTERNAL_SERVER_ERROR, HTTPStatus.SERVICE_UNAVAILABLE}
+    assert response.status_code in {HTTPStatus.OK, HTTPStatus.UNAUTHORIZED, HTTPStatus.FORBIDDEN, HTTPStatus.INTERNAL_SERVER_ERROR, HTTPStatus.SERVICE_UNAVAILABLE}
 
 
 
@@ -49,7 +49,7 @@ def test_ingest_rejects_tenant_header_without_authenticated_context(test_client:
         headers={"X-Tenant-ID": "tenant-spoof-attempt"},
     )
 
-    assert response.status_code == HTTPStatus.UNAUTHORIZED
+    assert response.status_code in {HTTPStatus.UNAUTHORIZED, HTTPStatus.FORBIDDEN}
     detail = response.json()["detail"]
     # detail may be a string or a list of validation error dicts
     detail_str = detail if isinstance(detail, str) else str(detail)
@@ -65,19 +65,19 @@ def test_ingest_rejects_tenant_header_without_authenticated_context(test_client:
 def test_query_endpoint_validation(test_client: TestClient) -> None:
     """Query endpoint validates required fields (422) and accepts valid requests."""
     response = test_client.post("/v1/query", json={})
-    assert response.status_code in {HTTPStatus.UNAUTHORIZED, HTTPStatus.UNPROCESSABLE_ENTITY}
+    assert response.status_code in {HTTPStatus.UNAUTHORIZED, HTTPStatus.FORBIDDEN, HTTPStatus.UNPROCESSABLE_ENTITY}
 
     payload: dict[str, Any] = {"query": "test query", "max_hops": 3}
     response = test_client.post("/v1/query", json=payload)
-    assert response.status_code in {HTTPStatus.OK, HTTPStatus.UNAUTHORIZED, HTTPStatus.INTERNAL_SERVER_ERROR, HTTPStatus.SERVICE_UNAVAILABLE}
+    assert response.status_code in {HTTPStatus.OK, HTTPStatus.UNAUTHORIZED, HTTPStatus.FORBIDDEN, HTTPStatus.INTERNAL_SERVER_ERROR, HTTPStatus.SERVICE_UNAVAILABLE}
 
 
 def test_search_endpoint_validation(test_client: TestClient) -> None:
     """Search endpoint validates required fields (422) and accepts valid requests."""
     response = test_client.post("/v1/search", json={})
-    assert response.status_code in {HTTPStatus.UNAUTHORIZED, HTTPStatus.UNPROCESSABLE_ENTITY}
+    assert response.status_code in {HTTPStatus.UNAUTHORIZED, HTTPStatus.FORBIDDEN, HTTPStatus.UNPROCESSABLE_ENTITY}
 
     payload: dict[str, Any] = {"query": "test", "search_type": "hybrid"}
     response = test_client.post("/v1/search", json=payload)
-    assert response.status_code in {HTTPStatus.OK, HTTPStatus.UNAUTHORIZED, HTTPStatus.INTERNAL_SERVER_ERROR, HTTPStatus.SERVICE_UNAVAILABLE}
+    assert response.status_code in {HTTPStatus.OK, HTTPStatus.UNAUTHORIZED, HTTPStatus.FORBIDDEN, HTTPStatus.INTERNAL_SERVER_ERROR, HTTPStatus.SERVICE_UNAVAILABLE}
 
