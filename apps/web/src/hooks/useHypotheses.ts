@@ -9,7 +9,6 @@
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiGet, apiPost, apiPatch, apiDelete } from '@/api/typedClient';
-import type { l4 } from '@/api/generated';
 import { QK } from './queryKeys';
 import { withApiError, BaseApiError, STALE_TIME, RETRY_CONFIG } from './useApiShared';
 import { resolveBackendAccountId } from './useAccounts';
@@ -284,7 +283,7 @@ export function useReviewSignal() {
       const response = await apiPatch<SignalReviewResponse>('l4', `/signals/${signalId}/review`, data);
       return response.data;
     },
-    onSuccess: (_data, { signalId }) => {
+    onSuccess: (_data, { signalId: _signalId }) => {
       queryClient.invalidateQueries({ queryKey: QK.hypotheses.all });
       queryClient.invalidateQueries({ queryKey: ['workspace', 'tab'] });
     },

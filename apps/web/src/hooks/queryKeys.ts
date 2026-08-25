@@ -30,7 +30,6 @@ import type { CompetitorListFilters } from "./useCompetitiveIntel";
 import type { ROICalculationListFilters } from "./useROICalculator";
 import type { AccountHypothesesFilters } from "./useHypotheses";
 import type { NarrativeListFilters } from "./useNarratives";
-import type { LeverConfigRequest } from "./useCalculators";
 
 // ── Registry ─────────────────────────────────────────────────────────────────
 export const QK = {

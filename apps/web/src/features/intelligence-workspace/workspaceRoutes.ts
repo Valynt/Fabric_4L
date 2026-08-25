@@ -4,7 +4,6 @@
  * All workspace routes follow:
  *   /accounts/:accountId/intelligence/:tabId
  */
-import type { IntelligenceTabId } from "./types";
 import { getTabOrDefault } from "./workspaceTabRegistry";
 
 export function workspacePath(

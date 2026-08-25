@@ -29,7 +29,6 @@ import {
   type CaseStudyMutationResponse,
   type DeleteCaseStudyResponse,
   type EvidenceSearchResponse,
-  type EvidenceSearchResult,
   type IndustryStats,
 } from "@/lib/schemas/evidence";
 

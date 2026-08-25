@@ -10,8 +10,6 @@ import { describe, it, expect } from "vitest";
 import { z } from "zod";
 import {
   GraphNodeSchema,
-  GraphEdgeSchema,
-  SubgraphResponseSchema,
   ApiErrorSchema,
   assertSchema,
   assertSchemaRejects,

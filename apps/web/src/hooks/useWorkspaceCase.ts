@@ -246,7 +246,7 @@ export function useApplyWorkspacePageAction() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (action: WorkspacePageActionContract) => {
-      const { entityType: _entityType, entityId, accountId, caseId, intendedOperation, payload, runMetadataIds } = action;
+      const { entityId, accountId, caseId, intendedOperation, payload, runMetadataIds } = action;
 
       switch (intendedOperation) {
         case 'signal_review': {

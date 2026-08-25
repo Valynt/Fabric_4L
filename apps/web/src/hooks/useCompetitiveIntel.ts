@@ -19,7 +19,6 @@ import type {
   Battlecard,
   Competitor,
   CompetitorListResponse,
-  WinLossOutcome,
 } from "@/lib/schemas/competitiveIntel";
 import { QK } from "./queryKeys";
 import {
