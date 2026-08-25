@@ -832,7 +832,7 @@
       "kind": "python-any",
       "line": 14,
       "path": "packages/platform-contract/src/python/agent_contracts/models.py",
-      "text": "from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple"
+      "text": "from typing import Any, Dict, List, Mapping, Optional, Sequence"
     },
     {
       "kind": "python-any",
@@ -1484,13 +1484,13 @@
     },
     {
       "kind": "python-any",
-      "line": 86,
+      "line": 87,
       "path": "packages/shared/src/value_fabric/shared/error_handling/models.py",
       "text": "details: Optional[dict[str, Any]] = Field("
     },
     {
       "kind": "python-any",
-      "line": 138,
+      "line": 139,
       "path": "packages/shared/src/value_fabric/shared/error_handling/models.py",
       "text": "details: Optional[dict[str, Any]] = Field("
     },
@@ -7832,13 +7832,13 @@
     },
     {
       "kind": "python-any",
-      "line": 11,
+      "line": 12,
       "path": "scripts/ci/validate_docs_claims.py",
       "text": "from typing import Any"
     },
     {
       "kind": "python-any",
-      "line": 85,
+      "line": 86,
       "path": "scripts/ci/validate_docs_claims.py",
       "text": "payload: dict[str, Any] = {"
     },
@@ -9569,6 +9569,18 @@
       "line": 80,
       "path": "sdk/python/src/valuepact/output.py",
       "text": "def emit_human_mapping(mapping: dict[str, Any], *, err: bool = False) -> None:"
+    },
+    {
+      "kind": "python-any",
+      "line": 9,
+      "path": "sdk/python/tests/test_cli.py",
+      "text": "from typing import Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 416,
+      "path": "sdk/python/tests/test_cli.py",
+      "text": "def mock_load_profile_toml(*args: Any, **kwargs: Any) -> Any:"
     },
     {
       "kind": "python-any",
@@ -21584,99 +21596,99 @@
     },
     {
       "kind": "python-any",
-      "line": 16,
+      "line": 18,
       "path": "services/layer3-knowledge/src/services/signal_quantification.py",
       "text": "from typing import Any"
     },
     {
       "kind": "python-any",
-      "line": 30,
+      "line": 82,
       "path": "services/layer3-knowledge/src/services/signal_quantification.py",
       "text": "output_unit: Any"
     },
     {
       "kind": "python-any",
-      "line": 31,
+      "line": 83,
       "path": "services/layer3-knowledge/src/services/signal_quantification.py",
       "text": "variables: list[Any]"
     },
     {
       "kind": "python-any",
-      "line": 35,
+      "line": 87,
       "path": "services/layer3-knowledge/src/services/signal_quantification.py",
       "text": "expression: Any | None = None"
     },
     {
       "kind": "python-any",
-      "line": 37,
+      "line": 89,
       "path": "services/layer3-knowledge/src/services/signal_quantification.py",
       "text": "value: Any | None = None"
     },
     {
       "kind": "python-any",
-      "line": 62,
+      "line": 115,
       "path": "services/layer3-knowledge/src/services/signal_quantification.py",
       "text": "calculation_context: dict[str, Any] | None = None"
     },
     {
       "kind": "python-any",
-      "line": 145,
+      "line": 205,
       "path": "services/layer3-knowledge/src/services/signal_quantification.py",
       "text": "prospect_data: dict[str, Any],"
     },
     {
       "kind": "python-any",
-      "line": 234,
+      "line": 294,
       "path": "services/layer3-knowledge/src/services/signal_quantification.py",
       "text": ") -> dict[str, Any] | None:"
     },
     {
       "kind": "python-any",
-      "line": 310,
+      "line": 370,
       "path": "services/layer3-knowledge/src/services/signal_quantification.py",
       "text": "formula: dict[str, Any],"
     },
     {
       "kind": "python-any",
-      "line": 312,
+      "line": 372,
       "path": "services/layer3-knowledge/src/services/signal_quantification.py",
       "text": "prospect_data: dict[str, Any],"
     },
     {
       "kind": "python-any",
-      "line": 405,
+      "line": 465,
       "path": "services/layer3-knowledge/src/services/signal_quantification.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 443,
+      "line": 503,
       "path": "services/layer3-knowledge/src/services/signal_quantification.py",
       "text": "formula: dict[str, Any],"
     },
     {
       "kind": "python-any",
-      "line": 444,
+      "line": 504,
       "path": "services/layer3-knowledge/src/services/signal_quantification.py",
       "text": "inputs: dict[str, Any],"
     },
     {
       "kind": "python-any",
-      "line": 445,
+      "line": 505,
       "path": "services/layer3-knowledge/src/services/signal_quantification.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 478,
+      "line": 565,
       "path": "services/layer3-knowledge/src/services/signal_quantification.py",
       "text": "def _safe_eval(self, expression: str, context: dict[str, Any]) -> float:"
     },
     {
       "kind": "python-any",
-      "line": 514,
+      "line": 668,
       "path": "services/layer3-knowledge/src/services/signal_quantification.py",
-      "text": "def _eval_node(self, node: ast.AST, context: dict[str, Any]) -> Any:"
+      "text": "def _require_finite(self, value: Any, *, detail: str = \"\") -> float:"
     },
     {
       "kind": "python-any",
@@ -35648,19 +35660,19 @@
     },
     {
       "kind": "python-any",
-      "line": 294,
+      "line": 295,
       "path": "services/layer4-agents/src/layer4_agents/tools/generation_tools.py",
       "text": "def _format_html(self, headers: list[str], rows: list[list[Any]]) -> str:"
     },
     {
       "kind": "python-any",
-      "line": 316,
+      "line": 317,
       "path": "services/layer4-agents/src/layer4_agents/tools/generation_tools.py",
       "text": "def _format_markdown(self, headers: list[str], rows: list[list[Any]]) -> str:"
     },
     {
       "kind": "python-any",
-      "line": 332,
+      "line": 333,
       "path": "services/layer4-agents/src/layer4_agents/tools/generation_tools.py",
       "text": "def _format_csv(self, headers: list[str], rows: list[list[Any]]) -> str:"
     },
@@ -35720,37 +35732,37 @@
     },
     {
       "kind": "python-any",
-      "line": 277,
+      "line": 297,
       "path": "services/layer4-agents/src/layer4_agents/tools/knowledge_tools.py",
       "text": "def __init__(self, config: dict[str, Any] | None = None):"
     },
     {
       "kind": "python-any",
-      "line": 303,
+      "line": 323,
       "path": "services/layer4-agents/src/layer4_agents/tools/knowledge_tools.py",
       "text": "def _get_pinecone_client(self) -> Any | None:"
     },
     {
       "kind": "python-any",
-      "line": 428,
+      "line": 448,
       "path": "services/layer4-agents/src/layer4_agents/tools/knowledge_tools.py",
       "text": "def __init__(self, config: dict[str, Any] | None = None):"
     },
     {
       "kind": "python-any",
-      "line": 542,
+      "line": 562,
       "path": "services/layer4-agents/src/layer4_agents/tools/knowledge_tools.py",
       "text": "def __init__(self, config: dict[str, Any] | None = None):"
     },
     {
       "kind": "python-any",
-      "line": 647,
+      "line": 667,
       "path": "services/layer4-agents/src/layer4_agents/tools/knowledge_tools.py",
       "text": "def __init__(self, config: dict[str, Any] | None = None):"
     },
     {
       "kind": "python-any",
-      "line": 745,
+      "line": 765,
       "path": "services/layer4-agents/src/layer4_agents/tools/knowledge_tools.py",
       "text": "def __init__(self, config: dict[str, Any] | None = None):"
     },
@@ -39914,13 +39926,13 @@
     },
     {
       "kind": "python-any",
-      "line": 261,
+      "line": 275,
       "path": "services/layer5-ground-truth/src/layer5_ground_truth/services/agent_permission_service.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 262,
+      "line": 276,
       "path": "services/layer5-ground-truth/src/layer5_ground_truth/services/agent_permission_service.py",
       "text": "evaluation_inputs: dict[str, Any] = {"
     },
@@ -40088,7 +40100,7 @@
     },
     {
       "kind": "python-type-ignore",
-      "line": 59,
+      "line": 62,
       "path": "services/layer5-ground-truth/tests/test_layer3_failure_modes.py",
       "text": "client._client = fake_post_client  # type: ignore[assignment]"
     },

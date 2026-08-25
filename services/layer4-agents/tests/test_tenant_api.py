@@ -67,7 +67,7 @@ class TestProvisionTenantEndpoint:
             status="success",
         )
         
-        with patch("src.api.tenants.TenantProvisioningService") as mock_service_class:
+        with patch("layer4_agents.api.tenants.TenantProvisioningService") as mock_service_class:
             mock_service = AsyncMock()
             mock_service.provision_tenant = AsyncMock(return_value=mock_result)
             mock_service_class.return_value = mock_service
