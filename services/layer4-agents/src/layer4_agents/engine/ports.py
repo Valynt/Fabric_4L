@@ -80,9 +80,7 @@ class TaskSchedulerPort(Protocol):
     async def list_running_tasks(self) -> list[dict[str, Any]]:
         """List running tasks."""
 
-    async def list_pending_tasks_by_tenant(
-        self, tenant_id: str
-    ) -> list[dict[str, Any]]:
+    async def list_pending_tasks_by_tenant(self, tenant_id: str) -> list[dict[str, Any]]:
         """List queued tasks for a tenant."""
 
     async def cancel_tasks_by_tenant(self, tenant_id: str) -> int:
@@ -95,68 +93,8 @@ class TaskSchedulerPort(Protocol):
     ) -> None:
         """Set scheduler lifecycle callbacks."""
 
-    def register_handler(
-        self, capability: str, handler: Callable[[ScheduledTask], Any]
-    ) -> None:
+    def register_handler(self, capability: str, handler: Callable[[ScheduledTask], Any]) -> None:
         """Register a handler for a task capability."""
 
     def get_stats(self) -> dict[str, Any]:
         """Return scheduler statistics."""
-
-
-@runtime_checkable
-class CheckpointPolicyPort(Protocol):
-    """Contract for checkpoint conflict detection and replay policy validation."""
-
-    def compute_state_hash(self, state: Any) -> str:
-        """Compute deterministic state hash."""
-
-    async def resolve_resume_policy(
-        self,
-        *,
-        workflow_id: str,
-        state: Any,
-        target_checkpoint_id: str | None = None,
-    ) -> None:
-        """Validate resume request against replay policy."""
-
-    async def get_latest_persisted_checkpoint_hash(
-        self,
-        *,
-        tenant_id: str,
-        workflow_id: str,
-        run_id: str,
-        checkpoint_id: str,
-    ) -> str:
-        """Retrieve persisted checkpoint hash."""
-
-
-@runtime_checkable
-class WorkflowLifecyclePersistencePort(Protocol):
-    """Contract for persisting workflow state transitions and interruptions."""
-
-    async def mark_workflow_running(self, workflow_id: str, initial_state: Any) -> None:
-        """Mark workflow as RUNNING."""
-
-    async def persist_workflow_failure(
-        self, workflow_id: str, initial_state: Any, exc: Exception
-    ) -> None:
-        """Persist workflow failure state."""
-
-    async def persist_interruption_if_needed(self, workflow_id: str) -> None:
-        """Persist workflow interruption on cancellation if needed."""
-
-    async def archive_workflow(
-        self, workflow_id: str, tenant_id: str | None = None
-    ) -> dict[str, Any] | None:
-        """Archive workflow state scoped by tenant."""
-
-
-@runtime_checkable
-class WorkflowRecoveryPort(Protocol):
-    """Contract for recovering orphaned workflow executions on startup."""
-
-    async def recover_workflows(
-        self, active_workflow_ids: set[str]
-    ) -> list[dict[str, Any]]:
-        """Recover orphaned active workflows."""

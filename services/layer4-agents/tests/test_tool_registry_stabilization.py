@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 from uuid import UUID
 
@@ -9,10 +10,13 @@ from pydantic import BaseModel
 from value_fabric.shared.identity.context import RequestContext, RequestContextManager
 from value_fabric.shared.identity.permissions import Permission
 
+import layer4_agents.tools.registry as registry_module
 from layer4_agents.models.tool_schemas import ToolCategory
 from layer4_agents.tools.registry import (
     BaseTool,
+    ToolNotFoundError,
     ToolRegistry,
+    ToolResult,
     _extract_auth_error_info,
     _record_tool_auth_failure_metric,
 )

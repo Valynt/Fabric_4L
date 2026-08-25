@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 import uuid
-from unittest.mock import AsyncMock, MagicMock
-
 import pytest
+from unittest.mock import AsyncMock, MagicMock
 
 from layer4_agents.api.routes.prospects_helpers import (
     infer_buyer_role_from_title,

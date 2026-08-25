@@ -2,15 +2,14 @@ from __future__ import annotations
 
 from datetime import date, timedelta
 from pathlib import Path
-
 import pytest
 import yaml
-from scripts.ci.check_security_exceptions import (
-    iter_exceptions,
-    validate_registry,
-)
 
 from scripts.ci import check_security_exceptions
+from scripts.ci.check_security_exceptions import (
+    validate_registry,
+    iter_exceptions,
+)
 
 REFERENCE_DATE = date(2030, 1, 1)
 

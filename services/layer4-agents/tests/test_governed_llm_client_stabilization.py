@@ -10,17 +10,16 @@ Validates:
 
 from __future__ import annotations
 
+import pytest
 from unittest.mock import MagicMock
 
-import pytest
-
 from layer4_agents.services.governed_llm_client import (
-    GovernedLLMClient,
-    _CostCapExceeded,
-    calculate_llm_call_cost,
     classify_llm_error,
     estimate_prompt_tokens_from_messages,
+    calculate_llm_call_cost,
     format_structured_llm_messages,
+    GovernedLLMClient,
+    _CostCapExceeded,
 )
 
 
@@ -46,10 +45,7 @@ def test_estimate_prompt_tokens_from_messages():
     assert est == 14
 
     # Empty content should return minimum 1
-    assert (
-        estimate_prompt_tokens_from_messages([{"role": "user", "content": ""}], fallback_tokens=100)
-        == 1
-    )
+    assert estimate_prompt_tokens_from_messages([{"role": "user", "content": ""}], fallback_tokens=100) == 1
 
     # None messages should fall back to budget
     assert estimate_prompt_tokens_from_messages(None, fallback_tokens=500) == 500

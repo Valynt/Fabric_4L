@@ -11,8 +11,8 @@ from __future__ import annotations
 
 import os
 import types
-
 import pytest
+
 from value_fabric.shared.secrets.infisical import (
     InfisicalAuthError,
     InfisicalMissingRequiredSecretsError,

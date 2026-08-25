@@ -18,11 +18,13 @@ Provides endpoints for:
 
 
 import uuid
+from datetime import UTC, datetime
 from enum import Enum
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from value_fabric.shared.audit import AuditAction, AuditOutcome, emit_audit_event
 from value_fabric.shared.identity.context import RequestContext
@@ -32,6 +34,7 @@ from value_fabric.shared.security.dil_auth import get_verified_tenant_id
 from ...config.settings import get_settings
 from ...database import get_db_from_context
 from ...interfaces.prospect_context import ProspectContextPort
+from ...models.account import Account
 from ...startup.agent_composition import create_prospect_context_client
 from .prospects_helpers import (
     create_or_update_prospect_account,
@@ -115,9 +118,7 @@ class ProspectSetupData(BaseModel):
         examples=["reduce_costs", "increase_revenue", "improve_efficiency", "mitigate_risk"],
     )
     buyer_role_confirmed: bool = Field(default=False, description="Whether buyer role is confirmed")
-    company_confirmed: bool = Field(
-        default=False, description="Whether company profile is confirmed"
-    )
+    company_confirmed: bool = Field(default=False, description="Whether company profile is confirmed")
     crm_reviewed: bool = Field(default=False, description="Whether CRM match is reviewed")
 
 
@@ -170,9 +171,7 @@ class StartAnalysisResponse(BaseModel):
         description="Company enrichment data availability",
     )
     buyer_role_inference: BuyerRoleInferenceResult = Field(
-        default_factory=lambda: BuyerRoleInferenceResult(
-            status=BuyerRoleInferenceStatus.UNAVAILABLE
-        ),
+        default_factory=lambda: BuyerRoleInferenceResult(status=BuyerRoleInferenceStatus.UNAVAILABLE),
         description="Buyer role inference result (never fabricated)",
     )
     crm_match: CrmMatchResult = Field(
@@ -317,11 +316,7 @@ def get_executor():
     return runtime_state.workflow_executor
 
 
-@router.post(
-    "/{prospect_id}/start-analysis",
-    response_model=StartAnalysisResponse,
-    status_code=status.HTTP_201_CREATED,
-)
+@router.post("/{prospect_id}/start-analysis", response_model=StartAnalysisResponse, status_code=status.HTTP_201_CREATED)
 async def start_prospect_analysis(
     prospect_id: str,
     request: StartAnalysisRequest,
@@ -380,7 +375,7 @@ async def start_prospect_analysis(
                 tenant_id=None,
                 user_id=ctx.user_id if ctx else None,
             )
-            raise AuthenticationError(message="Tenant context required for prospect analysis")
+            raise AuthenticationError(message = "Tenant context required for prospect analysis")
 
         # -------------------------------------------------------------------
         # 2. Create or update prospect record
@@ -432,11 +427,7 @@ async def start_prospect_analysis(
         # -------------------------------------------------------------------
         await emit_audit_event(
             action=AuditAction.CREATE,
-            outcome=(
-                AuditOutcome.SUCCESS
-                if overall_status != WorkflowStartStatus.FAILED
-                else AuditOutcome.FAILURE
-            ),
+            outcome=AuditOutcome.SUCCESS if overall_status != WorkflowStartStatus.FAILED else AuditOutcome.FAILURE,
             resource_type="prospect_analysis",
             resource_id=str(prospect_uuid),
             details={
@@ -471,11 +462,7 @@ async def start_prospect_analysis(
             outcome=AuditOutcome.FAILURE,
             resource_type="prospect_analysis",
             resource_id=prospect_id,
-            details={
-                "error": "Prospect analysis failed",
-                "error_code": "PROSPECT_ANALYSIS_ERROR",
-                "reason": "unexpected_error",
-            },
+            details={"error": "Prospect analysis failed", "error_code": "PROSPECT_ANALYSIS_ERROR", "reason": "unexpected_error"},
             tenant_id=tenant_id if tenant_id else None,
             user_id=ctx.user_id if ctx else None,
         )

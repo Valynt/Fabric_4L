@@ -15,7 +15,8 @@ from __future__ import annotations
 import time
 import uuid
 from dataclasses import dataclass, field
-from datetime import UTC, datetime, timedelta, timezone
+from datetime import datetime, timezone, timedelta
+
 
 TENANT_ALPHA_ID = "tenant-alpha-001"
 TENANT_BETA_ID = "tenant-beta-002"
@@ -35,7 +36,7 @@ class SeededResource:
     resource_type: str
     content: str
     metadata: dict[str, object] = field(default_factory=dict)
-    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 @dataclass
@@ -165,7 +166,7 @@ class HostileTenancyHarness:
         self.ai_traces[(TENANT_BETA_ID, "trace-beta-002")] = {"tenant_id": TENANT_BETA_ID, "step": "agent_execution", "secrets": "beta-token"}
 
         # 5. Signed URLs
-        now = datetime.now(UTC)
+        now = datetime.now(timezone.utc)
         self.create_signed_url("sig-alpha-valid", TENANT_ALPHA_ID, "exports/2026/alpha-q3.csv", now + timedelta(minutes=15))
         self.create_signed_url("sig-alpha-expired", TENANT_ALPHA_ID, "exports/2026/alpha-q3.csv", now - timedelta(minutes=5))
         self.create_signed_url("sig-beta-valid", TENANT_BETA_ID, "exports/2026/beta-mna.csv", now + timedelta(minutes=15))
@@ -227,7 +228,7 @@ class HostileTenancyHarness:
         if signature not in self.signed_urls:
             raise PermissionError("Invalid signed URL signature")
         rec = self.signed_urls[signature]
-        now = datetime.now(UTC)
+        now = datetime.now(timezone.utc)
         if now > rec.expires_at:
             raise PermissionError("Signed URL has expired")
         if rec.used and rec.max_uses <= 1:
@@ -303,7 +304,7 @@ class HostileTenancyHarness:
             "msg_id": str(uuid.uuid4()),
             "tenant_id": authenticated_tenant_id,
             "payload": payload_envelope,
-            "dispatched_at": datetime.now(UTC).isoformat(),
+            "dispatched_at": datetime.now(timezone.utc).isoformat(),
         }
         self.queue_envelopes.append(msg_record)
         return msg_record
@@ -329,7 +330,7 @@ class HostileTenancyHarness:
             target_tenant_id=target_tenant_id,
             target_user_id=target_user_id,
             scope=scope,
-            expires_at=datetime.now(UTC) + timedelta(minutes=duration_minutes),
+            expires_at=datetime.now(timezone.utc) + timedelta(minutes=duration_minutes),
         )
         self.impersonation_grants[grant.grant_id] = grant
         return grant
@@ -345,7 +346,7 @@ class HostileTenancyHarness:
         grant = self.impersonation_grants[grant_id]
         if grant.revoked:
             raise PermissionError("Impersonation grant has been revoked")
-        now = datetime.now(UTC)
+        now = datetime.now(timezone.utc)
         if now > grant.expires_at:
             raise PermissionError("Impersonation grant has expired")
         if action_tenant_id != grant.target_tenant_id:

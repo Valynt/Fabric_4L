@@ -28,22 +28,31 @@ from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import require_authenticated
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
+from ...models.billing import (
+    BillingCharge,
+    BillingCustomer,
+    BillingInvoice,
+    BillingInvoiceItem,
+    BillingSubscription,
+    BillingUsageEvent,
+)
+from .billing_helpers import (
+    dt_iso as _dt_iso,
+    get_client_ip as _get_client_ip,
+    is_stripe_webhook_ip as _is_stripe_webhook_ip,
+    serialize_charge as _serialize_charge,
+    serialize_customer as _serialize_customer,
+    serialize_invoice as _serialize_invoice,
+    serialize_invoice_item as _serialize_invoice_item,
+    serialize_subscription as _serialize_subscription,
+    serialize_usage_event as _serialize_usage_event,
+)
 from ...services.billing_security import validate_webhook_request_security
 from ...services.billing_service import BillingService
 from ...services.invoice_service import InvoiceService
 from ...services.overage_service import OverageService
 from ...services.usage_service import UsageService
 from ..common.db import get_route_db, get_webhook_db
-from .billing_helpers import dt_iso as _dt_iso
-from .billing_helpers import get_client_ip as _get_client_ip
-from .billing_helpers import is_stripe_webhook_ip as _is_stripe_webhook_ip
-from .billing_helpers import serialize_charge as _serialize_charge
-from .billing_helpers import serialize_customer as _serialize_customer
-from .billing_helpers import serialize_invoice as _serialize_invoice
-from .billing_helpers import serialize_subscription as _serialize_subscription
-from .billing_helpers import serialize_usage_event as _serialize_usage_event
-
-__all__ = ["_is_stripe_webhook_ip"]
 
 logger = logging.getLogger(__name__)
 
@@ -85,9 +94,7 @@ async def _emit_billing_audit(
         logger.warning("Billing audit emission failed (non-critical): %s", exc)
 
 
-def _raise_billing_bad_request(
-    exc: ValueError, message: str = "Invalid billing request."
-) -> NoReturn:
+def _raise_billing_bad_request(exc: ValueError, message: str = "Invalid billing request.") -> NoReturn:
     """Translate a ValueError into a structured, client-safe BadRequestError.
 
     The original exception text is logged server-side for debugging but is
@@ -294,7 +301,9 @@ class UsageEventRequest(BaseModel):
     """Request body for ingesting a single usage event."""
 
     event_id: str = Field(..., min_length=1, max_length=128, description="Idempotency key")
-    customer_id: str = Field(..., min_length=1, max_length=64, description="Customer identifier")
+    customer_id: str = Field(
+        ..., min_length=1, max_length=64, description="Customer identifier"
+    )
     event_name: str = Field(..., min_length=1, max_length=128, description="Logical event name")
     metric_name: str = Field(..., min_length=1, max_length=64, description="Metered metric name")
     quantity: float = Field(..., ge=0, description="Quantity to record")
@@ -312,7 +321,9 @@ class UsageBatchRequest(BaseModel):
 
 
 class CancelSubscriptionRequest(BaseModel):
-    cancel_immediately: bool = Field(False, description="Cancel immediately vs at period end")
+    cancel_immediately: bool = Field(
+        False, description="Cancel immediately vs at period end"
+    )
 
 
 class UpdatePlanRequest(BaseModel):
@@ -365,7 +376,9 @@ class RecordChargeRequest(BaseModel):
 
 @router.get("/subscription", response_model=get_subscriptionResult)
 async def get_subscription(
-    customer_id: str = Query(..., min_length=1, max_length=64, pattern=r"^[a-zA-Z0-9_-]+$"),
+    customer_id: str = Query(
+        ..., min_length=1, max_length=64, pattern=r"^[a-zA-Z0-9_-]+$"
+    ),
     db: AsyncSession = Depends(get_route_db),
     context: RequestContext = Depends(require_authenticated),
 ) -> dict[str, Any]:
@@ -378,7 +391,9 @@ async def get_subscription(
 @router.post("/checkout")
 async def create_checkout(
     request: CheckoutRequest,
-    customer_id: str = Query(..., min_length=1, max_length=64, pattern=r"^[a-zA-Z0-9_-]+$"),
+    customer_id: str = Query(
+        ..., min_length=1, max_length=64, pattern=r"^[a-zA-Z0-9_-]+$"
+    ),
     db: AsyncSession = Depends(get_route_db),
     context: RequestContext = Depends(require_authenticated),
 ) -> dict[str, str]:
@@ -406,7 +421,9 @@ async def create_checkout(
 @router.post("/portal")
 async def create_portal(
     request: PortalRequest,
-    customer_id: str = Query(..., min_length=1, max_length=64, pattern=r"^[a-zA-Z0-9_-]+$"),
+    customer_id: str = Query(
+        ..., min_length=1, max_length=64, pattern=r"^[a-zA-Z0-9_-]+$"
+    ),
     db: AsyncSession = Depends(get_route_db),
     context: RequestContext = Depends(require_authenticated),
 ) -> dict[str, str]:
@@ -435,7 +452,9 @@ async def create_portal(
 @router.post("/subscription/cancel")
 async def cancel_subscription(
     request: CancelSubscriptionRequest,
-    customer_id: str = Query(..., min_length=1, max_length=64, pattern=r"^[a-zA-Z0-9_-]+$"),
+    customer_id: str = Query(
+        ..., min_length=1, max_length=64, pattern=r"^[a-zA-Z0-9_-]+$"
+    ),
     db: AsyncSession = Depends(get_route_db),
     context: RequestContext = Depends(require_authenticated),
 ) -> dict[str, Any]:
@@ -452,10 +471,7 @@ async def cancel_subscription(
             context=context,
             resource_type="billing_subscription",
             resource_id=result.get("subscription_id"),
-            details={
-                "customer_id": customer_id,
-                "cancel_at_period_end": result.get("cancel_at_period_end"),
-            },
+            details={"customer_id": customer_id, "cancel_at_period_end": result.get("cancel_at_period_end")},
         )
         return {
             "canceled": result.get("canceled", True),
@@ -470,7 +486,9 @@ async def cancel_subscription(
 @router.post("/subscription/update-plan")
 async def update_subscription_plan(
     request: UpdatePlanRequest,
-    customer_id: str = Query(..., min_length=1, max_length=64, pattern=r"^[a-zA-Z0-9_-]+$"),
+    customer_id: str = Query(
+        ..., min_length=1, max_length=64, pattern=r"^[a-zA-Z0-9_-]+$"
+    ),
     db: AsyncSession = Depends(get_route_db),
     context: RequestContext = Depends(require_authenticated),
 ) -> dict[str, Any]:
@@ -487,11 +505,7 @@ async def update_subscription_plan(
             context=context,
             resource_type="billing_subscription",
             resource_id=result.get("subscription_id"),
-            details={
-                "customer_id": customer_id,
-                "previous_plan_id": result.get("previous_plan_id"),
-                "new_plan_id": request.plan_id,
-            },
+            details={"customer_id": customer_id, "previous_plan_id": result.get("previous_plan_id"), "new_plan_id": request.plan_id},
         )
         return {
             "updated": result.get("updated", True),
@@ -504,7 +518,9 @@ async def update_subscription_plan(
 
 @router.post("/subscription/reactivate")
 async def reactivate_subscription(
-    customer_id: str = Query(..., min_length=1, max_length=64, pattern=r"^[a-zA-Z0-9_-]+$"),
+    customer_id: str = Query(
+        ..., min_length=1, max_length=64, pattern=r"^[a-zA-Z0-9_-]+$"
+    ),
     db: AsyncSession = Depends(get_route_db),
     context: RequestContext = Depends(require_authenticated),
 ) -> dict[str, Any]:
@@ -536,7 +552,9 @@ async def reactivate_subscription(
 
 @router.get("/entitlements")
 async def get_entitlements(
-    customer_id: str = Query(..., min_length=1, max_length=64, pattern=r"^[a-zA-Z0-9_-]+$"),
+    customer_id: str = Query(
+        ..., min_length=1, max_length=64, pattern=r"^[a-zA-Z0-9_-]+$"
+    ),
     db: AsyncSession = Depends(get_route_db),
     context: RequestContext = Depends(require_authenticated),
 ) -> dict[str, Any]:
@@ -565,7 +583,9 @@ async def get_entitlements(
 
 @router.get("/check-feature", response_model=check_featureResult)
 async def check_feature(
-    customer_id: str = Query(..., min_length=1, max_length=64, pattern=r"^[a-zA-Z0-9_-]+$"),
+    customer_id: str = Query(
+        ..., min_length=1, max_length=64, pattern=r"^[a-zA-Z0-9_-]+$"
+    ),
     feature_id: str = Query(..., min_length=1, max_length=64),
     db: AsyncSession = Depends(get_route_db),
     context: RequestContext = Depends(require_authenticated),
@@ -584,7 +604,9 @@ async def check_feature(
 @router.post("/sync-customer", response_model=sync_customerResult)
 async def sync_customer(
     request: CustomerSyncRequest,
-    customer_id: str = Query(..., min_length=1, max_length=64, pattern=r"^[a-zA-Z0-9_-]+$"),
+    customer_id: str = Query(
+        ..., min_length=1, max_length=64, pattern=r"^[a-zA-Z0-9_-]+$"
+    ),
     db: AsyncSession = Depends(get_route_db),
     context: RequestContext = Depends(require_authenticated),
 ) -> dict[str, Any]:
@@ -679,10 +701,7 @@ async def stripe_webhook(
     except Exception as exc:
         logger.error(
             "Webhook processing failed",
-            extra={
-                "error_code": "BILLING_WEBHOOK_PROCESSING_ERROR",
-                "exception_type": type(exc).__name__,
-            },
+            extra={"error_code": "BILLING_WEBHOOK_PROCESSING_ERROR", "exception_type": type(exc).__name__},
         )
         await _emit_billing_audit(
             action=AuditAction.BILLING_WEBHOOK_RECEIVED,
@@ -715,7 +734,6 @@ async def ingest_usage_event(
     )
     if not check.get("allowed", True):
         from value_fabric.shared.error_handling.exceptions import RateLimitError
-
         raise RateLimitError(
             message=check.get("error", "Usage limit exceeded"),
             details={
@@ -743,11 +761,7 @@ async def ingest_usage_event(
             context=context,
             resource_type="billing_usage_event",
             resource_id=event.id,
-            details={
-                "customer_id": request.customer_id,
-                "metric_name": request.metric_name,
-                "quantity": request.quantity,
-            },
+            details={"customer_id": request.customer_id, "metric_name": request.metric_name, "quantity": request.quantity},
         )
         return _serialize_usage_event(event)
     except ValueError as exc:
@@ -778,7 +792,6 @@ async def ingest_usage_batch(
         )
         if not check.get("allowed", True):
             from value_fabric.shared.error_handling.exceptions import RateLimitError
-
             raise RateLimitError(
                 message=check.get("error", "Usage limit exceeded"),
                 details={
@@ -806,11 +819,7 @@ async def ingest_usage_batch(
         )
     try:
         result = await usage_svc.ingest_batch(raw_events)
-        batch_customer_id = (
-            request.events[0].customer_id
-            if request.events
-            else str(context.tenant_id) if context.tenant_id else None
-        )
+        batch_customer_id = request.events[0].customer_id if request.events else str(context.tenant_id) if context.tenant_id else None
         await _emit_billing_audit(
             action=AuditAction.BILLING_USAGE_INGESTED,
             context=context,
@@ -885,7 +894,9 @@ async def sync_usage_to_stripe(
     """Sync pending usage events to Stripe MeterEvents."""
     usage_svc = UsageService(db, tenant_id=context.tenant_id)
     try:
-        result = await usage_svc.sync_to_stripe(customer_id=customer_id, metric_name=metric_name)
+        result = await usage_svc.sync_to_stripe(
+            customer_id=customer_id, metric_name=metric_name
+        )
         return {
             "synced": result.get("synced", 0),
             "failed": result.get("failed", 0),
@@ -1205,11 +1216,7 @@ async def record_charge(
             context=context,
             resource_type="billing_charge",
             resource_id=charge.id,
-            details={
-                "customer_id": request.customer_id,
-                "amount_cents": charge.amount,
-                "status": charge.status,
-            },
+            details={"customer_id": request.customer_id, "amount_cents": charge.amount, "status": charge.status},
         )
         return {
             "id": charge.id,
@@ -1254,7 +1261,6 @@ async def get_customer_balance(
 # ---------------------------------------------------------------------------
 # Re-export adjacent route modules
 # ---------------------------------------------------------------------------
-
 
 def _is_adjacent_billing_route_initializing(name: str) -> bool:
     import sys
