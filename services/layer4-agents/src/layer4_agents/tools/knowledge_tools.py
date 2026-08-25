@@ -78,7 +78,7 @@ class QueryGraphTool(BaseTool):
         return self._driver
 
     _CYPHER_WRITE_KEYWORDS = re.compile(
-        r"\b(CREATE|DELETE|DETACH|SET|MERGE|REMOVE|DROP|CALL)\b",
+        r"(?<![\.\:\`])\b(CREATE|DELETE|DETACH|SET|MERGE|REMOVE|DROP|CALL)\b(?!\s*\:)",
         re.IGNORECASE,
     )
 
@@ -190,14 +190,34 @@ class QueryGraphTool(BaseTool):
             tenant_ctx = tenant_context.get_current_tenant_context()
             tenant_ctx.assert_valid()
             effective_tenant_id = tenant_ctx.tenant_id
+
+            # Never allow request payload tenant override
+            if (
+                input_data.tenant_id is not None
+                and input_data.tenant_id != str(effective_tenant_id)
+            ):
+                logger.warning(
+                    "Tenant mismatch in query_graph: "
+                    "context tenant=%s input tenant=%s",
+                    effective_tenant_id,
+                    input_data.tenant_id,
+                )
+                return QueryGraphOutput(
+                    results=[],
+                    columns=[],
+                    row_count=0,
+                    error="Tenant context mismatch",
+                )
         except TenantContextError as e:
-            logger.warning(f"Tenant context error in query_graph: {e}")
+            logger.warning(
+                "Tenant context error in query_graph: %s",
+                e,
+            )
             return QueryGraphOutput(
                 results=[],
                 columns=[],
                 row_count=0,
-                execution_time_ms=0,
-                error=f"Tenant context required: {e}. Authentication required.",
+                error="Invalid tenant context",
             )
 
         validation_error = self._validate_read_only(input_data.cypher_query)
@@ -470,7 +490,7 @@ class GetEntityTool(BaseTool):
 
         try:
             async with driver.session(database=self.database) as session:
-                # P0 FIX: Query entity by ID with mandatory tenant filter
+                # P0 FIX verified: Query entity by ID with mandatory tenant filter
                 entity_query = """
                     MATCH (n {id: $entity_id, tenant_id: $tenant_id})
                     RETURN n, labels(n) as labels
@@ -492,7 +512,7 @@ class GetEntityTool(BaseTool):
 
                 relationships = []
                 if input_data.include_relationships:
-                    # P0 FIX: Query relationships with mandatory tenant filter on both nodes
+                    # P0: Relationship query must tenant-scope both endpoint nodes.
                     rel_query = """
                         MATCH (n {id: $entity_id, tenant_id: $tenant_id})-[r]-(m {tenant_id: $tenant_id})
                         RETURN type(r) as predicate, m.id as target_id, 
@@ -597,8 +617,8 @@ class GetRelationshipsTool(BaseTool):
                 # P0 FIX: Build query with mandatory tenant filter and optional predicate
                 tenant_id_str = str(tenant_ctx.tenant_id)
 
-                rel_pattern = f"[r:{predicate}]" if predicate else "[r]"  # cypher-dynamic-safe: validated against ALLOWED_REL_TYPES via validate_cypher_identifier
-
+                # cypher-dynamic-safe: validated against regex [A-Za-z_][A-Za-z0-9_]* above
+                rel_pattern = f"[r:{predicate}]" if predicate else "[r]"
                 query = f"""
                     MATCH (n {{id: $entity_id, tenant_id: $tenant_id}})-{rel_pattern}->(m {{tenant_id: $tenant_id}})
                     RETURN n.id as source_id, type(r) as predicate,

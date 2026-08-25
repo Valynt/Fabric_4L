@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Mapping, Optional, Sequence
 
 from pydantic import BaseModel, Field, ValidationError, field_validator, model_validator
 
@@ -223,7 +223,7 @@ def validate_envelope(
             violations=_validation_errors(exc),
             normalized=None,
         )
-    except Exception as exc:
+    except Exception:
         return ContractValidationResult(
             valid=False,
             mode=resolved_mode,
