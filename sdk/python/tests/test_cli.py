@@ -298,6 +298,28 @@ class TestFeatureFlagCommands:
             assert result.exit_code == 0
             assert "new_ui" in result.output
 
+    def test_list_flags_with_options(self, mock_config: None) -> None:
+        flag = FeatureFlag(
+            id=UUID("55555555-5555-5555-5555-555555555555"),
+            flag_key="new_ui",
+            enabled=True,
+            rollout_percentage=100,
+            metadata={},
+            created_at="2024-01-01T00:00:00Z",
+            updated_at="2024-01-01T00:00:00Z",
+        )
+        with patch("valuefabric.cli.flags.get_client") as mock_client_factory:
+            mock_client = mock_client_factory.return_value
+            mock_client.list_feature_flags.return_value = [flag]
+            result = runner.invoke(
+                app, ["feature-flags", "list", "--limit", "50", "--offset", "10", "--json"]
+            )
+            assert result.exit_code == 0
+            mock_client.list_feature_flags.assert_called_once_with(limit=50, offset=10)
+            data = json.loads(result.output)
+            assert isinstance(data, list)
+            assert data[0]["flag_key"] == "new_ui"
+
     def test_set_flag(self, mock_config: None) -> None:
         flag = FeatureFlag(
             id=UUID("55555555-5555-5555-5555-555555555555"),
@@ -316,6 +338,25 @@ class TestFeatureFlagCommands:
             )
             assert result.exit_code == 0
             assert "False" in result.output
+
+    def test_set_flag_json(self, mock_config: None) -> None:
+        flag = FeatureFlag(
+            id=UUID("55555555-5555-5555-5555-555555555555"),
+            flag_key="new_ui",
+            enabled=False,
+            rollout_percentage=0,
+            metadata={},
+            created_at="2024-01-01T00:00:00Z",
+            updated_at="2024-01-01T00:00:00Z",
+        )
+        with patch("valuefabric.cli.flags.get_client") as mock_client_factory:
+            mock_client = mock_client_factory.return_value
+            mock_client.set_feature_flag.return_value = flag
+            result = runner.invoke(app, ["feature-flags", "set", "new_ui", "--disabled", "--json"])
+            assert result.exit_code == 0
+            data = json.loads(result.output)
+            assert data["flag_key"] == "new_ui"
+            assert data["enabled"] is False
 
 
 class TestHealthCommand:
