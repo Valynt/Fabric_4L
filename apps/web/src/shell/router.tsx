@@ -2,7 +2,6 @@ import { lazy, Suspense } from "react";
 import { createBrowserRouter, Navigate, useLocation, useParams } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuthContext } from "@/contexts/AuthContext";
-import { useAccountContextStore } from "@/stores/accountContextStore";
 import { GlobalLayout } from "@/components/layout/GlobalLayout";
 import { UnifiedRouteGuard } from "@/components/routing/UnifiedRouteGuard";
 import { RequireClerkAuth } from "@/components/routing/RequireClerkAuth";
@@ -15,6 +14,7 @@ import { PublicLandingPage } from "@/features/public-landing";
 import CommandCenter from "@/pages/CommandCenter";
 import { IntelligenceWorkspace } from "@/features/intelligence-workspace";
 import StudioShell from "@/features/value-studio/StudioShell";
+import { AccountJourneyLayout } from "@/components/journey/AccountJourneyLayout";
 
 // Settings pages — Personal
 const PersonalProfile = lazy(() => import("@/app/settings/pages/PersonalProfile").then(m => ({ default: m.PersonalProfile })));
@@ -33,7 +33,6 @@ const BillingInvoices = lazy(() => import("@/app/settings/pages/BillingInvoices"
 
 // Settings pages — Team & Access
 const TeamMembers = lazy(() => import("@/app/settings/pages/TeamMembers").then(m => ({ default: m.TeamMembers })));
-const TeamInvitations = lazy(() => import("@/app/settings/pages/TeamInvitations").then(m => ({ default: m.TeamInvitations })));
 const TeamRoles = lazy(() => import("@/app/settings/pages/TeamRoles").then(m => ({ default: m.TeamRoles })));
 const TeamPermissions = lazy(() => import("@/app/settings/pages/TeamPermissions").then(m => ({ default: m.TeamPermissions })));
 const TeamApiKeys = lazy(() => import("@/app/settings/pages/TeamApiKeys").then(m => ({ default: m.TeamApiKeys })));
@@ -84,7 +83,6 @@ const TargetsAdmin = lazy(() => import("@/pages/TargetsAdmin"));
 // ── Deliverables ──
 const BusinessCaseList = lazy(() => import("@/pages/BusinessCaseList"));
 const BusinessCase = lazy(() => import("@/pages/BusinessCase"));
-const InteractiveBusinessCase = lazy(() => import("@/pages/InteractiveBusinessCase"));
 const CFOView = lazy(() => import("@/pages/deliverables/CFOView"));
 const ExecutiveView = lazy(() => import("@/pages/deliverables/ExecutiveView"));
 const TechnicalView = lazy(() => import("@/pages/deliverables/TechnicalView"));
@@ -94,9 +92,6 @@ const DecisionTracePage = lazy(() => import("@/pages/DecisionTrace"));
 const GovernanceEvidencePage = lazy(() => import("@/pages/GovernanceEvidence"));
 const GovernanceCompliancePage = lazy(() => import("@/pages/GovernanceCompliance"));
 const GovernanceAuditLogPage = lazy(() => import("@/pages/GovernanceAuditLog"));
-const GovernanceChangeHistoryPage = lazy(() => import("@/pages/GovernanceChangeHistory"));
-const ReviewQueuePage = lazy(() => import("@/pages/ReviewQueuePage"));
-const VersionHistoryPage = lazy(() => import("@/pages/VersionHistoryPage"));
 const BenchmarkPoliciesPage = lazy(() => import("@/pages/admin/BenchmarkPolicies"));
 const HealthMonitorPage = lazy(() => import("@/pages/admin/HealthMonitor"));
 const BillingAdminPage = lazy(() => import("@/pages/admin/BillingAdmin"));
@@ -258,10 +253,7 @@ const tenantStdPolicy = (id: string) => ({ requiresAuth: true, tenantScoped: tru
 const tenantAdvPolicy = (id: string) => ({ requiresAuth: true, tenantScoped: true, requiredTier: "advanced" as const, fallbackRoute: "/home", analyticsRouteId: id });
 const tenantAdminPolicy = (id: string) => ({ requiresAuth: true, tenantScoped: true, requiredTier: "admin" as const, fallbackRoute: "/home", analyticsRouteId: id });
 const accountStdPolicy = (id: string) => ({ requiresAuth: true, tenantScoped: true, accountScoped: true, requiredTier: "standard" as const, fallbackRoute: "/home", analyticsRouteId: id });
-// TODO(VF-FE-ROUTER-DEBT-001): accountAdvPolicy is reserved for future advanced account-scoped gating.
-// No routes currently use it. When advanced account access is implemented,
-// update affected routes (e.g. studio build, value-model detail) to use this policy.
-const accountAdvPolicy = (id: string) => ({ requiresAuth: true, tenantScoped: true, accountScoped: true, requiredTier: "advanced" as const, fallbackRoute: "/home", analyticsRouteId: id });
+// Note: Advanced account access will be wired in future sprint.
 
 export const router = createBrowserRouter([
   {
@@ -431,203 +423,159 @@ export const router = createBrowserRouter([
         ),
         handle: { accessPolicy: tenantStdPolicy("accounts.list") },
       },
+      // ═══════════════════════════════════════════════════════════════
+      // ACCOUNT JOURNEY & WORKSPACES
+      // ═══════════════════════════════════════════════════════════════
       {
         path: "/t/:tenantSlug/accounts/:accountId",
-        element: <AccountOverviewRedirect />,
-        handle: { accessPolicy: accountStdPolicy("accounts.overview-redirect") },
-      },
-      {
-        path: "/t/:tenantSlug/accounts/:accountId/overview",
         element: (
           <UnifiedRouteGuard>
-            <Accounts />
+            <AccountJourneyLayout />
           </UnifiedRouteGuard>
         ),
-        handle: { accessPolicy: accountStdPolicy("accounts.overview") },
-      },
+        children: [
+          {
+            index: true,
+            element: <AccountOverviewRedirect />,
+            handle: { accessPolicy: accountStdPolicy("accounts.overview-redirect"), requiresAuth: true },
+          },
+          {
+            path: "overview",
+            element: <Accounts />,
+            handle: { accessPolicy: accountStdPolicy("accounts.overview"), requiresAuth: true },
+          },
 
-      // ═══════════════════════════════════════════════════════════════
-      // INTELLIGENCE WORKSPACE
-      // ═══════════════════════════════════════════════════════════════
-      {
-        path: "/t/:tenantSlug/accounts/:accountId/intelligence",
-        element: (
-          <UnifiedRouteGuard>
-            <Navigate to="signals" replace />
-          </UnifiedRouteGuard>
-        ),
-        handle: { accessPolicy: accountStdPolicy("intelligence.workspace") },
-      },
-      {
-        path: "/t/:tenantSlug/accounts/:accountId/intelligence/:tabId",
-        element: (
-          <UnifiedRouteGuard>
-            <Suspense fallback={<div className="flex h-full items-center justify-center gap-2"><Skeleton className="h-8 w-48" /></div>}>
-              <IntelligenceWorkspace />
-            </Suspense>
-          </UnifiedRouteGuard>
-        ),
-        handle: { accessPolicy: accountStdPolicy("intelligence.workspace") },
-      },
+          // ═══════════════════════════════════════════════════════════════
+          // INTELLIGENCE WORKSPACE
+          // ═══════════════════════════════════════════════════════════════
+          {
+            path: "intelligence",
+            element: <Navigate to="signals" replace />,
+            handle: { accessPolicy: accountStdPolicy("intelligence.workspace"), journeyTimeline: true, requiresAuth: true },
+          },
+          {
+            path: "intelligence/:tabId",
+            element: (
+              <Suspense fallback={<div className="flex h-full items-center justify-center gap-2"><Skeleton className="h-8 w-48" /></div>}>
+                <IntelligenceWorkspace />
+              </Suspense>
+            ),
+            handle: { accessPolicy: accountStdPolicy("intelligence.workspace"), journeyTimeline: true, requiresAuth: true },
+          },
 
-      // ═══════════════════════════════════════════════════════════════
-      // VALUE STUDIO WORKSPACE
-      // ═══════════════════════════════════════════════════════════════
-      {
-        path: "/t/:tenantSlug/accounts/:accountId/studio",
-        element: (
-          <UnifiedRouteGuard>
-            <Navigate to="action-plan" replace />
-          </UnifiedRouteGuard>
-        ),
-        handle: {
-          accessPolicy: accountStdPolicy("studio.workspace"),
-          title: "Value Studio",
-          category: "Workspace",
-        },
-      },
-      {
-        path: "/t/:tenantSlug/accounts/:accountId/studio/:tabId",
-        element: (
-          <UnifiedRouteGuard>
-            <Suspense fallback={<div className="flex h-full items-center justify-center gap-2"><Skeleton className="h-8 w-48" /></div>}>
-              <StudioShell />
-            </Suspense>
-          </UnifiedRouteGuard>
-        ),
-        handle: {
-          accessPolicy: accountStdPolicy("studio.workspace"),
-          title: "Value Studio",
-          category: "Workspace",
-        },
-      },
+          // ═══════════════════════════════════════════════════════════════
+          // VALUE STUDIO WORKSPACE
+          // ═══════════════════════════════════════════════════════════════
+          {
+            path: "studio",
+            element: <Navigate to="action-plan" replace />,
+            handle: {
+              accessPolicy: accountStdPolicy("studio.workspace"),
+              title: "Value Studio",
+              category: "Workspace",
+              journeyTimeline: true,
+              requiresAuth: true,
+            },
+          },
+          {
+            path: "studio/:tabId",
+            element: (
+              <Suspense fallback={<div className="flex h-full items-center justify-center gap-2"><Skeleton className="h-8 w-48" /></div>}>
+                <StudioShell />
+              </Suspense>
+            ),
+            handle: {
+              accessPolicy: accountStdPolicy("studio.workspace"),
+              title: "Value Studio",
+              category: "Workspace",
+              journeyTimeline: true,
+              requiresAuth: true,
+            },
+          },
 
-      // ═══════════════════════════════════════════════════════════════
-      // DELIVERABLES
-      // ═══════════════════════════════════════════════════════════════
-      {
-        path: "/t/:tenantSlug/accounts/:accountId/deliverables",
-        element: (
-          <UnifiedRouteGuard>
-            <Navigate to="business-cases" replace />
-          </UnifiedRouteGuard>
-        ),
-        handle: { accessPolicy: accountStdPolicy("deliverables.workspace") },
-      },
-      {
-        path: "/t/:tenantSlug/accounts/:accountId/deliverables/business-cases",
-        element: (
-          <UnifiedRouteGuard>
-            <BusinessCaseList />
-          </UnifiedRouteGuard>
-        ),
-        handle: { accessPolicy: accountStdPolicy("deliverables.business-cases") },
-      },
-      {
-        path: "/t/:tenantSlug/accounts/:accountId/deliverables/business-cases/:caseId",
-        element: (
-          <UnifiedRouteGuard>
-            <BusinessCase />
-          </UnifiedRouteGuard>
-        ),
-        handle: { accessPolicy: accountStdPolicy("deliverables.business-case-detail") },
-      },
-      {
-        path: "/t/:tenantSlug/accounts/:accountId/deliverables/proposals",
-        element: (
-          <UnifiedRouteGuard>
-            <BusinessCaseList />
-          </UnifiedRouteGuard>
-        ),
-        handle: { accessPolicy: accountStdPolicy("deliverables.proposals") },
-      },
-      {
-        path: "/t/:tenantSlug/accounts/:accountId/deliverables/exports",
-        element: (
-          <UnifiedRouteGuard>
-            <BusinessCaseList />
-          </UnifiedRouteGuard>
-        ),
-        handle: { accessPolicy: accountStdPolicy("deliverables.exports") },
-      },
-      {
-        path: "/t/:tenantSlug/accounts/:accountId/deliverables/views/cfo",
-        element: (
-          <UnifiedRouteGuard>
-            <CFOView />
-          </UnifiedRouteGuard>
-        ),
-        handle: {
-          accessPolicy: accountStdPolicy("deliverables.cfo-view"),
-          title: "CFO View",
-          category: "Deliverables",
-        },
-      },
-      {
-        path: "/t/:tenantSlug/accounts/:accountId/deliverables/views/executive",
-        element: (
-          <UnifiedRouteGuard>
-            <ExecutiveView />
-          </UnifiedRouteGuard>
-        ),
-        handle: {
-          accessPolicy: accountStdPolicy("deliverables.executive-view"),
-          title: "Executive View",
-          category: "Deliverables",
-        },
-      },
-      {
-        path: "/t/:tenantSlug/accounts/:accountId/deliverables/views/technical",
-        element: (
-          <UnifiedRouteGuard>
-            <TechnicalView />
-          </UnifiedRouteGuard>
-        ),
-        handle: {
-          accessPolicy: accountStdPolicy("deliverables.technical-view"),
-          title: "Technical View",
-          category: "Deliverables",
-        },
-      },
+          // ═══════════════════════════════════════════════════════════════
+          // DELIVERABLES
+          // ═══════════════════════════════════════════════════════════════
+          {
+            path: "deliverables",
+            element: <Navigate to="business-cases" replace />,
+            handle: { accessPolicy: accountStdPolicy("deliverables.workspace"), journeyTimeline: true, requiresAuth: true },
+          },
+          {
+            path: "deliverables/business-cases",
+            element: <BusinessCaseList />,
+            handle: { accessPolicy: accountStdPolicy("deliverables.business-cases"), journeyTimeline: true, requiresAuth: true },
+          },
+          {
+            path: "deliverables/business-cases/:caseId",
+            element: <BusinessCase />,
+            handle: { accessPolicy: accountStdPolicy("deliverables.business-case-detail"), journeyTimeline: true, requiresAuth: true },
+          },
+          {
+            path: "deliverables/proposals",
+            element: <BusinessCaseList />,
+            handle: { accessPolicy: accountStdPolicy("deliverables.proposals"), journeyTimeline: true, requiresAuth: true },
+          },
+          {
+            path: "deliverables/exports",
+            element: <BusinessCaseList />,
+            handle: { accessPolicy: accountStdPolicy("deliverables.exports"), journeyTimeline: true, requiresAuth: true },
+          },
+          {
+            path: "deliverables/views/cfo",
+            element: <CFOView />,
+            handle: {
+              accessPolicy: accountStdPolicy("deliverables.cfo-view"),
+              title: "CFO View",
+              category: "Deliverables",
+              requiresAuth: true,
+            },
+          },
+          {
+            path: "deliverables/views/executive",
+            element: <ExecutiveView />,
+            handle: {
+              accessPolicy: accountStdPolicy("deliverables.executive-view"),
+              title: "Executive View",
+              category: "Deliverables",
+              requiresAuth: true,
+            },
+          },
+          {
+            path: "deliverables/views/technical",
+            element: <TechnicalView />,
+            handle: {
+              accessPolicy: accountStdPolicy("deliverables.technical-view"),
+              title: "Technical View",
+              category: "Deliverables",
+              requiresAuth: true,
+            },
+          },
 
-      // ═══════════════════════════════════════════════════════════════
-      // AGENTS & WORKFLOWS
-      // ═══════════════════════════════════════════════════════════════
-      {
-        path: "/t/:tenantSlug/accounts/:accountId/agents",
-        element: (
-          <UnifiedRouteGuard>
-            <AgentWorkflows />
-          </UnifiedRouteGuard>
-        ),
-        handle: { accessPolicy: accountStdPolicy("agents.console") },
-      },
-      {
-        path: "/t/:tenantSlug/accounts/:accountId/agents/threads/:threadId",
-        element: (
-          <UnifiedRouteGuard>
-            <AgentWorkflows />
-          </UnifiedRouteGuard>
-        ),
-        handle: { accessPolicy: accountStdPolicy("agents.thread") },
-      },
-      {
-        path: "/t/:tenantSlug/accounts/:accountId/workflows",
-        element: (
-          <UnifiedRouteGuard>
-            <AgentWorkflows />
-          </UnifiedRouteGuard>
-        ),
-        handle: { accessPolicy: accountStdPolicy("agents.workflows") },
-      },
-      {
-        path: "/t/:tenantSlug/accounts/:accountId/workflows/:workflowRunId",
-        element: (
-          <UnifiedRouteGuard>
-            <AgentWorkflows />
-          </UnifiedRouteGuard>
-        ),
-        handle: { accessPolicy: accountStdPolicy("agents.workflow-run") },
+          // ═══════════════════════════════════════════════════════════════
+          // AGENTS & WORKFLOWS
+          // ═══════════════════════════════════════════════════════════════
+          {
+            path: "agents",
+            element: <AgentWorkflows />,
+            handle: { accessPolicy: accountStdPolicy("agents.console"), requiresAuth: true },
+          },
+          {
+            path: "agents/threads/:threadId",
+            element: <AgentWorkflows />,
+            handle: { accessPolicy: accountStdPolicy("agents.thread"), requiresAuth: true },
+          },
+          {
+            path: "workflows",
+            element: <AgentWorkflows />,
+            handle: { accessPolicy: accountStdPolicy("agents.workflows"), requiresAuth: true },
+          },
+          {
+            path: "workflows/:workflowRunId",
+            element: <AgentWorkflows />,
+            handle: { accessPolicy: accountStdPolicy("agents.workflow-run"), requiresAuth: true },
+          },
+        ],
       },
 
       // ═══════════════════════════════════════════════════════════════
