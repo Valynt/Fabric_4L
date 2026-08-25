@@ -892,7 +892,7 @@ class ConversationService:
         account_name: str,
         gate_context: dict[str, Any],
         tenant_id: str,
-        entities: dict[str, Any] | None = None,
+        entities: dict[str, object] | None = None,
         generation_metadata: dict[str, object] | None = None,
     ) -> str:
         """Generate the response content.
@@ -1054,7 +1054,7 @@ class ConversationService:
         user_message: str,
         messages: list[dict[str, str]],
         active_tab: str,
-        context_data: dict[str, Any],
+        context_data: dict[str, object],
         account_name: str,
     ) -> str:
         """Generate response via the Thesys C1 API.
@@ -1130,7 +1130,7 @@ class ConversationService:
                 )
             return str(data)
 
-    def _heuristic_classify(self, message: str) -> dict[str, Any]:
+    def _heuristic_classify(self, message: str) -> ConversationService__heuristic_classifyResult:
         """Rule-based intent classification fallback."""
         lower = message.lower()
 
@@ -1168,7 +1168,7 @@ class ConversationService:
             "with a grounded, tenant-scoped draft using approved evidence."
         )
         rules: list[tuple[str, tuple[str, ...]]] = [
-            ("prompt_injection", ("ignore previous instructions", "system override", "delete approval gates")),
+            ("prompt_injection", ("ignore previous instructions", "system override", "remove approval gates")),
             ("cross_tenant_access", ("every tenant", "all tenants", "cross-tenant", "other tenant")),
             ("secret_exfiltration", ("reveal internal secret", "reveal secrets", "api key", "token", "password")),
             ("approval_bypass", ("bypass approval", "mark them approved", "export immediately", "approval gates")),
@@ -1191,7 +1191,7 @@ class ConversationService:
         user_message: str,
         active_tab: str,
         intent: str,
-        context_data: dict[str, Any],
+        context_data: dict[str, object],
         account_name: str,
     ) -> str:
         """Generate a context-aware response without LLM."""
@@ -1310,7 +1310,7 @@ class ConversationService:
     def _append_workflow_notice(
         self,
         content: str,
-        workflow_result: dict[str, Any] | None,
+        workflow_result: dict[str, object] | None,
     ) -> str:
         """Append workflow scheduling notice if a workflow was triggered."""
         if not workflow_result:
@@ -1320,7 +1320,7 @@ class ConversationService:
         return (
             f"{content}\n\n"
             f"📋 I've also kicked off a background analysis workflow "
-            f"(ID: {schedule_id}). I'll surface the results when it completes."
+            f"(identifier {schedule_id}). I'll surface the results when it completes."
         )
 
     async def _emit_audit(
