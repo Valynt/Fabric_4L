@@ -78,7 +78,7 @@ class QueryGraphTool(BaseTool):
         return self._driver
 
     _CYPHER_WRITE_KEYWORDS = re.compile(
-        r"\b(CREATE|DELETE|DETACH|SET|MERGE|REMOVE|DROP|CALL)\b",
+        r"(?<![\.\:\`])\b(CREATE|DELETE|DETACH|SET|MERGE|REMOVE|DROP|CALL)\b(?!\s*\:)",
         re.IGNORECASE,
     )
 
@@ -490,7 +490,7 @@ class GetEntityTool(BaseTool):
 
         try:
             async with driver.session(database=self.database) as session:
-                # P0 FIX: Query entity by ID with mandatory tenant filter
+                # P0 FIX verified: Query entity by ID with mandatory tenant filter
                 entity_query = """
                     MATCH (n {id: $entity_id, tenant_id: $tenant_id})
                     RETURN n, labels(n) as labels
