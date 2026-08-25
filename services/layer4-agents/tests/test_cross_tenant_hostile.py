@@ -18,7 +18,6 @@ from layer4_agents.engine.state_manager import StateManager
 from layer4_agents.models.agent_state import BaseAgentState, WorkflowStatus, WorkflowType
 from layer4_agents.tools.registry import ToolRegistry
 
-
 # ---------------------------------------------------------------------------
 # Runtime controller-level hostile tests (no mocks — real controller + state)
 # ---------------------------------------------------------------------------
