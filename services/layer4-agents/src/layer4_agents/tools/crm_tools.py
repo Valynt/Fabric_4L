@@ -547,8 +547,7 @@ class FetchInteractionHistoryTool(_SalesforceIdSafetyMixin, BaseTool):
     ) -> FetchInteractionHistoryOutput:
         """Fetch interactions from Salesforce."""
         # P0-1 FIX: Validate prospect_id is a valid Salesforce ID before any query
-        prospect_id = self._validate_sfdc_id(input_data.prospect_id)
-        safe_id = self._soql_safe_id(prospect_id)
+        prospect_id = self._soql_safe_id(input_data.prospect_id)
 
         # Build SOQL query
         since_clause = ""
@@ -572,7 +571,7 @@ class FetchInteractionHistoryTool(_SalesforceIdSafetyMixin, BaseTool):
         query = f"""
             SELECT Id, Subject, ActivityDate, Type, Status, Description, DurationInMinutes
             FROM Task
-            WHERE WhatId = '{safe_id}'{since_clause}{type_filter}
+            WHERE WhatId = '{prospect_id}'{since_clause}{type_filter}
             ORDER BY ActivityDate DESC
             LIMIT {input_data.limit}
         """
