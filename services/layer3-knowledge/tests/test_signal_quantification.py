@@ -89,8 +89,8 @@ class TestSafeEvalHardening:
     @pytest.mark.asyncio
     async def test_oversized_expression_rejected(self):
         # Many operands -> expression string far exceeds MAX_EXPRESSION_LENGTH
-        long_expr = " + ".join(["1"] * 300)
-        assert len(long_expr) > 500
+        long_expr = " + ".join(["1"] * 600)
+        assert len(long_expr) > 2000
         result = await self._execute(long_expr, {})
         assert not result["success"]
         assert result["error_code"] == "FORMULA_TOO_LONG"
@@ -130,10 +130,26 @@ class TestSafeEvalHardening:
         # (1 Call + 110 constants) while staying under the character limit
         # and safely within the depth limit, exercising the node-count bound.
         expr = "min(" + ",".join(str(i) for i in range(1, 110)) + ")"
-        assert len(expr) <= 500
+        assert len(expr) <= 2000
         result = await self._execute(expr, {})
         assert not result["success"]
         assert result["error_code"] == "FORMULA_TOO_COMPLEX"
+
+    @pytest.mark.asyncio
+    async def test_fractional_power_allowed(self):
+        # Registry permits ast.Pow with values of bounded magnitude; a
+        # fractional exponent like 0.5 is a valid stored formula and must
+        # evaluate (4 ** 0.5 == 2.0).
+        result = await self._execute("a ** 0.5", {"a": 4})
+        assert result["success"]
+        assert result["value"] == 2.0
+
+    @pytest.mark.asyncio
+    async def test_negative_base_fractional_power_rejected(self):
+        # (-8) ** (1/3) yields a complex (non-finite) result; must fail safe.
+        result = await self._execute("a ** b", {"a": -8, "b": 0.5})
+        assert not result["success"]
+        assert result["error_code"] == "FORMULA_NON_FINITE"
 
     @pytest.mark.asyncio
     async def test_non_finite_constant_rejected(self):

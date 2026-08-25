@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 # come from untrusted sources and must fail closed rather than consume
 # unbounded CPU, blow the stack, or overflow into non-finite numbers.
 # ---------------------------------------------------------------------------
-MAX_EXPRESSION_LENGTH = 500  # Maximum characters in a formula expression
+MAX_EXPRESSION_LENGTH = 2000  # Maximum characters in a formula expression
 MAX_AST_NODES = 100          # Maximum number of AST nodes in a formula
 MAX_AST_DEPTH = 20           # Maximum nesting depth of a formula
 MAX_POW_EXPONENT = 100       # Maximum absolute integer exponent for `**`
@@ -730,9 +730,12 @@ class SignalQuantificationService:
     def _eval_pow(self, node: ast.AST, context: dict[str, Any]) -> float:
         """Evaluate ``base ** exponent`` under explicit power safety bounds.
 
-        Requirement: bounded integer exponent and bounded base must be
+        Requirement: bounded exponent magnitude and bounded base must be
         satisfied before the operator is invoked, so hostile formulas cannot
-        drive exponentiation to overflow or burn CPU.
+        drive exponentiation to overflow or burn CPU. Fractional exponents
+        are supported (e.g. ``4 ** 0.5``); a negative base raised to a
+        fractional exponent yields a non-finite (complex) result, which is
+        rejected by the finite-result check.
 
         Args:
             node: The Pow binary operator node
@@ -753,19 +756,12 @@ class SignalQuantificationService:
             detail="exponentiation exponent is not a finite number",
         )
 
-        if exponent != int(exponent):
-            raise FormulaEvalError(
-                ERROR_CODE_POW_LIMIT,
-                ERROR_MESSAGE_POW_LIMIT,
-                detail=f"non-integer exponent {exponent!r}",
-            )
-        exp_int = int(exponent)
-        if abs(exp_int) > self.MAX_POW_EXPONENT:
+        if abs(exponent) > self.MAX_POW_EXPONENT:
             raise FormulaEvalError(
                 ERROR_CODE_POW_LIMIT,
                 ERROR_MESSAGE_POW_LIMIT,
                 detail=(
-                    f"exponent {exp_int} exceeds max {self.MAX_POW_EXPONENT}"
+                    f"exponent {exponent!r} exceeds max {self.MAX_POW_EXPONENT}"
                 ),
             )
         if abs(base) > self.MAX_POW_BASE:
@@ -775,7 +771,7 @@ class SignalQuantificationService:
                 detail=f"base {base!r} exceeds max {self.MAX_POW_BASE}",
             )
 
-        result = base ** exp_int
+        result = base ** exponent
         return self._require_finite(
             result,
             detail="exponentiation result is not a finite number",
