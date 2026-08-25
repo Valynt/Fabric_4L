@@ -254,6 +254,12 @@ async def test_get_entity_success_missing_relationships_and_failure() -> None:
     assert result.found and result.entity["entity_type"] == "Account"
     assert result.relationships[0]["target_type"] == "UseCase"
 
+    # Prove tenant isolation invariant for relationship query
+    query, params = tool._driver.session_instance.calls[1]
+    assert "tenant_id: $tenant_id" in query
+    assert query.count("tenant_id: $tenant_id") >= 2
+    assert params["tenant_id"] == str(TENANT_ID)
+
     tool._driver = Driver([Result(single=None)])
     assert not (await tool.execute(GetEntityInput(entity_id="missing"))).found
     tool._driver = Driver([RuntimeError("offline")])
