@@ -1,6 +1,5 @@
 from fastapi import FastAPI, Request
 from fastapi.testclient import TestClient
-from opentelemetry import trace
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
@@ -8,11 +7,15 @@ from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanE
 from src.tracing.middleware import TracingMiddleware
 
 
-def test_trace_context_propagates_between_upstream_and_layer3() -> None:
+def test_trace_context_propagates_between_upstream_and_layer3(monkeypatch) -> None:
+    monkeypatch.setenv("OTEL_SDK_DISABLED", "false")
     exporter = InMemorySpanExporter()
     provider = TracerProvider()
     provider.add_span_processor(SimpleSpanProcessor(exporter))
-    trace.set_tracer_provider(provider)
+    monkeypatch.setattr(
+        "src.tracing.middleware._otel_tracer",
+        provider.get_tracer("layer3-trace-context-test"),
+    )
 
     upstream = FastAPI()
     layer3 = FastAPI()

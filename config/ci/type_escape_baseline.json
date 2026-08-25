@@ -24790,43 +24790,13 @@
       "kind": "python-any",
       "line": 15,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis_cases.py",
-      "text": "from typing import Any, cast"
+      "text": "from typing import Any, Protocol, cast"
     },
     {
       "kind": "python-any",
       "line": 67,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis_cases.py",
       "text": "def compute_case_diff(previous: dict[str, Any], current: dict[str, Any]) -> dict[str, Any]:"
-    },
-    {
-      "kind": "python-any",
-      "line": 180,
-      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis_cases.py",
-      "text": "record: Any,"
-    },
-    {
-      "kind": "python-any",
-      "line": 182,
-      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis_cases.py",
-      "text": "account: Any,"
-    },
-    {
-      "kind": "python-any",
-      "line": 209,
-      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis_cases.py",
-      "text": "require_tenant_account_fn: Callable[[AsyncSession, UUID, RequestContext], Any],"
-    },
-    {
-      "kind": "python-any",
-      "line": 212,
-      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis_cases.py",
-      "text": "[Request, BusinessCaseRequest, Any, AsyncSession, RequestContext], Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 469,
-      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis_cases.py",
-      "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",

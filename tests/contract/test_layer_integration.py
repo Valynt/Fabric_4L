@@ -269,7 +269,7 @@ class TestL1ToL3DataFlow:
         # 2. Query L3 for the entity
         l3_response = _session.post(
             f"{L3_URL}/v1/search/hybrid",
-            json={"query": entity_name, "entity_type": "Company"},
+            json={"query": entity_name, "entity_type": "Organization"},
             headers=_runtime_auth_headers(),
             timeout=15,
         )
