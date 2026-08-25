@@ -44,7 +44,7 @@ env:
   # owner ("Valynt"), so it cannot be used directly in an image reference.
   REGISTRY_NAMESPACE: valynt
   # Publisher, versions, digest verification, and rotation: docs/supply-chain/CI_TOOLS_SECURITY_SUITE.md
-  CI_TOOLS_IMAGE: ghcr.io/valynt/ci-tools/security-suite@sha256:a4250a53cf97c192254a2ca943bd11a4fa5a6d226407ab2b773b7121018344ed
+  CI_TOOLS_IMAGE: ghcr.io/valynt/ci-tools/security-suite@sha256:738016ca1248df998388e41ee8d0acfd64b14f78ced8c447d706940f5ab80579
   IMAGE_TAG: ${{ github.sha }}
 
 permissions:
@@ -232,7 +232,7 @@ jobs:
       IMAGE_TAG: ${{ inputs.image_tag || github.sha }}
     needs: ci-tools-preflight
     container:
-      image: ghcr.io/valynt/ci-tools/security-suite@sha256:a4250a53cf97c192254a2ca943bd11a4fa5a6d226407ab2b773b7121018344ed
+      image: ghcr.io/valynt/ci-tools/security-suite@sha256:738016ca1248df998388e41ee8d0acfd64b14f78ced8c447d706940f5ab80579
     name: SBOM + Vulnerability Scan
     if: inputs.certify_images || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
@@ -362,7 +362,7 @@ jobs:
       IMAGE_TAG: ${{ inputs.image_tag || github.sha }}
     needs: ci-tools-preflight
     container:
-      image: ghcr.io/valynt/ci-tools/security-suite@sha256:a4250a53cf97c192254a2ca943bd11a4fa5a6d226407ab2b773b7121018344ed
+      image: ghcr.io/valynt/ci-tools/security-suite@sha256:738016ca1248df998388e41ee8d0acfd64b14f78ced8c447d706940f5ab80579
     name: Verify Image Signatures
     if: inputs.certify_images || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
@@ -403,7 +403,7 @@ jobs:
   dependency-audit:
     needs: ci-tools-preflight
     container:
-      image: ghcr.io/valynt/ci-tools/security-suite@sha256:a4250a53cf97c192254a2ca943bd11a4fa5a6d226407ab2b773b7121018344ed
+      image: ghcr.io/valynt/ci-tools/security-suite@sha256:738016ca1248df998388e41ee8d0acfd64b14f78ced8c447d706940f5ab80579
     name: Dependency Audit
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -520,7 +520,7 @@ jobs:
   license-check:
     needs: ci-tools-preflight
     container:
-      image: ghcr.io/valynt/ci-tools/security-suite@sha256:a4250a53cf97c192254a2ca943bd11a4fa5a6d226407ab2b773b7121018344ed
+      image: ghcr.io/valynt/ci-tools/security-suite@sha256:738016ca1248df998388e41ee8d0acfd64b14f78ced8c447d706940f5ab80579
     name: License Compliance
     runs-on: ubuntu-latest
     timeout-minutes: 15
