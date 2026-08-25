@@ -14,7 +14,7 @@ import operator
 import re
 from dataclasses import dataclass
 from decimal import Decimal
-from typing import Any
+from typing import Any, Mapping
 
 from neo4j import AsyncDriver
 from value_fabric.shared.models.typed_dict import TypedDictModel
@@ -727,7 +727,7 @@ class SignalQuantificationService:
             for child in ast.iter_child_nodes(node):
                 stack.append((child, depth + 1))
 
-    def _eval_pow(self, node: ast.AST, context: dict[str, Any]) -> float:
+    def _eval_pow(self, node: ast.AST, context: Mapping[str, object]) -> float:
         """Evaluate ``base ** exponent`` under explicit power safety bounds.
 
         Requirement: bounded exponent magnitude and bounded base must be
@@ -777,7 +777,7 @@ class SignalQuantificationService:
             detail="exponentiation result is not a finite number",
         )
 
-    def _eval_node(self, node: ast.AST, context: dict[str, Any]) -> Any:
+    def _eval_node(self, node: ast.AST, context: Mapping[str, object]) -> float:
         """Recursively evaluate AST node safely.
 
         Only allows: constants, variable names, binary ops, unary ops,
