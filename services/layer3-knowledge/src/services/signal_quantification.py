@@ -12,9 +12,10 @@ import logging
 import math
 import operator
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass
 from decimal import Decimal
-from typing import Any, Mapping
+from typing import Any
 
 from neo4j import AsyncDriver
 from value_fabric.shared.models.typed_dict import TypedDictModel
