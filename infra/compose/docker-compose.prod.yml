@@ -98,6 +98,7 @@ volumes:
   neo4j-logs:
   neo4j-backups:
   rdf-output:
+  layer3-hf-cache:
   ground-truth-data:
 
 networks:
