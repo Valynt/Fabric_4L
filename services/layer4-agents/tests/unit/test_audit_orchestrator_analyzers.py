@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import json
 import re
+import time
 from pathlib import Path
 
 import pytest
@@ -16,6 +18,9 @@ from layer4_agents.agents.audit_orchestrator.analyzers import (
 )
 from layer4_agents.agents.audit_orchestrator.analyzers.code_analyzer import (
     COMPILED_PATTERNS,
+)
+from layer4_agents.agents.audit_orchestrator.analyzers.git_analyzer import (
+    GitCommandResult,
 )
 from layer4_agents.agents.audit_orchestrator.models import (
     AuditArea,
@@ -345,3 +350,299 @@ def _assert_finding_fields(finding: Finding) -> None:
     assert finding.area in set(AuditArea)
     assert finding.effort in {"XS", "S", "M", "L", "XL"}
     assert finding.analyzer_type
+
+
+# ---------------------------------------------------------------------------
+# GitAnalyzer contributor-counting refactor tests
+# ---------------------------------------------------------------------------
+
+
+class _FakeReadStream:
+    """File-like object exposing a bounded ``read(n)`` for the reader thread."""
+
+    def __init__(self, content: str = ""):
+        self._content = content
+        self._pos = 0
+
+    def read(self, n: int = -1) -> str:
+        if self._pos >= len(self._content):
+            return ""
+        chunk = self._content[self._pos : self._pos + n]
+        self._pos += len(chunk)
+        return chunk
+
+
+class _SlowReadStream:
+    """Stream whose first ``read`` sleeps (simulates a slow/hung subprocess)."""
+
+    def __init__(self, first_sleep: float, content: str = ""):
+        self._first_sleep = first_sleep
+        self._content = content
+        self._pos = 0
+        self._slept = False
+
+    def read(self, n: int = -1) -> str:
+        if not self._slept:
+            time.sleep(self._first_sleep)
+            self._slept = True
+        if self._pos >= len(self._content):
+            return ""
+        chunk = self._content[self._pos : self._pos + n]
+        self._pos += len(chunk)
+        return chunk
+
+
+class _FakeGitProc:
+    """Stand-in for a ``subprocess.Popen`` handle used by ``GitAnalyzer._git_cmd``."""
+
+    def __init__(self, content: str = "", returncode=0, stream=None):
+        self.stdout = stream if stream is not None else _FakeReadStream(content)
+        self.stderr = None
+        self.returncode = returncode
+        self.terminate_called = False
+
+    def terminate(self):
+        self.terminate_called = True
+        self.returncode = -15
+
+    def kill(self):
+        self.returncode = -9
+
+    def wait(self, timeout=None):
+        return self.returncode
+
+
+def _make_analyzer(**_kwargs):
+    from layer4_agents.agents.audit_orchestrator.models import AuditConfig
+
+    return GitAnalyzer(
+        AuditConfig(
+            repo_url="https://github.com/bmsull560/Fabric_4L",
+            repo_name="bmsull560/Fabric_4L",
+        ),
+        **_kwargs,
+    )
+
+
+def test_git_cmd_caps_large_streamed_output_by_lines(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """A huge simulated stream is cut short and marked truncated, not buffered."""
+    content = "".join(
+        f"{i}  A <a{i}@example.com>\n" for i in range(100_000)
+    )
+    monkeypatch.setattr(
+        GitAnalyzer, "_git_popen", lambda *a, **k: _FakeGitProc(content=content)
+    )
+    analyzer = _make_analyzer(max_output_lines=3, max_output_bytes=10**9)
+
+    result = analyzer._git_cmd(tmp_path, ["shortlog", "-sne", "HEAD"])
+
+    assert result.status == "truncated"
+    assert result.truncated is True
+    # Only the first few lines survived; nothing like the full 100k buffered.
+    assert len(result.stdout.splitlines()) == 3
+    assert result.bytes_read <= 100_000
+
+
+def test_git_cmd_caps_single_enormous_line_still_respected(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """An enormous single line (no newlines) is bounded by the byte cap, not
+    buffered in full."""
+    content = ("x" * 5_000_000) + "\n"
+    monkeypatch.setattr(
+        GitAnalyzer, "_git_popen", lambda *a, **k: _FakeGitProc(content=content)
+    )
+    analyzer = _make_analyzer(max_output_lines=10**6, max_output_bytes=8192)
+
+    result = analyzer._git_cmd(tmp_path, ["log", "-1"])
+
+    assert result.status == "truncated"
+    assert result.truncated is True
+    # Only a bounded head of the huge line was retained.
+    assert len(result.stdout) <= 8192
+
+
+def test_git_cmd_caps_large_streamed_output_by_bytes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """A stream exceeding the byte cap is terminated and marked truncated."""
+    long_line = "x" * 2000 + "\n"
+    content = long_line * 100
+    monkeypatch.setattr(
+        GitAnalyzer, "_git_popen", lambda *a, **k: _FakeGitProc(content=content)
+    )
+    analyzer = _make_analyzer(max_output_lines=10**6, max_output_bytes=5000)
+
+    result = analyzer._git_cmd(tmp_path, ["log", "-1"])
+
+    assert result.status == "truncated"
+    assert result.truncated is True
+    assert result.stdout.count("\n") <= 4  # ~5000 / 2001-byte lines
+
+
+def test_git_cmd_timeout_terminates_and_marks_truncated(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """A slow command is terminated once it exceeds the wall-clock timeout."""
+    proc = _FakeGitProc(stream=_SlowReadStream(first_sleep=0.05, content="partial\n"))
+
+    def _popen(*a, **k):
+        return proc
+
+    monkeypatch.setattr(GitAnalyzer, "_git_popen", _popen)
+    analyzer = _make_analyzer(timeout_seconds=0.01, max_output_lines=10**6)
+
+    result = analyzer._git_cmd(tmp_path, ["shortlog", "-sne", "HEAD"])
+
+    assert result.status == "timeout"
+    assert result.truncated is True
+    assert proc.terminate_called is True
+    assert result.stdout == ""
+
+
+def test_git_cmd_error_status_on_nonzero_return(tmp_path, monkeypatch):
+    """A nonzero exit with no cap breach is surfaced as ``error``, not ok."""
+    monkeypatch.setattr(
+        GitAnalyzer,
+        "_git_popen",
+        lambda *a, **k: _FakeGitProc(content="", returncode=128),
+    )
+    analyzer = _make_analyzer()
+    result = analyzer._git_cmd(tmp_path, ["rev-list", "HEAD", "--count"])
+    assert result.status == "error"
+    assert result.truncated is False
+
+
+def test_git_metrics_normal_contributor_counting(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """shortlog lines are aggregated to a contributor count; no emails leaked."""
+    analyzer = _make_analyzer()
+
+    def fake_cmd(_path, args):
+        name = args[0]
+        if name == "rev-list":
+            return GitCommandResult(stdout="42")
+        if name == "shortlog":
+            return GitCommandResult(
+                stdout=" 10  Ada Lovelace <ada@example.com>\n"
+                "  3  Bob <bob@example.com>\n"
+                "  1  carol@example.com\n"
+            )
+        if name == "branch":
+            return GitCommandResult(stdout="* main\n  dev\n  feature/x\n")
+        if name == "tag":
+            return GitCommandResult(stdout="v1.0.0\nv1.1.0\n")
+        return GitCommandResult(stdout=str(int(time.time())))
+
+    monkeypatch.setattr(analyzer, "_git_cmd", fake_cmd)
+
+    metrics = analyzer._collect_git_metrics(tmp_path, True)
+
+    assert metrics["total_commits"] == 42
+    assert metrics["total_contributors"] == 3
+    assert metrics["branch_count"] == 3
+    assert metrics["tag_count"] == 2
+    assert isinstance(metrics["recent_commit_days"], int)
+    assert metrics["git_warnings"] == []
+    assert all(
+        entry["complete"] for entry in metrics["git_metric_completeness"].values()
+    )
+
+    rendered = json.dumps(metrics, default=str)
+    assert "ada@example.com" not in rendered
+    assert "bob@example.com" not in rendered
+    assert "carol@example.com" not in rendered
+
+
+def test_git_metrics_truncated_contributors_yield_warning_and_incomplete(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    analyzer = _make_analyzer()
+
+    def fake_cmd(_path, args):
+        name = args[0]
+        if name == "rev-list":
+            return GitCommandResult(stdout="5000")
+        if name == "shortlog":
+            return GitCommandResult(
+                stdout="  1  Ada <ada@example.com>\n",
+                status="truncated",
+                truncated=True,
+                bytes_read=40,
+                max_bytes=1_000_000,
+            )
+        if name == "branch":
+            return GitCommandResult(stdout="* main\n")
+        if name == "tag":
+            return GitCommandResult(stdout="v1.0.0\n")
+        return GitCommandResult(stdout=str(int(time.time())))
+
+    monkeypatch.setattr(analyzer, "_git_cmd", fake_cmd)
+
+    metrics = analyzer._collect_git_metrics(tmp_path, True)
+
+    # The undercount is surfaced, but it is explicitly flagged incomplete.
+    assert metrics["total_contributors"] == 1
+    completeness = metrics["git_metric_completeness"]["total_contributors"]
+    assert completeness["complete"] is False
+    assert completeness["status"] == "truncated"
+    assert completeness["truncated"] is True
+
+    codes = {w["code"] for w in metrics["git_warnings"]}
+    assert "GIT_CMD_OUTPUT_TRUNCATED" in codes
+    # The structured warning references the metric, never the raw output/emails.
+    rendered = json.dumps(metrics["git_warnings"])
+    assert "ada@example.com" not in rendered
+
+
+def test_git_metrics_timeout_warning(tmp_path, monkeypatch):
+    analyzer = _make_analyzer()
+
+    def fake_cmd(_path, args):
+        name = args[0]
+        if name == "shortlog":
+            return GitCommandResult(status="timeout", truncated=True, bytes_read=0)
+        if name == "rev-list":
+            return GitCommandResult(stdout="99")
+        if name == "branch":
+            return GitCommandResult(stdout="* main\n")
+        if name == "tag":
+            return GitCommandResult(stdout="v1.0.0\n")
+        return GitCommandResult(stdout=str(int(time.time())))
+
+    monkeypatch.setattr(analyzer, "_git_cmd", fake_cmd)
+
+    metrics = analyzer._collect_git_metrics(tmp_path, True)
+
+    assert metrics["total_contributors"] == 0
+    codes = {w["code"] for w in metrics["git_warnings"]}
+    assert "GIT_CMD_TIMEOUT" in codes
+    assert metrics["git_metric_completeness"]["total_contributors"]["complete"] is False
+
+
+def test_git_metrics_malformed_timestamp_is_graceful(tmp_path, monkeypatch):
+    analyzer = _make_analyzer()
+
+    def fake_cmd(_path, args):
+        name = args[0]
+        if name == "shortlog":
+            return GitCommandResult(stdout="  1  Ada <ada@example.com>\n")
+        if name == "log":
+            return GitCommandResult(stdout="not-a-timestamp")
+        if name == "rev-list":
+            return GitCommandResult(stdout="1")
+        if name == "branch":
+            return GitCommandResult(stdout="* main\n")
+        if name == "tag":
+            return GitCommandResult(stdout="")
+
+    monkeypatch.setattr(analyzer, "_git_cmd", fake_cmd)
+
+    metrics = analyzer._collect_git_metrics(tmp_path, True)
+
+    assert metrics["recent_commit_days"] is None
+    assert metrics["git_metric_completeness"]["recent_commit_days"]["complete"] is True
+    assert metrics["tag_count"] == 0
