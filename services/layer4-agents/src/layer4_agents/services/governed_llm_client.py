@@ -27,7 +27,7 @@ from typing import TYPE_CHECKING, Any
 import yaml
 from value_fabric.shared.llm_safety import PromptGuard
 
-from ..models.degradation_policy import DegradationPoliciesConfig, DegradationPolicy
+from layer4_agents.models.degradation_policy import DegradationPoliciesConfig, DegradationPolicy
 from .llm_output_parser import parse_llm_json, validate_llm_output_schema
 
 

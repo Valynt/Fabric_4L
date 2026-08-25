@@ -41,7 +41,8 @@ concurrency:
 env:
   REGISTRY: ghcr.io
   # Publisher, versions, digest verification, and rotation: docs/supply-chain/CI_TOOLS_SECURITY_SUITE.md
-  CI_TOOLS_IMAGE: ghcr.io/${{ github.repository_owner }}/ci-tools/security-suite@sha256:08955de6704e6a9d4536fff1ccd6d0e0a4b3f6fe3ce5b5a28435368d8bd0fe9a
+  CI_TOOLS_IMAGE: ghcr.io/valynt/ci-tools/security-suite@sha256:08955de6704e6a9d4536fff1ccd6d0e0a4b3f6fe3ce5b5a28435368d8bd0fe9a
+  IMAGE_REPOSITORY: ghcr.io/valynt/fabric_4l
   IMAGE_TAG: ${{ github.sha }}
 
 permissions:
@@ -229,7 +230,7 @@ jobs:
       IMAGE_TAG: ${{ inputs.image_tag || github.sha }}
     needs: ci-tools-preflight
     container:
-      image: ghcr.io/${{ github.repository_owner }}/ci-tools/security-suite@sha256:08955de6704e6a9d4536fff1ccd6d0e0a4b3f6fe3ce5b5a28435368d8bd0fe9a
+      image: ghcr.io/valynt/ci-tools/security-suite@sha256:08955de6704e6a9d4536fff1ccd6d0e0a4b3f6fe3ce5b5a28435368d8bd0fe9a
     name: SBOM + Vulnerability Scan
     if: inputs.certify_images || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
@@ -257,13 +258,13 @@ jobs:
 
       - name: Generate CycloneDX SBOM
         run: |
-          IMAGE="${{ env.REGISTRY }}/${{ github.repository_owner }}/fabric_4l/${{ matrix.layer }}:${{ env.IMAGE_TAG }}"
+          IMAGE="${{ env.IMAGE_REPOSITORY }}/${{ matrix.layer }}:${{ env.IMAGE_TAG }}"
           syft "$IMAGE" -o cyclonedx-json=${{ matrix.layer }}-sbom.cdx.json
           echo "Generated CycloneDX SBOM for ${{ matrix.layer }}"
 
       - name: Generate SPDX SBOM
         run: |
-          IMAGE="${{ env.REGISTRY }}/${{ github.repository_owner }}/fabric_4l/${{ matrix.layer }}:${{ env.IMAGE_TAG }}"
+          IMAGE="${{ env.IMAGE_REPOSITORY }}/${{ matrix.layer }}:${{ env.IMAGE_TAG }}"
           syft "$IMAGE" -o spdx-json=${{ matrix.layer }}-sbom.spdx.json
           echo "Generated SPDX SBOM for ${{ matrix.layer }}"
 
@@ -333,7 +334,7 @@ jobs:
 
       - name: Generate provenance subject
         run: |
-          IMAGE="${{ env.REGISTRY }}/${{ github.repository_owner }}/fabric_4l/${{ matrix.layer }}:${{ env.IMAGE_TAG }}"
+          IMAGE="${{ env.IMAGE_REPOSITORY }}/${{ matrix.layer }}:${{ env.IMAGE_TAG }}"
           docker pull "$IMAGE"
           DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE")
           echo "subject=$DIGEST" >> $GITHUB_OUTPUT
@@ -359,7 +360,7 @@ jobs:
       IMAGE_TAG: ${{ inputs.image_tag || github.sha }}
     needs: ci-tools-preflight
     container:
-      image: ghcr.io/${{ github.repository_owner }}/ci-tools/security-suite@sha256:08955de6704e6a9d4536fff1ccd6d0e0a4b3f6fe3ce5b5a28435368d8bd0fe9a
+      image: ghcr.io/valynt/ci-tools/security-suite@sha256:08955de6704e6a9d4536fff1ccd6d0e0a4b3f6fe3ce5b5a28435368d8bd0fe9a
     name: Verify Image Signatures
     if: inputs.certify_images || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
@@ -387,7 +388,7 @@ jobs:
         env:
           COSIGN_EXPERIMENTAL: 1
         run: |
-          IMAGE="${{ env.REGISTRY }}/${{ github.repository_owner }}/fabric_4l/${{ matrix.layer }}:${{ env.IMAGE_TAG }}"
+          IMAGE="${{ env.IMAGE_REPOSITORY }}/${{ matrix.layer }}:${{ env.IMAGE_TAG }}"
           cosign verify \
             --certificate-identity-regexp="https://github.com/${{ github.repository }}/.github/workflows/.*" \
             --certificate-oidc-issuer="https://token.actions.githubusercontent.com" \
@@ -400,7 +401,7 @@ jobs:
   dependency-audit:
     needs: ci-tools-preflight
     container:
-      image: ghcr.io/${{ github.repository_owner }}/ci-tools/security-suite@sha256:08955de6704e6a9d4536fff1ccd6d0e0a4b3f6fe3ce5b5a28435368d8bd0fe9a
+      image: ghcr.io/valynt/ci-tools/security-suite@sha256:08955de6704e6a9d4536fff1ccd6d0e0a4b3f6fe3ce5b5a28435368d8bd0fe9a
     name: Dependency Audit
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -517,7 +518,7 @@ jobs:
   license-check:
     needs: ci-tools-preflight
     container:
-      image: ghcr.io/${{ github.repository_owner }}/ci-tools/security-suite@sha256:08955de6704e6a9d4536fff1ccd6d0e0a4b3f6fe3ce5b5a28435368d8bd0fe9a
+      image: ghcr.io/valynt/ci-tools/security-suite@sha256:08955de6704e6a9d4536fff1ccd6d0e0a4b3f6fe3ce5b5a28435368d8bd0fe9a
     name: License Compliance
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -656,12 +657,12 @@ jobs:
           cosign verify \
             --certificate-identity-regexp="https://github.com/${{ github.repository }}/.github/workflows/.*" \
             --certificate-oidc-issuer="https://token.actions.githubusercontent.com" \
-            ghcr.io/${{ github.repository_owner }}/fabric_4l/layer1-ingestion:${{ env.IMAGE_TAG }}
+            ${{ env.IMAGE_REPOSITORY }}/layer1-ingestion:${{ env.IMAGE_TAG }}
 
           # Download and verify SBOM
           cosign verify-attestation \
             --type cyclonedx \
-            ghcr.io/${{ github.repository_owner }}/fabric_4l/layer1-ingestion:${{ env.IMAGE_TAG }}
+            ${{ env.IMAGE_REPOSITORY }}/layer1-ingestion:${{ env.IMAGE_TAG }}
           ```
           EOF
 

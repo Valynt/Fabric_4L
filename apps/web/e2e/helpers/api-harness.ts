@@ -108,6 +108,46 @@ const JOURNEY_ACCOUNTS = [
   EMPTY_ACCOUNT,
 ];
 
+const JOURNEY_TIMELINE_STAGES = [
+  { id: "signal", label: "Signal", stage_key: "signal", status: "completed" },
+  {
+    id: "hypothesis",
+    label: "Hypothesis",
+    stage_key: "hypothesis",
+    status: "completed",
+  },
+  {
+    id: "value_drivers",
+    label: "Value drivers",
+    stage_key: "value_drivers",
+    status: "in_progress",
+  },
+  {
+    id: "roi_calculation",
+    label: "ROI calculation",
+    stage_key: "roi_calculation",
+    status: "not_started",
+  },
+  {
+    id: "evidence_validation",
+    label: "Evidence validation",
+    stage_key: "evidence_validation",
+    status: "not_started",
+  },
+  {
+    id: "narrative",
+    label: "Narrative",
+    stage_key: "narrative",
+    status: "not_started",
+  },
+  {
+    id: "export_crm_sync",
+    label: "Export or CRM sync",
+    stage_key: "export_crm_sync",
+    status: "not_started",
+  },
+];
+
 /**
  * Build the canonical backend empty shape for a workspace tab.
  * The backend returns `{ <tab>: [] }`, not a wrapper with `status: 'empty'`.
@@ -176,6 +216,26 @@ const DEFAULT_MOCKS: MockEndpoint[] = [
     pattern: `**/api/v1/agents/accounts/${account.id}`,
     body: account,
   })),
+  // Account journey timeline — canonical AccountJourneyTimelineResponse.
+  {
+    pattern: /.*\/api\/v1\/agents\/accounts\/[^/?]+\/journey-timeline$/,
+    method: "GET",
+    getBody: route => {
+      const segments = new URL(route.request().url()).pathname.split("/");
+      const timelineIndex = segments.lastIndexOf("journey-timeline");
+      const accountId = segments[timelineIndex - 1] || EMPTY_ACCOUNT.id;
+      return {
+        tenant_id: "tenant-e2e",
+        account_id: accountId,
+        journey_id: `journey_${accountId}`,
+        stages: JOURNEY_TIMELINE_STAGES,
+        current_stage_key: "value_drivers",
+        updated_at: "2025-01-01T00:00:00Z",
+        providers: ["manual"],
+        owners: [],
+      };
+    },
+  },
   // Account single fetch — GET /api/v1/agents/accounts/:id (no query string)
   {
     pattern: /.*\/api\/v1\/agents\/accounts\/[^/?]+$/,

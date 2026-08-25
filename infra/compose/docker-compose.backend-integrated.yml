@@ -28,7 +28,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: ingestion
-      POSTGRES_MULTIPLE_DATABASES: ingestion,layer2_extraction,ground_truth,layer4_agents
+      POSTGRES_MULTIPLE_DATABASES: ingestion,layer2_extraction,ground_truth,layer4_agents,layer6_benchmarks
       POSTGRES_INITDB_ARGS: "-E UTF8 --locale=C"
       POSTGRES_HOST_AUTH_METHOD: scram-sha-256
     volumes:
@@ -64,7 +64,7 @@ services:
     image: neo4j:5-community
     container_name: vf-bi-neo4j
     environment:
-      NEO4J_AUTH: neo4j/devpassword
+      NEO4J_AUTH: neo4j/devpassword123
       NEO4J_PLUGINS: '["apoc"]'
       NEO4J_dbms_memory_heap_max__size: 1G
       NEO4J_dbms_memory_pagecache_size: 512m
@@ -222,7 +222,7 @@ services:
       REDIS_URL: redis://host.docker.internal:6379/0
       NEO4J_URI: bolt://host.docker.internal:7687
       NEO4J_USER: neo4j
-      NEO4J_PASSWORD: devpassword
+      NEO4J_PASSWORD: devpassword123
       # Layer 3 listens on 8001 inside its container; keep this URL for post-readiness live contract tests.
       LAYER3_API_URL: http://host.docker.internal:8003
       # Keep Docker readiness non-blocking during release-smoke startup; full L2→L3 checks run after stack readiness.
@@ -268,10 +268,14 @@ services:
     ports:
       - "8003:8001"
     environment:
+      ENVIRONMENT: development
       NEO4J_URI: bolt://host.docker.internal:7687
       NEO4J_USER: neo4j
-      NEO4J_PASSWORD: devpassword
+      NEO4J_PASSWORD: devpassword123
       REDIS_URL: redis://host.docker.internal:6379/0
+      JWT_SECRET: dev-local-secret-do-not-use-in-production-minimum-32-chars
+      API_KEY_HMAC_SECRET: dev-local-secret-do-not-use-in-production-minimum-32-chars
+      SERVICE_AUTH_SECRET: dev-local-service-auth-secret-do-not-use-in-production-32c
       LOG_LEVEL: info
     volumes:
       - ../../services/layer3-knowledge/src:/app/src:ro
@@ -313,7 +317,7 @@ services:
       REDIS_URL: redis://host.docker.internal:6379/0
       NEO4J_URI: bolt://host.docker.internal:7687
       NEO4J_USER: neo4j
-      NEO4J_PASSWORD: devpassword
+      NEO4J_PASSWORD: devpassword123
       LAYER1_URL: http://host.docker.internal:8001
       LAYER1_API_URL: http://host.docker.internal:8001
       LAYER2_URL: http://host.docker.internal:8002
@@ -451,7 +455,7 @@ services:
       NEO4J_PASSWORD: devpassword123
       REDIS_URL: redis://host.docker.internal:6379/0
       PYTHONPATH: /app:/app/src
-      DATABASE_URL_SYNC: postgresql+psycopg2://postgres:postgres@host.docker.internal:5432/ground_truth
+      DATABASE_URL_SYNC: postgresql+psycopg2://postgres:postgres@host.docker.internal:5432/layer6_benchmarks
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@host.docker.internal:5432/layer6_benchmarks
       LAYER6_DATABASE_URL: postgresql+asyncpg://postgres:postgres@host.docker.internal:5432/layer6_benchmarks
       JWT_SECRET: dev-local-secret-do-not-use-in-production-minimum-32-chars
@@ -460,6 +464,8 @@ services:
       LAYER3_API_KEY: dev-local-layer3-key-minimum-16chars
       LAYER5_API_KEY: dev-local-layer5-key-minimum-16chars
     depends_on:
+      postgres:
+        condition: service_healthy
       neo4j:
         condition: service_healthy
       redis:

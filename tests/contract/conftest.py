@@ -47,8 +47,6 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
     runtime_contract_modules = {
         "test_l3_route_alias_parity.py",
         "test_layer_service_entrypoint_smoke.py",
-        "test_probe_contract_shared.py",
-        "test_system_route_contract.py",
         "test_journey_contracts.py",
     }
 

@@ -41,6 +41,7 @@ permissions:
   id-token: write
 env:
   REGISTRY: ghcr.io
+  IMAGE_REPOSITORY: ghcr.io/valynt/fabric_4l
 jobs:
   release-readiness-gate:
     name: Release readiness gate (observability + deployment)
@@ -97,7 +98,7 @@ jobs:
           docker build \
             --build-arg BASE_IMAGE="${BASE_IMAGE:-}" \
             --build-arg BUILDER_BASE_IMAGE="${BUILDER_BASE_IMAGE:-}" \
-            -t ${{ env.REGISTRY }}/${{ github.repository_owner }}/fabric_4l/${{ matrix.service }}:${{ github.sha }} \
+            -t ${{ env.IMAGE_REPOSITORY }}/${{ matrix.service }}:${{ github.sha }} \
             -t ${{ matrix.service }}:local-${{ github.sha }} \
             ./services/${{ matrix.service }}
       - name: Log in to registry
@@ -105,23 +106,23 @@ jobs:
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
       - name: Push image
         if: steps.mode.outputs.publish == 'true'
-        run: docker push ${{ env.REGISTRY }}/${{ github.repository_owner }}/fabric_4l/${{ matrix.service }}:${{ github.sha }}
+        run: docker push ${{ env.IMAGE_REPOSITORY }}/${{ matrix.service }}:${{ github.sha }}
       - name: Trivy vulnerability scan
         uses: aquasecurity/trivy-action@314ff8b43182423b84c50b1670b0e10f858f2d98 # master (post-v0.36.0)
         with:
-          image-ref: ${{ steps.mode.outputs.publish == 'true' && format('{0}/{1}/fabric_4l/{2}:{3}', env.REGISTRY, github.repository_owner, matrix.service, github.sha) || format('{0}:local-{1}', matrix.service, github.sha) }}
+          image-ref: ${{ steps.mode.outputs.publish == 'true' && format('{0}/{1}:{2}', env.IMAGE_REPOSITORY, matrix.service, github.sha) || format('{0}:local-{1}', matrix.service, github.sha) }}
           format: sarif
           output: trivy-${{ matrix.service }}.sarif
       - name: Trivy JSON report
         uses: aquasecurity/trivy-action@314ff8b43182423b84c50b1670b0e10f858f2d98 # master (post-v0.36.0)
         with:
-          image-ref: ${{ steps.mode.outputs.publish == 'true' && format('{0}/{1}/fabric_4l/{2}:{3}', env.REGISTRY, github.repository_owner, matrix.service, github.sha) || format('{0}:local-{1}', matrix.service, github.sha) }}
+          image-ref: ${{ steps.mode.outputs.publish == 'true' && format('{0}/{1}:{2}', env.IMAGE_REPOSITORY, matrix.service, github.sha) || format('{0}:local-{1}', matrix.service, github.sha) }}
           format: json
           output: trivy-${{ matrix.service }}.json
       - name: Generate SBOM (CycloneDX)
         uses: anchore/sbom-action@v0
         with:
-          image: ${{ steps.mode.outputs.publish == 'true' && format('{0}/{1}/fabric_4l/{2}:{3}', env.REGISTRY, github.repository_owner, matrix.service, github.sha) || format('{0}:local-{1}', matrix.service, github.sha) }}
+          image: ${{ steps.mode.outputs.publish == 'true' && format('{0}/{1}:{2}', env.IMAGE_REPOSITORY, matrix.service, github.sha) || format('{0}:local-{1}', matrix.service, github.sha) }}
           format: cyclonedx-json
           output-file: sbom-${{ matrix.service }}-${{ github.sha }}.cdx.json
       - name: Install Cosign
@@ -130,21 +131,21 @@ jobs:
       - name: Sign image (keyless OIDC)
         if: steps.mode.outputs.publish == 'true'
         run: |
-          cosign sign --yes ${{ env.REGISTRY }}/${{ github.repository_owner }}/fabric_4l/${{ matrix.service }}:${{ github.sha }}
+          cosign sign --yes ${{ env.IMAGE_REPOSITORY }}/${{ matrix.service }}:${{ github.sha }}
       - name: Attest SBOM to registry
         if: steps.mode.outputs.publish == 'true'
         run: |
           cosign attest --yes \
             --type cyclonedx \
             --predicate sbom-${{ matrix.service }}-${{ github.sha }}.cdx.json \
-            ${{ env.REGISTRY }}/${{ github.repository_owner }}/fabric_4l/${{ matrix.service }}:${{ github.sha }}
+            ${{ env.IMAGE_REPOSITORY }}/${{ matrix.service }}:${{ github.sha }}
       - name: Verify image signature metadata
         if: steps.mode.outputs.publish == 'true'
         run: |
           cosign verify \
             --certificate-identity-regexp "https://github.com/${{ github.repository }}/.depot/workflows/release-evidence-bundle.yml@.*" \
             --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
-            ${{ env.REGISTRY }}/${{ github.repository_owner }}/fabric_4l/${{ matrix.service }}:${{ github.sha }} > signing-${{ matrix.service }}-${{ github.sha }}.json
+            ${{ env.IMAGE_REPOSITORY }}/${{ matrix.service }}:${{ github.sha }} > signing-${{ matrix.service }}-${{ github.sha }}.json
       - name: Verify attestation metadata
         if: steps.mode.outputs.publish == 'true'
         run: |
@@ -152,7 +153,7 @@ jobs:
             --certificate-identity-regexp "https://github.com/${{ github.repository }}/.depot/workflows/release-evidence-bundle.yml@.*" \
             --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
             --type cyclonedx \
-            ${{ env.REGISTRY }}/${{ github.repository_owner }}/fabric_4l/${{ matrix.service }}:${{ github.sha }} > attestation-${{ matrix.service }}-${{ github.sha }}.json
+            ${{ env.IMAGE_REPOSITORY }}/${{ matrix.service }}:${{ github.sha }} > attestation-${{ matrix.service }}-${{ github.sha }}.json
       - name: Sign SBOM with Cosign
         if: steps.mode.outputs.publish == 'true'
         run: |

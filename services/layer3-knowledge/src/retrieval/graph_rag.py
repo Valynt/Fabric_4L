@@ -555,6 +555,7 @@ class GraphRAGEngine:
             query = """
             CALL db.index.fulltext.queryNodes($index_name, $query)
             YIELD node, score
+            WHERE node.tenant_id = $_tenant_id
             RETURN node, score
             LIMIT $limit
             """
@@ -568,16 +569,24 @@ class GraphRAGEngine:
             query = """
             CALL {
                 CALL db.index.fulltext.queryNodes('capability_fulltext', $query)
-                YIELD node, score RETURN node, score
+                YIELD node, score
+                WHERE node.tenant_id = $_tenant_id
+                RETURN node, score
                 UNION
                 CALL db.index.fulltext.queryNodes('usecase_fulltext', $query)
-                YIELD node, score RETURN node, score
+                YIELD node, score
+                WHERE node.tenant_id = $_tenant_id
+                RETURN node, score
                 UNION
                 CALL db.index.fulltext.queryNodes('persona_fulltext', $query)
-                YIELD node, score RETURN node, score
+                YIELD node, score
+                WHERE node.tenant_id = $_tenant_id
+                RETURN node, score
                 UNION
                 CALL db.index.fulltext.queryNodes('valuedriver_fulltext', $query)
-                YIELD node, score RETURN node, score
+                YIELD node, score
+                WHERE node.tenant_id = $_tenant_id
+                RETURN node, score
             }
             RETURN node, score
             ORDER BY score DESC
