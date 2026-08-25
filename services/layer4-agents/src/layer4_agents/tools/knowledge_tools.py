@@ -183,7 +183,7 @@ class QueryGraphTool(BaseTool):
         """
         start_time = time.time()
 
-        # P0 FIX: Extract and validate tenant context (FAIL-CLOSED)
+
         try:
             tenant_ctx = tenant_context.get_current_tenant_context()
             tenant_ctx.assert_valid()
@@ -235,7 +235,7 @@ class QueryGraphTool(BaseTool):
 
         start_time = time.time()
 
-        # P0 FIX: Override any tenant_id in parameters with authenticated context
+
         scoped_parameters = self._ensure_tenant_parameters(
             input_data.parameters, effective_tenant_id
         )
@@ -341,7 +341,7 @@ class SemanticSearchTool(BaseTool):
         """
         start_time = time.time()
 
-        # P0 FIX: Extract and validate tenant context (FAIL-CLOSED)
+
         try:
             tenant_ctx = tenant_context.get_current_tenant_context()
             tenant_ctx.assert_valid()
@@ -377,7 +377,7 @@ class SemanticSearchTool(BaseTool):
                     error="Pinecone API key required for semantic search",
                 )
 
-            # P0 FIX: Build filter with mandatory tenant isolation
+
             filter_dict = {"tenant_id": str(tenant_ctx.tenant_id)}
             if input_data.entity_types:
                 filter_dict["entity_type"] = {"$in": input_data.entity_types}
@@ -469,7 +469,7 @@ class GetEntityTool(BaseTool):
         SECURITY: This tool enforces tenant isolation by requiring valid TenantContext
         and injecting tenant_id filter into Cypher queries.
         """
-        # P0 FIX: Extract and validate tenant context (FAIL-CLOSED)
+
         try:
             tenant_ctx = tenant_context.get_current_tenant_context()
             tenant_ctx.assert_valid()
@@ -492,7 +492,7 @@ class GetEntityTool(BaseTool):
 
         try:
             async with driver.session(database=self.database) as session:
-                # P0 FIX: Query entity by ID with mandatory tenant filter
+
                 entity_query = """
                     MATCH (n {id: $entity_id, tenant_id: $tenant_id})
                     RETURN n, labels(n) as labels
@@ -514,7 +514,7 @@ class GetEntityTool(BaseTool):
 
                 relationships = []
                 if input_data.include_relationships:
-                    # P0 FIX: Query relationships with mandatory tenant filter on both nodes
+
                     rel_query = """
                         MATCH (n {id: $entity_id, tenant_id: $tenant_id})-[r]-(m {tenant_id: $tenant_id})
                         RETURN type(r) as predicate, m.id as target_id, 
@@ -591,7 +591,7 @@ class GetRelationshipsTool(BaseTool):
         SECURITY: This tool enforces tenant isolation by requiring valid TenantContext
         and injecting tenant_id filter into Cypher queries.
         """
-        # P0 FIX: Extract and validate tenant context (FAIL-CLOSED)
+
         try:
             tenant_ctx = tenant_context.get_current_tenant_context()
             tenant_ctx.assert_valid()
@@ -621,7 +621,7 @@ class GetRelationshipsTool(BaseTool):
 
         try:
             async with driver.session(database=self.database) as session:
-                # P0 FIX: Build query with mandatory tenant filter and optional predicate
+
                 tenant_id_str = str(tenant_ctx.tenant_id)
 
                 rel_pattern = f"[r:{predicate}]" if predicate else "[r]"
@@ -701,7 +701,7 @@ class TraverseTreeTool(BaseTool):
         SECURITY: This tool enforces tenant isolation by requiring valid TenantContext
         and injecting tenant_id filter into Cypher queries.
         """
-        # P0 FIX: Extract and validate tenant context (FAIL-CLOSED)
+
         try:
             tenant_ctx = tenant_context.get_current_tenant_context()
             tenant_ctx.assert_valid()
@@ -731,7 +731,7 @@ class TraverseTreeTool(BaseTool):
                 )
                 rel_pattern = "|".join(relationship_types) or "ENABLES|REQUIRES|BENEFITS"
 
-                # P0 FIX: Query with mandatory tenant filter on all nodes in path
+
                 query = """
                     MATCH path = (start {id: $start_id, tenant_id: $tenant_id})-[%s*1..%d]->(end {tenant_id: $tenant_id})
                     WHERE ALL(n IN nodes(path) WHERE n.tenant_id = $tenant_id)
@@ -807,7 +807,7 @@ class FindPathsTool(BaseTool):
         SECURITY: This tool enforces tenant isolation by requiring valid TenantContext
         and injecting tenant_id filter into Cypher queries.
         """
-        # P0 FIX: Extract and validate tenant context (FAIL-CLOSED)
+
         try:
             tenant_ctx = tenant_context.get_current_tenant_context()
             tenant_ctx.assert_valid()
@@ -831,7 +831,7 @@ class FindPathsTool(BaseTool):
 
         try:
             async with driver.session(database=self.database) as session:
-                # P0 FIX: Query with mandatory tenant filter on source, target, and all path nodes
+
                 query = (
                     """
                     MATCH (source {id: $source_id, tenant_id: $tenant_id}), 
