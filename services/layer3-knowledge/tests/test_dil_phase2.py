@@ -36,8 +36,8 @@ from src.services.roi_calculator_service import (
     ROIInputs,
     ROIOutputs,
     ROITemplateCreate,
-    STANDARD_SCENARIOS,
 )
+from src.services.roi_math_kernel import STANDARD_SCENARIOS
 
 
 # ---------------------------------------------------------------------------
