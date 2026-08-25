@@ -64,6 +64,26 @@ jobs:
         id: scope
         uses: ./.github/actions/change-scope
 
+      # Post-process: resolve 'true' for non-scoped events (push, schedule)
+      # so that the Unified Readiness Gate can verify safe skips.
+      - name: Post-resolve change scopes
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          echo "layer1=true" >> $GITHUB_OUTPUT
+          echo "layer2=true" >> $GITHUB_OUTPUT
+          echo "layer3=true" >> $GITHUB_OUTPUT
+          echo "layer4=true" >> $GITHUB_OUTPUT
+          echo "layer5=true" >> $GITHUB_OUTPUT
+          echo "layer6=true" >> $GITHUB_OUTPUT
+          echo "backend=true" >> $GITHUB_OUTPUT
+          echo "web=true" >> $GITHUB_OUTPUT
+          echo "code=true" >> $GITHUB_OUTPUT
+          echo "docker=true" >> $GITHUB_OUTPUT
+          echo "k8s=true" >> $GITHUB_OUTPUT
+          echo "deps=true" >> $GITHUB_OUTPUT
+          echo "runtime=true" >> $GITHUB_OUTPUT
+
   structural-preflight:
     name: Structural Preflight
     runs-on: depot-ubuntu-24.04-4
