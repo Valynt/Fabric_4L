@@ -3060,6 +3060,69 @@
         }
       }
     },
+    "/v1/accounts/{account_id}/journey-timeline": {
+      "get": {
+        "tags": [
+          "Accounts",
+          "Accounts"
+        ],
+        "summary": "Get Account Journey Timeline",
+        "description": "Get the authoritative 7-stage ValuePilot business journey progression for an account.\n\nReconstructed from tenant/account/journey scoped events and artifacts.\nKeyed by (tenant_id, account_id, journey_id).",
+        "operationId": "get_account_journey_timeline_v1_accounts__account_id__journey_timeline_get",
+        "parameters": [
+          {
+            "name": "account_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Account Id"
+            }
+          },
+          {
+            "name": "journey_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional journey ID; defaults to account default journey",
+              "title": "Journey Id"
+            },
+            "description": "Optional journey ID; defaults to account default journey"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountJourneyTimelineResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/prospects/setup": {
       "post": {
         "tags": [
@@ -9190,7 +9253,7 @@
           "Narratives"
         ],
         "summary": "Delete Narrative",
-        "description": "Delete a narrative.",
+        "description": "Remove a narrative.",
         "operationId": "delete_narrative_v1_narratives__narrative_id__delete",
         "parameters": [
           {
@@ -9250,6 +9313,108 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/StatusUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/narratives/{narrative_id}/export": {
+      "post": {
+        "tags": [
+          "Narratives"
+        ],
+        "summary": "Export Narrative",
+        "description": "Export a narrative to external format.\n\nEnforces Pillar 3 Integrity Gate: no NarrativeArtifact may export without a passing\nIntegrityPrecondition matching exact content hash and evidence set hash.\nFails closed with 422 INTEGRITY_GATE_OPEN.",
+        "operationId": "export_narrative_v1_narratives__narrative_id__export_post",
+        "parameters": [
+          {
+            "name": "narrative_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Narrative Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NarrativeExportRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/narratives/{narrative_id}/accept": {
+      "post": {
+        "tags": [
+          "Narratives"
+        ],
+        "summary": "Accept Narrative",
+        "description": "Accept a narrative and close self-improvement feedback loop into Layer 5 (Pillar 5).\n\nWhen an SE accepts a narrative, its claims and value delta are converted into a\nLayer 5 TruthObject with full provenance tracing back to the conversation turn and journey.",
+        "operationId": "accept_narrative_v1_narratives__narrative_id__accept_post",
+        "parameters": [
+          {
+            "name": "narrative_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Narrative Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NarrativeAcceptanceRequest"
               }
             }
           }
@@ -13924,9 +14089,7 @@
           },
           "owners": {
             "items": {
-              "additionalProperties": {
-                "type": "string"
-              },
+              "additionalProperties": true,
               "type": "object"
             },
             "type": "array",
@@ -13944,6 +14107,67 @@
         ],
         "title": "AccountFilterOptionsResponse",
         "description": "Available filter options for account list."
+      },
+      "AccountJourneyTimelineResponse": {
+        "properties": {
+          "tenant_id": {
+            "type": "string",
+            "title": "Tenant Id"
+          },
+          "account_id": {
+            "type": "string",
+            "title": "Account Id"
+          },
+          "journey_id": {
+            "type": "string",
+            "title": "Journey Id"
+          },
+          "stages": {
+            "items": {
+              "$ref": "#/components/schemas/JourneyTimelineStage"
+            },
+            "type": "array",
+            "title": "Stages"
+          },
+          "current_stage_key": {
+            "type": "string",
+            "title": "Current Stage Key"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "providers": {
+            "items": {
+              "$ref": "#/components/schemas/CRMProvider"
+            },
+            "type": "array",
+            "title": "Providers"
+          },
+          "owners": {
+            "items": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Owners"
+          }
+        },
+        "type": "object",
+        "required": [
+          "tenant_id",
+          "account_id",
+          "journey_id",
+          "stages",
+          "current_stage_key",
+          "updated_at",
+          "providers",
+          "owners"
+        ],
+        "title": "AccountJourneyTimelineResponse"
       },
       "AccountListItemSchema": {
         "properties": {
@@ -20045,6 +20269,232 @@
         "title": "IntegrationStatusResponse",
         "description": "Integration with sync status (response only)."
       },
+      "IntegrityPrecondition": {
+        "properties": {
+          "narrative_artifact_id": {
+            "type": "string",
+            "title": "Narrative Artifact Id"
+          },
+          "narrative_version": {
+            "type": "integer",
+            "title": "Narrative Version",
+            "default": 1
+          },
+          "narrative_content_hash": {
+            "type": "string",
+            "title": "Narrative Content Hash"
+          },
+          "evidence_set_hash": {
+            "type": "string",
+            "title": "Evidence Set Hash"
+          },
+          "tenant_id": {
+            "type": "string",
+            "title": "Tenant Id"
+          },
+          "account_id": {
+            "type": "string",
+            "title": "Account Id"
+          },
+          "integrity_policy_version": {
+            "type": "string",
+            "title": "Integrity Policy Version",
+            "default": "1.0.0"
+          },
+          "narrative_artifact_id_matches": {
+            "type": "boolean",
+            "title": "Narrative Artifact Id Matches",
+            "default": true
+          },
+          "narrative_version_matches": {
+            "type": "boolean",
+            "title": "Narrative Version Matches",
+            "default": true
+          },
+          "narrative_content_hash_matches": {
+            "type": "boolean",
+            "title": "Narrative Content Hash Matches",
+            "default": true
+          },
+          "evidence_set_hash_matches": {
+            "type": "boolean",
+            "title": "Evidence Set Hash Matches",
+            "default": true
+          },
+          "tenant_and_account_match": {
+            "type": "boolean",
+            "title": "Tenant And Account Match",
+            "default": true
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "passed",
+              "pending",
+              "failed",
+              "stale"
+            ],
+            "title": "Status",
+            "default": "passed"
+          },
+          "unresolved_findings": {
+            "type": "integer",
+            "title": "Unresolved Findings",
+            "default": 0
+          },
+          "integrity_policy_version_accepted": {
+            "type": "boolean",
+            "title": "Integrity Policy Version Accepted",
+            "default": true
+          },
+          "evidence_references_resolvable": {
+            "type": "boolean",
+            "title": "Evidence References Resolvable",
+            "default": true
+          },
+          "expired": {
+            "type": "boolean",
+            "title": "Expired",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "narrative_artifact_id",
+          "narrative_content_hash",
+          "evidence_set_hash",
+          "tenant_id",
+          "account_id"
+        ],
+        "title": "IntegrityPrecondition",
+        "description": "Precondition required before any externally consequential action on a NarrativeArtifact version.\nValidates that a passing IntegrityArtifact matches exact narrative and evidence hashes."
+      },
+      "JourneyStageStatus": {
+        "type": "string",
+        "enum": [
+          "not_started",
+          "in_progress",
+          "completed",
+          "blocked",
+          "failed"
+        ],
+        "title": "JourneyStageStatus"
+      },
+      "JourneyTimelineStage": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "stage_key": {
+            "type": "string",
+            "title": "Stage Key"
+          },
+          "status": {
+            "$ref": "#/components/schemas/JourneyStageStatus",
+            "default": "not_started"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          },
+          "actor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor"
+          },
+          "source_artifact_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Artifact Id"
+          },
+          "target_artifact_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Artifact Id"
+          },
+          "evidence_links": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Evidence Links"
+          },
+          "truth_object_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Truth Object Ids"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings"
+          },
+          "degradation_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Degradation Reason"
+          },
+          "deep_link": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deep Link"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "label",
+          "stage_key"
+        ],
+        "title": "JourneyTimelineStage"
+      },
       "KnowledgeSourceCreateRequest": {
         "properties": {
           "profile_id": {
@@ -20539,6 +20989,109 @@
         ],
         "title": "ModelVersionResponse",
         "description": "Read-only model version response."
+      },
+      "NarrativeAcceptanceRequest": {
+        "properties": {
+          "narrative_version": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Narrative Version",
+            "default": 1
+          },
+          "account_id": {
+            "type": "string",
+            "title": "Account Id"
+          },
+          "journey_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Journey Id"
+          },
+          "conversation_turn_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conversation Turn Id"
+          },
+          "se_feedback_notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Se Feedback Notes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "account_id"
+        ],
+        "title": "NarrativeAcceptanceRequest",
+        "description": "Request to accept narrative and emit feedback loop data point into L5."
+      },
+      "NarrativeExportRequest": {
+        "properties": {
+          "format": {
+            "type": "string",
+            "enum": [
+              "PDF",
+              "DOCX",
+              "PPTX",
+              "HTML"
+            ],
+            "title": "Format",
+            "description": "Export target format",
+            "default": "PDF"
+          },
+          "narrative_version": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Narrative Version",
+            "default": 1
+          },
+          "narrative_content_hash": {
+            "type": "string",
+            "title": "Narrative Content Hash",
+            "description": "Exact SHA-256 hash of the narrative content"
+          },
+          "evidence_set_hash": {
+            "type": "string",
+            "title": "Evidence Set Hash",
+            "description": "Exact SHA-256 hash of the supporting evidence set"
+          },
+          "integrity_precondition": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IntegrityPrecondition"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Precondition assertion verified by IntegrityAgent"
+          }
+        },
+        "type": "object",
+        "required": [
+          "narrative_content_hash",
+          "evidence_set_hash"
+        ],
+        "title": "NarrativeExportRequest",
+        "description": "Request to export narrative into externally distributable formats."
       },
       "NarrativeGenerateRequest": {
         "properties": {
@@ -23060,6 +23613,18 @@
             "title": "Total Contributors",
             "description": "Total number of unique contributors",
             "default": 0
+          },
+          "git_metric_completeness": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Git Metric Completeness",
+            "description": "Per-metric git collection status (status, truncated, complete, bytes_read) so consumers can distinguish an exact figure from a timed-out, truncated or failed one. Empty when git is unavailable."
+          },
+          "git_warnings": {
+            "items": {},
+            "type": "array",
+            "title": "Git Warnings",
+            "description": "Structured warnings (code, metric, status, message) raised when a git command timed out, was truncated, or failed. Contains no raw git output or email addresses."
           },
           "audit_timestamp": {
             "type": "string",

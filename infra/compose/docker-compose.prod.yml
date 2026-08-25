@@ -99,6 +99,7 @@ volumes:
   neo4j-backups:
   rdf-output:
   ground-truth-data:
+  layer3-hf-cache:
 
 networks:
   value-fabric-network:

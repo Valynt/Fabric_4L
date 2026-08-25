@@ -147,6 +147,27 @@ def generate_executive_summary(scorecard: Scorecard) -> str:
         f"- **Directories analyzed:** {scorecard.total_directories}\n"
         f"- **Commits analyzed:** {scorecard.total_commits}\n"
         f"- **Contributors analyzed:** {scorecard.total_contributors}"
+        + _git_completeness_note(scorecard)
+    )
+
+
+def _git_completeness_note(scorecard: Scorecard) -> str:
+    """Return a markdown note signalling incomplete git metrics, if any.
+
+    Includes only each structured warning's safe ``message``; never raw git
+    output or contributor email addresses.
+    """
+    messages = [
+        w["message"]
+        for w in scorecard.git_warnings
+        if isinstance(w, dict) and w.get("message")
+    ]
+    if not messages:
+        return ""
+    lines = "\n".join(f"- {msg}" for msg in messages)
+    return (
+        "\n\n> **Note:** Some git metrics were incomplete (timed out, truncated "
+        f"or failed); reported counts may be understated.\n{lines}"
     )
 
 
