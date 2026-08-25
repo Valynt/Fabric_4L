@@ -18,17 +18,14 @@ Priority: P0 (Security Boundary)
 """
 
 import json
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 import jwt
 import pytest
 import pytest_asyncio
 from fastapi import FastAPI
-from httpx import ASGITransport, AsyncClient
 from value_fabric.shared.error_handling import register_exception_handlers
-from value_fabric.shared.identity.context import RequestContext
-from value_fabric.shared.identity.dependencies import require_authenticated
 from value_fabric.shared.identity.permissions import Role
 
 from layer4_agents.api.routes import accounts
@@ -82,7 +79,7 @@ class TestJWTSignatureValidation:
             "tenant_id": str(uuid4()),
             "user_id": str(uuid4()),
             "roles": [Role.TENANT_ADMIN.value],
-            "exp": datetime.now(tz=timezone.utc) + timedelta(hours=1),
+            "exp": datetime.now(tz=UTC) + timedelta(hours=1),
         }
         
         # Sign with wrong secret
@@ -98,7 +95,7 @@ class TestJWTSignatureValidation:
         Risk: Token manipulation allowing privilege escalation.
         """
         secret = "test-secret"
-        exp_time = datetime.now(tz=timezone.utc) + timedelta(hours=1)
+        exp_time = datetime.now(tz=UTC) + timedelta(hours=1)
         payload = {
             "tenant_id": str(uuid4()),
             "user_id": str(uuid4()),
@@ -136,7 +133,7 @@ class TestJWTClaimValidation:
         payload = {
             "user_id": str(uuid4()),
             "roles": [Role.TENANT_ADMIN.value],
-            "exp": datetime.now(tz=timezone.utc) + timedelta(hours=1),
+            "exp": datetime.now(tz=UTC) + timedelta(hours=1),
         }
         
         token = jwt.encode(payload, secret, algorithm="HS256")
@@ -154,7 +151,7 @@ class TestJWTClaimValidation:
         payload = {
             "tenant_id": str(uuid4()),
             "roles": [Role.TENANT_ADMIN.value],
-            "exp": datetime.now(tz=timezone.utc) + timedelta(hours=1),
+            "exp": datetime.now(tz=UTC) + timedelta(hours=1),
         }
         
         token = jwt.encode(payload, secret, algorithm="HS256")
@@ -173,7 +170,7 @@ class TestJWTClaimValidation:
             "tenant_id": str(uuid4()),
             "user_id": str(uuid4()),
             "roles": ["INVALID_ROLE"],  # Invalid role
-            "exp": datetime.now(tz=timezone.utc) + timedelta(hours=1),
+            "exp": datetime.now(tz=UTC) + timedelta(hours=1),
         }
         
         token = jwt.encode(payload, secret, algorithm="HS256")
@@ -196,7 +193,7 @@ class TestTokenExpiration:
             "tenant_id": str(uuid4()),
             "user_id": str(uuid4()),
             "roles": [Role.TENANT_ADMIN.value],
-            "exp": datetime.now(tz=timezone.utc) - timedelta(hours=1),  # Expired
+            "exp": datetime.now(tz=UTC) - timedelta(hours=1),  # Expired
         }
         
         token = jwt.encode(payload, secret, algorithm="HS256")
@@ -266,7 +263,7 @@ class TestValidToken:
             "tenant_id": str(uuid4()),
             "user_id": str(uuid4()),
             "roles": [Role.TENANT_ADMIN.value],
-            "exp": datetime.now(tz=timezone.utc) + timedelta(hours=1),
+            "exp": datetime.now(tz=UTC) + timedelta(hours=1),
         }
         
         token = jwt.encode(payload, secret, algorithm="HS256")

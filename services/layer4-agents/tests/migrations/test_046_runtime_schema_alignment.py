@@ -7,7 +7,6 @@ from pathlib import Path
 from types import ModuleType
 from unittest.mock import call, patch
 
-
 VERSIONS = Path(__file__).parents[2] / "migrations" / "versions"
 
 
