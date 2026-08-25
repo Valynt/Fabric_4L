@@ -3,7 +3,8 @@ name: Publish CI Tools Security Suite
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    # Temporary bootstrap branch: removed once the first Valynt-owned image is published.
+    branches: [main, fix/ci-backlog-throughput]
     paths:
       - tools/ci/security-suite/Dockerfile
       - .github/workflows/publish-ci-tools.yml
