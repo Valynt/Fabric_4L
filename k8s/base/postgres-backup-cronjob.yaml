@@ -75,27 +75,31 @@ spec:
                   mkdir -p $$BACKUP_DIR
                   TIMESTAMP=$$(date +%Y%m%d_%H%M%S)
                   FAILED=0
+                  PG_HOST=$${POSTGRES_HOST:-postgres-patroni}
 
                   # All application databases
                   DATABASES="ingestion extraction signal_refinery layer4_agents ground_truth benchmarks layer7_billing"
 
                   for DB in $$DATABASES; do
                     # Check if the database exists before attempting backup
-                    EXISTS=$$(PGPASSWORD=$${POSTGRES_PASSWORD} psql -h postgres -U $${POSTGRES_USER} -tAc "SELECT 1 FROM pg_database WHERE datname='$$DB'" 2>/dev/null || echo "")
+                    EXISTS=$$(PGPASSWORD=$${POSTGRES_PASSWORD} psql -h $$PG_HOST -U $${POSTGRES_USER} -tAc "SELECT 1 FROM pg_database WHERE datname='$$DB'" 2>/dev/null || echo "")
                     if [ "$$EXISTS" = "1" ]; then
-                      if PGPASSWORD=$${POSTGRES_PASSWORD} pg_dump -h postgres-patroni -U $${POSTGRES_USER} -d $$DB -F c -f $$BACKUP_DIR/backup_$${DB}_$${TIMESTAMP}.dump; then
+                      if PGPASSWORD=$${POSTGRES_PASSWORD} pg_dump -h $$PG_HOST -U $${POSTGRES_USER} -d $$DB -F c -f $$BACKUP_DIR/backup_$${DB}_$${TIMESTAMP}.dump; then
                         echo "OK: $$DB backed up to backup_$${DB}_$${TIMESTAMP}.dump"
+                        sha256sum $$BACKUP_DIR/backup_$${DB}_$${TIMESTAMP}.dump >> $$BACKUP_DIR/manifest_$${TIMESTAMP}.sha256
                       else
                         echo "ERROR: pg_dump failed for $$DB" >&2
                         FAILED=1
                       fi
                     else
-                      echo "SKIP: database $$DB does not exist yet (migration pending)"
+                      echo "ERROR: required application database $$DB does not exist on postgres cluster" >&2
+                      FAILED=1
                     fi
                   done
 
                   # Remove pg_dump backups older than 7 days
                   find $$BACKUP_DIR -name 'backup_*.dump' -mtime +7 -delete
+                  find $$BACKUP_DIR -name 'manifest_*.sha256' -mtime +7 -delete
 
                   # WAL-G physical base backup (gated; requires IRSA or AWS credentials)
                   if [ "$${ENABLE_WALG_BACKUP:-false}" = "true" ]; then
@@ -103,7 +107,7 @@ spec:
                     TMP_PGDATA="/tmp/pgdata_walg_$${TIMESTAMP}"
                     mkdir -p "$$TMP_PGDATA"
                     # Stream base backup from postgres leader via replication protocol
-                    if PGPASSWORD=$${POSTGRES_PASSWORD} pg_basebackup -h postgres -U $${POSTGRES_USER} -D "$$TMP_PGDATA" -Fp -Xs -P -v; then
+                    if PGPASSWORD=$${POSTGRES_PASSWORD} pg_basebackup -h $$PG_HOST -U $${POSTGRES_USER} -D "$$TMP_PGDATA" -Fp -Xs -P -v; then
                       if wal-g backup-push "$$TMP_PGDATA"; then
                         echo "WAL-G: base backup pushed successfully"
                       else

@@ -2,6 +2,7 @@
 
 from .prometheus_metrics import (
     MetricsConfig,
+    MetricsMiddleware,
     PrometheusMetrics,
     get_metrics,
     initialize_metrics,
@@ -9,6 +10,7 @@ from .prometheus_metrics import (
 
 __all__ = [
     "MetricsConfig",
+    "MetricsMiddleware",
     "PrometheusMetrics",
     "get_metrics",
     "initialize_metrics",
