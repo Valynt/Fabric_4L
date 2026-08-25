@@ -8,7 +8,6 @@ from the canonical shared request context and fails closed when context is missi
 
 import uuid
 
-import pytest
 from value_fabric.shared.identity.context import RequestContext, set_request_context
 
 from layer4_agents.tenant.context import TenantContext, get_current_tenant

@@ -1,0 +1,65 @@
+# Depot CI Migration
+# Source: .github/workflows/pr-backlog-health.yml
+#
+# Changes made:
+# - Changed GitHub runs-on labels to their Depot equivalents
+
+name: PR Backlog Health Report
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+"on":
+  schedule:
+    # Every Monday at 09:07 UTC
+    - cron: "7 9 * * 1"
+  workflow_dispatch:
+jobs:
+  report:
+    name: Report stale PRs and main required-check pass rate
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - name: Ensure backlog-health label exists
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh label create pr-backlog-health --color "5319e7" --description "Backlog health reports and related issues" || true
+      - name: Set up Python
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
+        with:
+          python-version: "3.11"
+      - name: Collect backlog metrics
+        id: metrics
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          body_file="$(mktemp)"
+          github_output="$(mktemp)"
+          python3 scripts/ci/collect_pr_backlog_metrics.py \
+            --repo "${{ github.repository }}" \
+            --server-url "https://github.com" \
+            --stale-days 14 \
+            --main-sha "$(gh api repos/${{ github.repository }}/commits/main --jq '.sha')" \
+            --required-checks-config config/ci/required-status-checks.json \
+            --body-output "$body_file" \
+            --github-output "$github_output"
+          cat "$github_output" >> "$GITHUB_OUTPUT"
+      - name: Open or update backlog health issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          body_file="${{ steps.metrics.outputs.body_file }}"
+          title="${{ steps.metrics.outputs.issue_title }}"
+          existing=$(gh issue list --label pr-backlog-health --state open --json number --jq '.[0].number' || true)
+
+          if [[ -n "$existing" && "$existing" != "null" ]]; then
+            gh issue edit "$existing" --title "$title" --body-file "$body_file"
+          else
+            gh issue create --title "$title" --label pr-backlog-health --body-file "$body_file"
+          fi

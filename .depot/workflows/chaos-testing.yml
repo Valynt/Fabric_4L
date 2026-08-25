@@ -1,0 +1,279 @@
+# Depot CI Migration
+# Source: .github/workflows/chaos-testing.yml
+#
+# Changes made:
+# - Changed GitHub runs-on labels to their Depot equivalents
+
+name: Chaos Engineering Tests
+permissions:
+  contents: read
+on:
+  # Weekly scheduled run (Sundays at 3 AM UTC - before Monday deployments)
+  schedule:
+    - cron: '0 3 * * 0'
+  # On-demand trigger for specific experiments
+  workflow_dispatch:
+    inputs:
+      experiment:
+        description: 'Chaos experiment to run'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - pod-delete
+          - network-partition
+          - cpu-stress
+          - memory-stress
+          - autoscaler
+      target_namespace:
+        description: 'Target namespace'
+        required: false
+        default: 'value-fabric-prod'
+      duration:
+        description: 'Experiment duration (seconds)'
+        required: false
+        default: '300'
+  # Pre-release validation
+  workflow_call:
+    inputs:
+      target_namespace:
+        description: 'Target namespace'
+        required: false
+        default: 'value-fabric-staging'
+        type: string
+env:
+  TARGET_NAMESPACE: ${{ inputs.target_namespace || 'value-fabric-staging' }}
+  EXPERIMENT_DURATION: ${{ inputs.duration || '300' }}
+jobs:
+  # ============================================
+  # Pre-Chaos Health Check
+  # ============================================
+  pre-chaos-health:
+    name: Pre-Chaos Health Check
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'v1.28.0'
+      - name: Check cluster connectivity
+        run: |
+          kubectl cluster-info || echo "Cluster not accessible - skipping actual chaos tests"
+          kubectl get namespaces || true
+      - name: Verify all services healthy
+        run: |
+          # Check if we can reach the target namespace
+          if kubectl get namespace ${{ env.TARGET_NAMESPACE }} &> /dev/null; then
+            echo "✅ Target namespace exists: ${{ env.TARGET_NAMESPACE }}"
+
+            # Check deployments
+            kubectl get deployments -n ${{ env.TARGET_NAMESPACE }} || true
+
+            # Check pods
+            kubectl get pods -n ${{ env.TARGET_NAMESPACE }} || true
+          else
+            echo "⚠️ Target namespace not accessible - chaos tests will be simulated"
+          fi
+      - name: Record baseline metrics
+        run: |
+          mkdir -p chaos-results
+          cat > chaos-results/pre-chaos-health.json << EOF
+          {
+            "timestamp": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
+            "namespace": "${{ env.TARGET_NAMESPACE }}",
+            "checks": {
+              "namespace_exists": true,
+              "deployments_accessible": true
+            }
+          }
+          EOF
+      - name: Upload baseline
+        uses: actions/upload-artifact@v4
+        with:
+          name: pre-chaos-health
+          path: chaos-results/pre-chaos-health.json
+          retention-days: 30
+  # ============================================
+  # Pod Delete Chaos Test
+  # ============================================
+  chaos-pod-delete:
+    name: Pod Delete Chaos
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    needs: pre-chaos-health
+    timeout-minutes: 20
+    if: github.event.inputs.experiment == 'all' || github.event.inputs.experiment == 'pod-delete' || github.event_name == 'schedule' || github.event_name == 'workflow_call'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Litmus CLI
+        run: |
+          curl -sL https://github.com/litmuschaos/litmusctl/releases/latest/download/litmusctl-linux-amd64 -o /tmp/litmusctl
+          chmod +x /tmp/litmusctl
+          /tmp/litmusctl version || true
+      - name: Apply ChaosEngine
+        run: |
+          # Apply the chaos experiment
+          kubectl apply -f k8s/chaos/litmus-experiments/pod-delete-all-layers.yaml -n ${{ env.TARGET_NAMESPACE }} || true
+
+          # Wait for experiment to complete
+          sleep 60
+
+          # Check results
+          kubectl get chaosresults -n ${{ env.TARGET_NAMESPACE }} || true
+      - name: Collect results
+        if: always()
+        run: |
+          mkdir -p chaos-results/pod-delete
+          kubectl get chaosresults -n ${{ env.TARGET_NAMESPACE }} -o yaml > chaos-results/pod-delete/chaosresults.yaml || true
+          kubectl describe chaosengine pod-delete-all-layers -n ${{ env.TARGET_NAMESPACE }} > chaos-results/pod-delete/engine-describe.txt || true
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        with:
+          name: chaos-pod-delete-results
+          path: chaos-results/pod-delete/
+          retention-days: 90
+  # ============================================
+  # Network Partition Chaos Test
+  # ============================================
+  chaos-network-partition:
+    name: Network Partition Chaos
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    needs: chaos-pod-delete
+    timeout-minutes: 15
+    if: github.event.inputs.experiment == 'all' || github.event.inputs.experiment == 'network-partition' || github.event_name == 'schedule' || github.event_name == 'workflow_call'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply Network Partition Experiment
+        run: |
+          kubectl apply -f k8s/chaos/litmus-experiments/network-partition-l3-l4.yaml -n ${{ env.TARGET_NAMESPACE }} || true
+          sleep 90
+          kubectl get chaosresults -n ${{ env.TARGET_NAMESPACE }} || true
+      - name: Collect results
+        if: always()
+        run: |
+          mkdir -p chaos-results/network-partition
+          kubectl get chaosresults -n ${{ env.TARGET_NAMESPACE }} -o yaml > chaos-results/network-partition/chaosresults.yaml || true
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        with:
+          name: chaos-network-partition-results
+          path: chaos-results/network-partition/
+          retention-days: 90
+  # ============================================
+  # Resource Stress Tests
+  # ============================================
+  chaos-resource-stress:
+    name: Resource Stress Chaos
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    needs: chaos-network-partition
+    timeout-minutes: 25
+    if: github.event.inputs.experiment == 'all' || github.event.inputs.experiment == 'cpu-stress' || github.event.inputs.experiment == 'memory-stress' || github.event_name == 'schedule' || github.event_name == 'workflow_call'
+    strategy:
+      fail-fast: false
+      matrix:
+        stress_type: [cpu, memory]
+        include:
+          - stress_type: cpu
+            experiment_file: cpu-stress-l4.yaml
+          - stress_type: memory
+            experiment_file: memory-stress-l2.yaml
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply ${{ matrix.stress_type }} stress experiment
+        run: |
+          kubectl apply -f k8s/chaos/litmus-experiments/${{ matrix.experiment_file }} -n ${{ env.TARGET_NAMESPACE }} || true
+          sleep 180
+          kubectl get chaosresults -n ${{ env.TARGET_NAMESPACE }} || true
+      - name: Collect results
+        if: always()
+        run: |
+          mkdir -p chaos-results/${{ matrix.stress_type }}-stress
+          kubectl get chaosresults -n ${{ env.TARGET_NAMESPACE }} -o yaml > chaos-results/${{ matrix.stress_type }}-stress/chaosresults.yaml || true
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        with:
+          name: chaos-${{ matrix.stress_type }}-stress-results
+          path: chaos-results/${{ matrix.stress_type }}-stress/
+          retention-days: 90
+  # ============================================
+  # Autoscaler Test
+  # ============================================
+  chaos-autoscaler:
+    name: Pod Autoscaler Chaos
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    needs: chaos-resource-stress
+    timeout-minutes: 20
+    if: github.event.inputs.experiment == 'all' || github.event.inputs.experiment == 'autoscaler' || github.event_name == 'schedule' || github.event_name == 'workflow_call'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply autoscaler experiment
+        run: |
+          kubectl apply -f k8s/chaos/litmus-experiments/pod-autoscaler-l1.yaml -n ${{ env.TARGET_NAMESPACE }} || true
+          sleep 240
+          kubectl get chaosresults -n ${{ env.TARGET_NAMESPACE }} || true
+      - name: Collect results
+        if: always()
+        run: |
+          mkdir -p chaos-results/autoscaler
+          kubectl get chaosresults -n ${{ env.TARGET_NAMESPACE }} -o yaml > chaos-results/autoscaler/chaosresults.yaml || true
+          kubectl get hpa -n ${{ env.TARGET_NAMESPACE }} > chaos-results/autoscaler/hpa-status.txt || true
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        with:
+          name: chaos-autoscaler-results
+          path: chaos-results/autoscaler/
+          retention-days: 90
+  # ============================================
+  # Post-Chaos Validation
+  # ============================================
+  post-chaos-validation:
+    name: Post-Chaos System Validation
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    needs: [chaos-pod-delete, chaos-network-partition, chaos-resource-stress, chaos-autoscaler]
+    if: always()
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Python dependencies
+        run: |
+          pip install aiohttp pytest asyncio
+      - name: Run validation tests
+        run: |
+          mkdir -p chaos-results/validation
+
+          # Run chaos validation suite
+          python tests/chaos/chaos-validation-suite.py \
+            --namespace ${{ env.TARGET_NAMESPACE }} \
+            --output chaos-results/validation/validation-report.json || true
+      - name: Check system recovery
+        run: |
+          echo "Checking system recovery after chaos..."
+          kubectl get pods -n ${{ env.TARGET_NAMESPACE }} || true
+          kubectl get deployments -n ${{ env.TARGET_NAMESPACE }} || true
+      - name: Generate chaos test report
+        run: |
+          cat > chaos-results/chaos-test-report.json << EOF
+          {
+            "test_date": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
+            "namespace": "${{ env.TARGET_NAMESPACE }}",
+            "experiments_run": [
+              "pod-delete-all-layers",
+              "network-partition-l3-l4",
+              "cpu-stress-l4",
+              "memory-stress-l2",
+              "pod-autoscaler-l1"
+            ],
+            "summary": "Chaos engineering test suite completed",
+            "retention_days": 90
+          }
+          EOF
+      - name: Upload validation results
+        uses: actions/upload-artifact@v4
+        with:
+          name: chaos-validation-report
+          path: chaos-results/
+          retention-days: 90
+      - name: Update workflow summary
+        run: "echo \"## \U0001F525 Chaos Engineering Test Results\" >> $GITHUB_STEP_SUMMARY\necho \"\" >> $GITHUB_STEP_SUMMARY\necho \"Namespace: ${{ env.TARGET_NAMESPACE }}\" >> $GITHUB_STEP_SUMMARY\necho \"\" >> $GITHUB_STEP_SUMMARY\necho \"### Experiments Completed\" >> $GITHUB_STEP_SUMMARY\necho \"- ✅ Pod Delete (All Layers)\" >> $GITHUB_STEP_SUMMARY\necho \"- ✅ Network Partition (L3-L4)\" >> $GITHUB_STEP_SUMMARY\necho \"- ✅ CPU Stress (L4 Agents)\" >> $GITHUB_STEP_SUMMARY\necho \"- ✅ Memory Stress (L2 Extraction)\" >> $GITHUB_STEP_SUMMARY\necho \"- ✅ Pod Autoscaler (L1 Ingestion)\" >> $GITHUB_STEP_SUMMARY\necho \"\" >> $GITHUB_STEP_SUMMARY\necho \"Artifacts retained for 90 days\" >> $GITHUB_STEP_SUMMARY\n"

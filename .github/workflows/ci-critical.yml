@@ -1,0 +1,414 @@
+name: Critical CI
+
+# Runs on every PR and push to main - the 8 mandatory checks that must always pass
+# This is the gate that blocks merging; all other checks are conditional/optional
+
+permissions:
+  contents: read
+  pull-requests: read
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  # 1. Change-scoping layer: resolve which scopes this event touches
+  #    so that downstream jobs only run when the change can actually affect them.
+  change-scope:
+    name: Change Scope
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      layer1: ${{ steps.scope.outputs.layer1 }}
+      layer2: ${{ steps.scope.outputs.layer2 }}
+      layer3: ${{ steps.scope.outputs.layer3 }}
+      layer4: ${{ steps.scope.outputs.layer4 }}
+      layer5: ${{ steps.scope.outputs.layer5 }}
+      layer6: ${{ steps.scope.outputs.layer6 }}
+      backend: ${{ steps.scope.outputs.backend }}
+      web: ${{ steps.scope.outputs.web }}
+      code: ${{ steps.scope.outputs.code }}
+      docker: ${{ steps.scope.outputs.docker }}
+      k8s: ${{ steps.scope.outputs.k8s }}
+      deps: ${{ steps.scope.outputs.deps }}
+      runtime: ${{ steps.scope.outputs.runtime }}
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+
+      - name: Resolve change scopes
+        id: scope
+        uses: ./.github/actions/change-scope
+
+  # 2. Structural preflight - topology validation
+  structural-preflight:
+    name: Structural Preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    needs: change-scope
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch base branch for diff-aware policy checks
+        run: |
+          git fetch --no-tags --prune origin "${{ github.base_ref || 'main' }}"
+
+      - name: Set up Python
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Python gate dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --require-hashes -r tests/requirements-test.lock
+          python - <<'PY'
+          import jsonschema
+          import pytest
+          import toml
+          import yaml
+          print("dependency smoke test passed")
+          PY
+          python -m mypy --version
+          python -m pytest --version
+
+      - name: Install uv for test lock verification
+        uses: astral-sh/setup-uv@caf0cab7a618c569241d31dcd442f54681755d39 # v3
+        with:
+          version: "0.11.6"
+          enable-cache: true
+
+      - name: Verify root Python test lock is current
+        run: |
+          python scripts/ci/check_python_test_lock.py
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+        with:
+          version: "10.18.1"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4
+        with:
+          node-version: "22.18.0"
+
+      - name: Enforce frontend root policy (apps/web only)
+        run: |
+          python scripts/ci/check_frontend_root_policy.py --base-ref "origin/${{ github.base_ref || 'main' }}"
+
+      - name: Enforce package manager policy (root + apps/web)
+        run: pnpm run check:package-manager-policy
+
+      - name: Enforce type escape ratchet
+        run: make check-type-escape-ratchet
+
+      - name: Enforce structural fitness ratchet
+        run: make check-structural-fitness-ratchet
+
+      - name: Verify schema index coverage
+        run: pnpm test:schema
+
+      - name: Enforce Vault dev-mode boundaries (compose + release manifests)
+        run: python scripts/ci/check_vault_dev_mode_boundaries.py
+
+      - name: Enforce secret store static token scanning policy
+        run: |
+          pip install pyyaml
+          python .github/scripts/enforce_secret_store_security.py
+
+      - name: Validate Trivy ignore governance policy
+        run: make check-trivy-ignore-policy
+
+      - name: Validate workflow target/artifact references
+        run: make check-workflow-references
+
+      - name: Validate workflow ownership registry
+        run: make check-workflow-registry
+
+      - name: Validate .devin/workflows specification compliance
+        run: |
+          pip install pyyaml
+          python scripts/ci/validate_devin_workflows.py
+
+      - name: Verify workflow INDEX.md is in sync
+        run: |
+          pip install pyyaml
+          python scripts/ci/generate_workflow_index.py --check
+
+      - name: Enforce ADR numbering policy
+        run: python scripts/ci/check_adr_numbering.py
+
+      - name: Enforce production alert metadata (runbook + on-call owner)
+        run: |
+          pip install pyyaml
+          python scripts/ci/check_production_alert_metadata.py
+
+      - name: Enforce legacy tenant access shim lifecycle (phase-controlled)
+        run: |
+          mkdir -p artifacts
+          pip install pyyaml
+          python scripts/ci/check_legacy_tenant_access.py \
+            --allowlist config/ci/legacy_tenant_access_shim_allowlist.yaml \
+            --phase "${SHIM_LEGACY_ACCESS_PHASE:-warn}" \
+            --base-ref "origin/${{ github.base_ref || 'main' }}" \
+            --json | tee artifacts/legacy-tenant-access-shim-lifecycle.json
+          exit ${PIPESTATUS[0]}
+
+      - name: Enforce shell test bracket spacing in workflow run blocks
+        run: python scripts/ci/check_shell_test_spacing.py
+
+      - name: Enforce canonical Infisical secret path schema
+        run: python scripts/ci/check_infisical_path_schema.py --repo-root .
+
+      - name: Reject unsupported pip-audit workflow options
+        run: python scripts/ci/check_pip_audit_workflow.py
+
+      - name: Run structural preflight
+        run: |
+          mkdir -p artifacts
+          python scripts/ci/structural_preflight.py --strict --json | tee artifacts/structural-preflight.json
+          exit ${PIPESTATUS[0]}
+
+  # 3. Contract compliance - OpenAPI drift detection
+  contract-compliance:
+    name: Contract Compliance
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    needs: change-scope
+    if: needs.change-scope.outputs.code == 'true' || needs.change-scope.outputs.backend == 'true'
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+
+      - name: Set up Python
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install pytest pyyaml
+
+      - name: Run OpenAPI linting with Spectral
+        run: |
+          pnpm dlx @stoplight/spectral-cli lint contracts/openapi/*.json --ruleset .spectral.yaml
+
+      - name: Run error envelope consistency contract tests
+        run: |
+          pytest tests/contract/test_error_envelope_consistency.py -v --tb=short
+
+      - name: Run OpenTelemetry instrumentation contract tests (P0-007)
+        run: |
+          pytest tests/contract/test_otel_instrumentation.py -v --tb=short
+
+      - name: Run centralized observability contract suite
+        run: |
+          pytest -x structlog prometheus-client
+          pnpm test:observability
+          pnpm lint:logs
+
+  # 4. Tenant isolation - fail-closed by default
+  tenant-isolation:
+    name: Tenant Isolation
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    needs: change-scope
+    if: needs.change-scope.outputs.backend == 'true'
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+
+      - name: Verify tenant context singleton guard
+        run: python scripts/ci/check_tenant_context_singleton.py
+
+      - name: Enforce Layer 4 bounded-context dependency rules
+        run: python scripts/ci/check_layer4_boundaries.py
+
+      - name: Enforce shared identity canonical imports
+        run: python scripts/ci/check_shared_identity_canonical_imports.py
+
+      - name: Run import topology tests
+        run: |
+          pytest tests/contract/test_import_topology.py -v --tb=short
+
+  # 5. Security gates - critical OWASP and secret scanning
+  security-gates:
+    name: Security Gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    needs: change-scope
+    if: needs.change-scope.outputs.backend == 'true'
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+
+      - name: Enforce HTTPException static gate with baseline allowlist
+        run: python scripts/ci/check_no_raw_httpexception_in_routers.py
+
+      - name: Run error envelope consistency contract tests
+        run: |
+          pytest tests/contract/test_error_envelope_consistency.py -v --tb=short
+
+      - name: Validate no dev auth bypass in production
+        run: |
+          chmod +x .github/scripts/check-dev-auth-bypass.sh
+          .github/scripts/check-dev-auth-bypass.sh
+
+      - name: Security scan with bandit (Python)
+        run: uvx bandit@1.9.4 -r services/ -ll -ii
+
+      - name: Dependency audit with pip-audit
+        run: bash "${{ github.workspace }}/scripts/ci/run_pip_audit.sh"
+
+      - name: Run Trivy security scan
+        run: make check-trivy-ignore-policy
+
+  # 6. Layer-specific critical checks (only if affected)
+  layer-critical:
+    name: Layer Critical Checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    needs: change-scope
+    if: >
+      needs.change-scope.outputs.layer1 == 'true' ||
+      needs.change-scope.outputs.layer2 == 'true' ||
+      needs.change-scope.outputs.layer3 == 'true' ||
+      needs.change-scope.outputs.layer4 == 'true'
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+
+      - name: Check Layer 1 canonical paths
+        run: python scripts/ci/check_layer1_canonical_paths.py
+
+      - name: Check Layer 2 ontology-guided extraction
+        run: python scripts/ci/check_layer2_ontology.py
+
+      - name: Check Layer 3 graph storage encryption
+        run: python scripts/ci/check_graph_storage_encryption.py
+
+      - name: Check Layer 4 bounded-context dependency rules
+        run: python scripts/ci/check_layer4_boundaries.py
+
+      - name: Enforce pytest skip governance
+        run: |
+          mkdir -p artifacts
+          set +e
+          python -m pytest --collect-only -q -ra > artifacts/pytest-collection.txt 2>&1
+          collect_status=$?
+          set -e
+          python scripts/ci/check_pytest_skip_governance.py \
+            artifacts/pytest-collection.txt \
+            --write-report artifacts/test-debt-governance.json
+          if [ "$collect_status" -ne 0 ]; then
+            echo "pytest collection failed with status ${collect_status}."
+            cat artifacts/pytest-collection.txt
+            exit "$collect_status"
+          fi
+
+      - name: Enforce static test skip governance
+        run: |
+          python scripts/ci/check_test_skip_governance.py \
+            --register config/ci/test_skip_register.yaml \
+            --write-report artifacts/test-debt-governance.json \
+            --md-out artifacts/test-debt-governance.md
+
+  # 7. Observability - structured logs and metrics
+  observability:
+    name: Observability
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    needs: change-scope
+    if: >
+      needs.change-scope.outputs.backend == 'true' ||
+      needs.change-scope.outputs.code == 'true'
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+
+      - name: Enforce structured log format
+        run: python scripts/ci/check_structured_logs.py
+
+      - name: Validate request IDs are present
+        run: python scripts/ci/check_request_ids.py
+
+      - name: Check for dev auth bypass flags in production configs
+        run: |
+          grep -rn "DEV_AUTH_BYPASS\|ALLOW_DEV_AUTH_BYPASS" config/ scripts/ci/ --include="*.py" --include="*.yaml" --include="*.yml" | grep -v ".example" || echo "No dev auth bypass flags found"
+
+  # 8. Frontend formatting and type check (only if web changed)
+  frontend-quality:
+    name: Frontend Quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    needs: change-scope
+    if: needs.change-scope.outputs.web == 'true'
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+        with:
+          version: "10.18.1"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4
+        with:
+          node-version: "22.18.0"
+          cache: "pnpm"
+          cache-dependency-path: "pnpm-lock.yaml"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Frontend lint (hygiene + legacy import checks)
+        run: pnpm --dir apps/web run lint
+
+      - name: Frontend type-check
+        run: pnpm --dir apps/web run typecheck
+
+      - name: Frontend format (prettier)
+        run: pnpm --dir apps/web run format
+
+  # 9. Merge group aggregation (for batch merging)
+  merge-aggregation:
+    name: Merge Group Aggregation
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    needs:
+      - change-scope
+      - structural-preflight
+      - contract-compliance
+      - tenant-isolation
+      - security-gates
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+
+      - name: Validate workflow target and artifact references
+        run: make check-workflow-references
+
+      - name: Validate workflow ownership registry
+        run: make check-workflow-registry

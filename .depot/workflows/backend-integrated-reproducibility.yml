@@ -1,0 +1,185 @@
+# Depot CI Migration
+# Source: .github/workflows/backend-integrated-reproducibility.yml
+#
+# Changes made:
+# - Changed GitHub runs-on labels to their Depot equivalents
+
+name: Backend-Integrated Reproducibility Evidence
+"on":
+  workflow_dispatch:
+    inputs:
+      release_candidate_sha:
+        description: "Release-candidate commit SHA to validate"
+        required: true
+        type: string
+      retry_classification:
+        description: "Evidence-backed retry/flaky classification if a retained retry is expected"
+        required: false
+        type: string
+permissions:
+  contents: read
+  actions: read
+  id-token: write # Required for Infisical OIDC authentication
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  RELEASE_CANDIDATE_SHA: ${{ inputs.release_candidate_sha }}
+  RETRY_CLASSIFICATION: ${{ inputs.retry_classification }}
+  PLAYWRIGHT_BACKEND_URL: http://127.0.0.1:8004
+  PLAYWRIGHT_LIVE_FRONTEND_URL: http://localhost:3001
+  PLAYWRIGHT_BASE_URL: http://localhost:3001
+  PLAYWRIGHT_LIVE_MODE: "true"
+  VITE_USE_MOCKS: "false"
+  VITE_ENABLE_MOCK_FALLBACK: "false"
+  E2E_SEED_DATA: "false"
+jobs:
+  backend-integrated-reproducibility:
+    name: Run backend-integrated reproducibility evidence
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    timeout-minutes: 75
+    steps:
+      - name: Check out release candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.release_candidate_sha }}
+      # once Infisical project is fully populated and CI validation passes.
+      # Target: after first successful Infisical-only CI run.
+      - name: Fetch shared secrets from Infisical
+        id: infisical-shared
+        uses: Infisical/secrets-action@77ab1f4ccd183a543cb5b42435fbd181189f4995 # v1.0.16
+        with:
+          method: oidc
+          env-slug: staging
+          project-slug: fabric4l
+          identity-id: ${{ secrets.INFISICAL_IDENTITY_ID }}
+          secret-path: /shared
+      - name: Fetch infra secrets from Infisical
+        id: infisical-infra
+        uses: Infisical/secrets-action@77ab1f4ccd183a543cb5b42435fbd181189f4995 # v1.0.16
+        with:
+          method: oidc
+          env-slug: staging
+          project-slug: fabric4l
+          identity-id: ${{ secrets.INFISICAL_IDENTITY_ID }}
+          secret-path: /infra
+      - name: Fetch CI secrets from Infisical
+        id: infisical-ci
+        uses: Infisical/secrets-action@77ab1f4ccd183a543cb5b42435fbd181189f4995 # v1.0.16
+        with:
+          method: oidc
+          env-slug: staging
+          project-slug: fabric4l
+          identity-id: ${{ secrets.INFISICAL_IDENTITY_ID }}
+          secret-path: /ci
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install Python validation dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install PyYAML
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: "10.18.1"
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.18.0"
+          cache: "pnpm"
+          cache-dependency-path: pnpm-lock.yaml
+      - name: Verify Docker Compose
+        run: docker compose version
+      - name: Validate required runtime secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          missing=0
+          required=(
+            RELEASE_CANDIDATE_SHA
+            JWT_SECRET
+            SERVICE_AUTH_SECRET
+            API_KEY_HMAC_SECRET
+            CREDENTIALS_MASTER_KEY
+            NEO4J_PASSWORD
+            MINIO_ROOT_USER
+            MINIO_ROOT_PASSWORD
+          )
+          for name in "${required[@]}"; do
+            if [ -z "${!name:-}" ]; then
+              echo "::error::$name is required for backend-integrated reproducibility evidence"
+              missing=1
+            fi
+          done
+          exit "$missing"
+      - name: Install frontend dependencies
+        run: pnpm --dir apps/web install --frozen-lockfile
+      - name: Install Playwright Chromium
+        run: pnpm --dir apps/web exec playwright install --with-deps chromium
+      - name: Create CI compose override
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .tmp
+          cat > .tmp/docker-compose.backend-integrated-ci.override.yml <<'YAML'
+          services:
+            layer1:
+              environment:
+                JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET}
+                SERVICE_AUTH_SECRET: ${SERVICE_AUTH_SECRET:?set SERVICE_AUTH_SECRET}
+            layer4:
+              environment:
+                JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET}
+                LAYER4_JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET}
+                API_KEY_HMAC_SECRET: ${API_KEY_HMAC_SECRET:?set API_KEY_HMAC_SECRET}
+                LAYER4_API_KEY_HMAC_SECRET: ${API_KEY_HMAC_SECRET:?set API_KEY_HMAC_SECRET}
+                SERVICE_AUTH_SECRET: ${SERVICE_AUTH_SECRET:?set SERVICE_AUTH_SECRET}
+                CREDENTIALS_MASTER_KEY: ${CREDENTIALS_MASTER_KEY:?set CREDENTIALS_MASTER_KEY}
+                LAYER4_ALLOW_INSECURE_SERVICE_HTTP_IN_DEVELOPMENT: "true"
+                ALLOW_EPHEMERAL_ENCRYPTION: "false"
+                CORS_ORIGINS: http://localhost:3001
+          YAML
+      - name: Run backend-integrated reproducibility runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=(
+            python scripts/ci/run_backend_integrated_reproducibility.py
+            --environment ci
+            --release-candidate-sha "$RELEASE_CANDIDATE_SHA"
+            --compose-file infra/compose/docker-compose.live.yml
+            --compose-file .tmp/docker-compose.backend-integrated-ci.override.yml
+          )
+          if [ -n "${RETRY_CLASSIFICATION:-}" ]; then
+            args+=(--retry-classification "$RETRY_CLASSIFICATION")
+          fi
+          "${args[@]}"
+      - name: Capture Docker service logs
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          mkdir -p artifacts/live-workflow-validation/logs
+          docker compose \
+            -f infra/compose/docker-compose.live.yml \
+            -f .tmp/docker-compose.backend-integrated-ci.override.yml \
+            ps > artifacts/live-workflow-validation/logs/docker-compose-ps.txt 2>&1
+          docker compose \
+            -f infra/compose/docker-compose.live.yml \
+            -f .tmp/docker-compose.backend-integrated-ci.override.yml \
+            logs --no-color > artifacts/live-workflow-validation/logs/docker-compose.log 2>&1
+      - name: Upload reproducibility evidence artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-integrated-reproducibility-evidence-${{ github.run_id }}
+          path: artifacts/live-workflow-validation/**
+          if-no-files-found: error
+          retention-days: 30
+      - name: Tear down backend-integrated stack
+        if: always()
+        run: |
+          docker compose \
+            -f infra/compose/docker-compose.live.yml \
+            -f .tmp/docker-compose.backend-integrated-ci.override.yml \
+            down -v

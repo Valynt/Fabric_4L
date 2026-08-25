@@ -1,0 +1,142 @@
+# Depot CI Migration
+# Source: .github/workflows/weekly-acceptance-gates.yml
+#
+# Changes made:
+# - Changed GitHub runs-on labels to their Depot equivalents
+
+name: Weekly Acceptance Gates
+on:
+  workflow_dispatch:
+    inputs:
+      sprint_week:
+        description: 'Sprint week label (week1, week2, week3, week4)'
+        required: true
+        default: 'week1'
+      previous_week_critical_regressions:
+        description: 'Count of open critical regressions from previous week'
+        required: true
+        default: '0'
+  schedule:
+    - cron: '0 9 * * 1'
+permissions:
+  contents: read
+jobs:
+  acceptance-gates:
+    name: Weekly Acceptance Gates (${{ github.event.inputs.sprint_week || 'week1' }})
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    env:
+      SPRINT_WEEK: ${{ github.event.inputs.sprint_week || 'week1' }}
+      PREVIOUS_WEEK_CRITICAL_REGRESSIONS: ${{ github.event.inputs.previous_week_critical_regressions || '0' }}
+      CONTRACT_PASS_RATE_MIN: '1.00'
+      TENANT_BOUNDARY_REQUIRED_PASS: 'true'
+      SECURITY_GATE_REQUIRED_PASS: 'true'
+      P95_LATENCY_BUDGET_MS: '900'
+      ERROR_BUDGET_MAX_PERCENT: '2.00'
+      GATE_OWNER_CONTRACT: '@value-fabric/architects'
+      GATE_OWNER_TENANT: '@value-fabric/security-leads'
+      GATE_OWNER_SECURITY: '@value-fabric/security-leads'
+      GATE_OWNER_PERFORMANCE: '@value-fabric/sre-leads'
+      GATE_OWNER_RELIABILITY: '@value-fabric/sre-leads'
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+      - name: Set up Python
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest
+      - name: Run mandatory gates
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/weekly-gates
+
+          python -m pytest -m "contract_static" --maxfail=1 --disable-warnings -q | tee artifacts/weekly-gates/contract.log
+          python -m pytest -m "tenant_boundary" --maxfail=1 --disable-warnings -q | tee artifacts/weekly-gates/tenant-boundary.log
+          python -m pytest -m "security" --maxfail=1 --disable-warnings -q | tee artifacts/weekly-gates/security.log
+      - name: Build weekly status artifact
+        run: |
+          set -euo pipefail
+          python <<'PY'
+          import json
+          import os
+          from datetime import datetime, timezone
+
+          sprint_week = os.environ["SPRINT_WEEK"]
+          previous_regressions = int(os.environ["PREVIOUS_WEEK_CRITICAL_REGRESSIONS"])
+
+          # Metrics are CI inputs until observability ingestion is wired.
+          # Keeping explicit placeholders makes gate ownership and rollback criteria auditable.
+          artifact = {
+            "version": "1.0.0",
+            "sprint_week": sprint_week,
+            "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+            "advance_blocked": previous_regressions > 0,
+            "advance_blocker_reason": "no_critical_regressions_required" if previous_regressions > 0 else None,
+            "gates": [
+              {
+                "id": "contract_pass_rate",
+                "required": True,
+                "owner": os.environ["GATE_OWNER_CONTRACT"],
+                "target": f">={os.environ['CONTRACT_PASS_RATE_MIN']}",
+                "rollback_criteria": "Open Sev-1 contract regression or contract pass rate below target.",
+                "status": "pass"
+              },
+              {
+                "id": "tenant_boundary_tests",
+                "required": True,
+                "owner": os.environ["GATE_OWNER_TENANT"],
+                "target": os.environ["TENANT_BOUNDARY_REQUIRED_PASS"],
+                "rollback_criteria": "Any hostile cross-tenant read/write regression.",
+                "status": "pass"
+              },
+              {
+                "id": "security_gate",
+                "required": True,
+                "owner": os.environ["GATE_OWNER_SECURITY"],
+                "target": os.environ["SECURITY_GATE_REQUIRED_PASS"],
+                "rollback_criteria": "Any critical security test failure or auth bypass finding.",
+                "status": "pass"
+              },
+              {
+                "id": "p95_latency_budget",
+                "required": True,
+                "owner": os.environ["GATE_OWNER_PERFORMANCE"],
+                "target": f"<={os.environ['P95_LATENCY_BUDGET_MS']}ms",
+                "rollback_criteria": "p95 exceeds budget for two consecutive measurement windows.",
+                "status": "pending_external_metric"
+              },
+              {
+                "id": "error_budget",
+                "required": True,
+                "owner": os.environ["GATE_OWNER_RELIABILITY"],
+                "target": f"<={os.environ['ERROR_BUDGET_MAX_PERCENT']}%",
+                "rollback_criteria": "Error budget burn >100% or any single-day burn >50%.",
+                "status": "pending_external_metric"
+              }
+            ]
+          }
+
+          if previous_regressions > 0:
+            for gate in artifact["gates"]:
+              if gate["status"] == "pass":
+                gate["status"] = "blocked_by_critical_regression"
+
+          with open("artifacts/weekly-gates/weekly-gate-status.json", "w", encoding="utf-8") as fh:
+            json.dump(artifact, fh, indent=2)
+          PY
+      - name: Enforce no critical regressions before scope advance
+        run: |
+          set -euo pipefail
+          if [ "${PREVIOUS_WEEK_CRITICAL_REGRESSIONS}" != "0" ]; then
+            echo "Blocking advancement: previous week has critical regressions (${PREVIOUS_WEEK_CRITICAL_REGRESSIONS})."
+            exit 1
+          fi
+      - name: Upload weekly gate artifact
+        if: always()
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
+        with:
+          name: weekly-gate-status-${{ env.SPRINT_WEEK }}
+          path: artifacts/weekly-gates/weekly-gate-status.json
+          retention-days: 30

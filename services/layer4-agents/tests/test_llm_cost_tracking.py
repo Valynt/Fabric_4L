@@ -48,7 +48,7 @@ class TestLLMCostTracking:
 
         with patch.object(tool, "_call_llm", new=AsyncMock(return_value="Executive summary content")):
             with patch(
-                "src.metrics.llm_cost_calculator.COST_PER_1K_TOKENS",
+                "layer4_agents.metrics.llm_cost_calculator.COST_PER_1K_TOKENS",
                 {("openai", "gpt-4o"): {"prompt": 5.0, "completion": 15.0}},
             ):
                 input_data = GenerateSectionInput(

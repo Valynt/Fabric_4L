@@ -1,0 +1,54 @@
+# Depot CI Migration
+# Source: .github/workflows/frontend-route-audit-check.yml
+#
+# Changes made:
+# - Changed GitHub runs-on labels to their Depot equivalents
+
+name: Frontend Route Audit Check
+permissions:
+  contents: read
+on:
+  pull_request:
+    paths:
+      - 'apps/web/src/App.tsx'
+      - 'apps/web/src/shell/router.tsx'
+      - 'contracts/openapi/**'
+      - 'contracts/deprecations/**'
+      - 'contracts/route-contracts.json'
+      - 'scripts/ci/router_contract_gate.py'
+      - 'package.json'
+  push:
+    branches: [main]
+    paths:
+      - 'apps/web/src/App.tsx'
+      - 'apps/web/src/shell/router.tsx'
+      - 'contracts/openapi/**'
+      - 'contracts/deprecations/**'
+      - 'contracts/route-contracts.json'
+      - 'scripts/ci/router_contract_gate.py'
+      - 'package.json'
+jobs:
+  route-audit:
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: "10.18.1"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.18.0'
+      - name: Run router contract gate
+        run: |
+          mkdir -p artifacts/router-contract
+          pnpm test:router
+      - name: Upload route audit artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: router-contract-audit
+          path: artifacts/router-contract/

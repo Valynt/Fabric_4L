@@ -6,6 +6,7 @@ import json
 from collections.abc import Iterator
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 from unittest.mock import patch
 from uuid import UUID
 
@@ -298,6 +299,28 @@ class TestFeatureFlagCommands:
             assert result.exit_code == 0
             assert "new_ui" in result.output
 
+    def test_list_flags_with_options(self, mock_config: None) -> None:
+        flag = FeatureFlag(
+            id=UUID("55555555-5555-5555-5555-555555555555"),
+            flag_key="new_ui",
+            enabled=True,
+            rollout_percentage=100,
+            metadata={},
+            created_at="2024-01-01T00:00:00Z",
+            updated_at="2024-01-01T00:00:00Z",
+        )
+        with patch("valuefabric.cli.flags.get_client") as mock_client_factory:
+            mock_client = mock_client_factory.return_value
+            mock_client.list_feature_flags.return_value = [flag]
+            result = runner.invoke(
+                app, ["feature-flags", "list", "--limit", "50", "--offset", "10", "--json"]
+            )
+            assert result.exit_code == 0
+            mock_client.list_feature_flags.assert_called_once_with(limit=50, offset=10)
+            data = json.loads(result.output)
+            assert isinstance(data, list)
+            assert data[0]["flag_key"] == "new_ui"
+
     def test_set_flag(self, mock_config: None) -> None:
         flag = FeatureFlag(
             id=UUID("55555555-5555-5555-5555-555555555555"),
@@ -316,6 +339,25 @@ class TestFeatureFlagCommands:
             )
             assert result.exit_code == 0
             assert "False" in result.output
+
+    def test_set_flag_json(self, mock_config: None) -> None:
+        flag = FeatureFlag(
+            id=UUID("55555555-5555-5555-5555-555555555555"),
+            flag_key="new_ui",
+            enabled=False,
+            rollout_percentage=0,
+            metadata={},
+            created_at="2024-01-01T00:00:00Z",
+            updated_at="2024-01-01T00:00:00Z",
+        )
+        with patch("valuefabric.cli.flags.get_client") as mock_client_factory:
+            mock_client = mock_client_factory.return_value
+            mock_client.set_feature_flag.return_value = flag
+            result = runner.invoke(app, ["feature-flags", "set", "new_ui", "--disabled", "--json"])
+            assert result.exit_code == 0
+            data = json.loads(result.output)
+            assert data["flag_key"] == "new_ui"
+            assert data["enabled"] is False
 
 
 class TestHealthCommand:
@@ -358,3 +400,27 @@ class TestConfigErrorHandling:
         monkeypatch.setattr(config_mod, "CONFIG_FILE", corrupted_file)
         with pytest.raises(ConfigurationError, match="Config file is corrupted"):
             config_mod._load_config()
+
+    def test_load_config_missing_file(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        missing_file = tmp_path / "missing.toml"
+        monkeypatch.setattr(config_mod, "CONFIG_FILE", missing_file)
+        assert config_mod._load_config() == {}
+
+    def test_load_config_read_error(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        error_file = tmp_path / "error.toml"
+        error_file.write_text("", encoding="utf-8")
+        monkeypatch.setattr(config_mod, "CONFIG_FILE", error_file)
+
+        def mock_load_profile_toml(*args: Any, **kwargs: Any) -> Any:
+            raise ValueError("mock error")
+
+        monkeypatch.setattr(config_mod, "_load_profile_toml", mock_load_profile_toml)
+
+        with pytest.raises(ConfigurationError) as exc_info:
+            config_mod._load_config()
+
+        assert "Config file is corrupted" in str(exc_info.value)
+        assert "mock error" in str(exc_info.value)
+        assert isinstance(exc_info.value.__cause__, ValueError)

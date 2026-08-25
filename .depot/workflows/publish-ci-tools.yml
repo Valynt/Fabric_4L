@@ -1,0 +1,59 @@
+# Depot CI Migration
+# Source: .github/workflows/publish-ci-tools.yml
+#
+# Changes made:
+# - Rewrote .github/ path references to .depot/
+# - Changed GitHub runs-on labels to their Depot equivalents
+
+name: Publish CI Tools Security Suite
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - tools/ci/security-suite/Dockerfile
+      - .depot/workflows/publish-ci-tools.yml
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+  attestations: write
+jobs:
+  publish:
+    name: Publish security-suite
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+      - name: Log in to GHCR
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@988b5a0280414f521da01fcc63a27aeeb4b104db
+      - name: Build, publish, and attach provenance and SBOM
+        id: publish
+        uses: docker/build-push-action@3b5e8027fcad23fda98b2e3ac259d8d67585f671
+        with:
+          context: .
+          file: tools/ci/security-suite/Dockerfile
+          platforms: linux/amd64
+          push: true
+          provenance: mode=max
+          sbom: true
+          tags: ghcr.io/${{ github.repository_owner }}/ci-tools/security-suite:${{ github.sha }}
+      - name: Record immutable manifest digest
+        run: |
+          set -euo pipefail
+          digest='${{ steps.publish.outputs.digest }}'
+          [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]
+          printf '%s\n' "ghcr.io/${{ github.repository_owner }}/ci-tools/security-suite@${digest}" | tee security-suite-digest.txt
+          printf '### Published image\n`ghcr.io/${{ github.repository_owner }}/ci-tools/security-suite@%s`\n' "$digest" >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload digest record
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
+        with:
+          name: security-suite-digest-${{ github.sha }}
+          path: security-suite-digest.txt
+          retention-days: 90

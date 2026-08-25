@@ -169,7 +169,8 @@ Maximum {max_length} words.""",
 
         # P1-12 FIX: Sanitize tone parameter
         allowed_tones = {"professional", "casual", "technical", "executive"}
-        safe_tone = input_data.tone if input_data.tone in allowed_tones else "professional"
+        tone_str = str(input_data.tone)
+        safe_tone = tone_str if tone_str in allowed_tones else "professional"
 
         prompt = template.format(
             context=context_delimited, tone=safe_tone, max_length=input_data.max_length

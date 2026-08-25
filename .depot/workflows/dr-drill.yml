@@ -1,0 +1,183 @@
+# Depot CI Migration
+# Source: .github/workflows/dr-drill.yml
+#
+# Changes made:
+# - Changed GitHub runs-on labels to their Depot equivalents
+
+# P1-010: Automated Disaster Recovery Drills
+# Weekly dry-run + monthly PITR validation
+name: dr-drill
+on:
+  schedule:
+    # Weekly dry-run: Sundays at 03:00 UTC
+    - cron: "0 3 * * 0"
+    # Monthly full PITR: 1st of month at 04:00 UTC
+    - cron: "0 4 1 * *"
+  workflow_dispatch:
+    inputs:
+      drill_type:
+        description: "DR drill type"
+        required: true
+        default: "weekly"
+        type: choice
+        options:
+          - weekly
+          - monthly
+          - full-failover
+env:
+  AWS_REGION: us-east-1
+  CLUSTER_NAME: fabric4l-production
+permissions:
+  contents: read
+jobs:
+  preflight:
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.DR_IAM_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Configure kubectl
+        run: |
+          aws eks update-kubeconfig --name ${{ env.CLUSTER_NAME }} --region ${{ env.AWS_REGION }}
+  weekly-dry-run:
+    needs: preflight
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    if: github.event.schedule == '0 3 * * 0' || inputs.drill_type == 'weekly'
+    steps:
+      - name: Verify backup jobs completed
+        run: |
+          echo "=== PostgreSQL Backup ==="
+          kubectl get cronjob postgres-backup -n value-fabric
+          kubectl get jobs -n value-fabric -l app=postgres-backup --sort-by=.status.completionTime | tail -5
+
+          echo "=== Neo4j Backup ==="
+          kubectl get cronjob neo4j-backup -n value-fabric
+          kubectl get jobs -n value-fabric -l app=neo4j-backup --sort-by=.status.completionTime | tail -5
+      - name: Verify backup artifacts exist in S3
+        run: |
+          LATEST_PG=$(aws s3 ls s3://${{ secrets.DR_BACKUP_BUCKET }}/postgres/ --recursive | sort | tail -1)
+          LATEST_NEO=$(aws s3 ls s3://${{ secrets.DR_BACKUP_BUCKET }}/neo4j/ --recursive | sort | tail -1)
+          echo "Latest PostgreSQL backup: $LATEST_PG"
+          echo "Latest Neo4j backup: $LATEST_NEO"
+          [ -n "$LATEST_PG" ] || exit 1
+          [ -n "$LATEST_NEO" ] || exit 1
+      - name: Check backup integrity (checksum)
+        run: |
+          echo "Verifying backup checksums..."
+          # Verify pg_dump custom format header (magic bytes: PGDMP)
+          HEADER=$(aws s3 cp s3://${{ secrets.DR_BACKUP_BUCKET }}/postgres/latest/backup.dump - --range bytes=0-19 | head -c 5)
+          if [ -z "$HEADER" ]; then
+            echo "ERROR: Could not read backup header"
+            exit 1
+          fi
+          if ! echo "$HEADER" | grep -q "^PGDMP"; then
+            echo "ERROR: Invalid backup header: '$HEADER' (expected PGDMP)"
+            exit 1
+          fi
+          echo "Backup header verified: $HEADER"
+      - name: Validate RTO/RPO targets
+        run: |
+          echo "RTO target: 60 minutes"
+          echo "RPO target: 15 minutes (continuous WAL + daily full backup)"
+          BACKUP_AGE_HOURS=$(aws s3 ls s3://${{ secrets.DR_BACKUP_BUCKET }}/postgres/ --recursive | sort | tail -1 | awk '{print $1" "$2}')
+          echo "Latest backup age: $BACKUP_AGE_HOURS"
+      - name: Notify Slack
+        if: always()
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "text": "DR Weekly Dry-Run: ${{ job.status }}\nCommit: ${{ github.sha }}\nRTO: 60min, RPO: 15min"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_DR_WEBHOOK }}
+  monthly-pitr:
+    needs: preflight
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    if: github.event.schedule == '0 4 1 * *' || inputs.drill_type == 'monthly'
+    steps:
+      - name: Spin up recovery environment
+        run: |
+          echo "Creating temporary namespace for PITR validation..."
+          kubectl create namespace dr-pitr-test --dry-run=client -o yaml | kubectl apply -f -
+      - name: Restore PostgreSQL from backup
+        run: |
+          echo "Restoring PostgreSQL to dr-pitr-test namespace..."
+          # Apply Patroni restore Job
+          cat <<EOF | kubectl apply -n dr-pitr-test -f -
+          apiVersion: batch/v1
+          kind: Job
+          metadata:
+            name: postgres-pitr-restore
+          spec:
+            template:
+              spec:
+                restartPolicy: OnFailure
+                containers:
+                  - name: restore
+                    image: ghcr.io/zalando/spilo-16:3.2-p1
+                    env:
+                      - name: PGROOT
+                        value: "/home/postgres/pgdata"
+                      - name: WALG_S3_PREFIX
+                        value: "s3://${{ secrets.DR_BACKUP_BUCKET }}/wal"
+                    command:
+                      - /bin/sh
+                      - -c
+                      - |
+                        set -e
+                        echo "Restoring from WAL-G backup..."
+                        wal-g backup-fetch $PGROOT LATEST
+                        echo "restore_command = 'wal-g wal-fetch %f %p'" >> $PGROOT/postgresql.conf
+                        echo "Recovery complete"
+          EOF
+          kubectl wait --for=condition=complete job/postgres-pitr-restore -n dr-pitr-test --timeout=600s
+      - name: Validate data consistency
+        run: |
+          echo "Running consistency checks on restored data..."
+          kubectl run dr-consistency-check -n dr-pitr-test --rm -i --restart=Never \
+            --image=postgres:16 \
+            -- psql "${DATABASE_URL}?sslmode=require" -c "SELECT COUNT(*) FROM tenants;"
+      - name: Cleanup recovery environment
+        if: always()
+        run: |
+          kubectl delete namespace dr-pitr-test --ignore-not-found=true --wait=false
+      - name: Notify Slack
+        if: always()
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "text": "DR Monthly PITR: ${{ job.status }}\nCommit: ${{ github.sha }}"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_DR_WEBHOOK }}
+  full-failover:
+    needs: preflight
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    if: inputs.drill_type == 'full-failover'
+    environment: production-dr
+    steps:
+      - name: Initiate controlled failover
+        run: |
+          echo "=== Initiating Patroni failover ==="
+          kubectl exec -it postgres-patroni-0 -n value-fabric -- \
+            patronictl failover --candidate postgres-patroni-1 --force
+      - name: Verify failover success
+        run: |
+          sleep 30
+          kubectl exec -it postgres-patroni-1 -n value-fabric -- \
+            patronictl list | grep -E "Leader|Replica"
+      - name: Verify application connectivity
+        run: |
+          kubectl run dr-connectivity-test -n value-fabric --rm -i --restart=Never \
+            --image=curlimages/curl -- curl -sf http://api-gateway.value-fabric.svc.cluster.local/health || exit 1
+      - name: Failback to primary
+        run: |
+          echo "=== Failing back to original primary ==="
+          kubectl exec -it postgres-patroni-1 -n value-fabric -- \
+            patronictl failover --candidate postgres-patroni-0 --force

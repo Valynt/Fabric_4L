@@ -1,0 +1,282 @@
+# Depot CI Migration
+# Source: .github/workflows/graph-module-tests.yml
+#
+# Changes made:
+# - Changed GitHub runs-on labels to their Depot equivalents
+
+# Graph Query Module Test Suite
+# Comprehensive 5-layer testing for useGraphQuery hooks + Layer 3 API
+#
+# L1: Unit Tests (70%)
+# L2: Integration Tests (20%)
+# L3: Property Tests (5%)
+# L4: Performance Tests (5%)
+# L5: Contract Tests
+
+name: Graph Module Tests
+permissions:
+  contents: read
+on:
+  push:
+    branches: [main, develop, 'release/**']
+    paths:
+      - 'apps/web/src/hooks/useGraphQuery.ts'
+      - 'apps/web/src/hooks/useGraphQuery.*.test.ts'
+      - 'services/layer3-knowledge/src/api/**'
+      - 'tests/contract/**'
+  pull_request:
+    branches: [main, develop, 'release/**']
+    paths:
+      - 'apps/web/src/hooks/useGraphQuery.ts'
+      - 'apps/web/src/hooks/useGraphQuery.*.test.ts'
+      - 'services/layer3-knowledge/src/api/**'
+      - 'tests/contract/**'
+jobs:
+  # ============================================================================
+  # L1: UNIT TESTS (70% of test count)
+  # Fast, isolated, no external dependencies
+  # Target: <100ms per test, <10s total
+  # ============================================================================
+  unit-tests:
+    name: L1 Unit Tests
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install pnpm
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.18.0'
+          cache: 'pnpm'
+      - name: Install dependencies
+        working-directory: apps/web
+        run: pnpm install --frozen-lockfile
+      - name: Run L1 Unit Tests
+        working-directory: apps/web
+        run: |
+          pnpm exec vitest run src/hooks/useGraphQuery.comprehensive.test.ts \
+            --reporter=verbose \
+            --coverage \
+            --coverage.reporter=text \
+            --coverage.reporter=cobertura \
+            --coverage.include=src/hooks/useGraphQuery.ts \
+            --coverage.thresholds.statements=90 \
+            --coverage.thresholds.branches=80 \
+            --coverage.thresholds.functions=90 \
+            --coverage.thresholds.lines=90
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: unit-test-coverage
+          path: apps/web/coverage/
+  # ============================================================================
+  # L2: INTEGRATION TESTS (20% of test count)
+  # API boundaries, MSW mocks
+  # Target: <500ms per test, <30s total
+  # ============================================================================
+  integration-tests:
+    name: L2 Integration Tests
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    timeout-minutes: 5
+    needs: unit-tests
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install pnpm
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.18.0'
+          cache: 'pnpm'
+      - name: Install dependencies
+        working-directory: apps/web
+        run: pnpm install --frozen-lockfile
+      - name: Run L2 Integration Tests
+        working-directory: apps/web
+        run: |
+          pnpm exec vitest run src/hooks/useGraphQuery.test.ts \
+            --reporter=verbose
+  # ============================================================================
+  # L3: PROPERTY-BASED TESTS (5% of test count)
+  # Generative testing with random inputs
+  # Target: <1s per test, <20s total
+  # ============================================================================
+  property-tests:
+    name: L3 Property Tests
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    timeout-minutes: 5
+    needs: unit-tests
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install pnpm
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.18.0'
+          cache: 'pnpm'
+      - name: Install dependencies
+        working-directory: apps/web
+        run: pnpm install --frozen-lockfile
+      - name: Run L3 Property Tests
+        working-directory: apps/web
+        run: |
+          pnpm test -- useGraphQuery.property.test.ts \
+            --reporter=verbose
+  # ============================================================================
+  # L4: PERFORMANCE TESTS (5% of test count)
+  # SLO validation, regression detection
+  # Target: <10s total
+  # ============================================================================
+  performance-tests:
+    name: L4 Performance Tests
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    timeout-minutes: 10
+    needs: [unit-tests, integration-tests]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install pnpm
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.18.0'
+          cache: 'pnpm'
+      - name: Install dependencies
+        working-directory: apps/web
+        run: pnpm install --frozen-lockfile
+      - name: Run L4 Performance Tests
+        working-directory: apps/web
+        run: |
+          pnpm test -- useGraphQuery.performance.test.ts \
+            --reporter=verbose
+      - name: Check Performance Baseline
+        working-directory: apps/web
+        run: |
+          # Extract metrics from test output and compare to SLOs
+          echo "Performance tests complete"
+          echo "SLOs:"
+          echo "  - Small graph: p95 < 100ms"
+          echo "  - Medium graph: p95 < 200ms"
+          echo "  - Large graph: p95 < 500ms"
+          echo "  - State updates: p95 < 1ms"
+  # ============================================================================
+  # L5: CONTRACT TESTS
+  # Pact-style consumer-provider contracts
+  # Schema validation against JSON Schema
+  # ============================================================================
+  contract-tests:
+    name: L5 Contract Tests
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    timeout-minutes: 5
+    needs: [unit-tests, integration-tests]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: python -m pip install --require-hashes -r tests/requirements-test.lock
+      - name: Run L5 Contract Tests
+        run: |
+          pytest tests/contract/test_graph_api_contract.py -v --tb=short
+      - name: Validate OpenAPI Spec Alignment
+        run: |
+          # Verify contract schemas align with OpenAPI spec
+          echo "Contract validation complete"
+  # ============================================================================
+  # COVERAGE REPORT
+  # Aggregate coverage from all test layers
+  # ============================================================================
+  coverage:
+    name: Coverage Report
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    needs: [unit-tests, integration-tests, property-tests]
+    if: always()
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install pnpm
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.18.0'
+          cache: 'pnpm'
+      - name: Install dependencies
+        working-directory: apps/web
+        run: pnpm install --frozen-lockfile
+      - name: Download coverage artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: unit-test-coverage
+          path: coverage/
+      - name: Check Coverage Thresholds
+        run: |
+          echo "Checking coverage thresholds..."
+          echo "Line coverage: ≥90%"
+          echo "Branch coverage: ≥80%"
+          echo "Function coverage: ≥90%"
+      - name: Flaky Rate Gate (PR + release branches)
+        if: github.event_name == 'pull_request' || startsWith(github.ref, 'refs/heads/release/')
+        working-directory: apps/web
+        run: |
+          set -euo pipefail
+          total_runs=0
+          failed_runs=0
+          for i in 1 2 3; do
+            total_runs=$((total_runs + 1))
+            if ! pnpm vitest run \
+              src/hooks/useGraphQuery.comprehensive.test.ts \
+              src/hooks/useGraphQuery.test.ts \
+              src/hooks/useGraphQuery.property.test.ts \
+              src/hooks/useGraphQuery.performance.test.ts; then
+              failed_runs=$((failed_runs + 1))
+            fi
+          done
+          flaky_rate=$(awk "BEGIN { printf \"%.2f\", (${failed_runs}/${total_runs})*100 }")
+          echo "Flaky rate: ${flaky_rate}% (failed=${failed_runs}, total=${total_runs})"
+          awk "BEGIN { if (${flaky_rate} > 1.0) { print \"Flaky rate gate failed: ${flaky_rate}% > 1.00%\"; exit 1 } else { print \"Flaky rate gate passed: ${flaky_rate}% <= 1.00%\" } }"
+      - name: Coverage Report
+        uses: irongut/CodeCoverageSummary@v1.3.0
+        with:
+          filename: coverage/cobertura-coverage.xml
+          badge: true
+          format: markdown
+          indicators: true
+          output: both
+  # ============================================================================
+  # FULL SUITE SUMMARY
+  # ============================================================================
+  test-summary:
+    name: Test Suite Summary
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    needs: [unit-tests, integration-tests, property-tests, performance-tests, contract-tests]
+    if: always()
+    steps:
+      - name: Summary
+        run: |
+          echo "## Graph Module Test Suite Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Layer | Job | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|-----|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| L1 | Unit Tests | ${{ needs.unit-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| L2 | Integration Tests | ${{ needs.integration-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| L3 | Property Tests | ${{ needs.property-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| L4 | Performance Tests | ${{ needs.performance-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| L5 | Contract Tests | ${{ needs.contract-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Targets" >> $GITHUB_STEP_SUMMARY
+          echo "- Line Coverage: ≥90%" >> $GITHUB_STEP_SUMMARY
+          echo "- Branch Coverage: ≥80%" >> $GITHUB_STEP_SUMMARY
+          echo "- Performance SLOs: All met" >> $GITHUB_STEP_SUMMARY
+          echo "- Contract Validation: Passing" >> $GITHUB_STEP_SUMMARY

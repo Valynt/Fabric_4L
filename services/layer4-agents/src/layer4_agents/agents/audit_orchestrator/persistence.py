@@ -254,6 +254,10 @@ if _SQLALCHEMY_AVAILABLE:
         total_directories: Mapped[int] = mapped_column(default=0)
         total_commits: Mapped[int] = mapped_column(default=0)
         total_contributors: Mapped[int] = mapped_column(default=0)
+        git_metric_completeness: Mapped[dict[str, Any] | None] = mapped_column(
+            JSON, nullable=True, default=None
+        )
+        git_warnings: Mapped[list[Any] | None] = mapped_column(JSON, nullable=True, default=None)
         audit_timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
         area_scores: Mapped[list[AreaScoreDB]] = relationship(
@@ -354,6 +358,8 @@ def _scorecard_to_dict(scorecard: Scorecard, run_id: str) -> dict[str, Any]:
         "total_directories": scorecard.total_directories,
         "total_commits": scorecard.total_commits,
         "total_contributors": scorecard.total_contributors,
+        "git_metric_completeness": scorecard.git_metric_completeness,
+        "git_warnings": scorecard.git_warnings,
         "audit_timestamp": _isoformat(scorecard.audit_timestamp),
         "executive_summary": scorecard.executive_summary,
         "area_scores": [
@@ -401,6 +407,8 @@ def _scorecard_from_dict(data: dict[str, Any], findings: list[Finding]) -> Score
         total_directories=data.get("total_directories", 0),
         total_commits=data.get("total_commits", 0),
         total_contributors=data.get("total_contributors", 0),
+        git_metric_completeness=dict(data.get("git_metric_completeness", {}) or {}),
+        git_warnings=list(data.get("git_warnings", []) or []),
         audit_timestamp=_parse_datetime(data["audit_timestamp"]) or datetime.now(UTC),
         findings=findings,
         executive_summary=data.get("executive_summary"),
@@ -754,6 +762,8 @@ def _scorecard_to_db(scorecard: Scorecard, run_id: str) -> ScorecardDB:
         total_directories=scorecard.total_directories,
         total_commits=scorecard.total_commits,
         total_contributors=scorecard.total_contributors,
+        git_metric_completeness=scorecard.git_metric_completeness or None,
+        git_warnings=scorecard.git_warnings or None,
         audit_timestamp=scorecard.audit_timestamp,
         executive_summary=scorecard.executive_summary,
     )
@@ -782,6 +792,8 @@ def _scorecard_from_db(
         total_directories=row.total_directories or 0,
         total_commits=row.total_commits or 0,
         total_contributors=row.total_contributors or 0,
+        git_metric_completeness=dict(row.git_metric_completeness or {}),
+        git_warnings=list(row.git_warnings or []),
         audit_timestamp=row.audit_timestamp,
         findings=list(findings),
         executive_summary=row.executive_summary,
@@ -1190,6 +1202,8 @@ class PersistenceManager:
                 existing.total_directories = scorecard.total_directories
                 existing.total_commits = scorecard.total_commits
                 existing.total_contributors = scorecard.total_contributors
+                existing.git_metric_completeness = scorecard.git_metric_completeness or None
+                existing.git_warnings = scorecard.git_warnings or None
                 existing.audit_timestamp = scorecard.audit_timestamp
                 existing.executive_summary = scorecard.executive_summary
                 existing.tenant_id = scorecard.tenant_id
