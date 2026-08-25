@@ -121,7 +121,9 @@ async def extract(
     Extracts entities and relationships from provided Markdown content
     and generates RDF/OWL output.
     """
-    tenant_id = _require_authenticated_tenant_id(ctx.tenant_id, operation="extraction job creation")
+    tenant_id = _require_authenticated_tenant_id(
+        ctx.tenant_id, operation="extraction job creation"
+    )
 
     job_id = str(uuid4())
     job_store = _get_active_job_store()
@@ -260,7 +262,9 @@ async def extract_and_ingest(
 
 
 @router.get("/v1/extract/status/{job_id}", response_model=ExtractionStatusResponse)
-async def get_extraction_status(job_id: str, ctx: RequestContext = Depends(require_authenticated)):
+async def get_extraction_status(
+    job_id: str, ctx: RequestContext = Depends(require_authenticated)
+):
     """Get status of a combined extraction and ingestion job."""
     job_store = _get_active_job_store()
     job = await job_store.get(job_id, tenant_id=str(ctx.tenant_id))
@@ -271,7 +275,9 @@ async def get_extraction_status(job_id: str, ctx: RequestContext = Depends(requi
 
 
 @router.get("/v1/quarantine/{job_id}")
-async def get_quarantine_status(job_id: str, ctx: RequestContext = Depends(require_authenticated)):
+async def get_quarantine_status(
+    job_id: str, ctx: RequestContext = Depends(require_authenticated)
+):
     tenant_id = str(ctx.tenant_id)
     quarantine_store = _get_active_quarantine_store()
     record = await quarantine_store.get_by_job(tenant_id=tenant_id, job_id=job_id)
@@ -347,7 +353,9 @@ async def list_entities(
 
 
 @router.get("/v1/entities/{entity_id}/relationships")
-async def get_relationships(entity_id: str, ctx: RequestContext = Depends(require_authenticated)):
+async def get_relationships(
+    entity_id: str, ctx: RequestContext = Depends(require_authenticated)
+):
     """Get relationships for an entity.
 
     Note: In a full implementation, this would query the graph database.
@@ -395,7 +403,9 @@ async def get_entity_provenance(
 
 
 @router.get("/v1/extract/jobs/{job_id}/events")
-async def stream_job_events(job_id: str, ctx: RequestContext = Depends(require_authenticated)):
+async def stream_job_events(
+    job_id: str, ctx: RequestContext = Depends(require_authenticated)
+):
     """Stream real-time events for a pipeline job via SSE.
 
     Returns a Server-Sent Events stream with progress updates,

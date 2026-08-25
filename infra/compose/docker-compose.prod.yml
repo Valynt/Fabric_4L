@@ -91,7 +91,6 @@ services:
       service: postgres
 
 volumes:
-  layer3-hf-cache:
   postgres-data:
   postgres-backups:
   redis-data:
