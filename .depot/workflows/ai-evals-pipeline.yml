@@ -1,0 +1,530 @@
+# Depot CI Migration
+# Source: .github/workflows/ai-evals-pipeline.yml
+#
+# Changes made:
+# - Rewrote .github/ path references to .depot/
+# - Changed GitHub runs-on labels to their Depot equivalents
+
+# AI/Agent Evaluation Pipeline
+# Validates agent skills (layer4-agents/skills/) and prompts against ground truth
+# Prevents deployment of poor-quality model behaviors
+name: AI Evaluation Pipeline
+"on":
+  pull_request:
+    paths:
+      - "services/layer4-agents/skills/**"
+      - "services/layer4-agents/prompts/**"
+      - "services/layer4-agents/src/layer4_agents/agents/**"
+      - "services/layer4-agents/src/layer4_agents/skills/**"
+      - "services/layer4-agents/src/layer4_agents/registry/**"
+      - "services/layer4-agents/src/layer4_agents/model_registry_client.py"
+      - "services/layer2-extraction/src/layer2_extraction/shared/llm_client.py"
+      - "packages/shared/src/value_fabric/shared/llm_safety/**"
+      - "evals/**"
+      - "tests/evals/**"
+      - ".depot/workflows/ai-evals-pipeline.yml"
+  push:
+    branches: [main]
+    paths:
+      - "services/layer4-agents/skills/**"
+      - "services/layer4-agents/prompts/**"
+      - "services/layer4-agents/src/layer4_agents/agents/**"
+      - "services/layer4-agents/src/layer4_agents/skills/**"
+      - "services/layer4-agents/src/layer4_agents/registry/**"
+      - "services/layer4-agents/src/layer4_agents/model_registry_client.py"
+      - "services/layer2-extraction/src/layer2_extraction/shared/llm_client.py"
+      - "packages/shared/src/value_fabric/shared/llm_safety/**"
+      - "evals/**"
+      - "tests/evals/**"
+      - ".depot/workflows/ai-evals-pipeline.yml"
+  workflow_dispatch:
+    inputs:
+      eval_target:
+        description: "Specific skill or agent to evaluate"
+        required: false
+        type: string
+      baseline_comparison:
+        description: "Compare against baseline"
+        required: false
+        type: boolean
+        default: true
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+  id-token: write # Required for Infisical OIDC authentication
+env:
+  EVAL_THRESHOLD: 0.85 # Minimum pass rate for deployment
+jobs:
+  # ============================================================================
+  # Discover Changed Skills
+  # ============================================================================
+  discover-skills:
+    name: Discover Changed Skills
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    outputs:
+      changed_skills: ${{ steps.discover.outputs.skills }}
+      changed_agents: ${{ steps.discover.outputs.agents }}
+      should_run_evals: ${{ steps.discover.outputs.should_run }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Need full history for diff
+      - name: Discover changed skills
+        id: discover
+        run: |
+          # Get changed files
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            BASE_SHA=${{ github.event.pull_request.base.sha }}
+            HEAD_SHA=${{ github.event.pull_request.head.sha }}
+          else
+            BASE_SHA=$(git rev-parse HEAD~1)
+            HEAD_SHA=$(git rev-parse HEAD)
+          fi
+
+          # Find changed skill, agent, and prompt files
+          CHANGED_SKILLS=$(git diff --name-only $BASE_SHA $HEAD_SHA | grep -E '^services/layer4-agents/(skills/.*\.md|src/layer4_agents/skills/.*\.py)$' || true)
+          CHANGED_AGENTS=$(git diff --name-only $BASE_SHA $HEAD_SHA | grep -E '^services/layer4-agents/src/layer4_agents/(agents/.*|registry/.*|model_registry_client\.py)$' || true)
+          CHANGED_PROMPTS=$(git diff --name-only $BASE_SHA $HEAD_SHA | grep -E '^services/layer4-agents/prompts/.*' || true)
+          CHANGED_OTHER=$(git diff --name-only $BASE_SHA $HEAD_SHA | grep -E '^(services/layer2-extraction/src/layer2_extraction/shared/llm_client\.py|packages/shared/src/value_fabric/shared/llm_safety/.*|evals/.*|tests/evals/.*|\.github/workflows/ai-evals-pipeline\.yml)$' || true)
+
+          echo "Changed skills: $CHANGED_SKILLS"
+          echo "Changed agents: $CHANGED_AGENTS"
+          echo "Changed prompts: $CHANGED_PROMPTS"
+          echo "Changed other eval-trigger files: $CHANGED_OTHER"
+
+          # Extract skill and agent names as JSON array for matrix strategy
+          SKILLS=$(echo "$CHANGED_SKILLS" | sed -E 's/\.(md|py)$//' | xargs -I {} basename {} | jq -R . | jq -s . | tr -d '\n')
+          AGENTS=$(echo "$CHANGED_AGENTS" | sed -E 's/\.(md|py)$//' | xargs -I {} basename {} | jq -R . | jq -s . | tr -d '\n')
+
+          echo "skills=$SKILLS" >> $GITHUB_OUTPUT
+          echo "agents=$AGENTS" >> $GITHUB_OUTPUT
+
+          # Determine if evals should run
+          if [ -n "$CHANGED_SKILLS" ] || [ -n "$CHANGED_AGENTS" ] || \
+             [ -n "$CHANGED_PROMPTS" ] || [ -n "$CHANGED_OTHER" ] || [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "should_run=true" >> $GITHUB_OUTPUT
+          else
+            echo "should_run=false" >> $GITHUB_OUTPUT
+          fi
+      - name: List all available evals
+        run: "echo \"\U0001F4CB Available evaluation suites:\"\nfind tests/evals -name \"*.py\" -type f | head -20\n"
+  # ============================================================================
+  # Setup Evaluation Environment
+  # ============================================================================
+  setup-evals:
+    name: Setup Evaluation Environment
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    needs: discover-skills
+    if: needs.discover-skills.outputs.should_run_evals == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+      # once Infisical project is fully populated and CI validation passes.
+      # Target: after first successful Infisical-only CI run.
+      - name: Fetch secrets from Infisical
+        if: secrets.INFISICAL_IDENTITY_ID != ''
+        id: infisical
+        uses: Infisical/secrets-action@77ab1f4ccd183a543cb5b42435fbd181189f4995 # v1.0.16
+        with:
+          method: oidc
+          env-slug: dev
+          project-slug: fabric4l
+          identity-id: ${{ secrets.INFISICAL_IDENTITY_ID }}
+          secret-path: /layer2-extraction
+      - name: Install dependencies
+        run: |
+          # Install layer4-agents dependencies
+          cd services/layer4-agents
+          pip install -e .
+
+          # Install evaluation framework
+          pip install pytest pytest-asyncio
+          pip install -r tests/evals/requirements.txt 2>/dev/null || true
+
+          # Install additional eval dependencies
+          pip install openai>=1.0.0
+          pip install langchain langchain-openai
+      - name: Verify OpenAI API access
+        if: env.OPENAI_API_KEY != ''
+        run: |
+          python3 << 'EOF'
+          import openai
+          import os
+
+          client = openai.OpenAI(api_key=os.environ['OPENAI_API_KEY'])
+          try:
+              response = client.chat.completions.create(
+                  model="gpt-3.5-turbo",
+                  messages=[{"role": "user", "content": "Hello"}],
+                  max_tokens=5
+              )
+              print("✅ OpenAI API access verified")
+          except Exception as e:
+              print(f"❌ OpenAI API error: {e}")
+              exit(1)
+          EOF
+  # ============================================================================
+  # Run Skill Evaluations
+  # ============================================================================
+  run-skill-evals:
+    name: Run Skill Evaluations
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    needs: [discover-skills, setup-evals]
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    strategy:
+      fail-fast: false
+      matrix:
+        skill: ${{ fromJson(needs.discover-skills.outputs.changed_skills) }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      # once Infisical project is fully populated and CI validation passes.
+      # Target: after first successful Infisical-only CI run.
+      - name: Fetch secrets from Infisical
+        if: secrets.INFISICAL_IDENTITY_ID != ''
+        id: infisical
+        uses: Infisical/secrets-action@77ab1f4ccd183a543cb5b42435fbd181189f4995 # v1.0.16
+        with:
+          method: oidc
+          env-slug: dev
+          project-slug: fabric4l
+          identity-id: ${{ secrets.INFISICAL_IDENTITY_ID }}
+          secret-path: /layer2-extraction
+      - name: Install dependencies
+        run: |
+          cd services/layer4-agents
+          pip install -e . --quiet
+          pip install pytest pytest-asyncio --quiet
+      - name: Run evaluation for ${{ matrix.skill }}
+        run: "SKILL_NAME=\"${{ matrix.skill }}\"\nEVAL_FILE=\"tests/evals/test_${SKILL_NAME}.py\"\n\nif [ -f \"$EVAL_FILE\" ]; then\n  echo \"\U0001F9EA Running evaluation: $EVAL_FILE\"\n  pytest \"$EVAL_FILE\" \\\n    -v \\\n    --tb=short \\\n    --json-report \\\n    --json-report-file=\"eval-${SKILL_NAME}.json\"\nelse\n  echo \"⚠️ No evaluation found for $SKILL_NAME at $EVAL_FILE\"\n  echo \"Running generic skill validation...\"\n\n  # Run basic skill validation\n  python3 << 'EOF'\nimport sys\nsys.path.insert(0, 'services/layer4-agents/src')\n\nskill_name = \"${{ matrix.skill }}\"\n\ntry:\n    # Try to import and validate the skill\n    from layer4_agents.tools import ToolRegistry\n\n    print(f\"Validating skill: {skill_name}\")\n\n    # Check if skill is registered\n    registry = ToolRegistry()\n\n    if skill_name in registry.list_tools():\n        print(f\"✅ Skill '{skill_name}' is properly registered\")\n\n        # Validate skill schema\n        tool = registry.get_tool(skill_name)\n        if tool and hasattr(tool, 'schema'):\n            print(f\"✅ Skill has valid schema\")\n\n            # Check required fields\n            schema = tool.schema\n            required_fields = ['name', 'description', 'parameters']\n            missing = [f for f in required_fields if f not in schema]\n\n            if missing:\n                print(f\"❌ Schema missing fields: {missing}\")\n                sys.exit(1)\n            else:\n                print(f\"✅ All required schema fields present\")\n        else:\n            print(f\"⚠️ Skill has no schema defined\")\n    else:\n        print(f\"❌ Skill '{skill_name}' not found in registry\")\n        sys.exit(1)\n\nexcept Exception as e:\n    print(f\"❌ Validation error: {e}\")\n    sys.exit(1)\n\nprint(\"✅ Basic skill validation passed\")\nEOF\nfi\n"
+      - name: Upload evaluation results
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-results-${{ matrix.skill }}
+          path: eval-*.json
+          retention-days: 30
+  # ============================================================================
+  # Run Agent Evaluations
+  # ============================================================================
+  run-agent-evals:
+    name: Run Agent Evaluations
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    needs: [discover-skills, setup-evals]
+    if: needs.discover-skills.outputs.changed_agents != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    strategy:
+      fail-fast: false
+      matrix:
+        agent: ${{ fromJson(needs.discover-skills.outputs.changed_agents) }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: |
+          cd services/layer4-agents
+          pip install -e . --quiet
+      # once Infisical project is fully populated and CI validation passes.
+      # Target: after first successful Infisical-only CI run.
+      - name: Fetch secrets from Infisical
+        if: secrets.INFISICAL_IDENTITY_ID != ''
+        id: infisical
+        uses: Infisical/secrets-action@77ab1f4ccd183a543cb5b42435fbd181189f4995 # v1.0.16
+        with:
+          method: oidc
+          env-slug: dev
+          project-slug: fabric4l
+          identity-id: ${{ secrets.INFISICAL_IDENTITY_ID }}
+          secret-path: /layer2-extraction
+      - name: Run agent evaluation for ${{ matrix.agent }}
+        run: "AGENT_NAME=\"${{ matrix.agent }}\"\nEVAL_FILE=\"tests/evals/test_agent_${AGENT_NAME}.py\"\n\nif [ -f \"$EVAL_FILE\" ]; then\n  echo \"\U0001F9EA Running agent evaluation: $EVAL_FILE\"\n  pytest \"$EVAL_FILE\" -v --tb=short\nelse\n  echo \"⚠️ No evaluation found for agent $AGENT_NAME\"\nfi\n"
+  # ============================================================================
+  # Run Golden Trace Evaluations
+  # ============================================================================
+  run-golden-traces:
+    name: Run Golden Trace Evaluations
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    needs: setup-evals
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: |
+          cd services/layer4-agents
+          pip install -e . --quiet
+          pip install pytest --quiet
+      # once Infisical project is fully populated and CI validation passes.
+      # Target: after first successful Infisical-only CI run.
+      - name: Fetch secrets from Infisical
+        if: secrets.INFISICAL_IDENTITY_ID != ''
+        id: infisical
+        uses: Infisical/secrets-action@77ab1f4ccd183a543cb5b42435fbd181189f4995 # v1.0.16
+        with:
+          method: oidc
+          env-slug: dev
+          project-slug: fabric4l
+          identity-id: ${{ secrets.INFISICAL_IDENTITY_ID }}
+          secret-path: /layer2-extraction
+      - name: Run golden trace evals
+        run: "echo \"\U0001F9EA Running golden trace evaluations...\"\n\n# Run the golden trace test suite\nif [ -f \"tests/evals/test_golden_traces.py\" ]; then\n  pytest tests/evals/test_golden_traces.py \\\n    -v \\\n    --tb=short \\\n    --json-report \\\n    --json-report-file=\"golden-traces-results.json\"\nelse\n  echo \"⚠️ Golden traces not configured\"\nfi\n"
+      - name: Analyze golden trace results
+        id: analyze
+        run: "python3 << 'EOF'\nimport json\nimport os\nimport sys\n\ndef set_output(name, value):\n    with open(os.environ.get(\"GITHUB_OUTPUT\", \"/dev/null\"), \"a\") as f:\n        f.write(f\"{name}={value}\\n\")\n\ntry:\n    with open('golden-traces-results.json') as f:\n        results = json.load(f)\n\n    total = results.get('summary', {}).get('total', 0)\n    passed = results.get('summary', {}).get('passed', 0)\n    failed = results.get('summary', {}).get('failed', 0)\n\n    pass_rate = passed / total if total > 0 else 0\n\n    print(f\"\U0001F4CA Golden Trace Results:\")\n    print(f\"  Total: {total}\")\n    print(f\"  Passed: {passed}\")\n    print(f\"  Failed: {failed}\")\n    print(f\"  Pass Rate: {pass_rate:.1%}\")\n\n    # Check against threshold\n    threshold = float(\"${{ env.EVAL_THRESHOLD }}\")\n\n    if pass_rate >= threshold:\n        print(f\"✅ Pass rate {pass_rate:.1%} meets threshold {threshold:.1%}\")\n        set_output(\"passed\", \"true\")\n    else:\n        print(f\"❌ Pass rate {pass_rate:.1%} below threshold {threshold:.1%}\")\n        set_output(\"passed\", \"false\")\n        sys.exit(1)\n\nexcept FileNotFoundError:\n    # Fail closed: no results file means the golden-trace suite did\n    # not run (e.g., tests/evals/test_golden_traces.py missing), so\n    # there is no evidence to evaluate. A missing gate must never\n    # read as a pass (anti-vacuous-gate doctrine, cf. #1254).\n    print(\"❌ No golden trace results found — failing closed (no evidence is not a pass)\")\n    set_output(\"passed\", \"false\")\n    sys.exit(1)\nexcept Exception as e:\n    print(f\"❌ Error analyzing results: {e}\")\n    sys.exit(1)\nEOF\n"
+  # ============================================================================
+  # Compare Against Baseline
+  # ============================================================================
+  baseline-comparison:
+    name: Baseline Comparison
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    needs: run-golden-traces
+    if: github.event.inputs.baseline_comparison == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Get baseline results
+        run: "# In real implementation, fetch baseline from:\n# - Previous release tag\n# - CI artifact store\n# - Ground truth database\n\necho \"\U0001F4CA Comparing against baseline...\"\n\n# Fetch previous evaluation results from main branch\ngit show main:tests/evals/baseline-results.json 2>/dev/null || echo \"No baseline found\"\n"
+      - name: Generate comparison report
+        run: |
+          python3 << 'EOF'
+          # Compare current results against baseline
+          # Flag regressions and improvements
+          print("Baseline comparison complete")
+          EOF
+  # ============================================================================
+  # Aggregate Results & Post PR Comment
+  # ============================================================================
+  aggregate-results:
+    name: Aggregate & Report Results
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    needs: [run-skill-evals, run-agent-evals, run-golden-traces]
+    if: always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    outputs:
+      passed: ${{ steps.aggregate.outputs.passed }}
+      pass_rate: ${{ steps.aggregate.outputs.pass_rate }}
+      skills_evaluated: ${{ steps.aggregate.outputs.skills_evaluated }}
+      passed_tests: ${{ steps.aggregate.outputs.passed_tests }}
+      total_tests: ${{ steps.aggregate.outputs.total_tests }}
+    steps:
+      - name: Download all evaluation results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: eval-results-*
+          merge-multiple: true
+          path: ./eval-results
+          # BLOCKING: Missing eval results indicate pipeline failure
+          # AI evals are contract-critical for agent output validation (CONTRACT.md §2.5)
+      - name: Aggregate results
+        id: aggregate
+        run: |
+          python3 << 'EOF'
+          import json
+          import os
+          from pathlib import Path
+
+          results = {
+              'skills_evaluated': 0,
+              'skills_passed': 0,
+              'skills_failed': 0,
+              'total_tests': 0,
+              'passed_tests': 0,
+              'failed_tests': 0,
+              'details': []
+          }
+
+          results_dir = Path('./eval-results')
+
+          if results_dir.exists():
+              for result_file in results_dir.glob('eval-*.json'):
+                  try:
+                      with open(result_file) as f:
+                          data = json.load(f)
+
+                      skill_name = result_file.stem.replace('eval-', '')
+
+                      summary = data.get('summary', {})
+                      skill_total = summary.get('total', 0)
+                      skill_passed = summary.get('passed', 0)
+                      skill_failed = summary.get('failed', 0)
+
+                      results['skills_evaluated'] += 1
+                      results['total_tests'] += skill_total
+                      results['passed_tests'] += skill_passed
+                      results['failed_tests'] += skill_failed
+
+                      if skill_failed == 0:
+                          results['skills_passed'] += 1
+                          status = "✅"
+                      else:
+                          results['skills_failed'] += 1
+                          status = "❌"
+
+                      results['details'].append({
+                          'skill': skill_name,
+                          'status': status,
+                          'total': skill_total,
+                          'passed': skill_passed,
+                          'failed': skill_failed,
+                          'pass_rate': skill_passed / skill_total if skill_total > 0 else 0
+                      })
+                  except Exception as e:
+                      print(f"Warning: Could not parse {result_file}: {e}")
+
+          # Calculate overall pass rate
+          if results['total_tests'] > 0:
+              results['overall_pass_rate'] = results['passed_tests'] / results['total_tests']
+          else:
+              results['overall_pass_rate'] = 0
+
+          # Output summary
+          print(f"\n{'='*60}")
+          print(f"AI Evaluation Summary")
+          print(f"{'='*60}")
+          print(f"Skills Evaluated: {results['skills_evaluated']}")
+          print(f"  ✅ Passed: {results['skills_passed']}")
+          print(f"  ❌ Failed: {results['skills_failed']}")
+          print(f"\nTotal Tests: {results['total_tests']}")
+          print(f"  ✅ Passed: {results['passed_tests']}")
+          print(f"  ❌ Failed: {results['failed_tests']}")
+          print(f"\nOverall Pass Rate: {results['overall_pass_rate']:.1%}")
+
+          if results['details']:
+              print(f"\n{'='*60}")
+              print(f"Per-Skill Results")
+              print(f"{'='*60}")
+              for detail in sorted(results['details'], key=lambda x: x['skill']):
+                  print(
+                      f"{detail['status']} {detail['skill']}: "
+                      f"{detail['passed']}/{detail['total']} ({detail['pass_rate']:.0%})"
+                  )
+
+          # Check threshold
+          threshold = 0.85
+          if results['overall_pass_rate'] >= threshold:
+              print(f"\n✅ Pass rate meets threshold ({threshold:.0%})")
+              passed = "true"
+          else:
+              print(f"\n❌ Pass rate below threshold ({threshold:.0%})")
+              passed = "false"
+
+          # Write outputs
+          with open(os.environ.get('GITHUB_OUTPUT', '/dev/null'), 'a') as f:
+              f.write(f"skills_evaluated={results['skills_evaluated']}\n")
+              f.write(f"skills_passed={results['skills_passed']}\n")
+              f.write(f"skills_failed={results['skills_failed']}\n")
+              f.write(f"total_tests={results['total_tests']}\n")
+              f.write(f"passed_tests={results['passed_tests']}\n")
+              f.write(f"failed_tests={results['failed_tests']}\n")
+              f.write(f"pass_rate={results['overall_pass_rate']:.4f}\n")
+              f.write(f"passed={passed}\n")
+
+          # Save full results
+          with open('eval-summary.json', 'w') as f:
+              json.dump(results, f, indent=2)
+          EOF
+      - name: Post PR comment
+        uses: actions/github-script@v7
+        if: github.event_name == 'pull_request'
+        with:
+          script: "const fs = require('fs');\n\nlet summary = fs.existsSync('eval-summary.json')\n  ? JSON.parse(fs.readFileSync('eval-summary.json'))\n  : { skills_evaluated: 0, overall_pass_rate: 0 };\n\nconst passRate = (summary.overall_pass_rate * 100).toFixed(1);\nconst passed = summary.skills_failed === 0;\n\nlet body = `## \U0001F916 AI Evaluation Results\\n\\n`;\nbody += `**Status:** ${passed ? '✅ PASSED' : '❌ FAILED'}\\n\\n`;\nbody += `| Metric | Value |\\n`;\nbody += `|--------|-------|\\n`;\nbody += `| Skills Evaluated | ${summary.skills_evaluated} |\\n`;\nbody += `| Tests Run | ${summary.total_tests || 0} |\\n`;\nbody += `| Pass Rate | ${passRate}% |\\n`;\nbody += `| Threshold | 85.0% |\\n\\n`;\n\nif (summary.details && summary.details.length > 0) {\n  body += `### Per-Skill Results\\n\\n`;\n  body += `| Skill | Status | Pass Rate |\\n`;\n  body += `|-------|--------|-----------|\\n`;\n\n  summary.details.forEach(detail => {\n    const rate = (detail.pass_rate * 100).toFixed(0);\n    body += `| ${detail.skill} | ${detail.status} | ${rate}% |\\n`;\n  });\n\n  body += `\\n`;\n}\n\nif (!passed) {\n  body += `### ⚠️ Action Required\\n\\n`;\n  body += `Some evaluations failed. Review the [workflow logs](${\n    context.payload.pull_request.html_url\n  }/checks) for details.\\n\\n`;\n  body += `Failed skills must be fixed before deployment.\\n`;\n} else {\n  body += `✅ All AI evaluations passed. Changes are safe to deploy.\\n`;\n}\n\n// Find or create comment\nconst { data: comments } = await github.rest.issues.listComments({\n  owner: context.repo.owner,\n  repo: context.repo.repo,\n  issue_number: context.issue.number\n});\n\nconst botComment = comments.find(comment =>\n  comment.user.type === 'Bot' &&\n  comment.body.includes('AI Evaluation Results')\n);\n\nif (botComment) {\n  await github.rest.issues.updateComment({\n    owner: context.repo.owner,\n    repo: context.repo.repo,\n    comment_id: botComment.id,\n    body: body\n  });\n} else {\n  await github.rest.issues.createComment({\n    owner: context.repo.owner,\n    repo: context.repo.repo,\n    issue_number: context.issue.number,\n    body: body\n  });\n}\n"
+      - name: Upload summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-summary
+          path: eval-summary.json
+          retention-days: 90
+      - name: Update check run
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const passed = '${{ steps.aggregate.outputs.passed }}' === 'true';
+
+            await github.rest.checks.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              name: 'AI Evaluation Pipeline',
+              head_sha: context.sha,
+              status: 'completed',
+              conclusion: passed ? 'success' : 'failure',
+              output: {
+                title: passed ? 'AI Evaluations Passed' : 'AI Evaluations Failed',
+                summary: `Skills: ${{ steps.aggregate.outputs.skills_evaluated }}, ` +
+                        `Tests: ${{ steps.aggregate.outputs.passed_tests }}/${{ steps.aggregate.outputs.total_tests }}, ` +
+                        `Pass Rate: ${{ steps.aggregate.outputs.pass_rate }}`
+              }
+            });
+  # ============================================================================
+  # Deployment Gate
+  # ============================================================================
+  deployment-gate:
+    name: AI Evaluation Deployment Gate
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    needs: aggregate-results
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - name: Evaluate deployment readiness
+        run: |
+          PASSED="${{ needs.aggregate-results.outputs.passed }}"
+
+          if [ "$PASSED" != "true" ]; then
+            echo "❌ AI evaluations failed - blocking deployment"
+            echo "Review the evaluation results and fix failing tests."
+            exit 1
+          fi
+
+          echo "✅ AI evaluations passed - deployment approved"
+  # ============================================================================
+  # Push to Ground Truth (on main)
+  # ============================================================================
+  update-ground-truth:
+    name: Update Ground Truth
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    needs: aggregate-results
+    if: github.ref == 'refs/heads/main' && needs.aggregate-results.outputs.passed == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Download evaluation results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: eval-*
+          merge-multiple: true
+      - name: Update ground truth baseline
+        run: |
+          # Save current results as baseline in workspace (no direct git commit/push per INV-CI-001)
+          mkdir -p tests/evals/baselines
+          cp eval-summary.json tests/evals/baselines/main-baseline.json
+          echo "Ground truth baseline updated in workspace"
+      # once Infisical project is fully populated and CI validation passes.
+      # Target: after first successful Infisical-only CI run.
+      - name: Fetch secrets from Infisical
+        if: secrets.INFISICAL_IDENTITY_ID != ''
+        id: infisical
+        uses: Infisical/secrets-action@77ab1f4ccd183a543cb5b42435fbd181189f4995 # v1.0.16
+        with:
+          method: oidc
+          env-slug: dev
+          project-slug: fabric4l
+          identity-id: ${{ secrets.INFISICAL_IDENTITY_ID }}
+          secret-path: /layer4-agents
+      - name: Update Model Registry with eval results
+        run: "echo \"\U0001F4E4 Recording evaluation results in Model Registry...\"\n\n# Extract pass rate from eval summary\nif [ -f \"eval-summary.json\" ]; then\n  PASS_RATE=$(python3 -c \"import json; print(json.load(open('eval-summary.json')).get('overall_pass_rate', 0))\")\n  echo \"Evaluation pass rate: $PASS_RATE\"\n\n  # Record eval run in Model Registry\n  # This associates the eval results with the active production model\n  L4_API_URL=\"${L4_API_URL:-http://localhost:8000}\"\n  curl -s -X POST \"${L4_API_URL}/v1/models/eval-run\" \\\n    -H \"Content-Type: application/json\" \\\n    -H \"Authorization: Bearer ${L4_API_TOKEN}\" \\\n    -H \"X-Tenant-ID: system\" \\\n    -d @eval-summary.json || echo \"⚠️ Model registry sync skipped (L4 unavailable)\"\nelse\n  echo \"⚠️ No eval-summary.json found, skipping registry sync\"\nfi\n"

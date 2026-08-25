@@ -1,0 +1,123 @@
+# Depot CI Migration
+# Source: .github/workflows/k8s-readiness.yml
+#
+# Changes made:
+# - Rewrote .github/ path references to .depot/
+# - Changed GitHub runs-on labels to their Depot equivalents
+
+name: K8s Readiness
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "k8s/**"
+      - ".depot/workflows/k8s-readiness.yml"
+      - "scripts/ci/check_production_k8s_mutable_tags.py"
+  push:
+    branches: [main]
+    paths:
+      - "k8s/**"
+      - ".depot/workflows/k8s-readiness.yml"
+      - "scripts/ci/check_production_k8s_mutable_tags.py"
+  workflow_dispatch:
+permissions: read-all
+jobs:
+  k8s-static-precheck:
+    name: K8s Static Precheck
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: v1.30.0
+      - name: Install kustomize
+        run: |
+          curl -sSL https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.4.3/kustomize_v5.4.3_linux_amd64.tar.gz -o kustomize.tar.gz
+          echo "3669470b454d865c8184d6bce78df05e977c9aea31c30df3c669317d43bcc7a7  kustomize.tar.gz" | sha256sum -c
+          tar -xzf kustomize.tar.gz
+          sudo mv kustomize /usr/local/bin/kustomize
+          kustomize version
+      - name: Install kubeconform
+        run: |
+          curl -sSL https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz -o kubeconform.tar.gz
+          echo "95f14e87aa28c09d5941f11bd024c1d02fdc0303ccaa23f61cef67bc92619d73  kubeconform.tar.gz" | sha256sum -c
+          tar -xzf kubeconform.tar.gz
+          sudo mv kubeconform /usr/local/bin/kubeconform
+          kubeconform -v
+      - name: Set up Python for preflight checks
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install preflight dependencies
+        run: python -m pip install pyyaml
+      - name: Run Kubernetes preflight guardrails
+        run: python scripts/ci/k8s_preflight.py
+      - name: Reject :latest/:main in production K8s manifests
+        run: python scripts/ci/check_production_k8s_mutable_tags.py
+      - name: Validate production overlays and image references
+        run: python scripts/ci/validate_k8s_production_overlays.py
+      - name: Render overlays
+        run: |
+          kustomize build k8s/envs/dev --load-restrictor=LoadRestrictionsNone > /tmp/dev.yaml
+          kustomize build k8s/envs/prod --load-restrictor=LoadRestrictionsNone > /tmp/prod.yaml
+      - name: Schema validate overlays
+        run: |
+          kubeconform -summary -strict -ignore-missing-schemas /tmp/dev.yaml
+          kubeconform -summary -strict -ignore-missing-schemas /tmp/prod.yaml
+        # Client dry-run is intentionally omitted here: it requires a live
+        # apiserver to discover CRD-backed kinds (ExternalSecret, ClusterPolicy,
+        # ClusterSecretStore, etc.). The downstream k8s-server-dry-run job
+        # validates the same rendered manifests against a kind cluster.
+  k8s-server-dry-run:
+    name: K8s Server Dry Run (Required)
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    timeout-minutes: 20
+    needs: k8s-static-precheck
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: v1.30.0
+      - name: Install kind
+        uses: helm/kind-action@v1.10.0
+        with:
+          cluster_name: task47-validation
+          wait: 120s
+        continue-on-error: true
+        id: kind-install
+      - name: Retry kind cluster creation
+        if: steps.kind-install.outcome == 'failure'
+        run: |
+          echo "Kind cluster creation failed, retrying with cleanup..."
+          kind delete cluster --name task47-validation || true
+          sleep 10
+          kind create cluster --name task47-validation --wait 120s
+          kubectl cluster-info
+      - name: Verify cluster bootstrap
+        run: |
+          kubectl cluster-info
+          kubectl get nodes
+      - name: Install CI dry-run CRDs
+        run: |
+          kubectl apply -f k8s/ci/crds/
+          kubectl wait --for=condition=Established crd --all --timeout=60s
+      - name: Server-side dry-run (dev overlay)
+        run: |
+          kubectl apply --dry-run=server -f k8s/base/namespace.yml
+          kubectl apply -f k8s/base/namespace.yml
+          kustomize build k8s/envs/dev --load-restrictor=LoadRestrictionsNone | kubectl apply --dry-run=server -f -
+      - name: Server-side dry-run (prod overlay)
+        run: |
+          kubectl apply --dry-run=server -f k8s/base/namespace.yml
+          kubectl apply -f k8s/base/namespace.yml
+          kustomize build k8s/envs/prod --load-restrictor=LoadRestrictionsNone | kubectl apply --dry-run=server -f -
+      - name: Upload rendered manifests on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: k8s-rendered-manifests
+          path: /tmp/*.yaml
+          retention-days: 7

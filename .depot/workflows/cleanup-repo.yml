@@ -1,0 +1,47 @@
+# Depot CI Migration
+# Source: .github/workflows/cleanup-repo.yml
+#
+# Changes made:
+# - Changed GitHub runs-on labels to their Depot equivalents
+
+name: Cleanup Repo
+on:
+  push:
+    branches:
+      - 'copilot/clean-up-prs-and-branches'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  cleanup:
+    permissions:
+      contents: write # Deletes remote branches selected by the cleanup workflow.
+      pull-requests: write # Closes pull requests selected by the cleanup workflow.
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Close Open PRs
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Fetching all open PRs..."
+          PR_NUMBERS=$(gh pr list --state open --limit 500 --json number --jq '.[].number')
+          for PR in $PR_NUMBERS; do
+            echo "Closing PR #$PR"
+            gh pr close "$PR" || echo "Failed to close PR #$PR"
+          done
+      - name: Delete Branches
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Fetching all branches..."
+          BRANCHES=$(git ls-remote --heads origin | awk '{print $2}' | sed 's|refs/heads/||')
+          for BRANCH in $BRANCHES; do
+            if [[ "$BRANCH" != "main" ]] && [[ "$BRANCH" != "copilot/clean-up-prs-and-branches" ]]; then
+              echo "Deleting branch $BRANCH"
+              git push origin --delete "$BRANCH" || echo "Failed to delete branch $BRANCH"
+            fi
+          done

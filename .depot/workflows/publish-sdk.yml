@@ -1,0 +1,130 @@
+# Depot CI Migration
+# Source: .github/workflows/publish-sdk.yml
+#
+# Changes made:
+# - Rewrote .github/ path references to .depot/
+# - Changed GitHub runs-on labels to their Depot equivalents
+
+name: Publish SDK
+permissions:
+  contents: read
+on:
+  pull_request:
+    paths:
+      - 'sdk/python/**'
+      - 'contracts/openapi/layer3-knowledge.json'
+      - 'contracts/openapi/layer4-agents.json'
+      - '.depot/workflows/publish-sdk.yml'
+  push:
+    tags:
+      - 'sdk/v*'
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Publish target'
+        required: true
+        default: 'testpypi'
+        type: choice
+        options:
+          - testpypi
+          - pypi
+          - github-packages
+env:
+  # Opt into Node.js 24 for GitHub Actions
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+jobs:
+  build:
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    defaults:
+      run:
+        working-directory: sdk/python
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install validation and build tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]" ruff mypy pytest-cov typeguard build twine
+      - name: Validate Python SDK
+        run: |
+          ruff check src tests scripts
+          ruff format --check src tests scripts
+          mypy src tests
+          pytest --cov=valuefabric --cov-report=term
+          python -m compileall -q src tests scripts
+      - name: Build wheel and sdist
+        run: |
+          python -m build
+          test -d dist
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: sdk/python/dist/
+          retention-days: 5
+  publish-testpypi:
+    needs: build
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.target == 'testpypi'
+    environment: testpypi
+    permissions:
+      contents: read
+      id-token: write # For trusted publishing
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - name: Publish to TestPyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+          packages-dir: dist/
+  publish-pypi:
+    needs: build
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    if: (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/sdk/v')) || (github.event_name == 'workflow_dispatch' && github.event.inputs.target == 'pypi')
+    environment: pypi
+    permissions:
+      contents: read
+      id-token: write # For trusted publishing
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/
+  publish-github-packages:
+    needs: build
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.target == 'github-packages'
+    permissions:
+      contents: read
+      packages: write
+    defaults:
+      run:
+        working-directory: dist
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - name: Publish to GitHub Packages
+        env:
+          TWINE_USERNAME: ${{ github.actor }}
+          TWINE_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          pip install twine
+          twine upload \
+            --repository-url https://pypi.pkg.github.com/${{ github.repository_owner }} \
+            *

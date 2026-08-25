@@ -1,0 +1,350 @@
+# Depot CI Migration
+# Source: .github/workflows/release-evidence-bundle.yml
+#
+# Changes made:
+# - Rewrote .github/ path references to .depot/
+# - Changed GitHub runs-on labels to their Depot equivalents
+
+name: Release Evidence Bundle
+on:
+  # NOTE: the `08-release-evidence` check is REQUIRED by branch protection on
+  # main. A paths-filtered required check is never emitted for PRs that touch
+  # only unlisted paths, which blocks merging those PRs. The pull_request
+  # trigger therefore runs unconditionally.
+  pull_request:
+    branches:
+      - main
+      - "release/**"
+  # V1-CI-001: merge queue support (Stage 1 shadow; aggregates become
+  # required at Stage 3).
+  merge_group:
+  push:
+    tags:
+      - "v*"
+    branches:
+      - main
+      - "release/**"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to attach evidence bundle to"
+        required: true
+        type: string
+concurrency:
+  # Cancel only an obsolete run of this same workflow/ref. A global
+  # feature-branch group lets activity on an unrelated PR cancel required gates.
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+permissions:
+  contents: write
+  attestations: write
+  id-token: write
+env:
+  REGISTRY: ghcr.io
+jobs:
+  release-readiness-gate:
+    name: Release readiness gate (observability + deployment)
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r tests/requirements-test.txt
+      - name: Enforce config bypass policy (including k8s staging/prod manifests)
+        run: python scripts/ci/check_config_policy.py
+      - name: Enforce Task 46/47 final readiness criteria
+        run: |
+          python -m pytest -q tests/release/test_observability_deployment_readiness.py --no-mandatory-dep-check
+      - name: Generate release safety artifact
+        run: python scripts/ci/generate_release_safety_artifact.py --environment release-candidate --profile release-candidate
+      - name: Verify release safety artifact
+        run: test -s artifacts/release/release-safety.json
+      - name: Upload release safety artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-safety
+          path: artifacts/release/release-safety.json
+          retention-days: 90
+  build-and-scan:
+    name: Build images & security scan
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    strategy:
+      matrix:
+        service:
+          - layer1-ingestion
+          - layer2-extraction
+          - layer3-knowledge
+          - layer4-agents
+          - layer5-ground-truth
+          - layer6-benchmarks
+    steps:
+      - uses: actions/checkout@v4
+      - name: Resolve security mode
+        id: mode
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" || "${{ github.event_name }}" == "merge_group" ]]; then
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Build image
+        run: |
+          docker build \
+            --build-arg BASE_IMAGE="${BASE_IMAGE:-}" \
+            --build-arg BUILDER_BASE_IMAGE="${BUILDER_BASE_IMAGE:-}" \
+            -t ${{ env.REGISTRY }}/${{ github.repository_owner }}/fabric_4l/${{ matrix.service }}:${{ github.sha }} \
+            -t ${{ matrix.service }}:local-${{ github.sha }} \
+            ./services/${{ matrix.service }}
+      - name: Log in to registry
+        if: steps.mode.outputs.publish == 'true'
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+      - name: Push image
+        if: steps.mode.outputs.publish == 'true'
+        run: docker push ${{ env.REGISTRY }}/${{ github.repository_owner }}/fabric_4l/${{ matrix.service }}:${{ github.sha }}
+      - name: Trivy vulnerability scan
+        uses: aquasecurity/trivy-action@314ff8b43182423b84c50b1670b0e10f858f2d98 # master (post-v0.36.0)
+        with:
+          image-ref: ${{ steps.mode.outputs.publish == 'true' && format('{0}/{1}/fabric_4l/{2}:{3}', env.REGISTRY, github.repository_owner, matrix.service, github.sha) || format('{0}:local-{1}', matrix.service, github.sha) }}
+          format: sarif
+          output: trivy-${{ matrix.service }}.sarif
+      - name: Trivy JSON report
+        uses: aquasecurity/trivy-action@314ff8b43182423b84c50b1670b0e10f858f2d98 # master (post-v0.36.0)
+        with:
+          image-ref: ${{ steps.mode.outputs.publish == 'true' && format('{0}/{1}/fabric_4l/{2}:{3}', env.REGISTRY, github.repository_owner, matrix.service, github.sha) || format('{0}:local-{1}', matrix.service, github.sha) }}
+          format: json
+          output: trivy-${{ matrix.service }}.json
+      - name: Generate SBOM (CycloneDX)
+        uses: anchore/sbom-action@v0
+        with:
+          image: ${{ steps.mode.outputs.publish == 'true' && format('{0}/{1}/fabric_4l/{2}:{3}', env.REGISTRY, github.repository_owner, matrix.service, github.sha) || format('{0}:local-{1}', matrix.service, github.sha) }}
+          format: cyclonedx-json
+          output-file: sbom-${{ matrix.service }}-${{ github.sha }}.cdx.json
+      - name: Install Cosign
+        if: steps.mode.outputs.publish == 'true'
+        uses: sigstore/cosign-installer@v3
+      - name: Sign image (keyless OIDC)
+        if: steps.mode.outputs.publish == 'true'
+        run: |
+          cosign sign --yes ${{ env.REGISTRY }}/${{ github.repository_owner }}/fabric_4l/${{ matrix.service }}:${{ github.sha }}
+      - name: Attest SBOM to registry
+        if: steps.mode.outputs.publish == 'true'
+        run: |
+          cosign attest --yes \
+            --type cyclonedx \
+            --predicate sbom-${{ matrix.service }}-${{ github.sha }}.cdx.json \
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/fabric_4l/${{ matrix.service }}:${{ github.sha }}
+      - name: Verify image signature metadata
+        if: steps.mode.outputs.publish == 'true'
+        run: |
+          cosign verify \
+            --certificate-identity-regexp "https://github.com/${{ github.repository }}/.depot/workflows/release-evidence-bundle.yml@.*" \
+            --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/fabric_4l/${{ matrix.service }}:${{ github.sha }} > signing-${{ matrix.service }}-${{ github.sha }}.json
+      - name: Verify attestation metadata
+        if: steps.mode.outputs.publish == 'true'
+        run: |
+          cosign verify-attestation \
+            --certificate-identity-regexp "https://github.com/${{ github.repository }}/.depot/workflows/release-evidence-bundle.yml@.*" \
+            --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+            --type cyclonedx \
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/fabric_4l/${{ matrix.service }}:${{ github.sha }} > attestation-${{ matrix.service }}-${{ github.sha }}.json
+      - name: Sign SBOM with Cosign
+        if: steps.mode.outputs.publish == 'true'
+        run: |
+          cosign sign-blob --yes sbom-${{ matrix.service }}-${{ github.sha }}.cdx.json \
+            --output-signature sbom-${{ matrix.service }}-${{ github.sha }}.cdx.json.sig \
+            --output-certificate sbom-${{ matrix.service }}-${{ github.sha }}.cdx.json.crt
+      - name: Upload scan artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: scan-${{ matrix.service }}-${{ github.sha }}
+          path: |
+            trivy-${{ matrix.service }}.*
+            sbom-${{ matrix.service }}-${{ github.sha }}.*
+            signing-${{ matrix.service }}-${{ github.sha }}.json
+            attestation-${{ matrix.service }}-${{ github.sha }}.json
+  supply-chain-policy-check:
+    name: Supply-chain metadata policy check
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    needs: [build-and-scan]
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - name: Download image security artifacts
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: scan-*-${{ github.sha }}
+          path: artifacts
+          merge-multiple: false
+      - name: Enforce SBOM/signing policy
+        run: |
+          python scripts/ci/check_image_supply_chain_metadata.py \
+            --artifact-root artifacts \
+            --sha "${{ github.sha }}" \
+            --mode "${{ github.event_name == 'pull_request' && 'pr' || 'release' }}"
+  sast-and-tests:
+    name: SAST & Security E2E
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install uv
+        uses: astral-sh/setup-uv@caf0cab7a618c569241d31dcd442f54681755d39 # v3
+      - name: Bandit SAST
+        run: |
+          uv pip install --system bandit[toml]
+          # Match the maintained security-gates Bandit policy: medium severity,
+          # medium confidence, excluding tests and migrations from release evidence.
+          set +e
+          bandit -r services/ -ll -ii -x '*/tests/*,*/migrations/*' -f json -o bandit-report.json
+          json_rc=$?
+          bandit -r services/ -ll -ii -x '*/tests/*,*/migrations/*' -f txt -o bandit-report.txt
+          screen_rc=$?
+          set -e
+          if [ "$json_rc" -gt 1 ] || [ "$screen_rc" -gt 1 ]; then
+            echo "Bandit execution failed (json=$json_rc screen=$screen_rc)"
+            exit 1
+          fi
+          python3 - <<'PYEOF'
+          import json, sys
+          report = json.load(open("bandit-report.json", encoding="utf-8"))
+          issues = [r for r in report.get("results", []) if r.get("issue_severity") in {"MEDIUM", "HIGH"}]
+          if issues:
+              for issue in issues[:20]:
+                  print(f"{issue['issue_severity']}: {issue['test_id']} {issue['filename']}:{issue['line_number']}")
+              sys.exit(1)
+          print("No medium/high Bandit findings")
+          PYEOF
+      - name: Run security regression tests
+        run: |
+          uv pip install --system --requirement tests/requirements-test.lock
+          pytest tests/security/ -v --tb=short \
+            --junitxml=security-tests.xml
+      - name: Run prompt-injection/refusal E2E
+        run: |
+          pytest tests/security/test_prompt_injection.py tests/security/test_refusal_behavior.py -v \
+            --junitxml=prompt-injection-tests.xml
+      - name: Upload SAST & test artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: sast-and-tests
+          path: |
+            bandit-report.*
+            security-tests.xml
+            prompt-injection-tests.xml
+  live-stack-evidence:
+    name: Live stack health evidence
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    steps:
+      - uses: actions/checkout@v4
+      - name: Start backend stack
+        run: |
+          docker compose -f infra/compose/docker-compose.backend-integrated.yml up -d --build
+      - name: Wait for healthy services
+        run: |
+          python scripts/ci/stack_health_check.py --timeout 300 --output stack-health.json
+      - name: Prepare ZAP report placeholders
+        run: |
+          touch report_base.html report_base.json
+      - name: OWASP ZAP baseline scan
+        uses: zaproxy/action-baseline@v0.12.0
+        with:
+          target: "http://localhost:8001"
+          rules_file_name: ".zap/rules.tsv"
+          cmd_options: "-a"
+      - name: Upload live evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-evidence
+          path: |
+            stack-health.json
+            report_*.html
+            report_*.json
+  consolidate-bundle:
+    name: Consolidate & Publish Evidence Bundle
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    needs: [release-readiness-gate, build-and-scan, supply-chain-policy-check, sast-and-tests, live-stack-evidence]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: false
+      - name: Setup Node.js + pnpm
+        uses: ./.depot/actions/setup-pnpm
+        with:
+          node-version: "22.18.0"
+      - name: Install Node.js dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Generate evidence bundle
+        run: pnpm evidence:bundle --release-sha "${{ github.sha }}"
+      - name: Resolve evidence bundle path
+        id: bundle
+        run: |
+          BUNDLE_PATH="$(find artifacts/evidence -maxdepth 1 -name 'value-fabric-evidence-*.tar.gz' | sort | tail -n 1)"
+          test -n "$BUNDLE_PATH"
+          echo "path=$BUNDLE_PATH" >> "$GITHUB_OUTPUT"
+      - name: Attest bundle
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-path: ${{ steps.bundle.outputs.path }}
+      - name: Upload release-candidate evidence bundle artifact
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/tags/v'))
+        uses: actions/upload-artifact@v4
+        with:
+          name: evidence-bundle-${{ github.sha }}
+          path: ${{ steps.bundle.outputs.path }}
+          retention-days: 90
+      - name: Upload to GitHub Release
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ steps.bundle.outputs.path }}
+          body: |
+            ## Release Evidence Bundle
+            - Container vulnerability scans (Trivy SARIF + HTML)
+            - SBOMs per service (CycloneDX, signed with Cosign)
+            - Bandit SAST report
+            - Security regression test results
+            - Prompt-injection/refusal E2E results
+            - Live stack health evidence
+            - OWASP ZAP baseline report
+      - name: Upload release candidate evidence bundle artifact
+        if: github.event_name != 'push' || !startsWith(github.ref, 'refs/tags/v')
+        uses: actions/upload-artifact@v4
+        with:
+          name: evidence-bundle-${{ github.sha }}
+          path: |
+            ${{ steps.bundle.outputs.path }}
+            artifacts/evidence/*.summary.json
+  # ---------------------------------------------------------------------------
+  # V1-CI-001 Stage 1 (shadow): stable aggregate release-evidence check.
+  # Informational until Stage 3. Summarizes existing jobs only
+  # (scripts/ci/aggregate_gate.py). All fanned-in jobs run on every trigger of
+  # this workflow, so any skip fails the aggregate closed.
+  # ---------------------------------------------------------------------------
+  aggregate-08-release-evidence:
+    name: 08-release-evidence
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    if: always()
+    needs:
+      - release-readiness-gate
+      - build-and-scan
+      - supply-chain-policy-check
+      - sast-and-tests
+      - live-stack-evidence
+      - consolidate-bundle
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - name: Summarize release-evidence gates
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        run: python3 scripts/ci/aggregate_gate.py --needs-json "$NEEDS_JSON"
