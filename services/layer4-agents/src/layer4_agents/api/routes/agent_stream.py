@@ -104,6 +104,7 @@ class AgentGovernanceMetadata(BaseModel):
     intent: str | None = None
     confidence: float | None = None
     workflow_triggered: bool | None = None
+    # Authoritative tier degradation signals
     response_tier: str | None = None
     provider: str | None = None
     fallback: bool | None = None
