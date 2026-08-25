@@ -62,8 +62,8 @@ def test_frontend_settings_response_contract_fields() -> None:
 def test_overdue_frontend_aliases_removed() -> None:
     """The overdue compat aliases (removal targets 2026-07-01 and 2026-08-01)
     are removed from the router source; the canonical L4 paths remain."""
-    from pathlib import Path
     import re
+    from pathlib import Path
 
     source = (
         Path(__file__).resolve().parents[1]

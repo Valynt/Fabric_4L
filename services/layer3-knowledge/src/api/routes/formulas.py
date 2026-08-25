@@ -241,7 +241,13 @@ class FormulaMetadata(BaseModel):
 
     id: str = Field(..., description="Formula identifier")
     formula_id: str | None = Field(
-        default=None, description="Deprecated alias of id. Removal target: v2.5 (2026-10-01).", deprecated=True, json_schema_extra={"x-deprecation-target-version": "v2.5", "x-deprecation-target-date": "2026-10-01"}
+        default=None,
+        description="Deprecated alias of id. Removal target: v2.5 (2026-10-01).",
+        deprecated=True,
+        json_schema_extra={
+            "x-deprecation-target-version": "v2.5",
+            "x-deprecation-target-date": "2026-10-01",
+        },
     )
     name: str = Field(..., description="Formula name")
     description: str = Field(..., description="Formula description")
@@ -987,6 +993,7 @@ async def create_formula(
         # statement so a mid-write failure cannot leave a formula node without
         # its version or variables (the previous two-statement pattern could
         # commit formula+version then fail on variables, leaving partial state).
+        # tenant-scope: tenant_id
         await neo4j.run(
             """
             CREATE (f:Formula {
@@ -1040,7 +1047,9 @@ async def create_formula(
             owner=owner,
             tenant_id=tenant_id,
             version_id=version_id,
-            variables=[v.model_dump() for v in request.variables] if request.variables else [],
+            variables=(
+                [v.model_dump() for v in request.variables] if request.variables else []
+            ),
         )
 
         # Fetch created formula
@@ -1350,13 +1359,17 @@ def _bump_minor_version(version: str) -> str:
         raise ValueError(f"Invalid formula version: {version!r}")
     parts = version.split(".")
     if len(parts) != 3:
-        raise ValueError(f"Invalid formula version (expected major.minor.patch): {version!r}")
+        raise ValueError(
+            f"Invalid formula version (expected major.minor.patch): {version!r}"
+        )
     try:
         major = int(parts[0])
         minor = int(parts[1])
         patch = int(parts[2])
     except ValueError as exc:
-        raise ValueError(f"Invalid formula version (non-numeric segment): {version!r}") from exc
+        raise ValueError(
+            f"Invalid formula version (non-numeric segment): {version!r}"
+        ) from exc
     if major < 0 or minor < 0 or patch < 0:
         raise ValueError(f"Invalid formula version (negative segment): {version!r}")
     return f"{major}.{minor + 1}.0"

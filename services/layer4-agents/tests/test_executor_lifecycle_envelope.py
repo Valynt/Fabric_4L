@@ -2,26 +2,13 @@
 
 from __future__ import annotations
 
-import asyncio
 from datetime import UTC, datetime
-from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
 
-from layer4_agents.engine.executor import (
-    OrchestrationController,
-    WorkflowExecutionError,
-    CheckpointConflictError,
-    OrchestrationController_get_resultResult,
-    OrchestrationController_get_workflow_statusResult,
-    OrchestrationController_get_cluster_healthResult,
-)
-from layer4_agents.models.agent_state import (
-    ROIAgentState,
-    WorkflowStatus,
-    WorkflowType,
-)
+from layer4_agents.engine.executor import CheckpointConflictError, OrchestrationController
+from layer4_agents.models.agent_state import ROIAgentState, WorkflowStatus, WorkflowType
 from layer4_agents.tools.registry import ToolRegistry
-from value_fabric.shared.identity.context import RequestContext, set_request_context
 
 
 @pytest.mark.unit
@@ -96,7 +83,7 @@ class TestOrchestrationControllerLifecycleAndEnvelope:
         state.started_at = datetime.now(UTC)
         await controller.state_manager.save_state("wf-cancel-01", state)
 
-        cancelled = await controller.cancel_workflow("wf-cancel-01", reason="User requested abort")
+        await controller.cancel_workflow("wf-cancel-01", reason="User requested abort")
         # scheduler.cancel_task may return False if not queued in scheduler, but state is marked CANCELLED
         updated_state = await controller.state_manager.load_state("wf-cancel-01")
         assert updated_state is not None
@@ -112,4 +99,3 @@ class TestOrchestrationControllerLifecycleAndEnvelope:
         assert err.metadata["expected_hash"] == "hash_a"
         assert err.metadata["actual_hash"] == "hash_b"
         assert err.metadata["workflow_id"] == "wf-1"
-
