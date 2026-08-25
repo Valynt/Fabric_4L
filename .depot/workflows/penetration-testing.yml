@@ -1,0 +1,561 @@
+# Depot CI Migration
+# Source: .github/workflows/penetration-testing.yml
+#
+# Changes made:
+# - Changed GitHub runs-on labels to their Depot equivalents
+
+name: Penetration Testing
+permissions:
+  contents: read
+  issues: write
+  security-events: write
+on:
+  # Weekly scheduled run (Mondays at 2 AM UTC)
+  schedule:
+    - cron: "0 2 * * 1"
+  # On-demand trigger.
+  # PR trigger removed because this workflow requires a live docker-compose
+  # stack that is not available in standard PR execution contexts.
+  workflow_dispatch:
+    inputs:
+      target_url:
+        description: "Target URL to scan"
+        required: false
+        default: "http://localhost:8004"
+      scan_type:
+        description: "Scan type"
+        required: false
+        default: "full"
+        type: choice
+        options:
+          - full
+          - zap-only
+          - nikto-only
+env:
+  TARGET_URL: ${{ inputs.target_url || 'http://localhost:8004' }}
+  SCAN_TYPE: ${{ inputs.scan_type || 'full' }}
+jobs:
+  # ============================================
+  # OWASP ZAP Full Scan
+  # ============================================
+  zap-scan:
+    name: OWASP ZAP Full Scan
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    timeout-minutes: 45
+    if: github.event.inputs.scan_type != 'nikto-only'
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - name: Set up Python
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: |
+          pip install requests aiohttp
+      - name: Validate authorized DAST target
+        run: |
+          python - <<'PY'
+          import ipaddress
+          import os
+          from urllib.parse import urlparse
+
+          target = urlparse(os.environ["TARGET_URL"])
+
+          if target.scheme not in {"http", "https"} or not target.hostname:
+              raise SystemExit("DAST target must be an absolute HTTP(S) URL")
+
+          allowed = target.hostname == "localhost"
+
+          try:
+              allowed = allowed or ipaddress.ip_address(target.hostname).is_loopback
+          except ValueError:
+              pass
+
+          if not allowed:
+              raise SystemExit(
+                  "Active DAST is restricted to the workflow-owned loopback test stack"
+              )
+          PY
+      - name: Start test stack
+        id: startup
+        continue-on-error: true
+        run: |
+          # Build a CI environment file from the committed template.
+          #
+          # The template intentionally does not contain usable production
+          # secrets. Append deterministic CI-only values required for
+          # docker-compose interpolation and ephemeral scanner execution.
+          cp .env.example .env
+
+          cat >> .env << 'EOF'
+          SECRET_KEY=ci-only-dummy-secret-key-0123456789abcdef
+          CLERK_ISSUER=https://ci-dummy.clerk.accounts.dev
+          CLERK_SECRET_KEY=sk_test_ci_dummy
+          FABRIC_AUTH_SIGNING_KEY=ci-only-dummy-signing-key
+          FABRIC_AUTH_PUBLIC_KEYS=[]
+          EOF
+
+          # Generate an ephemeral, runtime-valid Fernet key (32 random
+          # bytes, URL-safe base64 — 43/44 chars) for api-gateway/L4
+          # encryption initialization. The static CI dummy is not a
+          # valid Fernet key and is rejected at runtime.
+          CREDENTIALS_MASTER_KEY="$(
+            python - <<'PY'
+          import base64
+          import os
+
+          print(base64.urlsafe_b64encode(os.urandom(32)).decode())
+          PY
+          )"
+          printf 'CREDENTIALS_MASTER_KEY=%s\n' "$CREDENTIALS_MASTER_KEY" >> .env
+
+          mkdir -p zap-results
+
+          printf '{"startup_time":"%s"}\n' \
+            "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
+            > zap-results/metadata.json
+
+          # Validate all compose interpolation and configuration before
+          # attempting to create containers. This provides a clear failure
+          # when another required environment variable is missing.
+          if ! docker compose \
+            -f infra/compose/docker-compose.full.yml \
+            --env-file .env \
+            config --quiet \
+            2> >(tee zap-results/compose-config.log >&2); then
+            echo "::error::Docker Compose configuration validation failed"
+            exit 1
+          fi
+
+          if ! docker compose \
+            -f infra/compose/docker-compose.full.yml \
+            --env-file .env \
+            up -d; then
+            echo "::error::Docker Compose stack failed to start"
+
+            docker compose -f infra/compose/docker-compose.full.yml --env-file .env logs --no-color \
+              | tee zap-results/compose.log
+
+            exit 1
+          fi
+
+          health_url="${TARGET_URL%/}/health"
+
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent --show-error \
+              --max-time 5 \
+              "$health_url" > /dev/null; then
+              echo "Target is healthy at $health_url"
+              exit 0
+            fi
+
+            echo "Waiting for $health_url ($attempt/30)"
+            sleep 5
+          done
+
+          echo "::error::Target never became healthy at $health_url"
+
+          docker compose -f infra/compose/docker-compose.full.yml --env-file .env logs --no-color \
+            | tee zap-results/compose.log
+
+          exit 1
+      - name: Run ZAP Full Scan (Docker)
+        id: zap_scan
+        if: always() && steps.startup.outcome == 'success'
+        continue-on-error: true
+        run: |
+          mkdir -p zap-results
+
+          # Run ZAP full scan via Docker.
+          # --network host lets the scanner container reach the compose
+          # services published on the GitHub runner's localhost.
+          set +e
+
+          docker run --rm \
+            --network host \
+            -v "$(pwd)/zap-results:/zap/wrk/:rw" \
+            -t ghcr.io/zaproxy/zaproxy:stable \
+            zap-full-scan.py \
+            -t "${{ env.TARGET_URL }}" \
+            -r zap-report.html \
+            -J zap-report.json \
+            -w zap-report.md \
+            -x zap-report.xml \
+            -I
+
+          zap_exit_code=$?
+
+          set -e
+
+          echo "zap_exit_code=$zap_exit_code" >> "$GITHUB_OUTPUT"
+
+          case "$zap_exit_code" in
+            0)
+              echo "execution_status=completed" >> "$GITHUB_OUTPUT"
+              echo "policy_status=clean" >> "$GITHUB_OUTPUT"
+              ;;
+            1)
+              echo "execution_status=completed" >> "$GITHUB_OUTPUT"
+              echo "policy_status=warnings" >> "$GITHUB_OUTPUT"
+              ;;
+            2)
+              echo "execution_status=completed" >> "$GITHUB_OUTPUT"
+              echo "policy_status=findings" >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "execution_status=runtime_failure" >> "$GITHUB_OUTPUT"
+              echo "policy_status=unknown" >> "$GITHUB_OUTPUT"
+              echo "ZAP scanner/runtime failed with exit code $zap_exit_code"
+              ;;
+          esac
+
+          echo "ZAP exit code: $zap_exit_code"
+          exit "$zap_exit_code"
+      - name: Validate ZAP JSON report
+        id: validate_report
+        if: always() && steps.zap_scan.outputs.execution_status == 'completed'
+        continue-on-error: true
+        run: |
+          test -s zap-results/zap-report.json
+
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          report_path = Path("zap-results/zap-report.json")
+
+          with report_path.open(encoding="utf-8") as report_file:
+              report = json.load(report_file)
+
+          sites = report.get("site") if isinstance(report, dict) else None
+
+          if not isinstance(sites, list) or not sites:
+              raise SystemExit(
+                  "ZAP report must be a JSON object with a non-empty site array"
+              )
+
+          if any(
+              not isinstance(site, dict)
+              or not isinstance(site.get("alerts"), list)
+              for site in sites
+          ):
+              raise SystemExit(
+                  "Every ZAP site must be an object with an alerts array"
+              )
+          PY
+      - name: Convert ZAP results to SARIF
+        id: convert_sarif
+        if: always() && steps.validate_report.outcome == 'success'
+        continue-on-error: true
+        run: |
+          python tests/penetration/zap-full-scan.py \
+            --target "${{ env.TARGET_URL }}" \
+            --output zap-results/zap-results.sarif \
+            --use-docker
+
+          test -s zap-results/zap-results.sarif
+      - name: Upload ZAP results
+        if: always()
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        with:
+          name: zap-scan-results
+          path: |
+            zap-results/
+          retention-days: 90
+      - name: Upload SARIF to GitHub Security
+        uses: github/codeql-action/upload-sarif@3ce22a6e336a7fcc318bc58ae1986395bdc83ba7 # v4.35.4
+        if: always() && steps.convert_sarif.outcome == 'success'
+        with:
+          sarif_file: zap-results/zap-results.sarif
+          category: zap-penetration-test
+      - name: Check for high-risk findings
+        if: steps.validate_report.outcome == 'success'
+        run: |
+          if [ -f zap-results/zap-report.json ]; then
+            HIGH_COUNT=$(
+              grep -o '"risk": "High"' zap-results/zap-report.json \
+                | wc -l \
+                || echo "0"
+            )
+
+            echo "High risk findings: $HIGH_COUNT"
+
+            if [ "$HIGH_COUNT" -gt 0 ]; then
+              echo "::error::Found $HIGH_COUNT HIGH risk vulnerabilities"
+              exit 1
+            fi
+          fi
+      - name: Enforce penetration test policy
+        if: always()
+        run: |
+          failed=0
+
+          if [ "${{ steps.startup.outcome }}" != "success" ]; then
+            echo "Startup/readiness failed"
+            failed=1
+          fi
+
+          if [ "${{ steps.zap_scan.outputs.execution_status }}" != "completed" ]; then
+            echo "ZAP scanner/runtime execution failed"
+            failed=1
+          fi
+
+          if [ "${{ steps.validate_report.outcome }}" != "success" ]; then
+            echo "ZAP JSON report validation failed"
+            failed=1
+          fi
+
+          if [ "${{ steps.convert_sarif.outcome }}" != "success" ]; then
+            echo "ZAP-to-SARIF conversion failed"
+            failed=1
+          fi
+
+          if [ "${{ steps.zap_scan.outputs.policy_status }}" = "findings" ]; then
+            echo "ZAP completed with policy-blocking findings"
+            failed=1
+          fi
+
+          exit "$failed"
+      - name: Stop test stack
+        if: always()
+        continue-on-error: true
+        run: |
+          if [ -f .env ]; then
+            docker compose \
+              -f infra/compose/docker-compose.full.yml \
+              --env-file .env \
+              down --volumes --remove-orphans
+          fi
+  # ============================================
+  # Nikto Web Server Scan
+  # ============================================
+  nikto-scan:
+    name: Nikto Web Server Scan
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    timeout-minutes: 30
+    if: github.event.inputs.scan_type != 'zap-only'
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - name: Validate authorized DAST target
+        run: |
+          python - <<'PY'
+          import ipaddress
+          import os
+          from urllib.parse import urlparse
+
+          target = urlparse(os.environ["TARGET_URL"])
+
+          if target.scheme not in {"http", "https"} or not target.hostname:
+              raise SystemExit("DAST target must be an absolute HTTP(S) URL")
+
+          allowed = target.hostname == "localhost"
+
+          try:
+              allowed = allowed or ipaddress.ip_address(target.hostname).is_loopback
+          except ValueError:
+              pass
+
+          if not allowed:
+              raise SystemExit(
+                  "Active DAST is restricted to the workflow-owned loopback test stack"
+              )
+          PY
+      - name: Start test stack
+        run: |
+          # Build the ephemeral CI environment from the committed template.
+          cp .env.example .env
+
+          cat >> .env << 'EOF'
+          SECRET_KEY=ci-only-dummy-secret-key-0123456789abcdef
+          CLERK_ISSUER=https://ci-dummy.clerk.accounts.dev
+          CLERK_SECRET_KEY=sk_test_ci_dummy
+          FABRIC_AUTH_SIGNING_KEY=ci-only-dummy-signing-key
+          FABRIC_AUTH_PUBLIC_KEYS=[]
+          EOF
+
+          # Generate an ephemeral, runtime-valid Fernet key (32 random
+          # bytes, URL-safe base64 — 43/44 chars) for api-gateway/L4
+          # encryption initialization. The static CI dummy is not a
+          # valid Fernet key and is rejected at runtime.
+          CREDENTIALS_MASTER_KEY="$(
+            python - <<'PY'
+          import base64
+          import os
+
+          print(base64.urlsafe_b64encode(os.urandom(32)).decode())
+          PY
+          )"
+          printf 'CREDENTIALS_MASTER_KEY=%s\n' "$CREDENTIALS_MASTER_KEY" >> .env
+
+          mkdir -p nikto-results
+
+          printf '{"startup_time":"%s"}\n' \
+            "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
+            > nikto-results/metadata.json
+
+          # Validate compose interpolation/configuration before attempting
+          # startup so missing required variables fail explicitly.
+          if ! docker compose \
+            -f infra/compose/docker-compose.full.yml \
+            --env-file .env \
+            config --quiet \
+            2> >(tee nikto-results/compose-config.log >&2); then
+            echo "::error::Docker Compose configuration validation failed"
+            exit 1
+          fi
+
+          if ! docker compose \
+            -f infra/compose/docker-compose.full.yml \
+            --env-file .env \
+            up -d; then
+            echo "::error::Docker Compose stack failed to start"
+
+            docker compose -f infra/compose/docker-compose.full.yml --env-file .env logs --no-color \
+              | tee nikto-results/compose.log
+
+            exit 1
+          fi
+
+          health_url="${TARGET_URL%/}/health"
+
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent --show-error \
+              --max-time 5 \
+              "$health_url" > /dev/null; then
+              echo "Target is healthy at $health_url"
+              exit 0
+            fi
+
+            echo "Waiting for $health_url ($attempt/30)"
+            sleep 5
+          done
+
+          echo "::error::Target never became healthy at $health_url"
+
+          docker compose -f infra/compose/docker-compose.full.yml --env-file .env logs --no-color \
+            | tee nikto-results/compose.log
+
+          exit 1
+      - name: Run Nikto Scan
+        run: |
+          test -x tests/penetration/nikto-scan.sh || {
+            echo "::error::Required Nikto wrapper is missing or not executable"
+            exit 2
+          }
+
+          ./tests/penetration/nikto-scan.sh \
+            --target "${{ env.TARGET_URL }}" \
+            --output nikto-results \
+            --timeout 1200
+
+          test -s nikto-results/summary.json
+      - name: Upload Nikto results
+        if: always()
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        with:
+          name: nikto-scan-results
+          path: |
+            nikto-results/
+          retention-days: 90
+      - name: Display summary
+        if: always()
+        run: |
+          if [ -f nikto-results/summary.json ]; then
+            echo "## Nikto Scan Results" >> "$GITHUB_STEP_SUMMARY"
+            echo "Target: ${{ env.TARGET_URL }}" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+
+            jq -r \
+              '"- High: \(.vulnerabilities.high)"' \
+              nikto-results/summary.json \
+              >> "$GITHUB_STEP_SUMMARY"
+
+            jq -r \
+              '"- Medium: \(.vulnerabilities.medium)"' \
+              nikto-results/summary.json \
+              >> "$GITHUB_STEP_SUMMARY"
+
+            jq -r \
+              '"- Low: \(.vulnerabilities.low)"' \
+              nikto-results/summary.json \
+              >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Stop test stack
+        if: always()
+        continue-on-error: true
+        run: |
+          if [ -f .env ]; then
+            docker compose \
+              -f infra/compose/docker-compose.full.yml \
+              --env-file .env \
+              down --volumes --remove-orphans
+          fi
+  # ============================================
+  # Penetration Test Report
+  # ============================================
+  penetration-report:
+    name: Generate Penetration Test Report
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    needs:
+      - zap-scan
+      - nikto-scan
+    if: always()
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - name: Download all artifacts
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4
+        with:
+          path: penetration-results/
+          merge-multiple: true
+      - name: Generate consolidated report
+        run: |
+          mkdir -p penetration-results
+
+          cat > penetration-results/penetration-test-report.json << EOF
+          {
+            "scan_date": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
+            "target": "${{ env.TARGET_URL }}",
+            "scanners": [
+              {
+                "name": "OWASP ZAP",
+                "version": "2.14.0",
+                "type": "Full Active Scan"
+              },
+              {
+                "name": "Nikto",
+                "version": "2.5.0",
+                "type": "Web Server Scan"
+              }
+            ],
+            "summary": {
+              "zap_job_result": "${{ needs.zap-scan.result }}",
+              "nikto_job_result": "${{ needs.nikto-scan.result }}"
+            }
+          }
+          EOF
+      - name: Upload consolidated report
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        with:
+          name: penetration-test-report-${{ github.run_id }}
+          path: |
+            penetration-results/
+          retention-days: 365
+      - name: Update PR with results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `Penetration Test Results
+
+              - OWASP ZAP job: ${{ needs.zap-scan.result }}
+              - Nikto job: ${{ needs.nikto-scan.result }}
+
+              Full report available in artifacts:
+              \`penetration-test-report-${{ github.run_id }}\`
+
+              Retention: 365 days`
+            })

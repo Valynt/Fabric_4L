@@ -1,0 +1,461 @@
+# Depot CI Migration
+# Source: .github/workflows/dependency-scan.yml
+#
+# Changes made:
+# - Rewrote .github/ path references to .depot/
+# - Changed GitHub runs-on labels to their Depot equivalents
+
+# -----------------------------------------------------------------------------
+# Dependency Vulnerability Scan — Fabric 4L
+#
+# Scans all Python and Node.js dependencies for known CVEs on every PR,
+# weekly on Monday 6am UTC, and on-demand.
+#
+# Tools:
+#   - Python:  pypa/gh-action-pip-audit (pip-audit)
+#   - Node.js: actions/dependency-review-action + pnpm audit
+#   - Image:   anchore/scan-action (Grype) for container scanning
+#   - Report:  SARIF upload to GitHub Security tab
+# -----------------------------------------------------------------------------
+
+name: Dependency Vulnerability Scan
+permissions:
+  contents: read
+on:
+  pull_request:
+    paths:
+      - "**/requirements.txt"
+      - "**/requirements*.txt"
+      - "**/pyproject.toml"
+      - "**/setup.py"
+      - "**/package.json"
+      - "**/pnpm-lock.yaml"
+      - "**/Dockerfile"
+      - ".depot/workflows/dependency-scan.yml"
+  push:
+    branches: [main]
+    paths:
+      - "**/requirements.txt"
+      - "**/requirements*.txt"
+      - "**/pyproject.toml"
+      - "**/setup.py"
+      - "**/package.json"
+      - "**/pnpm-lock.yaml"
+      - "**/Dockerfile"
+  schedule:
+    - cron: "0 6 * * 1" # Weekly: Monday 06:00 UTC
+  workflow_dispatch:
+    inputs:
+      fail_threshold:
+        description: "Severity threshold to fail build (low/medium/high/critical)"
+        required: false
+        default: "medium"
+        type: choice
+        options:
+          - low
+          - medium
+          - high
+          - critical
+env:
+  FAIL_THRESHOLD: ${{ inputs.fail_threshold || 'medium' }}
+jobs:
+  check-manifests:
+    name: Check Manifest Registry
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    outputs:
+      python_matrix: ${{ steps.set_matrix.outputs.python_matrix }}
+      node_matrix: ${{ steps.set_matrix.outputs.node_matrix }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+        with:
+          fetch-depth: 0
+      - name: Generate manifest registry
+        id: generate
+        run: |
+          python scripts/ci/generate_manifest_registry.py > /tmp/generated.json
+      - name: Compare with checked-in registry
+        run: |
+          if ! diff -u .github/manifests.json /tmp/generated.json; then
+            echo "Manifest registry is out of date."
+            echo "Please run `python scripts/ci/generate_manifest_registry.py > .github/manifests.json` and commit the changes."
+            exit 1
+          fi
+      - name: Set matrix outputs
+        id: set_matrix
+        run: |
+          # Read the checked-in manifests.json (which we know is up-to-date)
+          python_matrix=$(python -c "import json, sys; data=json.load(open('.github/manifests.json')); print(json.dumps([{'service': item['name']} for item in data['python']]))")
+          # Node jobs interpolate matrix.frontend as a scalar name.
+          node_matrix=$(python -c "import json, sys; data=json.load(open('.github/manifests.json')); print(json.dumps([item['name'] for item in data['node']]))")
+          echo "python_matrix=$python_matrix" >> $GITHUB_OUTPUT
+          echo "node_matrix=$node_matrix" >> $GITHUB_OUTPUT
+  scan-python:
+    name: Scan Python Dependencies
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    permissions:
+      contents: read
+      security-events: write
+    needs: check-manifests
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ${{ fromJson(needs.check-manifests.outputs.python_matrix) }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+        with:
+          fetch-depth: 0
+      - name: Setup Python
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
+        with:
+          python-version: "3.11"
+      - name: Setup pinned uv
+        uses: astral-sh/setup-uv@caf0cab7a618c569241d31dcd442f54681755d39 # v3
+        with:
+          version: "0.11.6"
+      - name: Install pinned pip-audit
+        run: uv tool install pip-audit==2.9.0
+      - name: Determine service directory
+        id: service-dir
+        run: |
+          case "${{ matrix.python.service }}" in
+            shared)
+              echo "dir=packages/shared/src" >> "$GITHUB_OUTPUT"
+              ;;
+            platform-contract)
+              echo "dir=packages/platform-contract/src/python" >> "$GITHUB_OUTPUT"
+              ;;
+            sdk)
+              echo "dir=sdk/python" >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "dir=services/${{ matrix.python.service }}" >> "$GITHUB_OUTPUT"
+              ;;
+          esac
+      - name: Run dependency audit
+        id: audit
+        env:
+          ARTIFACT_DIR: artifacts/pip-audit/${{ matrix.python.service }}
+        run: |
+          set +e
+          python scripts/ci/run_pip_audit.py scan \
+            --service-name "${{ matrix.python.service }}" \
+            --service-dir "${{ steps.service-dir.outputs.dir }}" \
+            --artifact-dir "$ARTIFACT_DIR"
+          status=$?
+          set -e
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          test -s "$ARTIFACT_DIR/diagnostic.json"
+        shell: bash
+      - name: Run base dependency audit
+        id: base_audit
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_ARTIFACT_DIR: artifacts/pip-audit-base/${{ matrix.python.service }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin "$BASE_REF"
+          base_worktree="$(mktemp -d)"
+          rm -rf "$base_worktree"
+          git worktree add --detach "$base_worktree" "origin/$BASE_REF"
+          echo "worktree=$base_worktree" >> "$GITHUB_OUTPUT"
+
+          case "${{ matrix.python.service }}" in
+            shared)
+              BASE_SERVICE_DIR="$base_worktree/packages/shared/src"
+              ;;
+            platform-contract)
+              BASE_SERVICE_DIR="$base_worktree/packages/platform-contract/src/python"
+              ;;
+            sdk)
+              BASE_SERVICE_DIR="$base_worktree/sdk/python"
+              ;;
+            *)
+              BASE_SERVICE_DIR="$base_worktree/services/${{ matrix.python.service }}"
+              ;;
+          esac
+
+          set +e
+          python scripts/ci/run_pip_audit.py scan \
+            --service-name "${{ matrix.python.service }}" \
+            --service-dir "$BASE_SERVICE_DIR" \
+            --artifact-dir "$BASE_ARTIFACT_DIR"
+          status=$?
+          set -e
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          test -s "$BASE_ARTIFACT_DIR/diagnostic.json"
+        shell: bash
+      - name: Upload dependency-audit evidence
+        if: always()
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        with:
+          name: pip-audit-${{ matrix.python.service }}
+          path: |
+            artifacts/pip-audit/${{ matrix.python.service }}/requirements.txt
+            artifacts/pip-audit/${{ matrix.python.service }}/report.json
+            artifacts/pip-audit/${{ matrix.python.service }}/report.sarif
+            artifacts/pip-audit/${{ matrix.python.service }}/diagnostic.json
+          if-no-files-found: error
+          retention-days: 30
+      - name: Upload dependency-audit SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@3ce22a6e336a7fcc318bc58ae1986395bdc83ba7 # v4.35.4
+        with:
+          sarif_file: artifacts/pip-audit/${{ matrix.python.service }}/report.sarif
+          category: pip-audit-${{ matrix.python.service }}
+      - name: Upload base dependency-audit evidence
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        with:
+          name: pip-audit-base-${{ matrix.python.service }}
+          path: |
+            artifacts/pip-audit-base/${{ matrix.python.service }}/requirements.txt
+            artifacts/pip-audit-base/${{ matrix.python.service }}/report.json
+            artifacts/pip-audit-base/${{ matrix.python.service }}/report.sarif
+            artifacts/pip-audit-base/${{ matrix.python.service }}/diagnostic.json
+          if-no-files-found: error
+          retention-days: 30
+      - name: Enforce dependency vulnerability policy
+        if: always()
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            python scripts/ci/run_pip_audit.py compare \
+              --current-diagnostic "artifacts/pip-audit/${{ matrix.python.service }}/diagnostic.json" \
+              --current-expected-status '${{ steps.audit.outputs.status }}' \
+              --baseline-diagnostic "artifacts/pip-audit-base/${{ matrix.python.service }}/diagnostic.json" \
+              --baseline-expected-status '${{ steps.base_audit.outputs.status }}'
+          else
+            python scripts/ci/run_pip_audit.py enforce \
+              --diagnostic "artifacts/pip-audit/${{ matrix.python.service }}/diagnostic.json" \
+              --expected-status '${{ steps.audit.outputs.status }}'
+          fi
+      - name: Cleanup base dependency audit worktree
+        if: always() && github.event_name == 'pull_request' && steps.base_audit.outputs.worktree != ''
+        run: git worktree remove --force "${{ steps.base_audit.outputs.worktree }}"
+  scan-node:
+    name: Scan Node.js Dependencies
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    permissions:
+      contents: read
+      security-events: write
+    needs: check-manifests
+    strategy:
+      fail-fast: false
+      matrix:
+        frontend: ${{ fromJson(needs.check-manifests.outputs.node_matrix) }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+        with:
+          fetch-depth: 0
+      - name: Setup Node.js + pnpm
+        uses: ./.depot/actions/setup-pnpm
+        with:
+          node-version: '22.18.0'
+      - name: Dependency Review
+        if: github.event_name == 'pull_request'
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          fail-on-severity: ${{ env.FAIL_THRESHOLD == 'medium' && 'moderate' || env.FAIL_THRESHOLD }}
+          comment-summary-in-pr: true
+      - name: pnpm audit ${{ matrix.frontend }}
+        id: pnpm-audit
+        run: |
+          case "${{ matrix.frontend }}" in
+            value-studio)
+              WD="services/value-studio"
+              ;;
+            config)
+              WD="packages/config"
+              ;;
+            eslint-plugin-fabric-contracts)
+              WD="packages/eslint-plugin-fabric-contracts"
+              ;;
+            *)
+              WD="apps/${{ matrix.frontend }}"
+              ;;
+          esac
+
+          BASE_REF="${GITHUB_BASE_REF:-main}"
+          BASE_WORKTREE="${RUNNER_TEMP}/pnpm-audit-base-${{ matrix.frontend }}"
+          git fetch --no-tags --prune origin "${BASE_REF}"
+
+          pnpm install --frozen-lockfile
+          pnpm --dir "${WD}" audit --json --audit-level ${{ env.FAIL_THRESHOLD }} > "${WD}/pnpm-audit.json" || true
+
+          git worktree add --detach "${BASE_WORKTREE}" "origin/${BASE_REF}"
+          (
+            cd "${BASE_WORKTREE}"
+            pnpm install --frozen-lockfile
+            pnpm --dir "${WD}" audit --json --audit-level ${{ env.FAIL_THRESHOLD }} > "${GITHUB_WORKSPACE}/${WD}/pnpm-audit-base.json" || true
+          )
+
+          export AUDIT_CURRENT="${GITHUB_WORKSPACE}/${WD}/pnpm-audit.json"
+          export AUDIT_BASELINE="${GITHUB_WORKSPACE}/${WD}/pnpm-audit-base.json"
+          node <<'NODE'
+          const fs = require('fs');
+          const current = JSON.parse(fs.readFileSync(process.env.AUDIT_CURRENT, 'utf8'));
+          const baseline = JSON.parse(fs.readFileSync(process.env.AUDIT_BASELINE, 'utf8'));
+          const sevMap = {low: 0, moderate: 1, high: 2, critical: 3};
+          const threshold = sevMap[process.env.FAIL_THRESHOLD] ?? 1;
+
+          function signatures(report) {
+            const advisories = report.advisories || {};
+            const out = new Set();
+            for (const [id, adv] of Object.entries(advisories)) {
+              if ((sevMap[adv.severity] ?? -1) < threshold) continue;
+              const advisoryId = adv.github_advisory_id || adv.url || id;
+              const paths = (adv.findings || [])
+                .flatMap((finding) => finding.paths || [])
+                .sort()
+                .join('|');
+              out.add(`${adv.module_name}:${advisoryId}:${paths}`);
+            }
+            return out;
+          }
+
+          const baselineSignatures = signatures(baseline);
+          let fail = false;
+          for (const [id, adv] of Object.entries(current.advisories || {})) {
+            if ((sevMap[adv.severity] ?? -1) < threshold) continue;
+            const advisoryId = adv.github_advisory_id || adv.url || id;
+            const paths = (adv.findings || [])
+              .flatMap((finding) => finding.paths || [])
+              .sort()
+              .join('|');
+            const signature = `${adv.module_name}:${advisoryId}:${paths}`;
+            if (baselineSignatures.has(signature)) {
+              console.log(`Inherited vulnerability: ${adv.severity} - ${adv.module_name} - ${advisoryId}`);
+              continue;
+            }
+            console.log(`Branch-introduced vulnerability: ${adv.severity} - ${adv.module_name} - ${advisoryId}`);
+            console.log(adv.overview || adv.title || 'No advisory overview available');
+            fail = true;
+          }
+          process.exit(fail ? 1 : 0);
+          NODE
+      - name: Upload audit results
+        if: always()
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        with:
+          name: node-audit-${{ matrix.frontend }}
+          path: |
+            ${{ github.workspace }}/services/value-studio/pnpm-audit.json
+            ${{ github.workspace }}/services/value-studio/pnpm-audit-base.json
+            ${{ github.workspace }}/packages/config/pnpm-audit.json
+            ${{ github.workspace }}/packages/config/pnpm-audit-base.json
+            ${{ github.workspace }}/packages/eslint-plugin-fabric-contracts/pnpm-audit.json
+            ${{ github.workspace }}/packages/eslint-plugin-fabric-contracts/pnpm-audit-base.json
+            apps/web/pnpm-audit.json
+            apps/web/pnpm-audit-base.json
+          retention-days: 30
+  scan-containers:
+    name: Scan Container Images (${{ matrix.service.name }})
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    permissions:
+      contents: read
+      security-events: write
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - name: api
+            path: services/api/Dockerfile
+            context: .
+          - name: layer1-ingestion
+            path: services/layer1-ingestion/Dockerfile
+            context: services/layer1-ingestion
+          - name: layer2-extraction
+            path: services/layer2-extraction/Dockerfile
+            context: services/layer2-extraction
+          - name: layer3-knowledge
+            path: services/layer3-knowledge/Dockerfile
+            context: services/layer3-knowledge
+          - name: layer4-agents
+            path: services/layer4-agents/Dockerfile
+            context: services/layer4-agents
+          - name: layer5-ground-truth
+            path: services/layer5-ground-truth/Dockerfile
+            context: services/layer5-ground-truth
+          - name: layer6-benchmarks
+            path: services/layer6-benchmarks/Dockerfile
+            context: services/layer6-benchmarks
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+        with:
+          fetch-depth: 0
+      - name: Build service image
+        run: |
+          docker build -t fabric4l/${{ matrix.service.name }}:scan-target -f ${{ matrix.service.path }} ${{ matrix.service.context }}
+      - name: Scan image with Grype
+        uses: anchore/scan-action@e1165082ffb1fe366ebaf02d8526e7c4989ea9d2 # v7.4.0
+        with:
+          image: "fabric4l/${{ matrix.service.name }}:scan-target"
+          severity-cutoff: ${{ env.FAIL_THRESHOLD }}
+          output-format: sarif
+          output-file: container-scan-${{ matrix.service.name }}.sarif
+      - name: Upload SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@3ce22a6e336a7fcc318bc58ae1986395bdc83ba7 # v4.35.4
+        with:
+          sarif_file: container-scan-${{ matrix.service.name }}.sarif
+          category: container-scan-${{ matrix.service.name }}
+  generate-sbom:
+    name: Generate SBOM for Vulnerability Tracking
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    needs: [scan-python, scan-node]
+    if: always() && github.event_name != 'pull_request'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+        with:
+          fetch-depth: 0
+      - name: Setup Python
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
+        with:
+          python-version: "3.11"
+      - name: Install Syft
+        uses: anchore/sbom-action/download-syft@df80a981bc6edbc4e220a492d3cbe9f5547a6e75 # v0.17.9
+      - name: Generate SBOM
+        run: |
+          syft packages dir:. -o spdx-json=sbom-vuln-track.json
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        with:
+          name: sbom-vulnerability-tracking
+          path: sbom-vuln-track.json
+          retention-days: 90
+  summary:
+    name: Scan Summary
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    needs: [scan-python, scan-node]
+    if: always()
+    steps:
+      - name: Generate summary
+        run: |
+          echo "## Dependency Vulnerability Scan Results" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Component | Status |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|-----------|--------|" >> "$GITHUB_STEP_SUMMARY"
+
+          for svc in api layer1-ingestion layer2-extraction layer3-knowledge layer4-agents layer5-ground-truth layer6-benchmarks; do
+            status="Skipped"
+            if [ "${{ needs.scan-python.result }}" = "success" ]; then status="Pass"; fi
+            if [ "${{ needs.scan-python.result }}" = "failure" ]; then status="Fail"; fi
+            echo "| Python: $svc | $status |" >> "$GITHUB_STEP_SUMMARY"
+          done
+
+          for fe in web; do
+            status="Skipped"
+            if [ "${{ needs.scan-node.result }}" = "success" ]; then status="Pass"; fi
+            if [ "${{ needs.scan-node.result }}" = "failure" ]; then status="Fail"; fi
+            echo "| Node.js: $fe | $status |" >> "$GITHUB_STEP_SUMMARY"
+          done
+
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Threshold:** ${{ env.FAIL_THRESHOLD }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Triggered by:** ${{ github.event_name }}" >> "$GITHUB_STEP_SUMMARY"

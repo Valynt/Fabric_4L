@@ -1,0 +1,299 @@
+# Depot CI Migration
+# Source: .github/workflows/critical-gates.yml
+#
+# Changes made:
+# - Changed GitHub runs-on labels to their Depot equivalents
+
+# Named critical gates run as a matrix job, each producing a JSON evidence artifact.
+# Gates cover: auth coverage, tenant isolation, OpenAPI drift, production config policy,
+# hermetic build inputs, correlation log contract, ADR-027 import hygiene (all 6 layers),
+# Alembic head consistency, env contract structure, stale namespace dirs, and P0 security
+# regression gates (auth-boundaries, jwt-config, cross-tenant-write, auth-source, rate-limit-safety).
+# The critical-gates-merge-blocker summary job enforces all must pass before merge.
+name: Critical Gates
+on:
+  pull_request:
+    branches: [main]
+    # Change-scoping: every critical gate exercises runtime code, contracts,
+    # or CI scripts; documentation-only PRs are skipped. Push-to-main runs
+    # remain unscoped.
+    paths-ignore:
+      - "docs/**"
+      - "**/*.md"
+  push:
+    branches: [main]
+  merge_group:
+concurrency:
+  # Cancel only an obsolete run of this same workflow/ref. A global
+  # feature-branch group lets activity on an unrelated PR cancel required gates.
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+permissions:
+  contents: read
+env:
+  EVIDENCE_RETENTION_DAYS: 30
+  TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_value_fabric
+jobs:
+  critical-gates:
+    name: "Critical Gate: ${{ matrix.gate.id }}"
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test_value_fabric
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d test_value_fabric" --health-interval 10s --health-timeout 5s --health-retries 5
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping" --health-interval 10s --health-timeout 5s --health-retries 5
+    strategy:
+      fail-fast: false
+      matrix:
+        gate:
+          - id: auth-coverage
+            service: layer3
+            owner: "@value-fabric/security-leads"
+            escalation: "@value-fabric/ciso"
+            command: "python -m pytest -q tests/security/test_sensitive_route_audit_coverage.py --maxfail=1"
+          - id: behavior-contract
+            service: shared
+            owner: "@value-fabric/qa-leads"
+            escalation: "@value-fabric/security-leads"
+            command: "python scripts/ci/check_behavior_contract.py --strict"
+          - id: tenant-isolation-hostile
+            service: layer4
+            owner: "@value-fabric/security-leads"
+            escalation: "@value-fabric/backend-leads"
+            command: "pnpm test:isolation"
+          - id: openapi-drift
+            service: layer2
+            owner: "@value-fabric/architects"
+            escalation: "@value-fabric/maintainers"
+            command: "python scripts/export_openapi.py && git diff --exit-code contracts/openapi/"
+          - id: production-config-policy
+            service: layer5
+            owner: "@value-fabric/sre-leads"
+            escalation: "@value-fabric/security-leads"
+            command: "make gate-config"
+          - id: production-config-policy-layer6
+            service: layer6
+            owner: "@value-fabric/sre-leads"
+            escalation: "@value-fabric/qa-leads"
+            command: "python -m pytest -q tests/k8s/test_production_blockers.py --maxfail=1"
+          - id: hermetic-build-inputs
+            service: build
+            owner: "@value-fabric/security-leads"
+            escalation: "@value-fabric/sre-leads"
+            command: "python scripts/ci/check_hermetic_build_inputs.py"
+          - id: correlation-log-contract
+            service: shared
+            owner: "@value-fabric/backend-leads"
+            escalation: "@value-fabric/security-leads"
+            command: "python -m pytest -q tests/security/test_correlation_logging_contract.py --maxfail=1 --no-mandatory-dep-check -n 0"
+          - id: adr027-import-hygiene
+            service: shared
+            owner: "@value-fabric/architects"
+            escalation: "@value-fabric/maintainers"
+            command: "python scripts/ci/check_layer1_imports.py --strict"
+          - id: layer1-api-main-shim-drift
+            service: layer1
+            owner: "@value-fabric/architects"
+            escalation: "@value-fabric/maintainers"
+            command: "python scripts/ci/check_layer1_api_main_shim_drift.py"
+          - id: adr027-layer3-imports
+            service: layer3
+            owner: "@value-fabric/architects"
+            escalation: "@value-fabric/maintainers"
+            command: "python scripts/ci/check_layer3_imports.py --strict"
+          - id: layer3-tenant-dependency-imports
+            service: layer3
+            owner: "@value-fabric/security-leads"
+            escalation: "@value-fabric/backend-leads"
+            command: "python scripts/ci/check_layer3_legacy_tenant_dependency_imports.py"
+          - id: adr027-layer4-imports
+            service: layer4
+            owner: "@value-fabric/architects"
+            escalation: "@value-fabric/maintainers"
+            command: "python scripts/ci/check_layer4_canonical_imports.py"
+          - id: shared-identity-canonical-imports
+            service: shared
+            owner: "@value-fabric/security-leads"
+            escalation: "@value-fabric/maintainers"
+            command: "python scripts/ci/check_shared_identity_canonical_imports.py"
+          - id: adr027-layer5-shim
+            service: layer5
+            owner: "@value-fabric/architects"
+            escalation: "@value-fabric/maintainers"
+            command: "python scripts/ci/check_layer5_shim_integrity.py"
+          - id: adr027-layer6-imports
+            service: layer6
+            owner: "@value-fabric/architects"
+            escalation: "@value-fabric/maintainers"
+            command: "python scripts/ci/check_layer6_imports.py --strict"
+          - id: adr027-deprecated-namespaces
+            service: shared
+            owner: "@value-fabric/architects"
+            escalation: "@value-fabric/maintainers"
+            command: "python scripts/ci/check_deprecated_namespace_imports.py --strict"
+          - id: compatibility-shims-unified
+            service: shared
+            owner: "@value-fabric/architects"
+            escalation: "@value-fabric/maintainers"
+            command: "python scripts/ci/check_compatibility_shims.py run-all --strict --json"
+          - id: adr027-duplicate-source-trees
+            service: shared
+            owner: "@value-fabric/architects"
+            escalation: "@value-fabric/maintainers"
+            command: "python scripts/ci/check_duplicate_source_trees.py --layers layer1 layer2 layer3 layer4 layer5 layer6"
+          - id: alembic-head-consistency
+            service: shared
+            owner: "@value-fabric/backend-leads"
+            escalation: "@value-fabric/maintainers"
+            command: "python scripts/ci/_check_alembic_graphs.py"
+          - id: env-contract-structure
+            service: shared
+            owner: "@value-fabric/sre-leads"
+            escalation: "@value-fabric/security-leads"
+            command: "python -m pytest -q tests/ci/test_env_contract_validator_i01.py -k 'not compile' --maxfail=1 --no-header"
+          - id: stale-namespace-dirs
+            service: shared
+            owner: "@value-fabric/architects"
+            escalation: "@value-fabric/maintainers"
+            command: "python scripts/ci/check_stale_namespace_dirs.py"
+          - id: p0-auth-boundaries
+            service: shared
+            owner: "@value-fabric/security-leads"
+            escalation: "@value-fabric/ciso"
+            command: "python -m pytest -q tests/security/test_auth_boundaries.py --maxfail=1"
+          - id: p0-jwt-config
+            service: shared
+            owner: "@value-fabric/security-leads"
+            escalation: "@value-fabric/ciso"
+            command: "python -m pytest -q tests/security/test_jwt_config_validation.py --maxfail=1"
+          - id: p0-cross-tenant-write
+            service: shared
+            owner: "@value-fabric/security-leads"
+            escalation: "@value-fabric/ciso"
+            command: "python -m pytest -q tests/security/test_cross_tenant_write.py --maxfail=1"
+          - id: p0-auth-source
+            service: shared
+            owner: "@value-fabric/security-leads"
+            escalation: "@value-fabric/ciso"
+            command: "python -m pytest -q tests/security/test_auth_source_validation.py --maxfail=1"
+          - id: p0-rate-limit-safety
+            service: shared
+            owner: "@value-fabric/security-leads"
+            escalation: "@value-fabric/ciso"
+            command: "python -m pytest -q tests/security/test_rate_limit_safety.py --maxfail=1"
+          - id: l1-target-schema
+            service: layer1
+            owner: "@value-fabric/backend-leads"
+            escalation: "@value-fabric/architects"
+            command: "python scripts/ci/check_l1_target_schema.py"
+          - id: targets-stats-named-schema
+            service: layer1
+            owner: "@value-fabric/backend-leads"
+            escalation: "@value-fabric/architects"
+            command: "python scripts/ci/check_targets_stats_named_schema.py"
+          - id: l4-generated-jsonvalue
+            service: layer4
+            owner: "@value-fabric/frontend-leads"
+            escalation: "@value-fabric/architects"
+            command: "python scripts/ci/check_l4_generated_jsonvalue.py"
+          - id: generated-client-reproducibility
+            service: frontend
+            owner: "@value-fabric/frontend-leads"
+            escalation: "@value-fabric/architects"
+            command: "python scripts/ci/check_generated_client_reproducibility.py"
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+      - name: Set up Python
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38
+        with:
+          python-version: "3.11"
+      - name: Set up Node.js for pnpm gates
+        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8
+        with:
+          node-version: "22.18.0"
+      - name: Enable pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: "10.18.1"
+      - name: Install pnpm dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Install gate dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r tests/requirements-test.txt alembic uvicorn \
+            opentelemetry-api opentelemetry-sdk opentelemetry-exporter-otlp-proto-http \
+            opentelemetry-instrumentation opentelemetry-instrumentation-fastapi
+      - name: Run gate
+        id: run_gate
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/critical-gates
+          echo "Executing gate ${{ matrix.gate.id }} for ${{ matrix.gate.service }}"
+          set +e
+          bash -lc "$GATE_COMMAND" | tee "artifacts/critical-gates/${{ matrix.gate.id }}.log"
+          status=${PIPESTATUS[0]}
+          set -e
+          export GATE_STATUS="$status"
+          python - <<'PY'
+          import json, os
+          from datetime import datetime, timezone
+
+          gate_id = os.environ["GATE_ID"]
+          service = os.environ["GATE_SERVICE"]
+          owner = os.environ["GATE_OWNER"]
+          escalation = os.environ["GATE_ESCALATION"]
+          command = os.environ["GATE_COMMAND"]
+          status = int(os.environ["GATE_STATUS"])
+
+          payload = {
+              "gate": gate_id,
+              "service": service,
+              "owner": owner,
+              "escalation": escalation,
+              "command": command,
+              "status": "pass" if status == 0 else "fail",
+              "exit_code": status,
+              "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+          }
+          with open(f"artifacts/critical-gates/{gate_id}.json", "w", encoding="utf-8") as fh:
+              json.dump(payload, fh, indent=2)
+          PY
+          exit "$status"
+        env:
+          GATE_ID: ${{ matrix.gate.id }}
+          GATE_SERVICE: ${{ matrix.gate.service }}
+          GATE_OWNER: ${{ matrix.gate.owner }}
+          GATE_ESCALATION: ${{ matrix.gate.escalation }}
+          GATE_COMMAND: ${{ matrix.gate.command }}
+      - name: Upload gate evidence
+        if: always()
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
+        with:
+          name: critical-gate-${{ matrix.gate.id }}
+          path: artifacts/critical-gates/
+          retention-days: ${{ env.EVIDENCE_RETENTION_DAYS }}
+  critical-gates-merge-blocker:
+    name: Critical Gates Summary
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    needs: [critical-gates]
+    if: always()
+    steps:
+      - name: Enforce all critical gates
+        run: |
+          if [ "${{ needs.critical-gates.result }}" != "success" ]; then
+            echo "One or more critical gates failed. Merge is blocked."
+            exit 1
+          fi
+          echo "All critical gates passed."

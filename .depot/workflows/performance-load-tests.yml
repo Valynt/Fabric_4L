@@ -1,0 +1,212 @@
+# Depot CI Migration
+# Source: .github/workflows/performance-load-tests.yml
+#
+# Changes made:
+# - Rewrote .github/ path references to .depot/
+# - Changed GitHub runs-on labels to their Depot equivalents
+
+name: Performance Load Tests
+permissions:
+  contents: read
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'services/**'
+      - 'packages/**'
+      - 'tests/performance/**'
+      - 'scripts/perf/**'
+      - 'docs/slo/**'
+  schedule:
+    - cron: '0 4 * * 1' # Weekly Monday 04:00 UTC
+  workflow_dispatch:
+env:
+  # Opt into Node.js 24 for GitHub Actions
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  load-test:
+    name: L2/L3/L4 Critical Path Load Test
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    timeout-minutes: 40
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Set up k6
+        uses: grafana/setup-k6-action@v1
+      - name: Set up Docker Compose
+        run: docker compose version
+      - name: Assert performance workflow has no auth bypass flags
+        run: python3 scripts/ci/check_performance_workflow_auth_bypass.py .depot/workflows/performance-load-tests.yml
+      - name: Start ephemeral stack
+        run: |
+          cat > .env <<EOF
+          POSTGRES_USER=valuefabric
+          POSTGRES_PASSWORD=valuefabric
+          OPENAI_API_KEY=${OPENAI_API_KEY:-sk-ci-test-key}
+          ANTHROPIC_API_KEY=sk-ci-test-key
+          NEO4J_PASSWORD=valuefabric
+          JWT_SECRET=performance-load-test-jwt-secret-minimum-32-chars
+          JWT_ALGORITHM=HS256
+          JWT_ISSUER=value-fabric-internal
+          JWT_AUDIENCE=value-fabric-services
+          SERVICE_AUTH_SECRET=performance-load-test-service-auth-secret-32-chars
+          API_KEY_HMAC_SECRET=performance-load-test-api-key-hmac-secret-32-chars
+          LAYER4_DATABASE_URL=postgresql+asyncpg://valuefabric:valuefabric@postgres:5432/ground_truth
+          ENVIRONMENT=ci
+          REDIS_PASSWORD=valuefabric
+          FLOWER_PASSWORD=valuefabric
+          GRAFANA_ADMIN_PASSWORD=valuefabric
+          EOF
+          cat > docker-compose.performance-auth.yml <<'EOF'
+          services:
+            layer2-extraction:
+              ports:
+                - "8002:8000"
+              env_file:
+                - .env
+            layer3-knowledge:
+              ports:
+                - "8003:8001"
+              env_file:
+                - .env
+            layer4-agents:
+              env_file:
+                - .env
+          EOF
+          docker compose -f infra/compose/docker-compose.full.yml -f docker-compose.performance-auth.yml up -d neo4j redis postgres layer2-extraction layer3-knowledge layer4-agents
+      - name: Wait for services to become healthy
+        run: |
+          echo "Waiting for service health checks..."
+          for i in {1..30}; do
+            sleep 10
+            healthy=$(docker compose -f infra/compose/docker-compose.full.yml -f docker-compose.performance-auth.yml ps --format json 2>/dev/null | grep -c '"Health":"healthy"' || echo "0")
+            echo "Check $i/30: $healthy healthy containers"
+            if [ "$healthy" -ge "6" ]; then
+              echo "Core stack is healthy"
+              break
+            fi
+          done
+          docker compose -f infra/compose/docker-compose.full.yml -f docker-compose.performance-auth.yml ps
+      - name: Generate CI auth tokens
+        run: |
+          node <<'NODE' >> "$GITHUB_ENV"
+          const crypto = require('crypto');
+
+          const jwtSecret = 'performance-load-test-jwt-secret-minimum-32-chars';
+          const serviceAuthSecret = 'performance-load-test-service-auth-secret-32-chars';
+          const tenantId = '00000000-0000-4000-a000-000000000042';
+          const userId = '00000000-0000-4000-a000-000000000043';
+
+          function base64url(value) {
+            return Buffer.from(JSON.stringify(value))
+              .toString('base64')
+              .replace(/=/g, '')
+              .replace(/\+/g, '-')
+              .replace(/\//g, '_');
+          }
+
+          function sign(payload, secret) {
+            const header = base64url({ alg: 'HS256', typ: 'JWT', kid: 'active' });
+            const body = base64url(payload);
+            const signature = crypto
+              .createHmac('sha256', secret)
+              .update(`${header}.${body}`)
+              .digest('base64')
+              .replace(/=/g, '')
+              .replace(/\+/g, '-')
+              .replace(/\//g, '_');
+            return `${header}.${body}.${signature}`;
+          }
+
+          const now = Math.floor(Date.now() / 1000);
+          const userToken = sign({
+            tenant_id: tenantId,
+            sub: userId,
+            roles: ['tenant_admin'],
+            iat: now,
+            nbf: now,
+            exp: now + 3600,
+            iss: 'value-fabric-internal',
+            aud: 'value-fabric-services',
+          }, jwtSecret);
+          const s2sToken = sign({
+            tenant_id: tenantId,
+            sub: 'layer1-ingestion',
+            iat: now,
+            nbf: now,
+            exp: now + 300,
+            iss: 'value-fabric-s2s',
+            aud: 'layer2-extraction',
+          }, serviceAuthSecret);
+
+          console.log(`PERF_TENANT_ID=${tenantId}`);
+          console.log(`PERF_AUTH_BEARER=${userToken}`);
+          console.log(`PERF_S2S_BEARER=${s2sToken}`);
+          NODE
+      - name: Run k6 critical-path performance suite
+        run: |
+          mkdir -p artifacts/performance
+          # On push to main use a shorter smoke-level run (30s); weekly/manual uses full 2m run.
+          PERF_DURATION="${{ github.event_name == 'push' && '30s' || '2m' }}"
+          k6 run \
+            --summary-export artifacts/performance/k6-summary.json \
+            --env L2_URL=http://localhost:8002 \
+            --env L3_URL=http://localhost:8003 \
+            --env L4_URL=http://localhost:8004 \
+            --env PERF_DURATION="${PERF_DURATION}" \
+            --env PERF_TENANT_ID="${PERF_TENANT_ID}" \
+            --env PERF_AUTH_BEARER="${PERF_AUTH_BEARER}" \
+            --env PERF_S2S_BEARER="${PERF_S2S_BEARER}" \
+            tests/performance/k6/l2_l3_l4_critical_paths.js
+      - name: Evaluate SLO targets, regression threshold, and burn-rate windows
+        run: |
+          python3 scripts/perf/evaluate_slo.py \
+            --summary artifacts/performance/k6-summary.json \
+            --slo docs/slo/performance-slo.v1.json \
+            --report artifacts/performance/slo-report.md \
+            --output artifacts/performance/slo-evaluation.json
+      - name: Persist rolling-window input artifact
+        if: always()
+        run: |
+          cp artifacts/performance/slo-evaluation.json artifacts/performance/slo-window-history.json
+      - name: Publish SLO report in workflow summary
+        if: always()
+        run: |
+          {
+            echo "## Performance SLO Report"
+            echo
+            cat artifacts/performance/slo-report.md
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload performance artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-artifacts-${{ github.run_id }}
+          path: |
+            artifacts/performance/k6-summary.json
+            artifacts/performance/slo-evaluation.json
+            artifacts/performance/slo-window-history.json
+            artifacts/performance/slo-report.md
+          retention-days: 30
+      - name: Capture logs on failure
+        if: failure()
+        run: |
+          mkdir -p artifacts/performance/logs
+          docker compose -f infra/compose/docker-compose.full.yml -f docker-compose.performance-auth.yml logs > artifacts/performance/logs/docker-compose.log
+      - name: Upload failure logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-failure-logs-${{ github.run_id }}
+          path: artifacts/performance/logs/
+          retention-days: 14
+      - name: Tear down ephemeral stack
+        if: always()
+        run: docker compose -f infra/compose/docker-compose.full.yml -f docker-compose.performance-auth.yml down -v

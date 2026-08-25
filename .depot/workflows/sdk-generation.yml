@@ -1,0 +1,424 @@
+# Depot CI Migration
+# Source: .github/workflows/sdk-generation.yml
+#
+# Changes made:
+# - Changed GitHub runs-on labels to their Depot equivalents
+
+# =============================================================================
+# Fabric 4L — SDK Generation CI/CD Pipeline
+# =============================================================================
+# Automatically regenerates SDKs when OpenAPI specifications change on the
+# main branch. Commits generated SDKs and opens a PR for review.
+#
+# Triggers:
+#   - Push to main affecting contracts/openapi/**.json
+#   - Manual dispatch with options
+#   - Weekly scheduled regeneration (Sundays at 02:00 UTC)
+#
+# Outputs:
+#   - Updated sdk/python/ and sdk/typescript/ directories
+#   - Pull request with SDK changes
+# =============================================================================
+
+name: "SDK Generation"
+permissions:
+  contents: read
+on:
+  push:
+    branches: [main]
+    paths:
+      - "contracts/openapi/**.json"
+      - "contracts/openapi/**.yaml"
+      - "contracts/openapi/**.yml"
+  workflow_dispatch:
+    inputs:
+      layers:
+        description: "Comma-separated layer names (empty = all)"
+        required: false
+        default: ""
+        type: string
+      languages:
+        description: "Languages to generate"
+        required: true
+        default: "all"
+        type: choice
+        options:
+          - all
+          - python
+          - typescript
+  schedule:
+    # Weekly regeneration every Sunday at 02:00 UTC
+    - cron: "0 2 * * 0"
+env:
+  PYTHON_VERSION: "3.11"
+  NODE_VERSION: "20"
+  JAVA_VERSION: "17"
+  GENERATOR_VERSION: "7.2.0"
+jobs:
+  # ──────────────────────────────────────────────────────────────────────────
+  # Detect Changes
+  # ──────────────────────────────────────────────────────────────────────────
+  detect:
+    name: Detect Changes
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    outputs:
+      changed_layers: ${{ steps.changes.outputs.changed_layers }}
+      has_changes: ${{ steps.changes.outputs.has_changes }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2 # Need previous commit for diff
+      - name: Detect changed OpenAPI specs
+        id: changes
+        run: |
+          # Get list of changed OpenAPI files
+          CHANGED=$(git diff --name-only HEAD~1 HEAD -- contracts/openapi/ || true)
+
+          if [ -z "$CHANGED" ]; then
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+            echo "changed_layers=" >> $GITHUB_OUTPUT
+            echo "No OpenAPI changes detected."
+            exit 0
+          fi
+
+          echo "Changed files:"
+          echo "$CHANGED"
+
+          # Extract layer names from filenames
+          LAYERS=$(echo "$CHANGED" | grep -oP '(?<=contracts/openapi/)[^/]+(?=\.openapi\.)' | sort -u | paste -sd ',' -)
+
+          echo "has_changes=true" >> $GITHUB_OUTPUT
+          echo "changed_layers=${LAYERS}" >> $GITHUB_OUTPUT
+          echo "Affected layers: ${LAYERS}"
+  # ──────────────────────────────────────────────────────────────────────────
+  # Validate OpenAPI Specs
+  # ──────────────────────────────────────────────────────────────────────────
+  validate:
+    name: Validate OpenAPI Specs
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    needs: detect
+    if: needs.detect.outputs.has_changes == 'true' || github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: "10.18.1"
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Install swagger-cli
+        run: pnpm add -g @apidevtools/swagger-cli
+      - name: Validate all OpenAPI specs
+        run: |
+          EXIT_CODE=0
+          for spec in contracts/openapi/*.json; do
+            echo "Validating: $spec"
+            if ! swagger-cli validate "$spec"; then
+              echo "✗ FAILED: $spec"
+              EXIT_CODE=1
+            else
+              echo "✓ VALID: $spec"
+            fi
+          done
+          exit $EXIT_CODE
+  # ──────────────────────────────────────────────────────────────────────────
+  # Generate Python SDK
+  # ──────────────────────────────────────────────────────────────────────────
+  generate-python:
+    name: Generate Python SDK
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    needs: [detect, validate]
+    if: |
+      (needs.detect.outputs.has_changes == 'true' || github.event_name == 'workflow_dispatch' || github.event_name == 'schedule')
+      && (github.event.inputs.languages == 'all' || github.event.inputs.languages == 'python' || github.event_name == 'push' || github.event_name == 'schedule')
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Setup Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Setup Java ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: "temurin"
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: "10.18.1"
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Install openapi-generator-cli
+        run: |
+          pnpm add -g @openapitools/openapi-generator-cli
+          openapi-generator-cli version-manager set ${{ env.GENERATOR_VERSION }}
+      - name: Generate Python SDKs
+        run: |
+          LAYERS="${{ github.event.inputs.layers || needs.detect.outputs.changed_layers }}"
+          if [ -z "$LAYERS" ]; then
+            # Generate all
+            python scripts/generate-sdks.py --language python
+          else
+            python scripts/generate-sdks.py --language python --layers "$LAYERS"
+          fi
+      - name: Upload Python SDK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sdk-python
+          path: sdk/python/
+          retention-days: 7
+  # ──────────────────────────────────────────────────────────────────────────
+  # Generate TypeScript SDK
+  # ──────────────────────────────────────────────────────────────────────────
+  generate-typescript:
+    name: Generate TypeScript SDK
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    needs: [detect, validate]
+    if: |
+      (needs.detect.outputs.has_changes == 'true' || github.event_name == 'workflow_dispatch' || github.event_name == 'schedule')
+      && (github.event.inputs.languages == 'all' || github.event.inputs.languages == 'typescript' || github.event_name == 'push' || github.event_name == 'schedule')
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: "10.18.1"
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Setup Java ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: "temurin"
+      - name: Install openapi-generator-cli
+        run: |
+          pnpm add -g @openapitools/openapi-generator-cli
+          openapi-generator-cli version-manager set ${{ env.GENERATOR_VERSION }}
+      - name: Generate TypeScript SDKs
+        run: |
+          LAYERS="${{ github.event.inputs.layers || needs.detect.outputs.changed_layers }}"
+          if [ -z "$LAYERS" ]; then
+            python scripts/generate-sdks.py --language typescript
+          else
+            python scripts/generate-sdks.py --language typescript --layers "$LAYERS"
+          fi
+      - name: Upload TypeScript SDK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sdk-typescript
+          path: sdk/typescript/
+          retention-days: 7
+  # ──────────────────────────────────────────────────────────────────────────
+  # Test Generated SDKs
+  # ──────────────────────────────────────────────────────────────────────────
+  test:
+    name: Test Generated SDKs
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    needs: [generate-python, generate-typescript]
+    if: always() && (needs.generate-python.result == 'success' || needs.generate-typescript.result == 'success')
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      # Python tests
+      - name: Download Python SDK
+        if: needs.generate-python.result == 'success'
+        uses: actions/download-artifact@v4
+        with:
+          name: sdk-python
+          path: sdk/python/
+      - name: Setup Python for testing
+        if: needs.generate-python.result == 'success'
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Test Python SDK imports
+        if: needs.generate-python.result == 'success'
+        run: |
+          pip install -e sdk/python/fabric4l-l1-gateway/ || true
+          pip install -e sdk/python/fabric4l-l3-core/ || true
+          python -c "
+          import sys
+          sys.path.insert(0, 'sdk/python')
+          # Try importing generated modules
+          try:
+              import fabric4l_l1_gateway
+              print('✓ Python L1 SDK imports OK')
+          except ImportError as e:
+              print(f'⚠ Python L1 SDK import issue: {e}')
+          "
+      # TypeScript tests
+      - name: Download TypeScript SDK
+        if: needs.generate-typescript.result == 'success'
+        uses: actions/download-artifact@v4
+        with:
+          name: sdk-typescript
+          path: sdk/typescript/
+      - name: Setup Node.js for testing
+        if: needs.generate-typescript.result == 'success'
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Set up pnpm for testing
+        if: needs.generate-typescript.result == 'success'
+        uses: pnpm/action-setup@v3
+        with:
+          version: "10.18.1"
+      - name: Test TypeScript SDK compilation
+        if: needs.generate-typescript.result == 'success'
+        run: |
+          cd sdk/typescript
+          pnpm add --save-dev typescript @types/node || true
+          # Check that generated files exist
+          ls -la fabric4l-*/
+          echo "✓ TypeScript SDK files generated"
+  # ──────────────────────────────────────────────────────────────────────────
+  # Create Pull Request
+  # ──────────────────────────────────────────────────────────────────────────
+  pull-request:
+    name: Create Pull Request
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    needs: [generate-python, generate-typescript, test]
+    if: |
+      github.event_name == 'push'
+      && needs.generate-python.result == 'success'
+      && needs.generate-typescript.result == 'success'
+    permissions:
+      contents: write # Pushes the generated SDK branch.
+      pull-requests: write # Opens the generated SDK pull request.
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Download all SDK artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: sdk-downloads/
+      - name: Prepare SDK changes
+        run: |
+          # Copy generated SDKs into place
+          if [ -d "sdk-downloads/sdk-python" ]; then
+            rm -rf sdk/python
+            mv sdk-downloads/sdk-python sdk/python
+          fi
+          if [ -d "sdk-downloads/sdk-typescript" ]; then
+            rm -rf sdk/typescript
+            mv sdk-downloads/sdk-typescript sdk/typescript
+          fi
+
+          # Stage changes
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add sdk/
+
+          # Check if there are changes
+          if git diff --cached --quiet; then
+            echo "No SDK changes to commit."
+            exit 0
+          fi
+
+          # Create branch and commit
+          BRANCH="auto/sdk-regen-$(date +%Y%m%d-%H%M%S)"
+          git checkout -b "$BRANCH"
+          git commit -m "chore(sdk): regenerate SDKs from OpenAPI specs
+
+          Auto-generated by SDK Generation workflow.
+          Trigger: OpenAPI spec changes on main branch.
+
+          - Regenerated Python SDKs
+          - Regenerated TypeScript SDKs
+          - Validated against OpenAPI 3.1 specs"
+
+          git push origin "$BRANCH"
+          echo "branch=$BRANCH" >> $GITHUB_ENV
+      - name: Create Pull Request
+        if: env.branch != ''
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr create \
+            --title "chore(sdk): auto-regenerate SDKs $(date +%Y-%m-%d)" \
+            --body "## SDK Auto-Regeneration
+
+          This PR contains automatically regenerated SDKs based on the latest OpenAPI specifications.
+
+          ### Changes
+          - Updated Python SDKs for affected layers
+          - Updated TypeScript SDKs for affected layers
+          - Validated against OpenAPI 3.1 specifications
+
+          ### Verification
+          - [ ] Review generated code for correctness
+          - [ ] Run integration tests
+          - [ ] Update SDK version numbers if needed
+          - [ ] Publish to package registries
+
+          > **Note:** This PR was automatically generated. Please review before merging.
+
+          /cc @api-team @sdk-maintainers" \
+            --label "automated,sdk,openapi" \
+            --base main \
+            --head "${{ env.branch }}"
+  # ──────────────────────────────────────────────────────────────────────────
+  # Publish to Registries (on manual trigger with publish flag)
+  # ──────────────────────────────────────────────────────────────────────────
+  publish:
+    name: Publish SDKs
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    needs: [generate-python, generate-typescript, test]
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.publish == 'true'
+    environment: production
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Download Python SDK
+        uses: actions/download-artifact@v4
+        with:
+          name: sdk-python
+          path: sdk/python/
+      - name: Download TypeScript SDK
+        uses: actions/download-artifact@v4
+        with:
+          name: sdk-typescript
+          path: sdk/typescript/
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: "10.18.1"
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Publish Python SDKs to PyPI
+        env:
+          PYPI_API_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+        run: |
+          pip install twine build
+          for pkg_dir in sdk/python/fabric4l-*/; do
+            echo "Publishing: $pkg_dir"
+            cd "$pkg_dir"
+            python -m build
+            twine upload dist/* --non-interactive --username __token__ --password "$PYPI_API_TOKEN" || echo "Skipped: $pkg_dir"
+            cd "$GITHUB_WORKSPACE"
+          done
+      - name: Publish TypeScript SDK packages
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
+          for pkg_dir in sdk/typescript/fabric4l-*/; do
+            echo "Publishing: $pkg_dir"
+            cd "$pkg_dir"
+            pnpm publish --access public --no-git-checks || echo "Skipped: $pkg_dir"
+            cd "$GITHUB_WORKSPACE"
+          done
