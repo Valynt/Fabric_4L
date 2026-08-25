@@ -55,7 +55,8 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
         if item.path.name == "test_import_topology.py":
             item.add_marker(pytest.mark.contract_static_no_service)
         if (
-            "runtime_contract" in item.keywords
+            "service_required" in item.keywords
+            or "runtime_contract" in item.keywords
             or item.path.name in runtime_contract_modules
             or live_service_fixtures.intersection(item.fixturenames)
         ):

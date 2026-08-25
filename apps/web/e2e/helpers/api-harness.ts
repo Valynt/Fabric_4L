@@ -174,6 +174,29 @@ const DEFAULT_MOCKS: MockEndpoint[] = [
     method: "POST",
     body: { accepted: true },
   },
+  // Source Configuration uses the L1 targets catalog and aggregate stats.
+  // Keep its visual state deterministic instead of leaving TanStack Query in
+  // a loading loop on the relaxed catch-all response.
+  {
+    pattern: "**/api/v1/ingest/targets/stats",
+    method: "GET",
+    body: {
+      total: 0,
+      connected: 0,
+      disconnected: 0,
+      error: 0,
+      total_records: 0,
+      average_health_score: 0,
+    },
+  },
+  {
+    pattern: "**/api/v1/ingest/targets",
+    method: "GET",
+    body: {
+      data: [],
+      pagination: { page: 1, limit: 20, total: 0, total_pages: 0 },
+    },
+  },
   // Account list — GET /api/v1/agents/accounts?...
   {
     pattern: /.*\/api\/v1\/agents\/accounts\?.*/,
