@@ -23614,6 +23614,96 @@
             "description": "Total number of unique contributors",
             "default": 0
           },
+          "git_metric_completeness": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "source": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string"
+                },
+                "truncated": {
+                  "type": "boolean"
+                },
+                "complete": {
+                  "type": "boolean"
+                },
+                "bytes_read": {
+                  "type": "integer"
+                },
+                "max_bytes": {
+                  "anyOf": [
+                    {
+                      "type": "integer"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "max_lines": {
+                  "anyOf": [
+                    {
+                      "type": "integer"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              }
+            },
+            "title": "Git Metric Completeness",
+            "description": "Per-metric git collection status (source, status, truncated, complete, bytes_read). Lets consumers distinguish an exact figure from a timed-out, truncated or failed one. Empty when git is unavailable."
+          },
+          "git_warnings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "metric": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                },
+                "bytes_read": {
+                  "type": "integer"
+                },
+                "max_bytes": {
+                  "anyOf": [
+                    {
+                      "type": "integer"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "max_lines": {
+                  "anyOf": [
+                    {
+                      "type": "integer"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              }
+            },
+            "title": "Git Warnings",
+            "description": "Structured warnings (code, metric, status, message) raised when a git command timed out, was truncated, or failed. Contains no raw git output or email addresses."
+          },
           "audit_timestamp": {
             "type": "string",
             "format": "date-time",
