@@ -29,6 +29,7 @@ def test_p0_frontend_routes_layer1_directly_and_defaults_to_layer4() -> None:
     document = yaml.safe_load(WORKFLOW.read_text(encoding="utf-8"))
     environment = document["jobs"]["p0-e2e-gate"]["env"]
 
+    assert environment["VITE_AUTH_PROVIDER"] == "legacy"
     assert environment["VITE_PROXY_DEBUG_DIRECT_LAYERS"] == "true"
     assert environment["VITE_PROXY_L1_URL"] == "http://localhost:8001"
     assert environment["VITE_PROXY_L4_URL"] == "http://localhost:8004"

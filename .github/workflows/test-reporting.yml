@@ -4,18 +4,19 @@ name: Unified Test Reporting
 
 on:
   workflow_run:
-    workflows: ["PR Checks", "Integration Tests"]
+    # Run once after the canonical PR test workflow completes. The previous
+    # pull_request trigger produced an empty report before test artifacts
+    # existed, then workflow_run produced a second report.
+    workflows: ["PR Checks"]
     types:
       - completed
-  pull_request:
-    types: [opened, synchronize, reopened]
-    # Change-scoping: test reporting summarizes code test runs; skip on
-    # documentation-only PRs.
-    paths-ignore:
-      - 'docs/**'
-      - '**/*.md'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.workflow_run.pull_requests[0].number || github.event.workflow_run.id }}
+  cancel-in-progress: true
 
 permissions:
+  actions: read
   contents: read
   pull-requests: write
   checks: write
@@ -27,7 +28,7 @@ jobs:
   collect-test-results:
     name: Collect Test Results
     runs-on: ubuntu-latest
-    if: github.event.workflow_run.conclusion == 'success' || github.event_name == 'pull_request'
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'pull_request'
     outputs:
       python_total: ${{ steps.parse-python.outputs.python_total }}
       python_passed: ${{ steps.parse-python.outputs.python_passed }}
@@ -42,11 +43,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.workflow_run.head_sha }}
           fetch-depth: 0  # Need full history for coverage comparison
 
       - name: Download test artifacts
         uses: actions/download-artifact@v4
         with:
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           pattern: test-results-*
           merge-multiple: true
           path: ./test-artifacts
@@ -329,16 +333,16 @@ jobs:
             // Failures section (if any)
             if (totalFailed > 0) {
               summary += `### ❌ Failures Detected\n\n`;
-              const prUrl = context.payload.pull_request?.html_url;
-              const checksUrl = prUrl ? `${prUrl}/checks` : `${context.payload.repository?.html_url}/actions/runs/${context.runId}`;
+              const checksUrl = context.payload.workflow_run.html_url;
               summary += `See detailed logs in the [Checks tab](${checksUrl}).\n\n`;
             }
 
             // Find or create comment
+            const issueNumber = context.payload.workflow_run.pull_requests[0].number;
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: context.issue.number
+              issue_number: issueNumber
             });
 
             const botComment = comments.find(comment =>
@@ -357,7 +361,7 @@ jobs:
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                issue_number: context.issue.number,
+                issue_number: issueNumber,
                 body: summary
               });
             }
@@ -376,7 +380,7 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               name: 'Unified Test Report',
-              head_sha: context.sha,
+              head_sha: context.payload.workflow_run.head_sha,
               status: 'completed',
               conclusion: totalFailed === 0 ? 'success' : 'failure',
               output: {

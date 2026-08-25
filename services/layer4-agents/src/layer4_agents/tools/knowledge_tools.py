@@ -617,8 +617,7 @@ class GetRelationshipsTool(BaseTool):
                 # P0 FIX: Build query with mandatory tenant filter and optional predicate
                 tenant_id_str = str(tenant_ctx.tenant_id)
 
-                # cypher-dynamic-safe: validated against regex [A-Za-z_][A-Za-z0-9_]* above
-                rel_pattern = f"[r:{predicate}]" if predicate else "[r]"
+                rel_pattern = f"[r:{predicate}]" if predicate else "[r]"  # cypher-dynamic-safe: validated against ALLOWED_REL_TYPES
                 query = f"""
                     MATCH (n {{id: $entity_id, tenant_id: $tenant_id}})-{rel_pattern}->(m {{tenant_id: $tenant_id}})
                     RETURN n.id as source_id, type(r) as predicate,
