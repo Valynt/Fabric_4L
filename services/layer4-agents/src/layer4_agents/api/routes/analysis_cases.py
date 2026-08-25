@@ -10,9 +10,9 @@ import asyncio
 import json
 import logging
 import sys
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable, Mapping
 from datetime import UTC, datetime
-from typing import Any, cast
+from typing import Any, Protocol, cast
 from uuid import UUID, uuid4
 
 from fastapi import (
@@ -91,29 +91,38 @@ def _resolve_business_case_service() -> type[BusinessCaseService]:
     return getattr(mod, "BusinessCaseService", BusinessCaseService)
 
 
-def _resolve_emit_and_persist_audit() -> object:
+def _resolve_emit_and_persist_audit() -> _EmitAuditCallable:
     mod = _get_analysis_module()
-    return getattr(mod, "emit_and_persist_audit", emit_and_persist_audit)
+    return cast(
+        _EmitAuditCallable,
+        getattr(mod, "emit_and_persist_audit", emit_and_persist_audit),
+    )
 
 
-def _resolve_require_approved_case() -> object:
+def _resolve_require_approved_case() -> _RequireApprovedCaseCallable:
     mod = _get_analysis_module()
-    return getattr(mod, "_require_approved_case", require_approved_case)
+    return cast(
+        _RequireApprovedCaseCallable,
+        getattr(mod, "_require_approved_case", require_approved_case),
+    )
 
 
-def _resolve_get_settings() -> object:
+def _resolve_get_settings() -> Callable[[], object]:
     mod = _get_analysis_module()
-    return getattr(mod, "get_settings", get_settings)
+    return cast(Callable[[], object], getattr(mod, "get_settings", get_settings))
 
 
-def _resolve_upload_bytes() -> object:
+def _resolve_upload_bytes() -> _UploadBytesCallable:
     mod = _get_analysis_module()
-    return getattr(mod, "upload_bytes", upload_bytes)
+    return cast(_UploadBytesCallable, getattr(mod, "upload_bytes", upload_bytes))
 
 
-def _resolve_generate_download_url() -> object:
+def _resolve_generate_download_url() -> _GenerateDownloadUrlCallable:
     mod = _get_analysis_module()
-    return getattr(mod, "generate_download_url", generate_download_url)
+    return cast(
+        _GenerateDownloadUrlCallable,
+        getattr(mod, "generate_download_url", generate_download_url),
+    )
 
 
 def _get_analysis_module() -> object:
@@ -177,9 +186,9 @@ async def create_workspace_case_record(
 
 
 async def require_approved_case(
-    record: Any,
+    record: BusinessCaseRecord,
     context: RequestContext,
-    account: Any,
+    account: _TenantAccount,
     format: str = "pdf",
 ) -> None:
     """Raise if the business case is not in an export-allowed status."""
@@ -206,11 +215,11 @@ async def require_approved_case(
 def build_cases_router(
     *,
     get_executor: Callable[[], WorkflowExecutor],
-    require_tenant_account_fn: Callable[[AsyncSession, UUID, RequestContext], Any],
-    is_smoke_mode_fn: Callable[..., bool],
-    smoke_business_case_response_fn: Callable[
-        [Request, BusinessCaseRequest, Any, AsyncSession, RequestContext], Any
+    require_tenant_account_fn: Callable[
+        [AsyncSession, UUID, RequestContext], Awaitable[_TenantAccount]
     ],
+    is_smoke_mode_fn: _SmokeModeCallable,
+    smoke_business_case_response_fn: _SmokeBusinessCaseCallable,
 ) -> APIRouter:
     router = APIRouter()
 
@@ -459,14 +468,14 @@ def build_cases_router(
             case_metadata=case_metadata,
         )
 
-    @router.get("/cases/{case_id}/export")
+    @router.get("/cases/{case_id}/export", response_model=dict[str, object])
     async def export_business_case(
         case_id: str,
         format: str = "pdf",
         executor: WorkflowExecutor = Depends(get_executor),
         db: AsyncSession = Depends(get_route_db),
         context: RequestContext = Depends(require_authenticated),
-    ) -> dict[str, Any]:
+    ) -> dict[str, object]:
         """Export a generated business case."""
         authorize_action("layer4.analysis.export_case", context)
         record = await db.get(BusinessCaseRecord, case_id)
@@ -535,17 +544,18 @@ def build_cases_router(
                     "truth_gate_passed": truth_gate.get("passed", False),
                 },
             )
-            return export_business_caseResult.model_validate(
-                {
-                    "case_id": case_id,
-                    "export_id": export_id,
-                    "format": format,
-                    "document_url": assemble_data.get("document_url"),
-                    "download_ready": False,
-                    "blocked": True,
-                    "remediation_items": remediation_items,
-                    "truth_references": truth_references,
-                    "manifest": {
+            return cast(
+                dict[str, object],
+                export_business_caseResult(
+                    case_id=case_id,
+                    export_id=export_id,
+                    format=format,
+                    document_url=assemble_data.get("document_url"),
+                    download_ready=False,
+                    blocked=True,
+                    remediation_items=remediation_items,
+                    truth_references=truth_references,
+                    manifest={
                         "case_id": case_id,
                         "format": format,
                         "blocked": True,
@@ -556,8 +566,8 @@ def build_cases_router(
                             "requirements": truth_gate.get("requirements", []),
                         },
                     },
-                }
-            ).model_dump()
+                ).model_dump(),
+            )
 
         if not document_bytes:
             raise ConflictError(message="Business case document bytes unavailable")
@@ -675,21 +685,22 @@ def build_cases_router(
             },
         )
 
-        return export_business_caseResult.model_validate(
-            {
-                "case_id": case_id,
-                "export_id": export_id,
-                "format": format,
-                "document_url": document_url,
-                "manifest_url": manifest_url,
-                "download_ready": True,
-                "blocked": False,
-                "manifest": manifest,
-                "remediation_items": remediation_items,
-                "truth_references": truth_references,
-                "url_expires_at": expires_at,
-            }
-        ).model_dump()
+        return cast(
+            dict[str, object],
+            export_business_caseResult(
+                case_id=case_id,
+                export_id=export_id,
+                format=format,
+                document_url=document_url,
+                manifest_url=manifest_url,
+                download_ready=True,
+                blocked=False,
+                manifest=manifest,
+                remediation_items=remediation_items,
+                truth_references=truth_references,
+                url_expires_at=expires_at,
+            ).model_dump(),
+        )
 
     @router.get("/cases", response_model=CaseListResponse)
     async def list_cases(
@@ -729,3 +740,71 @@ def build_cases_router(
         return CaseListResponse(items=items, total=len(items))
 
     return router
+
+
+class _EmitAuditCallable(Protocol):
+    async def __call__(
+        self,
+        *,
+        action: AuditAction,
+        context: RequestContext,
+        resource_type: str,
+        resource_id: str,
+        details: Mapping[str, object] | None = None,
+    ) -> None: ...
+
+
+class _TenantAccount(Protocol):
+    id: UUID
+
+
+class _RequireApprovedCaseCallable(Protocol):
+    async def __call__(
+        self,
+        record: BusinessCaseRecord,
+        context: RequestContext,
+        account: _TenantAccount,
+        format: str = "pdf",
+    ) -> None: ...
+
+
+class _UploadBytesCallable(Protocol):
+    def __call__(
+        self,
+        *,
+        tenant_id: str,
+        object_key: str,
+        content: bytes,
+        content_type: str,
+        metadata: dict[str, str] | None = None,
+    ) -> Awaitable[object]: ...
+
+
+class _GenerateDownloadUrlCallable(Protocol):
+    def __call__(
+        self,
+        *,
+        tenant_id: str,
+        object_key: str,
+        expires_in_seconds: int | None = None,
+    ) -> Awaitable[str]: ...
+
+
+class _SmokeModeCallable(Protocol):
+    def __call__(
+        self,
+        http_request: Request,
+        *,
+        body_mode: str | None = None,
+    ) -> bool: ...
+
+
+class _SmokeBusinessCaseCallable(Protocol):
+    def __call__(
+        self,
+        http_request: Request,
+        request: BusinessCaseRequest,
+        account: _TenantAccount,
+        db: AsyncSession,
+        context: RequestContext,
+    ) -> Awaitable[BusinessCaseResponse]: ...

@@ -284,6 +284,24 @@ def test_cypher_write_operations_blocked():
         assert tool._validate_read_only(query) is None
 
 
+def test_cypher_read_operations_allowed():
+    """P1-11: Read Cypher operations should be allowed, including properties resembling write keywords."""
+    from layer4_agents.tools.knowledge_tools import QueryGraphTool
+
+    tool = QueryGraphTool()
+
+    read_queries = [
+        "MATCH (n:SET) RETURN n",
+        "MATCH (n {set: 1}) RETURN n",
+        "MATCH (n)-[r:CALL]->(m) RETURN n",
+        "MATCH (n) RETURN n.call",
+        "MATCH (n) RETURN n.set"
+    ]
+
+    for query in read_queries:
+        assert tool._validate_read_only(query) is None
+
+
 # ============================================================================
 # P1-20: XXE protection with defusedxml
 # ============================================================================
@@ -296,10 +314,12 @@ def test_xbrl_parser_uses_defusedxml():
     source = inspect.getsource(XBRLParser.parse)
     
     # Should use defusedxml.fromstring, not ET.fromstring
-    assert "fromstring" in source
+    assert "root = fromstring(" in source
+    assert "ET.fromstring" not in source
     # Check that defusedxml is imported
     from layer1_ingestion.adapters import xbrl_parser as parser_module
     assert hasattr(parser_module, 'fromstring')
+    assert parser_module.fromstring.__module__.startswith("defusedxml")
 
 
 def test_defusedxml_blocks_xxe():

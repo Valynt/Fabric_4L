@@ -579,6 +579,38 @@
       ]
     },
     {
+      "route_id": "GET /v1/accounts/{account_id}/journey-timeline",
+      "backend_route_files": [
+        "services/layer4-agents/src/layer4_agents/api/routes/accounts.py"
+      ],
+      "openapi_path": "/v1/accounts/{account_id}/journey-timeline",
+      "method": "GET",
+      "operation_id": "get_account_journey_timeline_v1_accounts__account_id__journey_timeline_get",
+      "request_schema": null,
+      "success_response_schemas": [
+        {
+          "status_code": "200",
+          "description": "Successful Response",
+          "schema": {
+            "$ref": "#/components/schemas/AccountJourneyTimelineResponse"
+          }
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": [
+        "apps/web/src/components/journey/JourneyTimelineRightRail.tsx"
+      ]
+    },
+    {
       "route_id": "GET /v1/admin/tenant-overview",
       "backend_route_files": [],
       "openapi_path": "/v1/admin/tenant-overview",
@@ -5197,6 +5229,66 @@
       "frontend_consumers": [
         "apps/web/src/pages/FormulaList.tsx"
       ]
+    },
+    {
+      "route_id": "POST /v1/narratives/{narrative_id}/export",
+      "backend_route_files": [
+        "services/layer4-agents/src/layer4_agents/api/routes/narratives.py"
+      ],
+      "openapi_path": "/v1/narratives/{narrative_id}/export",
+      "method": "POST",
+      "operation_id": "export_narrative_v1_narratives__narrative_id__export_post",
+      "request_schema": {
+        "$ref": "#/components/schemas/NarrativeExportRequest"
+      },
+      "success_response_schemas": [
+        {
+          "status_code": "200",
+          "description": "Successful Response",
+          "schema": {}
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": []
+    },
+    {
+      "route_id": "POST /v1/narratives/{narrative_id}/accept",
+      "backend_route_files": [
+        "services/layer4-agents/src/layer4_agents/api/routes/narratives.py"
+      ],
+      "openapi_path": "/v1/narratives/{narrative_id}/accept",
+      "method": "POST",
+      "operation_id": "accept_narrative_v1_narratives__narrative_id__accept_post",
+      "request_schema": {
+        "$ref": "#/components/schemas/NarrativeAcceptanceRequest"
+      },
+      "success_response_schemas": [
+        {
+          "status_code": "200",
+          "description": "Successful Response",
+          "schema": {}
+        }
+      ],
+      "error_envelope_schemas": [
+        {
+          "status_code": "422",
+          "description": "Validation Error",
+          "schema": {
+            "$ref": "#/components/schemas/HTTPValidationError"
+          }
+        }
+      ],
+      "sse_event_channels": [],
+      "frontend_consumers": []
     },
     {
       "route_id": "GET /v1/notifications",

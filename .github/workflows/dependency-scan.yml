@@ -421,6 +421,7 @@ jobs:
         uses: anchore/scan-action@e1165082ffb1fe366ebaf02d8526e7c4989ea9d2 # v7.4.0
         with:
           image: "fabric4l/${{ matrix.service.name }}:scan-target"
+          grype-version: "0.104.1"
           severity-cutoff: ${{ env.FAIL_THRESHOLD }}
           output-format: sarif
           output-file: container-scan-${{ matrix.service.name }}.sarif

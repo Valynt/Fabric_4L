@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import shlex
 import subprocess
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -24,7 +25,7 @@ class CheckResult:
 
 
 def run_command(command: str) -> tuple[bool, int, str]:
-    proc = subprocess.run(command, shell=True, text=True, capture_output=True)
+    proc = subprocess.run(shlex.split(command), text=True, capture_output=True)
     output = (proc.stdout or "") + ("\n" + proc.stderr if proc.stderr else "")
     return proc.returncode == 0, proc.returncode, output.strip()
 

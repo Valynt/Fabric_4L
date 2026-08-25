@@ -226,8 +226,22 @@ class AgentPermissionService:
         if not policies:
             return True, []
 
-        policy_results = []
-        all_passed = True
+        import asyncio
+        db_lock = asyncio.Lock()
+
+        async def locked_evaluate(p):
+            async with db_lock:
+                return await self._evaluate_policy(
+                    db=db,
+                    tenant_id=tenant_id,
+                    policy=p,
+                    entity_type=entity_type,
+                    entity_id=entity_id,
+                    entity_version=entity_version,
+                )
+
+        tasks = []
+        applicable_policies = []
 
         for policy in policies:
             # Check if policy applies to this entity type
@@ -235,16 +249,16 @@ class AgentPermissionService:
             if entity_type not in applies_to:
                 continue
 
-            policy_result = await self._evaluate_policy(
-                db=db,
-                tenant_id=tenant_id,
-                policy=policy,
-                entity_type=entity_type,
-                entity_id=entity_id,
-                entity_version=entity_version,
-            )
-            policy_results.append(policy_result)
+            applicable_policies.append(policy)
+            tasks.append(locked_evaluate(policy))
 
+        if not tasks:
+            return True, []
+
+        policy_results = await asyncio.gather(*tasks)
+
+        all_passed = True
+        for policy, policy_result in zip(applicable_policies, policy_results):
             if policy.is_mandatory and policy_result["result"] != "passed":
                 all_passed = False
 

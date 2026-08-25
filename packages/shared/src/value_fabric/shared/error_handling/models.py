@@ -71,6 +71,7 @@ class ErrorCode(str, Enum):
     # Ground truth specific (L5)
     CLAIM_VALIDATION_ERROR = "CLAIM_VALIDATION_ERROR"
     SOURCE_VERIFICATION_ERROR = "SOURCE_VERIFICATION_ERROR"
+    L5_LAYER3_HTTP_CLIENT_ERROR = "L5_LAYER3_HTTP_CLIENT_ERROR"
 
 
 class ErrorDetail(BaseModel):
