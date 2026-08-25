@@ -60,6 +60,11 @@ class _FakeDriver:
         return _FakeSessionContext(self._session)
 
 
+class _FakeEmbeddingModel:
+    def encode(self, text, normalize_embeddings=True):
+        return SimpleNamespace(tolist=lambda: [0.1, 0.2])
+
+
 @pytest.fixture
 def sample_rdf_graph():
     """Create a sample RDF graph for testing."""
@@ -211,6 +216,7 @@ async def test_batch_loaders_reject_missing_tenant_id():
 async def test_load_rdf_graph_persists_valid_tenant_on_entities_and_relationships(sample_rdf_graph):
     session = _FakeSession()
     loader = Neo4jLoader(driver=_FakeDriver(session), settings=TEST_SETTINGS)
+    loader._orchestrator.embedding_generator._model = _FakeEmbeddingModel()
 
     stats = await loader.load_rdf_graph(
         sample_rdf_graph,
@@ -235,4 +241,3 @@ async def test_load_rdf_graph_persists_valid_tenant_on_entities_and_relationship
     )
     assert all(call["tenant_id"] == TEST_TENANT_ID for call in entity_calls)
     assert all(call["tenant_id"] == TEST_TENANT_ID for call in relationship_calls)
-
