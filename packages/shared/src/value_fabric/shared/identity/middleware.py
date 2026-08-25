@@ -75,7 +75,6 @@ from .context_builders import (
 from .context_builders import (
     build_context_from_role as _build_context_from_role,
 )
-from value_fabric.shared.tenant_context_metrics import record_inconsistent_tenant_context_access
 from .exceptions import (
     DeletedTenantError,
     MultiWorkerRateLimitError,
