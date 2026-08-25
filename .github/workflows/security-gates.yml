@@ -40,7 +40,7 @@ jobs:
     timeout-minutes: 5
 
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Check committed dev auth bypass flags
         run: bash scripts/ci/check-dev-auth-bypass.sh
@@ -52,7 +52,7 @@ jobs:
     timeout-minutes: 10
 
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
 
@@ -70,7 +70,7 @@ jobs:
     timeout-minutes: 10
 
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Set up Python
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
@@ -106,7 +106,7 @@ jobs:
 
       - name: Upload Semgrep results
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         with:
           name: semgrep-cypher-guard-${{github.sha}}
           path: |
@@ -124,7 +124,7 @@ jobs:
     timeout-minutes: 30
 
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Set up Python
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
@@ -175,7 +175,7 @@ jobs:
 
       - name: Upload Semgrep SARIF to GitHub Security
         if: always()
-        uses: github/codeql-action/upload-sarif@3ce22a6e336a7fcc318bc58ae1986395bdc83ba7 # v4.35.4
+        uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: semgrep-full.sarif
           category: semgrep-full-scan
@@ -205,7 +205,7 @@ jobs:
 
       - name: Upload Semgrep full-scan results
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         with:
           name: semgrep-full-scan-${{github.sha}}
           path: semgrep-full.sarif
@@ -219,7 +219,7 @@ jobs:
     timeout-minutes: 15
 
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Initialize Helm preparation diagnostics
         run: |
@@ -230,7 +230,7 @@ jobs:
           } > artifacts/helm-preparation-diagnostics/context.txt
 
       - name: Setup Helm
-        uses: azure/setup-helm@bf6a7d304bc2fdb57e0331155b7ebf2c504acf0a # v4
+        uses: azure/setup-helm@fe7b79cdebbc77ebd36e1afdf69a68a35ee3f436 # v4.2.0
         with:
           version: "v3.16.2"
       - name: Restore exact locked Helm dependency cache
@@ -309,7 +309,7 @@ jobs:
             infra/helm/fabric-chart/Chart.yaml
 
       - name: Upload validated Helm dependencies
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         with:
           name: helm-prepared-dependencies-${{github.sha}}
           path: |
@@ -321,7 +321,7 @@ jobs:
 
       - name: Upload Helm preparation diagnostics
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         with:
           name: helm-preparation-diagnostics-${{github.sha}}
           path: artifacts/helm-preparation-diagnostics/
@@ -338,15 +338,15 @@ jobs:
     timeout-minutes: 20
 
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Setup Helm
-        uses: azure/setup-helm@bf6a7d304bc2fdb57e0331155b7ebf2c504acf0a # v4
+        uses: azure/setup-helm@fe7b79cdebbc77ebd36e1afdf69a68a35ee3f436 # v4.2.0
         with:
           version: "v3.16.2"
 
       - name: Download prepared Helm dependencies
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         with:
           name: helm-prepared-dependencies-${{github.sha}}
           path: .
@@ -363,7 +363,7 @@ jobs:
             infra/helm/fabric-chart/Chart.yaml
 
       - name: Run Trivy repository scanner
-        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
+        uses: aquasecurity/trivy-action@master
         with:
           scan-type: 'fs'
           scan-ref: '.'
@@ -383,14 +383,14 @@ jobs:
 
       - name: Upload Trivy repository scan results
         if: always()
-        uses: github/codeql-action/upload-sarif@3ce22a6e336a7fcc318bc58ae1986395bdc83ba7 # v4.35.4
+        uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: 'trivy-repo.sarif'
           category: trivy-repo
 
       - name: Upload Trivy repository scan artifact
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         with:
           name: trivy-repo-scan-${{github.sha}}
           path: trivy-repo.sarif
@@ -411,7 +411,7 @@ jobs:
       security-events: write
 
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
 
@@ -482,7 +482,7 @@ jobs:
 
       - name: Upload OSV SARIF to code scanning
         if: ${{ !cancelled() }}
-        uses: github/codeql-action/upload-sarif@cdefb33c0f6224e58673d9004f47f7cb3e328b89 # v4.31.10
+        uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: osv-scanner-pr.sarif
           category: osv-scanner-pr
@@ -526,7 +526,7 @@ jobs:
       id-token: write
 
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           persist-credentials: false
 
@@ -544,14 +544,14 @@ jobs:
 
       - name: Upload Scorecard results artifact
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         with:
           name: openssf-scorecard-${{github.sha}}
           path: scorecard-results.sarif
           retention-days: ${{env.SECURITY_ARTIFACT_RETENTION_DAYS}}
 
       - name: Upload Scorecard SARIF to GitHub Security
-        uses: github/codeql-action/upload-sarif@3ce22a6e336a7fcc318bc58ae1986395bdc83ba7 # v4.35.4
+        uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: scorecard-results.sarif
           category: ossf-scorecard
@@ -569,7 +569,7 @@ jobs:
         layer: [layer1-ingestion, layer2-extraction, layer3-knowledge, layer4-agents, layer5-ground-truth, layer6-benchmarks]
 
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Build Docker image
         run: |
@@ -580,7 +580,7 @@ jobs:
             services/${{matrix.layer}}
 
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
+        uses: aquasecurity/trivy-action@master
         with:
           image-ref: '${{matrix.layer}}:scan-target'
           format: 'sarif'
@@ -592,7 +592,7 @@ jobs:
           scanners: 'vuln,secret,config'
 
       - name: Upload Trivy scan results
-        uses: github/codeql-action/upload-sarif@3ce22a6e336a7fcc318bc58ae1986395bdc83ba7 # v4.35.4
+        uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
           sarif_file: 'trivy-results.sarif'
@@ -623,7 +623,7 @@ jobs:
             context: services/layer6-benchmarks
 
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Build image artifact
         run: |
@@ -634,7 +634,7 @@ jobs:
             ${{matrix.artifact.context}}
 
       - name: Generate CycloneDX SBOM (Trivy)
-        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
+        uses: aquasecurity/trivy-action@master
         with:
           image-ref: '${{matrix.artifact.name}}:ci'
           format: 'cyclonedx'
@@ -642,7 +642,7 @@ jobs:
           scanners: 'vuln'
 
       - name: Evaluate SBOM vulnerability policy
-        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
+        uses: aquasecurity/trivy-action@master
         with:
           scan-type: 'sbom'
           scan-ref: '${{matrix.artifact.name}}-sbom.cdx.json'
@@ -654,14 +654,14 @@ jobs:
 
       - name: Upload SBOM vulnerability SARIF
         if: always()
-        uses: github/codeql-action/upload-sarif@3ce22a6e336a7fcc318bc58ae1986395bdc83ba7 # v4.35.4
+        uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: '${{matrix.artifact.name}}-sbom-vuln.sarif'
           category: sbom-${{matrix.artifact.name}}
 
       - name: Upload SBOM and policy artifacts
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         with:
           name: sbom-${{matrix.artifact.name}}
           path: |
@@ -677,7 +677,7 @@ jobs:
     if: github.event_name == 'pull_request' || github.event_name == 'push'
 
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Start ephemeral Value Fabric stack
         run: |
@@ -753,7 +753,7 @@ jobs:
           set -euo pipefail
           mkdir -p zap-reports
           declare -a targets=(
-            "layer1:http://127.0.0.1:8001"
+            "api-gateway:http://127.0.0.1:8001"
             "layer2:http://127.0.0.1:8002"
             "layer3:http://127.0.0.1:8003"
             "layer4:http://127.0.0.1:8004"
@@ -784,7 +784,7 @@ jobs:
 
       - name: Upload DAST evidence artifacts
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         with:
           name: dast-zap-reports
           path: zap-reports/
@@ -805,7 +805,7 @@ jobs:
         layer: [layer1-ingestion, layer2-extraction, layer3-knowledge, layer4-agents, layer5-ground-truth, layer6-benchmarks]
 
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Set up Python
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
@@ -850,7 +850,7 @@ jobs:
 
       - name: Upload bandit report
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         with:
           name: bandit-report-${{matrix.layer}}
           path: services/${{matrix.layer}}/bandit-report.json
@@ -867,7 +867,7 @@ jobs:
         layer: [layer1-ingestion, layer2-extraction, layer3-knowledge, layer4-agents, layer5-ground-truth, layer6-benchmarks]
 
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Set up Python
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
@@ -890,7 +890,7 @@ jobs:
 
       - name: Upload pip-audit report
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         with:
           name: pip-audit-report-${{matrix.layer}}
           path: services/${{matrix.layer}}/pip-audit-report.json
@@ -906,7 +906,7 @@ jobs:
         working-directory: apps/web
 
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Setup pnpm
         uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
@@ -956,7 +956,7 @@ jobs:
 
       - name: Upload audit report
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         with:
           name: frontend-security-audit
           path: apps/web/pnpm-audit-report.json
@@ -969,7 +969,7 @@ jobs:
     timeout-minutes: 10
 
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Check Dockerfiles for USER directive
         run: |
@@ -1042,7 +1042,7 @@ jobs:
     if: github.event_name == 'pull_request'
 
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Dependency Review
         uses: actions/dependency-review-action@2031cfc080254a8a887f58cffee85186f0e49e48 # v4.9.0
@@ -1067,7 +1067,7 @@ jobs:
 
     steps:
       - name: Download all workflow artifacts
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         with:
           path: security-evidence
 
@@ -1084,7 +1084,7 @@ jobs:
           } > security-evidence/SECURITY_EVIDENCE_MANIFEST.md
 
       - name: Upload release evidence artifact
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         with:
           name: release-security-evidence-${{github.sha}}
           path: security-evidence/
@@ -1117,7 +1117,7 @@ jobs:
         layer: [layer1-ingestion, layer2-extraction, layer3-knowledge, layer4-agents, layer5-ground-truth, layer6-benchmarks, apps-web]
 
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Build Docker image for SBOM
         run: |
@@ -1148,7 +1148,7 @@ jobs:
           test -s sbom-${{matrix.layer}}.cdx.json
 
       - name: Upload SBOM artifact
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         with:
           name: sbom-${{matrix.layer}}
           path: sbom-${{matrix.layer}}.cdx.json
@@ -1160,7 +1160,7 @@ jobs:
     timeout-minutes: 10
 
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Set up Python
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
@@ -1179,7 +1179,7 @@ jobs:
     timeout-minutes: 45
 
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Set up Python
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
@@ -1229,7 +1229,7 @@ jobs:
 
       - name: Upload mandatory security evidence
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         with:
           name: mandatory-security-regression-${{github.sha}}
           path: |

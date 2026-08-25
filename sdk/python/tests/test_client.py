@@ -322,3 +322,33 @@ class TestAsyncClient:
         assert len(tenants) == 1
         assert tenants[0].name == "Acme"
         await client.aclose()
+
+    async def test_aset_feature_flag(self):
+        transport = _mock_transport({
+            ("PUT", "/v1/feature-flags/new_ui"): (200, {
+                "id": "55555555-5555-5555-5555-555555555555",
+                "flag_key": "new_ui",
+                "enabled": False,
+                "rollout_percentage": 0,
+                "description": "test description",
+                "metadata": {},
+                "created_at": "2024-01-01T00:00:00Z",
+                "updated_at": "2024-01-01T00:00:00Z",
+            }),
+        })
+        client = ValueFabricClient(
+            base_url="https://api.example.com",
+            api_key="test-api-key",
+        )
+        client._async_client = httpx.AsyncClient(
+            transport=transport,
+            base_url="https://api.example.com",
+        )
+        flag = await client.aset_feature_flag(
+            "new_ui", False, rollout_percentage=0, description="test description"
+        )
+        assert flag.enabled is False
+        assert flag.rollout_percentage == 0
+        assert flag.description == "test description"
+        assert isinstance(flag, FeatureFlag)
+        await client.aclose()
