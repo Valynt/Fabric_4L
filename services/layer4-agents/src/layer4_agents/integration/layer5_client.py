@@ -100,7 +100,7 @@ class Layer5GroundTruthClient:
 
         client = Layer5GroundTruthClient(
             base_url="http://layer5-ground-truth:8005",
-            service_token="<jwt-signed-by-shared-secret>",
+            service_token=os.environ.get("LAYER5_SERVICE_TOKEN"),
         )
 
         # After business case generation completes:
