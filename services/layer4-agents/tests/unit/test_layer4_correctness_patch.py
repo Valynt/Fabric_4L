@@ -57,7 +57,18 @@ def _make_client(max_cost: float | None = None, provider_side_effect=None):
     else:
         provider.complete_text = AsyncMock(return_value=_FakeResponse())
 
-    config: dict[str, Any] = {"llm": {"retry": {"max_attempts": 3, "backoff_seconds": 0}}}
+    config: dict[str, Any] = {
+        "llm": {
+            "retry": {"max_attempts": 3, "backoff_seconds": 0},
+            "models": {
+                "test": {
+                    "reasoning": "test-reasoning-model",
+                    "extraction": "test-extraction-model",
+                    "narrative": "test-narrative-model",
+                }
+            },
+        }
+    }
     if max_cost is not None:
         config["llm"]["max_cost_per_call_usd"] = max_cost
 

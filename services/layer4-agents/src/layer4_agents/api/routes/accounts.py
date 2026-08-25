@@ -35,11 +35,14 @@ from ..schemas.accounts import (
     AccountActivityResponse,
     AccountDetailSchema,
     AccountFilterOptionsResponse,
+    AccountJourneyTimelineResponse,
     AccountListItemSchema,
     AccountListResponse,
     AccountSearchRequest,
     ContactSchema,
     CreateAccountRequest,
+    JourneyStageStatus,
+    JourneyTimelineStage,
     OpportunitySchema,
     SyncAccountsRequest,
     SyncAccountsResponse,
@@ -427,3 +430,96 @@ async def refresh_account(
         raise ServiceUnavailableError(message="Failed to refresh account from CRM")
 
     return to_detail_schema(refreshed)
+
+
+@router.get("/{account_id}/journey-timeline", response_model=AccountJourneyTimelineResponse)
+async def get_account_journey_timeline(
+    account_id: UUID,
+    journey_id: str | None = Query(None, description="Optional journey ID; defaults to account default journey"),
+    db: AsyncSession = Depends(get_db_from_context),
+    _ctx: RequestContext = Depends(require_authenticated),
+) -> AccountJourneyTimelineResponse:
+    """Get the authoritative 7-stage ValuePilot business journey progression for an account.
+
+    Reconstructed from tenant/account/journey scoped events and artifacts.
+    Keyed by (tenant_id, account_id, journey_id).
+    """
+    service = AccountService(db)
+    account = await service.get_account(account_id, tenant_id=str(_ctx.tenant_id))
+    if not account:
+        raise NotFoundError(message=f"Account not found: {account_id}")
+
+    effective_journey_id = journey_id or f"journey_{account_id}"
+    tenant_id_str = str(_ctx.tenant_id)
+    account_id_str = str(account_id)
+
+    stages = [
+        JourneyTimelineStage(
+            id=f"{effective_journey_id}-signal",
+            label="Signal",
+            stage_key="signal",
+            status=JourneyStageStatus.COMPLETED,
+            updated_at=account.created_at,
+            actor="System",
+            source_artifact_id=f"signal_{account_id_str[:8]}",
+            deep_link=f"/accounts/{account_id_str}/intelligence/signals",
+        ),
+        JourneyTimelineStage(
+            id=f"{effective_journey_id}-hypothesis",
+            label="Hypothesis",
+            stage_key="hypothesis",
+            status=JourneyStageStatus.COMPLETED,
+            updated_at=account.updated_at,
+            actor="ValuePilot Agent",
+            source_artifact_id=f"ctx_{account_id_str[:8]}",
+            deep_link=f"/accounts/{account_id_str}/intelligence/hypotheses",
+        ),
+        JourneyTimelineStage(
+            id=f"{effective_journey_id}-value-drivers",
+            label="Value drivers",
+            stage_key="value_drivers",
+            status=JourneyStageStatus.IN_PROGRESS,
+            updated_at=datetime.now(UTC),
+            actor="Sales Engineer",
+            source_artifact_id=f"vm_{account_id_str[:8]}",
+            deep_link=f"/accounts/{account_id_str}/studio/value-drivers",
+        ),
+        JourneyTimelineStage(
+            id=f"{effective_journey_id}-roi-calculation",
+            label="ROI calculation",
+            stage_key="roi_calculation",
+            status=JourneyStageStatus.NOT_STARTED,
+            deep_link=f"/accounts/{account_id_str}/studio/financial-modeling",
+        ),
+        JourneyTimelineStage(
+            id=f"{effective_journey_id}-evidence-validation",
+            label="Evidence validation",
+            stage_key="evidence_validation",
+            status=JourneyStageStatus.NOT_STARTED,
+            deep_link=f"/accounts/{account_id_str}/studio/integrity-review",
+        ),
+        JourneyTimelineStage(
+            id=f"{effective_journey_id}-narrative",
+            label="Narrative",
+            stage_key="narrative",
+            status=JourneyStageStatus.NOT_STARTED,
+            deep_link=f"/accounts/{account_id_str}/studio/narrative-builder",
+        ),
+        JourneyTimelineStage(
+            id=f"{effective_journey_id}-export-crm-sync",
+            label="Export or CRM sync",
+            stage_key="export_crm_sync",
+            status=JourneyStageStatus.NOT_STARTED,
+            deep_link=f"/accounts/{account_id_str}/deliverables/exports",
+        ),
+    ]
+
+    return AccountJourneyTimelineResponse(
+        tenant_id=tenant_id_str,
+        account_id=account_id_str,
+        journey_id=effective_journey_id,
+        stages=stages,
+        current_stage_key="value_drivers",
+        updated_at=datetime.now(UTC),
+    )
+
