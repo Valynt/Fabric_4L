@@ -17,9 +17,22 @@ async def test_query_missing_tenant_predicate_is_rejected():
         )
 
 
+async def test_query_with_tenant_predicate_is_accepted():
+    # Driver is None so execution will fail, but validation should pass.
+    with pytest.raises(AttributeError):
+        await fetch_tenant_validated_records(
+            driver=None,
+            query="MATCH (n:ValueHypothesis {tenant_id: $tenant_id}) RETURN n",
+            params={},
+            tenant_id="tenant-123",
+            operation="test",
+        )
+
+
 from layer4_agents.tools.knowledge_tools import GetRelationshipsTool
 from layer4_agents.models.tool_schemas import GetRelationshipsInput
 from unittest.mock import AsyncMock, MagicMock, patch
+
 
 @pytest.fixture
 def mock_tenant_context():
@@ -29,9 +42,11 @@ def mock_tenant_context():
     ctx.assert_valid = MagicMock()
     return ctx
 
+
 async def empty_async_gen():
     for item in []:
         yield item
+
 
 @pytest.mark.asyncio
 @patch("layer4_agents.tools.knowledge_tools.tenant_context.get_current_tenant_context")
@@ -60,9 +75,12 @@ async def test_get_relationships_without_predicate_builds_query(mock_get_ctx, mo
     assert "[r]" in query_executed
     assert "tenant_id: $tenant_id" in query_executed
 
+
 @pytest.mark.asyncio
 @patch("layer4_agents.tools.knowledge_tools.tenant_context.get_current_tenant_context")
-async def test_get_relationships_with_predicate_filters_relationship_type(mock_get_ctx, mock_tenant_context):
+async def test_get_relationships_with_predicate_filters_relationship_type(
+    mock_get_ctx, mock_tenant_context
+):
     """
     Predicate should constrain relationship type.
     """
@@ -84,6 +102,7 @@ async def test_get_relationships_with_predicate_filters_relationship_type(mock_g
     query_executed = mock_session.run.call_args[0][0]
 
     assert "[r:ENABLES]" in query_executed
+
 
 @pytest.mark.asyncio
 @patch("layer4_agents.tools.knowledge_tools.tenant_context.get_current_tenant_context")
@@ -111,15 +130,3 @@ async def test_get_relationships_always_applies_tenant_filter(mock_get_ctx, mock
     # Check that tenant filter is on both n and m nodes
     assert "MATCH (n {id: $entity_id, tenant_id: $tenant_id})" in query_executed
     assert "(m {tenant_id: $tenant_id})" in query_executed
-
-
-async def test_query_with_tenant_predicate_is_accepted():
-    # Driver is None so execution will fail, but validation should pass.
-    with pytest.raises(AttributeError):
-        await fetch_tenant_validated_records(
-            driver=None,
-            query="MATCH (n:ValueHypothesis {tenant_id: $tenant_id}) RETURN n",
-            params={},
-            tenant_id="tenant-123",
-            operation="test",
-        )

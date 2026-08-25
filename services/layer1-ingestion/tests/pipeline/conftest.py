@@ -67,19 +67,6 @@ def db(postgres_engine):
         "job_stage_details", "job_errors", "crawl_decisions",
     ]
     with postgres_engine.connect() as conn:
-        conn.execute(text("""
-            DO $$ BEGIN
-                CREATE ROLE admin_role;
-            EXCEPTION WHEN duplicate_object THEN NULL;
-            END $$;
-        """))
-        conn.execute(text("""
-            DO $$ BEGIN
-                CREATE ROLE system_role;
-            EXCEPTION WHEN duplicate_object THEN NULL;
-            END $$;
-        """))
-
         for table in tables:
             conn.execute(text(f"DROP POLICY IF EXISTS tenant_isolation_policy ON {table}"))
             conn.execute(text(f"DROP POLICY IF EXISTS admin_bypass_policy ON {table}"))

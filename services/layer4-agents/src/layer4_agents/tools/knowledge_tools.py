@@ -591,7 +591,6 @@ class GetRelationshipsTool(BaseTool):
             async with driver.session(database=self.database) as session:
                 # P0 FIX: Build query with mandatory tenant filter and optional predicate
                 tenant_id_str = str(tenant_ctx.tenant_id)
-
                 predicate = input_data.predicate
 
                 # Relationship type is optional.
@@ -704,7 +703,10 @@ class TraverseTreeTool(BaseTool):
                     WHERE ALL(n IN nodes(path) WHERE n.tenant_id = $tenant_id)
                     RETURN [node in nodes(path) | {id: node.id, name: node.name, type: labels(node)[0]}] as path_nodes
                     LIMIT $limit
-                """ % (rel_pattern, input_data.max_depth)  # cypher-dynamic-safe: validated against regex
+                """ % (
+                    rel_pattern,
+                    input_data.max_depth,
+                )  # cypher-dynamic-safe: validated against regex
 
                 result = await session.run(
                     query,
