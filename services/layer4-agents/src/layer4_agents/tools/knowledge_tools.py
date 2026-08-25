@@ -74,7 +74,6 @@ class QueryGraphTool(BaseTool):
             )
         return self._driver
 
-    # P1-11 FIX: Cypher keywords that indicate write/mutate operations
     _CYPHER_WRITE_KEYWORDS = re.compile(
         r"\b(CREATE|DELETE|DETACH|SET|MERGE|REMOVE|DROP|CALL)\b",
         re.IGNORECASE,
@@ -198,7 +197,6 @@ class QueryGraphTool(BaseTool):
                 error=f"Tenant context required: {e}. Authentication required.",
             )
 
-        # P1-11 FIX: Validate query is read-only before execution
         validation_error = self._validate_read_only(input_data.cypher_query)
         if validation_error:
             # CONTRACT_EXCEPTION AP-7: Return structured error, don't raise
