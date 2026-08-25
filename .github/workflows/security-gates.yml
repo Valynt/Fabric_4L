@@ -1168,7 +1168,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install gate dependencies
-        run: python -m pip install pyyaml
+        run: python -m pip install pyyaml fastcore pydantic
 
       - name: Enforce route auth dependency policy
         run: python scripts/ci/check_route_auth_dependencies.py
@@ -1189,7 +1189,7 @@ jobs:
       - name: Validate mandatory security merge-control contract
         run: |
           set -euo pipefail
-          python -m pip install pyyaml
+          python -m pip install pyyaml fastcore pydantic
           python scripts/ci/check_mandatory_security_gate_contract.py
 
       - name: Setup pnpm

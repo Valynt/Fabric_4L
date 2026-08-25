@@ -9,7 +9,7 @@
 #   docker compose -f infra/compose/docker-compose.full.yml up --build
 # =============================================================================
 # Migrated from value-fabric/docker-compose.yml during legacy path cleanup.
-version: "3.8"
+# version: "3.8"
 
 x-app-hardening: &app-hardening
   cap_drop:
