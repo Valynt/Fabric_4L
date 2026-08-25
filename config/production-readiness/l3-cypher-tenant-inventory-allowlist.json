@@ -4,7 +4,7 @@
   "generated_at": "2026-08-08T02:19:14.268183+00:00",
   "allowlist": [
     {
-      "finding_key": "services/layer3-knowledge/src/api/dependencies_tenant_secured.py::execute_query::255::self.run::run-call-unresolved",
+      "finding_key": "services/layer3-knowledge/src/api/dependencies_tenant_secured.py::execute_query::268::self.run::run-call-unresolved",
       "expires_on": "2026-12-31",
       "justification": "Seeded baseline for existing L3 Cypher tenant-inventory finding (execute_query dispatches through self.run, which injects the tenant predicate); line refreshed after the 2026-08-13 session-init fix above it; must be remediated or re-reviewed before expiry."
     },
@@ -29,12 +29,12 @@
       "justification": "Re-allowlisted after rebase onto main (commit 44f547867) shifted line numbers in entities.py. The underlying calls remain tenant-scoped via the query builder (custom_tenant_query); only the static finding_key shifted. Must be remediated or re-reviewed before 2026-12-31."
     },
     {
-      "finding_key": "services/layer3-knowledge/src/api/routes/models_router.py::_ensure_constraints::176::neo4j.execute_query::run-call",
+      "finding_key": "services/layer3-knowledge/src/api/routes/models_router.py::_ensure_constraints::194::neo4j.execute_query::run-call",
       "expires_on": "2026-12-31",
       "justification": "Seeded baseline for existing L3 Cypher tenant-inventory findings; must be remediated or re-reviewed before expiry."
     },
     {
-      "finding_key": "services/layer3-knowledge/src/api/routes/models_router.py::_ensure_constraints::182::neo4j.execute_query::run-call",
+      "finding_key": "services/layer3-knowledge/src/api/routes/models_router.py::_ensure_constraints::200::neo4j.execute_query::run-call",
       "expires_on": "2026-12-31",
       "justification": "Seeded baseline for existing L3 Cypher tenant-inventory findings; must be remediated or re-reviewed before expiry."
     },
@@ -140,12 +140,12 @@
     },
     {
       "expires_on": "2026-12-31",
-      "finding_key": "services/layer3-knowledge/src/retrieval/graph_rag.py::_fulltext_search::529::literal-only::cypher-string",
+      "finding_key": "services/layer3-knowledge/src/retrieval/graph_rag.py::_fulltext_search::545::literal-only::cypher-string",
       "justification": "Seeded baseline for existing L3 Cypher tenant-inventory findings; must be remediated or re-reviewed before expiry."
     },
     {
       "expires_on": "2026-12-31",
-      "finding_key": "services/layer3-knowledge/src/retrieval/graph_rag.py::_fulltext_search::542::literal-only::cypher-string",
+      "finding_key": "services/layer3-knowledge/src/retrieval/graph_rag.py::_fulltext_search::558::literal-only::cypher-string",
       "justification": "Seeded baseline for existing L3 Cypher tenant-inventory findings; must be remediated or re-reviewed before expiry."
     },
     {
@@ -314,22 +314,22 @@
       "justification": "Seeded baseline for existing L3 Cypher tenant-inventory findings; must be remediated or re-reviewed before expiry."
     },
     {
-      "finding_key": "services/layer3-knowledge/src/services/roi_calculator_service.py::get_templates::519::literal-only::cypher-string",
+      "finding_key": "services/layer3-knowledge/src/services/roi_calculator_service.py::get_templates::324::literal-only::cypher-string",
       "expires_on": "2026-12-31",
       "justification": "Seeded baseline for existing L3 Cypher tenant-inventory findings; must be remediated or re-reviewed before expiry."
     },
     {
-      "finding_key": "services/layer3-knowledge/src/services/roi_calculator_service.py::get_templates::525::literal-only::cypher-string",
+      "finding_key": "services/layer3-knowledge/src/services/roi_calculator_service.py::get_templates::330::literal-only::cypher-string",
       "expires_on": "2026-12-31",
       "justification": "Seeded baseline for existing L3 Cypher tenant-inventory findings; must be remediated or re-reviewed before expiry."
     },
     {
-      "finding_key": "services/layer3-knowledge/src/services/roi_calculator_service.py::list_calculations::674::literal-only::cypher-string",
+      "finding_key": "services/layer3-knowledge/src/services/roi_calculator_service.py::list_calculations::482::literal-only::cypher-string",
       "expires_on": "2026-12-31",
       "justification": "Seeded baseline for existing L3 Cypher tenant-inventory findings; must be remediated or re-reviewed before expiry."
     },
     {
-      "finding_key": "services/layer3-knowledge/src/services/roi_calculator_service.py::list_calculations::680::literal-only::cypher-string",
+      "finding_key": "services/layer3-knowledge/src/services/roi_calculator_service.py::list_calculations::488::literal-only::cypher-string",
       "expires_on": "2026-12-31",
       "justification": "Seeded baseline for existing L3 Cypher tenant-inventory findings; must be remediated or re-reviewed before expiry."
     },

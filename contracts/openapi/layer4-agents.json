@@ -1688,13 +1688,97 @@
         }
       }
     },
+    "/v1/analysis/roi": {
+      "post": {
+        "tags": [
+          "analysis"
+        ],
+        "summary": "Quick Roi Analysis",
+        "description": "Quick ROI analysis for a prospect.",
+        "operationId": "quick_roi_analysis_v1_analysis_roi_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ROIAnalysisRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ROIAnalysisResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/analysis/whitespace": {
+      "post": {
+        "tags": [
+          "analysis"
+        ],
+        "summary": "Quick Whitespace Analysis",
+        "description": "Quick whitespace analysis for a prospect.",
+        "operationId": "quick_whitespace_analysis_v1_analysis_whitespace_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WhitespaceAnalysisRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WhitespaceAnalysisResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/validation/seed/auth-context": {
       "post": {
         "tags": [
           "analysis"
         ],
         "summary": "Seed Validation Auth Context",
-        "description": "Seed deterministic auth context for backend-integrated validation.\n\nThis endpoint is non-production only and persists no raw secrets. It is\ndesigned to make local/CI backend-integrated tests reproducible while\nkeeping runtime secrets sourced exclusively from environment or a secret\nmanager.",
+        "description": "Seed deterministic auth context for backend-integrated validation.",
         "operationId": "seed_validation_auth_context_v1_validation_seed_auth_context_post",
         "requestBody": {
           "content": {
@@ -1738,7 +1822,7 @@
           "analysis"
         ],
         "summary": "Issue Validation Session",
-        "description": "Issue a non-production browser session for backend-integrated Playwright validation.\n\nThe endpoint is deliberately gated by the same service-authenticated,\nprivileged, non-production boundary as deterministic seed data. It uses the\ncanonical JWT and CSRF cookie mechanics, and returns only non-secret UI\nmetadata.",
+        "description": "Issue a non-production browser session for backend-integrated Playwright validation.",
         "operationId": "issue_validation_session_v1_validation_session_post",
         "requestBody": {
           "content": {
@@ -1776,19 +1860,19 @@
         }
       }
     },
-    "/v1/analysis/roi": {
+    "/v1/validation/seed/business-case-lifecycle": {
       "post": {
         "tags": [
           "analysis"
         ],
-        "summary": "Quick Roi Analysis",
-        "description": "Quick ROI analysis for a prospect.\n\nCalculates ROI for specified value drivers using prospect data.\n\nExample:\n    POST /v1/analysis/roi\n    {\n        \"prospect_id\": \"prospect-001\",\n        \"value_driver_ids\": [\"vd-001\", \"vd-002\"],\n        \"industry_vertical\": \"manufacturing\"\n    }",
-        "operationId": "quick_roi_analysis_v1_analysis_roi_post",
+        "summary": "Seed Business Case Lifecycle",
+        "description": "Seed deterministic business-case lifecycle state for non-production E2E validation.",
+        "operationId": "seed_business_case_lifecycle_v1_validation_seed_business_case_lifecycle_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ROIAnalysisRequest"
+                "$ref": "#/components/schemas/BusinessCaseLifecycleSeedRequest"
               }
             }
           },
@@ -1800,49 +1884,9 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ROIAnalysisResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/analysis/whitespace": {
-      "post": {
-        "tags": [
-          "analysis"
-        ],
-        "summary": "Quick Whitespace Analysis",
-        "description": "Quick whitespace analysis for a prospect.\n\nIdentifies gaps between prospect needs and solution capabilities.\n\nExample:\n    POST /v1/analysis/whitespace\n    {\n        \"prospect_id\": \"prospect-001\",\n        \"prospect_needs\": \"We need to automate invoice processing and get real-time visibility into cash flow\"\n    }",
-        "operationId": "quick_whitespace_analysis_v1_analysis_whitespace_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/WhitespaceAnalysisRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WhitespaceAnalysisResponse"
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Seed Business Case Lifecycle V1 Validation Seed Business Case Lifecycle Post"
                 }
               }
             }
@@ -1906,7 +1950,7 @@
           "analysis"
         ],
         "summary": "List Cases",
-        "description": "List cases for an account.\n\nReturns all cases associated with the specified account.",
+        "description": "List cases for an account.",
         "operationId": "list_cases_v1_cases_get",
         "parameters": [
           {
@@ -2039,57 +2083,13 @@
         }
       }
     },
-    "/v1/validation/seed/business-case-lifecycle": {
-      "post": {
-        "tags": [
-          "analysis"
-        ],
-        "summary": "Seed Business Case Lifecycle",
-        "description": "Seed deterministic business-case lifecycle state for non-production E2E validation.",
-        "operationId": "seed_business_case_lifecycle_v1_validation_seed_business_case_lifecycle_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/BusinessCaseLifecycleSeedRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Seed Business Case Lifecycle V1 Validation Seed Business Case Lifecycle Post"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/v1/cases/{case_id}/export": {
       "get": {
         "tags": [
           "analysis"
         ],
         "summary": "Export Business Case",
-        "description": "Export a generated business case.\n\nThis version resolves the merge conflict by preserving both:\n1. Truth-gating / blocking behavior\n2. Provenance manifest generation, storage upload, and audit events",
+        "description": "Export a generated business case.",
         "operationId": "export_business_case_v1_cases__case_id__export_get",
         "parameters": [
           {
@@ -14524,6 +14524,61 @@
               }
             ],
             "title": "Workflow Triggered"
+          },
+          "response_tier": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Response Tier"
+          },
+          "provider": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider"
+          },
+          "fallback": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fallback"
+          },
+          "degraded": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Degraded"
+          },
+          "degradation_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Degradation Reason"
           }
         },
         "type": "object",

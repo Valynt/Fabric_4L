@@ -440,18 +440,83 @@ def _allow_compat_only_db_dependency(dep_name: str) -> None:
 
 # Try to import shared tenant validation
 try:
-    from value_fabric.shared.database import (
-        TenantContextError as SharedTenantContextError,
-    )
-    from value_fabric.shared.database import (
-        validate_tenant_id as shared_validate_tenant_id,
-    )
+    from value_fabric.shared.database import TenantContextError as SharedTenantContextError
+    from value_fabric.shared.database import validate_tenant_id as shared_validate_tenant_id
 
     SHARED_TENANT_VALIDATION_AVAILABLE = True
 except ImportError:
     SHARED_TENANT_VALIDATION_AVAILABLE = False
     SharedTenantContextError = None  # type: ignore
     shared_validate_tenant_id = None  # type: ignore
+
+
+def _record_tenant_validation_failure(
+    *,
+    tenant_id: UUID | str | None,
+    error_type: str | None = None,
+) -> None:
+    """Record validation failure counters based on tenant_id value or explicit type."""
+    if error_type == "missing" or tenant_id is None:
+        _tenant_validation_metrics["missing_context_errors"] += 1
+    elif error_type == "empty" or str(tenant_id).strip() == "":
+        _tenant_validation_metrics["empty_tenant_errors"] += 1
+    else:
+        _tenant_validation_metrics["uuid_format_errors"] += 1
+    _tenant_validation_metrics["validation_failures"] += 1
+
+
+def _validate_tenant_id_via_shared(tenant_id: UUID | str | None) -> str:
+    """Delegate tenant ID validation to shared library when available."""
+    try:
+        return shared_validate_tenant_id(
+            tenant_id,
+            fail_safe_mode=FAIL_SAFE_MODE,
+            reserved_keywords=RESERVED_TENANT_KEYWORDS,
+        )
+    except (ValueError, TypeError, SharedTenantContextError) as exc:
+        # Increment per-error-type counters so metrics stay accurate
+        # regardless of which validation path executes.
+        _record_tenant_validation_failure(tenant_id=tenant_id)
+        # Re-raise as local TenantContextError for a stable exception contract.
+        if not isinstance(exc, TenantContextError):
+            raise TenantContextError(
+                f"tenant_context_invalid ({type(exc).__name__}: tenant_context_failed)"
+            ) from exc
+        raise
+
+
+def _validate_tenant_id_fallback(tenant_id: UUID | str | None) -> str:
+    """Local fallback validation when shared validation is unavailable."""
+    if tenant_id is None:
+        _record_tenant_validation_failure(tenant_id=None, error_type="missing")
+        if FAIL_SAFE_MODE:
+            raise TenantContextError(
+                "Tenant context is mandatory. Ensure request includes valid tenant_id "
+                "in JWT token or X-Tenant-ID header. For admin operations, use "
+                "get_db_with_optional_tenant() with require_super_admin() dependency."
+            )
+        return ""
+
+    # Convert to string and normalize
+    normalized = str(tenant_id).strip()
+
+    # Fail-safe: empty tenant_id is not allowed
+    if not normalized:
+        _record_tenant_validation_failure(tenant_id="", error_type="empty")
+        raise TenantContextError("Empty tenant_id is not allowed. Provide a valid tenant context.")
+
+    # Validate UUID format for strict tenant isolation
+    if normalized.lower() not in RESERVED_TENANT_KEYWORDS:
+        try:
+            UUID(normalized)
+        except ValueError:
+            _record_tenant_validation_failure(tenant_id=normalized, error_type="uuid_format")
+            raise TenantContextError(
+                f"Invalid tenant_id format: '{normalized}'. Expected valid UUID or "
+                f"reserved keyword ({', '.join(sorted(RESERVED_TENANT_KEYWORDS))})."
+            )
+
+    return normalized
 
 
 def validate_tenant_id(tenant_id: UUID | str | None) -> str:
@@ -479,63 +544,10 @@ def validate_tenant_id(tenant_id: UUID | str | None) -> str:
 
     # Use shared validation if available
     if SHARED_TENANT_VALIDATION_AVAILABLE and shared_validate_tenant_id:
-        try:
-            return shared_validate_tenant_id(
-                tenant_id,
-                fail_safe_mode=FAIL_SAFE_MODE,
-                reserved_keywords=RESERVED_TENANT_KEYWORDS,
-            )
-        except (ValueError, TypeError, SharedTenantContextError) as exc:
-            # Increment per-error-type counters so metrics stay accurate
-            # regardless of which validation path executes.
-            if tenant_id is None:
-                _tenant_validation_metrics["missing_context_errors"] += 1
-            elif str(tenant_id).strip() == "":
-                _tenant_validation_metrics["empty_tenant_errors"] += 1
-            else:
-                _tenant_validation_metrics["uuid_format_errors"] += 1
-            _tenant_validation_metrics["validation_failures"] += 1
-            # Re-raise as local TenantContextError for a stable exception contract.
-            if not isinstance(exc, TenantContextError):
-                raise TenantContextError(
-                    f"tenant_context_invalid ({type(exc).__name__}: tenant_context_failed)"
-                ) from exc
-            raise
+        return _validate_tenant_id_via_shared(tenant_id)
 
     # Fallback to local implementation
-    if tenant_id is None:
-        _tenant_validation_metrics["missing_context_errors"] += 1
-        _tenant_validation_metrics["validation_failures"] += 1
-        if FAIL_SAFE_MODE:
-            raise TenantContextError(
-                "Tenant context is mandatory. Ensure request includes valid tenant_id "
-                "in JWT token or X-Tenant-ID header. For admin operations, use "
-                "get_db_with_optional_tenant() with require_super_admin() dependency."
-            )
-        return ""
-
-    # Convert to string and normalize
-    normalized = str(tenant_id).strip()
-
-    # Fail-safe: empty tenant_id is not allowed
-    if not normalized:
-        _tenant_validation_metrics["empty_tenant_errors"] += 1
-        _tenant_validation_metrics["validation_failures"] += 1
-        raise TenantContextError("Empty tenant_id is not allowed. Provide a valid tenant context.")
-
-    # Validate UUID format for strict tenant isolation
-    if normalized.lower() not in RESERVED_TENANT_KEYWORDS:
-        try:
-            UUID(normalized)
-        except ValueError:
-            _tenant_validation_metrics["uuid_format_errors"] += 1
-            _tenant_validation_metrics["validation_failures"] += 1
-            raise TenantContextError(
-                f"Invalid tenant_id format: '{normalized}'. Expected valid UUID or "
-                f"reserved keyword ({', '.join(sorted(RESERVED_TENANT_KEYWORDS))})."
-            )
-
-    return normalized
+    return _validate_tenant_id_fallback(tenant_id)
 
 
 async def _set_local_tenant_context(session: AsyncSession, tenant_id: str) -> None:
@@ -697,6 +709,56 @@ async def get_db_with_tenant(
         yield session
 
 
+def _extract_and_validate_context_tenant(
+    context: RequestContext | None,
+    *,
+    error_message: str = "Tenant context required. Ensure request has passed through GovernanceMiddleware.",
+) -> str:
+    """Extract and validate tenant_id from RequestContext with fail-closed semantics."""
+    if not context or not context.tenant_id:
+        raise ValidationError(message=error_message)
+
+    try:
+        return validate_tenant_id(context.tenant_id)
+    except TenantContextError as e:
+        logger.warning("tenant_context_error", extra={"error_code": "TENANT_CONTEXT_ERROR"})
+        raise ValidationError(message="Invalid tenant context") from e
+
+
+async def _enforce_session_isolation_tier(
+    session: AsyncSession,
+    context: RequestContext,
+    tenant_id: str,
+    *,
+    error_detail_verb: str = "supported",
+) -> None:
+    """Set local tenant context or reject unsupported isolation tiers."""
+    if context.isolation_tier == "shared":
+        await _set_local_tenant_context(session, tenant_id)
+    else:
+        # Only 'shared' (PostgreSQL RLS) is supported in v1.
+        # 'schema' and 'database' tiers are rejected at provisioning time
+        # (see tenant_provisioning.py). This branch is a defensive fallback
+        # for tenants that were provisioned before that guard was added.
+        # 422 is correct: the request is structurally valid but the tier
+        # value is not accepted by this server.
+        verb = error_detail_verb
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=(
+                f"Isolation tier '{context.isolation_tier}' is not {verb}. "
+                "Only 'shared' (PostgreSQL RLS) is available in v1. "
+                "Contact support to migrate this tenant."
+                if verb == "supported"
+                else (
+                    f"Isolation tier '{context.isolation_tier}' is not {verb}. "
+                    "Only 'shared' (PostgreSQL RLS) is supported in v1. "
+                    "Re-provision this tenant with isolation_tier='shared'."
+                )
+            ),
+        )
+
+
 async def get_db_from_context(
     context: RequestContext = Depends(get_request_context),  # type: ignore
 ) -> AsyncGenerator[AsyncSession, None]:
@@ -721,39 +783,14 @@ async def get_db_from_context(
     if not SHARED_IDENTITY_AVAILABLE:
         raise RuntimeError("shared.identity package required for get_db_from_context")
 
-    if not context or not context.tenant_id:
-        raise ValidationError(
-            message="Tenant context required. Ensure request has passed through GovernanceMiddleware."
-        )
-
-    # SECURITY: Fail-safe validation via validate_tenant_id
-    try:
-        tenant_id = validate_tenant_id(context.tenant_id)
-    except TenantContextError as e:
-        logger.warning("tenant_context_error", extra={"error_code": "TENANT_CONTEXT_ERROR"})
-        raise ValidationError(message="Invalid tenant context") from e
+    tenant_id = _extract_and_validate_context_tenant(context)
 
     factory = get_session_factory()
     async with factory() as session:
         # P0-08: Set tenant context for RLS with isolation tier awareness
-        # Currently only 'shared' tier is supported (RLS-based)
-        if context.isolation_tier == "shared":
-            await _set_local_tenant_context(session, tenant_id)
-        else:
-            # Only 'shared' (PostgreSQL RLS) is supported in v1.
-            # 'schema' and 'database' tiers are rejected at provisioning time
-            # (see tenant_provisioning.py). This branch is a defensive fallback
-            # for tenants that were provisioned before that guard was added.
-            # 422 is correct: the request is structurally valid but the tier
-            # value is not accepted by this server.
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail=(
-                    f"Isolation tier '{context.isolation_tier}' is not supported. "
-                    "Only 'shared' (PostgreSQL RLS) is available in v1. "
-                    "Contact support to migrate this tenant."
-                ),
-            )
+        await _enforce_session_isolation_tier(
+            session, context, tenant_id, error_detail_verb="supported"
+        )
 
         # Task 3.1: Emit tenant context set audit event
         await _emit_tenant_context_set_audit(context, str(tenant_id), is_bypass=False)
@@ -1024,17 +1061,9 @@ async def db_session_for_context(
 
     factory = get_session_factory()
     async with factory() as session:
-        if context.isolation_tier == "shared":
-            await _set_local_tenant_context(session, tenant_id)
-        else:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail=(
-                    f"Isolation tier '{context.isolation_tier}' is not implemented. "
-                    "Only 'shared' (PostgreSQL RLS) is supported in v1. "
-                    "Re-provision this tenant with isolation_tier='shared'."
-                ),
-            )
+        await _enforce_session_isolation_tier(
+            session, context, tenant_id, error_detail_verb="implemented"
+        )
 
         await _emit_tenant_context_set_audit(context, str(tenant_id), is_bypass=False)
 

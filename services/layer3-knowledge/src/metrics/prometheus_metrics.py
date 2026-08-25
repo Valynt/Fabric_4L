@@ -203,6 +203,14 @@ class PrometheusMetrics:
             registry=self.config.registry,
         )
 
+        # Phase 3 hardening: Dual-store mutation metrics (GOV-L3-METRICS-002)
+        self._metrics["dual_store_mutation_total"] = Counter(
+            f"{prefix}dual_store_mutation_total",
+            "Total dual-store mutation operations",
+            ["source", "status", "request_id"],
+            registry=self.config.registry,
+        )
+
         self._metrics["entities_processed_total"] = Counter(
             f"{prefix}entities_processed_total",
             "Total entities processed",
@@ -644,6 +652,22 @@ class PrometheusMetrics:
             return
         self._metrics["graph_index_constraint_health_failures_total"].labels(
             check_type=check_type, component=component
+        ).inc()
+
+    def increment_dual_store_mutation(
+        self, source: str, status: str, request_id: str | None = None
+    ) -> None:
+        """Increment dual-store mutation counter.
+
+        Args:
+            source: Source module/component (e.g. "dual_store.coordinator")
+            status: Mutation status ("success", "neo4j_failure", "postgres_failure_after_neo4j_success", etc.)
+            request_id: Correlation request ID for labeling
+        """
+        if not self.config.enabled:
+            return
+        self._metrics["dual_store_mutation_total"].labels(
+            source=source, status=status, request_id=request_id or "unknown"
         ).inc()
 
     def increment_graph_mutation_success(

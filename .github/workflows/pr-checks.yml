@@ -127,6 +127,9 @@ jobs:
       - name: Enforce type escape ratchet
         run: make check-type-escape-ratchet
 
+      - name: Enforce structural fitness ratchet
+        run: make check-structural-fitness-ratchet
+
       - name: Verify schema index coverage
         run: pnpm test:schema
 

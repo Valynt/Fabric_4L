@@ -11,11 +11,14 @@ spec:
     - Ingress
     - Egress
   ingress:
-    # Allow from L4 agents
+    # Allow from the API gateway and from L4 agents (internal mesh).
     - from:
         - podSelector:
             matchLabels:
               app: layer4-agents
+        - podSelector:
+            matchLabels:
+              app: api-gateway
       ports:
         - protocol: TCP
           port: 8000

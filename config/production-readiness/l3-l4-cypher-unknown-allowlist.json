@@ -1,39 +1,39 @@
 {
   "allowlist": [
     {
-      "finding_key": "services/layer3-knowledge/src/api/routes/formulas.py::create_formula::971",
+      "finding_key": "services/layer3-knowledge/src/api/routes/formulas.py::create_formula::977",
       "justification": "Manually reviewed constant Cypher query; tenant scoping is parameterized and pending scoped helper migration."
     },
     {
-      "finding_key": "services/layer3-knowledge/src/api/routes/formulas.py::create_formula::1047",
+      "finding_key": "services/layer3-knowledge/src/api/routes/formulas.py::create_formula::1056",
       "justification": "Manually reviewed constant Cypher query; tenant scoping is parameterized and pending scoped helper migration."
     },
     {
-      "finding_key": "services/layer3-knowledge/src/api/routes/formulas.py::update_formula::1095",
+      "finding_key": "services/layer3-knowledge/src/api/routes/formulas.py::update_formula::1104",
       "justification": "Manually reviewed constant Cypher query; tenant scoping is parameterized and pending scoped helper migration."
     },
     {
-      "finding_key": "services/layer3-knowledge/src/api/routes/formulas.py::update_formula::1188",
+      "finding_key": "services/layer3-knowledge/src/api/routes/formulas.py::update_formula::1197",
       "justification": "Manually reviewed constant Cypher query; tenant scoping is parameterized and pending scoped helper migration."
     },
     {
-      "finding_key": "services/layer3-knowledge/src/api/routes/formulas.py::update_formula::1217",
+      "finding_key": "services/layer3-knowledge/src/api/routes/formulas.py::update_formula::1226",
       "justification": "Manually reviewed constant Cypher query; tenant scoping is parameterized and pending scoped helper migration."
     },
     {
-      "finding_key": "services/layer3-knowledge/src/api/routes/formulas.py::update_formula::1227",
+      "finding_key": "services/layer3-knowledge/src/api/routes/formulas.py::update_formula::1236",
       "justification": "Manually reviewed constant Cypher query; tenant scoping is parameterized and pending scoped helper migration."
     },
     {
-      "finding_key": "services/layer3-knowledge/src/api/routes/formulas.py::update_formula::1250",
+      "finding_key": "services/layer3-knowledge/src/api/routes/formulas.py::update_formula::1259",
       "justification": "Manually reviewed constant Cypher query; tenant scoping is parameterized and pending scoped helper migration."
     },
     {
-      "finding_key": "services/layer3-knowledge/src/api/routes/formulas.py::delete_formula::1297",
+      "finding_key": "services/layer3-knowledge/src/api/routes/formulas.py::delete_formula::1306",
       "justification": "Manually reviewed constant Cypher query; tenant scoping is parameterized and pending scoped helper migration."
     },
     {
-      "finding_key": "services/layer3-knowledge/src/api/routes/formulas.py::delete_formula::1318",
+      "finding_key": "services/layer3-knowledge/src/api/routes/formulas.py::delete_formula::1327",
       "justification": "Manually reviewed constant Cypher query; tenant scoping is parameterized and pending scoped helper migration."
     },
     {

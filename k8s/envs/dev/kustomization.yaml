@@ -26,6 +26,11 @@ replacements:
           name: frontend-policy
         fieldPaths:
           - spec.ingress.0.from.0.namespaceSelector.matchLabels.[kubernetes.io/metadata.name]
+      - select:
+          kind: NetworkPolicy
+          name: api-gateway-policy
+        fieldPaths:
+          - spec.ingress.0.from.0.namespaceSelector.matchLabels.[kubernetes.io/metadata.name]
 
 labels:
   - pairs:

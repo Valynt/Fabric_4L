@@ -407,6 +407,73 @@ class TestBulkOperations:
             assert audit_params["action"] == "WRITE_RELATIONSHIPS_BATCH"
 
     @pytest.mark.asyncio
+    async def test_delete_relationships_batch_creates_audit(self):
+        """Bulk relationship delete should create audit event with tenant scope."""
+        session = AsyncMock()
+        result = AsyncMock()
+        result.single = AsyncMock(return_value={"deleted": 2})
+        session.run = AsyncMock(return_value=result)
+        
+        with patch('src.db.audited_mutation.get_metrics', return_value=None):
+            mutation = AuditedGraphMutation(
+                tenant_id="test-tenant",
+                session=session,
+                operation_source="test_source",
+            )
+            
+            triples = [
+                {"src_id": "p1", "tgt_id": "vd1"},
+                {"src_id": "p2", "tgt_id": "vd2"},
+            ]
+            await mutation.delete_relationships_batch("HAS_DRIVER", triples)
+            
+            # Verify the delete query carries the tenant scoping
+            delete_call = session.run.call_args_list[0]
+            delete_query, delete_params = _query_and_params(delete_call)
+            assert "DELETE r" in delete_query
+            assert delete_params["tenant_id"] == "test-tenant"
+            assert "UNWIND" in delete_query
+            
+            # Verify audit event was created
+            audit_call = session.run.call_args_list[-1]
+            audit_query, audit_params = _query_and_params(audit_call)
+            assert "AuditEvent" in audit_query
+            assert audit_params["action"] == "DELETE_RELATIONSHIPS_BATCH"
+
+    @pytest.mark.asyncio
+    async def test_write_relationships_batch_versioned_creates_version_nodes(self):
+        """Versioned batch write should create a RelationshipVersion per triple with a unique id."""
+        session = AsyncMock()
+        result = AsyncMock()
+        result.single = AsyncMock(return_value=None)
+        session.run = AsyncMock(return_value=result)
+
+        with patch("src.db.audited_mutation.get_metrics", return_value=None):
+            mutation = AuditedGraphMutation(
+                tenant_id="test-tenant",
+                session=session,
+                operation_source="test_source",
+            )
+
+            triples = [
+                {"src_id": "p1", "tgt_id": "vd1"},
+                {"src_id": "p2", "tgt_id": "vd2"},
+            ]
+            await mutation.write_relationships_batch(
+                "HAS_DRIVER", triples, versioned=True
+            )
+
+            merge_query, merge_params = _query_and_params(session.run.call_args_list[0])
+            assert "RelationshipVersion" in merge_query
+            versioned_triples = merge_params["triples"]
+            # Each triple got a unique id without mutating the caller's list
+            assert len({t["iid"] for t in versioned_triples}) == 2
+            assert all(t["iid"] for t in versioned_triples)
+            assert all("iid" not in t for t in triples)
+            assert merge_params["rel_type"] == "HAS_DRIVER"
+            assert merge_params["tenant_id"] == "test-tenant"
+
+    @pytest.mark.asyncio
     async def test_delete_by_source_creates_audit(self):
         """Bulk delete by source should create audit event."""
         session = AsyncMock()

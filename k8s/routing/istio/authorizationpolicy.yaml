@@ -15,7 +15,7 @@ spec:
     - from:
         - source:
             principals:
-              - cluster.local/ns/value-fabric/sa/frontend
+              - cluster.local/ns/value-fabric/sa/api-gateway
               - cluster.local/ns/value-fabric/sa/layer1-ingestion
               - cluster.local/ns/value-fabric/sa/layer2-extraction
               - cluster.local/ns/value-fabric/sa/layer3-knowledge
@@ -24,7 +24,18 @@ spec:
               - cluster.local/ns/value-fabric/sa/layer6-benchmarks
       to:
         - operation:
-            ports: ["8000", "8001", "8005", "8006", "5432", "6379", "7474", "7687", "9093"]
+            ports:
+              [
+                "8000",
+                "8001",
+                "8005",
+                "8006",
+                "5432",
+                "6379",
+                "7474",
+                "7687",
+                "9093",
+              ]
     # Keep health endpoints reachable for kube/mesh health probing.
     - to:
         - operation:

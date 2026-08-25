@@ -18,13 +18,11 @@ Provides endpoints for:
 
 
 import uuid
-from datetime import UTC, datetime
 from enum import Enum
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from value_fabric.shared.audit import AuditAction, AuditOutcome, emit_audit_event
 from value_fabric.shared.identity.context import RequestContext
@@ -34,8 +32,13 @@ from value_fabric.shared.security.dil_auth import get_verified_tenant_id
 from ...config.settings import get_settings
 from ...database import get_db_from_context
 from ...interfaces.prospect_context import ProspectContextPort
-from ...models.account import Account
 from ...startup.agent_composition import create_prospect_context_client
+from .prospects_helpers import (
+    create_or_update_prospect_account,
+    infer_buyer_role_from_title,
+    resolve_enrichment_and_crm_status,
+    trigger_prospect_workflow,
+)
 
 router = APIRouter(prefix="/prospects", tags=["prospects"])
 
@@ -112,7 +115,9 @@ class ProspectSetupData(BaseModel):
         examples=["reduce_costs", "increase_revenue", "improve_efficiency", "mitigate_risk"],
     )
     buyer_role_confirmed: bool = Field(default=False, description="Whether buyer role is confirmed")
-    company_confirmed: bool = Field(default=False, description="Whether company profile is confirmed")
+    company_confirmed: bool = Field(
+        default=False, description="Whether company profile is confirmed"
+    )
     crm_reviewed: bool = Field(default=False, description="Whether CRM match is reviewed")
 
 
@@ -165,7 +170,9 @@ class StartAnalysisResponse(BaseModel):
         description="Company enrichment data availability",
     )
     buyer_role_inference: BuyerRoleInferenceResult = Field(
-        default_factory=lambda: BuyerRoleInferenceResult(status=BuyerRoleInferenceStatus.UNAVAILABLE),
+        default_factory=lambda: BuyerRoleInferenceResult(
+            status=BuyerRoleInferenceStatus.UNAVAILABLE
+        ),
         description="Buyer role inference result (never fabricated)",
     )
     crm_match: CrmMatchResult = Field(
@@ -310,7 +317,11 @@ def get_executor():
     return runtime_state.workflow_executor
 
 
-@router.post("/{prospect_id}/start-analysis", response_model=StartAnalysisResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/{prospect_id}/start-analysis",
+    response_model=StartAnalysisResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 async def start_prospect_analysis(
     prospect_id: str,
     request: StartAnalysisRequest,
@@ -369,183 +380,63 @@ async def start_prospect_analysis(
                 tenant_id=None,
                 user_id=ctx.user_id if ctx else None,
             )
-            raise AuthenticationError(message = "Tenant context required for prospect analysis")
+            raise AuthenticationError(message="Tenant context required for prospect analysis")
 
         # -------------------------------------------------------------------
         # 2. Create or update prospect record
         # -------------------------------------------------------------------
         prospect_uuid = uuid.UUID(prospect_id) if prospect_id else uuid.uuid4()
-
-        # Check if account/prospect exists
-        result = await db.execute(
-            select(Account).where(
-                Account.id == prospect_uuid,
-                Account.provider == "value_fabric",  # Internal prospects
-            )
-        )
-        existing_account = result.scalar_one_or_none()
-
         setup_data = request.setup_data
-
-        if existing_account:
-            # Update existing prospect with setup data
-            existing_account.name = setup_data.company_name
-            existing_account.stage = "prospect"
-            existing_account.contacts = existing_account.contacts or []
-            # Add or update primary contact
-            primary_contact = {
-                "provider_contact_id": str(uuid.uuid4()),
-                "name": setup_data.contact_name,
-                "title": setup_data.contact_title,
-                "is_primary": True,
-                "last_synced_at": datetime.now(UTC).isoformat(),
-            }
-            # Remove existing primary contact if present
-            existing_account.contacts = [
-                c for c in existing_account.contacts if not c.get("is_primary")
-            ]
-            existing_account.contacts.append(primary_contact)
-            existing_account.updated_at = datetime.now(UTC)
-            account = existing_account
-        else:
-            # Create new prospect account
-            account = Account(
-                id=prospect_uuid,
-                provider="value_fabric",
-                provider_record_id=f"vf_prospect_{prospect_uuid.hex[:8]}",
-                name=setup_data.company_name,
-                normalized_name=setup_data.company_name.lower().strip(),
-                stage="prospect",
-                contacts=[
-                    {
-                        "provider_contact_id": str(uuid.uuid4()),
-                        "name": setup_data.contact_name,
-                        "title": setup_data.contact_title,
-                        "is_primary": True,
-                        "last_synced_at": datetime.now(UTC).isoformat(),
-                    }
-                ],
-                opportunities=[],  # Will be populated if CRM match found
-                created_at=datetime.now(UTC),
-                updated_at=datetime.now(UTC),
-            )
-            db.add(account)
-
-        await db.flush()
-        await db.refresh(account)
+        await create_or_update_prospect_account(db, prospect_uuid, setup_data)
 
         # -------------------------------------------------------------------
         # 3. Attempt workflow trigger (if executor available)
         # -------------------------------------------------------------------
-        if executor:
-            try:
-                from ...engine.types import TaskPriority
-
-                # Map priority string to enum
-                priority_map = {
-                    "CRITICAL": TaskPriority.CRITICAL,
-                    "HIGH": TaskPriority.HIGH,
-                    "NORMAL": TaskPriority.NORMAL,
-                    "LOW": TaskPriority.LOW,
-                }
-                priority = priority_map.get(request.priority.upper(), TaskPriority.NORMAL)
-
-                workflow_result = await executor.execute_workflow(
-                    workflow_type=request.workflow_type,
-                    input_data={
-                        "prospect_id": str(prospect_uuid),
-                        "company_name": setup_data.company_name,
-                        "contact_name": setup_data.contact_name,
-                        "contact_title": setup_data.contact_title,
-                        "primary_objective": setup_data.primary_objective,
-                        "buyer_role_confirmed": setup_data.buyer_role_confirmed,
-                        "company_confirmed": setup_data.company_confirmed,
-                        "crm_reviewed": setup_data.crm_reviewed,
-                    },
-                    tenant_id=tenant_id,
-                    user_id=ctx.user_id if ctx else None,
-                    priority=priority,
-                )
-
-                workflow_id = workflow_result.workflow_id
-                overall_status = WorkflowStartStatus.STARTED
-                message = f"Workflow {workflow_id} started for prospect analysis"
-
-            except asyncio.CancelledError:
-                raise
-            except Exception as e:
-                # Workflow trigger failed, but prospect was saved
-                overall_status = WorkflowStartStatus.DEGRADED
-                message = f"Prospect saved but workflow trigger failed: {e!r}"
-                workflow_id = None
-        else:
-            # No executor available - degraded mode
-            overall_status = WorkflowStartStatus.DEGRADED
-            message = "Prospect saved. Workflow executor unavailable - analysis queued for retry."
+        workflow_id, overall_status_val, message = await trigger_prospect_workflow(
+            executor=executor,
+            prospect_uuid=prospect_uuid,
+            setup_data=setup_data,
+            workflow_type=request.workflow_type,
+            priority_str=request.priority,
+            tenant_id=tenant_id,
+            user_id=ctx.user_id if ctx else None,
+        )
+        overall_status = WorkflowStartStatus(overall_status_val)
 
         # -------------------------------------------------------------------
-        # 4. Attempt enrichment (if service available)
+        # 4 & 5. Attempt enrichment and CRM status resolution
         # -------------------------------------------------------------------
-        try:
-            # Check if enrichment service is available
-            __import__("layer4_agents.services.enrichment_orchestrator", fromlist=["EnrichmentOrchestrator"])
-            enrichment_status = EnrichmentStatus.QUEUED
-
-            # Note: Actual enrichment happens asynchronously
-            # Status will be updated via webhook or polling
-            message = message or f"Enrichment queued for {setup_data.company_name}"
-
-        except ImportError:
-            enrichment_status = EnrichmentStatus.UNAVAILABLE
-
-        # -------------------------------------------------------------------
-        # 5. Attempt CRM match (if integration available)
-        # -------------------------------------------------------------------
-        try:
-            # Check for existing CRM integration
-            __import__("layer4_agents.services.crm_sync_service", fromlist=["CRMSyncService"])
-
-            # CRM match check happens asynchronously
-            # For now, report pending (not fabricated match)
-            crm_match = CrmMatchResult(
-                status=CrmMatchStatus.UNAVAILABLE,
-                source="crm_service_unavailable",
-            )
-
-        except ImportError:
-            crm_match = CrmMatchResult(
-                status=CrmMatchStatus.UNAVAILABLE,
-                source="crm_module_not_loaded",
-            )
+        enrichment_val, crm_val, crm_source, message = resolve_enrichment_and_crm_status(
+            company_name=setup_data.company_name,
+            initial_message=message,
+        )
+        enrichment_status = EnrichmentStatus(enrichment_val)
+        crm_match = CrmMatchResult(status=CrmMatchStatus(crm_val), source=crm_source)
 
         # -------------------------------------------------------------------
         # 6. Buyer role inference (from title if available)
         # -------------------------------------------------------------------
         if setup_data.contact_title:
-            # Simple heuristic: known executive titles
-            title_lower = setup_data.contact_title.lower()
-            executive_indicators = ["vp", "vice president", "director", "chief", "cfo", "cto", "ceo"]
-            if any(ind in title_lower for ind in executive_indicators):
-                buyer_inference = BuyerRoleInferenceResult(
-                    status=BuyerRoleInferenceStatus.PENDING,
-                    role="Economic Buyer",  # Inferred, needs confirmation
-                    confidence=0.6,  # Explicit low confidence (heuristic only)
-                    source="title_heuristic",
-                )
-            else:
-                buyer_inference = BuyerRoleInferenceResult(
-                    status=BuyerRoleInferenceStatus.PENDING,
-                    role=None,
-                    confidence=None,
-                    source="title_not_executive_pattern",
-                )
+            buyer_st_val, buyer_role, buyer_conf, buyer_src = infer_buyer_role_from_title(
+                setup_data.contact_title
+            )
+            buyer_inference = BuyerRoleInferenceResult(
+                status=BuyerRoleInferenceStatus(buyer_st_val),
+                role=buyer_role,
+                confidence=buyer_conf,
+                source=buyer_src,
+            )
 
         # -------------------------------------------------------------------
         # 7. Emit audit event
         # -------------------------------------------------------------------
         await emit_audit_event(
             action=AuditAction.CREATE,
-            outcome=AuditOutcome.SUCCESS if overall_status != WorkflowStartStatus.FAILED else AuditOutcome.FAILURE,
+            outcome=(
+                AuditOutcome.SUCCESS
+                if overall_status != WorkflowStartStatus.FAILED
+                else AuditOutcome.FAILURE
+            ),
             resource_type="prospect_analysis",
             resource_id=str(prospect_uuid),
             details={
@@ -580,7 +471,11 @@ async def start_prospect_analysis(
             outcome=AuditOutcome.FAILURE,
             resource_type="prospect_analysis",
             resource_id=prospect_id,
-            details={"error": "Prospect analysis failed", "error_code": "PROSPECT_ANALYSIS_ERROR", "reason": "unexpected_error"},
+            details={
+                "error": "Prospect analysis failed",
+                "error_code": "PROSPECT_ANALYSIS_ERROR",
+                "reason": "unexpected_error",
+            },
             tenant_id=tenant_id if tenant_id else None,
             user_id=ctx.user_id if ctx else None,
         )

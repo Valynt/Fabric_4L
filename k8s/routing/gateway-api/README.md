@@ -5,13 +5,18 @@
 >
 > **Use `prod-nginx` for production deployments.**
 
-## What this stack defines
+## Public routing contract
 
-- `gateway.networking.k8s.io/v1` `Gateway` with HTTP + HTTPS listeners for
-  `__HOST__` (frontend) and `__API_HOST__` (layer APIs).
-- `gateway.networking.k8s.io/v1` `HTTPRoute` resources binding listeners to
-  Services rendered by the env overlay.
-- cert-manager `Certificate` resources providing `frontend-tls` and `layer-apis-tls`.
+This parity stack uses one application listener and one same-host `HTTPRoute`:
+
+```text
+/api/v1/<path> -> URLRewrite /v1/<path> -> api-gateway:8000
+/<path>        -> frontend:3000
+```
+
+Gateway API prefix specificity ensures the API rule wins over `/`. No public route targets L1–L6; those Services remain `ClusterIP` and NetworkPolicy-restricted. NGINX is the canonical production edge, and only one edge mode should be active.
+
+The selected controller must support the standard `URLRewrite` filter. cert-manager provides the single `frontend-tls` certificate.
 
 ## Security Gaps (NOT IMPLEMENTED)
 
@@ -20,6 +25,7 @@ The following security controls are **NOT** implemented in this stack:
 ### Edge Authentication: NOT IMPLEMENTED
 
 Gateway API does not have a standardized external auth mechanism. Options:
+
 - **Envoy Gateway**: Use `SecurityPolicy` with `extAuth` (requires Envoy Gateway v1.0+)
 - **Istio Gateway API**: Use `AuthorizationPolicy` with JWT validation
 - **Cilium**: Use Cilium Network Policy with L7 rules
@@ -29,6 +35,7 @@ Gateway API does not have a standardized external auth mechanism. Options:
 ### Rate Limiting: NOT IMPLEMENTED
 
 Options:
+
 - **Envoy Gateway**: Use `RateLimitFilter` with Redis backend
 - **Cilium**: Use bandwidth rate limiting at CNI level
 - **Controller-specific**: Each GatewayClass controller has different rate limiting
@@ -38,14 +45,13 @@ Options:
 ### Security Headers: NOT IMPLEMENTED
 
 Gateway API does not have standardized header manipulation. Options:
+
 - **Envoy Gateway**: Use `ResponseHeaderModifier` filter
 - **Istio Gateway API**: Use EnvoyFilter or VirtualService overlay
 
-### NetworkPolicy: NOT IMPLEMENTED
+### NetworkPolicy
 
-No hardened NetworkPolicy included. Must add:
-- Allow from gateway controller namespace only
-- Explicit ingress namespace selector
+The composed deployment includes an API-gateway policy and layer policies. Set `__INGRESS_NAMESPACE__` to the installed controller namespace; only that controller may enter the gateway on port 8000, and only approved internal callers may reach L1–L6.
 
 ### CORS Enforcement: NOT IMPLEMENTED
 
@@ -54,12 +60,14 @@ CORS must be enforced at application layer or via controller-specific policy.
 ### WAF / Input Validation: NOT IMPLEMENTED
 
 No WAF rules at Gateway API layer. Requires:
+
 - External WAF (Cloudflare, AWS WAF)
 - OR Envoy Gateway WASM filters (experimental)
 
 ## Production Readiness Checklist
 
 Before promoting from EXPERIMENTAL:
+
 - [ ] Implement edge authentication (external auth or JWT validation)
 - [ ] Implement rate limiting (per-client, per-path)
 - [ ] Add security headers (HSTS, X-Frame-Options, etc.)
@@ -92,17 +100,18 @@ kubectl get crd gateways.gateway.networking.k8s.io httproutes.gateway.networking
 Choose and install a GatewayClass controller. The reference manifests default
 to `envoy-gateway` but support `cilium`, `contour`, `istio`, or others.
 
-| Controller | GatewayClass Name | Installation |
-|---|---|---|
-| Envoy Gateway | `envoy-gateway` | https://gateway.envoyproxy.io/ |
-| Cilium | `cilium` | https://docs.cilium.io/en/stable/network/servicemesh/gateway-api/gateway-api/ |
-| Contour | `contour` | https://projectcontour.io/docs/main/config/gateway-api/ |
-| Istio | `istio` | https://istio.io/latest/docs/tasks/traffic-management/ingress/gateway-api/ |
+| Controller    | GatewayClass Name | Installation                                                                  |
+| ------------- | ----------------- | ----------------------------------------------------------------------------- |
+| Envoy Gateway | `envoy-gateway`   | https://gateway.envoyproxy.io/                                                |
+| Cilium        | `cilium`          | https://docs.cilium.io/en/stable/network/servicemesh/gateway-api/gateway-api/ |
+| Contour       | `contour`         | https://projectcontour.io/docs/main/config/gateway-api/                       |
+| Istio         | `istio`           | https://istio.io/latest/docs/tasks/traffic-management/ingress/gateway-api/    |
 
 **To use a different controller:** Edit `gateway.yaml` and change
 `spec.gatewayClassName` from `envoy-gateway` to your controller's class name.
 
 Verify the GatewayClass exists:
+
 ```bash
 kubectl get gatewayclass
 # Should show your chosen class (e.g., envoy-gateway) with AGE and CONTROLLER
@@ -132,9 +141,8 @@ kubectl wait -n value-fabric gateway/value-fabric-gateway --for=condition=Progra
 # Get the external IP
 kubectl get gateway -n value-fabric value-fabric-gateway -o jsonpath='{.status.addresses[0].value}'
 
-# Create DNS A records:
+# Create one DNS A record:
 # app.value-fabric.example.com -> <GATEWAY_IP>
-# api.value-fabric.example.com -> <GATEWAY_IP>
 ```
 
 ## Apply
@@ -153,6 +161,9 @@ kustomize build k8s/deployments/prod-gateway-api | \
     -
 
 kubectl -n value-fabric get gateway,httproute,certificate
+make production-edge-smoke APPLICATION_URL=https://<your-host>
+# If edge authentication requires credentials, set EDGE_SMOKE_AUTHORIZATION
+# (for example, "Bearer ...") or EDGE_SMOKE_COOKIE in the environment.
 ```
 
 ## Troubleshooting
@@ -182,11 +193,10 @@ Backend Service does not exist or cross-namespace references are not allowed:
 # Verify Services exist
 kubectl get services -n value-fabric
 
-# Check HTTPRoute status
-kubectl describe httproute -n value-fabric frontend
-kubectl describe httproute -n value-fabric layer-apis
+# Check the same-origin HTTPRoute status
+kubectl describe httproute -n value-fabric application
 
-# Verify the env overlay rendered Services (should show frontend, layer1-ingestion, etc.)
+# Verify the env overlay rendered the internal gateway and frontend Services
 kustomize build k8s/deployments/prod-gateway-api | grep -A5 "kind: Service"
 ```
 
@@ -195,7 +205,6 @@ kustomize build k8s/deployments/prod-gateway-api | grep -A5 "kind: Service"
 ```bash
 # Check Certificate status
 kubectl describe certificate -n value-fabric frontend-tls
-kubectl describe certificate -n value-fabric layer-apis-tls
 
 # Verify cert-manager is running
 kubectl get pods -n cert-manager
@@ -223,9 +232,8 @@ is not used directly:
 # Get the actual Gateway IP
 kubectl get gateway -n value-fabric value-fabric-gateway -o jsonpath='{.status.addresses[0].value}'
 
-# Verify DNS records
+# Verify the application DNS record
 nslookup app.value-fabric.example.com
-nslookup api.value-fabric.example.com
 
 # If using LoadBalancer, ensure the Service type is correct
 kubectl get service -n envoy-gateway-system  # (or your controller's namespace)

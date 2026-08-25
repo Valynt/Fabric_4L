@@ -30,9 +30,11 @@ spec:
         runAsNonRoot: true
         runAsUser: 1000
         fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: {{$name}}
-          image: {{include "fabric.image" $ | quote}}
+          image: {{include "fabric.image" (list $ $svc) | quote}}
           imagePullPolicy: {{$.Values.image.pullPolicy}}
           ports:
             - name: http
