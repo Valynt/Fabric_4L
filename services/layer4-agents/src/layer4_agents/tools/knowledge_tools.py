@@ -78,7 +78,7 @@ class QueryGraphTool(BaseTool):
         return self._driver
 
     _CYPHER_WRITE_KEYWORDS = re.compile(
-        r"\b(CREATE|DELETE|DETACH|SET|MERGE|REMOVE|DROP|CALL)\b",
+        r"(?<![\.\:\`])\b(CREATE|DELETE|DETACH|SET|MERGE|REMOVE|DROP|CALL)\b(?!\s*\:)",
         re.IGNORECASE,
     )
 
