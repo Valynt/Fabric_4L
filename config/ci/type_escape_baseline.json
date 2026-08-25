@@ -9572,6 +9572,18 @@
     },
     {
       "kind": "python-any",
+      "line": 9,
+      "path": "sdk/python/tests/test_cli.py",
+      "text": "from typing import Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 375,
+      "path": "sdk/python/tests/test_cli.py",
+      "text": "def mock_load_profile_toml(*args: Any, **kwargs: Any) -> Any:"
+    },
+    {
+      "kind": "python-any",
       "line": 4,
       "path": "services/api/app/clients/billing_publisher.py",
       "text": "from typing import Any"
@@ -35708,37 +35720,37 @@
     },
     {
       "kind": "python-any",
-      "line": 275,
+      "line": 273,
       "path": "services/layer4-agents/src/layer4_agents/tools/knowledge_tools.py",
       "text": "def __init__(self, config: dict[str, Any] | None = None):"
     },
     {
       "kind": "python-any",
-      "line": 301,
+      "line": 299,
       "path": "services/layer4-agents/src/layer4_agents/tools/knowledge_tools.py",
       "text": "def _get_pinecone_client(self) -> Any | None:"
     },
     {
       "kind": "python-any",
-      "line": 426,
+      "line": 424,
       "path": "services/layer4-agents/src/layer4_agents/tools/knowledge_tools.py",
       "text": "def __init__(self, config: dict[str, Any] | None = None):"
     },
     {
       "kind": "python-any",
-      "line": 540,
+      "line": 538,
       "path": "services/layer4-agents/src/layer4_agents/tools/knowledge_tools.py",
       "text": "def __init__(self, config: dict[str, Any] | None = None):"
     },
     {
       "kind": "python-any",
-      "line": 642,
+      "line": 640,
       "path": "services/layer4-agents/src/layer4_agents/tools/knowledge_tools.py",
       "text": "def __init__(self, config: dict[str, Any] | None = None):"
     },
     {
       "kind": "python-any",
-      "line": 740,
+      "line": 738,
       "path": "services/layer4-agents/src/layer4_agents/tools/knowledge_tools.py",
       "text": "def __init__(self, config: dict[str, Any] | None = None):"
     },
