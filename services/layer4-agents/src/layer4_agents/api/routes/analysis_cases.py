@@ -91,29 +91,29 @@ def _resolve_business_case_service() -> type[BusinessCaseService]:
     return getattr(mod, "BusinessCaseService", BusinessCaseService)
 
 
-def _resolve_emit_and_persist_audit() -> object:
+def _resolve_emit_and_persist_audit() -> Callable[..., Any]:
     mod = _get_analysis_module()
-    return getattr(mod, "emit_and_persist_audit", emit_and_persist_audit)
+    return cast(Callable[..., Any], getattr(mod, "emit_and_persist_audit", emit_and_persist_audit))
 
 
-def _resolve_require_approved_case() -> object:
+def _resolve_require_approved_case() -> Callable[..., Any]:
     mod = _get_analysis_module()
-    return getattr(mod, "_require_approved_case", require_approved_case)
+    return cast(Callable[..., Any], getattr(mod, "_require_approved_case", require_approved_case))
 
 
-def _resolve_get_settings() -> object:
+def _resolve_get_settings() -> Callable[..., Any]:
     mod = _get_analysis_module()
-    return getattr(mod, "get_settings", get_settings)
+    return cast(Callable[..., Any], getattr(mod, "get_settings", get_settings))
 
 
-def _resolve_upload_bytes() -> object:
+def _resolve_upload_bytes() -> Callable[..., Any]:
     mod = _get_analysis_module()
-    return getattr(mod, "upload_bytes", upload_bytes)
+    return cast(Callable[..., Any], getattr(mod, "upload_bytes", upload_bytes))
 
 
-def _resolve_generate_download_url() -> object:
+def _resolve_generate_download_url() -> Callable[..., Any]:
     mod = _get_analysis_module()
-    return getattr(mod, "generate_download_url", generate_download_url)
+    return cast(Callable[..., Any], getattr(mod, "generate_download_url", generate_download_url))
 
 
 def _get_analysis_module() -> object:
@@ -535,29 +535,32 @@ def build_cases_router(
                     "truth_gate_passed": truth_gate.get("passed", False),
                 },
             )
-            return export_business_caseResult.model_validate(
-                {
-                    "case_id": case_id,
-                    "export_id": export_id,
-                    "format": format,
-                    "document_url": assemble_data.get("document_url"),
-                    "download_ready": False,
-                    "blocked": True,
-                    "remediation_items": remediation_items,
-                    "truth_references": truth_references,
-                    "manifest": {
+            return cast(
+                dict[str, Any],
+                export_business_caseResult.model_validate(
+                    {
                         "case_id": case_id,
+                        "export_id": export_id,
                         "format": format,
+                        "document_url": assemble_data.get("document_url"),
+                        "download_ready": False,
                         "blocked": True,
-                        "truth_references": truth_references,
                         "remediation_items": remediation_items,
-                        "truth_gate": {
-                            "passed": truth_gate.get("passed", False),
-                            "requirements": truth_gate.get("requirements", []),
+                        "truth_references": truth_references,
+                        "manifest": {
+                            "case_id": case_id,
+                            "format": format,
+                            "blocked": True,
+                            "truth_references": truth_references,
+                            "remediation_items": remediation_items,
+                            "truth_gate": {
+                                "passed": truth_gate.get("passed", False),
+                                "requirements": truth_gate.get("requirements", []),
+                            },
                         },
-                    },
-                }
-            ).model_dump()
+                    }
+                ).model_dump(),
+            )
 
         if not document_bytes:
             raise ConflictError(message="Business case document bytes unavailable")
@@ -675,21 +678,24 @@ def build_cases_router(
             },
         )
 
-        return export_business_caseResult.model_validate(
-            {
-                "case_id": case_id,
-                "export_id": export_id,
-                "format": format,
-                "document_url": document_url,
-                "manifest_url": manifest_url,
-                "download_ready": True,
-                "blocked": False,
-                "manifest": manifest,
-                "remediation_items": remediation_items,
-                "truth_references": truth_references,
-                "url_expires_at": expires_at,
-            }
-        ).model_dump()
+        return cast(
+            dict[str, Any],
+            export_business_caseResult.model_validate(
+                {
+                    "case_id": case_id,
+                    "export_id": export_id,
+                    "format": format,
+                    "document_url": document_url,
+                    "manifest_url": manifest_url,
+                    "download_ready": True,
+                    "blocked": False,
+                    "manifest": manifest,
+                    "remediation_items": remediation_items,
+                    "truth_references": truth_references,
+                    "url_expires_at": expires_at,
+                }
+            ).model_dump(),
+        )
 
     @router.get("/cases", response_model=CaseListResponse)
     async def list_cases(
