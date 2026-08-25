@@ -8,7 +8,6 @@ from ..app import (
     ExceptionHandlerRegistrationMode,
     create_fabric_app,
     install_metrics_middleware,
-    mark_route_enforcement_opt_out,
     record_enforcement_decision,
     register_health_endpoint,
 )
@@ -86,11 +85,14 @@ def test_install_metrics_middleware_sets_state_and_wraps_requests() -> None:
         def __init__(self) -> None:
             self.seen_paths = []
 
-    class Middleware:
-        def __init__(self, metrics: Recorder) -> None:
+    from starlette.middleware.base import BaseHTTPMiddleware
+
+    class Middleware(BaseHTTPMiddleware):
+        def __init__(self, app, metrics: Recorder) -> None:
+            super().__init__(app)
             self.metrics = metrics
 
-        async def __call__(self, request, call_next):
+        async def dispatch(self, request, call_next):
             self.metrics.seen_paths.append(request.url.path)
             response = await call_next(request)
             response.headers["x-metrics-installed"] = "true"
@@ -122,7 +124,9 @@ def test_health_endpoint_is_marked_as_enforcement_opt_out() -> None:
     )
     register_health_endpoint(app, service_name="test-health-service")
 
-    route = next(route for route in app.routes if getattr(route, "path", "") == "/health")
+    route = next(
+        route for route in app.routes if getattr(route, "path", "") == "/health"
+    )
     endpoint = route.endpoint
     assert getattr(endpoint, "_vf_enforcement_opt_out", False) is True
 
@@ -279,7 +283,10 @@ def test_security_middleware_adds_hsts_header() -> None:
     response = client.get("/ok")
 
     assert response.status_code == 200
-    assert response.headers["Strict-Transport-Security"] == "max-age=31536000; includeSubDomains"
+    assert (
+        response.headers["Strict-Transport-Security"]
+        == "max-age=31536000; includeSubDomains"
+    )
 
 
 def test_security_middleware_omits_hsts_when_disabled() -> None:

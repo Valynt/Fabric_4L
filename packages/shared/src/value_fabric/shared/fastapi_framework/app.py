@@ -16,7 +16,6 @@ from ..error_handling.handlers import register_exception_handlers
 
 from .health import (
     HealthCheckProbe,
-    ProbeResult,
     aggregate_probes,
     build_readiness_payload,
 )
@@ -59,7 +58,9 @@ class HealthChecksConfig:
 
     mode: EnforcementMode = EnforcementMode.AUDIT
     route_opt_out_paths: frozenset[str] = field(
-        default_factory=lambda: frozenset({"/health", "/health/detailed", "/ready", "/readiness"})
+        default_factory=lambda: frozenset(
+            {"/health", "/health/detailed", "/ready", "/readiness"}
+        )
     )
 
 
@@ -104,9 +105,15 @@ class FrameworkIdempotencyConfig:
 class EnforcementRolloutConfig:
     """Top-level progressive enforcement configuration attached to app.state."""
 
-    tenant_enforcement: EnforcementControlConfig = field(default_factory=EnforcementControlConfig)
-    rate_limiting: EnforcementControlConfig = field(default_factory=EnforcementControlConfig)
-    idempotency: EnforcementControlConfig = field(default_factory=EnforcementControlConfig)
+    tenant_enforcement: EnforcementControlConfig = field(
+        default_factory=EnforcementControlConfig
+    )
+    rate_limiting: EnforcementControlConfig = field(
+        default_factory=EnforcementControlConfig
+    )
+    idempotency: EnforcementControlConfig = field(
+        default_factory=EnforcementControlConfig
+    )
     health_checks: HealthChecksConfig = field(default_factory=HealthChecksConfig)
 
 
@@ -151,8 +158,12 @@ def record_enforcement_decision(
     caller should block the request in enforce mode.
     """
 
-    config: EnforcementRolloutConfig = getattr(app.state, "enforcement_rollout", EnforcementRolloutConfig())
-    counters: EnforcementCounters = getattr(app.state, "enforcement_counters", EnforcementCounters())
+    config: EnforcementRolloutConfig = getattr(
+        app.state, "enforcement_rollout", EnforcementRolloutConfig()
+    )
+    counters: EnforcementCounters = getattr(
+        app.state, "enforcement_counters", EnforcementCounters()
+    )
     app.state.enforcement_counters = counters
 
     if _is_route_opted_out(route, config):
@@ -217,7 +228,9 @@ def init_telemetry(service_name: str, *, endpoint: str | None = None) -> Any | N
 
     try:
         from opentelemetry import trace
-        from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+        from opentelemetry.exporter.otlp.proto.http.trace_exporter import (
+            OTLPSpanExporter,
+        )
         from opentelemetry.sdk.resources import SERVICE_NAME, Resource
         from opentelemetry.sdk.trace import TracerProvider
         from opentelemetry.sdk.trace.export import BatchSpanProcessor
@@ -336,7 +349,9 @@ def register_readiness_endpoint(
                 payload = state["payload"]
                 healthy = state["healthy"]
             else:
-                healthy, results = await aggregate_probes(probes, timeout_seconds=timeout_seconds)
+                healthy, results = await aggregate_probes(
+                    probes, timeout_seconds=timeout_seconds
+                )
                 payload = build_readiness_payload(
                     service_name=service_name,
                     healthy=healthy,
@@ -366,7 +381,7 @@ def install_metrics_middleware(
     app: FastAPI,
     *,
     metrics: Any | None,
-    middleware_factory: Callable[[Any], Any],
+    middleware_factory: type = type(None),
     logger: Any | None = None,
 ) -> Any | None:
     """Attach a service metrics instance and install its HTTP middleware once."""
@@ -378,7 +393,8 @@ def install_metrics_middleware(
     if getattr(app.state, "_metrics_middleware_installed", False):
         return metrics
 
-    app.middleware("http")(middleware_factory(metrics))
+    if middleware_factory is not type(None):
+        app.add_middleware(middleware_factory, metrics=metrics)
     app.state._metrics_middleware_installed = True
     if logger is not None:
         logger.info("Metrics middleware installed")
@@ -487,13 +503,19 @@ def create_fabric_app(
     if telemetry_service_name is not None:
         app.state.telemetry_provider = init_telemetry(telemetry_service_name)
         if instrument_telemetry:
-            instrument_fastapi_app(app, enabled=app.state.telemetry_provider is not None)
+            instrument_fastapi_app(
+                app, enabled=app.state.telemetry_provider is not None
+            )
 
     if pre_core_middleware_hook is not None:
         pre_core_middleware_hook(app)
 
     if cors_policy is not None:
-        policy = cors_policy if isinstance(cors_policy, CorsPolicy) else CorsPolicy(**cors_policy)
+        policy = (
+            cors_policy
+            if isinstance(cors_policy, CorsPolicy)
+            else CorsPolicy(**cors_policy)
+        )
         add_cors_middleware(app, policy)
 
     if include_request_id_middleware:
