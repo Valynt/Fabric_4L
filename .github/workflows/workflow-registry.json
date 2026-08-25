@@ -621,6 +621,35 @@
       "deprecation_status": "active"
     },
     {
+      "path": ".github/workflows/migrate-secrets-to-depot-ci-1787645158581.yml",
+      "name": "Import secrets and variables to Depot CI",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "push"
+      ],
+      "trigger_purpose": "CI/CD",
+      "blocking": false,
+      "required_secrets": [
+        "AWS_DEPLOY_ROLE_ARN",
+        "AWS_TERRAFORM_ROLE_ARN",
+        "DR_BACKUP_BUCKET",
+        "DR_IAM_ROLE_ARN",
+        "INFISICAL_IDENTITY_ID",
+        "NPM_TOKEN",
+        "PROMETHEUS_URL",
+        "PYPI_API_TOKEN",
+        "SLACK_DR_WEBHOOK",
+        "SLACK_WEBHOOK_URL_API_CHANGES",
+        "VAULT_ADDR",
+        "VAULT_ROLE",
+        "VAULT_ROLE_STAGING"
+      ],
+      "produced_artifacts": [],
+      "runtime_budget_minutes": 30,
+      "local_validation_command": "make check-workflow-references",
+      "deprecation_status": "active"
+    },
+    {
       "path": ".github/workflows/monthly-debt-burndown.yml",
       "name": "monthly-debt-burndown",
       "owner": "@value-fabric/sre-leads",
