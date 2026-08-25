@@ -1,0 +1,325 @@
+# Depot CI Migration
+# Source: .github/workflows/build-deploy.yml
+#
+# Changes made:
+# - Changed GitHub runs-on labels to their Depot equivalents
+
+name: Build and Deploy
+"on":
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      registry:
+        description: "Container registry"
+        default: "ghcr.io"
+        required: false
+        type: string
+      image_tag:
+        description: "Image tag (default: git SHA)"
+        default: ""
+        required: false
+        type: string
+      push_latest:
+        description: "Push latest tag"
+        default: true
+        required: false
+        type: boolean
+permissions: read-all
+env:
+  REGISTRY: ${{ inputs.registry || 'ghcr.io' }}
+  IMAGE_TAG: ${{ inputs.image_tag || github.sha }}
+  # Health check configuration
+  HEALTH_MAX_RETRIES: 30
+  HEALTH_RETRY_DELAY_SEC: 2
+  HEALTH_TIMEOUT_SEC: 60
+jobs:
+  build-matrix:
+    name: Build Images
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    timeout-minutes: 30
+    strategy:
+      matrix:
+        layer: [layer1-ingestion, layer2-extraction, layer3-knowledge, layer4-agents, layer5-ground-truth, layer6-benchmarks, frontend]
+        include:
+          - layer: layer1-ingestion
+            port: 8000
+          - layer: layer2-extraction
+            port: 8000
+          - layer: layer3-knowledge
+            port: 8001
+          - layer: layer4-agents
+            port: 8000
+          - layer: layer5-ground-truth
+            port: 8005
+          - layer: layer6-benchmarks
+            port: 8006
+          - layer: frontend
+            port: 3000
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@988b5a0280414f521da01fcc63a27aeeb4b104db # v3
+      - name: Log in to Container Registry
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Extract short SHA
+        id: sha
+        run: echo "short=$(echo ${{ github.sha }} | cut -c1-8)" >> $GITHUB_OUTPUT
+      - name: Reject mutable image tag inputs
+        # Mutable tags (latest, main, branch names) are forbidden in the build pipeline.
+        # All published images must be addressable by immutable sha-<8char> ref only.
+        # When triggered via workflow_dispatch with a custom image_tag, that value is
+        # validated here. On push triggers the ref is always the SHA-derived default.
+        # The environment-promotion workflow enforces the same rule on the promotion side.
+        run: |
+          ref="${{ inputs.image_tag || format('sha-{0}', steps.sha.outputs.short) }}"
+          if [[ "$ref" == "latest" ]] || [[ "$ref" =~ ^(main|master|develop|dev|staging|production|stable|edge|nightly)$ ]]; then
+            echo "::error::Mutable image tag rejected: $ref. Use sha-<commit> refs only."
+            exit 1
+          fi
+          echo "Image ref is immutable: $ref"
+      - name: Build and push image
+        id: build
+        uses: docker/build-push-action@3b5e8027fcad23fda98b2e3ac259d8d67585f671 # v5
+        with:
+          context: ${{ matrix.layer == 'frontend' && '.' || format('services/{0}', matrix.layer) }}
+          file: ${{ matrix.layer == 'frontend' && './apps/web/Dockerfile' || format('services/{0}/Dockerfile', matrix.layer) }}
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/fabric_4l/${{ matrix.layer }}:sha-${{ steps.sha.outputs.short }}
+          platforms: linux/amd64,linux/arm64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            BUILD_DATE=${{ github.event.head_commit.timestamp }}
+            VCS_REF=${{ github.sha }}
+            VITE_API_BASE=/api/v1
+            VITE_L1_PREFIX=/ingest
+            VITE_L2_PREFIX=/extract
+            VITE_L2_5_PREFIX=/signals
+            VITE_L3_PREFIX=/graph
+            VITE_L4_PREFIX=/agents
+            VITE_L5_PREFIX=/truths
+            VITE_L6_PREFIX=/benchmarks
+            VITE_L7_PREFIX=/billing
+      - name: Write build metadata artifact
+        run: |
+          mkdir -p /tmp/build-metadata
+          source_version="$(python3 -c "import json; print(json.load(open('package.json', encoding='utf-8'))['version'])")"
+          build_timestamp="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          cat > /tmp/build-metadata/build-metadata-${{ matrix.layer }}.json <<EOF
+          {
+            "layer": "${{ matrix.layer }}",
+            "image_digest": "${{ steps.build.outputs.digest }}",
+            "published_tag": "sha-${{ steps.sha.outputs.short }}",
+            "source_commit_sha": "${{ github.sha }}",
+            "source_version": "${source_version}",
+            "build_timestamp": "${build_timestamp}",
+            "environment": "build"
+          }
+          EOF
+      - name: Upload build metadata artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-metadata-${{ matrix.layer }}
+          path: /tmp/build-metadata/build-metadata-${{ matrix.layer }}.json
+          retention-days: 7
+  test-images:
+    name: Test Built Images
+    needs: build-matrix
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    timeout-minutes: 20
+    strategy:
+      matrix:
+        layer: [layer1-ingestion, layer2-extraction, layer3-knowledge, layer4-agents, layer5-ground-truth, layer6-benchmarks, frontend]
+        include:
+          - layer: layer1-ingestion
+            port: 8000
+            health_path: /api/v1/ingestion/health
+          - layer: layer2-extraction
+            port: 8000
+            health_path: /health
+          - layer: layer3-knowledge
+            port: 8001
+            health_path: /health
+          - layer: layer4-agents
+            port: 8000
+            health_path: /health
+          - layer: layer5-ground-truth
+            port: 8005
+            health_path: /api/v1/health
+          - layer: layer6-benchmarks
+            port: 8006
+            health_path: /health
+          - layer: frontend
+            port: 3000
+            health_path: /
+    steps:
+      - name: Set up Docker
+        uses: docker/setup-buildx-action@988b5a0280414f521da01fcc63a27aeeb4b104db # v3
+      - name: Log in to Container Registry
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Extract short SHA
+        id: sha
+        run: echo "short=$(echo ${{ github.sha }} | cut -c1-8)" >> $GITHUB_OUTPUT
+      - name: Run smoke test
+        run: |
+          docker run -d --name ${{ matrix.layer }} -p ${{ matrix.port }}:${{ matrix.port }} \
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/fabric_4l/${{ matrix.layer }}:sha-${{ steps.sha.outputs.short }}
+
+          # Wait for service to be healthy
+          max_retries=${{ env.HEALTH_MAX_RETRIES }}
+          retry_delay=${{ env.HEALTH_RETRY_DELAY_SEC }}
+          timeout=${{ env.HEALTH_TIMEOUT_SEC }}
+          start_time=$(date +%s)
+
+          for i in $(seq 1 $max_retries); do
+            current_time=$(date +%s)
+            elapsed=$((current_time - start_time))
+
+            if [ $elapsed -ge $timeout ]; then
+              echo "Health check timed out after ${timeout}s"
+              break
+            fi
+
+            if curl -sf http://localhost:${{ matrix.port }}${{ matrix.health_path }}; then
+              echo "✓ Service is healthy (attempt $i, ${elapsed}s)"
+              docker stop ${{ matrix.layer }} >/dev/null 2>&1 || true
+              docker rm ${{ matrix.layer }} >/dev/null 2>&1 || true
+              exit 0
+            fi
+
+            echo "⏳ Waiting for service... attempt $i/${max_retries} (${elapsed}s elapsed)"
+            sleep $retry_delay
+          done
+
+          echo "❌ Service failed to become healthy"
+          docker logs ${{ matrix.layer }} || echo "Could not retrieve logs"
+          docker stop ${{ matrix.layer }} >/dev/null 2>&1 || true
+          docker rm ${{ matrix.layer }} >/dev/null 2>&1 || true
+          exit 1
+      - name: Verify metrics endpoint
+        run: |
+          docker run -d --name ${{ matrix.layer }}-metrics -p ${{ matrix.port }}:${{ matrix.port }} \
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/fabric_4l/${{ matrix.layer }}:sha-${{ steps.sha.outputs.short }}
+
+          # Wait for container to start
+          sleep 3
+
+          # Check metrics endpoint (may return 503 if metrics disabled, but should not 500)
+          metrics_status=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:${{ matrix.port }}/metrics || echo "000")
+          echo "Metrics endpoint status: $metrics_status"
+
+          if [ "$metrics_status" = "000" ]; then
+            echo "❌ Metrics endpoint unreachable"
+            docker logs ${{ matrix.layer }}-metrics || true
+            docker stop ${{ matrix.layer }}-metrics >/dev/null 2>&1 || true
+            docker rm ${{ matrix.layer }}-metrics >/dev/null 2>&1 || true
+            exit 1
+          fi
+
+          if [ "$metrics_status" = "500" ]; then
+            echo "❌ Metrics endpoint returned 500 - service error"
+            docker logs ${{ matrix.layer }}-metrics || true
+            docker stop ${{ matrix.layer }}-metrics >/dev/null 2>&1 || true
+            docker rm ${{ matrix.layer }}-metrics >/dev/null 2>&1 || true
+            exit 1
+          fi
+
+          echo "✓ Metrics endpoint check passed"
+          docker stop ${{ matrix.layer }}-metrics >/dev/null 2>&1 || true
+          docker rm ${{ matrix.layer }}-metrics >/dev/null 2>&1 || true
+  deploy-ephemeral-and-smoke:
+    name: Deploy K8s Ephemeral Env + Smoke (L1-L5 + Frontend)
+    needs: test-images
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - name: Install kubectl
+        uses: azure/setup-kubectl@776406bce94f63e41d621b960d78ee25c8b76ede # v4
+        with:
+          version: v1.30.0
+      - name: Install kind
+        uses: helm/kind-action@ef37e7f390d99f746eb8b610417061a60e82a6cc # v1
+        with:
+          cluster_name: fabric-ephemeral
+          wait: 120s
+      - name: Install kustomize
+        run: |
+          url="https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.4.3/kustomize_v5.4.3_linux_amd64.tar.gz"
+          curl -sSL "$url" -o kustomize.tar.gz
+          tar -xzf kustomize.tar.gz
+          sudo mv kustomize /usr/local/bin/kustomize
+          kustomize version
+      - name: Set up Python
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
+        with:
+          python-version: "3.11"
+      - name: Install preflight dependency
+        run: pip install pyyaml
+      - name: Run preflight guardrails
+        run: python3 scripts/ci/k8s_preflight.py
+      - name: Log in to Container Registry
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Extract short SHA
+        id: sha
+        run: echo "short=$(echo ${{ github.sha }} | cut -c1-8)" >> $GITHUB_OUTPUT
+      - name: Pull and load service images into kind
+        run: |
+          for layer in layer1-ingestion layer2-extraction layer3-knowledge \
+                       layer4-agents layer5-ground-truth layer6-benchmarks frontend; do
+            image="${{ env.REGISTRY }}/${{ github.repository_owner }}/fabric_4l/${layer}:sha-${{ steps.sha.outputs.short }}"
+            docker pull "${image}"
+            kind load docker-image "${image}" --name fabric-ephemeral
+          done
+      - name: Render manifests for ephemeral environment
+        run: |
+          kustomize build k8s/overlays/dev > /tmp/ephemeral.yaml
+          tag="sha-${{ steps.sha.outputs.short }}"
+          for layer in \
+            layer1-ingestion layer2-extraction layer3-knowledge \
+            layer4-agents layer5-ground-truth layer6-benchmarks frontend; do
+            sed -i \
+              "s|value-fabric/${layer}:main|${{ env.REGISTRY }}/${{ github.repository_owner }}/fabric_4l/${layer}:${tag}|g" \
+              /tmp/ephemeral.yaml
+          done
+      - name: Create required secrets for ephemeral cluster
+        run: |
+          kubectl create namespace value-fabric --dry-run=client -o yaml | kubectl apply -f -
+          kubectl -n value-fabric create secret generic postgres-secret \
+            --from-literal=password=$(openssl rand -base64 32) \
+            --dry-run=client -o yaml | kubectl apply -f -
+          kubectl -n value-fabric create secret generic neo4j-secret \
+            --from-literal=auth=$(openssl rand -base64 32) \
+            --dry-run=client -o yaml | kubectl apply -f -
+          kubectl -n value-fabric create secret generic openai-secret \
+            --from-literal=api-key=ephemeral-dummy-$(openssl rand -hex 8) \
+            --dry-run=client -o yaml | kubectl apply -f -
+          kubectl -n value-fabric create secret generic jwt-secret \
+            --from-literal=secret=$(openssl rand -base64 48) \
+            --dry-run=client -o yaml | kubectl apply -f -
+          kubectl -n value-fabric create secret generic anthropic-secret \
+            --from-literal=api-key=ephemeral-dummy-$(openssl rand -hex 8) \
+            --dry-run=client -o yaml | kubectl apply -f -
+      - name: Apply manifests to ephemeral environment
+        run: kubectl apply -f /tmp/ephemeral.yaml
+      - name: Post-deploy smoke checks
+        run: bash scripts/ci/k8s_postdeploy_smoke.sh
+      - name: Capture diagnostics on failure
+        if: failure()
+        run: |
+          kubectl get all -n value-fabric -o wide
+          kubectl get events -n value-fabric --sort-by=.lastTimestamp

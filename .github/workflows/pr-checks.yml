@@ -38,7 +38,7 @@ jobs:
   # safe, never assumed).
   change-scope:
     name: Change Scope
-    runs-on: ubuntu-latest
+    runs-on: depot-ubuntu-24.04-4
     timeout-minutes: 5
     permissions:
       contents: read
@@ -66,7 +66,7 @@ jobs:
 
   structural-preflight:
     name: Structural Preflight
-    runs-on: ubuntu-latest
+    runs-on: depot-ubuntu-24.04-4
     timeout-minutes: 5
 
     steps:
@@ -451,7 +451,7 @@ jobs:
 
   pr-overlap-guard:
     name: PR Overlap Guard
-    runs-on: ubuntu-latest
+    runs-on: depot-ubuntu-24.04-4
     timeout-minutes: 10
     if: github.event_name == 'pull_request'
     permissions:
@@ -473,7 +473,7 @@ jobs:
 
   production-readiness-gate:
     name: Production Readiness Gate
-    runs-on: ubuntu-latest
+    runs-on: depot-ubuntu-24.04-4
     timeout-minutes: 30
 
     steps:
@@ -515,7 +515,7 @@ jobs:
 
   governance-docs-check:
     name: Governance Docs Guard
-    runs-on: ubuntu-latest
+    runs-on: depot-ubuntu-24.04-4
     timeout-minutes: 5
 
     steps:
@@ -689,7 +689,7 @@ jobs:
     needs: change-scope
     if: needs.change-scope.outputs.layer1 == 'true'
     name: Layer 1 - Ingestion
-    runs-on: ubuntu-latest
+    runs-on: depot-ubuntu-24.04-4
     timeout-minutes: 15
     env:
       PGUSER: postgres
@@ -878,7 +878,7 @@ jobs:
     needs: change-scope
     if: needs.change-scope.outputs.layer2 == 'true'
     name: Layer 2 - Extraction
-    runs-on: ubuntu-latest
+    runs-on: depot-ubuntu-24.04-4
     timeout-minutes: 15
     defaults:
       run:
@@ -974,7 +974,7 @@ jobs:
     needs: change-scope
     if: needs.change-scope.outputs.layer3 == 'true'
     name: Layer 3 - Knowledge
-    runs-on: ubuntu-latest
+    runs-on: depot-ubuntu-24.04-4
     # The full coverage suite consistently needs more than 13 minutes on the
     # hosted runner before the hostile-tenant and evidence steps execute.
     timeout-minutes: 30
@@ -1120,7 +1120,7 @@ jobs:
     needs: change-scope
     if: needs.change-scope.outputs.layer4 == 'true'
     name: Layer 4 - Agents
-    runs-on: ubuntu-latest
+    runs-on: depot-ubuntu-24.04-4
     timeout-minutes: 15
     defaults:
       run:
@@ -1192,7 +1192,7 @@ jobs:
     needs: change-scope
     if: needs.change-scope.outputs.layer5 == 'true'
     name: Layer 5 - Ground Truth
-    runs-on: ubuntu-latest
+    runs-on: depot-ubuntu-24.04-4
     timeout-minutes: 15
     defaults:
       run:
@@ -1263,7 +1263,7 @@ jobs:
     needs: change-scope
     if: needs.change-scope.outputs.layer5 == 'true'
     name: Layer 5 - Source Contract
-    runs-on: ubuntu-latest
+    runs-on: depot-ubuntu-24.04-4
     timeout-minutes: 10
     defaults:
       run:
@@ -1284,7 +1284,7 @@ jobs:
     needs: change-scope
     if: needs.change-scope.outputs.layer5 == 'true'
     name: Layer 5 - Tenant Isolation Regression
-    runs-on: ubuntu-latest
+    runs-on: depot-ubuntu-24.04-4
     timeout-minutes: 15
     defaults:
       run:
@@ -1328,7 +1328,7 @@ jobs:
     needs: change-scope
     if: needs.change-scope.outputs.layer5 == 'true'
     name: Layer 5 - Contract Shape Regression
-    runs-on: ubuntu-latest
+    runs-on: depot-ubuntu-24.04-4
     timeout-minutes: 20
     defaults:
       run:
@@ -1390,7 +1390,7 @@ jobs:
     needs: change-scope
     if: needs.change-scope.outputs.layer6 == 'true'
     name: Layer 6 - Benchmarks
-    runs-on: ubuntu-latest
+    runs-on: depot-ubuntu-24.04-4
     timeout-minutes: 15
     defaults:
       run:
@@ -1457,7 +1457,7 @@ jobs:
     needs: change-scope
     if: needs.change-scope.outputs.backend == 'true'
     name: Shared & Tests - Code Quality
-    runs-on: ubuntu-latest
+    runs-on: depot-ubuntu-24.04-4
     timeout-minutes: 5
 
     steps:
@@ -1537,7 +1537,7 @@ jobs:
     needs: change-scope
     if: needs.change-scope.outputs.web == 'true'
     name: Frontend
-    runs-on: ubuntu-latest
+    runs-on: depot-ubuntu-24.04-4
     timeout-minutes: 10
     defaults:
       run:
@@ -1709,7 +1709,7 @@ jobs:
     needs: change-scope
     if: needs.change-scope.outputs.web == 'true'
     name: behavior-tests
-    runs-on: ubuntu-latest
+    runs-on: depot-ubuntu-24.04-4
     timeout-minutes: 30
     defaults:
       run:
@@ -1763,7 +1763,7 @@ jobs:
       needs.change-scope.outputs.code == 'true'
       || needs.change-scope.outputs.docker == 'true'
     name: p0-e2e-gate
-    runs-on: ubuntu-latest
+    runs-on: depot-ubuntu-24.04-4
     timeout-minutes: 45
     defaults:
       run:
@@ -1838,7 +1838,7 @@ jobs:
     needs: change-scope
     if: needs.change-scope.outputs.k8s == 'true'
     name: Kubernetes Dry-Run Validation
-    runs-on: ubuntu-latest
+    runs-on: depot-ubuntu-24.04-4
     timeout-minutes: 15
 
     steps:
@@ -1906,7 +1906,7 @@ jobs:
     needs: change-scope
     if: needs.change-scope.outputs.backend == 'true'
     name: Cross-Layer Contract Tests
-    runs-on: ubuntu-latest
+    runs-on: depot-ubuntu-24.04-4
     timeout-minutes: 5
 
     steps:
@@ -2014,7 +2014,7 @@ jobs:
 
   runtime-contract-checks:
     name: Runtime Contract Tests (Services Up)
-    runs-on: ubuntu-latest
+    runs-on: depot-ubuntu-24.04-4
     timeout-minutes: 20
     needs: change-scope
     if: >-
@@ -2169,7 +2169,7 @@ jobs:
     needs: change-scope
     if: needs.change-scope.outputs.backend == 'true'
     name: Schemathesis Property-Based Contract Tests
-    runs-on: ubuntu-latest
+    runs-on: depot-ubuntu-24.04-4
     timeout-minutes: 10
 
     steps:
@@ -2246,7 +2246,7 @@ jobs:
   # Integration tests with Docker — PR-blocking
   integration-checks:
     name: Integration Tests (Docker)
-    runs-on: ubuntu-latest
+    runs-on: depot-ubuntu-24.04-4
     timeout-minutes: 35
     # Skip on fork PRs (no secrets available)
     needs: change-scope
@@ -2328,7 +2328,7 @@ jobs:
     needs: change-scope
     if: needs.change-scope.outputs.backend == 'true'
     name: Billing/Entitlements Regression + Evidence
-    runs-on: ubuntu-latest
+    runs-on: depot-ubuntu-24.04-4
     timeout-minutes: 10
 
     steps:
@@ -2375,7 +2375,7 @@ jobs:
     needs: change-scope
     if: needs.change-scope.outputs.docker == 'true'
     name: Docker Compose Config Contract
-    runs-on: ubuntu-latest
+    runs-on: depot-ubuntu-24.04-4
     timeout-minutes: 10
 
     steps:
@@ -2425,7 +2425,7 @@ jobs:
     needs: change-scope
     if: needs.change-scope.outputs.backend == 'true'
     name: Queue Topology
-    runs-on: ubuntu-latest
+    runs-on: depot-ubuntu-24.04-4
     timeout-minutes: 10
 
     steps:
@@ -2458,7 +2458,7 @@ jobs:
     needs: change-scope
     if: needs.change-scope.outputs.docker == 'true'
     name: Docker Image Build Verification
-    runs-on: ubuntu-latest
+    runs-on: depot-ubuntu-24.04-4
     timeout-minutes: 30
     env:
       BASE_IMAGE: ""
@@ -2585,7 +2585,7 @@ jobs:
     needs: change-scope
     if: needs.change-scope.outputs.k8s == 'true'
     name: Alertmanager Config Validation
-    runs-on: ubuntu-latest
+    runs-on: depot-ubuntu-24.04-4
     timeout-minutes: 5
 
     steps:
@@ -2637,7 +2637,7 @@ jobs:
     needs: change-scope
     if: needs.change-scope.outputs.backend == 'true'
     name: Route Auth Dependency Gate
-    runs-on: ubuntu-latest
+    runs-on: depot-ubuntu-24.04-4
     timeout-minutes: 10
 
     steps:
@@ -2658,7 +2658,7 @@ jobs:
     needs: change-scope
     if: needs.change-scope.outputs.backend == 'true'
     name: Tenant Isolation Gate
-    runs-on: ubuntu-latest
+    runs-on: depot-ubuntu-24.04-4
     timeout-minutes: 35
     services:
       postgres:
@@ -2742,7 +2742,7 @@ jobs:
     needs: change-scope
     if: needs.change-scope.outputs.code == 'true'
     name: Critical Behaviors Gate
-    runs-on: ubuntu-latest
+    runs-on: depot-ubuntu-24.04-4
     timeout-minutes: 15
 
     steps:
@@ -2819,7 +2819,7 @@ jobs:
 
   gate-engineering:
     name: Gate Engineering Validation
-    runs-on: ubuntu-latest
+    runs-on: depot-ubuntu-24.04-4
     timeout-minutes: 10
     needs: structural-preflight
 
@@ -2846,7 +2846,7 @@ jobs:
 
   unified-readiness-gate:
     name: Unified Readiness Gate
-    runs-on: ubuntu-latest
+    runs-on: depot-ubuntu-24.04-4
     if: always()
     needs:
       - change-scope
@@ -3013,7 +3013,7 @@ jobs:
   # ---------------------------------------------------------------------------
   aggregate-01-repository-integrity:
     name: 01-repository-integrity
-    runs-on: ubuntu-latest
+    runs-on: depot-ubuntu-24.04-4
     timeout-minutes: 5
     if: always()
     needs:
@@ -3037,7 +3037,7 @@ jobs:
 
   aggregate-02-code-quality-and-tests:
     name: 02-code-quality-and-tests
-    runs-on: ubuntu-latest
+    runs-on: depot-ubuntu-24.04-4
     timeout-minutes: 5
     if: always()
     needs:
@@ -3077,7 +3077,7 @@ jobs:
 
   aggregate-05-tenant-isolation-and-behavior:
     name: 05-tenant-isolation-and-behavior
-    runs-on: ubuntu-latest
+    runs-on: depot-ubuntu-24.04-4
     timeout-minutes: 5
     if: always()
     needs:
@@ -3115,7 +3115,7 @@ jobs:
   # branch-protection and CODEOWNER requirements.
   aggregate-09-change-risk-and-approval:
     name: 09-change-risk-and-approval
-    runs-on: ubuntu-latest
+    runs-on: depot-ubuntu-24.04-4
     timeout-minutes: 5
     if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
     permissions:

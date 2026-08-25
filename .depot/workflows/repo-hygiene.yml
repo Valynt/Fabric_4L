@@ -1,0 +1,100 @@
+# Depot CI Migration
+# Source: .github/workflows/repo-hygiene.yml
+#
+# Changes made:
+# - Rewrote .github/ path references to .depot/
+# - Changed GitHub runs-on labels to their Depot equivalents
+
+name: Repository Hygiene
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.depot/workflows/**'
+      - '.github/dependabot.yml'
+      - '.github/CODEOWNERS'
+      - '.github/scripts/**'
+      - 'monitoring/alerting/rules.yml'
+      - 'canonical-paths.yaml'
+      - 'scripts/ci/repo_hygiene.py'
+      - 'scripts/ci/legacy_path_guard.py'
+      - 'scripts/ci/check_layer1_imports.py'
+      - 'scripts/ci/check_layer56_shims.py'
+      - 'scripts/ci/check_deprecated_namespace_imports.py'
+      - 'scripts/ci/check_stale_namespace_dirs.py'
+  push:
+    branches: [main]
+    paths:
+      - '.depot/workflows/**'
+      - '.github/dependabot.yml'
+      - '.github/CODEOWNERS'
+      - '.github/scripts/**'
+      - 'monitoring/alerting/rules.yml'
+      - 'canonical-paths.yaml'
+      - 'scripts/ci/repo_hygiene.py'
+      - 'scripts/ci/legacy_path_guard.py'
+      - 'scripts/ci/check_layer1_imports.py'
+      - 'scripts/ci/check_layer56_shims.py'
+      - 'scripts/ci/check_deprecated_namespace_imports.py'
+      - 'scripts/ci/check_stale_namespace_dirs.py'
+  workflow_dispatch:
+  schedule:
+    - cron: "0 0 * * 0" # Weekly on Sunday
+concurrency:
+  group: repo-hygiene-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  repo-hygiene:
+    name: Canonical Layout & Legacy Path Check
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    timeout-minutes: 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install PyYAML
+        run: pip install pyyaml
+      - name: Run legacy path guard
+        run: python scripts/ci/legacy_path_guard.py --repo-root .
+      - name: Ban str(e)/repr(e) exception leaks
+        run: python scripts/ci/ban_str_e.py
+      - name: Check stale namespace directories
+        run: python scripts/ci/check_stale_namespace_dirs.py
+      - name: Run repository hygiene validator
+        id: hygiene
+        run: |
+          python scripts/ci/repo_hygiene.py --json | tee artifacts/repo-hygiene.json
+          exit ${PIPESTATUS[0]}
+      - name: Comment PR with hygiene report (on failure)
+        if: failure() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: "const fs = require('fs');\nlet report;\ntry {\n  report = JSON.parse(fs.readFileSync('artifacts/repo-hygiene.json', 'utf8'));\n} catch (e) {\n  report = { passed: false, errors: 1, warnings: 0, violations: [] };\n}\nconst lines = [\n  '## \U0001F9F9 Repository Hygiene Check Failed',\n  '',\n  `**Errors:** ${report.errors}  |  **Warnings:** ${report.warnings}`,\n  '',\n  'Active workflows, Dependabot, CODEOWNERS, or monitoring rules reference deleted or obsolete directories.',\n  '',\n  '### Violations',\n  ...report.violations\n    .filter(v => v.severity === 'error')\n    .map(v => `- **${v.file}:${v.line}** — ${v.message}`),\n  '',\n  '> See \\_canonical-paths.yaml\\_ for the canonical layout manifest and migration guidance.'\n];\nawait github.rest.issues.createComment({\n  issue_number: context.issue.number,\n  owner: context.repo.owner,\n  repo: context.repo.repo,\n  body: lines.join('\\n')\n});\n"
+      - name: Upload hygiene report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: repo-hygiene-report
+          path: artifacts/repo-hygiene.json
+          retention-days: 14
+  branch-cleanup:
+    name: Cleanup Stale Branches
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Delete stale branches and close PRs
+        uses: actions/github-script@v7
+        with:
+          script: "const daysToStale = 30;\nconst threshold = new Date();\nthreshold.setDate(threshold.getDate() - daysToStale);\n\nconst branches = await github.paginate(github.rest.repos.listBranches, {\n  owner: context.repo.owner,\n  repo: context.repo.repo,\n});\n\nfor (const branch of branches) {\n  if (branch.name === 'main' || branch.name.startsWith('release/')) continue;\n  \n  const commit = await github.rest.repos.getCommit({\n    owner: context.repo.owner,\n    repo: context.repo.repo,\n    ref: branch.commit.sha,\n  });\n  const commitDate = new Date(commit.data.commit.committer.date);\n  const isStale = commitDate < threshold;\n  \n  // We also aggressively clean up fully merged branches or abandoned bot branches\n  const isBotBranch = branch.name.startsWith('copilot/') || branch.name.startsWith('codex/');\n  \n  const pulls = await github.rest.pulls.list({\n    owner: context.repo.owner,\n    repo: context.repo.repo,\n    head: `${context.repo.owner}:${branch.name}`,\n    state: 'open'\n  });\n  \n  // If it has no open PRs and it's a bot branch, or if it's stale, or if it's fully merged\n  let isFullyMerged = false;\n  const isAbandonedBotBranch = isBotBranch && pulls.data.length === 0;\n  const shouldCheckIfFullyMerged = !isStale && !isAbandonedBotBranch;\n  \n  if (shouldCheckIfFullyMerged) {\n    try {\n      const compare = await github.rest.repos.compareCommits({\n        owner: context.repo.owner,\n        repo: context.repo.repo,\n        base: 'main',\n        head: branch.name\n      });\n      isFullyMerged = compare.data.ahead_by === 0;\n    } catch (e) {\n      console.error(`Failed to compare ${branch.name} with main: ${e.message}`);\n    }\n  }\n  \n  if (isStale || isFullyMerged || isAbandonedBotBranch) {\n    const failedPRs = [];\n    for (const pr of pulls.data) {\n      console.log(`Closing PR: ${pr.number} (branch: ${branch.name})`);\n      try {\n        await github.rest.pulls.update({\n          owner: context.repo.owner,\n          repo: context.repo.repo,\n          pull_number: pr.number,\n          state: 'closed'\n        });\n      } catch (e) {\n        console.error(`Failed to close PR ${pr.number}: ${e.message}`);\n        failedPRs.push(pr.number);\n      }\n    }\n    \n    if (failedPRs.length === 0) {\n      console.log(`Deleting branch: ${branch.name}`);\n      try {\n        await github.rest.git.deleteRef({\n          owner: context.repo.owner,\n          repo: context.repo.repo,\n          ref: `heads/${branch.name}`\n        });\n      } catch (e) {\n        console.error(`Failed to delete ${branch.name}: ${e.message}`);\n      }\n    } else {\n      console.error(`Skipping deletion of branch ${branch.name}. Failed to close PRs: ${failedPRs.join(', ')}`);\n    }\n  }\n}\n"

@@ -1,0 +1,104 @@
+# Depot CI Migration
+# Source: .github/workflows/generated-api-freshness.yml
+#
+# Changes made:
+# - Rewrote .github/ path references to .depot/
+# - Changed GitHub runs-on labels to their Depot equivalents
+
+name: Generated API Freshness
+permissions:
+  contents: read
+on:
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'services/**/src/**'
+      - 'contracts/openapi/**'
+      - 'apps/web/src/api/**'
+      - 'packages/platform-contract/src/typescript/generated/**'
+      - 'packages/platform-contract/scripts/generate-openapi-types.mjs'
+      - 'apps/web/scripts/generate-api-types.ts'
+      - 'scripts/export_openapi.py'
+      - 'scripts/ci/contract_compliance_gate.py'
+      - 'scripts/ci/check_l1_target_schema.py'
+      - 'scripts/ci/check_targets_stats_named_schema.py'
+      - 'scripts/ci/check_generated_jsonvalue_absent.py'
+      - 'scripts/ci/check_clerk_tenant_response_exported.py'
+      - 'scripts/ci/check_clerk_tenant_mapping_contract.py'
+      - 'scripts/ci/check_generated_client_reproducibility.py'
+      - '.depot/workflows/generated-api-freshness.yml'
+  push:
+    branches:
+      - main
+      - develop
+      - 'release/**'
+    paths:
+      - 'services/**/src/**'
+      - 'contracts/openapi/**'
+      - 'apps/web/src/api/**'
+      - 'packages/platform-contract/src/typescript/generated/**'
+      - 'packages/platform-contract/scripts/generate-openapi-types.mjs'
+      - 'apps/web/scripts/generate-api-types.ts'
+      - 'scripts/export_openapi.py'
+      - 'scripts/ci/contract_compliance_gate.py'
+      - 'scripts/ci/check_l1_target_schema.py'
+      - 'scripts/ci/check_targets_stats_named_schema.py'
+      - 'scripts/ci/check_generated_jsonvalue_absent.py'
+      - 'scripts/ci/check_clerk_tenant_response_exported.py'
+      - 'scripts/ci/check_clerk_tenant_mapping_contract.py'
+      - 'scripts/ci/check_generated_client_reproducibility.py'
+      - '.depot/workflows/generated-api-freshness.yml'
+  workflow_dispatch:
+concurrency:
+  group: generated-api-freshness-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  generated-api-freshness:
+    name: generated-api-freshness
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Setup Node.js + pnpm
+        uses: ./.depot/actions/setup-pnpm
+        with:
+          node-version: '22.18.0'
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      # scripts/export_openapi.py imports every service FastAPI app at module load.
+      # Services pull in runtime utilities (httpx, sqlalchemy, structlog, redis,
+      # limits, jsonschema, ...) that are not needed for schema generation but must
+      # be importable. Optional runtime integrations (celery, playwright, protego,
+      # langgraph checkpoint postgres) are shimmed inside the exporter. We reuse the
+      # maintained mandatory test requirements as the baseline runtime surface and
+      # add uvicorn plus the OpenTelemetry packages imported by Layer 4's app factory.
+      - name: Install Python OpenAPI export dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r tests/requirements-test.txt uvicorn \
+            opentelemetry-api opentelemetry-sdk opentelemetry-exporter-otlp-proto-http \
+            opentelemetry-instrumentation opentelemetry-instrumentation-fastapi
+      - name: Run generated API freshness gate
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            python scripts/ci/contract_compliance_gate.py --mode fast --base-ref origin/${{ github.base_ref }}
+          else
+            python scripts/ci/contract_compliance_gate.py --mode full
+          fi
+      - name: Run contract shape integrity checks
+        run: |
+          python scripts/ci/check_l1_target_schema.py
+          python scripts/ci/check_targets_stats_named_schema.py
+          python scripts/ci/check_generated_jsonvalue_absent.py
+          python scripts/ci/check_clerk_tenant_response_exported.py
+          python scripts/ci/check_clerk_tenant_mapping_contract.py
+      - name: Run generated client reproducibility gate
+        run: |
+          python scripts/ci/check_generated_client_reproducibility.py
