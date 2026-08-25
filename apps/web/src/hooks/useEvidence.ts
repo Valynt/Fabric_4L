@@ -19,7 +19,6 @@ import {
 } from "./useApiShared";
 import { createLogger } from "@/lib/telemetry";
 import {
-  parseBulkImportResponse,
   parseCaseStudy,
   parseCaseStudyListResponse,
   parseCaseStudyMutationResponse,
@@ -300,25 +299,6 @@ export function useDeleteCaseStudy() {
   });
 }
 
-export function useBulkImportCaseStudies() {
-  const queryClient = useQueryClient();
-  return useMutation<BulkImportResponse, EvidenceApiError, BulkImportRequest>({
-    mutationFn: async params => {
-      const response = await apiPost<BulkImportResponse>(
-        "l3",
-        "/v1/evidence/case-studies/bulk-import",
-        params
-      );
-      return parseBulkImportResponse(response.data);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QK.evidence.all });
-    },
-    onError: (error) => {
-      log.error('BulkImportCaseStudies failed', { error: error instanceof Error ? error.message : String(error) });
-    },
-  });
-}
 
 export function useEvidenceSearch() {
   return useMutation<
