@@ -11,6 +11,8 @@ import hashlib
 import time
 
 from pydantic import BaseModel, ConfigDict
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.types import ASGIApp
 
 
 def _tenant_bucket(tenant_id: str, count: int = 64) -> str:
@@ -335,13 +337,15 @@ class PrometheusMetrics:
         return "\n".join(lines)
 
 
-class MetricsMiddleware:
+class MetricsMiddleware(BaseHTTPMiddleware):
     """FastAPI / ASGI middleware for collecting Layer 2 HTTP metrics."""
 
-    def __init__(self, metrics: PrometheusMetrics) -> None:
+    def __init__(self, app: ASGIApp, metrics: PrometheusMetrics) -> None:
+        super().__init__(app)
         self.metrics = metrics
         try:
             from value_fabric.shared.observability import PathNormalizer
+
             self._normalizer = PathNormalizer()
         except ImportError:
             self._normalizer = None
@@ -351,7 +355,7 @@ class MetricsMiddleware:
             return path.rstrip("/") or "/"
         return self._normalizer.normalize(path)
 
-    async def __call__(self, request, call_next):
+    async def dispatch(self, request, call_next):
         start_time = time.perf_counter()
         try:
             response = await call_next(request)
@@ -381,9 +385,6 @@ class MetricsMiddleware:
             elif status_code == 403:
                 self.metrics.record_auth_failure(reason="insufficient_role", component="http")
         return response
-
-    async def dispatch(self, request, call_next):
-        return await self.__call__(request, call_next)
 
 
 _metrics_instance: PrometheusMetrics | None = None
