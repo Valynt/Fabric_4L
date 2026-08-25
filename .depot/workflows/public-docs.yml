@@ -1,0 +1,66 @@
+# Depot CI Migration
+# Source: .github/workflows/public-docs.yml
+#
+# Changes made:
+# - Rewrote .github/ path references to .depot/
+# - Changed GitHub runs-on labels to their Depot equivalents
+
+name: Public Docs
+on:
+  pull_request:
+    paths:
+      - "docs-site/**"
+      - "contracts/openapi/fabric-4l-api.json"
+      - ".depot/workflows/public-docs.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "docs-site/**"
+      - "contracts/openapi/fabric-4l-api.json"
+      - ".depot/workflows/public-docs.yml"
+# Allow one concurrent deployment
+concurrency:
+  group: public-docs-${{ github.ref }}
+  cancel-in-progress: true
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    defaults:
+      run:
+        working-directory: docs-site
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install docs dependencies
+        run: pip install -r requirements-docs.txt
+      - name: Sync OpenAPI spec into docs tree
+        run: python scripts/sync-openapi.py
+      - name: Build public docs
+        run: mkdocs build --strict
+      - name: Upload site artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs-site/site
+  # Preview deploy to GitHub Pages (main only). Configure Pages source as
+  # "GitHub Actions" in the repository settings to enable publishing.
+  deploy:
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: build
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

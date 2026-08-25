@@ -1,0 +1,32 @@
+# Depot CI Migration
+# Source: .github/workflows/monthly-debt-burndown.yml
+#
+# Changes made:
+# - Changed GitHub runs-on labels to their Depot equivalents
+
+name: monthly-debt-burndown
+on:
+  schedule:
+    - cron: '0 14 1 * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  debt-burndown:
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Generate compatibility and duplicate debt reports
+        run: |
+          mkdir -p artifacts/debt-burndown
+          python scripts/ci/shim_usage_report.py --output-dir artifacts/debt-burndown
+          python scripts/ci/check_endpoint_coverage.py --write-report artifacts/debt-burndown/endpoint-coverage.json || true
+          python scripts/check_ui_duplicate_filenames.py --write-report artifacts/debt-burndown/ui-duplicates.json || true
+      - name: Upload monthly debt artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: monthly-debt-burndown-artifacts
+          path: artifacts/debt-burndown

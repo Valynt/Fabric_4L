@@ -1,0 +1,33 @@
+# Depot CI Migration
+# Source: .github/workflows/repro-seed-validation.yml
+#
+# Changes made:
+# - Rewrote .github/ path references to .depot/
+# - Changed GitHub runs-on labels to their Depot equivalents
+
+name: Repro Seed Validation
+on:
+  pull_request:
+    paths:
+      - 'scripts/repro-seeds/**'
+      - 'tests/repro-seeds/**'
+      - '.depot/workflows/repro-seed-validation.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/repro-seeds/**'
+      - 'tests/repro-seeds/**'
+      - '.depot/workflows/repro-seed-validation.yml'
+permissions: read-all
+jobs:
+  validate-repro-seeds:
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Validate seed determinism and tenant safety
+        run: python scripts/repro-seeds/validate_seed_packs.py

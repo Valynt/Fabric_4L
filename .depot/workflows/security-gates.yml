@@ -1,0 +1,1267 @@
+# Depot CI Migration
+# Source: .github/workflows/security-gates.yml
+#
+# Changes made:
+# - Rewrote .github/ path references to .depot/
+# - Changed GitHub runs-on labels to their Depot equivalents
+
+# Action pinning and update process
+# - All third-party actions are pinned to full-length commit SHAs.
+# - Dependabot (github-actions ecosystem) remains enabled to open SHA bump PRs.
+# - Quarterly, run a dedicated "Workflow Action Pin Refresh" PR that:
+#   1) updates each action to the latest upstream commit for the tracked major/minor tag,
+#   2) runs full CI (including security gates), and
+#   3) records verification results in the PR description before merge.
+name: Security Gates
+on:
+  pull_request:
+    branches: [main, develop, staging, production]
+  push:
+    branches: [main, develop, staging, production]
+  # V1-CI-001: merge queue support (Stage 1 shadow; aggregates become
+  # required at Stage 3).
+  merge_group:
+  schedule:
+    # Run weekly on Mondays at 9 AM UTC
+    - cron: "0 9 * * 1"
+concurrency:
+  # Cancel only an obsolete run of this same workflow/ref. A global
+  # feature-branch group lets activity on an unrelated PR cancel required gates.
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+env:
+  SECURITY_ARTIFACT_RETENTION_DAYS: 30
+  # Reviewed scanner release shared by every Semgrep job. Update only in a
+  # dedicated security-tool review together with config/semgrep/registry/.
+  SEMGREP_VERSION: "1.136.0"
+  # Opt into Node.js 24 for GitHub Actions
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+jobs:
+  # Change-scoping layer: resolve which scopes this event touches so that
+  # per-layer / per-surface security fan-out only runs when the change can
+  # actually affect it. Non-pull_request events (push, schedule) resolve
+  # every scope to 'true'. Repository-wide secret/IaC scans (gitleaks,
+  # trivy-repo-scan, dependency-review) stay unscoped by design.
+  change-scope:
+    name: Change Scope
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      layer3: ${{ steps.scope.outputs.layer3 }}
+      backend: ${{ steps.scope.outputs.backend }}
+      web: ${{ steps.scope.outputs.web }}
+      code: ${{ steps.scope.outputs.code }}
+      docker: ${{ steps.scope.outputs.docker }}
+      deps: ${{ steps.scope.outputs.deps }}
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - name: Resolve change scopes
+        id: scope
+        uses: ./.depot/actions/change-scope
+  dev-auth-bypass-guard:
+    name: Dev Auth Bypass Guard
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - name: Check committed dev auth bypass flags
+        run: bash scripts/ci/check-dev-auth-bypass.sh
+  # Secret detection with gitleaks
+  gitleaks-scan:
+    name: Secret Detection (gitleaks)
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          fetch-depth: 0
+      - name: Run gitleaks
+        uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+  # SEC-L3-CYPHER-003: Static analysis gate for dynamic Cypher construction.
+  # Blocks PRs that introduce unparameterized label/rel-type interpolation in
+  # Layer 3 Cypher queries. Uses Semgrep rules in .semgrep/cypher-dynamic-guard.yml.
+  cypher-dynamic-guard:
+    needs: change-scope
+    if: needs.change-scope.outputs.layer3 == 'true'
+    name: Cypher Dynamic Construction Guard (SEC-L3-CYPHER-003)
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.11"
+      - name: Install reviewed Semgrep release
+        run: pip install "semgrep==${{ env.SEMGREP_VERSION }}"
+      - name: Run Cypher dynamic guard (ERROR rules — block on failure)
+        run: |
+          semgrep \
+            --config .semgrep/cypher-dynamic-guard.yml \
+            --severity ERROR \
+            --error \
+            --json \
+            --output semgrep-cypher-errors.json \
+            services/layer3-knowledge/src/ \
+            || (cat semgrep-cypher-errors.json && exit 1)
+      - name: Run Cypher dynamic guard (WARNING rules — report only)
+        run: |
+          semgrep \
+            --config .semgrep/cypher-dynamic-guard.yml \
+            --severity WARNING \
+            --json \
+            --output semgrep-cypher-warnings.json \
+            services/layer3-knowledge/src/ || true
+          if [ -s semgrep-cypher-warnings.json ]; then
+            echo "::warning::Cypher dynamic WHERE/SET clause patterns detected — review required"
+            cat semgrep-cypher-warnings.json
+          fi
+      - name: Upload Semgrep results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: semgrep-cypher-guard-${{github.sha}}
+          path: |
+            semgrep-cypher-errors.json
+            semgrep-cypher-warnings.json
+          retention-days: ${{env.SECURITY_ARTIFACT_RETENTION_DAYS}}
+  # Full-repository Semgrep CE scan (SAST) with an intentionally narrowed,
+  # curated ruleset in config/semgrep/registry/ (NOT a full snapshot of the
+  # former p/* registry packs) plus local .semgrep/ rules. Produces SARIF and
+  # fails closed on ERROR-severity findings.
+  semgrep-full-scan:
+    needs: change-scope
+    if: needs.change-scope.outputs.code == 'true'
+    name: Semgrep CE Full Scan (SAST)
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.11"
+      - name: Install reviewed Semgrep CE release
+        run: pip install "semgrep==${{ env.SEMGREP_VERSION }}"
+      - name: Smoke check pinned Semgrep
+        env:
+          SEMGREP_SEND_METRICS: "off"
+        run: |
+          semgrep scan \
+            --validate \
+            --config config/semgrep/registry/ \
+            --config .semgrep/
+          printf 'print("semgrep smoke")\n' > /tmp/semgrep-smoke.py
+          semgrep scan \
+            --config config/semgrep/registry/ \
+            --config .semgrep/ \
+            --metrics off \
+            --sarif \
+            --output /tmp/semgrep-smoke.sarif \
+            /tmp/semgrep-smoke.py
+          python3 - <<'PYEOF'
+          import json
+          with open('/tmp/semgrep-smoke.sarif', encoding='utf-8') as fh:
+              sarif = json.load(fh)
+          assert sarif.get('version') == '2.1.0'
+          assert isinstance(sarif.get('runs'), list) and sarif['runs']
+          PYEOF
+      - name: Run Semgrep CE (curated rules + local rules)
+        env:
+          # Semgrep CE only; no Semgrep AppSec Platform token is used.
+          SEMGREP_SEND_METRICS: "off"
+        run: |
+          semgrep scan \
+            --config config/semgrep/registry/ \
+            --config .semgrep/ \
+            --metrics off \
+            --exclude 'archive/**' \
+            --exclude 'docs/archive/**' \
+            --sarif \
+            --output semgrep-full.sarif
+          test -s semgrep-full.sarif
+      - name: Upload Semgrep SARIF to GitHub Security
+        if: always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        uses: github/codeql-action/upload-sarif@3ce22a6e336a7fcc318bc58ae1986395bdc83ba7 # v4.35.4
+        with:
+          sarif_file: semgrep-full.sarif
+          category: semgrep-full-scan
+      - name: Fail on ERROR-severity Semgrep findings
+        run: |
+          python3 scripts/ci/check_semgrep_sarif.py \
+            --sarif semgrep-full.sarif \
+            --baseline config/ci/semgrep_baseline.json
+      - name: Upload Semgrep full-scan results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: semgrep-full-scan-${{github.sha}}
+          path: semgrep-full.sarif
+          retention-days: ${{env.SECURITY_ARTIFACT_RETENTION_DAYS}}
+  # Prepare Helm dependencies separately so repository availability failures are
+  # reported as rendering-preparation failures rather than Trivy scan failures.
+  prepare-helm-dependencies:
+    name: Prepare Helm Dependencies
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - name: Initialize Helm preparation diagnostics
+        run: |
+          mkdir -p artifacts/helm-preparation-diagnostics
+          {
+            echo "helm_version=v3.16.2"
+            echo "chart_lock_sha256=$(sha256sum infra/helm/fabric-chart/Chart.lock | cut -d' ' -f1)"
+          } > artifacts/helm-preparation-diagnostics/context.txt
+      - name: Setup Helm
+        uses: azure/setup-helm@bf6a7d304bc2fdb57e0331155b7ebf2c504acf0a # v4
+        with:
+          version: "v3.16.2"
+      - name: Restore exact locked Helm dependency cache
+        id: helm-cache
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        with:
+          path: |
+            infra/helm/fabric-chart/charts/
+            artifacts/helm-dependencies/checksums.sha256
+            artifacts/helm-dependencies/metadata.json
+          key: helm-deps-${{ runner.os }}-${{ runner.arch }}-helm-v3.16.2-${{ hashFiles('infra/helm/fabric-chart/Chart.lock') }}
+      - name: Validate restored Helm dependency cache
+        id: cache-validation
+        if: steps.helm-cache.outputs.cache-hit == 'true'
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          python3 scripts/ci/validate_helm_dependencies.py validate \
+            --chart-dir infra/helm/fabric-chart \
+            --evidence-dir artifacts/helm-dependencies \
+            --helm-version v3.16.2 \
+            2>&1 | tee artifacts/helm-preparation-diagnostics/cache-validation.log
+      - name: Rebuild locked Helm dependencies with bounded retries
+        if: steps.helm-cache.outputs.cache-hit != 'true' || steps.cache-validation.outcome != 'success'
+        run: |
+          set -Eeuo pipefail
+          rm -rf infra/helm/fabric-chart/charts artifacts/helm-dependencies
+          mkdir -p infra/helm/fabric-chart/charts artifacts/helm-dependencies
+          echo "cache_hit=${{ steps.helm-cache.outputs.cache-hit }}" \
+            >> artifacts/helm-preparation-diagnostics/context.txt
+
+          success=false
+          for attempt in 1 2 3; do
+            log="artifacts/helm-preparation-diagnostics/live-build-attempt-${attempt}.log"
+            echo "Helm dependency build attempt ${attempt}/3" | tee "${log}"
+            if {
+              set -x
+              timeout 60s helm repo add bitnami https://charts.bitnami.com/bitnami --force-update &&
+              timeout 60s helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx --force-update &&
+              timeout 60s helm repo update bitnami ingress-nginx &&
+              timeout 180s helm dependency build infra/helm/fabric-chart
+            } 2>&1 | tee -a "${log}"; then
+              success=true
+              break
+            fi
+            echo "Attempt ${attempt} failed; see ${log}" | tee -a artifacts/helm-preparation-diagnostics/failures.log
+            if [ "${attempt}" -lt 3 ]; then
+              sleep $((attempt * 10))
+            fi
+          done
+          if [ "${success}" != true ]; then
+            echo "Helm preparation exhausted three bounded live-resolution attempts" | tee -a artifacts/helm-preparation-diagnostics/failures.log
+            exit 1
+          fi
+
+          python3 scripts/ci/validate_helm_dependencies.py generate \
+            --chart-dir infra/helm/fabric-chart \
+            --evidence-dir artifacts/helm-dependencies \
+            --helm-version v3.16.2 \
+            2>&1 | tee artifacts/helm-preparation-diagnostics/evidence-generation.log
+      - name: Validate prepared Helm dependencies
+        run: |
+          set -Eeuo pipefail
+          python3 scripts/ci/validate_helm_dependencies.py validate \
+            --chart-dir infra/helm/fabric-chart \
+            --evidence-dir artifacts/helm-dependencies \
+            --helm-version v3.16.2 \
+            2>&1 | tee artifacts/helm-preparation-diagnostics/final-validation.log
+          helm dependency list infra/helm/fabric-chart \
+            2>&1 | tee artifacts/helm-preparation-diagnostics/dependency-list.log
+          git diff --exit-code -- \
+            infra/helm/fabric-chart/Chart.lock \
+            infra/helm/fabric-chart/Chart.yaml
+      - name: Upload validated Helm dependencies
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: helm-prepared-dependencies-${{github.sha}}
+          path: |
+            infra/helm/fabric-chart/charts/
+            artifacts/helm-dependencies/checksums.sha256
+            artifacts/helm-dependencies/metadata.json
+          if-no-files-found: error
+          retention-days: ${{env.SECURITY_ARTIFACT_RETENTION_DAYS}}
+      - name: Upload Helm preparation diagnostics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: helm-preparation-diagnostics-${{github.sha}}
+          path: artifacts/helm-preparation-diagnostics/
+          if-no-files-found: error
+          retention-days: ${{env.SECURITY_ARTIFACT_RETENTION_DAYS}}
+  # Repository-wide Trivy scan: dependency vulnerabilities (lockfiles/requirements),
+  # secrets, and IaC misconfigurations (Dockerfiles, Compose, Kubernetes, Terraform).
+  # Complements the per-image trivy-image-scan job below.
+  trivy-repo-scan:
+    name: Repository Scan (Trivy fs + IaC + secrets)
+    needs: prepare-helm-dependencies
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - name: Setup Helm
+        uses: azure/setup-helm@bf6a7d304bc2fdb57e0331155b7ebf2c504acf0a # v4
+        with:
+          version: "v3.16.2"
+      - name: Download prepared Helm dependencies
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: helm-prepared-dependencies-${{github.sha}}
+          path: .
+      - name: Revalidate prepared Helm dependencies
+        run: |
+          python3 scripts/ci/validate_helm_dependencies.py validate \
+            --chart-dir infra/helm/fabric-chart \
+            --evidence-dir artifacts/helm-dependencies \
+            --helm-version v3.16.2
+          helm dependency list infra/helm/fabric-chart
+          git diff --exit-code -- \
+            infra/helm/fabric-chart/Chart.lock \
+            infra/helm/fabric-chart/Chart.yaml
+      - name: Run Trivy repository scanner
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
+        with:
+          scan-type: "fs"
+          scan-ref: "."
+          format: "sarif"
+          output: "trivy-repo.sarif"
+          exit-code: "1"
+          ignore-unfixed: true
+          vuln-type: "os,library"
+          severity: "HIGH,CRITICAL"
+          limit-severities-for-sarif: true
+          scanners: "vuln,secret,misconfig"
+          skip-dirs: "archive,docs/archive,node_modules"
+          trivy-config: "config/trivy/repository.yaml"
+          trivyignores: ".trivyignore.yaml"
+      - name: Verify Trivy SARIF artifact
+        if: always()
+        run: test -s trivy-repo.sarif
+      - name: Upload Trivy repository scan results
+        if: always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        uses: github/codeql-action/upload-sarif@3ce22a6e336a7fcc318bc58ae1986395bdc83ba7 # v4.35.4
+        with:
+          sarif_file: "trivy-repo.sarif"
+          category: trivy-repo
+      - name: Upload Trivy repository scan artifact
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: trivy-repo-scan-${{github.sha}}
+          path: trivy-repo.sarif
+          retention-days: ${{env.SECURITY_ARTIFACT_RETENTION_DAYS}}
+  # OSV-Scanner PR diff scan: blocks PRs that introduce NEW known vulnerabilities
+  # (compares base vs head against the OSV database) without failing on
+  # pre-existing findings. Uses Google's official reusable workflow so we get
+  # SARIF upload, artifacts, and annotations for free.
+  osv-scanner-pr:
+    name: OSV-Scanner (PR diff) / osv-scan
+    needs: change-scope
+    if: github.event_name == 'pull_request' && needs.change-scope.outputs.deps == 'true'
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    timeout-minutes: 15
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          fetch-depth: 0
+      - name: Checkout target branch
+        run: |
+          git checkout "${GITHUB_BASE_REF}"
+          git submodule update --recursive
+      - name: Run scanner on existing code
+        uses: google/osv-scanner-action/osv-scanner-action@8dc09193bb540e09b23da07ad7e30bd33bf87018 # v2.3.8
+        continue-on-error: true
+        with:
+          scan-args: |-
+            --format=json
+            --output=osv-pr-base.json
+            -r
+            ./
+      - name: Checkout current branch
+        run: |
+          git checkout -f "${GITHUB_SHA}"
+          git submodule update --recursive
+      - name: Run scanner on new code
+        uses: google/osv-scanner-action/osv-scanner-action@8dc09193bb540e09b23da07ad7e30bd33bf87018 # v2.3.8
+        continue-on-error: true
+        with:
+          scan-args: |-
+            --format=json
+            --output=osv-pr-head.json
+            -r
+            ./
+      - name: Run osv-scanner reporter
+        uses: google/osv-scanner-action/osv-reporter-action@8dc09193bb540e09b23da07ad7e30bd33bf87018 # v2.3.8
+        with:
+          scan-args: |-
+            --output=osv-scanner-pr.sarif
+            --old=osv-pr-base.json
+            --new=osv-pr-head.json
+            --gh-annotations=true
+            --fail-on-vuln=true
+      - name: Verify OSV report artifacts exist
+        if: ${{ !cancelled() }}
+        run: |
+          test -s osv-pr-base.json
+          test -s osv-pr-head.json
+          test -s osv-scanner-pr.sarif
+      - name: Upload OSV SARIF artifact
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: osv-scanner-pr-sarif
+          path: osv-scanner-pr.sarif
+          retention-days: 5
+      - name: Upload OSV JSON artifacts
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: osv-scanner-pr-json
+          path: |
+            osv-pr-base.json
+            osv-pr-head.json
+          retention-days: 5
+      - name: Upload OSV SARIF to code scanning
+        if: ${{ !cancelled() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
+        uses: github/codeql-action/upload-sarif@3ce22a6e336a7fcc318bc58ae1986395bdc83ba7 # v4.35.4
+        with:
+          sarif_file: osv-scanner-pr.sarif
+          category: osv-scanner-pr
+      - name: Print Code Scanning PR URL
+        if: ${{ !cancelled() }}
+        run: |
+          echo "View the OSV-Scanner results for this PR in the 'Security' tab, using the following link:"
+          echo "${{ github.server_url }}/${{ github.repository }}/security/code-scanning?query=pr%3A${{ github.event.pull_request.number }}"
+  # OSV-Scanner full scan of the repository on push and weekly schedule.
+  osv-scanner-full:
+    name: OSV-Scanner (full repository)
+    if: github.event_name == 'push' || github.event_name == 'schedule'
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@9a498708959aeaef5ef730655706c5a1df1edbc2 # v2.3.8
+    with:
+      scan-args: |-
+        -r
+        ./
+      results-file-name: osv-scanner-full.sarif
+      fail-on-vuln: false
+  # OpenSSF Scorecard: supply-chain security posture of the repository itself
+  # (branch protection, token permissions, pinned dependencies, SAST, etc.).
+  # Runs on pushes to main and on the weekly schedule; publishes results so the
+  # OpenSSF badge/API stay current and uploads SARIF to the Security tab.
+  openssf-scorecard:
+    name: OpenSSF Scorecard
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    timeout-minutes: 15
+    if: github.event_name == 'schedule' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
+      # Needed to publish results to the OpenSSF REST API via OIDC.
+      id-token: write
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+      - name: Run OpenSSF Scorecard analysis
+        uses: ossf/scorecard-action@4eaacf0543bb3f2c246792bd56e8cdeffafb205a # v2.4.3
+        with:
+          results_file: scorecard-results.sarif
+          results_format: sarif
+          repo_token: ${{secrets.GITHUB_TOKEN}}
+          publish_results: true
+      - name: Verify Scorecard SARIF artifact
+        if: always()
+        run: test -s scorecard-results.sarif
+      - name: Upload Scorecard results artifact
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: openssf-scorecard-${{github.sha}}
+          path: scorecard-results.sarif
+          retention-days: ${{env.SECURITY_ARTIFACT_RETENTION_DAYS}}
+      - name: Upload Scorecard SARIF to GitHub Security
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        uses: github/codeql-action/upload-sarif@3ce22a6e336a7fcc318bc58ae1986395bdc83ba7 # v4.35.4
+        with:
+          sarif_file: scorecard-results.sarif
+          category: ossf-scorecard
+  # Container vulnerability scanning with Trivy
+  trivy-image-scan:
+    name: Container Scan (Trivy)
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    timeout-minutes: 20
+    needs: change-scope
+    if: >-
+      (github.event_name == 'pull_request' || github.event_name == 'push') && (needs.change-scope.outputs.docker == 'true')
+    strategy:
+      fail-fast: false
+      matrix:
+        layer: [layer1-ingestion, layer2-extraction, layer3-knowledge, layer4-agents, layer5-ground-truth, layer6-benchmarks]
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - name: Build Docker image
+        run: |
+          docker build \
+            --build-arg BASE_IMAGE="${BASE_IMAGE:-}" \
+            --build-arg BUILDER_BASE_IMAGE="${BUILDER_BASE_IMAGE:-}" \
+            -t ${{matrix.layer}}:scan-target \
+            services/${{matrix.layer}}
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
+        with:
+          image-ref: "${{matrix.layer}}:scan-target"
+          format: "sarif"
+          output: "trivy-results.sarif"
+          exit-code: "1"
+          ignore-unfixed: true
+          vuln-type: "os,library"
+          severity: "HIGH,CRITICAL"
+          limit-severities-for-sarif: true
+          scanners: "vuln,secret,misconfig"
+      - name: Upload Trivy scan results
+        uses: github/codeql-action/upload-sarif@3ce22a6e336a7fcc318bc58ae1986395bdc83ba7 # v4.35.4
+        if: always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        with:
+          sarif_file: "trivy-results.sarif"
+          category: trivy-${{matrix.layer}}
+  # SBOM generation + vulnerability policy gate
+  sbom-policy:
+    name: SBOM + Policy (${{matrix.artifact.name}})
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    timeout-minutes: 30
+    needs: change-scope
+    if: >-
+      (github.event_name == 'pull_request' || github.event_name == 'push') && (needs.change-scope.outputs.docker == 'true' || needs.change-scope.outputs.deps == 'true')
+    strategy:
+      fail-fast: false
+      matrix:
+        artifact:
+          - name: layer1-ingestion
+            context: services/layer1-ingestion
+          - name: layer2-extraction
+            context: services/layer2-extraction
+          - name: layer3-knowledge
+            context: services/layer3-knowledge
+          - name: layer4-agents
+            context: services/layer4-agents
+          - name: layer5-ground-truth
+            context: services/layer5-ground-truth
+          - name: layer6-benchmarks
+            context: services/layer6-benchmarks
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - name: Build image artifact
+        run: |
+          docker build \
+            --build-arg BASE_IMAGE="${BASE_IMAGE:-}" \
+            --build-arg BUILDER_BASE_IMAGE="${BUILDER_BASE_IMAGE:-}" \
+            -t ${{matrix.artifact.name}}:ci \
+            ${{matrix.artifact.context}}
+      - name: Generate CycloneDX SBOM (Trivy)
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
+        with:
+          image-ref: "${{matrix.artifact.name}}:ci"
+          format: "cyclonedx"
+          output: "${{matrix.artifact.name}}-sbom.cdx.json"
+          scanners: "vuln"
+      - name: Evaluate SBOM vulnerability policy
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
+        with:
+          scan-type: "sbom"
+          scan-ref: "${{matrix.artifact.name}}-sbom.cdx.json"
+          format: "sarif"
+          output: "${{matrix.artifact.name}}-sbom-vuln.sarif"
+          exit-code: "1"
+          ignore-unfixed: true
+          severity: "HIGH,CRITICAL"
+      - name: Upload SBOM vulnerability SARIF
+        if: always() && hashFiles(format('{0}-sbom-vuln.sarif', matrix.artifact.name)) != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        uses: github/codeql-action/upload-sarif@3ce22a6e336a7fcc318bc58ae1986395bdc83ba7 # v4.35.4
+        with:
+          sarif_file: "${{matrix.artifact.name}}-sbom-vuln.sarif"
+          category: sbom-${{matrix.artifact.name}}
+      - name: Upload SBOM and policy artifacts
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: sbom-${{matrix.artifact.name}}
+          path: |
+            ${{matrix.artifact.name}}-sbom.cdx.json
+            ${{matrix.artifact.name}}-sbom-vuln.sarif
+          retention-days: ${{env.SECURITY_ARTIFACT_RETENTION_DAYS}}
+  # DAST against ephemeral compose stack
+  dast-api-scan:
+    name: DAST (OWASP ZAP baseline)
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    timeout-minutes: 45
+    needs: change-scope
+    if: >-
+      (github.event_name == 'pull_request' || github.event_name == 'push') && (needs.change-scope.outputs.code == 'true')
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - name: Start ephemeral Value Fabric stack
+        run: |
+          mkdir -p zap-reports
+          openssl genpkey -algorithm ED25519 -out zap-reports/fabric-auth-signing-key.pem
+          openssl pkey -in zap-reports/fabric-auth-signing-key.pem -pubout -out zap-reports/fabric-auth-public-key.pem
+          python3 - <<'PY'
+          import json
+          import shlex
+          from pathlib import Path
+
+          private_pem = Path("zap-reports/fabric-auth-signing-key.pem").read_text(encoding="utf-8")
+          public_pem = Path("zap-reports/fabric-auth-public-key.pem").read_text(encoding="utf-8")
+          public_keys = json.dumps([{"kid": "ci-verification", "public_pem": public_pem}])
+          private_env = private_pem.replace("\n", "\\n")
+          Path("zap-reports/fabric-auth.env").write_text(
+              f'FABRIC_AUTH_SIGNING_KEY="{private_env}"\n'
+              "FABRIC_AUTH_SIGNING_KID=ci-verification\n"
+              f"FABRIC_AUTH_PUBLIC_KEYS={shlex.quote(public_keys)}\n",
+              encoding="utf-8",
+          )
+          PY
+          cat > .env << 'EOF'
+          OPENAI_API_KEY=dummy-key-for-ci
+          ANTHROPIC_API_KEY=dummy-key-for-ci
+          POSTGRES_USER=valuefabric
+          POSTGRES_PASSWORD=valuefabric-ci-postgres
+          REDIS_PASSWORD=valuefabric-ci-redis
+          SECRET_KEY=valuefabric-ci-secret-key-minimum-32-characters
+          JWT_SECRET=valuefabric-ci-jwt-secret-minimum-32-characters
+          JWT_ALGORITHM=RS256
+          API_KEY_HMAC_SECRET=valuefabric-ci-api-key-hmac-secret-32chars
+          SERVICE_AUTH_SECRET=valuefabric-ci-service-auth-secret-32chars
+          CREDENTIALS_MASTER_KEY=valuefabric-ci-credentials-master-key-32chars
+          DEFAULT_TENANT_ID=00000000-0000-4000-8000-000000000001
+          LAYER4_DATABASE_URL=postgresql+asyncpg://valuefabric:valuefabric-ci-postgres@postgres:5432/layer4_agents
+          NEO4J_PASSWORD=valuefabric-ci-neo4j-password
+          CORS_ORIGINS=["https://localhost:3000"]
+          AUTH_PROVIDER=layer4
+          CLERK_ISSUER=https://ci-clerk.example.test
+          CLERK_JWT_AUDIENCE=value-fabric-ci
+          CLERK_AUTHORIZED_PARTIES=http://localhost:3000
+          CLERK_JWKS_URL=https://ci-clerk.example.test/.well-known/jwks.json
+          CLERK_SECRET_KEY=valuefabric-ci-clerk-secret
+          FABRIC_AUTH_ISSUER=value-fabric-ci
+          FABRIC_AUTH_AUDIENCE=value-fabric-ci
+          FLOWER_PASSWORD=valuefabric-ci-flower
+          GRAFANA_ADMIN_PASSWORD=valuefabric-ci-grafana
+          EOF
+          cat zap-reports/fabric-auth.env >> .env
+          docker compose -f infra/compose/docker-compose.full.yml --env-file .env up -d --build
+      - name: Wait for public API health endpoints
+        run: |
+          set -euo pipefail
+          for target in \
+            "http://localhost:8001/health" \
+            "http://localhost:8002/health" \
+            "http://localhost:8003/health" \
+            "http://localhost:8004/health" \
+            "http://localhost:8005/health" \
+            "http://localhost:8006/health"; do
+            echo "Waiting for $target"
+            for _ in $(seq 1 60); do
+              if curl -fsS "$target" >/dev/null; then
+                echo "Healthy: $target"
+                break
+              fi
+              sleep 5
+            done
+            curl -fsS "$target" >/dev/null
+          done
+      - name: Run OWASP ZAP baseline against public APIs
+        run: |
+          set -euo pipefail
+          mkdir -p zap-reports
+          chmod a+w zap-reports
+          declare -a targets=(
+            "layer1:http://127.0.0.1:8001"
+            "layer2:http://127.0.0.1:8002"
+            "layer3:http://127.0.0.1:8003"
+            "layer4:http://127.0.0.1:8004"
+            "layer5:http://127.0.0.1:8005"
+            "layer6:http://127.0.0.1:8006"
+          )
+
+          for target in "${targets[@]}"; do
+            name="${target%%:*}"
+            url="${target#*:}"
+            echo "Running ZAP baseline for $name at $url"
+            docker run --rm --network host \
+              -v "${PWD}/zap-reports:/zap/wrk:rw" \
+              ghcr.io/zaproxy/zaproxy:stable \
+              zap-baseline.py \
+              -t "$url" \
+              -J "${name}-zap-report.json" \
+              -r "${name}-zap-report.html" \
+              -w "${name}-zap-warnings.md" \
+              -m 5
+          done
+      - name: Collect compose logs for evidence
+        if: always()
+        run: |
+          mkdir -p zap-reports
+          docker compose -f infra/compose/docker-compose.full.yml --env-file .env logs --no-color > zap-reports/ephemeral-stack.log
+      - name: Upload DAST evidence artifacts
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: dast-zap-reports
+          path: zap-reports/
+          retention-days: ${{env.SECURITY_ARTIFACT_RETENTION_DAYS}}
+      - name: Stop ephemeral stack
+        if: always()
+        run: docker compose -f infra/compose/docker-compose.full.yml --env-file .env down -v
+  # Python security linting with bandit
+  bandit-scan:
+    needs: change-scope
+    if: needs.change-scope.outputs.backend == 'true'
+    name: Python Security Lint (bandit)
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    timeout-minutes: 15
+    strategy:
+      matrix:
+        layer: [layer1-ingestion, layer2-extraction, layer3-knowledge, layer4-agents, layer5-ground-truth, layer6-benchmarks]
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.11"
+      - name: Install bandit
+        run: pip install bandit
+      - name: Run bandit scan
+        working-directory: services/${{matrix.layer}}
+        run: |
+          # Bandit exit codes: 0 = clean, 1 = findings exist (handled via the
+          # JSON report below), >1 = execution/setup error (must fail the step).
+          set +e
+          bandit -r src/ -ll -ii --format json --output bandit-report.json
+          json_rc=$?
+          bandit -r src/ -ll -ii --format screen
+          screen_rc=$?
+          set -e
+          if [ "$json_rc" -gt 1 ] || [ "$screen_rc" -gt 1 ]; then
+            echo "::error::Bandit execution failed (json exit=$json_rc, screen exit=$screen_rc) before producing a findings report"
+            exit 1
+          fi
+          if [ -s bandit-report.json ]; then
+            echo "Bandit issues found - checking severity"
+            python3 << 'PYEOF'
+          import json
+          import sys
+          with open('bandit-report.json') as f:
+              data = json.load(f)
+          issues = [r for r in data.get('results', []) if r['issue_severity'] in ['MEDIUM', 'HIGH']]
+          if issues:
+              print(f"Found {len(issues)} medium/high severity issues")
+              for i in issues[:5]:
+                  print(f"  - {i['issue_text']} at {i['filename']}:{i['line_number']}")
+              sys.exit(1)
+          else:
+              print("No medium/high severity issues found")
+          PYEOF
+          fi
+      - name: Upload bandit report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: bandit-report-${{matrix.layer}}
+          path: services/${{matrix.layer}}/bandit-report.json
+          retention-days: 14
+  # Python dependency vulnerability scan with pip-audit
+  pip-audit-scan:
+    needs: change-scope
+    if: needs.change-scope.outputs.backend == 'true' || needs.change-scope.outputs.deps == 'true'
+    name: Python Dependency Audit (pip-audit)
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    timeout-minutes: 15
+    strategy:
+      matrix:
+        layer: [layer1-ingestion, layer2-extraction, layer3-knowledge, layer4-agents, layer5-ground-truth, layer6-benchmarks]
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.11"
+      - name: Install pip-audit
+        run: python -m pip install --upgrade pip "setuptools>=83.0.0" pip-audit
+      - name: Run pip-audit
+        working-directory: services/${{matrix.layer}}
+        run: |
+          pip install -e ".[dev]" || pip install -e .
+          pip-audit --format json --output pip-audit-report.json || true
+          # pip-audit does not support --severity. Fail on any known vulnerability
+          # except CVE-2025-3000 (PyTorch JIT memory corruption, CVSS 5.3/MEDIUM,
+          # local attack vector, no patched torch release available on PyPI).
+          pip-audit --vulnerability-service pypi --ignore-vuln CVE-2025-3000
+        continue-on-error: false
+      - name: Upload pip-audit report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: pip-audit-report-${{matrix.layer}}
+          path: services/${{matrix.layer}}/pip-audit-report.json
+          retention-days: 14
+  # Frontend security audit
+  frontend-security-audit:
+    needs: change-scope
+    if: needs.change-scope.outputs.web == 'true'
+    name: Frontend Security Audit (pnpm)
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - name: Setup pnpm
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+        with:
+          version: "10.18.1"
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22.18.0"
+          cache: "pnpm"
+          cache-dependency-path: "pnpm-lock.yaml"
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Run pnpm audit
+        run: |
+          pnpm audit --audit-level high --json > pnpm-audit-report.json || true
+      - name: Check for critical vulnerabilities
+        run: |
+          if [ -s pnpm-audit-report.json ]; then
+            node << 'NODEEOF'
+          const fs = require('fs');
+          try {
+            const data = JSON.parse(fs.readFileSync('pnpm-audit-report.json', 'utf8'));
+            const advisories = data.advisories || {};
+            const critical = Object.values(advisories).filter(a => a.severity === 'critical');
+            const high = Object.values(advisories).filter(a => a.severity === 'high');
+            console.log('Critical vulnerabilities:', critical.length);
+            console.log('High vulnerabilities:', high.length);
+            if (critical.length > 0) {
+              console.log('CRITICAL vulnerabilities found. Failing.');
+              process.exit(1);
+            }
+            if (high.length > 10) {
+              console.log('More than 10 HIGH vulnerabilities found. Failing.');
+              process.exit(1);
+            }
+            console.log('Audit passed.');
+          } catch (e) {
+            console.log('No vulnerabilities found or parse error');
+          }
+          NODEEOF
+          fi
+      - name: Upload audit report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: frontend-security-audit
+          path: apps/web/pnpm-audit-report.json
+          retention-days: 14
+  # Dockerfile non-root user check
+  dockerfile-non-root-check:
+    needs: change-scope
+    if: needs.change-scope.outputs.docker == 'true'
+    name: Dockerfile Non-Root User Check
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - name: Check Dockerfiles for USER directive
+        run: |
+          # Files that must have USER directive (runtime stages)
+          REQUIRED_FILES="
+            apps/web/Dockerfile
+            services/layer1-ingestion/Dockerfile
+            services/layer2-extraction/Dockerfile
+            services/layer3-knowledge/Dockerfile
+            services/layer4-agents/Dockerfile
+            services/layer5-ground-truth/Dockerfile
+            services/layer6-benchmarks/Dockerfile
+          "
+
+          FAILED=0
+          for file in $REQUIRED_FILES; do
+            if [ -f "$file" ]; then
+              # Check if file contains USER directive (excluding builder stages)
+              # We look for USER followed by non-root/non-0 user
+              if ! grep -qE "^USER\s+(appuser|node|[^0])" "$file"; then
+                echo "❌ FAIL: $file - missing non-root USER directive"
+                FAILED=1
+              else
+                echo "✅ PASS: $file - has non-root USER directive"
+              fi
+            else
+              echo "⚠️  SKIP: $file - file not found"
+            fi
+          done
+
+          if [ $FAILED -eq 1 ]; then
+            echo ""
+            echo "Dockerfiles must include 'USER <non-root>' directive before runtime"
+            exit 1
+          fi
+      - name: Test image runs as non-root
+        run: |
+          # Build test images and verify user
+          # apps/web/Dockerfile copies workspace files (package.json, pnpm-workspace.yaml,
+          # packages/*), so the build context must be the repository root.
+          docker build -t test-frontend -f apps/web/Dockerfile .
+          docker build \
+            --build-arg BASE_IMAGE="${BASE_IMAGE:-}" \
+            --build-arg BUILDER_BASE_IMAGE="${BUILDER_BASE_IMAGE:-}" \
+            -t test-layer3 services/layer3-knowledge/
+          docker build \
+            --build-arg BASE_IMAGE="${BASE_IMAGE:-}" \
+            -t test-layer4 services/layer4-agents/
+          docker build \
+            --build-arg BASE_IMAGE="${BASE_IMAGE:-}" \
+            -t test-layer6 services/layer6-benchmarks/
+
+          # Check running user (should not be root/0)
+          for image in test-frontend test-layer3 test-layer4 test-layer6; do
+            USER_ID=$(docker run --rm --entrypoint id $image -u 2>/dev/null || echo "unknown")
+            if [ "$USER_ID" = "0" ] || echo "$USER_ID" | grep -q "uid=0"; then
+              echo "❌ FAIL: $image runs as root (uid=0)"
+              exit 1
+            else
+              echo "✅ PASS: $image runs as non-root: $USER_ID"
+            fi
+          done
+  # Dependency review for PRs
+  dependency-review:
+    name: Dependency Review
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    timeout-minutes: 10
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - name: Dependency Review
+        uses: actions/dependency-review-action@2031cfc080254a8a887f58cffee85186f0e49e48 # v4.9.0
+        with:
+          fail-on-severity: high
+          fail-on-scopes: runtime, development
+          comment-summary-in-pr: true
+  # Consolidated security evidence for releases and audits
+  security-evidence-artifact:
+    name: Security Evidence Bundle
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    if: always() && (github.event_name == 'pull_request' || github.event_name == 'push')
+    needs:
+      - dast-api-scan
+      - sbom-policy
+      - trivy-image-scan
+      - trivy-repo-scan
+      - semgrep-full-scan
+      - gitleaks-scan
+      - mandatory-security-regression
+    steps:
+      - name: Download all workflow artifacts
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          path: security-evidence
+      - name: Build evidence manifest
+        run: |
+          {
+            echo "# Security Gates Evidence"
+            echo "- Workflow run: https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}"
+            echo "- Commit: ${{github.sha}}"
+            echo "- Generated at: $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+            echo
+            echo "## Included artifacts"
+            find security-evidence -maxdepth 2 -type f | sort
+          } > security-evidence/SECURITY_EVIDENCE_MANIFEST.md
+      - name: Upload release evidence artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: release-security-evidence-${{github.sha}}
+          path: security-evidence/
+          retention-days: ${{env.SECURITY_ARTIFACT_RETENTION_DAYS}}
+  # This status check should be configured as REQUIRED in branch protection
+  # to block merges unless Trivy, DAST, and SBOM policy checks pass.
+  security-gates-required:
+    name: Security Gates Required
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    if: always() && github.event_name == 'pull_request'
+    needs:
+      - change-scope
+      - trivy-repo-scan
+      - trivy-image-scan
+      - dast-api-scan
+      - sbom-policy
+      - mandatory-security-regression
+      - route-auth-gate
+    steps:
+      - name: Confirm required security gates passed or were safely out of scope
+        env:
+          # Scope outputs are passed via env (never interpolated into the
+          # script body) so a compromised scope resolver cannot inject into
+          # this final gate arbiter.
+          SCOPE_CODE: ${{ needs.change-scope.outputs.code }}
+          SCOPE_DOCKER: ${{ needs.change-scope.outputs.docker }}
+          SCOPE_DEPS: ${{ needs.change-scope.outputs.deps }}
+          SCOPE_BACKEND: ${{ needs.change-scope.outputs.backend }}
+        run: |
+          set -euo pipefail
+          declare -A CHECKS=(
+            ["trivy-repo-scan"]="${{ needs.trivy-repo-scan.result }}"
+            ["trivy-image-scan"]="${{ needs.trivy-image-scan.result }}"
+            ["dast-api-scan"]="${{ needs.dast-api-scan.result }}"
+            ["sbom-policy"]="${{ needs.sbom-policy.result }}"
+            ["mandatory-security-regression"]="${{ needs.mandatory-security-regression.result }}"
+            ["route-auth-gate"]="${{ needs.route-auth-gate.result }}"
+          )
+          # A skipped gate is acceptable only when its change scope resolved
+          # to 'false' (the PR provably cannot affect it); anything else
+          # fails closed. Scope values are compared in bash so unresolved
+          # (empty) values never count as safe.
+          declare -A SCOPE_SAFE=(
+            # trivy-repo-scan runs unconditionally on every PR (IaC + repo filesystem);
+            # it is never scope-skipped and must always succeed.
+            ["trivy-repo-scan"]="false"
+            ["trivy-image-scan"]="$([[ "${SCOPE_DOCKER:-}" == "false" ]] && echo true || echo false)"
+            ["dast-api-scan"]="$([[ "${SCOPE_CODE:-}" == "false" ]] && echo true || echo false)"
+            ["sbom-policy"]="$([[ "${SCOPE_DOCKER:-}" == "false" && "${SCOPE_DEPS:-}" == "false" ]] && echo true || echo false)"
+            # mandatory-security-regression is a governed merge control and
+            # is never scope-skipped; it must succeed on every PR.
+            ["mandatory-security-regression"]="false"
+            ["route-auth-gate"]="$([[ "${SCOPE_BACKEND:-}" == "false" ]] && echo true || echo false)"
+          )
+          failed=0
+          for check in "${!CHECKS[@]}"; do
+            result="${CHECKS[$check]}"
+            if [[ "$result" == "success" ]]; then
+              echo "✅ ${check} => success"
+            elif [[ "$result" == "skipped" && "${SCOPE_SAFE[$check]}" == "true" ]]; then
+              echo "⏭️  ${check} => skipped (out of change scope — safe)"
+            else
+              echo "❌ ${check} => ${result}"
+              failed=1
+            fi
+          done
+          if [[ "$failed" -ne 0 ]]; then
+            echo "Security gates required check failed."
+            exit 1
+          fi
+          echo "All required security gates passed or were safely out of scope."
+  sbom-generation:
+    name: SBOM Generation
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    timeout-minutes: 30
+    needs: change-scope
+    if: >-
+      (github.event_name == 'pull_request' || github.event_name == 'push') && (needs.change-scope.outputs.docker == 'true' || needs.change-scope.outputs.deps == 'true')
+    strategy:
+      matrix:
+        layer: [layer1-ingestion, layer2-extraction, layer3-knowledge, layer4-agents, layer5-ground-truth, layer6-benchmarks, apps-web]
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - name: Build Docker image for SBOM
+        run: |
+          if [ "${{ matrix.layer }}" = "apps-web" ]; then
+            docker build \
+              --build-arg BASE_IMAGE="${BASE_IMAGE:-}" \
+              --build-arg BUILDER_BASE_IMAGE="${BUILDER_BASE_IMAGE:-}" \
+              -t ${{matrix.layer}}:sbom-target \
+              -f apps/web/Dockerfile \
+              .
+          else
+            docker build \
+              --build-arg BASE_IMAGE="${BASE_IMAGE:-}" \
+              --build-arg BUILDER_BASE_IMAGE="${BUILDER_BASE_IMAGE:-}" \
+              -t ${{matrix.layer}}:sbom-target \
+              services/${{matrix.layer}}
+          fi
+      - name: Generate CycloneDX SBOM
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0
+        with:
+          image: ${{matrix.layer}}:sbom-target
+          format: cyclonedx-json
+          output-file: sbom-${{matrix.layer}}.cdx.json
+      - name: Validate SBOM output exists
+        run: |
+          test -s sbom-${{matrix.layer}}.cdx.json
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: sbom-${{matrix.layer}}
+          path: sbom-${{matrix.layer}}.cdx.json
+          if-no-files-found: error
+          retention-days: 30
+  route-auth-gate:
+    needs: change-scope
+    if: needs.change-scope.outputs.backend == 'true'
+    name: Route Auth Dependency Gate
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.11"
+      - name: Install gate dependencies
+        run: python -m pip install pyyaml
+      - name: Enforce route auth dependency policy
+        run: python scripts/ci/check_route_auth_dependencies.py
+  # Governed merge control (config/ci/mandatory-security-regression-contract.json):
+  # this job must run unconditionally on every PR — no change-scope gating,
+  # no path filters, no job-level condition.
+  mandatory-security-regression:
+    name: mandatory-security-regression
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.11"
+      - name: Validate mandatory security merge-control contract
+        run: |
+          set -euo pipefail
+          python -m pip install pyyaml
+          python scripts/ci/check_mandatory_security_gate_contract.py
+      - name: Setup pnpm
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+        with:
+          version: "10.18.1"
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22.18.0"
+          cache: "pnpm"
+          cache-dependency-path: pnpm-lock.yaml
+      - name: Install Python security test dependencies
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install -r tests/requirements-test.txt
+          python -m pip install -e services/api
+          python -m pip install -e services/layer1-ingestion
+          python -m pip install -e services/layer2-extraction
+          python -m pip install -e services/layer3-knowledge
+          python -m pip install -e services/layer4-agents
+          python -m pip install -e services/layer5-ground-truth
+          python -m pip install -e services/layer6-benchmarks
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Run mandatory security regression gate
+        env:
+          MANDATORY_SECURITY_ARTIFACT_DIR: artifacts/mandatory_security
+          FABRIC_AUDIT_DIR: .fabric/audit
+          FABRIC_GATE_TEST_MODE: "0"
+        run: bash scripts/ci/mandatory_security_regression_gate.sh
+      - name: Upload mandatory security evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: mandatory-security-regression-${{github.sha}}
+          path: |
+            artifacts/mandatory_security/
+            .fabric/audit/security_regression_gate/
+          if-no-files-found: error
+          retention-days: ${{env.SECURITY_ARTIFACT_RETENTION_DAYS}}
+  # ---------------------------------------------------------------------------
+  # V1-CI-001 Stage 1 (shadow): stable aggregate security check. Informational
+  # until Stage 3. Summarizes existing jobs only (scripts/ci/aggregate_gate.py).
+  # ---------------------------------------------------------------------------
+  aggregate-04-security-gates:
+    name: 04-security-gates
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    timeout-minutes: 5
+    if: always()
+    needs:
+      - change-scope
+      - dev-auth-bypass-guard
+      - gitleaks-scan
+      - cypher-dynamic-guard
+      - semgrep-full-scan
+      - trivy-repo-scan
+      - osv-scanner-pr
+      - trivy-image-scan
+      - sbom-policy
+      - dast-api-scan
+      - bandit-scan
+      - pip-audit-scan
+      - frontend-security-audit
+      - dockerfile-non-root-check
+      - dependency-review
+      - mandatory-security-regression
+      - route-auth-gate
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - name: Summarize security gates
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+          SKIPSAFE_LAYER3: ${{ needs.change-scope.outputs.layer3 == 'false' }}
+          SKIPSAFE_CODE: ${{ needs.change-scope.outputs.code == 'false' }}
+          SKIPSAFE_DEPS: ${{ needs.change-scope.outputs.deps == 'false' }}
+          SKIPSAFE_BACKEND: ${{ needs.change-scope.outputs.backend == 'false' }}
+          SKIPSAFE_WEB: ${{ needs.change-scope.outputs.web == 'false' }}
+          SKIPSAFE_DOCKER: ${{ needs.change-scope.outputs.docker == 'false' }}
+          SKIPSAFE_NOT_PR: ${{ github.event_name != 'pull_request' }}
+          # Several scan jobs are gated on pull_request/push events; on
+          # merge_group they skip and their coverage was already proven on the
+          # PR head (Stage 3 follow-up widens their `if:` to merge_group).
+          SKIPSAFE_NOT_PR_OR_PUSH: ${{ github.event_name != 'pull_request' && github.event_name != 'push' }}
+          SKIPSAFE_OSV_PR: ${{ needs.change-scope.outputs.deps == 'false' || github.event_name != 'pull_request' }}
+          SKIPSAFE_TRIVY_IMAGE: ${{ needs.change-scope.outputs.docker == 'false' || (github.event_name != 'pull_request' && github.event_name != 'push') }}
+          SKIPSAFE_SBOM_POLICY: ${{ (needs.change-scope.outputs.docker == 'false' && needs.change-scope.outputs.deps == 'false') || (github.event_name != 'pull_request' && github.event_name != 'push') }}
+          SKIPSAFE_DAST: ${{ needs.change-scope.outputs.code == 'false' || (github.event_name != 'pull_request' && github.event_name != 'push') }}
+          SKIPSAFE_PIP_AUDIT: ${{ needs.change-scope.outputs.backend == 'false' && needs.change-scope.outputs.deps == 'false' }}
+        run: |
+          python3 scripts/ci/aggregate_gate.py \
+            --needs-json "$NEEDS_JSON" \
+            --skip-safe cypher-dynamic-guard=SKIPSAFE_LAYER3 \
+            --skip-safe semgrep-full-scan=SKIPSAFE_CODE \
+            --skip-safe osv-scanner-pr=SKIPSAFE_OSV_PR \
+            --skip-safe trivy-image-scan=SKIPSAFE_TRIVY_IMAGE \
+            --skip-safe sbom-policy=SKIPSAFE_SBOM_POLICY \
+            --skip-safe dast-api-scan=SKIPSAFE_DAST \
+            --skip-safe bandit-scan=SKIPSAFE_BACKEND \
+            --skip-safe pip-audit-scan=SKIPSAFE_PIP_AUDIT \
+            --skip-safe frontend-security-audit=SKIPSAFE_WEB \
+            --skip-safe dockerfile-non-root-check=SKIPSAFE_DOCKER \
+            --skip-safe dependency-review=SKIPSAFE_NOT_PR \
+            --skip-safe route-auth-gate=SKIPSAFE_BACKEND

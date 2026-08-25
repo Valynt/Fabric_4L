@@ -1,0 +1,147 @@
+# Depot CI Migration
+# Source: .github/workflows/terraform-cd.yml
+#
+# Changes made:
+# - Rewrote .github/ path references to .depot/
+# - Changed GitHub runs-on labels to their Depot equivalents
+
+name: Terraform CD
+permissions:
+  contents: read
+  id-token: write # Required for AWS OIDC authentication
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "infra/terraform/**"
+      - ".depot/workflows/terraform-cd.yml"
+  push:
+    branches: [main]
+    paths:
+      - "infra/terraform/**"
+      - ".depot/workflows/terraform-cd.yml"
+  workflow_dispatch:
+env:
+  TF_IN_AUTOMATION: true
+jobs:
+  terraform-preflight:
+    name: Terraform Preflight
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - name: Check required AWS/GitHub configuration
+        run: python scripts/ci/check_terraform_preflight.py
+        env:
+          AWS_TERRAFORM_ROLE_ARN: ${{ secrets.AWS_TERRAFORM_ROLE_ARN }}
+          AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
+          GITHUB_ENVIRONMENT: ${{ matrix.environment || 'all' }}
+  terraform-fmt:
+    name: Terraform Format
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    timeout-minutes: 5
+    needs: terraform-preflight
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: hashicorp/setup-terraform@651471c36a6092792477d4013f5ca1e78f20c8a6 # v3
+        with:
+          terraform_version: "1.7.0"
+      - name: Terraform fmt
+        run: terraform fmt -check -recursive infra/terraform
+  terraform-validate:
+    name: Terraform Validate
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    timeout-minutes: 10
+    needs: [terraform-preflight, terraform-fmt]
+    strategy:
+      matrix:
+        environment: [dev, staging, prod]
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: hashicorp/setup-terraform@651471c36a6092792477d4013f5ca1e78f20c8a6 # v3
+        with:
+          terraform_version: "1.7.0"
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@e3dd6a429df7310c206912c702224ff01c7c0eea # v4
+        with:
+          role-to-assume: ${{ secrets.AWS_TERRAFORM_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+      - name: Terraform init
+        working-directory: infra/terraform/environments/${{ matrix.environment }}
+        run: terraform init -backend=false
+      - name: Terraform validate
+        working-directory: infra/terraform/environments/${{ matrix.environment }}
+        run: terraform validate
+  terraform-lint:
+    name: Terraform Lint
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    timeout-minutes: 10
+    needs: terraform-fmt
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - name: Setup TFLint
+        uses: terraform-linters/setup-tflint@90f302c25522c0652db0947a11a739e52b255ae6 # v4
+        with:
+          tflint_version: v0.50.0
+      - name: Run TFLint
+        run: |
+          cd infra/terraform
+          tflint --init --config=.tflint.hcl
+          tflint --recursive --config=.tflint.hcl --format compact
+  terraform-plan:
+    name: Terraform Plan
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    timeout-minutes: 15
+    needs: [terraform-preflight, terraform-validate, terraform-lint]
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+    strategy:
+      matrix:
+        environment: [dev, staging, prod]
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: hashicorp/setup-terraform@651471c36a6092792477d4013f5ca1e78f20c8a6 # v3
+        with:
+          terraform_version: "1.7.0"
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@e3dd6a429df7310c206912c702224ff01c7c0eea # v4
+        with:
+          role-to-assume: ${{ secrets.AWS_TERRAFORM_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+      - name: Terraform init
+        working-directory: infra/terraform/environments/${{ matrix.environment }}
+        run: terraform init
+      - name: Terraform plan
+        working-directory: infra/terraform/environments/${{ matrix.environment }}
+        run: terraform plan -out=tfplan-${{ matrix.environment }}
+      - name: Upload plan artifact
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        with:
+          name: tfplan-${{ matrix.environment }}
+          path: infra/terraform/environments/${{ matrix.environment }}/tfplan-${{ matrix.environment }}
+  terraform-policy-check:
+    name: Terraform Policy Check
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    timeout-minutes: 10
+    needs: [terraform-preflight, terraform-fmt]
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: bridgecrewio/checkov-action@a5705f60b63b828a3459c359562e3a3236f746f0 # v12
+        with:
+          directory: infra/terraform
+          framework: terraform
+          output_format: cli
+          output_file_path: console
+          quiet: true
+          compact: true
+          skip_path: |
+            infra/terraform/.tmp
+        continue-on-error: true
+      - name: Enforce RDS backup retention policy
+        run: |
+          python scripts/ci/check_terraform_rds_backup_policy.py infra/terraform || true
+      - name: Enforce ElastiCache encryption policy
+        run: |
+          python scripts/ci/check_terraform_elasticache_encryption.py infra/terraform || true
+      - name: Enforce S3 encryption policy
+        run: |
+          python scripts/ci/check_terraform_s3_encryption.py infra/terraform || true

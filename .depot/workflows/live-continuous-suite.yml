@@ -1,0 +1,86 @@
+# Depot CI Migration
+# Source: .github/workflows/live-continuous-suite.yml
+#
+# Changes made:
+# - Changed GitHub runs-on labels to their Depot equivalents
+
+name: Continuous Live E2E Suite
+# Continuous role-authenticated live Playwright workflows (J1 ValuePilot,
+# J2 multi-role approval, cross-tenant denial). Boots the deterministic
+# live backend stack and drives the frontend through the
+# `test:e2e:live:continuous` scenario in `apps/web/scripts/live-e2e-runner.mjs`.
+#
+# These specs are tagged @backend and fail closed via requireBackendOrThrow
+# when the backend is unreachable, so the job cannot silently skip.
+"on":
+  workflow_dispatch:
+  schedule:
+    # Nightly at 03:30 UTC, plus a mid-day check to catch long-running drift.
+    - cron: "30 3 * * *"
+    - cron: "30 15 * * *"
+permissions:
+  contents: read
+env:
+  CI: "true"
+  PLAYWRIGHT_LIVE_MODE: "true"
+  PLAYWRIGHT_LIVE_FRONTEND_URL: http://localhost:3001
+  PLAYWRIGHT_BACKEND_URL: http://localhost:8004
+  SERVICE_AUTH_SECRET: test-service-auth-secret-for-validation-seed-1234567890
+  VITE_USE_MOCKS: "false"
+  VITE_ENABLE_MOCK_FALLBACK: "false"
+  VITE_PROXY_DEBUG_DIRECT_LAYERS: "true"
+  VITE_PROXY_L1_URL: http://localhost:8001
+  VITE_PROXY_L3_URL: http://localhost:8003
+  VITE_PROXY_L4_URL: http://localhost:8004
+  VITE_PROXY_API_GATEWAY_URL: http://localhost:8004
+jobs:
+  live-continuous-suite:
+    name: live-continuous-suite
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    timeout-minutes: 75
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - name: Setup pnpm
+        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+        with:
+          version: "10.18.1"
+      - name: Set up Node.js
+        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4
+        with:
+          node-version: "22.18.0"
+          cache: "pnpm"
+          cache-dependency-path: "pnpm-lock.yaml"
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Start deterministic live E2E backend
+        working-directory: ${{ github.workspace }}
+        run: docker compose -f infra/compose/docker-compose.e2e.yml -f infra/compose/docker-compose.e2e.layer3.yml up -d --build --wait
+      - name: Run continuous live E2E suite
+        run: |
+          mkdir -p e2e-results playwright-report
+          pnpm run test:e2e:live:continuous
+      - name: Capture Compose diagnostics
+        if: failure()
+        working-directory: ${{ github.workspace }}
+        run: |
+          docker compose -f infra/compose/docker-compose.e2e.yml -f infra/compose/docker-compose.e2e.layer3.yml ps -a
+          docker compose -f infra/compose/docker-compose.e2e.yml -f infra/compose/docker-compose.e2e.layer3.yml logs --no-color --timestamps --tail=500
+      - name: Upload continuous live E2E artifacts
+        if: always()
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        with:
+          name: live-continuous-suite-artifacts-${{ github.run_id }}
+          path: |
+            apps/web/e2e-results/**
+            apps/web/playwright-report/**
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Tear down deterministic live E2E backend
+        if: always()
+        working-directory: ${{ github.workspace }}
+        run: docker compose -f infra/compose/docker-compose.e2e.yml -f infra/compose/docker-compose.e2e.layer3.yml down -v

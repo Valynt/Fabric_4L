@@ -1,0 +1,333 @@
+# Depot CI Migration
+# Source: .github/workflows/test-reporting.yml
+#
+# Changes made:
+# - Changed GitHub runs-on labels to their Depot equivalents
+
+# Unified Test Reporting Workflow
+# Aggregates test results from all layers and posts PR comments with coverage deltas
+name: Unified Test Reporting
+on:
+  workflow_run:
+    workflows: ["PR Checks", "Integration Tests"]
+    types:
+      - completed
+  pull_request:
+    types: [opened, synchronize, reopened]
+    # Change-scoping: test reporting summarizes code test runs; skip on
+    # documentation-only PRs.
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+jobs:
+  # ============================================================================
+  # Collect Test Results
+  # ============================================================================
+  collect-test-results:
+    name: Collect Test Results
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    if: github.event.workflow_run.conclusion == 'success' || github.event_name == 'pull_request'
+    outputs:
+      python_total: ${{ steps.parse-python.outputs.python_total }}
+      python_passed: ${{ steps.parse-python.outputs.python_passed }}
+      python_failed: ${{ steps.parse-python.outputs.python_failed }}
+      python_skipped: ${{ steps.parse-python.outputs.python_skipped }}
+      python_coverage: ${{ steps.parse-python.outputs.python_coverage }}
+      coverage_delta: ${{ steps.coverage-delta.outputs.coverage_delta }}
+      frontend_total: ${{ steps.parse-frontend.outputs.frontend_total }}
+      frontend_passed: ${{ steps.parse-frontend.outputs.frontend_passed }}
+      frontend_failed: ${{ steps.parse-frontend.outputs.frontend_failed }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Need full history for coverage comparison
+      - name: Download test artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: test-results-*
+          merge-multiple: true
+          path: ./test-artifacts
+        # CONTRACT ENFORCEMENT: Test artifacts required for reporting
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          pip install pytest pytest-cov coverage junitparser
+      # ==========================================================================
+      # Parse Python Test Results (All Layers)
+      # ==========================================================================
+      - name: Parse Python test results
+        id: parse-python
+        run: |
+          python3 << 'EOF'
+          import json
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+          import os
+
+          results = {
+              'total_tests': 0,
+              'passed': 0,
+              'failed': 0,
+              'skipped': 0,
+              'error': 0,
+              'duration': 0,
+              'coverage': 0,
+              'layers': {}
+          }
+
+          artifacts_dir = Path('./test-artifacts')
+
+          # Process each layer's results
+          layers = ['layer1-ingestion', 'layer2-extraction', 'layer3-knowledge',
+                   'layer4-agents', 'layer5-ground-truth', 'layer6-benchmarks']
+
+          for layer in layers:
+              layer_results = {
+                  'total': 0, 'passed': 0, 'failed': 0,
+                  'skipped': 0, 'error': 0, 'coverage': 0
+              }
+
+              # Find JUnit XML files for this layer
+              junit_files = list(artifacts_dir.glob(f'**/{layer}-junit.xml'))
+
+              for junit_file in junit_files:
+                  try:
+                      tree = ET.parse(junit_file)
+                      root = tree.getroot()
+
+                      # Handle both <testsuites> and <testsuite> root
+                      if root.tag == 'testsuites':
+                          for testsuite in root.findall('testsuite'):
+                              layer_results['total'] += int(testsuite.get('tests', 0))
+                              layer_results['failed'] += int(testsuite.get('failures', 0))
+                              layer_results['error'] += int(testsuite.get('errors', 0))
+                              layer_results['skipped'] += int(testsuite.get('skip', 0))
+                              results['duration'] += float(testsuite.get('time', 0))
+                      elif root.tag == 'testsuite':
+                          layer_results['total'] += int(root.get('tests', 0))
+                          layer_results['failed'] += int(root.get('failures', 0))
+                          layer_results['error'] += int(root.get('errors', 0))
+                          layer_results['skipped'] += int(root.get('skip', 0))
+                          results['duration'] += float(root.get('time', 0))
+                  except Exception as e:
+                      print(f"Warning: Could not parse {junit_file}: {e}")
+
+              # Calculate passed count
+              layer_results['passed'] = (
+                  layer_results['total'] - layer_results['failed'] -
+                  layer_results['error'] - layer_results['skipped']
+              )
+
+              # Find coverage for this layer
+              cov_files = list(artifacts_dir.glob(f'**/{layer}-coverage.xml'))
+              if cov_files:
+                  try:
+                      tree = ET.parse(cov_files[0])
+                      root = tree.getroot()
+                      # coverage.xml format: line-rate attribute
+                      line_rate = float(root.get('line-rate', 0))
+                      layer_results['coverage'] = round(line_rate * 100, 2)
+                  except Exception as e:
+                      print(f"Warning: Could not parse coverage for {layer}: {e}")
+
+              results['layers'][layer] = layer_results
+              results['total_tests'] += layer_results['total']
+              results['passed'] += layer_results['passed']
+              results['failed'] += layer_results['failed']
+              results['skipped'] += layer_results['skipped']
+              results['error'] += layer_results['error']
+
+          # Calculate overall coverage
+          if results['layers']:
+              coverages = [l['coverage'] for l in results['layers'].values() if l['coverage'] > 0]
+              if coverages:
+                  results['coverage'] = round(sum(coverages) / len(coverages), 2)
+
+          # Output results
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write(f"python_total={results['total_tests']}\n")
+              f.write(f"python_passed={results['passed']}\n")
+              f.write(f"python_failed={results['failed']}\n")
+              f.write(f"python_skipped={results['skipped']}\n")
+              f.write(f"python_coverage={results['coverage']}\n")
+              f.write(f"python_duration={round(results['duration'], 2)}\n")
+              f.write(f"python_results<<RESULTS\n{json.dumps(results, indent=2)}\nRESULTS\n")
+
+          print(json.dumps(results, indent=2))
+          EOF
+      # ==========================================================================
+      # Parse Frontend Test Results
+      # ==========================================================================
+      - name: Parse frontend test results
+        id: parse-frontend
+        run: |
+          python3 << 'EOF'
+          import json
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+          import os
+
+          results = {
+              'total_tests': 0,
+              'passed': 0,
+              'failed': 0,
+              'skipped': 0,
+              'error': 0,
+              'duration': 0
+          }
+
+          artifacts_dir = Path('./test-artifacts')
+
+          # Find frontend JUnit files
+          junit_files = list(artifacts_dir.glob('**/frontend-junit.xml'))
+
+          for junit_file in junit_files:
+              try:
+                  tree = ET.parse(junit_file)
+                  root = tree.getroot()
+
+                  if root.tag == 'testsuites':
+                      for testsuite in root.findall('testsuite'):
+                          results['total_tests'] += int(testsuite.get('tests', 0))
+                          results['failed'] += int(testsuite.get('failures', 0))
+                          results['error'] += int(testsuite.get('errors', 0))
+                          results['skipped'] += int(testsuite.get('skip', 0))
+                          results['duration'] += float(testsuite.get('time', 0))
+                  elif root.tag == 'testsuite':
+                      results['total_tests'] += int(root.get('tests', 0))
+                      results['failed'] += int(root.get('failures', 0))
+                      results['error'] += int(root.get('errors', 0))
+                      results['skipped'] += int(root.get('skip', 0))
+                      results['duration'] += float(root.get('time', 0))
+              except Exception as e:
+                  print(f"Warning: Could not parse {junit_file}: {e}")
+
+          results['passed'] = (
+              results['total_tests'] - results['failed'] -
+              results['error'] - results['skipped']
+          )
+
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write(f"frontend_total={results['total_tests']}\n")
+              f.write(f"frontend_passed={results['passed']}\n")
+              f.write(f"frontend_failed={results['failed']}\n")
+              f.write(f"frontend_skipped={results['skipped']}\n")
+              f.write(f"frontend_duration={round(results['duration'], 2)}\n")
+
+          print(json.dumps(results, indent=2))
+          EOF
+      # ==========================================================================
+      # Calculate Coverage Delta
+      # ==========================================================================
+      - name: Calculate coverage delta
+        id: coverage-delta
+        run: |
+          python3 << 'EOF'
+          import json
+          import os
+          import subprocess
+
+          # Get base branch coverage (if available)
+          current_coverage = float(os.environ.get('PYTHON_COVERAGE', 0))
+
+          # Try to get coverage from base branch
+          base_coverage = 0
+          try:
+              # Fetch base branch
+              subprocess.run(['git', 'fetch', 'origin', os.environ.get('GITHUB_BASE_REF', 'main')],
+                          check=False, capture_output=True)
+
+              # Checkout base branch coverage file if it exists
+              result = subprocess.run(
+                  ['git', 'show', f"origin/{os.environ.get('GITHUB_BASE_REF', 'main')}:.coverage-summary.json"],
+                  capture_output=True, text=True, check=False
+              )
+              if result.returncode == 0:
+                  base_data = json.loads(result.stdout)
+                  base_coverage = base_data.get('coverage', 0)
+          except Exception as e:
+              print(f"Could not get base coverage: {e}")
+              base_coverage = current_coverage  # Assume no change if can't compare
+
+          delta = round(current_coverage - base_coverage, 2)
+          delta_str = f"+{delta}%" if delta > 0 else f"{delta}%"
+
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write(f"coverage_delta={delta_str}\n")
+              f.write(f"coverage_delta_value={delta}\n")
+
+          print(f"Coverage: {current_coverage}% (base: {base_coverage}%, delta: {delta_str})")
+          EOF
+        env:
+          PYTHON_COVERAGE: ${{ steps.parse-python.outputs.python_coverage }}
+      # ==========================================================================
+      # Post PR Comment
+      # ==========================================================================
+      - name: Post PR comment
+        uses: actions/github-script@v7
+        with:
+          script: "const pythonResults = ${{ toJson(steps.parse-python.outputs.python_results) }};\n\n// Build test summary table\nlet summary = `## Test Results Summary\\n\\n`;\n\n// Overall stats\nconst pythonTotal = ${{ steps.parse-python.outputs.python_total || 0 }};\nconst pythonPassed = ${{ steps.parse-python.outputs.python_passed || 0 }};\nconst pythonFailed = ${{ steps.parse-python.outputs.python_failed || 0 }};\nconst pythonSkipped = ${{ steps.parse-python.outputs.python_skipped || 0 }};\nconst pythonCoverage = ${{ steps.parse-python.outputs.python_coverage || 0 }};\nconst frontendTotal = ${{ steps.parse-frontend.outputs.frontend_total || 0 }};\nconst frontendPassed = ${{ steps.parse-frontend.outputs.frontend_passed || 0 }};\nconst frontendFailed = ${{ steps.parse-frontend.outputs.frontend_failed || 0 }};\n\nconst totalTests = pythonTotal + frontendTotal;\nconst totalPassed = pythonPassed + frontendPassed;\nconst totalFailed = pythonFailed + frontendFailed;\nconst passRate = totalTests > 0 ? ((totalPassed / totalTests) * 100).toFixed(1) : 0;\n\nsummary += `### Overall: ${totalPassed}/${totalTests} passed (${passRate}%)\\n\\n`;\n\n// Coverage with delta indicator\nconst coverageDelta = '${{ steps.coverage-delta.outputs.coverage_delta }}';\nconst deltaValue = parseFloat('${{ steps.coverage-delta.outputs.coverage_delta_value }}');\nconst deltaEmoji = deltaValue > 0 ? '\U0001F4C8' : deltaValue < 0 ? '\U0001F4C9' : '➡️';\n\nsummary += `**Coverage:** ${pythonCoverage}% ${deltaEmoji} (${coverageDelta})\\n\\n`;\n\n// Python backend tests table\nsummary += `### Python Backend Tests\\n`;\nsummary += `| Layer | Tests | ✅ Pass | ❌ Fail | ⏭️ Skip | \U0001F3AF Coverage |\\n`;\nsummary += `|-------|-------|---------|---------|---------|-------------|\\n`;\n\nfor (const [layer, data] of Object.entries(pythonResults.layers || {})) {\n  const coverage = data.coverage > 0 ? `${data.coverage}%` : '-';\n  summary += `| ${layer} | ${data.total} | ${data.passed} | ${data.failed} | ${data.skipped} | ${coverage} |\\n`;\n}\n\nsummary += `| **Total** | **${pythonTotal}** | **${pythonPassed}** | **${pythonFailed}** | **${pythonSkipped}** | **${pythonCoverage}%** |\\n\\n`;\n\n// Frontend tests\nsummary += `### Frontend Tests\\n`;\nsummary += `| Tests | ✅ Pass | ❌ Fail | ⏭️ Skip |\\n`;\nsummary += `|-------|---------|---------|---------|\\n`;\nsummary += `| ${frontendTotal} | ${frontendPassed} | ${frontendFailed} | ${{ steps.parse-frontend.outputs.frontend_skipped || 0 }} |\\n\\n`;\n\n// Failures section (if any)\nif (totalFailed > 0) {\n  summary += `### ❌ Failures Detected\\n\\n`;\n  const prUrl = context.payload.pull_request?.html_url;\n  const checksUrl = prUrl ? `${prUrl}/checks` : `${context.payload.repository?.html_url}/actions/runs/${context.runId}`;\n  summary += `See detailed logs in the [Checks tab](${checksUrl}).\\n\\n`;\n}\n\n// Find or create comment\nconst { data: comments } = await github.rest.issues.listComments({\n  owner: context.repo.owner,\n  repo: context.repo.repo,\n  issue_number: context.issue.number\n});\n\nconst botComment = comments.find(comment =>\n  comment.user.type === 'Bot' &&\n  comment.body.includes('Test Results Summary')\n);\n\nif (botComment) {\n  await github.rest.issues.updateComment({\n    owner: context.repo.owner,\n    repo: context.repo.repo,\n    comment_id: botComment.id,\n    body: summary\n  });\n} else {\n  await github.rest.issues.createComment({\n    owner: context.repo.owner,\n    repo: context.repo.repo,\n    issue_number: context.issue.number,\n    body: summary\n  });\n}\n"
+      # ==========================================================================
+      # Update Check Run Status
+      # ==========================================================================
+      - name: Update check run
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const totalFailed = ${{ steps.parse-python.outputs.python_failed || 0 }} +
+                               ${{ steps.parse-frontend.outputs.frontend_failed || 0 }};
+
+            await github.rest.checks.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              name: 'Unified Test Report',
+              head_sha: context.sha,
+              status: 'completed',
+              conclusion: totalFailed === 0 ? 'success' : 'failure',
+              output: {
+                title: totalFailed === 0 ? 'All Tests Passed' : `${totalFailed} Test(s) Failed`,
+                summary: `Python: ${{ steps.parse-python.outputs.python_passed || 0 }}/${{ steps.parse-python.outputs.python_total || 0 }} passed\n` +
+                        `Frontend: ${{ steps.parse-frontend.outputs.frontend_passed || 0 }}/${{ steps.parse-frontend.outputs.frontend_total || 0 }} passed\n` +
+                        `Coverage: ${{ steps.parse-python.outputs.python_coverage || 0 }}% ${{ steps.coverage-delta.outputs.coverage_delta }}`
+              }
+            });
+  # ============================================================================
+  # Save Coverage Summary (for future comparisons)
+  # ============================================================================
+  save-coverage-summary:
+    name: Save Coverage Summary
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    needs: collect-test-results
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Create coverage summary
+        run: |
+          cat > .coverage-summary.json << 'EOF'
+          {
+            "timestamp": "${{ github.run_id }}",
+            "sha": "${{ github.sha }}",
+            "coverage": ${{ needs.collect-test-results.outputs.python_coverage }},
+            "tests": {
+              "total": ${{ needs.collect-test-results.outputs.python_total }},
+              "passed": ${{ needs.collect-test-results.outputs.python_passed }},
+              "failed": ${{ needs.collect-test-results.outputs.python_failed }}
+            }
+          }
+          EOF
+      - name: Commit coverage summary
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add .coverage-summary.json
+          git commit -m "Update coverage summary [skip ci]" || echo "No changes"
+          git push || echo "No changes to push"

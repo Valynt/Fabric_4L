@@ -1,0 +1,47 @@
+# Depot CI Migration
+# Source: .github/workflows/layer6-wrapper-drift.yml
+#
+# Changes made:
+# - Rewrote .github/ path references to .depot/
+# - Changed GitHub runs-on labels to their Depot equivalents
+
+name: Layer6 Wrapper Drift
+permissions:
+  contents: read
+on:
+  pull_request:
+    paths:
+      - 'services/layer6-benchmarks/src/**'
+      - 'scripts/mirrored_files.json'
+      - 'scripts/check_mirrored_files.py'
+      - 'scripts/ci/check_layer6_wrapper_drift.py'
+      - 'tests/ci/test_mirrored_files_drift_guard.py'
+      - '.depot/workflows/layer6-wrapper-drift.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'services/layer6-benchmarks/src/**'
+      - 'scripts/mirrored_files.json'
+      - 'scripts/check_mirrored_files.py'
+      - 'scripts/ci/check_layer6_wrapper_drift.py'
+      - 'tests/ci/test_mirrored_files_drift_guard.py'
+      - '.depot/workflows/layer6-wrapper-drift.yml'
+jobs:
+  check-layer6-wrapper-drift:
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install Python test dependencies
+        run: python -m pip install --require-hashes -r tests/requirements-test.lock
+      - name: Validate Layer6 wrappers are shim-only
+        run: python scripts/ci/check_layer6_wrapper_drift.py
+      - name: Validate mirrored file parity
+        run: python scripts/check_mirrored_files.py
+      - name: Validate Layer6 service src structure
+        run: python -m pytest tests/ci/test_layer6_service_src_presence.py -q
+      - name: Validate Layer6 wrapper manifest guards
+        run: python -m pytest tests/ci/test_mirrored_files_drift_guard.py -q

@@ -1,0 +1,719 @@
+# Depot CI Migration
+# Source: .github/workflows/contract-compliance.yml
+#
+# Changes made:
+# - Rewrote .github/ path references to .depot/
+# - Changed GitHub runs-on labels to their Depot equivalents
+
+# Contract Compliance Check
+# Validates that code follows Fabric 4L canonical contracts and detects API drift
+#
+# CONTRACT.md §3.3 - Lint and CI Enforcement Strategy
+#
+# This workflow consolidates:
+# - Former platform-contract-gate.yml (Python + frontend lint)
+# - Original contract-compliance.yml (ESLint plugin tests + frontend lint + canonical examples)
+# - Former contract-drift-check.yml (OpenAPI drift detection)
+# Into a single authoritative CI gate.
+
+name: Contract Compliance
+permissions:
+  contents: read
+  issues: write
+  actions: read
+on:
+  # NOTE: the `contract-compliance` check is REQUIRED by branch protection on
+  # main. A paths-filtered required check is never emitted for PRs that touch
+  # only unlisted paths, which blocks merging those PRs. The pull_request
+  # trigger therefore runs unconditionally; the paths filter is kept only on
+  # push/schedule where it does not gate merges.
+  pull_request:
+    branches: [main, develop]
+  # V1-CI-001: merge queue support (Stage 1 shadow; aggregates become
+  # required at Stage 3).
+  merge_group:
+  push:
+    branches:
+      - main
+      - develop
+      - "release/**"
+    paths:
+      - "apps/web/**"
+      - "examples/canonical/**"
+      - "packages/eslint-plugin-fabric-contracts/**"
+      - "packages/shared/**"
+      - "services/**/src/**"
+      - "packages/platform-contract/**"
+      - "contracts/openapi/**"
+      - "contracts/jsonschema/**"
+      - "contracts/tool-manifests/**"
+      - "contracts/frontend/**"
+      - "contracts/auth/**"
+      - "contracts/config-policy/**"
+      - "contracts/observability/**"
+      - "contracts/schema-index.json"
+      - "contracts/agent-registry/**"
+      - "tests/contract/**"
+      - "scripts/verify-schema-indexes.sh"
+      - "package.json"
+      - "tests/test_openapi_breaking_change_gate.py"
+      - "scripts/ci/platform_contract_lint.py"
+      - "scripts/ci/check_agent_registry.py"
+      - "scripts/export_openapi.py"
+      - "scripts/ci/contract_compliance_gate.py"
+      - "scripts/ci/openapi_breaking_change_gate.py"
+      - "docs/governance/openapi-breaking-change-exceptions.json"
+      - "docs/reference/openapi-breaking-change-gate.md"
+      - ".depot/workflows/contract-compliance.yml"
+  schedule:
+    # Run daily at 03:00 UTC (consolidated from 02:00 and 03:00)
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+concurrency:
+  group: contract-compliance-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+jobs:
+  contract-compliance:
+    name: contract-compliance
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install Python OpenAPI export dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r tests/requirements-test.txt uvicorn \
+            opentelemetry-api opentelemetry-sdk opentelemetry-exporter-otlp-proto-http \
+            opentelemetry-instrumentation opentelemetry-instrumentation-fastapi
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: "10.18.1"
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.18.0"
+          cache: "pnpm"
+          cache-dependency-path: pnpm-lock.yaml
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Verify schema index coverage
+        run: pnpm test:schema
+      - name: Run contract freshness and compatibility gate
+        run: |
+          if [ "${{github.event_name}}" = "pull_request" ]; then
+            python scripts/ci/contract_compliance_gate.py --mode fast --base-ref origin/${{github.base_ref}}
+          else
+            python scripts/ci/contract_compliance_gate.py --mode full
+          fi
+      - name: Run OpenAPI breaking-change gate
+        run: |
+          if [ "${{github.event_name}}" = "pull_request" ]; then
+            pnpm contract:breaking --base-ref origin/${{github.base_ref}}
+          else
+            pnpm contract:breaking --base-ref origin/main
+          fi
+      - name: Verify OpenAPI breaking-change artifacts
+        run: |
+          test -s artifacts/contract-breaking/openapi-breaking-report.json
+          test -s artifacts/contract-breaking/openapi-breaking-report.md
+      - name: Upload OpenAPI breaking-change report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: openapi-breaking-change-report
+          path: |
+            artifacts/contract-breaking/openapi-breaking-report.json
+            artifacts/contract-breaking/openapi-breaking-report.md
+  # ==========================================================================
+  # Build and Test ESLint Plugin
+  # ==========================================================================
+  plugin-tests:
+    name: ESLint Plugin Tests
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    defaults:
+      run:
+        working-directory: packages/eslint-plugin-fabric-contracts
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: "10.18.1"
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.18.0"
+          cache: "pnpm"
+          cache-dependency-path: pnpm-lock.yaml
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build plugin
+        run: pnpm run build
+      - name: Run tests
+        run: pnpm test --coverage --coverageReporters=text-summary
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          files: ./coverage/lcov.info
+          flags: eslint-plugin
+          name: eslint-plugin-coverage
+          fail_ci_if_error: false
+  # ==========================================================================
+  # Validate Dependabot Coverage (H-07 Audit Fix)
+  # ==========================================================================
+  validate-dependabot-coverage:
+    name: Validate Dependabot Coverage
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install pyyaml
+      - name: Validate dependabot.yml coverage
+        run: python scripts/ci/validate_dependabot_coverage.py
+  # ==========================================================================
+  # Lint Frontend with Contract Rules
+  # ==========================================================================
+  lint-frontend:
+    name: Lint Frontend (Contract Rules)
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    needs: [plugin-tests, validate-dependabot-coverage]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: "10.18.1"
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.18.0"
+          cache: "pnpm"
+          cache-dependency-path: pnpm-lock.yaml
+      - name: Install frontend dependencies
+        working-directory: apps/web
+        run: pnpm install --frozen-lockfile
+      - name: Link plugin to frontend
+        run: |
+          pnpm --dir packages/eslint-plugin-fabric-contracts run build
+      - name: Run contract linting with Phase 2 semantic-contract warnings
+        working-directory: apps/web
+        run: |
+          # Uses .eslintrc.cjs to enforce blocking contract rules while surfacing
+          # Phase 2 semantic-contract metadata findings in warning mode.
+          git fetch --no-tags --prune origin "${{ github.base_ref || 'main' }}"
+          changed=()
+          while IFS= read -r file; do
+            changed+=("${file#apps/web/}")
+          done < <(git diff --name-only "origin/${{ github.base_ref || 'main' }}...HEAD" -- src server | grep -E '\.(ts|tsx)$' || true)
+          if [ "${#changed[@]}" -eq 0 ]; then
+            echo "No changed frontend TypeScript files to contract-lint."
+            exit 0
+          fi
+          pnpm exec eslint "${changed[@]}" --ext .ts,.tsx \
+            --cache --cache-location .eslintcache \
+            --format json --output-file eslint-report.json
+      - name: Upload lint results
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: eslint-contract-violations
+          path: |
+            apps/web/.eslintcache
+            apps/web/eslint-report.json
+        # No continue-on-error: contract violations must block CI
+  # ==========================================================================
+  # Validate Canonical Examples
+  # ==========================================================================
+  validate-canonical:
+    name: Validate Canonical Examples
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    needs: plugin-tests
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: "10.18.1"
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.18.0"
+          cache: "pnpm"
+          cache-dependency-path: pnpm-lock.yaml
+      - name: Install plugin
+        working-directory: packages/eslint-plugin-fabric-contracts
+        run: pnpm install --frozen-lockfile && pnpm run build
+      - name: Validate examples/canonical/
+        working-directory: packages/eslint-plugin-fabric-contracts
+        run: |
+          pnpm exec eslint ../../examples/canonical/ --ext .ts,.tsx \
+            --parser @typescript-eslint/parser \
+            --plugin fabric-contracts \
+            --rule 'fabric-contracts/no-tenant-id-parameter: error' \
+            --rule 'fabric-contracts/no-throw-in-tool: error' \
+            --rule 'fabric-contracts/no-json-parse-agent-output: error' \
+            --rule 'fabric-contracts/no-imperative-navigation: error' \
+            --rule 'fabric-contracts/no-url-concatenation: error' \
+            --rule 'fabric-contracts/no-private-imports: error' \
+            --rule 'fabric-contracts/no-circular-dependencies: warn' \
+            --format compact
+  # ==========================================================================
+  # Platform Contract Package Tests
+  # ==========================================================================
+  platform-contract-tests:
+    name: Platform Contract Package Tests
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: "10.18.1"
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.18.0"
+          cache: "pnpm"
+          cache-dependency-path: pnpm-lock.yaml
+      - name: Install Python contract test dependencies
+        run: pip install -r packages/platform-contract/requirements-test.txt
+      - name: Install platform contract package dependencies
+        working-directory: packages/platform-contract
+        run: pnpm install --frozen-lockfile
+      - name: Run platform contract package tests
+        working-directory: packages/platform-contract
+        run: pnpm run contract:test
+  # ==========================================================================
+  # Python Backend Contract Lint (merged from platform-contract-gate.yml)
+  # ==========================================================================
+  python-lint:
+    name: Python Platform Contract Lint
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    env:
+      PYTHONPATH: packages/shared/src
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: "10.18.1"
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.18.0"
+      - name: Install Python gate dependencies
+        run: python -m pip install --require-hashes -r tests/requirements-test.lock
+      - name: Run Platform Contract Lint
+        run: python scripts/ci/platform_contract_lint.py
+      - name: Run Agent Registry and Semantic Compatibility Validation
+        run: python scripts/ci/check_agent_registry.py --strict
+        # Strict mode is required for Layer 4 model/runtime registry enforcement.
+      - name: Run Strict Shared-Import Enforcement
+        run: python scripts/ci/check_shared_imports.py --strict --scope runtime
+        # NO continue-on-error: This is a BLOCKING contract gate
+      - name: Deprecated namespace import gate
+        run: python scripts/ci/check_deprecated_namespace_imports.py --strict --use-baseline --json
+      - name: Unified compatibility shim gate (additive)
+        run: python scripts/ci/check_compatibility_shims.py run-all --strict --json
+      - name: Deprecation usage baseline gate
+        run: python scripts/ci/check_deprecation_baseline.py
+      - name: No-net-new contract violations (touched modules)
+        run: python scripts/ci/enforce_no_new_contract_violations.py
+      - name: Run Duplicate Source Tree Strict Gate
+        run: python scripts/ci/check_duplicate_source_trees.py --strict
+        # NO continue-on-error: This is a BLOCKING contract gate
+      - name: Enforce runtime canonical import drift
+        run: |
+          set -o pipefail
+          mkdir -p artifacts
+          python scripts/ci/check_runtime_canonical_imports.py --strict | tee artifacts/canonical-import-drift.txt
+          echo "## Runtime canonical import drift" >> $GITHUB_STEP_SUMMARY
+          cat artifacts/canonical-import-drift.txt >> $GITHUB_STEP_SUMMARY
+        # Strict mode is a blocking contract gate for non-canonical value_fabric.layer* imports in service code.
+      - name: Capture namespace shim deprecation warnings
+        run: |
+          set -o pipefail
+          mkdir -p artifacts/shim-deprecation
+          python scripts/ci/capture_shim_deprecation_warnings.py --update-baseline
+          echo "## Namespace shim deprecation warnings" >> $GITHUB_STEP_SUMMARY
+          cat artifacts/shim-deprecation/deprecation-report.md >> $GITHUB_STEP_SUMMARY
+        # Phase 1 remediation tracking: capture shim usage for migration planning
+      - name: Enforce banned deprecated namespace imports (Ruff)
+        run: |
+          set -o pipefail
+          python -m pip install ruff
+          echo "Checking for banned deprecated value_fabric.layer* imports..."
+          # Run Ruff on all services to enforce banned-api rules
+          cd services/layer1-ingestion && ruff check src/ || exit 1
+          cd ../layer2-extraction && ruff check src/ || exit 1
+          cd ../layer3-knowledge && ruff check src/ || exit 1
+          cd ../layer4-agents && ruff check src/ || exit 1
+          cd ../layer5-ground-truth && ruff check src/ || exit 1
+          cd ../layer6-benchmarks && ruff check src/ || exit 1
+          cd ../..
+          echo "✅ No banned deprecated namespace imports found"
+        # Phase 4 remediation: Ruff linting enforcement for deprecated imports
+      # ==========================================================================
+      # P0 FIX: Tenant Boundary Security Gate (BLOCKING)
+      # ==========================================================================
+      - name: Tenant Boundary Security Check
+        run: "echo \"\U0001F512 Running tenant boundary security check...\"\necho \"Direct header access (headers['X-Tenant-ID']) is PROHIBITED.\"\necho \"All code must use: from shared.boundaries import require_tenant_context\"\necho \"\"\npython scripts/ci/boundary_check.py --base-ref \"origin/${{github.base_ref || 'main'}}\"\n"
+        # NO continue-on-error: This is a BLOCKING security gate
+      - name: Run tenant boundary security tests
+        run: "echo \"\U0001F9EA Running tenant boundary fails-closed tests...\"\npip install -r tests/requirements-test.lock\npython -m pytest tests/security/test_tenant_boundary_fails_closed.py -v\n"
+        env:
+          PYTHONPATH: "packages/shared/src"
+        # NO continue-on-error: Tests must pass
+      - name: Upload contract scan results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: python-contract-scan
+          path: |
+            artifacts/canonical-import-drift.txt
+  # ==========================================================================
+  # OpenAPI Drift Detection (merged from contract-drift-check.yml)
+  # ==========================================================================
+  generate-openapi:
+    name: Generate OpenAPI from Code
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        layer: [layer3-knowledge, layer5-ground-truth]
+        include:
+          - layer: layer3-knowledge
+            port: 8003
+            module: src.api.main
+          - layer: layer5-ground-truth
+            port: 8005
+            module: layer5_ground_truth.api.main
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r tests/requirements-test.txt uvicorn \
+            opentelemetry-api opentelemetry-sdk opentelemetry-exporter-otlp-proto-http \
+            opentelemetry-instrumentation opentelemetry-instrumentation-fastapi
+      - name: Generate OpenAPI spec from code
+        working-directory: ./services/${{matrix.layer}}
+        env:
+          NEO4J_PASSWORD: ci-openapi-password
+          ENVIRONMENT: test
+        run: |
+          python -c "
+          import sys
+          import json
+          import traceback
+
+          # Import Layer 3 as the `src` package so its relative imports resolve;
+          # Layer 5 continues to resolve from its service `src/` directory.
+          sys.path.insert(0, '.')
+          sys.path.insert(1, 'src')
+          sys.path.insert(2, '../../packages/shared/src')
+
+          try:
+              from ${{matrix.module}} import app
+              openapi = app.openapi()
+              with open('generated-openapi.json', 'w') as f:
+                  json.dump(openapi, f, indent=2)
+              print(f'✅ Generated OpenAPI for ${{matrix.layer}}')
+              print(f'   Paths: {len(openapi.get(\"paths\", {}))}')
+              sys.exit(0)
+          except ImportError as e:
+              print(f'❌ Failed to import app for ${{matrix.layer}}: {e}')
+              traceback.print_exc()
+              sys.exit(1)
+          except Exception as e:
+              print(f'❌ Failed to generate OpenAPI for ${{matrix.layer}}: {e}')
+              traceback.print_exc()
+              sys.exit(1)
+          "
+      - name: Upload generated spec
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-openapi-${{matrix.layer}}
+          path: services/${{matrix.layer}}/generated-openapi.json
+          retention-days: 7
+  detect-drift:
+    name: Detect OpenAPI Drift
+    needs: generate-openapi
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        layer: [layer3-knowledge, layer5-ground-truth]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Download generated spec
+        uses: actions/download-artifact@v4
+        with:
+          name: generated-openapi-${{matrix.layer}}
+          path: generated/
+      - name: Set up deterministic root test dependencies
+        uses: ./.depot/actions/setup-fabric-ci
+        with:
+          python-dependency-mode: root-test
+          install-node-deps: "false"
+          cache: ""
+      - name: Install deterministic root test dependencies
+        run: python -m pip install --require-hashes -r tests/requirements-test.lock
+      - name: Compare OpenAPI specs
+        id: compare
+        env:
+          PYTHONPATH: services/layer5-ground-truth/src:packages/shared/src
+        run: |
+          if [ "${{matrix.layer}}" = "layer5-ground-truth" ]; then
+            python services/layer5-ground-truth/scripts/check_openapi_contract.py \
+              > drift-report-${{matrix.layer}}.md 2>&1 || EXIT_CODE=$?
+          else
+            python scripts/compare_openapi.py \
+              contracts/openapi/${{matrix.layer}}.json \
+              generated/generated-openapi.json \
+              --output drift-report-${{matrix.layer}}.md \
+              --exit-code || EXIT_CODE=$?
+          fi
+          echo "exit_code=${EXIT_CODE:-0}" >> $GITHUB_OUTPUT
+      - name: Comment PR with drift report
+        if: github.event_name == 'pull_request' && steps.compare.outputs.exit_code != '0'
+        uses: actions/github-script@v7
+        with:
+          script: "const fs = require('fs');\nconst report = fs.readFileSync('drift-report-${{matrix.layer}}.md', 'utf8');\ngithub.rest.issues.createComment({\n  issue_number: context.issue.number,\n  owner: context.repo.owner,\n  repo: context.repo.repo,\n  body: `## \U0001F50D API Contract Drift Detected: ${{matrix.layer}}\\n\\n${report}`\n});\n"
+      - name: Fail on drift
+        if: steps.compare.outputs.exit_code != '0'
+        run: |
+          echo "::error::API contract drift detected in ${{matrix.layer}}"
+          cat drift-report-${{matrix.layer}}.md
+          exit 1
+  openapi-contract-tests:
+    name: OpenAPI Contract Tests
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    timeout-minutes: 15
+    needs: generate-openapi
+    strategy:
+      fail-fast: false
+      matrix:
+        layer: [layer3, layer5]
+        include:
+          - layer: layer3
+            test_path: tests/contract/test_layer3_contract.py
+            port: 8003
+          - layer: layer5
+            test_path: tests/contract/test_layer5_contract.py
+            port: 8005
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Set up deterministic root test dependencies
+        uses: ./.depot/actions/setup-fabric-ci
+        with:
+          python-dependency-mode: root-test
+          install-node-deps: "false"
+          cache: ""
+      - name: Run contract tests
+        run: |
+          pytest ${{matrix.test_path}} -v --tb=short --junitxml=test-results.xml
+        env:
+          FAIL_ON_CONTRACT_VIOLATION: "true"
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: contract-test-results-${{matrix.layer}}
+          path: |
+            .pytest_cache/
+            test-results.xml
+  contract-shape-regression:
+    name: Contract Shape Regression
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    timeout-minutes: 10
+    needs: contract-compliance
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Set up deterministic root test dependencies
+        uses: ./.depot/actions/setup-fabric-ci
+        with:
+          python-dependency-mode: root-test
+          install-node-deps: "false"
+          cache: ""
+      - name: Run representative shape regression tests
+        run: python -m pytest tests/contract/test_api_shape_regression.py -v --tb=short
+        env:
+          CONTRACT_TEST_MODE: mock
+  # ==========================================================================
+  # Deprecation Register Validation
+  # ==========================================================================
+  validate-deprecations:
+    name: Validate Deprecation Register
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    needs: [plugin-tests, lint-frontend, validate-canonical, platform-contract-tests, python-lint]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.18.0"
+      - name: Validate deprecations.json schema
+        run: "echo \"Validating governance/deprecations.json...\"\nnode -e \"\n  const fs = require('fs');\n  const data = JSON.parse(fs.readFileSync('docs/governance/deprecations.json', 'utf8'));\n\n  // Required fields check\n  if (!data.version) throw new Error('Missing version');\n  if (!data.items || !Array.isArray(data.items)) throw new Error('Missing items array');\n\n  // Check each deprecation item\n  data.items.forEach((item, idx) => {\n    const required = ['id', 'pattern', 'contract', 'status', 'severity', 'owner', 'targetRemoval', 'replacement'];\n    required.forEach(field => {\n      if (!item[field]) throw new Error(\\`Item \\${idx} missing \\${field}\\`);\n    });\n\n    // Check for expired exceptions\n    if (item.targetRemoval) {\n      const removal = new Date(item.targetRemoval);\n      // Validate date format first\n      if (isNaN(removal.getTime())) {\n        throw new Error(\\`Item \\${item.id} has invalid targetRemoval date format: \\${item.targetRemoval}. Expected ISO 8601 format (YYYY-MM-DD).\\`);\n      }\n      if (item.status !== 'resolved' && removal < new Date()) {\n        console.error(\\`::error::Deprecation \\${item.id} expired on \\${item.targetRemoval}\\`);\n        process.exitCode = 1;\n      }\n    }\n  });\n\n  console.log(\\`✅ Validated \\${data.items.length} deprecations\\`);\n  console.log(\\`\U0001F4CA Compliance score: \\${data.compliance?.overallScore || 'N/A'}%\\`);\n  console.log(\\`\U0001F3AF Target: \\${data.compliance?.targetScore || 'N/A'}% by \\${data.compliance?.targetDate || 'N/A'}\\`);\n\"\n"
+      - name: Check for expired exceptions
+        run: |
+          echo "Checking for expired deprecation exceptions..."
+          EXPIRED=$(node -e "
+            const fs = require('fs');
+            const data = JSON.parse(fs.readFileSync('docs/governance/deprecations.json', 'utf8'));
+            const now = new Date();
+            const expired = data.items.filter(i => i.status !== 'resolved' && new Date(i.targetRemoval) < now);
+            console.log(expired.map(i => i.id).join(' ') || 'NONE');
+          ")
+          if [ "$EXPIRED" != "NONE" ]; then
+            echo "::error::Expired deprecations found: $EXPIRED"
+            exit 1
+          fi
+          echo "✅ No expired deprecations"
+      - name: Install ripgrep
+        run: sudo apt-get update && sudo apt-get install -y ripgrep
+      - name: Baseline deprecation debt scan (warning mode)
+        continue-on-error: true
+        run: |
+          python3 scripts/report_deprecation_debt.py             --mode warn             --output deprecation-debt-report.json
+      - name: Validate OpenAPI deprecations against generated artifacts
+        run: |
+          python3 scripts/ci/validate_generated_contract_deprecations.py
+      - name: Enforce agreed deprecation thresholds
+        if: ${{ vars.ENFORCE_DEPRECATION_DEBT == 'true' }}
+        run: |
+          python3 scripts/report_deprecation_debt.py             --mode enforce             --thresholds docs/governance/deprecation-debt-registry.json             --output deprecation-debt-report-enforced.json
+      - name: Upload deprecation report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: deprecation-register
+          path: docs/governance/deprecations.json
+      - name: Upload deprecation debt reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: deprecation-debt-reports
+          path: |
+            deprecation-debt-report.json
+            deprecation-debt-report-enforced.json
+            docs/governance/deprecation-debt-registry.json
+  # ==========================================================================
+  # Contract Scorecard & Trendline
+  # ==========================================================================
+  contract-scorecard:
+    name: Contract Scorecard
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    needs: [python-lint, lint-frontend]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install ripgrep
+        run: sudo apt-get update && sudo apt-get install -y ripgrep
+      - name: Run contract scorecard
+        id: scorecard
+        run: |
+          python scripts/ci/contract_scorecard.py --output contract-scorecard.json --gha-comment || true
+          echo "score=$(python -c 'import json; print(json.load(open("contract-scorecard.json"))["overall_score"])')" >> $GITHUB_OUTPUT
+      - name: Upload scorecard
+        uses: actions/upload-artifact@v4
+        with:
+          name: contract-scorecard
+          path: contract-scorecard.json
+      - name: Comment PR with scorecard
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        uses: actions/github-script@v7
+        with:
+          script: "const fs = require('fs');\nconst scorecard = JSON.parse(fs.readFileSync('contract-scorecard.json', 'utf8'));\nconst body = `## \U0001F4CA Contract Compliance Scorecard\\n\\n**Overall Score: ${scorecard.overall_score}%** (target: ${scorecard.target_score}%)\\n\\n| Contract | Violations |\\n|----------|-----------:|\\n` +\n  scorecard.contracts.map(c => `| ${c.contract} ${c.name} | ${c.total_violations} |`).join('\\n') +\n  `\\n\\n${scorecard.overall_score >= scorecard.target_score ? '✅ **Target attained**' : `⚠️ **${(scorecard.target_score - scorecard.overall_score).toFixed(1)} points below target**`}`;\ngithub.rest.issues.createComment({\n  issue_number: context.issue.number,\n  owner: context.repo.owner,\n  repo: context.repo.repo,\n  body: body\n});\n"
+  # ==========================================================================
+  # Summary Report
+  # ==========================================================================
+  summary:
+    name: Contract Compliance Summary
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    needs: [contract-compliance, plugin-tests, validate-dependabot-coverage, lint-frontend, validate-canonical, platform-contract-tests, python-lint, generate-openapi, detect-drift, openapi-contract-tests, contract-shape-regression, validate-deprecations, contract-scorecard]
+    if: always()
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Generate summary
+        run: "echo \"## Contract Compliance Report\" >> $GITHUB_STEP_SUMMARY\necho \"\" >> $GITHUB_STEP_SUMMARY\necho \"### Code Quality Checks\" >> $GITHUB_STEP_SUMMARY\necho \"| Job | Status |\" >> $GITHUB_STEP_SUMMARY\necho \"|-----|--------|\" >> $GITHUB_STEP_SUMMARY\necho \"| Plugin Tests | ${{needs.plugin-tests.result}} |\" >> $GITHUB_STEP_SUMMARY\necho \"| Contract Compliance + OpenAPI Breaking Gate | ${{needs.contract-compliance.result}} |\" >> $GITHUB_STEP_SUMMARY\necho \"| Validate Dependabot Coverage | ${{needs.validate-dependabot-coverage.result}} |\" >> $GITHUB_STEP_SUMMARY\necho \"| Lint Frontend | ${{needs.lint-frontend.result}} |\" >> $GITHUB_STEP_SUMMARY\necho \"| Validate Canonical | ${{needs.validate-canonical.result}} |\" >> $GITHUB_STEP_SUMMARY\necho \"| Platform Contract Tests | ${{needs.platform-contract-tests.result}} |\" >> $GITHUB_STEP_SUMMARY\necho \"| Python Lint | ${{needs.python-lint.result}} |\" >> $GITHUB_STEP_SUMMARY\necho \"| Deprecation Register | ${{needs.validate-deprecations.result}} |\" >> $GITHUB_STEP_SUMMARY\necho \"\" >> $GITHUB_STEP_SUMMARY\necho \"### OpenAPI Contract Checks\" >> $GITHUB_STEP_SUMMARY\necho \"| Job | Status |\" >> $GITHUB_STEP_SUMMARY\necho \"|-----|--------|\" >> $GITHUB_STEP_SUMMARY\necho \"| Generate OpenAPI | ${{needs.generate-openapi.result}} |\" >> $GITHUB_STEP_SUMMARY\necho \"| Detect Drift | ${{needs.detect-drift.result}} |\" >> $GITHUB_STEP_SUMMARY\necho \"| Contract Tests | ${{needs.openapi-contract-tests.result}} |\" >> $GITHUB_STEP_SUMMARY\necho \"| Contract Shape Regression | ${{needs.contract-shape-regression.result}} |\" >> $GITHUB_STEP_SUMMARY\necho \"| OpenAPI Breaking Changes | ${{needs.contract-compliance.result}} |\" >> $GITHUB_STEP_SUMMARY\necho \"\" >> $GITHUB_STEP_SUMMARY\necho \"### Contract Enforcement Status\" >> $GITHUB_STEP_SUMMARY\necho \"| Contract | ESLint | CI Gate | Runtime | Score |\" >> $GITHUB_STEP_SUMMARY\necho \"|----------|--------|---------|---------|-------|\" >> $GITHUB_STEP_SUMMARY\necho \"| §2.1 Tenant Context | error | ✅ BLOCKING | ✅ Fails Closed | 90%+ |\" >> $GITHUB_STEP_SUMMARY\necho \"| §2.2 DB Session | error | ✅ | \U0001F7E1 | 40% |\" >> $GITHUB_STEP_SUMMARY\necho \"| §2.3 Middleware Flow | error | ✅ | \U0001F7E1 | 50% |\" >> $GITHUB_STEP_SUMMARY\necho \"| §2.4 Tool Boundary | error | ✅ | \U0001F7E1 | 55% |\" >> $GITHUB_STEP_SUMMARY\necho \"| §2.5 Agent Output | error | ✅ | \U0001F7E1 | 50% |\" >> $GITHUB_STEP_SUMMARY\necho \"| §2.6 UI State | error | ✅ | \U0001F7E1 | 65% |\" >> $GITHUB_STEP_SUMMARY\necho \"\" >> $GITHUB_STEP_SUMMARY\necho \"### Sprint Progress\" >> $GITHUB_STEP_SUMMARY\necho \"- **Current Score**: ~58%\" >> $GITHUB_STEP_SUMMARY\necho \"- **Sprint Target**: 85-90%\" >> $GITHUB_STEP_SUMMARY\necho \"- **Target Date**: 2026-05-23\" >> $GITHUB_STEP_SUMMARY\necho \"\" >> $GITHUB_STEP_SUMMARY\necho \"### Enforced Rules\" >> $GITHUB_STEP_SUMMARY\necho \"- **Tenant Isolation**: no-tenant-id-parameter, no-req-tenant-access, no-raw-tenant-query\" >> $GITHUB_STEP_SUMMARY\necho \"- **Database Session**: no-explicit-db-connect\" >> $GITHUB_STEP_SUMMARY\necho \"- **Tool Invocation**: no-inline-middleware, no-inline-tool-definition, no-throw-in-tool\" >> $GITHUB_STEP_SUMMARY\necho \"- **LLM Output**: no-json-parse-agent-output\" >> $GITHUB_STEP_SUMMARY\necho \"- **UI State**: no-imperative-navigation, no-url-concatenation\" >> $GITHUB_STEP_SUMMARY\necho \"- **Public API**: no-private-imports, no-circular-dependencies\" >> $GITHUB_STEP_SUMMARY\necho \"- **OpenAPI Drift**: Auto-detection via spec comparison\" >> $GITHUB_STEP_SUMMARY\n"
+  # ---------------------------------------------------------------------------
+  # V1-CI-001 Stage 1 (shadow): stable aggregate contract check. Informational
+  # until Stage 3. Summarizes existing jobs only (scripts/ci/aggregate_gate.py).
+  # All fanned-in jobs run unconditionally on pull_request (the trigger is
+  # intentionally unscoped; see the note on the pull_request trigger above), so
+  # any skip fails the aggregate closed.
+  # ---------------------------------------------------------------------------
+  aggregate-03-contract-compliance:
+    name: 03-contract-compliance
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    timeout-minutes: 5
+    if: always()
+    needs:
+      - contract-compliance
+      - plugin-tests
+      - validate-dependabot-coverage
+      - lint-frontend
+      - validate-canonical
+      - platform-contract-tests
+      - python-lint
+      - generate-openapi
+      - detect-drift
+      - openapi-contract-tests
+      - contract-shape-regression
+      - validate-deprecations
+      - contract-scorecard
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - name: Summarize contract-compliance gates
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        run: python3 scripts/ci/aggregate_gate.py --needs-json "$NEEDS_JSON"

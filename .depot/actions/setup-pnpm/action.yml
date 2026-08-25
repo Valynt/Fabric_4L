@@ -1,0 +1,38 @@
+name: 'Setup Node.js + pnpm'
+description: 'Install the canonical Node.js and pnpm versions used across Fabric 4L workflows, deriving the pnpm version from packageManager.'
+
+inputs:
+  node-version:
+    description: 'Node.js version to install'
+    required: false
+    default: '22.18.0'
+  cache:
+    description: 'Package manager to cache (npm, yarn, or pnpm); leave empty to disable caching'
+    required: false
+    default: 'pnpm'
+  cache-dependency-path:
+    description: 'Dependency path for cache hash'
+    required: false
+    default: 'pnpm-lock.yaml'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup pnpm
+      uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+      with:
+        run_install: false
+
+    - name: Setup Node.js
+      if: ${{ inputs.cache != '' }}
+      uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: ${{ inputs.cache }}
+        cache-dependency-path: ${{ inputs.cache-dependency-path }}
+
+    - name: Setup Node.js (no cache)
+      if: ${{ inputs.cache == '' }}
+      uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4
+      with:
+        node-version: ${{ inputs.node-version }}

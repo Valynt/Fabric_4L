@@ -1,0 +1,121 @@
+name: 'Change Scope'
+description: >
+  Resolve which change scopes a pull request touches, using the central
+  filter definitions in .github/paths-filters.yml. On non-pull_request
+  events (push, schedule, workflow_dispatch) every scope resolves to
+  'true' so the full matrix runs. Scopes are only ever used to skip work
+  that the change cannot affect; a 'false' scope is the explicit,
+  auditable evidence that a path-filtered skip is safe.
+
+outputs:
+  layer1:
+    description: "'true' when Layer 1 code (or shared/CI plumbing) changed"
+    value: ${{ steps.resolve.outputs.layer1 }}
+  layer2:
+    description: "'true' when Layer 2 code (or shared/CI plumbing) changed"
+    value: ${{ steps.resolve.outputs.layer2 }}
+  layer3:
+    description: "'true' when Layer 3 code (or shared/CI plumbing) changed"
+    value: ${{ steps.resolve.outputs.layer3 }}
+  layer4:
+    description: "'true' when Layer 4 code (or shared/CI plumbing) changed"
+    value: ${{ steps.resolve.outputs.layer4 }}
+  layer5:
+    description: "'true' when Layer 5 code (or shared/CI plumbing) changed"
+    value: ${{ steps.resolve.outputs.layer5 }}
+  layer6:
+    description: "'true' when Layer 6 code (or shared/CI plumbing) changed"
+    value: ${{ steps.resolve.outputs.layer6 }}
+  backend:
+    description: "'true' when any backend/runtime Python surface changed"
+    value: ${{ steps.resolve.outputs.backend }}
+  web:
+    description: "'true' when the frontend surface changed"
+    value: ${{ steps.resolve.outputs.web }}
+  code:
+    description: "'true' when any executable code surface changed"
+    value: ${{ steps.resolve.outputs.code }}
+  docker:
+    description: "'true' when the container image surface changed"
+    value: ${{ steps.resolve.outputs.docker }}
+  k8s:
+    description: "'true' when Kubernetes/infra/observability manifests changed"
+    value: ${{ steps.resolve.outputs.k8s }}
+  deps:
+    description: "'true' when dependency manifests or lockfiles changed"
+    value: ${{ steps.resolve.outputs.deps }}
+  release-policy:
+    description: "'true' when release governance surfaces (launch contracts, readiness policies, release scripts/tests) changed"
+    value: ${{ steps.resolve.outputs.release-policy }}
+  runtime:
+    description: "'true' when anything that can affect the running product changed"
+    value: ${{ steps.resolve.outputs.runtime }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Detect changed scopes
+      if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
+      id: filter
+      # SHA-pinned: this action is the scope oracle for the required-check
+      # aggregates, so a mutable tag would let a compromised release emit
+      # all-false scopes and silently skip security gates (cf. the March
+      # 2025 tj-actions/changed-files tag-repointing compromise,
+      # CVE-2025-30066). Keep all usages pinned to a full commit SHA.
+      uses: tj-actions/changed-files@ed68ef82c095e0d48ec87eccea555d944a631a4c # v46.0.5
+      with:
+        files_yaml_from_source_file: .github/paths-filters.yml
+        base_sha: ${{ github.event.merge_group.base_sha || github.event.pull_request.base.sha }}
+        sha: ${{ github.event.merge_group.head_sha || github.sha }}
+
+    - name: Resolve scope outputs
+      id: resolve
+      shell: bash
+      env:
+        IS_SCOPED_EVENT: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
+        # Filter outputs are passed via env (never interpolated into the
+        # script body) so a compromised upstream action emitting shell
+        # metacharacters cannot inject into this step.
+        FILTER_LAYER1: ${{ steps.filter.outputs.layer1_any_changed }}
+        FILTER_LAYER2: ${{ steps.filter.outputs.layer2_any_changed }}
+        FILTER_LAYER3: ${{ steps.filter.outputs.layer3_any_changed }}
+        FILTER_LAYER4: ${{ steps.filter.outputs.layer4_any_changed }}
+        FILTER_LAYER5: ${{ steps.filter.outputs.layer5_any_changed }}
+        FILTER_LAYER6: ${{ steps.filter.outputs.layer6_any_changed }}
+        FILTER_BACKEND: ${{ steps.filter.outputs.backend_any_changed }}
+        FILTER_WEB: ${{ steps.filter.outputs.web_any_changed }}
+        FILTER_CODE: ${{ steps.filter.outputs.code_any_changed }}
+        FILTER_DOCKER: ${{ steps.filter.outputs.docker_any_changed }}
+        FILTER_K8S: ${{ steps.filter.outputs.k8s_any_changed }}
+        FILTER_DEPS: ${{ steps.filter.outputs.deps_any_changed }}
+        FILTER_RELEASE_POLICY: ${{ steps.filter.outputs.release-policy_any_changed }}
+        FILTER_RUNTIME: ${{ steps.filter.outputs.runtime_any_changed }}
+      run: |
+        set -euo pipefail
+        # emit <scope> <detected-value>
+        # Non-scoped events (push, schedule, workflow_dispatch) and any
+        # unresolved value fail open to 'true' (full run); only an explicit
+        # 'false' from the diff skips work.
+        emit() {
+          local scope="$1"
+          local value="${2:-}"
+          if [[ "${IS_SCOPED_EVENT}" != "true" || "${value}" != "false" ]]; then
+            value="true"
+          fi
+          echo "${scope}=${value}" >> "$GITHUB_OUTPUT"
+          echo "scope ${scope}=${value}"
+        }
+        emit layer1  "${FILTER_LAYER1}"
+        emit layer2  "${FILTER_LAYER2}"
+        emit layer3  "${FILTER_LAYER3}"
+        emit layer4  "${FILTER_LAYER4}"
+        emit layer5  "${FILTER_LAYER5}"
+        emit layer6  "${FILTER_LAYER6}"
+        emit backend "${FILTER_BACKEND}"
+        emit web     "${FILTER_WEB}"
+        emit code    "${FILTER_CODE}"
+        emit docker  "${FILTER_DOCKER}"
+        emit k8s     "${FILTER_K8S}"
+        emit deps    "${FILTER_DEPS}"
+        emit release-policy "${FILTER_RELEASE_POLICY}"
+        emit runtime "${FILTER_RUNTIME}"

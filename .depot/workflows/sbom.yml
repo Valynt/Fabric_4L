@@ -1,0 +1,37 @@
+# Depot CI Migration
+# Source: .github/workflows/sbom.yml
+#
+# Changes made:
+# - Removed unsupported trigger "release"
+# - Rewrote .github/ path references to .depot/
+
+name: SBOM Generation & Attestation
+# Removed unsupported trigger: release. Release events are not supported.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release image tag to certify
+        required: true
+        type: string
+  push:
+    tags:
+      - "v*"
+permissions:
+  contents: read
+# Release SBOM generation has one implementation. The reusable supply-chain
+# workflow owns the digest-pinned tool image, image naming, CycloneDX/SPDX
+# outputs, Grype enforcement, signature verification, and artifact retention.
+jobs:
+  certify-release-artifacts:
+    permissions:
+      contents: read
+      packages: read
+      security-events: write
+      actions: read
+      id-token: write
+    uses: ./.depot/workflows/supply-chain-integrity.yml
+    with:
+      image_tag: ${{ inputs.tag || github.event.release.tag_name || github.ref_name }}
+      certify_images: true
+    secrets: inherit

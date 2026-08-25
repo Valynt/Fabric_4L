@@ -1,0 +1,218 @@
+# Depot CI Migration
+# Source: .github/workflows/release-api-changelog.yml
+#
+# Changes made:
+# - Removed unsupported trigger "release"
+# - Changed GitHub runs-on labels to their Depot equivalents
+
+# =============================================================================
+# Fabric 4L — API Changelog Automation
+# =============================================================================
+# Triggers on release publish, generates API changelog by comparing OpenAPI
+# specs between the new release and the previous release, and attaches the
+# changelog to the release notes.
+#
+# Requirements:
+#   - GITHUB_TOKEN (auto-provided by GitHub Actions)
+#   - Python 3.11+
+#
+# Workflow outputs:
+#   - CHANGELOG-API.md artifact
+#   - Updated GitHub release notes
+# =============================================================================
+
+name: "API Changelog Automation"
+permissions:
+  contents: read
+# Removed unsupported trigger: release. Release events are not supported.
+"on":
+  workflow_dispatch:
+    inputs:
+      from_ref:
+        description: "Base git reference (tag or commit)"
+        required: true
+        default: ""
+        type: string
+      to_ref:
+        description: "Target git reference (tag or commit)"
+        required: true
+        default: "HEAD"
+        type: string
+      output_file:
+        description: "Output changelog filename"
+        required: false
+        default: "CHANGELOG-API.md"
+        type: string
+env:
+  PYTHON_VERSION: "3.11"
+  SCRIPT_PATH: "scripts/ci/generate_api_changelog.py"
+jobs:
+  # ──────────────────────────────────────────────────────────────────────────
+  # Generate API Changelog
+  # ──────────────────────────────────────────────────────────────────────────
+  generate:
+    name: Generate API Changelog
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    permissions:
+      contents: write # Attaches the generated changelog and updates release notes.
+    outputs:
+      has_breaking: ${{ steps.changelog.outputs.has_breaking }}
+      change_count: ${{ steps.changelog.outputs.change_count }}
+      output_path: ${{ steps.changelog.outputs.output_path }}
+    steps:
+      # ── Checkout ──────────────────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Full history for git tag comparison
+          fetch-tags: true
+      # ── Setup Python ──────────────────────────────────────────────────────
+      - name: Setup Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      # ── Determine refs ────────────────────────────────────────────────────
+      - name: Determine comparison refs
+        id: refs
+        run: |
+          if [ "${{ github.event_name }}" = "release" ]; then
+            # On release: compare with previous release
+            CURRENT_TAG="${{ github.event.release.tag_name }}"
+            PREV_TAG=$(git describe --tags --abbrev=0 "${CURRENT_TAG}^" 2>/dev/null || echo "")
+
+            if [ -z "$PREV_TAG" ]; then
+              echo "No previous tag found. Using repository root."
+              PREV_TAG=$(git rev-list --max-parents=0 HEAD)
+            fi
+
+            echo "from_ref=${PREV_TAG}" >> $GITHUB_OUTPUT
+            echo "to_ref=${CURRENT_TAG}" >> $GITHUB_OUTPUT
+            echo "Comparing ${PREV_TAG} → ${CURRENT_TAG}"
+          else
+            # Manual dispatch
+            echo "from_ref=${{ github.event.inputs.from_ref }}" >> $GITHUB_OUTPUT
+            echo "to_ref=${{ github.event.inputs.to_ref }}" >> $GITHUB_OUTPUT
+          fi
+      # ── Generate changelog ────────────────────────────────────────────────
+      - name: Generate API changelog
+        id: changelog
+        run: |
+          FROM_REF="${{ steps.refs.outputs.from_ref }}"
+          TO_REF="${{ steps.refs.outputs.to_ref }}"
+          OUTPUT="${{ github.event.inputs.output_file || 'CHANGELOG-API.md' }}"
+
+          # Ensure script is executable
+          chmod +x ${{ env.SCRIPT_PATH }}
+
+          # Run changelog generator
+          set +e
+          python ${{ env.SCRIPT_PATH }} \
+            --from "${FROM_REF}" \
+            --to "${TO_REF}" \
+            --output "${OUTPUT}" \
+            --json \
+            --repo "${{ github.repository }}"
+
+          EXIT_CODE=$?
+          set -e
+
+          # Parse JSON output for step outputs
+          if [ -f "${OUTPUT}" ]; then
+            CHANGE_COUNT=$(grep -c "^## " "${OUTPUT}" || echo "0")
+            echo "change_count=${CHANGE_COUNT}" >> $GITHUB_OUTPUT
+            echo "output_path=${OUTPUT}" >> $GITHUB_OUTPUT
+          fi
+
+          if [ $EXIT_CODE -eq 1 ]; then
+            echo "has_breaking=true" >> $GITHUB_OUTPUT
+            echo "::warning::Breaking API changes detected!"
+          else
+            echo "has_breaking=false" >> $GITHUB_OUTPUT
+          fi
+
+          # Always succeed — breaking changes are informational
+          exit 0
+      # ── Upload artifact ───────────────────────────────────────────────────
+      - name: Upload changelog artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-changelog
+          path: ${{ steps.changelog.outputs.output_path }}
+          retention-days: 90
+      # ── Attach to release ─────────────────────────────────────────────────
+      - name: Attach changelog to release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.event.release.tag_name }}
+          files: ${{ steps.changelog.outputs.output_path }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+      # ── Update release notes ──────────────────────────────────────────────
+      - name: Update release notes with changelog
+        if: github.event_name == 'release'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Read the generated changelog
+          CHANGELOG=$(cat "${{ steps.changelog.outputs.output_path }}")
+
+          # Escape for JSON
+          CHANGELOG_ESCAPED=$(echo "$CHANGELOG" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')
+
+          # Get current release body
+          RELEASE_BODY=$(gh api \
+            "repos/${{ github.repository }}/releases/${{ github.event.release.id }}" \
+            --jq '.body // ""')
+
+          # Append API changelog section
+          UPDATED_BODY="${RELEASE_BODY}
+
+          ## API Changes
+
+          ${CHANGELOG}
+          "
+
+          UPDATED_ESCAPED=$(echo "$UPDATED_BODY" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')
+
+          # Update release
+          gh api \
+            --method PATCH \
+            "repos/${{ github.repository }}/releases/${{ github.event.release.id }}" \
+            -f body="$UPDATED_BODY"
+
+          echo "Release notes updated successfully."
+  # ──────────────────────────────────────────────────────────────────────────
+  # Notify on Breaking Changes
+  # ──────────────────────────────────────────────────────────────────────────
+  notify:
+    name: Notify Breaking Changes
+    needs: generate
+    if: needs.generate.outputs.has_breaking == 'true'
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    permissions:
+      issues: write # Creates an advisory issue when breaking API changes are detected.
+    steps:
+      - name: Create breaking change advisory issue
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue create \
+            --repo "${{ github.repository }}" \
+            --title "⚠️ Breaking API Changes in ${{ github.event.release.tag_name }}" \
+            --body "Breaking API changes were detected in release ${{ github.event.release.tag_name }}.
+
+          See the attached \`CHANGELOG-API.md\` in the release assets for details.
+
+          **Action Required:**
+          - [ ] Review all breaking changes
+          - [ ] Update consumer SDKs
+          - [ ] Notify API consumers via email/Slack
+          - [ ] Update migration guide
+
+          /cc @api-team" \
+            --label "breaking-change,api,automated"
+      - name: Post to Slack (optional)
+        if: env.SLACK_WEBHOOK_URL != ''
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL_API_CHANGES }}
+        run: "curl -X POST -H 'Content-type: application/json' \\\n  --data '{\n    \"text\": \"\U0001F6A8 *Breaking API Changes Detected*\n\nRelease: `${{ github.event.release.tag_name }}`\nRepository: `${{ github.repository }}`\n    Changes: ${{ needs.generate.outputs.change_count }} items\n\nReview the changelog: ${{ github.event.release.html_url }}\"\n  }' \\\n  \"$SLACK_WEBHOOK_URL\"\n"
