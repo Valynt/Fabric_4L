@@ -206,6 +206,7 @@ class ContextArtifact(BaseModel):
     tenant_id: str
     workspace_id: str
     account_id: str | None = None
+    journey_id: str | None = None
 
     # Core content
     customer_profile: CustomerProfile
@@ -346,6 +347,8 @@ class ValueModelArtifact(BaseModel):
     # Tenant context
     tenant_id: str
     workspace_id: str
+    account_id: str | None = None
+    journey_id: str | None = None
 
     # Core content
     capability_chains: list[CapabilityValueChain] = Field(default_factory=list)
@@ -414,7 +417,11 @@ class IntegrityArtifact(BaseModel):
     # Lineage
     value_model_artifact_id: str
 
-    # Audit results
+    # Tenant context
+    tenant_id: str | None = None
+    workspace_id: str | None = None
+    account_id: str | None = None
+    journey_id: str | None = None
     assumption_audit: list[AssumptionAuditEntry] = Field(default_factory=list)
     evidence_assessment: list[EvidenceAssessment] = Field(default_factory=list)
     gate_results: list[GateResult] = Field(default_factory=list)
@@ -484,6 +491,12 @@ class NarrativeArtifact(BaseModel):
     value_model_artifact_id: str
     integrity_artifact_id: str
     competitive_intel_artifact_id: str | None = None  # CompetitiveIntelArtifact.artifact_id
+
+    # Tenant context
+    tenant_id: str | None = None
+    workspace_id: str | None = None
+    account_id: str | None = None
+    journey_id: str | None = None
 
     # Core output
     executive_summary: ExecutiveSummary = Field(default_factory=ExecutiveSummary)
@@ -668,6 +681,8 @@ class CompetitiveIntelArtifact(BaseModel):
     context_artifact_id: str
     tenant_id: str
     workspace_id: str
+    account_id: str | None = None
+    journey_id: str | None = None
 
     # The four competitive baselines evaluated
     # Each entry covers one alternative option the buyer is considering
@@ -728,3 +743,62 @@ class CompetitiveIntelArtifact(BaseModel):
         unsupported_penalty = len(self.flagged_claims) * 0.1
         base_score = supported / total
         return max(0.0, min(1.0, base_score - unsupported_penalty))
+
+
+# ---------------------------------------------------------------------------
+# Integrity Preconditions & Gate Errors (Pillar 3)
+# ---------------------------------------------------------------------------
+
+class IntegrityPrecondition(BaseModel):
+    """
+    Precondition required before any externally consequential action on a NarrativeArtifact version.
+    Validates that a passing IntegrityArtifact matches exact narrative and evidence hashes.
+    """
+    model_config = ConfigDict(populate_by_name=True)
+
+    narrative_artifact_id: str
+    narrative_version: int = 1
+    narrative_content_hash: str
+    evidence_set_hash: str
+    tenant_id: str
+    account_id: str
+    integrity_policy_version: str = "1.0.0"
+
+    # Evaluation results
+    narrative_artifact_id_matches: bool = True
+    narrative_version_matches: bool = True
+    narrative_content_hash_matches: bool = True
+    evidence_set_hash_matches: bool = True
+    tenant_and_account_match: bool = True
+    status: Literal["passed", "pending", "failed", "stale"] = "passed"
+    unresolved_findings: int = 0
+    integrity_policy_version_accepted: bool = True
+    evidence_references_resolvable: bool = True
+    expired: bool = False
+
+    @property
+    def is_passed(self) -> bool:
+        """Returns True iff all required integrity preconditions are satisfied."""
+        return (
+            self.narrative_artifact_id_matches
+            and self.narrative_version_matches
+            and self.narrative_content_hash_matches
+            and self.evidence_set_hash_matches
+            and self.tenant_and_account_match
+            and self.status == "passed"
+            and self.unresolved_findings == 0
+            and self.integrity_policy_version_accepted
+            and self.evidence_references_resolvable
+            and not self.expired
+        )
+
+
+class IntegrityGateErrorResponse(BaseModel):
+    """Structured 422 INTEGRITY_GATE_OPEN error response payload."""
+    code: Literal["INTEGRITY_GATE_OPEN"] = "INTEGRITY_GATE_OPEN"
+    message: str = "This narrative version has not passed integrity validation."
+    narrative_artifact_id: str
+    narrative_version: int = 1
+    integrity_status: Literal["missing", "pending", "failed", "stale", "mismatched", "unresolved_findings"]
+    required_action: str = "rerun_integrity_validation"
+

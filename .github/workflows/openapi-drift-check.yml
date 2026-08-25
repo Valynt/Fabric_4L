@@ -115,7 +115,9 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install pytest schemathesis pyyaml
+          python -m pip install --upgrade pip
+          pip install -r tests/requirements-test.txt
+          pip install pytest schemathesis pyyaml jsonschema
           pip install -r requirements.txt || true
 
       - name: Run contract validation tests (with infra)

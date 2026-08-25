@@ -147,7 +147,7 @@ def test_entity_data():
     return {
         "id": test_id,
         "name": f"TestCorp {test_id}",
-        "entity_type": "Company",
+        "entity_type": "Organization",
         "properties": {
             "industry": "Technology",
             "employees": 500,
