@@ -330,7 +330,7 @@ class RobotsChecker:
                     rules={},
                     http_status=response.status_code,
                     is_valid=False,
-                    error=repr(e),
+                    error=type(e).__name__,
                 )
                 # Be conservative and allow crawling on parse errors
                 return None

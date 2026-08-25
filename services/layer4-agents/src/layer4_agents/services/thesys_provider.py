@@ -32,9 +32,7 @@ from .llm_adapter_interfaces import (
 logger = logging.getLogger(__name__)
 
 THESYS_API_KEY: str = os.getenv("THESYS_API_KEY", "")
-THESYS_BASE_URL: str = os.getenv(
-    "THESYS_BASE_URL", "https://api.thesys.dev/v1/embed"
-)
+THESYS_BASE_URL: str = os.getenv("THESYS_BASE_URL", "https://api.thesys.dev/v1/embed")
 
 
 class ThesysProvider(CompletionAdapter):
@@ -54,7 +52,11 @@ class ThesysProvider(CompletionAdapter):
         if base_url is not None:
             self._base_url = base_url
         else:
-            self._base_url = os.getenv("THESYS_BASE_URL", "") or THESYS_BASE_URL or "https://api.thesys.dev/v1/embed"
+            self._base_url = (
+                os.getenv("THESYS_BASE_URL", "")
+                or THESYS_BASE_URL
+                or "https://api.thesys.dev/v1/embed"
+            )
         self._timeout = timeout
 
     def is_configured(self) -> bool:
@@ -77,26 +79,44 @@ class ThesysProvider(CompletionAdapter):
 
     def _normalize_error(self, exc: Exception) -> AdapterError:
         """Normalize exceptions to Layer 4 standard AdapterError."""
-        msg = str(exc)
-        lowered = msg.lower()
         logger.error("thesys_provider_error", exc_info=exc)
+        lowered = str(exc).lower()
         if "prompt injection" in lowered or "injection" in lowered:
-            return AdapterError(ErrorCategory.INVALID_REQUEST, "thesys_prompt_injection", retryable=False)
+            return AdapterError(
+                ErrorCategory.INVALID_REQUEST,
+                "thesys_prompt_injection",
+                retryable=False,
+            )
         if isinstance(exc, httpx.TimeoutException) or "timeout" in lowered:
             return AdapterError(ErrorCategory.TIMEOUT, "thesys_timeout", retryable=True)
         if isinstance(exc, httpx.ConnectError) or "connect" in lowered:
-            return AdapterError(ErrorCategory.TRANSIENT, "thesys_connect_error", retryable=True)
-        if "401" in lowered or "403" in lowered or "unauthorized" in lowered or "forbidden" in lowered:
-            return AdapterError(ErrorCategory.AUTH, "thesys_auth_error", retryable=False)
+            return AdapterError(
+                ErrorCategory.TRANSIENT, "thesys_connect_error", retryable=True
+            )
+        if (
+            "401" in lowered
+            or "403" in lowered
+            or "unauthorized" in lowered
+            or "forbidden" in lowered
+        ):
+            return AdapterError(
+                ErrorCategory.AUTH, "thesys_auth_error", retryable=False
+            )
         if "429" in lowered or "rate" in lowered and "limit" in lowered:
-            return AdapterError(ErrorCategory.RATE_LIMIT, "thesys_rate_limited", retryable=True)
+            return AdapterError(
+                ErrorCategory.RATE_LIMIT, "thesys_rate_limited", retryable=True
+            )
         if "400" in lowered or "bad request" in lowered or "invalid" in lowered:
-            return AdapterError(ErrorCategory.INVALID_REQUEST, "thesys_bad_request", retryable=False)
+            return AdapterError(
+                ErrorCategory.INVALID_REQUEST, "thesys_bad_request", retryable=False
+            )
         return AdapterError(ErrorCategory.PROVIDER, "thesys_error", retryable=False)
 
-    def _scan_messages(self, messages: list[dict[str, Any]], tenant_id: str | None = None) -> bool:
+    def _scan_messages(
+        self, messages: list[dict[str, Any]], tenant_id: str | None = None
+    ) -> bool:
         """Scan messages for prompt injection using PromptGuard.
-        
+
         Returns True if safe, False if injection detected.
         """
         guard = PromptGuard(fail_closed=False)
@@ -105,11 +125,16 @@ class ThesysProvider(CompletionAdapter):
                 continue
             content = msg.get("content")
             if isinstance(content, str) and content.strip():
-                result = guard.check(content, context={"tenant_id": tenant_id, "provider": "thesys"})
+                result = guard.check(
+                    content, context={"tenant_id": tenant_id, "provider": "thesys"}
+                )
                 if result.is_injection:
                     logger.warning(
                         "Prompt injection detected in Thesys C1 payload",
-                        extra={"tenant_id": tenant_id, "risk_score": getattr(result, "risk_score", None)},
+                        extra={
+                            "tenant_id": tenant_id,
+                            "risk_score": getattr(result, "risk_score", None),
+                        },
                     )
                     return False
         return True
@@ -130,7 +155,9 @@ class ThesysProvider(CompletionAdapter):
     ) -> LLMTextResponse:
         """Execute a non-streaming text completion against Thesys C1."""
         if not self.is_configured():
-            raise RuntimeError("Thesys C1 integration is not configured. Set THESYS_API_KEY.")
+            raise RuntimeError(
+                "Thesys C1 integration is not configured. Set THESYS_API_KEY."
+            )
 
         if not self._scan_messages(messages, tenant_id=tenant_id):
             raise ValueError("Prompt injection detected in input messages")
@@ -153,7 +180,9 @@ class ThesysProvider(CompletionAdapter):
         if max_tokens is not None:
             payload["max_tokens"] = max_tokens
 
-        prompt_chars = sum(len(m.get("content", "")) for m in messages if isinstance(m, dict))
+        prompt_chars = sum(
+            len(m.get("content", "")) for m in messages if isinstance(m, dict)
+        )
         estimated_prompt_tokens = max(1, prompt_chars // 4)
 
         try:
@@ -172,7 +201,9 @@ class ThesysProvider(CompletionAdapter):
             if isinstance(data, dict):
                 content = (
                     data.get("content", "")
-                    or data.get("choices", [{}])[0].get("message", {}).get("content", "")
+                    or data.get("choices", [{}])[0]
+                    .get("message", {})
+                    .get("content", "")
                     or data.get("text", "")
                 )
             elif isinstance(data, str):
@@ -193,7 +224,9 @@ class ThesysProvider(CompletionAdapter):
             logger.error("Thesys complete_text failed: %s", exc, exc_info=True)
             raise
 
-    async def complete(self, request: CompletionRequest) -> CompletionResult | AdapterError:
+    async def complete(
+        self, request: CompletionRequest
+    ) -> CompletionResult | AdapterError:
         """CompletionAdapter protocol implementation."""
         try:
             res = await self.complete_text(
@@ -299,8 +332,13 @@ class ThesysProvider(CompletionAdapter):
             logger.exception("Thesys API request timed out")
             yield f"data: {json.dumps({'type': 'error', 'error': 'Thesys API request timed out'})}\n\n"
         except asyncio.CancelledError:
-            logger.info("Thesys C1 stream cancelled by client", extra={"tenant_id": tenant_id, "trace_id": trace_id})
+            logger.info(
+                "Thesys C1 stream cancelled by client",
+                extra={"tenant_id": tenant_id, "trace_id": trace_id},
+            )
             raise
         except Exception as exc:
-            logger.exception("Unexpected error while streaming from Thesys API: %s", exc)
+            logger.exception(
+                "Unexpected error while streaming from Thesys API: %s", exc
+            )
             yield f"data: {json.dumps({'type': 'error', 'error': 'Internal streaming error'})}\n\n"
