@@ -108,4 +108,3 @@ def build_workflow_task(
             "auth_source": "workflow_execution",
         },
     )
-

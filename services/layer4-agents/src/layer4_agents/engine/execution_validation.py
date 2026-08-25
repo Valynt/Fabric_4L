@@ -65,4 +65,3 @@ def parse_and_enforce_approval_gate(
         )
     except (ValueError, PolicyViolationError) as exc:
         raise error_cls(f"{type(exc).__name__}: workflow_execution_failed") from exc
-

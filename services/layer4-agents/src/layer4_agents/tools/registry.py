@@ -25,17 +25,11 @@ from value_fabric.shared.identity.context import (
     set_request_context,
 )
 from value_fabric.shared.identity.policy_registry import authorize_action, get_tool_action
-from value_fabric.shared.identity.tool_contract import (
-    ToolError as CanonicalToolError,
-)
-from value_fabric.shared.identity.tool_contract import (
-    ToolMetadata as CanonicalToolMetadata,
-)
 
 # CONTRACT §2.4: Canonical ToolResult from shared package (migration in progress)
-from value_fabric.shared.identity.tool_contract import (
-    ToolResult as CanonicalToolResult,
-)
+from value_fabric.shared.identity.tool_contract import ToolError as CanonicalToolError
+from value_fabric.shared.identity.tool_contract import ToolMetadata as CanonicalToolMetadata
+from value_fabric.shared.identity.tool_contract import ToolResult as CanonicalToolResult
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
 from ..models.tool_schemas import ToolCategory, ToolSchema
@@ -523,9 +517,15 @@ class ToolRegistry:
         # approval for irreversible CRM/INTEGRATION tools by setting
         # LAYER4_AUTO_APPROVE_IRREVERSIBLE_TOOLS=true.  This must never be enabled
         # in production-like environments.
-        auto_approve = os.getenv("LAYER4_AUTO_APPROVE_IRREVERSIBLE_TOOLS", "").lower() in ("true", "1", "yes")
+        auto_approve = os.getenv("LAYER4_AUTO_APPROVE_IRREVERSIBLE_TOOLS", "").lower() in (
+            "true",
+            "1",
+            "yes",
+        )
         if auto_approve:
-            environment = os.getenv("ENVIRONMENT", os.getenv("ENV", os.getenv("APP_ENV", ""))).strip().lower()
+            environment = (
+                os.getenv("ENVIRONMENT", os.getenv("ENV", os.getenv("APP_ENV", ""))).strip().lower()
+            )
             if environment == "production":
                 raise RuntimeError(
                     "unsafe_production_configuration: "
@@ -1032,11 +1032,7 @@ class ToolRegistry:
     ) -> None:
         """Fire-and-forget TOOL_INVOCATION audit event."""
         from value_fabric.shared.audit.emitter import emit_audit_event
-        from value_fabric.shared.audit.models import (
-            AuditAction,
-            AuditOutcome,
-            ToolInvocationRecord,
-        )
+        from value_fabric.shared.audit.models import AuditAction, AuditOutcome, ToolInvocationRecord
 
         record = ToolInvocationRecord(
             tool_name=tool_name,

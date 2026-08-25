@@ -5,8 +5,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import shlex
 import subprocess
-import sys
 from pathlib import Path
 
 
@@ -39,10 +39,17 @@ def _run_check(entry: dict[str, object]) -> dict[str, object]:
         return {"check_id": check_id, "subcommand": subcommand, "status": "fail", "exit_code": 1, "command": command}
 
     print(f"-> {check_id} {subcommand}: {command}")
-    completed = subprocess.run(command, cwd=ROOT, shell=True)
-    if completed.returncode != 0:
-        print(f"FAIL {check_id} ({subcommand}) exited {completed.returncode}")
-        return {"check_id": check_id, "subcommand": subcommand, "status": "fail", "exit_code": completed.returncode, "command": command}
+
+    sub_commands = [c.strip() for c in command.split("&&")]
+    for sub_cmd in sub_commands:
+        if not sub_cmd:
+            continue
+        parsed_cmd = shlex.split(sub_cmd)
+        completed = subprocess.run(parsed_cmd, cwd=ROOT, shell=False)
+        if completed.returncode != 0:
+            print(f"FAIL {check_id} ({subcommand}) exited {completed.returncode} on command: {sub_cmd}")
+            return {"check_id": check_id, "subcommand": subcommand, "status": "fail", "exit_code": completed.returncode, "command": command}
+
     print(f"PASS {check_id} ({subcommand})")
     return {"check_id": check_id, "subcommand": subcommand, "status": "pass", "exit_code": 0, "command": command}
 
