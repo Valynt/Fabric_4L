@@ -16,7 +16,7 @@ services:
     hostname: otel-collector
     command: ["--config=/etc/otel-collector.yaml"]
     volumes:
-      - ./otel-collector.yaml:/etc/otel-collector.yaml:ro
+      - ../../monitoring/otel-collector.yaml:/etc/otel-collector.yaml:ro
     ports:
       - "4317:4317"   # OTLP gRPC
       - "4318:4318"   # OTLP HTTP
@@ -87,9 +87,10 @@ services:
     container_name: fabric4l-prometheus
     hostname: prometheus
     volumes:
-      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - ./monitoring/recording-rules.yml:/etc/prometheus/recording-rules.yml:ro
-      - ./monitoring/alerting-rules.yml:/etc/prometheus/alerting-rules.yml:ro
+      - ../../monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ../../monitoring/prometheus/recording-rules.yml:/etc/prometheus/recording-rules.yml:ro
+      - ../../monitoring/alerting/rules.yml:/etc/prometheus/alerting/rules.yml:ro
+      - ../../monitoring/alerting/layer-sli-rules-production.yml:/etc/prometheus/alerting/layer-sli-rules-production.yml:ro
       - prometheus-data:/prometheus
     ports:
       - "9090:9090"
@@ -129,9 +130,9 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - ./dashboards:/var/lib/grafana/dashboards:ro
-      - ./monitoring/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
-      - ./monitoring/grafana-dashboards.yml:/etc/grafana/provisioning/dashboards/dashboards.yml:ro
+      - ../../monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - ../../monitoring/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ../../monitoring/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
       - grafana-data:/var/lib/grafana
     networks:
       - fabric4l_net
@@ -168,7 +169,7 @@ services:
     ports:
       - "3100:3100"
     volumes:
-      - ./monitoring/loki-config.yml:/etc/loki/local-config.yaml:ro
+      - ../../monitoring/loki/local-config.yaml:/etc/loki/local-config.yaml:ro
       - loki-data:/loki
     networks:
       - fabric4l_net
@@ -199,13 +200,19 @@ services:
     volumes:
       - /var/log:/var/log:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
-      - ./monitoring/promtail-config.yml:/etc/promtail/config.yml:ro
+      - ../../monitoring/promtail-config.yml:/etc/promtail/config.yml:ro
     networks:
       - fabric4l_net
     command: -config.file=/etc/promtail/config.yml
     restart: unless-stopped
     depends_on:
       - loki
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:9080/ready >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
     deploy:
       resources:
         limits:
@@ -225,7 +232,7 @@ services:
     ports:
       - "9093:9093"
     volumes:
-      - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - ../../monitoring/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
       - alertmanager-data:/alertmanager
     networks:
       - fabric4l_net
@@ -270,6 +277,11 @@ services:
     networks:
       - fabric4l_net
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:9100/metrics"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     deploy:
       resources:
         limits:

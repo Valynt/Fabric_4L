@@ -1075,7 +1075,7 @@ jobs:
       - name: Run Layer 3 hostile tenancy endpoint suite
         run: |
           mkdir -p artifacts/layer3-tenancy
-          uv run pytest tests/layer3/test_endpoint_tenant_isolation.py -v \
+          uv run pytest ../../tests/layer3/test_endpoint_tenant_isolation.py -v \
             --junitxml artifacts/layer3-tenancy/hostile-tenancy-junit.xml \
             --json-report --json-report-file=artifacts/layer3-tenancy/hostile-tenancy-report.json
 
