@@ -1,0 +1,37 @@
+# Depot CI Migration
+# Source: .github/workflows/layer3-wrapper-drift.yml
+#
+# Changes made:
+# - Rewrote .github/ path references to .depot/
+# - Changed GitHub runs-on labels to their Depot equivalents
+
+name: Layer3 Wrapper Drift Check
+permissions:
+  contents: read
+on:
+  pull_request:
+    paths:
+      - 'services/layer3-knowledge/src/**/*.py'
+      - 'scripts/ci/check_layer3_wrapper_drift.py'
+      - 'scripts/ci/check_layer3_settings_shim_drift.py'
+      - '.depot/workflows/layer3-wrapper-drift.yml'
+  workflow_dispatch:
+jobs:
+  check-layer3-wrapper-drift:
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Validate Layer3 compatibility namespace
+        run: python scripts/ci/check_layer3_wrapper_drift.py
+      - name: Validate Layer3 settings shim
+        run: python scripts/ci/check_layer3_settings_shim_drift.py
+      - name: Collect changed files
+        run: |
+          git fetch --no-tags --depth=1 origin "${{ github.base_ref }}"
+          echo "CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | tr '\n' ' ')" >> "$GITHUB_ENV"
+      - name: Report unregistered Layer3 compatibility additions
+        run: python scripts/ci/report_layer3_compat_additions.py

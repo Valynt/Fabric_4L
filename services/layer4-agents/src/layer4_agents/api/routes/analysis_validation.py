@@ -523,7 +523,7 @@ def build_validation_seed_router(
 
         tenant_id = str(context.tenant_id)
         now = datetime.now(UTC)
-        cases: list[dict[str, object]] = [
+        cases: list[dict[str, str | None]] = [
             {
                 "case_id": payload.draft_case_id,
                 "status": "draft",

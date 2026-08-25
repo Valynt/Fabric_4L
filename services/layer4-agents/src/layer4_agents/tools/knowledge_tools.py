@@ -32,6 +32,10 @@ from ..models.tool_schemas import (
 from ..services.llm_provider import get_llm_provider
 from ..shared.domain import context as tenant_context
 from ..shared.domain.context import TenantContextError
+from ..shared.security.cypher_security import (
+    ALLOWED_REL_TYPES,
+    validate_cypher_identifier,
+)
 from .registry import BaseTool
 
 logger = logging.getLogger(__name__)
@@ -604,10 +608,13 @@ class GetRelationshipsTool(BaseTool):
             )
 
         predicate = input_data.predicate
-        if predicate and re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", predicate) is None:
-            return GetRelationshipsOutput(
-                relationships=[], total_count=0, error="INVALID_PREDICATE"
-            )
+        if predicate:
+            if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", predicate) is None:
+                return GetRelationshipsOutput(
+                    relationships=[], total_count=0, error="INVALID_PREDICATE"
+                )
+            # SEC-L3-CYPHER-003: Validate against explicit allowlist
+            validate_cypher_identifier(predicate, ALLOWED_REL_TYPES, "relationship type")
 
         driver = self._get_driver()
 
@@ -616,7 +623,7 @@ class GetRelationshipsTool(BaseTool):
                 # P0 FIX: Build query with mandatory tenant filter and optional predicate
                 tenant_id_str = str(tenant_ctx.tenant_id)
 
-                rel_pattern = f"[r:{predicate}]" if predicate else "[r]"  # cypher-dynamic-safe: validated against regex identifier
+                rel_pattern = f"[r:{predicate}]" if predicate else "[r]"  # cypher-dynamic-safe: validated against ALLOWED_REL_TYPES via validate_cypher_identifier
 
                 query = f"""
                     MATCH (n {{id: $entity_id, tenant_id: $tenant_id}})-{rel_pattern}->(m {{tenant_id: $tenant_id}})

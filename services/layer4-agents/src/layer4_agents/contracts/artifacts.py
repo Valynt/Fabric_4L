@@ -518,6 +518,12 @@ class NarrativeArtifact(BaseModel):
     account_id: str | None = None
     journey_id: str | None = None
 
+    # Tenant context
+    tenant_id: str | None = None
+    workspace_id: str | None = None
+    account_id: str | None = None
+    journey_id: str | None = None
+
     # Core output
     executive_summary: ExecutiveSummary = Field(default_factory=ExecutiveSummary)
     stakeholder_versions: list[StakeholderVersion] = Field(default_factory=list)

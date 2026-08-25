@@ -1,6 +1,9 @@
+# This file is a copy of services/layer3-knowledge/src/utils/cypher_security.py
+# Keep in sync with the canonical version in layer3-knowledge.
+
 from __future__ import annotations
 
-"""Centralised Cypher safety utilities for Layer 3 (GOV-L3-006).
+"""Centralised Cypher safety utilities for Layer 4 (GOV-L3-006 / SEC-L3-CYPHER-003).
 
 Single source of truth for:
 
@@ -18,30 +21,9 @@ Single source of truth for:
    relationship type not present in the supplied allowlist before it is
    interpolated into a Cypher string.
 
-Import hierarchy
-----------------
-- ``db.query_execution`` imports ``TENANT_OWNED_LABELS`` from here as the
-  canonical registry. No local fallback copy should be maintained.
-- ``security.query_validator`` delegates static validation to
-  ``validate_tenant_scoped_cypher`` and routes execution through
-  ``db.query_execution.TenantQueryExecutor``.
-- ``services.cypher_scope_guard`` re-exports ``validate_tenant_scoped_cypher``
-  from here for backward compatibility.
-- ``api.routes.value_packs`` imports the identifier allowlists from here.
-
-Canonical execution path
-------------------------
-All tenant-owned Cypher must pass through ``db.query_execution.TenantQueryExecutor``
-at runtime. This module provides the static validation and label registry that
-``TenantQueryExecutor`` consumes.
-
-Backward compatibility
-----------------------
-``services.cypher_scope_guard`` is preserved as a thin re-export shim so
-existing callers (``product_service``, ``competitive_intel_service``) do not
-need immediate updates. The shim will be removed once all callers are migrated.
+This module mirrors the canonical version in layer3-knowledge/src/utils/cypher_security.py.
+When making changes, update both locations.
 """
-
 
 import re
 

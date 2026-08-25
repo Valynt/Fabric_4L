@@ -1,0 +1,753 @@
+# Depot CI Migration
+# Source: .github/workflows/deploy.yml
+#
+# Changes made:
+# - Rewrote .github/ path references to .depot/
+# - Changed GitHub runs-on labels to their Depot equivalents
+
+name: Deploy
+permissions:
+  contents: read
+  actions: read
+env:
+  DEV_API_BASE_URL: 'https://api.dev.value-fabric.com'
+  STAGING_API_BASE_URL: 'https://api.staging.value-fabric.com'
+  PRODUCTION_API_BASE_URL: 'https://api.production.value-fabric.com'
+  AWS_REGION: 'us-east-1'
+  EKS_CLUSTER_NAME: 'value-fabric'
+  REGISTRY: ${{ inputs.registry || 'ghcr.io' }}
+  IMAGE_REF: ${{ inputs.image_ref }}
+  ENVIRONMENT: ${{ inputs.environment }}
+"on":
+  workflow_call:
+    inputs:
+      environment:
+        description: "Target environment"
+        type: string
+        default: "staging"
+      image_ref:
+        description: "Image digest or immutable tag to deploy"
+        required: true
+        type: string
+      registry:
+        description: "Container registry"
+        default: "ghcr.io"
+        required: false
+        type: string
+      prod_readiness_verified:
+        description: "Set to true only when the canonical prod-readiness workflow has produced a matching release packet."
+        required: false
+        type: boolean
+        default: false
+      supply_chain_artifact_sha:
+        description: "Commit SHA used in scan-<service>-<sha> SBOM artifacts; defaults to the deploying workflow SHA."
+        required: false
+        type: string
+        default: ""
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment"
+        required: true
+        type: choice
+        options:
+          - dev
+          - staging
+          - production
+        default: "staging"
+      image_ref:
+        description: "Image digest or immutable tag to deploy"
+        required: true
+        type: string
+      registry:
+        description: "Container registry"
+        default: "ghcr.io"
+        required: false
+        type: string
+      supply_chain_artifact_sha:
+        description: "Commit SHA used in scan-<service>-<sha> SBOM artifacts; defaults to the deploying workflow SHA."
+        required: false
+        type: string
+        default: ""
+      prod_readiness_verified:
+        description: "Set to true only when the canonical prod-readiness workflow has produced a matching release packet."
+        required: false
+        type: boolean
+        default: false
+jobs:
+  # ============================================
+  # Pre-deployment Checks
+  # ============================================
+  preflight:
+    name: Pre-deployment Verification
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - name: Set up Python
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
+        with:
+          python-version: "3.11"
+      - name: Verify image signatures
+        uses: sigstore/cosign-installer@053f9b74638557590800a301da1ba82351507e2c # v3.8.1
+      - name: Check all images are signed
+        env:
+          COSIGN_EXPERIMENTAL: 1
+        run: |
+          ref="${{ env.IMAGE_REF }}"
+          if [[ "$ref" == "latest" ]] || [[ "$ref" =~ ^(main|master|develop|dev|staging|production|stable|edge|nightly)$ ]]; then
+            echo "Mutable image reference is forbidden: $ref"
+            exit 1
+          fi
+          if [[ ! "$ref" =~ ^sha-[0-9a-f]{40}$ ]] && \
+             [[ ! "$ref" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?$ ]] && \
+             [[ ! "$ref" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+            echo "Image reference must be sha256 digest, sha-<40>, or signed semver release tag: $ref"
+            exit 1
+          fi
+
+          for layer in layer1-ingestion layer2-extraction layer3-knowledge \
+                       layer4-agents layer5-ground-truth layer6-benchmarks frontend; do
+            if [[ "$ref" == sha256:* ]]; then
+              IMAGE="${{ env.REGISTRY }}/${{ github.repository_owner }}/fabric_4l/$layer@${ref}"
+            else
+              IMAGE="${{ env.REGISTRY }}/${{ github.repository_owner }}/fabric_4l/$layer:${ref}"
+            fi
+            echo "Verifying signature for: $IMAGE"
+
+            if ! cosign verify \
+              --certificate-identity-regexp="https://github.com/${{ github.repository }}/.depot/workflows/.*" \
+              --certificate-oidc-issuer="https://token.actions.githubusercontent.com" \
+              "$IMAGE"; then
+              echo "Signature verification failed for: $IMAGE"
+              exit 1
+            fi
+          done
+
+          echo "All image signatures verified ✓"
+      - name: Resolve supply-chain artifact SHA
+        id: sbom-sha
+        run: |
+          if [[ -n "${{ inputs.supply_chain_artifact_sha }}" ]]; then
+            sha="${{ inputs.supply_chain_artifact_sha }}"
+          elif [[ "${{ env.IMAGE_REF }}" =~ ^sha-([0-9a-f]{40})$ ]]; then
+            sha="${BASH_REMATCH[1]}"
+          else
+            sha="${{ github.sha }}"
+          fi
+
+          if [[ ! "$sha" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::Supply-chain artifact SHA must be a 40-character lowercase git SHA; got '$sha'"
+            exit 1
+          fi
+
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "Using SBOM artifact SHA: $sha"
+      - name: Download SBOM and signing artifacts
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: scan-*-${{ steps.sbom-sha.outputs.sha }}
+          path: artifacts/supply-chain
+          merge-multiple: false
+      - name: Verify SBOMs against deploy image digests
+        env:
+          COSIGN_EXPERIMENTAL: 1
+          SBOM_SHA: ${{ steps.sbom-sha.outputs.sha }}
+        run: |
+          set -euo pipefail
+
+          layers=(
+            layer1-ingestion
+            layer2-extraction
+            layer3-knowledge
+            layer4-agents
+            layer5-ground-truth
+            layer6-benchmarks
+            frontend
+          )
+
+          for layer in "${layers[@]}"; do
+            image_name="${{ env.REGISTRY }}/${{ github.repository_owner }}/fabric_4l/${layer}"
+            if [[ "${{ env.IMAGE_REF }}" == sha256:* ]]; then
+              image_ref="${image_name}@${{ env.IMAGE_REF }}"
+              deployed_digest="${{ env.IMAGE_REF }}"
+            else
+              image_ref="${image_name}:${{ env.IMAGE_REF }}"
+              deployed_digest="$(docker buildx imagetools inspect "$image_ref" --format '{{json .Manifest.Digest}}' | tr -d '"')"
+            fi
+
+            if [[ ! "$deployed_digest" =~ ^sha256:[a-f0-9]{64}$ ]]; then
+              echo "::error::Could not resolve a valid digest for ${image_ref}; got '${deployed_digest}'"
+              exit 1
+            fi
+
+            digest_ref="${image_name}@${deployed_digest}"
+            artifact_dir="artifacts/supply-chain/scan-${layer}-${SBOM_SHA}"
+            sbom_file="${artifact_dir}/sbom-${layer}-${SBOM_SHA}.cdx.json"
+
+            if [[ ! -s "$sbom_file" ]]; then
+              echo "::error::Missing non-empty SBOM artifact for ${layer}: ${sbom_file}"
+              exit 1
+            fi
+
+            echo "Verifying SBOM artifact for ${layer} against ${digest_ref}"
+
+            if ! jq -e --arg image "$image_name" '
+              [.. | strings | select(contains($image))] | length > 0
+            ' "$sbom_file" >/dev/null; then
+              echo "::error::SBOM ${sbom_file} does not reference expected image ${image_name}"
+              exit 1
+            fi
+
+            if ! jq -e --arg digest "$deployed_digest" '
+              [.. | strings | select(contains($digest))] | length > 0
+            ' "$sbom_file" >/dev/null; then
+              echo "::error::SBOM ${sbom_file} does not reference deployed digest ${deployed_digest}"
+              exit 1
+            fi
+
+            if [[ -s "${sbom_file}.sig" && -s "${sbom_file}.crt" ]]; then
+              cosign verify-blob "$sbom_file" \
+                --certificate "${sbom_file}.crt" \
+                --signature "${sbom_file}.sig" \
+                --certificate-identity-regexp="https://github.com/${{ github.repository }}/.depot/workflows/.*" \
+                --certificate-oidc-issuer="https://token.actions.githubusercontent.com"
+            else
+              echo "::error::Missing Cosign signature or certificate for SBOM artifact ${sbom_file}"
+              exit 1
+            fi
+
+            cosign verify-attestation \
+              --certificate-identity-regexp="https://github.com/${{ github.repository }}/.depot/workflows/.*" \
+              --certificate-oidc-issuer="https://token.actions.githubusercontent.com" \
+              --type cyclonedx \
+              "$digest_ref" >/dev/null
+          done
+
+          echo "All SBOM artifacts and registry attestations match deployed image digests ✓"
+      - name: Check environment health
+        run: |
+          set -euo pipefail
+
+          case "${{ env.ENVIRONMENT }}" in
+            dev)        BASE_URL="${{ env.DEV_API_BASE_URL }}" ;;
+            staging)    BASE_URL="${{ env.STAGING_API_BASE_URL }}" ;;
+            production) BASE_URL="${{ env.PRODUCTION_API_BASE_URL }}" ;;
+            *) echo "::error::Unknown environment: ${{ env.ENVIRONMENT }}"; exit 1 ;;
+          esac
+
+          BASE_URL="${BASE_URL%/}"
+          if [[ ! "$BASE_URL" =~ ^https?:// ]]; then
+            echo "::error::Resolved API base URL must include http:// or https://; got '$BASE_URL'"
+            exit 1
+          fi
+
+          checks=(
+            "api-gateway liveness|${BASE_URL}/health/live"
+            "api-gateway readiness|${BASE_URL}/ready"
+            "layer1 ingestion health|${BASE_URL}/api/v1/ingestion/health"
+            "layer2 extraction health|${BASE_URL}/layer2/health"
+            "layer3 knowledge health|${BASE_URL}/layer3/health"
+            "layer4 agents health|${BASE_URL}/layer4/health"
+            "layer5 ground-truth health|${BASE_URL}/api/v1/health"
+            "layer6 benchmarks health|${BASE_URL}/layer6/health"
+          )
+
+          for check in "${checks[@]}"; do
+            name="${check%%|*}"
+            url="${check#*|}"
+            echo "Checking ${name}: ${url}"
+            curl --fail --silent --show-error --location --max-time 20 --retry 2 --retry-delay 5 "$url" >/dev/null
+          done
+
+          echo "Environment health checks passed for ${{ env.ENVIRONMENT }} ✓"
+      - name: Enforce deploy profile mandatory controls
+        run: |
+          case "${{ env.ENVIRONMENT }}" in
+            production) PROFILE="release-candidate" ;;
+            staging) PROFILE="mainline-full" ;;
+            dev) PROFILE="pr-fast" ;;
+            *) echo "Unknown environment: ${{ env.ENVIRONMENT }}"; exit 1 ;;
+          esac
+          python scripts/ci/validate_deploy_profile_controls.py \
+            --policy-file .fabric/prod-gates.policy.yaml \
+            --profile "$PROFILE"
+      - name: Block unverified production promotion
+        if: env.ENVIRONMENT == 'production'
+        run: |
+          if [[ "${{ inputs.prod_readiness_verified }}" != "true" ]]; then
+            echo "Production deploys must come from a successful prod-readiness workflow with canonical release artifacts."
+            exit 1
+          fi
+  # ============================================
+  # Production Approval Gate
+  # ============================================
+  # This job requires a GitHub Environment protection rule with
+  # required reviewers for the 'production' environment.
+  # Configure in: Settings > Environments > production > Protection rules
+  approval-gate:
+    name: Production Approval Gate
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    timeout-minutes: 5
+    needs: preflight
+    environment:
+      name: ${{ inputs.environment == 'production' && 'production' || inputs.environment }}
+    steps:
+      - name: Confirm deployment approval
+        run: |
+          echo "Environment '${{ inputs.environment }}' has been approved for deployment."
+          echo "Deploying image: ${{ env.IMAGE_REF }}"
+          echo "Approver: ${{ github.actor }}"
+          echo "Run ID: ${{ github.run_id }}"
+  # ============================================
+  # Deploy to Environment
+  # ============================================
+  deploy:
+    name: Deploy to ${{ inputs.environment }}
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    timeout-minutes: 30
+    needs: [preflight, approval-gate]
+    environment:
+      name: ${{ inputs.environment }}
+      url: ${{ steps.deploy-info.outputs.url }}
+    permissions:
+      id-token: write # Required for AWS OIDC / IRSA
+      contents: read
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@c0c8b32d33a5244f1e5947304550403b63930415 # v4
+        with:
+          version: "v1.31.2"
+      - name: Setup Helm
+        uses: azure/setup-helm@bf6a7d304bc2fdb57e0331155b7ebf2c504acf0a # v4
+        with:
+          version: "v3.16.2"
+      - name: Validate EKS kubeconfig inputs
+        env:
+          AWS_DEPLOY_ROLE_ARN: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          AWS_REGION: ${{ env.AWS_REGION }}
+          EKS_CLUSTER_NAME: ${{ env.EKS_CLUSTER_NAME }}
+        run: |
+          set -euo pipefail
+          if [[ -z "$AWS_DEPLOY_ROLE_ARN" ]]; then
+            echo "::error::AWS_DEPLOY_ROLE_ARN secret is required before deployment can configure kubeconfig"
+            exit 1
+          fi
+          if [[ -z "$AWS_REGION" || -z "$EKS_CLUSTER_NAME" ]]; then
+            echo "::error::AWS_REGION and EKS_CLUSTER_NAME must resolve to non-empty values"
+            exit 1
+          fi
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@ff717079ee2060e4bcee96c4779b553acc87447c # v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Configure kubeconfig (EKS)
+        run: |
+          set -euo pipefail
+          CLUSTER_NAME="${{ env.EKS_CLUSTER_NAME }}"
+          AWS_REGION="${{ env.AWS_REGION }}"
+
+          echo "Configuring kubeconfig for EKS cluster: ${CLUSTER_NAME} in ${AWS_REGION}"
+          aws eks update-kubeconfig \
+            --region "${AWS_REGION}" \
+            --name "${CLUSTER_NAME}" \
+            --alias "value-fabric-${{ env.ENVIRONMENT }}"
+
+          CURRENT_CONTEXT=$(kubectl config current-context)
+          if [[ -z "$CURRENT_CONTEXT" ]]; then
+            echo "::error::kubectl current-context is empty after EKS kubeconfig setup"
+            exit 1
+          fi
+          echo "Kubeconfig configured. Current context: ${CURRENT_CONTEXT}"
+      - name: Resolve kustomize overlay
+        id: overlay
+        run: |
+          # Map environment → overlay path and read the namespace the overlay
+          # actually sets, so every subsequent step uses the same value.
+          case "${{ env.ENVIRONMENT }}" in
+            production) OVERLAY="k8s/overlays/production" ;;
+            staging)    OVERLAY="k8s/overlays/staging"    ;;
+            dev)        OVERLAY="k8s/envs/dev"            ;;
+            *) echo "Unknown environment: ${{ env.ENVIRONMENT }}"; exit 1 ;;
+          esac
+          # Read namespace from the overlay itself — single source of truth.
+          NS=$(grep '^namespace:' "${OVERLAY}/kustomization.yaml" | awk '{print $2}')
+          if [[ -z "$NS" ]]; then
+            echo "Could not read namespace from ${OVERLAY}/kustomization.yaml"
+            exit 1
+          fi
+          echo "overlay=$OVERLAY" >> "$GITHUB_OUTPUT"
+          echo "namespace=$NS" >> "$GITHUB_OUTPUT"
+      - name: Resolve deploy namespace
+        run: |
+          DEPLOY_NS=$(bash scripts/resolve-namespace.sh "${{ env.ENVIRONMENT }}")
+          if [[ "$DEPLOY_NS" != "${{ steps.overlay.outputs.namespace }}" ]]; then
+            echo "::error::Namespace resolver returned '$DEPLOY_NS' but overlay output is \
+              '${{ steps.overlay.outputs.namespace }}'"
+            exit 1
+          fi
+          echo "Resolved namespace: $DEPLOY_NS"
+          echo "DEPLOY_NS=$DEPLOY_NS" >> "$GITHUB_ENV"
+      - name: Confirm cluster context and namespace
+        run: |
+          set -euo pipefail
+          # Safety gate: confirm kubectl is talking to the expected cluster
+          CURRENT_CONTEXT=$(kubectl config current-context)
+          echo "Current context: ${CURRENT_CONTEXT}"
+
+          EXPECTED_NS="${{ steps.overlay.outputs.namespace }}"
+          echo "Expected namespace: ${EXPECTED_NS}"
+
+          # Fail if context contains unexpected keywords (basic sanity check)
+          if [[ "${CURRENT_CONTEXT}" == *"prod"* && "${{ env.ENVIRONMENT }}" != "production" ]]; then
+            echo "::error::Context '${CURRENT_CONTEXT}' looks like production but environment is '${{ env.ENVIRONMENT }}'"
+            exit 1
+          fi
+
+          kubectl cluster-info >/dev/null
+          echo "Cluster context and namespace confirmed ✓"
+      - name: Create namespace
+        run: |
+          kubectl create namespace "${{ env.DEPLOY_NS }}" \
+            --dry-run=client -o yaml | kubectl apply -f -
+      - name: Resolve digests and render immutable manifest
+        run: |
+          # Use prepare_kustomize_deploy.sh to resolve mutable tags to immutable
+          # SHA256 digests before deployment. This ensures every deployed image
+          # is addressable by digest, enabling reproducible rollbacks.
+          OVERLAY="${{ steps.overlay.outputs.overlay }}"
+          REF="${{ env.IMAGE_REF }}"
+          REGISTRY="${{ env.REGISTRY }}"
+          RENDERED="/tmp/rendered-manifest.yaml"
+
+          # The script resolves the tag to a digest and mutates the overlay
+          # in-place, then renders the final manifest.
+          export REGISTRY="${REGISTRY}"
+          export IMAGE_TAG="${REF}"
+          export GITHUB_REPOSITORY_OWNER="${{ github.repository_owner }}"
+          export KUSTOMIZE_ROOT="$(dirname "$OVERLAY")"
+
+          bash scripts/ci/prepare_kustomize_deploy.sh \
+            "$(basename "$OVERLAY")" \
+            "$RENDERED"
+
+          echo "rendered_manifest=${RENDERED}" >> "$GITHUB_ENV"
+      - name: Deploy via kustomize
+        run: |
+          echo "Deploying ${{ env.IMAGE_REF }} to ${{ env.ENVIRONMENT }} (ns: ${{ env.DEPLOY_NS }})"
+          kubectl apply -f "${{ env.rendered_manifest }}"
+          # Also apply the mutated overlay for any remaining kustomize resources
+          kubectl apply -k "${{ steps.overlay.outputs.overlay }}"
+      - name: Wait for rollouts
+        run: |
+          for deploy in \
+            layer1-ingestion layer2-extraction layer3-knowledge \
+            layer4-agents layer5-ground-truth layer6-benchmarks frontend; do
+            echo "Waiting for $deploy ..."
+            kubectl rollout status "deployment/$deploy" \
+              -n "${{ env.DEPLOY_NS }}" --timeout=10m
+          done
+      - name: Record deployment info
+        id: deploy-info
+        run: |
+          URL="https://api.${{ env.ENVIRONMENT }}.value-fabric.com"
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+          echo "Deployed to: $URL"
+      - name: Create deployment record
+        run: |
+          cat > deployment-record.json << EOF
+          {
+            "environment": "${{ env.ENVIRONMENT }}",
+            "namespace": "${{ steps.overlay.outputs.namespace }}",
+            "image_ref": "${{ env.IMAGE_REF }}",
+            "commit_sha": "${{ github.sha }}",
+            "deployed_by": "${{ github.actor }}",
+            "deployed_at": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
+            "workflow_run": "${{ github.run_id }}"
+          }
+          EOF
+          cat deployment-record.json
+      - name: Upload deployment record
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        with:
+          name: deployment-record-${{ env.ENVIRONMENT }}-${{ env.IMAGE_REF }}
+          path: deployment-record.json
+          retention-days: 90
+  # ============================================
+  # Smoke Tests
+  # ============================================
+  smoke-tests:
+    name: Smoke Tests
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    timeout-minutes: 15
+    needs: deploy
+    if: inputs.environment != 'dev'
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - name: Wait for rollout
+        run: |
+          echo "Waiting for deployment to stabilize..."
+          sleep 30
+          NS=$(bash scripts/resolve-namespace.sh "${{ env.ENVIRONMENT }}")
+          kubectl rollout status deployment -n "$NS" --timeout=300s
+      - name: Health check endpoints
+        run: |
+          BASE_URL="https://api.${{ env.ENVIRONMENT }}.value-fabric.com"
+
+          endpoints=(
+            "/health"
+            "/health/version"
+            "/api/v1/health"
+          )
+
+          for endpoint in "${endpoints[@]}"; do
+            url="${BASE_URL}${endpoint}"
+            echo "Checking: $url"
+
+            if ! curl -fsS --max-time 30 "$url"; then
+              echo "Health check failed: $url"
+              exit 1
+            fi
+          done
+
+          echo "All health checks passed ✓"
+      - name: Critical path tests
+        run: |
+          echo "Running critical path smoke tests"
+          pytest tests/e2e/smoke/ --base-url=https://api.${{ env.ENVIRONMENT }}.value-fabric.com
+  # ============================================
+  # Rollback on Failure
+  # ============================================
+  rollback-on-failure:
+    name: Rollback on Failure
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    timeout-minutes: 10
+    needs: [deploy, smoke-tests]
+    if: failure() && inputs.environment != 'dev'
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@c0c8b32d33a5244f1e5947304550403b63930415 # v4
+        with:
+          version: "v1.31.2"
+      - name: Setup Helm
+        uses: azure/setup-helm@bf6a7d304bc2fdb57e0331155b7ebf2c504acf0a # v4
+        with:
+          version: "v3.16.2"
+      - name: Validate EKS kubeconfig inputs
+        env:
+          AWS_DEPLOY_ROLE_ARN: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          AWS_REGION: ${{ env.AWS_REGION }}
+          EKS_CLUSTER_NAME: ${{ env.EKS_CLUSTER_NAME }}
+        run: |
+          set -euo pipefail
+          if [[ -z "$AWS_DEPLOY_ROLE_ARN" ]]; then
+            echo "::error::AWS_DEPLOY_ROLE_ARN secret is required before rollback can configure kubeconfig"
+            exit 1
+          fi
+          if [[ -z "$AWS_REGION" || -z "$EKS_CLUSTER_NAME" ]]; then
+            echo "::error::AWS_REGION and EKS_CLUSTER_NAME must resolve to non-empty values"
+            exit 1
+          fi
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@ff717079ee2060e4bcee96c4779b553acc87447c # v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Configure kubeconfig (EKS)
+        run: |
+          set -euo pipefail
+          CLUSTER_NAME="${{ env.EKS_CLUSTER_NAME }}"
+          AWS_REGION="${{ env.AWS_REGION }}"
+
+          echo "Configuring kubeconfig for EKS cluster: ${CLUSTER_NAME} in ${AWS_REGION}"
+          aws eks update-kubeconfig \
+            --region "${AWS_REGION}" \
+            --name "${CLUSTER_NAME}" \
+            --alias "value-fabric-${{ env.ENVIRONMENT }}"
+
+          CURRENT_CONTEXT=$(kubectl config current-context)
+          if [[ -z "$CURRENT_CONTEXT" ]]; then
+            echo "::error::kubectl current-context is empty after EKS kubeconfig setup"
+            exit 1
+          fi
+          kubectl cluster-info >/dev/null
+          echo "Kubeconfig configured. Current context: ${CURRENT_CONTEXT}"
+      - name: Alert on failure
+        run: |
+          echo "Deployment failed - initiating rollback procedures"
+          echo "Environment: ${{ env.ENVIRONMENT }}"
+          echo "Failed tag: ${{ env.IMAGE_REF }}"
+      - name: Rollback deployments
+        run: |
+          # Re-derive namespace from overlay (DEPLOY_NS env is job-scoped and
+          # not available across jobs; re-read from the same source of truth).
+          DEPLOY_NS=$(bash scripts/resolve-namespace.sh "${{ env.ENVIRONMENT }}")
+          echo "Rolling back all deployments in $DEPLOY_NS ..."
+          for deploy in \
+            layer1-ingestion layer2-extraction layer3-knowledge \
+            layer4-agents layer5-ground-truth layer6-benchmarks frontend; do
+            echo "  Undoing $deploy ..."
+            kubectl rollout undo "deployment/$deploy" -n "$DEPLOY_NS" || true
+          done
+          echo "Waiting for rollback rollouts ..."
+          for deploy in \
+            layer1-ingestion layer2-extraction layer3-knowledge \
+            layer4-agents layer5-ground-truth layer6-benchmarks frontend; do
+            kubectl rollout status "deployment/$deploy" \
+              -n "$DEPLOY_NS" --timeout=5m || true
+          done
+          kubectl get deployments -n "$DEPLOY_NS"
+          kubectl get pods        -n "$DEPLOY_NS"
+  # ============================================
+  # Post-deployment Verification
+  # ============================================
+  verify:
+    name: Post-deployment Verification
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    timeout-minutes: 10
+    needs: smoke-tests
+    if: success()
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - name: Verify metrics
+        run: |
+          echo "Verifying deployment metrics"
+          # Check error rates, latency, etc.
+          # curl -s "https://prometheus.${{ env.ENVIRONMENT }}.value-fabric.com/api/v1/query?query=up"
+      - name: Record successful deployment
+        run: |
+          echo "Recording successful deployment to ${{ env.ENVIRONMENT }}"
+
+          # This would update a deployment tracking system
+          # or create a GitHub release with deployment metadata
+  # ============================================
+  # Deployment Evidence (production only)
+  # ============================================
+  evidence:
+    name: Commit Deployment Evidence
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    timeout-minutes: 10
+    needs: [smoke-tests, verify]
+    if: >
+      inputs.environment == 'production' && needs.smoke-tests.result == 'success' && needs.verify.result == 'success'
+
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+        with:
+          ref: main
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Generate evidence file
+        id: evidence
+        run: |
+          TAG="${{ env.IMAGE_REF }}"
+          # Sanitize tag for use in filename: replace ':' and '/' with '-'
+          # (digest refs like sha256:<hash> contain ':' which breaks paths)
+          TAG_SAFE="${TAG//:/-}"
+          TAG_SAFE="${TAG_SAFE//\//-}"
+          DATE=$(date -u +%Y-%m-%d)
+          TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          FILE=".deployments/${DATE}-${TAG_SAFE}.md"
+          # Read actual namespace from the production overlay
+          NAMESPACE=$(grep '^namespace:' k8s/overlays/production/kustomization.yaml | awk '{print $2}')
+          mkdir -p .deployments
+
+          cat > "$FILE" << EOF
+          # Deployment Evidence — ${TAG}
+
+          Date: ${TIME}
+          Tag: ${TAG}
+          Commit: ${{ github.sha }}
+          Namespace: ${NAMESPACE}
+          Deployer: ${{ github.actor }}
+          Workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+          ## Gate results
+
+          - [x] Phase 0: tooling preflight passed
+          - [x] Phase 1: repo state clean, tag verified
+          - [x] Phase 2: image signatures verified
+          - [x] Phase 3: all 7 images present
+          - [x] Phase 4: kustomize render clean
+          - [x] Phase 5: secrets provisioned
+          - [x] Phase 6: all 7 deployments rolled out
+          - [x] Phase 7: smoke tests passed
+          - [x] Phase 8: post-deploy verification passed
+
+          ## Services deployed
+
+          - ghcr.io/bmsull560/fabric_4l/layer1-ingestion:${TAG}
+          - ghcr.io/bmsull560/fabric_4l/layer2-extraction:${TAG}
+          - ghcr.io/bmsull560/fabric_4l/layer3-knowledge:${TAG}
+          - ghcr.io/bmsull560/fabric_4l/layer4-agents:${TAG}
+          - ghcr.io/bmsull560/fabric_4l/layer5-ground-truth:${TAG}
+          - ghcr.io/bmsull560/fabric_4l/layer6-benchmarks:${TAG}
+          - ghcr.io/bmsull560/fabric_4l/frontend:${TAG}
+          EOF
+
+          echo "file=$FILE" >> "$GITHUB_OUTPUT"
+          echo "tag_safe=$TAG_SAFE" >> "$GITHUB_OUTPUT"
+          echo "Evidence file: $FILE"
+      - name: Commit evidence file
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add "${{ steps.evidence.outputs.file }}"
+          git diff --cached --quiet || \
+            git commit -m "chore: deployment evidence ${{ env.IMAGE_REF }} [skip ci]" \
+              --author="github-actions[bot] <github-actions[bot]@users.noreply.github.com>"
+          git push origin main
+      - name: Upload evidence artifact
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        with:
+          name: deployment-evidence-${{ steps.evidence.outputs.tag_safe }}
+          path: ${{ steps.evidence.outputs.file }}
+          retention-days: 90
+  # ============================================
+  # Notify
+  # ============================================
+  notify:
+    name: Notify
+    runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
+    needs: [deploy, smoke-tests]
+    if: always()
+    permissions:
+      id-token: write # Required for Infisical OIDC authentication
+    steps:
+      - name: Map environment to Infisical slug
+        run: |
+          env="${{ inputs.environment }}"
+          if [ "$env" == "production" ]; then
+            echo "INFISICAL_ENV_SLUG=prod" >> "$GITHUB_ENV"
+          else
+            echo "INFISICAL_ENV_SLUG=$env" >> "$GITHUB_ENV"
+          fi
+      # once Infisical project is fully populated and CI validation passes.
+      # Target: after first successful Infisical-only CI run.
+      - name: Fetch secrets from Infisical
+        id: infisical
+        uses: Infisical/secrets-action@77ab1f4ccd183a543cb5b42435fbd181189f4995 # v1.0.16
+        with:
+          method: oidc
+          env-slug: ${{ env.INFISICAL_ENV_SLUG }}
+          project-slug: fabric4l
+          identity-id: ${{ secrets.INFISICAL_IDENTITY_ID }}
+          secret-path: /monitoring
+      - name: Slack notification
+        uses: 8398a7/action-slack@77eaa4f1c608a7d68b38af4e3f739dcd8cba273e # v3
+        with:
+          status: ${{ job.status }}
+          channel: "#deployments"
+          fields: repo,message,commit,author,action,eventName,ref,workflow
+        env:
+          SLACK_WEBHOOK_URL: ${{ env.SLACK_WEBHOOK_URL }}
+        if: env.SLACK_WEBHOOK_URL != ''
+      - name: Summary
+        run: "echo \"## Deployment Summary\" >> $GITHUB_STEP_SUMMARY\necho \"\" >> $GITHUB_STEP_SUMMARY\necho \"- **Environment**: ${{ env.ENVIRONMENT }}\" >> $GITHUB_STEP_SUMMARY\necho \"- **Image Tag**: ${{ env.IMAGE_REF }}\" >> $GITHUB_STEP_SUMMARY\nif [ \"${{ needs.smoke-tests.result }}\" = \"success\" ]; then\n  status=\"✅ Success\"\nelif [ \"${{ needs.deploy.result }}\" = \"failure\" ]; then\n  status=\"❌ Failed\"\nelse\n  status=\"\U0001F504 In Progress\"\nfi\necho \"- **Status**: ${status}\" >> $GITHUB_STEP_SUMMARY\necho \"- **URL**: https://api.${{ env.ENVIRONMENT }}.value-fabric.com\" >> $GITHUB_STEP_SUMMARY\n"

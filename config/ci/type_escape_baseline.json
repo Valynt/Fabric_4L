@@ -14348,6 +14348,30 @@
     },
     {
       "kind": "python-any",
+      "line": 12,
+      "path": "services/layer2-extraction/src/layer2_extraction/metrics/prometheus_metrics.py",
+      "text": "from typing import Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 24,
+      "path": "services/layer2-extraction/src/layer2_extraction/metrics/prometheus_metrics.py",
+      "text": "_NormalizerCls: Any = _PathNormalizerCls"
+    },
+    {
+      "kind": "python-any",
+      "line": 359,
+      "path": "services/layer2-extraction/src/layer2_extraction/metrics/prometheus_metrics.py",
+      "text": "normalizer: Any = None"
+    },
+    {
+      "kind": "python-any",
+      "line": 367,
+      "path": "services/layer2-extraction/src/layer2_extraction/metrics/prometheus_metrics.py",
+      "text": "normalized: Any = self._normalizer.normalize(path)"
+    },
+    {
+      "kind": "python-any",
       "line": 5,
       "path": "services/layer2-extraction/src/layer2_extraction/models/extraction_api.py",
       "text": "from typing import Any"
@@ -24806,6 +24830,66 @@
     },
     {
       "kind": "python-any",
+      "line": 94,
+      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis_cases.py",
+      "text": "def _resolve_emit_and_persist_audit() -> Callable[..., Any]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 96,
+      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis_cases.py",
+      "text": "return cast(Callable[..., Any], getattr(mod, \"emit_and_persist_audit\", emit_and_persist_audit))"
+    },
+    {
+      "kind": "python-any",
+      "line": 99,
+      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis_cases.py",
+      "text": "def _resolve_require_approved_case() -> Callable[..., Any]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 101,
+      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis_cases.py",
+      "text": "return cast(Callable[..., Any], getattr(mod, \"_require_approved_case\", require_approved_case))"
+    },
+    {
+      "kind": "python-any",
+      "line": 104,
+      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis_cases.py",
+      "text": "def _resolve_get_settings() -> Callable[..., Any]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 106,
+      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis_cases.py",
+      "text": "return cast(Callable[..., Any], getattr(mod, \"get_settings\", get_settings))"
+    },
+    {
+      "kind": "python-any",
+      "line": 109,
+      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis_cases.py",
+      "text": "def _resolve_upload_bytes() -> Callable[..., Any]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 111,
+      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis_cases.py",
+      "text": "return cast(Callable[..., Any], getattr(mod, \"upload_bytes\", upload_bytes))"
+    },
+    {
+      "kind": "python-any",
+      "line": 114,
+      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis_cases.py",
+      "text": "def _resolve_generate_download_url() -> Callable[..., Any]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 116,
+      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis_cases.py",
+      "text": "return cast(Callable[..., Any], getattr(mod, \"generate_download_url\", generate_download_url))"
+    },
+    {
+      "kind": "python-any",
       "line": 180,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis_cases.py",
       "text": "record: Any,"
@@ -24833,6 +24917,18 @@
       "line": 469,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis_cases.py",
       "text": ") -> dict[str, Any]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 539,
+      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis_cases.py",
+      "text": "dict[str, Any],"
+    },
+    {
+      "kind": "python-any",
+      "line": 682,
+      "path": "services/layer4-agents/src/layer4_agents/api/routes/analysis_cases.py",
+      "text": "dict[str, Any],"
     },
     {
       "kind": "python-any",
@@ -25142,721 +25238,721 @@
     },
     {
       "kind": "python-any",
-      "line": 79,
+      "line": 70,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "details: dict[str, Any] | None = None,"
     },
     {
       "kind": "python-any",
-      "line": 129,
+      "line": 120,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "current_period_end: Any"
     },
     {
       "kind": "python-any",
-      "line": 130,
+      "line": 121,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "current_period_start: Any"
     },
     {
       "kind": "python-any",
-      "line": 131,
+      "line": 122,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "id: Any"
     },
     {
       "kind": "python-any",
-      "line": 137,
+      "line": 128,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "feature_id: Any"
     },
     {
       "kind": "python-any",
-      "line": 138,
+      "line": 129,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "has_access: Any"
     },
     {
       "kind": "python-any",
-      "line": 142,
+      "line": 133,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "email: Any"
     },
     {
       "kind": "python-any",
-      "line": 143,
+      "line": 134,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "id: Any"
     },
     {
       "kind": "python-any",
-      "line": 144,
+      "line": 135,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "name: Any"
     },
     {
       "kind": "python-any",
-      "line": 145,
+      "line": 136,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "stripe_customer_id: Any"
     },
     {
       "kind": "python-any",
-      "line": 146,
+      "line": 137,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "tenant_id: Any"
     },
     {
       "kind": "python-any",
-      "line": 150,
+      "line": 141,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "limits: Any"
     },
     {
       "kind": "python-any",
-      "line": 151,
+      "line": 142,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "plan_id: Any"
     },
     {
       "kind": "python-any",
-      "line": 152,
+      "line": 143,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "plan_name: Any"
     },
     {
       "kind": "python-any",
-      "line": 160,
+      "line": 151,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "created_at: Any"
     },
     {
       "kind": "python-any",
-      "line": 161,
+      "line": 152,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "customer_id: Any"
     },
     {
       "kind": "python-any",
-      "line": 162,
+      "line": 153,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "event_id: Any"
     },
     {
       "kind": "python-any",
-      "line": 163,
+      "line": 154,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "id: Any"
     },
     {
       "kind": "python-any",
-      "line": 164,
+      "line": 155,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "metric_name: Any"
     },
     {
       "kind": "python-any",
-      "line": 165,
+      "line": 156,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "quantity: Any"
     },
     {
       "kind": "python-any",
-      "line": 166,
+      "line": 157,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "status: Any"
     },
     {
       "kind": "python-any",
-      "line": 167,
+      "line": 158,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "tenant_id: Any"
     },
     {
       "kind": "python-any",
-      "line": 168,
+      "line": 159,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "timestamp: Any"
     },
     {
       "kind": "python-any",
-      "line": 172,
+      "line": 163,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "created: Any"
     },
     {
       "kind": "python-any",
-      "line": 173,
+      "line": 164,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "duplicates: Any"
     },
     {
       "kind": "python-any",
-      "line": 174,
+      "line": 165,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "error_details: Any"
     },
     {
       "kind": "python-any",
-      "line": 175,
+      "line": 166,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "errors: Any"
     },
     {
       "kind": "python-any",
-      "line": 179,
+      "line": 170,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "all_limits_ok: Any"
     },
     {
       "kind": "python-any",
-      "line": 180,
+      "line": 171,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "customer_id: Any"
     },
     {
       "kind": "python-any",
-      "line": 181,
+      "line": 172,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "metrics: Any"
     },
     {
       "kind": "python-any",
-      "line": 182,
+      "line": 173,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "plan_id: Any"
     },
     {
       "kind": "python-any",
-      "line": 183,
+      "line": 174,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "total_overage_cost: Any"
     },
     {
       "kind": "python-any",
-      "line": 184,
+      "line": 175,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "warnings: Any"
     },
     {
       "kind": "python-any",
-      "line": 188,
+      "line": 179,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "invoices: Any"
     },
     {
       "kind": "python-any",
-      "line": 189,
+      "line": 180,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "pagination: dict[str, Any]"
     },
     {
       "kind": "python-any",
-      "line": 193,
+      "line": 184,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "created_at: Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 185,
+      "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
+      "text": "customer_id: Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 186,
+      "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
+      "text": "id: Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 187,
+      "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
+      "text": "invoice_number: Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 188,
+      "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
+      "text": "status: Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 189,
+      "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
+      "text": "total_cents: Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 190,
+      "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
+      "text": "total_dollars: Any"
     },
     {
       "kind": "python-any",
       "line": 194,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
-      "text": "customer_id: Any"
+      "text": "amount_due_cents: Any"
     },
     {
       "kind": "python-any",
       "line": 195,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
-      "text": "id: Any"
+      "text": "amount_due_dollars: Any"
     },
     {
       "kind": "python-any",
       "line": 196,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
-      "text": "invoice_number: Any"
+      "text": "amount_paid_cents: Any"
     },
     {
       "kind": "python-any",
       "line": 197,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
-      "text": "status: Any"
+      "text": "balance_cents: Any"
     },
     {
       "kind": "python-any",
       "line": 198,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
-      "text": "total_cents: Any"
+      "text": "charges: Any"
     },
     {
       "kind": "python-any",
       "line": 199,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
-      "text": "total_dollars: Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 203,
-      "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
-      "text": "amount_due_cents: Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 204,
-      "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
-      "text": "amount_due_dollars: Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 205,
-      "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
-      "text": "amount_paid_cents: Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 206,
-      "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
-      "text": "balance_cents: Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 207,
-      "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
-      "text": "charges: Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 208,
-      "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "created_at: Any"
     },
     {
       "kind": "python-any",
-      "line": 209,
+      "line": 200,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "currency: Any"
     },
     {
       "kind": "python-any",
-      "line": 210,
+      "line": 201,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "customer_id: Any"
     },
     {
       "kind": "python-any",
-      "line": 211,
+      "line": 202,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "description: Any"
     },
     {
       "kind": "python-any",
-      "line": 212,
+      "line": 203,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "due_date: Any"
     },
     {
       "kind": "python-any",
-      "line": 213,
+      "line": 204,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "hosted_invoice_url: Any"
     },
     {
       "kind": "python-any",
-      "line": 214,
+      "line": 205,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "id: Any"
     },
     {
       "kind": "python-any",
-      "line": 215,
+      "line": 206,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "invoice_number: Any"
     },
     {
       "kind": "python-any",
-      "line": 216,
+      "line": 207,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "invoice_pdf_url: Any"
     },
     {
       "kind": "python-any",
-      "line": 217,
+      "line": 208,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "items: Any"
     },
     {
       "kind": "python-any",
-      "line": 218,
+      "line": 209,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "paid_at: Any"
     },
     {
       "kind": "python-any",
-      "line": 219,
+      "line": 210,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "period_end: Any"
     },
     {
       "kind": "python-any",
-      "line": 220,
+      "line": 211,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "period_start: Any"
     },
     {
       "kind": "python-any",
-      "line": 221,
+      "line": 212,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "status: Any"
     },
     {
       "kind": "python-any",
-      "line": 222,
+      "line": 213,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "subtotal_cents: Any"
     },
     {
       "kind": "python-any",
-      "line": 223,
+      "line": 214,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "tax_cents: Any"
     },
     {
       "kind": "python-any",
-      "line": 224,
+      "line": 215,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "total_cents: Any"
     },
     {
       "kind": "python-any",
-      "line": 225,
+      "line": 216,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "total_dollars: Any"
     },
     {
       "kind": "python-any",
-      "line": 229,
+      "line": 220,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "amount_cents: Any"
     },
     {
       "kind": "python-any",
-      "line": 230,
+      "line": 221,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "amount_dollars: Any"
     },
     {
       "kind": "python-any",
-      "line": 231,
+      "line": 222,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "description: Any"
     },
     {
       "kind": "python-any",
-      "line": 232,
+      "line": 223,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "id: Any"
     },
     {
       "kind": "python-any",
-      "line": 233,
+      "line": 224,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "invoice_id: Any"
     },
     {
       "kind": "python-any",
-      "line": 234,
+      "line": 225,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "type: Any"
     },
     {
       "kind": "python-any",
-      "line": 238,
+      "line": 229,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "amount_due_cents: Any"
     },
     {
       "kind": "python-any",
-      "line": 239,
+      "line": 230,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "amount_due_dollars: Any"
     },
     {
       "kind": "python-any",
-      "line": 240,
+      "line": 231,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "id: Any"
     },
     {
       "kind": "python-any",
-      "line": 241,
+      "line": 232,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "status: Any"
     },
     {
       "kind": "python-any",
-      "line": 242,
+      "line": 233,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "total_cents: Any"
     },
     {
       "kind": "python-any",
-      "line": 243,
+      "line": 234,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "total_dollars: Any"
     },
     {
       "kind": "python-any",
-      "line": 247,
+      "line": 238,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "id: Any"
     },
     {
       "kind": "python-any",
-      "line": 248,
+      "line": 239,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "status: Any"
     },
     {
       "kind": "python-any",
-      "line": 249,
+      "line": 240,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "voided_at: Any"
     },
     {
       "kind": "python-any",
-      "line": 253,
+      "line": 244,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "charges: Any"
     },
     {
       "kind": "python-any",
-      "line": 254,
+      "line": 245,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "pagination: dict[str, Any]"
     },
     {
       "kind": "python-any",
-      "line": 258,
+      "line": 249,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "amount_cents: Any"
     },
     {
       "kind": "python-any",
-      "line": 259,
+      "line": 250,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "amount_dollars: Any"
     },
     {
       "kind": "python-any",
-      "line": 260,
+      "line": 251,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "created_at: Any"
     },
     {
       "kind": "python-any",
-      "line": 261,
+      "line": 252,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "id: Any"
     },
     {
       "kind": "python-any",
-      "line": 262,
+      "line": 253,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "status: Any"
     },
     {
       "kind": "python-any",
-      "line": 263,
+      "line": 254,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "stripe_charge_id: Any"
     },
     {
       "kind": "python-any",
-      "line": 267,
+      "line": 258,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "invoice_id: Any"
     },
     {
       "kind": "python-any",
-      "line": 268,
+      "line": 259,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "mismatch_count: Any"
     },
     {
       "kind": "python-any",
-      "line": 269,
+      "line": 260,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "mismatches: Any"
     },
     {
       "kind": "python-any",
-      "line": 315,
+      "line": 306,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "metadata: dict[str, Any] | None = Field(default=None, description=\"Optional metadata\")"
     },
     {
       "kind": "python-any",
-      "line": 383,
+      "line": 374,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 453,
+      "line": 444,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 488,
+      "line": 479,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 522,
+      "line": 513,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 554,
+      "line": 545,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 560,
+      "line": 551,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "enriched: dict[str, Any] = {}"
     },
     {
       "kind": "python-any",
-      "line": 584,
+      "line": 575,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 602,
+      "line": 593,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 642,
+      "line": 633,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 719,
+      "line": 710,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 773,
+      "line": 764,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 849,
+      "line": 840,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 877,
+      "line": 868,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": ") -> list[dict[str, Any]]:"
     },
     {
       "kind": "python-any",
-      "line": 896,
+      "line": 887,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 919,
+      "line": 910,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 954,
+      "line": 945,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 967,
+      "line": 958,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-type-ignore",
-      "line": 972,
+      "line": 963,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": "overage_svc = OverageService(db=None, tenant_id=None)  # type: ignore[arg-type]"
     },
     {
       "kind": "python-any",
-      "line": 994,
+      "line": 985,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 1018,
+      "line": 1009,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 1056,
+      "line": 1047,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 1071,
+      "line": 1062,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 1111,
+      "line": 1102,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 1141,
+      "line": 1132,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 1176,
+      "line": 1167,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 1201,
+      "line": 1192,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 1249,
+      "line": 1240,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 1260,
+      "line": 1251,
       "path": "services/layer4-agents/src/layer4_agents/api/routes/billing.py",
       "text": ") -> dict[str, Any]:"
     },
@@ -35792,49 +35888,49 @@
     },
     {
       "kind": "python-any",
-      "line": 54,
+      "line": 58,
       "path": "services/layer4-agents/src/layer4_agents/tools/knowledge_tools.py",
       "text": "def __init__(self, config: dict[str, Any] | None = None):"
     },
     {
       "kind": "python-any",
-      "line": 300,
+      "line": 302,
       "path": "services/layer4-agents/src/layer4_agents/tools/knowledge_tools.py",
       "text": "def __init__(self, config: dict[str, Any] | None = None):"
     },
     {
       "kind": "python-any",
-      "line": 323,
+      "line": 325,
       "path": "services/layer4-agents/src/layer4_agents/tools/knowledge_tools.py",
       "text": "def _get_pinecone_client(self) -> Any | None:"
     },
     {
       "kind": "python-any",
-      "line": 391,
+      "line": 393,
       "path": "services/layer4-agents/src/layer4_agents/tools/knowledge_tools.py",
       "text": "filter_dict: dict[str, Any] = {\"tenant_id\": str(tenant_ctx.tenant_id)}"
     },
     {
       "kind": "python-any",
-      "line": 452,
+      "line": 454,
       "path": "services/layer4-agents/src/layer4_agents/tools/knowledge_tools.py",
       "text": "def __init__(self, config: dict[str, Any] | None = None):"
     },
     {
       "kind": "python-any",
-      "line": 566,
+      "line": 568,
       "path": "services/layer4-agents/src/layer4_agents/tools/knowledge_tools.py",
       "text": "def __init__(self, config: dict[str, Any] | None = None):"
     },
     {
       "kind": "python-any",
-      "line": 668,
+      "line": 673,
       "path": "services/layer4-agents/src/layer4_agents/tools/knowledge_tools.py",
       "text": "def __init__(self, config: dict[str, Any] | None = None):"
     },
     {
       "kind": "python-any",
-      "line": 766,
+      "line": 771,
       "path": "services/layer4-agents/src/layer4_agents/tools/knowledge_tools.py",
       "text": "def __init__(self, config: dict[str, Any] | None = None):"
     },
@@ -40637,6 +40733,30 @@
       "line": 82,
       "path": "services/layer7-billing/src/layer7_billing/repository.py",
       "text": ") -> dict[str, Any]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 25,
+      "path": "tests/agents/test_conversation_service.py",
+      "text": "from typing import Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 72,
+      "path": "tests/agents/test_conversation_service.py",
+      "text": "def __init__(self, *args: Any, **kwargs: Any) -> None:"
+    },
+    {
+      "kind": "python-any",
+      "line": 76,
+      "path": "tests/agents/test_conversation_service.py",
+      "text": "def from_task(cls, task_name: str, **kwargs: Any) -> _DegradationEvaluatorStub:"
+    },
+    {
+      "kind": "python-any",
+      "line": 79,
+      "path": "tests/agents/test_conversation_service.py",
+      "text": "def create_tracker(self, **kwargs: Any) -> MagicMock:"
     },
     {
       "kind": "python-any",
