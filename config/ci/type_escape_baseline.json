@@ -23300,25 +23300,55 @@
     },
     {
       "kind": "python-any",
-      "line": 9,
+      "line": 15,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/analyzers/git_analyzer.py",
       "text": "from typing import Any"
     },
     {
       "kind": "python-any",
-      "line": 22,
+      "line": 86,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/analyzers/git_analyzer.py",
       "text": "def analyze(self, repo_path: str) -> tuple[list[Finding], dict[str, Any]]:"
     },
     {
       "kind": "python-any",
-      "line": 95,
+      "line": 302,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/analyzers/git_analyzer.py",
       "text": "def _collect_git_metrics(self, path: Path, git_available: bool) -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 134,
+      "line": 333,
+      "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/analyzers/git_analyzer.py",
+      "text": "warnings: list[dict[str, Any]] = []"
+    },
+    {
+      "kind": "python-any",
+      "line": 360,
+      "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/analyzers/git_analyzer.py",
+      "text": "metrics: dict[str, Any] = {"
+    },
+    {
+      "kind": "python-any",
+      "line": 385,
+      "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/analyzers/git_analyzer.py",
+      "text": "def _build_warning(cls, name: str, result: GitCommandResult) -> dict[str, Any]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 405,
+      "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/analyzers/git_analyzer.py",
+      "text": "def _unavailable_metrics(self) -> dict[str, Any]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 414,
+      "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/analyzers/git_analyzer.py",
+      "text": "metrics: dict[str, Any] = {"
+    },
+    {
+      "kind": "python-any",
+      "line": 436,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/analyzers/git_analyzer.py",
       "text": "def _collect_structural_metrics(self, path: Path) -> dict[str, Any]:"
     },
@@ -23558,6 +23588,24 @@
     },
     {
       "kind": "python-any",
+      "line": 19,
+      "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/models.py",
+      "text": "from typing import Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 592,
+      "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/models.py",
+      "text": "git_metric_completeness: dict[str, Any] = Field("
+    },
+    {
+      "kind": "python-any",
+      "line": 600,
+      "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/models.py",
+      "text": "git_warnings: list[Any] = Field("
+    },
+    {
+      "kind": "python-any",
       "line": 24,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
       "text": "from typing import Any"
@@ -23599,176 +23647,188 @@
       "text": "class ScorecardDB(Base):  # type: ignore[valid-type,misc]"
     },
     {
+      "kind": "python-any",
+      "line": 257,
+      "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
+      "text": "git_metric_completeness: Mapped[dict[str, Any] | None] = mapped_column("
+    },
+    {
+      "kind": "python-any",
+      "line": 260,
+      "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
+      "text": "git_warnings: Mapped[list[Any] | None] = mapped_column(JSON, nullable=True, default=None)"
+    },
+    {
       "kind": "python-type-ignore",
-      "line": 265,
+      "line": 269,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
       "text": "class AreaScoreDB(Base):  # type: ignore[valid-type,misc]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 285,
+      "line": 289,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
       "text": "class SprintDB(Base):  # type: ignore[valid-type,misc]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 310,
+      "line": 314,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
       "text": "Base = None  # type: ignore[misc,assignment,no-redef]"
     },
     {
       "kind": "python-any",
-      "line": 311,
+      "line": 315,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
       "text": "AuditRunDB = Any  # type: ignore[misc,assignment,no-redef]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 311,
+      "line": 315,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
       "text": "AuditRunDB = Any  # type: ignore[misc,assignment,no-redef]"
     },
     {
       "kind": "python-any",
-      "line": 312,
+      "line": 316,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
       "text": "FindingDB = Any  # type: ignore[misc,assignment,no-redef]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 312,
+      "line": 316,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
       "text": "FindingDB = Any  # type: ignore[misc,assignment,no-redef]"
     },
     {
       "kind": "python-any",
-      "line": 313,
+      "line": 317,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
       "text": "FindingOccurrenceDB = Any  # type: ignore[misc,assignment,no-redef]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 313,
+      "line": 317,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
       "text": "FindingOccurrenceDB = Any  # type: ignore[misc,assignment,no-redef]"
     },
     {
       "kind": "python-any",
-      "line": 314,
+      "line": 318,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
       "text": "ScorecardDB = Any  # type: ignore[misc,assignment,no-redef]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 314,
+      "line": 318,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
       "text": "ScorecardDB = Any  # type: ignore[misc,assignment,no-redef]"
     },
     {
       "kind": "python-any",
-      "line": 315,
+      "line": 319,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
       "text": "AreaScoreDB = Any  # type: ignore[misc,assignment,no-redef]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 315,
+      "line": 319,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
       "text": "AreaScoreDB = Any  # type: ignore[misc,assignment,no-redef]"
     },
     {
       "kind": "python-any",
-      "line": 316,
+      "line": 320,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
       "text": "SprintDB = Any  # type: ignore[misc,assignment,no-redef]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 316,
+      "line": 320,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
       "text": "SprintDB = Any  # type: ignore[misc,assignment,no-redef]"
     },
     {
       "kind": "python-any",
-      "line": 339,
+      "line": 343,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
       "text": "def _scorecard_to_dict(scorecard: Scorecard, run_id: str) -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 375,
+      "line": 381,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
       "text": "def _scorecard_from_dict(data: dict[str, Any], findings: list[Finding]) -> Scorecard:"
     },
     {
       "kind": "python-any",
-      "line": 411,
+      "line": 419,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
       "text": "def _finding_to_dict(finding: Finding) -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 441,
+      "line": 449,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
       "text": "def _finding_from_dict(data: dict[str, Any]) -> Finding:"
     },
     {
       "kind": "python-any",
-      "line": 471,
+      "line": 479,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
       "text": "def _sprint_to_dict(sprint: Sprint) -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 489,
+      "line": 497,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
       "text": "def _sprint_from_dict(data: dict[str, Any]) -> Sprint:"
     },
     {
       "kind": "python-any",
-      "line": 507,
+      "line": 515,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
       "text": "def _run_to_dict(run: AuditRun) -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 524,
+      "line": 532,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
       "text": "def _run_from_dict_with_repo(data: dict[str, Any], repo_name: str) -> AuditRun:"
     },
     {
       "kind": "python-any",
-      "line": 862,
+      "line": 874,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
       "text": "self._session_factory: Callable[[], AsyncSession] | async_sessionmaker[Any] | None"
     },
     {
       "kind": "python-any",
-      "line": 939,
+      "line": 951,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
       "text": "def _atomic_write_json(self, path: Path, data: dict[str, Any]) -> None:"
     },
     {
       "kind": "python-any",
-      "line": 1019,
+      "line": 1031,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
       "text": ") -> list[tuple[datetime, dict[str, Any], Path]]:"
     },
     {
       "kind": "python-any",
-      "line": 1024,
+      "line": 1036,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
       "text": "results: list[tuple[datetime, dict[str, Any], Path]] = []"
     },
     {
       "kind": "python-any",
-      "line": 1528,
+      "line": 1542,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
       "text": ") -> tuple[str, dict[str, Any]] | None:"
     },
     {
       "kind": "python-any",
-      "line": 1761,
+      "line": 1775,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
       "text": "tx: Any,"
     },
@@ -35690,37 +35750,37 @@
     },
     {
       "kind": "python-any",
-      "line": 275,
+      "line": 273,
       "path": "services/layer4-agents/src/layer4_agents/tools/knowledge_tools.py",
       "text": "def __init__(self, config: dict[str, Any] | None = None):"
     },
     {
       "kind": "python-any",
-      "line": 301,
+      "line": 299,
       "path": "services/layer4-agents/src/layer4_agents/tools/knowledge_tools.py",
       "text": "def _get_pinecone_client(self) -> Any | None:"
     },
     {
       "kind": "python-any",
-      "line": 426,
+      "line": 424,
       "path": "services/layer4-agents/src/layer4_agents/tools/knowledge_tools.py",
       "text": "def __init__(self, config: dict[str, Any] | None = None):"
     },
     {
       "kind": "python-any",
-      "line": 540,
+      "line": 538,
       "path": "services/layer4-agents/src/layer4_agents/tools/knowledge_tools.py",
       "text": "def __init__(self, config: dict[str, Any] | None = None):"
     },
     {
       "kind": "python-any",
-      "line": 642,
+      "line": 640,
       "path": "services/layer4-agents/src/layer4_agents/tools/knowledge_tools.py",
       "text": "def __init__(self, config: dict[str, Any] | None = None):"
     },
     {
       "kind": "python-any",
-      "line": 740,
+      "line": 738,
       "path": "services/layer4-agents/src/layer4_agents/tools/knowledge_tools.py",
       "text": "def __init__(self, config: dict[str, Any] | None = None):"
     },
