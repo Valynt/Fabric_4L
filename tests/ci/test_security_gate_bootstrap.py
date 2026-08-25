@@ -19,7 +19,7 @@ def test_gitleaks_uses_pinned_oss_cli_without_org_license_action() -> None:
     run_scripts = "\n".join(step.get("run", "") for step in job["steps"])
 
     assert "gitleaks/gitleaks-action" not in rendered
-    assert "github.com/gitleaks/gitleaks/v8@${GITLEAKS_VERSION}" in run_scripts
+    assert "github.com/zricethezav/gitleaks/v8@${GITLEAKS_VERSION}" in run_scripts
     assert "GITLEAKS_VERSION" in job["steps"][-1]["env"]
     assert job["steps"][-1]["env"]["GITLEAKS_VERSION"].startswith("v8.")
     assert "--config .gitleaks.toml" in run_scripts

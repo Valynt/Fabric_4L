@@ -92,7 +92,7 @@ jobs:
           GITLEAKS_VERSION: v8.18.4
         run: |
           set -euo pipefail
-          go run github.com/gitleaks/gitleaks/v8@${GITLEAKS_VERSION} detect \
+          go run github.com/zricethezav/gitleaks/v8@${GITLEAKS_VERSION} detect \
             --source . \
             --config .gitleaks.toml \
             --verbose

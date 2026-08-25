@@ -16,7 +16,7 @@ def _workflow() -> dict:
 def test_ci_tools_image_is_digest_qualified() -> None:
     image = _workflow()["env"]["CI_TOOLS_IMAGE"]
     assert re.fullmatch(
-        r"ghcr\.io/(value-fabric|\$\{\{\s*github\.repository_owner\s*\}\})/ci-tools/security-suite@sha256:[0-9a-f]{64}",
+        r"ghcr\.io/(value-fabric|valynt)/ci-tools/security-suite@sha256:[0-9a-f]{64}",
         image,
     ), "CI_TOOLS_IMAGE must be the approved digest-qualified GHCR reference"
     assert ":latest" not in image
@@ -94,3 +94,4 @@ def test_publisher_uses_pinned_toolchain_and_trusted_identity() -> None:
     )
     assert publish_step["with"]["provenance"] == "mode=max"
     assert publish_step["with"]["sbom"] is True
+    assert publish_step["with"]["tags"].startswith("ghcr.io/valynt/ci-tools/security-suite:")
