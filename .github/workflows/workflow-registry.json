@@ -1184,12 +1184,13 @@
       "name": "Unified Test Reporting",
       "owner": "@value-fabric/sre-leads",
       "trigger": [
-        "pull_request",
         "workflow_run"
       ],
       "trigger_purpose": "CI/CD",
       "blocking": false,
-      "required_secrets": [],
+      "required_secrets": [
+        "GITHUB_TOKEN"
+      ],
       "produced_artifacts": [],
       "runtime_budget_minutes": 30,
       "local_validation_command": "make check-workflow-references",
