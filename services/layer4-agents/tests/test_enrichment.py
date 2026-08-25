@@ -33,15 +33,12 @@ for mod_name in [
     "shared.error_handling",
     "langgraph", "langgraph.checkpoint", "langgraph.checkpoint.base",
     "langgraph.checkpoint.memory", "langgraph.graph",
+    "layer4_agents.config.checkpoint",
     "src.config.checkpoint",
     "prometheus_client",
 ]:
     if mod_name not in sys.modules:
         sys.modules[mod_name] = MagicMock()
-
-if "src.database" not in sys.modules:
-    sys.modules["src.database"] = _mock_database
-
 
 # ---------------------------------------------------------------------------
 # Helpers
