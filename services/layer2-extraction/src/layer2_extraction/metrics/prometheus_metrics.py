@@ -8,8 +8,11 @@ labels. See ``_tenant_bucket`` for the derivation.
 from __future__ import annotations
 
 import hashlib
+import time
 
 from pydantic import BaseModel, ConfigDict
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.types import ASGIApp
 
 
 def _tenant_bucket(tenant_id: str, count: int = 64) -> str:
@@ -47,6 +50,7 @@ class PrometheusMetrics:
         self._counters: dict[tuple[str, tuple[tuple[str, str], ...]], float] = {}
         self._gauges: dict[tuple[str, tuple[tuple[str, str], ...]], float] = {}
         self._histograms: dict[tuple[str, tuple[tuple[str, str], ...]], list[float]] = {}
+        self.set_health_status(True, component="api")
 
     def _normalized_labels(self, labels: dict[str, str]) -> tuple[tuple[str, str], ...]:
         return tuple(sorted((k, str(v)) for k, v in labels.items()))
@@ -251,13 +255,53 @@ class PrometheusMetrics:
             {"reason": reason, "component": component},
         )
 
+    def record_http_request(
+        self,
+        *,
+        method: str,
+        endpoint: str,
+        status_code: int | str,
+        tenant_id: str | None = None,
+    ) -> None:
+        """Record an HTTP request for SLI tracking across canonical metric names."""
+        labels = {
+            "method": method.upper(),
+            "endpoint": endpoint,
+            "status_code": str(status_code),
+            "tenant_bucket": _tenant_bucket(
+                tenant_id or "unknown", self.config.tenant_bucket_count
+            ),
+        }
+        self._record_counter("layer2_http_requests_total", labels)
+        self._record_counter("value_fabric_http_requests_total", labels)
+
+    def record_http_duration(
+        self,
+        *,
+        method: str,
+        endpoint: str,
+        duration_seconds: float,
+        tenant_id: str | None = None,
+    ) -> None:
+        """Record HTTP duration for SLI tracking across canonical metric names."""
+        labels = {
+            "method": method.upper(),
+            "endpoint": endpoint,
+            "tenant_bucket": _tenant_bucket(
+                tenant_id or "unknown", self.config.tenant_bucket_count
+            ),
+        }
+        self._observe_histogram("layer2_http_request_duration_seconds", labels, duration_seconds)
+        self._observe_histogram(
+            "value_fabric_http_request_duration_seconds", labels, duration_seconds
+        )
+
     def set_health_status(self, healthy: bool, component: str = "api") -> None:
         """Record health status for a component (1=healthy, 0=unhealthy)."""
-        self._record_gauge(
-            "vf_health_status",
-            {"component": component},
-            1.0 if healthy else 0.0,
-        )
+        val = 1.0 if healthy else 0.0
+        self._record_gauge("vf_health_status", {"component": component}, val)
+        self._record_gauge("layer2_health_status", {"component": component}, val)
+        self._record_gauge("value_fabric_health_status", {"component": component}, val)
 
     def get_metrics(self) -> str:
         """Generate Prometheus exposition format output."""
@@ -276,13 +320,71 @@ class PrometheusMetrics:
             lines.append(f"{name}{{{label_str}}} {value}")
         for (name, labels), values in self._histograms.items():
             if values:
-                label_str = ",".join(f'{k}="{_escape_label(v)}"' for k, v in labels)
-                lines.append(f"{name}_count{{{label_str}}} {len(values)}")
-                lines.append(f"{name}_sum{{{label_str}}} {sum(values)}")
+                label_prefix = ",".join(f'{k}="{_escape_label(v)}"' for k, v in labels)
+                buckets = [0.05, 0.1, 0.25, 0.5, 1.0, 1.5, 2.5, 5.0, 10.0]
+                for b in buckets:
+                    count_le = sum(1 for v in values if v <= b)
+                    b_label = f'{label_prefix},le="{b}"' if label_prefix else f'le="{b}"'
+                    lines.append(f"{name}_bucket{{{b_label}}} {count_le}")
+                inf_label = f'{label_prefix},le="+Inf"' if label_prefix else 'le="+Inf"'
+                lines.append(f"{name}_bucket{{{inf_label}}} {len(values)}")
+                count_label = f"{{{label_prefix}}}" if label_prefix else ""
+                lines.append(f"{name}_count{count_label} {len(values)}")
+                lines.append(f"{name}_sum{count_label} {sum(values)}")
         for (name, labels), value in self._gauges.items():
             label_str = ",".join(f'{k}="{_escape_label(v)}"' for k, v in labels)
             lines.append(f"{name}{{{label_str}}} {value}")
         return "\n".join(lines)
+
+
+class MetricsMiddleware(BaseHTTPMiddleware):
+    """FastAPI / ASGI middleware for collecting Layer 2 HTTP metrics."""
+
+    def __init__(self, app: ASGIApp, metrics: PrometheusMetrics) -> None:
+        super().__init__(app)
+        self.metrics = metrics
+        try:
+            from value_fabric.shared.observability import PathNormalizer
+
+            self._normalizer = PathNormalizer()
+        except ImportError:
+            self._normalizer = None
+
+    def _normalize_path(self, path: str) -> str:
+        if self._normalizer is None:
+            return path.rstrip("/") or "/"
+        return self._normalizer.normalize(path)
+
+    async def dispatch(self, request, call_next):
+        start_time = time.perf_counter()
+        try:
+            response = await call_next(request)
+            status_code = response.status_code
+        except Exception:
+            status_code = 500
+            raise
+        finally:
+            route = self._normalize_path(request.url.path)
+            duration = time.perf_counter() - start_time
+            context = getattr(request.state, "governance_context", None)
+            tenant_id = str(getattr(context, "tenant_id", None) or "unknown")
+            self.metrics.record_http_request(
+                method=request.method,
+                endpoint=route,
+                status_code=status_code,
+                tenant_id=tenant_id,
+            )
+            self.metrics.record_http_duration(
+                method=request.method,
+                endpoint=route,
+                duration_seconds=duration,
+                tenant_id=tenant_id,
+            )
+            if status_code == 401:
+                self.metrics.record_auth_failure(reason="missing_token", component="http")
+            elif status_code == 403:
+                self.metrics.record_auth_failure(reason="insufficient_role", component="http")
+        return response
 
 
 _metrics_instance: PrometheusMetrics | None = None
