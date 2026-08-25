@@ -1,9 +1,9 @@
-/**
- * graph.mapper.ts — DTO-to-Domain mapper for L3 graph responses
+﻿/**
+ * graph.mapper.ts â€” DTO-to-Domain mapper for L3 graph responses
  *
  * Maps snake_case DTOs into camelCase domain models.
  * Handles:
- *   - Field name normalization (name → name, entity_type → entityType, etc.)
+ *   - Field name normalization (name â†’ name, entity_type â†’ entityType, etc.)
  *   - Missing optional metadata (degrades safely)
  *   - Inconsistent graph topology (logs warnings, does not crash)
  *
@@ -11,12 +11,7 @@
  * into the graph feature domain layer.
  */
 
-<<<<<<< HEAD
-import { createFeatureLogger } from '@/lib/telemetry';
-=======
 import { createFeatureLogger } from "@/lib/telemetry";
-import type { components } from "@/api/generated/l3";
->>>>>>> main
 import {
   validateGraphTopology,
   type GraphNodeDto,
@@ -29,20 +24,19 @@ import type {
   GraphNode,
   GraphEdge,
   GraphSubgraph,
-  GraphStats,
   GraphQueryResult,
   EntityContext,
 } from "./graph.model";
 
 const log = createFeatureLogger("graph.mapper");
 
-// ── Constants ───────────────────────────────────────────────────────────────────
+// â”€â”€ Constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const DEFAULT_CONFidence = 0.8;
 const DEFAULT_ENTITY_TYPE = "Unknown";
 const DEFAULT_RELATIONSHIP_TYPE = "RELATED_TO";
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function normalizeNodeId(id: unknown): string {
   if (typeof id === "string" && id.length > 0) return id;
@@ -91,7 +85,7 @@ function extractRelationshipType(
   return DEFAULT_RELATIONSHIP_TYPE;
 }
 
-// ── Node / Edge Mappers ──────────────────────────────────────────────────────
+// â”€â”€ Node / Edge Mappers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export function mapGraphNodeDtoToDomain(dto: unknown): GraphNode {
   const d = dto as Record<string, unknown>;
@@ -125,7 +119,7 @@ export function mapGraphEdgeDtoToDomain(dto: unknown): GraphEdge {
   };
 }
 
-// ── Response Mappers ─────────────────────────────────────────────────────────
+// â”€â”€ Response Mappers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export function mapSubgraphResponseDtoToDomain(
   dto: GraphSubgraphResponseDto | Record<string, unknown>
@@ -244,14 +238,4 @@ export function mapEntityContextResponseDtoToDomain(
   };
 }
 
-function mapGraphStatsDtoToDomain(dto: Record<string, unknown>): GraphStats {
-  return {
-    totalNodes: Number(dto.total_nodes ?? 0),
-    totalEdges: Number(dto.total_edges ?? 0),
-    nodeTypes: (dto.node_types as Record<string, number>) || {},
-    communities: Number(dto.communities ?? 0),
-    density: Number(dto.density ?? 0),
-  };
-}
-
-// ── Convenience: Map from generated OpenAPI types ────────────────────────────
+// â”€â”€ Convenience: Map from generated OpenAPI types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€

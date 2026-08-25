@@ -4665,10 +4665,10 @@ export interface paths {
         put?: never;
         /**
          * Stream C1
-         * @description Proxy a streaming request to the Thesys C1 API.
+         * @description Proxy a streaming request to the Thesys C1 API via ThesysProvider.
          *
          *     The server attaches the ``THESYS_API_KEY`` so the secret is never
-         *     exposed to the browser.  The response is forwarded as-is in SSE
+         *     exposed to the browser. The response is forwarded as-is in SSE
          *     format (``text/event-stream``).
          */
         post: operations["stream_c1_v1_c1_stream_post"];
@@ -5445,12 +5445,6 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
-            /** Providers */
-            providers: components["schemas"]["CRMProvider"][];
-            /** Owners */
-            owners: {
-                [key: string]: string;
-            }[];
         };
         /**
          * AccountListItemSchema

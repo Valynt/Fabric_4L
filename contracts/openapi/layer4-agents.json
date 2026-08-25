@@ -12068,7 +12068,7 @@
           "c1"
         ],
         "summary": "Stream C1",
-        "description": "Proxy a streaming request to the Thesys C1 API.\n\nThe server attaches the ``THESYS_API_KEY`` so the secret is never\nexposed to the browser.  The response is forwarded as-is in SSE\nformat (``text/event-stream``).",
+        "description": "Proxy a streaming request to the Thesys C1 API via ThesysProvider.\n\nThe server attaches the ``THESYS_API_KEY`` so the secret is never\nexposed to the browser. The response is forwarded as-is in SSE\nformat (``text/event-stream``).",
         "operationId": "stream_c1_v1_c1_stream_post",
         "requestBody": {
           "content": {
@@ -14137,23 +14137,6 @@
             "type": "string",
             "format": "date-time",
             "title": "Updated At"
-          },
-          "providers": {
-            "items": {
-              "$ref": "#/components/schemas/CRMProvider"
-            },
-            "type": "array",
-            "title": "Providers"
-          },
-          "owners": {
-            "items": {
-              "additionalProperties": {
-                "type": "string"
-              },
-              "type": "object"
-            },
-            "type": "array",
-            "title": "Owners"
           }
         },
         "type": "object",
@@ -14163,9 +14146,7 @@
           "journey_id",
           "stages",
           "current_stage_key",
-          "updated_at",
-          "providers",
-          "owners"
+          "updated_at"
         ],
         "title": "AccountJourneyTimelineResponse"
       },

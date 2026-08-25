@@ -66,11 +66,16 @@ export function JourneyTimelineRightRail({
   const [stages, setStages] = useState<JourneyTimelineStage[]>(DEFAULT_STAGES);
   const [activeJourneyId, setActiveJourneyId] = useState<string>(journeyId || `journey_${activeAccountId}`);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [hasError, setHasError] = useState<boolean>(false);
 
   useEffect(() => {
     if (!activeAccountId) return;
     let isMounted = true;
     setIsLoading(true);
+    setHasError(false);
+    // Clear any data from a previously selected account before fetching the new one.
+    setStages(DEFAULT_STAGES);
+    setActiveJourneyId(journeyId || `journey_${activeAccountId}`);
 
     apiClient
       .get<AccountJourneyTimelineResponse>(
@@ -82,10 +87,11 @@ export function JourneyTimelineRightRail({
         if (isMounted && data?.stages) {
           setStages(data.stages);
           if (data.journey_id) setActiveJourneyId(data.journey_id);
+          setHasError(false);
         }
       })
       .catch(() => {
-        // Fallback to initial progression if offline or mock
+        if (isMounted) setHasError(true);
       })
       .finally(() => {
         if (isMounted) setIsLoading(false);
@@ -94,7 +100,8 @@ export function JourneyTimelineRightRail({
     return () => {
       isMounted = false;
     };
-  }, [activeAccountId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeAccountId, journeyId]);
 
   const renderStatusIcon = (status: JourneyStageStatus) => {
     switch (status) {
@@ -134,6 +141,14 @@ export function JourneyTimelineRightRail({
         {isLoading && (
           <div className="text-[11px] text-muted-foreground animate-pulse">
             Syncing journey timeline...
+          </div>
+        )}
+        {!isLoading && hasError && (
+          <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3">
+            <p className="text-xs font-semibold text-destructive">Unable to load journey</p>
+            <p className="text-[11px] text-muted-foreground mt-1">
+              Journey timeline could not be fetched for this account. Please try again.
+            </p>
           </div>
         )}
         {stages.map((stage, idx) => {

@@ -458,30 +458,21 @@ async def get_account_journey_timeline(
             id=f"{effective_journey_id}-signal",
             label="Signal",
             stage_key="signal",
-            status=JourneyStageStatus.COMPLETED,
-            updated_at=account.created_at,
-            actor="System",
-            source_artifact_id=f"signal_{account_id_str[:8]}",
+            status=JourneyStageStatus.NOT_STARTED,
             deep_link=f"/accounts/{account_id_str}/intelligence/signals",
         ),
         JourneyTimelineStage(
             id=f"{effective_journey_id}-hypothesis",
             label="Hypothesis",
             stage_key="hypothesis",
-            status=JourneyStageStatus.COMPLETED,
-            updated_at=account.updated_at,
-            actor="ValuePilot Agent",
-            source_artifact_id=f"ctx_{account_id_str[:8]}",
+            status=JourneyStageStatus.NOT_STARTED,
             deep_link=f"/accounts/{account_id_str}/intelligence/hypotheses",
         ),
         JourneyTimelineStage(
             id=f"{effective_journey_id}-value-drivers",
             label="Value drivers",
             stage_key="value_drivers",
-            status=JourneyStageStatus.IN_PROGRESS,
-            updated_at=datetime.now(UTC),
-            actor="Sales Engineer",
-            source_artifact_id=f"vm_{account_id_str[:8]}",
+            status=JourneyStageStatus.NOT_STARTED,
             deep_link=f"/accounts/{account_id_str}/studio/value-drivers",
         ),
         JourneyTimelineStage(
@@ -514,12 +505,17 @@ async def get_account_journey_timeline(
         ),
     ]
 
+    current_stage_key = next(
+        (s.stage_key for s in stages if s.status is not JourneyStageStatus.COMPLETED),
+        stages[0].stage_key,
+    )
+
     return AccountJourneyTimelineResponse(
         tenant_id=tenant_id_str,
         account_id=account_id_str,
         journey_id=effective_journey_id,
         stages=stages,
-        current_stage_key="value_drivers",
-        updated_at=datetime.now(UTC),
+        current_stage_key=current_stage_key,
+        updated_at=account.updated_at if account.updated_at else datetime.now(UTC),
     )
 

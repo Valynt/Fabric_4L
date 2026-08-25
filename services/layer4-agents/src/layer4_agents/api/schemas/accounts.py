@@ -319,6 +319,3 @@ class AccountJourneyTimelineResponse(BaseModel):
     stages: list[JourneyTimelineStage]
     current_stage_key: str
     updated_at: datetime
-
-    providers: list[CRMProvider]
-    owners: list[dict[str, str]]  # [{"id": "...", "name": "..."}]

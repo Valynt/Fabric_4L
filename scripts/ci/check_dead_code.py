@@ -173,7 +173,10 @@ def _main() -> int:
         if not path.is_file() or path.suffix != ".py":
             continue
         try:
-            text = path.read_text(encoding="utf-8")
+            # utf-8-sig strips a leading BOM so BOM'd tracked files (rare but
+            # present) parse cleanly instead of being dropped and losing their
+            # references (which would otherwise cause false-positive findings).
+            text = path.read_text(encoding="utf-8-sig")
             tree = ast.parse(text, filename=str(path))
         except (OSError, UnicodeDecodeError, SyntaxError):
             continue
