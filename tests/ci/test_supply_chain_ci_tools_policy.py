@@ -72,7 +72,7 @@ def test_publisher_uses_pinned_toolchain_and_trusted_identity() -> None:
         encoding="utf-8"
     )
     for pin in (
-        "python:3.14.0-slim-bookworm@sha256:",
+        "python:3.12.10-slim-bookworm@sha256:",
         "GRYPE_VERSION=0.104.1",
         "SYFT_VERSION=1.30.0",
         "COSIGN_VERSION=2.5.3",

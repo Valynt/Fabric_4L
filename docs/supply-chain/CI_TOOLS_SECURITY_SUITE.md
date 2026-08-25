@@ -18,7 +18,7 @@ The trusted publisher is the `Valynt/Fabric_4L` repository workflow
 | cosign | 2.5.3 |
 | pip-audit | 2.9.0 |
 | pip-licenses | 5.0.0 |
-| Python | 3.14.0 |
+| Python | 3.12.10 |
 | Node.js | 22.17.0 |
 | pnpm | 10.18.1 |
 
