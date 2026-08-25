@@ -61,6 +61,11 @@ services:
     networks:
       - value-fabric-network
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "/fluent-bit/bin/fluent-bit", "--dry-run", "-c", "/fluent-bit/etc/fluent-bit.conf"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
 volumes:
   grafana-data:

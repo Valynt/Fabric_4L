@@ -102,6 +102,11 @@ services:
       postgres-primary:
         condition: service_healthy
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "grep -aq pgbouncer /proc/1/cmdline"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
 
   # ─── WAL-G Backup Agent ─────────────────────────────────────────────────────
   wal-g-backup:
@@ -126,6 +131,11 @@ services:
       postgres-primary:
         condition: service_healthy
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h postgres-primary -U postgres -d fabric"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   # ─── HAProxy Load Balancer ─────────────────────────────────────────────────
   haproxy:
@@ -142,6 +152,11 @@ services:
       - postgres-primary
       - postgres-replica
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "haproxy", "-c", "-f", "/usr/local/etc/haproxy/haproxy.cfg"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
 
 volumes:
   postgres_primary_data:
