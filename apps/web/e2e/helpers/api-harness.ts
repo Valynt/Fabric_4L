@@ -108,6 +108,82 @@ const JOURNEY_ACCOUNTS = [
   EMPTY_ACCOUNT,
 ];
 
+function defaultJourneyTimeline(route: Route): Record<string, unknown> {
+  const requestUrl = new URL(route.request().url());
+  const pathSegments = requestUrl.pathname.split("/");
+  const accountsIndex = pathSegments.lastIndexOf("accounts");
+  const accountId = pathSegments[accountsIndex + 1] || EMPTY_ACCOUNT.id;
+  const journeyId = requestUrl.searchParams.get("journey_id") || `journey_${accountId}`;
+  const updatedAt = "2025-01-01T00:00:00Z";
+
+  return {
+    tenant_id: "tenant-e2e-001",
+    account_id: accountId,
+    journey_id: journeyId,
+    stages: [
+      {
+        id: `${journeyId}-signal`,
+        label: "Signal",
+        stage_key: "signal",
+        status: "completed",
+        updated_at: updatedAt,
+        actor: "System",
+        deep_link: `/accounts/${accountId}/intelligence/signals`,
+      },
+      {
+        id: `${journeyId}-hypothesis`,
+        label: "Hypothesis",
+        stage_key: "hypothesis",
+        status: "completed",
+        updated_at: updatedAt,
+        actor: "ValuePilot Agent",
+        deep_link: `/accounts/${accountId}/intelligence/hypotheses`,
+      },
+      {
+        id: `${journeyId}-value-drivers`,
+        label: "Value drivers",
+        stage_key: "value_drivers",
+        status: "in_progress",
+        updated_at: updatedAt,
+        actor: "Sales Engineer",
+        deep_link: `/accounts/${accountId}/studio/value-drivers`,
+      },
+      {
+        id: `${journeyId}-roi-calculation`,
+        label: "ROI calculation",
+        stage_key: "roi_calculation",
+        status: "not_started",
+        deep_link: `/accounts/${accountId}/studio/financial-modeling`,
+      },
+      {
+        id: `${journeyId}-evidence-validation`,
+        label: "Evidence validation",
+        stage_key: "evidence_validation",
+        status: "not_started",
+        deep_link: `/accounts/${accountId}/studio/integrity-review`,
+      },
+      {
+        id: `${journeyId}-narrative`,
+        label: "Narrative",
+        stage_key: "narrative",
+        status: "not_started",
+        deep_link: `/accounts/${accountId}/studio/narrative-builder`,
+      },
+      {
+        id: `${journeyId}-export-crm-sync`,
+        label: "Export or CRM sync",
+        stage_key: "export_crm_sync",
+        status: "not_started",
+        deep_link: `/accounts/${accountId}/deliverables/exports`,
+      },
+    ],
+    current_stage_key: "value_drivers",
+    updated_at: updatedAt,
+    providers: [],
+    owners: [],
+  };
+}
+
 /**
  * Build the canonical backend empty shape for a workspace tab.
  * The backend returns `{ <tab>: [] }`, not a wrapper with `status: 'empty'`.
@@ -180,6 +256,12 @@ const DEFAULT_MOCKS: MockEndpoint[] = [
   {
     pattern: /.*\/api\/v1\/agents\/accounts\/[^/?]+$/,
     body: EMPTY_ACCOUNT,
+  },
+  // Account journey rail mounted across Intelligence and Value Studio routes.
+  {
+    pattern: /.*\/api\/v1\/agents\/accounts\/[^/?]+\/journey-timeline(?:\?.*)?$/,
+    method: "GET",
+    getBody: defaultJourneyTimeline,
   },
   // Workspace tab data — canonical backend shape is `{ <tab>: [] }`.
   {

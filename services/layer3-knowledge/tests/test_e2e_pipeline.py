@@ -67,7 +67,10 @@ pytestmark = [
 
 
 
-def _patch_app_for_test_auth(application) -> None:
+def _patch_app_for_test_auth(
+    application,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Bypass GovernanceMiddleware auth/tenant checks for live E2E fixtures."""
     from value_fabric.shared.identity import require_authenticated
 
@@ -77,12 +80,16 @@ def _patch_app_for_test_auth(application) -> None:
     async def _enforce_tenant_status(self, ctx):
         return None
 
-    GovernanceMiddleware._handle_authentication = _handle_authentication
-    GovernanceMiddleware._enforce_tenant_status = _enforce_tenant_status
-    application.dependency_overrides[require_authenticated] = lambda: RequestContext(
-        tenant_id=TEST_TENANT_ID, user_id="test-user"
+    monkeypatch.setattr(GovernanceMiddleware, "_handle_authentication", _handle_authentication)
+    monkeypatch.setattr(GovernanceMiddleware, "_enforce_tenant_status", _enforce_tenant_status)
+    monkeypatch.setitem(
+        application.dependency_overrides,
+        require_authenticated,
+        lambda: RequestContext(
+            tenant_id=TEST_TENANT_ID, user_id="test-user"
+        ),
     )
-    application.middleware_stack = None
+    monkeypatch.setattr(application, "middleware_stack", None)
 
 
 # Test configuration
@@ -495,7 +502,10 @@ class TestAPIEndpoints:
     """Test Layer 3 API endpoints."""
     
     @pytest_asyncio.fixture
-    async def api_client(self) -> AsyncGenerator[AsyncClient, None]:
+    async def api_client(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> AsyncGenerator[AsyncClient, None]:
         """Provide HTTP client for API testing."""
         schema_initializer = AsyncMock()
         schema_initializer.health_check.return_value = {
@@ -509,7 +519,7 @@ class TestAPIEndpoints:
             "valid": True,
         }
         app.dependency_overrides[get_schema_initializer] = lambda: schema_initializer
-        _patch_app_for_test_auth(app)
+        _patch_app_for_test_auth(app, monkeypatch)
         transport = ASGITransport(app=app)
         try:
             async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -537,6 +547,7 @@ class TestAPIEndpoints:
         self,
         neo4j_driver,
         settings: Settings,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> AsyncGenerator[AsyncClient, None]:
         """Provide API client with real Neo4j dependencies injected."""
         loader = Neo4jLoader(driver=neo4j_driver, settings=settings)
@@ -558,7 +569,7 @@ class TestAPIEndpoints:
         app.dependency_overrides[get_graph_rag] = lambda: graph_rag
         app.dependency_overrides[get_hybrid_search] = lambda: hybrid
 
-        _patch_app_for_test_auth(app)
+        _patch_app_for_test_auth(app, monkeypatch)
         transport = ASGITransport(app=app)
         try:
             async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -866,4 +877,3 @@ class TestIntegrationWithLayer2:
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
-
