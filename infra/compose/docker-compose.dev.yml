@@ -361,7 +361,7 @@ services:
       - ../../packages/platform-contract/src/python/canonical:/app/canonical
       - ../../services/layer4-agents/src:/app/src:ro
     command: >
-      uvicorn src.api.main:app
+      uvicorn layer4_agents.api.main:app
       --host 0.0.0.0
       --port 8000
       --log-level debug

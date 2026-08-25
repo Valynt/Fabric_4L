@@ -176,23 +176,3 @@ export const statusColors: Record<StatusType, { bg: string; text: string; border
   },
 };
 
-/**
- * Status badge component using the color system.
- */
-export function StatusBadgeEntity({ 
-  status, 
-  showIcon = true,
-  className,
-}: { 
-  status: StatusType;
-  showIcon?: boolean;
-  className?: string;
-}) {
-  const colors = statusColors[status];
-  return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full vf-text-micro font-semibold border ${colors.bg} ${colors.text} ${colors.border} ${className || ""}`}>
-      {showIcon && <span>{colors.icon}</span>}
-      {status.charAt(0).toUpperCase() + status.slice(1)}
-    </span>
-  );
-}
