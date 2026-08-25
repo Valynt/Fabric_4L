@@ -354,6 +354,8 @@ def _scorecard_to_dict(scorecard: Scorecard, run_id: str) -> dict[str, Any]:
         "total_directories": scorecard.total_directories,
         "total_commits": scorecard.total_commits,
         "total_contributors": scorecard.total_contributors,
+        "git_metric_completeness": scorecard.git_metric_completeness,
+        "git_warnings": scorecard.git_warnings,
         "audit_timestamp": _isoformat(scorecard.audit_timestamp),
         "executive_summary": scorecard.executive_summary,
         "area_scores": [
@@ -401,6 +403,8 @@ def _scorecard_from_dict(data: dict[str, Any], findings: list[Finding]) -> Score
         total_directories=data.get("total_directories", 0),
         total_commits=data.get("total_commits", 0),
         total_contributors=data.get("total_contributors", 0),
+        git_metric_completeness=dict(data.get("git_metric_completeness", {}) or {}),
+        git_warnings=list(data.get("git_warnings", []) or []),
         audit_timestamp=_parse_datetime(data["audit_timestamp"]) or datetime.now(UTC),
         findings=findings,
         executive_summary=data.get("executive_summary"),

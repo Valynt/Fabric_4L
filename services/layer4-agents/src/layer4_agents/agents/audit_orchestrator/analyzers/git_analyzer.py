@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import logging
+import queue
 import subprocess
+import threading
 import time
 from collections import Counter
 from dataclasses import dataclass
@@ -24,6 +26,11 @@ logger = logging.getLogger(__name__)
 DEFAULT_GIT_TIMEOUT_SECONDS = 30.0
 DEFAULT_GIT_MAX_OUTPUT_BYTES = 1_000_000
 DEFAULT_GIT_MAX_OUTPUT_LINES = 50_000
+
+# Read granularity for streaming subprocess output. Chunked reads, rather than
+# ``for line in stdout``, are what keep a single enormous line or a slow
+# no-newline stream from being fully buffered before caps are checked.
+GIT_READ_CHUNK_BYTES = 64 * 1024
 
 
 @dataclass(frozen=True)
@@ -153,9 +160,9 @@ class GitAnalyzer(BaseAnalyzer):
             ``error`` and stdout is empty.
         """
         start = time.monotonic()
-        lines: list[str] = []
+        chunks: list[str] = []
         bytes_read = 0
-        status = "ok"
+        line_count = 0
 
         try:
             proc = self._git_popen(
@@ -169,27 +176,88 @@ class GitAnalyzer(BaseAnalyzer):
         except (FileNotFoundError, OSError):
             return GitCommandResult(status="error")
 
-        stdout = proc.stdout
-        try:
-            if stdout is not None:
-                for line in stdout:
-                    bytes_read += len(line.encode("utf-8", errors="replace"))
-                    if time.monotonic() - start > self._git_timeout_seconds:
-                        status = "timeout"
-                        self._terminate(proc)
+        stream = proc.stdout
+        if stream is None:
+            self._cleanup(proc)
+            return GitCommandResult(status="error", returncode=proc.returncode)
+
+        # Drain stdout in small bounded chunks on a reader thread. Chunked
+        # ``read()`` calls (rather than ``for line in stdout``) ensure a single
+        # enormous line or a slow no-newline stream is never fully buffered
+        # before the byte/line caps are checked. The reader thread posts chunks
+        # to a queue and posts ``None`` on EOF (or an ``_READER_ERROR`` marker on
+        # failure); the main thread acts as an independent watchdog that waits
+        # up to the timeout for EOF and terminates the process if it does not.
+        class _ReaderError(Exception):
+            pass
+
+        chunk_queue: queue.Queue[str | None | type[_ReaderError]] = queue.Queue()
+        stop = threading.Event()
+
+        def _reader() -> None:
+            try:
+                while not stop.is_set():
+                    chunk = stream.read(GIT_READ_CHUNK_BYTES)
+                    if not chunk:
+                        chunk_queue.put(None)
                         break
-                    if (
-                        bytes_read > self._git_max_output_bytes
-                        or len(lines) >= self._git_max_output_lines
-                    ):
-                        status = "truncated"
-                        self._terminate(proc)
-                        break
-                    lines.append(line)
-        except OSError:
-            if status == "ok":
+                    chunk_queue.put(chunk)
+            except OSError:
+                chunk_queue.put(_ReaderError)
+
+        reader = threading.Thread(target=_reader, daemon=True)
+
+        deadline = start + self._git_timeout_seconds
+        reader.start()
+
+        status = "ok"
+        cap_hit: str | None = None
+        hit_timeout = False
+        while True:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                hit_timeout = True
+                break
+            try:
+                item = chunk_queue.get(timeout=min(0.25, remaining))
+            except queue.Empty:
+                if not reader.is_alive():
+                    break
+                continue
+            if item is None:
+                break
+            if item is _ReaderError:
                 status = "error"
-        finally:
+                break
+            assert isinstance(item, str)
+            chunk = item
+            bytes_read += len(chunk.encode("utf-8", errors="replace"))
+            if bytes_read > self._git_max_output_bytes:
+                cap_hit = "bytes"
+                break
+            newlines = chunk.count("\n")
+            if line_count + newlines > self._git_max_output_lines:
+                remaining_lines = self._git_max_output_lines - line_count
+                if remaining_lines > 0:
+                    parts = chunk.split("\n", remaining_lines)
+                    chunks.append("\n".join(parts[:remaining_lines]))
+                cap_hit = "lines"
+                line_count = self._git_max_output_lines
+                break
+            line_count += newlines
+            chunks.append(chunk)
+
+        if hit_timeout:
+            status = "timeout"
+            stop.set()
+            self._terminate(proc)
+            self._cleanup(proc)
+        elif cap_hit:
+            status = "truncated"
+            stop.set()
+            self._terminate(proc)
+            self._cleanup(proc)
+        else:
             self._cleanup(proc)
 
         if status == "ok" and proc.returncode not in (0, None):
@@ -198,7 +266,7 @@ class GitAnalyzer(BaseAnalyzer):
         truncated = status in ("timeout", "truncated")
 
         return GitCommandResult(
-            stdout="".join(lines),
+            stdout="".join(chunks),
             status=status,
             returncode=proc.returncode,
             truncated=truncated,
@@ -234,10 +302,13 @@ class GitAnalyzer(BaseAnalyzer):
     def _collect_git_metrics(self, path: Path, git_available: bool) -> dict[str, Any]:
         """Collect metrics from git history.
 
-        Contributor counts are aggregated with ``git shortlog -s --all`` so the
+        Contributor counts are aggregated with ``git shortlog -sne HEAD`` so the
         full commit-by-commit email history is never buffered in Python. The
         previously-used ``git log --format=%ae`` for every commit is avoided as
-        it required loading the entire history into memory.
+        it required loading the entire history into memory. ``-sne HEAD`` keeps
+        the former identity (per-email entries) and scope (HEAD only): ``-s``
+        alone groups by author name rather than unique email, and ``--all``
+        would expand scope to side/remote refs.
 
         Completeness metadata is returned alongside each count so callers can
         tell an exact figure from a truncated, timed-out or failed one.
@@ -246,7 +317,7 @@ class GitAnalyzer(BaseAnalyzer):
             return self._unavailable_metrics()
 
         commits = self._git_cmd(path, ["rev-list", "HEAD", "--count"])
-        contributors = self._git_cmd(path, ["shortlog", "-s", "--all"])
+        contributors = self._git_cmd(path, ["shortlog", "-sne", "HEAD"])
         branches = self._git_cmd(path, ["branch", "-a"])
         tags = self._git_cmd(path, ["tag", "-l"])
         last_commit = self._git_cmd(path, ["log", "-1", "--format=%ct"])

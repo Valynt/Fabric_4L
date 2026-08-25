@@ -357,11 +357,46 @@ def _assert_finding_fields(finding: Finding) -> None:
 # ---------------------------------------------------------------------------
 
 
+class _FakeReadStream:
+    """File-like object exposing a bounded ``read(n)`` for the reader thread."""
+
+    def __init__(self, content: str = ""):
+        self._content = content
+        self._pos = 0
+
+    def read(self, n: int = -1) -> str:
+        if self._pos >= len(self._content):
+            return ""
+        chunk = self._content[self._pos : self._pos + n]
+        self._pos += len(chunk)
+        return chunk
+
+
+class _SlowReadStream:
+    """Stream whose first ``read`` sleeps (simulates a slow/hung subprocess)."""
+
+    def __init__(self, first_sleep: float, content: str = ""):
+        self._first_sleep = first_sleep
+        self._content = content
+        self._pos = 0
+        self._slept = False
+
+    def read(self, n: int = -1) -> str:
+        if not self._slept:
+            time.sleep(self._first_sleep)
+            self._slept = True
+        if self._pos >= len(self._content):
+            return ""
+        chunk = self._content[self._pos : self._pos + n]
+        self._pos += len(chunk)
+        return chunk
+
+
 class _FakeGitProc:
     """Stand-in for a ``subprocess.Popen`` handle used by ``GitAnalyzer._git_cmd``."""
 
-    def __init__(self, lines, returncode=0):
-        self.stdout = iter(lines)
+    def __init__(self, content: str = "", returncode=0, stream=None):
+        self.stdout = stream if stream is not None else _FakeReadStream(content)
         self.stderr = None
         self.returncode = returncode
         self.terminate_called = False
@@ -375,11 +410,6 @@ class _FakeGitProc:
 
     def wait(self, timeout=None):
         return self.returncode
-
-
-def _slow_stream(first_sleep: float, lines):
-    time.sleep(first_sleep)
-    yield from lines
 
 
 def _make_analyzer(**_kwargs):
@@ -398,13 +428,15 @@ def test_git_cmd_caps_large_streamed_output_by_lines(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
     """A huge simulated stream is cut short and marked truncated, not buffered."""
-    lines = [f"{i}  A <a{i}@example.com>\n" for i in range(100_000)]
+    content = "".join(
+        f"{i}  A <a{i}@example.com>\n" for i in range(100_000)
+    )
     monkeypatch.setattr(
-        GitAnalyzer, "_git_popen", lambda *a, **k: _FakeGitProc(lines)
+        GitAnalyzer, "_git_popen", lambda *a, **k: _FakeGitProc(content=content)
     )
     analyzer = _make_analyzer(max_output_lines=3, max_output_bytes=10**9)
 
-    result = analyzer._git_cmd(tmp_path, ["shortlog", "-s", "--all"])
+    result = analyzer._git_cmd(tmp_path, ["shortlog", "-sne", "HEAD"])
 
     assert result.status == "truncated"
     assert result.truncated is True
@@ -413,14 +445,33 @@ def test_git_cmd_caps_large_streamed_output_by_lines(
     assert result.bytes_read <= 100_000
 
 
+def test_git_cmd_caps_single_enormous_line_still_respected(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """An enormous single line (no newlines) is bounded by the byte cap, not
+    buffered in full."""
+    content = ("x" * 5_000_000) + "\n"
+    monkeypatch.setattr(
+        GitAnalyzer, "_git_popen", lambda *a, **k: _FakeGitProc(content=content)
+    )
+    analyzer = _make_analyzer(max_output_lines=10**6, max_output_bytes=8192)
+
+    result = analyzer._git_cmd(tmp_path, ["log", "-1"])
+
+    assert result.status == "truncated"
+    assert result.truncated is True
+    # Only a bounded head of the huge line was retained.
+    assert len(result.stdout) <= 8192
+
+
 def test_git_cmd_caps_large_streamed_output_by_bytes(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
     """A stream exceeding the byte cap is terminated and marked truncated."""
     long_line = "x" * 2000 + "\n"
-    lines = [long_line] * 100
+    content = long_line * 100
     monkeypatch.setattr(
-        GitAnalyzer, "_git_popen", lambda *a, **k: _FakeGitProc(lines)
+        GitAnalyzer, "_git_popen", lambda *a, **k: _FakeGitProc(content=content)
     )
     analyzer = _make_analyzer(max_output_lines=10**6, max_output_bytes=5000)
 
@@ -435,27 +486,28 @@ def test_git_cmd_timeout_terminates_and_marks_truncated(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
     """A slow command is terminated once it exceeds the wall-clock timeout."""
-    stream = _slow_stream(0.05, ["partial\n"])
+    proc = _FakeGitProc(stream=_SlowReadStream(first_sleep=0.05, content="partial\n"))
 
     def _popen(*a, **k):
-        proc = _FakeGitProc([])
-        proc.stdout = iter(stream)
         return proc
 
     monkeypatch.setattr(GitAnalyzer, "_git_popen", _popen)
     analyzer = _make_analyzer(timeout_seconds=0.01, max_output_lines=10**6)
 
-    result = analyzer._git_cmd(tmp_path, ["shortlog", "-s", "--all"])
+    result = analyzer._git_cmd(tmp_path, ["shortlog", "-sne", "HEAD"])
 
     assert result.status == "timeout"
     assert result.truncated is True
+    assert proc.terminate_called is True
     assert result.stdout == ""
 
 
 def test_git_cmd_error_status_on_nonzero_return(tmp_path, monkeypatch):
     """A nonzero exit with no cap breach is surfaced as ``error``, not ok."""
     monkeypatch.setattr(
-        GitAnalyzer, "_git_popen", lambda *a, **k: _FakeGitProc([], returncode=128)
+        GitAnalyzer,
+        "_git_popen",
+        lambda *a, **k: _FakeGitProc(content="", returncode=128),
     )
     analyzer = _make_analyzer()
     result = analyzer._git_cmd(tmp_path, ["rev-list", "HEAD", "--count"])
