@@ -885,8 +885,7 @@ class Layer3Client:
 
         Returns a mapping of truth_object_id → kg_node_id (or None on failure).
         """
-        results: dict[str, str | None] = {}
-        for obj in truth_objects:
+        async def _sync_one(obj: dict[str, Any]) -> tuple[str, str | None]:
             node_id = await self.sync_truth_object(
                 truth_object_id=obj["id"],
                 tenant_id=obj["tenant_id"],
@@ -899,8 +898,11 @@ class Layer3Client:
                 applies_to=obj.get("applies_to"),
                 source_count=obj.get("source_count", 0),
             )
-            results[str(obj["id"])] = node_id
-        return results
+            return str(obj["id"]), node_id
+
+        tasks = [_sync_one(obj) for obj in truth_objects]
+        completed = await asyncio.gather(*tasks)
+        return {obj_id: node_id for obj_id, node_id in completed}
 
 
 # ---------------------------------------------------------------------------
