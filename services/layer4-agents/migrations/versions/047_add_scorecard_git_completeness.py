@@ -21,7 +21,21 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     """Persist per-metric git collection status so an exact figure can be
-    distinguished from a timed-out, truncated or failed one."""
+    distinguished from a timed-out, truncated or failed one.
+
+    The ``scorecards`` table is owned by the ORM ``ScorecardDB`` model and is
+    created at runtime by ``Base.metadata.create_all``, not by any revision in
+    this chain. A fresh database (e.g. the migration-only CI/e2e flow, or any
+    deployment where the table has not yet been materialised at runtime) has no
+    ``scorecards`` table at all. In that case skip the ALTER — ``create_all``
+    creates the full table (including these columns) from the model. When the
+    table already exists (a runtime-created schema being migrated), add the
+    columns so existing deployed rows gain the metadata.
+    """
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+    if not inspector.has_table("scorecards"):
+        return
     op.add_column(
         "scorecards",
         sa.Column("git_metric_completeness", sa.JSON(), nullable=True),
@@ -34,5 +48,9 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     """Drop completeness metadata columns in dependency-safe reverse order."""
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+    if not inspector.has_table("scorecards"):
+        return
     op.drop_column("scorecards", "git_warnings")
     op.drop_column("scorecards", "git_metric_completeness")
