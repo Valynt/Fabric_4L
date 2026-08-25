@@ -135,7 +135,7 @@ class Layer5GroundTruthClient:
             headers["Authorization"] = f"Bearer {service_token}"
         elif tenant_id:
             headers[TENANT_ID_HEADER] = tenant_id
-            # F-1 P0 fix: Include service auth secret for mutual authentication
+            # F-1 P0 fix: Include service auth secret for mutual authentication (fail-closed)
             service_auth = os.getenv("SERVICE_AUTH_SECRET")
             if not service_auth:
                 raise ValueError(
