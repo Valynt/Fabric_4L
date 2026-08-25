@@ -1,0 +1,12 @@
+--- tests/security/test_security_fixes.py
++++ tests/security/test_security_fixes.py
+@@ -296,8 +296,10 @@
+
+     # Should use defusedxml.fromstring, not ET.fromstring
+-    assert "fromstring" in source
++    assert "root = fromstring(" in source
++    assert "ET.fromstring" not in source
+     # Check that defusedxml is imported
+     from layer1_ingestion.adapters import xbrl_parser as parser_module
+     assert hasattr(parser_module, 'fromstring')
++    assert parser_module.fromstring.__module__.startswith("defusedxml")

@@ -16,6 +16,7 @@ import re
 import socket
 from datetime import UTC, datetime
 from enum import Enum
+from typing import Any
 from urllib.parse import urlparse
 from uuid import uuid4
 
@@ -587,6 +588,22 @@ class Scorecard(BaseModel):
         default=0,
         ge=0,
         description="Total number of unique contributors",
+    )
+    git_metric_completeness: dict[str, Any] = Field(
+        default_factory=dict,
+        description=(
+            "Per-metric git collection status (status, truncated, complete, "
+            "bytes_read) so consumers can distinguish an exact figure from a "
+            "timed-out, truncated or failed one. Empty when git is unavailable."
+        ),
+    )
+    git_warnings: list[Any] = Field(
+        default_factory=list,
+        description=(
+            "Structured warnings (code, metric, status, message) raised when a "
+            "git command timed out, was truncated, or failed. Contains no raw "
+            "git output or email addresses."
+        ),
     )
     audit_timestamp: datetime = Field(
         default_factory=lambda: datetime.now(UTC),
