@@ -6986,91 +6986,91 @@
     },
     {
       "kind": "python-any",
-      "line": 14,
+      "line": 15,
       "path": "scripts/ci/generate_launch_evidence_bundle.py",
       "text": "from typing import Any, Literal"
     },
     {
       "kind": "python-type-ignore",
-      "line": 23,
+      "line": 24,
       "path": "scripts/ci/generate_launch_evidence_bundle.py",
       "text": "FailureClassifier = None  # type: ignore[assignment]"
     },
     {
       "kind": "python-any",
-      "line": 156,
+      "line": 157,
       "path": "scripts/ci/generate_launch_evidence_bundle.py",
       "text": "def _entries(payload: Any) -> list[dict[str, Any]]:"
     },
     {
       "kind": "python-any",
-      "line": 168,
+      "line": 169,
       "path": "scripts/ci/generate_launch_evidence_bundle.py",
       "text": "def _summary_int(payload: Any, *keys: str) -> int | None:"
     },
     {
       "kind": "python-any",
-      "line": 187,
+      "line": 188,
       "path": "scripts/ci/generate_launch_evidence_bundle.py",
       "text": "def _count_total_runs(self, entries: list[dict[str, Any]]) -> int:"
     },
     {
       "kind": "python-any",
-      "line": 193,
+      "line": 194,
       "path": "scripts/ci/generate_launch_evidence_bundle.py",
       "text": "def _count_failed_runs(self, entries: list[dict[str, Any]]) -> int:"
     },
     {
       "kind": "python-any",
-      "line": 203,
+      "line": 204,
       "path": "scripts/ci/generate_launch_evidence_bundle.py",
       "text": "def _is_failure_entry(self, entry: dict[str, Any]) -> bool:"
     },
     {
       "kind": "python-any",
-      "line": 214,
+      "line": 215,
       "path": "scripts/ci/generate_launch_evidence_bundle.py",
       "text": "def _flaky_recovery_counts(self, payload: Any, entries: list[dict[str, Any]]) -> tuple[int, int]:"
     },
     {
       "kind": "python-any",
-      "line": 226,
+      "line": 227,
       "path": "scripts/ci/generate_launch_evidence_bundle.py",
       "text": "def _rerun_recovered(entry: dict[str, Any]) -> bool:"
     },
     {
       "kind": "python-any",
-      "line": 237,
+      "line": 238,
       "path": "scripts/ci/generate_launch_evidence_bundle.py",
       "text": "def _top_recurring(self, entries: list[dict[str, Any]], *, top_limit: int) -> list[CIRecurringSignature]:"
     },
     {
       "kind": "python-any",
-      "line": 238,
+      "line": 239,
       "path": "scripts/ci/generate_launch_evidence_bundle.py",
       "text": "grouped: dict[tuple[str, str, str, str], dict[str, Any]] = {}"
     },
     {
       "kind": "python-any",
-      "line": 269,
+      "line": 270,
       "path": "scripts/ci/generate_launch_evidence_bundle.py",
       "text": "def _entry_count(entry: dict[str, Any]) -> int:"
     },
     {
       "kind": "python-any",
-      "line": 281,
+      "line": 282,
       "path": "scripts/ci/generate_launch_evidence_bundle.py",
       "text": "def _category(entry: dict[str, Any]) -> str:"
     },
     {
       "kind": "python-any",
-      "line": 285,
+      "line": 286,
       "path": "scripts/ci/generate_launch_evidence_bundle.py",
       "text": "def _field(entry: dict[str, Any], *keys: str, default: str) -> str:"
     },
     {
       "kind": "python-any",
-      "line": 504,
+      "line": 509,
       "path": "scripts/ci/generate_launch_evidence_bundle.py",
       "text": "def _summary(results: list[EvidenceResult]) -> dict[str, Any]:"
     },
@@ -21848,6 +21848,12 @@
     },
     {
       "kind": "python-any",
+      "line": 172,
+      "path": "services/layer3-knowledge/tests/security/test_models_cross_tenant_isolation.py",
+      "text": "# Any block containing DETACH DELETE or DELETE must also contain tenant_id"
+    },
+    {
+      "kind": "python-any",
       "line": 4,
       "path": "services/layer3-knowledge/tests/test_api.py",
       "text": "from typing import Any"
@@ -35732,37 +35738,37 @@
     },
     {
       "kind": "python-any",
-      "line": 288,
+      "line": 292,
       "path": "services/layer4-agents/src/layer4_agents/tools/knowledge_tools.py",
       "text": "def __init__(self, config: dict[str, Any] | None = None):"
     },
     {
       "kind": "python-any",
-      "line": 314,
+      "line": 318,
       "path": "services/layer4-agents/src/layer4_agents/tools/knowledge_tools.py",
       "text": "def _get_pinecone_client(self) -> Any | None:"
     },
     {
       "kind": "python-any",
-      "line": 447,
+      "line": 451,
       "path": "services/layer4-agents/src/layer4_agents/tools/knowledge_tools.py",
       "text": "def __init__(self, config: dict[str, Any] | None = None):"
     },
     {
       "kind": "python-any",
-      "line": 569,
+      "line": 573,
       "path": "services/layer4-agents/src/layer4_agents/tools/knowledge_tools.py",
       "text": "def __init__(self, config: dict[str, Any] | None = None):"
     },
     {
       "kind": "python-any",
-      "line": 681,
+      "line": 685,
       "path": "services/layer4-agents/src/layer4_agents/tools/knowledge_tools.py",
       "text": "def __init__(self, config: dict[str, Any] | None = None):"
     },
     {
       "kind": "python-any",
-      "line": 787,
+      "line": 791,
       "path": "services/layer4-agents/src/layer4_agents/tools/knowledge_tools.py",
       "text": "def __init__(self, config: dict[str, Any] | None = None):"
     },
@@ -42233,12 +42239,6 @@
       "line": 156,
       "path": "tests/security/test_l1l2_service_to_service_jwt.py",
       "text": "mw = GovernanceMiddleware(app=None)  # type: ignore[arg-type]"
-    },
-    {
-      "kind": "python-any",
-      "line": 162,
-      "path": "tests/security/test_models_cross_tenant_isolation.py",
-      "text": "# Any block containing DETACH DELETE or DELETE must also contain tenant_id"
     },
     {
       "kind": "python-type-ignore",
