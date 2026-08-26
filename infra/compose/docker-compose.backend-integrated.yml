@@ -273,6 +273,9 @@ services:
       NEO4J_PASSWORD: devpassword
       REDIS_URL: redis://host.docker.internal:6379/0
       LOG_LEVEL: info
+      # Shared service-to-service HMAC secret used by GovernanceMiddleware to
+      # verify X-Service-Auth on internal calls (e.g. live contract tests).
+      SERVICE_AUTH_SECRET: dev-local-service-auth-secret-do-not-use-in-production-32c
     volumes:
       - ../../services/layer3-knowledge/src:/app/src:ro
       - ../../packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro

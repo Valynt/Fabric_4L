@@ -1801,7 +1801,6 @@ jobs:
       VITE_ENABLE_MOCK_AUTH: "true"
       VITE_USE_MOCKS: "false"
       VITE_ENABLE_MOCK_FALLBACK: "false"
-      VITE_AUTH_PROVIDER: legacy
       VITE_PROXY_DEBUG_DIRECT_LAYERS: "true"
       VITE_PROXY_L1_URL: http://localhost:8001
       VITE_PROXY_L4_URL: http://localhost:8004
