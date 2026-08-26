@@ -1,0 +1,27 @@
+{
+  "green": [
+    "cargo_match_business",
+    "cargo_fetch_businesses",
+    "cargo_enrich_firmographics",
+    "cargo_enrich_technographics",
+    "cargo_funding_events",
+    "cargo_workforce_headcount",
+    "cargo_website_changes",
+    "cargo_competitive_mentions",
+    "cargo_match_prospect"
+  ],
+  "held": [
+    "email_waterfall",
+    "sales_nav_volume",
+    "individual_linkedin",
+    "context_agent_rag"
+  ],
+  "out": [
+    "cargo_roi",
+    "value_pack_recommendation",
+    "crm_writeback",
+    "strategic_insights_prose"
+  ],
+  "version": "CARGO-EVAL-001-frozen",
+  "signed_sha": "pending"
+}
