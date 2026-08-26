@@ -1,12 +1,12 @@
 # Supply-chain CI tools image
 
 The supply-chain workflow uses only the immutable image reference declared as
-`CI_TOOLS_IMAGE` in `.github/workflows/supply-chain.yml`. A mutable tag is never an
+`CI_TOOLS_IMAGE` in `.github/workflows/supply-chain-integrity.yml`. A mutable tag is never an
 operational fallback.
 
 ## Publisher and pinned contents
 
-The trusted publisher is the `value-fabric/ci-tools` repository workflow
+The trusted publisher is the `Valynt/Fabric_4L` repository workflow
 `.github/workflows/publish-ci-tools.yml`; its canonical build definition is
 `tools/ci/security-suite/Dockerfile`. The publisher uses the GitHub Actions identity,
 `packages: write`, BuildKit `provenance: mode=max`, and BuildKit SBOM generation.
@@ -30,7 +30,7 @@ confirm the registry manifest before updating the consumer:
 
 ```bash
 echo "$GHCR_READ_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
-IMAGE=ghcr.io/value-fabric/ci-tools/security-suite@sha256:<digest>
+IMAGE=ghcr.io/valynt/ci-tools/security-suite@sha256:<digest>
 docker pull "$IMAGE"
 docker image inspect --format '{{json .RepoDigests}}' "$IMAGE"
 ```
@@ -41,9 +41,9 @@ must name the trusted publisher workflow:
 ```bash
 cosign verify-attestation \
   --type slsaprovenance \
-  --certificate-identity-regexp='https://github.com/value-fabric/ci-tools/.github/workflows/publish-ci-tools.yml@refs/heads/main' \
+  --certificate-identity-regexp='https://github.com/Valynt/Fabric_4L/.github/workflows/publish-ci-tools.yml@refs/heads/main' \
   --certificate-oidc-issuer='https://token.actions.githubusercontent.com' \
-  ghcr.io/value-fabric/ci-tools/security-suite@sha256:<digest>
+  ghcr.io/valynt/ci-tools/security-suite@sha256:<digest>
 ```
 
 Use a token with `read:packages` only when the package is private. GitHub Actions in
@@ -56,7 +56,7 @@ and asserts all eight tool/runtime versions before container-dependent jobs star
 1. Update explicit versions in the Dockerfile; keep the Python base tag and manifest
    digest pinned together.
 2. Review upstream release notes and security advisories.
-3. Merge in the trusted publisher repository and run `Publish CI Tools Security Suite`.
+3. Merge the publisher change and run `Publish CI Tools Security Suite`.
 4. Download its digest record, authenticate with package-read access, pull by digest,
    verify provenance, inspect `RepoDigests`, and execute the eight version checks.
 5. Replace `CI_TOOLS_IMAGE` with that verified digest-qualified reference. Never add a

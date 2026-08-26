@@ -30,8 +30,10 @@ _src_dir = _layer4_dir / "src"
 if str(_src_dir) not in sys.path:
     sys.path.insert(0, str(_src_dir))
 
-# Ensure the canonical models package is present before collection-time imports.
+# Ensure the models packages are present before collection-time tests
+# that register targeted models mocks with sys.modules.setdefault().
 import layer4_agents.models  # noqa: E402,F401
+import src.models  # noqa: E402,F401
 
 # Settings are instantiated by several service imports during collection.
 # Keep tests hermetic while still allowing callers to provide real endpoints.

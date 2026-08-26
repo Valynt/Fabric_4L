@@ -7,10 +7,10 @@ mounted HTTP endpoints with mocked services. They reuse the auth/database
 override patterns from test_billing_service.py.
 """
 
+import asyncio
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import asyncio
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -480,8 +480,9 @@ def test_webhook_success(client):
 @pytest.mark.asyncio
 async def test_webhook_database_unavailable_direct():
     """stripe_webhook raises ServiceUnavailableError when db cannot be acquired."""
-    from layer4_agents.api.routes.billing import stripe_webhook
     from value_fabric.shared.error_handling.exceptions import ServiceUnavailableError
+
+    from layer4_agents.api.routes.billing import stripe_webhook
 
     class _EmptyAsyncIterator:
         """Async iterator that yields nothing."""
@@ -576,9 +577,10 @@ def test_get_client_ip_empty_when_no_source(client):
 
 def test_emit_billing_audit_swallows_exception():
     """_emit_billing_audit logs but does not propagate audit failures."""
-    from layer4_agents.api.routes.billing import _emit_billing_audit
     from value_fabric.shared.audit import AuditAction
     from value_fabric.shared.identity.context import RequestContext
+
+    from layer4_agents.api.routes.billing import _emit_billing_audit
 
     ctx = RequestContext(tenant_id=TEST_TENANT_ID, user_id="user_123")
 
@@ -603,9 +605,10 @@ def test_emit_billing_audit_swallows_exception():
 @pytest.mark.asyncio
 async def test_emit_billing_audit_propagates_cancelled_error():
     """_emit_billing_audit re-raises asyncio.CancelledError."""
-    from layer4_agents.api.routes.billing import _emit_billing_audit
     from value_fabric.shared.audit import AuditAction
     from value_fabric.shared.identity.context import RequestContext
+
+    from layer4_agents.api.routes.billing import _emit_billing_audit
 
     ctx = RequestContext(tenant_id=TEST_TENANT_ID, user_id="user_123")
 
@@ -720,8 +723,9 @@ def test_ingest_usage_batch_empty_events():
     """
     from types import SimpleNamespace
 
-    from layer4_agents.api.routes.billing import ingest_usage_batch
     from value_fabric.shared.identity.context import RequestContext
+
+    from layer4_agents.api.routes.billing import ingest_usage_batch
 
     ctx = RequestContext(tenant_id=TEST_TENANT_ID, user_id="user_123")
     request = SimpleNamespace(events=[])

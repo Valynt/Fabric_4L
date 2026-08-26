@@ -89,7 +89,8 @@ services:
     volumes:
       - ../../monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - ../../monitoring/prometheus/recording-rules.yml:/etc/prometheus/recording-rules.yml:ro
-      - ../../monitoring/alerting/rules.yml:/etc/prometheus/alerting-rules.yml:ro
+      - ../../monitoring/alerting/rules.yml:/etc/prometheus/alerting/rules.yml:ro
+      - ../../monitoring/alerting/layer-sli-rules-production.yml:/etc/prometheus/alerting/layer-sli-rules-production.yml:ro
       - prometheus-data:/prometheus
     ports:
       - "9090:9090"
@@ -199,7 +200,7 @@ services:
     volumes:
       - /var/log:/var/log:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
-      - ../../monitoring/loki/promtail-config.yml:/etc/promtail/config.yml:ro
+      - ../../monitoring/promtail-config.yml:/etc/promtail/config.yml:ro
     networks:
       - fabric4l_net
     command: -config.file=/etc/promtail/config.yml
@@ -207,9 +208,9 @@ services:
     depends_on:
       - loki
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:9080/ready"]
-      interval: 15s
-      timeout: 5s
+      test: ["CMD-SHELL", "wget -qO- http://localhost:9080/ready >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
       retries: 3
       start_period: 10s
     deploy:
@@ -277,11 +278,10 @@ services:
       - fabric4l_net
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:9100/"]
-      interval: 15s
-      timeout: 5s
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:9100/metrics"]
+      interval: 30s
+      timeout: 10s
       retries: 3
-      start_period: 10s
     deploy:
       resources:
         limits:

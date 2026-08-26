@@ -64,6 +64,26 @@ jobs:
         id: scope
         uses: ./.github/actions/change-scope
 
+      # Post-process: resolve 'true' for non-scoped events (push, schedule)
+      # so that the Unified Readiness Gate can verify safe skips.
+      - name: Post-resolve change scopes
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          echo "layer1=true" >> $GITHUB_OUTPUT
+          echo "layer2=true" >> $GITHUB_OUTPUT
+          echo "layer3=true" >> $GITHUB_OUTPUT
+          echo "layer4=true" >> $GITHUB_OUTPUT
+          echo "layer5=true" >> $GITHUB_OUTPUT
+          echo "layer6=true" >> $GITHUB_OUTPUT
+          echo "backend=true" >> $GITHUB_OUTPUT
+          echo "web=true" >> $GITHUB_OUTPUT
+          echo "code=true" >> $GITHUB_OUTPUT
+          echo "docker=true" >> $GITHUB_OUTPUT
+          echo "k8s=true" >> $GITHUB_OUTPUT
+          echo "deps=true" >> $GITHUB_OUTPUT
+          echo "runtime=true" >> $GITHUB_OUTPUT
+
   structural-preflight:
     name: Structural Preflight
     runs-on: depot-ubuntu-24.04-4
@@ -978,6 +998,10 @@ jobs:
     # The full coverage suite consistently needs more than 13 minutes on the
     # hosted runner before the hostile-tenant and evidence steps execute.
     timeout-minutes: 30
+    env:
+      NEO4J_URI: bolt://localhost:7687
+      NEO4J_USER: neo4j
+      NEO4J_PASSWORD: test-password
     defaults:
       run:
         working-directory: services/layer3-knowledge
@@ -996,7 +1020,7 @@ jobs:
       neo4j:
         image: neo4j:5-community
         env:
-          NEO4J_AUTH: neo4j/testpassword
+          NEO4J_AUTH: neo4j/test-password
         ports:
           - 7474:7474
           - 7687:7687
@@ -1075,7 +1099,7 @@ jobs:
       - name: Run Layer 3 hostile tenancy endpoint suite
         run: |
           mkdir -p artifacts/layer3-tenancy
-          uv run pytest tests/layer3/test_endpoint_tenant_isolation.py -v \
+          uv run pytest ../../tests/layer3/test_endpoint_tenant_isolation.py -v \
             --junitxml artifacts/layer3-tenancy/hostile-tenancy-junit.xml \
             --json-report --json-report-file=artifacts/layer3-tenancy/hostile-tenancy-report.json
 
@@ -1777,6 +1801,7 @@ jobs:
       VITE_ENABLE_MOCK_AUTH: "true"
       VITE_USE_MOCKS: "false"
       VITE_ENABLE_MOCK_FALLBACK: "false"
+      VITE_AUTH_PROVIDER: legacy
       VITE_PROXY_DEBUG_DIRECT_LAYERS: "true"
       VITE_PROXY_L1_URL: http://localhost:8001
       VITE_PROXY_L4_URL: http://localhost:8004

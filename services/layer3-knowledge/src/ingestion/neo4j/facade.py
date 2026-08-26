@@ -10,6 +10,7 @@ from .connection import Neo4jConnectionManager
 from .embeddings import EmbeddingGenerator
 from .extractors import RDFEntityExtractor, RDFRelationshipExtractor
 from .orchestrator import BatchImportOrchestrator
+from .tenant import validate_ingestion_tenant_id
 from .writers import EntityBatchWriter, RelationshipBatchWriter
 
 
@@ -74,7 +75,7 @@ class Neo4jLoader:
     async def delete_by_source(
         self, source_id: str, tenant_id: str | None = None
     ) -> dict[str, Any]:
-        """Delete all entities and relationships from a specific source."""
+        """Remove all entities and relationships from a specific source."""
         return await self._orchestrator.delete_by_source(source_id, tenant_id)
 
     # Private-method compatibility wrappers used by existing tests.
@@ -125,9 +126,15 @@ class Neo4jLoader:
         extraction_job_id: str | None,
         tenant_id: str | None = None,
     ) -> int:
+        validated_tenant_id = validate_ingestion_tenant_id(tenant_id)
         attached = self._orchestrator.embedding_generator.attach(entity_type, entities)
         return await self._orchestrator.entity_writer.write(
-            session, entity_type, attached, source_id, extraction_job_id, tenant_id
+            session,
+            entity_type,
+            attached,
+            source_id,
+            extraction_job_id,
+            validated_tenant_id,
         )
 
     async def _load_relationships_batch(

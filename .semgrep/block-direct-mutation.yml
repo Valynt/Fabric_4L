@@ -35,7 +35,7 @@ rules:
           - pattern-regex: '(?im)^.*\b(MERGE|CREATE)\s*\([a-zA-Z0-9_]*\s*:\s*[a-zA-Z0-9_]+.*$'
           - pattern-regex: '(?im)^.*\b(DELETE|DETACH\s+DELETE)\s+[a-zA-Z0-9_]+.*$'
       - pattern-not-regex: '(?i)\bCREATE\s+(?:CONSTRAINT|INDEX|OR\s+REPLACE\s+INDEX|OR\s+REPLACE\s+CONSTRAINT)\b'
-      - pattern-not-regex: '# cypher-mutation-safe:'
+      - pattern-not-regex: '(?i)(?:#|//)\s*cypher-mutation-safe:'
       - pattern-not-inside: |
           class AuditedGraphMutation:
             ...

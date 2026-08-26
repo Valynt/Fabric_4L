@@ -331,12 +331,15 @@ def _post_core_middleware_hook(app: FastAPI) -> None:
         import redis.asyncio as redis
         from value_fabric.shared.identity.rate_limiter import RedisRateLimiter
 
-        redis_client = redis.from_url(
-            _settings.cache_redis_url if _settings else "redis://localhost:6379/0",
-            decode_responses=True,
-        )
-        app.state.governance_redis_client = redis_client
-        redis_rate_limiter = RedisRateLimiter(redis_client)
+        if os.getenv("TESTING", "").lower() == "true":
+            redis_rate_limiter = RedisRateLimiter()
+        else:
+            redis_client = redis.from_url(
+                _settings.cache_redis_url if _settings else "redis://localhost:6379/0",
+                decode_responses=True,
+            )
+            app.state.governance_redis_client = redis_client
+            redis_rate_limiter = RedisRateLimiter(redis_client)
     except (ImportError, TypeError, ValueError) as exc:
         logger.error(
             "Redis-backed governance initialization failed (%s); tenant status "

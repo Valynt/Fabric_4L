@@ -75,6 +75,45 @@ services:
     ]
 
 
+def test_absolute_host_bind_is_not_checked_on_ci_runner(monkeypatch):
+    module = load_module()
+    tmp_path = repo_tmp_path("absolute-host-bind")
+    compose = write_file(
+        tmp_path / "docker-compose.test.yml",
+        """
+services:
+  api:
+    image: alpine:3.20
+    volumes:
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    healthcheck:
+      test: ["CMD", "true"]
+""",
+    )
+    original_exists = Path.exists
+
+    def guarded_exists(path: Path) -> bool:
+        if path == Path("/var/lib/docker/containers"):
+            raise PermissionError("deployment host path is not readable in CI")
+        return original_exists(path)
+
+    monkeypatch.setattr(Path, "exists", guarded_exists)
+
+    assert module.validate_compose_contract(compose, tmp_path) == []
+
+
+def test_target_compose_files_pass_static_contract():
+    module = load_module()
+
+    failures = []
+    for compose_name in module.TARGET_COMPOSE_FILES:
+        failures.extend(
+            module.validate_compose_contract(REPO_ROOT / compose_name, REPO_ROOT)
+        )
+
+    assert failures == []
+
+
 def test_missing_build_context_and_dockerfile_fail():
     module = load_module()
     tmp_path = repo_tmp_path("missing-build")

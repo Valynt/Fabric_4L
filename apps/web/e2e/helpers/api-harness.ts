@@ -108,45 +108,81 @@ const JOURNEY_ACCOUNTS = [
   EMPTY_ACCOUNT,
 ];
 
-const JOURNEY_TIMELINE_STAGES = [
-  { id: "signal", label: "Signal", stage_key: "signal", status: "completed" },
-  {
-    id: "hypothesis",
-    label: "Hypothesis",
-    stage_key: "hypothesis",
-    status: "completed",
-  },
-  {
-    id: "value_drivers",
-    label: "Value drivers",
-    stage_key: "value_drivers",
-    status: "in_progress",
-  },
-  {
-    id: "roi_calculation",
-    label: "ROI calculation",
-    stage_key: "roi_calculation",
-    status: "not_started",
-  },
-  {
-    id: "evidence_validation",
-    label: "Evidence validation",
-    stage_key: "evidence_validation",
-    status: "not_started",
-  },
-  {
-    id: "narrative",
-    label: "Narrative",
-    stage_key: "narrative",
-    status: "not_started",
-  },
-  {
-    id: "export_crm_sync",
-    label: "Export or CRM sync",
-    stage_key: "export_crm_sync",
-    status: "not_started",
-  },
-];
+function defaultJourneyTimeline(route: Route): Record<string, unknown> {
+  const requestUrl = new URL(route.request().url());
+  const pathSegments = requestUrl.pathname.split("/");
+  const accountsIndex = pathSegments.lastIndexOf("accounts");
+  const accountId = pathSegments[accountsIndex + 1] || EMPTY_ACCOUNT.id;
+  const journeyId = requestUrl.searchParams.get("journey_id") || `journey_${accountId}`;
+  const updatedAt = "2025-01-01T00:00:00Z";
+
+  return {
+    tenant_id: "tenant-e2e-001",
+    account_id: accountId,
+    journey_id: journeyId,
+    stages: [
+      {
+        id: `${journeyId}-signal`,
+        label: "Signal",
+        stage_key: "signal",
+        status: "completed",
+        updated_at: updatedAt,
+        actor: "System",
+        deep_link: `/accounts/${accountId}/intelligence/signals`,
+      },
+      {
+        id: `${journeyId}-hypothesis`,
+        label: "Hypothesis",
+        stage_key: "hypothesis",
+        status: "completed",
+        updated_at: updatedAt,
+        actor: "ValuePilot Agent",
+        deep_link: `/accounts/${accountId}/intelligence/hypotheses`,
+      },
+      {
+        id: `${journeyId}-value-drivers`,
+        label: "Value drivers",
+        stage_key: "value_drivers",
+        status: "in_progress",
+        updated_at: updatedAt,
+        actor: "Sales Engineer",
+        deep_link: `/accounts/${accountId}/studio/value-drivers`,
+      },
+      {
+        id: `${journeyId}-roi-calculation`,
+        label: "ROI calculation",
+        stage_key: "roi_calculation",
+        status: "not_started",
+        deep_link: `/accounts/${accountId}/studio/financial-modeling`,
+      },
+      {
+        id: `${journeyId}-evidence-validation`,
+        label: "Evidence validation",
+        stage_key: "evidence_validation",
+        status: "not_started",
+        deep_link: `/accounts/${accountId}/studio/integrity-review`,
+      },
+      {
+        id: `${journeyId}-narrative`,
+        label: "Narrative",
+        stage_key: "narrative",
+        status: "not_started",
+        deep_link: `/accounts/${accountId}/studio/narrative-builder`,
+      },
+      {
+        id: `${journeyId}-export-crm-sync`,
+        label: "Export or CRM sync",
+        stage_key: "export_crm_sync",
+        status: "not_started",
+        deep_link: `/accounts/${accountId}/deliverables/exports`,
+      },
+    ],
+    current_stage_key: "value_drivers",
+    updated_at: updatedAt,
+    providers: [],
+    owners: [],
+  };
+}
 
 /**
  * Build the canonical backend empty shape for a workspace tab.
@@ -173,29 +209,6 @@ const DEFAULT_MOCKS: MockEndpoint[] = [
     pattern: /.*\/api\/v1\/telemetry\/web-vitals.*/,
     method: "POST",
     body: { accepted: true },
-  },
-  // Source Configuration uses the L1 targets catalog and aggregate stats.
-  // Keep its visual state deterministic instead of leaving TanStack Query in
-  // a loading loop on the relaxed catch-all response.
-  {
-    pattern: "**/api/v1/ingest/targets/stats",
-    method: "GET",
-    body: {
-      total: 0,
-      connected: 0,
-      disconnected: 0,
-      error: 0,
-      total_records: 0,
-      average_health_score: 0,
-    },
-  },
-  {
-    pattern: "**/api/v1/ingest/targets",
-    method: "GET",
-    body: {
-      data: [],
-      pagination: { page: 1, limit: 20, total: 0, total_pages: 0 },
-    },
   },
   // Account list — GET /api/v1/agents/accounts?...
   {
@@ -239,30 +252,16 @@ const DEFAULT_MOCKS: MockEndpoint[] = [
     pattern: `**/api/v1/agents/accounts/${account.id}`,
     body: account,
   })),
-  // Account journey timeline — canonical AccountJourneyTimelineResponse.
-  {
-    pattern: /.*\/api\/v1\/agents\/accounts\/[^/?]+\/journey-timeline$/,
-    method: "GET",
-    getBody: route => {
-      const segments = new URL(route.request().url()).pathname.split("/");
-      const timelineIndex = segments.lastIndexOf("journey-timeline");
-      const accountId = segments[timelineIndex - 1] || EMPTY_ACCOUNT.id;
-      return {
-        tenant_id: "tenant-e2e",
-        account_id: accountId,
-        journey_id: `journey_${accountId}`,
-        stages: JOURNEY_TIMELINE_STAGES,
-        current_stage_key: "value_drivers",
-        updated_at: "2025-01-01T00:00:00Z",
-        providers: ["manual"],
-        owners: [],
-      };
-    },
-  },
   // Account single fetch — GET /api/v1/agents/accounts/:id (no query string)
   {
     pattern: /.*\/api\/v1\/agents\/accounts\/[^/?]+$/,
     body: EMPTY_ACCOUNT,
+  },
+  // Account journey rail mounted across Intelligence and Value Studio routes.
+  {
+    pattern: /.*\/api\/v1\/agents\/accounts\/[^/?]+\/journey-timeline(?:\?.*)?$/,
+    method: "GET",
+    getBody: defaultJourneyTimeline,
   },
   // Workspace tab data — canonical backend shape is `{ <tab>: [] }`.
   {

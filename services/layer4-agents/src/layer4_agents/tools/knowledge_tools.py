@@ -80,7 +80,7 @@ class QueryGraphTool(BaseTool):
         return self._driver
 
     _CYPHER_WRITE_KEYWORDS = re.compile(
-        r"\b(CREATE|DELETE|DETACH|SET|MERGE|REMOVE|DROP|CALL)\b",
+        r"(?<![\.\:\`])\b(CREATE|DELETE|DETACH|SET|MERGE|REMOVE|DROP|CALL)\b(?!\s*\:)",
         re.IGNORECASE,
     )
 
@@ -518,7 +518,7 @@ class GetEntityTool(BaseTool):
 
                 relationships = []
                 if input_data.include_relationships:
-                    # P0 FIX: Query relationships with mandatory tenant filter on both nodes
+                    # P0: Relationship query must tenant-scope both endpoint nodes.
                     rel_query = """
                         MATCH (n {id: $entity_id, tenant_id: $tenant_id})-[r]-(m {tenant_id: $tenant_id})
                         RETURN type(r) as predicate, m.id as target_id, 
@@ -623,8 +623,7 @@ class GetRelationshipsTool(BaseTool):
                 # P0 FIX: Build query with mandatory tenant filter and optional predicate
                 tenant_id_str = str(tenant_ctx.tenant_id)
 
-                rel_pattern = f"[r:{predicate}]" if predicate else "[r]"  # cypher-dynamic-safe: validated against ALLOWED_REL_TYPES via validate_cypher_identifier
-
+                rel_pattern = f"[r:{predicate}]" if predicate else "[r]"  # cypher-dynamic-safe: validated against ALLOWED_REL_TYPES
                 query = f"""
                     MATCH (n {{id: $entity_id, tenant_id: $tenant_id}})-{rel_pattern}->(m {{tenant_id: $tenant_id}})
                     RETURN n.id as source_id, type(r) as predicate,

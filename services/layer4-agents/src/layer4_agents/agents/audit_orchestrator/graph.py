@@ -528,6 +528,11 @@ async def node_update_kg(state: AuditState) -> dict[str, Any]:
     scorecard = state.get("scorecard")
     if scorecard is None or config.neo4j_uri is None:
         return {"current_step": "update_kg"}
+    if not config.tenant_id:
+        return {
+            "error": "knowledge-graph update requires tenant context",
+            "current_step": "update_kg",
+        }
 
     try:
         await update_knowledge_graph(
@@ -536,6 +541,7 @@ async def node_update_kg(state: AuditState) -> dict[str, Any]:
             scorecard=scorecard,
             findings=state.get("findings", []),
             sprints=state.get("sprints", []),
+            tenant_id=config.tenant_id,
             neo4j_uri=config.neo4j_uri,
             neo4j_user=config.neo4j_user,
             neo4j_password=config.neo4j_password,

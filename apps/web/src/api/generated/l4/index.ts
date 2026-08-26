@@ -9670,6 +9670,18 @@ export interface components {
              */
             total_contributors: number;
             /**
+             * Git Metric Completeness
+             * @description Per-metric git collection status (status, truncated, complete, bytes_read) so consumers can distinguish an exact figure from a timed-out, truncated or failed one. Empty when git is unavailable.
+             */
+            git_metric_completeness?: {
+                [key: string]: unknown;
+            };
+            /**
+             * Git Warnings
+             * @description Structured warnings (code, metric, status, message) raised when a git command timed out, was truncated, or failed. Contains no raw git output or email addresses.
+             */
+            git_warnings?: unknown[];
+            /**
              * Audit Timestamp
              * Format: date-time
              * @description Timestamp when the audit was completed

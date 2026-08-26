@@ -17,7 +17,7 @@ Requirements (in addition to the project's dev extras)::
 
     pip install testcontainers[neo4j]
 
-The ``NEO4J_PASSWORD`` used inside the container is ``testpassword``.
+The ``NEO4J_PASSWORD`` used inside the container is ``test-password``.
 
 Docker Requirements:
     - Docker must be running for these tests to execute
@@ -43,7 +43,7 @@ pytestmark = [
 ]
 
 NEO4J_IMAGE = "neo4j:5.18-community"
-NEO4J_PASSWORD = "testpassword"
+NEO4J_PASSWORD = "test-password"
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
@@ -317,14 +317,29 @@ async def test_graph_rag_returns_dict(driver, settings):
 
 
 @pytest.mark.asyncio
-async def test_graph_rag_null_driver_raises_503(settings):
-    """GraphRAGEngine should raise a meaningful error when driver is None."""
-    from retrieval.graph_rag import GraphRAGEngine
+async def test_graph_rag_driver_factory_failure_is_not_masked(monkeypatch):
+    """GraphRAGEngine should propagate a meaningful lazy-driver failure."""
+    from neo4j.exceptions import ServiceUnavailable
 
-    rag = GraphRAGEngine(driver=None, vector_store=None, settings=settings)
+    from config import Settings
+    from retrieval import graph_rag as graph_rag_module
 
-    with pytest.raises(Exception) as exc_info:
-        await rag.query("test query", max_hops=1, max_results=3)
+    async def unavailable_driver(_settings):
+        raise ServiceUnavailable("test driver unavailable")
 
-    # Should raise something meaningful, not a bare AttributeError on None
-    assert exc_info.type is not AttributeError or "driver" in str(exc_info.value).lower()
+    monkeypatch.setattr(graph_rag_module, "get_driver", unavailable_driver)
+    settings = Settings(neo4j_password=NEO4J_PASSWORD)
+
+    rag = graph_rag_module.GraphRAGEngine(
+        driver=None,
+        vector_store=None,
+        settings=settings,
+    )
+
+    with pytest.raises(ServiceUnavailable, match="test driver unavailable"):
+        await rag.query(
+            "test query",
+            max_hops=1,
+            max_results=3,
+            tenant_id="12345678-1234-1234-1234-123456789abc",
+        )

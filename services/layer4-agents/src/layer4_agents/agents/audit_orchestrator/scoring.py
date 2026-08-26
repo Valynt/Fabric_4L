@@ -742,6 +742,10 @@ def build_scorecard(
     weights = area_weights or DEFAULT_AREA_WEIGHTS
     thresholds = grade_thresholds or DEFAULT_GRADE_THRESHOLDS
 
+    arch_metrics = metrics_by_area.get(AuditArea.ARCHITECTURE, {})
+    git_metric_completeness = dict(arch_metrics.get("git_metric_completeness", {}) or {})
+    git_warnings = list(arch_metrics.get("git_warnings", []) or [])
+
     area_scores: list[AreaScore] = []
     for area in AuditArea:
         area_findings = [f for f in findings if f.area == area]
@@ -786,6 +790,8 @@ def build_scorecard(
         total_directories=total_directories,
         total_commits=total_commits,
         total_contributors=total_contributors,
+        git_metric_completeness=git_metric_completeness,
+        git_warnings=git_warnings,
         findings=findings,
     )
 

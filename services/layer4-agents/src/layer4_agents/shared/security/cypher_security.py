@@ -113,6 +113,7 @@ ALLOWED_REL_TYPES: frozenset[str] = frozenset(
         "delivers",
         "dependsOn",
         "drivenBy",
+        "ENABLES",
         "enables",
         "exhibits",
         "extractedFrom",
