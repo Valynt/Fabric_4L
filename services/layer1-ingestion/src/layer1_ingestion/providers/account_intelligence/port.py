@@ -1,13 +1,14 @@
-from typing import Protocol, Literal
-from uuid import UUID
 from datetime import datetime
+from typing import Literal, Protocol
+from uuid import UUID
+
 from pydantic import BaseModel
-from typing import List
+
 
 class FetchRequest(BaseModel):
     tenant_id: UUID
     account_id: UUID
-    slugs: List[str]  # must be in allowlist.json
+    slugs: list[str]  # must be in allowlist.json
     correlation_id: str
 
 class RawSnapshot(BaseModel):
@@ -18,8 +19,8 @@ class RawSnapshot(BaseModel):
     hash: str  # canonical_hash(raw_payload + slug + tenant)
 
 class FetchBatch(BaseModel):
-    snapshots: List[RawSnapshot]
-    errors: List[dict]
+    snapshots: list[RawSnapshot]
+    errors: list[dict] = []
 
 class ProviderHealth(BaseModel):
     status: Literal["healthy", "degraded", "unavailable"]

@@ -1,7 +1,9 @@
-from pydantic import BaseModel
-from uuid import UUID
 from datetime import datetime
-from typing import List, Dict, Any
+from typing import Any
+from uuid import UUID
+
+from pydantic import BaseModel
+
 
 class TenantContext(BaseModel):
     tenant_id: UUID
@@ -15,5 +17,5 @@ class IdempotencyKey(BaseModel):
 # Minimal Cargo-specific types — stay inside cargo/ after this
 class CargoMcpRequest(BaseModel):
     action: str
-    params: Dict[str, Any]
+    params: dict[str, Any]
     tenant_id: UUID

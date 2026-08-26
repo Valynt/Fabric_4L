@@ -1,10 +1,9 @@
-from pathlib import Path
 import json
-from typing import List
+from pathlib import Path
 
 ALLOWLIST_PATH = Path("docs/cargo/allowlist.json")
 
-def load_green_slugs() -> List[str]:
+def load_green_slugs() -> list[str]:
     """Machine source of truth for CARGO-EVAL-001 green list.
     Charter test asserts only these are used.
     """
@@ -13,7 +12,7 @@ def load_green_slugs() -> List[str]:
 
 GREEN_SLUGS = load_green_slugs()
 
-# Frozen per signed charter
+# Frozen per signed charter (CARGO-EVAL-001)
 assert set(GREEN_SLUGS) == {
     "cargo_match_business",
     "cargo_fetch_businesses",
@@ -24,4 +23,4 @@ assert set(GREEN_SLUGS) == {
     "cargo_website_changes",
     "cargo_competitive_mentions",
     "cargo_match_prospect",
-}, "allowlist.json must match signed charter"
+}, "allowlist.json must match signed charter (eval-charter-001.md)"
