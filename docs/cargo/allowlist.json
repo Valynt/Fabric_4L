@@ -1,5 +1,5 @@
 {
-  "green": [
+  "approved_slugs": [
     "cargo_match_business",
     "cargo_fetch_businesses",
     "cargo_enrich_firmographics",
@@ -10,18 +10,22 @@
     "cargo_competitive_mentions",
     "cargo_match_prospect"
   ],
-  "held": [
-    "email_waterfall",
-    "sales_nav_volume",
-    "individual_linkedin",
+  "held_slugs": [
+    "cargo_email_waterfall",
+    "cargo_sales_nav_volume",
+    "cargo_individual_linkedin",
     "context_agent_rag"
   ],
-  "out": [
+  "out_slugs": [
     "cargo_roi",
     "value_pack_recommendation",
     "crm_writeback",
-    "strategic_insights_prose"
+    "cargo_strategic_insights"
   ],
+  "l1_emits": "RawSnapshot",
+  "l2_emits": "Observation",
+  "value_driver_tags_on_ingest": "empty",
+  "context_agent_permitted": false,
   "version": "CARGO-EVAL-001-frozen",
-  "signed_sha": "pending"
+  "signed_sha": "d0370e98c"
 }

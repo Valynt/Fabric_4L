@@ -1,14 +1,15 @@
 import json
 from pathlib import Path
 
-ALLOWLIST_PATH = Path("docs/cargo/allowlist.json")
+ALLOWLIST_PATH = Path(__file__).parent.parent.parent.parent.parent.parent / "docs" / "cargo" / "allowlist.json"
 
 def load_green_slugs() -> list[str]:
     """Machine source of truth for CARGO-EVAL-001 green list.
     Charter test asserts only these are used.
     """
     data = json.loads(ALLOWLIST_PATH.read_text())
-    return data.get("green", [])
+    # Support both legacy "green" and new charter schema
+    return data.get("approved_slugs") or data.get("green", [])
 
 GREEN_SLUGS = load_green_slugs()
 

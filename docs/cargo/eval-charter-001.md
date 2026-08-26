@@ -31,12 +31,23 @@
 **Provenance:** Most = PARTIALLY_TRACEABLE; narrative/ratings = OPAQUE.  
 **Rules:** valueDriverTags = []; Fabric owns confidence/meaning; no held/out signals; no CRM writeback; Context Agent excluded.
 
-**Approval:** Charter signed. Hard gates non-compensable. Proceed to L1 adapter (Task 3).
+**Approval:** Charter is the governing document. Signatures pending human review. Hard gates non-compensable. L1 adapter (Task 3) may proceed only after signatures and test_cargo_eval_charter.py is green.
 
-**Signed:**
+**Signed (pending human review):**
 - Product: ________________ (2026-08-26)
 - Platform: ________________ 
 - Security: ________________
+
+**Paired Tasks for Blinded Evaluation (12+ required before treatment runs):**
+1-4. Baseline vs treatment on firmographics/technographics for 4 test accounts.
+5-8. Funding events + workforce headcount pairs.
+9-12. Website changes + competitive mentions pairs.
+
+**Frozen Bars:** 95% tenant isolation, 0 cross-tenant reads, 100% provenance classification, no valueDriverTags on L1 ingest.
+
+**Kill Switch / Idempotency / Hash:** All calls through TenantKillSwitch, canonical_hash (rfc8785 + sha256), IdempotencyService with client_request_id.
+
+**Full Platform Table & 14 named pairs in full version.** This is the minimal signed protocol.
 
 ---
 

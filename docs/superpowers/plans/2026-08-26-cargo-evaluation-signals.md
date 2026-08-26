@@ -92,17 +92,21 @@ git commit -m "docs(cargo): sign CARGO-EVAL-001 charter with POC freeze & green 
 
 ---
 
-### Task 3: L1 AccountIntelligenceProvider Adapter (MCP → Observation)
+### Task 3: L1 AccountIntelligenceProvider Adapter (MCP → RawSnapshot only)
 
-**Files:**
-- Create: `services/layer1-ingestion/src/layer1_ingestion/providers/cargo/provider.py`
-- Create: `services/layer1-ingestion/src/layer1_ingestion/providers/cargo/mcp_client.py`
-- Modify: `services/layer1-ingestion/src/layer1_ingestion/providers/registry.py`
-- Test: `tests/contract/test_cargo_provider.py` (tenant isolation, provenance classification, allowlist enforcement)
+**Files (exact layout per corrected contract):**
+- `services/layer1-ingestion/src/layer1_ingestion/providers/account_intelligence/cargo/adapter.py`
+- `services/layer1-ingestion/src/layer1_ingestion/providers/account_intelligence/cargo/mcp_client.py`
+- `services/layer1-ingestion/src/layer1_ingestion/providers/account_intelligence/cargo/mapping.py`
+- `services/layer1-ingestion/src/layer1_ingestion/providers/account_intelligence/fake.py` (must pass same contract tests)
+- Update port/models/slugs if needed; tests/contract/test_cargo_l1_provider.py + behavior tests
 
-**Interfaces:**
-- Consumes: `docs/cargo/eval-charter-001.md` (green slugs only)
-- Produces: `CargoProvider` implementing `AccountIntelligenceProvider` that only accepts approved slugs, classifies provenance per catalog, and emits canonical `Observation` events.
+**Interfaces (L1 contract enforced):**
+- Consumes: `docs/cargo/eval-charter-001.md` + `docs/cargo/allowlist.json` (green slugs ONLY)
+- L1 returns **only** `FetchBatch` of `RawSnapshot` (raw_payload bytes/ref, canonical_hash(rfc8785+sha256), minimal provenance dict). 
+- **No** `Observation`, **no** `valueDriverTags`, **no** confidence computation, **no** Cargo types outside `cargo/`.
+- L2 normalizer (Task 4) classifies provenance and emits `Observation`.
+- FakeProvider + contract tests required before any real MCP calls.
 
 (Concrete test + minimal implementation steps follow the TDD pattern above — omitted here for brevity but will be fully written when this task is executed.)
 

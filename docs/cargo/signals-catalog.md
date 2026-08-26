@@ -50,32 +50,23 @@ Four production MCP servers (all read-only, template-driven):
 - No built-in baseline isolation or blinded experiment primitives — must be enforced in the L1 adapter + L5/L6.
 - Confidence scores are inconsistent; Fabric should compute its own based on provenance + evidence quality.
 
-**Canonical Mapping Proposal (for L1 Adapter)**
-All Cargo outputs → Fabric `Observation` record:
-- `source`: `"cargo"`
-- `providerSignalSlug`: e.g. `"cargo_enrich_business_firmographics"`
-- `provenance`: `{ "traceId", "rawPayloadHash", "fetchedAt", "freshnessMs", "providerConfidence" }`
-- `confidence`: Fabric-computed (never blindly trust Cargo's)
-- `tenantId`, `accountId`, `observationType` (OBSERVED/INFERRED), `valueDriverTags`
-- Strict ACL + immutable lineage
+**Canonical Mapping (L1 contract only)**
+L1 adapter MUST return only `RawSnapshot` / `FetchBatch` (raw_payload as bytes or ref, canonical_hash(rfc8785+sha256), minimal provenance dict). 
+No `Observation`, no `valueDriverTags`, no Fabric meaning, no confidence computation in L1 or Cargo package.
+L2 normalizer will classify provenance (`PARTIALLY_TRACEABLE` for green slugs, `OPAQUE` for narrative) and emit `Observation`.
 
 This catalog fulfills the “what can Cargo observe” portion of **CARGO-EVAL-001**. The full charter (tenant binding, account resolution, ≥12 paired baseline/treatment tasks, reviewers, frozen bars, budget, data residency, explicit field allowlist, version binding, and signed approval) remains required before any treatment run.
 
-**Approved In (Green for POC)**  
-- company match (`matchBusiness`, `fetchBusinesses`)
-- firmographics, technographics, financial metrics, strategic insights
-- funding/M&A/leadership events
-- headcount trends (counts only — no department expansion or layoff narratives)
-- website-change events, website keywords
-- stakeholder titles/roles (from enrichments)
-- competitor mentions (as lead signals only)
+**Approved In (Green for POC — matches allowlist.json exactly)**  
+- cargo_match_business, cargo_fetch_businesses
+- cargo_enrich_firmographics, cargo_enrich_technographics
+- cargo_funding_events, cargo_workforce_headcount
+- cargo_website_changes, cargo_competitive_mentions, cargo_match_prospect
 
 **Held / Out for POC**  
-- Email/phone waterfalls, Sales Nav at volume, individual LinkedIn profile enrichment
-- Context Agent RAG or writes into L3
-- Native library file RAG
-- “Strategic insights” prose, any Cargo-generated ROI/savings numbers, ValuePack/hypothesis recommendations
-- Any CRM write-back
+- cargo_email_waterfall, cargo_sales_nav_volume, cargo_individual_linkedin, context_agent_rag
+- cargo_roi, value_pack_recommendation, crm_writeback, cargo_strategic_insights_prose
+- Any CRM write-back, Context Agent, native RAG, ROI/hypothesis logic (Fabric L5/L6 only)
 
 **Provenance Defaults** (to be enforced in adapter)
 - Most enrichments → `PARTIALLY_TRACEABLE`
