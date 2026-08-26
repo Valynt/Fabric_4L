@@ -118,7 +118,6 @@ ALLOWED_REL_TYPES: frozenset[str] = frozenset(
         "exhibits",
         "extractedFrom",
         "generatedBy",
-        "ENABLES",
         "HAS_DRIVER",
         "HAS_EXECUTION",
         "hasFeature",
