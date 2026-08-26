@@ -1,4 +1,14 @@
 {
+  "charter": "docs/cargo/eval-charter-001.md",
+  "contract": "CARGO-EVAL-001",
+  "provider": "cargo",
+  "status": "draft_pending_signatures",
+  "integration_surface": [
+    "company_intelligence",
+    "lead_discovery",
+    "linkedin_salesnav",
+    "cargo_enrichment"
+  ],
   "approved_slugs": [
     "cargo_match_business",
     "cargo_fetch_businesses",
@@ -12,20 +22,24 @@
   ],
   "held_slugs": [
     "cargo_email_waterfall",
-    "cargo_sales_nav_volume",
-    "cargo_individual_linkedin",
-    "context_agent_rag"
+    "cargo_phone_waterfall",
+    "cargo_salesnav_lead_search",
+    "cargo_linkedin_profile_enrichment",
+    "cargo_workforce_narrative",
+    "cargo_context_agent",
+    "cargo_native_library_rag",
+    "cargo_crm_writeback"
   ],
   "out_slugs": [
     "cargo_roi",
-    "value_pack_recommendation",
-    "crm_writeback",
-    "cargo_strategic_insights"
+    "cargo_savings",
+    "cargo_valuepack_recommend",
+    "cargo_hypothesis_recommend",
+    "cargo_strategic_insights",
+    "cargo_workforce_ratings"
   ],
   "l1_emits": "RawSnapshot",
   "l2_emits": "Observation",
-  "value_driver_tags_on_ingest": "empty",
-  "context_agent_permitted": false,
-  "version": "CARGO-EVAL-001-frozen",
-  "signed_sha": "d0370e98c"
+  "value_driver_tags_on_ingest": [],
+  "context_agent_permitted": false
 }
