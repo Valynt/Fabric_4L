@@ -156,9 +156,13 @@ class QueryGraphTool(BaseTool):
         query parameters to access cross-tenant data.
         """
         params = dict(parameters) if parameters else {}
-        if "tenant_id" in params and str(params["tenant_id"]) != str(tenant_id):
-            raise ValueError("Tenant spoofing detected: parameter tenant_id does not match authenticated context")
-        # Ensure tenant_id parameter is set to the authenticated context
+        # Detect and reject any tenant_id-like parameter that does not match
+        # the authenticated context, then ensure tenant_id is set correctly.
+        for key in list(params.keys()):
+            if "tenant_id" in key.lower() and str(params[key]) != str(tenant_id):
+                raise ValueError(
+                    "Tenant spoofing detected: parameter tenant_id does not match authenticated context"
+                )
         params["tenant_id"] = str(tenant_id)
         return params
 
