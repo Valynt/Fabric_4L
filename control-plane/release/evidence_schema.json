@@ -1,0 +1,237 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/bmsull560/Fabric_4L/control-plane/release/evidence_schema.json",
+  "title": "Fabric_4L Authoritative Evidence Record",
+  "description": "Schema for a single authoritative evidence record produced by an execution lane and consumed by the release evaluator. BLOCKING SEMANTICS: any conclusion other than 'pass' blocks the decision at the control's registered decision point. A record that fails this schema MUST be treated as missing evidence, which also blocks. Evidence MUST be immutable and retained according to policy; a later commit invalidates SHA-bound evidence; rebuilding an artifact invalidates digest-bound certification.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "evidence_id",
+    "control_id",
+    "kind",
+    "source_sha",
+    "merge_group_sha",
+    "artifact_digest",
+    "workflow_run_id",
+    "environment_id",
+    "test_suite_version",
+    "dependency_lock_hash",
+    "random_seed",
+    "started_at",
+    "completed_at",
+    "collected_at",
+    "collector",
+    "content_hash",
+    "expires_at",
+    "conclusion",
+    "expected_test_count",
+    "executed_test_count",
+    "passed",
+    "failed",
+    "skipped",
+    "artifacts"
+  ],
+  "properties": {
+    "evidence_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Unique identifier of this evidence record."
+    },
+    "control_id": {
+      "type": "string",
+      "pattern": "^(CTRL-[0-9]{2}-[0-9]{2}|FAB4L-SEC-P[0-3]-[A-Z0-9-]+(-[0-9]{3})?)$",
+      "description": "The control this evidence proves: a register control (CTRL-<gate>-<nn>) or a security audit control/check (FAB4L-SEC-P{n}-{DOMAIN}[-NNN]). The evaluator rejects evidence for unregistered controls."
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "file_reference",
+        "line_reference",
+        "command_output",
+        "ci_run",
+        "scan_report",
+        "query_result",
+        "runtime_observation",
+        "configuration_snapshot",
+        "policy_document",
+        "approval_record",
+        "artifact",
+        "manual_attestation"
+      ],
+      "description": "Evidence kind, aligned with the Enterprise Security Audit Contract evidenceKind enum."
+    },
+    "source_sha": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$",
+      "description": "Full 40-hex source commit SHA the evidence was produced from. MUST equal the candidate source SHA; a mismatch blocks (sha_mismatch). A later commit invalidates this evidence."
+    },
+    "merge_group_sha": {
+      "type": ["string", "null"],
+      "pattern": "^[0-9a-f]{40}$",
+      "description": "Full 40-hex SHA of the actual merge-group commit, when the run executed in a merge group. Null only for pre-merge lanes; merge authorization requires it."
+    },
+    "artifact_digest": {
+      "type": ["string", "null"],
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "description": "Immutable digest of the built artifact under test. Release and promotion decisions require it and it MUST equal the certified digest; rebuilding the artifact invalidates digest-bound certification."
+    },
+    "workflow_run_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Identifier of the workflow run that produced this record; binds the claim to a command and run."
+    },
+    "environment_id": {
+      "type": "string",
+      "enum": ["in-process", "container-integration", "ephemeral-kubernetes", "certified-staging", "production"],
+      "description": "The test environment (from the test strategy's five environments) in which the evidence was produced."
+    },
+    "test_suite_version": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Version of the test suite that produced this record."
+    },
+    "dependency_lock_hash": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Hash of the dependency lock inputs, for reproducibility."
+    },
+    "random_seed": {
+      "type": ["string", "integer", "null"],
+      "description": "Seed for any randomized or property-based execution; required for reproducibility whenever randomness is used."
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Run start timestamp (RFC 3339)."
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Run completion timestamp (RFC 3339)."
+    },
+    "collected_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp at which the evidence was collected into the certification ledger."
+    },
+    "collector": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Identity (automation or person) that collected the evidence; makes every claim attributable to an owner."
+    },
+    "content_hash": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Hash of the evidence content; supports immutability and tamper detection."
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Expiry of this evidence. During certification, evidence MUST be no more than 24 hours old; expired evidence blocks (expired_evidence)."
+    },
+    "conclusion": {
+      "type": "string",
+      "enum": ["pass", "fail", "cancelled", "skipped", "missing", "stale", "inconclusive", "not_applicable"],
+      "description": "Authoritative conclusion. BLOCKING SEMANTICS: only 'pass' satisfies a control. 'fail', 'cancelled', 'skipped', 'missing', 'stale', and 'inconclusive' always block. 'not_applicable' satisfies a control only when justified under the register's not_applicable_policy (version-controlled rule, emitted reason, aggregate verification; never contributor-selected)."
+    },
+    "not_applicable_justification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rule_ref", "reason", "evaluated_by"],
+      "properties": {
+        "rule_ref": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Reference to the version-controlled applicability rule that was evaluated."
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Machine-emitted reason for inapplicability."
+        },
+        "evaluated_by": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The rule evaluation mechanism (never a contributor's manual choice)."
+        }
+      },
+      "description": "Required if and only if conclusion is 'not_applicable'."
+    },
+    "expected_test_count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of tests the suite was expected to collect. Zero-test rule: no critical suite may pass with zero tests collected."
+    },
+    "executed_test_count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of tests actually executed."
+    },
+    "passed": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "failed": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Any nonzero value with conclusion 'pass' is invalid (see zeroFailuresPass rule)."
+    },
+    "skipped": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Unregistered skips in required suites are prohibited by the test strategy."
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["artifact_reference", "content_hash"],
+        "properties": {
+          "artifact_reference": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Resolvable reference to a retained artifact (JUnit results, coverage/mutation reports, SARIF, Schemathesis reproduction cases, Playwright reports/traces, ZAP reports, k6 metrics, rendered manifests, migration/restore reports, SBOMs, signatures, chaos results, trace/alert verification, test-data version)."
+          },
+          "content_hash": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Hash of the referenced artifact content."
+          },
+          "media_type": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Retained artifact list supporting this record. At least one artifact is required."
+    },
+    "summary": {
+      "type": "string",
+      "description": "Human-readable summary of the result."
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "conclusion": { "const": "not_applicable" } }
+      },
+      "then": {
+        "required": ["not_applicable_justification"],
+        "description": "not_applicable requires a version-controlled rule justification; a contributor cannot manually select it."
+      }
+    },
+    {
+      "if": {
+        "properties": { "conclusion": { "const": "pass" } }
+      },
+      "then": {
+        "properties": {
+          "failed": { "const": 0 },
+          "executed_test_count": { "minimum": 1 }
+        },
+        "description": "A passing run MUST have zero failures and MUST have executed at least one test (zero-test rule)."
+      }
+    }
+  ]
+}
