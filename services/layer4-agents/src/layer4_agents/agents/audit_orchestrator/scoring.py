@@ -128,7 +128,6 @@ def _adjust_code_quality(metrics: dict[str, Any]) -> float:
     if type_coverage < 0.8:
         deduction += min((0.8 - type_coverage) * 20.0, 10.0)
 
-    # TODO/FIXME count
     todo_count = metrics.get("todo_fixme_count", 0)
     deduction += min(todo_count * 0.3, 4.0)
 
