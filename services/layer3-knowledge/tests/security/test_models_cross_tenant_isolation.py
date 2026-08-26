@@ -13,28 +13,35 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from types import SimpleNamespace
 
 import pytest
 from fastapi import HTTPException
-from src.api.auth_context import TenantBearerContext, extract_tenant_from_bearer
 from starlette.requests import Request as StarletteRequest
 from value_fabric.shared.error_handling.exceptions import (
     AuthenticationError,
     AuthorizationError,
 )
 
+from src.api.auth_context import TenantBearerContext, extract_tenant_from_bearer
+
 pytestmark = pytest.mark.tenant_boundary
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
+REPO_ROOT = Path(__file__).resolve().parents[4]
 MODELS_ROUTER_PATH = (
-    REPO_ROOT / "services" / "layer3-knowledge" / "src" / "api" / "routes" / "models_router.py"
+    REPO_ROOT
+    / "services"
+    / "layer3-knowledge"
+    / "src"
+    / "api"
+    / "routes"
+    / "models_router.py"
 )
 
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _source() -> str:
     return MODELS_ROUTER_PATH.read_text(encoding="utf-8")
@@ -44,7 +51,8 @@ def _cypher_strings(source: str) -> list[str]:
     candidates = re.findall(r'"""(.*?)"""', source, re.DOTALL)
     candidates += re.findall(r"'''(.*?)'''", source, re.DOTALL)
     return [
-        s for s in candidates
+        s
+        for s in candidates
         if re.search(r"\b(MATCH|CREATE|MERGE|RETURN|WHERE)\b", s, re.IGNORECASE)
     ]
 
@@ -52,6 +60,7 @@ def _cypher_strings(source: str) -> list[str]:
 # ---------------------------------------------------------------------------
 # 1. Read isolation — static analysis
 # ---------------------------------------------------------------------------
+
 
 class TestModelReadIsolation:
     """Every read Cypher in models_router.py must be tenant-scoped."""
@@ -121,6 +130,7 @@ class TestModelReadIsolation:
 # 2. Write isolation — static analysis
 # ---------------------------------------------------------------------------
 
+
 class TestModelWriteIsolation:
     """Write Cypher in models_router.py must carry tenant_id."""
 
@@ -175,6 +185,7 @@ class TestModelWriteIsolation:
 # 3. Fail-closed — missing tenant context (calls real auth helper)
 # ---------------------------------------------------------------------------
 
+
 def _make_request(auth_header: str = "", tenant_header: str = "") -> StarletteRequest:
     """Build a minimal Starlette Request with the given headers."""
     scope = {
@@ -192,8 +203,11 @@ def _make_request(auth_header: str = "", tenant_header: str = "") -> StarletteRe
 def _bearer(payload: dict) -> str:
     import base64
     import json
-    def enc(d): return base64.urlsafe_b64encode(json.dumps(d).encode()).decode().rstrip("=")
-    return f"Bearer {enc({'alg':'none'})}.{enc(payload)}.sig"
+
+    def enc(d):
+        return base64.urlsafe_b64encode(json.dumps(d).encode()).decode().rstrip("=")
+
+    return f"Bearer {enc({'alg': 'none'})}.{enc(payload)}.sig"
 
 
 class TestModelFailClosed:

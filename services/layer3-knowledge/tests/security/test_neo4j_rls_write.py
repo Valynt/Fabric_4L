@@ -21,6 +21,7 @@ import pytest
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _collect_layer3_source() -> str:
     """Return concatenated source of all Layer 3 Python files."""
     roots = [
@@ -40,6 +41,7 @@ def _collect_layer3_source() -> str:
 # Static analysis: write Cypher patterns must carry tenant_id
 # ---------------------------------------------------------------------------
 
+
 class TestNeo4jWriteStaticAnalysis:
     """Verify write Cypher patterns in source carry tenant_id constraints."""
 
@@ -58,12 +60,15 @@ class TestNeo4jWriteStaticAnalysis:
         cypher_strings = re.findall(r'"""(.*?)"""', source, re.DOTALL)
         cypher_strings += re.findall(r"'''(.*?)'''", source, re.DOTALL)
         cypher_strings = [
-            s for s in cypher_strings
+            s
+            for s in cypher_strings
             if re.search(r"\b(MATCH|CREATE|MERGE|RETURN|WHERE)\b", s, re.IGNORECASE)
         ]
 
         if not cypher_strings:
-            pytest.skip("No Cypher triple-quoted strings found — source may use a different pattern")
+            pytest.skip(
+                "No Cypher triple-quoted strings found — source may use a different pattern"
+            )
 
         # Within those Cypher strings, find CREATE (...{...}) blocks
         create_blocks = []
@@ -81,12 +86,14 @@ class TestNeo4jWriteStaticAnalysis:
         # Known legitimate exceptions:
         # - PROVActivity nodes are W3C PROV audit records (infrastructure metadata,
         #   not tenant-scoped data). They intentionally omit tenant_id.
-        _EXEMPT_LABELS = {"PROVActivity", "PROVEntity", "PROVAgent"}
+        _exempt_labels = {"PROVActivity", "PROVEntity", "PROVAgent"}
 
         def _is_exempt(block: str) -> bool:
-            return any(label in block for label in _EXEMPT_LABELS)
+            return any(label in block for label in _exempt_labels)
 
-        missing = [b for b in create_blocks if "tenant_id" not in b and not _is_exempt(b)]
+        missing = [
+            b for b in create_blocks if "tenant_id" not in b and not _is_exempt(b)
+        ]
         assert not missing, (
             f"Found {len(missing)} CREATE block(s) in Cypher strings missing tenant_id:\n"
             + "\n".join(missing[:3])
@@ -124,9 +131,7 @@ class TestNeo4jWriteStaticAnalysis:
             source,
             re.IGNORECASE,
         )
-        assert not dangerous, (
-            f"Found SET clauses that clear tenant_id: {dangerous}"
-        )
+        assert not dangerous, f"Found SET clauses that clear tenant_id: {dangerous}"
 
     def test_delete_clauses_include_tenant_id_filter(self):
         """Cypher DELETE operations must be in queries that filter on tenant_id.
@@ -145,7 +150,8 @@ class TestNeo4jWriteStaticAnalysis:
         # Keep only strings that contain Cypher structural keywords
         # (MATCH + DELETE together is the canonical Cypher delete pattern)
         delete_queries = [
-            s for s in cypher_strings
+            s
+            for s in cypher_strings
             if re.search(r"\bMATCH\b", s, re.IGNORECASE)
             and re.search(r"\b(?:DETACH\s+)?DELETE\b", s, re.IGNORECASE)
         ]
@@ -173,7 +179,8 @@ class TestNeo4jWriteStaticAnalysis:
         cypher_strings = re.findall(r'"""(.*?)"""', source, re.DOTALL)
         cypher_strings += re.findall(r"'''(.*?)'''", source, re.DOTALL)
         write_cypher = [
-            s for s in cypher_strings
+            s
+            for s in cypher_strings
             if re.search(r"\b(CREATE|MERGE|SET|DELETE)\b", s, re.IGNORECASE)
             and re.search(r"\b(MATCH|WHERE)\b", s, re.IGNORECASE)
         ]
@@ -185,10 +192,10 @@ class TestNeo4jWriteStaticAnalysis:
         #   - tenant_id: entity.tenant_id    — bulk ingestion property read
         #   - tenant_id: rel.tenant_id       — relationship property read
         #   - n.tenant_id / node.tenant_id   — property accessor in WHERE clause
-        _SAFE_SUFFIXES = (
-            "$tenant_id",   # parameterised
+        _safe_suffixes = (
+            "$tenant_id",  # parameterised
             "entity.tenant_id",  # bulk ingestion object property
-            "rel.tenant_id",     # relationship object property
+            "rel.tenant_id",  # relationship object property
         )
 
         injections = []
@@ -199,10 +206,13 @@ class TestNeo4jWriteStaticAnalysis:
                 re.IGNORECASE,
             )
             bad = [
-                m for m in matches
-                if not any(m.strip().startswith(safe) for safe in _SAFE_SUFFIXES)
+                m
+                for m in matches
+                if not any(m.strip().startswith(safe) for safe in _safe_suffixes)
                 and not m.strip().startswith("$")
-                and not re.match(r"^\w+\.tenant_id$", m.strip())  # any obj.tenant_id read
+                and not re.match(
+                    r"^\w+\.tenant_id$", m.strip()
+                )  # any obj.tenant_id read
             ]
             injections.extend(bad)
 
@@ -216,6 +226,7 @@ class TestNeo4jWriteStaticAnalysis:
 # ---------------------------------------------------------------------------
 # Mock-based: write endpoints enforce tenant context from JWT, not body
 # ---------------------------------------------------------------------------
+
 
 class TestNeo4jWriteTenantEnforcement:
     """Verify write operations bind tenant_id from authenticated context."""
@@ -249,12 +260,15 @@ class TestNeo4jWriteTenantEnforcement:
         mock_session.run.return_value = mock_result
 
         mock_driver = MagicMock()
-        mock_driver.session.return_value.__aenter__ = AsyncMock(return_value=mock_session)
+        mock_driver.session.return_value.__aenter__ = AsyncMock(
+            return_value=mock_session
+        )
         mock_driver.session.return_value.__aexit__ = AsyncMock(return_value=False)
 
         # Build a minimal entity payload that includes a body-level tenant_id
         try:
             from src.api.main import EntityCreateRequest
+
             payload = EntityCreateRequest(
                 entity_type="Company",
                 properties={"name": "Acme", "tenant_id": body_tenant},
@@ -312,7 +326,9 @@ class TestNeo4jWriteTenantEnforcement:
         mock_session.run.return_value = mock_result
 
         mock_driver = MagicMock()
-        mock_driver.session.return_value.__aenter__ = AsyncMock(return_value=mock_session)
+        mock_driver.session.return_value.__aenter__ = AsyncMock(
+            return_value=mock_session
+        )
         mock_driver.session.return_value.__aexit__ = AsyncMock(return_value=False)
 
         try:
@@ -363,7 +379,9 @@ class TestNeo4jWriteTenantEnforcement:
         mock_session.run.return_value = mock_result
 
         mock_driver = MagicMock()
-        mock_driver.session.return_value.__aenter__ = AsyncMock(return_value=mock_session)
+        mock_driver.session.return_value.__aenter__ = AsyncMock(
+            return_value=mock_session
+        )
         mock_driver.session.return_value.__aexit__ = AsyncMock(return_value=False)
 
         try:
@@ -414,7 +432,9 @@ class TestNeo4jWriteTenantEnforcement:
         mock_session.run.return_value = mock_result
 
         mock_driver = MagicMock()
-        mock_driver.session.return_value.__aenter__ = AsyncMock(return_value=mock_session)
+        mock_driver.session.return_value.__aenter__ = AsyncMock(
+            return_value=mock_session
+        )
         mock_driver.session.return_value.__aexit__ = AsyncMock(return_value=False)
 
         try:
@@ -441,8 +461,13 @@ class TestNeo4jWriteTenantEnforcement:
             pass
 
         write_calls = [
-            call for call in mock_session.run.call_args_list
-            if re.search(r"\b(CREATE|MERGE|SET|DELETE)\b", call[0][0] if call[0] else "", re.IGNORECASE)
+            call
+            for call in mock_session.run.call_args_list
+            if re.search(
+                r"\b(CREATE|MERGE|SET|DELETE)\b",
+                call[0][0] if call[0] else "",
+                re.IGNORECASE,
+            )
         ]
         for call in write_calls:
             args = call[0]
