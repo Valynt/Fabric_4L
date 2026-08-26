@@ -90,7 +90,7 @@ The repository currently contains **58** GitHub Actions workflow files.
 | `.github/workflows/security-gates.yml` | `@value-fabric/sre-leads` | no | `merge_group, pull_request, push, schedule` | `make check-workflow-references` |
 | `.github/workflows/supply-chain-integrity.yml` | `@value-fabric/sre-leads` | no | `merge_group, pull_request, push, schedule, workflow_call, workflow_dispatch` | `make check-workflow-references` |
 | `.github/workflows/terraform-cd.yml` | `@value-fabric/sre-leads` | no | `pull_request, push, workflow_dispatch` | `make check-workflow-references` |
-| `.github/workflows/test-reporting.yml` | `@value-fabric/sre-leads` | no | `pull_request, workflow_run` | `make check-workflow-references` |
+| `.github/workflows/test-reporting.yml` | `@value-fabric/sre-leads` | no | `workflow_run` | `make check-workflow-references` |
 | `.github/workflows/vault-integration.yml` | `@value-fabric/sre-leads` | no | `workflow_call` | `make check-workflow-references` |
 | `.github/workflows/visual-regression.yml` | `@value-fabric/sre-leads` | no | `pull_request, push, workflow_dispatch` | `make check-workflow-references` |
 | `.github/workflows/weekly-acceptance-gates.yml` | `@value-fabric/sre-leads` | no | `schedule, workflow_dispatch` | `make check-workflow-references` |

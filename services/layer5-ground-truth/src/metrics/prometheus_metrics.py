@@ -184,10 +184,6 @@ class PrometheusMetrics:
         # Initialize with healthy status
         self._metrics["health_status"].labels(component="api").set(1)
         self._metrics["health_status"].labels(component="database").set(1)
-        # layer3 health is a placeholder for future cross-layer health monitoring.
-        # L5 does not currently monitor L3 health directly; this gauge is reserved
-        # for future use when L5 needs to track dependency health on the KG layer.
-        self._metrics["health_status"].labels(component="layer3").set(1)
 
         # Error metrics
         self._metrics["errors_total"] = Counter(
@@ -380,7 +376,9 @@ class PrometheusMetrics:
 
     def increment_privileged_db_session_activation(self, mode: str) -> None:
         if self.config.enabled:
-            self._metrics["privileged_db_session_activations_total"].labels(mode=mode).inc()
+            self._metrics["privileged_db_session_activations_total"].labels(
+                mode=mode
+            ).inc()
 
     def increment_audit_write_failures(self) -> None:
         if self.config.enabled:
@@ -465,11 +463,17 @@ class MetricsMiddleware:
         )
 
         if response.status_code == 401:
-            self.metrics.increment_auth_failure(reason="missing_token", component="http")
+            self.metrics.increment_auth_failure(
+                reason="missing_token", component="http"
+            )
         elif response.status_code == 403:
-            self.metrics.increment_auth_failure(reason="insufficient_role", component="http")
+            self.metrics.increment_auth_failure(
+                reason="insufficient_role", component="http"
+            )
         elif response.status_code >= 400:
-            error_type = "client_error" if response.status_code < 500 else "server_error"
+            error_type = (
+                "client_error" if response.status_code < 500 else "server_error"
+            )
             self.metrics.increment_errors(error_type=error_type, component="http")
 
         return response

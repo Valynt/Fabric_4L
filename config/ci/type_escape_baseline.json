@@ -832,7 +832,7 @@
       "kind": "python-any",
       "line": 14,
       "path": "packages/platform-contract/src/python/agent_contracts/models.py",
-      "text": "from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple"
+      "text": "from typing import Any, Dict, List, Mapping, Optional, Sequence"
     },
     {
       "kind": "python-any",
@@ -1484,13 +1484,13 @@
     },
     {
       "kind": "python-any",
-      "line": 86,
+      "line": 87,
       "path": "packages/shared/src/value_fabric/shared/error_handling/models.py",
       "text": "details: Optional[dict[str, Any]] = Field("
     },
     {
       "kind": "python-any",
-      "line": 138,
+      "line": 139,
       "path": "packages/shared/src/value_fabric/shared/error_handling/models.py",
       "text": "details: Optional[dict[str, Any]] = Field("
     },
@@ -7832,13 +7832,13 @@
     },
     {
       "kind": "python-any",
-      "line": 11,
+      "line": 12,
       "path": "scripts/ci/validate_docs_claims.py",
       "text": "from typing import Any"
     },
     {
       "kind": "python-any",
-      "line": 85,
+      "line": 86,
       "path": "scripts/ci/validate_docs_claims.py",
       "text": "payload: dict[str, Any] = {"
     },
@@ -9569,6 +9569,18 @@
       "line": 80,
       "path": "sdk/python/src/valuepact/output.py",
       "text": "def emit_human_mapping(mapping: dict[str, Any], *, err: bool = False) -> None:"
+    },
+    {
+      "kind": "python-any",
+      "line": 9,
+      "path": "sdk/python/tests/test_cli.py",
+      "text": "from typing import Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 416,
+      "path": "sdk/python/tests/test_cli.py",
+      "text": "def mock_load_profile_toml(*args: Any, **kwargs: Any) -> Any:"
     },
     {
       "kind": "python-any",
@@ -19112,109 +19124,109 @@
     },
     {
       "kind": "python-any",
-      "line": 56,
+      "line": 57,
       "path": "services/layer3-knowledge/src/ingestion/neo4j/facade.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 68,
+      "line": 69,
       "path": "services/layer3-knowledge/src/ingestion/neo4j/facade.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 76,
+      "line": 77,
       "path": "services/layer3-knowledge/src/ingestion/neo4j/facade.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 83,
+      "line": 84,
       "path": "services/layer3-knowledge/src/ingestion/neo4j/facade.py",
       "text": ") -> dict[str, list[dict[str, Any]]]:"
     },
     {
       "kind": "python-any",
-      "line": 91,
+      "line": 92,
       "path": "services/layer3-knowledge/src/ingestion/neo4j/facade.py",
       "text": ") -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 96,
+      "line": 97,
       "path": "services/layer3-knowledge/src/ingestion/neo4j/facade.py",
       "text": "def _resolve_entity_id(self, graph: Graph, uri: Any) -> str:"
     },
     {
       "kind": "python-any",
-      "line": 99,
+      "line": 100,
       "path": "services/layer3-knowledge/src/ingestion/neo4j/facade.py",
       "text": "def _extract_property_name(self, uri: Any) -> str:"
     },
     {
       "kind": "python-any",
-      "line": 102,
+      "line": 103,
       "path": "services/layer3-knowledge/src/ingestion/neo4j/facade.py",
       "text": "def _convert_literal(self, literal: Any) -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 105,
+      "line": 106,
       "path": "services/layer3-knowledge/src/ingestion/neo4j/facade.py",
       "text": "def _get_embedding_model(self) -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 108,
+      "line": 109,
       "path": "services/layer3-knowledge/src/ingestion/neo4j/facade.py",
       "text": "def _build_embedding_text(self, entity: dict[str, Any]) -> str:"
     },
     {
       "kind": "python-any",
-      "line": 115,
+      "line": 116,
       "path": "services/layer3-knowledge/src/ingestion/neo4j/facade.py",
       "text": "self, entity_type: str, entities: list[dict[str, Any]]"
     },
     {
       "kind": "python-any",
-      "line": 116,
+      "line": 117,
       "path": "services/layer3-knowledge/src/ingestion/neo4j/facade.py",
       "text": ") -> list[dict[str, Any]]:"
     },
     {
       "kind": "python-any",
-      "line": 121,
+      "line": 122,
       "path": "services/layer3-knowledge/src/ingestion/neo4j/facade.py",
       "text": "session: Any,"
     },
     {
       "kind": "python-any",
-      "line": 123,
+      "line": 124,
       "path": "services/layer3-knowledge/src/ingestion/neo4j/facade.py",
       "text": "entities: list[dict[str, Any]],"
     },
     {
       "kind": "python-any",
-      "line": 135,
+      "line": 142,
       "path": "services/layer3-knowledge/src/ingestion/neo4j/facade.py",
       "text": "session: Any,"
     },
     {
       "kind": "python-any",
-      "line": 136,
+      "line": 143,
       "path": "services/layer3-knowledge/src/ingestion/neo4j/facade.py",
       "text": "relationships: dict[str, list[dict[str, Any]]],"
     },
     {
       "kind": "python-any",
-      "line": 147,
+      "line": 154,
       "path": "services/layer3-knowledge/src/ingestion/neo4j/facade.py",
       "text": "session: Any,"
     },
     {
       "kind": "python-any",
-      "line": 148,
+      "line": 155,
       "path": "services/layer3-knowledge/src/ingestion/neo4j/facade.py",
       "text": "relationships: list[dict[str, Any]],"
     },
@@ -21584,99 +21596,99 @@
     },
     {
       "kind": "python-any",
-      "line": 16,
+      "line": 18,
       "path": "services/layer3-knowledge/src/services/signal_quantification.py",
       "text": "from typing import Any"
     },
     {
       "kind": "python-any",
-      "line": 30,
+      "line": 82,
       "path": "services/layer3-knowledge/src/services/signal_quantification.py",
       "text": "output_unit: Any"
     },
     {
       "kind": "python-any",
-      "line": 31,
+      "line": 83,
       "path": "services/layer3-knowledge/src/services/signal_quantification.py",
       "text": "variables: list[Any]"
     },
     {
       "kind": "python-any",
-      "line": 35,
+      "line": 87,
       "path": "services/layer3-knowledge/src/services/signal_quantification.py",
       "text": "expression: Any | None = None"
     },
     {
       "kind": "python-any",
-      "line": 37,
+      "line": 89,
       "path": "services/layer3-knowledge/src/services/signal_quantification.py",
       "text": "value: Any | None = None"
     },
     {
       "kind": "python-any",
-      "line": 62,
+      "line": 115,
       "path": "services/layer3-knowledge/src/services/signal_quantification.py",
       "text": "calculation_context: dict[str, Any] | None = None"
     },
     {
       "kind": "python-any",
-      "line": 145,
+      "line": 205,
       "path": "services/layer3-knowledge/src/services/signal_quantification.py",
       "text": "prospect_data: dict[str, Any],"
     },
     {
       "kind": "python-any",
-      "line": 234,
+      "line": 294,
       "path": "services/layer3-knowledge/src/services/signal_quantification.py",
       "text": ") -> dict[str, Any] | None:"
     },
     {
       "kind": "python-any",
-      "line": 310,
+      "line": 370,
       "path": "services/layer3-knowledge/src/services/signal_quantification.py",
       "text": "formula: dict[str, Any],"
     },
     {
       "kind": "python-any",
-      "line": 312,
+      "line": 372,
       "path": "services/layer3-knowledge/src/services/signal_quantification.py",
       "text": "prospect_data: dict[str, Any],"
     },
     {
       "kind": "python-any",
-      "line": 405,
+      "line": 465,
       "path": "services/layer3-knowledge/src/services/signal_quantification.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 443,
+      "line": 503,
       "path": "services/layer3-knowledge/src/services/signal_quantification.py",
       "text": "formula: dict[str, Any],"
     },
     {
       "kind": "python-any",
-      "line": 444,
+      "line": 504,
       "path": "services/layer3-knowledge/src/services/signal_quantification.py",
       "text": "inputs: dict[str, Any],"
     },
     {
       "kind": "python-any",
-      "line": 445,
+      "line": 505,
       "path": "services/layer3-knowledge/src/services/signal_quantification.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 478,
+      "line": 565,
       "path": "services/layer3-knowledge/src/services/signal_quantification.py",
       "text": "def _safe_eval(self, expression: str, context: dict[str, Any]) -> float:"
     },
     {
       "kind": "python-any",
-      "line": 514,
+      "line": 668,
       "path": "services/layer3-knowledge/src/services/signal_quantification.py",
-      "text": "def _eval_node(self, node: ast.AST, context: dict[str, Any]) -> Any:"
+      "text": "def _require_finite(self, value: Any, *, detail: str = \"\") -> float:"
     },
     {
       "kind": "python-any",
@@ -23300,25 +23312,55 @@
     },
     {
       "kind": "python-any",
-      "line": 9,
+      "line": 15,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/analyzers/git_analyzer.py",
       "text": "from typing import Any"
     },
     {
       "kind": "python-any",
-      "line": 22,
+      "line": 86,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/analyzers/git_analyzer.py",
       "text": "def analyze(self, repo_path: str) -> tuple[list[Finding], dict[str, Any]]:"
     },
     {
       "kind": "python-any",
-      "line": 95,
+      "line": 302,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/analyzers/git_analyzer.py",
       "text": "def _collect_git_metrics(self, path: Path, git_available: bool) -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 134,
+      "line": 333,
+      "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/analyzers/git_analyzer.py",
+      "text": "warnings: list[dict[str, Any]] = []"
+    },
+    {
+      "kind": "python-any",
+      "line": 360,
+      "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/analyzers/git_analyzer.py",
+      "text": "metrics: dict[str, Any] = {"
+    },
+    {
+      "kind": "python-any",
+      "line": 385,
+      "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/analyzers/git_analyzer.py",
+      "text": "def _build_warning(cls, name: str, result: GitCommandResult) -> dict[str, Any]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 405,
+      "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/analyzers/git_analyzer.py",
+      "text": "def _unavailable_metrics(self) -> dict[str, Any]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 414,
+      "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/analyzers/git_analyzer.py",
+      "text": "metrics: dict[str, Any] = {"
+    },
+    {
+      "kind": "python-any",
+      "line": 436,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/analyzers/git_analyzer.py",
       "text": "def _collect_structural_metrics(self, path: Path) -> dict[str, Any]:"
     },
@@ -23558,6 +23600,24 @@
     },
     {
       "kind": "python-any",
+      "line": 19,
+      "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/models.py",
+      "text": "from typing import Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 592,
+      "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/models.py",
+      "text": "git_metric_completeness: dict[str, Any] = Field("
+    },
+    {
+      "kind": "python-any",
+      "line": 600,
+      "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/models.py",
+      "text": "git_warnings: list[Any] = Field("
+    },
+    {
+      "kind": "python-any",
       "line": 24,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
       "text": "from typing import Any"
@@ -23599,176 +23659,188 @@
       "text": "class ScorecardDB(Base):  # type: ignore[valid-type,misc]"
     },
     {
+      "kind": "python-any",
+      "line": 257,
+      "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
+      "text": "git_metric_completeness: Mapped[dict[str, Any] | None] = mapped_column("
+    },
+    {
+      "kind": "python-any",
+      "line": 260,
+      "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
+      "text": "git_warnings: Mapped[list[Any] | None] = mapped_column(JSON, nullable=True, default=None)"
+    },
+    {
       "kind": "python-type-ignore",
-      "line": 265,
+      "line": 269,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
       "text": "class AreaScoreDB(Base):  # type: ignore[valid-type,misc]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 285,
+      "line": 289,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
       "text": "class SprintDB(Base):  # type: ignore[valid-type,misc]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 310,
+      "line": 314,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
       "text": "Base = None  # type: ignore[misc,assignment,no-redef]"
     },
     {
       "kind": "python-any",
-      "line": 311,
+      "line": 315,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
       "text": "AuditRunDB = Any  # type: ignore[misc,assignment,no-redef]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 311,
+      "line": 315,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
       "text": "AuditRunDB = Any  # type: ignore[misc,assignment,no-redef]"
     },
     {
       "kind": "python-any",
-      "line": 312,
+      "line": 316,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
       "text": "FindingDB = Any  # type: ignore[misc,assignment,no-redef]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 312,
+      "line": 316,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
       "text": "FindingDB = Any  # type: ignore[misc,assignment,no-redef]"
     },
     {
       "kind": "python-any",
-      "line": 313,
+      "line": 317,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
       "text": "FindingOccurrenceDB = Any  # type: ignore[misc,assignment,no-redef]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 313,
+      "line": 317,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
       "text": "FindingOccurrenceDB = Any  # type: ignore[misc,assignment,no-redef]"
     },
     {
       "kind": "python-any",
-      "line": 314,
+      "line": 318,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
       "text": "ScorecardDB = Any  # type: ignore[misc,assignment,no-redef]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 314,
+      "line": 318,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
       "text": "ScorecardDB = Any  # type: ignore[misc,assignment,no-redef]"
     },
     {
       "kind": "python-any",
-      "line": 315,
+      "line": 319,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
       "text": "AreaScoreDB = Any  # type: ignore[misc,assignment,no-redef]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 315,
+      "line": 319,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
       "text": "AreaScoreDB = Any  # type: ignore[misc,assignment,no-redef]"
     },
     {
       "kind": "python-any",
-      "line": 316,
+      "line": 320,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
       "text": "SprintDB = Any  # type: ignore[misc,assignment,no-redef]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 316,
+      "line": 320,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
       "text": "SprintDB = Any  # type: ignore[misc,assignment,no-redef]"
     },
     {
       "kind": "python-any",
-      "line": 339,
+      "line": 343,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
       "text": "def _scorecard_to_dict(scorecard: Scorecard, run_id: str) -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 375,
+      "line": 381,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
       "text": "def _scorecard_from_dict(data: dict[str, Any], findings: list[Finding]) -> Scorecard:"
     },
     {
       "kind": "python-any",
-      "line": 411,
+      "line": 419,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
       "text": "def _finding_to_dict(finding: Finding) -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 441,
+      "line": 449,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
       "text": "def _finding_from_dict(data: dict[str, Any]) -> Finding:"
     },
     {
       "kind": "python-any",
-      "line": 471,
+      "line": 479,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
       "text": "def _sprint_to_dict(sprint: Sprint) -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 489,
+      "line": 497,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
       "text": "def _sprint_from_dict(data: dict[str, Any]) -> Sprint:"
     },
     {
       "kind": "python-any",
-      "line": 507,
+      "line": 515,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
       "text": "def _run_to_dict(run: AuditRun) -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 524,
+      "line": 532,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
       "text": "def _run_from_dict_with_repo(data: dict[str, Any], repo_name: str) -> AuditRun:"
     },
     {
       "kind": "python-any",
-      "line": 862,
+      "line": 874,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
       "text": "self._session_factory: Callable[[], AsyncSession] | async_sessionmaker[Any] | None"
     },
     {
       "kind": "python-any",
-      "line": 939,
+      "line": 951,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
       "text": "def _atomic_write_json(self, path: Path, data: dict[str, Any]) -> None:"
     },
     {
       "kind": "python-any",
-      "line": 1019,
+      "line": 1031,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
       "text": ") -> list[tuple[datetime, dict[str, Any], Path]]:"
     },
     {
       "kind": "python-any",
-      "line": 1024,
+      "line": 1036,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
       "text": "results: list[tuple[datetime, dict[str, Any], Path]] = []"
     },
     {
       "kind": "python-any",
-      "line": 1528,
+      "line": 1542,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
       "text": ") -> tuple[str, dict[str, Any]] | None:"
     },
     {
       "kind": "python-any",
-      "line": 1761,
+      "line": 1775,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
       "text": "tx: Any,"
     },
@@ -35588,19 +35660,19 @@
     },
     {
       "kind": "python-any",
-      "line": 294,
+      "line": 295,
       "path": "services/layer4-agents/src/layer4_agents/tools/generation_tools.py",
       "text": "def _format_html(self, headers: list[str], rows: list[list[Any]]) -> str:"
     },
     {
       "kind": "python-any",
-      "line": 316,
+      "line": 317,
       "path": "services/layer4-agents/src/layer4_agents/tools/generation_tools.py",
       "text": "def _format_markdown(self, headers: list[str], rows: list[list[Any]]) -> str:"
     },
     {
       "kind": "python-any",
-      "line": 332,
+      "line": 333,
       "path": "services/layer4-agents/src/layer4_agents/tools/generation_tools.py",
       "text": "def _format_csv(self, headers: list[str], rows: list[list[Any]]) -> str:"
     },
@@ -35654,43 +35726,43 @@
     },
     {
       "kind": "python-any",
-      "line": 52,
+      "line": 56,
       "path": "services/layer4-agents/src/layer4_agents/tools/knowledge_tools.py",
       "text": "def __init__(self, config: dict[str, Any] | None = None):"
     },
     {
       "kind": "python-any",
-      "line": 275,
+      "line": 297,
       "path": "services/layer4-agents/src/layer4_agents/tools/knowledge_tools.py",
       "text": "def __init__(self, config: dict[str, Any] | None = None):"
     },
     {
       "kind": "python-any",
-      "line": 301,
+      "line": 323,
       "path": "services/layer4-agents/src/layer4_agents/tools/knowledge_tools.py",
       "text": "def _get_pinecone_client(self) -> Any | None:"
     },
     {
       "kind": "python-any",
-      "line": 426,
+      "line": 448,
       "path": "services/layer4-agents/src/layer4_agents/tools/knowledge_tools.py",
       "text": "def __init__(self, config: dict[str, Any] | None = None):"
     },
     {
       "kind": "python-any",
-      "line": 540,
+      "line": 562,
       "path": "services/layer4-agents/src/layer4_agents/tools/knowledge_tools.py",
       "text": "def __init__(self, config: dict[str, Any] | None = None):"
     },
     {
       "kind": "python-any",
-      "line": 642,
+      "line": 667,
       "path": "services/layer4-agents/src/layer4_agents/tools/knowledge_tools.py",
       "text": "def __init__(self, config: dict[str, Any] | None = None):"
     },
     {
       "kind": "python-any",
-      "line": 740,
+      "line": 765,
       "path": "services/layer4-agents/src/layer4_agents/tools/knowledge_tools.py",
       "text": "def __init__(self, config: dict[str, Any] | None = None):"
     },
@@ -39854,13 +39926,13 @@
     },
     {
       "kind": "python-any",
-      "line": 261,
+      "line": 275,
       "path": "services/layer5-ground-truth/src/layer5_ground_truth/services/agent_permission_service.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 262,
+      "line": 276,
       "path": "services/layer5-ground-truth/src/layer5_ground_truth/services/agent_permission_service.py",
       "text": "evaluation_inputs: dict[str, Any] = {"
     },
@@ -40028,7 +40100,7 @@
     },
     {
       "kind": "python-type-ignore",
-      "line": 59,
+      "line": 62,
       "path": "services/layer5-ground-truth/tests/test_layer3_failure_modes.py",
       "text": "client._client = fake_post_client  # type: ignore[assignment]"
     },

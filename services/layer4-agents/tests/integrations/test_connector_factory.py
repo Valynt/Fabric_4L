@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from unittest.mock import AsyncMock
-
 import pytest
 
 from layer4_agents.integrations.factory import get_connector, get_write_connector

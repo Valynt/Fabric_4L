@@ -87,10 +87,11 @@ class Layer3Client:
         effective_tenant = tenant_id or self._default_tenant_id
         if effective_tenant:
             headers[TENANT_ID_HEADER] = effective_tenant
-            # F-1 P0 fix: Include service auth secret for mutual authentication
-            service_auth = os.getenv("SERVICE_AUTH_SECRET")
-            if service_auth:
-                headers[SERVICE_AUTH_HEADER] = service_auth
+
+        # F-1 P0 fix: Include service auth secret for mutual authentication
+        service_auth = os.getenv("SERVICE_AUTH_SECRET")
+        if service_auth:
+            headers[SERVICE_AUTH_HEADER] = service_auth
 
         return headers
 

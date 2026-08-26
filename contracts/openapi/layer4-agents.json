@@ -23614,6 +23614,18 @@
             "description": "Total number of unique contributors",
             "default": 0
           },
+          "git_metric_completeness": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Git Metric Completeness",
+            "description": "Per-metric git collection status (status, truncated, complete, bytes_read) so consumers can distinguish an exact figure from a timed-out, truncated or failed one. Empty when git is unavailable."
+          },
+          "git_warnings": {
+            "items": {},
+            "type": "array",
+            "title": "Git Warnings",
+            "description": "Structured warnings (code, metric, status, message) raised when a git command timed out, was truncated, or failed. Contains no raw git output or email addresses."
+          },
           "audit_timestamp": {
             "type": "string",
             "format": "date-time",
