@@ -1,20 +1,16 @@
+"""Frozen CARGO-EVAL-001 slug sets.
+
+APPROVED_SLUGS is the compile-time list. load_allowlist() is the machine
+document tests compare against. Do not import allowlist.json at module
+import time from a packaged service path.
+"""
+
+from __future__ import annotations
+
 import json
 from pathlib import Path
 
-ALLOWLIST_PATH = Path(__file__).parent.parent.parent.parent.parent.parent / "docs" / "cargo" / "allowlist.json"
-
-def load_green_slugs() -> list[str]:
-    """Machine source of truth for CARGO-EVAL-001 green list.
-    Charter test asserts only these are used.
-    """
-    data = json.loads(ALLOWLIST_PATH.read_text())
-    # Support both legacy "green" and new charter schema
-    return data.get("approved_slugs") or data.get("green", [])
-
-GREEN_SLUGS = load_green_slugs()
-
-# Frozen per signed charter (CARGO-EVAL-001)
-assert set(GREEN_SLUGS) == {
+APPROVED_SLUGS: tuple[str, ...] = (
     "cargo_match_business",
     "cargo_fetch_businesses",
     "cargo_enrich_firmographics",
@@ -24,4 +20,41 @@ assert set(GREEN_SLUGS) == {
     "cargo_website_changes",
     "cargo_competitive_mentions",
     "cargo_match_prospect",
-}, "allowlist.json must match signed charter (eval-charter-001.md)"
+)
+
+HELD_SLUGS: tuple[str, ...] = (
+    "cargo_email_waterfall",
+    "cargo_phone_waterfall",
+    "cargo_salesnav_lead_search",
+    "cargo_linkedin_profile_enrichment",
+    "cargo_workforce_narrative",
+    "cargo_context_agent",
+    "cargo_native_library_rag",
+    "cargo_crm_writeback",
+)
+
+OUT_SLUGS: tuple[str, ...] = (
+    "cargo_roi",
+    "cargo_savings",
+    "cargo_valuepack_recommend",
+    "cargo_hypothesis_recommend",
+    "cargo_strategic_insights",
+    "cargo_workforce_ratings",
+)
+
+
+def find_allowlist_path() -> Path:
+    here = Path(__file__).resolve()
+    for parent in [here.parent, *here.parents]:
+        candidate = parent / "docs" / "cargo" / "allowlist.json"
+        if candidate.is_file():
+            return candidate
+    raise FileNotFoundError("docs/cargo/allowlist.json not found from slugs.py")
+
+
+def load_allowlist() -> dict:
+    return json.loads(find_allowlist_path().read_text(encoding="utf-8"))
+
+
+def is_approved_slug(slug: str) -> bool:
+    return slug in APPROVED_SLUGS
