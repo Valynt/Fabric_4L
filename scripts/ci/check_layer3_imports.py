@@ -67,7 +67,6 @@ ALLOWLIST: set[str] = {
     "tests/security/test_layer3_similarity_roi_tenant_isolation.py",
     "tests/security/test_benchmarks_cross_tenant_isolation.py",  # TODO(2026-06-12): Security test intentionally imports layer3 route helper; migrate to service-local test fixture if possible.
     "tests/security/test_formula_governance_cross_tenant_isolation.py",  # TODO(2026-06-12): Security test intentionally imports layer3 route helper; migrate to service-local test fixture if possible.
-    "tests/security/test_models_cross_tenant_isolation.py",  # TODO(2026-06-12): Security test intentionally imports layer3 auth context; migrate to service-local test fixture if possible.
     "tests/security/test_neo4j_cross_tenant_write_isolation.py",
     "tests/security/test_neo4j_rls_write.py",  # TODO(2026-06-12): Security test intentionally imports layer3 main module; migrate to service-local test fixture if possible.
     "tests/security/test_neo4j_tenant_query_enforcement.py",

@@ -26,7 +26,7 @@ from value_fabric.shared.error_handling.exceptions import (
 
 pytestmark = pytest.mark.tenant_boundary
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
+REPO_ROOT = Path(__file__).resolve().parents[4]
 MODELS_ROUTER_PATH = (
     REPO_ROOT / "services" / "layer3-knowledge" / "src" / "api" / "routes" / "models_router.py"
 )

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from value_fabric.shared.error_handling.exceptions import AuthenticationError
+from value_fabric.shared.error_handling.exceptions import AuthenticationError, AuthorizationError
 
 """Allowed service-local exception for Layer 3 service wrapper.
 
@@ -82,6 +82,10 @@ def extract_tenant_from_bearer(request: Request) -> TenantBearerContext:
     tenant_id = str(tenant_claim).strip()
     if not tenant_id:
         raise AuthenticationError(message = "JWT token missing tenant_id claim")
+
+    req_tenant_id = request.headers.get("x-tenant-id")
+    if req_tenant_id and req_tenant_id.strip() != tenant_id:
+        raise AuthorizationError(message = "Tenant context mismatch")
 
     user_id = payload.get("sub") or payload.get("user_id") or ""
 
