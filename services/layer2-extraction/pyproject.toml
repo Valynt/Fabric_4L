@@ -172,7 +172,7 @@ env = [
     "TESTING=true",
     "LOG_LEVEL=DEBUG",
     "MOCK_PERSISTENCE=true",
-    "JWT_SECRET=test-jwt-secret-must-be-at-least-32-characters-long",
+    "JWT_SECRET=",
     "API_KEY_HMAC_SECRET=test-api-key-hmac-secret-32-chars",
     'CORS_ORIGINS=["http://localhost:3000"]',
 ]
