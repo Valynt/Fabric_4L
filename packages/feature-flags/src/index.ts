@@ -525,19 +525,6 @@ function hashUserId(raw: string): string {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Python-equivalent pseudo-bridge (type stubs for shared logic)
-// ─────────────────────────────────────────────────────────────
-
-// The backend Python equivalent lives in `api.py` and exposes:
-//
-//     from fabric_feature_flags import is_enabled
-//     if is_enabled("new-dashboard-v2", tenant_id="tenant-42"):
-//         ...
-//
-// Both SDKs share the same evaluation semantics and hash algorithm
-// so percentage rollouts are consistent across backend and frontend.
-
-// ─────────────────────────────────────────────────────────────
 // Exports
 // ─────────────────────────────────────────────────────────────
 
