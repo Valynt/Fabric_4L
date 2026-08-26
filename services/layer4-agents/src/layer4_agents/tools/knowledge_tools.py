@@ -87,8 +87,8 @@ class QueryGraphTool(BaseTool):
         re.IGNORECASE,
     )
 
-    _MATCH_PATTERN_PATTERN = re.compile(
-        r"\b(MATCH|OPTIONAL\s+MATCH)\s*(?:[A-Za-z_][A-Za-z0-9_]*\s*=\s*)?\([^)]*\)",
+    _NEXT_CLAUSE_PATTERN = re.compile(
+        r"\b(RETURN|WITH|MATCH|OPTIONAL\s+MATCH|SET|DELETE|CREATE|MERGE|YIELD|CALL|UNWIND|ORDER\s+BY|LIMIT|SKIP)\b",
         re.IGNORECASE,
     )
 
@@ -134,16 +134,15 @@ class QueryGraphTool(BaseTool):
                 query[: where_match.end()] + f" {tenant_filter} AND" + query[where_match.end() :]
             )
         else:
-            match_pattern = self._MATCH_PATTERN_PATTERN.search(query)
-            if not match_pattern:
-                raise ValueError(
-                    "Cannot inject tenant filter: unable to identify MATCH pattern boundary"
-                )
-            modified_query = (
-                query[: match_pattern.end()]
-                + f" WHERE {tenant_filter}"
-                + query[match_pattern.end() :]
-            )
+            match_keyword = re.search(r"\b(MATCH|OPTIONAL\s+MATCH)\b", query, re.IGNORECASE)
+            start_pos = match_keyword.end() if match_keyword else 0
+
+            next_clause_match = self._NEXT_CLAUSE_PATTERN.search(query, pos=start_pos)
+            if next_clause_match:
+                insert_pos = next_clause_match.start()
+                modified_query = query[:insert_pos] + f"WHERE {tenant_filter} " + query[insert_pos:]
+            else:
+                modified_query = query + f" WHERE {tenant_filter}"
 
         logger.debug(
             f"Injected tenant filter: alias={node_alias}, original={query[:50]}..., modified={modified_query[:50]}..."
@@ -151,13 +150,15 @@ class QueryGraphTool(BaseTool):
         return modified_query, node_alias
 
     def _ensure_tenant_parameters(self, parameters: dict | None, tenant_id) -> dict:
-        """Ensure tenant_id is set in parameters, overriding any spoof attempts.
+        """Ensure tenant_id is set in parameters, rejecting any spoof attempts.
 
         This prevents attackers from passing a different tenant_id in the
         query parameters to access cross-tenant data.
         """
         params = dict(parameters) if parameters else {}
-        # Override any tenant_id parameter with the authenticated context
+        if "tenant_id" in params and str(params["tenant_id"]) != str(tenant_id):
+            raise ValueError("Tenant spoofing detected: parameter tenant_id does not match authenticated context")
+        # Ensure tenant_id parameter is set to the authenticated context
         params["tenant_id"] = str(tenant_id)
         return params
 
@@ -185,28 +186,18 @@ class QueryGraphTool(BaseTool):
         """
         start_time = time.time()
 
-        # P0 FIX: Extract and validate tenant context (FAIL-CLOSED)
+
         try:
             tenant_ctx = tenant_context.get_current_tenant_context()
             tenant_ctx.assert_valid()
             effective_tenant_id = tenant_ctx.tenant_id
 
-            # Never allow request payload tenant override
-            if (
-                input_data.tenant_id is not None
-                and input_data.tenant_id != str(effective_tenant_id)
-            ):
-                logger.warning(
-                    "Tenant mismatch in query_graph: "
-                    "context tenant=%s input tenant=%s",
-                    effective_tenant_id,
-                    input_data.tenant_id,
-                )
+            payload_tenant_id = getattr(input_data, "tenant_id", None)
+            if payload_tenant_id and str(payload_tenant_id) != str(tenant_ctx.tenant_id):
+                logger.warning("Tenant spoofing detected: payload tenant_id does not match authenticated context")
                 return QueryGraphOutput(
-                    results=[],
-                    columns=[],
-                    row_count=0,
-                    error="Tenant context mismatch",
+                    error="Tenant spoofing detected: payload tenant_id does not match authenticated context",
+                    results=[], columns=[], row_count=0, execution_time_ms=0
                 )
         except TenantContextError as e:
             logger.warning(
@@ -249,7 +240,7 @@ class QueryGraphTool(BaseTool):
 
         start_time = time.time()
 
-        # P0 FIX: Override any tenant_id in parameters with authenticated context
+
         scoped_parameters = self._ensure_tenant_parameters(
             input_data.parameters, effective_tenant_id
         )
@@ -355,10 +346,18 @@ class SemanticSearchTool(BaseTool):
         """
         start_time = time.time()
 
-        # P0 FIX: Extract and validate tenant context (FAIL-CLOSED)
+
         try:
             tenant_ctx = tenant_context.get_current_tenant_context()
             tenant_ctx.assert_valid()
+
+            payload_tenant_id = getattr(input_data, "tenant_id", None)
+            if payload_tenant_id and str(payload_tenant_id) != str(tenant_ctx.tenant_id):
+                logger.warning("Tenant spoofing detected: payload tenant_id does not match authenticated context")
+                return SemanticSearchOutput(
+                    error="Tenant spoofing detected: payload tenant_id does not match authenticated context",
+                    results=[], total_matches=0, query_embedding_time_ms=0
+                )
         except TenantContextError as e:
             logger.warning(f"Tenant context error in semantic_search: {e}")
             return SemanticSearchOutput(
@@ -383,7 +382,7 @@ class SemanticSearchTool(BaseTool):
                     error="Pinecone API key required for semantic search",
                 )
 
-            # P0 FIX: Build filter with mandatory tenant isolation
+
             filter_dict = {"tenant_id": str(tenant_ctx.tenant_id)}
             if input_data.entity_types:
                 filter_dict["entity_type"] = {"$in": input_data.entity_types}
@@ -475,10 +474,18 @@ class GetEntityTool(BaseTool):
         SECURITY: This tool enforces tenant isolation by requiring valid TenantContext
         and injecting tenant_id filter into Cypher queries.
         """
-        # P0 FIX: Extract and validate tenant context (FAIL-CLOSED)
+
         try:
             tenant_ctx = tenant_context.get_current_tenant_context()
             tenant_ctx.assert_valid()
+
+            payload_tenant_id = getattr(input_data, "tenant_id", None)
+            if payload_tenant_id and str(payload_tenant_id) != str(tenant_ctx.tenant_id):
+                logger.warning("Tenant spoofing detected: payload tenant_id does not match authenticated context")
+                return GetEntityOutput(
+                    error="Tenant spoofing detected: payload tenant_id does not match authenticated context",
+                    found=False
+                )
         except TenantContextError as e:
             logger.warning(f"Tenant context error in get_entity: {e}")
             return GetEntityOutput(
@@ -490,7 +497,7 @@ class GetEntityTool(BaseTool):
 
         try:
             async with driver.session(database=self.database) as session:
-                # P0 FIX verified: Query entity by ID with mandatory tenant filter
+
                 entity_query = """
                     MATCH (n {id: $entity_id, tenant_id: $tenant_id})
                     RETURN n, labels(n) as labels
@@ -512,7 +519,7 @@ class GetEntityTool(BaseTool):
 
                 relationships = []
                 if input_data.include_relationships:
-                    # P0: Relationship query must tenant-scope both endpoint nodes.
+
                     rel_query = """
                         MATCH (n {id: $entity_id, tenant_id: $tenant_id})-[r]-(m {tenant_id: $tenant_id})
                         RETURN type(r) as predicate, m.id as target_id, 
@@ -589,10 +596,18 @@ class GetRelationshipsTool(BaseTool):
         SECURITY: This tool enforces tenant isolation by requiring valid TenantContext
         and injecting tenant_id filter into Cypher queries.
         """
-        # P0 FIX: Extract and validate tenant context (FAIL-CLOSED)
+
         try:
             tenant_ctx = tenant_context.get_current_tenant_context()
             tenant_ctx.assert_valid()
+
+            payload_tenant_id = getattr(input_data, "tenant_id", None)
+            if payload_tenant_id and str(payload_tenant_id) != str(tenant_ctx.tenant_id):
+                logger.warning("Tenant spoofing detected: payload tenant_id does not match authenticated context")
+                return GetRelationshipsOutput(
+                    error="Tenant spoofing detected: payload tenant_id does not match authenticated context",
+                    relationships=[], total_count=0
+                )
         except TenantContextError as e:
             logger.warning(f"Tenant context error in get_relationships: {e}")
             return GetRelationshipsOutput(
@@ -614,7 +629,7 @@ class GetRelationshipsTool(BaseTool):
 
         try:
             async with driver.session(database=self.database) as session:
-                # P0 FIX: Build query with mandatory tenant filter and optional predicate
+
                 tenant_id_str = str(tenant_ctx.tenant_id)
 
                 rel_pattern = f"[r:{predicate}]" if predicate else "[r]"  # cypher-dynamic-safe: validated against ALLOWED_REL_TYPES
@@ -693,10 +708,18 @@ class TraverseTreeTool(BaseTool):
         SECURITY: This tool enforces tenant isolation by requiring valid TenantContext
         and injecting tenant_id filter into Cypher queries.
         """
-        # P0 FIX: Extract and validate tenant context (FAIL-CLOSED)
+
         try:
             tenant_ctx = tenant_context.get_current_tenant_context()
             tenant_ctx.assert_valid()
+
+            payload_tenant_id = getattr(input_data, "tenant_id", None)
+            if payload_tenant_id and str(payload_tenant_id) != str(tenant_ctx.tenant_id):
+                logger.warning("Tenant spoofing detected: payload tenant_id does not match authenticated context")
+                return TraverseTreeOutput(
+                    error="Tenant spoofing detected: payload tenant_id does not match authenticated context",
+                    paths=[], nodes_discovered=0
+                )
         except TenantContextError as e:
             logger.warning(f"Tenant context error in traverse_tree: {e}")
             return TraverseTreeOutput(
@@ -715,7 +738,7 @@ class TraverseTreeTool(BaseTool):
                 )
                 rel_pattern = "|".join(relationship_types) or "ENABLES|REQUIRES|BENEFITS"
 
-                # P0 FIX: Query with mandatory tenant filter on all nodes in path
+
                 query = """
                     MATCH path = (start {id: $start_id, tenant_id: $tenant_id})-[%s*1..%d]->(end {tenant_id: $tenant_id})
                     WHERE ALL(n IN nodes(path) WHERE n.tenant_id = $tenant_id)
@@ -791,10 +814,18 @@ class FindPathsTool(BaseTool):
         SECURITY: This tool enforces tenant isolation by requiring valid TenantContext
         and injecting tenant_id filter into Cypher queries.
         """
-        # P0 FIX: Extract and validate tenant context (FAIL-CLOSED)
+
         try:
             tenant_ctx = tenant_context.get_current_tenant_context()
             tenant_ctx.assert_valid()
+
+            payload_tenant_id = getattr(input_data, "tenant_id", None)
+            if payload_tenant_id and str(payload_tenant_id) != str(tenant_ctx.tenant_id):
+                logger.warning("Tenant spoofing detected: payload tenant_id does not match authenticated context")
+                return FindPathsOutput(
+                    error="Tenant spoofing detected: payload tenant_id does not match authenticated context",
+                    paths=[], shortest_path_length=None
+                )
         except TenantContextError as e:
             logger.warning(f"Tenant context error in find_paths: {e}")
             return FindPathsOutput(
@@ -807,7 +838,7 @@ class FindPathsTool(BaseTool):
 
         try:
             async with driver.session(database=self.database) as session:
-                # P0 FIX: Query with mandatory tenant filter on source, target, and all path nodes
+
                 query = (
                     """
                     MATCH (source {id: $source_id, tenant_id: $tenant_id}), 
