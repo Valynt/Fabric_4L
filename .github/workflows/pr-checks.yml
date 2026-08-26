@@ -914,7 +914,7 @@ jobs:
       TESTING: "true"
       LOG_LEVEL: DEBUG
       MOCK_PERSISTENCE: "true"
-      JWT_SECRET: ""
+      JWT_SECRET: test-jwt-secret-must-be-at-least-32-characters-long
       API_KEY_HMAC_SECRET: test-api-key-hmac-secret-32-chars
       CORS_ORIGINS: '["http://localhost:3000"]'
 
@@ -2047,7 +2047,7 @@ jobs:
       && needs.change-scope.outputs.backend == 'true'
     env:
       OPENAI_API_KEY: ci-runtime-placeholder
-      JWT_SECRET: ""
+      JWT_SECRET: ci-runtime-jwt-secret-not-for-production
       REDIS_PASSWORD: test-redis
       NEO4J_PASSWORD: test-neo4j
       POSTGRES_USER: postgres
@@ -2095,7 +2095,7 @@ jobs:
           # Runtime contract health checks use local services only; these are
           # non-secret CI placeholders and are never used for external calls.
           OPENAI_API_KEY: ci-runtime-placeholder
-          JWT_SECRET: ""
+          JWT_SECRET: ci-runtime-jwt-secret-not-for-production
         run: |
           export OPENAI_API_KEY=${OPENAI_API_KEY:?set OPENAI_API_KEY}
           export REDIS_PASSWORD=test-redis
@@ -2117,7 +2117,7 @@ jobs:
           export FLOWER_PASSWORD=ci-flower-password
           export GRAFANA_ADMIN_PASSWORD=ci-grafana-password
           export LAYER4_DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/layer4_agents
-          export JWT_SECRET=${JWT_SECRET:-}
+          export JWT_SECRET=${JWT_SECRET:?set JWT_SECRET}
           docker compose -f infra/compose/docker-compose.full.yml -f docker-compose.runtime-contract.yml up -d postgres redis neo4j layer5-migrate layer5-ground-truth \
             layer1-ingestion layer2-extraction layer3-knowledge layer4-agents
 
@@ -2282,7 +2282,7 @@ jobs:
       contents: read
       id-token: write # Required only for Infisical OIDC secret retrieval in this job; no repository write scopes.
     env:
-      JWT_SECRET: ""
+      JWT_SECRET: release-smoke-jwt-secret-minimum-32-characters
       API_KEY_HMAC_SECRET: release-smoke-api-key-hmac-secret-32chars
       SERVICE_AUTH_SECRET: release-smoke-service-auth-secret-32chars
       CREDENTIALS_MASTER_KEY: release-smoke-credentials-master-key-32chars
@@ -2308,7 +2308,7 @@ jobs:
       # OIDC secret fetch only runs on trusted pushes to the repo (e.g. main),
       # where the INFISICAL_IDENTITY_ID secret and id-token are guaranteed to be
       # available. PR runs (including same-repo PRs) use the documented non-secret
-      # fallbacks in the subsequent steps (e.g. JWT_SECRET: ""
+      # fallbacks in the subsequent steps (e.g. JWT_SECRET:-release-smoke-...),
       # so the hermetic integration/smoke tests never require a real external
       # API key. Secrets are never hardcoded here.
       - name: Fetch secrets from Infisical

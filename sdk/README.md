@@ -116,7 +116,7 @@ config = Configuration(
 # ── Bearer Token (JWT) ──────────────────────────────────────────────────────
 config = Configuration(
     host="https://api.fabric4l.io/v1",
-    access_token="YOUR_ACCESS_TOKEN",
+    access_token="eyJhbGciOiJSUzI1NiIs...",
 )
 
 # ── OAuth2 Client Credentials ───────────────────────────────────────────────
@@ -136,7 +136,7 @@ from fabric4l_l1_gateway import Configuration as L1Config
 from fabric4l_l3_core import Configuration as L3Config
 
 # Each layer SDK has its own config — share the token
-shared_token = "YOUR_SHARED_TOKEN"
+shared_token = "eyJhbGciOiJSUzI1NiIs..."
 
 l1_config = L1Config(host="https://l1.fabric4l.io", access_token=shared_token)
 l3_config = L3Config(host="https://l3.fabric4l.io", access_token=shared_token)
@@ -386,7 +386,7 @@ const config = new Configuration({
 // ── Bearer Token (JWT) ──────────────────────────────────────────────────────
 const config = new Configuration({
   basePath: "https://api.fabric4l.io/v1",
-  accessToken: "YOUR_ACCESS_TOKEN",
+  accessToken: "eyJhbGciOiJSUzI1NiIs...",
 });
 
 // ── OAuth2 Client Credentials ───────────────────────────────────────────────
