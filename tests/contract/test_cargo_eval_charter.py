@@ -1,18 +1,36 @@
-"""Contract test for CARGO-EVAL-001 charter and allowlist.
+"""CARGO-EVAL-001 charter freeze.
 
-This test enforces the signed charter, frozen green list, L1=RawSnapshot contract,
-and exclusions. It must pass before any real adapter or treatment runs.
+Static contract: charter and allowlist.json agree, only green slugs are
+approved, L1 does not emit Observations, Context Agent is out, and the
+charter is not treated as signed until humans sign it.
 """
+
+from __future__ import annotations
+
 import json
+import re
 from pathlib import Path
 
 import pytest
-import yaml  # if charter becomes YAML; for now MD parse is minimal
 
+pytestmark = [pytest.mark.contract_static, pytest.mark.unit]
 
-CHARTER_PATH = Path("docs/cargo/eval-charter-001.md")
-ALLOWLIST_PATH = Path("docs/cargo/allowlist.json")
-GREEN_SLUGS = {
+REPO_ROOT = Path(__file__).resolve().parents[2]
+CHARTER_PATH = REPO_ROOT / "docs" / "cargo" / "eval-charter-001.md"
+ALLOWLIST_PATH = REPO_ROOT / "docs" / "cargo" / "allowlist.json"
+PORT_PATH = (
+    REPO_ROOT
+    / "services"
+    / "layer1-ingestion"
+    / "src"
+    / "layer1_ingestion"
+    / "providers"
+    / "account_intelligence"
+    / "port.py"
+)
+MODELS_PATH = PORT_PATH.with_name("models.py")
+
+APPROVED = [
     "cargo_match_business",
     "cargo_fetch_businesses",
     "cargo_enrich_firmographics",
@@ -22,52 +40,113 @@ GREEN_SLUGS = {
     "cargo_website_changes",
     "cargo_competitive_mentions",
     "cargo_match_prospect",
-}
+]
+
+HELD = [
+    "cargo_email_waterfall",
+    "cargo_phone_waterfall",
+    "cargo_salesnav_lead_search",
+    "cargo_linkedin_profile_enrichment",
+    "cargo_workforce_narrative",
+    "cargo_context_agent",
+    "cargo_native_library_rag",
+    "cargo_crm_writeback",
+]
+
+OUT = [
+    "cargo_roi",
+    "cargo_savings",
+    "cargo_valuepack_recommend",
+    "cargo_hypothesis_recommend",
+    "cargo_strategic_insights",
+    "cargo_workforce_ratings",
+]
 
 
-def test_cargo_eval_001_charter_exists_and_governs():
-    """CARGO-EVAL-001 must exist, reference the allowlist, and enforce the contract."""
-    assert CHARTER_PATH.exists(), "eval-charter-001.md is the governing document"
-    content = CHARTER_PATH.read_text(encoding="utf-8")
-    assert "CARGO-EVAL-001" in content
-    assert "L1=RawSnapshot" in content or "RawSnapshot" in content
-    assert "valueDriverTags" in content
-    assert "Context Agent excluded" in content or "Context Agent" in content
-    assert "pending human review" in content or "Signatures pending" in content
-    assert "Hard gates non-compensable" in content
+def _allowlist() -> dict:
+    assert ALLOWLIST_PATH.is_file(), f"missing allowlist: {ALLOWLIST_PATH}"
+    return json.loads(ALLOWLIST_PATH.read_text(encoding="utf-8"))
 
 
-def test_allowlist_json_matches_charter_green_list():
-    """Machine source of truth must exactly match the signed charter green list."""
-    assert ALLOWLIST_PATH.exists(), "allowlist.json is the machine source of truth"
-    data = json.loads(ALLOWLIST_PATH.read_text(encoding="utf-8"))
-    
-    approved = set(data.get("approved_slugs") or data.get("green", []))
-    assert approved == GREEN_SLUGS, f"Green slugs must match exactly: {GREEN_SLUGS}"
-    
-    # Schema validation for charter test
-    assert "l1_emits" in data and data["l1_emits"] == "RawSnapshot"
-    assert data.get("value_driver_tags_on_ingest") == "empty"
-    assert data.get("context_agent_permitted") is False
+def _charter() -> str:
+    assert CHARTER_PATH.is_file(), f"missing charter: {CHARTER_PATH}"
+    return CHARTER_PATH.read_text(encoding="utf-8")
 
 
-def test_no_held_or_out_slugs_in_approved():
-    """Held and out signals must not leak into green/approved."""
-    data = json.loads(ALLOWLIST_PATH.read_text(encoding="utf-8"))
-    approved = set(data.get("approved_slugs") or data.get("green", []))
-    held = set(data.get("held_slugs") or data.get("held", []))
-    out = set(data.get("out_slugs") or data.get("out", []))
-    
-    assert not approved & held, "No overlap between approved and held"
-    assert not approved & out, "No overlap between approved and out"
-    assert len(approved) == 9, "Exactly the 9 frozen green slugs"
+def test_allowlist_matches_frozen_green_list() -> None:
+    data = _allowlist()
+    assert data["approved_slugs"] == APPROVED
+    assert data["held_slugs"] == HELD
+    assert data["out_slugs"] == OUT
+    assert data["l1_emits"] == "RawSnapshot"
+    assert data["l2_emits"] == "Observation"
+    assert data["value_driver_tags_on_ingest"] == []
+    assert data["context_agent_permitted"] is False
+    assert data["status"] == "draft_pending_signatures"
 
 
-@pytest.mark.contract_static
-def test_charter_blocks_observations_in_l1():
-    """L1 contract: only RawSnapshot. Observations are L2 only."""
-    content = CHARTER_PATH.read_text(encoding="utf-8")
-    assert "RawSnapshot" in content
-    # Negative assertion for previous drift
-    # (in practice we'd parse more strictly; this guards the plan/catalog fix)
-    assert "L1 emits Observations" not in content.lower()
+def test_allowlist_sets_have_no_overlap() -> None:
+    data = _allowlist()
+    approved = set(data["approved_slugs"])
+    held = set(data["held_slugs"])
+    out = set(data["out_slugs"])
+    assert approved.isdisjoint(held)
+    assert approved.isdisjoint(out)
+    assert held.isdisjoint(out)
+
+
+def test_charter_references_every_approved_slug() -> None:
+    text = _charter()
+    missing = [slug for slug in APPROVED if slug not in text]
+    assert missing == [], f"charter missing approved slugs: {missing}"
+
+
+def test_charter_does_not_approve_held_or_out_slugs() -> None:
+    text = _charter()
+    section = text.split("## 3. Approved slugs (green)", 1)[1].split("## 4. Held", 1)[0]
+    leaked = [slug for slug in HELD + OUT if slug in section]
+    assert leaked == [], f"held/out slugs listed as approved: {leaked}"
+
+
+def test_charter_has_at_least_twelve_named_paired_tasks() -> None:
+    text = _charter()
+    task_ids = re.findall(r"\| T(\d{2}) \|", text)
+    assert len(task_ids) >= 12, f"found {len(task_ids)} paired tasks, need >= 12"
+
+
+def test_charter_is_not_claimed_signed() -> None:
+    text = _charter()
+    assert "pending Product, Platform, and Security signatures" in text
+    assert "Not in force" in text
+    assert "Charter signed." not in text
+
+
+def test_l1_does_not_emit_observation() -> None:
+    text = _charter()
+    assert "RawSnapshot" in text
+    assert "L1 must not emit `Observation`" in text
+    port = PORT_PATH.read_text(encoding="utf-8")
+    models = MODELS_PATH.read_text(encoding="utf-8")
+    assert "class Observation" not in port
+    assert "class Observation" not in models
+    assert "EnrichedAccountContext" not in models
+    assert "CargoMcpRequest" not in models
+    assert "valueDriverTags" not in models
+    assert "raw_payload_ref" in models
+
+
+def test_value_driver_tags_empty_on_ingest() -> None:
+    assert _allowlist()["value_driver_tags_on_ingest"] == []
+
+
+def test_context_agent_excluded() -> None:
+    text = _charter().lower()
+    assert "context agent" in text
+    assert "excluded" in text
+    assert _allowlist()["context_agent_permitted"] is False
+
+
+def test_strategic_insights_not_in_approved_slugs() -> None:
+    data = _allowlist()
+    assert "cargo_strategic_insights" not in data["approved_slugs"]
+    assert "cargo_strategic_insights" in data["out_slugs"]
