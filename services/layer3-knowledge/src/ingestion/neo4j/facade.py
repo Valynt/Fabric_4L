@@ -75,7 +75,7 @@ class Neo4jLoader:
     async def delete_by_source(
         self, source_id: str, tenant_id: str | None = None
     ) -> dict[str, Any]:
-        """Delete all entities and relationships from a specific source."""
+        """Remove all entities and relationships from a specific source."""
         return await self._orchestrator.delete_by_source(source_id, tenant_id)
 
     # Private-method compatibility wrappers used by existing tests.

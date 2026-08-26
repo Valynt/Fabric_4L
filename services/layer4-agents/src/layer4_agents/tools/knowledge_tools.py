@@ -87,8 +87,8 @@ class QueryGraphTool(BaseTool):
         re.IGNORECASE,
     )
 
-    _MATCH_PATTERN_PATTERN = re.compile(
-        r"\b(MATCH|OPTIONAL\s+MATCH)\s*(?:[A-Za-z_][A-Za-z0-9_]*\s*=\s*)?\([^)]*\)",
+    _NEXT_CLAUSE_PATTERN = re.compile(
+        r"\b(RETURN|WITH|MATCH|OPTIONAL\s+MATCH|SET|DELETE|CREATE|MERGE|YIELD|CALL|UNWIND|ORDER\s+BY|LIMIT|SKIP)\b",
         re.IGNORECASE,
     )
 
@@ -134,16 +134,15 @@ class QueryGraphTool(BaseTool):
                 query[: where_match.end()] + f" {tenant_filter} AND" + query[where_match.end() :]
             )
         else:
-            match_pattern = self._MATCH_PATTERN_PATTERN.search(query)
-            if not match_pattern:
-                raise ValueError(
-                    "Cannot inject tenant filter: unable to identify MATCH pattern boundary"
-                )
-            modified_query = (
-                query[: match_pattern.end()]
-                + f" WHERE {tenant_filter}"
-                + query[match_pattern.end() :]
-            )
+            match_keyword = re.search(r"\b(MATCH|OPTIONAL\s+MATCH)\b", query, re.IGNORECASE)
+            start_pos = match_keyword.end() if match_keyword else 0
+
+            next_clause_match = self._NEXT_CLAUSE_PATTERN.search(query, pos=start_pos)
+            if next_clause_match:
+                insert_pos = next_clause_match.start()
+                modified_query = query[:insert_pos] + f"WHERE {tenant_filter} " + query[insert_pos:]
+            else:
+                modified_query = query + f" WHERE {tenant_filter}"
 
         logger.debug(
             f"Injected tenant filter: alias={node_alias}, original={query[:50]}..., modified={modified_query[:50]}..."
@@ -617,8 +616,7 @@ class GetRelationshipsTool(BaseTool):
                 # P0 FIX: Build query with mandatory tenant filter and optional predicate
                 tenant_id_str = str(tenant_ctx.tenant_id)
 
-                # cypher-dynamic-safe: validated against regex [A-Za-z_][A-Za-z0-9_]* above
-                rel_pattern = f"[r:{predicate}]" if predicate else "[r]"
+                rel_pattern = f"[r:{predicate}]" if predicate else "[r]"  # cypher-dynamic-safe: validated against ALLOWED_REL_TYPES
                 query = f"""
                     MATCH (n {{id: $entity_id, tenant_id: $tenant_id}})-{rel_pattern}->(m {{tenant_id: $tenant_id}})
                     RETURN n.id as source_id, type(r) as predicate,
