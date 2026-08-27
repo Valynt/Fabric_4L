@@ -228,7 +228,6 @@ class TestModelFailClosed:
         assert exc_info.value.status_code == 401
 
     @pytest.mark.skip(reason="Out of scope for test migration task; requires application logic update")
-    @pytest.mark.skip(reason="Out of scope for test migration task; requires application logic update")
     def test_conflicting_tenant_header_raises_403(self):
         """X-Tenant-ID that differs from JWT claim must raise HTTP 403."""
         req = _make_request(

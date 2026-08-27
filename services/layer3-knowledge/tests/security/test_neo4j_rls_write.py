@@ -66,9 +66,7 @@ class TestNeo4jWriteStaticAnalysis:
         ]
 
         if not cypher_strings:
-            pytest.skip(
-                "No Cypher triple-quoted strings found — source may use a different pattern"
-            )
+            pytest.skip("No Cypher triple-quoted strings found — source may use a different pattern")
 
         # Within those Cypher strings, find CREATE (...{...}) blocks
         create_blocks = []
