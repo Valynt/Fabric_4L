@@ -174,7 +174,6 @@ follow_imports = "skip"
 [[tool.mypy.overrides]]
 module = [
     "src.shared.tasks",
-    "src.shared.models",
     "src.crawler.decision_store",
     "src.crawler.playwright_crawler",
     "src.crawler.telemetry",
