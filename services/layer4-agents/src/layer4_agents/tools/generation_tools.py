@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
 from io import BytesIO
 from typing import Any
 
@@ -165,6 +166,8 @@ Maximum {max_length} words.""",
         # P1-12 FIX: Wrap user context in delimiters to prevent prompt injection
         context_items = [f"{k}: {v}" for k, v in input_data.context.items()]
         context_str = "\n".join(context_items)
+        # Prevent delimiter escape by stripping literal delimiters
+        context_str = re.sub(r"<{3,}|>{3,}", "", context_str)
         context_delimited = f"<<<USER_CONTEXT>>>{context_str}<<</USER_CONTEXT>>>"
 
         # P1-12 FIX: Sanitize tone parameter

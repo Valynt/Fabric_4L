@@ -188,19 +188,21 @@ def run_generator(config: GeneratorConfig, generator_cmd: str) -> None:
         abs_output = config.output_dir.resolve()
         abs_parent = abs_openapi.parent.parent  # repo root
 
-        cmd = f"{generator_cmd} generate " \
-              f"-i /local/{abs_openapi.relative_to(abs_parent)} " \
-              f"-g {lang} " \
-              f"-o /local/{abs_output.relative_to(abs_parent)} " \
-              f"--package-name {config.package_name} " \
-              f"--additional-properties packageVersion={config.package_version},packageName={config.package_name} " \
-              f"{' '.join(config.generator_extra_args)}"
+        cmd_parts = generator_cmd.split() + [
+            "generate",
+            "-i", f"/local/{abs_openapi.relative_to(abs_parent)}",
+            "-g", lang,
+            "-o", f"/local/{abs_output.relative_to(abs_parent)}",
+            "--package-name", config.package_name,
+            "--additional-properties", f"packageVersion={config.package_version},packageName={config.package_name}",
+            *config.generator_extra_args,
+        ]
     else:
         cmd_parts = generator_cmd.split() + args
-        cmd = " ".join(cmd_parts)
 
+    cmd = " ".join(cmd_parts)
     print(f"  Running: {cmd}")
-    result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+    result = subprocess.run(cmd_parts, capture_output=True, text=True)
 
     if result.returncode != 0:
         print(f"  ERROR: Generator failed for {config.layer}/{lang}")
