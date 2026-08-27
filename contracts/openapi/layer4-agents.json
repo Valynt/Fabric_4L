@@ -2497,7 +2497,7 @@
           "analysis"
         ],
         "summary": "Generate Workspace Intelligence",
-        "description": "Generate workspace intelligence data for a case.\n\nLightweight generation that surfaces existing Neo4j data (signals,\nhypotheses) for the account. No LLM call \u2014 just exposes graph data\nthe frontend currently can't see.",
+        "description": "Generate workspace intelligence data for a case.\n\nLightweight generation that surfaces existing Neo4j data (signals,\nhypotheses) for the account. No LLM call — just exposes graph data\nthe frontend currently can't see.",
         "operationId": "generate_workspace_intelligence_v1_cases__case_id__workspace_generate_post",
         "parameters": [
           {
@@ -3923,7 +3923,7 @@
           "agent-stream"
         ],
         "summary": "Agent Stream Chat Sse",
-        "description": "SSE streaming version of the agent chat endpoint.\n\nEmits AG-UI protocol events as server-sent events:\n  RUN_STARTED \u2192 STEP_STARTED/STEP_FINISHED \u2192 TEXT_MESSAGE_* \u2192 RUN_FINISHED",
+        "description": "SSE streaming version of the agent chat endpoint.\n\nEmits AG-UI protocol events as server-sent events:\n  RUN_STARTED → STEP_STARTED/STEP_FINISHED → TEXT_MESSAGE_* → RUN_FINISHED",
         "operationId": "agent_stream_chat_sse_v1_agent_stream_chat_stream_post",
         "requestBody": {
           "content": {
@@ -7686,7 +7686,7 @@
           "Tenant Admin Dashboard"
         ],
         "summary": "Update Tenant Settings",
-        "description": "Update tenant settings (tenant_admin only).\n\nSupports partial updates \u2014 only provided fields are changed.\nBranding changes require the custom_branding feature to be enabled.",
+        "description": "Update tenant settings (tenant_admin only).\n\nSupports partial updates — only provided fields are changed.\nBranding changes require the custom_branding feature to be enabled.",
         "operationId": "update_tenant_settings_v1__tenant_id__settings_patch",
         "parameters": [
           {
@@ -10967,7 +10967,7 @@
             }
           },
           "400": {
-            "description": "Invalid webhook payload \u2014 verify the payload body and Stripe-Signature timestamp"
+            "description": "Invalid webhook payload — verify the payload body and Stripe-Signature timestamp"
           },
           "422": {
             "description": "Validation Error",
@@ -12173,7 +12173,7 @@
           "prospects"
         ],
         "summary": "Start Prospect Analysis",
-        "description": "Start prospect analysis workflow \u2014 real backend implementation.\n\nThis endpoint replaces the mock \"Continue to Intelligence\" navigation:\n1. Validates tenant context (fails closed if missing)\n2. Creates/updates prospect record with setup data\n3. Triggers intelligence workflow via orchestration layer\n4. Returns explicit status (never hardcoded demo data)\n\nEnrichment/CRM/buyer role data explicitly reports availability:\n- UNAVAILABLE: Service not wired/accessible\n- PENDING: Async enrichment queued\n- DEGRADED: Partial data available with caveats\n- COMPLETE/MATCHED: Real data confirmed\n\nArgs:\n    prospect_id: Prospect identifier (UUID or external ID)\n    request: Setup data and workflow configuration\n    tenant_id: Validated tenant from auth context\n    ctx: Request context for audit logging\n    db: Database session for persistence\n\nReturns:\n    StartAnalysisResponse with real status and next route state\n\nRaises:\n    HTTPException 401: Missing/invalid tenant context\n    HTTPException 404: Prospect not found and creation failed\n    HTTPException 503: Workflow executor unavailable",
+        "description": "Start prospect analysis workflow — real backend implementation.\n\nThis endpoint replaces the mock \"Continue to Intelligence\" navigation:\n1. Validates tenant context (fails closed if missing)\n2. Creates/updates prospect record with setup data\n3. Triggers intelligence workflow via orchestration layer\n4. Returns explicit status (never hardcoded demo data)\n\nEnrichment/CRM/buyer role data explicitly reports availability:\n- UNAVAILABLE: Service not wired/accessible\n- PENDING: Async enrichment queued\n- DEGRADED: Partial data available with caveats\n- COMPLETE/MATCHED: Real data confirmed\n\nArgs:\n    prospect_id: Prospect identifier (UUID or external ID)\n    request: Setup data and workflow configuration\n    tenant_id: Validated tenant from auth context\n    ctx: Request context for audit logging\n    db: Database session for persistence\n\nReturns:\n    StartAnalysisResponse with real status and next route state\n\nRaises:\n    HTTPException 401: Missing/invalid tenant context\n    HTTPException 404: Prospect not found and creation failed\n    HTTPException 503: Workflow executor unavailable",
         "operationId": "start_prospect_analysis_v1_prospects__prospect_id__start_analysis_post",
         "parameters": [
           {
@@ -13352,7 +13352,7 @@
           "harness"
         ],
         "summary": "Decide a human gate",
-        "description": "Approve, reject, modify, or expire a human gate.\n\nRequires content_admin, tenant_admin, or super_admin role.\ndecision_by is always server-derived from ctx.user_id \u2014 any\nbody-supplied value is ignored to prevent spoofing.",
+        "description": "Approve, reject, modify, or expire a human gate.\n\nRequires content_admin, tenant_admin, or super_admin role.\ndecision_by is always server-derived from ctx.user_id — any\nbody-supplied value is ignored to prevent spoofing.",
         "operationId": "decide_gate_v1_harness_gates__gate_id__decide_post",
         "parameters": [
           {
@@ -13606,7 +13606,7 @@
           "api_key": {
             "type": "string",
             "title": "Api Key",
-            "description": "Full key \u2014 shown ONCE, store securely"
+            "description": "Full key — shown ONCE, store securely"
           },
           "prefix": {
             "type": "string",
@@ -13666,7 +13666,7 @@
           "created_at"
         ],
         "title": "APIKeyCreateResponse",
-        "description": "Returned once on key creation \u2014 includes the raw secret (shown only once)."
+        "description": "Returned once on key creation — includes the raw secret (shown only once)."
       },
       "APIKeyModel": {
         "properties": {
@@ -19318,6 +19318,138 @@
         "title": "GenerateHypothesesRequest",
         "description": "Request to generate value hypotheses for an account."
       },
+      "GitMetricCompleteness": {
+        "properties": {
+          "source": {
+            "type": "string",
+            "title": "Source",
+            "description": "Name of the git command/metric this entry describes"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "Collection status: ok, error, timeout, truncated, or unavailable"
+          },
+          "truncated": {
+            "type": "boolean",
+            "title": "Truncated",
+            "description": "True when output was cut short (timeout or a cap), so the derived count is an undercount"
+          },
+          "complete": {
+            "type": "boolean",
+            "title": "Complete",
+            "description": "True when the metric was collected exactly (status ok and not truncated)"
+          },
+          "bytes_read": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Bytes Read",
+            "description": "Number of stdout bytes buffered for this command"
+          },
+          "max_bytes": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Bytes",
+            "description": "Maximum stdout bytes permitted for this command, if capped"
+          },
+          "max_lines": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Lines",
+            "description": "Maximum stdout lines permitted for this command, if capped"
+          }
+        },
+        "type": "object",
+        "required": [
+          "source",
+          "status",
+          "truncated",
+          "complete",
+          "bytes_read"
+        ],
+        "title": "GitMetricCompleteness",
+        "description": "Completeness metadata for one git-derived metric.\n\nLets consumers distinguish an exact figure from one derived from a\ntimed-out, truncated, or failed git collection. Never contains raw git\noutput or contributor email addresses."
+      },
+      "GitWarning": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code",
+            "description": "Stable warning code, e.g., GIT_CMD_TIMEOUT"
+          },
+          "metric": {
+            "type": "string",
+            "title": "Metric",
+            "description": "Name of the git metric the warning applies to"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "Collection status that triggered the warning"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "Human-readable warning message (safe; no raw git output)"
+          },
+          "bytes_read": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Bytes Read",
+            "description": "Number of stdout bytes read for the affected command"
+          },
+          "max_bytes": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Bytes",
+            "description": "Maximum bytes permitted for the affected command, if capped"
+          },
+          "max_lines": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Lines",
+            "description": "Maximum lines permitted for the affected command, if capped"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "metric",
+          "status",
+          "message",
+          "bytes_read"
+        ],
+        "title": "GitWarning",
+        "description": "Structured warning raised when a git command was incomplete.\n\nContains only the metric name, status, message, and byte counts - never\nraw git output or contributor email addresses."
+      },
       "HTTPValidationError": {
         "type": "object",
         "title": "HTTPValidationError",
@@ -19430,7 +19562,7 @@
           "CANCELLED"
         ],
         "title": "HarnessState",
-        "description": "Canonical workflow states.\n\nState flow (happy path):\n  INIT \u2192 RESOLVE_CONTEXT \u2192 LOAD_VALUE_PACK \u2192 RETRIEVE_KNOWLEDGE\n  \u2192 GENERATE_HYPOTHESES \u2192 MATCH_EVIDENCE \u2192 QUANTIFY_IMPACT\n  \u2192 VALIDATE_CLAIMS \u2192 HUMAN_REVIEW \u2192 PUBLISH_OUTPUT \u2192 DONE\n\nTerminal states: DONE, FAILED, CANCELLED."
+        "description": "Canonical workflow states.\n\nState flow (happy path):\n  INIT → RESOLVE_CONTEXT → LOAD_VALUE_PACK → RETRIEVE_KNOWLEDGE\n  → GENERATE_HYPOTHESES → MATCH_EVIDENCE → QUANTIFY_IMPACT\n  → VALIDATE_CLAIMS → HUMAN_REVIEW → PUBLISH_OUTPUT → DONE\n\nTerminal states: DONE, FAILED, CANCELLED."
       },
       "HarnessWorkflowType": {
         "type": "string",
@@ -23195,7 +23327,7 @@
           "system"
         ],
         "title": "Role",
-        "description": "Business roles used across all layers.\n\nHierarchy (highest \u2192 lowest):\n    super_admin > tenant_admin > content_admin > analyst > read_only\n\nThe ``system`` role is reserved for internal service-to-service calls."
+        "description": "Business roles used across all layers.\n\nHierarchy (highest → lowest):\n    super_admin > tenant_admin > content_admin > analyst > read_only\n\nThe ``system`` role is reserved for internal service-to-service calls."
       },
       "RunListResponse": {
         "properties": {
@@ -23615,13 +23747,17 @@
             "default": 0
           },
           "git_metric_completeness": {
-            "additionalProperties": true,
+            "additionalProperties": {
+              "$ref": "#/components/schemas/GitMetricCompleteness"
+            },
             "type": "object",
             "title": "Git Metric Completeness",
             "description": "Per-metric git collection status (status, truncated, complete, bytes_read) so consumers can distinguish an exact figure from a timed-out, truncated or failed one. Empty when git is unavailable."
           },
           "git_warnings": {
-            "items": {},
+            "items": {
+              "$ref": "#/components/schemas/GitWarning"
+            },
             "type": "array",
             "title": "Git Warnings",
             "description": "Structured warnings (code, metric, status, message) raised when a git command timed out, was truncated, or failed. Contains no raw git output or email addresses."
@@ -25856,7 +25992,7 @@
           "email"
         ],
         "title": "UserModel",
-        "description": "Read-only representation of a user (returned by API \u2014 no password)."
+        "description": "Read-only representation of a user (returned by API — no password)."
       },
       "UserStatus": {
         "type": "string",

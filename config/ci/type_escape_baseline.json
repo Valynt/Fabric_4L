@@ -23600,24 +23600,6 @@
     },
     {
       "kind": "python-any",
-      "line": 19,
-      "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/models.py",
-      "text": "from typing import Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 592,
-      "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/models.py",
-      "text": "git_metric_completeness: dict[str, Any] = Field("
-    },
-    {
-      "kind": "python-any",
-      "line": 600,
-      "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/models.py",
-      "text": "git_warnings: list[Any] = Field("
-    },
-    {
-      "kind": "python-any",
       "line": 24,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
       "text": "from typing import Any"
