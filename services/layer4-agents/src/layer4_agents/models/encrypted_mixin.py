@@ -313,25 +313,4 @@ def _pii_auto_populate_hash(mapper: Mapper[PIIMixin], connection: Any, target: P
             setattr(target, hash_col_name, None)
 
 
-# ---------------------------------------------------------------------------
-# Integration with the Account model (example migration path)
-# ---------------------------------------------------------------------------
-# To adopt PIIMixin on an existing model that already uses EncryptedString
-# directly (e.g., Account.headquarters, Account.owner_email):
-#
-#   class Account(Base, PIIMixin):
-#       __tablename__ = "accounts"
-#       __pii_config__ = {
-#           "email": {"searchable": True},      # replaces owner_email
-#           "address_line1": {"searchable": False},  # replaces headquarters
-#       }
-#       ...
-#
-# A database migration should:
-#   1. Add ``*_encrypted`` and ``*_hash`` columns
-#   2. Migrate data from old columns to new encrypted columns
-#   3. Drop old columns (after verification)
-# ---------------------------------------------------------------------------
-
-
 __all__ = ["PIIMixin", "DEFAULT_PII_FIELDS"]
