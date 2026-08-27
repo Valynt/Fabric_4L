@@ -50,11 +50,6 @@ from .company_knowledge import (
     ValueExtractionRecord,
 )
 from .crm_sync_job import CRMSyncJob, CRMSyncJobStatus
-from .embedding_space import (
-    STANDARD_EMBEDDING_SPACES,
-    EmbeddingSpace,
-    resolve_embedding_space,
-)
 from .integration import (
     Integration,
     IntegrationStatus,
@@ -224,8 +219,4 @@ __all__ = [
     "ReviewStatus",
     "ICPSourceType",
     "WorkspaceTabData",
-    # Embedding Space Models
-    "EmbeddingSpace",
-    "STANDARD_EMBEDDING_SPACES",
-    "resolve_embedding_space",
 ]

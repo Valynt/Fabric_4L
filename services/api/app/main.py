@@ -316,7 +316,7 @@ async def _layer4_dependency_handler(request, exc: Layer4DependencyError):
 app.include_router(layer_delegation.router, prefix="/v1")
 
 # Clerk webhook handler is mounted unconditionally; the handler itself
-# returns 503 when CLERK_WEBHOOK_SIGNING_SECRET is not configured. Network policy
+# returns 503 when CLERK_WEBHOOK_SECRET is not configured. Network policy
 # is responsible for restricting public access to /internal/*.
 app.include_router(clerk_webhooks.router)
 

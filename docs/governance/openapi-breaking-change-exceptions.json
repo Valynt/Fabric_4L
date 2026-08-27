@@ -28,39 +28,6 @@
       ],
       "reason": "Hardened Clerk authentication endpoints (/v1/auth/authorization-snapshot, /v1/auth/clerk/tenant) in API Gateway: removed legacy request bodies on GET operations and aligned security scheme to Bearer JWT token verification per ADR-043 / ADR-044.",
       "expiresOn": "2026-12-31T00:00:00Z"
-    },
-    {
-      "id": "L3-GRAPH-ALIAS-REMOVAL-V2.5",
-      "status": "approved",
-      "approvedBy": "bmsull560 (repo owner) via PR #1415 and Layer 3 Graph Alias Deprecation Policy (docs/contracts/layer3-graph-alias-deprecation-policy.md)",
-      "deprecationRecord": "docs/contracts/layer3-graph-alias-deprecation-policy.md (v2.5 deprecation window closure: removal of deprecated aliases label, type, confidence, relationship_type from layer3-knowledge.json)",
-      "fingerprints": [
-        "000f27913ce5a625",
-        "32300ce7e543dd1f",
-        "37f1dc28f2d10d4a",
-        "63d58e0621902f9b",
-        "690d04241a14d309",
-        "7ffcfee52337dcfc",
-        "81deae8811cd2f91",
-        "8c1f92018ad99b75",
-        "ae53c0f32d86547d",
-        "d2ef06110dc8367d",
-        "eca31c547ca79d17",
-        "ef0660292701f4f6"
-      ],
-      "reason": "Closure of v2.5 deprecation window for Layer 3 graph response field aliases (GraphNode.label -> name, GraphNode.type -> entity_type, GraphNode.confidence -> confidence_score, GraphEdge.relationship_type -> type) in layer3-knowledge.json per docs/contracts/layer3-graph-alias-deprecation-policy.md.",
-      "expiresOn": "2026-12-31T00:00:00Z"
-    },
-    {
-      "id": "RFC-1500-GIT-METRIC-COMPLETENESS-001",
-      "status": "approved",
-      "approvedBy": "RFC #1500 (add git metric completeness metadata to L4 AuditOrchestrator) via PR #1531",
-      "rfc": "https://github.com/Valynt/Fabric_4L/pull/1531",
-      "fingerprints": [
-        "aa0471ab736933dd"
-      ],
-      "reason": "RFC #1500 adds two additive, optional fields to the L4 AuditOrchestrator Scorecard contract: git_metric_completeness (dict of GitMetricCompleteness) and git_warnings (list of GitWarning). Typing GitWarning with its structured per-field shape (code, metric, status, message, bytes_read and optional max_bytes/max_lines) introduces required_fields_added on the git_warnings items schema. Both fields are newly introduced by this RFC; the tightened schema is the RFC's intended per-field shape and carries no raw git output or contributor emails.",
-      "expiresOn": "2026-12-31T00:00:00Z"
     }
   ]
 }

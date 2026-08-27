@@ -178,9 +178,6 @@ ALLOWED_TOOL_RAISE_EXCEPTIONS = frozenset(
         "HTTPException",
         "NotImplementedError",
         "ProviderNotImplementedError",
-        # Structured tool validation error: BaseTool.run maps this to the stable
-        # TENANT_SPOOFING_DETECTED failure code without logging an exception stack trace.
-        "TenantSpoofingError",
     }
 )
 

@@ -26,7 +26,6 @@ RUN uv pip install "email-validator>=2.1.0"
 COPY src/ ./src/
 # Copy versioned prompt templates used by the workflow engine
 COPY prompts/ ./src/prompts/
-COPY config/ ./config/
 COPY migrations/ ./migrations/
 COPY alembic.ini ./alembic.ini
 # value_fabric is mounted as a volume in docker-compose.dev.yml
@@ -57,7 +56,6 @@ ENV PYTHONPATH=/app:/app/src
 COPY --from=builder /app/src ./src/
 # Copy versioned prompt templates used by the workflow engine
 COPY --from=builder /app/src/prompts ./src/prompts/
-COPY --from=builder /app/config ./config/
 COPY --from=builder /app/migrations ./migrations/
 COPY --from=builder /app/alembic.ini ./alembic.ini
 # value_fabric is mounted as a volume in docker-compose.dev.yml

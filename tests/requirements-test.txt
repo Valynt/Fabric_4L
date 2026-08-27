@@ -131,4 +131,4 @@ protobuf>=5.0.0,<7.0.0  # Compatible with the OpenTelemetry protobuf runtime use
 
 toml>=0.10.2
 
-types-python-dateutil>=2.9.0.20260807
+types-python-dateutil>=2.9.0.20251115

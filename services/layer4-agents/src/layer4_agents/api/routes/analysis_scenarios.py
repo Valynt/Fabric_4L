@@ -128,7 +128,7 @@ def build_scenarios_router() -> APIRouter:
         db: AsyncSession = Depends(get_route_db),
         context: RequestContext = Depends(require_authenticated),
     ) -> None:
-        """Remove a saved scenario only within the authenticated tenant scope."""
+        """Delete a saved scenario only within the authenticated tenant scope."""
         authorize_action("layer4.analysis.write_case", context)
         result = await db.execute(
             delete(SavedBusinessCaseScenario).where(

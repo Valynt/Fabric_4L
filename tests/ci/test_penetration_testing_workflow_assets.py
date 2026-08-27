@@ -66,9 +66,6 @@ def test_zap_workflow_fails_closed_and_preserves_evidence() -> None:
     assert validation["continue-on-error"] is True
 
     conversion = _find_step_by_name(zap_steps, "Convert ZAP results to SARIF")
-    assert "python scripts/ci/zap_json_to_sarif.py" in conversion["run"]
-    assert "zap-results/zap-report.json" in conversion["run"]
-    assert "tests/penetration/zap-full-scan.py" not in conversion["run"]
     assert "|| true" not in conversion["run"]
     assert conversion["continue-on-error"] is True
 

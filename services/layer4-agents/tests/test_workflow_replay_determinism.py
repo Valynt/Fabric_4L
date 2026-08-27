@@ -3,20 +3,10 @@ from __future__ import annotations
 """Replay determinism tests for restart/retry checkpoint scenarios."""
 
 
-try:
-    from tests.utils.replay_assertions import (
-        assert_semantically_equivalent_replay,
-        normalize_checkpoint_snapshot,
-    )
-except (ImportError, ModuleNotFoundError):
-    import importlib.util
-    from pathlib import Path
-    _helper_path = Path(__file__).resolve().parent / "utils" / "replay_assertions.py"
-    _spec = importlib.util.spec_from_file_location("layer4_test_replay_assertions", _helper_path)
-    _mod = importlib.util.module_from_spec(_spec)
-    _spec.loader.exec_module(_mod)
-    assert_semantically_equivalent_replay = _mod.assert_semantically_equivalent_replay
-    normalize_checkpoint_snapshot = _mod.normalize_checkpoint_snapshot
+from tests.utils.replay_assertions import (
+    assert_semantically_equivalent_replay,
+    normalize_checkpoint_snapshot,
+)
 
 
 def _sample_checkpoint_state(*, status: str = "completed") -> dict:

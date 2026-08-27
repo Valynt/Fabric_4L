@@ -22,7 +22,6 @@ import json
 import sys
 import types
 from pathlib import Path
-from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -58,34 +57,6 @@ _audit_emitter.emit_audit_event = AsyncMock()
 sys.modules.setdefault("shared.audit.emitter", _audit_emitter)
 sys.modules.setdefault("shared.audit", types.ModuleType("shared.audit"))
 sys.modules.setdefault("shared", types.ModuleType("shared"))
-
-# Consequences of loading conversation.py as ``services.conversation`` (see below):
-# its relative imports (``from .degradation_evaluator import ...`` and
-# ``from .thesys_provider import ...``) resolve against a non-existent
-# ``services.*`` package. Stub those sibling modules so collection succeeds.
-# The stubs are minimal: only the symbols ConversationService touches at
-# import/construction time (class attributes, ``from_task``, ``create_tracker``).
-_degradation_evaluator_stub = types.ModuleType("services.degradation_evaluator")
-
-
-class _DegradationEvaluatorStub:
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        self.tracker = None
-
-    @classmethod
-    def from_task(cls, task_name: str, **kwargs: Any) -> _DegradationEvaluatorStub:
-        return cls()
-
-    def create_tracker(self, **kwargs: Any) -> MagicMock:
-        return MagicMock()
-
-
-_degradation_evaluator_stub.DegradationEvaluator = _DegradationEvaluatorStub
-sys.modules.setdefault("services.degradation_evaluator", _degradation_evaluator_stub)
-
-_thesys_provider_stub = types.ModuleType("services.thesys_provider")
-_thesys_provider_stub.ThesysProvider = MagicMock
-sys.modules.setdefault("services.thesys_provider", _thesys_provider_stub)
 
 # Load conversation.py directly using importlib to bypass relative import issues.
 # ConversationService uses relative imports (e.g., "from value_fabric.shared.audit")

@@ -157,11 +157,11 @@ def _git_completeness_note(scorecard: Scorecard) -> str:
     Includes only each structured warning's safe ``message``; never raw git
     output or contributor email addresses.
     """
-    messages = []
-    for w in scorecard.git_warnings:
-        msg = w.get("message") if isinstance(w, dict) else getattr(w, "message", None)
-        if msg:
-            messages.append(msg)
+    messages = [
+        w["message"]
+        for w in scorecard.git_warnings
+        if isinstance(w, dict) and w.get("message")
+    ]
     if not messages:
         return ""
     lines = "\n".join(f"- {msg}" for msg in messages)

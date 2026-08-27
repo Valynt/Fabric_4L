@@ -255,9 +255,10 @@ jobs:
         if: always() && steps.validate_report.outcome == 'success'
         continue-on-error: true
         run: |
-          python scripts/ci/zap_json_to_sarif.py \
-            zap-results/zap-report.json \
+          python tests/penetration/zap-full-scan.py \
+            --target "${{ env.TARGET_URL }}" \
             --output zap-results/zap-results.sarif \
+            --use-docker
 
           test -s zap-results/zap-results.sarif
 

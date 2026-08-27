@@ -8,14 +8,10 @@ the same.
 
 from __future__ import annotations
 
-import logging
 import threading
+import uuid
 from collections.abc import Callable
-from dataclasses import dataclass, replace
-
-from app.core.clerk_provisioner import fabric_tenant_id_for, fabric_user_id_for
-
-logger = logging.getLogger(__name__)
+from dataclasses import dataclass
 
 _USER_NOT_FOUND = "user_not_found"
 _TENANT_NOT_FOUND = "tenant_not_found"
@@ -79,6 +75,7 @@ class AuthDirectory:
         self._tenants: dict[str, DirectoryTenant] = {}
         self._memberships: dict[tuple[str, str], DirectoryMembership] = {}
         self._invitations: dict[str, DirectoryInvitation] = {}
+        self._processed_events: set[str] = set()
         self._tenant_entitlements: dict[str, set[str]] = {}
         self._tenant_entitlement_valid_until: dict[str, int | None] = {}
         self._revoked_sessions: set[str] = set()
@@ -102,7 +99,7 @@ class AuthDirectory:
     ) -> DirectoryUser:
         with self._lock:
             existing = self._users.get(clerk_user_id)
-            user_id = id or (existing.id if existing else fabric_user_id_for(clerk_user_id))
+            user_id = id or (existing.id if existing else clerk_user_id)
             user = DirectoryUser(
                 id=user_id,
                 clerk_user_id=clerk_user_id,
@@ -114,24 +111,16 @@ class AuthDirectory:
             self._projection_version += 1
             return user
 
-    def deactivate_user(self, *, clerk_user_id: str) -> bool:
-        """Soft-deactivate a user (deny access immediately).
-
-        The user record and its memberships are retained so re-provisioning the
-        same Clerk user maps back to the same immutable Fabric identity, and so
-        a later ``user.created`` for the same clerk id can safely reactivate.
-        """
+    def delete_user(self, *, clerk_user_id: str) -> None:
         with self._lock:
-            user = self._users.get(clerk_user_id)
-            if user is None:
-                return False
-            self._users[clerk_user_id] = replace(user, status="deactivated")
+            self._users.pop(clerk_user_id, None)
+            # Also revoke any memberships for this user.
             self._memberships = {
-                key: (replace(m, status="deactivated") if m.clerk_user_id == clerk_user_id else m)
-                for key, m in self._memberships.items()
+                key: membership
+                for key, membership in self._memberships.items()
+                if membership.clerk_user_id != clerk_user_id
             }
             self._projection_version += 1
-            return True
 
     def get_user_by_clerk(self, clerk_user_id: str) -> DirectoryUser | None:
         with self._lock:
@@ -151,7 +140,7 @@ class AuthDirectory:
     ) -> DirectoryTenant:
         with self._lock:
             existing = self._tenants.get(clerk_org_id)
-            tenant_id = id or (existing.id if existing else fabric_tenant_id_for(clerk_org_id))
+            tenant_id = id or (existing.id if existing else uuid.uuid4().hex)
             tenant = DirectoryTenant(
                 id=tenant_id,
                 clerk_org_id=clerk_org_id,
@@ -163,23 +152,15 @@ class AuthDirectory:
             self._projection_version += 1
             return tenant
 
-    def deactivate_tenant(self, *, clerk_org_id: str) -> bool:
-        """Soft-deactivate a tenant/organization (deny access immediately).
-
-        The tenant record and its memberships are retained so a recreated
-        organization maps back to the same immutable Fabric tenant id.
-        """
+    def delete_tenant(self, *, clerk_org_id: str) -> None:
         with self._lock:
-            tenant = self._tenants.get(clerk_org_id)
-            if tenant is None:
-                return False
-            self._tenants[clerk_org_id] = replace(tenant, status="deactivated")
+            self._tenants.pop(clerk_org_id, None)
             self._memberships = {
-                key: (replace(m, status="deactivated") if m.clerk_org_id == clerk_org_id else m)
-                for key, m in self._memberships.items()
+                key: membership
+                for key, membership in self._memberships.items()
+                if membership.clerk_org_id != clerk_org_id
             }
             self._projection_version += 1
-            return True
 
     def get_tenant_by_clerk_org(self, clerk_org_id: str) -> DirectoryTenant | None:
         with self._lock:
@@ -214,20 +195,10 @@ class AuthDirectory:
             self._projection_version += 1
             return membership
 
-    def deactivate_membership(self, *, clerk_org_id: str, clerk_user_id: str) -> bool:
-        """Soft-deactivate a membership (deny access immediately).
-
-        The membership record is retained (keyed by clerk org+user) so replay
-        and re-creation of the same membership remain idempotent.
-        """
+    def revoke_membership(self, *, clerk_org_id: str, clerk_user_id: str) -> None:
         with self._lock:
-            key = (clerk_org_id, clerk_user_id)
-            membership = self._memberships.get(key)
-            if membership is None:
-                return False
-            self._memberships[key] = replace(membership, status="deactivated")
+            self._memberships.pop((clerk_org_id, clerk_user_id), None)
             self._projection_version += 1
-            return True
 
     def get_active_membership(
         self, *, clerk_org_id: str, clerk_user_id: str
@@ -413,6 +384,18 @@ class AuthDirectory:
         if token_iat is None:
             return True
         return token_iat <= cutoff
+
+    # ------------------------------------------------------------------
+    # Webhook idempotency
+    # ------------------------------------------------------------------
+    def has_processed_event(self, event_id: str) -> bool:
+        with self._lock:
+            return event_id in self._processed_events
+
+    def mark_event_processed(self, event_id: str, _event_type: str | None = None) -> None:
+        with self._lock:
+            self._processed_events.add(event_id)
+
 
 # Process-level singleton.  Production deployments may replace this with a
 # service-backed directory retrieved from dependency injection.

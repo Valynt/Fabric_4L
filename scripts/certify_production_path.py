@@ -228,7 +228,7 @@ class ProductionPathCertifier:
                 "CLERK_AUTHORIZED_PARTIES": os.getenv("CLERK_AUTHORIZED_PARTIES", "http://localhost:3001"),
                 "CLERK_JWKS_URL": os.getenv("CLERK_JWKS_URL", "https://clerk.example.com/.well-known/jwks.json"),
                 "CLERK_SECRET_KEY": os.getenv("CLERK_SECRET_KEY", "sk_test_fake"),
-                "CLERK_WEBHOOK_SIGNING_SECRET": os.getenv("CLERK_WEBHOOK_SIGNING_SECRET", "whsec_test_dummy_fake"),
+                "CLERK_WEBHOOK_SECRET": os.getenv("CLERK_WEBHOOK_SECRET", "whsec_test_dummy_fake"),
                 "FABRIC_AUTH_SIGNING_KEY": os.getenv("FABRIC_AUTH_SIGNING_KEY", "dev-signing-key"),
                 "FABRIC_AUTH_PUBLIC_KEYS": os.getenv("FABRIC_AUTH_PUBLIC_KEYS", "[]"),
                 "FABRIC_AUTH_ISSUER": os.getenv("FABRIC_AUTH_ISSUER", "value-fabric-internal"),

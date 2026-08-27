@@ -237,9 +237,7 @@ def get_auth_health_summary() -> dict[str, Any]:
     # Check Ed25519 signing key status
     envelope_configured = settings.envelope is not None
     active_signing_kid = (
-        settings.envelope.signing_key.kid
-        if settings.envelope and settings.envelope.signing_key is not None
-        else None
+        settings.envelope.signing_key_id if settings.envelope else None
     )
 
     stats_summary = _stats.get_summary()

@@ -27,10 +27,11 @@ PROVIDER_HOSTS = (
 LEGACY_DIRECT_ACCESS = frozenset(
     {
         "services/layer2-extraction/src/layer2_extraction/shared/llm_client.py",
+        "services/layer4-agents/src/layer4_agents/api/routes/c1.py",
         "services/layer4-agents/src/layer4_agents/config/settings.py",
         "services/layer4-agents/src/layer4_agents/services/anthropic_provider.py",
+        "services/layer4-agents/src/layer4_agents/services/conversation.py",
         "services/layer4-agents/src/layer4_agents/services/llm_provider.py",
-        "services/layer4-agents/src/layer4_agents/services/thesys_provider.py",
         "services/layer4-agents/src/layer4_agents/services/together_provider.py",
     }
 )

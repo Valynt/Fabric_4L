@@ -26,7 +26,7 @@ SCHEMA = REPO_ROOT / "contracts" / "jsonschema" / "system-route-health.json"
 
 def test_system_health_schema_requires_readiness_envelope() -> None:
     schema = json.loads(SCHEMA.read_text(encoding="utf-8"))
-    assert schema["required"] == ["status", "service", "readiness", "dependencies"]
+    assert schema["required"] == ["status", "service", "readiness"]
     assert schema["properties"]["readiness"]["required"] == ["is_ready", "reason"]
 
 
@@ -89,38 +89,42 @@ async def test_layer3_system_health_contract_envelope(monkeypatch: pytest.Monkey
 
 @pytest.mark.asyncio
 async def test_layer6_system_health_contract_envelope(monkeypatch: pytest.MonkeyPatch) -> None:
-    layer6_system = importlib.import_module("layer6_benchmarks.api.routes.system")
-    fake_main = ModuleType("layer6_benchmarks.api.main")
+    src_path = str(REPO_ROOT / "services" / "layer6-benchmarks" / "src")
+    for name in list(sys.modules):
+        if name == "api" or name.startswith("api."):
+            sys.modules.pop(name)
+    sys.path.insert(0, src_path)
+    try:
+        layer6_system = importlib.import_module("api.routes.system")
+        fake_main = ModuleType("api.main")
 
-    async def fake_health_check(_request: object) -> dict[str, str]:
-        return {"status": "degraded", "service": "layer6-benchmarks"}
+        async def fake_health_check(_request: object) -> dict[str, str]:
+            return {"status": "degraded", "service": "layer6-benchmarks"}
 
-    fake_main.health_check = fake_health_check  # type: ignore[attr-defined]
-    monkeypatch.setattr(layer6_system, "_get_handlers", lambda: fake_main)
+        fake_main.health_check = fake_health_check  # type: ignore[attr-defined]
+        monkeypatch.setitem(sys.modules, "api.main", fake_main)
 
-    fake_request = SimpleNamespace(app=SimpleNamespace(state=SimpleNamespace()))
-    payload = await layer6_system.health_check(fake_request)
+        fake_request = SimpleNamespace(app=SimpleNamespace(state=SimpleNamespace()))
+        payload = await layer6_system.health_check(fake_request)
+    finally:
+        sys.path.remove(src_path)
 
     assert payload["status"] == "degraded"
     assert payload["service"] == "layer6-benchmarks"
-    assert payload["readiness"] == {"is_ready": False, "reason": "dependency_unhealthy"}
+    assert payload["readiness"] == {"is_ready": False, "reason": "neo4j_uninitialized"}
 
 
 @pytest.mark.asyncio
 async def test_layer6_system_readiness_contract() -> None:
-    layer6_system = importlib.import_module("layer6_benchmarks.api.routes.system")
-    fake_main = ModuleType("layer6_benchmarks.api.main")
-
-    async def fake_readiness_check() -> dict[str, str]:
-        return {"status": "ready"}
-
-    setattr(fake_main, "readiness_check", fake_readiness_check)
-    original_get_handlers = layer6_system._get_handlers
-    layer6_system._get_handlers = lambda: fake_main
+    src_path = str(REPO_ROOT / "services" / "layer6-benchmarks" / "src")
+    for name in list(sys.modules):
+        if name == "api" or name.startswith("api."):
+            sys.modules.pop(name)
+    sys.path.insert(0, src_path)
     try:
+        layer6_system = importlib.import_module("api.routes.system")
         payload = await layer6_system.readiness_check()
     finally:
-        layer6_system._get_handlers = original_get_handlers
+        sys.path.remove(src_path)
 
-    assert payload["status"] == "ready"
-    assert payload["readiness"] == {"is_ready": True, "reason": "dependencies_available"}
+    assert payload == {"status": "ready"}

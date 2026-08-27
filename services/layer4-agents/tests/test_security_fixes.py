@@ -26,10 +26,7 @@ for path in (str(SHARED_SRC), str(LAYER4_PROJECT)):
     if path not in sys.path:
         sys.path.insert(0, path)
 
-from layer4_agents.api.routes.billing import _get_client_ip  # noqa: E402
-from layer4_agents.api.routes.billing_helpers import (
-    is_stripe_webhook_ip as _is_stripe_webhook_ip,  # noqa: E402
-)
+from layer4_agents.api.routes.billing import _get_client_ip, _is_stripe_webhook_ip  # noqa: E402
 from layer4_agents.api.routes.health_badges import (  # noqa: E402
     dismiss_badge,
     get_detailed_health,

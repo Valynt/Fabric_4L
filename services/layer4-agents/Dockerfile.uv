@@ -41,7 +41,6 @@ ENV PYTHONPATH=/app:/app/src
 
 # Copy source code
 COPY src/ ./src/
-COPY config/ ./config/
 
 # Change ownership
 RUN chown -R appuser:appgroup /app /home/appuser

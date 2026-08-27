@@ -246,17 +246,6 @@ class ToolValidationError(ToolError, ValueError):
     pass
 
 
-class TenantSpoofingError(ToolValidationError):
-    """Raised when a tenant_id is supplied that does not match the authenticated context.
-
-    Subclass of :class:`ToolValidationError` (and therefore :class:`ValueError`) so it is
-    treated as an input/validation failure and is mapped by ``BaseTool.run`` to a stable
-    structured ``TENANT_SPOOFING_DETECTED`` error code without an exception stack trace.
-    """
-
-    pass
-
-
 class ToolRegistrationError(ToolValidationError):
     """Raised when tool registration constraint is violated."""
 
@@ -406,31 +395,6 @@ class BaseTool(ABC):
             )
         except asyncio.CancelledError:
             raise
-        except TenantSpoofingError as e:
-            # Security hardening: map tenant spoofing to a stable structured
-            # failure code without logging an exception stack trace.
-            logger.warning("Tenant spoofing rejected by tool %s: %s", self.name, e)
-            # Only use the authenticated/config tenant here, never the untrusted
-            # request-supplied tenant_id, to avoid tenant-id poisoning via the
-            # failure metadata/logs. Prefer the request-context tenant (trusted)
-            # when available, then fall back to the tool config tenant.
-            request_ctx = get_request_context()
-            trusted_tenant_id = getattr(request_ctx, "tenant_id", None) or self.get_tenant_id()
-            # Normalize to str: _safe_metadata and the ToolMetadata contract expect a
-            # string tenant_id, but RequestContext.tenant_id can be a UUID.
-            trusted_tenant_id = str(trusted_tenant_id) if trusted_tenant_id else None
-            elapsed_ms = int((asyncio.get_running_loop().time() - start_time) * 1000)
-            return ToolResult.failure(
-                code="TENANT_SPOOFING_DETECTED",
-                message=str(e),
-                recoverable=False,
-                metadata=_safe_metadata(
-                    trace_id=trace_id or input_dict.get("trace_id"),
-                    request_id=request_id,
-                    tenant_id=trusted_tenant_id,
-                    execution_time_ms=elapsed_ms,
-                ),
-            )
         except Exception:
             # Log the full exception internally, return safe error to caller
             logger.exception("Tool execution failed: %s", self.name)

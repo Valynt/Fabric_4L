@@ -30,16 +30,7 @@ from layer4_agents.workflows.base import BaseWorkflow
 # state_manager, orchestrator_with_checkpoint, controller_with_running_state,
 # controller_with_paused_state, completed_workflow_state, simple_test_workflow,
 # setup_workflow_metadata
-try:
-    from tests.utils.workflow_helpers import setup_workflow_metadata
-except (ImportError, ModuleNotFoundError):
-    import importlib.util
-    from pathlib import Path
-    _helper_path = Path(__file__).resolve().parent / "utils" / "workflow_helpers.py"
-    _spec = importlib.util.spec_from_file_location("layer4_test_workflow_helpers", _helper_path)
-    _mod = importlib.util.module_from_spec(_spec)
-    _spec.loader.exec_module(_mod)
-    setup_workflow_metadata = _mod.setup_workflow_metadata
+from tests.utils.workflow_helpers import setup_workflow_metadata
 
 # Test constants
 TEST_WORKFLOW_TYPE = "roi_calculator"

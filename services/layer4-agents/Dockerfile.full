@@ -15,7 +15,6 @@ RUN uv sync --frozen --no-install-project
 RUN uv pip install "email-validator>=2.1.0"
 
 COPY services/layer4-agents/src/ ./src/
-COPY services/layer4-agents/config/ ./config/
 COPY packages/shared/src/value_fabric/ ./value_fabric/
 COPY packages/shared/src/value_fabric/shared/ ./value_fabric/shared/
 COPY packages/platform-contract/src/python/canonical/ ./canonical/
@@ -33,7 +32,6 @@ WORKDIR /app
 
 COPY --from=builder /app/.venv /app/.venv
 COPY --from=builder /app/src ./src/
-COPY --from=builder /app/config ./config/
 COPY --from=builder /app/value_fabric ./value_fabric/
 COPY --from=builder /app/canonical ./canonical/
 

@@ -93,67 +93,6 @@ def test_l4_workflow_resume_validation_error_shape_is_stable() -> None:
     )
 
 
-def test_l4_scorecard_git_metric_completeness_shape_is_stable() -> None:
-    """RFC 1500: optional, additive git-completeness metadata on the L4 Scorecard.
-
-    ``git_metric_completeness`` is a string-keyed map of ``GitMetricCompleteness``
-    entries, ``git_warnings`` is a list of ``GitWarning``. Both are optional
-    (absent from ``required``) and carry precise, bounded shapes that never
-    expose raw git output or contributor emails.
-    """
-    document = _load_openapi(L4_OPENAPI)
-    components = document["components"]["schemas"]
-
-    assert "GitMetricCompleteness" in components
-    assert "GitWarning" in components
-
-    scorecard = components["Scorecard"]
-    props = scorecard.get("properties", {})
-    required = scorecard.get("required", [])
-
-    for field in ("git_metric_completeness", "git_warnings"):
-        assert field in props, f"Scorecard missing additive field {field!r}"
-        assert field not in required, f"{field!r} must be optional (not required)"
-
-    # dict[str, GitMetricCompleteness]
-    comp_schema = props["git_metric_completeness"]
-    assert comp_schema.get("type") == "object"
-    assert comp_schema.get("additionalProperties") == {
-        "$ref": "#/components/schemas/GitMetricCompleteness"
-    }
-
-    # list[GitWarning]
-    warnings_schema = props["git_warnings"]
-    assert warnings_schema.get("type") == "array"
-    assert warnings_schema.get("items") == {"$ref": "#/components/schemas/GitWarning"}
-
-    # A representative payload must validate against the resolved schemas.
-    completeness = {
-        "total_commits": {
-            "source": "git rev-list",
-            "status": "ok",
-            "truncated": False,
-            "complete": True,
-            "bytes_read": 2048,
-            "max_bytes": None,
-            "max_lines": None,
-        }
-    }
-    warnings = [
-        {
-            "code": "GIT_CMD_TIMEOUT",
-            "metric": "author_emails",
-            "status": "timeout",
-            "message": "git collection timed out; count may be an undercount",
-            "bytes_read": 512,
-            "max_bytes": 1000,
-            "max_lines": None,
-        }
-    ]
-    assert_matches_schema(completeness, comp_schema, root=document)
-    assert_matches_schema(warnings, warnings_schema, root=document)
-
-
 def test_l5_truth_detail_success_shape_is_stable() -> None:
     payload = {
         "id": "11111111-1111-1111-1111-111111111111",

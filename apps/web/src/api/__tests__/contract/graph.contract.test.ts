@@ -10,6 +10,8 @@ import { describe, it, expect } from 'vitest';
 import { z } from 'zod';
 import {
   GraphNodeSchema,
+  GraphEdgeSchema,
+  SubgraphResponseSchema,
   ApiErrorSchema,
   assertSchema,
   assertSchemaRejects,
@@ -218,7 +220,7 @@ describe('Contract: subgraph and entity shapes', () => {
 describe('Contract: graph tenant context', () => {
   it('graph node can carry tenant_id for isolation', () => {
     const TenantScopedGraphNodeSchema = GraphNodeSchema.extend({
-      tenant_id: z.uuid(),
+      tenant_id: z.string().uuid(),
     });
     const node = assertSchema(
       TenantScopedGraphNodeSchema,

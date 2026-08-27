@@ -340,35 +340,8 @@ def _parse_datetime(value: str | None) -> datetime | None:
     return dt
 
 
-def _git_metadata_to_json(scorecard: Scorecard) -> dict[str, Any]:
-    """Serialize git completeness/warning metadata to JSON-safe plain dicts.
-
-    ``Scorecard.git_metric_completeness`` and ``git_warnings`` hold Pydantic
-    models; convert them to plain dicts so SQLAlchemy ``JSON`` columns and the
-    fallback ``json.dump`` can round-trip them losslessly.
-    """
-    return {
-        "git_metric_completeness": {
-            k: _as_json_dict(v)
-            for k, v in (scorecard.git_metric_completeness or {}).items()
-        },
-        "git_warnings": [_as_json_dict(w) for w in (scorecard.git_warnings or [])],
-    }
-
-
-def _as_json_dict(value: Any) -> Any:
-    """Return a JSON-safe value, dumping Pydantic models attrs when present."""
-    if isinstance(value, dict):
-        return value
-    dump = getattr(value, "model_dump", None)
-    if callable(dump):
-        return dump(mode="json")
-    return value
-
-
 def _scorecard_to_dict(scorecard: Scorecard, run_id: str) -> dict[str, Any]:
     """Serialize a scorecard and its area scores for fallback storage."""
-    git_meta = _git_metadata_to_json(scorecard)
     return {
         "id": scorecard.id,
         "run_id": run_id,
@@ -385,8 +358,8 @@ def _scorecard_to_dict(scorecard: Scorecard, run_id: str) -> dict[str, Any]:
         "total_directories": scorecard.total_directories,
         "total_commits": scorecard.total_commits,
         "total_contributors": scorecard.total_contributors,
-        "git_metric_completeness": git_meta["git_metric_completeness"],
-        "git_warnings": git_meta["git_warnings"],
+        "git_metric_completeness": scorecard.git_metric_completeness,
+        "git_warnings": scorecard.git_warnings,
         "audit_timestamp": _isoformat(scorecard.audit_timestamp),
         "executive_summary": scorecard.executive_summary,
         "area_scores": [
@@ -773,7 +746,6 @@ def _area_score_from_db(row: AreaScoreDB) -> AreaScore:
 
 def _scorecard_to_db(scorecard: Scorecard, run_id: str) -> ScorecardDB:
     """Convert a Scorecard to a DB row (area scores attached via relationship)."""
-    git_meta = _git_metadata_to_json(scorecard)
     db_scorecard = ScorecardDB(
         id=scorecard.id,
         tenant_id=scorecard.tenant_id,
@@ -790,8 +762,8 @@ def _scorecard_to_db(scorecard: Scorecard, run_id: str) -> ScorecardDB:
         total_directories=scorecard.total_directories,
         total_commits=scorecard.total_commits,
         total_contributors=scorecard.total_contributors,
-        git_metric_completeness=git_meta["git_metric_completeness"] or None,
-        git_warnings=git_meta["git_warnings"] or None,
+        git_metric_completeness=scorecard.git_metric_completeness or None,
+        git_warnings=scorecard.git_warnings or None,
         audit_timestamp=scorecard.audit_timestamp,
         executive_summary=scorecard.executive_summary,
     )
@@ -1216,8 +1188,6 @@ class PersistenceManager:
             self._fallback_write_scorecard(scorecard, run_id, scorecard.tenant_id)
             return
 
-        git_meta = _git_metadata_to_json(scorecard)
-
         async with self._session() as session:
             existing = await session.get(ScorecardDB, scorecard.id)
             if existing is not None:
@@ -1232,8 +1202,8 @@ class PersistenceManager:
                 existing.total_directories = scorecard.total_directories
                 existing.total_commits = scorecard.total_commits
                 existing.total_contributors = scorecard.total_contributors
-                existing.git_metric_completeness = git_meta["git_metric_completeness"] or None
-                existing.git_warnings = git_meta["git_warnings"] or None
+                existing.git_metric_completeness = scorecard.git_metric_completeness or None
+                existing.git_warnings = scorecard.git_warnings or None
                 existing.audit_timestamp = scorecard.audit_timestamp
                 existing.executive_summary = scorecard.executive_summary
                 existing.tenant_id = scorecard.tenant_id

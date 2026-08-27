@@ -76,9 +76,9 @@ def build_auth_context(
         MembershipNotActiveError: User has no active membership in the tenant.
     """
     user = directory.get_user_by_clerk(claims.sub)
-    if user is None or user.status != "active":
+    if user is None:
         raise UserNotProvisionedError(
-            log_detail=f"no active Fabric4L user for clerk_user_id={claims.sub!r}"
+            log_detail=f"no Fabric4L user for clerk_user_id={claims.sub!r}"
         )
 
     if claims.org_id is None:

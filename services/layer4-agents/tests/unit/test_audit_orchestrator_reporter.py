@@ -10,7 +10,6 @@ from layer4_agents.agents.audit_orchestrator.models import (
     Confidence,
     Finding,
     FindingStatus,
-    GitWarning,
     Severity,
     Sprint,
 )
@@ -127,27 +126,6 @@ def test_full_report_contains_all_sections(
     report = generate_full_report(sample_scorecard, sample_sprints)
     missing = [heading for heading in EXPECTED_SECTIONS if heading not in report]
     assert not missing, f"Missing sections: {missing}"
-
-
-@pytest.mark.unit
-def test_full_report_includes_git_completeness_warning_note(
-    sample_scorecard: Any,
-    sample_sprints: list[Sprint],
-) -> None:
-    """GitWarning models must surface their safe message in the completeness note."""
-    warning = GitWarning(
-        code="GIT_CMD_TIMEOUT",
-        metric="commits",
-        status="timeout",
-        message="Git command for metric 'commits' timed out; reported value may be incomplete",
-        bytes_read=4096,
-        max_bytes=10000,
-        max_lines=None,
-    )
-    sample_scorecard.git_warnings = [warning]
-    report = generate_full_report(sample_scorecard, sample_sprints)
-    assert "Some git metrics were incomplete" in report
-    assert warning.message in report
 
 
 @pytest.mark.unit

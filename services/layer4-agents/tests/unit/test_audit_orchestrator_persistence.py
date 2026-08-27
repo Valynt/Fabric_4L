@@ -19,8 +19,6 @@ from layer4_agents.agents.audit_orchestrator.models import (
     Finding,
     FindingStatus,
     FindingUpdate,
-    GitMetricCompleteness,
-    GitWarning,
     Severity,
     Sprint,
 )
@@ -457,51 +455,6 @@ async def test_fallback_scorecard_round_trip_preserves_all_fields(
     assert loaded.total_contributors == sample_scorecard.total_contributors
     assert loaded.confidence == sample_scorecard.confidence
     assert loaded.area_scores[0].findings_count == sample_scorecard.area_scores[0].findings_count
-
-
-@pytest.mark.unit
-async def test_git_metadata_models_round_trip_via_json_fallback(
-    fallback_manager: PersistenceManager,
-    sample_run: AuditRun,
-    sample_scorecard: Any,
-) -> None:
-    """Pydantic git metadata models must serialize to/from the JSON fallback.
-
-    The git completeness/warning values are typed as ``GitMetricCompleteness``
-    and ``GitWarning`` models; without deserialization to plain JSON dicts they
-    would be stringified by ``json.dump`` and lose their shape across the
-    fallback boundary.
-    """
-    ctx = GitMetricCompleteness(
-        source="commits",
-        status="timeout",
-        truncated=True,
-        complete=False,
-        bytes_read=4096,
-        max_bytes=10000,
-        max_lines=None,
-    )
-    warning = GitWarning(
-        code="GIT_CMD_TIMEOUT",
-        metric="commits",
-        status="timeout",
-        message="Git command for metric 'commits' timed out; reported value may be incomplete",
-        bytes_read=4096,
-        max_bytes=10000,
-        max_lines=None,
-    )
-    sample_scorecard.git_metric_completeness = {"total_commits": ctx}
-    sample_scorecard.git_warnings = [warning]
-
-    await fallback_manager.save_run(sample_run)
-    await fallback_manager.save_scorecard(sample_run.id, sample_scorecard)
-
-    loaded = await fallback_manager.get_latest_scorecard(sample_scorecard.repo_name)
-    assert loaded is not None
-    assert loaded.git_metric_completeness["total_commits"].source == "commits"
-    assert loaded.git_metric_completeness["total_commits"].bytes_read == 4096
-    assert loaded.git_warnings[0].code == "GIT_CMD_TIMEOUT"
-    assert loaded.git_warnings[0].message == warning.message
 
 
 @pytest.mark.unit

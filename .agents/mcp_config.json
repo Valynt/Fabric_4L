@@ -5,13 +5,6 @@
       "headers": {
         "Authorization": "Bearer ${REPOWISE_API_KEY}"
       }
-    },
-    "github": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-github"],
-      "env": {
-        "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_PERSONAL_ACCESS_TOKEN}"
-      }
     }
   }
 }

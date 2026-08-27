@@ -18,7 +18,7 @@ SPEC.loader.exec_module(folders)
 
 def test_shared_auth_subpath_is_present() -> None:
     """``shared/auth`` must be in the provisioning set so gateway auth
-    secrets (CLERK_SECRET_KEY, FABRIC_AUTH_SIGNING_KEY, CLERK_WEBHOOK_SIGNING_SECRET)
+    secrets (CLERK_SECRET_KEY, FABRIC_AUTH_SIGNING_KEY, CLERK_WEBHOOK_SECRET)
     are copied to staging/prod, not silently omitted."""
     paths = {p for p, _needs_parent in folders.FOLDERS_TO_CREATE}
     assert "shared/auth" in paths

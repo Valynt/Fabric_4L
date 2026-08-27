@@ -101,7 +101,7 @@ def main() -> int:
 
     replay_parser = subparsers.add_parser("replay", help="Replay DLQ records")
     replay_parser.add_argument("--url", default=os.getenv("FABRIC_API_URL", "http://localhost:8000"), help="Base API URL")
-    replay_parser.add_argument("--secret", default=os.getenv("CLERK_WEBHOOK_SIGNING_SECRET", ""), help="Clerk webhook Svix secret")
+    replay_parser.add_argument("--secret", default=os.getenv("CLERK_WEBHOOK_SECRET", ""), help="Clerk webhook Svix secret")
     replay_parser.add_argument("--file", help="Path to local DLQ JSON file export to replay")
     replay_parser.add_argument("--event-id", help="Filter replay to specific event_id")
 
@@ -112,9 +112,9 @@ def main() -> int:
         return 0
 
     if args.command == "replay":
-        secret = args.secret or os.getenv("CLERK_WEBHOOK_SIGNING_SECRET")
+        secret = args.secret or os.getenv("CLERK_WEBHOOK_SECRET")
         if not secret:
-            logger.error("CLERK_WEBHOOK_SIGNING_SECRET is required to generate replay signatures.")
+            logger.error("CLERK_WEBHOOK_SECRET is required to generate replay signatures.")
             return 1
 
         records = []
