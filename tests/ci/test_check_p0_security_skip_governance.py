@@ -94,3 +94,14 @@ def test_ambiguous_multiple_match_fails(tmp_path: Path) -> None:
     ]
     assert report["violation_count"] == 1
     assert any("ambiguous allowlist match" in v for v in report["violations"])
+
+
+def test_missing_governed_file_fails(tmp_path: Path) -> None:
+    """A governed path that no longer exists must fail, not go green-by-absence."""
+    report = evaluate(
+        tmp_path, _allowlist(tmp_path, [_entry()]), TODAY, governed_paths=GOVERNED
+    )
+    assert report["scanned_files"] == 0
+    assert report["missing_governed_files"] == ["tests/security/gov_test.py"]
+    assert report["violation_count"] >= 1
+    assert any("missing" in v for v in report["violations"])

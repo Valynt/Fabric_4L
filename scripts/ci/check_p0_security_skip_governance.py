@@ -85,27 +85,33 @@ def _repo_root() -> Path:
     return Path(__file__).resolve().parents[2]
 
 
-def _iter_files(root: Path, governed_paths: tuple[str, ...]) -> list[Path]:
+def _iter_files(root: Path, governed_paths: tuple[str, ...]) -> tuple[list[Path], list[str]]:
     """Resolve the explicitly governed P0/security files under ``root``.
 
-    The ratchet only ever governs the small set in GOVERNED_PATHS, so iterate
-    those directly rather than rglob-ing the whole tree (which adds avoidable
-    CI overhead).
+    Returns ``(existing_files, missing_governed)``. The ratchet only ever
+    governs the small set in GOVERNED_PATHS, so iterate those directly rather
+    than rglob-ing the whole tree (which adds avoidable CI overhead).
+
+    A governed path that no longer exists is surfaced in ``missing_governed``
+    rather than silently dropped, so deleting or renaming a governed suite
+    cannot turn the ratchet "green-by-absence" (0 files / 0 violations).
     """
     files: list[Path] = []
+    missing: list[str] = []
     for rel in governed_paths:
         candidate = root / rel
-        if not candidate.is_file():
-            continue
         if set(Path(rel).parts) & EXCLUDED_PARTS:
             continue
+        if not candidate.is_file():
+            missing.append(rel)
+            continue
         files.append(candidate)
-    return sorted(files)
+    return sorted(files), sorted(missing)
 
 
-def _find_skips(root: Path, governed_paths: tuple[str, ...]) -> list[SkipFinding]:
+def _find_skips(files: list[Path], root: Path) -> list[SkipFinding]:
     findings: list[SkipFinding] = []
-    for path in _iter_files(root, governed_paths):
+    for path in files:
         for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
             if "pytest.skip.Exception" in line:
                 continue
@@ -171,8 +177,9 @@ def evaluate(
     *,
     governed_paths: tuple[str, ...] = GOVERNED_PATHS,
 ) -> dict:
-    findings = _find_skips(root, governed_paths)
+    findings = _find_skips(_iter_files(root, governed_paths)[0], root)
     entries, errors = _load_allowlist(allowlist_path, today)
+    _, missing = _iter_files(root, governed_paths)
     matched_ids: set[str] = set()
     uncovered: list[SkipFinding] = []
     ambiguous: list[tuple[SkipFinding, list[str]]] = []
@@ -193,11 +200,15 @@ def evaluate(
         f"ambiguous allowlist match (covered by multiple entries): {f.path}:{f.line} -> {ids}"
         for f, ids in ambiguous
     )
+    violations.extend(
+        f"governed P0/security file is missing (deleted/renamed?): {rel}" for rel in missing
+    )
     violations.extend(errors)
     return {
-        "scanned_files": len(_iter_files(root, governed_paths)),
+        "scanned_files": len(_iter_files(root, governed_paths)[0]),
         "skip_count": len(findings),
         "covered_skips": sorted(matched_ids),
+        "missing_governed_files": missing,
         "uncovered_skips": [asdict(f) for f in uncovered],
         "ambiguous_skips": [
             {"path": f.path, "line": f.line, "matched_ids": ids} for f, ids in ambiguous
