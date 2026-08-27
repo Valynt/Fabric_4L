@@ -138,6 +138,36 @@ TENANT_WORKFLOW_TIMEOUT_SETTINGS_PATHS: tuple[tuple[str, ...], ...] = (
 )
 
 
+# ---------------------------------------------------------------------------
+# LLM Cost Metrics Integration Snippet
+# ---------------------------------------------------------------------------
+# When making LLM calls in tools (e.g., generation_tools.py), record cost
+# and token usage via the Prometheus metrics helper:
+#
+#     from ..metrics import get_metrics
+#     from ..metrics.llm_cost_calculator import LLMCostCalculator
+#
+#     calculator = LLMCostCalculator()
+#     cost = calculator.calculate_cost(
+#         provider="openai",
+#         model="gpt-4o",
+#         prompt_tokens=response.usage.prompt_tokens,
+#         completion_tokens=response.usage.completion_tokens,
+#     )
+#     metrics = get_metrics()
+#     if metrics:
+#         metrics.record_llm_cost(
+#             provider="openai",
+#             model="gpt-4o",
+#             tenant_id=str(tenant_id),
+#             cost=cost,
+#             prompt_tokens=response.usage.prompt_tokens,
+#             completion_tokens=response.usage.completion_tokens,
+#             status="success",
+#         )
+# ---------------------------------------------------------------------------
+
+
 class OrchestrationController:
     """Enhanced workflow executor with multi-agent orchestration.
 
