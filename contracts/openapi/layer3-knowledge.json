@@ -11497,17 +11497,23 @@
             "type": "object",
             "title": "Properties",
             "description": "Additional edge properties"
+          },
+          "relationship_type": {
+            "type": "string",
+            "title": "Relationship Type",
+            "description": "Deprecated alias for 'type'.",
+            "readOnly": true
           }
         },
-        "additionalProperties": false,
         "type": "object",
         "required": [
           "source",
           "target",
-          "type"
+          "type",
+          "relationship_type"
         ],
         "title": "GraphEdge",
-        "description": "Edge/relationship in the knowledge graph.\n\nThe canonical relationship field is 'type'."
+        "description": "Edge/relationship in the knowledge graph.\n\nVersioned policy:\n- v2.3 and earlier: emit canonical 'type' plus deprecated alias 'relationship_type'.\n- v2.4 warning window: alias remains deprecated and monitored.\n- v2.5 and later: remove 'relationship_type' alias and keep only 'type'."
       },
       "GraphNode": {
         "properties": {
@@ -11539,17 +11545,37 @@
             "type": "object",
             "title": "Properties",
             "description": "Additional node properties"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label",
+            "description": "Deprecated alias for 'name'.",
+            "readOnly": true
+          },
+          "type": {
+            "type": "string",
+            "title": "Type",
+            "description": "Deprecated alias for 'entity_type'.",
+            "readOnly": true
+          },
+          "confidence": {
+            "type": "number",
+            "title": "Confidence",
+            "description": "Deprecated alias for 'confidence_score'.",
+            "readOnly": true
           }
         },
-        "additionalProperties": false,
         "type": "object",
         "required": [
           "id",
           "name",
-          "entity_type"
+          "entity_type",
+          "label",
+          "type",
+          "confidence"
         ],
         "title": "GraphNode",
-        "description": "Node in the knowledge graph.\n\nCanonical fields are name/entity_type/confidence_score."
+        "description": "Node in the knowledge graph.\n\nCanonical fields are name/entity_type/confidence_score.\nLegacy aliases label/type/confidence are emitted for one deprecation window."
       },
       "GraphNodeWithLayout": {
         "properties": {
@@ -11617,14 +11643,34 @@
             ],
             "title": "R",
             "description": "Radius for visualization"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label",
+            "description": "Deprecated alias for 'name'.",
+            "readOnly": true
+          },
+          "type": {
+            "type": "string",
+            "title": "Type",
+            "description": "Deprecated alias for 'entity_type'.",
+            "readOnly": true
+          },
+          "confidence": {
+            "type": "number",
+            "title": "Confidence",
+            "description": "Deprecated alias for 'confidence_score'.",
+            "readOnly": true
           }
         },
-        "additionalProperties": false,
         "type": "object",
         "required": [
           "id",
           "name",
-          "entity_type"
+          "entity_type",
+          "label",
+          "type",
+          "confidence"
         ],
         "title": "GraphNodeWithLayout",
         "description": "Graph node with visualization layout coordinates.\n\nUse this model only for endpoints that intentionally return\npre-computed layout positions (e.g., full graph export).\nFor subgraph and query responses, use plain GraphNode and\ncompute layout client-side."

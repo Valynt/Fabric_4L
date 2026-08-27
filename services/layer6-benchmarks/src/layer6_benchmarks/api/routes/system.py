@@ -7,10 +7,17 @@ from value_fabric.shared.probes import normalize_probe_response
 router = APIRouter(tags=["system"])
 
 
+def _get_handlers():
+    """Resolve service handlers lazily to avoid an import cycle at startup."""
+    from .. import main
+
+    return main
+
+
 @router.get("/health", response_model=None, include_in_schema=False)
 async def health_check(request: Request):
     """Service-local health adapter using the shared probe contract."""
-    from .. import main as handlers
+    handlers = _get_handlers()
 
     return normalize_probe_response(
         dict(await handlers.health_check(request)),
@@ -21,7 +28,7 @@ async def health_check(request: Request):
 @router.get("/ready", response_model=None)
 async def readiness_check():
     """Dependency readiness contract for orchestration and probes."""
-    from .. import main as handlers
+    handlers = _get_handlers()
 
     payload = normalize_probe_response(
         dict(await handlers.readiness_check()),

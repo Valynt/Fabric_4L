@@ -4346,7 +4346,10 @@ export interface components {
          * GraphEdge
          * @description Edge/relationship in the knowledge graph.
          *
-         *     The canonical relationship field is 'type'.
+         *     Versioned policy:
+         *     - v2.3 and earlier: emit canonical 'type' plus deprecated alias 'relationship_type'.
+         *     - v2.4 warning window: alias remains deprecated and monitored.
+         *     - v2.5 and later: remove 'relationship_type' alias and keep only 'type'.
          */
         GraphEdge: {
             /**
@@ -4377,12 +4380,18 @@ export interface components {
             properties?: {
                 [key: string]: unknown;
             };
+            /**
+             * Relationship Type
+             * @description Deprecated alias for 'type'.
+             */
+            readonly relationship_type: string;
         };
         /**
          * GraphNode
          * @description Node in the knowledge graph.
          *
          *     Canonical fields are name/entity_type/confidence_score.
+         *     Legacy aliases label/type/confidence are emitted for one deprecation window.
          */
         GraphNode: {
             /**
@@ -4413,6 +4422,21 @@ export interface components {
             properties?: {
                 [key: string]: unknown;
             };
+            /**
+             * Label
+             * @description Deprecated alias for 'name'.
+             */
+            readonly label: string;
+            /**
+             * Type
+             * @description Deprecated alias for 'entity_type'.
+             */
+            readonly type: string;
+            /**
+             * Confidence
+             * @description Deprecated alias for 'confidence_score'.
+             */
+            readonly confidence: number;
         };
         /**
          * GraphNodeWithLayout
@@ -4467,6 +4491,21 @@ export interface components {
              * @description Radius for visualization
              */
             r?: number | null;
+            /**
+             * Label
+             * @description Deprecated alias for 'name'.
+             */
+            readonly label: string;
+            /**
+             * Type
+             * @description Deprecated alias for 'entity_type'.
+             */
+            readonly type: string;
+            /**
+             * Confidence
+             * @description Deprecated alias for 'confidence_score'.
+             */
+            readonly confidence: number;
         };
         /**
          * GraphRAGQuery

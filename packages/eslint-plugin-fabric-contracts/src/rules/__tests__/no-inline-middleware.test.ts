@@ -2,9 +2,11 @@ import { RuleTester } from "eslint";
 import rule from "../no-inline-middleware";
 
 const ruleTester = new RuleTester({
-  parserOptions: {
-    ecmaVersion: 2020,
-    sourceType: "module",
+  languageOptions: {
+    parserOptions: {
+      ecmaVersion: 2020,
+      sourceType: "module",
+    },
   },
 });
 

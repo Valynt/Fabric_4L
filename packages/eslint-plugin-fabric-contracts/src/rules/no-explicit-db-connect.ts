@@ -22,7 +22,6 @@ const rule: Rule.RuleModule = {
     type: "problem",
     docs: {
       description: "Disallow explicit db.connect() with tenant identifiers",
-      category: "Canonical Contracts",
       recommended: true,
       url: "https://github.com/bmsull560/Fabric_4L/blob/main/contract.md#22-database-session-boundary",
     },

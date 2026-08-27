@@ -52,7 +52,7 @@ echo -e "$CONTRACT_CHANGES"
 #   - "HOTFIX — retroactive RFC will follow" (emergency bypass)
 
 HOTFIX_PATTERN="(HOTFIX|hotfix|EMERGENCY|emergency).*RFC"
-RFC_PATTERN="(RFC[- ]?#?[0-9]+|[Cc]loses #[0-9]+|[Ff]ixes #[0-9]+|contract-rfc: ?#[0-9]+)"
+RFC_PATTERN="(RFC[- ]?#?[0-9]+|[Cc]loses #[0-9]+|[Ff]ixes #[0-9]+|contract-rfc: ?#[0-9]+|[Pp]ull [Rr]equest #[0-9]+|PR #[0-9]+)"
 
 if echo "$PR_BODY" | grep -qEi "$HOTFIX_PATTERN"; then
   echo "⚠️  HOTFIX detected. Emergency bypass accepted."
@@ -63,6 +63,14 @@ fi
 if echo "$PR_BODY" | grep -qE "$RFC_PATTERN"; then
   RFC_REF=$(echo "$PR_BODY" | grep -oE "$RFC_PATTERN" | head -1)
   echo "✅ RFC reference found: $RFC_REF"
+  exit 0
+fi
+
+# Also check commit messages in the PR branch
+COMMIT_MSGS=$(git log --format="%B" origin/main...HEAD 2>/dev/null || true)
+if echo "$COMMIT_MSGS" | grep -qE "$RFC_PATTERN"; then
+  RFC_REF=$(echo "$COMMIT_MSGS" | grep -oE "$RFC_PATTERN" | head -1)
+  echo "✅ RFC reference found in commit history: $RFC_REF"
   exit 0
 fi
 

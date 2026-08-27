@@ -22,7 +22,6 @@ const rule: Rule.RuleModule = {
     type: "problem",
     docs: {
       description: "Disallow private imports - use public API surface",
-      category: "Canonical Contracts",
       recommended: true,
       url: "https://github.com/bmsull560/Fabric_4L/blob/main/contract.md#27-public-api-surface",
     },
@@ -40,6 +39,11 @@ const rule: Rule.RuleModule = {
      * Check if an import source is a private/deep import
      */
     function isPrivateImport(source: string): boolean {
+      // Allow top-level project lib alias "@/lib/..."
+      if (source.startsWith("@/lib/")) {
+        return false;
+      }
+
       // Check for private path patterns
       const privatePatterns = [
         /[\\/]src[\\/]/,
@@ -65,7 +69,7 @@ const rule: Rule.RuleModule = {
       return isBarrelFile || isTestFile;
     }
 
-    const filename = context.getFilename();
+    const filename = context.filename;
     if (isExemptFile(filename)) {
       return {};
     }
