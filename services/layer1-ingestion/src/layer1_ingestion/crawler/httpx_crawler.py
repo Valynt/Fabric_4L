@@ -193,12 +193,7 @@ class HttpxCrawler:
 
         self.logger.info("HTTPX crawler stopped")
 
-    async def fetch(
-        self,
-        url: str,
-        *,
-        allowlist_domains: list[str] | None = None,
-    ) -> FastPathResult:
+    async def fetch(self, url: str) -> FastPathResult:
         """Fetch a single URL via HTTPX with full processing.
 
         Retries are applied automatically for retriable status codes and
@@ -209,9 +204,6 @@ class HttpxCrawler:
 
         Args:
             url: URL to fetch
-            allowlist_domains: Optional explicit allowlist of domains to skip
-                DNS/IP SSRF resolution for (used with mock/test transports).
-                Defaults to ``None``, which enforces full SSRF validation.
 
         Returns:
             FastPathResult with content and metadata
@@ -221,7 +213,7 @@ class HttpxCrawler:
 
         # SECURITY: Defense-in-depth URL safety validation at crawler boundary
         try:
-            validate_url_safety(url, allowlist_domains=allowlist_domains)
+            validate_url_safety(url)
         except URLSafetyError:
             return self._create_error_result(
                 url=url,
@@ -230,17 +222,9 @@ class HttpxCrawler:
                 error_type="ssrf_blocked",
             )
 
-        return await self._fetch_with_retry(
-            url, allowlist_domains=allowlist_domains
-        )
+        return await self._fetch_with_retry(url)
 
-    async def _fetch_with_retry(
-        self,
-        url: str,
-        redirect_depth: int = 0,
-        *,
-        allowlist_domains: list[str] | None = None,
-    ) -> FastPathResult:
+    async def _fetch_with_retry(self, url: str, redirect_depth: int = 0) -> FastPathResult:
         """Internal fetch implementation with exponential-backoff retry logic.
 
         Attempts the request up to ``config.max_retries + 1`` times.  Each
@@ -289,9 +273,7 @@ class HttpxCrawler:
                     if location:
                         redirect_url = urljoin(url, location)
                         try:
-                            validate_url_safety(
-                                redirect_url, allowlist_domains=allowlist_domains
-                            )
+                            validate_url_safety(redirect_url)
                         except URLSafetyError:
                             return self._create_error_result(
                                 url=redirect_url,

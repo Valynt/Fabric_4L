@@ -80,12 +80,9 @@ class TestStaticSiteSpeedup:
                 RouteType.FAST_WITH_FALLBACK
             )
 
-            if decision.route in (RouteType.FAST, RouteType.FAST_WITH_FALLBACK):
+            if decision.route == RouteType.FAST:
                 async with HttpxCrawler() as crawler:
-                    result = await crawler.fetch(
-                        "https://blog.example.com/post",
-                        allowlist_domains=["example.com"],
-                    )
+                    result = await crawler.fetch("https://blog.example.com/post")
                     router_times.append(result.fetch_time_ms)
             else:
                 # Router chose browser path for what should be static content
@@ -129,10 +126,7 @@ class TestStaticSiteSpeedup:
 
         async with HttpxCrawler() as crawler:
             start = time.monotonic()
-            result = await crawler.fetch(
-                "https://docs.example.com/guide",
-                allowlist_domains=["example.com"],
-            )
+            result = await crawler.fetch("https://docs.example.com/guide")
             fetch_time = (time.monotonic() - start) * 1000
 
         # Fast path should be quick

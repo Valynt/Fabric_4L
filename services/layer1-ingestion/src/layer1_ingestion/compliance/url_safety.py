@@ -126,22 +126,8 @@ def validate_url_safety(
 
     if allowlist_domains:
         normalized_allowlist = [d.lower().rstrip(".") for d in allowlist_domains if d]
-        if any(host == d or host.endswith(f".{d}") for d in normalized_allowlist):
-            # Explicitly allowlisted domain: skip real DNS/IP resolution. Used for
-            # mock/test transports and explicit trust domains. Production callers
-            # pass no allowlist, so the full DNS-rebinding IP checks below remain
-            # enforced for all real crawling.
-            normalized = urlunsplit(
-                (parsed.scheme, f"{host}:{port}", parsed.path or "/", parsed.query, "")
-            )
-            return URLSafetyResult(
-                normalized_url=normalized,
-                hostname=host,
-                scheme=parsed.scheme,
-                port=port,
-                resolved_ips=(),
-            )
-        raise URLSafetyError("DOMAIN_NOT_ALLOWLISTED")
+        if not any(host == d or host.endswith(f".{d}") for d in normalized_allowlist):
+            raise URLSafetyError("DOMAIN_NOT_ALLOWLISTED")
 
     try:
         resolved_ips = _resolve_ips(host)
