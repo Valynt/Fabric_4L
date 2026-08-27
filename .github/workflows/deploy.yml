@@ -11,6 +11,9 @@ env:
   AWS_REGION: 'us-east-1'
   EKS_CLUSTER_NAME: 'value-fabric'
   REGISTRY: ${{ inputs.registry || 'ghcr.io' }}
+  # GHCR requires lowercase repository names (github.repository_owner preserves
+  # case and would produce an invalid tag), so derive the namespace statically.
+  REGISTRY_NAMESPACE: valynt
   IMAGE_REF: ${{ inputs.image_ref }}
   ENVIRONMENT: ${{ inputs.environment }}
 
@@ -111,9 +114,9 @@ jobs:
           for layer in layer1-ingestion layer2-extraction layer3-knowledge \
                        layer4-agents layer5-ground-truth layer6-benchmarks frontend; do
             if [[ "$ref" == sha256:* ]]; then
-              IMAGE="${{ env.REGISTRY }}/${{ github.repository_owner }}/fabric_4l/$layer@${ref}"
+              IMAGE="${{ env.REGISTRY }}/${{ env.REGISTRY_NAMESPACE }}/fabric_4l/$layer@${ref}"
             else
-              IMAGE="${{ env.REGISTRY }}/${{ github.repository_owner }}/fabric_4l/$layer:${ref}"
+              IMAGE="${{ env.REGISTRY }}/${{ env.REGISTRY_NAMESPACE }}/fabric_4l/$layer:${ref}"
             fi
             echo "Verifying signature for: $IMAGE"
 
@@ -172,7 +175,7 @@ jobs:
           )
 
           for layer in "${layers[@]}"; do
-            image_name="${{ env.REGISTRY }}/${{ github.repository_owner }}/fabric_4l/${layer}"
+            image_name="${{ env.REGISTRY }}/${{ env.REGISTRY_NAMESPACE }}/fabric_4l/${layer}"
             if [[ "${{ env.IMAGE_REF }}" == sha256:* ]]; then
               image_ref="${image_name}@${{ env.IMAGE_REF }}"
               deployed_digest="${{ env.IMAGE_REF }}"
@@ -729,13 +732,13 @@ jobs:
 
           ## Services deployed
 
-          - ghcr.io/bmsull560/fabric_4l/layer1-ingestion:${TAG}
-          - ghcr.io/bmsull560/fabric_4l/layer2-extraction:${TAG}
-          - ghcr.io/bmsull560/fabric_4l/layer3-knowledge:${TAG}
-          - ghcr.io/bmsull560/fabric_4l/layer4-agents:${TAG}
-          - ghcr.io/bmsull560/fabric_4l/layer5-ground-truth:${TAG}
-          - ghcr.io/bmsull560/fabric_4l/layer6-benchmarks:${TAG}
-          - ghcr.io/bmsull560/fabric_4l/frontend:${TAG}
+          - ghcr.io/valynt/fabric_4l/layer1-ingestion:${TAG}
+          - ghcr.io/valynt/fabric_4l/layer2-extraction:${TAG}
+          - ghcr.io/valynt/fabric_4l/layer3-knowledge:${TAG}
+          - ghcr.io/valynt/fabric_4l/layer4-agents:${TAG}
+          - ghcr.io/valynt/fabric_4l/layer5-ground-truth:${TAG}
+          - ghcr.io/valynt/fabric_4l/layer6-benchmarks:${TAG}
+          - ghcr.io/valynt/fabric_4l/frontend:${TAG}
           EOF
 
           echo "file=$FILE" >> "$GITHUB_OUTPUT"

@@ -12,6 +12,7 @@ from uuid import UUID
 from neo4j import AsyncGraphDatabase
 
 from ..config.settings import get_settings
+from ..models.embedding_space import resolve_embedding_space
 from ..models.tool_schemas import (
     FindPathsInput,
     FindPathsOutput,
@@ -34,7 +35,7 @@ from ..shared.security.cypher_security import (
     ALLOWED_REL_TYPES,
     validate_cypher_identifier,
 )
-from .registry import BaseTool
+from .registry import BaseTool, TenantSpoofingError
 
 logger = logging.getLogger(__name__)
 
@@ -160,7 +161,7 @@ class QueryGraphTool(BaseTool):
         # the authenticated context, then ensure tenant_id is set correctly.
         for key in list(params.keys()):
             if "tenant_id" in key.lower() and str(params[key]) != str(tenant_id):
-                raise ValueError(
+                raise TenantSpoofingError(
                     "Tenant spoofing detected: parameter tenant_id does not match authenticated context"
                 )
         params["tenant_id"] = str(tenant_id)
@@ -198,10 +199,8 @@ class QueryGraphTool(BaseTool):
 
             payload_tenant_id = getattr(input_data, "tenant_id", None)
             if payload_tenant_id and str(payload_tenant_id) != str(tenant_ctx.tenant_id):
-                logger.warning("Tenant spoofing detected: payload tenant_id does not match authenticated context")
-                return QueryGraphOutput(
-                    error="Tenant spoofing detected: payload tenant_id does not match authenticated context",
-                    results=[], columns=[], row_count=0, execution_time_ms=0
+                raise TenantSpoofingError(
+                    "Tenant spoofing detected: payload tenant_id does not match authenticated context"
                 )
         except TenantContextError as e:
             logger.warning(
@@ -292,22 +291,21 @@ class SemanticSearchTool(BaseTool):
     def __init__(self, config: dict[str, Any] | None = None):
         super().__init__(config)
         self.vector_store_url = config.get("vector_store_url") if config else None
-        # Default embedding model is provider-dependent.
-        # Together.ai uses "togethercomputer/m2-bert-80M-8k-retrieval";
-        # OpenAI uses "text-embedding-3-large".
-        _default_provider = (
-            os.getenv("LAYER4_LLM_PROVIDER")
-            or (config.get("llm_provider") if config else None)
-            or "together"
-        ).lower()
-        _default_embedding = (
-            "togethercomputer/m2-bert-80M-8k-retrieval"
-            if _default_provider == "together"
-            else "text-embedding-3-large"
-        )
-        self.embedding_model = (
-            config.get("embedding_model", _default_embedding) if config else _default_embedding
-        )
+        # Resolve the embedding space declaratively from an explicit space name,
+        # provider, or the ambient LAYER4_LLM_PROVIDER. Anthropic falls back to
+        # an approved embedding provider (together), never failing at runtime.
+        space_name = config.get("embedding_space") if config else None
+        configured_model = config.get("embedding_model") if config else None
+        configured_provider = config.get("llm_provider") if config else None
+
+        if space_name:
+            self.embedding_space = resolve_embedding_space(space_name=space_name)
+        else:
+            self.embedding_space = resolve_embedding_space(
+                provider=(configured_provider or os.getenv("LAYER4_LLM_PROVIDER"))
+            )
+
+        self.embedding_model = configured_model or self.embedding_space.model
         self.pinecone_api_key = config.get("pinecone_api_key") if config else None
         self.pinecone_index = (
             config.get("pinecone_index", "value-fabric") if config else "value-fabric"
@@ -335,8 +333,12 @@ class SemanticSearchTool(BaseTool):
         return self._index
 
     async def _get_embedding(self, text: str) -> list[float]:
-        """Get embedding for text using OpenAI."""
-        response = await get_llm_provider(self.config).embed(
+        """Get embedding for text using the resolved EmbeddingSpace provider."""
+        provider_config = dict(self.config) if self.config else {}
+        if provider_config.get("llm_provider", "").lower() in ("anthropic", ""):
+            provider_config["llm_provider"] = self.embedding_space.provider
+
+        response = await get_llm_provider(provider_config).embed(
             model=self.embedding_model,
             text=text,
         )
@@ -357,10 +359,8 @@ class SemanticSearchTool(BaseTool):
 
             payload_tenant_id = getattr(input_data, "tenant_id", None)
             if payload_tenant_id and str(payload_tenant_id) != str(tenant_ctx.tenant_id):
-                logger.warning("Tenant spoofing detected: payload tenant_id does not match authenticated context")
-                return SemanticSearchOutput(
-                    error="Tenant spoofing detected: payload tenant_id does not match authenticated context",
-                    results=[], total_matches=0, query_embedding_time_ms=0
+                raise TenantSpoofingError(
+                    "Tenant spoofing detected: payload tenant_id does not match authenticated context"
                 )
         except TenantContextError as e:
             logger.warning(f"Tenant context error in semantic_search: {e}")
@@ -485,10 +485,8 @@ class GetEntityTool(BaseTool):
 
             payload_tenant_id = getattr(input_data, "tenant_id", None)
             if payload_tenant_id and str(payload_tenant_id) != str(tenant_ctx.tenant_id):
-                logger.warning("Tenant spoofing detected: payload tenant_id does not match authenticated context")
-                return GetEntityOutput(
-                    error="Tenant spoofing detected: payload tenant_id does not match authenticated context",
-                    found=False
+                raise TenantSpoofingError(
+                    "Tenant spoofing detected: payload tenant_id does not match authenticated context"
                 )
         except TenantContextError as e:
             logger.warning(f"Tenant context error in get_entity: {e}")
@@ -607,10 +605,8 @@ class GetRelationshipsTool(BaseTool):
 
             payload_tenant_id = getattr(input_data, "tenant_id", None)
             if payload_tenant_id and str(payload_tenant_id) != str(tenant_ctx.tenant_id):
-                logger.warning("Tenant spoofing detected: payload tenant_id does not match authenticated context")
-                return GetRelationshipsOutput(
-                    error="Tenant spoofing detected: payload tenant_id does not match authenticated context",
-                    relationships=[], total_count=0
+                raise TenantSpoofingError(
+                    "Tenant spoofing detected: payload tenant_id does not match authenticated context"
                 )
         except TenantContextError as e:
             logger.warning(f"Tenant context error in get_relationships: {e}")
@@ -719,10 +715,8 @@ class TraverseTreeTool(BaseTool):
 
             payload_tenant_id = getattr(input_data, "tenant_id", None)
             if payload_tenant_id and str(payload_tenant_id) != str(tenant_ctx.tenant_id):
-                logger.warning("Tenant spoofing detected: payload tenant_id does not match authenticated context")
-                return TraverseTreeOutput(
-                    error="Tenant spoofing detected: payload tenant_id does not match authenticated context",
-                    paths=[], nodes_discovered=0
+                raise TenantSpoofingError(
+                    "Tenant spoofing detected: payload tenant_id does not match authenticated context"
                 )
         except TenantContextError as e:
             logger.warning(f"Tenant context error in traverse_tree: {e}")
@@ -825,10 +819,8 @@ class FindPathsTool(BaseTool):
 
             payload_tenant_id = getattr(input_data, "tenant_id", None)
             if payload_tenant_id and str(payload_tenant_id) != str(tenant_ctx.tenant_id):
-                logger.warning("Tenant spoofing detected: payload tenant_id does not match authenticated context")
-                return FindPathsOutput(
-                    error="Tenant spoofing detected: payload tenant_id does not match authenticated context",
-                    paths=[], shortest_path_length=None
+                raise TenantSpoofingError(
+                    "Tenant spoofing detected: payload tenant_id does not match authenticated context"
                 )
         except TenantContextError as e:
             logger.warning(f"Tenant context error in find_paths: {e}")

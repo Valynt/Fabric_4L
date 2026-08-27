@@ -44,6 +44,9 @@ permissions:
   packages: read
 env:
   REGISTRY: ghcr.io
+  # GHCR requires lowercase repository names (github.repository_owner preserves
+  # case and would produce an invalid tag), so derive the namespace statically.
+  REGISTRY_NAMESPACE: valynt
   IMAGE_REF: ${{ github.event.inputs.image_ref || format('sha-{0}', github.sha) }}
   LAYERS: "layer1-ingestion layer2-extraction layer3-knowledge layer4-agents layer5-ground-truth layer6-benchmarks frontend"
   PROMETHEUS_URL: ${{ secrets.PROMETHEUS_URL || 'https://prometheus.fabric.internal' }}
@@ -106,7 +109,7 @@ jobs:
             layer=$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["layer"])' "$metadata_file")
             digest=$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["image_digest"])' "$metadata_file")
             tag=$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["published_tag"])' "$metadata_file")
-            image="${{ env.REGISTRY }}/${{ github.repository_owner }}/fabric_4l/${layer}@${digest}"
+            image="${{ env.REGISTRY }}/${{ env.REGISTRY_NAMESPACE }}/fabric_4l/${layer}@${digest}"
             if ! docker manifest inspect "$image" > /dev/null 2>&1; then
               echo "❌ Image digest not found: $image"
               exit 1
@@ -180,11 +183,11 @@ jobs:
             case "$layer" in
               frontend)
                 key="apps/web"
-                img="${{ env.REGISTRY }}/${{ github.repository_owner }}/fabric_4l/frontend"
+                img="${{ env.REGISTRY }}/${{ env.REGISTRY_NAMESPACE }}/fabric_4l/frontend"
                 ;;
               *)
                 key="services/$layer"
-                img="${{ env.REGISTRY }}/${{ github.repository_owner }}/fabric_4l/$layer"
+                img="${{ env.REGISTRY }}/${{ env.REGISTRY_NAMESPACE }}/fabric_4l/$layer"
                 ;;
             esac
             kustomize edit set image "${key}=${img}:${ref}"
@@ -244,7 +247,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Create staging promotion branch
-        run: "branch_name=\"promote/staging-${{ needs.validate-build.outputs.image_ref }}\"\ngit checkout -b \"$branch_name\"\n\n# Update Staging overlay with new image digests\n# The staging env uses kustomization.yaml with SHA digest images\nkustomization_file=\"k8s/envs/staging/kustomization.yaml\"\nif [ -f \"$kustomization_file\" ]; then\n  # Use kustomize edit to update image digests for all layers\n  for layer in $LAYERS; do\n    image=\"ghcr.io/${{ github.repository_owner }}/fabric_4l/${layer }\"\n    digest=\"${{ needs.validate-build.outputs.image_ref }}\"\n    # Note: CI should set actual digests here\n    echo \"\U0001F4E6 Layer $layer would be updated to $digest\"\n  done\n  echo \"✅ Staging kustomization ready for image updates\"\nelse\n  echo \"❌ Missing $kustomization_file\"\n  exit 1\nfi\n"
+        run: "branch_name=\"promote/staging-${{ needs.validate-build.outputs.image_ref }}\"\ngit checkout -b \"$branch_name\"\n\n# Update Staging overlay with new image digests\n# The staging env uses kustomization.yaml with SHA digest images\nkustomization_file=\"k8s/envs/staging/kustomization.yaml\"\nif [ -f \"$kustomization_file\" ]; then\n  # Use kustomize edit to update image digests for all layers\n  for layer in $LAYERS; do\n    image=\"ghcr.io/${{ env.REGISTRY_NAMESPACE }}/fabric_4l/${layer}\"\n    digest=\"${{ needs.validate-build.outputs.image_ref }}\"\n    # Note: CI should set actual digests here\n    echo \"\U0001F4E6 Layer $layer would be updated to $digest\"\n  done\n  echo \"✅ Staging kustomization ready for image updates\"\nelse\n  echo \"❌ Missing $kustomization_file\"\n  exit 1\nfi\n"
       - name: Block placeholder image digests (staging)
         # Guard runs after digest injection so it validates the updated file, not the pre-existing one.
         run: bash scripts/check-no-placeholder-digests.sh k8s/envs/staging/kustomization.yaml
