@@ -27,7 +27,6 @@ import time
 from datetime import UTC, datetime, timedelta
 
 import pytest
-
 from layer7_billing.webhook_security import (
     parse_stripe_signature_header,
     verify_stripe_webhook_signature,
@@ -58,7 +57,7 @@ FUTURE_TS = CURRENT_TS + 301
 
 def _make_signature(payload: bytes, secret: str, timestamp: int | None = None) -> str:
     signed_at = int(time.time()) if timestamp is None else timestamp
-    signed_payload = f"{signed_at}.".encode("utf-8") + payload
+    signed_payload = f"{signed_at}.".encode() + payload
     digest = hmac.new(secret.encode("utf-8"), signed_payload, hashlib.sha256).hexdigest()
     return f"t={signed_at},v1={digest}"
 
@@ -88,7 +87,7 @@ def test_signature_tampering_rejected() -> None:
 def test_signature_invalidated_by_timestamp_tampering() -> None:
     """Swapping the signed timestamp invalidates the HMAC."""
     signed_at = CURRENT_TS
-    signed_payload = f"{signed_at}.".encode("utf-8") + PAYLOAD
+    signed_payload = f"{signed_at}.".encode() + PAYLOAD
     digest = hmac.new(WEBHOOK_SECRET.encode(), signed_payload, hashlib.sha256).hexdigest()
     tampered_timestamp_sig = f"t={CURRENT_TS - 5},v1={digest}"
 
@@ -177,13 +176,18 @@ def test_missing_timestamp_rejected() -> None:
 
 
 def _request(event_id: str, key: str, tenant_id: str, payload: bytes = PAYLOAD) -> IdempotencyRequest:
+    # Include a digest of the raw payload so the idempotency fingerprint
+    # actually changes when the same key is replayed with a different body.
+    body = {
+        "id": event_id,
+        "type": "payment.created",
+        "payload_sha256": hashlib.sha256(payload).hexdigest(),
+    }
     return IdempotencyRequest(
         tenant_id=tenant_id,
         endpoint_key="stripe-webhook",
         idempotency_key=key,
-        request_fingerprint=build_request_fingerprint(
-            "POST", "/v1/billing/webhook", {"id": event_id, "type": "payment.created"}
-        ),
+        request_fingerprint=build_request_fingerprint("POST", "/v1/billing/webhook", body),
     )
 
 
@@ -209,7 +213,11 @@ def test_replay_with_different_payload_conflict() -> None:
     service.store_response(
         request, IdempotencyRecord(status_code=200, body={"received": True}, headers={})
     )
-    conflicting = _request("evt_replay_other", "evt_replay", tenant, payload=b'{"id":"x"}')
+    # Same event id + same key, only the payload differs -> the fingerprint must
+    # change so the replay is detected as a conflicting payload (not identical).
+    conflicting = _request(
+        "evt_replay", "evt_replay", tenant, payload=b'{"id":"evt_replay","type":"payment.created"}'
+    )
     with pytest.raises(IdempotencyConflictError, match="different payload"):
         service.check_replay(conflicting)
 

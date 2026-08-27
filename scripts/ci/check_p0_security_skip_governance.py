@@ -7,7 +7,9 @@ Narrowly scoped CI guard over P0/security test paths. It fails CI when:
 * an allowlisted skip passes its expiry date,
 * a P0/security file contains an unconditional ``pytest.skip``,
   ``@pytest.mark.skip``, or ``@pytest.mark.xfail`` without an approved entry
-  in ``config/ci/p0_security_skip_allowlist.yaml``.
+  in ``config/ci/p0_security_skip_allowlist.yaml``,
+* a P0/security skip is matched by more than one allowlist entry (ambiguous
+  ownership, per the allowlist's "exactly one match per skip" contract).
 
 Unlike ``check_test_skip_governance.py`` (which audits *all* test debt across
 the repo), this check concerns only P0/security paths so a skipped P0 test
@@ -25,7 +27,7 @@ import json
 import re
 import sys
 from dataclasses import asdict, dataclass
-from datetime import date
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 import yaml
@@ -83,14 +85,14 @@ def _repo_root() -> Path:
     return Path(__file__).resolve().parents[2]
 
 
-def _is_p0_security_path(relative: Path) -> bool:
+def _is_p0_security_path(relative: Path, governed_paths: tuple[str, ...]) -> bool:
     posix = relative.as_posix()
-    return posix in GOVERNED_PATHS
+    return posix in governed_paths
 
 
-def _iter_files(root: Path) -> list[Path]:
+def _iter_files(root: Path, scan_roots: tuple[str, ...], governed_paths: tuple[str, ...]) -> list[Path]:
     files: set[Path] = set()
-    for scan_root in SCAN_ROOTS:
+    for scan_root in scan_roots:
         base = root / scan_root
         if not base.exists():
             continue
@@ -99,15 +101,15 @@ def _iter_files(root: Path) -> list[Path]:
             if not path.is_file() or path.suffix.lower() not in SOURCE_SUFFIXES:
                 continue
             relative = path.relative_to(root)
-            if set(relative.parts) & EXCLUDED_PARTS or not _is_p0_security_path(relative):
+            if set(relative.parts) & EXCLUDED_PARTS or not _is_p0_security_path(relative, governed_paths):
                 continue
             files.add(path)
     return sorted(files)
 
 
-def _find_skips(root: Path) -> list[SkipFinding]:
+def _find_skips(root: Path, scan_roots: tuple[str, ...], governed_paths: tuple[str, ...]) -> list[SkipFinding]:
     findings: list[SkipFinding] = []
-    for path in _iter_files(root):
+    for path in _iter_files(root, scan_roots, governed_paths):
         for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
             if "pytest.skip.Exception" in line:
                 continue
@@ -162,25 +164,45 @@ def _load_allowlist(path: Path, today: date) -> tuple[list[AllowEntry], list[str
     return entries, errors
 
 
-def evaluate(root: Path, allowlist_path: Path, today: date) -> dict:
-    findings = _find_skips(root)
+def evaluate(
+    root: Path,
+    allowlist_path: Path,
+    today: date,
+    *,
+    scan_roots: tuple[str, ...] = SCAN_ROOTS,
+    governed_paths: tuple[str, ...] = GOVERNED_PATHS,
+) -> dict:
+    findings = _find_skips(root, scan_roots, governed_paths)
     entries, errors = _load_allowlist(allowlist_path, today)
     matched_ids: set[str] = set()
     uncovered: list[SkipFinding] = []
+    ambiguous: list[tuple[SkipFinding, list[str]]] = []
     for finding in findings:
         matches = [e for e in entries if e.matches(finding)]
         if not matches:
             uncovered.append(finding)
-        else:
+        elif len(matches) > 1:
+            # Allowlist promises exactly one owning entry per skip. Multiple
+            # matches hide overlapping patterns, so fail on ambiguity.
+            ambiguous.append((finding, [e.id for e in matches]))
             matched_ids.update(e.id for e in matches)
+        else:
+            matched_ids.add(matches[0].id)
     stale = sorted(e.id for e in entries if e.id not in matched_ids)
     violations = [f"unapproved P0/security skip: {f.path}:{f.line} ({f.marker})" for f in uncovered]
+    violations.extend(
+        f"ambiguous allowlist match (covered by multiple entries): {f.path}:{f.line} -> {ids}"
+        for f, ids in ambiguous
+    )
     violations.extend(errors)
     return {
-        "scanned_files": len(_iter_files(root)),
+        "scanned_files": len(_iter_files(root, scan_roots, governed_paths)),
         "skip_count": len(findings),
         "covered_skips": list(matched_ids),
         "uncovered_skips": [asdict(f) for f in uncovered],
+        "ambiguous_skips": [
+            {"path": f.path, "line": f.line, "matched_ids": ids} for f, ids in ambiguous
+        ],
         "stale_allowlist_entries": stale,
         "violation_count": len(violations),
         "violations": violations,
@@ -196,7 +218,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--json-out", type=Path, default=None)
     args = parser.parse_args(argv)
     allowlist_path = args.allowlist if args.allowlist.is_absolute() else args.root / args.allowlist
-    report = evaluate(args.root, allowlist_path, date.today())
+    report = evaluate(args.root, allowlist_path, datetime.now(UTC).date())
     if args.json_out:
         args.json_out.parent.mkdir(parents=True, exist_ok=True)
         args.json_out.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
