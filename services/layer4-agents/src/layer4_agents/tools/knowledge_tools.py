@@ -34,7 +34,7 @@ from ..shared.security.cypher_security import (
     ALLOWED_REL_TYPES,
     validate_cypher_identifier,
 )
-from .registry import BaseTool
+from .registry import BaseTool, TenantSpoofingError
 
 logger = logging.getLogger(__name__)
 
@@ -160,7 +160,7 @@ class QueryGraphTool(BaseTool):
         # the authenticated context, then ensure tenant_id is set correctly.
         for key in list(params.keys()):
             if "tenant_id" in key.lower() and str(params[key]) != str(tenant_id):
-                raise ValueError(
+                raise TenantSpoofingError(
                     "Tenant spoofing detected: parameter tenant_id does not match authenticated context"
                 )
         params["tenant_id"] = str(tenant_id)
@@ -198,10 +198,8 @@ class QueryGraphTool(BaseTool):
 
             payload_tenant_id = getattr(input_data, "tenant_id", None)
             if payload_tenant_id and str(payload_tenant_id) != str(tenant_ctx.tenant_id):
-                logger.warning("Tenant spoofing detected: payload tenant_id does not match authenticated context")
-                return QueryGraphOutput(
-                    error="Tenant spoofing detected: payload tenant_id does not match authenticated context",
-                    results=[], columns=[], row_count=0, execution_time_ms=0
+                raise TenantSpoofingError(
+                    "Tenant spoofing detected: payload tenant_id does not match authenticated context"
                 )
         except TenantContextError as e:
             logger.warning(
@@ -357,10 +355,8 @@ class SemanticSearchTool(BaseTool):
 
             payload_tenant_id = getattr(input_data, "tenant_id", None)
             if payload_tenant_id and str(payload_tenant_id) != str(tenant_ctx.tenant_id):
-                logger.warning("Tenant spoofing detected: payload tenant_id does not match authenticated context")
-                return SemanticSearchOutput(
-                    error="Tenant spoofing detected: payload tenant_id does not match authenticated context",
-                    results=[], total_matches=0, query_embedding_time_ms=0
+                raise TenantSpoofingError(
+                    "Tenant spoofing detected: payload tenant_id does not match authenticated context"
                 )
         except TenantContextError as e:
             logger.warning(f"Tenant context error in semantic_search: {e}")
@@ -386,8 +382,8 @@ class SemanticSearchTool(BaseTool):
                     error="Pinecone API key required for semantic search",
                 )
 
-
-            filter_dict = {"tenant_id": str(tenant_ctx.tenant_id)}
+            # P0 FIX: Build filter with mandatory tenant isolation
+            filter_dict: dict[str, Any] = {"tenant_id": str(tenant_ctx.tenant_id)}
             if input_data.entity_types:
                 filter_dict["entity_type"] = {"$in": input_data.entity_types}
 
@@ -485,10 +481,8 @@ class GetEntityTool(BaseTool):
 
             payload_tenant_id = getattr(input_data, "tenant_id", None)
             if payload_tenant_id and str(payload_tenant_id) != str(tenant_ctx.tenant_id):
-                logger.warning("Tenant spoofing detected: payload tenant_id does not match authenticated context")
-                return GetEntityOutput(
-                    error="Tenant spoofing detected: payload tenant_id does not match authenticated context",
-                    found=False
+                raise TenantSpoofingError(
+                    "Tenant spoofing detected: payload tenant_id does not match authenticated context"
                 )
         except TenantContextError as e:
             logger.warning(f"Tenant context error in get_entity: {e}")
@@ -607,10 +601,8 @@ class GetRelationshipsTool(BaseTool):
 
             payload_tenant_id = getattr(input_data, "tenant_id", None)
             if payload_tenant_id and str(payload_tenant_id) != str(tenant_ctx.tenant_id):
-                logger.warning("Tenant spoofing detected: payload tenant_id does not match authenticated context")
-                return GetRelationshipsOutput(
-                    error="Tenant spoofing detected: payload tenant_id does not match authenticated context",
-                    relationships=[], total_count=0
+                raise TenantSpoofingError(
+                    "Tenant spoofing detected: payload tenant_id does not match authenticated context"
                 )
         except TenantContextError as e:
             logger.warning(f"Tenant context error in get_relationships: {e}")
@@ -719,10 +711,8 @@ class TraverseTreeTool(BaseTool):
 
             payload_tenant_id = getattr(input_data, "tenant_id", None)
             if payload_tenant_id and str(payload_tenant_id) != str(tenant_ctx.tenant_id):
-                logger.warning("Tenant spoofing detected: payload tenant_id does not match authenticated context")
-                return TraverseTreeOutput(
-                    error="Tenant spoofing detected: payload tenant_id does not match authenticated context",
-                    paths=[], nodes_discovered=0
+                raise TenantSpoofingError(
+                    "Tenant spoofing detected: payload tenant_id does not match authenticated context"
                 )
         except TenantContextError as e:
             logger.warning(f"Tenant context error in traverse_tree: {e}")
@@ -825,10 +815,8 @@ class FindPathsTool(BaseTool):
 
             payload_tenant_id = getattr(input_data, "tenant_id", None)
             if payload_tenant_id and str(payload_tenant_id) != str(tenant_ctx.tenant_id):
-                logger.warning("Tenant spoofing detected: payload tenant_id does not match authenticated context")
-                return FindPathsOutput(
-                    error="Tenant spoofing detected: payload tenant_id does not match authenticated context",
-                    paths=[], shortest_path_length=None
+                raise TenantSpoofingError(
+                    "Tenant spoofing detected: payload tenant_id does not match authenticated context"
                 )
         except TenantContextError as e:
             logger.warning(f"Tenant context error in find_paths: {e}")

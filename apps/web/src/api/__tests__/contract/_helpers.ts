@@ -6,11 +6,11 @@
  * Tests import from here rather than re-declaring schemas inline.
  */
 
-import { z } from 'zod';
+import { z } from "zod";
 import {
   assertOpenApiSchema,
   assertOpenApiSchemaRejects,
-} from './openapi-validator';
+} from "./openapi-validator";
 
 // ---------------------------------------------------------------------------
 // Common
@@ -41,7 +41,7 @@ export const TenantContextSchema = z.object({
 
 export const CrossTenantErrorSchema = z.object({
   error: z.object({
-    code: z.literal('AUTHORIZATION_ERROR'),
+    code: z.literal("AUTHORIZATION_ERROR"),
     message: z.string().min(1),
     request_id: z.string().min(1),
     details: z.record(z.string(), z.unknown()).nullable().optional(),
@@ -73,9 +73,9 @@ export const ExtractionStatusSchema = z.object({
 });
 
 export const SignalLifecycleStatusSchema = z.enum([
-  'active',
-  'superseded',
-  'merged',
+  "active",
+  "superseded",
+  "merged",
 ]);
 
 export const SignalLifecycleActorSchema = z.object({
@@ -100,7 +100,7 @@ export const OperationalSignalLifecycleRecordSchema = z.object({
   signal_id: z.string().min(1),
   tenant_id: z.string().min(1),
   account_id: z.string().min(1),
-  status: SignalLifecycleStatusSchema.default('active'),
+  status: SignalLifecycleStatusSchema.default("active"),
   lineage: SignalLineageSchema.optional(),
   lifecycle: SignalLifecycleMetadataSchema,
 });
@@ -113,10 +113,6 @@ export const GraphNodeSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
   entity_type: z.string().min(1),
-  label: z.string().min(1).optional(),
-  type: z.string().min(1).optional(),
-  confidence: z.number().min(0).max(1).optional(),
-  properties: z.record(z.string(), z.unknown()).optional(),
   confidence_score: z.number().min(0).max(1).optional(),
 });
 
@@ -124,7 +120,6 @@ export const GraphEdgeSchema = z.object({
   source: z.string().min(1),
   target: z.string().min(1),
   type: z.string().min(1),
-  relationship_type: z.string().min(1).optional(),
   weight: z.number().nullable().optional(),
   properties: z.record(z.string(), z.unknown()).optional(),
 });
@@ -172,7 +167,13 @@ export const PackSummarySchema = z.object({
 // ---------------------------------------------------------------------------
 
 export const WorkflowStatusEnum = z.enum([
-  'pending', 'running', 'completed', 'failed', 'cancelled', 'paused', 'interrupted',
+  "pending",
+  "running",
+  "completed",
+  "failed",
+  "cancelled",
+  "paused",
+  "interrupted",
 ]);
 
 export const WorkflowCreateResponseSchema = z.object({
@@ -198,22 +199,33 @@ export const WorkflowStatusResponseSchema = z.object({
   user_id: z.string().nullable(),
   priority: z.number().nullable().optional(),
   scheduler_status: z.string().nullable().optional(),
-  progress: z.object({
-    step_id: z.string().nullable(),
-    status: z.enum(['pending', 'running', 'paused', 'completed', 'failed', 'cancelled', 'unknown']),
-    percent: z.number().min(0).max(100),
-    message: z.string(),
-    started_at: z.string().nullable().optional(),
-    updated_at: z.string(),
-    completed_at: z.string().nullable().optional(),
-    actionable_next_state: z.object({
-      can_retry: z.boolean(),
-      can_resume: z.boolean(),
-      can_cancel: z.boolean(),
-      requires_user_action: z.boolean(),
-      next_action: z.string().nullable(),
-    }),
-  }).nullable().optional(),
+  progress: z
+    .object({
+      step_id: z.string().nullable(),
+      status: z.enum([
+        "pending",
+        "running",
+        "paused",
+        "completed",
+        "failed",
+        "cancelled",
+        "unknown",
+      ]),
+      percent: z.number().min(0).max(100),
+      message: z.string(),
+      started_at: z.string().nullable().optional(),
+      updated_at: z.string(),
+      completed_at: z.string().nullable().optional(),
+      actionable_next_state: z.object({
+        can_retry: z.boolean(),
+        can_resume: z.boolean(),
+        can_cancel: z.boolean(),
+        requires_user_action: z.boolean(),
+        next_action: z.string().nullable(),
+      }),
+    })
+    .nullable()
+    .optional(),
 });
 
 export const WorkflowResultResponseSchema = z.object({
@@ -241,7 +253,7 @@ export const TenantModelSchema = z.object({
   id: z.string().uuid(),
   name: z.string().min(1).max(200),
   slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
-  status: z.enum(['active', 'suspended', 'deleted']),
+  status: z.enum(["active", "suspended", "deleted"]),
 });
 
 export const FeatureFlagResponseSchema = z.object({
@@ -257,15 +269,14 @@ export const FeatureFlagResponseSchema = z.object({
   updated_by: z.string().uuid().nullable(),
 });
 
-
 export const WorkspaceTabKeySchema = z.enum([
-  'signals',
-  'drivers',
-  'evidence',
-  'stakeholders',
-  'action-plan',
-  'value-model',
-  'narrative',
+  "signals",
+  "drivers",
+  "evidence",
+  "stakeholders",
+  "action-plan",
+  "value-model",
+  "narrative",
 ]);
 
 export const WorkspaceSignalSchema = z.object({
@@ -328,23 +339,28 @@ export const WorkspaceNarrativeItemSchema = z.object({
   summary: z.string().min(1),
 });
 
-export const WorkspaceTabResponseSchema = z.object({
-  signals: z.array(WorkspaceSignalSchema).optional(),
-  drivers: z.array(WorkspaceDriverSchema).optional(),
-  evidence: z.array(WorkspaceEvidenceSchema).optional(),
-  stakeholders: z.array(WorkspaceStakeholderSchema).optional(),
-  'action-plan': z.array(WorkspaceActionPlanItemSchema).optional(),
-  'value-model': z.array(WorkspaceValueModelItemSchema).optional(),
-  narrative: z.array(WorkspaceNarrativeItemSchema).optional(),
-}).superRefine((value, ctx) => {
-  const presentKeys = Object.keys(value).filter((key) => value[key as keyof typeof value] !== undefined);
-  if (presentKeys.length !== 1) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: 'Workspace tab response must contain exactly one tab payload key',
-    });
-  }
-});
+export const WorkspaceTabResponseSchema = z
+  .object({
+    signals: z.array(WorkspaceSignalSchema).optional(),
+    drivers: z.array(WorkspaceDriverSchema).optional(),
+    evidence: z.array(WorkspaceEvidenceSchema).optional(),
+    stakeholders: z.array(WorkspaceStakeholderSchema).optional(),
+    "action-plan": z.array(WorkspaceActionPlanItemSchema).optional(),
+    "value-model": z.array(WorkspaceValueModelItemSchema).optional(),
+    narrative: z.array(WorkspaceNarrativeItemSchema).optional(),
+  })
+  .superRefine((value, ctx) => {
+    const presentKeys = Object.keys(value).filter(
+      key => value[key as keyof typeof value] !== undefined
+    );
+    if (presentKeys.length !== 1) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          "Workspace tab response must contain exactly one tab payload key",
+      });
+    }
+  });
 
 export const WorkspaceUpdateResponseSchema = z.object({
   case_id: z.string().min(1),
@@ -369,7 +385,12 @@ export const WorkspaceGenerateResponseSchema = z.object({
 // ---------------------------------------------------------------------------
 
 export const TruthStatusEnum = z.enum([
-  'proposed', 'validated', 'disputed', 'rejected', 'superseded', 'expired',
+  "proposed",
+  "validated",
+  "disputed",
+  "rejected",
+  "superseded",
+  "expired",
 ]);
 
 export const TruthObjectResponseSchema = z.object({
@@ -423,33 +444,35 @@ export const ValidateResponseSchema = z.object({
 
 export const fixtures = {
   extractResponse: (): z.infer<typeof ExtractResponseSchema> => ({
-    extraction_job_id: 'job-abc123',
-    status: 'pending',
-    message: 'Extraction job queued',
+    extraction_job_id: "job-abc123",
+    status: "pending",
+    message: "Extraction job queued",
   }),
 
-  extractionStatus: (overrides?: Partial<z.infer<typeof ExtractionStatusSchema>>): z.infer<typeof ExtractionStatusSchema> => ({
-    job_id: 'job-abc123',
-    overall_status: 'completed',
-    extraction_status: 'completed',
-    ingestion_status: 'completed',
+  extractionStatus: (
+    overrides?: Partial<z.infer<typeof ExtractionStatusSchema>>
+  ): z.infer<typeof ExtractionStatusSchema> => ({
+    job_id: "job-abc123",
+    overall_status: "completed",
+    extraction_status: "completed",
+    ingestion_status: "completed",
     entities_extracted: 12,
     relationships_extracted: 8,
     retry_count: 0,
     last_error: null,
     next_retry_at: null,
-    started_at: '2024-01-15T10:00:00Z',
-    completed_at: '2024-01-15T10:01:30Z',
+    started_at: "2024-01-15T10:00:00Z",
+    completed_at: "2024-01-15T10:01:30Z",
     ...overrides,
   }),
 
   operationalSignalLifecycleRecord: (
     overrides?: Partial<z.infer<typeof OperationalSignalLifecycleRecordSchema>>
   ): z.infer<typeof OperationalSignalLifecycleRecordSchema> => ({
-    signal_id: 'signal-001',
-    tenant_id: 'tenant-001',
-    account_id: 'account-001',
-    status: 'active',
+    signal_id: "signal-001",
+    tenant_id: "tenant-001",
+    account_id: "account-001",
+    status: "active",
     lineage: {
       supersedes: [],
       superseded_by: [],
@@ -457,165 +480,177 @@ export const fixtures = {
     },
     lifecycle: {
       created_by: {
-        actor_id: 'user-001',
-        account_id: 'account-001',
+        actor_id: "user-001",
+        account_id: "account-001",
       },
-      created_at: '2024-01-15T10:00:00Z',
+      created_at: "2024-01-15T10:00:00Z",
       updated_by: {
-        actor_id: 'user-001',
-        account_id: 'account-001',
+        actor_id: "user-001",
+        account_id: "account-001",
       },
-      updated_at: '2024-01-15T10:00:00Z',
+      updated_at: "2024-01-15T10:00:00Z",
     },
     ...overrides,
   }),
 
   workflowCreateResponse: (): z.infer<typeof WorkflowCreateResponseSchema> => ({
-    workflow_instance_id: 'wf-inst-001',
-    status: 'pending',
+    workflow_instance_id: "wf-inst-001",
+    status: "pending",
     estimated_duration_seconds: 300,
   }),
 
-  workflowStatus: (overrides?: Partial<z.infer<typeof WorkflowStatusResponseSchema>>): z.infer<typeof WorkflowStatusResponseSchema> => ({
-    id: 'wf-inst-001',
-    workflow_instance_id: 'wf-inst-001',
-    workflow_type: 'roi_calculator',
-    status: 'running',
-    current_state: 'data_collection',
-    current_node: 'collect_metrics',
+  workflowStatus: (
+    overrides?: Partial<z.infer<typeof WorkflowStatusResponseSchema>>
+  ): z.infer<typeof WorkflowStatusResponseSchema> => ({
+    id: "wf-inst-001",
+    workflow_instance_id: "wf-inst-001",
+    workflow_type: "roi_calculator",
+    status: "running",
+    current_state: "data_collection",
+    current_node: "collect_metrics",
     progress_percentage: 45,
-    started_at: '2024-01-15T10:00:00Z',
+    started_at: "2024-01-15T10:00:00Z",
     completed_at: null,
     error_count: 0,
     has_output: false,
     results: null,
-    tenant_id: 'tenant-001',
-    user_id: 'user-001',
+    tenant_id: "tenant-001",
+    user_id: "user-001",
     ...overrides,
   }),
 
   workflowResult: (): z.infer<typeof WorkflowResultResponseSchema> => ({
-    workflow_id: 'wf-inst-001',
-    status: 'completed',
+    workflow_id: "wf-inst-001",
+    status: "completed",
     output: { roi_percent: 142, payback_months: 18 },
     errors: [],
-    completed_at: '2024-01-15T10:05:00Z',
+    completed_at: "2024-01-15T10:05:00Z",
   }),
 
   tenant: (): z.infer<typeof TenantModelSchema> => ({
-    id: '550e8400-e29b-41d4-a716-446655440000',
-    name: 'Acme Corp',
-    slug: 'acme-corp',
-    status: 'active',
+    id: "550e8400-e29b-41d4-a716-446655440000",
+    name: "Acme Corp",
+    slug: "acme-corp",
+    status: "active",
   }),
 
   featureFlag: (): z.infer<typeof FeatureFlagResponseSchema> => ({
-    id: '550e8400-e29b-41d4-a716-446655440001',
-    tenant_id: '550e8400-e29b-41d4-a716-446655440000',
-    flag_key: 'advanced_analytics',
+    id: "550e8400-e29b-41d4-a716-446655440001",
+    tenant_id: "550e8400-e29b-41d4-a716-446655440000",
+    flag_key: "advanced_analytics",
     enabled: true,
     rollout_percentage: 100,
-    description: 'Enable advanced analytics dashboard',
-    metadata: { region: 'us-east-1' },
-    created_at: '2024-01-01T00:00:00Z',
-    updated_at: '2024-01-15T00:00:00Z',
-    updated_by: '550e8400-e29b-41d4-a716-446655440000',
+    description: "Enable advanced analytics dashboard",
+    metadata: { region: "us-east-1" },
+    created_at: "2024-01-01T00:00:00Z",
+    updated_at: "2024-01-15T00:00:00Z",
+    updated_by: "550e8400-e29b-41d4-a716-446655440000",
   }),
 
-
   workspaceSignal: (): z.infer<typeof WorkspaceSignalSchema> => ({
-    id: 'sig-001',
-    name: 'Operational inefficiency in Manufacturing',
-    category: 'Operational',
+    id: "sig-001",
+    name: "Operational inefficiency in Manufacturing",
+    category: "Operational",
     confidence: 85,
-    impact: 'High',
-    trend: 'Increasing',
+    impact: "High",
+    trend: "Increasing",
   }),
 
   workspaceDriver: (): z.infer<typeof WorkspaceDriverSchema> => ({
-    id: 'drv-001',
-    name: 'Manual process overhead',
+    id: "drv-001",
+    name: "Manual process overhead",
     contribution: 35,
-    parentSignal: 'Operational inefficiency in Manufacturing',
-    subDrivers: ['Data entry', 'Approval delays'],
+    parentSignal: "Operational inefficiency in Manufacturing",
+    subDrivers: ["Data entry", "Approval delays"],
   }),
 
   workspaceEvidence: (): z.infer<typeof WorkspaceEvidenceSchema> => ({
-    id: 'ev-001',
-    source: 'Industry Report 2024',
-    claim: 'Sector averages 23% efficiency gap',
+    id: "ev-001",
+    source: "Industry Report 2024",
+    claim: "Sector averages 23% efficiency gap",
     confidence: 88,
-    type: 'benchmark',
+    type: "benchmark",
   }),
 
   workspaceStakeholder: (): z.infer<typeof WorkspaceStakeholderSchema> => ({
-    id: 'st-001',
-    name: 'CFO',
-    role: 'Economic Buyer',
-    priority: 'High',
-    engagement: 'Active',
+    id: "st-001",
+    name: "CFO",
+    role: "Economic Buyer",
+    priority: "High",
+    engagement: "Active",
   }),
 
-  workspaceActionPlanItem: (): z.infer<typeof WorkspaceActionPlanItemSchema> => ({
-    id: 'rec-001',
-    title: 'Automate manual approval workflows',
-    priority: 'critical',
-    projectedValue: '$2.4M annually',
-    confidence: 'high',
-    horizon: 'Q2-Q3',
+  workspaceActionPlanItem: (): z.infer<
+    typeof WorkspaceActionPlanItemSchema
+  > => ({
+    id: "rec-001",
+    title: "Automate manual approval workflows",
+    priority: "critical",
+    projectedValue: "$2.4M annually",
+    confidence: "high",
+    horizon: "Q2-Q3",
   }),
 
-  workspaceValueModelItem: (): z.infer<typeof WorkspaceValueModelItemSchema> => ({
-    id: 'val-001',
-    driver: 'Labor cost reduction',
-    category: 'hard',
+  workspaceValueModelItem: (): z.infer<
+    typeof WorkspaceValueModelItemSchema
+  > => ({
+    id: "val-001",
+    driver: "Labor cost reduction",
+    category: "hard",
     conservative: 800000,
     expected: 1200000,
     optimistic: 1600000,
   }),
 
   workspaceNarrativeItem: (): z.infer<typeof WorkspaceNarrativeItemSchema> => ({
-    id: 'nar-001',
-    stakeholder: 'CFO',
-    role: 'Economic Buyer',
-    status: 'ready',
-    headline: '$5.2M projected ROI over 3 years',
-    summary: 'Financial analysis shows a compelling return profile.',
+    id: "nar-001",
+    stakeholder: "CFO",
+    role: "Economic Buyer",
+    status: "ready",
+    headline: "$5.2M projected ROI over 3 years",
+    summary: "Financial analysis shows a compelling return profile.",
   }),
 
-  truthObject: (overrides?: Partial<z.infer<typeof TruthObjectResponseSchema>>): z.infer<typeof TruthObjectResponseSchema> => ({
-    id: '550e8400-e29b-41d4-a716-446655440002',
-    tenant_id: '550e8400-e29b-41d4-a716-446655440000',
-    organization_id: '550e8400-e29b-41d4-a716-446655440000',
-    claim: 'Manual reporting costs 12 hours/week per analyst',
-    claim_type: 'quantitative',
+  truthObject: (
+    overrides?: Partial<z.infer<typeof TruthObjectResponseSchema>>
+  ): z.infer<typeof TruthObjectResponseSchema> => ({
+    id: "550e8400-e29b-41d4-a716-446655440002",
+    tenant_id: "550e8400-e29b-41d4-a716-446655440000",
+    organization_id: "550e8400-e29b-41d4-a716-446655440000",
+    claim: "Manual reporting costs 12 hours/week per analyst",
+    claim_type: "quantitative",
     confidence: 0.82,
-    status: 'validated',
+    status: "validated",
     maturity_level: 4,
-    freshness: '2024-01-15T10:00:00Z',
+    freshness: "2024-01-15T10:00:00Z",
     is_stale: false,
-    applies_to: { account_id: 'acct-456' },
-    created_at: '2024-01-10T08:00:00Z',
-    updated_at: '2024-01-15T10:00:00Z',
+    applies_to: { account_id: "acct-456" },
+    created_at: "2024-01-10T08:00:00Z",
+    updated_at: "2024-01-15T10:00:00Z",
     ...overrides,
   }),
 
-  truthObjectSummary: (overrides?: Partial<z.infer<typeof TruthObjectSummarySchema>>): z.infer<typeof TruthObjectSummarySchema> => ({
-    id: '550e8400-e29b-41d4-a716-446655440002',
-    claim: 'Manual reporting costs 12 hours/week per analyst',
-    claim_type: 'quantitative',
+  truthObjectSummary: (
+    overrides?: Partial<z.infer<typeof TruthObjectSummarySchema>>
+  ): z.infer<typeof TruthObjectSummarySchema> => ({
+    id: "550e8400-e29b-41d4-a716-446655440002",
+    claim: "Manual reporting costs 12 hours/week per analyst",
+    claim_type: "quantitative",
     confidence: 0.82,
-    status: 'validated',
+    status: "validated",
     maturity_level: 4,
     is_stale: false,
     source_count: 3,
-    validated_by: 'admin@example.com',
-    freshness: '2024-01-15T10:00:00Z',
-    created_at: '2024-01-10T08:00:00Z',
+    validated_by: "admin@example.com",
+    freshness: "2024-01-15T10:00:00Z",
+    created_at: "2024-01-10T08:00:00Z",
     ...overrides,
   }),
 
-  paginatedSignals: (offset = 0, hasMore = false): z.infer<ReturnType<typeof PaginatedSchema>> => ({
+  paginatedSignals: (
+    offset = 0,
+    hasMore = false
+  ): z.infer<ReturnType<typeof PaginatedSchema>> => ({
     items: [],
     total: 0,
     limit: 50,
@@ -624,22 +659,19 @@ export const fixtures = {
   }),
 
   graphNode: (): z.infer<typeof GraphNodeSchema> => ({
-    id: 'node-001',
-    name: 'Cloud Migration',
-    entity_type: 'capability',
-    label: 'Cloud Migration',
-    type: 'capability',
+    id: "node-001",
+    name: "Cloud Migration",
+    entity_type: "capability",
     confidence_score: 0.95,
-    confidence: 0.95,
   }),
 
   packSummary: (): z.infer<typeof PackSummarySchema> => ({
-    pack_id: 'pack-saas-001',
-    name: 'SaaS Value Pack',
-    industry: 'Technology',
-    segment: 'saas',
-    status: 'active',
-    version: '2.1.0',
+    pack_id: "pack-saas-001",
+    name: "SaaS Value Pack",
+    industry: "Technology",
+    segment: "saas",
+    status: "active",
+    version: "2.1.0",
     driver_count: 12,
     formula_count: 8,
     benchmark_count: 5,
@@ -662,8 +694,8 @@ export function assertSchema<T extends z.ZodTypeAny>(
   const result = schema.safeParse(data);
   if (!result.success) {
     const issues = result.error.issues
-      .map((i) => `  ${i.path.join('.')}: ${i.message}`)
-      .join('\n');
+      .map(i => `  ${i.path.join(".")}: ${i.message}`)
+      .join("\n");
     throw new Error(`Contract violation for ${label}:\n${issues}`);
   }
   return result.data;

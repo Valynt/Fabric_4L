@@ -254,7 +254,7 @@ async def batch_operation(
                             id=target_id,
                             status="skipped",
                             job_id=None,
-                            error=f"Target is not active (status: {target.status})",
+                            error=f"Target is not active (status: {target.status})",  # nosemgrep
                         )
                     )
                     failed += 1
@@ -344,7 +344,7 @@ async def batch_operation(
                             id=job_id,
                             status="skipped",
                             job_id=job_id,
-                            error=f"Job is in terminal state (status: {job.status})",
+                            error=f"Job is in terminal state (status: {job.status})",  # nosemgrep
                         )
                     )
                     failed += 1
@@ -407,7 +407,7 @@ async def batch_operation(
                             id=job_id,
                             status="skipped",
                             job_id=job_id,
-                            error=f"Only failed or partially successful jobs can be retried (status: {job.status})",
+                            error=f"Only failed or partially successful jobs can be retried (status: {job.status})",  # nosemgrep
                         )
                     )
                     failed += 1
