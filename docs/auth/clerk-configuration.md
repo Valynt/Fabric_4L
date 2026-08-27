@@ -243,7 +243,7 @@ VITE_CLERK_SIGN_IN_URL=/sign-in
 VITE_CLERK_SIGN_UP_URL=/sign-up
 VITE_CLERK_AFTER_SIGN_IN_URL=/home
 VITE_CLERK_AFTER_SIGN_UP_URL=/onboarding
-VITE_CLERK_JWT_TEMPLATE=valuepact-api
+VITE_CLERK_JWT_TEMPLATE=fabric4l-api
 ```
 
 Anything with `VITE_` is public in the browser.
@@ -252,7 +252,7 @@ Never put this in `/apps/web`:
 
 ```env
 VITE_CLERK_SECRET_KEY=
-VITE_CLERK_WEBHOOK_SECRET=
+VITE_CLERK_WEBHOOK_SIGNING_SECRET=
 ```
 
 ### `/shared/auth`
@@ -261,7 +261,7 @@ Backend/gateway auth config:
 
 ```env
 CLERK_ISSUER=https://accounts.valuepact.ai
-CLERK_JWT_AUDIENCE=valuepact-api
+CLERK_JWT_AUDIENCE=fabric4l-api
 CLERK_AUTHORIZED_PARTIES=https://www.valuepact.ai,https://app.valuepact.ai
 CLERK_JWKS_URL=https://accounts.valuepact.ai/.well-known/jwks.json
 ```
@@ -272,7 +272,7 @@ Gateway-only secrets:
 
 ```env
 CLERK_SECRET_KEY=
-CLERK_WEBHOOK_SECRET=
+CLERK_WEBHOOK_SIGNING_SECRET=
 FABRIC_AUTH_SIGNING_KEY=
 FABRIC_AUTH_SIGNING_KID=gateway-k1
 FABRIC_AUTH_PUBLIC_KEYS=[{"kid":"gateway-k1","public_pem":"-----BEGIN PUBLIC KEY-----..."}]
@@ -296,7 +296,7 @@ FABRIC_AUTH_AUDIENCE=fabric4l-internal
 ### `/webhooks`
 
 ```env
-CLERK_WEBHOOK_SECRET=
+CLERK_WEBHOOK_SIGNING_SECRET=
 ```
 
 Clerk webhook docs state the signing secret is available from the Clerk Dashboard webhook endpoint. See [Clerk webhooks](https://clerk.com/docs/guides/development/webhooks/overview).
@@ -380,11 +380,11 @@ if (isClerkAuthEnabled()) {
 }
 ```
 
-Create a Clerk JWT template named `valuepact-api` with claims:
+Create a Clerk JWT template named `fabric4l-api` with claims:
 
 ```json
 {
-  "aud": "valuepact-api",
+  "aud": "fabric4l-api",
   "org_id": "{{org.id}}",
   "org_slug": "{{org.slug}}",
   "org_role": "{{org.role}}",
@@ -678,7 +678,7 @@ For ValuePact, the clean setup is:
 Frontend:
   Clerk React SDK
   ClerkProvider
-  getToken({ template: "valuepact-api" })
+  getToken({ template: "fabric4l-api" })
 
 API Gateway:
   verify Clerk JWT
