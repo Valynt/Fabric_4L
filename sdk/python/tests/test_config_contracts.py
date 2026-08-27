@@ -134,6 +134,7 @@ def test_cli_main_converts_configuration_error_to_safe_exit() -> None:
             side_effect=ConfigurationError("missing base URL"),
         ),
         patch("valuefabric.cli.main.rich_print") as mock_print,
+        patch("valuefabric.cli.main.sys.exit", side_effect=SystemExit(1)),
         pytest.raises(SystemExit) as captured,
     ):
         main()

@@ -94,6 +94,7 @@ EXPORT_ENV: dict[str, str] = {
     "LAYER1_S3_SECRET_KEY": "fabric_export_secret_key",
     "LAYER1_CORS_ORIGINS": '["http://localhost:5173"]',
     "JWT_SECRET": "openapi-export-local-secret-with-32-characters",
+    "SECRET_KEY": "openapi-export-local-secret-with-32-characters",
     "JWT_SECRET_KEY": "openapi-export-local-secret-with-32-characters",
     "DATABASE_URL": "postgresql://fabric_export:fabric_export_secret@localhost:5432/value_fabric",
     "DATABASE_URL_SYNC": "postgresql://fabric_export:fabric_export_secret@localhost:5432/value_fabric",

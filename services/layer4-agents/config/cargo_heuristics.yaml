@@ -1,0 +1,107 @@
+tech_category_map:
+  crm:
+    - salesforce
+    - hubspot
+    - ms_dynamics
+    - zoho
+    - pipedrive
+    - zendesk
+  analytics:
+    - google_analytics
+    - mixpanel
+    - segment
+    - amplitude
+    - heap
+    - snowplow
+  erp:
+    - sap
+    - oracle
+    - netsuite
+    - workday
+    - microsoft_dynamics_365
+  cloud_infra:
+    - aws
+    - azure
+    - google_cloud
+    - kubernetes
+    - docker
+    - cloudflare
+  data_stack:
+    - snowflake
+    - databricks
+    - bigquery
+    - redshift
+    - fivetran
+    - dbt
+  marketing_automation:
+    - marketo
+    - pardot
+    - eloqua
+    - klaviyo
+    - activecampaign
+  hr_workforce:
+    - workday
+    - bamboohr
+    - greenhouse
+    - lever
+    - rippling
+    - adp
+
+persona_rules:
+  # Format:
+  # - keywords: [list of strings]
+  #   role: string
+  #   seniority: string
+  #   department: string
+  - keywords: ["cfo", "chief financial officer"]
+    role: "CFO / Economic Buyer"
+    seniority: "C-Level"
+    department: "Finance"
+  - keywords: ["vp finance", "vice president finance", "head of finance"]
+    role: "Finance Executive"
+    seniority: "VP"
+    department: "Finance"
+  - keywords: ["coo", "chief operating officer"]
+    role: "COO / Operations Leader"
+    seniority: "C-Level"
+    department: "Operations"
+  - keywords: ["vp operations", "vice president operations", "head of operations"]
+    role: "Operations Executive"
+    seniority: "VP"
+    department: "Operations"
+  - keywords: ["cio", "chief information officer"]
+    role: "CIO / Technology Leader"
+    seniority: "C-Level"
+    department: "IT"
+  - keywords: ["cto", "chief technology officer"]
+    role: "CTO / Technical Buyer"
+    seniority: "C-Level"
+    department: "Engineering"
+  - keywords: ["cro", "chief revenue officer"]
+    role: "CRO / Revenue Leader"
+    seniority: "C-Level"
+    department: "Sales"
+  - keywords: ["vp sales", "vice president sales", "head of sales", "sales director"]
+    role: "Sales Executive"
+    seniority: "VP"
+    department: "Sales"
+  - keywords: ["vp revops", "head of revops", "revenue operations"]
+    role: "RevOps Leader"
+    seniority: "VP"
+    department: "RevOps"
+  - keywords: ["business value", "value consulting"]
+    role: "Business Value Leader"
+    seniority: "Director"
+    department: "Value Management"
+  - keywords: ["vp transformation", "director transformation"]
+    role: "Transformation Champion"
+    seniority: "VP"
+    department: "Transformation"
+  - keywords: ["vp data", "head of data", "director data"]
+    role: "Data Executive"
+    seniority: "VP"
+    department: "Data"
+  - keywords: ["manager", "lead"]
+    role: "Operational Manager"
+    seniority: "Manager"
+    department: "Management"
