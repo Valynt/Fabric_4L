@@ -9,9 +9,12 @@ into GitHub code scanning.
 from __future__ import annotations
 
 import argparse
+import html
 import json
+import re
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit, urlunsplit
 
 
 RISK_TO_LEVEL = {
@@ -38,6 +41,23 @@ def _rule_id(alert: dict[str, Any]) -> str:
     return f"ZAP-{plugin_id}"
 
 
+def _safe_target(value: Any, fallback: str = "") -> str:
+    target = _text(value) or fallback
+    parsed = urlsplit(target)
+    if parsed.scheme and parsed.netloc:
+        return urlunsplit((parsed.scheme, parsed.netloc, parsed.path, "", ""))
+    return target.split("?", 1)[0].split("#", 1)[0]
+
+
+def _help_uri(value: Any) -> str | None:
+    reference = html.unescape(_text(value))
+    for candidate in re.findall(r"https?://[^\s<>\"]+", reference):
+        parsed = urlsplit(candidate.rstrip(".,);"))
+        if parsed.scheme in {"http", "https"} and parsed.netloc:
+            return candidate.rstrip(".,);")
+    return None
+
+
 def convert(paths: list[Path]) -> dict[str, Any]:
     rules: dict[str, dict[str, Any]] = {}
     results: list[dict[str, Any]] = []
@@ -52,7 +72,7 @@ def convert(paths: list[Path]) -> dict[str, Any]:
                 alert_name = _text(alert.get("alert")) or rule_id
                 description = _text(alert.get("desc"))
                 solution = _text(alert.get("solution"))
-                reference = _text(alert.get("reference"))
+                reference = _help_uri(alert.get("reference"))
 
                 rule = rules.setdefault(
                     rule_id,
@@ -69,11 +89,11 @@ def convert(paths: list[Path]) -> dict[str, Any]:
                     },
                 )
                 if reference:
-                    rule["helpUri"] = reference.split()[0]
+                    rule["helpUri"] = reference
 
                 instances = alert.get("instances") or [{}]
                 for instance in instances:
-                    uri = _text(instance.get("uri")) or site_name
+                    uri = _safe_target(instance.get("uri"), site_name)
                     method = _text(instance.get("method")) or "HTTP"
                     parameter = _text(instance.get("param"))
                     message = f"{alert_name}: {method} {uri}".strip()
@@ -91,9 +111,15 @@ def convert(paths: list[Path]) -> dict[str, Any]:
                             "confidence": _text(alert.get("confidence")),
                             "report": path.name,
                         },
+                        "locations": [
+                            {
+                                "physicalLocation": {
+                                    "artifactLocation": {"uri": uri},
+                                    "region": {"startLine": 1, "startColumn": 1},
+                                }
+                            }
+                        ],
                     }
-                    # Dynamic HTTP targets are not repository source files, so
-                    # leave locations unset rather than inventing a file URI.
                     results.append(result)
 
     return {
