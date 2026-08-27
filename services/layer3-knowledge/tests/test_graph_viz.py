@@ -4,15 +4,12 @@ This test file provides direct coverage for the graph visualization routes,
 addressing the untested hotspot issue identified in health analysis.
 """
 
-import asyncio
-from typing import Any
+# isort: skip_file
+
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from fastapi import HTTPException
-
 from src.api.models import (
-    GraphEdge,
     GraphNode,
     GraphNodeWithLayout,
     GraphResponse,
@@ -69,21 +66,21 @@ class TestBuildGraphNode:
         """Test building a basic graph node without layout."""
         node = _build_graph_node(
             node_id="node-1",
-            label="Test Node",
+            name="Test Node",
             node_type="Entity",
             confidence=0.9,
         )
         assert isinstance(node, GraphNode)
         assert node.id == "node-1"
-        assert node.label == "Test Node"
-        assert node.type == "Entity"
-        assert node.confidence == 0.9
+        assert node.name == "Test Node"
+        assert node.entity_type == "Entity"
+        assert node.confidence_score == 0.9
 
     def test_build_graph_node_with_layout(self):
         """Test building a graph node with layout coordinates."""
         node = _build_graph_node(
             node_id="node-1",
-            label="Test Node",
+            name="Test Node",
             node_type="Entity",
             confidence=0.9,
             x=100.0,
@@ -100,7 +97,7 @@ class TestBuildGraphNode:
         """Test building a graph node with custom properties."""
         node = _build_graph_node(
             node_id="node-1",
-            label="Test Node",
+            name="Test Node",
             node_type="Entity",
             properties={"custom_field": "value"},
         )
@@ -142,11 +139,27 @@ class TestFetchGraphNodes:
     async def test_fetch_graph_nodes_success(self, mock_neo4j, sample_tenant_id):
         """Test successful graph nodes fetch."""
         mock_neo4j.execute_query.return_value = [
-            {"id": "node-1", "label": "Node 1", "type": "Entity", "confidence": 0.9, "x": 100.0, "y": 200.0},
-            {"id": "node-2", "label": "Node 2", "type": "Entity", "confidence": 0.8, "x": None, "y": None},
+            {
+                "id": "node-1",
+                "name": "Node 1",
+                "entity_type": "Entity",
+                "confidence_score": 0.9,
+                "x": 100.0,
+                "y": 200.0,
+            },
+            {
+                "id": "node-2",
+                "name": "Node 2",
+                "entity_type": "Entity",
+                "confidence_score": 0.8,
+                "x": None,
+                "y": None,
+            },
         ]
 
-        nodes, node_ids, node_types = await _fetch_graph_nodes(mock_neo4j, sample_tenant_id, 1000)
+        nodes, node_ids, node_types = await _fetch_graph_nodes(
+            mock_neo4j, sample_tenant_id, 1000
+        )
 
         assert len(nodes) == 2
         assert len(node_ids) == 2
@@ -155,28 +168,60 @@ class TestFetchGraphNodes:
         assert "node-2" in node_ids
 
     @pytest.mark.asyncio
-    async def test_fetch_graph_nodes_skips_missing_id(self, mock_neo4j, sample_tenant_id):
+    async def test_fetch_graph_nodes_skips_missing_id(
+        self, mock_neo4j, sample_tenant_id
+    ):
         """Test that nodes without ID are skipped."""
         mock_neo4j.execute_query.return_value = [
-            {"id": "node-1", "label": "Node 1", "type": "Entity", "confidence": 0.9},
-            {"label": "Node 2", "type": "Entity", "confidence": 0.8},  # Missing ID
+            {
+                "id": "node-1",
+                "name": "Node 1",
+                "entity_type": "Entity",
+                "confidence_score": 0.9,
+            },
+            {
+                "name": "Node 2",
+                "entity_type": "Entity",
+                "confidence_score": 0.8,
+            },  # Missing ID
         ]
 
-        nodes, node_ids, node_types = await _fetch_graph_nodes(mock_neo4j, sample_tenant_id, 1000)
+        nodes, node_ids, node_types = await _fetch_graph_nodes(
+            mock_neo4j, sample_tenant_id, 1000
+        )
 
         assert len(nodes) == 1
         assert len(node_ids) == 1
 
     @pytest.mark.asyncio
-    async def test_fetch_graph_nodes_aggregates_types(self, mock_neo4j, sample_tenant_id):
+    async def test_fetch_graph_nodes_aggregates_types(
+        self, mock_neo4j, sample_tenant_id
+    ):
         """Test that node types are correctly aggregated."""
         mock_neo4j.execute_query.return_value = [
-            {"id": "node-1", "label": "Node 1", "type": "Entity", "confidence": 0.9},
-            {"id": "node-2", "label": "Node 2", "type": "Entity", "confidence": 0.8},
-            {"id": "node-3", "label": "Node 3", "type": "Relationship", "confidence": 0.7},
+            {
+                "id": "node-1",
+                "name": "Node 1",
+                "entity_type": "Entity",
+                "confidence_score": 0.9,
+            },
+            {
+                "id": "node-2",
+                "name": "Node 2",
+                "entity_type": "Entity",
+                "confidence_score": 0.8,
+            },
+            {
+                "id": "node-3",
+                "name": "Node 3",
+                "entity_type": "Relationship",
+                "confidence_score": 0.7,
+            },
         ]
 
-        nodes, node_ids, node_types = await _fetch_graph_nodes(mock_neo4j, sample_tenant_id, 1000)
+        nodes, node_ids, node_types = await _fetch_graph_nodes(
+            mock_neo4j, sample_tenant_id, 1000
+        )
 
         assert node_types == {"Entity": 2, "Relationship": 1}
 
@@ -189,7 +234,12 @@ class TestFetchGraphEdges:
         """Test successful graph edges fetch."""
         node_ids = {"node-1", "node-2"}
         mock_neo4j.execute_query.return_value = [
-            {"source": "node-1", "target": "node-2", "rel_type": "RELATED_TO", "weight": 1.0},
+            {
+                "source": "node-1",
+                "target": "node-2",
+                "rel_type": "RELATED_TO",
+                "weight": 1.0,
+            },
         ]
 
         edges = await _fetch_graph_edges(mock_neo4j, sample_tenant_id, node_ids)
@@ -204,8 +254,18 @@ class TestFetchGraphEdges:
         """Test that edges without source/target are skipped."""
         node_ids = {"node-1", "node-2"}
         mock_neo4j.execute_query.return_value = [
-            {"source": "node-1", "target": "node-2", "rel_type": "RELATED TO", "weight": 1.0},
-            {"source": None, "target": "node-2", "rel_type": "RELATED_TO", "weight": 1.0},  # Invalid
+            {
+                "source": "node-1",
+                "target": "node-2",
+                "rel_type": "RELATED TO",
+                "weight": 1.0,
+            },
+            {
+                "source": None,
+                "target": "node-2",
+                "rel_type": "RELATED_TO",
+                "weight": 1.0,
+            },  # Invalid
         ]
 
         edges = await _fetch_graph_edges(mock_neo4j, sample_tenant_id, node_ids)
@@ -213,11 +273,18 @@ class TestFetchGraphEdges:
         assert len(edges) == 1
 
     @pytest.mark.asyncio
-    async def test_fetch_graph_edges_defaults_weight(self, mock_neo4j, sample_tenant_id):
+    async def test_fetch_graph_edges_defaults_weight(
+        self, mock_neo4j, sample_tenant_id
+    ):
         """Test that missing weight defaults to 1.0."""
         node_ids = {"node-1", "node-2"}
         mock_neo4j.execute_query.return_value = [
-            {"source": "node-1", "target": "node-2", "rel_type": "RELATED_TO", "weight": None},
+            {
+                "source": "node-1",
+                "target": "node-2",
+                "rel_type": "RELATED_TO",
+                "weight": None,
+            },
         ]
 
         edges = await _fetch_graph_edges(mock_neo4j, sample_tenant_id, node_ids)
@@ -236,7 +303,9 @@ class TestFetchGraphStats:
             [{"total": 200}],
         ]
 
-        total_nodes, total_edges = await _fetch_graph_stats(mock_neo4j, sample_tenant_id)
+        total_nodes, total_edges = await _fetch_graph_stats(
+            mock_neo4j, sample_tenant_id
+        )
 
         assert total_nodes == 100
         assert total_edges == 200
@@ -249,7 +318,9 @@ class TestFetchGraphStats:
             [],
         ]
 
-        total_nodes, total_edges = await _fetch_graph_stats(mock_neo4j, sample_tenant_id)
+        total_nodes, total_edges = await _fetch_graph_stats(
+            mock_neo4j, sample_tenant_id
+        )
 
         assert total_nodes == 0
         assert total_edges == 0
@@ -262,13 +333,18 @@ class TestGetRootEntity:
     async def test_get_root_entity_success(self, mock_neo4j, sample_tenant_id):
         """Test successful root entity fetch."""
         mock_neo4j.execute_query.return_value = [
-            {"id": "entity-1", "label": "Entity 1", "type": "Entity", "confidence": 0.9}
+            {
+                "id": "entity-1",
+                "name": "Entity 1",
+                "entity_type": "Entity",
+                "confidence_score": 0.9,
+            }
         ]
 
         root_record = await _get_root_entity(mock_neo4j, "entity-1", sample_tenant_id)
 
         assert root_record["id"] == "entity-1"
-        assert root_record["label"] == "Entity 1"
+        assert root_record["name"] == "Entity 1"
 
     @pytest.mark.asyncio
     async def test_get_root_entity_not_found(self, mock_neo4j, sample_tenant_id):
@@ -285,14 +361,22 @@ class TestGetCenterEntitySubgraph:
     """Tests for _get_center_entity_subgraph helper function."""
 
     @pytest.mark.asyncio
-    async def test_get_center_entity_subgraph_success(self, mock_neo4j, sample_tenant_id):
+    async def test_get_center_entity_subgraph_success(
+        self, mock_neo4j, sample_tenant_id
+    ):
         """Test successful center entity subgraph fetch."""
         mock_neo4j.execute_query.side_effect = [
             [{"id": "entity-1"}],  # Root check
             [
                 {
-                    "root": {"id": "entity-1", "name": "Entity 1", "entity_type": "Entity"},
-                    "neighbors": [{"id": "entity-2", "name": "Entity 2", "entity_type": "Entity"}],
+                    "root": {
+                        "id": "entity-1",
+                        "name": "Entity 1",
+                        "entity_type": "Entity",
+                    },
+                    "neighbors": [
+                        {"id": "entity-2", "name": "Entity 2", "entity_type": "Entity"}
+                    ],
                     "paths": [],
                 }
             ],  # Subgraph query
@@ -306,7 +390,9 @@ class TestGetCenterEntitySubgraph:
         assert len(edges) == 0
 
     @pytest.mark.asyncio
-    async def test_get_center_entity_subgraph_not_found(self, mock_neo4j, sample_tenant_id):
+    async def test_get_center_entity_subgraph_not_found(
+        self, mock_neo4j, sample_tenant_id
+    ):
         """Test NotFoundError when center entity doesn't exist."""
         mock_neo4j.execute_query.return_value = []
 
@@ -316,7 +402,9 @@ class TestGetCenterEntitySubgraph:
             )
 
     @pytest.mark.asyncio
-    async def test_get_center_entity_subgraph_invalid_rel_types(self, mock_neo4j, sample_tenant_id):
+    async def test_get_center_entity_subgraph_invalid_rel_types(
+        self, mock_neo4j, sample_tenant_id
+    ):
         """Test ValidationError when no valid relationship types provided."""
         mock_neo4j.execute_query.return_value = [{"id": "entity-1"}]
 
@@ -332,7 +420,9 @@ class TestGetQuerySearchSubgraph:
     """Tests for _get_query_search_subgraph helper function."""
 
     @pytest.mark.asyncio
-    async def test_get_query_search_subgraph_success(self, mock_neo4j, sample_tenant_id):
+    async def test_get_query_search_subgraph_success(
+        self, mock_neo4j, sample_tenant_id
+    ):
         """Test successful query search subgraph fetch."""
         mock_hybrid_search = AsyncMock()
         mock_hybrid_search.search.return_value = [
@@ -355,7 +445,9 @@ class TestGetQuerySearchSubgraph:
         assert len(edges) == 0
 
     @pytest.mark.asyncio
-    async def test_get_query_search_subgraph_no_results(self, mock_neo4j, sample_tenant_id):
+    async def test_get_query_search_subgraph_no_results(
+        self, mock_neo4j, sample_tenant_id
+    ):
         """Test empty result when search returns no matches."""
         mock_hybrid_search = AsyncMock()
         mock_hybrid_search.search.return_value = []
@@ -412,8 +504,25 @@ class TestGetFullGraph:
         """Test successful full graph retrieval."""
         mock_app_state.neo4j_driver.execute_query.side_effect = [
             # Nodes — include x/y/r so _build_graph_node returns GraphNodeWithLayout
-            [{"id": "node-1", "label": "Node 1", "type": "Entity", "confidence": 0.9, "x": 0.0, "y": 0.0, "r": 5.0}],
-            [{"source": "node-1", "target": "node-1", "rel_type": "SELF", "weight": 1.0}],  # Edges
+            [
+                {
+                    "id": "node-1",
+                    "name": "Node 1",
+                    "entity_type": "Entity",
+                    "confidence_score": 0.9,
+                    "x": 0.0,
+                    "y": 0.0,
+                    "r": 5.0,
+                }
+            ],
+            [
+                {
+                    "source": "node-1",
+                    "target": "node-1",
+                    "rel_type": "SELF",
+                    "weight": 1.0,
+                }
+            ],  # Edges
             [{"total": 1}],  # Total nodes
             [{"total": 1}],  # Total edges
         ]
@@ -442,7 +551,14 @@ class TestGetEntitySubgraph:
     async def test_get_entity_subgraph_success(self, mock_app_state, sample_tenant_id):
         """Test successful entity subgraph retrieval."""
         mock_app_state.neo4j_driver.execute_query.side_effect = [
-            [{"id": "entity-1", "label": "Entity 1", "type": "Entity", "confidence": 0.9}],  # Root
+            [
+                {
+                    "id": "entity-1",
+                    "name": "Entity 1",
+                    "entity_type": "Entity",
+                    "confidence_score": 0.9,
+                }
+            ],  # Root
             [
                 {
                     "root": {"id": "entity-1"},
@@ -454,7 +570,9 @@ class TestGetEntitySubgraph:
         ]
 
         with patch("src.api.routes.graph_viz.get_metrics", return_value=None):
-            response = await get_entity_subgraph("entity-1", sample_tenant_id, 2, mock_app_state)
+            response = await get_entity_subgraph(
+                "entity-1", sample_tenant_id, 2, mock_app_state
+            )
 
         assert isinstance(response, SubgraphResponse)
         assert response.root_entity_id == "entity-1"
@@ -465,13 +583,19 @@ class TestGetQuerySubgraph:
     """Tests for get_query_subgraph endpoint."""
 
     @pytest.mark.asyncio
-    async def test_get_query_subgraph_center_mode_success(self, mock_app_state, sample_tenant_id):
+    async def test_get_query_subgraph_center_mode_success(
+        self, mock_app_state, sample_tenant_id
+    ):
         """Test successful query subgraph in center mode."""
         mock_app_state.neo4j_driver.execute_query.side_effect = [
             [{"id": "entity-1"}],  # Root check
             [
                 {
-                    "root": {"id": "entity-1", "name": "Entity 1", "entity_type": "Entity"},
+                    "root": {
+                        "id": "entity-1",
+                        "name": "Entity 1",
+                        "entity_type": "Entity",
+                    },
                     "neighbors": [],
                     "paths": [],
                 }
@@ -498,7 +622,9 @@ class TestGetQuerySubgraph:
         assert response.root_entity_id == "entity-1"
 
     @pytest.mark.asyncio
-    async def test_get_query_subgraph_requires_query_or_center(self, mock_app_state, sample_tenant_id):
+    async def test_get_query_subgraph_requires_query_or_center(
+        self, mock_app_state, sample_tenant_id
+    ):
         """Test ValidationError when neither query nor center_entity_id provided."""
         mock_app_state.neo4j_driver = AsyncMock()
 

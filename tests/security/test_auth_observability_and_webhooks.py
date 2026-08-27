@@ -40,7 +40,7 @@ def _setup_env(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setenv("CLERK_ISSUER", "https://clerk.valuepact.ai")
     monkeypatch.setenv("CLERK_JWKS_URL", "https://clerk.valuepact.ai/.well-known/jwks.json")
     monkeypatch.setenv("CLERK_AUTHORIZED_PARTIES", "https://app.valuepact.ai")
-    monkeypatch.setenv("CLERK_WEBHOOK_SECRET", MOCK_WEBHOOK_SECRET)
+    monkeypatch.setenv("CLERK_WEBHOOK_SIGNING_SECRET", MOCK_WEBHOOK_SECRET)
 
     priv_key = ed25519.Ed25519PrivateKey.generate()
     priv_pem = priv_key.private_bytes(
