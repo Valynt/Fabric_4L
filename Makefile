@@ -88,7 +88,7 @@ help: ## Show this help
 
 VERIFY_CHECKS := check-conflict-markers check-no-nul-bytes check-migration-heads \
 	check-keycloak-realm-seed-security check-manifest-secret-hygiene check-path-env-hygiene \
-	check-trivy-ignore-policy check-security-exceptions \
+	check-trivy-ignore-policy check-security-exceptions check-model-provider-boundaries \
 	lint typecheck test contract-tests security-smoke \
 	check-deprecations check-tool-contracts check-deprecated-tracer-imports \
 	platform-contract-lint check-ui-duplicates check-readiness-consistency \
