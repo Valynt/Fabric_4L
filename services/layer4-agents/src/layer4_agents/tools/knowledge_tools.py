@@ -34,7 +34,7 @@ from ..shared.security.cypher_security import (
     ALLOWED_REL_TYPES,
     validate_cypher_identifier,
 )
-from .registry import BaseTool
+from .registry import BaseTool, TenantSpoofingError
 
 logger = logging.getLogger(__name__)
 
@@ -160,7 +160,7 @@ class QueryGraphTool(BaseTool):
         # the authenticated context, then ensure tenant_id is set correctly.
         for key in list(params.keys()):
             if "tenant_id" in key.lower() and str(params[key]) != str(tenant_id):
-                raise ValueError(
+                raise TenantSpoofingError(
                     "Tenant spoofing detected: parameter tenant_id does not match authenticated context"
                 )
         params["tenant_id"] = str(tenant_id)
@@ -199,7 +199,7 @@ class QueryGraphTool(BaseTool):
             payload_tenant_id = getattr(input_data, "tenant_id", None)
             if payload_tenant_id and str(payload_tenant_id) != str(tenant_ctx.tenant_id):
                 logger.warning("Tenant spoofing detected: payload tenant_id does not match authenticated context")
-                raise ValueError(
+                raise TenantSpoofingError(
                     "Tenant spoofing detected: payload tenant_id does not match authenticated context"
                 )
         except TenantContextError as e:
@@ -357,7 +357,7 @@ class SemanticSearchTool(BaseTool):
             payload_tenant_id = getattr(input_data, "tenant_id", None)
             if payload_tenant_id and str(payload_tenant_id) != str(tenant_ctx.tenant_id):
                 logger.warning("Tenant spoofing detected: payload tenant_id does not match authenticated context")
-                raise ValueError(
+                raise TenantSpoofingError(
                     "Tenant spoofing detected: payload tenant_id does not match authenticated context"
                 )
         except TenantContextError as e:
@@ -484,7 +484,7 @@ class GetEntityTool(BaseTool):
             payload_tenant_id = getattr(input_data, "tenant_id", None)
             if payload_tenant_id and str(payload_tenant_id) != str(tenant_ctx.tenant_id):
                 logger.warning("Tenant spoofing detected: payload tenant_id does not match authenticated context")
-                raise ValueError(
+                raise TenantSpoofingError(
                     "Tenant spoofing detected: payload tenant_id does not match authenticated context"
                 )
         except TenantContextError as e:
@@ -605,7 +605,7 @@ class GetRelationshipsTool(BaseTool):
             payload_tenant_id = getattr(input_data, "tenant_id", None)
             if payload_tenant_id and str(payload_tenant_id) != str(tenant_ctx.tenant_id):
                 logger.warning("Tenant spoofing detected: payload tenant_id does not match authenticated context")
-                raise ValueError(
+                raise TenantSpoofingError(
                     "Tenant spoofing detected: payload tenant_id does not match authenticated context"
                 )
         except TenantContextError as e:
@@ -716,7 +716,7 @@ class TraverseTreeTool(BaseTool):
             payload_tenant_id = getattr(input_data, "tenant_id", None)
             if payload_tenant_id and str(payload_tenant_id) != str(tenant_ctx.tenant_id):
                 logger.warning("Tenant spoofing detected: payload tenant_id does not match authenticated context")
-                raise ValueError(
+                raise TenantSpoofingError(
                     "Tenant spoofing detected: payload tenant_id does not match authenticated context"
                 )
         except TenantContextError as e:
@@ -821,7 +821,7 @@ class FindPathsTool(BaseTool):
             payload_tenant_id = getattr(input_data, "tenant_id", None)
             if payload_tenant_id and str(payload_tenant_id) != str(tenant_ctx.tenant_id):
                 logger.warning("Tenant spoofing detected: payload tenant_id does not match authenticated context")
-                raise ValueError(
+                raise TenantSpoofingError(
                     "Tenant spoofing detected: payload tenant_id does not match authenticated context"
                 )
         except TenantContextError as e:

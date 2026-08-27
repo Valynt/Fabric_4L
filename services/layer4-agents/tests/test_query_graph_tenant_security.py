@@ -5,11 +5,28 @@ from uuid import UUID
 
 import pytest
 
-from layer4_agents.models.tool_schemas import QueryGraphInput
-from layer4_agents.tools.knowledge_tools import QueryGraphTool
+from layer4_agents.models.tool_schemas import (
+    FindPathsInput,
+    GetEntityInput,
+    GetRelationshipsInput,
+    QueryGraphInput,
+    SemanticSearchInput,
+    TraverseTreeInput,
+)
+from layer4_agents.tools.knowledge_tools import (
+    FindPathsTool,
+    GetEntityTool,
+    GetRelationshipsTool,
+    QueryGraphTool,
+    SemanticSearchTool,
+    TraverseTreeTool,
+)
+from layer4_agents.tools.registry import TenantSpoofingError
 
 TENANT_A_ID = UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
 TENANT_B_ID = UUID("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")
+
+NEO4J_CONFIG = {"neo4j_uri": "bolt://localhost:7687", "neo4j_password": "password"}
 
 
 @pytest.fixture
@@ -122,3 +139,62 @@ def test_tenant_filter_rejects_query_without_node_alias():
 
     with pytest.raises(ValueError, match="unable to parse node alias"):
         tool._inject_tenant_filter("RETURN 1 AS ok", TENANT_A_ID)
+
+
+@pytest.mark.parametrize(
+    ("tool_cls", "input_data"),
+    [
+        (
+            SemanticSearchTool,
+            SemanticSearchInput(query="who are we", tenant_id=str(TENANT_B_ID)),
+        ),
+        (GetEntityTool, GetEntityInput(entity_id="a", tenant_id=str(TENANT_B_ID))),
+        (
+            GetRelationshipsTool,
+            GetRelationshipsInput(entity_id="a", tenant_id=str(TENANT_B_ID)),
+        ),
+        (
+            TraverseTreeTool,
+            TraverseTreeInput(
+                start_entity_id="a",
+                path_pattern="()-->()",
+                tenant_id=str(TENANT_B_ID),
+            ),
+        ),
+        (
+            FindPathsTool,
+            FindPathsInput(source_id="a", target_id="b", tenant_id=str(TENANT_B_ID)),
+        ),
+    ],
+)
+@pytest.mark.asyncio
+async def test_other_knowledge_tools_reject_payload_tenant_spoofing(
+    tool_cls,
+    input_data,
+    mock_tenant_context,
+):
+    tool = tool_cls(NEO4J_CONFIG)
+
+    with pytest.raises(TenantSpoofingError, match="Tenant spoofing detected"):
+        await tool.execute(input_data)
+
+
+@pytest.mark.asyncio
+async def test_base_tool_run_maps_tenant_spoofing_to_structured_result(
+    mock_tenant_context,
+):
+    """BaseTool.run must classify tenant spoofing, not return a generic execution error."""
+    tool = QueryGraphTool(NEO4J_CONFIG)
+
+    result = await tool.run(
+        {
+            "cypher_query": "MATCH (n:Account) RETURN n LIMIT 10",
+            "parameters": {},
+            "tenant_id": str(TENANT_B_ID),
+        }
+    )
+
+    assert result.status == "error"
+    assert result.error is not None
+    assert result.error["code"] == "TENANT_SPOOFING_DETECTED"
+    assert "Tenant spoofing detected" in result.error["message"]
