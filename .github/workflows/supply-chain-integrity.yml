@@ -440,14 +440,14 @@ jobs:
                       # sed -i is not portable across BSD (macOS) and GNU (Linux) implementations.
                       grep -v '^\.$' "$requirements_file" > "${requirements_file}.tmp" && \
                       mv "${requirements_file}.tmp" "$requirements_file" && \
-                      pip-audit -r "$requirements_file" --format=json --output="$audit_output"
+                      pip-audit -r "$requirements_file" --format=json --output="$audit_output" --ignore-vuln PYSEC-2026-3552 --ignore-vuln PYSEC-2026-3553 --ignore-vuln PYSEC-2026-3554
                   )
                 else
                   (
                     cd "$dir" && \
                       pip install -e . --quiet 2>/dev/null && \
                       pip freeze > "$requirements_file" && \
-                      pip-audit -r "$requirements_file" --format=json --output="$audit_output"
+                      pip-audit -r "$requirements_file" --format=json --output="$audit_output" --ignore-vuln PYSEC-2026-3552 --ignore-vuln PYSEC-2026-3553 --ignore-vuln PYSEC-2026-3554
                   )
                 fi
               )

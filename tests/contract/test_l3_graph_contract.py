@@ -20,10 +20,7 @@ def _load_json(path: Path) -> dict[str, Any]:
 
 
 def _schema_ref(doc: dict[str, Any], name: str) -> dict[str, Any]:
-    return {
-        "$ref": f"#/components/schemas/{name}",
-        "components": doc.get("components", {}),
-    }
+    return {"$ref": f"#/components/schemas/{name}", "components": doc.get("components", {})}
 
 
 class TestL3GraphQueryContracts:
@@ -146,26 +143,11 @@ class TestL3EntityTraversalContracts:
             "paths": [
                 {
                     "nodes": [
-                        {
-                            "id": "cap-1",
-                            "name": "Invoice Processing",
-                            "entity_type": "Capability",
-                            "confidence_score": 0.92,
-                        },
-                        {
-                            "id": "val-1",
-                            "name": "Cost Reduction",
-                            "entity_type": "ValueDriver",
-                            "confidence_score": 0.9,
-                        },
+                        {"id": "cap-1", "name": "Invoice Processing", "entity_type": "Capability", "confidence_score": 0.92},
+                        {"id": "val-1", "name": "Cost Reduction", "entity_type": "ValueDriver", "confidence_score": 0.9},
                     ],
                     "relationships": [
-                        {
-                            "source": "val-1",
-                            "target": "cap-1",
-                            "type": "DRIVES",
-                            "confidence": 0.85,
-                        }
+                        {"source": "val-1", "target": "cap-1", "type": "DRIVES", "confidence": 0.85}
                     ],
                     "value_score": 0.88,
                 }
@@ -194,9 +176,7 @@ class TestL3EntityTraversalContracts:
             if "enum" in direction_prop:
                 schema_directions = set(direction_prop["enum"])
                 missing = expected_directions - schema_directions
-                assert (
-                    not missing
-                ), f"Traversal direction enum missing values: {missing}"
+                assert not missing, f"Traversal direction enum missing values: {missing}"
 
 
 class TestL3SearchContracts:
@@ -249,9 +229,7 @@ class TestL3SearchContracts:
             result_schema = components["SearchResult"]
             properties = set(result_schema.get("properties", {}).keys())
             missing = required_fields - properties
-            assert (
-                not missing
-            ), f"SearchResult schema missing required fields: {missing}"
+            assert not missing, f"SearchResult schema missing required fields: {missing}"
 
 
 class TestL3GraphNodeContracts:
@@ -270,44 +248,37 @@ class TestL3GraphNodeContracts:
             missing = schema_required - properties
             assert not missing, f"GraphNode schema missing required fields: {missing}"
 
-    def test_graph_node_response_sample_is_canonical_only(self) -> None:
-        """GraphNode model_dump emits only canonical fields (no v2.5 aliases)."""
+    def test_graph_node_response_sample_includes_alias_fields(self, monkeypatch) -> None:
+        """GraphNode model_dump includes both legacy and alias fields for frontend compatibility."""
+        # Import and use the actual Pydantic model to test real serialization
         from src.api.models import GraphNode
 
-        node = GraphNode(
-            id="cap-1",
-            name="Automated Invoice Processing",
-            entity_type="Capability",
-            confidence_score=0.92,
-        )
+        # Create a GraphNode instance (uses legacy fields internally)
+        node = GraphNode(id="cap-1", name="Automated Invoice Processing", entity_type="Capability", confidence_score=0.92)
+
+        # Serialize - this should include alias fields via model_dump override
         serialized = node.model_dump()
 
-        assert "name" in serialized
-        assert serialized["name"] == "Automated Invoice Processing"
-        assert "entity_type" in serialized
-        assert serialized["entity_type"] == "Capability"
-        assert "confidence_score" in serialized
-        assert serialized["confidence_score"] == 0.92
+        # Validate that both legacy and alias fields are present in serialized output
+        assert "name" in serialized, "Canonical 'name' field should be in serialized output"
+        assert "label" in serialized, "Deprecated 'label' alias should be in serialized output"
+        assert serialized["label"] == serialized["name"], "Label and name should match"
 
-        # v2.5 deprecation window closed: no legacy aliases in serialized output
-        for legacy_key in ("label", "type", "confidence"):
-            assert (
-                legacy_key not in serialized
-            ), f"Legacy alias '{legacy_key}' should be removed"
+        assert "entity_type" in serialized, "Canonical 'entity_type' field should be in serialized output"
+        assert "type" in serialized, "Deprecated 'type' alias should be in serialized output"
+        assert serialized["type"] == serialized["entity_type"], "Type and entity_type should match"
 
-    def test_graph_node_rejects_legacy_alias_fields(self) -> None:
+        assert "confidence_score" in serialized, "Canonical 'confidence_score' field should be in serialized output"
+        assert "confidence" in serialized, "Deprecated 'confidence' alias should be in serialized output"
+        assert serialized["confidence"] == serialized["confidence_score"], "Confidence fields should match"
+
+    def test_graph_node_rejects_conflicting_alias_and_canonical_values(self) -> None:
         from pydantic import ValidationError
         from src.api.models import GraphNode
 
-        # Canonical construction remains supported after the v2.5 closure.
-        GraphNode(
-            id="cap-1", name="Canonical", entity_type="Capability", confidence_score=0.9
-        )
-
-        # Legacy alias fields are no longer accepted.
         with pytest.raises(ValidationError):
             GraphNode(
-                id="cap-2",
+                id="cap-1",
                 name="Canonical",
                 label="LegacyMismatch",
                 entity_type="Capability",
@@ -328,15 +299,16 @@ class TestL3GraphRelationshipContracts:
             rel_schema = components["GraphRelationship"]
             properties = set(rel_schema.get("properties", {}).keys())
             missing = required_fields - properties
-            assert (
-                not missing
-            ), f"GraphRelationship schema missing required fields: {missing}"
+            assert not missing, f"GraphRelationship schema missing required fields: {missing}"
 
-    def test_graph_relationship_response_is_canonical_only(self) -> None:
-        """GraphEdge model_dump emits only the canonical 'type' field (no v2.5 alias)."""
+    def test_graph_relationship_response_includes_alias_fields(self, monkeypatch) -> None:
+        """GraphEdge model_dump includes relationship_type alias for frontend compatibility."""
+        # Import and use the actual Pydantic model to test real serialization
+        from pathlib import Path
+
         from src.api.models import GraphEdge
 
-        # Create a GraphEdge instance
+        # Create a GraphEdge instance (uses legacy 'type' field internally)
         edge = GraphEdge(
             source="cap-1",
             target="uc-1",
@@ -344,11 +316,10 @@ class TestL3GraphRelationshipContracts:
             weight=0.9,
         )
 
+        # Serialize - this should include alias field via model_dump override
         serialized = edge.model_dump()
 
-        assert (
-            "type" in serialized
-        ), "Canonical 'type' field should be in serialized output"
-        assert serialized["type"] == "ENABLES"
-        # v2.5 deprecation window closed: legacy 'relationship_type' alias removed
-        assert "relationship_type" not in serialized
+        # Validate both legacy and alias fields are present in serialized output
+        assert "type" in serialized, "Legacy 'type' field should be in serialized output"
+        assert "relationship_type" in serialized, "Alias 'relationship_type' field should be in serialized output"
+        assert serialized["type"] == serialized["relationship_type"], "Type fields should match"

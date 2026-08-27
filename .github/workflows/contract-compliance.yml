@@ -101,7 +101,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
-          node-version: "22.18.0"
+          node-version: "22.22.2"
           cache: "pnpm"
           cache-dependency-path: pnpm-lock.yaml
       - name: Install dependencies
@@ -162,7 +162,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
-          node-version: "22.18.0"
+          node-version: "22.22.2"
           cache: "pnpm"
           cache-dependency-path: pnpm-lock.yaml
       - name: Install dependencies
@@ -227,7 +227,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
-          node-version: "22.18.0"
+          node-version: "22.22.2"
           cache: "pnpm"
           cache-dependency-path: pnpm-lock.yaml
       - name: Install frontend dependencies
@@ -286,7 +286,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
-          node-version: "22.18.0"
+          node-version: "22.22.2"
           cache: "pnpm"
           cache-dependency-path: pnpm-lock.yaml
       - name: Install plugin
@@ -333,7 +333,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
-          node-version: "22.18.0"
+          node-version: "22.22.2"
           cache: "pnpm"
           cache-dependency-path: pnpm-lock.yaml
       - name: Install Python contract test dependencies
@@ -374,7 +374,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
-          node-version: "22.18.0"
+          node-version: "22.22.2"
 
       - name: Install Python gate dependencies
         run: python -m pip install --require-hashes -r tests/requirements-test.lock
@@ -701,7 +701,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
-          node-version: "22.18.0"
+          node-version: "22.22.2"
 
       - name: Validate deprecations.json schema
         run: |

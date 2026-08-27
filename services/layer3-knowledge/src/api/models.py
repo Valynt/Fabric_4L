@@ -9,12 +9,19 @@ from datetime import UTC, datetime
 from enum import Enum
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    computed_field,
+    field_validator,
+    model_validator,
+)
 
-# Strict config: unknown fields are rejected so contract drift (typo'd field,
-# renamed field, stale frontend type) surfaces as a 422 at the most-imported
-# boundary instead of being silently dropped. The v2.5 deprecation window is
-# closed, so graph models no longer accept the legacy alias field names.
+# Strict request-body config: unknown fields are rejected so contract drift
+# (typo'd field, renamed field, stale frontend type) surfaces as a 422 at the
+# most-imported boundary instead of being silently dropped. Response models
+# and legacy-alias graph models intentionally stay permissive.
 _STRICT_REQUEST_CONFIG = ConfigDict(extra="forbid")
 from value_fabric.shared.contracts.layer3_statuses import (
     EntityStatus,
@@ -24,13 +31,23 @@ from value_fabric.shared.contracts.layer3_statuses import (
 )
 from value_fabric.shared.models import JSONDict
 
+from ..services import compat_policy
+from ..services.compat_metrics import record_deprecated_field_usage
+from ..services.compat_policy import include_legacy_graph_aliases
+
+GRAPH_FIELD_ALIAS_REMOVAL_VERSION = compat_policy.GRAPH_FIELD_ALIAS_REMOVAL_VERSION
+
 
 # Health Check
 class DependencyStatus(BaseModel):
     """Status of a service dependency."""
 
-    name: str = Field(..., min_length=1, max_length=100, description="Dependency name")
-    status: HealthStatus = Field(..., description="Current status")
+    name: str = Field(
+        ..., min_length=1, max_length=100, description="Dependency name"
+    )
+    status: HealthStatus = Field(
+        ..., description="Current status"
+    )
     response_time_ms: float | None = Field(
         None, ge=0, description="Response time in milliseconds"
     )
@@ -51,7 +68,9 @@ class ServiceMetrics(BaseModel):
     """System and service performance metrics."""
 
     uptime_seconds: float = Field(..., ge=0, description="Service uptime in seconds")
-    memory_usage_mb: float | None = Field(None, ge=0, description="Memory usage in MB")
+    memory_usage_mb: float | None = Field(
+        None, ge=0, description="Memory usage in MB"
+    )
     cpu_percent: float | None = Field(
         None, ge=0, le=100, description="CPU usage percentage"
     )
@@ -67,7 +86,9 @@ class ServiceMetrics(BaseModel):
 class HealthResponse(BaseModel):
     """Basic health check response."""
 
-    status: HealthStatus = Field(..., description="Overall service status")
+    status: HealthStatus = Field(
+        ..., description="Overall service status"
+    )
     service: str = Field(..., min_length=1, description="Service name")
     readiness: JSONDict = Field(..., description="Readiness envelope")
     version: str = Field(..., min_length=1, max_length=20, description="API version")
@@ -84,7 +105,9 @@ class HealthResponse(BaseModel):
 class DetailedHealthResponse(BaseModel):
     """Detailed health check response with system information."""
 
-    status: HealthStatus = Field(..., description="Overall service status")
+    status: HealthStatus = Field(
+        ..., description="Overall service status"
+    )
     version: str = Field(..., min_length=1, max_length=20, description="API version")
     timestamp: datetime = Field(
         default_factory=lambda: datetime.now(UTC), description="Health check timestamp"
@@ -95,7 +118,9 @@ class DetailedHealthResponse(BaseModel):
     neo4j: JSONDict = Field(..., description="Neo4j health information")
     schema_status: JSONDict = Field(..., description="Database schema status")
     system_info: JSONDict = Field(..., description="System information")
-    configuration: JSONDict = Field(..., description="Non-sensitive configuration")
+    configuration: JSONDict = Field(
+        ..., description="Non-sensitive configuration"
+    )
 
 
 # Ingestion Models
@@ -109,30 +134,16 @@ class IngestRequest(BaseModel):
         min_length=1,
         max_length=1000000,
         description="RDF/Turtle data from Layer 2 (max 1MB)",
-        examples=[
-            "<http://example.com/entity1> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://example.com/Capability> ."
-        ],
+        examples=["<http://example.com/entity1> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://example.com/Capability> ."],
     )
     source_id: str = Field(
-        ...,
-        min_length=1,
-        max_length=255,
-        description="Source document ID",
-        examples=["doc-12345"],
+        ..., min_length=1, max_length=255, description="Source document ID", examples=["doc-12345"]
     )
     extraction_job_id: str = Field(
-        ...,
-        min_length=1,
-        max_length=255,
-        description="Extraction job ID from Layer 2",
-        examples=["job-67890"],
+        ..., min_length=1, max_length=255, description="Extraction job ID from Layer 2", examples=["job-67890"]
     )
     content_hash: str | None = Field(
-        None,
-        min_length=32,
-        max_length=128,
-        description="SHA-256 hash for change detection",
-        examples=["a1b2c3d4e5f6..."],
+        None, min_length=32, max_length=128, description="SHA-256 hash for change detection", examples=["a1b2c3d4e5f6..."]
     )
     tenant_id: str | None = Field(
         None,
@@ -166,13 +177,17 @@ class IngestRequest(BaseModel):
 class IngestResponse(BaseModel):
     """Response from RDF data ingestion."""
 
-    status: IngestStatus = Field(..., description="Ingestion status")
+    status: IngestStatus = Field(
+        ..., description="Ingestion status"
+    )
     source_id: str = Field(..., max_length=255, description="Source document ID")
     entities_loaded: int = Field(..., ge=0, description="Number of entities loaded")
     relationships_loaded: int = Field(
         ..., ge=0, description="Number of relationships loaded"
     )
-    triples_processed: int = Field(..., ge=0, description="Total RDF triples processed")
+    triples_processed: int = Field(
+        ..., ge=0, description="Total RDF triples processed"
+    )
     duration_seconds: float | None = Field(
         None, ge=0, description="Processing duration in seconds"
     )
@@ -195,7 +210,9 @@ class SyncStatusResponse(BaseModel):
     synced_at: datetime | None = Field(
         None, description="Last synchronization timestamp"
     )
-    status: SyncStatus | None = Field(None, description="Synchronization status")
+    status: SyncStatus | None = Field(
+        None, description="Synchronization status"
+    )
     error: str | None = Field(
         None, max_length=1000, description="Error message if failed"
     )
@@ -207,21 +224,15 @@ class GroundTruthNodeRequest(BaseModel):
 
     Matches the payload format used by Layer 5's Layer3Client.sync_truth_object().
     """
-
     node_type: str = Field(..., description="Node type (expected: 'GroundTruth')")
     properties: JSONDict = Field(..., description="Node properties")
-    merge_keys: list[str] = Field(
-        default_factory=list, description="Keys for MERGE operation"
-    )
+    merge_keys: list[str] = Field(default_factory=list, description="Keys for MERGE operation")
 
 
 class GroundTruthNodeResponse(BaseModel):
     """Ground Truth node creation response."""
-
     node_id: str = Field(..., description="Created node ID")
-    status: Literal["created", "updated"] = Field(
-        ..., description="Whether node was created or updated"
-    )
+    status: Literal["created", "updated"] = Field(..., description="Whether node was created or updated")
     message: str = Field(default="", description="Additional message")
 
 
@@ -338,11 +349,7 @@ class SearchRequest(BaseModel):
     model_config = _STRICT_REQUEST_CONFIG
 
     query: str = Field(
-        ...,
-        min_length=1,
-        max_length=500,
-        description="Search query string",
-        examples=["real-time analytics"],
+        ..., min_length=1, max_length=500, description="Search query string", examples=["real-time analytics"]
     )
     entity_type: EntityType | None = Field(None, description="Filter by entity type")
     search_type: SearchType = Field(
@@ -354,7 +361,9 @@ class SearchRequest(BaseModel):
     weights: dict[str, Annotated[float, Field(ge=0.0, le=1.0)]] | None = Field(
         None, description="Search weights for hybrid search (bm25, vector, graph)"
     )
-    filters: JSONDict | None = Field(None, description="Additional search filters")
+    filters: JSONDict | None = Field(
+        None, description="Additional search filters"
+    )
 
     @field_validator("weights")
     @classmethod
@@ -370,10 +379,14 @@ class SearchRequest(BaseModel):
 class SearchResult(BaseModel):
     """Individual search result."""
 
-    entity_id: str = Field(..., min_length=1, max_length=255, description="Entity ID")
+    entity_id: str = Field(
+        ..., min_length=1, max_length=255, description="Entity ID"
+    )
     entity_type: EntityType = Field(..., description="Entity type")
     name: str = Field(..., min_length=1, max_length=500, description="Entity name")
-    bm25_score: float = Field(..., ge=0.0, description="BM25 keyword similarity score")
+    bm25_score: float = Field(
+        ..., ge=0.0, description="BM25 keyword similarity score"
+    )
     vector_score: float = Field(..., ge=0.0, description="Vector similarity score")
     graph_score: float = Field(..., ge=0.0, description="Graph traversal score")
     combined_score: float = Field(
@@ -484,27 +497,19 @@ class EntitySummary(BaseModel):
     """
 
     id: str = Field(
-        ...,
-        min_length=1,
-        max_length=255,
-        description="Canonical entity identifier (stable UUID)",
+        ..., min_length=1, max_length=255, description="Canonical entity identifier (stable UUID)"
     )
     name: str = Field(
         ..., min_length=1, max_length=500, description="Human-readable entity name"
     )
-    entity_type: EntityType = Field(
-        ..., description="Entity classification from ontology"
-    )
+    entity_type: EntityType = Field(..., description="Entity classification from ontology")
 
     # Authoritative business fields (not inferred by UI)
     domain: str | None = Field(
-        None,
-        max_length=100,
-        description="Business domain/vertical (e.g., 'Finance', 'Healthcare')",
+        None, max_length=100, description="Business domain/vertical (e.g., 'Finance', 'Healthcare')"
     )
     status: EntityStatus = Field(
-        ...,
-        description="Entity lifecycle status: validated, pending, draft, deprecated",
+        ..., description="Entity lifecycle status: validated, pending, draft, deprecated"
     )
 
     # Confidence with explicit semantics
@@ -558,10 +563,7 @@ class RelationshipPreview(BaseModel):
     """Lightweight relationship for preview lists in entity detail."""
 
     relationship_type: str = Field(
-        ...,
-        min_length=1,
-        max_length=100,
-        description="Type of relationship (e.g., ENABLES, DEPENDS_ON)",
+        ..., min_length=1, max_length=100, description="Type of relationship (e.g., ENABLES, DEPENDS_ON)"
     )
     target_entity_id: str = Field(
         ..., min_length=1, max_length=255, description="ID of related entity"
@@ -575,33 +577,24 @@ class RelationshipPreview(BaseModel):
 class EntityRelationships(BaseModel):
     """Relationship counts and samples for quick navigation."""
 
-    total_count: Annotated[
-        int, Field(ge=0, description="Total relationships (in + out)")
-    ] = 0
+    total_count: Annotated[int, Field(ge=0, description="Total relationships (in + out)")] = 0
     incoming: list[RelationshipPreview] = Field(
-        default_factory=list,
-        max_length=5,
-        description="Sample of incoming relationships",
+        default_factory=list, max_length=5, description="Sample of incoming relationships"
     )
     outgoing: list[RelationshipPreview] = Field(
-        default_factory=list,
-        max_length=5,
-        description="Sample of outgoing relationships",
+        default_factory=list, max_length=5, description="Sample of outgoing relationships"
     )
 
 
 class ProvenanceEvent(BaseModel):
     """Single event in entity provenance chain."""
 
-    event_type: Literal[
-        "extracted", "validated", "modified", "merged", "deprecated"
-    ] = Field(..., description="Type of provenance event")
+    event_type: Literal["extracted", "validated", "modified", "merged", "deprecated"] = Field(
+        ..., description="Type of provenance event"
+    )
     timestamp: datetime = Field(..., description="When the event occurred")
     actor: str = Field(
-        ...,
-        min_length=1,
-        max_length=255,
-        description="User ID, system component, or job ID that performed the action",
+        ..., min_length=1, max_length=255, description="User ID, system component, or job ID that performed the action"
     )
     details: JSONDict = Field(
         default_factory=dict, description="Additional event-specific data"
@@ -670,7 +663,7 @@ class EntityDetail(BaseModel):
     # Relationships (for graph navigation)
     relationships: EntityRelationships = Field(
         default_factory=lambda: EntityRelationships(),
-        description="Related entities and relationship counts",
+        description="Related entities and relationship counts"
     )
 
     # Raw properties (for advanced inspection)
@@ -698,9 +691,7 @@ class EntityFilterRequest(BaseModel):
 
     # Text search (across name, description, properties)
     search_text: str | None = Field(
-        None,
-        max_length=200,
-        description="Search across name, description, and properties",
+        None, max_length=200, description="Search across name, description, and properties"
     )
 
     # Exact match filters (AND logic between different filter types)
@@ -730,21 +721,18 @@ class EntityFilterRequest(BaseModel):
         None, description="Filter by originating extraction job"
     )
     source_version_ids: list[Annotated[str, Field(max_length=255)]] | None = Field(
-        None,
-        description="Filter by source version ID for graph population verification",
+        None, description="Filter by source version ID for graph population verification"
     )
 
     # Time range
     updated_after: datetime | None = Field(None, description="Updated after this time")
-    updated_before: datetime | None = Field(
-        None, description="Updated before this time"
-    )
+    updated_before: datetime | None = Field(None, description="Updated before this time")
 
     # Pagination and sorting
     limit: int = Field(25, ge=1, le=100, description="Max results to return")
     offset: int = Field(0, ge=0, description="Results to skip (for pagination)")
-    sort_by: Literal["name", "updated_at", "confidence", "entity_type", "status"] = (
-        Field("updated_at", description="Field to sort by")
+    sort_by: Literal["name", "updated_at", "confidence", "entity_type", "status"] = Field(
+        "updated_at", description="Field to sort by"
     )
     sort_order: Literal["asc", "desc"] = Field(
         "desc", description="Sort direction (ascending or descending)"
@@ -775,7 +763,6 @@ class EntityListResponse(BaseModel):
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-
 
 class ValueTreeTraversal(BaseModel):
     model_config = _STRICT_REQUEST_CONFIG
@@ -933,7 +920,9 @@ class AuditLogEntry(BaseModel):
     entity_type: str | None = Field(None, description="Entity type")
     action: str = Field(..., description="Action performed")
     agent: str = Field(..., description="Agent (user, system, or AI)")
-    details: JSONDict = Field(default_factory=dict, description="Additional details")
+    details: JSONDict = Field(
+        default_factory=dict, description="Additional details"
+    )
 
 
 class AuditLogFilter(BaseModel):
@@ -1079,15 +1068,17 @@ class BatchAnalyticsResponse(BaseModel):
 
 
 # Graph Models
+# Alias maps are defined by the central compatibility policy.
+GraphNodeAliasMap = compat_policy.GraphNodeAliasMap
+GraphEdgeAliasMap = compat_policy.GraphEdgeAliasMap
 
 
 class GraphNode(BaseModel):
     """Node in the knowledge graph.
 
     Canonical fields are name/entity_type/confidence_score.
+    Legacy aliases label/type/confidence are emitted for one deprecation window.
     """
-
-    model_config = _STRICT_REQUEST_CONFIG
 
     id: str = Field(..., description="Unique node identifier")
     name: str = Field(..., description="Display label")
@@ -1098,6 +1089,56 @@ class GraphNode(BaseModel):
     properties: JSONDict = Field(
         default_factory=dict, description="Additional node properties"
     )
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_and_validate_legacy_aliases(cls, data: JSONDict) -> JSONDict:
+        """Allow legacy aliases only when canonical fields are absent or equal."""
+        if not isinstance(data, dict):
+            return data
+        for alias, canonical in GraphNodeAliasMap.items():
+            if canonical in data and alias in data and data[canonical] != data[alias]:
+                raise ValueError(
+                    f"Conflicting GraphNode fields: '{canonical}' and deprecated '{alias}' must match"
+                )
+            if canonical not in data and alias in data:
+                record_deprecated_field_usage("graph_node_request_legacy_fields")
+                data[canonical] = data[alias]
+        return data
+
+    # ═════════════════════════════════════════════════════════════════════════
+    # Backward-compatible alias fields for frontend contract alignment
+    # ═════════════════════════════════════════════════════════════════════════
+
+    @computed_field
+    @property
+    def label(self) -> str:
+        """Deprecated alias for 'name'."""
+        return self.name
+
+    @computed_field
+    @property
+    def type(self) -> str:
+        """Deprecated alias for 'entity_type'."""
+        return self.entity_type
+
+    @computed_field
+    @property
+    def confidence(self) -> float:
+        """Deprecated alias for 'confidence_score'."""
+        return self.confidence_score
+
+    def model_dump(self, **kwargs: object) -> JSONDict:
+        """Override to remove aliases when the deprecation window closes."""
+        api_version = kwargs.pop("api_version", "v2.3")
+        data = super().model_dump(**kwargs)
+        if include_legacy_graph_aliases(api_version):
+            for _ in GraphNodeAliasMap:
+                record_deprecated_field_usage("graph_node_response_legacy_fields")
+            return data
+        for alias in GraphNodeAliasMap:
+            data.pop(alias, None)
+        return data
 
 
 class GraphNodeWithLayout(GraphNode):
@@ -1114,13 +1155,20 @@ class GraphNodeWithLayout(GraphNode):
     r: float | None = Field(None, description="Radius for visualization")
 
 
+# Mapping for GraphEdge alias fields
+GraphEdgeAliasMap: dict[str, str] = {
+    "relationship_type": "type",
+}
+
+
 class GraphEdge(BaseModel):
     """Edge/relationship in the knowledge graph.
 
-    The canonical relationship field is 'type'.
+    Versioned policy:
+    - v2.3 and earlier: emit canonical 'type' plus deprecated alias 'relationship_type'.
+    - v2.4 warning window: alias remains deprecated and monitored.
+    - v2.5 and later: remove 'relationship_type' alias and keep only 'type'.
     """
-
-    model_config = _STRICT_REQUEST_CONFIG
 
     source: str = Field(..., description="Source node ID")
     target: str = Field(..., description="Target node ID")
@@ -1129,6 +1177,39 @@ class GraphEdge(BaseModel):
     properties: JSONDict = Field(
         default_factory=dict, description="Additional edge properties"
     )
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_and_validate_legacy_aliases(cls, data: JSONDict) -> JSONDict:
+        if not isinstance(data, dict):
+            return data
+        for alias, canonical in GraphEdgeAliasMap.items():
+            if canonical in data and alias in data and data[canonical] != data[alias]:
+                raise ValueError(
+                    f"Conflicting GraphEdge fields: '{canonical}' and deprecated '{alias}' must match"
+                )
+            if canonical not in data and alias in data:
+                record_deprecated_field_usage("graph_edge_request_legacy_fields")
+                data[canonical] = data[alias]
+        return data
+
+    @computed_field
+    @property
+    def relationship_type(self) -> str:
+        """Deprecated alias for 'type'."""
+        return self.type
+
+    def model_dump(self, **kwargs: object) -> JSONDict:
+        """Override to remove aliases when the deprecation window closes."""
+        api_version = kwargs.pop("api_version", "v2.3")
+        data = super().model_dump(**kwargs)
+        if include_legacy_graph_aliases(api_version):
+            for _ in GraphEdgeAliasMap:
+                record_deprecated_field_usage("graph_edge_response_legacy_fields")
+            return data
+        for alias in GraphEdgeAliasMap:
+            data.pop(alias, None)
+        return data
 
 
 class GraphStats(BaseModel):
@@ -1161,3 +1242,28 @@ class SubgraphResponse(BaseModel):
     edges: list[GraphEdge] = Field(..., description="Edges between returned nodes")
     depth: int = Field(..., ge=1, le=5, description="Traversal depth used")
     stats: GraphStats = Field(..., description="Subgraph statistics")
+
+
+# Private alias for test compatibility
+_include_legacy_graph_aliases = include_legacy_graph_aliases
+
+def _serialize_entity(entity, api_version='v2.3'):
+    """Serialize an entity dict with versioned alias policy."""
+    node = GraphNode.model_validate(entity)
+    return node.model_dump(api_version=api_version)
+
+def _serialize_relationship(rel, api_version='v2.3'):
+    """Serialize a relationship with versioned alias policy."""
+    data = {}
+    if isinstance(rel, dict):
+        data = dict(rel)
+    if hasattr(rel, 'type'):
+        data.setdefault('type', rel.type)
+    if hasattr(rel, 'start_node'):
+        sn = rel.start_node
+        data.setdefault('source', sn['id'] if isinstance(sn, dict) else getattr(sn, 'id', None))
+    if hasattr(rel, 'end_node'):
+        en = rel.end_node
+        data.setdefault('target', en['id'] if isinstance(en, dict) else getattr(en, 'id', None))
+    edge = GraphEdge.model_validate(data)
+    return edge.model_dump(api_version=api_version)

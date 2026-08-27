@@ -135,6 +135,12 @@ class Settings(BaseSettings):
     layer3_api_key: str | None = Field(default=None, alias="LAYER3_API_KEY")
     layer3_timeout_seconds: int = Field(default=30, alias="LAYER3_TIMEOUT_SECONDS")
     layer3_sync_enabled: bool = Field(default=True, alias="LAYER3_SYNC_ENABLED")
+    layer3_bulk_sync_workers: int = Field(
+        default=10,
+        ge=1,
+        alias="LAYER3_BULK_SYNC_WORKERS",
+        description="Maximum concurrent Layer 3 requests during approved-object bulk sync.",
+    )
 
     # Validation Configuration
     min_sources_for_validated: int = Field(
