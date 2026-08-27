@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import sys
-
 import typer
 from rich import print as rich_print
 
@@ -67,7 +65,7 @@ def main() -> None:
         app()
     except ConfigurationError as e:
         rich_print(f"[red]Configuration error:[/red] {e}")
-        sys.exit(1)
+        raise SystemExit(1) from e
 
 
 if __name__ == "__main__":
