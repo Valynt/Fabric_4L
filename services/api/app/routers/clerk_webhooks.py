@@ -1,12 +1,16 @@
 """Clerk webhook handler — keeps Fabric4L identity tables in sync.
 
 Security:
-    - Signature verification uses Svix when the ``svix`` package is
-      installed; otherwise we fall back to a stricter manual HMAC-SHA256
-      check matching Svix's wire format. Either way, requests without a
-      valid signature are rejected with 401.
+    - Signature verification (Svix wire format over the raw body) is the
+      responsibility of ``app.core.clerk_webhook_signing`` — the dedicated,
+      independently-reviewable security boundary. It rejects missing/invalid/
+      stale signatures with 401 and oversized bodies with 413. Requests
+      without a valid signature are rejected before any parsing or delivery
+      logic runs.
     - The endpoint is registered under ``/internal/webhooks/clerk`` and
       MUST NOT be exposed publicly without an additional network policy.
+    - Delivery semantics (deduplication, idempotency, ordering, replay) are
+      handled below, deliberately separated from transport security.
 
 Idempotency:
     Each Clerk event carries a Svix message id (``svix-id`` header). The
@@ -16,12 +20,9 @@ Idempotency:
 
 from __future__ import annotations
 
-import hashlib
-import hmac
 import json
 import os
 import time
-from base64 import b64decode, b64encode
 from enum import StrEnum
 from typing import Any
 
@@ -45,6 +46,7 @@ from app.core.auth_telemetry import (
 )
 from app.core.billing_entitlements import process_clerk_billing_event
 from app.core.clerk_config import _DEFAULT_CLERK_WEBHOOK_RATE_LIMIT_PER_MINUTE, get_auth_settings
+from app.core.clerk_webhook_signing import read_webhook_body_limited, verify_svix_signature
 from app.core.security import require_authenticated
 from app.core.webhook_dlq import get_webhook_dlq
 
@@ -82,64 +84,6 @@ class ClerkEventType(StrEnum):
     SUBSCRIPTION_ITEM_UPDATED = "subscription.item.updated"
     PAYMENT_ATTEMPT_SUCCEEDED = "payment_attempt.succeeded"
     PAYMENT_ATTEMPT_FAILED = "payment_attempt.failed"
-
-
-def _verify_svix_signature(
-    *,
-    secret: str,
-    headers: dict[str, str],
-    body: bytes,
-) -> None:
-    """Verify the Svix-format signature header.
-
-    Svix uses ``v1,<base64-hmac-sha256>`` over ``"<svix_id>.<svix_timestamp>.<body>"``
-    using a base64-decoded shared secret (``whsec_<base64>``).
-    """
-    svix_id = headers.get("svix-id")
-    svix_timestamp = headers.get("svix-timestamp")
-    svix_signature = headers.get("svix-signature")
-    if not (svix_id and svix_timestamp and svix_signature):
-        raise AuthenticationError(message="Unauthorized.")
-
-    # Timestamp tolerance: reject signatures older than ±5 minutes to
-    # prevent replay attacks with captured valid signatures.
-    try:
-        ts = int(svix_timestamp)
-    except ValueError:
-        raise AuthenticationError(message="Unauthorized.")
-    now = int(time.time())
-    if abs(now - ts) > 300:
-        raise AuthenticationError(message="Unauthorized.")
-
-    if secret.startswith("whsec_"):
-        try:
-            key = b64decode(secret[len("whsec_") :])
-        except Exception as exc:
-            logger.exception(
-                "CLERK_WEBHOOK_SIGNING_SECRET base64 decode failed",
-                operation="webhook_signature_verify",
-                error=str(exc),
-            )
-            raise ServiceUnavailableError(message="Misconfigured.") from exc
-    else:
-        key = secret.encode()
-
-    signed_payload = f"{svix_id}.{svix_timestamp}.".encode() + body
-    expected = hmac.new(key, signed_payload, hashlib.sha256).digest()
-    expected_sig = b64encode(expected).decode()
-    # svix-signature is a space-separated list of "v1,<base64>" pairs.
-    valid = False
-    for sig_entry in svix_signature.split(" "):
-        if "," not in sig_entry:
-            continue
-        version, value = sig_entry.split(",", 1)
-        if version != "v1":
-            continue
-        if hmac.compare_digest(value.strip(), expected_sig):
-            valid = True
-            break
-    if not valid:
-        raise AuthenticationError(message="Unauthorized.")
 
 
 def _apply_event(directory: AuthDirectory, event_type: str, data: dict[str, Any]) -> None:
@@ -255,9 +199,9 @@ async def clerk_webhook(request: Request, _limit: None = Depends(_clerk_ip_limit
         # Webhook endpoint is silent until configured.
         raise ServiceUnavailableError(message="Webhook handler not configured.")
 
-    body = await request.body()
+    body = await read_webhook_body_limited(request)
     headers = {k.lower(): v for k, v in request.headers.items()}
-    _verify_svix_signature(
+    verify_svix_signature(
         secret=settings.clerk.webhook_secret,
         headers=headers,
         body=body,
