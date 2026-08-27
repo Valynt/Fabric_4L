@@ -8,7 +8,6 @@ from scripts.ci.check_p0_security_skip_governance import evaluate
 
 TODAY = date(2026, 8, 27)
 GOVERNED = ("tests/security/gov_test.py",)
-SCAN_ROOTS = ("tests",)
 
 
 def _write(path: Path, content: str) -> None:
@@ -44,7 +43,7 @@ def _skip_line(reason: str) -> str:
 def test_exact_single_match_passes(tmp_path: Path) -> None:
     _write(tmp_path / "tests/security/gov_test.py", _skip_line("Requires L2 service integration"))
     report = evaluate(
-        tmp_path, _allowlist(tmp_path, [_entry()]), TODAY, scan_roots=SCAN_ROOTS, governed_paths=GOVERNED
+        tmp_path, _allowlist(tmp_path, [_entry()]), TODAY, governed_paths=GOVERNED
     )
     assert report["violation_count"] == 0
     assert report["covered_skips"] == ["allow-001"]
@@ -53,7 +52,7 @@ def test_exact_single_match_passes(tmp_path: Path) -> None:
 def test_uncovered_skip_fails(tmp_path: Path) -> None:
     _write(tmp_path / "tests/security/gov_test.py", _skip_line("unrelated reason"))
     report = evaluate(
-        tmp_path, _allowlist(tmp_path, [_entry()]), TODAY, scan_roots=SCAN_ROOTS, governed_paths=GOVERNED
+        tmp_path, _allowlist(tmp_path, [_entry()]), TODAY, governed_paths=GOVERNED
     )
     assert report["violation_count"] == 1
     assert any("unapproved P0/security skip" in v for v in report["violations"])
@@ -65,7 +64,7 @@ def test_expired_allowlist_entry_fails(tmp_path: Path) -> None:
         tmp_path,
         _allowlist(tmp_path, [_entry(expiry="2026-01-01")]),
         TODAY,
-        scan_roots=SCAN_ROOTS,
+       
         governed_paths=GOVERNED,
     )
     assert report["violation_count"] >= 1
@@ -76,7 +75,7 @@ def test_stale_allowlist_entry_flagged(tmp_path: Path) -> None:
     # No skips at all in the governed tree -> entry matches nothing and is stale.
     _write(tmp_path / "tests/security/gov_test.py", "import pytest\nassert True\n")
     report = evaluate(
-        tmp_path, _allowlist(tmp_path, [_entry()]), TODAY, scan_roots=SCAN_ROOTS, governed_paths=GOVERNED
+        tmp_path, _allowlist(tmp_path, [_entry()]), TODAY, governed_paths=GOVERNED
     )
     assert report["stale_allowlist_entries"] == ["allow-001"]
 
@@ -89,7 +88,7 @@ def test_ambiguous_multiple_match_fails(tmp_path: Path) -> None:
         _entry(id="allow-002", reason_pattern="service integration"),
     ]
     report = evaluate(
-        tmp_path, _allowlist(tmp_path, entries), TODAY, scan_roots=SCAN_ROOTS, governed_paths=GOVERNED
+        tmp_path, _allowlist(tmp_path, entries), TODAY, governed_paths=GOVERNED
     )
     assert report["ambiguous_skips"] == [
         {"path": "tests/security/gov_test.py", "line": 2, "matched_ids": ["allow-001", "allow-002"]}

@@ -62,10 +62,16 @@ def _make_signature(payload: bytes, secret: str, timestamp: int | None = None) -
     return f"t={signed_at},v1={digest}"
 
 
+def _verify(payload: bytes, signature: str | None, secret: str | None, **kwargs):
+    """Verify with a pinned ``now`` so timing never makes these tests flaky."""
+    kwargs.setdefault("now", CURRENT_TS)
+    return verify_stripe_webhook_signature(payload, signature, secret, **kwargs)
+
+
 def test_valid_signed_delivery_is_accepted() -> None:
     """A correctly signed, in-tolerance delivery verifies successfully."""
     sig = _make_signature(PAYLOAD, WEBHOOK_SECRET, CURRENT_TS)
-    parsed = verify_stripe_webhook_signature(PAYLOAD, sig, WEBHOOK_SECRET)
+    parsed = _verify(PAYLOAD, sig, WEBHOOK_SECRET)
     assert parsed.timestamp == CURRENT_TS
 
 
@@ -81,7 +87,7 @@ def test_signature_tampering_rejected() -> None:
     sig = _make_signature(PAYLOAD, WEBHOOK_SECRET, CURRENT_TS)
     tampered = b'{"id": "evt_123", "type": "payment.created", "data": {"amount": 999999}}'
     with pytest.raises(ValueError, match="Invalid Stripe webhook signature"):
-        verify_stripe_webhook_signature(tampered, sig, WEBHOOK_SECRET)
+        _verify(tampered, sig, WEBHOOK_SECRET)
 
 
 def test_signature_invalidated_by_timestamp_tampering() -> None:
@@ -92,7 +98,7 @@ def test_signature_invalidated_by_timestamp_tampering() -> None:
     tampered_timestamp_sig = f"t={CURRENT_TS - 5},v1={digest}"
 
     with pytest.raises(ValueError, match="Invalid Stripe webhook signature"):
-        verify_stripe_webhook_signature(PAYLOAD, tampered_timestamp_sig, WEBHOOK_SECRET)
+        _verify(PAYLOAD, tampered_timestamp_sig, WEBHOOK_SECRET)
 
 
 def test_modified_signature_rejected() -> None:
@@ -100,51 +106,51 @@ def test_modified_signature_rejected() -> None:
     prefix, v1 = sig.rsplit("v1=", 1)
     modified = prefix + "v1=" + ("0" if v1[0] != "0" else "1") + v1[1:]
     with pytest.raises(ValueError, match="Invalid Stripe webhook signature"):
-        verify_stripe_webhook_signature(PAYLOAD, modified, WEBHOOK_SECRET)
+        _verify(PAYLOAD, modified, WEBHOOK_SECRET)
 
 
 def test_missing_signature_rejected() -> None:
     with pytest.raises(ValueError, match="Missing Stripe-Signature header"):
-        verify_stripe_webhook_signature(PAYLOAD, None, WEBHOOK_SECRET)
+        _verify(PAYLOAD, None, WEBHOOK_SECRET)
 
 
 def test_malformed_signatures_rejected() -> None:
     for sig in ["invalid", "t=123", "v1=abc", "", "t=abc"]:
         with pytest.raises(ValueError):
-            verify_stripe_webhook_signature(PAYLOAD, sig, WEBHOOK_SECRET)
+            _verify(PAYLOAD, sig, WEBHOOK_SECRET)
 
 
 def test_signature_version_validation() -> None:
     """v1 is accepted; unknown version alone (no v1) is rejected."""
     sig = _make_signature(PAYLOAD, WEBHOOK_SECRET, CURRENT_TS)
-    assert verify_stripe_webhook_signature(PAYLOAD, sig, WEBHOOK_SECRET) is not None
+    assert _verify(PAYLOAD, sig, WEBHOOK_SECRET) is not None
 
     with pytest.raises(ValueError, match="Missing Stripe v1 signature"):
-        verify_stripe_webhook_signature(PAYLOAD, "t=123,v2=abc", WEBHOOK_SECRET)
+        _verify(PAYLOAD, "t=123,v2=abc", WEBHOOK_SECRET)
 
 
 def test_wrong_secret_rejected() -> None:
     wrong_sig = _make_signature(PAYLOAD, OTHER_SECRET, CURRENT_TS)
     with pytest.raises(ValueError, match="Invalid Stripe webhook signature"):
-        verify_stripe_webhook_signature(PAYLOAD, wrong_sig, WEBHOOK_SECRET)
+        _verify(PAYLOAD, wrong_sig, WEBHOOK_SECRET)
 
 
 def test_unconfigured_secret_rejected() -> None:
     sig = _make_signature(PAYLOAD, WEBHOOK_SECRET, CURRENT_TS)
     with pytest.raises(ValueError, match="secret is not configured"):
-        verify_stripe_webhook_signature(PAYLOAD, sig, None)
+        _verify(PAYLOAD, sig, None)
 
 
 def test_empty_secret_rejected() -> None:
     sig = _make_signature(PAYLOAD, WEBHOOK_SECRET, CURRENT_TS)
     with pytest.raises(ValueError, match="secret is not configured"):
-        verify_stripe_webhook_signature(PAYLOAD, sig, "   ")
+        _verify(PAYLOAD, sig, "   ")
 
 
 def test_stale_timestamp_rejected() -> None:
     sig = _make_signature(PAYLOAD, WEBHOOK_SECRET, STALE_TS)
     with pytest.raises(ValueError, match="outside tolerance"):
-        verify_stripe_webhook_signature(
+        _verify(
             PAYLOAD, sig, WEBHOOK_SECRET, tolerance_seconds=300, now=CURRENT_TS
         )
 
@@ -152,7 +158,7 @@ def test_stale_timestamp_rejected() -> None:
 def test_future_timestamp_outside_tolerance_rejected() -> None:
     sig = _make_signature(PAYLOAD, WEBHOOK_SECRET, FUTURE_TS)
     with pytest.raises(ValueError, match="outside tolerance"):
-        verify_stripe_webhook_signature(
+        _verify(
             PAYLOAD, sig, WEBHOOK_SECRET, tolerance_seconds=300, now=CURRENT_TS
         )
 
@@ -160,14 +166,14 @@ def test_future_timestamp_outside_tolerance_rejected() -> None:
 def test_timestamp_tolerance_boundary_accepted() -> None:
     """A timestamp exactly at the tolerance edge is accepted."""
     sig = _make_signature(PAYLOAD, WEBHOOK_SECRET, CURRENT_TS - 300)
-    assert verify_stripe_webhook_signature(
+    assert _verify(
         PAYLOAD, sig, WEBHOOK_SECRET, tolerance_seconds=300, now=CURRENT_TS
     )
 
 
 def test_missing_timestamp_rejected() -> None:
     with pytest.raises(ValueError, match="Missing Stripe signature timestamp"):
-        verify_stripe_webhook_signature(
+        _verify(
             PAYLOAD, f"v1={_make_signature(PAYLOAD, WEBHOOK_SECRET, CURRENT_TS).split('v1=')[1]}", WEBHOOK_SECRET
         )
 
@@ -270,7 +276,7 @@ def test_webhook_error_does_not_leak_payload_via_error_message() -> None:
     """Verification errors are stable and do not echo the payload body."""
     sig = _make_signature(PAYLOAD, WEBHOOK_SECRET, STALE_TS)
     try:
-        verify_stripe_webhook_signature(PAYLOAD, sig, WEBHOOK_SECRET)
+        _verify(PAYLOAD, sig, WEBHOOK_SECRET)
     except ValueError as exc:
         assert PAYLOAD.decode() not in str(exc)
         assert WEBHOOK_SECRET not in str(exc)
@@ -294,4 +300,5 @@ class TestWebhookLiveStackOnly:
         pytest.skip("Live-stack: relies on deployed Redis rate limiter")
 
     def test_webhook_burst_rate_limit_enforced(self) -> None:
-        pytest.skip("Live-stack: relies on deployed Redis rate limiter")
+        pytest.skip("Live-stack: relies on deployed Redis rate limiter")
+

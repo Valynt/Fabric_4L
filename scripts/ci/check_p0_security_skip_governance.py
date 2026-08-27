@@ -41,8 +41,8 @@ GOVERNED_PATHS = (
     "tests/security/test_cross_layer_tenant_isolation.py",
     "tests/security/test_webhook_security_p0.py",
 )
-SCAN_ROOTS = ["tests", "services", "apps/web/e2e"]
-SOURCE_SUFFIXES = {".py", ".ts", ".tsx", ".js", ".jsx", ".mjs"}
+# We only ever govern the explicit paths in GOVERNED_PATHS, so there is no
+# need to rglob the whole tree. Dead constants kept for documentation only.
 EXCLUDED_PARTS = {
     ".git", ".mypy_cache", ".pytest_cache", ".ruff_cache", ".tmp",
     ".venv", "venv", "__pycache__", "coverage", "dist", "node_modules",
@@ -85,31 +85,27 @@ def _repo_root() -> Path:
     return Path(__file__).resolve().parents[2]
 
 
-def _is_p0_security_path(relative: Path, governed_paths: tuple[str, ...]) -> bool:
-    posix = relative.as_posix()
-    return posix in governed_paths
+def _iter_files(root: Path, governed_paths: tuple[str, ...]) -> list[Path]:
+    """Resolve the explicitly governed P0/security files under ``root``.
 
-
-def _iter_files(root: Path, scan_roots: tuple[str, ...], governed_paths: tuple[str, ...]) -> list[Path]:
-    files: set[Path] = set()
-    for scan_root in scan_roots:
-        base = root / scan_root
-        if not base.exists():
+    The ratchet only ever governs the small set in GOVERNED_PATHS, so iterate
+    those directly rather than rglob-ing the whole tree (which adds avoidable
+    CI overhead).
+    """
+    files: list[Path] = []
+    for rel in governed_paths:
+        candidate = root / rel
+        if not candidate.is_file():
             continue
-        candidates = [base] if base.is_file() else base.rglob("*")
-        for path in candidates:
-            if not path.is_file() or path.suffix.lower() not in SOURCE_SUFFIXES:
-                continue
-            relative = path.relative_to(root)
-            if set(relative.parts) & EXCLUDED_PARTS or not _is_p0_security_path(relative, governed_paths):
-                continue
-            files.add(path)
+        if set(Path(rel).parts) & EXCLUDED_PARTS:
+            continue
+        files.append(candidate)
     return sorted(files)
 
 
-def _find_skips(root: Path, scan_roots: tuple[str, ...], governed_paths: tuple[str, ...]) -> list[SkipFinding]:
+def _find_skips(root: Path, governed_paths: tuple[str, ...]) -> list[SkipFinding]:
     findings: list[SkipFinding] = []
-    for path in _iter_files(root, scan_roots, governed_paths):
+    for path in _iter_files(root, governed_paths):
         for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
             if "pytest.skip.Exception" in line:
                 continue
@@ -169,10 +165,9 @@ def evaluate(
     allowlist_path: Path,
     today: date,
     *,
-    scan_roots: tuple[str, ...] = SCAN_ROOTS,
     governed_paths: tuple[str, ...] = GOVERNED_PATHS,
 ) -> dict:
-    findings = _find_skips(root, scan_roots, governed_paths)
+    findings = _find_skips(root, governed_paths)
     entries, errors = _load_allowlist(allowlist_path, today)
     matched_ids: set[str] = set()
     uncovered: list[SkipFinding] = []
@@ -196,7 +191,7 @@ def evaluate(
     )
     violations.extend(errors)
     return {
-        "scanned_files": len(_iter_files(root, scan_roots, governed_paths)),
+        "scanned_files": len(_iter_files(root, governed_paths)),
         "skip_count": len(findings),
         "covered_skips": list(matched_ids),
         "uncovered_skips": [asdict(f) for f in uncovered],
