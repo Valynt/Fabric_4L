@@ -10,6 +10,7 @@ Request/response models for the accounts surface.
 from datetime import datetime
 from decimal import Decimal
 from enum import Enum
+from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -279,7 +280,7 @@ class AccountFilterOptionsResponse(BaseModel):
     regions: list[str]
     segments: list[str]
     providers: list[CRMProvider]
-    owners: list[dict[str, str]]  # [{"id": "...", "name": "..."}]
+    owners: list[dict[str, Any]]
 
 
 # ============================================================================

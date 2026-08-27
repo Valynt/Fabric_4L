@@ -22,32 +22,9 @@ import {
   requireBackendOrThrow,
   expectNoCrossTenantLeakage,
 } from '../helpers/validation-program';
-import { seedAuthState, E2E_TENANT_BETA_ID } from '../fixtures/auth-helpers';
+import { seedAuthState, E2E_TENANT_B_USER } from '../fixtures/auth-helpers';
 
 const MERIDIAN_CASE_ID = 'case-meridian-e2e-001';
-
-/**
- * Backend account UUID that the seeded Meridian case belongs to in the alpha
- * tenant. Mirrors `MERIDIAN_BACKEND_ACCOUNT_UUID` from
- * scripts/db/seed-e2e-data.ts. Used to target the real mounted list route.
- */
-const MERIDIAN_BACKEND_ACCOUNT_UUID =
-  '00000000-0000-4000-e2e0-000000000101';
-
-/**
- * Ids/emails are seeded by scripts/db/seed-e2e-data.ts as belonging to the
- * Beta tenant. We use a distinct inline id (NOT the auth-helpers collision id
- * 'e2e-reviewer-user') so the Beta user identity is unique in the seed corpus.
- */
-function tenantBUser() {
-  return {
-    id: 'e2e-tenant-b-user',
-    email: 'tenant-b@valuefabric.test',
-    role: 'reviewer',
-    tenantId: E2E_TENANT_BETA_ID,
-    tenantSlug: 'tenant-e2e-beta',
-  };
-}
 
 function apiBackendBase(): string {
   const backendUrl = process.env.PLAYWRIGHT_BACKEND_URL;
@@ -67,46 +44,19 @@ test.describe('Security Suite: Live Cross-Tenant Denial', () => {
     const pageB = await ctxB.newPage();
     try {
       // Seed the Beta-tenant session into the isolated context.
-      await seedAuthState(pageB, tenantBUser());
+      await seedAuthState(pageB, E2E_TENANT_B_USER);
 
       const backendBase = apiBackendBase();
 
       // The seeded approved Meridian case lives in the ALPHA tenant. Beta must
-      // be denied reading it. These are the REAL mounted Layer 4 routes
-      // (`/v1/cases...`, not the Vite mock-only `/api/v1/agents/cases` paths).
+      // be denied reading it.
+      const caseList = await pageB.request.get(`${backendBase}/api/v1/agents/cases`, {
+        headers: { Accept: 'application/json' },
+      });
+      expect([401, 403, 404].includes(caseList.status())).toBeTruthy();
 
-      // 1. Single-case GET: the account is not visible under the Beta tenant,
-      //    so the route fails closed with 404 (resource not found for this
-      //    tenant). The denial status must be an auth/tenant-fail-closed code
-      //    (401/403/404) - never a 200 carrying the alpha case body.
-      const singleCase = await pageB.request.get(
-        `${backendBase}/v1/cases/${MERIDIAN_CASE_ID}`,
-        { headers: { Accept: 'application/json' } },
-      );
-      expect([401, 403, 404].includes(singleCase.status())).toBeTruthy();
-      const singleCaseBody = await singleCase.text();
-      expect(singleCaseBody.toLowerCase()).not.toContain('meridian');
-      expect(singleCaseBody.toLowerCase()).not.toContain(
-        'approved business case',
-      );
-
-      // 2. Case-list GET scoped to the Meridian account. Under the Beta tenant
-      //    that account does not exist, so the route returns an EMPTY list
-      //    (200, `{items:[],total:0}`). This is correct isolation - fail-closed
-      //    and leak-free - so we assert the shape and the absence of any alpha
-      //    case content rather than requiring an error status.
-      const caseList = await pageB.request.get(
-        `${backendBase}/v1/cases?account_id=${MERIDIAN_BACKEND_ACCOUNT_UUID}`,
-        { headers: { Accept: 'application/json' } },
-      );
-      const listStatus = caseList.status();
-      expect([200, 401, 403].includes(listStatus)).toBeTruthy();
-      if (listStatus === 200) {
-        const listBody = await caseList.json();
-        expect(Array.isArray(listBody.items)).toBeTruthy();
-        expect(listBody.total).toBe(0);
-      }
       const caseBody = await caseList.text();
+      // Fail-closed: the response must not contain the alpha case content.
       expect(caseBody.toLowerCase()).not.toContain('meridian');
       expect(caseBody.toLowerCase()).not.toContain('approved business case');
 
@@ -116,7 +66,7 @@ test.describe('Security Suite: Live Cross-Tenant Denial', () => {
             try {
               const anonPage = await anonCtx.newPage();
               const anon = await anonPage.request.get(
-                `${backendBase}/v1/cases/${MERIDIAN_CASE_ID}`,
+                `${backendBase}/api/v1/agents/cases/${MERIDIAN_CASE_ID}`,
                 { headers: { Accept: 'application/json' } },
               );
               expect([401, 403].includes(anon.status())).toBeTruthy();

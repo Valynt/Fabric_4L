@@ -1,16 +1,21 @@
 /**
- * Journey 2: Continuous Live Multi-Role Approval — @backend
+ * Journey 2: Continuous Live Reviewer/Admin Governance — @backend
  *
  * Traceability: MULTIROLE-APPROVAL-001, REVIEWER-AUTHZ-001, CONTENT-ADMIN-WRITE-001.
  *
  * This suite exercises the live role-authenticated governance review boundary
  * against the running backend, working at the authorization boundary directly:
  *
- *   1. An admin (super_admin) session can list governance reviews.
- *   2. A reviewer session can list reviews but is DENIED the content_admin-only
- *      write surface (create review → 403/401/405).
+ *   1. A reviewer session can list governance reviews (200 + JSON array).
+ *   2. A reviewer session is DENIED the content_admin-only write surface
+ *      (create review → exactly 403, not 401/405).
  *   3. The admin session can create a review and post an approved decision
  *      (200/201) — proving the write path is gated to content_admin+.
+ *
+ * The reviewer list must return 200 with an array body: the reviewer has
+ * proven authentication via that successful request, so the subsequent
+ * create-denial must be exactly 403. Accepting 405 can conceal a route or
+ * method regression on the same POST route the admin test exercises.
  *
  * This spec targets seeded identities only (no live LLM generation) and is
  * tagged `@backend` so it only runs in the `backend-integrated` Playwright
@@ -62,7 +67,7 @@ function reviewPayload(reviewId: string, correlationId: string) {
   };
 }
 
-test.describe('Journey 2: Multi-Role Live Approval', () => {
+test.describe('Journey 2: Reviewer/Admin Live Governance', () => {
   test('reviewer_can_list_reviews_but_write_is_denied @backend', async ({ page }) => {
     requireBackendOrThrow('journey2_reviewer_can_list_reviews_but_write_is_denied @backend');
 
@@ -71,23 +76,33 @@ test.describe('Journey 2: Multi-Role Live Approval', () => {
 
     const base = backendGovernanceBase();
 
-    // 1. Reviewer may LIST governance reviews (auth-only surface). A reviewer
-    //    session was just minted, so this must actually succeed with a JSON
-    //    array - otherwise the reviewer session is broken and the whole spec
-    //    (including the write-denial half below) is meaningless.
+    // 1. Reviewer may LIST governance reviews (auth-only surface). This must
+    //    return 200 with an array body; accepting 401/403 here would let a
+    //    misconfigured auth surface masquerade as the intended behavior.
     const list = await page.request.get(`${base}/reviews`, {
       headers: { Accept: 'application/json' },
     });
     expect(list.status()).toBe(200);
     const listBody = await list.json();
-    expect(Array.isArray(listBody)).toBeTruthy();
+    const listItems = Array.isArray(listBody)
+      ? listBody
+      : Array.isArray((listBody as { data?: unknown })?.data)
+        ? ((listBody as { data: unknown[] }).data)
+        : Array.isArray((listBody as { items?: unknown })?.items)
+          ? ((listBody as { items: unknown[] }).items)
+          : null;
+    expect(Array.isArray(listItems), `governance reviews list body must be an array, got: ${JSON.stringify(listBody).slice(0, 200)}`).toBe(true);
 
     // 2. Reviewer must NOT be able to CREATE a review (content_admin gated).
+    //    The reviewer has already proven authentication via the successful
+    //    list request above, so the expected result is exactly 403 — not 401
+    //    (unauthenticated) and not 405 (route/method regression on the same
+    //    POST route the admin test exercises below).
     const create = await page.request.post(`${base}/reviews`, {
       headers: { 'Content-Type': 'application/json' },
       data: JSON.stringify(reviewPayload(`rev-live-denied-${Date.now()}`, newCorrelationId())),
     });
-    expect([401, 403, 405].includes(create.status())).toBeTruthy();
+    expect(create.status()).toBe(403);
 
     await expectNoCrossTenantLeakage(page);
   });

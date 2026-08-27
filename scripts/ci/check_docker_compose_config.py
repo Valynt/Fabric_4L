@@ -74,6 +74,7 @@ ONE_SHOT_SERVICE_PATTERNS = (
 
 SKIPPED_BIND_SOURCES = {
     "/var/run/docker.sock",
+    "/var/lib/docker/containers",
 }
 
 FULL_COMPOSE_FILE = "docker-compose.full.yml"
@@ -169,7 +170,7 @@ AUTH_ENV_KEYS = {
     "CLERK_JWKS_URL",
     "CLERK_PINNED_JWT_PEM",
     "CLERK_SECRET_KEY",
-    "CLERK_WEBHOOK_SECRET",
+    "CLERK_WEBHOOK_SIGNING_SECRET",
     "CLERK_WEBHOOK_RATE_LIMIT_PER_MINUTE",
     "CLERK_PUBLISHABLE_KEY",
     "VITE_CLERK_PUBLISHABLE_KEY",

@@ -18,7 +18,6 @@ const rule: Rule.RuleModule = {
     type: "problem",
     docs: {
       description: "Disallow direct req.headers access - use auth middleware",
-      category: "Canonical Contracts",
       recommended: true,
       url: "https://github.com/bmsull560/Fabric_4L/blob/main/contract.md#21-tenant-isolation-boundary",
     },
@@ -33,7 +32,7 @@ const rule: Rule.RuleModule = {
 
   create(context: Rule.RuleContext): Rule.RuleListener {
     // Check if we're in middleware directory
-    const filename = context.getFilename();
+    const filename = context.filename;
     const isMiddleware = /middleware|auth/.test(filename);
 
     if (isMiddleware) {

@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from value_fabric.shared.error_handling.exceptions import AuthenticationError
+from value_fabric.shared.error_handling.exceptions import (
+    AuthenticationError,
+    AuthorizationError,
+)
 
 """Allowed service-local exception for Layer 3 service wrapper.
 
@@ -65,23 +68,29 @@ def extract_tenant_from_bearer(request: Request) -> TenantBearerContext:
 
     auth_header = request.headers.get("authorization", "")
     if not auth_header.lower().startswith("bearer "):
-        raise AuthenticationError(message = "Missing or invalid authorization header")
+        raise AuthenticationError(message="Missing or invalid authorization header")
 
     token = auth_header[7:]
     parts = token.split(".")
     if len(parts) != 3:
-        raise AuthenticationError(message = "Malformed JWT token")
+        raise AuthenticationError(message="Malformed JWT token")
 
     try:
         padded = parts[1] + "=" * (-len(parts[1]) % 4)
         payload = json.loads(base64.urlsafe_b64decode(padded).decode("utf-8"))
     except Exception:
-        raise AuthenticationError(message = "Could not decode JWT payload")
+        raise AuthenticationError(message="Could not decode JWT payload")
 
-    tenant_claim = payload["tenant_id"] if "tenant_id" in payload else payload.get("tid", "")
+    tenant_claim = (
+        payload["tenant_id"] if "tenant_id" in payload else payload.get("tid", "")
+    )
     tenant_id = str(tenant_claim).strip()
     if not tenant_id:
-        raise AuthenticationError(message = "JWT token missing tenant_id claim")
+        raise AuthenticationError(message="JWT token missing tenant_id claim")
+
+    req_tenant_id = request.headers.get("x-tenant-id")
+    if req_tenant_id and req_tenant_id.strip() != tenant_id:
+        raise AuthorizationError(message="Tenant context mismatch")
 
     user_id = payload.get("sub") or payload.get("user_id") or ""
 

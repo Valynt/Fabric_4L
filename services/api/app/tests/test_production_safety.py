@@ -26,7 +26,7 @@ def test_production_like_environment_rejects_mock_persistence_and_mock_llm():
             database_url=None,
             llm_provider="layer4",
             seed_demo_data=True,
-            secret_key="fabric-4l-dev-secret-key-change-in-production",
+            secret_key="x" * 48,
             cors_origins=["*"],
         )
 
@@ -70,7 +70,7 @@ def test_database_factory_accepts_postgresql_in_development(monkeypatch, tmp_pat
         database_url="postgresql://fabric:example@localhost:5432/fabric",
         llm_provider="mock",
         seed_demo_data=False,
-        secret_key="fabric-4l-dev-secret-key-change-in-production",
+        secret_key="x" * 48,
     )
     monkeypatch.setattr(database, "get_settings", lambda: safe_dev_settings)
 

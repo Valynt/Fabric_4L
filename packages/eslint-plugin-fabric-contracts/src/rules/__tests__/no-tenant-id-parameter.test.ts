@@ -1,11 +1,14 @@
 import { RuleTester } from "eslint";
 import rule from "../no-tenant-id-parameter";
 
+const tsParser = require("@typescript-eslint/parser");
 const ruleTester = new RuleTester({
-  parser: require.resolve("@typescript-eslint/parser"),
-  parserOptions: {
-    ecmaVersion: 2022,
-    sourceType: "module",
+  languageOptions: {
+    parser: tsParser,
+    parserOptions: {
+      ecmaVersion: 2022,
+      sourceType: "module",
+    },
   },
 });
 
