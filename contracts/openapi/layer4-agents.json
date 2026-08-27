@@ -2292,7 +2292,7 @@
           "analysis"
         ],
         "summary": "Delete Saved Scenario",
-        "description": "Delete a saved scenario only within the authenticated tenant scope.",
+        "description": "Remove a saved scenario only within the authenticated tenant scope.",
         "operationId": "delete_saved_scenario_v1_cases__case_id__scenarios__scenario_id__delete",
         "parameters": [
           {
@@ -12068,7 +12068,7 @@
           "c1"
         ],
         "summary": "Stream C1",
-        "description": "Proxy a streaming request to the Thesys C1 API.\n\nThe server attaches the ``THESYS_API_KEY`` so the secret is never\nexposed to the browser.  The response is forwarded as-is in SSE\nformat (``text/event-stream``).",
+        "description": "Proxy a streaming request to the Thesys C1 API via ThesysProvider.\n\nThe server attaches the ``THESYS_API_KEY`` so the secret is never\nexposed to the browser. The response is forwarded as-is in SSE\nformat (``text/event-stream``).",
         "operationId": "stream_c1_v1_c1_stream_post",
         "requestBody": {
           "content": {
