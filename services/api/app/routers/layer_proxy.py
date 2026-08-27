@@ -138,20 +138,19 @@ async def extract(
     tenant_id: str = Depends(tenant_required),
     client: Layer2Client = Depends(get_layer2_client),
 ):
-    """Extract entities from content (extraction only)."""
+    """Extract entities from content (extraction only).
+
+    Body follows the canonical ``ExtractRequest`` contract
+    (``content_id``, ``source_url``, ``markdown_content``, optional
+    ``extraction_config``).
+    """
     body: JSONDict = await request.json()
     return await client.extract(
         tenant_id=tenant_id,
-        content=body.get("content", ""),
-        content_type=body.get("content_type", "text"),
-        extraction_method=body.get("extraction_method", "llm"),
-        source_id=body.get("source_id"),
-        job_id=body.get("job_id"),
-        model_version=body.get("model_version"),
-        schema_version=body.get("schema_version", "1.0"),
-        prompt_version=body.get("prompt_version", "entity_extraction_v1"),
-        options=body.get("options"),
-        extraction_schema=body.get("extraction_schema"),
+        content_id=body.get("content_id", ""),
+        source_url=body.get("source_url", ""),
+        markdown_content=body.get("markdown_content", ""),
+        extraction_config=body.get("extraction_config"),
     )
 
 
@@ -165,16 +164,10 @@ async def extract_and_ingest(
     body: JSONDict = await request.json()
     return await client.extract_and_ingest(
         tenant_id=tenant_id,
-        content=body.get("content", ""),
-        content_type=body.get("content_type", "text"),
-        extraction_method=body.get("extraction_method", "llm"),
-        source_id=body.get("source_id"),
-        job_id=body.get("job_id"),
-        model_version=body.get("model_version"),
-        schema_version=body.get("schema_version", "1.0"),
-        prompt_version=body.get("prompt_version", "entity_extraction_v1"),
-        options=body.get("options"),
-        extraction_schema=body.get("extraction_schema"),
+        content_id=body.get("content_id", ""),
+        source_url=body.get("source_url", ""),
+        markdown_content=body.get("markdown_content", ""),
+        extraction_config=body.get("extraction_config"),
     )
 
 
