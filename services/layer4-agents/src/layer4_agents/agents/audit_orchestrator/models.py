@@ -16,7 +16,6 @@ import re
 import socket
 from datetime import UTC, datetime
 from enum import Enum
-from typing import Any
 from urllib.parse import urlparse
 from uuid import uuid4
 
@@ -519,6 +518,90 @@ class AreaScore(BaseModel):
     )
 
 
+class GitMetricCompleteness(BaseModel):
+    """Completeness metadata for one git-derived metric.
+
+    Lets consumers distinguish an exact figure from one derived from a
+    timed-out, truncated, or failed git collection. Never contains raw git
+    output or contributor email addresses.
+    """
+
+    source: str = Field(
+        ...,
+        description="Name of the git command/metric this entry describes",
+    )
+    status: str = Field(
+        ...,
+        description="Collection status: ok, error, timeout, truncated, or unavailable",
+    )
+    truncated: bool = Field(
+        ...,
+        description="True when output was cut short (timeout or a cap), so the derived count is an undercount",
+    )
+    complete: bool = Field(
+        ...,
+        description="True when the metric was collected exactly (status ok and not truncated)",
+    )
+    bytes_read: int = Field(
+        ...,
+        ge=0,
+        description="Number of stdout bytes buffered for this command",
+    )
+    max_bytes: int | None = Field(
+        default=None,
+        ge=0,
+        description="Maximum stdout bytes permitted for this command, if capped",
+    )
+    max_lines: int | None = Field(
+        default=None,
+        ge=0,
+        description="Maximum stdout lines permitted for this command, if capped",
+    )
+
+
+class GitWarning(BaseModel):
+    """Structured warning raised when a git command was incomplete.
+
+    Contains only the metric name, status, message, and byte counts - never
+    raw git output or contributor email addresses.
+    """
+
+    code: str = Field(
+        ...,
+        description="Stable warning code, e.g., GIT_CMD_TIMEOUT",
+    )
+    metric: str = Field(
+        ...,
+        description=(
+            "Git command key this warning applies to (e.g. 'commits', "
+            "'contributors'); matches git_metric_completeness source entries."
+        ),
+    )
+    status: str = Field(
+        ...,
+        description="Collection status that triggered the warning",
+    )
+    message: str = Field(
+        ...,
+        description="Human-readable warning message (safe; no raw git output)",
+    )
+    bytes_read: int = Field(
+        ...,
+        ge=0,
+        description="Number of stdout bytes read for the affected command",
+    )
+    max_bytes: int | None = Field(
+        default=None,
+        ge=0,
+        description="Maximum bytes permitted for the affected command, if capped",
+    )
+    max_lines: int | None = Field(
+        default=None,
+        ge=0,
+        description="Maximum lines permitted for the affected command, if capped",
+    )
+
+
 class Scorecard(BaseModel):
     """Full repository scorecard summarizing the health of a codebase.
 
@@ -589,7 +672,7 @@ class Scorecard(BaseModel):
         ge=0,
         description="Total number of unique contributors",
     )
-    git_metric_completeness: dict[str, Any] = Field(
+    git_metric_completeness: dict[str, GitMetricCompleteness] = Field(
         default_factory=dict,
         description=(
             "Per-metric git collection status (status, truncated, complete, "
@@ -597,7 +680,7 @@ class Scorecard(BaseModel):
             "timed-out, truncated or failed one. Empty when git is unavailable."
         ),
     )
-    git_warnings: list[Any] = Field(
+    git_warnings: list[GitWarning] = Field(
         default_factory=list,
         description=(
             "Structured warnings (code, metric, status, message) raised when a "

@@ -101,9 +101,15 @@ class AgentGovernanceMetadata(BaseModel):
     tool_name: Annotated[str, Field(title="Tool Name")]
     audit_event_id: Annotated[str, Field(title="Audit Event Id")]
     emitted_at: Annotated[str, Field(title="Emitted At")]
+    journey_id: Annotated[str | None, Field(title="Journey Id")] = None
     intent: Annotated[str | None, Field(title="Intent")] = None
     confidence: Annotated[float | None, Field(title="Confidence")] = None
     workflow_triggered: Annotated[bool | None, Field(title="Workflow Triggered")] = None
+    response_tier: Annotated[str | None, Field(title="Response Tier")] = None
+    provider: Annotated[str | None, Field(title="Provider")] = None
+    fallback: Annotated[bool | None, Field(title="Fallback")] = None
+    degraded: Annotated[bool | None, Field(title="Degraded")] = None
+    degradation_reason: Annotated[str | None, Field(title="Degradation Reason")] = None
 
 
 class AgentStreamAccountContext(BaseModel):
@@ -183,6 +189,10 @@ class AgentStreamRequest(BaseModel):
     selected_business_case_id: Annotated[
         str | None,
         Field(alias="selectedBusinessCaseId", title="Selectedbusinesscaseid"),
+    ] = None
+    journey_id: Annotated[
+        str | None,
+        Field(alias="journeyId", title="Journeyid"),
     ] = None
 
 
