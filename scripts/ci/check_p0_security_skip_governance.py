@@ -109,6 +109,10 @@ def _find_skips(root: Path, governed_paths: tuple[str, ...]) -> list[SkipFinding
         for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
             if "pytest.skip.Exception" in line:
                 continue
+            # Ignore comment-only lines so a commented-out skip (e.g. while
+            # refactoring) is not misreported as an active governance violation.
+            if line.lstrip().startswith("#"):
+                continue
             for marker, pattern in SKIP_MARKERS:
                 match = pattern.search(line)
                 prefix = line[: match.start()] if match else ""
@@ -193,7 +197,7 @@ def evaluate(
     return {
         "scanned_files": len(_iter_files(root, governed_paths)),
         "skip_count": len(findings),
-        "covered_skips": list(matched_ids),
+        "covered_skips": sorted(matched_ids),
         "uncovered_skips": [asdict(f) for f in uncovered],
         "ambiguous_skips": [
             {"path": f.path, "line": f.line, "matched_ids": ids} for f, ids in ambiguous

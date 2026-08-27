@@ -24,7 +24,6 @@ governed by the P0/security skip-governance ratchet in
 import hashlib
 import hmac
 import time
-from datetime import UTC, datetime, timedelta
 
 import pytest
 from layer7_billing.webhook_security import (
@@ -173,9 +172,8 @@ def test_timestamp_tolerance_boundary_accepted() -> None:
 
 def test_missing_timestamp_rejected() -> None:
     with pytest.raises(ValueError, match="Missing Stripe signature timestamp"):
-        _verify(
-            PAYLOAD, f"v1={_make_signature(PAYLOAD, WEBHOOK_SECRET, CURRENT_TS).split('v1=')[1]}", WEBHOOK_SECRET
-        )
+        digest_only = _make_signature(PAYLOAD, WEBHOOK_SECRET, CURRENT_TS).split("v1=")[1]
+        _verify(PAYLOAD, f"v1={digest_only}", WEBHOOK_SECRET)
 
 
 # --- Idempotency / replay protection --------------------------------------

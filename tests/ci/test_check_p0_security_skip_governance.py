@@ -64,7 +64,6 @@ def test_expired_allowlist_entry_fails(tmp_path: Path) -> None:
         tmp_path,
         _allowlist(tmp_path, [_entry(expiry="2026-01-01")]),
         TODAY,
-       
         governed_paths=GOVERNED,
     )
     assert report["violation_count"] >= 1
