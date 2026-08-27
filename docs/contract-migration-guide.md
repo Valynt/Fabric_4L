@@ -450,7 +450,6 @@ npx @fabric/lint check-openapi-alignment --spec ./openapi.yaml --routes ./src/ro
 | `services/web/` | Inline scatter-gather | 6 route files | @team-web | 2026-08-15 |
 | `services/orchestrator/` | Auth re-validation | 8 agent runners | @team-agents | 2026-09-15 |
 | `services/analytics/` | Custom Zod schemas | 15 schemas | @team-data | 2026-08-30 |
-| `services/billing/` | Custom Joi schemas | 10 schemas | @team-billing | 2026-08-30 |
 
 ### Testing Your Migration
 
@@ -1336,7 +1335,6 @@ Use this checklist for each contract migration. Copy into your PR description.
 | `services/web/` | ⬜ | ⬜ | — | — | ⬜ | 0/3 |
 | `services/orchestrator/` | ⬜ | ⬜ | ⬜ | ⬜ | — | 0/4 |
 | `services/analytics/` | ⬜ | ⬜ | — | ⬜ | — | 0/3 |
-| `services/billing/` | — | ⬜ | — | ⬜ | — | 0/2 |
 | `apps/web/` | — | — | — | — | ⬜ | 0/1 |
 | **Total** | **0/4** | **0/5** | **0/2** | **0/4** | **0/2** | **0/17** |
 

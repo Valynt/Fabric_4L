@@ -8,7 +8,7 @@ pytestmark = [pytest.mark.billing, pytest.mark.production_readiness]
 
 def test_trial_state_is_modeled_and_expiration_job_gap_is_documented() -> None:
     assert_contains_all(
-        "services/billing/tests/test_models.py",
+        "services/layer4-agents/src/layer4_agents/models/billing.py",
         ("SubscriptionStatus.TRIALING", "trialing"),
         label="trial status model tests",
     )
@@ -17,12 +17,12 @@ def test_trial_state_is_modeled_and_expiration_job_gap_is_documented() -> None:
 
 def test_trialing_status_is_treated_as_active_until_expiration() -> None:
     assert_contains_all(
-        "services/billing/src/billing/service.py",
-        ("active_statuses", "SubscriptionStatus.TRIALING.value", "get_active_subscription"),
+        "services/layer4-agents/src/layer4_agents/services/billing_service.py",
+        ("get_active_subscription", "SubscriptionStatus.ACTIVE", "SubscriptionStatus.TRIALING"),
         label="trial entitlement-active service behavior",
     )
     assert_contains_all(
-        "services/billing/tests/test_billing_service.py",
-        ("test_returns_trialing_subscription", "test_ignores_canceled_subscription"),
+        "services/layer4-agents/tests/test_billing_service.py",
+        ("test_subscription_is_active_property", "SubscriptionStatus.TRIALING"),
         label="trial lifecycle tests",
     )

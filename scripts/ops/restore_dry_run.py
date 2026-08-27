@@ -110,6 +110,14 @@ def build_evidence() -> dict[str, Any]:
                     "billing_customers",
                     "billing_subscriptions",
                     "billing_webhook_events",
+                    # Layer 4 membership/billing service tables (canonical owner of the
+                    # Stripe customer/subscription/webhook domain; legacy services/billing
+                    # removed 2026-08-27, COMPAT-BILL-001).
+                    "billing_plan_versions",
+                    "billing_usage_events",
+                    "billing_invoices",
+                    "billing_invoice_items",
+                    "billing_charges",
                 ],
                 "tenant_scoped_validation_required": True,
                 "idempotency_validation_required": True,

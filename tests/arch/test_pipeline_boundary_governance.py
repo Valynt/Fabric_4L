@@ -91,7 +91,7 @@ def test_runtime_path_governance_tracks_adjacent_services_outside_layer_matrix()
     assert "not additional" in governance
     assert "services/layer2-5-signal-refinery/src/layer2_5_signal_refinery/" in governance
     assert "services/layer7-billing/src/layer7_billing/" in governance
-    assert "services/billing/` (non-deployable legacy compatibility only)" in governance
+    assert "Legacy `services/billing/` removed 2026-08-27 (COMPAT-BILL-001)" in governance
 
 
 def test_behavior_contract_distinguishes_core_layers_from_adjacent_services() -> None:
