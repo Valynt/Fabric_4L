@@ -15,7 +15,6 @@ not implemented here.
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any
 
 import httpx
 from value_fabric.shared.identity.constants import (
@@ -107,13 +106,13 @@ class Layer2Transport:
         path: str,
         *,
         tenant_id: str,
-        json: Mapping[str, Any] | None = None,
+        json: Mapping[str, object] | None = None,
         params: Mapping[str, str] | None = None,
     ) -> httpx.Response:
         """Send a request to Layer 2 and return the verified response.
 
         Raises:
-            Layer2TransportError: Any 4xx/5xx upstream response.
+            Layer2TransportError: on any 4xx/5xx upstream response.
             httpx.HTTPError: Network/timeout failures (propagated unchanged so
                 consumers keep their own retry semantics).
         """

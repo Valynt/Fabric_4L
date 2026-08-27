@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Self
+from typing import Self
 
 import pytest
 from value_fabric.shared.clients.layer2 import (
@@ -12,12 +12,12 @@ from value_fabric.shared.clients.layer2 import (
 
 
 class _FakeResponse:
-    def __init__(self, status_code: int = 200, payload: Any = None, text: str = "") -> None:
+    def __init__(self, status_code: int = 200, payload: object = None, text: str = "") -> None:
         self.status_code = status_code
         self._payload = payload if payload is not None else {"ok": True}
         self.text = text
 
-    def json(self) -> Any:
+    def json(self) -> object:
         return self._payload
 
 
@@ -26,7 +26,7 @@ class _FakeAsyncClient:
 
     def __init__(self, responses: list[_FakeResponse]) -> None:
         self._responses = responses
-        self.calls: list[tuple[Any, ...]] = []
+        self.calls: list[tuple[str, str, dict[str, object]]] = []
 
     async def __aenter__(self) -> Self:
         return self
@@ -34,7 +34,9 @@ class _FakeAsyncClient:
     async def __aexit__(self, *exc: object) -> None:
         return None
 
-    async def request(self, method: str, url: str, **kwargs: Any) -> _FakeResponse:
+    async def request(
+        self, method: str, url: str, **kwargs: object
+    ) -> _FakeResponse:
         outcome = self._responses.pop(0) if self._responses else _FakeResponse()
         self.calls.append((method, url, kwargs))
         return outcome
@@ -44,7 +46,7 @@ class _FakeHttpx:
     def __init__(self, responses: list[_FakeResponse]) -> None:
         self.client = _FakeAsyncClient(list(responses))
 
-    def AsyncClient(self, **_: Any) -> _FakeAsyncClient:
+    def AsyncClient(self, **_: object) -> _FakeAsyncClient:
         return self.client
 
 
