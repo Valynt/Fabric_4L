@@ -13,7 +13,6 @@ from valuefabric.generated import L3Client, L4Client
 from valuefabric.generated.l3 import SearchRequest, SearchResponse, SearchType
 from valuefabric.generated.l4 import (
     AgentGovernanceMetadata,
-    AgentStreamMessage,
     AgentStreamRequest,
 )
 
