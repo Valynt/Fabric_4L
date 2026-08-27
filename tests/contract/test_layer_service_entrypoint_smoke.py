@@ -1,39 +1,24 @@
-"""Contract smoke tests for maintained service entrypoints (layer1-layer6)."""
+"""Live OpenAPI smoke tests for maintained service entrypoints (layer1-layer6)."""
 
 from __future__ import annotations
 
-import importlib.util
-from pathlib import Path
+import os
 
-from fastapi.testclient import TestClient
+import requests
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
-
-ENTRYPOINTS = {
-    "layer1": REPO_ROOT / "services/layer1-ingestion/src/layer1_ingestion/api/main.py",
-    "layer2": REPO_ROOT / "services/layer2-extraction/src/layer2_extraction/api/main.py",
-    "layer3": REPO_ROOT / "services/layer3-knowledge/src/api/main.py",
-    "layer4": REPO_ROOT / "services/layer4-agents/src/layer4_agents/api/main.py",
-    "layer5": REPO_ROOT / "services/layer5-ground-truth/src/layer5_ground_truth/api/main.py",
-    "layer6": REPO_ROOT / "services/layer6-benchmarks/src/api/main.py",
+SERVICE_URLS = {
+    "layer1": os.getenv("LAYER1_API_URL", "http://localhost:8001"),
+    "layer2": os.getenv("LAYER2_API_URL", "http://localhost:8002"),
+    "layer3": os.getenv("LAYER3_API_URL", "http://localhost:8003"),
+    "layer4": os.getenv("LAYER4_API_URL", "http://localhost:8004"),
+    "layer5": os.getenv("LAYER5_API_URL", "http://localhost:8005"),
+    "layer6": os.getenv("LAYER6_API_URL", "http://localhost:8006"),
 }
 
 
-def _load_module(path: Path, module_name: str):
-    spec = importlib.util.spec_from_file_location(module_name, path)
-    assert spec is not None and spec.loader is not None
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-
 def test_service_entrypoints_publish_openapi_smoke() -> None:
-    for layer, entrypoint in ENTRYPOINTS.items():
-        module = _load_module(entrypoint, f"{layer}_service_main")
-        assert hasattr(module, "app"), f"{layer} entrypoint must export app"
-
-        client = TestClient(module.app)
-        response = client.get("/openapi.json")
+    for layer, base_url in SERVICE_URLS.items():
+        response = requests.get(f"{base_url.rstrip('/')}/openapi.json", timeout=10)
         assert response.status_code == 200, f"{layer}: /openapi.json contract endpoint must be reachable"
 
         payload = response.json()

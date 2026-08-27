@@ -17,7 +17,7 @@
  * @module e2e/visual/regression
  */
 
-import { test, expect } from "@playwright/test";
+import { test, expect } from "../fixtures/contract-test";
 
 // ---------------------------------------------------------------------------
 // Page definitions
