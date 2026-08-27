@@ -1,8 +1,16 @@
 import importlib
 
 import pytest
+from pydantic import ValidationError
 
 from app.core.config import Settings
+
+
+def test_settings_require_secret_key(monkeypatch):
+    monkeypatch.delenv("SECRET_KEY", raising=False)
+
+    with pytest.raises(ValidationError, match=r"secret_key\s+Field required"):
+        Settings(_env_file=None)
 
 
 def test_settings_keep_legacy_per_layer_timeout_fields():
