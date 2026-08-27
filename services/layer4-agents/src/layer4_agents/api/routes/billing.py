@@ -59,6 +59,11 @@ from .billing_helpers import (
     serialize_usage_event as _serialize_usage_event,
 )
 
+# `_is_stripe_webhook_ip` is referenced by the webhook-security consistency
+# tests (billing_route._is_stripe_webhook_ip); keep it exported via __all__ so
+# ruff F401 treats the import as used while preserving module-level access.
+__all__ = ["_is_stripe_webhook_ip"]
+
 logger = logging.getLogger(__name__)
 
 # Known Stripe webhook IPs (documented by Stripe) + loopback for local dev
