@@ -40,6 +40,7 @@ FORBIDDEN_PATTERNS: tuple[re.Pattern[str], ...] = (
     re.compile(r"\bCLERK_SECRET_KEY\b"),
     re.compile(r"\bCLERK_JWT_KEY\b"),
     re.compile(r"\bCLERK_WEBHOOK_SECRET\b"),
+    re.compile(r"\bCLERK_WEBHOOK_SIGNING_SECRET\b"),
     re.compile(r"\bCLERK_ISSUER\b"),
     re.compile(r"\bCLERK_JWT_AUDIENCE\b"),
     re.compile(r"\bCLERK_AUTHORIZED_PARTIES\b"),
