@@ -13,7 +13,7 @@
  *   VITE_CLERK_SIGN_IN_URL         default: "/sign-in"
  *   VITE_CLERK_SIGN_UP_URL         default: "/sign-up"
  *   VITE_CLERK_AFTER_SIGN_IN_URL   default: "/home"
- *   VITE_CLERK_AFTER_SIGN_UP_URL   default: "/home"
+ *   VITE_CLERK_AFTER_SIGN_UP_URL   default: "/onboarding"
  *
  * Canonical Clerk defaults live in @fabric/platform-contract clerk-defaults.
  * The frontend and backend load the same file so defaults cannot diverge.

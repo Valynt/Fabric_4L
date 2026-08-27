@@ -147,7 +147,7 @@ def get_auth_settings() -> AuthSettings:
         ) or _DEFAULT_CLERK_AUTHORIZED_PARTIES,
         jwks_url=os.getenv("CLERK_JWKS_URL") or None,
         pinned_jwt_pem=os.getenv("CLERK_PINNED_JWT_PEM") or None,
-        webhook_secret=os.getenv("CLERK_WEBHOOK_SECRET") or None,
+        webhook_secret=os.getenv("CLERK_WEBHOOK_SIGNING_SECRET") or None,
         secret_key=os.getenv("CLERK_SECRET_KEY") or None,
         publishable_key=os.getenv("CLERK_PUBLISHABLE_KEY") or None,
         leeway_seconds=leeway_sec,
