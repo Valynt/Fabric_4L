@@ -1,0 +1,469 @@
+# Fabric_4L Release Control Register — canonical, machine-readable.
+# The evaluator (control-plane/release/evaluator.md) MUST consume this file as the sole
+# source of expected controls. Aggregate gate `name` values are the exact required GitHub
+# check contexts. Fail-closed: an aggregate succeeds only when every required child succeeds.
+version: 1
+
+# ---------------------------------------------------------------------------
+# Decision points (S1 §1). A control blocks at the earliest practical point.
+# ---------------------------------------------------------------------------
+blocking_rule: A control blocks at the earliest practical decision point.
+
+decision_points:
+  - id: merge_authorization
+    proof: The change is safe to integrate into main.
+    blocks_here:
+      - static analysis
+      - tests
+      - contracts
+      - migration definitions
+      - manifest validation
+    required_controls: "every control with blocks: merge"
+  - id: release_authorization
+    proof: The exact source SHA and built artifact satisfy the complete release contract.
+    blocks_here:
+      - DAST
+      - live tenancy journeys
+      - restore validation
+      - performance
+      - staging certification
+    required_controls: "every control with blocks: merge or blocks: release"
+  - id: production_promotion
+    proof: The same signed artifact passed staging certification and is safe to deploy.
+    blocks_here:
+      - canary health
+      - SLOs
+      - change approval
+      - artifact verification
+    required_controls: "every control with blocks: merge, blocks: release, or blocks: promotion"
+
+# Complete list of blocking conclusions (S1 §4). Anything that is not a current
+# `success` bound to the exact candidate blocks the decision.
+blocking_conclusions:
+  - failure
+  - cancelled
+  - timed_out
+  - action_required
+  - stale
+  - neutral
+  - skipped
+  - missing_result
+  - missing_evidence
+  - expired_evidence
+  - sha_mismatch
+  - artifact_digest_mismatch
+
+# A child may be not_applicable only under version-controlled rule evaluation (S1 §4).
+not_applicable_policy:
+  rule: >-
+    A control may report not_applicable only when applicability is determined by a
+    version-controlled rule, the reason is emitted as evidence, and the aggregate verifies
+    the rule was evaluated. A contributor MUST NOT manually select not_applicable.
+    Path filtering MAY reduce execution but MUST never cause a required check to disappear.
+
+# ---------------------------------------------------------------------------
+# Evidence types (EV-x) — derived from the test-strategy evidence field list and the
+# required artifact inventory (S2 §11). binds_to declares the subject dimensions the
+# evaluator must match; freshness declares the validity window semantics.
+# ---------------------------------------------------------------------------
+evidence_types:
+  - id: EV-1
+    name: test-run evidence record (JUnit results + JSON evidence manifest)
+    produced_by: authoritative test suites in any execution lane
+    binds_to: [source_sha, merge_group_sha, artifact_digest, environment_id, random_seed]
+    freshness: candidate-sha; expires_at per record; max 24h during certification
+  - id: EV-2
+    name: static analysis report (SARIF)
+    produced_by: SAST, lint, type-ratchet, and policy tooling
+    binds_to: [source_sha]
+    freshness: candidate-sha
+  - id: EV-3
+    name: scan report (secrets, dependency, container, IaC)
+    produced_by: Gitleaks, pip-audit, package audits, Trivy, kubeconform/OPA scans
+    binds_to: [source_sha, artifact_digest]
+    freshness: candidate-sha for source scans; candidate-digest for image scans
+  - id: EV-4
+    name: browser journey evidence (Playwright HTML reports and failure traces)
+    produced_by: live role-authenticated Playwright journeys and hostile tenancy journeys
+    binds_to: [source_sha, artifact_digest, environment_id, random_seed]
+    freshness: candidate-sha + candidate-digest
+  - id: EV-5
+    name: contract test evidence (Schemathesis reproduction cases, OpenAPI diff results)
+    produced_by: API and cross-layer contract suites
+    binds_to: [source_sha]
+    freshness: candidate-sha
+  - id: EV-6
+    name: manifest and deployment evidence (rendered Kubernetes/Helm output, kind deployment results)
+    produced_by: infrastructure render, policy, and deployment validation
+    binds_to: [source_sha, environment_id]
+    freshness: candidate-sha
+  - id: EV-7
+    name: migration, backup, and restore report
+    produced_by: migration harness, backup integrity checks, clean restore tests, rollback rehearsals
+    binds_to: [source_sha, artifact_digest, environment_id]
+    freshness: candidate-sha for migrations; validity period for scheduled restore drills
+  - id: EV-8
+    name: performance and resilience evidence (k6 metrics and threshold results, chaos experiment results)
+    produced_by: load/stress/soak profiles and chaos scenarios
+    binds_to: [artifact_digest, environment_id, random_seed]
+    freshness: candidate-digest for lane runs; validity period for scheduled runs
+  - id: EV-9
+    name: supply-chain evidence (SBOMs, signatures, provenance attestations, admission decisions)
+    produced_by: Syft/Trivy, Cosign signing and verification, OPA admission policy
+    binds_to: [artifact_digest, source_sha]
+    freshness: candidate-digest; rebuilding an artifact invalidates it
+  - id: EV-10
+    name: approval record (reviewer identity, reviewed SHA, risk classification, approval timestamp)
+    produced_by: code review, CODEOWNER, and release-authority approvals
+    binds_to: [source_sha]
+    freshness: final material SHA; a later commit invalidates it
+  - id: EV-11
+    name: observability verification (trace-propagation, alert delivery, SLO/dashboard validation)
+    produced_by: OpenTelemetry/Prometheus/Grafana verification harnesses
+    binds_to: [artifact_digest, environment_id]
+    freshness: candidate-digest for certification; continuous in production
+  - id: EV-12
+    name: coverage, mutation, and evaluation reports
+    produced_by: coverage ratchets, mutation runs, AI evaluation harnesses
+    binds_to: [source_sha, random_seed]
+    freshness: candidate-sha; scheduled AI evals within validity period
+
+# ---------------------------------------------------------------------------
+# Aggregate gates AG-01..AG-09. Every required child is one CTRL-<gate>-<nn> control.
+# ---------------------------------------------------------------------------
+gates:
+
+  - id: AG-01
+    name: 01-repository-integrity
+    risks:
+      - repository structure
+      - workflow validity
+      - generated-file drift
+      - policy drift
+      - configuration consistency
+    success_condition: >-
+      Repository policies and executable configuration agree; no generated or canonical
+      file drift exists; no required control has been deleted, renamed, or weakened; live
+      branch protection matches the version-controlled contract.
+    controls:
+      - {id: CTRL-01-01, title: Workflow YAML and action-reference validation, blocks: merge, evidence: [EV-2], proven_by: static quality / pull request fast lane}
+      - {id: CTRL-01-02, title: Makefile and script entry-point validation, blocks: merge, evidence: [EV-2], proven_by: static quality / pull request fast lane}
+      - {id: CTRL-01-03, title: Lockfile consistency, blocks: merge, evidence: [EV-2], proven_by: static quality / pull request fast lane}
+      - {id: CTRL-01-04, title: Generated-file drift detection, blocks: merge, evidence: [EV-2], proven_by: static quality / pull request fast lane}
+      - {id: CTRL-01-05, title: Canonical configuration enforcement, blocks: merge, evidence: [EV-2], proven_by: static quality / pull request fast lane}
+      - {id: CTRL-01-06, title: Secret-path canonicalization, blocks: merge, evidence: [EV-2], proven_by: static quality / pull request fast lane}
+      - {id: CTRL-01-07, title: Test-skip governance, blocks: merge, evidence: [EV-1], proven_by: static quality / pull request fast lane}
+      - {id: CTRL-01-08, title: Architecture-boundary fitness tests, blocks: merge, evidence: [EV-1], proven_by: static quality / pull request complete lane}
+      - {id: CTRL-01-09, title: Branch-protection contract validation, blocks: merge, evidence: [EV-2], proven_by: static quality / merge-group lane; scheduled drift audit feeds EV-1}
+      - {id: CTRL-01-10, title: Kubernetes and Helm source consistency, blocks: merge, evidence: [EV-6], proven_by: kubernetes / pull request complete lane}
+      - {id: CTRL-01-11, title: Required documentation and ownership checks, blocks: merge, evidence: [EV-2], proven_by: static quality / pull request fast lane}
+
+  - id: AG-02
+    name: 02-code-quality-and-tests
+    risks:
+      - code correctness
+      - type safety
+      - linting
+      - unit and integration behavior
+      - coverage regression
+    success_condition: >-
+      All changed behavior is tested; no quality or type baseline worsens;
+      platform-specific failures are resolved or explicitly proven inapplicable; required
+      tests pass on the merge-group SHA. Every typecheck-layerN target invokes
+      run_mypy_layer.py, which invokes check_mypy_baseline.py; new type errors fail;
+      existing debt cannot increase; fixed debt forces an intentional baseline reduction;
+      no layer invokes raw mypy as its authoritative target.
+    controls:
+      - {id: CTRL-02-01, title: Python formatting and linting, blocks: merge, evidence: [EV-2], proven_by: static quality / pull request fast lane}
+      - {id: CTRL-02-02, title: TypeScript formatting and linting, blocks: merge, evidence: [EV-2], proven_by: static quality / pull request fast lane}
+      - {id: CTRL-02-03, title: Layer-specific mypy ratchets, blocks: merge, evidence: [EV-2], proven_by: static quality / pull request fast lane}
+      - {id: CTRL-02-04, title: TypeScript type checking, blocks: merge, evidence: [EV-2], proven_by: static quality / pull request fast lane}
+      - {id: CTRL-02-05, title: Unit tests, blocks: merge, evidence: [EV-1], proven_by: unit behavior / pull request fast lane}
+      - {id: CTRL-02-06, title: Component tests, blocks: merge, evidence: [EV-1], proven_by: frontend components / pull request fast lane}
+      - {id: CTRL-02-07, title: Integration tests, blocks: merge, evidence: [EV-1], proven_by: service integration / pull request complete lane}
+      - {id: CTRL-02-08, title: Frontend browser tests, blocks: merge, evidence: [EV-4], proven_by: browser journeys / pull request complete lane}
+      - {id: CTRL-02-09, title: Coverage ratchets, blocks: merge, evidence: [EV-12], proven_by: unit behavior / merge-group lane}
+      - {id: CTRL-02-10, title: Complexity and module-size ratchets, blocks: merge, evidence: [EV-2], proven_by: static quality / pull request fast lane}
+      - {id: CTRL-02-11, title: Targeted mutation tests for critical logic, blocks: merge, evidence: [EV-12], proven_by: mutation testing / nightly lane}
+      - {id: CTRL-02-12, title: Platform compatibility tests, blocks: merge, evidence: [EV-1], proven_by: unit behavior / pull request complete lane}
+
+  - id: AG-03
+    name: 03-contract-compliance
+    risks:
+      - API compatibility
+      - event compatibility
+      - schema compatibility
+      - generated-client drift
+      - L1-L6 compatibility
+    success_condition: >-
+      Runtime source, published specifications, generated clients, and consumers agree;
+      breaking changes require an approved version transition; no undocumented route or
+      event enters production; all compatibility checks run against the exact merge
+      candidate.
+    controls:
+      - {id: CTRL-03-01, title: Runtime OpenAPI generation, blocks: merge, evidence: [EV-5], proven_by: API contracts / pull request fast lane}
+      - {id: CTRL-03-02, title: Generated TypeScript client drift check, blocks: merge, evidence: [EV-5], proven_by: API contracts / pull request fast lane}
+      - {id: CTRL-03-03, title: Generated Python client drift check, blocks: merge, evidence: [EV-5], proven_by: API contracts / pull request fast lane}
+      - {id: CTRL-03-04, title: Backward-compatibility analysis, blocks: merge, evidence: [EV-5], proven_by: API contracts / pull request complete lane}
+      - {id: CTRL-03-05, title: Consumer-driven contract tests, blocks: merge, evidence: [EV-5], proven_by: cross-layer contracts / pull request complete lane}
+      - {id: CTRL-03-06, title: Queue and event-envelope schema validation, blocks: merge, evidence: [EV-5], proven_by: cross-layer contracts / pull request complete lane}
+      - {id: CTRL-03-07, title: Database schema contract validation, blocks: merge, evidence: [EV-5], proven_by: cross-layer contracts / pull request complete lane}
+      - {id: CTRL-03-08, title: L1-L6 cross-layer contract tests, blocks: merge, evidence: [EV-5], proven_by: cross-layer contracts / pull request complete lane}
+      - {id: CTRL-03-09, title: Unknown-field and malformed-input rejection, blocks: merge, evidence: [EV-1], proven_by: property testing / pull request complete lane}
+      - {id: CTRL-03-10, title: Versioning and deprecation enforcement, blocks: merge, evidence: [EV-5], proven_by: API contracts / pull request complete lane}
+
+  - id: AG-04
+    name: 04-security-gates
+    risks:
+      - SAST findings
+      - secrets
+      - authentication
+      - authorization
+      - DAST findings
+      - unsafe configuration
+    success_condition: >-
+      No unresolved unapproved critical or high-risk finding exists; every exception has an
+      owner, justification, compensating control, and expiry; expired or missing exceptions
+      fail closed; CI remains authoritative when local platform tooling is unreliable.
+    controls:
+      # --- merge-blocking (11) ---
+      - {id: CTRL-04-01, title: Semgrep, blocks: merge, evidence: [EV-2], proven_by: security / pull request fast lane}
+      - {id: CTRL-04-02, title: Gitleaks full-tree and changed-content scanning, blocks: merge, evidence: [EV-3], proven_by: security / pull request fast lane}
+      - {id: CTRL-04-03, title: Bandit, blocks: merge, evidence: [EV-2], proven_by: security / pull request fast lane}
+      - {id: CTRL-04-04, title: pip-audit, blocks: merge, evidence: [EV-3], proven_by: security / pull request fast lane}
+      - {id: CTRL-04-05, title: Frontend package audit, blocks: merge, evidence: [EV-3], proven_by: security / pull request fast lane}
+      - {id: CTRL-04-06, title: Dependency review, blocks: merge, evidence: [EV-3], proven_by: security / pull request fast lane}
+      - {id: CTRL-04-07, title: Cypher safety checks, blocks: merge, evidence: [EV-2], proven_by: security / pull request complete lane}
+      - {id: CTRL-04-08, title: Route authentication and authorization checks, blocks: merge, evidence: [EV-1], proven_by: security / pull request complete lane}
+      - {id: CTRL-04-09, title: Security-header and configuration validation, blocks: merge, evidence: [EV-2], proven_by: security / pull request complete lane}
+      - {id: CTRL-04-10, title: Production mock-mode prohibition, blocks: merge, evidence: [EV-2], proven_by: static quality / pull request fast lane}
+      - {id: CTRL-04-11, title: Security exception expiry enforcement, blocks: merge, evidence: [EV-2], proven_by: static quality / pull request fast lane}
+      # --- release-blocking (6) ---
+      - {id: CTRL-04-12, title: Authenticated DAST through the gateway, blocks: release, evidence: [EV-3], proven_by: security / release-candidate lane; full DAST nightly}
+      - {id: CTRL-04-13, title: Container and infrastructure scanning, blocks: release, evidence: [EV-3, EV-6], proven_by: security and kubernetes / release-candidate lane}
+      - {id: CTRL-04-14, title: Role-based security journeys, blocks: release, evidence: [EV-4], proven_by: browser journeys / release-candidate lane}
+      - {id: CTRL-04-15, title: Sensitive-data redaction tests, blocks: release, evidence: [EV-1], proven_by: security / release-candidate lane}
+      - {id: CTRL-04-16, title: Rate-limit and abuse-control validation, blocks: release, evidence: [EV-1, EV-8], proven_by: security and performance / release-candidate lane}
+      - {id: CTRL-04-17, title: Production-shaped secret-startup tests, blocks: release, evidence: [EV-1], proven_by: security / release-candidate lane}
+
+  - id: AG-05
+    name: 05-tenant-isolation-and-behavior
+    risks:
+      - cross-tenant access
+      - context propagation
+      - queue isolation
+      - storage isolation
+      - AI isolation
+    success_condition: >-
+      No tenant can observe, infer, mutate, replay, or trigger behavior against another
+      tenant's resources; missing, stale, conflicting, or forged tenant context fails before
+      business logic executes. Tests use at least two seeded tenants, target foreign
+      resources known to exist, distinguish authorization denial from accidental 404, prove
+      both read and write isolation, and exercise APIs, workers, browser journeys, storage,
+      and AI paths.
+    controls:
+      - {id: CTRL-05-01, title: Backend authorization-snapshot validation, blocks: merge, evidence: [EV-1], proven_by: tenant hostility / pull request complete lane}
+      - {id: CTRL-05-02, title: Frontend fail-closed authorization tests, blocks: merge, evidence: [EV-1], proven_by: frontend components / pull request complete lane}
+      - {id: CTRL-05-03, title: Tenant-switch and prior-session rejection, blocks: merge, evidence: [EV-1, EV-4], proven_by: tenant hostility / pull request complete lane}
+      - {id: CTRL-05-04, title: Account-scope enforcement, blocks: merge, evidence: [EV-1], proven_by: tenant hostility / pull request complete lane}
+      - {id: CTRL-05-05, title: PostgreSQL tenant isolation, blocks: merge, evidence: [EV-1], proven_by: tenant hostility / pull request complete lane}
+      - {id: CTRL-05-06, title: Neo4j tenant isolation, blocks: merge, evidence: [EV-1], proven_by: tenant hostility / pull request complete lane}
+      - {id: CTRL-05-07, title: Vector and retrieval isolation, blocks: merge, evidence: [EV-1], proven_by: tenant hostility / pull request complete lane}
+      - {id: CTRL-05-08, title: Redis cache and queue isolation, blocks: merge, evidence: [EV-1], proven_by: tenant hostility / pull request complete lane}
+      - {id: CTRL-05-09, title: Object-storage prefix isolation, blocks: merge, evidence: [EV-1], proven_by: tenant hostility / pull request complete lane}
+      - {id: CTRL-05-10, title: Signed-URL expiry and replay protection, blocks: merge, evidence: [EV-1], proven_by: tenant hostility / pull request complete lane}
+      - {id: CTRL-05-11, title: Export and deletion isolation, blocks: merge, evidence: [EV-1], proven_by: tenant hostility / pull request complete lane}
+      - {id: CTRL-05-12, title: "AI prompt, memory, trace, and tool isolation", blocks: merge, evidence: [EV-1, EV-12], proven_by: tenant hostility and AI evaluation / pull request complete lane}
+      - {id: CTRL-05-13, title: Forged and mismatched queue-envelope rejection, blocks: merge, evidence: [EV-1], proven_by: tenant hostility / pull request complete lane}
+      - {id: CTRL-05-14, title: Support impersonation scope and expiry, blocks: merge, evidence: [EV-1], proven_by: tenant hostility / pull request complete lane}
+
+  - id: AG-06
+    name: 06-production-readiness
+    risks:
+      - migrations
+      - kubernetes
+      - ingress
+      - observability
+      - backup
+      - restore
+      - rollback
+      - resilience
+    success_condition: >-
+      A release cannot proceed with unsafe migrations, inconsistent manifests, unproven
+      restore behavior, direct layer exposure, invalid monitoring, or missing rollback
+      evidence. Migration safety is a first-class required child, not an informational job.
+    controls:
+      # --- merge-blocking (12) ---
+      - {id: CTRL-06-01, title: Kubernetes schema validation, blocks: merge, evidence: [EV-6], proven_by: kubernetes / pull request complete lane}
+      - {id: CTRL-06-02, title: Helm or Kustomize render validation, blocks: merge, evidence: [EV-6], proven_by: kubernetes / pull request complete lane}
+      - {id: CTRL-06-03, title: Manifest consistency checks, blocks: merge, evidence: [EV-6], proven_by: kubernetes / pull request complete lane}
+      - {id: CTRL-06-04, title: Gateway-only ingress enforcement, blocks: merge, evidence: [EV-6], proven_by: kubernetes / pull request complete lane}
+      - {id: CTRL-06-05, title: Workload and NetworkPolicy selector matching, blocks: merge, evidence: [EV-6], proven_by: kubernetes / pull request complete lane}
+      - {id: CTRL-06-06, title: Pod and container securityContext enforcement, blocks: merge, evidence: [EV-6], proven_by: kubernetes / pull request complete lane}
+      - {id: CTRL-06-07, title: Resource requests and limits, blocks: merge, evidence: [EV-6], proven_by: kubernetes / pull request complete lane}
+      - {id: CTRL-06-08, title: PodDisruptionBudget and autoscaling validation, blocks: merge, evidence: [EV-6], proven_by: kubernetes / pull request complete lane}
+      - {id: CTRL-06-09, title: Prometheus rule validation, blocks: merge, evidence: [EV-11], proven_by: observability / pull request complete lane}
+      - {id: CTRL-06-10, title: Alert-to-metric consistency, blocks: merge, evidence: [EV-11], proven_by: observability / pull request complete lane}
+      - {id: CTRL-06-11, title: Runbook-link validation, blocks: merge, evidence: [EV-2], proven_by: static quality / pull request fast lane}
+      - id: CTRL-06-12
+        title: Migration safety
+        blocks: merge
+        evidence: [EV-7]
+        proven_by: migration safety / pull request complete lane
+        verifies: [CTRL-06-25, CTRL-06-26, CTRL-06-27, CTRL-06-28, CTRL-06-29, CTRL-06-30, CTRL-06-31, CTRL-06-32, CTRL-06-33, CTRL-06-34, CTRL-06-35, CTRL-06-36]
+      # --- release-blocking (12) ---
+      - {id: CTRL-06-13, title: Clean-environment deployment, blocks: release, evidence: [EV-6], proven_by: kubernetes / release-candidate lane}
+      - {id: CTRL-06-14, title: Production-shaped smoke tests, blocks: release, evidence: [EV-1], proven_by: service integration / release-candidate lane}
+      - {id: CTRL-06-15, title: Full ValuePilot golden-path certification, blocks: release, evidence: [EV-4], proven_by: browser journeys / release-candidate lane}
+      - {id: CTRL-06-16, title: Live role-authenticated Playwright journeys, blocks: release, evidence: [EV-4], proven_by: browser journeys / release-candidate lane}
+      - {id: CTRL-06-17, title: Backup completion and integrity validation, blocks: release, evidence: [EV-7], proven_by: recovery / release-candidate lane and weekly lane}
+      - {id: CTRL-06-18, title: Clean restore test, blocks: release, evidence: [EV-7], proven_by: recovery / release-candidate lane and weekly lane}
+      - {id: CTRL-06-19, title: Rollback rehearsal, blocks: release, evidence: [EV-7], proven_by: recovery / release-candidate lane and weekly lane}
+      - {id: CTRL-06-20, title: Migration forward- and backward-compatibility proof, blocks: release, evidence: [EV-7], proven_by: migration safety / release-candidate lane}
+      - {id: CTRL-06-21, title: Load and resilience tests, blocks: release, evidence: [EV-8], proven_by: performance and resilience / release-candidate lane}
+      - {id: CTRL-06-22, title: Alert delivery test, blocks: release, evidence: [EV-11], proven_by: observability / release-candidate lane}
+      - {id: CTRL-06-23, title: Trace-propagation verification, blocks: release, evidence: [EV-11], proven_by: observability / release-candidate lane}
+      - {id: CTRL-06-24, title: SLO and dashboard validation, blocks: release, evidence: [EV-11], proven_by: observability / release-candidate lane}
+      # --- migration-safety verification items (12); part of CTRL-06-12 (S1 §2) ---
+      - {id: CTRL-06-25, title: One valid migration head per database, blocks: merge, evidence: [EV-7], proven_by: migration safety / pull request complete lane, part_of: CTRL-06-12}
+      - {id: CTRL-06-26, title: No untracked schema drift, blocks: merge, evidence: [EV-7], proven_by: migration safety / pull request complete lane, part_of: CTRL-06-12}
+      - {id: CTRL-06-27, title: Upgrade from the current production schema, blocks: merge, evidence: [EV-7], proven_by: migration safety / pull request complete lane, part_of: CTRL-06-12}
+      - {id: CTRL-06-28, title: Fresh-install migration, blocks: merge, evidence: [EV-7], proven_by: migration safety / pull request complete lane, part_of: CTRL-06-12}
+      - {id: CTRL-06-29, title: Expand-contract compatibility, blocks: merge, evidence: [EV-7], proven_by: migration safety / pull request complete lane, part_of: CTRL-06-12}
+      - {id: CTRL-06-30, title: Previous application compatibility during the rollback window, blocks: release, evidence: [EV-7], proven_by: migration safety / release-candidate lane, part_of: CTRL-06-12}
+      - {id: CTRL-06-31, title: Tenant-scoped constraints and indexes, blocks: merge, evidence: [EV-7], proven_by: migration safety / pull request complete lane, part_of: CTRL-06-12}
+      - {id: CTRL-06-32, title: Bounded lock duration, blocks: merge, evidence: [EV-7], proven_by: migration safety / pull request complete lane, part_of: CTRL-06-12}
+      - {id: CTRL-06-33, title: Backfill restartability and idempotency, blocks: merge, evidence: [EV-7], proven_by: migration safety / pull request complete lane, part_of: CTRL-06-12}
+      - {id: CTRL-06-34, title: Data-integrity assertions, blocks: merge, evidence: [EV-7], proven_by: migration safety / pull request complete lane, part_of: CTRL-06-12}
+      - {id: CTRL-06-35, title: Explicit approval for destructive changes, blocks: merge, evidence: [EV-10], proven_by: migration safety / pull request complete lane, part_of: CTRL-06-12}
+      - {id: CTRL-06-36, title: Recovery procedure for irreversible transformations, blocks: merge, evidence: [EV-7], proven_by: migration safety / pull request complete lane, part_of: CTRL-06-12}
+
+  - id: AG-07
+    name: 07-supply-chain-integrity
+    risks:
+      - dependencies
+      - SBOMs
+      - image scanning
+      - signing
+      - provenance
+      - admission eligibility
+    success_condition: >-
+      Every deployable artifact is traceable to the exact source SHA; every image has an
+      SBOM, verified signature, provenance, and immutable digest; no mutable, unsigned,
+      unknown, or critically vulnerable artifact can reach staging or production.
+    controls:
+      - {id: CTRL-07-01, title: Locked dependency verification, blocks: merge, evidence: [EV-3], proven_by: supply chain / pull request fast lane}
+      - {id: CTRL-07-02, title: Dependency review, blocks: merge, evidence: [EV-3], proven_by: supply chain / pull request fast lane}
+      - {id: CTRL-07-03, title: Software composition analysis, blocks: merge, evidence: [EV-3], proven_by: supply chain / pull request complete lane}
+      - {id: CTRL-07-04, title: SBOM generation for every deployable artifact, blocks: merge, evidence: [EV-9], proven_by: supply chain / pull request complete lane}
+      - {id: CTRL-07-05, title: Container vulnerability scanning, blocks: merge, evidence: [EV-3], proven_by: supply chain / pull request complete lane}
+      - {id: CTRL-07-06, title: Frontend bundle inventory, blocks: merge, evidence: [EV-9], proven_by: supply chain / pull request complete lane}
+      - {id: CTRL-07-07, title: GitHub Actions pinning, blocks: merge, evidence: [EV-2], proven_by: static quality / pull request fast lane}
+      - {id: CTRL-07-08, title: Build provenance generation, blocks: release, evidence: [EV-9], proven_by: supply chain / release-candidate lane}
+      - {id: CTRL-07-09, title: Artifact signing, blocks: release, evidence: [EV-9], proven_by: supply chain / release-candidate lane}
+      - {id: CTRL-07-10, title: Signature verification, blocks: promotion, evidence: [EV-9], proven_by: supply chain / production continuous lane}
+      - {id: CTRL-07-11, title: Digest-only deployment validation, blocks: promotion, evidence: [EV-9], proven_by: supply chain / production continuous lane}
+      - {id: CTRL-07-12, title: Admission-policy validation, blocks: promotion, evidence: [EV-9], proven_by: supply chain / production continuous lane}
+
+  - id: AG-08
+    name: 08-release-evidence
+    risks:
+      - exact-SHA evidence completeness
+      - evidence freshness
+      - evidence integrity
+      - artifact binding
+    success_condition: >-
+      Every release claim is directly traceable to a command, workflow run, artifact,
+      result, owner, timestamp, and exact subject. This gate does not rerun controls; it
+      verifies all required evidence exists, is current, and refers to the same candidate.
+    required_fields:
+      candidate: [source_sha, merge_group_sha, artifact_digest, build_run_id]
+      controls: [control_id, conclusion, workflow_run_id, artifact_reference, completed_at, expires_at, subject_sha_or_digest]
+      approvals: [reviewer_identity, reviewed_sha, risk_classification, approved_at]
+    controls:
+      # Gate 08 has no child checks of its own in the source model; these controls encode
+      # its evidence rules (S1 §5, §08) as evaluatable register entries.
+      - {id: CTRL-08-01, title: Evidence subject binding — every control's evidence matches the candidate source SHA or artifact digest, blocks: release, evidence: [EV-1], proven_by: evidence / merge-group and release-candidate lanes}
+      - {id: CTRL-08-02, title: Evidence freshness — all evidence within expires_at and the 24h certification window; scheduled evidence within its defined validity period, blocks: release, evidence: [EV-1], proven_by: evidence / release-candidate lane}
+      - {id: CTRL-08-03, title: "Completeness — no missing, duplicate, or unregistered control results; every expected required child reported", blocks: release, evidence: [EV-1], proven_by: evidence / merge-group and release-candidate lanes}
+      - {id: CTRL-08-04, title: "No failed or conflicting evidence — missing, stale, failed, or conflicting evidence blocks release", blocks: release, evidence: [EV-1], proven_by: evidence / release-candidate lane}
+      - {id: CTRL-08-05, title: Evidence immutability and retention per policy, blocks: release, evidence: [EV-1], proven_by: evidence / nightly lane}
+      - {id: CTRL-08-06, title: Invalidation — a later commit invalidates SHA-bound evidence; rebuilding an artifact invalidates digest-bound certification, blocks: release, evidence: [EV-1], proven_by: evidence / merge-group and release-candidate lanes}
+      - {id: CTRL-08-07, title: "Scheduled-test verification — fails when the latest required scheduled test failed, its evidence exceeds the freshness window, the tested subject is incompatible with the candidate, the scheduled workflow did not run, or the evidence cannot be verified", blocks: release, evidence: [EV-1], proven_by: evidence / nightly and weekly lanes}
+
+  - id: AG-09
+    name: 09-change-risk-and-approval
+    risks:
+      - independent approval
+      - CODEOWNERS
+      - risk classification
+      - waivers
+      - unresolved findings
+    success_condition: >-
+      Authors cannot self-approve; sensitive changes receive appropriate independent review;
+      approval is invalidated after material changes; no unresolved critical finding or
+      expired waiver remains; emergency bypasses create immutable audit records and required
+      follow-up work.
+    approval_rules_by_risk_class:
+      low: one independent qualified reviewer
+      medium: one CODEOWNER plus one independent reviewer
+      high: two qualified reviewers, including the owning domain
+      critical: security or operations owner, domain owner, and explicit release authority
+    sensitive_areas:
+      - authentication and authorization
+      - tenant isolation
+      - database migrations
+      - API and event contracts
+      - CI and branch protection
+      - production infrastructure
+      - secrets
+      - billing and entitlements
+      - backup and recovery
+      - release-control code itself
+    controls:
+      - {id: CTRL-09-01, title: Automated risk classification, blocks: merge, evidence: [EV-10], proven_by: static quality / pull request fast lane}
+      - {id: CTRL-09-02, title: Sensitive-path detection, blocks: merge, evidence: [EV-10], proven_by: static quality / pull request fast lane}
+      - {id: CTRL-09-03, title: CODEOWNER approval, blocks: merge, evidence: [EV-10], proven_by: review policy / merge-group lane}
+      - {id: CTRL-09-04, title: Independent reviewer approval, blocks: merge, evidence: [EV-10], proven_by: review policy / merge-group lane}
+      - {id: CTRL-09-05, title: Unresolved-review-thread check, blocks: merge, evidence: [EV-10], proven_by: review policy / merge-group lane}
+      - {id: CTRL-09-06, title: P0 and P1 finding check, blocks: merge, evidence: [EV-10, EV-3], proven_by: review policy / merge-group lane}
+      - {id: CTRL-09-07, title: Risk-register reconciliation, blocks: merge, evidence: [EV-10], proven_by: review policy / merge-group lane}
+      - {id: CTRL-09-08, title: Waiver validation, blocks: merge, evidence: [EV-10], proven_by: review policy / merge-group lane}
+      - {id: CTRL-09-09, title: Separation-of-duties validation, blocks: merge, evidence: [EV-10], proven_by: review policy / merge-group lane}
+      - {id: CTRL-09-10, title: Final-SHA approval binding, blocks: merge, evidence: [EV-10], proven_by: review policy / merge-group lane}
+
+# ---------------------------------------------------------------------------
+# Security audit controls (S3) — IDs preserved verbatim from the Enterprise Security
+# Audit Contract (pattern ^FAB4L-SEC-P[0-3]-[A-Z0-9-]+$). Each maps to one aggregate
+# gate; audit release gates (GATE-*) apply per the audit contract's priority policy.
+# ---------------------------------------------------------------------------
+security_controls:
+  - {id: FAB4L-SEC-P0-SECRETS, priority: P0, title: Secrets and credential hygiene, checks: 13, gate: AG-04, audit_release_gate: GATE-DEPLOY, waiver_policy: not_permitted}
+  - {id: FAB4L-SEC-P0-TENANCY, priority: P0, title: Multi-tenancy isolation, checks: 9, gate: AG-05, audit_release_gate: GATE-DEPLOY, waiver_policy: not_permitted}
+  - {id: FAB4L-SEC-P0-CONTAINERS, priority: P0, title: Container and Kubernetes security, checks: 7, gate: AG-06, audit_release_gate: GATE-DEPLOY, waiver_policy: not_permitted}
+  - {id: FAB4L-SEC-P0-CICD, priority: P0, title: CI/CD pipeline security, checks: 9, gate: AG-01, audit_release_gate: GATE-DEPLOY, waiver_policy: not_permitted}
+  - {id: FAB4L-SEC-P1-APPSEC, priority: P1, title: Application security and OWASP Top 10, checks: 12, gate: AG-04, audit_release_gate: GATE-GA, waiver_policy: time_bound_risk_acceptance}
+  - {id: FAB4L-SEC-P1-DATA, priority: P1, title: Data encryption and protection, checks: 7, gate: AG-04, audit_release_gate: GATE-GA, waiver_policy: time_bound_risk_acceptance}
+  - {id: FAB4L-SEC-P1-NETWORK, priority: P1, title: API and network security, checks: 7, gate: AG-04, audit_release_gate: GATE-GA, waiver_policy: time_bound_risk_acceptance}
+  - {id: FAB4L-SEC-P1-LOGGING, priority: P1, title: Logging, monitoring, and audit, checks: 7, gate: AG-06, audit_release_gate: GATE-GA, waiver_policy: time_bound_risk_acceptance}
+  - {id: FAB4L-SEC-P1-SUPPLY-CHAIN, priority: P1, title: Supply chain security, checks: 8, gate: AG-07, audit_release_gate: GATE-GA, waiver_policy: time_bound_risk_acceptance}
+  - {id: FAB4L-SEC-P2-INCIDENT, priority: P2, title: Incident response and forensics, checks: 6, gate: AG-06, audit_release_gate: GATE-P2-DEADLINE, waiver_policy: time_bound_risk_acceptance}
+  - {id: FAB4L-SEC-P2-AI-ML, priority: P2, title: AI and ML security, checks: 5, gate: AG-05, audit_release_gate: GATE-P2-DEADLINE, waiver_policy: time_bound_risk_acceptance}
+  - {id: FAB4L-SEC-P2-OPERATIONS, priority: P2, title: Operational security, checks: 6, gate: AG-06, audit_release_gate: GATE-P2-DEADLINE, waiver_policy: time_bound_risk_acceptance}
+  - {id: FAB4L-SEC-P3-GOVERNANCE, priority: P3, title: Documentation and governance, checks: 5, gate: AG-09, audit_release_gate: GATE-GOVERNANCE, waiver_policy: tracked_exception}
+  - {id: FAB4L-SEC-P3-MAINTAINABILITY, priority: P3, title: Security-relevant code quality and maintainability, checks: 3, gate: AG-02, audit_release_gate: GATE-GOVERNANCE, waiver_policy: tracked_exception}
+
+# ---------------------------------------------------------------------------
+# Waiver policy. A waiver never removes a control; it time-bounds a known gap.
+# ---------------------------------------------------------------------------
+waivers:
+  required_fields: [waiver_id, scope, rationale, compensating_controls, owner, approvers, issued_at, expires_at]
+  rules:
+    - Every waiver MUST name an owner, a compensating control, and an expires_at.
+    - Every waiver MUST have approvers independent of the requester.
+    - Waivers MUST auto-expire: expired or missing exceptions fail closed at the next evaluation.
+    - P0 findings are not waivable (waiver_policy not_permitted).
+    - P1 and P2 findings allow time-bound risk acceptance only within their deadlines.
+    - P3 findings allow tracked exceptions; a P3 label never permits weakening or bypassing an authoritative security control.
+    - A control marked waiver_allowed: false in a risk entry MUST NOT accept a waiver.
+    - CTRL-09-08 (waiver validation) enforces this policy at merge time.

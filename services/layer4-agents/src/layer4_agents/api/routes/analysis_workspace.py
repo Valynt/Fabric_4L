@@ -242,15 +242,20 @@ def build_workspace_router(
             "narrative": {"narratives": []},
         }
 
-        for tab_key, data in tab_data.items():
+        tab_keys = list(tab_data.keys())
+        existing_tabs = {}
+        if tab_keys:
             result = await db.execute(
                 select(WorkspaceTabData).where(
                     WorkspaceTabData.case_id == case_id,
-                    WorkspaceTabData.tab_key == tab_key,
+                    WorkspaceTabData.tab_key.in_(tab_keys),
                     WorkspaceTabData.tenant_id == tenant_id,
                 )
             )
-            existing = result.scalar_one_or_none()
+            existing_tabs = {tab.tab_key: tab for tab in result.scalars().all()}
+
+        for tab_key, data in tab_data.items():
+            existing = existing_tabs.get(tab_key)
             if existing:
                 existing.data = data
             else:

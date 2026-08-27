@@ -1,0 +1,1314 @@
+# Fabric_4L Control Plane — Contract Manifest (hub artifact)
+# Machine-readable linkage of rules (R-x), stories (VP-xx), gaps (GAP-xx),
+# behaviors (BEH-xx), and release controls (CTRL-xx-nn / AG-xx gates).
+# Generated on 2026-08-22 from the directories listed in generated_from.
+# Validate: python scripts/control-plane/validate_control_plane.py
+# Schema:   handbook/schemas/contract_manifest.schema.json
+version: 1
+generated_from:
+  product_contract: control-plane/product-contract/
+  release: control-plane/release/
+  behaviors: control-plane/behaviors/
+  handbook: handbook/
+rules:
+- id: R-1
+  statement: Every customer-facing statement and number MUST be classified as a verified fact, human-approved inference, external
+    benchmark, explicit assumption, or deterministic calculation.
+  source: control-plane/product-contract/01_product-intent.md#r-1
+- id: R-2
+  statement: The authoritative model MUST be server-persisted, tenant-scoped, account-scoped, versioned, and recoverable.
+    Browser storage MAY cache non-authoritative preferences only.
+  source: control-plane/product-contract/01_product-intent.md#r-2
+- id: R-3
+  statement: Consequential AI output MUST support Accept, Edit, and Reject. AI output MUST NOT become verified, approved,
+    or customer-facing without the required human and evidence gates.
+  source: control-plane/product-contract/01_product-intent.md#r-3
+- id: R-4
+  statement: Financial math MUST be deterministic and reproducible. An LLM MAY explain or narrate a result but MUST NOT silently
+    replace a formula, invent an input, or alter an approved calculation.
+  source: control-plane/product-contract/01_product-intent.md#r-4
+- id: R-5
+  statement: Synthetic, benchmark-derived, fallback, and demo inputs MUST remain visibly labeled through calculation, narrative,
+    approval, and export. Materially degraded outputs MUST NOT be publishable.
+  source: control-plane/product-contract/01_product-intent.md#r-5
+- id: R-6
+  statement: Authorization, tenant, account, case, model, evidence, and version uncertainty MUST fail closed.
+  source: control-plane/product-contract/01_product-intent.md#r-6
+- id: R-7
+  statement: An approved or published version MUST be immutable. Any later edit creates a new draft with explicit lineage.
+  source: control-plane/product-contract/01_product-intent.md#r-7
+- id: R-8
+  statement: Every quantitative claim MUST expose a provenance path from claim to calculation, formula, inputs, driver, signal
+    or evidence, and original source.
+  source: control-plane/product-contract/01_product-intent.md#r-8
+stories:
+- id: VP-01
+  title: Start and resume a scoped case
+  journey:
+  - J-1
+  behaviors:
+  - BEH-01
+  closes_gaps:
+  - GAP-01
+  rules:
+  - R-2
+  - R-6
+- id: VP-02
+  title: Connect sources and launch analysis
+  journey:
+  - J-2
+  behaviors:
+  - BEH-01
+  closes_gaps:
+  - GAP-02
+  rules:
+  - R-2
+  - R-6
+- id: VP-03
+  title: Review pain signals
+  journey:
+  - J-3
+  behaviors:
+  - BEH-02
+  closes_gaps: []
+  rules:
+  - R-1
+  - R-2
+  - R-3
+- id: VP-04
+  title: Generate ranked value hypotheses
+  journey:
+  - J-4
+  behaviors:
+  - BEH-02
+  closes_gaps: []
+  rules:
+  - R-1
+  - R-2
+  - R-3
+- id: VP-05
+  title: Validate and promote hypotheses
+  journey:
+  - J-5
+  behaviors:
+  - BEH-02
+  closes_gaps:
+  - GAP-04
+  - GAP-05
+  rules:
+  - R-2
+  - R-4
+- id: VP-06
+  title: Map stakeholders and actions
+  journey:
+  - J-8
+  behaviors:
+  - BEH-06
+  closes_gaps:
+  - GAP-11
+  rules:
+  - R-1
+  - R-4
+  - R-5
+  - R-8
+- id: VP-07
+  title: Create the driver tree and value model
+  journey:
+  - J-5
+  behaviors:
+  - BEH-03
+  closes_gaps:
+  - GAP-03
+  - GAP-05
+  rules:
+  - R-2
+  - R-8
+- id: VP-08
+  title: Bind evidence and benchmarks
+  journey:
+  - J-6
+  behaviors:
+  - BEH-05
+  closes_gaps:
+  - GAP-10
+  rules:
+  - R-1
+  - R-5
+  - R-8
+- id: VP-09
+  title: Manage variables, formulas, and assumptions
+  journey:
+  - J-6
+  behaviors:
+  - BEH-04
+  - BEH-05
+  closes_gaps:
+  - GAP-11
+  rules:
+  - R-1
+  - R-4
+  - R-5
+  - R-8
+- id: VP-10
+  title: Calculate and compare scenarios
+  journey:
+  - J-7
+  behaviors:
+  - BEH-04
+  closes_gaps:
+  - GAP-06
+  - GAP-09
+  - GAP-11
+  rules:
+  - R-1
+  - R-4
+  - R-5
+- id: VP-11
+  title: Generate an evidence-linked narrative
+  journey:
+  - J-8
+  behaviors:
+  - BEH-06
+  - BEH-07
+  closes_gaps:
+  - GAP-08
+  rules:
+  - R-1
+  - R-4
+  - R-5
+  - R-7
+  - R-8
+- id: VP-12
+  title: Review, approve, publish, and export
+  journey:
+  - J-9
+  behaviors:
+  - BEH-07
+  - BEH-08
+  closes_gaps:
+  - GAP-07
+  - GAP-10
+  rules:
+  - R-1
+  - R-3
+  - R-4
+  - R-5
+  - R-6
+  - R-7
+  - R-8
+- id: VP-13
+  title: Track value realization
+  journey:
+  - J-10
+  behaviors:
+  - BEH-09
+  closes_gaps: []
+  rules:
+  - R-2
+  - R-7
+  - R-8
+- id: VP-14
+  title: Enforce scope, observe, audit, and recover
+  journey:
+  - J-1
+  - J-2
+  - J-3
+  - J-4
+  - J-5
+  - J-6
+  - J-7
+  - J-8
+  - J-9
+  - J-10
+  behaviors:
+  - BEH-01
+  - BEH-02
+  - BEH-03
+  - BEH-04
+  - BEH-05
+  - BEH-06
+  - BEH-07
+  - BEH-08
+  - BEH-09
+  closes_gaps:
+  - GAP-01
+  - GAP-12
+  rules:
+  - R-1
+  - R-2
+  - R-3
+  - R-4
+  - R-5
+  - R-6
+  - R-7
+  - R-8
+gaps:
+- id: GAP-01
+  title: Tenant and parent-case ownership not enforced on workspace reads
+  status: open
+  closed_by:
+  - VP-01
+  - VP-14
+- id: GAP-02
+  title: Prospect setup does not launch the analysis workflow
+  status: open
+  closed_by:
+  - VP-02
+- id: GAP-03
+  title: Workspace generation is destructive and schema-divergent
+  status: open
+  closed_by:
+  - VP-07
+- id: GAP-04
+  title: Hypothesis conversion does not materialize the model
+  status: open
+  closed_by:
+  - VP-05
+- id: GAP-05
+  title: Promoted drivers lack executable formulas
+  status: open
+  closed_by:
+  - VP-05
+  - VP-07
+- id: GAP-06
+  title: Frontend and L3 ROI contracts diverge
+  status: open
+  closed_by:
+  - VP-10
+- id: GAP-07
+  title: Two divergent value-case workflows
+  status: open
+  closed_by:
+  - VP-12
+- id: GAP-08
+  title: Value-case persistence drops upstream identifiers
+  status: open
+  closed_by:
+  - VP-11
+- id: GAP-09
+  title: Silent synthetic fallback in Layer 4 ROI
+  status: open
+  closed_by:
+  - VP-10
+- id: GAP-10
+  title: Evidence policy caller-supplied and auto-passing
+  status: open
+  closed_by:
+  - VP-08
+  - VP-12
+- id: GAP-11
+  title: Browser-local authoritative state
+  status: open
+  closed_by:
+  - VP-06
+  - VP-09
+  - VP-10
+- id: GAP-12
+  title: No candidate-SHA-bound end-to-end certification
+  status: open
+  closed_by:
+  - VP-14
+behaviors:
+- id: BEH-01
+  name: account-intake
+  journey:
+  - J-1
+  stories:
+  - VP-01
+  - VP-02
+  - VP-14
+  closes_gaps:
+  - GAP-01
+  - GAP-02
+  rules:
+  - R-2
+  - R-6
+  boundary: web -> api -> L1 -> L4
+  components:
+  - ProspectSetupPage
+  - AccountsPage
+  - OnboardingFlow
+  - AccountsRouter
+  - AuthRouter
+  - AnalysisRunLauncher
+  card: control-plane/behaviors/BEH-01-account-intake.md
+- id: BEH-02
+  name: hypothesis-capture
+  journey:
+  - J-4
+  stories:
+  - VP-03
+  - VP-04
+  - VP-05
+  - VP-14
+  closes_gaps:
+  - GAP-03
+  - GAP-04
+  rules:
+  - R-1
+  - R-2
+  - R-3
+  boundary: web -> api -> L4 -> L5 -> L3
+  components:
+  - IntelligenceWorkspace
+  - HypothesesTab
+  - HypothesisReviewTabs
+  - ReviewQueue
+  - HypothesisRouter
+  - HypothesisEngine
+  - AssumptionGovernance
+  - PromotionService
+  card: control-plane/behaviors/BEH-02-hypothesis-capture.md
+- id: BEH-03
+  name: driver-tree-modeling
+  journey:
+  - J-5
+  stories:
+  - VP-07
+  - VP-14
+  closes_gaps:
+  - GAP-03
+  - GAP-05
+  rules:
+  - R-2
+  - R-8
+  boundary: web -> api -> L3
+  components:
+  - DriverTreePage
+  - ValueTreeExplorer
+  - GraphExplorer
+  - DriversRouter
+  - DriverGraphService
+  - ModelSchema
+  card: control-plane/behaviors/BEH-03-driver-tree-modeling.md
+- id: BEH-04
+  name: formula-roi-calculation
+  journey:
+  - J-7
+  stories:
+  - VP-09
+  - VP-10
+  - VP-14
+  closes_gaps:
+  - GAP-05
+  - GAP-06
+  - GAP-09
+  - GAP-11
+  rules:
+  - R-1
+  - R-4
+  - R-5
+  boundary: web -> api -> L3 (+ L6 benchmarks)
+  components:
+  - FormulaBuilder
+  - FormulaList
+  - ROITab
+  - CalculatorRouter
+  - CalculationEngine
+  - BenchmarkGateway
+  - ScenarioService
+  card: control-plane/behaviors/BEH-04-formula-roi-calculation.md
+- id: BEH-05
+  name: evidence-and-cost-binding
+  journey:
+  - J-6
+  stories:
+  - VP-08
+  - VP-09
+  - VP-14
+  closes_gaps:
+  - GAP-08
+  - GAP-10
+  rules:
+  - R-1
+  - R-5
+  - R-8
+  boundary: web -> api -> L5 (+ L6 benchmarks)
+  components:
+  - SolutionCostTab
+  - AlternativesTab
+  - GovernanceEvidencePage
+  - TargetsAdmin
+  - EvidenceRouter
+  - ValueClaimService
+  - BenchmarkService
+  card: control-plane/behaviors/BEH-05-evidence-and-cost-binding.md
+- id: BEH-06
+  name: business-case-generation
+  journey:
+  - J-8
+  stories:
+  - VP-06
+  - VP-11
+  - VP-14
+  closes_gaps:
+  - GAP-07
+  - GAP-08
+  rules:
+  - R-1
+  - R-4
+  - R-5
+  - R-8
+  boundary: web -> api -> L4 (+ value-studio domain service)
+  components:
+  - BusinessCasePages
+  - ValueCasePage
+  - StudioShell
+  - ValueCasesRouter
+  - ValueCaseOrchestrator
+  - NarrativeGenerator
+  card: control-plane/behaviors/BEH-06-business-case-generation.md
+- id: BEH-07
+  name: deliverable-rendering
+  journey:
+  - J-9
+  stories:
+  - VP-11
+  - VP-12
+  - VP-14
+  closes_gaps:
+  - GAP-07
+  - GAP-08
+  rules:
+  - R-1
+  - R-4
+  - R-7
+  - R-8
+  boundary: web -> api -> L4
+  components:
+  - CFOView
+  - ExecutiveView
+  - TechnicalView
+  - DocumentAssembler
+  - ValueCasesRouter
+  card: control-plane/behaviors/BEH-07-deliverable-rendering.md
+- id: BEH-08
+  name: approval-and-publication
+  journey:
+  - J-9
+  stories:
+  - VP-12
+  - VP-14
+  closes_gaps:
+  - GAP-07
+  - GAP-08
+  - GAP-10
+  - GAP-11
+  rules:
+  - R-3
+  - R-5
+  - R-6
+  - R-7
+  boundary: web -> api -> L4 -> L5
+  components:
+  - ReviewGateChecklist
+  - VersionHistoryPage
+  - GovernanceSurfaces
+  - ReviewsRouter
+  - GovernanceRouter
+  - VersioningRouter
+  - PublicationService
+  card: control-plane/behaviors/BEH-08-approval-and-publication.md
+- id: BEH-09
+  name: realization-tracking
+  journey:
+  - J-10
+  stories:
+  - VP-13
+  - VP-14
+  closes_gaps:
+  - GAP-11
+  rules:
+  - R-2
+  - R-7
+  - R-8
+  boundary: web -> api -> L3
+  components:
+  - RealizationPage
+  - RealizationRouter
+  - RealizationRecordService
+  - ForecastReference
+  card: control-plane/behaviors/BEH-09-realization-tracking.md
+controls:
+- id: CTRL-01-01
+  gate: AG-01
+  title: Workflow YAML and action-reference validation
+  blocks: merge
+  evidence:
+  - EV-2
+- id: CTRL-01-02
+  gate: AG-01
+  title: Makefile and script entry-point validation
+  blocks: merge
+  evidence:
+  - EV-2
+- id: CTRL-01-03
+  gate: AG-01
+  title: Lockfile consistency
+  blocks: merge
+  evidence:
+  - EV-2
+- id: CTRL-01-04
+  gate: AG-01
+  title: Generated-file drift detection
+  blocks: merge
+  evidence:
+  - EV-2
+- id: CTRL-01-05
+  gate: AG-01
+  title: Canonical configuration enforcement
+  blocks: merge
+  evidence:
+  - EV-2
+- id: CTRL-01-06
+  gate: AG-01
+  title: Secret-path canonicalization
+  blocks: merge
+  evidence:
+  - EV-2
+- id: CTRL-01-07
+  gate: AG-01
+  title: Test-skip governance
+  blocks: merge
+  evidence:
+  - EV-1
+- id: CTRL-01-08
+  gate: AG-01
+  title: Architecture-boundary fitness tests
+  blocks: merge
+  evidence:
+  - EV-1
+- id: CTRL-01-09
+  gate: AG-01
+  title: Branch-protection contract validation
+  blocks: merge
+  evidence:
+  - EV-2
+- id: CTRL-01-10
+  gate: AG-01
+  title: Kubernetes and Helm source consistency
+  blocks: merge
+  evidence:
+  - EV-6
+- id: CTRL-01-11
+  gate: AG-01
+  title: Required documentation and ownership checks
+  blocks: merge
+  evidence:
+  - EV-2
+- id: CTRL-02-01
+  gate: AG-02
+  title: Python formatting and linting
+  blocks: merge
+  evidence:
+  - EV-2
+- id: CTRL-02-02
+  gate: AG-02
+  title: TypeScript formatting and linting
+  blocks: merge
+  evidence:
+  - EV-2
+- id: CTRL-02-03
+  gate: AG-02
+  title: Layer-specific mypy ratchets
+  blocks: merge
+  evidence:
+  - EV-2
+- id: CTRL-02-04
+  gate: AG-02
+  title: TypeScript type checking
+  blocks: merge
+  evidence:
+  - EV-2
+- id: CTRL-02-05
+  gate: AG-02
+  title: Unit tests
+  blocks: merge
+  evidence:
+  - EV-1
+- id: CTRL-02-06
+  gate: AG-02
+  title: Component tests
+  blocks: merge
+  evidence:
+  - EV-1
+- id: CTRL-02-07
+  gate: AG-02
+  title: Integration tests
+  blocks: merge
+  evidence:
+  - EV-1
+- id: CTRL-02-08
+  gate: AG-02
+  title: Frontend browser tests
+  blocks: merge
+  evidence:
+  - EV-4
+- id: CTRL-02-09
+  gate: AG-02
+  title: Coverage ratchets
+  blocks: merge
+  evidence:
+  - EV-12
+- id: CTRL-02-10
+  gate: AG-02
+  title: Complexity and module-size ratchets
+  blocks: merge
+  evidence:
+  - EV-2
+- id: CTRL-02-11
+  gate: AG-02
+  title: Targeted mutation tests for critical logic
+  blocks: merge
+  evidence:
+  - EV-12
+- id: CTRL-02-12
+  gate: AG-02
+  title: Platform compatibility tests
+  blocks: merge
+  evidence:
+  - EV-1
+- id: CTRL-03-01
+  gate: AG-03
+  title: Runtime OpenAPI generation
+  blocks: merge
+  evidence:
+  - EV-5
+- id: CTRL-03-02
+  gate: AG-03
+  title: Generated TypeScript client drift check
+  blocks: merge
+  evidence:
+  - EV-5
+- id: CTRL-03-03
+  gate: AG-03
+  title: Generated Python client drift check
+  blocks: merge
+  evidence:
+  - EV-5
+- id: CTRL-03-04
+  gate: AG-03
+  title: Backward-compatibility analysis
+  blocks: merge
+  evidence:
+  - EV-5
+- id: CTRL-03-05
+  gate: AG-03
+  title: Consumer-driven contract tests
+  blocks: merge
+  evidence:
+  - EV-5
+- id: CTRL-03-06
+  gate: AG-03
+  title: Queue and event-envelope schema validation
+  blocks: merge
+  evidence:
+  - EV-5
+- id: CTRL-03-07
+  gate: AG-03
+  title: Database schema contract validation
+  blocks: merge
+  evidence:
+  - EV-5
+- id: CTRL-03-08
+  gate: AG-03
+  title: L1-L6 cross-layer contract tests
+  blocks: merge
+  evidence:
+  - EV-5
+- id: CTRL-03-09
+  gate: AG-03
+  title: Unknown-field and malformed-input rejection
+  blocks: merge
+  evidence:
+  - EV-1
+- id: CTRL-03-10
+  gate: AG-03
+  title: Versioning and deprecation enforcement
+  blocks: merge
+  evidence:
+  - EV-5
+- id: CTRL-04-01
+  gate: AG-04
+  title: Semgrep
+  blocks: merge
+  evidence:
+  - EV-2
+- id: CTRL-04-02
+  gate: AG-04
+  title: Gitleaks full-tree and changed-content scanning
+  blocks: merge
+  evidence:
+  - EV-3
+- id: CTRL-04-03
+  gate: AG-04
+  title: Bandit
+  blocks: merge
+  evidence:
+  - EV-2
+- id: CTRL-04-04
+  gate: AG-04
+  title: pip-audit
+  blocks: merge
+  evidence:
+  - EV-3
+- id: CTRL-04-05
+  gate: AG-04
+  title: Frontend package audit
+  blocks: merge
+  evidence:
+  - EV-3
+- id: CTRL-04-06
+  gate: AG-04
+  title: Dependency review
+  blocks: merge
+  evidence:
+  - EV-3
+- id: CTRL-04-07
+  gate: AG-04
+  title: Cypher safety checks
+  blocks: merge
+  evidence:
+  - EV-2
+- id: CTRL-04-08
+  gate: AG-04
+  title: Route authentication and authorization checks
+  blocks: merge
+  evidence:
+  - EV-1
+- id: CTRL-04-09
+  gate: AG-04
+  title: Security-header and configuration validation
+  blocks: merge
+  evidence:
+  - EV-2
+- id: CTRL-04-10
+  gate: AG-04
+  title: Production mock-mode prohibition
+  blocks: merge
+  evidence:
+  - EV-2
+- id: CTRL-04-11
+  gate: AG-04
+  title: Security exception expiry enforcement
+  blocks: merge
+  evidence:
+  - EV-2
+- id: CTRL-04-12
+  gate: AG-04
+  title: Authenticated DAST through the gateway
+  blocks: release
+  evidence:
+  - EV-3
+- id: CTRL-04-13
+  gate: AG-04
+  title: Container and infrastructure scanning
+  blocks: release
+  evidence:
+  - EV-3
+  - EV-6
+- id: CTRL-04-14
+  gate: AG-04
+  title: Role-based security journeys
+  blocks: release
+  evidence:
+  - EV-4
+- id: CTRL-04-15
+  gate: AG-04
+  title: Sensitive-data redaction tests
+  blocks: release
+  evidence:
+  - EV-1
+- id: CTRL-04-16
+  gate: AG-04
+  title: Rate-limit and abuse-control validation
+  blocks: release
+  evidence:
+  - EV-1
+  - EV-8
+- id: CTRL-04-17
+  gate: AG-04
+  title: Production-shaped secret-startup tests
+  blocks: release
+  evidence:
+  - EV-1
+- id: CTRL-05-01
+  gate: AG-05
+  title: Backend authorization-snapshot validation
+  blocks: merge
+  evidence:
+  - EV-1
+- id: CTRL-05-02
+  gate: AG-05
+  title: Frontend fail-closed authorization tests
+  blocks: merge
+  evidence:
+  - EV-1
+- id: CTRL-05-03
+  gate: AG-05
+  title: Tenant-switch and prior-session rejection
+  blocks: merge
+  evidence:
+  - EV-1
+  - EV-4
+- id: CTRL-05-04
+  gate: AG-05
+  title: Account-scope enforcement
+  blocks: merge
+  evidence:
+  - EV-1
+- id: CTRL-05-05
+  gate: AG-05
+  title: PostgreSQL tenant isolation
+  blocks: merge
+  evidence:
+  - EV-1
+- id: CTRL-05-06
+  gate: AG-05
+  title: Neo4j tenant isolation
+  blocks: merge
+  evidence:
+  - EV-1
+- id: CTRL-05-07
+  gate: AG-05
+  title: Vector and retrieval isolation
+  blocks: merge
+  evidence:
+  - EV-1
+- id: CTRL-05-08
+  gate: AG-05
+  title: Redis cache and queue isolation
+  blocks: merge
+  evidence:
+  - EV-1
+- id: CTRL-05-09
+  gate: AG-05
+  title: Object-storage prefix isolation
+  blocks: merge
+  evidence:
+  - EV-1
+- id: CTRL-05-10
+  gate: AG-05
+  title: Signed-URL expiry and replay protection
+  blocks: merge
+  evidence:
+  - EV-1
+- id: CTRL-05-11
+  gate: AG-05
+  title: Export and deletion isolation
+  blocks: merge
+  evidence:
+  - EV-1
+- id: CTRL-05-12
+  gate: AG-05
+  title: AI prompt, memory, trace, and tool isolation
+  blocks: merge
+  evidence:
+  - EV-1
+  - EV-12
+- id: CTRL-05-13
+  gate: AG-05
+  title: Forged and mismatched queue-envelope rejection
+  blocks: merge
+  evidence:
+  - EV-1
+- id: CTRL-05-14
+  gate: AG-05
+  title: Support impersonation scope and expiry
+  blocks: merge
+  evidence:
+  - EV-1
+- id: CTRL-06-01
+  gate: AG-06
+  title: Kubernetes schema validation
+  blocks: merge
+  evidence:
+  - EV-6
+- id: CTRL-06-02
+  gate: AG-06
+  title: Helm or Kustomize render validation
+  blocks: merge
+  evidence:
+  - EV-6
+- id: CTRL-06-03
+  gate: AG-06
+  title: Manifest consistency checks
+  blocks: merge
+  evidence:
+  - EV-6
+- id: CTRL-06-04
+  gate: AG-06
+  title: Gateway-only ingress enforcement
+  blocks: merge
+  evidence:
+  - EV-6
+- id: CTRL-06-05
+  gate: AG-06
+  title: Workload and NetworkPolicy selector matching
+  blocks: merge
+  evidence:
+  - EV-6
+- id: CTRL-06-06
+  gate: AG-06
+  title: Pod and container securityContext enforcement
+  blocks: merge
+  evidence:
+  - EV-6
+- id: CTRL-06-07
+  gate: AG-06
+  title: Resource requests and limits
+  blocks: merge
+  evidence:
+  - EV-6
+- id: CTRL-06-08
+  gate: AG-06
+  title: PodDisruptionBudget and autoscaling validation
+  blocks: merge
+  evidence:
+  - EV-6
+- id: CTRL-06-09
+  gate: AG-06
+  title: Prometheus rule validation
+  blocks: merge
+  evidence:
+  - EV-11
+- id: CTRL-06-10
+  gate: AG-06
+  title: Alert-to-metric consistency
+  blocks: merge
+  evidence:
+  - EV-11
+- id: CTRL-06-11
+  gate: AG-06
+  title: Runbook-link validation
+  blocks: merge
+  evidence:
+  - EV-2
+- id: CTRL-06-12
+  gate: AG-06
+  title: Migration safety
+  blocks: merge
+  evidence:
+  - EV-7
+- id: CTRL-06-13
+  gate: AG-06
+  title: Clean-environment deployment
+  blocks: release
+  evidence:
+  - EV-6
+- id: CTRL-06-14
+  gate: AG-06
+  title: Production-shaped smoke tests
+  blocks: release
+  evidence:
+  - EV-1
+- id: CTRL-06-15
+  gate: AG-06
+  title: Full ValuePilot golden-path certification
+  blocks: release
+  evidence:
+  - EV-4
+- id: CTRL-06-16
+  gate: AG-06
+  title: Live role-authenticated Playwright journeys
+  blocks: release
+  evidence:
+  - EV-4
+- id: CTRL-06-17
+  gate: AG-06
+  title: Backup completion and integrity validation
+  blocks: release
+  evidence:
+  - EV-7
+- id: CTRL-06-18
+  gate: AG-06
+  title: Clean restore test
+  blocks: release
+  evidence:
+  - EV-7
+- id: CTRL-06-19
+  gate: AG-06
+  title: Rollback rehearsal
+  blocks: release
+  evidence:
+  - EV-7
+- id: CTRL-06-20
+  gate: AG-06
+  title: Migration forward- and backward-compatibility proof
+  blocks: release
+  evidence:
+  - EV-7
+- id: CTRL-06-21
+  gate: AG-06
+  title: Load and resilience tests
+  blocks: release
+  evidence:
+  - EV-8
+- id: CTRL-06-22
+  gate: AG-06
+  title: Alert delivery test
+  blocks: release
+  evidence:
+  - EV-11
+- id: CTRL-06-23
+  gate: AG-06
+  title: Trace-propagation verification
+  blocks: release
+  evidence:
+  - EV-11
+- id: CTRL-06-24
+  gate: AG-06
+  title: SLO and dashboard validation
+  blocks: release
+  evidence:
+  - EV-11
+- id: CTRL-06-25
+  gate: AG-06
+  title: One valid migration head per database
+  blocks: merge
+  evidence:
+  - EV-7
+- id: CTRL-06-26
+  gate: AG-06
+  title: No untracked schema drift
+  blocks: merge
+  evidence:
+  - EV-7
+- id: CTRL-06-27
+  gate: AG-06
+  title: Upgrade from the current production schema
+  blocks: merge
+  evidence:
+  - EV-7
+- id: CTRL-06-28
+  gate: AG-06
+  title: Fresh-install migration
+  blocks: merge
+  evidence:
+  - EV-7
+- id: CTRL-06-29
+  gate: AG-06
+  title: Expand-contract compatibility
+  blocks: merge
+  evidence:
+  - EV-7
+- id: CTRL-06-30
+  gate: AG-06
+  title: Previous application compatibility during the rollback window
+  blocks: release
+  evidence:
+  - EV-7
+- id: CTRL-06-31
+  gate: AG-06
+  title: Tenant-scoped constraints and indexes
+  blocks: merge
+  evidence:
+  - EV-7
+- id: CTRL-06-32
+  gate: AG-06
+  title: Bounded lock duration
+  blocks: merge
+  evidence:
+  - EV-7
+- id: CTRL-06-33
+  gate: AG-06
+  title: Backfill restartability and idempotency
+  blocks: merge
+  evidence:
+  - EV-7
+- id: CTRL-06-34
+  gate: AG-06
+  title: Data-integrity assertions
+  blocks: merge
+  evidence:
+  - EV-7
+- id: CTRL-06-35
+  gate: AG-06
+  title: Explicit approval for destructive changes
+  blocks: merge
+  evidence:
+  - EV-10
+- id: CTRL-06-36
+  gate: AG-06
+  title: Recovery procedure for irreversible transformations
+  blocks: merge
+  evidence:
+  - EV-7
+- id: CTRL-07-01
+  gate: AG-07
+  title: Locked dependency verification
+  blocks: merge
+  evidence:
+  - EV-3
+- id: CTRL-07-02
+  gate: AG-07
+  title: Dependency review
+  blocks: merge
+  evidence:
+  - EV-3
+- id: CTRL-07-03
+  gate: AG-07
+  title: Software composition analysis
+  blocks: merge
+  evidence:
+  - EV-3
+- id: CTRL-07-04
+  gate: AG-07
+  title: SBOM generation for every deployable artifact
+  blocks: merge
+  evidence:
+  - EV-9
+- id: CTRL-07-05
+  gate: AG-07
+  title: Container vulnerability scanning
+  blocks: merge
+  evidence:
+  - EV-3
+- id: CTRL-07-06
+  gate: AG-07
+  title: Frontend bundle inventory
+  blocks: merge
+  evidence:
+  - EV-9
+- id: CTRL-07-07
+  gate: AG-07
+  title: GitHub Actions pinning
+  blocks: merge
+  evidence:
+  - EV-2
+- id: CTRL-07-08
+  gate: AG-07
+  title: Build provenance generation
+  blocks: release
+  evidence:
+  - EV-9
+- id: CTRL-07-09
+  gate: AG-07
+  title: Artifact signing
+  blocks: release
+  evidence:
+  - EV-9
+- id: CTRL-07-10
+  gate: AG-07
+  title: Signature verification
+  blocks: promotion
+  evidence:
+  - EV-9
+- id: CTRL-07-11
+  gate: AG-07
+  title: Digest-only deployment validation
+  blocks: promotion
+  evidence:
+  - EV-9
+- id: CTRL-07-12
+  gate: AG-07
+  title: Admission-policy validation
+  blocks: promotion
+  evidence:
+  - EV-9
+- id: CTRL-08-01
+  gate: AG-08
+  title: Evidence subject binding — every control's evidence matches the candidate source SHA or artifact digest
+  blocks: release
+  evidence:
+  - EV-1
+- id: CTRL-08-02
+  gate: AG-08
+  title: Evidence freshness — all evidence within expires_at and the 24h certification window; scheduled evidence within its
+    defined validity period
+  blocks: release
+  evidence:
+  - EV-1
+- id: CTRL-08-03
+  gate: AG-08
+  title: Completeness — no missing, duplicate, or unregistered control results; every expected required child reported
+  blocks: release
+  evidence:
+  - EV-1
+- id: CTRL-08-04
+  gate: AG-08
+  title: No failed or conflicting evidence — missing, stale, failed, or conflicting evidence blocks release
+  blocks: release
+  evidence:
+  - EV-1
+- id: CTRL-08-05
+  gate: AG-08
+  title: Evidence immutability and retention per policy
+  blocks: release
+  evidence:
+  - EV-1
+- id: CTRL-08-06
+  gate: AG-08
+  title: Invalidation — a later commit invalidates SHA-bound evidence; rebuilding an artifact invalidates digest-bound certification
+  blocks: release
+  evidence:
+  - EV-1
+- id: CTRL-08-07
+  gate: AG-08
+  title: Scheduled-test verification — fails when the latest required scheduled test failed, its evidence exceeds the freshness
+    window, the tested subject is incompatible with the candidate, the scheduled workflow did not run, or the evidence cannot
+    be verified
+  blocks: release
+  evidence:
+  - EV-1
+- id: CTRL-09-01
+  gate: AG-09
+  title: Automated risk classification
+  blocks: merge
+  evidence:
+  - EV-10
+- id: CTRL-09-02
+  gate: AG-09
+  title: Sensitive-path detection
+  blocks: merge
+  evidence:
+  - EV-10
+- id: CTRL-09-03
+  gate: AG-09
+  title: CODEOWNER approval
+  blocks: merge
+  evidence:
+  - EV-10
+- id: CTRL-09-04
+  gate: AG-09
+  title: Independent reviewer approval
+  blocks: merge
+  evidence:
+  - EV-10
+- id: CTRL-09-05
+  gate: AG-09
+  title: Unresolved-review-thread check
+  blocks: merge
+  evidence:
+  - EV-10
+- id: CTRL-09-06
+  gate: AG-09
+  title: P0 and P1 finding check
+  blocks: merge
+  evidence:
+  - EV-10
+  - EV-3
+- id: CTRL-09-07
+  gate: AG-09
+  title: Risk-register reconciliation
+  blocks: merge
+  evidence:
+  - EV-10
+- id: CTRL-09-08
+  gate: AG-09
+  title: Waiver validation
+  blocks: merge
+  evidence:
+  - EV-10
+- id: CTRL-09-09
+  gate: AG-09
+  title: Separation-of-duties validation
+  blocks: merge
+  evidence:
+  - EV-10
+- id: CTRL-09-10
+  gate: AG-09
+  title: Final-SHA approval binding
+  blocks: merge
+  evidence:
+  - EV-10
