@@ -1212,11 +1212,11 @@ class PersistenceManager:
         if tenant_id is not None:
             scorecard.tenant_id = tenant_id
 
-        git_meta = _git_metadata_to_json(scorecard)
-
         if self._use_fallback:
             self._fallback_write_scorecard(scorecard, run_id, scorecard.tenant_id)
             return
+
+        git_meta = _git_metadata_to_json(scorecard)
 
         async with self._session() as session:
             existing = await session.get(ScorecardDB, scorecard.id)
