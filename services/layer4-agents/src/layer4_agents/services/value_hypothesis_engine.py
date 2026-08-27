@@ -200,6 +200,108 @@ class ValueHypothesisEngine:
     # Hypothesis Generation
     # ------------------------------------------------------------------
 
+    async def generate_hypotheses_from_context(
+        self,
+        context: Any, # EnrichedAccountContext
+    ) -> list[ValueHypothesis]:
+        """Generate value hypotheses directly from an EnrichedAccountContext (Cargo Phase 3).
+        
+        Maps firmographics and signals directly to ROI drivers without requiring pre-existing L3 PainSignals.
+        """
+        tenant_id = str(context.tenant_id)
+        account_id = str(context.account_id) if context.account_id else "unknown_account"
+        
+        hypotheses: list[ValueHypothesis] = []
+        
+        # Mapping rules for Firmographics -> Drivers
+        emp_count = context.company.employee_count or 0
+        if emp_count > 1000:
+            hypotheses.append(ValueHypothesis(
+                tenant_id=tenant_id,
+                account_id=account_id,
+                signal_id="cargo-firmographic-size",
+                signal_name="Enterprise Workforce Scale",
+                product_id="prod_automation",
+                product_name="Automation Suite",
+                capability_id="cap_labor_efficiency",
+                capability_name="Workforce Automation",
+                hypothesis_text=f"With {emp_count} employees, this account can drive massive Labor Productivity and Cost Reduction through process automation.",
+                confidence_score=0.85,
+                estimated_impact_usd=emp_count * 1250.0,  # rough impact heuristic
+                status=HypothesisStatus.DRAFT,
+                value_path_category="Labor Productivity"
+            ))
+
+        # Mapping rules for tech stack
+        tech_stack = context.company.technologies or []
+        tech_lower = [t.lower() for t in tech_stack]
+        if any("salesforce" in t or "hubspot" in t or "crm" in t for t in tech_lower):
+            hypotheses.append(ValueHypothesis(
+                tenant_id=tenant_id,
+                account_id=account_id,
+                signal_id="cargo-tech-crm",
+                signal_name="Large CRM Footprint",
+                product_id="prod_sales_intel",
+                product_name="Sales Intelligence",
+                capability_id="cap_sales_efficiency",
+                capability_name="Revenue Intelligence",
+                hypothesis_text="Detected a CRM in the tech stack. There is high potential to improve Sales Efficiency and Win Rates by integrating directly.",
+                confidence_score=0.9,
+                estimated_impact_usd=500000.0,
+                status=HypothesisStatus.DRAFT,
+                value_path_category="Revenue Growth"
+            ))
+            
+        # Mapping rules for Signals
+        for signal in context.signals:
+            if signal.signal_type == "funding":
+                amount = signal.metadata.get("amount", 0)
+                hypotheses.append(ValueHypothesis(
+                    tenant_id=tenant_id,
+                    account_id=account_id,
+                    signal_id=f"cargo-sig-{signal.signal_type}",
+                    signal_name=signal.headline,
+                    product_id="prod_expansion",
+                    product_name="Expansion Suite",
+                    capability_id="cap_growth",
+                    capability_name="Growth Orchestration",
+                    hypothesis_text=f"Recent funding round detected. They are likely in growth mode and need scalable systems to support Expansion.",
+                    confidence_score=0.8,
+                    estimated_impact_usd=float(amount) * 0.05 if amount else 200000.0,
+                    status=HypothesisStatus.DRAFT,
+                    value_path_category="Expansion"
+                ))
+            elif signal.signal_type == "leadership_change":
+                hypotheses.append(ValueHypothesis(
+                    tenant_id=tenant_id,
+                    account_id=account_id,
+                    signal_id=f"cargo-sig-{signal.signal_type}",
+                    signal_name=signal.headline,
+                    product_id="prod_transformation",
+                    product_name="Transformation Suite",
+                    capability_id="cap_operational_efficiency",
+                    capability_name="Process Excellence",
+                    hypothesis_text=f"New leadership detected. Executive transitions are major catalysts for buying new operational platforms.",
+                    confidence_score=0.75,
+                    estimated_impact_usd=300000.0,
+                    status=HypothesisStatus.DRAFT,
+                    value_path_category="Operational Efficiency"
+                ))
+
+        # Store these newly generated hypotheses in Neo4j
+        stored = []
+        for h in hypotheses:
+            stored_h = await self._store_hypothesis(h)
+            stored.append(stored_h)
+
+        logger.info(
+            "cargo_hypotheses_generated",
+            tenant_id=tenant_id,
+            account_id=account_id,
+            count=len(stored)
+        )
+        return stored
+
     async def generate_hypotheses(
         self,
         tenant_id: str,

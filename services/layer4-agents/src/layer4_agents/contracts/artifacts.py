@@ -32,10 +32,8 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 # Enumerations
 # ---------------------------------------------------------------------------
 
-
 class EntitySource(str, Enum):
     """How an entity entered the system."""
-
     WEBSITE_EXTRACTED = "WEBSITE_EXTRACTED"
     USER_INPUT = "USER_INPUT"
     CRM_SYNCED = "CRM_SYNCED"
@@ -50,9 +48,9 @@ CONFIDENCE_MEDIUM_THRESHOLD = 0.60
 
 
 class ConfidenceLevel(str, Enum):
-    HIGH = "HIGH"  # >= CONFIDENCE_HIGH_THRESHOLD
-    MEDIUM = "MEDIUM"  # CONFIDENCE_MEDIUM_THRESHOLD – CONFIDENCE_HIGH_THRESHOLD
-    LOW = "LOW"  # < CONFIDENCE_MEDIUM_THRESHOLD
+    HIGH = "HIGH"       # >= CONFIDENCE_HIGH_THRESHOLD
+    MEDIUM = "MEDIUM"   # CONFIDENCE_MEDIUM_THRESHOLD – CONFIDENCE_HIGH_THRESHOLD
+    LOW = "LOW"         # < CONFIDENCE_MEDIUM_THRESHOLD
 
 
 class GateStatus(str, Enum):
@@ -75,17 +73,13 @@ class VariableSource(str, Enum):
 # Core Schema — EntityRef
 # ---------------------------------------------------------------------------
 
-
 class ConfidenceScore(BaseModel):
     """Confidence metadata attached to every extracted entity."""
-
     model_config = ConfigDict(populate_by_name=True)
 
     score: float = Field(ge=0.0, le=1.0, description="0.0–1.0 confidence score")
     level: ConfidenceLevel = ConfidenceLevel.MEDIUM
-    basis: str = Field(
-        default="", description="Human-readable explanation of the score"
-    )
+    basis: str = Field(default="", description="Human-readable explanation of the score")
 
     @field_validator("level", mode="before")
     @classmethod
@@ -107,7 +101,6 @@ class ConfidenceScore(BaseModel):
 
 class ProvenanceRecord(BaseModel):
     """Tracks where an entity came from."""
-
     model_config = ConfigDict(populate_by_name=True)
 
     origin_url: str | None = Field(default=None, alias="source_url")
@@ -122,7 +115,7 @@ class EntityRef(BaseModel):
     Canonical entity reference — the single schema for all entity pointers.
 
     Replaces the ad-hoc mix of:
-      - GraphNode: { name, entity_type }
+      - GraphNode: { label, type }
       - Layer 3 API: { name, entity_type }
       - Frontend: { displayName, nodeType }
 
@@ -130,7 +123,6 @@ class EntityRef(BaseModel):
       EntityRef(name="Acme Corp", entity_type="Company")  ← reads old fields
       entity.canonicalName  → "Acme Corp"                 ← canonical access
     """
-
     model_config = ConfigDict(populate_by_name=True)
 
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -160,7 +152,6 @@ class EntityRef(BaseModel):
 # Artifact 1: ContextArtifact
 # Owned by: ContextExtractionAgent
 # ---------------------------------------------------------------------------
-
 
 class ExtractionSource(BaseModel):
     url: str
@@ -202,7 +193,6 @@ class ContextArtifact(BaseModel):
     Output of ContextExtractionAgent.
     Captures everything known about the customer before value modeling begins.
     """
-
     model_config = ConfigDict(populate_by_name=True)
 
     # Artifact identity
@@ -239,14 +229,12 @@ class ContextArtifact(BaseModel):
 # Owned by: ValueModelAgent
 # ---------------------------------------------------------------------------
 
-
 class VariableRegistryEntry(BaseModel):
     """
     A single variable in the canonical Variable Registry.
     This is the Pydantic equivalent of the TypeScript VariableEntry interface.
     Bridges pack variables.json → Neo4j Variable Registry → agent state.
     """
-
     variable_id: str
     canonical_name: str = Field(alias="canonicalName")
     name: str  # Human-readable display name
@@ -269,7 +257,6 @@ class VariableRegistry(BaseModel):
     Fixes: test_pack_variables_loadable, test_formula_variable_references_valid,
            test_manifest_variable_counts
     """
-
     variables: list[VariableRegistryEntry] = Field(default_factory=list)
     last_validated_at: datetime | None = None
     validation_errors: list[str] = Field(default_factory=list)
@@ -343,7 +330,6 @@ class ValueModelArtifact(BaseModel):
     The bridge between customer context and the financial narrative.
     Contains the authoritative Variable Registry.
     """
-
     model_config = ConfigDict(populate_by_name=True)
 
     # Artifact identity
@@ -355,9 +341,7 @@ class ValueModelArtifact(BaseModel):
 
     # Lineage
     context_artifact_id: str  # ContextArtifact.artifact_id
-    competitive_intel_artifact_id: str | None = (
-        None  # CompetitiveIntelArtifact.artifact_id
-    )
+    competitive_intel_artifact_id: str | None = None  # CompetitiveIntelArtifact.artifact_id
     pack_id: str | None = None
 
     # Tenant context
@@ -391,7 +375,6 @@ class ValueModelArtifact(BaseModel):
 # Owned by: IntegrityAgent
 # ---------------------------------------------------------------------------
 
-
 class AssumptionAuditEntry(BaseModel):
     assumption_id: str
     statement: str
@@ -422,7 +405,6 @@ class IntegrityArtifact(BaseModel):
     Output of IntegrityAgent.
     Independent challenge layer — audits ValueModelArtifact before narrative generation.
     """
-
     model_config = ConfigDict(populate_by_name=True)
 
     # Artifact identity
@@ -452,7 +434,9 @@ class IntegrityArtifact(BaseModel):
     @property
     def all_critical_gates_passed(self) -> bool:
         return all(
-            g.status == GateStatus.PASSED for g in self.gate_results if g.blocking
+            g.status == GateStatus.PASSED
+            for g in self.gate_results
+            if g.blocking
         )
 
     @property
@@ -464,7 +448,6 @@ class IntegrityArtifact(BaseModel):
 # Artifact 4: NarrativeArtifact
 # Owned by: NarrativeAgent
 # ---------------------------------------------------------------------------
-
 
 class ExecutiveSummary(BaseModel):
     headline: str = ""
@@ -495,7 +478,6 @@ class NarrativeArtifact(BaseModel):
     The final, audience-ready business case. Read-only consumer of
     ValueModelArtifact and IntegrityArtifact — cannot modify the model.
     """
-
     model_config = ConfigDict(populate_by_name=True)
 
     # Artifact identity
@@ -508,9 +490,7 @@ class NarrativeArtifact(BaseModel):
     # Lineage
     value_model_artifact_id: str
     integrity_artifact_id: str
-    competitive_intel_artifact_id: str | None = (
-        None  # CompetitiveIntelArtifact.artifact_id
-    )
+    competitive_intel_artifact_id: str | None = None  # CompetitiveIntelArtifact.artifact_id
 
     # Tenant context
     tenant_id: str | None = None
@@ -549,11 +529,10 @@ class NarrativeArtifact(BaseModel):
 
 class CompetitiveBaseline(str, Enum):
     """The four real competitors every value model must evaluate against."""
-
-    STATUS_QUO = "STATUS_QUO"  # Doing nothing — cost of inaction
-    INCUMBENT = "INCUMBENT"  # Existing vendor, spreadsheet, or workflow
+    STATUS_QUO = "STATUS_QUO"           # Doing nothing — cost of inaction
+    INCUMBENT = "INCUMBENT"             # Existing vendor, spreadsheet, or workflow
     ALTERNATIVE_VENDOR = "ALTERNATIVE_VENDOR"  # Direct category competitor
-    INTERNAL_BUILD = "INTERNAL_BUILD"  # DIY / tool assembly by the buyer
+    INTERNAL_BUILD = "INTERNAL_BUILD"   # DIY / tool assembly by the buyer
 
 
 class EconomicDifferenceCategory(str, Enum):
@@ -561,7 +540,6 @@ class EconomicDifferenceCategory(str, Enum):
     The five dimensions that translate competitive facts into economic argument.
     Maps directly to the five model inputs from the framework spec.
     """
-
     CAPABILITY_TO_OUTCOME = "CAPABILITY_TO_OUTCOME"
     TIME_TO_VALUE = "TIME_TO_VALUE"
     COST_STRUCTURE = "COST_STRUCTURE"
@@ -574,7 +552,6 @@ class ProofSource(BaseModel):
     A single piece of evidence supporting a competitive claim.
     Replaces free-text battlecard citations with structured, scoreable proof.
     """
-
     source_type: Literal[
         "CUSTOMER_REFERENCE",
         "ANALYST_REPORT",
@@ -598,7 +575,6 @@ class EconomicDifference(BaseModel):
     It must be specific enough to affect an assumption, scenario, or confidence
     score in the ValueModelArtifact.
     """
-
     difference_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     category: EconomicDifferenceCategory
 
@@ -649,7 +625,6 @@ class CompetitiveScenario(BaseModel):
     A side-by-side financial scenario comparing Value Fabric against one baseline.
     Feeds directly into ValueModelArtifact.scenario_analyses.
     """
-
     scenario_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     baseline_type: CompetitiveBaseline
     competitor_name: str | None = None
@@ -693,7 +668,6 @@ class CompetitiveIntelArtifact(BaseModel):
       4. NarrativeAgent uses competitive_scenarios to generate the
          'value superiority' framing in the executive readout.
     """
-
     model_config = ConfigDict(populate_by_name=True)
 
     # Artifact identity

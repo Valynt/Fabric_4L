@@ -6,7 +6,6 @@ const rule: Rule.RuleModule = {
     type: "problem",
     docs: {
       description: "Disallow throw statements in tool implementations - use error() helper",
-      category: "Canonical Contracts",
       recommended: true,
       url: "https://github.com/bmsull560/Fabric_4L/blob/main/contract.md#24-tool-invocation-boundary",
     },
@@ -34,7 +33,7 @@ const rule: Rule.RuleModule = {
           ? parent.parent.parent.id.name
           : "";
       if (/tool/i.test(directName) || /tool/i.test(variableName) || /tool/i.test(propertyName) || /tool/i.test(objectVarName)) return true;
-      const filename = context.getFilename();
+      const filename = context.filename;
       const exported = parent?.type === "ExportNamedDeclaration" || parent?.parent?.type === "ExportNamedDeclaration";
       return exported && /(^|[/\\])tools([/\\]|$)/.test(filename);
     }

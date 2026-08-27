@@ -135,7 +135,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4
         with:
-          node-version: "22.18.0"
+          node-version: "22.22.2"
 
       - name: Enforce frontend root policy (apps/web only)
         run: |
@@ -216,6 +216,9 @@ jobs:
 
       - name: Check Layer 4 canonical paths
         run: python scripts/ci/check_layer4_canonical_paths.py
+
+      - name: Enforce dead-code regression guard
+        run: python scripts/ci/check_dead_code.py
 
       - name: Validate staging namespace consistency
         run: |
@@ -1597,7 +1600,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4
         with:
-          node-version: "22.18.0"
+          node-version: "22.22.2"
           cache: "pnpm"
           cache-dependency-path: "pnpm-lock.yaml"
 
@@ -1758,7 +1761,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4
         with:
-          node-version: "22.18.0"
+          node-version: "22.22.2"
           cache: "pnpm"
           cache-dependency-path: "pnpm-lock.yaml"
 
@@ -1823,7 +1826,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4
         with:
-          node-version: "22.18.0"
+          node-version: "22.22.2"
           cache: "pnpm"
           cache-dependency-path: "pnpm-lock.yaml"
 
@@ -1958,7 +1961,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4
         with:
-          node-version: "22.18.0"
+          node-version: "22.22.2"
           cache: "pnpm"
           cache-dependency-path: pnpm-lock.yaml
       - name: Install dependencies
@@ -2421,7 +2424,7 @@ jobs:
       - name: Set up Node.js for Dev Container validation
         uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4
         with:
-          node-version: "22.18.0"
+          node-version: "22.22.2"
 
       - name: Install pinned Dev Container CLI
         run: |
@@ -2472,7 +2475,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4
         with:
-          node-version: "22.18.0"
+          node-version: "22.22.2"
 
       - name: Enable pnpm
         uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
@@ -2732,7 +2735,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4
         with:
-          node-version: "22.18.0"
+          node-version: "22.22.2"
 
       - name: Enable pnpm
         uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
@@ -2783,7 +2786,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: "22.18.0"
+          node-version: "22.22.2"
 
       - name: Install pnpm
         uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0

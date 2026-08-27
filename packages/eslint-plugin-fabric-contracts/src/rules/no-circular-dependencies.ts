@@ -28,7 +28,6 @@ const rule: Rule.RuleModule = {
     type: "problem",
     docs: {
       description: "Disallow circular dependencies",
-      category: "Canonical Contracts",
       recommended: true,
       url: "https://github.com/bmsull560/Fabric_4L/blob/main/contract.md#27-public-api-surface",
     },
@@ -45,7 +44,7 @@ const rule: Rule.RuleModule = {
   },
 
   create(context: Rule.RuleContext): Rule.RuleListener {
-    const filename = context.getFilename();
+    const filename = context.filename;
     const imports: string[] = [];
     const exports: string[] = [];
 

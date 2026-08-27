@@ -18,7 +18,6 @@ const rule: Rule.RuleModule = {
     type: "problem",
     docs: {
       description: "Disallow imperative navigation - use state machine route manifest",
-      category: "Canonical Contracts",
       recommended: true,
       url: "https://github.com/bmsull560/Fabric_4L/blob/main/contract.md#26-ui-state-management",
     },
@@ -63,7 +62,7 @@ const rule: Rule.RuleModule = {
             return;
           }
 
-          const filename = context.getFilename().replace(/\\/g, "/");
+          const filename = context.filename.replace(/\\/g, "/");
           const isCanonicalRouteManifest = filename.endsWith(
             "examples/canonical/ui/route-manifest.ts"
           );

@@ -13,6 +13,8 @@ Layer 3 API base URL is configured via LAYER3_BASE_URL env var (default: http://
 import asyncio
 import json
 import logging
+from datetime import UTC, datetime
+from email.utils import parsedate_to_datetime
 from typing import Any
 from uuid import UUID
 
@@ -352,6 +354,45 @@ class Layer3Client:
                         tenant_id=tenant_id,
                     ) from exc
 
+                if status_code == 429:
+                    if attempt < max_retries - 1:
+                        wait_time = self._retry_delay(exc.response, attempt)
+                        logger.warning(
+                            "Layer 3 sync attempt %d/%d was rate limited, retrying in %ss",
+                            attempt + 1,
+                            max_retries,
+                            wait_time,
+                            extra=_log_context(
+                                tenant_id=tenant_id,
+                                truth_object_id=truth_object_id,
+                                request_id=request_id,
+                                error_code=ERR_LAYER3_HTTP_CLIENT,
+                                transition=transition,
+                                sync_status="retrying",
+                                attempt=attempt + 1,
+                                status_code=status_code,
+                                retry_after=wait_time,
+                            ),
+                        )
+                        await asyncio.sleep(wait_time)
+                        continue
+
+                    self._record_sync_failure("rate_limited", transition)
+                    logger.warning(
+                        "layer3_rate_limited",
+                        extra=_log_context(
+                            tenant_id=tenant_id,
+                            truth_object_id=truth_object_id,
+                            request_id=request_id,
+                            error_code=ERR_LAYER3_HTTP_CLIENT,
+                            transition=transition,
+                            sync_status="rate_limited",
+                            attempt=attempt + 1,
+                            status_code=status_code,
+                        ),
+                    )
+                    return None
+
                 # Other 4xx errors indicate a bad sync request, but do not block Layer 5.
                 if 400 <= status_code < 500:
                     self._record_sync_failure("client_error", transition)
@@ -536,6 +577,30 @@ class Layer3Client:
                 )
                 return None
         return None
+
+    @staticmethod
+    def _retry_delay(response: httpx.Response, attempt: int) -> float:
+        """Prefer a valid Retry-After delay, otherwise use exponential backoff."""
+        retry_after = response.headers.get("Retry-After")
+        if retry_after is not None:
+            try:
+                return max(0.0, float(retry_after))
+            except ValueError:
+                try:
+                    retry_at = parsedate_to_datetime(retry_after)
+                    if retry_at.tzinfo is None:
+                        retry_at = retry_at.replace(tzinfo=UTC)
+                    return max(0.0, (retry_at - datetime.now(UTC)).total_seconds())
+                except (TypeError, ValueError, OverflowError):
+                    logger.warning(
+                        "layer3_invalid_retry_after",
+                        extra={
+                            "error_code": ERR_LAYER3_HTTP_CLIENT,
+                            "upstream_status_code": response.status_code,
+                            "retry_after": retry_after,
+                        },
+                    )
+        return float(2**attempt)
 
     def _record_sync_failure(self, sync_status: str, transition: str) -> None:
         metrics = get_metrics()
@@ -885,22 +950,27 @@ class Layer3Client:
 
         Returns a mapping of truth_object_id → kg_node_id (or None on failure).
         """
-        results: dict[str, str | None] = {}
-        for obj in truth_objects:
-            node_id = await self.sync_truth_object(
-                truth_object_id=obj["id"],
-                tenant_id=obj["tenant_id"],
-                claim=obj["claim"],
-                claim_type=obj["claim_type"],
-                confidence=obj["confidence"],
-                status=obj["status"],
-                maturity_level=obj["maturity_level"],
-                value=obj.get("value"),
-                applies_to=obj.get("applies_to"),
-                source_count=obj.get("source_count", 0),
-            )
-            results[str(obj["id"])] = node_id
-        return results
+        semaphore = asyncio.Semaphore(self._settings.layer3_bulk_sync_workers)
+
+        async def _sync_one(obj: dict[str, Any]) -> tuple[str, str | None]:
+            async with semaphore:
+                node_id = await self.sync_truth_object(
+                    truth_object_id=obj["id"],
+                    tenant_id=obj["tenant_id"],
+                    claim=obj["claim"],
+                    claim_type=obj["claim_type"],
+                    confidence=obj["confidence"],
+                    status=obj["status"],
+                    maturity_level=obj["maturity_level"],
+                    value=obj.get("value"),
+                    applies_to=obj.get("applies_to"),
+                    source_count=obj.get("source_count", 0),
+                )
+                return str(obj["id"]), node_id
+
+        tasks = [_sync_one(obj) for obj in truth_objects]
+        completed = await asyncio.gather(*tasks)
+        return {obj_id: node_id for obj_id, node_id in completed}
 
 
 # ---------------------------------------------------------------------------
