@@ -17,7 +17,7 @@
 | Dual models definition | `src/shared/models.py` vs `layer1_ingestion/shared/models.py` | **CONFIRMED** | Zero callers for legacy; all runtime code uses canonical; legacy path is not in an installed package |
 | CI drift check uses incomplete Base | `scripts/ci/check_migration_drift.py` `metadata_module="src.shared.models"` | **CONFIRMED (fixed)** | Legacy Base missing 7 v3.0 tables (see §2); the file now reads `metadata_module="layer1_ingestion.shared.models"` |
 | migration_status_report stale ref | `scripts/ci/migration_status_report.py` | **CONFIRMED (fixed)** | Same issue, different script; the file now reads `metadata_module="layer1_ingestion.shared.models"` |
-| L4 test uses legacy import path | `services/layer4-agents/tests/test_tenant_lifecycle.py` | **FALSE POSITIVE / PRE-EXISTING** | Repo-wide grep for `src.shared.models` returns zero hits in that file; it imports `value_fabric.shared.identity.middleware`. No change needed, none made. |
+| L4 test uses legacy import path | `services/layer4-agents/tests/test_tenant_lifecycle.py` | **CONFIRMED (fixed)** | Updated to import `layer1_ingestion.shared.models` instead of `src.shared.models` to align with the canonical Layer 1 metadata. |
 | mypy override for dead module | `services/layer1-ingestion/pyproject.toml` | **CONFIRMED (fixed)** | `"src.shared.models"` no longer appears in any `[[tool.mypy.overrides]]` block (`"src.shared.tasks"` and peers remain, out of scope) |
 | Contract lint baseline includes dead path | `config/ci/python_contract_lint_baseline.json` | **STALE** | The only `shared/models.py` entries are `services/layer1-ingestion/src/layer1_ingestion/shared/models.py:886/921/944` — the **canonical** path. No `src/shared/models.py` entries exist. Baseline is unmodified. |
 
