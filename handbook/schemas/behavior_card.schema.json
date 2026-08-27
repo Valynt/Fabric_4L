@@ -1,0 +1,121 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/bmsull560/Fabric_4L/handbook/schemas/behavior_card.schema.json",
+  "title": "Fabric_4L Control Plane — Behavior Card Frontmatter",
+  "description": "JSON Schema (draft 2020-12) for the YAML frontmatter embedded at the top of every behavior card under control-plane/behaviors/ (e.g. BEH-01-account-intake.md). The frontmatter is extracted and validated against this schema in CI.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "name",
+    "journey_stage",
+    "stories",
+    "closes_gaps",
+    "rules",
+    "boundary",
+    "components",
+    "primary_gates"
+  ],
+  "$defs": {
+    "rule_id": {
+      "type": "string",
+      "pattern": "^R-\\d+$",
+      "description": "Normative product rule ID, e.g. R-1"
+    },
+    "story_id": {
+      "type": "string",
+      "pattern": "^VP-\\d{2}$",
+      "description": "User story / value proposition ID, e.g. VP-05"
+    },
+    "gap_id": {
+      "type": "string",
+      "pattern": "^GAP-\\d{2}$",
+      "description": "Product gap ID, e.g. GAP-04"
+    },
+    "journey_id": {
+      "type": "string",
+      "pattern": "^J-\\d+$",
+      "description": "Canonical journey stage ID, e.g. J-2"
+    },
+    "behavior_id": {
+      "type": "string",
+      "pattern": "^BEH-\\d{2}$",
+      "description": "Behavior card ID, e.g. BEH-02"
+    },
+    "gate_id": {
+      "type": "string",
+      "pattern": "^AG-\\d{2}$",
+      "description": "Aggregate release gate ID, e.g. AG-04"
+    },
+    "control_id": {
+      "type": "string",
+      "pattern": "^CTRL-\\d{2}-\\d{2}$",
+      "description": "Individual release control ID, e.g. CTRL-04-02"
+    },
+    "evidence_id": {
+      "type": "string",
+      "pattern": "^EV-\\d+$",
+      "description": "Evidence type ID, e.g. EV-1"
+    }
+  },
+  "properties": {
+    "id": {
+      "$ref": "#/$defs/behavior_id",
+      "description": "Card ID; must match the filename prefix (BEH-xx-...) and the manifest entry."
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Kebab-case behavior name, e.g. hypothesis-promotion"
+    },
+    "journey_stage": {
+      "$ref": "#/$defs/journey_id",
+      "description": "Primary canonical journey stage this behavior belongs to."
+    },
+    "stories": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/story_id" },
+      "description": "User stories (VP-xx) this behavior realizes."
+    },
+    "closes_gaps": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/gap_id" },
+      "description": "Product gaps (GAP-xx) this behavior closes."
+    },
+    "rules": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/rule_id" },
+      "description": "Normative product rules (R-x) governing this behavior."
+    },
+    "boundary": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Architecture layer boundary, e.g. 'L4 -> L5 -> L3'"
+    },
+    "components": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "description": "Components involved in this behavior."
+    },
+    "primary_gates": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/gate_id" },
+      "description": "Aggregate release gates (AG-xx) that must pass for this behavior to ship."
+    },
+    "controls": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/control_id" },
+      "description": "Individual release controls (CTRL-xx-nn) proven by this behavior's verification section."
+    },
+    "evidence": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/evidence_id" },
+      "description": "Evidence types (EV-x) this behavior must produce."
+    }
+  }
+}
