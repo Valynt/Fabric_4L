@@ -36,7 +36,7 @@ class Layer1IngestionClient:
     Example:
         client = Layer1IngestionClient(
             base_url="http://layer1-ingestion:8000",
-            api_key=os.getenv("LAYER1_API_KEY")
+            api_key="secret"
         )
 
         job = await client.create_job(
