@@ -50,6 +50,17 @@
       ],
       "reason": "Closure of v2.5 deprecation window for Layer 3 graph response field aliases (GraphNode.label -> name, GraphNode.type -> entity_type, GraphNode.confidence -> confidence_score, GraphEdge.relationship_type -> type) in layer3-knowledge.json per docs/contracts/layer3-graph-alias-deprecation-policy.md.",
       "expiresOn": "2026-12-31T00:00:00Z"
+    },
+    {
+      "id": "RFC-1500-GIT-METRIC-COMPLETENESS-001",
+      "status": "approved",
+      "approvedBy": "RFC #1500 (add git metric completeness metadata to L4 AuditOrchestrator) via PR #1531",
+      "rfc": "https://github.com/Valynt/Fabric_4L/pull/1531",
+      "fingerprints": [
+        "aa0471ab736933dd"
+      ],
+      "reason": "RFC #1500 adds two additive, optional fields to the L4 AuditOrchestrator Scorecard contract: git_metric_completeness (dict of GitMetricCompleteness) and git_warnings (list of GitWarning). Typing GitWarning with its structured per-field shape (code, metric, status, message, bytes_read and optional max_bytes/max_lines) introduces required_fields_added on the git_warnings items schema. Both fields are newly introduced by this RFC; the tightened schema is the RFC's intended per-field shape and carries no raw git output or contributor emails.",
+      "expiresOn": "2026-12-31T00:00:00Z"
     }
   ]
 }
