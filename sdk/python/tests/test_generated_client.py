@@ -11,6 +11,11 @@ from httpx import Response
 
 from valuefabric.generated import L3Client, L4Client
 from valuefabric.generated.l3 import SearchRequest, SearchResponse, SearchType
+from valuefabric.generated.l4 import (
+    AgentGovernanceMetadata,
+    AgentStreamMessage,
+    AgentStreamRequest,
+)
 
 
 class TestL3Client:
@@ -162,6 +167,43 @@ class TestGeneratedModels:
         assert EntityType.Capability.value == "Capability"
         assert EntityType.UseCase.value == "UseCase"
         assert EntityType.Persona.value == "Persona"
+
+    def test_agent_stream_request_round_trips_journey_id(self) -> None:
+        """journey_id is accepted via the journeyId alias and round-trips."""
+        request = AgentStreamRequest(
+            messages=[AgentStreamMessage(role="user", content="hello")],
+            activeTab="signals",
+            journeyId="journey-123",
+        )
+
+        assert request.journey_id == "journey-123"
+        dumped = request.model_dump(mode="json", by_alias=True, exclude_none=True)
+        assert dumped["journeyId"] == "journey-123"
+
+    def test_agent_stream_request_journey_id_optional(self) -> None:
+        """journey_id is optional and unset by default (additive contract)."""
+        request = AgentStreamRequest(
+            messages=[AgentStreamMessage(role="user", content="hello")],
+            activeTab="signals",
+        )
+
+        assert request.journey_id is None
+
+    def test_agent_governance_metadata_carries_journey_id(self) -> None:
+        """AgentGovernanceMetadata surfaces the optional journey_id field."""
+        metadata = AgentGovernanceMetadata(
+            trace_id="trace-1",
+            workflow_id="wf-1",
+            tenant_id="tenant-1",
+            tool_name="valuepilot_conversation",
+            audit_event_id="audit-1",
+            emitted_at="2026-01-01T00:00:00Z",
+            journey_id="journey-123",
+        )
+
+        assert metadata.journey_id == "journey-123"
+        dumped = metadata.model_dump(mode="json", by_alias=True, exclude_none=True)
+        assert dumped["journey_id"] == "journey-123"
 
 
 def test_generated_client_wrappers_are_byte_stable(tmp_path: Path) -> None:
