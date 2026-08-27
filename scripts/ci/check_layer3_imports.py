@@ -65,10 +65,7 @@ ALLOWLIST: set[str] = {
     "tests/security/test_p1_20_xxe_prevention.py",
     "tests/security/test_security_fixes.py",
     "tests/security/test_layer3_similarity_roi_tenant_isolation.py",
-    "tests/security/test_benchmarks_cross_tenant_isolation.py",  # TODO(2026-06-12): Security test intentionally imports layer3 route helper; migrate to service-local test fixture if possible.
-    "tests/security/test_formula_governance_cross_tenant_isolation.py",  # TODO(2026-06-12): Security test intentionally imports layer3 route helper; migrate to service-local test fixture if possible.
     "tests/security/test_neo4j_cross_tenant_write_isolation.py",
-    "tests/security/test_neo4j_rls_write.py",  # TODO(2026-06-12): Security test intentionally imports layer3 main module; migrate to service-local test fixture if possible.
     "tests/security/test_neo4j_tenant_query_enforcement.py",
     "tests/security/test_graph_tenant_hostile_regression.py",
     "tests/performance/test_performance_optimizations.py",
@@ -149,9 +146,14 @@ def _find_violations(*, scan_roots: list[Path]) -> list[str]:
                         break
                 for pattern in LEGACY_NAMESPACE_PATTERNS:
                     if pattern.search(content):
-                        violations.append(f"{rel_path}: imports dead namespace (layer3_knowledge)")
+                        violations.append(
+                            f"{rel_path}: imports dead namespace (layer3_knowledge)"
+                        )
                         break
-                if rel_path != "services/layer3-knowledge/src/api/dependencies_tenant.py":
+                if (
+                    rel_path
+                    != "services/layer3-knowledge/src/api/dependencies_tenant.py"
+                ):
                     if LEGACY_TENANT_DEP_PATTERN.search(content):
                         violations.append(
                             f"{rel_path}: imports deprecated Layer 3 tenant dependency shim "
