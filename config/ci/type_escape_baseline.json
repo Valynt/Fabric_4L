@@ -35744,6 +35744,12 @@
     },
     {
       "kind": "python-any",
+      "line": 386,
+      "path": "services/layer4-agents/src/layer4_agents/tools/knowledge_tools.py",
+      "text": "filter_dict: dict[str, Any] = {\"tenant_id\": str(tenant_ctx.tenant_id)}"
+    },
+    {
+      "kind": "python-any",
       "line": 447,
       "path": "services/layer4-agents/src/layer4_agents/tools/knowledge_tools.py",
       "text": "def __init__(self, config: dict[str, Any] | None = None):"
