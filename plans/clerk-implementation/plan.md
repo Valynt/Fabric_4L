@@ -89,6 +89,26 @@ Step 5 tests (`services/api/app/tests/test_clerk_provisioning.py`, 11 cases): im
 **What:** Expand contract + security tests over the whole chain against the pinned PEM + mock JWKS path (no live Clerk): invalid JWT → 401, cross-tenant org → 403, missing tenant fails closed, unprovisioned user → structured error, bad webhook signature → 401, duplicate event → no duplicate rows. Add hostile "(tenant A cannot read tenant B)" tests where missing. Run the full validation gate: frontend build, `pnpm` contract checks, `pytest tests/security tests/contract`, `make verify`.
 **Testing:** `pytest tests/security tests/contract`; `pnpm run test:prod-auth-bypass`; `pnpm --dir apps/web build`; `pnpm run verify:frontend`; `make contract-tests`; report the validation matrix and residual risk.
 
+**Step 7 implementation notes (committed):**
+- **Fixed `auth_telemetry.py` signing-key kid drift.** `get_auth_health_summary()` referenced `settings.envelope.signing_key_id`, but `InternalEnvelopeSettings` exposes `signing_key: SigningKey | None` (a `.kid` attribute), and `signing_key_id` does not exist. This was the root cause of two pre-existing failures in `tests/security/test_auth_observability_and_webhooks.py` (`AxisError: 'InternalEnvelopeSettings' object has no attribute 'signing_key_id'`). Fixed to read `envelope.signing_key.kid` when a signing key is configured, else `None`. The two previously-failing health/telemetry tests now pass.
+- **AC#8 hostile tests added** in `tests/security/test_clerk_pinned_jwks_fail_closed.py` (4 tests, no live Clerk, network-free cache double): a token signed by a mock/test key is rejected when the verifier uses a real JWKS with no pinned PEM (pinned/mock key is never a silent fallback); even with a pinned PEM configured, a token signed by a different key is rejected; a forged key claiming a real `kid` is rejected at signature check (kid alone is not trusted); and an empty/absent JWKS fails closed rather than opening a static fallback.
+- **Contract matrix re-audited** — the negative/behavioral cases the plan lists were already covered by committed Step 3–5 tests and pre-existing suites: invalid JWT → 401 (`test_clerk_tenant_invalid_token_returns_401`), missing tenant/token fails closed (`test_clerk_tenant_missing_token_returns_401`, `test_missing_credentials_returns_401`, `test_access_denied_for_tenant_without_org_provisioning`), cross-tenant org denied (`test_cross_tenant_access_blocked`, `test_cross_tenant_membership_isolation`), bad webhook signature → 401 (`test_invalid_signature_rejected`, `test_missing_signature_rejected`), duplicate event → no duplicate rows (`test_duplicate_event_id_does_not_duplicate_rows`). No duplicate test authored.
+- **`CLERK_PINNED_JWT_PEM` stays an explicit, operator-opt-in config** (loaded in `clerk_config.py`) with no auto-derived fallback — the environment-level `ProductionSafetyValidator` is the gate that keeps the pinned/mock path out of production; unit-level fail-closed is now proven by the hostile tests above.
+
+**Step 7 validation matrix (final):**
+
+| Gate | Command | Result |
+|---|---|---|
+| AC#8 hostile tests (pinned JWKS fail-closed) | `pytest tests/security/test_clerk_pinned_jwks_fail_closed.py -v` | 4 passed |
+| Security directory gate (incl. new file via auth-guards manifest) | `pytest tests/security/` | 5 passed |
+| services/api Clerk suite (security + idempotency + delivery + provisioning + config + health/telemetry) | `pytest app/tests/test_clerk_webhook_* app/tests/test_clerk_provisioning.py app/tests/test_clerk_config.py app/tests/test_health.py` | 41 passed (incl. telemetry-health fix) |
+| Frontend production build | `pnpm run build` (with `VITE_*` from `.env.example`) | built in 20.43s, exit 0 |
+| Prod-auth-bypass gate (AC#8) | `pnpm run test:prod-auth-bypass` | "Production bundle contains no development auth bypass markers." |
+
+**Residual risk / environment prerequisites:**
+- `verify:frontend`, `make contract-tests`, `make verify`, and `pnpm run test:critical-behaviors` were not run in this environment (full platform gate needs Infisical-injected secrets + live dependent services/containers). Targeted gates above all pass; CI `pr-checks` remains the authoritative full gate.
+- If `CLERK_PINNED_JWT_PEM` is set with dev-auth hygiene misconfigured, `ProductionSafetyValidator` refuses startup — there is no code path where the pinned/mock key authenticates in production.
+
 ## Locked Acceptance Criteria
 These are binding and must hold for the final PR. Any decision elsewhere in the plan that contradicts them is superseded.
 
