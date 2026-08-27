@@ -1806,9 +1806,10 @@ jobs:
       PLAYWRIGHT_LIVE_FRONTEND_URL: http://localhost:3001
       PLAYWRIGHT_BACKEND_URL: http://localhost:8004
       SERVICE_AUTH_SECRET: test-service-auth-secret-for-validation-seed-1234567890
+      VITE_AUTH_PROVIDER: legacy
+      VITE_ENABLE_MOCK_AUTH: "true"
       VITE_USE_MOCKS: "false"
       VITE_ENABLE_MOCK_FALLBACK: "false"
-      VITE_AUTH_PROVIDER: legacy
       VITE_PROXY_DEBUG_DIRECT_LAYERS: "true"
       VITE_PROXY_L1_URL: http://localhost:8001
       VITE_PROXY_L4_URL: http://localhost:8004
