@@ -53,7 +53,7 @@ def mock_tenant_context():
 
 
 @pytest.mark.asyncio
-async def test_query_graph_overwrites_spoofed_tenant_parameter(
+async def test_query_graph_rejects_spoofed_tenant_parameter(
     mock_neo4j_session,
     mock_tenant_context,
 ):

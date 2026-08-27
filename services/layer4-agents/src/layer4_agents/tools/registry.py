@@ -410,6 +410,10 @@ class BaseTool(ABC):
             # Security hardening: map tenant spoofing to a stable structured
             # failure code without logging an exception stack trace.
             logger.warning("Tenant spoofing rejected by tool %s: %s", self.name, e)
+            # Only use the authenticated/config tenant here, never the untrusted
+            # request-supplied tenant_id, to avoid tenant-id poisoning via the
+            # failure metadata/logs.
+            trusted_tenant_id = self.get_tenant_id()
             elapsed_ms = int((asyncio.get_event_loop().time() - start_time) * 1000)
             return ToolResult.failure(
                 code="TENANT_SPOOFING_DETECTED",
@@ -418,7 +422,7 @@ class BaseTool(ABC):
                 metadata=_safe_metadata(
                     trace_id=trace_id or input_dict.get("trace_id"),
                     request_id=request_id,
-                    tenant_id=tenant_id,
+                    tenant_id=trusted_tenant_id,
                     execution_time_ms=elapsed_ms,
                 ),
             )
