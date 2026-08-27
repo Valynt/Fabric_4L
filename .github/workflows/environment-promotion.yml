@@ -270,7 +270,7 @@ jobs:
           if [ -f "$kustomization_file" ]; then
             # Use kustomize edit to update image digests for all layers
             for layer in $LAYERS; do
-              image="ghcr.io/${{ env.REGISTRY_NAMESPACE }}/fabric_4l/${layer }"
+              image="ghcr.io/${{ env.REGISTRY_NAMESPACE }}/fabric_4l/${layer}"
               digest="${{ needs.validate-build.outputs.image_ref }}"
               # Note: CI should set actual digests here
               echo "📦 Layer $layer would be updated to $digest"
