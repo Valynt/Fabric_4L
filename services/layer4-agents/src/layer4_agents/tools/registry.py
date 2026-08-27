@@ -412,9 +412,11 @@ class BaseTool(ABC):
             logger.warning("Tenant spoofing rejected by tool %s: %s", self.name, e)
             # Only use the authenticated/config tenant here, never the untrusted
             # request-supplied tenant_id, to avoid tenant-id poisoning via the
-            # failure metadata/logs.
-            trusted_tenant_id = self.get_tenant_id()
-            elapsed_ms = int((asyncio.get_event_loop().time() - start_time) * 1000)
+            # failure metadata/logs. Prefer the request-context tenant (trusted)
+            # when available, then fall back to the tool config tenant.
+            request_ctx = get_request_context()
+            trusted_tenant_id = getattr(request_ctx, "tenant_id", None) or self.get_tenant_id()
+            elapsed_ms = int((asyncio.get_running_loop().time() - start_time) * 1000)
             return ToolResult.failure(
                 code="TENANT_SPOOFING_DETECTED",
                 message=str(e),

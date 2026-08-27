@@ -57,7 +57,8 @@ class QueryGraphInput(BaseModel):
     parameters: dict[str, Any] = Field(default_factory=dict)
     read_only: bool = True
     tenant_id: str | None = Field(
-        default=None, description="Owning tenant for queries run outside a request context"
+        default=None,
+        description="Optional owning tenant. When provided, it must match the authenticated tenant context; a mismatch is rejected as tenant spoofing.",
     )
 
 
@@ -79,7 +80,8 @@ class SemanticSearchInput(BaseModel):
     top_k: int = Field(default=10, ge=1, le=100)
     similarity_threshold: float = Field(default=0.7, ge=0.0, le=1.0)
     tenant_id: str | None = Field(
-        default=None, description="Owning tenant for queries run outside a request context"
+        default=None,
+        description="Optional owning tenant. When provided, it must match the authenticated tenant context; a mismatch is rejected as tenant spoofing.",
     )
 
 
@@ -99,7 +101,8 @@ class GetEntityInput(BaseModel):
     include_relationships: bool = True
     depth: int = Field(default=1, ge=0, le=3)
     tenant_id: str | None = Field(
-        default=None, description="Owning tenant for queries run outside a request context"
+        default=None,
+        description="Optional owning tenant. When provided, it must match the authenticated tenant context; a mismatch is rejected as tenant spoofing.",
     )
 
 
@@ -120,7 +123,8 @@ class GetRelationshipsInput(BaseModel):
     direction: Literal["outgoing", "incoming", "both"] = "both"
     limit: int = Field(default=50, ge=1, le=500)
     tenant_id: str | None = Field(
-        default=None, description="Owning tenant for queries run outside a request context"
+        default=None,
+        description="Optional owning tenant. When provided, it must match the authenticated tenant context; a mismatch is rejected as tenant spoofing.",
     )
 
 
@@ -139,7 +143,8 @@ class TraverseTreeInput(BaseModel):
     path_pattern: str  # e.g., "(Capability)-[:ENABLES]->(UseCase)"
     max_depth: int = Field(default=3, ge=1, le=10)
     tenant_id: str | None = Field(
-        default=None, description="Owning tenant for queries run outside a request context"
+        default=None,
+        description="Optional owning tenant. When provided, it must match the authenticated tenant context; a mismatch is rejected as tenant spoofing.",
     )
 
 
@@ -159,7 +164,8 @@ class FindPathsInput(BaseModel):
     max_length: int = Field(default=6, ge=1, le=10)
     relationship_types: list[str] | None = None
     tenant_id: str | None = Field(
-        default=None, description="Owning tenant for queries run outside a request context"
+        default=None,
+        description="Optional owning tenant. When provided, it must match the authenticated tenant context; a mismatch is rejected as tenant spoofing.",
     )
 
 
