@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """Production billing routes backed by Layer 4 services.
 
 This module provides the production billing API surface for the frontend
@@ -8,6 +6,8 @@ Layer 4 billing services (BillingService, InvoiceService, UsageService,
 OverageService) with Stripe SDK integration, tenant isolation, and
 audit-grade record keeping.
 """
+from __future__ import annotations
+
 import asyncio
 import logging
 import os
