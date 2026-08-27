@@ -13,7 +13,6 @@ import html
 import json
 import re
 from pathlib import Path
-from typing import Any
 from urllib.parse import urlsplit, urlunsplit
 
 
@@ -32,16 +31,16 @@ RISK_TO_SECURITY_SEVERITY = {
 }
 
 
-def _text(value: Any) -> str:
+def _text(value: object) -> str:
     return str(value or "").strip()
 
 
-def _rule_id(alert: dict[str, Any]) -> str:
+def _rule_id(alert: dict[str, object]) -> str:
     plugin_id = _text(alert.get("pluginid")) or "unknown"
     return f"ZAP-{plugin_id}"
 
 
-def _safe_target(value: Any, fallback: str = "") -> str:
+def _safe_target(value: object, fallback: str = "") -> str:
     target = _text(value) or fallback
     parsed = urlsplit(target)
     if parsed.scheme and parsed.netloc:
@@ -49,7 +48,7 @@ def _safe_target(value: Any, fallback: str = "") -> str:
     return target.split("?", 1)[0].split("#", 1)[0]
 
 
-def _help_uri(value: Any) -> str | None:
+def _help_uri(value: object) -> str | None:
     reference = html.unescape(_text(value))
     for candidate in re.findall(r"https?://[^\s<>\"]+", reference):
         parsed = urlsplit(candidate.rstrip(".,);"))
@@ -58,9 +57,9 @@ def _help_uri(value: Any) -> str | None:
     return None
 
 
-def convert(paths: list[Path]) -> dict[str, Any]:
-    rules: dict[str, dict[str, Any]] = {}
-    results: list[dict[str, Any]] = []
+def convert(paths: list[Path]) -> dict[str, object]:
+    rules: dict[str, dict[str, object]] = {}
+    results: list[dict[str, object]] = []
 
     for path in paths:
         data = json.loads(path.read_text(encoding="utf-8"))
@@ -100,7 +99,7 @@ def convert(paths: list[Path]) -> dict[str, Any]:
                     if parameter:
                         message += f" (parameter: {parameter})"
 
-                    result: dict[str, Any] = {
+                    result: dict[str, object] = {
                         "ruleId": rule_id,
                         "level": RISK_TO_LEVEL.get(risk_code, "warning"),
                         "message": {"text": message},
