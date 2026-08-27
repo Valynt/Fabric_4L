@@ -10,7 +10,7 @@ import re
 import sys
 import time
 from dataclasses import asdict, dataclass
-from datetime import date
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -223,8 +223,7 @@ def _is_test_surface(relative: Path, explicit_roots: bool) -> bool:
     if explicit_roots:
         return True
     return (
-        posix.startswith("tests/")
-        or posix.startswith("apps/web/e2e/")
+        posix.startswith(("tests/", "apps/web/e2e/"))
         or (posix.startswith("services/") and "/tests/" in f"/{posix}")
     )
 
@@ -387,7 +386,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--fail-mandatory-p0", action="store_true")
     args = parser.parse_args(argv)
     register_path = args.register if args.register.is_absolute() else args.root / args.register
-    report = evaluate(args.root, register_path, args.scan_roots or [], date.today())
+    report = evaluate(args.root, register_path, args.scan_roots or [], datetime.now(tz=timezone.utc).date())
     if args.collection_evidence and args.collection_evidence.exists():
         report["collection_evidence"] = {"path": str(args.collection_evidence), "bytes": args.collection_evidence.stat().st_size}
     for path, content in ((args.json_out, json.dumps(report, indent=2) + "\n"), (args.md_out, _render_markdown(report))):
