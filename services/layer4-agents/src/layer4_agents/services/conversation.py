@@ -1054,7 +1054,7 @@ class ConversationService:
         """Emit the first-class audit event required for an allowed fallback."""
         try:
             if tracker is not None:
-                details = tracker.build_audit_details(selected_tier=selected_tier, reason=reason)
+                details = tracker.build_audit_details()
             else:
                 details = {
                     "event_type": "llm_degradation_applied",
