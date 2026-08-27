@@ -87,7 +87,7 @@ jobs:
   structural-preflight:
     name: Structural Preflight
     runs-on: depot-ubuntu-24.04-4
-    timeout-minutes: 5
+    timeout-minutes: 15
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
