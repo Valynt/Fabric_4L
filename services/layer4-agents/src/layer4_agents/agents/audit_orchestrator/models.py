@@ -572,7 +572,10 @@ class GitWarning(BaseModel):
     )
     metric: str = Field(
         ...,
-        description="Name of the git metric the warning applies to",
+        description=(
+            "Git command key this warning applies to (e.g. 'commits', "
+            "'contributors'); matches git_metric_completeness source entries."
+        ),
     )
     status: str = Field(
         ...,
