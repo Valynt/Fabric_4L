@@ -386,8 +386,8 @@ class SemanticSearchTool(BaseTool):
                     error="Pinecone API key required for semantic search",
                 )
 
-            # P0 FIX: Build filter with mandatory tenant isolation
-            filter_dict: dict[str, Any] = {"tenant_id": str(tenant_ctx.tenant_id)}
+
+            filter_dict = {"tenant_id": str(tenant_ctx.tenant_id)}
             if input_data.entity_types:
                 filter_dict["entity_type"] = {"$in": input_data.entity_types}
 
