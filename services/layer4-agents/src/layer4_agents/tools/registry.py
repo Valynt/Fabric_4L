@@ -416,6 +416,9 @@ class BaseTool(ABC):
             # when available, then fall back to the tool config tenant.
             request_ctx = get_request_context()
             trusted_tenant_id = getattr(request_ctx, "tenant_id", None) or self.get_tenant_id()
+            # Normalize to str: _safe_metadata and the ToolMetadata contract expect a
+            # string tenant_id, but RequestContext.tenant_id can be a UUID.
+            trusted_tenant_id = str(trusted_tenant_id) if trusted_tenant_id else None
             elapsed_ms = int((asyncio.get_running_loop().time() - start_time) * 1000)
             return ToolResult.failure(
                 code="TENANT_SPOOFING_DETECTED",

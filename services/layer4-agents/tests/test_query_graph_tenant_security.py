@@ -22,6 +22,10 @@ from layer4_agents.tools.knowledge_tools import (
     TraverseTreeTool,
 )
 from layer4_agents.tools.registry import TenantSpoofingError
+from value_fabric.shared.identity.context import (
+    RequestContext,
+    RequestContextManager,
+)
 
 TENANT_A_ID = UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
 TENANT_B_ID = UUID("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")
@@ -185,16 +189,25 @@ async def test_base_tool_run_maps_tenant_spoofing_to_structured_result(
 ):
     """BaseTool.run must classify tenant spoofing, not return a generic execution error."""
     tool = QueryGraphTool(NEO4J_CONFIG)
-
-    result = await tool.run(
-        {
-            "cypher_query": "MATCH (n:Account) RETURN n LIMIT 10",
-            "parameters": {},
-            "tenant_id": str(TENANT_B_ID),
-        }
+    # RequestContext.tenant_id can be a UUID; metadata tenant_id must still be a str.
+    request_ctx = RequestContext(
+        tenant_id=TENANT_A_ID, user_id="user-1", roles=["analyst"]
     )
+
+    with RequestContextManager(request_ctx):
+        result = await tool.run(
+            {
+                "cypher_query": "MATCH (n:Account) RETURN n LIMIT 10",
+                "parameters": {},
+                "tenant_id": str(TENANT_B_ID),
+            }
+        )
 
     assert result.status == "error"
     assert result.error is not None
     assert result.error["code"] == "TENANT_SPOOFING_DETECTED"
     assert "Tenant spoofing detected" in result.error["message"]
+    # trusted_tenant_id is a UUID on request context; metadata tenant_id must be a
+    # plain string to satisfy the ToolMetadata contract and avoid serialization drift.
+    assert isinstance(result.metadata.get("tenant_id"), str)
+    assert result.metadata["tenant_id"] == str(TENANT_A_ID)
