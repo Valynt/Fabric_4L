@@ -305,6 +305,12 @@ jobs:
             --write-report artifacts/test-debt-governance.json \
             --md-out artifacts/test-debt-governance.md
 
+      - name: Enforce P0/security skip-governance ratchet
+        run: |
+          python scripts/ci/check_p0_security_skip_governance.py \
+            --allowlist config/ci/p0_security_skip_allowlist.yaml \
+            --json-out artifacts/p0-security-skip-governance.json
+
       - name: Enforce legacy debt baseline
         run: |
           python scripts/ci/check_legacy_debt.py \
