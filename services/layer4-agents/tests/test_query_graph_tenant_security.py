@@ -45,17 +45,19 @@ async def test_query_graph_overwrites_spoofed_tenant_parameter(
     mock_driver.session = MagicMock(return_value=mock_neo4j_session)
     tool._driver = mock_driver
 
-    with pytest.raises(
-        ValueError,
-        match="Tenant spoofing detected: parameter tenant_id does not match authenticated context",
-    ):
-        await tool.execute(
-            QueryGraphInput(
-                cypher_query="MATCH (n:Account {tenant_id: $tenant_id}) RETURN n",
-                parameters={"tenant_id": str(TENANT_B_ID)},
-            )
+with pytest.raises(
+    ValueError,
+    match=(
+        "Tenant spoofing detected: parameter tenant_id "
+        "does not match authenticated context"
+    ),
+):
+    await tool.execute(
+        QueryGraphInput(
+            cypher_query="MATCH (n:Account {tenant_id: $tenant_id}) RETURN n",
+            parameters={"tenant_id": str(TENANT_B_ID)},
         )
-
+    )
 
 @pytest.mark.asyncio
 async def test_query_graph_rejects_input_tenant_without_context(mock_neo4j_session):

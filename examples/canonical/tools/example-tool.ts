@@ -14,7 +14,11 @@
  * @types/node required for process.env access
  */
 
-import { defineTool, toolRegistry, type ToolExecutionContext } from "./registry";
+import {
+  defineTool,
+  toolRegistry,
+  type ToolExecutionContext,
+} from "./registry";
 import { success, error, type ToolResult } from "../errors/error-shape";
 
 // ============================================================================
@@ -148,7 +152,8 @@ export const exampleTool = defineTool<ExampleToolInput, ExampleToolOutput>({
       },
       data: {
         type: "object",
-        description: "Data payload for update operations (required when operation='update')",
+        description:
+          "Data payload for update operations (required when operation='update')",
         properties: {
           name: {
             type: "string",
@@ -208,7 +213,7 @@ export const exampleTool = defineTool<ExampleToolInput, ExampleToolOutput>({
   // -------------------------------------------------------------------------
   implementation: async (
     input: ExampleToolInput,
-    ctx: ToolExecutionContext
+    ctx: ToolExecutionContext,
   ): Promise<ToolResult<ExampleToolOutput>> => {
     const startTime = Date.now();
 
@@ -230,7 +235,7 @@ export const exampleTool = defineTool<ExampleToolInput, ExampleToolOutput>({
           tenant_id: "unknown",
           tool_version: TOOL_VERSION,
           trace_id: ctx.trace_id,
-        }
+        },
       );
     }
 
@@ -260,7 +265,7 @@ export const exampleTool = defineTool<ExampleToolInput, ExampleToolOutput>({
             recoverable: true,
             details: { field: "customer_id", pattern: "^cust_[a-z0-9]+$" },
           },
-          buildMetadata(Date.now() - startTime)
+          buildMetadata(Date.now() - startTime),
         );
       }
 
@@ -272,7 +277,7 @@ export const exampleTool = defineTool<ExampleToolInput, ExampleToolOutput>({
             recoverable: true,
             details: { field: "data", operation: input.operation },
           },
-          buildMetadata(Date.now() - startTime)
+          buildMetadata(Date.now() - startTime),
         );
       }
 
@@ -286,7 +291,7 @@ export const exampleTool = defineTool<ExampleToolInput, ExampleToolOutput>({
       // -----------------------------------------------------------------------
       const customer = await fetchCustomerFromDatabase(
         input.customer_id,
-        scopeKey
+        scopeKey,
       );
 
       if (!customer) {
@@ -298,7 +303,7 @@ export const exampleTool = defineTool<ExampleToolInput, ExampleToolOutput>({
             recoverable: false,
             details: { customer_id: input.customer_id, tenant_id: scopeKey },
           },
-          buildMetadata(Date.now() - startTime)
+          buildMetadata(Date.now() - startTime),
         );
       }
 
@@ -336,7 +341,7 @@ export const exampleTool = defineTool<ExampleToolInput, ExampleToolOutput>({
           },
           operation: input.operation,
         },
-        buildMetadata(Date.now() - startTime)
+        buildMetadata(Date.now() - startTime),
       );
     } catch (unexpectedError) {
       // -----------------------------------------------------------------------
@@ -351,14 +356,18 @@ export const exampleTool = defineTool<ExampleToolInput, ExampleToolOutput>({
       return error<ExampleToolOutput>(
         {
           code: "INTERNAL_ERROR",
-          message: "An unexpected error occurred while processing the customer request",
+          message:
+            "An unexpected error occurred while processing the customer request",
           recoverable: true, // Agent can retry
           details: {
             // Include error type but not sensitive details
-            error_type: unexpectedError instanceof Error ? unexpectedError.name : "Unknown",
+            error_type:
+              unexpectedError instanceof Error
+                ? unexpectedError.name
+                : "Unknown",
           },
         },
-        buildMetadata(Date.now() - startTime)
+        buildMetadata(Date.now() - startTime),
       );
     }
   },
@@ -377,16 +386,12 @@ interface CustomerRecord {
 
 async function fetchCustomerFromDatabase(
   customerId: string,
-  scopeKey: string
+  scopeKey: string,
 ): Promise<CustomerRecord | null> {
   // CONTRACT.md §2.2: Use tenant-scoped database sessions
   // db.getSession() automatically applies tenant scoping
 
   // Mock implementation - replace with actual ORM query
-  // Example with Prisma:
-  // return await db.getSession().customer.findUnique({
-  //   where: { id: customerId, tenant_id: scopeKey }
-  // });
 
   if (customerId === "cust_notfound") {
     return null;
@@ -402,7 +407,7 @@ async function fetchCustomerFromDatabase(
 
 async function saveCustomerToDatabase(
   customer: CustomerRecord,
-  scopeKey: string
+  scopeKey: string,
 ): Promise<void> {
   // Mock implementation - replace with actual ORM update
   console.log(`[DB] Updated customer ${customer.id} in tenant ${scopeKey}`);
@@ -410,7 +415,7 @@ async function saveCustomerToDatabase(
 
 async function deleteCustomerFromDatabase(
   customerId: string,
-  scopeKey: string
+  scopeKey: string,
 ): Promise<void> {
   // Mock implementation - replace with actual ORM delete
   console.log(`[DB] Deleted customer ${customerId} in tenant ${scopeKey}`);
