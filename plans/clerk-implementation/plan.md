@@ -44,6 +44,15 @@ The repo already has the Clerk integration largely wired (frontend `@clerk/react
 **What:** Make delivery semantics resilient and idempotent **by webhook event ID** so a correctly signed duplicate never creates duplicate Fabric users or tenants. Partition from endpoint security: transport verification (Step 3) is separate from delivery semantics (here). Deduplicate consumed event IDs; tolerate retries, duplicates, and out-of-order `organization`, `organizationMembership`, `user.created/updated/deleted` events. Events whose dependencies aren't yet available go to a recoverable pending state and are retried, not dropped.
 **Testing:** Unit tests for dedupe, out-of-order, and pending-retry; hostile test that a correctly signed duplicate does not produce duplicate Fabric rows.
 
+**Step 4 implementation notes (committed):**
+- **New `services/api/app/core/clerk_webhook_delivery.py`** owns delivery state (dedup `processed` set + `pending` lifecycle + terminal/dead), deliberately separate from the Step 3 security boundary. Removed the old `AuthDirectory._processed_events` dedup (moved here; only the router used it).
+- **Pending-event lifecycle (AC#4):** events whose dependency hasn't arrived are registered pending and the handler returns non-2xx (409) so the sender retries (Svix/Clerk retry every non-2xx). Bounds: `MAX_PENDING_ATTEMPTS=20` or `MAX_PENDING_AGE_SECONDS=86400` (24h). On exhaustion the event is terminal and dead-lettered exactly once (`DLQ_REASON_PENDING_EXHAUSTED`) for operator recovery + observability (`pending_retry`/`pending_dead` telemetry). Operator recovery = `scripts/replay_clerk_webhooks.py`, which preserves the original event id (AC#3), so a replayed/dead event re-enters the same dedup path and can recover if the dependency has since arrived (dead events are *not* hard-blocked).
+- **Rate limiting vs retries (AC#6):** the 429 from `IPRateLimitDependency` is a transient non-2xx; Svix/Clerk retry it, and the handler never commits, applies, or dead-letters a rate-limited event. Verified by test.
+- **IDEMPOTENT delivery.** Dedup by `svix-id` even when the body differs; role-change membership events update, never duplicate.
+- **Pre-existing fix (same file):** `auth_directory.py` used an undefined `logger` in its Redis session-revocation path (CI-ruff F821, would have blocked this commit); added a module logger. Unrelated but unblocking.
+
+Step 4 tests (`services/api/app/tests/test_clerk_webhook_delivery.py`, 8 cases): duplicate id no-duplicate-rows, dedup by id not body, out-of-order recovery, role-update-not-duplicate, attempt-bound dead-letter-once, age-bound terminal, 429 transient/not-dropped, snapshot observability.
+
 ### Step 5: Organization/tenant & user provisioning
 **Files:** `services/api/app/core/auth_context_builder.py`, `services/api/app/core/auth_directory.py` [confirm], `services/api/app/core/clerk_provisioner.py` (new)
 **What:** Consume de-duplicated events from Step 4 de-duped store and map:

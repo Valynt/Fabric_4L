@@ -13,9 +13,10 @@ Security:
       handled below, deliberately separated from transport security.
 
 Idempotency:
-    Each Clerk event carries a Svix message id (``svix-id`` header). The
-    directory's ``has_processed_event`` / ``mark_event_processed`` make
-    replays a no-op.
+    Each Clerk event carries a Svix message id (``svix-id`` header). Delivery
+    state (dedup + pending-event lifecycle) is owned by
+    ``app.core.clerk_webhook_delivery``; replays are a no-op and out-of-order
+    events are retained in a recoverable pending state.
 """
 
 from __future__ import annotations
@@ -46,6 +47,10 @@ from app.core.auth_telemetry import (
 )
 from app.core.billing_entitlements import process_clerk_billing_event
 from app.core.clerk_config import _DEFAULT_CLERK_WEBHOOK_RATE_LIMIT_PER_MINUTE, get_auth_settings
+from app.core.clerk_webhook_delivery import (
+    DLQ_REASON_PENDING_EXHAUSTED,
+    get_webhook_delivery_tracker,
+)
 from app.core.clerk_webhook_signing import read_webhook_body_limited, verify_svix_signature
 from app.core.security import require_authenticated
 from app.core.webhook_dlq import get_webhook_dlq
@@ -228,7 +233,8 @@ async def clerk_webhook(request: Request, _limit: None = Depends(_clerk_ip_limit
         )
 
     directory = get_auth_directory()
-    if event_id and directory.has_processed_event(event_id):
+    tracker = get_webhook_delivery_tracker()
+    if event_id and tracker.is_processed(event_id):
         record_webhook_replay(event_type)
         logger.info(
             "clerk webhook replay ignored",
@@ -242,7 +248,33 @@ async def clerk_webhook(request: Request, _limit: None = Depends(_clerk_ip_limit
         _apply_event(directory, event_type, data)
     except KeyError as exc:
         # Apply ordering: a membership may arrive before its user/org event.
-        # Surface a 409 so Clerk retries with backoff.
+        # Retain the event in a recoverable pending state and return a non-2xx
+        # so the sender retries (Svix/Clerk retry every non-2xx with backoff).
+        outcome = (
+            tracker.register_pending(event_id, event_type) if event_id else None
+        )
+        if outcome is not None and outcome.transitioned_to_dead:
+            # Terminal: pending dependency never arrived within the lifecycle
+            # bounds. Dead-letter once for operator recovery (preserving the
+            # original event id for dedup) and alert.
+            logger.exception(
+                "clerk webhook pending event exhausted to DLQ",
+                event_id=event_id,
+                event_type=event_type,
+                operation="webhook_pending_lifecycle",
+                error=str(exc),
+            )
+            get_webhook_dlq().enqueue(
+                event_id=event_id,
+                event_type=event_type,
+                payload=payload,
+                headers=headers,
+                error_reason=DLQ_REASON_PENDING_EXHAUSTED,
+            )
+            record_webhook_dlq(event_type, DLQ_REASON_PENDING_EXHAUSTED)
+            record_webhook_event(event_type, "pending_dead", time.perf_counter() - start_time)
+        else:
+            record_webhook_event(event_type, "pending_retry", time.perf_counter() - start_time)
         logger.warning(
             "clerk webhook ordering error",
             event_id=event_id,
@@ -250,7 +282,6 @@ async def clerk_webhook(request: Request, _limit: None = Depends(_clerk_ip_limit
             operation="webhook_event_apply",
             error=str(exc),
         )
-        record_webhook_event(event_type, "conflict_ordering", time.perf_counter() - start_time)
         raise ConflictError(message="Retry later.") from exc
     except (BadRequestError, ConflictError, AuthenticationError):
         record_webhook_event(event_type, "client_error", time.perf_counter() - start_time)
@@ -284,5 +315,5 @@ async def clerk_webhook(request: Request, _limit: None = Depends(_clerk_ip_limit
     duration = time.perf_counter() - start_time
     record_webhook_event(event_type, "success", duration)
     if event_id:
-        directory.mark_event_processed(event_id, event_type)
+        tracker.mark_processed(event_id, event_type)
     return None

@@ -8,10 +8,13 @@ the same.
 
 from __future__ import annotations
 
+import logging
 import threading
 import uuid
 from collections.abc import Callable
 from dataclasses import dataclass
+
+logger = logging.getLogger(__name__)
 
 _USER_NOT_FOUND = "user_not_found"
 _TENANT_NOT_FOUND = "tenant_not_found"
@@ -75,7 +78,6 @@ class AuthDirectory:
         self._tenants: dict[str, DirectoryTenant] = {}
         self._memberships: dict[tuple[str, str], DirectoryMembership] = {}
         self._invitations: dict[str, DirectoryInvitation] = {}
-        self._processed_events: set[str] = set()
         self._tenant_entitlements: dict[str, set[str]] = {}
         self._tenant_entitlement_valid_until: dict[str, int | None] = {}
         self._revoked_sessions: set[str] = set()
@@ -384,18 +386,6 @@ class AuthDirectory:
         if token_iat is None:
             return True
         return token_iat <= cutoff
-
-    # ------------------------------------------------------------------
-    # Webhook idempotency
-    # ------------------------------------------------------------------
-    def has_processed_event(self, event_id: str) -> bool:
-        with self._lock:
-            return event_id in self._processed_events
-
-    def mark_event_processed(self, event_id: str, _event_type: str | None = None) -> None:
-        with self._lock:
-            self._processed_events.add(event_id)
-
 
 # Process-level singleton.  Production deployments may replace this with a
 # service-backed directory retrieved from dependency injection.
