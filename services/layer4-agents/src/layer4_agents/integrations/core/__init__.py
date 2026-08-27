@@ -1,8 +1,8 @@
-"""Core CRM integration primitives: errors and value types."""
+"""Deprecated re-export shim; canonical home is layer4_agents.integration.connectors.core."""
 
 from __future__ import annotations
 
-from .errors import (
+from layer4_agents.integration.connectors.core import (
     AuthError,
     CRMError,
     MappingError,
@@ -11,14 +11,10 @@ from .errors import (
     TransientError,
     classify_http_status,
     classify_httpx_exception,
-)
-from .state import (
     ErrorClass,
     ObservedStatus,
     OperationalStatus,
     reduce,
-)
-from .types import (
     CanonicalRecord,
     CRMModel,
     CRMOperationResult,

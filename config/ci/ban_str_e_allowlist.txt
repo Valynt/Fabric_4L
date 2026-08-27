@@ -24,10 +24,10 @@ services/layer1-ingestion/src/layer1_ingestion/orchestrator/stage_handlers/fetch
 services/layer4-agents/src/layer4_agents/services/crm_sync_scheduler.py|await apply_observation(db, integration, sync_interrupted(message=str(exc)))
 services/layer4-agents/src/layer4_agents/services/anthropic_provider.py|msg = str(exc)
 services/layer4-agents/src/layer4_agents/api/routes/harness.py|raise ValidationError(message=str(exc))
-services/layer4-agents/src/layer4_agents/integrations/core/errors.py|return TransientError(str(exc))
-services/layer4-agents/src/layer4_agents/integrations/core/errors.py|return classify_http_status(status, str(exc))
-services/layer4-agents/src/layer4_agents/integrations/core/errors.py|return PermanentError(str(exc))
-services/layer4-agents/src/layer4_agents/integrations/providers/hubspot/connector.py|error_message=str(e),
-services/layer4-agents/src/layer4_agents/integrations/providers/salesforce/connector.py|error_message=str(e),
+services/layer4-agents/src/layer4_agents/integration/connectors/core/errors.py|return TransientError(str(exc))
+services/layer4-agents/src/layer4_agents/integration/connectors/core/errors.py|return classify_http_status(status, str(exc))
+services/layer4-agents/src/layer4_agents/integration/connectors/core/errors.py|return PermanentError(str(exc))
+services/layer4-agents/src/layer4_agents/integration/connectors/providers/hubspot/connector.py|error_message=str(e),
+services/layer4-agents/src/layer4_agents/integration/connectors/providers/salesforce/connector.py|error_message=str(e),
 services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/api.py|error_message=str(exc),
 packages/shared/src/value_fabric/shared/security/config.py|self.errors.append(str(exc))

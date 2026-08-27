@@ -1,7 +1,9 @@
-"""HubSpot CRM connector."""
+"""Deprecated re-export shim; canonical home is layer4_agents.integration.connectors.providers.hubspot."""
 
 from __future__ import annotations
 
-from .connector import HubSpotConnector
+from layer4_agents.integration.connectors.providers.hubspot import (
+    HubSpotConnector,
+)
 
 __all__ = ["HubSpotConnector"]

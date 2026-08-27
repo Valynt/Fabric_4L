@@ -1,0 +1,10 @@
+{
+  "goal_id": "brooks-lint-remediation",
+  "status": "building",
+  "iteration": 1,
+  "builder_model": "GPT:5.6-Luna",
+  "inspector_model": "GPT:5.6-Sol",
+  "initial_sha": "ae8098cf92d3fbf060f16841d8b0ac5c19600982",
+  "created_at": "2026-08-27T20:15:00Z",
+  "history": []
+}

@@ -180,6 +180,23 @@ class TestFetchGraphNodes:
 
         assert node_types == {"Entity": 2, "Relationship": 1}
 
+    @pytest.mark.asyncio
+    async def test_fetch_graph_nodes_name_fallback_agrees(self, mock_neo4j, sample_tenant_id):
+        """Node fallback name must agree across top-level label and properties.name.
+
+        Regression for the divergence where top-level ``label`` fell back to
+        ``node_id`` on a missing/None label but ``properties["name"]`` did not.
+        """
+        mock_neo4j.execute_query.return_value = [
+            {"id": "node-1", "label": None, "type": "Entity", "confidence": 0.9},
+        ]
+
+        nodes, node_ids, node_types = await _fetch_graph_nodes(mock_neo4j, sample_tenant_id, 1000)
+
+        assert len(nodes) == 1
+        assert nodes[0].label == "node-1"
+        assert nodes[0].properties.get("name") == "node-1"
+
 
 class TestFetchGraphEdges:
     """Tests for _fetch_graph_edges helper function."""

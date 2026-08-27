@@ -1,11 +1,10 @@
-"""Deprecated location; protocols moved to integrations.core.connector.
-
-TODO(PR9): Delete this shim once all downstream imports migrate to
-integrations.core.connector.
-"""
+"""Deprecated re-export shim; canonical home is layer4_agents.integration.connectors.connector."""
 
 from __future__ import annotations
 
-from .core.connector import CRMConnector, CRMWriteConnector
+from layer4_agents.integration.connectors.connector import (
+    CRMConnector,
+    CRMWriteConnector,
+)
 
 __all__ = ["CRMConnector", "CRMWriteConnector"]

@@ -52,6 +52,26 @@ uvicorn layer4_agents.api.main:app --reload
 - `services/layer4-agents/src/{api,agents,engine,workflows,services,...}` top-level packages are deprecated compatibility shims only.
 - New code must import `layer4_agents.*`; CI rejects duplicate top-level implementation files via `scripts/ci/check_duplicate_source_trees.py`.
 
+## Package placement rule (`integration` vs `interfaces`/`adapters`/`services`)
+
+Layer 4 splits cross-cutting code by its role. The rule:
+
+| Destination | What lives here | Example |
+|---|---|---|
+| `layer4_agents/integration/` | Cross-layer client adapters that talk to other services (L1/L2/L3/L5), plus the `connectors/` subpackage for external CRM provider connectors | `integration/layer1_client.py` |
+| `layer4_agents/integration/connectors/` | External-system connector implementations — provider-specific CRM connectors (`providers/hubspot`, `providers/salesforce`) and their shared `core/` primitives (protocols, errors, observations, state reducer, types) | `integration/connectors/factory.py` |
+| `layer4_agents/interfaces/` | Abstract/protocol interfaces that define contracts without implementation | `interfaces/*.py` |
+| `layer4_agents/adapters/` | Adapters that translate provider/system outputs into canonical Layer 4 shapes | `adapters/*.py` |
+| `layer4_agents/services/` | Long-lived application services (scheduling, sync orchestration, crypto) | `services/*.py` |
+
+Guidance:
+
+- **Cross-layer clients** that call L1/L2/L3/L5 live under `integration/` (previously some jointly moved to `integration/` from the legacy `integrations/` facade).
+- **Pure public-interface definitions** with no external coupling belong in `interfaces/`.
+- **Provider configuration, mapping, and translation logic** belongs in `adapters/`.
+- **Orchestration/service logic** (jobs, schedulers, sync services) belongs in `services/`.
+- The legacy `layer4_agents/integrations/` package is **deprecated**; it exists only as re-export shims forwarding to `integration/connectors/`. New code must import from `integration/connectors/`. Once no consumer resolves the old path, delete the shims.
+
 ## Architecture
 
 ```
