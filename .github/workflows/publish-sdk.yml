@@ -30,7 +30,15 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
+  # Release validation runs on every SDK-relevant pull request. It builds the
+  # exact artifacts that Publish SDK uploads, installs them into a clean
+  # environment using only the declared release dependencies, and smoke-tests
+  # the installed wheel - so a defect that only surfaces in the distributable
+  # package (e.g. a missing optional dependency such as email-validator) is
+  # caught before merge. Only the credentialed registry upload is deferred to
+  # main/tag. See test_publish_sdk_validation.py for the enforced contract.
   build:
+    name: SDK Release Validation
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -62,6 +70,13 @@ jobs:
         run: |
           python -m build
           test -d dist
+
+      - name: Smoke-test release artifact in isolated environment
+        run: |
+          python -m venv /tmp/sdk-release-smoke
+          /tmp/sdk-release-smoke/bin/python -m pip install --quiet --upgrade pip
+          /tmp/sdk-release-smoke/bin/python -m pip install --quiet dist/*.whl
+          /tmp/sdk-release-smoke/bin/python scripts/smoke_email_validator.py
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
