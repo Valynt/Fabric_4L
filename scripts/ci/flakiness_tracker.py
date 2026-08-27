@@ -33,6 +33,11 @@ __version__ = "1.2.0"
 # ──────────────────────────────────────────────────────────────────────────────
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+
+# Ensure the repository root is importable for cross-script imports
+# (scripts.ci.*) when invoked as `python scripts/ci/flakiness_tracker.py`.
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 DEFAULT_RUNS = 5
 SEVERITY_GREEN = 100.0  # Perfect consistency
 SEVERITY_YELLOW_MIN = 95.0  # Warning threshold
@@ -565,6 +570,11 @@ def build_cli() -> argparse.ArgumentParser:
         help="Exit with non-zero code if any flaky tests detected",
     )
     parser.add_argument(
+        "--candidate-evidence",
+        default=None,
+        help="Write proposed-registration candidate evidence JSON to this path",
+    )
+    parser.add_argument(
         "--verbose", "-v", action="store_true",
         help="Print progress to stderr",
     )
@@ -663,6 +673,13 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         json_path.write_text(json.dumps(json_content, indent=2))
         if args.verbose:
             print(f"JSON report written to: {json_path}", file=sys.stderr)
+        if getattr(args, "candidate_evidence", None):
+            from scripts.ci.emit_flaky_candidates import emit_candidates
+
+            evidence_path = Path(args.candidate_evidence)
+            emit_candidates(json_content, REPO_ROOT / "config/ci/test_skip_register.yaml", evidence_path)
+            if args.verbose:
+                print(f"Candidate evidence written to: {evidence_path}", file=sys.stderr)
 
     # Console summary
     print("\n" + "=" * 60)
