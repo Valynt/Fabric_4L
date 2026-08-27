@@ -205,6 +205,53 @@ class TestGeneratedModels:
         dumped = metadata.model_dump(mode="json", by_alias=True, exclude_none=True)
         assert dumped["journey_id"] == "journey-123"
 
+    def test_agent_governance_metadata_round_trips_extended_fields(self) -> None:
+        """Extended optional governance fields serialize without silent drift."""
+        metadata = AgentGovernanceMetadata(
+            trace_id="trace-1",
+            workflow_id="wf-1",
+            tenant_id="tenant-1",
+            tool_name="valuepilot_conversation",
+            audit_event_id="audit-1",
+            emitted_at="2026-01-01T00:00:00Z",
+            journey_id="journey-123",
+            response_tier="full",
+            provider="mock",
+            fallback=True,
+            degraded=False,
+            degradation_reason="n/a",
+        )
+
+        assert metadata.response_tier == "full"
+        assert metadata.provider == "mock"
+        assert metadata.fallback is True
+        assert metadata.degraded is False
+        assert metadata.degradation_reason == "n/a"
+
+        dumped = metadata.model_dump(mode="json", by_alias=True, exclude_none=True)
+        assert dumped["response_tier"] == "full"
+        assert dumped["provider"] == "mock"
+        assert dumped["fallback"] is True
+        assert dumped["degraded"] is False
+        assert dumped["degradation_reason"] == "n/a"
+
+    def test_agent_governance_metadata_extended_fields_optional(self) -> None:
+        """Extended governance fields default to None (additive contract)."""
+        metadata = AgentGovernanceMetadata(
+            trace_id="trace-1",
+            workflow_id="wf-1",
+            tenant_id="tenant-1",
+            tool_name="valuepilot_conversation",
+            audit_event_id="audit-1",
+            emitted_at="2026-01-01T00:00:00Z",
+        )
+
+        assert metadata.response_tier is None
+        assert metadata.provider is None
+        assert metadata.fallback is None
+        assert metadata.degraded is None
+        assert metadata.degradation_reason is None
+
 
 def test_generated_client_wrappers_are_byte_stable(tmp_path: Path) -> None:
     sdk_root = Path(__file__).resolve().parents[1]
