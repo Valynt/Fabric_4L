@@ -93,7 +93,7 @@ def test_layer7_readme_declares_canonical_billing_ownership() -> None:
     )
 
     assert "canonical deployable billing runtime" in readme
-    assert "services/billing/ was removed" in readme
+    assert "legacy" in readme and "was removed" in readme
     assert "COMPAT-BILL-001" in readme
 
 

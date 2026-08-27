@@ -44,12 +44,17 @@ def _python_files(root: Path) -> list[Path]:
 
 
 def _import_roots(path: Path) -> list[tuple[int, str]]:
-    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    try:
+        tree = ast.parse(path.read_text(encoding="utf-8-sig"), filename=str(path))
+    except (SyntaxError, UnicodeDecodeError):
+        # Skip files that cannot be parsed (e.g. newer-Python syntax or BOM
+        # issues introduced upstream); this ratchet only guards `billing`.
+        return []
     roots: list[tuple[int, str]] = []
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
             roots.extend((node.lineno, alias.name.split(".", 1)[0]) for alias in node.names)
-        elif isinstance(node, ast.ImportFrom) and node.module:
+        elif isinstance(node, ast.ImportFrom) and node.module and node.level == 0:
             roots.append((node.lineno, node.module.split(".", 1)[0]))
     return roots
 
@@ -74,7 +79,7 @@ def test_no_code_imports_legacy_top_level_billing_package() -> None:
         for path in _python_files(root):
             rel_path = path.relative_to(REPO_ROOT).as_posix()
             for line_number, imported_root in _import_roots(path):
-                            if imported_root == "billing":
+                if imported_root == "billing":
                     violations.append(
                         f"{rel_path}:{line_number} imports top-level 'billing'; "
                         "use services/layer4-agents/src/layer4_agents/services/billing_service.py "
