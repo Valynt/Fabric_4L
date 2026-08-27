@@ -285,7 +285,7 @@ Every shell invocation in this session — including a bare `Write-Output "probe
 smoke test — was rejected before execution:
 
 ```text
-$ cd C:\Users\BBB\.copilot\repos\Fabric_4L\.worktrees\valyntxyz-glowing-goggles; git status --short; git log --oneline -3
+$ cd <local_repo_path>; git status --short; git log --oneline -3
 Denied by preToolUse hook from "guardrails@dev-agent-skills" (hook errored)
 
 $ Write-Output "probe ok"
