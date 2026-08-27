@@ -321,7 +321,7 @@ jobs:
       - name: Setup Node.js + pnpm
         uses: ./.github/actions/setup-pnpm
         with:
-          node-version: "22.18.0"
+          node-version: "22.22.2"
 
       - name: Install Node.js dependencies
         run: pnpm install --frozen-lockfile

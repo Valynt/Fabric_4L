@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """GovernedLLMClient — harness-aware LLM call wrapper.
 
 Responsibilities:
@@ -15,6 +13,7 @@ The client is constructed once per workflow run and carries the ``HarnessRun``
 context so every trace event is correctly attributed.
 """
 
+from __future__ import annotations
 
 import asyncio
 import json
@@ -27,6 +26,8 @@ from typing import TYPE_CHECKING, Any
 
 import yaml
 from value_fabric.shared.llm_safety import PromptGuard
+
+from layer4_agents.models.degradation_policy import DegradationPoliciesConfig, DegradationPolicy
 
 from .llm_output_parser import parse_llm_json, validate_llm_output_schema
 
@@ -77,7 +78,7 @@ class ModelResolutionError(RuntimeError):
 # Config path
 # ---------------------------------------------------------------------------
 
-_SERVICE_ROOT = Path(__file__).resolve().parents[2]
+_SERVICE_ROOT = Path(__file__).resolve().parents[3]
 _RUNTIME_CONFIG_PATH = _SERVICE_ROOT / "config" / "harness.runtime.yaml"
 
 
@@ -214,10 +215,42 @@ class GovernedLLMClient:
         self._run = run
         self._telemetry = telemetry
         self._config = self._load_runtime_config(runtime_config_path or _RUNTIME_CONFIG_PATH)
+        self._degradation_policies: DegradationPoliciesConfig | None = self._load_degradation_policies(self._config)
         self._cost_calc = self._build_cost_calculator()
         self._max_cost_per_call_usd: float | None = self._config.get("llm", {}).get(
             "max_cost_per_call_usd"
         )
+
+    # ------------------------------------------------------------------
+    # Properties & Policy Inspection
+    # ------------------------------------------------------------------
+
+    @property
+    def degradation_policies(self) -> DegradationPoliciesConfig | None:
+        """Access validated degradation policies config if present."""
+        return self._degradation_policies
+
+    def get_degradation_policy(self, model_task: str) -> DegradationPolicy | None:
+        """Resolve degradation policy for a specific model task."""
+        if self._degradation_policies is not None:
+            return self._degradation_policies.get_policy(model_task)
+        return None
+
+    def get_max_retries_for_task(self, model_task: str) -> int:
+        """Resolve maximum retry attempts for a task from degradation policy or default config."""
+        task_policy = self.get_degradation_policy(model_task)
+        if task_policy is not None:
+            return task_policy.max_retries
+        retry_cfg = self._config.get("llm", {}).get("retry", {})
+        return max(0, int(retry_cfg.get("max_attempts", 3)) - 1)
+
+    def get_max_attempts_for_task(self, model_task: str) -> int:
+        """Resolve total execution attempts (1 initial attempt + retries) for a task."""
+        task_policy = self.get_degradation_policy(model_task)
+        if task_policy is not None:
+            return 1 + task_policy.max_retries
+        retry_cfg = self._config.get("llm", {}).get("retry", {})
+        return int(retry_cfg.get("max_attempts", 3))
 
     # ------------------------------------------------------------------
     # Public API
@@ -280,10 +313,9 @@ class GovernedLLMClient:
 
         self._emit_call_start(model_task, model, call_id)
 
-        retry_cfg = self._config.get("llm", {}).get("retry", {})
-        max_attempts = int(retry_cfg.get("max_attempts", 3))
-        backoff = float(retry_cfg.get("backoff_seconds", 2.0))
-        retryable = set(retry_cfg.get("retryable_categories", ["TIMEOUT", "RATE_LIMIT"]))
+        max_attempts = self.get_max_attempts_for_task(model_task)
+        backoff = float(self._config.get("llm", {}).get("retry", {}).get("backoff_seconds", 2.0))
+        retryable = set(self._config.get("llm", {}).get("retry", {}).get("retryable_categories", ["TIMEOUT", "RATE_LIMIT"]))
 
         last_exc: Exception | None = None
         for attempt in range(1, max_attempts + 1):
@@ -616,6 +648,16 @@ class GovernedLLMClient:
         except Exception as exc:
             logger.warning("Could not load harness.runtime.yaml from %s: %s", path, exc)
             return {}
+
+    @staticmethod
+    def _load_degradation_policies(config: dict[str, Any]) -> DegradationPoliciesConfig | None:
+        try:
+            return DegradationPoliciesConfig.model_validate(config)
+        except asyncio.CancelledError:
+            raise
+        except Exception as exc:
+            logger.warning("Could not parse degradation_policies from runtime config: %s", exc)
+            return None
 
     @staticmethod
     def _build_cost_calculator() -> Any | None:

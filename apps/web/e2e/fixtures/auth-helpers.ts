@@ -49,7 +49,10 @@ export const DEFAULT_TEST_USER: TestUserInfo = {
  * - REVIEWER lives in the alpha (default) tenant and backs reviewer approval
  *   affordance assertions.
  * - TENANT_B_USER lives in the Beta tenant; cross-tenant reads from Beta are
- *   denied by seed verification (attemptCrossTenantVerification).
+ *   denied by seed verification (attemptCrossTenantVerification). Its id is
+ *   intentionally distinct from E2E_REVIEWER_USER so the two identities never
+ *   collide in the seed corpus (a prior version reused 'e2e-reviewer-user'
+ *   here, which forced tests to mint an inline id to avoid the collision).
  */
 export const E2E_REVIEWER_USER: TestUserInfo = {
   id: 'e2e-reviewer-user',
@@ -63,7 +66,7 @@ export const E2E_TENANT_BETA_ID =
   process.env.BACKEND_E2E_TENANT_BETA_ID || '00000000-0000-4000-e2e0-000000000002';
 
 export const E2E_TENANT_B_USER: TestUserInfo = {
-  id: 'e2e-reviewer-user',
+  id: 'e2e-tenant-b-user',
   email: 'tenant-b@valuefabric.test',
   role: 'reviewer',
   tenantId: E2E_TENANT_BETA_ID,
@@ -233,9 +236,20 @@ async function seedBackendIntegratedSession(page: Page, user: TestUserInfo): Pro
   // context, and httpOnly cookies cannot be set from JavaScript.
   const setCookieHeader = response.headers()['set-cookie'];
   if (setCookieHeader) {
-    // The browser sends API requests to the frontend origin (Vite proxies them
-    // to the backend in legacy mode), so the cookie must be scoped to the
-    // frontend hostname — not the backend host the session was minted from.
+    // TODO(staging-cookie-portability): The browser sends API requests to the
+    // frontend origin (Vite proxies them to the backend in legacy mode), so
+    // the cookie is scoped to the frontend hostname — not the backend host the
+    // session was minted from. This works locally because frontend and backend
+    // share the `localhost` host (different ports). On separate-hostname
+    // staging (e.g. Bunnyshell), J2 and the security test make direct requests
+    // to PLAYWRIGHT_BACKEND_URL, whose hostname differs from the frontend
+    // origin, so the frontend-scoped cookie will NOT accompany those direct
+    // backend requests. Before promoting this suite to a staging/Bunnyshell
+    // synthetic monitor, either (a) route all authenticated test API calls
+    // through the frontend/API-gateway origin, or (b) install equivalent
+    // session cookies for both the frontend and backend hostnames. Do NOT
+    // point this suite at production — it seeds deterministic data and the
+    // admin test creates governance reviews and decisions.
     const cookieDomain = new URL(frontendOrigin).hostname;
     const cookies = parseSetCookieHeader(setCookieHeader, cookieDomain);
     if (cookies.length > 0) {
