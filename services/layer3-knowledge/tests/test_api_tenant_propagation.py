@@ -11,13 +11,12 @@ from types import SimpleNamespace
 
 import pytest
 from fastapi import Request
-from value_fabric.shared.identity.context import RequestContext
-
 from src.api.dependencies_tenant_secured import (
     Neo4jTenantSessionSecured,
     get_neo4j_secured,
     require_request_tenant_id,
 )
+from value_fabric.shared.identity.context import RequestContext
 
 
 class _FakeApp:
