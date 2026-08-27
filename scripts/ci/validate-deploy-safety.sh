@@ -55,9 +55,10 @@ for required in \
 done
 
 # Accept both the plain version tag and the SHA-pinned form (with a version
-# comment) for the artifact download action.
-if ! grep -qE "actions/download-artifact@(v4|[0-9a-f]{40}\s*#\s*v4)" "${DEPLOY_WORKFLOW}"; then
-  echo "::error::Deploy workflow missing SBOM verification control: actions/download-artifact@v4"
+# comment) for the artifact download action. v4 is the legacy Node 20 major;
+# v7 is the Node 24-compatible major used after the Node 20 migration.
+if ! grep -qE "actions/download-artifact@(v[47]|[0-9a-f]{40}\s*#\s*v[47])" "${DEPLOY_WORKFLOW}"; then
+  echo "::error::Deploy workflow missing SBOM verification control: actions/download-artifact@v4 or v7"
   ERRORS=$((ERRORS + 1))
 fi
 

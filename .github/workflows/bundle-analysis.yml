@@ -112,7 +112,7 @@ jobs:
         env:
           NODE_ENV: production
 
-      # actions/upload-artifact@v4 preserves directory structure, so a download
+      # actions/upload-artifact@v7 preserves directory structure, so a download
       # into artifacts/pr would place the file at
       # artifacts/pr/apps/web/dist/stats.json. Stage the stats file into a flat
       # directory so consumers can rely on artifacts/pr/stats.json.
