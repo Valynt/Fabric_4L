@@ -138,7 +138,6 @@ module = [
     "layer2_extraction.api.pipeline_runner",
     "layer2_extraction.api.ingestion_runner",
     "layer2_extraction.api.sse_stream",
-    "layer2_extraction.api.service",
     "layer2_extraction.models.ontology",
     "layer2_extraction.integration.job_store",
     "layer2_extraction.extraction.llm_extractor",

@@ -6,7 +6,6 @@ const rule: Rule.RuleModule = {
     type: "problem",
     docs: {
       description: "Disallow tenantId as function parameters - use AsyncLocalStorage context",
-      category: "Canonical Contracts",
       recommended: true,
       url: "https://github.com/bmsull560/Fabric_4L/blob/main/contract.md#21-tenant-isolation-boundary",
     },

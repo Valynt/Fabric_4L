@@ -680,4 +680,16 @@ def simple_test_workflow(mock_tool_registry, mock_checkpoint_saver):
     return _make_workflow
 
 
-from tests.utils.workflow_helpers import setup_workflow_metadata  # noqa: F401
+try:
+    from tests.utils.workflow_helpers import setup_workflow_metadata  # noqa: F401
+except (ImportError, ModuleNotFoundError):
+    import importlib.util
+    from pathlib import Path
+    _helper_path = Path(__file__).resolve().parent / "utils" / "workflow_helpers.py"
+    if _helper_path.exists():
+        _spec = importlib.util.spec_from_file_location("layer4_test_workflow_helpers", _helper_path)
+        _mod = importlib.util.module_from_spec(_spec)
+        _spec.loader.exec_module(_mod)
+        setup_workflow_metadata = _mod.setup_workflow_metadata
+    else:
+        raise

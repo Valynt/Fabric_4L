@@ -64,7 +64,7 @@ repos:
       - id: prettier
         name: Prettier (TS/JS/JSON/YAML formatter)
         types_or: [javascript, jsx, ts, tsx, json, yaml, markdown]
-        exclude: ^(pnpm-lock\.yaml|package-lock\.json|yarn\.lock|apps/web/src/api/generated/|packages/platform-contract/src/typescript/generated/|contracts/openapi/)
+        exclude: ^(pnpm-lock\.yaml|package-lock\.json|yarn\.lock)$
         additional_dependencies:
           - prettier@3.3.3
           - prettier-plugin-tailwindcss@0.6.8

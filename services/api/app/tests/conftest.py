@@ -61,8 +61,8 @@ _os.environ.setdefault(
     "SEED_DEMO_DATA", "false"
 )  # Disable seeding to avoid tenant context issues
 _os.environ.setdefault("LLM_PROVIDER", "layer4")
-_os.environ.setdefault("SECRET_KEY", TEST_SECRET)
-_os.environ.setdefault("JWT_SECRET", TEST_SECRET)
+_os.environ["SECRET_KEY"] = TEST_SECRET
+_os.environ["JWT_SECRET"] = TEST_SECRET
 _os.environ.setdefault("JWT_ALGORITHM", TEST_ALGORITHM)
 _os.environ.setdefault("JWT_ISSUER", TEST_ISSUER)
 _os.environ.setdefault("JWT_AUDIENCE", TEST_AUDIENCE)
