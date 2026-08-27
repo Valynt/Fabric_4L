@@ -13,6 +13,8 @@ Layer 3 API base URL is configured via LAYER3_BASE_URL env var (default: http://
 import asyncio
 import json
 import logging
+from datetime import UTC, datetime
+from email.utils import parsedate_to_datetime
 from typing import Any
 from uuid import UUID
 
@@ -584,14 +586,20 @@ class Layer3Client:
             try:
                 return max(0.0, float(retry_after))
             except ValueError:
-                logger.warning(
-                    "layer3_invalid_retry_after",
-                    extra={
-                        "error_code": ERR_LAYER3_HTTP_CLIENT,
-                        "upstream_status_code": response.status_code,
-                        "retry_after": retry_after,
-                    },
-                )
+                try:
+                    retry_at = parsedate_to_datetime(retry_after)
+                    if retry_at.tzinfo is None:
+                        retry_at = retry_at.replace(tzinfo=UTC)
+                    return max(0.0, (retry_at - datetime.now(UTC)).total_seconds())
+                except (TypeError, ValueError, OverflowError):
+                    logger.warning(
+                        "layer3_invalid_retry_after",
+                        extra={
+                            "error_code": ERR_LAYER3_HTTP_CLIENT,
+                            "upstream_status_code": response.status_code,
+                            "retry_after": retry_after,
+                        },
+                    )
         return float(2**attempt)
 
     def _record_sync_failure(self, sync_status: str, transition: str) -> None:
