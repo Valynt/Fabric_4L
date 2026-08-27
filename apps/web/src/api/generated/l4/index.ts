@@ -940,7 +940,7 @@ export interface paths {
         post?: never;
         /**
          * Delete Saved Scenario
-         * @description Delete a saved scenario only within the authenticated tenant scope.
+         * @description Remove a saved scenario only within the authenticated tenant scope.
          */
         delete: operations["delete_saved_scenario_v1_cases__case_id__scenarios__scenario_id__delete"];
         options?: never;
@@ -4667,10 +4667,10 @@ export interface paths {
         put?: never;
         /**
          * Stream C1
-         * @description Proxy a streaming request to the Thesys C1 API.
+         * @description Proxy a streaming request to the Thesys C1 API via ThesysProvider.
          *
          *     The server attaches the ``THESYS_API_KEY`` so the secret is never
-         *     exposed to the browser.  The response is forwarded as-is in SSE
+         *     exposed to the browser. The response is forwarded as-is in SSE
          *     format (``text/event-stream``).
          */
         post: operations["stream_c1_v1_c1_stream_post"];
