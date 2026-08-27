@@ -159,7 +159,7 @@ class TestModelWriteIsolation:
         if not cypher_blocks:
             pytest.skip("No triple-quoted Cypher strings found")
 
-        # Any block containing DETACH DELETE or DELETE must also contain tenant_id
+        # Each block containing DETACH DELETE or DELETE must also contain tenant_id
         violations: list[str] = []
         for block in cypher_blocks:
             if re.search(r"\b(DETACH\s+)?DELETE\b", block, re.IGNORECASE):
