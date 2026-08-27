@@ -170,10 +170,12 @@ class TestGeneratedModels:
 
     def test_agent_stream_request_round_trips_journey_id(self) -> None:
         """journey_id is accepted via the journeyId alias and round-trips."""
-        request = AgentStreamRequest(
-            messages=[AgentStreamMessage(role="user", content="hello")],
-            activeTab="signals",
-            journeyId="journey-123",
+        request = AgentStreamRequest.model_validate(
+            {
+                "messages": [{"role": "user", "content": "hello"}],
+                "activeTab": "signals",
+                "journeyId": "journey-123",
+            }
         )
 
         assert request.journey_id == "journey-123"
@@ -182,9 +184,11 @@ class TestGeneratedModels:
 
     def test_agent_stream_request_journey_id_optional(self) -> None:
         """journey_id is optional and unset by default (additive contract)."""
-        request = AgentStreamRequest(
-            messages=[AgentStreamMessage(role="user", content="hello")],
-            activeTab="signals",
+        request = AgentStreamRequest.model_validate(
+            {
+                "messages": [{"role": "user", "content": "hello"}],
+                "activeTab": "signals",
+            }
         )
 
         assert request.journey_id is None
