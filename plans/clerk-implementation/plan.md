@@ -65,6 +65,14 @@ Step 4 tests (`services/api/app/tests/test_clerk_webhook_delivery.py`, 8 cases):
 Ensure members are provisioned before their first API call instead of erroring with `UserNotProvisionedError`.
 **Testing:** Unit tests for mapping + provisioning; membership/role assignment tests; soft-deactivation tests; pending-dependency retry tests.
 
+**Step 5 implementation notes (committed):**
+- **New `services/api/app/core/clerk_provisioner.py`** is the provisioning policy boundary: `fabric_tenant_id_for(clerk_org_id)` → deterministic immutable `"t_<org_id>"` and `fabric_user_id_for(clerk_user_id)` → stable user identity (Clerk id passthrough). `AuthDirectory` now derives ids from these helpers instead of `uuid4().hex` / raw id, so re-provisioning the same Clerk identity never changes the tenant/user id.
+- **No tenant from email/metadata (AC rule):** `upsert_user` never creates a tenant; only `organization.*` events provision a tenant via `fabric_tenant_id_for`. Verified by negative test (user event with plausible email domain provisions no tenant; claims for an unprovisioned org fail closed with `TenantResolutionError`).
+- **Soft deletes (AC#5):** `delete_user`/`delete_tenant`/`revoke_membership` replaced with `deactivate_user`/`deactivate_tenant`/`deactivate_membership` (retain the record, set `status="deactivated"`, deny immediately). `build_auth_context` now denies when `user.status != "active"`; `get_active_membership` already ignored non-active memberships. A `user.updated`/`org.updated` profile event preserves the deactivated status (no silent reactivation); only a fresh `user.created`/`org.created` (Clerk re-creation) reactivates, mapping back to the same immutable id.
+- **Pending deps:** membership events still return non-2xx (409) until the user/org dependency arrives, using the Step 4 recoverable pending state (unchanged).
+
+Step 5 tests (`services/api/app/tests/test_clerk_provisioning.py`, 11 cases): immutable/deterministic tenant id, stable user identity, idempotent same-identity provisioning, no-tenant-from-email, unprovisioned-org deny, org/user/membership soft-delete deny immediately, profile-update-does-not-reactivate, recreated-user active+same identity, cross-tenant membership isolation/role assignment.
+
 ### Step 6: Frontend redirect verification
 **Files:** `apps/web/src/auth/clerkTenant.ts`, `apps/web/src/components/routing/RequireClerkAuth.tsx`, `apps/web/src/... route/onboarding`, `DESIGN.md`-governed components
 **Goal:** Verify (not rebuild) the after-sign-up `/onboarding` flow and after-sign-in `/home` redirect wiring: org routing/slug mapping, `afterSignInUrl`/`afterSignUpUrl` endpoints against the real router, and add loading/empty/error states for auth-guard sync if missing.

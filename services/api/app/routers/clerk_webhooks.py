@@ -108,24 +108,37 @@ def _apply_event(directory: AuthDirectory, event_type: str, data: dict[str, Any]
             if entry.get("id") == primary_email_id:
                 primary_email = entry.get("email_address")
                 break
+        # A profile update must NOT reactivate a soft-deleted user; only a
+        # fresh user.created (re-creation) may do so.
+        if event_type == ClerkEventType.USER_UPDATED:
+            existing = directory.get_user_by_clerk(clerk_user_id=data["id"])
+            status = existing.status if existing else "active"
+        else:
+            status = "active"
         directory.upsert_user(
             clerk_user_id=data["id"],
             email=primary_email,
             display_name=" ".join(filter(None, [data.get("first_name"), data.get("last_name")]))
             or None,
-            status="active",
+            status=status,
         )
     elif event_type == ClerkEventType.USER_DELETED:
-        directory.delete_user(clerk_user_id=data["id"])
+        directory.deactivate_user(clerk_user_id=data["id"])
     elif event_type in {ClerkEventType.ORGANIZATION_CREATED, ClerkEventType.ORGANIZATION_UPDATED}:
+        # A re-created organization maps back to its immutable Fabric tenant id.
+        if event_type == ClerkEventType.ORGANIZATION_UPDATED:
+            existing = directory.get_tenant_by_clerk_org(clerk_org_id=data["id"])
+            status = existing.status if existing else "active"
+        else:
+            status = "active"
         directory.upsert_tenant(
             clerk_org_id=data["id"],
             name=data.get("name") or data.get("slug") or data["id"],
             slug=data.get("slug"),
-            status="active",
+            status=status,
         )
     elif event_type == ClerkEventType.ORGANIZATION_DELETED:
-        directory.delete_tenant(clerk_org_id=data["id"])
+        directory.deactivate_tenant(clerk_org_id=data["id"])
     elif event_type in {
         ClerkEventType.ORGANIZATION_MEMBERSHIP_CREATED,
         ClerkEventType.ORGANIZATION_MEMBERSHIP_UPDATED,
@@ -149,7 +162,7 @@ def _apply_event(directory: AuthDirectory, event_type: str, data: dict[str, Any]
         clerk_user_id = data.get("user_id") or user.get("user_id") or user.get("id")
         clerk_org_id = data.get("organization_id") or org.get("id")
         if clerk_user_id and clerk_org_id:
-            directory.revoke_membership(clerk_org_id=clerk_org_id, clerk_user_id=clerk_user_id)
+            directory.deactivate_membership(clerk_org_id=clerk_org_id, clerk_user_id=clerk_user_id)
     elif event_type == ClerkEventType.ORGANIZATION_INVITATION_CREATED:
         clerk_inv_id = data.get("id")
         clerk_org_id = data.get("organization_id")
