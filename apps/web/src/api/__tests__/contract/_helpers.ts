@@ -25,7 +25,7 @@ export const ApiErrorSchema = z.object({
   }),
 });
 
-export const PaginatedSchema = <T extends z.ZodTypeAny>(item: T) =>
+export const PaginatedSchema = <T extends z.ZodType>(item: T) =>
   z.object({
     items: z.array(item),
     total: z.number().int().nonnegative(),
@@ -36,7 +36,7 @@ export const PaginatedSchema = <T extends z.ZodTypeAny>(item: T) =>
 
 // Tenant context helpers
 export const TenantContextSchema = z.object({
-  tenant_id: z.string().uuid(),
+  tenant_id: z.uuid(),
 });
 
 export const CrossTenantErrorSchema = z.object({
@@ -250,15 +250,15 @@ export const C1MessageSchema = z.object({
 });
 
 export const TenantModelSchema = z.object({
-  id: z.string().uuid(),
+  id: z.uuid(),
   name: z.string().min(1).max(200),
   slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
   status: z.enum(["active", "suspended", "deleted"]),
 });
 
 export const FeatureFlagResponseSchema = z.object({
-  id: z.string().uuid(),
-  tenant_id: z.string().uuid().nullable(),
+  id: z.uuid(),
+  tenant_id: z.uuid().nullable(),
   flag_key: z.string().min(1),
   enabled: z.boolean(),
   rollout_percentage: z.number().int().min(0).max(100),
@@ -266,7 +266,7 @@ export const FeatureFlagResponseSchema = z.object({
   metadata: z.record(z.string(), z.unknown()).optional(),
   created_at: z.string(),
   updated_at: z.string(),
-  updated_by: z.string().uuid().nullable(),
+  updated_by: z.uuid().nullable(),
 });
 
 export const WorkspaceTabKeySchema = z.enum([
@@ -394,9 +394,9 @@ export const TruthStatusEnum = z.enum([
 ]);
 
 export const TruthObjectResponseSchema = z.object({
-  id: z.string().uuid(),
-  tenant_id: z.string().uuid(),
-  organization_id: z.string().uuid(),
+  id: z.uuid(),
+  tenant_id: z.uuid(),
+  organization_id: z.uuid(),
   claim: z.string().min(1),
   claim_type: z.string(),
   confidence: z.number().min(0).max(1),
@@ -410,7 +410,7 @@ export const TruthObjectResponseSchema = z.object({
 });
 
 export const TruthObjectSummarySchema = z.object({
-  id: z.string().uuid(),
+  id: z.uuid(),
   claim: z.string().min(1),
   claim_type: z.string(),
   confidence: z.number(),
@@ -432,7 +432,7 @@ export const TruthObjectListResponseSchema = z.object({
 });
 
 export const ValidateResponseSchema = z.object({
-  truth_id: z.string().uuid(),
+  truth_id: z.uuid(),
   previous_status: z.string(),
   new_status: z.string(),
   maturity_level: z.number().int().nonnegative(),
@@ -686,7 +686,7 @@ export const fixtures = {
  * Assert that `data` satisfies `schema` and return the parsed value.
  * Throws a descriptive error on mismatch — surfaces field-level issues.
  */
-export function assertSchema<T extends z.ZodTypeAny>(
+export function assertSchema<T extends z.ZodType>(
   schema: T,
   data: unknown,
   label: string
@@ -705,7 +705,7 @@ export function assertSchema<T extends z.ZodTypeAny>(
  * Assert that `data` fails `schema` validation (for negative-path tests).
  */
 export function assertSchemaRejects(
-  schema: z.ZodTypeAny,
+  schema: z.ZodType,
   data: unknown,
   label: string
 ): void {
@@ -726,7 +726,7 @@ export function assertSchemaRejects(
  * and the canonical OpenAPI JSON Schema component `ref` in `specFile`.
  * Returns the Zod-parsed value for downstream assertions.
  */
-export function assertCanonicalSchema<T extends z.ZodTypeAny>(
+export function assertCanonicalSchema<T extends z.ZodType>(
   schema: T,
   specFile: string,
   ref: string,
@@ -743,7 +743,7 @@ export function assertCanonicalSchema<T extends z.ZodTypeAny>(
  * OpenAPI JSON Schema component `ref` in `specFile`.
  */
 export function assertCanonicalSchemaRejects(
-  schema: z.ZodTypeAny,
+  schema: z.ZodType,
   specFile: string,
   ref: string,
   data: unknown,
