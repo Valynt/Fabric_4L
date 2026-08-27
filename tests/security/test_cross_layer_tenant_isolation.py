@@ -40,16 +40,19 @@ from uuid import uuid4
 import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
-from value_fabric.shared.error_handling import register_exception_handlers
-from value_fabric.shared.identity.context import RequestContext
-
 from layer1_ingestion.crawler.decision_store import (
     CrawlDecisionRecord,
     InMemoryCrawlDecisionRepository,
 )
+from layer2_extraction.integration.job_store import (
+    ExtractionArtifacts,
+    InMemoryJobStore,
+    PipelineJob,
+)
 from layer4_agents.api.routes import checkpoints
-from layer2_extraction.integration.job_store import ExtractionArtifacts, InMemoryJobStore, PipelineJob
 from layer6_benchmarks.repositories.benchmark_repository import BenchmarkRepository
+from value_fabric.shared.error_handling import register_exception_handlers
+from value_fabric.shared.identity.context import RequestContext
 
 pytestmark = [
     pytest.mark.security,
