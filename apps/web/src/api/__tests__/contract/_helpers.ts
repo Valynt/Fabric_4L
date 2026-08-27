@@ -355,7 +355,7 @@ export const WorkspaceTabResponseSchema = z
     );
     if (presentKeys.length !== 1) {
       ctx.addIssue({
-        code: "custom",
+        code: z.ZodIssueCode.custom,
         message:
           "Workspace tab response must contain exactly one tab payload key",
       });

@@ -588,6 +588,7 @@ class GraphRAGEngine:
                 WHERE node.tenant_id = $_tenant_id
                 RETURN node, score
             }
+            WHERE node.tenant_id = $_tenant_id
             RETURN node, score
             ORDER BY score DESC
             LIMIT $limit
