@@ -39350,45 +39350,51 @@
     },
     {
       "kind": "python-any",
-      "line": 16,
+      "line": 18,
       "path": "services/layer5-ground-truth/src/layer5_ground_truth/integration/layer3_client.py",
       "text": "from typing import Any"
     },
     {
       "kind": "python-any",
-      "line": 56,
+      "line": 58,
       "path": "services/layer5-ground-truth/src/layer5_ground_truth/integration/layer3_client.py",
       "text": "details: dict[str, Any] | None = None,"
     },
     {
       "kind": "python-any",
-      "line": 96,
+      "line": 98,
       "path": "services/layer5-ground-truth/src/layer5_ground_truth/integration/layer3_client.py",
       "text": "**extra: Any,"
     },
     {
       "kind": "python-any",
-      "line": 97,
+      "line": 99,
       "path": "services/layer5-ground-truth/src/layer5_ground_truth/integration/layer3_client.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 177,
+      "line": 179,
       "path": "services/layer5-ground-truth/src/layer5_ground_truth/integration/layer3_client.py",
       "text": "def get_breaker_state(self) -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 752,
+      "line": 817,
       "path": "services/layer5-ground-truth/src/layer5_ground_truth/integration/layer3_client.py",
       "text": ") -> dict[str, Any] | None:"
     },
     {
       "kind": "python-any",
-      "line": 881,
+      "line": 946,
       "path": "services/layer5-ground-truth/src/layer5_ground_truth/integration/layer3_client.py",
       "text": "truth_objects: list[dict[str, Any]],"
+    },
+    {
+      "kind": "python-any",
+      "line": 955,
+      "path": "services/layer5-ground-truth/src/layer5_ground_truth/integration/layer3_client.py",
+      "text": "async def _sync_one(obj: dict[str, Any]) -> tuple[str, str | None]:"
     },
     {
       "kind": "python-any",
@@ -39866,7 +39872,7 @@
     },
     {
       "kind": "python-type-ignore",
-      "line": 62,
+      "line": 77,
       "path": "services/layer5-ground-truth/tests/test_layer3_failure_modes.py",
       "text": "client._client = fake_post_client  # type: ignore[assignment]"
     },
