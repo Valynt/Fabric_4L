@@ -466,7 +466,7 @@ export function createErrorResponse(
 ): ErrorResponse | CanonicalError | { response: ErrorResponse; statusCode: number } {
   // Legacy signature path
   if (typeof arg2 === "string" && typeof arg3 === "string") {
-    const code = (error as any)?.code || "INTERNAL_ERROR";
+    const code = (error instanceof Error && "code" in error ? (error as Error & { code: string }).code : undefined) || "INTERNAL_ERROR";
     const statusCode = mapErrorCodeToStatus(code);
 
     return {
