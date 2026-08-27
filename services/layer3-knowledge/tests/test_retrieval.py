@@ -50,3 +50,30 @@ async def test_vector_store_error():
 
     with pytest.raises(VectorStoreError):
         raise VectorStoreError("Test error")
+
+
+def test_serialize_entity_strips_legacy_keys_and_sets_canonical():
+    """Test _serialize_entity converts legacy keys to canonical fields and strips legacy aliases."""
+    from src.retrieval.graph_rag import _serialize_entity
+
+    raw_node = {
+        "id": "node-1",
+        "label": "Old Label Name",
+        "type": "LegacyType",
+        "confidence": 0.95,
+        "relationship_type": "OLD_REL",
+        "custom_field": "val",
+    }
+
+    serialized = _serialize_entity(raw_node)
+
+    assert serialized["id"] == "node-1"
+    assert serialized["name"] == "Old Label Name"
+    assert serialized["entity_type"] == "LegacyType"
+    assert serialized["confidence_score"] == 0.95
+    assert serialized["custom_field"] == "val"
+
+    assert "label" not in serialized
+    assert "type" not in serialized
+    assert "confidence" not in serialized
+    assert "relationship_type" not in serialized
