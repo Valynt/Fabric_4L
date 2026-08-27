@@ -116,7 +116,7 @@ def _verify_svix_signature(
             key = b64decode(secret[len("whsec_") :])
         except Exception as exc:
             logger.exception(
-                "CLERK_WEBHOOK_SECRET base64 decode failed",
+                "CLERK_WEBHOOK_SIGNING_SECRET base64 decode failed",
                 operation="webhook_signature_verify",
                 error=str(exc),
             )

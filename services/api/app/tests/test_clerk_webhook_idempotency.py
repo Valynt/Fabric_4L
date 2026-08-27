@@ -3,7 +3,7 @@
 Covers:
 - Missing signature -> 401.
 - Invalid signature -> 401.
-- Disabled when CLERK_WEBHOOK_SECRET is unset.
+- Disabled when CLERK_WEBHOOK_SIGNING_SECRET is unset.
 - Idempotent: duplicate svix-id is a no-op.
 - Membership ordering: 409 when user/org event hasn't arrived yet.
 - Happy-path user/org/membership creation populates the directory.
@@ -29,7 +29,7 @@ def clerk_env(monkeypatch) -> Iterator[None]:
     monkeypatch.setenv("CLERK_ISSUER", "https://example.clerk.accounts.dev")
     monkeypatch.setenv("CLERK_JWT_AUDIENCE", "fabric4l-api")
     monkeypatch.setenv("CLERK_AUTHORIZED_PARTIES", "http://localhost:3001")
-    monkeypatch.setenv("CLERK_WEBHOOK_SECRET", "whsec_" + base64.b64encode(b"phase1-test-secret").decode())
+    monkeypatch.setenv("CLERK_WEBHOOK_SIGNING_SECRET", "whsec_" + base64.b64encode(b"phase1-test-secret").decode())
 
     # Ensure cached settings reflect the new env.
     from app.core import clerk_config
