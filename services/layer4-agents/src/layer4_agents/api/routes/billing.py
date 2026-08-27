@@ -40,8 +40,10 @@ from .billing_helpers import (
 from .billing_helpers import (
     get_client_ip as _get_client_ip,
 )
-from .billing_helpers import (
-    is_stripe_webhook_ip as _is_stripe_webhook_ip,  # noqa: F401  (referenced by webhook-security consistency tests)
+
+# re-exported for webhook-security consistency tests; unused within this module
+from .billing_helpers import (  # noqa: F401
+    is_stripe_webhook_ip as _is_stripe_webhook_ip,
 )
 from .billing_helpers import (
     serialize_charge as _serialize_charge,

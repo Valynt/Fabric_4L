@@ -74,6 +74,11 @@ class InMemoryJobStore:
         self._artifacts.pop(job_id, None)
 
     async def get_artifacts(self, job_id: str, *, tenant_id: str | None = None) -> ExtractionArtifacts | None:
+        if tenant_id is not None:
+            try:
+                await self.get_job(job_id, tenant_id=tenant_id)
+            except KeyError:
+                return None
         return self._artifacts.get(job_id)
 
     async def set_artifacts(self, job_id: str, artifacts: ExtractionArtifacts) -> None:
