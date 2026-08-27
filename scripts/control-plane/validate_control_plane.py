@@ -42,7 +42,7 @@ from pathlib import Path
 # ---------------------------------------------------------------------------
 
 try:
-    import yaml  # type: ignore
+    import yaml
 except ImportError:  # pragma: no cover - depends on environment
     print(
         "ERROR: PyYAML is required to parse control-plane YAML files.\n"
@@ -54,7 +54,7 @@ except ImportError:  # pragma: no cover - depends on environment
     sys.exit(2)
 
 try:
-    import jsonschema  # type: ignore
+    import jsonschema
 
     HAS_JSONSCHEMA = True
 except ImportError:  # pragma: no cover - depends on environment
