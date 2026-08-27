@@ -35,6 +35,9 @@ MARKERS: list[tuple[str, re.Pattern[str]]] = [
     ("test.only", re.compile(r"\btest\.only\s*\(")),
     ("describe.only", re.compile(r"\bdescribe\.only\s*\(")),
     ("it.only", re.compile(r"\bit\.only\s*\(")),
+    # pytest decorator markers (no source-scan regex; reconciled by nodeid).
+    ("flaky", re.compile(r"flaky-no-source-scan")),
+    ("quarantine", re.compile(r"quarantine-no-source-scan")),
 ]
 SUPPORTED_MARKERS = {name for name, _ in MARKERS}
 FORBIDDEN_MARKERS = {"test.only", "describe.only", "it.only"}
@@ -42,9 +45,15 @@ VALID_SEVERITIES = {"P0", "P1", "P2"}
 VALID_LAUNCH_GATES = {"mandatory", "optional", "excluded"}
 VALID_CLASSIFICATIONS = {
     "valid_environment_limitation", "temporary_bug_waiver", "obsolete_test",
-    "unacceptable_coverage_gap",
+    "unacceptable_coverage_gap", "quarantine",
 }
 VALID_DISPOSITIONS = {"retain", "remove", "repair", "replace_with_characterization"}
+FLAKY_MARKERS = {"flaky", "quarantine"}
+FLAKY_EXTRA_FIELDS = {
+    "nodeid", "introduced_or_detected_on", "issue", "failure_evidence",
+    "affected_gate", "retry_count", "status",
+}
+VALID_FLAKY_STATUSES = {"proposed", "active", "renewed", "resolved"}
 CRITICAL_PATH_PARTS = (
     "/security/", "tenant", "auth", "gateway", "/contract/", "golden",
     "persistence", "/release/", "certif",
@@ -167,6 +176,25 @@ def _load_register(path: Path, today: date) -> tuple[list[RegisterEntry], list[V
             continue
         if expires_on < today:
             violations.append(_violation("TDG111", f"registration expired on {expires_on}", entry_id=entry_id))
+        is_flaky = marker in FLAKY_MARKERS
+        if is_flaky:
+            missing_flaky = sorted(FLAKY_EXTRA_FIELDS - item.keys())
+            if missing_flaky:
+                violations.append(_violation(
+                    "TDG102",
+                    f"missing flaky quarantine fields: {', '.join(missing_flaky)}",
+                    entry_id=entry_id,
+                ))
+            status = str(item.get("status", ""))
+            if status not in VALID_FLAKY_STATUSES:
+                violations.append(_violation("TDG109", f"unknown flaky status: {status}", entry_id=entry_id))
+        if is_flaky and expires_on < today:
+            violations.append(_violation(
+                "TDG116",
+                f"flaky quarantine expired on {expires_on} for nodeid {item.get('nodeid', '?')}; "
+                "quarantine must be renewed or the test re-enabled",
+                entry_id=entry_id,
+            ))
         if due_on > expires_on:
             violations.append(_violation("TDG112", "remediation due date is after expiry", entry_id=entry_id))
         text_fields = (item["path_pattern"], item["reason_pattern"], item["owner"], item["reason"], remediation["ticket_id"], remediation["work_item"])
