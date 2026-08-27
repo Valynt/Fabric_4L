@@ -11,15 +11,15 @@ from __future__ import annotations
 
 import argparse
 import json
-import socket
 import sys
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Sequence
+from typing import Any
 
 import yaml
 
@@ -139,7 +139,7 @@ def _probe_once(spec: ServiceSpec) -> tuple[int | None, bool, bool]:
         # An HTTP error status is 'ok' in the network sense but we still validate
         # that the configured down/expected statuses are matched by the classifier.
         return exc.code, True, True
-    except (urllib.error.URLError, socket.timeout, TimeoutError, OSError, ValueError):
+    except (urllib.error.URLError, TimeoutError, OSError, ValueError):
         return None, False, False
 
 
