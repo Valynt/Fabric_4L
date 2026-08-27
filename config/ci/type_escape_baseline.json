@@ -23594,24 +23594,6 @@
     },
     {
       "kind": "python-any",
-      "line": 19,
-      "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/models.py",
-      "text": "from typing import Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 592,
-      "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/models.py",
-      "text": "git_metric_completeness: dict[str, Any] = Field("
-    },
-    {
-      "kind": "python-any",
-      "line": 600,
-      "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/models.py",
-      "text": "git_warnings: list[Any] = Field("
-    },
-    {
-      "kind": "python-any",
       "line": 24,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
       "text": "from typing import Any"
@@ -23758,7 +23740,19 @@
       "kind": "python-any",
       "line": 343,
       "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
+      "text": "def _git_metadata_to_json(scorecard: Scorecard) -> dict[str, Any]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 343,
+      "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
       "text": "def _scorecard_to_dict(scorecard: Scorecard, run_id: str) -> dict[str, Any]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 359,
+      "path": "services/layer4-agents/src/layer4_agents/agents/audit_orchestrator/persistence.py",
+      "text": "def _as_json_dict(value: Any) -> Any:"
     },
     {
       "kind": "python-any",
@@ -39128,6 +39122,12 @@
     },
     {
       "kind": "python-any",
+      "line": 760,
+      "path": "services/layer4-agents/tests/unit/test_audit_orchestrator_persistence.py",
+      "text": "sample_scorecard: Any,"
+    },
+    {
+      "kind": "python-any",
       "line": 5,
       "path": "services/layer4-agents/tests/unit/test_audit_orchestrator_reporter.py",
       "text": "from typing import Any"
@@ -39153,6 +39153,12 @@
     {
       "kind": "python-any",
       "line": 145,
+      "path": "services/layer4-agents/tests/unit/test_audit_orchestrator_reporter.py",
+      "text": "sample_scorecard: Any,"
+    },
+    {
+      "kind": "python-any",
+      "line": 167,
       "path": "services/layer4-agents/tests/unit/test_audit_orchestrator_reporter.py",
       "text": "sample_scorecard: Any,"
     },
