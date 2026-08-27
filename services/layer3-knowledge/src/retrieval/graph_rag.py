@@ -555,6 +555,7 @@ class GraphRAGEngine:
             query = """
             CALL db.index.fulltext.queryNodes($index_name, $query)
             YIELD node, score
+            WHERE node.tenant_id = $_tenant_id
             RETURN node, score
             LIMIT $limit
             """
@@ -579,6 +580,7 @@ class GraphRAGEngine:
                 CALL db.index.fulltext.queryNodes('valuedriver_fulltext', $query)
                 YIELD node, score RETURN node, score
             }
+            WHERE node.tenant_id = $_tenant_id
             RETURN node, score
             ORDER BY score DESC
             LIMIT $limit
