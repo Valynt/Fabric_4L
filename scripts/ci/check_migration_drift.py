@@ -42,7 +42,7 @@ SERVICES: tuple[ServiceMigrationCheck, ...] = (
         name="layer1-ingestion",
         service_dir=Path("services/layer1-ingestion"),
         config_path=Path("alembic.ini"),
-        metadata_module="src.shared.models",
+        metadata_module="layer1_ingestion.shared.models",
         metadata_attr="Base.metadata",
         env_urls=("DATABASE_URL",),
     ),
@@ -108,9 +108,7 @@ def _make_url(raw_url: str):
 def _postgres_sync_url(raw_url: str) -> str:
     url = _make_url(raw_url)
     drivername = url.drivername
-    if drivername.startswith("postgresql+"):
-        drivername = "postgresql+psycopg2"
-    elif drivername == "postgresql":
+    if drivername.startswith("postgresql+") or drivername == "postgresql":
         drivername = "postgresql+psycopg2"
     else:
         raise MigrationDriftError(f"Expected a PostgreSQL URL, got driver {url.drivername!r}")
@@ -239,9 +237,7 @@ def _isolated_modules(module_name: str) -> Iterator[None]:
 
 def _include_object(obj: Any, name: str | None, type_: str, reflected: bool, compare_to: Any) -> bool:
     del obj, reflected, compare_to
-    if type_ == "table" and name in IGNORED_TABLES:
-        return False
-    return True
+    return not (type_ == "table" and name in IGNORED_TABLES)
 
 
 def _format_diff(diff: Any) -> str:

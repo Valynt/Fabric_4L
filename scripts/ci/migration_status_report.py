@@ -44,7 +44,7 @@ ALEMBIC_SERVICES: tuple[MigrationService, ...] = (
         service_dir=Path("services/layer1-ingestion"),
         config_path=Path("alembic.ini"),
         versions_dir=Path("migrations/versions"),
-        metadata_module="src.shared.models",
+        metadata_module="layer1_ingestion.shared.models",
         default_database="ingestion",
         env_urls=("LAYER1_DATABASE_URL_SYNC", "LAYER1_DATABASE_URL", "DATABASE_URL"),
     ),
@@ -311,7 +311,10 @@ def compare_metadata(service: MigrationService, database_url: str) -> tuple[list
     except TypeError:
         # The imported helper expects its own dataclass type.
         try:
-            from scripts.ci.check_migration_drift import ServiceMigrationCheck, _compare_metadata
+            from scripts.ci.check_migration_drift import (
+                ServiceMigrationCheck,
+                _compare_metadata,
+            )
 
             drift_service = ServiceMigrationCheck(
                 name=service.name,

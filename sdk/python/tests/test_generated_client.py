@@ -11,6 +11,10 @@ from httpx import Response
 
 from valuefabric.generated import L3Client, L4Client
 from valuefabric.generated.l3 import SearchRequest, SearchResponse, SearchType
+from valuefabric.generated.l4 import (
+    AgentGovernanceMetadata,
+    AgentStreamRequest,
+)
 
 
 class TestL3Client:
@@ -162,6 +166,94 @@ class TestGeneratedModels:
         assert EntityType.Capability.value == "Capability"
         assert EntityType.UseCase.value == "UseCase"
         assert EntityType.Persona.value == "Persona"
+
+    def test_agent_stream_request_round_trips_journey_id(self) -> None:
+        """journey_id is accepted via the journeyId alias and round-trips."""
+        request = AgentStreamRequest.model_validate(
+            {
+                "messages": [{"role": "user", "content": "hello"}],
+                "activeTab": "signals",
+                "journeyId": "journey-123",
+            }
+        )
+
+        assert request.journey_id == "journey-123"
+        dumped = request.model_dump(mode="json", by_alias=True, exclude_none=True)
+        assert dumped["journeyId"] == "journey-123"
+
+    def test_agent_stream_request_journey_id_optional(self) -> None:
+        """journey_id is optional and unset by default (additive contract)."""
+        request = AgentStreamRequest.model_validate(
+            {
+                "messages": [{"role": "user", "content": "hello"}],
+                "activeTab": "signals",
+            }
+        )
+
+        assert request.journey_id is None
+
+    def test_agent_governance_metadata_carries_journey_id(self) -> None:
+        """AgentGovernanceMetadata surfaces the optional journey_id field."""
+        metadata = AgentGovernanceMetadata(
+            trace_id="trace-1",
+            workflow_id="wf-1",
+            tenant_id="tenant-1",
+            tool_name="valuepilot_conversation",
+            audit_event_id="audit-1",
+            emitted_at="2026-01-01T00:00:00Z",
+            journey_id="journey-123",
+        )
+
+        assert metadata.journey_id == "journey-123"
+        dumped = metadata.model_dump(mode="json", by_alias=True, exclude_none=True)
+        assert dumped["journey_id"] == "journey-123"
+
+    def test_agent_governance_metadata_round_trips_extended_fields(self) -> None:
+        """Extended optional governance fields serialize without silent drift."""
+        metadata = AgentGovernanceMetadata(
+            trace_id="trace-1",
+            workflow_id="wf-1",
+            tenant_id="tenant-1",
+            tool_name="valuepilot_conversation",
+            audit_event_id="audit-1",
+            emitted_at="2026-01-01T00:00:00Z",
+            journey_id="journey-123",
+            response_tier="full",
+            provider="mock",
+            fallback=True,
+            degraded=False,
+            degradation_reason="n/a",
+        )
+
+        assert metadata.response_tier == "full"
+        assert metadata.provider == "mock"
+        assert metadata.fallback is True
+        assert metadata.degraded is False
+        assert metadata.degradation_reason == "n/a"
+
+        dumped = metadata.model_dump(mode="json", by_alias=True, exclude_none=True)
+        assert dumped["response_tier"] == "full"
+        assert dumped["provider"] == "mock"
+        assert dumped["fallback"] is True
+        assert dumped["degraded"] is False
+        assert dumped["degradation_reason"] == "n/a"
+
+    def test_agent_governance_metadata_extended_fields_optional(self) -> None:
+        """Extended governance fields default to None (additive contract)."""
+        metadata = AgentGovernanceMetadata(
+            trace_id="trace-1",
+            workflow_id="wf-1",
+            tenant_id="tenant-1",
+            tool_name="valuepilot_conversation",
+            audit_event_id="audit-1",
+            emitted_at="2026-01-01T00:00:00Z",
+        )
+
+        assert metadata.response_tier is None
+        assert metadata.provider is None
+        assert metadata.fallback is None
+        assert metadata.degraded is None
+        assert metadata.degradation_reason is None
 
 
 def test_generated_client_wrappers_are_byte_stable(tmp_path: Path) -> None:
