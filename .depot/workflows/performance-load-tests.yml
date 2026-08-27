@@ -46,7 +46,11 @@ jobs:
         run: python3 scripts/ci/check_performance_workflow_auth_bypass.py .depot/workflows/performance-load-tests.yml
       - name: Start ephemeral stack
         run: |
-          cat > .env <<EOF
+          # Compose resolves its project directory (and thus .env interpolation +
+          # relative env_file paths) against the first -f file's directory,
+          # infra/compose/. Write the env file there so ${VAR:?...} required-var
+          # interpolation and the override's `env_file: - .env` both resolve.
+          cat > infra/compose/.env <<EOF
           POSTGRES_USER=valuefabric
           POSTGRES_PASSWORD=valuefabric
           OPENAI_API_KEY=${OPENAI_API_KEY:-sk-ci-test-key}
