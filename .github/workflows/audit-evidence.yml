@@ -48,7 +48,7 @@ jobs:
     timeout-minutes: 15
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0  # Full git history
 
@@ -81,7 +81,7 @@ jobs:
           EOF
 
       - name: Upload access control evidence
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: access-control-evidence
           path: audit-evidence/access-control/
@@ -96,7 +96,7 @@ jobs:
     timeout-minutes: 20
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
@@ -129,7 +129,7 @@ jobs:
           EOF
 
       - name: Upload change management evidence
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: change-management-evidence
           path: audit-evidence/change-management/
@@ -144,7 +144,7 @@ jobs:
     timeout-minutes: 20
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Collect security test evidence
         run: |
@@ -186,7 +186,7 @@ jobs:
           EOF
 
       - name: Upload security operations evidence
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: security-operations-evidence
           path: audit-evidence/security-operations/
@@ -201,7 +201,7 @@ jobs:
     timeout-minutes: 15
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Collect chaos engineering evidence
         run: |
@@ -250,7 +250,7 @@ jobs:
           EOF
 
       - name: Upload availability evidence
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: availability-evidence
           path: audit-evidence/availability/
@@ -265,7 +265,7 @@ jobs:
     timeout-minutes: 10
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Collect policy documents
         run: |
@@ -287,7 +287,7 @@ jobs:
           find audit-evidence/policies -type f -name "*.md" | sort > audit-evidence/policies/POLICY_MANIFEST.txt
 
       - name: Upload policy evidence
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: policy-evidence
           path: audit-evidence/policies/
@@ -304,10 +304,10 @@ jobs:
     timeout-minutes: 15
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Download all evidence artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           path: audit-evidence/
           merge-multiple: true
@@ -383,7 +383,7 @@ jobs:
           echo "Size: $(du -h audit-evidence-${{ github.run_id }}.tar.gz | cut -f1)"
 
       - name: Upload consolidated bundle
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: complete-audit-evidence-bundle
           path: |
@@ -418,7 +418,7 @@ jobs:
     timeout-minutes: 20
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
@@ -453,7 +453,7 @@ jobs:
           EOF
 
       - name: Upload automated evidence artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: automated-control-evidence
           path: audit-evidence/automated-controls/

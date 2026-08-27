@@ -17,7 +17,7 @@ jobs:
     name: Validate Required Status Checks
     runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Check branch protection rules
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

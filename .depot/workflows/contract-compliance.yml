@@ -79,11 +79,11 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
           python-version: "3.11"
       - name: Install Python OpenAPI export dependencies
@@ -93,11 +93,11 @@ jobs:
             opentelemetry-api opentelemetry-sdk opentelemetry-exporter-otlp-proto-http \
             opentelemetry-instrumentation opentelemetry-instrumentation-fastapi
       - name: Setup pnpm
-        uses: pnpm/action-setup@v3
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
         with:
           version: "10.18.1"
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
           node-version: "22.18.0"
           cache: "pnpm"
@@ -125,7 +125,7 @@ jobs:
           test -s artifacts/contract-breaking/openapi-breaking-report.json
           test -s artifacts/contract-breaking/openapi-breaking-report.md
       - name: Upload OpenAPI breaking-change report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
           name: openapi-breaking-change-report
@@ -143,13 +143,13 @@ jobs:
         working-directory: packages/eslint-plugin-fabric-contracts
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Setup pnpm
-        uses: pnpm/action-setup@v3
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
         with:
           version: "10.18.1"
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
           node-version: "22.18.0"
           cache: "pnpm"
@@ -176,9 +176,9 @@ jobs:
     runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
           python-version: "3.11"
       - name: Install dependencies
@@ -194,15 +194,15 @@ jobs:
     needs: [plugin-tests, validate-dependabot-coverage]
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
       - name: Setup pnpm
-        uses: pnpm/action-setup@v3
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
         with:
           version: "10.18.1"
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
           node-version: "22.18.0"
           cache: "pnpm"
@@ -231,7 +231,7 @@ jobs:
             --cache --cache-location .eslintcache \
             --format json --output-file eslint-report.json
       - name: Upload lint results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: failure()
         with:
           name: eslint-contract-violations
@@ -248,13 +248,13 @@ jobs:
     needs: plugin-tests
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Setup pnpm
-        uses: pnpm/action-setup@v3
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
         with:
           version: "10.18.1"
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
           node-version: "22.18.0"
           cache: "pnpm"
@@ -284,18 +284,18 @@ jobs:
     runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
           python-version: "3.11"
           cache: pip
       - name: Setup pnpm
-        uses: pnpm/action-setup@v3
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
         with:
           version: "10.18.1"
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
           node-version: "22.18.0"
           cache: "pnpm"
@@ -318,18 +318,18 @@ jobs:
       PYTHONPATH: packages/shared/src
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
           python-version: "3.11"
           cache: pip
       - name: Setup pnpm
-        uses: pnpm/action-setup@v3
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
         with:
           version: "10.18.1"
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
           node-version: "22.18.0"
       - name: Install Python gate dependencies
@@ -396,7 +396,7 @@ jobs:
           PYTHONPATH: "packages/shared/src"
         # NO continue-on-error: Tests must pass
       - name: Upload contract scan results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
           name: python-contract-scan
@@ -422,9 +422,9 @@ jobs:
             module: layer5_ground_truth.api.main
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
           python-version: "3.11"
       - name: Install dependencies
@@ -468,7 +468,7 @@ jobs:
               sys.exit(1)
           "
       - name: Upload generated spec
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: generated-openapi-${{matrix.layer}}
           path: services/${{matrix.layer}}/generated-openapi.json
@@ -484,9 +484,9 @@ jobs:
         layer: [layer3-knowledge, layer5-ground-truth]
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Download generated spec
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           name: generated-openapi-${{matrix.layer}}
           path: generated/
@@ -543,7 +543,7 @@ jobs:
             port: 8005
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Set up deterministic root test dependencies
         uses: ./.depot/actions/setup-fabric-ci
         with:
@@ -556,7 +556,7 @@ jobs:
         env:
           FAIL_ON_CONTRACT_VIOLATION: "true"
       - name: Upload test results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
           name: contract-test-results-${{matrix.layer}}
@@ -570,7 +570,7 @@ jobs:
     needs: contract-compliance
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Set up deterministic root test dependencies
         uses: ./.depot/actions/setup-fabric-ci
         with:
@@ -590,9 +590,9 @@ jobs:
     needs: [plugin-tests, lint-frontend, validate-canonical, platform-contract-tests, python-lint]
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
           node-version: "22.18.0"
       - name: Validate deprecations.json schema
@@ -626,13 +626,13 @@ jobs:
         run: |
           python3 scripts/report_deprecation_debt.py             --mode enforce             --thresholds docs/governance/deprecation-debt-registry.json             --output deprecation-debt-report-enforced.json
       - name: Upload deprecation report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
           name: deprecation-register
           path: docs/governance/deprecations.json
       - name: Upload deprecation debt reports
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
           name: deprecation-debt-reports
@@ -649,9 +649,9 @@ jobs:
     needs: [python-lint, lint-frontend]
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
           python-version: "3.11"
       - name: Install ripgrep
@@ -662,7 +662,7 @@ jobs:
           python scripts/ci/contract_scorecard.py --output contract-scorecard.json --gha-comment || true
           echo "score=$(python -c 'import json; print(json.load(open("contract-scorecard.json"))["overall_score"])')" >> $GITHUB_OUTPUT
       - name: Upload scorecard
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: contract-scorecard
           path: contract-scorecard.json
@@ -682,7 +682,7 @@ jobs:
     if: always()
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Generate summary
         run: "echo \"## Contract Compliance Report\" >> $GITHUB_STEP_SUMMARY\necho \"\" >> $GITHUB_STEP_SUMMARY\necho \"### Code Quality Checks\" >> $GITHUB_STEP_SUMMARY\necho \"| Job | Status |\" >> $GITHUB_STEP_SUMMARY\necho \"|-----|--------|\" >> $GITHUB_STEP_SUMMARY\necho \"| Plugin Tests | ${{needs.plugin-tests.result}} |\" >> $GITHUB_STEP_SUMMARY\necho \"| Contract Compliance + OpenAPI Breaking Gate | ${{needs.contract-compliance.result}} |\" >> $GITHUB_STEP_SUMMARY\necho \"| Validate Dependabot Coverage | ${{needs.validate-dependabot-coverage.result}} |\" >> $GITHUB_STEP_SUMMARY\necho \"| Lint Frontend | ${{needs.lint-frontend.result}} |\" >> $GITHUB_STEP_SUMMARY\necho \"| Validate Canonical | ${{needs.validate-canonical.result}} |\" >> $GITHUB_STEP_SUMMARY\necho \"| Platform Contract Tests | ${{needs.platform-contract-tests.result}} |\" >> $GITHUB_STEP_SUMMARY\necho \"| Python Lint | ${{needs.python-lint.result}} |\" >> $GITHUB_STEP_SUMMARY\necho \"| Deprecation Register | ${{needs.validate-deprecations.result}} |\" >> $GITHUB_STEP_SUMMARY\necho \"\" >> $GITHUB_STEP_SUMMARY\necho \"### OpenAPI Contract Checks\" >> $GITHUB_STEP_SUMMARY\necho \"| Job | Status |\" >> $GITHUB_STEP_SUMMARY\necho \"|-----|--------|\" >> $GITHUB_STEP_SUMMARY\necho \"| Generate OpenAPI | ${{needs.generate-openapi.result}} |\" >> $GITHUB_STEP_SUMMARY\necho \"| Detect Drift | ${{needs.detect-drift.result}} |\" >> $GITHUB_STEP_SUMMARY\necho \"| Contract Tests | ${{needs.openapi-contract-tests.result}} |\" >> $GITHUB_STEP_SUMMARY\necho \"| Contract Shape Regression | ${{needs.contract-shape-regression.result}} |\" >> $GITHUB_STEP_SUMMARY\necho \"| OpenAPI Breaking Changes | ${{needs.contract-compliance.result}} |\" >> $GITHUB_STEP_SUMMARY\necho \"\" >> $GITHUB_STEP_SUMMARY\necho \"### Contract Enforcement Status\" >> $GITHUB_STEP_SUMMARY\necho \"| Contract | ESLint | CI Gate | Runtime | Score |\" >> $GITHUB_STEP_SUMMARY\necho \"|----------|--------|---------|---------|-------|\" >> $GITHUB_STEP_SUMMARY\necho \"| §2.1 Tenant Context | error | ✅ BLOCKING | ✅ Fails Closed | 90%+ |\" >> $GITHUB_STEP_SUMMARY\necho \"| §2.2 DB Session | error | ✅ | \U0001F7E1 | 40% |\" >> $GITHUB_STEP_SUMMARY\necho \"| §2.3 Middleware Flow | error | ✅ | \U0001F7E1 | 50% |\" >> $GITHUB_STEP_SUMMARY\necho \"| §2.4 Tool Boundary | error | ✅ | \U0001F7E1 | 55% |\" >> $GITHUB_STEP_SUMMARY\necho \"| §2.5 Agent Output | error | ✅ | \U0001F7E1 | 50% |\" >> $GITHUB_STEP_SUMMARY\necho \"| §2.6 UI State | error | ✅ | \U0001F7E1 | 65% |\" >> $GITHUB_STEP_SUMMARY\necho \"\" >> $GITHUB_STEP_SUMMARY\necho \"### Sprint Progress\" >> $GITHUB_STEP_SUMMARY\necho \"- **Current Score**: ~58%\" >> $GITHUB_STEP_SUMMARY\necho \"- **Sprint Target**: 85-90%\" >> $GITHUB_STEP_SUMMARY\necho \"- **Target Date**: 2026-05-23\" >> $GITHUB_STEP_SUMMARY\necho \"\" >> $GITHUB_STEP_SUMMARY\necho \"### Enforced Rules\" >> $GITHUB_STEP_SUMMARY\necho \"- **Tenant Isolation**: no-tenant-id-parameter, no-req-tenant-access, no-raw-tenant-query\" >> $GITHUB_STEP_SUMMARY\necho \"- **Database Session**: no-explicit-db-connect\" >> $GITHUB_STEP_SUMMARY\necho \"- **Tool Invocation**: no-inline-middleware, no-inline-tool-definition, no-throw-in-tool\" >> $GITHUB_STEP_SUMMARY\necho \"- **LLM Output**: no-json-parse-agent-output\" >> $GITHUB_STEP_SUMMARY\necho \"- **UI State**: no-imperative-navigation, no-url-concatenation\" >> $GITHUB_STEP_SUMMARY\necho \"- **Public API**: no-private-imports, no-circular-dependencies\" >> $GITHUB_STEP_SUMMARY\necho \"- **OpenAPI Drift**: Auto-detection via spec comparison\" >> $GITHUB_STEP_SUMMARY\n"
   # ---------------------------------------------------------------------------
@@ -712,7 +712,7 @@ jobs:
       - validate-deprecations
       - contract-scorecard
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Summarize contract-compliance gates
         env:
           NEEDS_JSON: ${{ toJSON(needs) }}

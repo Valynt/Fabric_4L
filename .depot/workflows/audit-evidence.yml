@@ -48,7 +48,7 @@ jobs:
     runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0 # Full git history
       - name: Generate access control evidence
@@ -79,7 +79,7 @@ jobs:
           }
           EOF
       - name: Upload access control evidence
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: access-control-evidence
           path: audit-evidence/access-control/
@@ -92,7 +92,7 @@ jobs:
     runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
       - name: Generate commit history
@@ -123,7 +123,7 @@ jobs:
           }
           EOF
       - name: Upload change management evidence
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: change-management-evidence
           path: audit-evidence/change-management/
@@ -136,7 +136,7 @@ jobs:
     runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Collect security test evidence
         run: |
           mkdir -p audit-evidence/security-operations
@@ -176,7 +176,7 @@ jobs:
           }
           EOF
       - name: Upload security operations evidence
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: security-operations-evidence
           path: audit-evidence/security-operations/
@@ -189,7 +189,7 @@ jobs:
     runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Collect chaos engineering evidence
         run: |
           mkdir -p audit-evidence/availability
@@ -236,7 +236,7 @@ jobs:
           }
           EOF
       - name: Upload availability evidence
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: availability-evidence
           path: audit-evidence/availability/
@@ -249,7 +249,7 @@ jobs:
     runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Collect policy documents
         run: |
           mkdir -p audit-evidence/policies
@@ -269,7 +269,7 @@ jobs:
           # List collected policies
           find audit-evidence/policies -type f -name "*.md" | sort > audit-evidence/policies/POLICY_MANIFEST.txt
       - name: Upload policy evidence
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: policy-evidence
           path: audit-evidence/policies/
@@ -284,9 +284,9 @@ jobs:
     if: always()
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Download all evidence artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           path: audit-evidence/
           merge-multiple: true
@@ -359,7 +359,7 @@ jobs:
           echo "Archive created: audit-evidence-${{ github.run_id }}.tar.gz"
           echo "Size: $(du -h audit-evidence-${{ github.run_id }}.tar.gz | cut -f1)"
       - name: Upload consolidated bundle
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: complete-audit-evidence-bundle
           path: |
@@ -373,7 +373,7 @@ jobs:
     runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
       - name: Generate sanitized CI/CD control artifacts
@@ -406,7 +406,7 @@ jobs:
           }
           EOF
       - name: Upload automated evidence artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: automated-control-evidence
           path: audit-evidence/automated-controls/

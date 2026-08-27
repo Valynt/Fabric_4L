@@ -54,7 +54,7 @@ jobs:
     runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Configure kubectl
         uses: azure/setup-kubectl@v3
         with:
@@ -91,7 +91,7 @@ jobs:
           }
           EOF
       - name: Upload baseline
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: pre-chaos-health
           path: chaos-results/pre-chaos-health.json
@@ -106,7 +106,7 @@ jobs:
     timeout-minutes: 20
     if: github.event.inputs.experiment == 'all' || github.event.inputs.experiment == 'pod-delete' || github.event_name == 'schedule' || github.event_name == 'workflow_call'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install Litmus CLI
         run: |
           curl -sL https://github.com/litmuschaos/litmusctl/releases/latest/download/litmusctl-linux-amd64 -o /tmp/litmusctl
@@ -129,7 +129,7 @@ jobs:
           kubectl get chaosresults -n ${{ env.TARGET_NAMESPACE }} -o yaml > chaos-results/pod-delete/chaosresults.yaml || true
           kubectl describe chaosengine pod-delete-all-layers -n ${{ env.TARGET_NAMESPACE }} > chaos-results/pod-delete/engine-describe.txt || true
       - name: Upload results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: chaos-pod-delete-results
           path: chaos-results/pod-delete/
@@ -144,7 +144,7 @@ jobs:
     timeout-minutes: 15
     if: github.event.inputs.experiment == 'all' || github.event.inputs.experiment == 'network-partition' || github.event_name == 'schedule' || github.event_name == 'workflow_call'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Apply Network Partition Experiment
         run: |
           kubectl apply -f k8s/chaos/litmus-experiments/network-partition-l3-l4.yaml -n ${{ env.TARGET_NAMESPACE }} || true
@@ -156,7 +156,7 @@ jobs:
           mkdir -p chaos-results/network-partition
           kubectl get chaosresults -n ${{ env.TARGET_NAMESPACE }} -o yaml > chaos-results/network-partition/chaosresults.yaml || true
       - name: Upload results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: chaos-network-partition-results
           path: chaos-results/network-partition/
@@ -180,7 +180,7 @@ jobs:
           - stress_type: memory
             experiment_file: memory-stress-l2.yaml
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Apply ${{ matrix.stress_type }} stress experiment
         run: |
           kubectl apply -f k8s/chaos/litmus-experiments/${{ matrix.experiment_file }} -n ${{ env.TARGET_NAMESPACE }} || true
@@ -192,7 +192,7 @@ jobs:
           mkdir -p chaos-results/${{ matrix.stress_type }}-stress
           kubectl get chaosresults -n ${{ env.TARGET_NAMESPACE }} -o yaml > chaos-results/${{ matrix.stress_type }}-stress/chaosresults.yaml || true
       - name: Upload results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: chaos-${{ matrix.stress_type }}-stress-results
           path: chaos-results/${{ matrix.stress_type }}-stress/
@@ -207,7 +207,7 @@ jobs:
     timeout-minutes: 20
     if: github.event.inputs.experiment == 'all' || github.event.inputs.experiment == 'autoscaler' || github.event_name == 'schedule' || github.event_name == 'workflow_call'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Apply autoscaler experiment
         run: |
           kubectl apply -f k8s/chaos/litmus-experiments/pod-autoscaler-l1.yaml -n ${{ env.TARGET_NAMESPACE }} || true
@@ -220,7 +220,7 @@ jobs:
           kubectl get chaosresults -n ${{ env.TARGET_NAMESPACE }} -o yaml > chaos-results/autoscaler/chaosresults.yaml || true
           kubectl get hpa -n ${{ env.TARGET_NAMESPACE }} > chaos-results/autoscaler/hpa-status.txt || true
       - name: Upload results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: chaos-autoscaler-results
           path: chaos-results/autoscaler/
@@ -235,7 +235,7 @@ jobs:
     if: always()
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install Python dependencies
         run: |
           pip install aiohttp pytest asyncio
@@ -270,7 +270,7 @@ jobs:
           }
           EOF
       - name: Upload validation results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: chaos-validation-report
           path: chaos-results/

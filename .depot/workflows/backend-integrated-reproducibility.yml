@@ -38,7 +38,7 @@ jobs:
     timeout-minutes: 75
     steps:
       - name: Check out release candidate
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.release_candidate_sha }}
       # once Infisical project is fully populated and CI validation passes.
@@ -71,7 +71,7 @@ jobs:
           identity-id: ${{ secrets.INFISICAL_IDENTITY_ID }}
           secret-path: /ci
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
           python-version: "3.11"
       - name: Install Python validation dependencies
@@ -79,11 +79,11 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install PyYAML
       - name: Setup pnpm
-        uses: pnpm/action-setup@v3
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
         with:
           version: "10.18.1"
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
           node-version: "22.18.0"
           cache: "pnpm"
@@ -170,7 +170,7 @@ jobs:
             logs --no-color > artifacts/live-workflow-validation/logs/docker-compose.log 2>&1
       - name: Upload reproducibility evidence artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: backend-integrated-reproducibility-evidence-${{ github.run_id }}
           path: artifacts/live-workflow-validation/**

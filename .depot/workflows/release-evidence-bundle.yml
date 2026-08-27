@@ -46,9 +46,9 @@ jobs:
     name: Release readiness gate (observability + deployment)
     runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
           python-version: "3.11"
       - name: Install test dependencies
@@ -65,7 +65,7 @@ jobs:
       - name: Verify release safety artifact
         run: test -s artifacts/release/release-safety.json
       - name: Upload release safety artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: release-safety
           path: artifacts/release/release-safety.json
@@ -83,7 +83,7 @@ jobs:
           - layer5-ground-truth
           - layer6-benchmarks
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Resolve security mode
         id: mode
         run: |
@@ -160,7 +160,7 @@ jobs:
             --output-signature sbom-${{ matrix.service }}-${{ github.sha }}.cdx.json.sig \
             --output-certificate sbom-${{ matrix.service }}-${{ github.sha }}.cdx.json.crt
       - name: Upload scan artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: scan-${{ matrix.service }}-${{ github.sha }}
           path: |
@@ -173,9 +173,9 @@ jobs:
     runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
     needs: [build-and-scan]
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Download image security artifacts
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           pattern: scan-*-${{ github.sha }}
           path: artifacts
@@ -190,13 +190,13 @@ jobs:
     name: SAST & Security E2E
     runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
           python-version: "3.11"
       - name: Install uv
-        uses: astral-sh/setup-uv@caf0cab7a618c569241d31dcd442f54681755d39 # v3
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
       - name: Bandit SAST
         run: |
           uv pip install --system bandit[toml]
@@ -232,7 +232,7 @@ jobs:
           pytest tests/security/test_prompt_injection.py tests/security/test_refusal_behavior.py -v \
             --junitxml=prompt-injection-tests.xml
       - name: Upload SAST & test artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: sast-and-tests
           path: |
@@ -243,7 +243,7 @@ jobs:
     name: Live stack health evidence
     runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Start backend stack
         run: |
           docker compose -f infra/compose/docker-compose.backend-integrated.yml up -d --build
@@ -260,7 +260,7 @@ jobs:
           rules_file_name: ".zap/rules.tsv"
           cmd_options: "-a"
       - name: Upload live evidence
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: live-evidence
           path: |
@@ -272,9 +272,9 @@ jobs:
     runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
     needs: [release-readiness-gate, build-and-scan, supply-chain-policy-check, sast-and-tests, live-stack-evidence]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           path: artifacts
           merge-multiple: false
@@ -298,7 +298,7 @@ jobs:
           subject-path: ${{ steps.bundle.outputs.path }}
       - name: Upload release-candidate evidence bundle artifact
         if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/') || startsWith(github.ref, 'refs/tags/v'))
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: evidence-bundle-${{ github.sha }}
           path: ${{ steps.bundle.outputs.path }}
@@ -319,7 +319,7 @@ jobs:
             - OWASP ZAP baseline report
       - name: Upload release candidate evidence bundle artifact
         if: github.event_name != 'push' || !startsWith(github.ref, 'refs/tags/v')
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: evidence-bundle-${{ github.sha }}
           path: |
@@ -343,7 +343,7 @@ jobs:
       - live-stack-evidence
       - consolidate-bundle
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Summarize release-evidence gates
         env:
           NEEDS_JSON: ${{ toJSON(needs) }}

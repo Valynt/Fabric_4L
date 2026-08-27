@@ -54,9 +54,9 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
           python-version: '3.11'
       - name: Install PyYAML
@@ -80,7 +80,7 @@ jobs:
           script: "const fs = require('fs');\nlet report;\ntry {\n  report = JSON.parse(fs.readFileSync('artifacts/repo-hygiene.json', 'utf8'));\n} catch (e) {\n  report = { passed: false, errors: 1, warnings: 0, violations: [] };\n}\nconst lines = [\n  '## \U0001F9F9 Repository Hygiene Check Failed',\n  '',\n  `**Errors:** ${report.errors}  |  **Warnings:** ${report.warnings}`,\n  '',\n  'Active workflows, Dependabot, CODEOWNERS, or monitoring rules reference deleted or obsolete directories.',\n  '',\n  '### Violations',\n  ...report.violations\n    .filter(v => v.severity === 'error')\n    .map(v => `- **${v.file}:${v.line}** — ${v.message}`),\n  '',\n  '> See \\_canonical-paths.yaml\\_ for the canonical layout manifest and migration guidance.'\n];\nawait github.rest.issues.createComment({\n  issue_number: context.issue.number,\n  owner: context.repo.owner,\n  repo: context.repo.repo,\n  body: lines.join('\\n')\n});\n"
       - name: Upload hygiene report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: repo-hygiene-report
           path: artifacts/repo-hygiene.json

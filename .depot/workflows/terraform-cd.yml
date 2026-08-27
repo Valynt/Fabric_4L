@@ -29,7 +29,7 @@ jobs:
     runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Check required AWS/GitHub configuration
         run: python scripts/ci/check_terraform_preflight.py
         env:
@@ -42,7 +42,7 @@ jobs:
     timeout-minutes: 5
     needs: terraform-preflight
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: hashicorp/setup-terraform@651471c36a6092792477d4013f5ca1e78f20c8a6 # v3
         with:
           terraform_version: "1.7.0"
@@ -57,7 +57,7 @@ jobs:
       matrix:
         environment: [dev, staging, prod]
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: hashicorp/setup-terraform@651471c36a6092792477d4013f5ca1e78f20c8a6 # v3
         with:
           terraform_version: "1.7.0"
@@ -78,7 +78,7 @@ jobs:
     timeout-minutes: 10
     needs: terraform-fmt
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Setup TFLint
         uses: terraform-linters/setup-tflint@90f302c25522c0652db0947a11a739e52b255ae6 # v4
         with:
@@ -98,7 +98,7 @@ jobs:
       matrix:
         environment: [dev, staging, prod]
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: hashicorp/setup-terraform@651471c36a6092792477d4013f5ca1e78f20c8a6 # v3
         with:
           terraform_version: "1.7.0"
@@ -114,7 +114,7 @@ jobs:
         working-directory: infra/terraform/environments/${{ matrix.environment }}
         run: terraform plan -out=tfplan-${{ matrix.environment }}
       - name: Upload plan artifact
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: tfplan-${{ matrix.environment }}
           path: infra/terraform/environments/${{ matrix.environment }}/tfplan-${{ matrix.environment }}
@@ -124,7 +124,7 @@ jobs:
     timeout-minutes: 10
     needs: [terraform-preflight, terraform-fmt]
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: bridgecrewio/checkov-action@a5705f60b63b828a3459c359562e3a3236f746f0 # v12
         with:
           directory: infra/terraform

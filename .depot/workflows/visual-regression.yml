@@ -65,13 +65,13 @@ jobs:
       VITE_ENABLE_MOCK_AUTH: "true"
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Setup pnpm
-        uses: pnpm/action-setup@v3
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
         with:
           version: ${{ env.PNPM_VERSION }}
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: "pnpm"
@@ -80,7 +80,7 @@ jobs:
       - name: Build production bundle
         run: pnpm --filter ./apps/web run build
       - name: Upload build artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: web-build
           path: apps/web/dist
@@ -99,13 +99,13 @@ jobs:
         shard: [1/1]
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Setup pnpm
-        uses: pnpm/action-setup@v3
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
         with:
           version: ${{ env.PNPM_VERSION }}
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: "pnpm"
@@ -115,7 +115,7 @@ jobs:
         run: pnpm exec playwright install --with-deps chromium
         working-directory: apps/web
       - name: Download build artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           name: web-build
           path: apps/web/dist
@@ -147,7 +147,7 @@ jobs:
         working-directory: apps/web
         continue-on-error: true
       - name: Upload test results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
           name: playwright-report-${{ matrix.project }}
@@ -156,7 +156,7 @@ jobs:
             apps/web/test-results/
           retention-days: 7
       - name: Upload failed screenshots
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: steps.visual_test.outcome == 'failure'
         with:
           name: visual-diff-${{ matrix.project }}
@@ -166,7 +166,7 @@ jobs:
             apps/web/e2e/visual/**/*.expected.png
           retention-days: 7
       - name: Upload generated baseline screenshots
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: github.event_name == 'workflow_dispatch' && inputs.update_snapshots
         with:
           name: visual-baselines-${{ matrix.project }}
@@ -188,7 +188,7 @@ jobs:
       pull-requests: write # Updates the pull request with visual regression results.
     steps:
       - name: Download all test artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           path: artifacts
       - name: Summarize results

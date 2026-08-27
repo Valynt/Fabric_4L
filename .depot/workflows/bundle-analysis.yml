@@ -60,12 +60,12 @@ jobs:
     steps:
       - name: Checkout (PR)
         if: github.event_name == 'pull_request'
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.pull_request.head.sha }}
       - name: Checkout (main)
         if: github.event_name == 'push'
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Setup Node.js + pnpm
         uses: ./.depot/actions/setup-pnpm
         with:
@@ -117,13 +117,13 @@ jobs:
           mkdir -p .bundle-stats
           cp apps/web/dist/stats.json .bundle-stats/stats.json
       - name: Upload stats.json artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: bundle-stats
           path: .bundle-stats/stats.json
           retention-days: 30
       - name: Upload build artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: web-build-bundle
           path: apps/web/dist
@@ -141,11 +141,11 @@ jobs:
       pull-requests: write # Updates the pull request with the bundle-size report.
     steps:
       - name: Checkout PR
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.pull_request.head.sha }}
       - name: Download PR stats
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           name: bundle-stats
           path: artifacts/pr
@@ -159,7 +159,7 @@ jobs:
           path: artifacts/main
           if_no_artifact_found: warn
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
           node-version: ${{ env.NODE_VERSION }}
       - name: Run bundle analyzer
@@ -173,7 +173,7 @@ jobs:
             --verbose
         continue-on-error: true
       - name: Upload analysis results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: bundle-analysis
           path: artifacts/bundle-comment.md

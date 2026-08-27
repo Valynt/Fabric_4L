@@ -68,7 +68,7 @@ jobs:
       should_run_evals: ${{ steps.discover.outputs.should_run }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0 # Need full history for diff
       - name: Discover changed skills
@@ -120,9 +120,9 @@ jobs:
     if: needs.discover-skills.outputs.should_run_evals == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
           python-version: "3.11"
           cache: "pip"
@@ -184,9 +184,9 @@ jobs:
         skill: ${{ fromJson(needs.discover-skills.outputs.changed_skills) }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
           python-version: "3.11"
       # once Infisical project is fully populated and CI validation passes.
@@ -209,7 +209,7 @@ jobs:
       - name: Run evaluation for ${{ matrix.skill }}
         run: "SKILL_NAME=\"${{ matrix.skill }}\"\nEVAL_FILE=\"tests/evals/test_${SKILL_NAME}.py\"\n\nif [ -f \"$EVAL_FILE\" ]; then\n  echo \"\U0001F9EA Running evaluation: $EVAL_FILE\"\n  pytest \"$EVAL_FILE\" \\\n    -v \\\n    --tb=short \\\n    --json-report \\\n    --json-report-file=\"eval-${SKILL_NAME}.json\"\nelse\n  echo \"⚠️ No evaluation found for $SKILL_NAME at $EVAL_FILE\"\n  echo \"Running generic skill validation...\"\n\n  # Run basic skill validation\n  python3 << 'EOF'\nimport sys\nsys.path.insert(0, 'services/layer4-agents/src')\n\nskill_name = \"${{ matrix.skill }}\"\n\ntry:\n    # Try to import and validate the skill\n    from layer4_agents.tools import ToolRegistry\n\n    print(f\"Validating skill: {skill_name}\")\n\n    # Check if skill is registered\n    registry = ToolRegistry()\n\n    if skill_name in registry.list_tools():\n        print(f\"✅ Skill '{skill_name}' is properly registered\")\n\n        # Validate skill schema\n        tool = registry.get_tool(skill_name)\n        if tool and hasattr(tool, 'schema'):\n            print(f\"✅ Skill has valid schema\")\n\n            # Check required fields\n            schema = tool.schema\n            required_fields = ['name', 'description', 'parameters']\n            missing = [f for f in required_fields if f not in schema]\n\n            if missing:\n                print(f\"❌ Schema missing fields: {missing}\")\n                sys.exit(1)\n            else:\n                print(f\"✅ All required schema fields present\")\n        else:\n            print(f\"⚠️ Skill has no schema defined\")\n    else:\n        print(f\"❌ Skill '{skill_name}' not found in registry\")\n        sys.exit(1)\n\nexcept Exception as e:\n    print(f\"❌ Validation error: {e}\")\n    sys.exit(1)\n\nprint(\"✅ Basic skill validation passed\")\nEOF\nfi\n"
       - name: Upload evaluation results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: eval-results-${{ matrix.skill }}
           path: eval-*.json
@@ -228,9 +228,9 @@ jobs:
         agent: ${{ fromJson(needs.discover-skills.outputs.changed_agents) }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
           python-version: "3.11"
       - name: Install dependencies
@@ -261,9 +261,9 @@ jobs:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
           python-version: "3.11"
       - name: Install dependencies
@@ -298,7 +298,7 @@ jobs:
     if: github.event.inputs.baseline_comparison == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
       - name: Get baseline results
@@ -326,7 +326,7 @@ jobs:
       total_tests: ${{ steps.aggregate.outputs.total_tests }}
     steps:
       - name: Download all evaluation results
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           pattern: eval-results-*
           merge-multiple: true
@@ -447,7 +447,7 @@ jobs:
         with:
           script: "const fs = require('fs');\n\nlet summary = fs.existsSync('eval-summary.json')\n  ? JSON.parse(fs.readFileSync('eval-summary.json'))\n  : { skills_evaluated: 0, overall_pass_rate: 0 };\n\nconst passRate = (summary.overall_pass_rate * 100).toFixed(1);\nconst passed = summary.skills_failed === 0;\n\nlet body = `## \U0001F916 AI Evaluation Results\\n\\n`;\nbody += `**Status:** ${passed ? '✅ PASSED' : '❌ FAILED'}\\n\\n`;\nbody += `| Metric | Value |\\n`;\nbody += `|--------|-------|\\n`;\nbody += `| Skills Evaluated | ${summary.skills_evaluated} |\\n`;\nbody += `| Tests Run | ${summary.total_tests || 0} |\\n`;\nbody += `| Pass Rate | ${passRate}% |\\n`;\nbody += `| Threshold | 85.0% |\\n\\n`;\n\nif (summary.details && summary.details.length > 0) {\n  body += `### Per-Skill Results\\n\\n`;\n  body += `| Skill | Status | Pass Rate |\\n`;\n  body += `|-------|--------|-----------|\\n`;\n\n  summary.details.forEach(detail => {\n    const rate = (detail.pass_rate * 100).toFixed(0);\n    body += `| ${detail.skill} | ${detail.status} | ${rate}% |\\n`;\n  });\n\n  body += `\\n`;\n}\n\nif (!passed) {\n  body += `### ⚠️ Action Required\\n\\n`;\n  body += `Some evaluations failed. Review the [workflow logs](${\n    context.payload.pull_request.html_url\n  }/checks) for details.\\n\\n`;\n  body += `Failed skills must be fixed before deployment.\\n`;\n} else {\n  body += `✅ All AI evaluations passed. Changes are safe to deploy.\\n`;\n}\n\n// Find or create comment\nconst { data: comments } = await github.rest.issues.listComments({\n  owner: context.repo.owner,\n  repo: context.repo.repo,\n  issue_number: context.issue.number\n});\n\nconst botComment = comments.find(comment =>\n  comment.user.type === 'Bot' &&\n  comment.body.includes('AI Evaluation Results')\n);\n\nif (botComment) {\n  await github.rest.issues.updateComment({\n    owner: context.repo.owner,\n    repo: context.repo.repo,\n    comment_id: botComment.id,\n    body: body\n  });\n} else {\n  await github.rest.issues.createComment({\n    owner: context.repo.owner,\n    repo: context.repo.repo,\n    issue_number: context.issue.number,\n    body: body\n  });\n}\n"
       - name: Upload summary
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: eval-summary
           path: eval-summary.json
@@ -502,9 +502,9 @@ jobs:
     if: github.ref == 'refs/heads/main' && needs.aggregate-results.outputs.passed == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Download evaluation results
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           pattern: eval-*
           merge-multiple: true

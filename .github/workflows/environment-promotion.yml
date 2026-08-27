@@ -58,7 +58,7 @@ jobs:
     steps:
       - name: Download build metadata artifacts
         if: github.event_name != 'workflow_dispatch'
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           pattern: build-metadata-*
           path: artifacts/build-metadata
@@ -161,7 +161,7 @@ jobs:
       url: https://dev.fabric.internal
     steps:
       - name: Checkout repository
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup kustomize
         uses: imranismail/setup-kustomize@2ba527d4d055ab63514ba50a99456fc35684947f # v2
@@ -252,7 +252,7 @@ jobs:
     needs: [validate-build, deploy-dev]
     steps:
       - name: Checkout repository
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
@@ -409,7 +409,7 @@ jobs:
       url: https://fabric.internal
     steps:
       - name: Checkout repository
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Block placeholder image digests (prod)
         run: bash scripts/check-no-placeholder-digests.sh k8s/envs/prod/kustomization.yaml
