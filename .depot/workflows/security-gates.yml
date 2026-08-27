@@ -502,7 +502,10 @@ jobs:
           results_file: scorecard-results.sarif
           results_format: sarif
           repo_token: ${{secrets.GITHUB_TOKEN}}
-          publish_results: true
+          # publish_results=false: OSSF workflow verification refuses this
+          # workflow because it declares global env vars/defaults (scorecard
+          # requires none). SARIF still uploads to code scanning below.
+          publish_results: false
       - name: Verify Scorecard SARIF artifact
         if: always()
         run: test -s scorecard-results.sarif
