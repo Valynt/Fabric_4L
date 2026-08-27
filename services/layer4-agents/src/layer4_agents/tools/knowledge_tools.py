@@ -12,6 +12,7 @@ from uuid import UUID
 from neo4j import AsyncGraphDatabase
 
 from ..config.settings import get_settings
+from ..models.embedding_space import resolve_embedding_space
 from ..models.tool_schemas import (
     FindPathsInput,
     FindPathsOutput,
@@ -290,22 +291,21 @@ class SemanticSearchTool(BaseTool):
     def __init__(self, config: dict[str, Any] | None = None):
         super().__init__(config)
         self.vector_store_url = config.get("vector_store_url") if config else None
-        # Default embedding model is provider-dependent.
-        # Together.ai uses "togethercomputer/m2-bert-80M-8k-retrieval";
-        # OpenAI uses "text-embedding-3-large".
-        _default_provider = (
-            os.getenv("LAYER4_LLM_PROVIDER")
-            or (config.get("llm_provider") if config else None)
-            or "together"
-        ).lower()
-        _default_embedding = (
-            "togethercomputer/m2-bert-80M-8k-retrieval"
-            if _default_provider == "together"
-            else "text-embedding-3-large"
-        )
-        self.embedding_model = (
-            config.get("embedding_model", _default_embedding) if config else _default_embedding
-        )
+        # Resolve the embedding space declaratively from an explicit space name,
+        # provider, or the ambient LAYER4_LLM_PROVIDER. Anthropic falls back to
+        # an approved embedding provider (together), never failing at runtime.
+        space_name = config.get("embedding_space") if config else None
+        configured_model = config.get("embedding_model") if config else None
+        configured_provider = config.get("llm_provider") if config else None
+
+        if space_name:
+            self.embedding_space = resolve_embedding_space(space_name=space_name)
+        else:
+            self.embedding_space = resolve_embedding_space(
+                provider=(configured_provider or os.getenv("LAYER4_LLM_PROVIDER"))
+            )
+
+        self.embedding_model = configured_model or self.embedding_space.model
         self.pinecone_api_key = config.get("pinecone_api_key") if config else None
         self.pinecone_index = (
             config.get("pinecone_index", "value-fabric") if config else "value-fabric"
@@ -333,8 +333,12 @@ class SemanticSearchTool(BaseTool):
         return self._index
 
     async def _get_embedding(self, text: str) -> list[float]:
-        """Get embedding for text using OpenAI."""
-        response = await get_llm_provider(self.config).embed(
+        """Get embedding for text using the resolved EmbeddingSpace provider."""
+        provider_config = dict(self.config) if self.config else {}
+        if provider_config.get("llm_provider", "").lower() in ("anthropic", ""):
+            provider_config["llm_provider"] = self.embedding_space.provider
+
+        response = await get_llm_provider(provider_config).embed(
             model=self.embedding_model,
             text=text,
         )
@@ -382,8 +386,8 @@ class SemanticSearchTool(BaseTool):
                     error="Pinecone API key required for semantic search",
                 )
 
-            # P0 FIX: Build filter with mandatory tenant isolation
-            filter_dict: dict[str, Any] = {"tenant_id": str(tenant_ctx.tenant_id)}
+
+            filter_dict = {"tenant_id": str(tenant_ctx.tenant_id)}
             if input_data.entity_types:
                 filter_dict["entity_type"] = {"$in": input_data.entity_types}
 
