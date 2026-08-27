@@ -99,7 +99,7 @@ def settings(neo4j_bolt_url):
 @pytest_asyncio.fixture(scope="session")
 async def driver(settings):
     """Shared async Neo4j driver for the test session."""
-    from src.db.driver import get_driver, reset_driver
+    from db.driver import get_driver, reset_driver
 
     drv = await get_driver(settings)
     yield drv
@@ -129,7 +129,7 @@ async def test_driver_verify_connectivity(settings):
     """get_driver should raise on bad credentials, not hang."""
     from neo4j.exceptions import AuthError, ServiceUnavailable
 
-    from src.db.driver import get_driver, reset_driver
+    from db.driver import get_driver, reset_driver
 
     bad_settings = settings.model_copy(update={"neo4j_password": "wrongpassword"})
     with pytest.raises((AuthError, ServiceUnavailable, Exception)):
