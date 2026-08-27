@@ -22,8 +22,8 @@ This registry tracks **runtime** compatibility wrappers/shims that exist to pres
 
 ## Review Cadence
 
-- **Last reviewed:** 2026-06-16 (updated for unified compatibility gate inventory and shim/deprecation runner rollout)
-- **Next review due:** 2026-07-16
+- **Last reviewed:** 2026-08-27 (billing consolidation; registered `services/billing` legacy package)
+- **Next review due:** 2026-09-27
 - **Review owner:** Platform Architecture
 
 ## Compatibility Gate Inventory
@@ -131,6 +131,7 @@ Phase 1 subcommands. Existing standalone checks remain supported and are invoked
 | COMPAT-L4-004 | `services/layer4-agents/src/layer4_agents/api/routes/frontend_compat.py` | Package mirror route shim | layer4-agents | Mirrors frontend compatibility route for callers using the `layer4_agents` package path while consolidation remains in progress. | 2026-08-31 | Platform Architecture approved 2026-06-16; reviewed 2026-06-16. | PLATARCH-REMOVE-L4-004 |
 | ~~COMPAT-L4-002~~ | ~~`value_fabric/layer4/billing/`~~ | ~~Canonical runtime shim~~ | ~~layer4-agents~~ | ~~Re-exports billing domain from the Layer 4 monolith during extraction.~~ **Removed/archived:** root `value_fabric/` directory no longer exists; canonical deployable billing behavior is `services/layer7-billing/`. | ~~2026-09-30~~ | Reviewed 2026-08-22 — path absent. | ~~PLATARCH-REMOVE-L4-002~~ |
 | COMPAT-L4-003 | `services/layer4-agents/src/layer4_agents/api/routes/billing.py` | Service proxy shim | layer4-agents | Existing L4 billing routes are thin forwarding shims to Layer 7 billing during caller migration. Removal target when all callers migrate directly to `services/layer7-billing/`. | 2026-10-31 | Platform Architecture approved 2026-05-22; reviewed 2026-06-05 for S3-4 billing consolidation. | PLATARCH-REMOVE-L4-003 |
+| COMPAT-BILL-001 | `services/billing/` | Legacy non-deployable billing package | billing-owner | Duplicate money-domain knowledge retained only for historical Stripe migration + webhook-idempotency regression coverage. Canonical runtime is `services/layer7-billing/`; this package is non-deployable (`[tool.value_fabric].deployable=false`) and must not hold Docker/Compose/Kubernetes ownership. Removal target when `tests/billing/*` assert Layer 7 coverage alone (see COMPAT-L4-003 proxy completion). | 2026-10-31 | Platform Architecture approved 2026-08-27; reviewed 2026-08-27 for billing consolidation. | PLATARCH-REMOVE-BILL-001 |
 ## Known Intentional Behaviors (Not Shims)
 
 These are deliberate v1 design decisions that raise errors rather than silently degrading. They are documented here to prevent future "fixes" that would weaken the intended behavior.

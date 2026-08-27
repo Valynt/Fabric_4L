@@ -5,7 +5,9 @@ Historical Stripe-integrated subscription billing compatibility code for Value F
 > Status: legacy, non-deployable. Canonical deployable billing behavior lives
 > in `services/layer7-billing/`. This package remains in the tree only for
 > compatibility tests and historical Stripe migration coverage until the
-> registered compatibility debt is retired. Do not add Docker/Compose/Kubernetes
+> registered compatibility debt is retired. Tracked as **COMPAT-BILL-001** in
+> [`docs/governance/compatibility-debt-registry.md`](../../docs/governance/compatibility-debt-registry.md);
+> removal target is 2026-10-31. Do not add Docker/Compose/Kubernetes
 > runtime ownership here.
 
 ## Overview
