@@ -960,32 +960,6 @@ class AuditLogResponse(BaseModel):
     per_page: int = Field(50, description="Entries per page")
 
 
-class DocumentExportRequest(BaseModel):
-    """Request for document export."""
-
-    model_config = _STRICT_REQUEST_CONFIG
-
-    document_type: str = Field(
-        "business_case", description="Type of document to export"
-    )
-    business_case_id: str = Field(..., description="Business case ID")
-    format: str = Field("pdf", description="Export format: pdf, html")
-    include_provenance: bool = Field(True, description="Include provenance information")
-
-
-class DocumentExportResponse(BaseModel):
-    """Response from document export request."""
-
-    export_id: str = Field(..., description="Export job ID")
-    status: str = Field(
-        ..., description="Export status: pending, completed, failed, not_implemented"
-    )
-    download_url: str | None = Field(None, description="Download URL when ready")
-    format: str = Field(..., description="Export format")
-    expires_at: datetime | None = Field(None, description="URL expiration time")
-    message: str | None = Field(None, description="Human-readable status message")
-
-
 # Batch Operations Models
 class BatchEntityOperation(BaseModel):
     """Single entity operation in a batch."""

@@ -2282,26 +2282,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/documents/export": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Export Document
-         * @description Export a business case to PDF via the Layer 4 DocumentExportTool.
-         */
-        post: operations["export_document_v1_documents_export_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/v1/graphrag": {
         parameters: {
             query?: never;
@@ -3485,71 +3465,6 @@ export interface components {
             configuration: {
                 [key: string]: unknown;
             };
-        };
-        /**
-         * DocumentExportRequest
-         * @description Request for document export.
-         */
-        DocumentExportRequest: {
-            /**
-             * Document Type
-             * @description Type of document to export
-             * @default business_case
-             */
-            document_type: string;
-            /**
-             * Business Case Id
-             * @description Business case ID
-             */
-            business_case_id: string;
-            /**
-             * Format
-             * @description Export format: pdf, html
-             * @default pdf
-             */
-            format: string;
-            /**
-             * Include Provenance
-             * @description Include provenance information
-             * @default true
-             */
-            include_provenance: boolean;
-        };
-        /**
-         * DocumentExportResponse
-         * @description Response from document export request.
-         */
-        DocumentExportResponse: {
-            /**
-             * Export Id
-             * @description Export job ID
-             */
-            export_id: string;
-            /**
-             * Status
-             * @description Export status: pending, completed, failed, not_implemented
-             */
-            status: string;
-            /**
-             * Download Url
-             * @description Download URL when ready
-             */
-            download_url?: string | null;
-            /**
-             * Format
-             * @description Export format
-             */
-            format: string;
-            /**
-             * Expires At
-             * @description URL expiration time
-             */
-            expires_at?: string | null;
-            /**
-             * Message
-             * @description Human-readable status message
-             */
-            message?: string | null;
         };
         /**
          * EconomicModelType
@@ -12539,39 +12454,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SubgraphResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    export_document_v1_documents_export_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["DocumentExportRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DocumentExportResponse"];
                 };
             };
             /** @description Validation Error */

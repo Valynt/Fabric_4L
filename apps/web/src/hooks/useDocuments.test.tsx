@@ -4,13 +4,10 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { apiClient } from '@/api/client';
 import {
-  useDocumentExport,
   useBusinessCaseExport,
   useBusinessCase,
   useRegenerateBusinessCase,
   downloadExport,
-  type DocumentExportRequest,
-  type DocumentExportResponse,
   type BusinessCase,
 } from './useDocuments';
 import { QK } from './queryKeys';
@@ -48,14 +45,6 @@ function createWrapper() {
 }
 
 // Sample data
-const sampleExportResponse: DocumentExportResponse = {
-  export_id: 'exp-001',
-  status: 'completed',
-  download_url: 'https://example.com/download.pdf',
-  format: 'pdf',
-  expires_at: '2024-01-16T00:00:00Z',
-};
-
 const sampleBusinessCase: BusinessCase = {
   case_id: 'bc-001',
   title: 'Test Business Case',
@@ -76,72 +65,6 @@ const sampleBusinessCase: BusinessCase = {
 describe('useDocuments', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-  });
-
-  describe('useDocumentExport hook', () => {
-    it('should trigger document export successfully', async () => {
-      (apiClient.post as Mock).mockResolvedValueOnce(
-        createMockResponse(sampleExportResponse)
-      );
-
-      const { result } = renderHook(() => useDocumentExport(), {
-        wrapper: createWrapper(),
-      });
-
-      const exportRequest: DocumentExportRequest = {
-        document_type: 'business_case',
-        business_case_id: 'bc-001',
-        format: 'pdf',
-        include_provenance: true,
-      };
-
-      result.current.mutate(exportRequest);
-
-      await waitFor(() => expect(result.current.isSuccess).toBe(true));
-
-      expect(apiClient.post).toHaveBeenCalledWith('l3', '/documents/export', exportRequest);
-      expect(result.current.data?.export_id).toBe('exp-001');
-      expect(result.current.data?.status).toBe('completed');
-    });
-
-    it('should handle export failure', async () => {
-      (apiClient.post as Mock).mockRejectedValueOnce(new Error('Export failed'));
-
-      const { result } = renderHook(() => useDocumentExport(), {
-        wrapper: createWrapper(),
-      });
-
-      result.current.mutate({
-        document_type: 'business_case',
-        business_case_id: 'bc-001',
-        format: 'pdf',
-        include_provenance: true,
-      });
-
-      await waitFor(() => expect(result.current.isError).toBe(true));
-
-      expect(result.current.error).toBeDefined();
-    });
-
-    it('should support HTML format export', async () => {
-      const htmlResponse = { ...sampleExportResponse, format: 'html' };
-      (apiClient.post as Mock).mockResolvedValueOnce(createMockResponse(htmlResponse));
-
-      const { result } = renderHook(() => useDocumentExport(), {
-        wrapper: createWrapper(),
-      });
-
-      result.current.mutate({
-        document_type: 'business_case',
-        business_case_id: 'bc-001',
-        format: 'html',
-        include_provenance: false,
-      });
-
-      await waitFor(() => expect(result.current.isSuccess).toBe(true));
-
-      expect(result.current.data?.format).toBe('html');
-    });
   });
 
   describe('useBusinessCaseExport hook', () => {
