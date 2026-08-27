@@ -40,22 +40,86 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_REF: ${{ github.event.inputs.image_ref || format('sha-{0}', github.sha) }}
+  IMAGE_REF: ${{ github.event.inputs.image_ref || format('sha-{0}', github.event.workflow_run.head_sha || github.sha) }}
   LAYERS: "layer1-ingestion layer2-extraction layer3-knowledge layer4-agents layer5-ground-truth layer6-benchmarks frontend"
   PROMETHEUS_URL: ${{ secrets.PROMETHEUS_URL || 'https://prometheus.fabric.internal' }}
 
 jobs:
+  # ============================================================================
+  # Validate workflow_run provenance (fail-closed before any deploy/artifact use)
+  # ============================================================================
+  validate-provenance:
+    name: Validate workflow_run provenance
+    runs-on: ubuntu-latest
+    # Runs on both trigger types so validate-build (which needs this job) is never
+    # skipped on workflow_dispatch. The step branches on the event type internally.
+    if: github.event_name == 'workflow_run' || github.event_name == 'workflow_dispatch'
+    outputs:
+      trusted: ${{ steps.check.outputs.trusted || steps.dispatch.outputs.trusted }}
+    steps:
+      - id: check
+        if: github.event_name == 'workflow_run'
+        env:
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          HEAD_REPO: ${{ github.event.workflow_run.head_repository.full_name }}
+          EXPECTED_REPO: ${{ github.repository }}
+          EVENT_TYPE: ${{ github.event.workflow_run.event }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -eo pipefail
+          if [ -z "$HEAD_REPO" ] || [ -z "$HEAD_BRANCH" ] || [ -z "$EVENT_TYPE" ] || [ -z "$HEAD_SHA" ]; then
+            echo "::error::Provenance failure: incomplete workflow_run payload"
+            exit 1
+          fi
+          if [ "$HEAD_REPO" != "$EXPECTED_REPO" ]; then
+            echo "::error::Provenance failure: head repo $HEAD_REPO != $EXPECTED_REPO"
+            exit 1
+          fi
+          if [ "$HEAD_BRANCH" != "main" ]; then
+            echo "::error::Provenance failure: head branch $HEAD_BRANCH != main"
+            exit 1
+          fi
+          if [ "$EVENT_TYPE" != "push" ] && [ "$EVENT_TYPE" != "workflow_dispatch" ]; then
+            echo "::error::Provenance failure: event type $EVENT_TYPE not allowed"
+            exit 1
+          fi
+          if ! echo "$HEAD_SHA" | grep -qE '^[0-9a-f]{40}$'; then
+            echo "::error::Provenance failure: head SHA $HEAD_SHA is not a 40-hex commit SHA"
+            exit 1
+          fi
+          echo "Provenance validated: repo=$HEAD_REPO branch=$HEAD_BRANCH event=$EVENT_TYPE sha=${HEAD_SHA:0:12}"
+          echo "trusted=true" >> "$GITHUB_OUTPUT"
+
+      - name: Mark dispatch as trusted
+        id: dispatch
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          echo "Manual workflow_dispatch — trust is enforced by write-scoped trigger"
+          echo "trusted=true" >> "$GITHUB_OUTPUT"
+
   # ============================================================================
   # Validate Build Success
   # ============================================================================
   validate-build:
     name: Validate Build Success
     runs-on: ubuntu-latest
+    needs: validate-provenance
     if: github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch'
     outputs:
       image_ref: ${{ steps.metadata.outputs.image_ref }}
       can_promote: ${{ steps.check-promotion.outputs.can_promote }}
     steps:
+      - name: Assert provenance is trusted
+        if: github.event_name == 'workflow_run'
+        env:
+          TRUSTED: ${{ needs.validate-provenance.outputs.trusted }}
+        run: |
+          set -eo pipefail
+          if [ "$TRUSTED" != "true" ]; then
+            echo "::error::Provenance not trusted — refusing to promote"
+            exit 1
+          fi
+          echo "Provenance trusted for promotion"
       - name: Download build metadata artifacts
         if: github.event_name != 'workflow_dispatch'
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
@@ -147,6 +211,32 @@ jobs:
             echo "❌ One or more required checks did not pass — promotion blocked"
             exit 1
           fi
+
+  # ============================================================================
+  # Report non-success upstream conclusions (fail-closed companion)
+  # ============================================================================
+  # A workflow_run trigger fires regardless of the upstream conclusion. For a
+  # non-success upstream, the promotion path (validate-build and its dependents)
+  # is skipped; without this job that would surface as an all-skipped (green)
+  # workflow. This companion runs on any non-success conclusion and FAILS the
+  # workflow so required checks for promotion stay visible and never turn green.
+  report-non-success:
+    name: Report non-success upstream conclusion
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion != 'success'
+    steps:
+      - name: Annotate non-success conclusion
+        env:
+          CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          RUN_URL: ${{ github.event.workflow_run.html_url }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          echo "::error::Upstream workflow did not conclude success: $CONCLUSION"
+          echo "::error::See $RUN_URL"
+          echo "::error::Promotion is skipped and this workflow fails closed so the"
+          echo "::error::non-success signal remains visible. No artifact was used"
+          echo "::error::and no deployment was executed."
+          exit 1  # Fail closed: non-success upstream must never look green.
 
   # ============================================================================
   # Auto-Deploy to Dev (No Approval Required)
