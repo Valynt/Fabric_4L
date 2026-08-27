@@ -2384,7 +2384,7 @@ entries:
   classification: unacceptable_coverage_gap
   disposition: replace_with_characterization
 - id: skip-216
-  path_pattern: tests/security/test_benchmarks_cross_tenant_isolation.py
+  path_pattern: services/layer3-knowledge/tests/security/test_benchmarks_cross_tenant_isolation.py
   marker: pytest.skip
   reason_pattern: ^pytest\.skip\("No\ triple\-quoted\ Cypher\ strings\ found"\)$
   owner: '@platform-quality'
@@ -2669,7 +2669,7 @@ entries:
   classification: unacceptable_coverage_gap
   disposition: replace_with_characterization
 - id: skip-229
-  path_pattern: tests/security/test_formula_governance_cross_tenant_isolation.py
+  path_pattern: services/layer3-knowledge/tests/security/test_formula_governance_cross_tenant_isolation.py
   marker: pytest.skip
   reason_pattern: ^pytest\.skip\("No\ triple\-quoted\ Cypher\ strings\ found"\)$
   owner: '@platform-quality'
@@ -2894,7 +2894,7 @@ entries:
   classification: unacceptable_coverage_gap
   disposition: replace_with_characterization
 - id: skip-239
-  path_pattern: tests/security/test_models_cross_tenant_isolation.py
+  path_pattern: services/layer3-knowledge/tests/security/test_models_cross_tenant_isolation.py
   marker: pytest.skip
   reason_pattern: ^pytest\.skip\("No\ triple\-quoted\ Cypher\ strings\ found"\)$
   owner: '@platform-quality'
@@ -2909,7 +2909,7 @@ entries:
   classification: unacceptable_coverage_gap
   disposition: replace_with_characterization
 - id: skip-240
-  path_pattern: tests/security/test_neo4j_rls_write.py
+  path_pattern: services/layer3-knowledge/tests/security/test_neo4j_rls_write.py
   marker: pytest.skip
   reason_pattern: ^pytest\.skip\("Layer\ 3\ source\ not\ available"\)$
   owner: '@platform-quality'
@@ -2924,7 +2924,7 @@ entries:
   classification: unacceptable_coverage_gap
   disposition: replace_with_characterization
 - id: skip-241
-  path_pattern: tests/security/test_neo4j_rls_write.py
+  path_pattern: services/layer3-knowledge/tests/security/test_neo4j_rls_write.py
   marker: pytest.skip
   reason_pattern: "^pytest\\.skip\\(\"No\\ Cypher\\ triple\\-quoted\\ strings\\ found\\ \u2014\\ source\\ may\\ use\\ a\\ different\\ pattern\"\\)$"
   owner: '@platform-quality'
@@ -2939,7 +2939,7 @@ entries:
   classification: unacceptable_coverage_gap
   disposition: replace_with_characterization
 - id: skip-242
-  path_pattern: tests/security/test_neo4j_rls_write.py
+  path_pattern: services/layer3-knowledge/tests/security/test_neo4j_rls_write.py
   marker: pytest.skip
   reason_pattern: ^pytest\.skip\("No\ CREATE\ property\ blocks\ found\ in\ Cypher\ strings"\)$
   owner: '@platform-quality'
@@ -2954,7 +2954,7 @@ entries:
   classification: unacceptable_coverage_gap
   disposition: replace_with_characterization
 - id: skip-243
-  path_pattern: tests/security/test_neo4j_rls_write.py
+  path_pattern: services/layer3-knowledge/tests/security/test_neo4j_rls_write.py
   marker: pytest.skip
   reason_pattern: ^pytest\.skip\("No\ MERGE\ property\ blocks\ found"\)$
   owner: '@platform-quality'
@@ -2969,7 +2969,7 @@ entries:
   classification: unacceptable_coverage_gap
   disposition: replace_with_characterization
 - id: skip-244
-  path_pattern: tests/security/test_neo4j_rls_write.py
+  path_pattern: services/layer3-knowledge/tests/security/test_neo4j_rls_write.py
   marker: pytest.skip
   reason_pattern: ^pytest\.skip\("No\ Cypher\ MATCH\+DELETE\ queries\ found"\)$
   owner: '@platform-quality'
@@ -2984,7 +2984,7 @@ entries:
   classification: unacceptable_coverage_gap
   disposition: replace_with_characterization
 - id: skip-245
-  path_pattern: tests/security/test_neo4j_rls_write.py
+  path_pattern: services/layer3-knowledge/tests/security/test_neo4j_rls_write.py
   marker: pytest.skip
   reason_pattern: ^pytest\.skip\("Layer\ 3\ not\ available"\)$
   owner: '@platform-quality'
@@ -2999,7 +2999,7 @@ entries:
   classification: unacceptable_coverage_gap
   disposition: replace_with_characterization
 - id: skip-246
-  path_pattern: tests/security/test_neo4j_rls_write.py
+  path_pattern: services/layer3-knowledge/tests/security/test_neo4j_rls_write.py
   marker: pytest.skip
   reason_pattern: ^pytest\.skip\("Neo4j\ tenant\ support\ not\ available"\)$
   owner: '@platform-quality'
@@ -3014,7 +3014,7 @@ entries:
   classification: unacceptable_coverage_gap
   disposition: replace_with_characterization
 - id: skip-247
-  path_pattern: tests/security/test_neo4j_rls_write.py
+  path_pattern: services/layer3-knowledge/tests/security/test_neo4j_rls_write.py
   marker: pytest.skip
   reason_pattern: ^pytest\.skip\("EntityCreateRequest\ not\ available\ or\ incompatible"\)$
   owner: '@platform-quality'
@@ -3824,3 +3824,19 @@ entries:
     work_item: Remove or characterize pytest.skip at services/layer4-agents/tests/unit/test_audit_orchestrator_graph.py:210.
   classification: valid_environment_limitation
   disposition: retain
+
+- id: skip-290
+  path_pattern: services/layer3-knowledge/tests/security/test_models_cross_tenant_isolation.py
+  marker: pytest.mark.skip
+  reason_pattern: ^@pytest\.mark\.skip\(reason="Out\ of\ scope\ for\ test\ migration\ task;\ requires\ application\ logic\ update"\)$
+  owner: '@platform-quality'
+  reason: Registered executable test debt requiring explicit characterization.
+  expires_on: '2026-09-30'
+  severity: P0
+  launch_gate: mandatory
+  remediation:
+    ticket_id: VF-SKIP-290
+    due_on: '2026-09-30'
+    work_item: Remove or characterize pytest.mark.skip at services/layer3-knowledge/tests/security/test_models_cross_tenant_isolation.py:230.
+  classification: unacceptable_coverage_gap
+  disposition: replace_with_characterization

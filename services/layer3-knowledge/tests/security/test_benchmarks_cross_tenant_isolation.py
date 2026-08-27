@@ -17,20 +17,28 @@ from types import SimpleNamespace
 
 import pytest
 from fastapi import HTTPException
-from src.api.routes.benchmarks import _get_authenticated_tenant_id
 from value_fabric.shared.error_handling.exceptions import AuthenticationError
+
+from src.api.routes.benchmarks import _get_authenticated_tenant_id
 
 pytestmark = pytest.mark.tenant_boundary
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
+REPO_ROOT = Path(__file__).resolve().parents[4]
 BENCHMARKS_PATH = (
-    REPO_ROOT / "services" / "layer3-knowledge" / "src" / "api" / "routes" / "benchmarks.py"
+    REPO_ROOT
+    / "services"
+    / "layer3-knowledge"
+    / "src"
+    / "api"
+    / "routes"
+    / "benchmarks.py"
 )
 
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _source() -> str:
     return BENCHMARKS_PATH.read_text(encoding="utf-8")
@@ -41,7 +49,8 @@ def _cypher_strings(source: str) -> list[str]:
     candidates = re.findall(r'"""(.*?)"""', source, re.DOTALL)
     candidates += re.findall(r"'''(.*?)'''", source, re.DOTALL)
     return [
-        s for s in candidates
+        s
+        for s in candidates
         if re.search(r"\b(MATCH|CREATE|MERGE|RETURN|WHERE)\b", s, re.IGNORECASE)
     ]
 
@@ -49,6 +58,7 @@ def _cypher_strings(source: str) -> list[str]:
 # ---------------------------------------------------------------------------
 # 1. Read isolation — static analysis
 # ---------------------------------------------------------------------------
+
 
 class TestBenchmarkReadIsolation:
     """Verify every read Cypher in benchmarks.py is tenant-scoped."""
@@ -122,6 +132,7 @@ class TestBenchmarkReadIsolation:
 # 2. Write isolation — static analysis
 # ---------------------------------------------------------------------------
 
+
 class TestBenchmarkWriteIsolation:
     """Verify write Cypher in benchmarks.py carries tenant_id."""
 
@@ -179,6 +190,7 @@ class TestBenchmarkWriteIsolation:
 # ---------------------------------------------------------------------------
 # 3. Fail-closed — missing tenant context (calls real route helper)
 # ---------------------------------------------------------------------------
+
 
 class TestBenchmarkFailClosed:
     """Missing or empty tenant context must be rejected before any Neo4j call."""

@@ -16,14 +16,6 @@ class OperationalSignal(BaseModel):
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
-class SignalExtractionResult(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    signals: list[OperationalSignal] = Field(default_factory=list)
-    source_url: str = ""
-    extraction_cost_usd: float = 0.0
-
-
 class ExtractionMetadata(BaseModel):
     model_config = ConfigDict(extra="forbid")
 

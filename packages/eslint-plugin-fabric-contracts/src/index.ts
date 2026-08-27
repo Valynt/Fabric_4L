@@ -89,7 +89,7 @@ const recommended: Linter.BaseConfig = {
 };
 
 // Plugin export
-const plugin = {
+const plugin: ESLintPlugin = {
   meta: {
     name: "eslint-plugin-fabric-contracts",
     version: "1.0.0",
