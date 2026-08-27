@@ -22202,12 +22202,6 @@
     },
     {
       "kind": "python-any",
-      "line": 8,
-      "path": "services/layer3-knowledge/tests/test_graph_viz.py",
-      "text": "from typing import Any"
-    },
-    {
-      "kind": "python-any",
       "line": 3,
       "path": "services/layer3-knowledge/tests/test_health_endpoints.py",
       "text": "from typing import Any"
@@ -26717,18 +26711,6 @@
       "line": 35,
       "path": "services/layer4-agents/src/layer4_agents/api/runtime_state.py",
       "text": "gate_timeout_scheduler: Any | None = None"
-    },
-    {
-      "kind": "python-any",
-      "line": 13,
-      "path": "services/layer4-agents/src/layer4_agents/api/schemas/accounts.py",
-      "text": "from typing import Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 283,
-      "path": "services/layer4-agents/src/layer4_agents/api/schemas/accounts.py",
-      "text": "owners: list[dict[str, Any]]"
     },
     {
       "kind": "python-any",
