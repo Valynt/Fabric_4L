@@ -147,7 +147,7 @@ No backend service, repository, or migration change is required.
 
 ## 5. Security & Governance Impact
 
-- [ ] Exposes new data fields — **Yes.** A new optional `journey_id` field is added to the request
+- [x] Exposes new data fields — **Yes.** A new optional `journey_id` field is added to the request
       and metadata surfaces. The value is either caller-provided or a derived, non-PII `uuid5`
       identifier; it does not add PII or new sensitive context beyond existing tenant/account
       identifiers already surfaced.
