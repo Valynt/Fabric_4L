@@ -5425,7 +5425,7 @@ export interface components {
             providers: components["schemas"]["CRMProvider"][];
             /** Owners */
             owners: {
-                [key: string]: string;
+                [key: string]: unknown;
             }[];
         };
         /** AccountJourneyTimelineResponse */
