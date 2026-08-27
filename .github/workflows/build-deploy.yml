@@ -25,6 +25,9 @@ permissions: read-all
 
 env:
   REGISTRY: ${{ inputs.registry || 'ghcr.io' }}
+  # GHCR requires lowercase repository names, so derive the namespace statically
+  # (github.repository_owner preserves case and would produce an invalid tag).
+  REGISTRY_NAMESPACE: valynt
   IMAGE_TAG: ${{ inputs.image_tag || github.sha }}
   # Health check configuration
   HEALTH_MAX_RETRIES: 30
@@ -103,7 +106,7 @@ jobs:
           file: ${{ matrix.layer == 'frontend' && './apps/web/Dockerfile' || format('services/{0}/Dockerfile', matrix.layer) }}
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ github.repository_owner }}/fabric_4l/${{ matrix.layer }}:sha-${{ steps.sha.outputs.short }}
+            ${{ env.REGISTRY }}/${{ env.REGISTRY_NAMESPACE }}/fabric_4l/${{ matrix.layer }}:sha-${{ steps.sha.outputs.short }}
           platforms: linux/amd64,linux/arm64
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -202,7 +205,7 @@ jobs:
       - name: Run smoke test
         run: |
           docker run -d --name ${{ matrix.layer }} -p ${{ matrix.port }}:${{ matrix.port }} \
-            ${{ env.REGISTRY }}/${{ github.repository_owner }}/fabric_4l/${{ matrix.layer }}:sha-${{ steps.sha.outputs.short }}
+            ${{ env.REGISTRY }}/${{ env.REGISTRY_NAMESPACE }}/fabric_4l/${{ matrix.layer }}:sha-${{ steps.sha.outputs.short }}
 
           # Wait for service to be healthy
           max_retries=${{ env.HEALTH_MAX_RETRIES }}
@@ -239,7 +242,7 @@ jobs:
       - name: Verify metrics endpoint
         run: |
           docker run -d --name ${{ matrix.layer }}-metrics -p ${{ matrix.port }}:${{ matrix.port }} \
-            ${{ env.REGISTRY }}/${{ github.repository_owner }}/fabric_4l/${{ matrix.layer }}:sha-${{ steps.sha.outputs.short }}
+            ${{ env.REGISTRY }}/${{ env.REGISTRY_NAMESPACE }}/fabric_4l/${{ matrix.layer }}:sha-${{ steps.sha.outputs.short }}
 
           # Wait for container to start
           sleep 3
@@ -322,7 +325,7 @@ jobs:
         run: |
           for layer in layer1-ingestion layer2-extraction layer3-knowledge \
                        layer4-agents layer5-ground-truth layer6-benchmarks frontend; do
-            image="${{ env.REGISTRY }}/${{ github.repository_owner }}/fabric_4l/${layer}:sha-${{ steps.sha.outputs.short }}"
+            image="${{ env.REGISTRY }}/${{ env.REGISTRY_NAMESPACE }}/fabric_4l/${layer}:sha-${{ steps.sha.outputs.short }}"
             docker pull "${image}"
             kind load docker-image "${image}" --name fabric-ephemeral
           done
@@ -335,7 +338,7 @@ jobs:
             layer1-ingestion layer2-extraction layer3-knowledge \
             layer4-agents layer5-ground-truth layer6-benchmarks frontend; do
             sed -i \
-              "s|value-fabric/${layer}:main|${{ env.REGISTRY }}/${{ github.repository_owner }}/fabric_4l/${layer}:${tag}|g" \
+              "s|value-fabric/${layer}:main|${{ env.REGISTRY }}/${{ env.REGISTRY_NAMESPACE }}/fabric_4l/${layer}:${tag}|g" \
               /tmp/ephemeral.yaml
           done
 
