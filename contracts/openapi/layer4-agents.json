@@ -19320,6 +19320,138 @@
         "title": "GenerateHypothesesRequest",
         "description": "Request to generate value hypotheses for an account."
       },
+      "GitMetricCompleteness": {
+        "properties": {
+          "source": {
+            "type": "string",
+            "title": "Source",
+            "description": "Name of the git command/metric this entry describes"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "Collection status: ok, error, timeout, truncated, or unavailable"
+          },
+          "truncated": {
+            "type": "boolean",
+            "title": "Truncated",
+            "description": "True when output was cut short (timeout or a cap), so the derived count is an undercount"
+          },
+          "complete": {
+            "type": "boolean",
+            "title": "Complete",
+            "description": "True when the metric was collected exactly (status ok and not truncated)"
+          },
+          "bytes_read": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Bytes Read",
+            "description": "Number of stdout bytes buffered for this command"
+          },
+          "max_bytes": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Bytes",
+            "description": "Maximum stdout bytes permitted for this command, if capped"
+          },
+          "max_lines": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Lines",
+            "description": "Maximum stdout lines permitted for this command, if capped"
+          }
+        },
+        "type": "object",
+        "required": [
+          "source",
+          "status",
+          "truncated",
+          "complete",
+          "bytes_read"
+        ],
+        "title": "GitMetricCompleteness",
+        "description": "Completeness metadata for one git-derived metric.\n\nLets consumers distinguish an exact figure from one derived from a\ntimed-out, truncated, or failed git collection. Never contains raw git\noutput or contributor email addresses."
+      },
+      "GitWarning": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code",
+            "description": "Stable warning code, e.g., GIT_CMD_TIMEOUT"
+          },
+          "metric": {
+            "type": "string",
+            "title": "Metric",
+            "description": "Git command key this warning applies to (e.g. 'commits', 'contributors'); matches git_metric_completeness source entries."
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "Collection status that triggered the warning"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "Human-readable warning message (safe; no raw git output)"
+          },
+          "bytes_read": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Bytes Read",
+            "description": "Number of stdout bytes read for the affected command"
+          },
+          "max_bytes": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Bytes",
+            "description": "Maximum bytes permitted for the affected command, if capped"
+          },
+          "max_lines": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Lines",
+            "description": "Maximum lines permitted for the affected command, if capped"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "metric",
+          "status",
+          "message",
+          "bytes_read"
+        ],
+        "title": "GitWarning",
+        "description": "Structured warning raised when a git command was incomplete.\n\nContains only the metric name, status, message, and byte counts - never\nraw git output or contributor email addresses."
+      },
       "HTTPValidationError": {
         "type": "object",
         "title": "HTTPValidationError",
@@ -23617,13 +23749,17 @@
             "default": 0
           },
           "git_metric_completeness": {
-            "additionalProperties": true,
+            "additionalProperties": {
+              "$ref": "#/components/schemas/GitMetricCompleteness"
+            },
             "type": "object",
             "title": "Git Metric Completeness",
             "description": "Per-metric git collection status (status, truncated, complete, bytes_read) so consumers can distinguish an exact figure from a timed-out, truncated or failed one. Empty when git is unavailable."
           },
           "git_warnings": {
-            "items": {},
+            "items": {
+              "$ref": "#/components/schemas/GitWarning"
+            },
             "type": "array",
             "title": "Git Warnings",
             "description": "Structured warnings (code, metric, status, message) raised when a git command timed out, was truncated, or failed. Contains no raw git output or email addresses."

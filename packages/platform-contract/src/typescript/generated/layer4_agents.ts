@@ -7708,6 +7708,95 @@ export interface components {
             include_evidence: boolean;
         };
         /**
+         * GitMetricCompleteness
+         * @description Completeness metadata for one git-derived metric.
+         *
+         *     Lets consumers distinguish an exact figure from one derived from a
+         *     timed-out, truncated, or failed git collection. Never contains raw git
+         *     output or contributor email addresses.
+         */
+        GitMetricCompleteness: {
+            /**
+             * Source
+             * @description Name of the git command/metric this entry describes
+             */
+            source: string;
+            /**
+             * Status
+             * @description Collection status: ok, error, timeout, truncated, or unavailable
+             */
+            status: string;
+            /**
+             * Truncated
+             * @description True when output was cut short (timeout or a cap), so the derived count is an undercount
+             */
+            truncated: boolean;
+            /**
+             * Complete
+             * @description True when the metric was collected exactly (status ok and not truncated)
+             */
+            complete: boolean;
+            /**
+             * Bytes Read
+             * @description Number of stdout bytes buffered for this command
+             */
+            bytes_read: number;
+            /**
+             * Max Bytes
+             * @description Maximum stdout bytes permitted for this command, if capped
+             */
+            max_bytes?: number | null;
+            /**
+             * Max Lines
+             * @description Maximum stdout lines permitted for this command, if capped
+             */
+            max_lines?: number | null;
+        };
+        /**
+         * GitWarning
+         * @description Structured warning raised when a git command was incomplete.
+         *
+         *     Contains only the metric name, status, message, and byte counts - never
+         *     raw git output or contributor email addresses.
+         */
+        GitWarning: {
+            /**
+             * Code
+             * @description Stable warning code, e.g., GIT_CMD_TIMEOUT
+             */
+            code: string;
+            /**
+             * Metric
+             * @description Git command key this warning applies to (e.g. 'commits', 'contributors'); matches git_metric_completeness source entries.
+             */
+            metric: string;
+            /**
+             * Status
+             * @description Collection status that triggered the warning
+             */
+            status: string;
+            /**
+             * Message
+             * @description Human-readable warning message (safe; no raw git output)
+             */
+            message: string;
+            /**
+             * Bytes Read
+             * @description Number of stdout bytes read for the affected command
+             */
+            bytes_read: number;
+            /**
+             * Max Bytes
+             * @description Maximum bytes permitted for the affected command, if capped
+             */
+            max_bytes?: number | null;
+            /**
+             * Max Lines
+             * @description Maximum lines permitted for the affected command, if capped
+             */
+            max_lines?: number | null;
+        };
+        /**
          * HTTPValidationError
          * @description Deprecated compatibility alias for ErrorEnvelope. Use ErrorEnvelope for new clients.
          */
@@ -9672,13 +9761,13 @@ export interface components {
              * @description Per-metric git collection status (status, truncated, complete, bytes_read) so consumers can distinguish an exact figure from a timed-out, truncated or failed one. Empty when git is unavailable.
              */
             git_metric_completeness?: {
-                [key: string]: unknown;
+                [key: string]: components["schemas"]["GitMetricCompleteness"];
             };
             /**
              * Git Warnings
              * @description Structured warnings (code, metric, status, message) raised when a git command timed out, was truncated, or failed. Contains no raw git output or email addresses.
              */
-            git_warnings?: unknown[];
+            git_warnings?: components["schemas"]["GitWarning"][];
             /**
              * Audit Timestamp
              * Format: date-time
