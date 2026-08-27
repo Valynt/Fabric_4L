@@ -129,7 +129,7 @@ def convert(paths: list[Path]) -> dict[str, object]:
                 "tool": {
                     "driver": {
                         "name": "OWASP ZAP Full Scan",
-                        "informationUri": "https://www.zaproxy.org/",
+                        "informationUri": "https://github.com/zaproxy/zaproxy/",
                         "rules": list(rules.values()),
                     }
                 },
