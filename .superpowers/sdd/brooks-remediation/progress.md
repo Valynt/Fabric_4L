@@ -1,4 +1,4 @@
-# SDD ledger — plan: C:\Users\BBB\.copilot\workspaces\688801ac-0e05-44f4-8135-e2c27dab6b2c\attachments\f5d5e93c-b6dd-4a7b-9d0e-cd1305ae3ec7-Treat this Brooks-Lint report as an.txt
+# SDD ledger — plan: Treat this Brooks-Lint report as an assessment, not authorization for a repository-wide refactor
 
 ## Pre-flight scan
 
