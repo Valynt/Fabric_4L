@@ -56,7 +56,7 @@ router = APIRouter(prefix="/v1", tags=["Graph"])
 def _build_graph_node(
     *,
     node_id: str,
-    label: str,
+    name: str,
     node_type: str,
     confidence: float = 0.8,
     x: float | None = None,
@@ -69,9 +69,9 @@ def _build_graph_node(
         return GraphNodeWithLayout.model_validate(
             {
                 "id": node_id,
-                "label": label,
-                "type": node_type,
-                "confidence": confidence,
+                "name": name,
+                "entity_type": node_type,
+                "confidence_score": confidence,
                 "x": x,
                 "y": y,
                 "r": r,
@@ -81,9 +81,9 @@ def _build_graph_node(
     return GraphNode.model_validate(
         {
             "id": node_id,
-            "label": label,
-            "type": node_type,
-            "confidence": confidence,
+            "name": name,
+            "entity_type": node_type,
+            "confidence_score": confidence,
             "properties": properties or {},
         }
     )
@@ -141,8 +141,8 @@ async def _fetch_graph_nodes(
             """
             MATCH (n {tenant_id: $tenant_id})
             WHERE n.id IS NOT NULL
-            RETURN n.id as id, n.name as label, n.type as type,
-                   n.confidence as confidence, n.x as x, n.y as y
+            RETURN n.id as id, n.name as name, n.type as entity_type,
+                   n.confidence as confidence_score, n.x as x, n.y as y
             LIMIT $limit
             """,
             {"tenant_id": tenant_id, "limit": limit},
@@ -156,19 +156,19 @@ async def _fetch_graph_nodes(
 
     for r in nodes_result:
         r_dict: dict[str, Any] = r
-        node_type = r_dict.get("type", "Unknown")
+        node_type = r_dict.get("entity_type", "Unknown")
         node_types[node_type] = node_types.get(node_type, 0) + 1
         node_id = r_dict.get("id")
         if not node_id:
             continue
         node = _build_graph_node(
             node_id=node_id,
-            label=r_dict.get("label") or node_id,
+            name=r_dict.get("name") or node_id,
             node_type=node_type,
-            confidence=r_dict.get("confidence") or 0.8,
+            confidence=r_dict.get("confidence_score") or 0.8,
             x=r_dict.get("x"),
             y=r_dict.get("y"),
-            properties={"name": r_dict.get("label")},
+            properties={"name": r_dict.get("name")},
         )
         nodes.append(node)
         node_ids.add(node_id)
@@ -324,7 +324,7 @@ async def _get_root_entity(neo4j, entity_id: str, tenant_id: str) -> dict[str, A
         neo4j.execute_query(
             """
             MATCH (n {id: $entity_id, tenant_id: $tenant_id})
-            RETURN n.id as id, n.name as label, n.type as type, n.confidence as confidence
+            RETURN n.id as id, n.name as name, n.type as entity_type, n.confidence as confidence_score
             """,
             {"entity_id": entity_id, "tenant_id": tenant_id},
         ),
@@ -357,13 +357,13 @@ async def _build_entity_subgraph(
     edges_map: dict[str, GraphEdge] = {}
     node_types: dict[str, int] = {}
 
-    root_type = root_record.get("type", "Unknown")
+    root_type = root_record.get("entity_type", "Unknown")
     node_types[root_type] = node_types.get(root_type, 0) + 1
     nodes_map[entity_id] = _build_graph_node(
         node_id=entity_id,
-        label=root_record.get("label") or entity_id,
+        name=root_record.get("name") or entity_id,
         node_type=root_type,
-        confidence=root_record.get("confidence") or 0.8,
+        confidence=root_record.get("confidence_score") or 0.8,
         properties={"is_root": True},
     )
 
@@ -379,7 +379,7 @@ async def _build_entity_subgraph(
                 node_types[conn_type] = node_types.get(conn_type, 0) + 1
                 nodes_map[conn_id] = _build_graph_node(
                     node_id=conn_id,
-                    label=connected.get("name") or conn_id,
+                    name=connected.get("name") or conn_id,
                     node_type=conn_type,
                     confidence=connected.get("confidence") or 0.8,
                     properties={},
@@ -549,7 +549,7 @@ async def _get_center_entity_subgraph(
             nodes.append(
                 _build_graph_node(
                     node_id=root_data.get("id", center_entity_id),
-                    label=root_data.get("name", root_data.get("id", "Unknown")),
+                    name=root_data.get("name", root_data.get("id", "Unknown")),
                     node_type=root_data.get("entity_type", "Unknown"),
                     properties={
                         k: v
@@ -564,7 +564,7 @@ async def _get_center_entity_subgraph(
                 nodes.append(
                     _build_graph_node(
                         node_id=neighbor.get("id"),
-                        label=neighbor.get("name", neighbor.get("id", "Unknown")),
+                        name=neighbor.get("name", neighbor.get("id", "Unknown")),
                         node_type=neighbor.get("entity_type", "Unknown"),
                         properties={
                             k: v
@@ -644,7 +644,7 @@ async def _get_query_search_subgraph(
             nodes.append(
                 _build_graph_node(
                     node_id=seed.get("id"),
-                    label=seed.get("name", seed.get("id", "Unknown")),
+                    name=seed.get("name", seed.get("id", "Unknown")),
                     node_type=seed.get("entity_type", "Unknown"),
                     properties={
                         k: v
@@ -660,7 +660,7 @@ async def _get_query_search_subgraph(
                 nodes.append(
                     _build_graph_node(
                         node_id=neighbor.get("id"),
-                        label=neighbor.get("name", neighbor.get("id", "Unknown")),
+                        name=neighbor.get("name", neighbor.get("id", "Unknown")),
                         node_type=neighbor.get("entity_type", "Unknown"),
                         properties={
                             k: v
