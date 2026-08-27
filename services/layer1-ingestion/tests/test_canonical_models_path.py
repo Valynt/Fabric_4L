@@ -21,7 +21,8 @@ from pathlib import Path
 
 import pytest
 
-pytestmark = pytest.mark.unit
+# Intentionally not marked as `unit`: this module performs small local filesystem I/O (Path.read_text)
+# to validate the tombstone body and therefore does not meet the `unit` marker's "no I/O" contract.
 
 # Repo-relative location of the retired legacy models module. Resolved from this
 # test file rather than the process CWD so the assertion is independent of where
