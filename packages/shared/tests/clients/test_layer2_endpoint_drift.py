@@ -22,7 +22,15 @@ from value_fabric.shared.clients.layer2 import (
     LAYER2_ENDPOINTS,
 )
 
-_REPO_ROOT = Path(__file__).resolve().parents[7]
+
+def _find_repo_root() -> Path:
+    for parent in Path(__file__).resolve().parents:
+        if (parent / "contracts" / "openapi").is_dir():
+            return parent
+    raise RuntimeError("Unable to locate repository root (contracts/openapi not found).")
+
+
+_REPO_ROOT = _find_repo_root()
 _OPENAPI_PATH = _REPO_ROOT / "contracts" / "openapi" / "layer2-extraction.json"
 
 _METHOD_EXPECTATIONS: dict[str, set[str]] = {
