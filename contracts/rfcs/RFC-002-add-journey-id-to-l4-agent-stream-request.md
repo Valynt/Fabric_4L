@@ -37,10 +37,10 @@ A stable journey identifier is the foundation for all three of these capabilitie
 
 Two schemas in `contracts/openapi/layer4-agents.json` gain an optional field:
 
-| Schema | Field | Wire alias | Type |
+| Schema | Model field (Python) | Wire name (JSON) | Type |
 |---|---|---|---|
-| `AgentStreamRequest` | `journey_id` | `journeyId` | `string \| null`, optional |
-| `AgentGovernanceMetadata` | `journey_id` | — | `string \| null`, optional |
+| `AgentStreamRequest` | `journey_id` | `journeyId` (camelCase) | `string \| null`, optional |
+| `AgentGovernanceMetadata` | `journey_id` | `journey_id` (snake_case) | `string \| null`, optional |
 
 ### Before
 
@@ -147,8 +147,10 @@ No backend service, repository, or migration change is required.
 
 ## 5. Security & Governance Impact
 
-- [ ] Exposes new data fields — **No.** The response already surfaces tenant/account/trace context;
-      `journey_id` is a derived, non-PII identifier.
+- [ ] Exposes new data fields — **Yes.** A new optional `journey_id` field is added to the request
+      and metadata surfaces. The value is either caller-provided or a derived, non-PII `uuid5`
+      identifier; it does not add PII or new sensitive context beyond existing tenant/account
+      identifiers already surfaced.
 - [ ] Changes authentication/authorization requirements — **No.** Same tenant-scoped governance
       middleware applies unchanged.
 - [x] Modifies tenant scoping — **No.** `journey_id` derivation is tenant-scoped by construction:
@@ -172,4 +174,7 @@ is tenant-scoped by construction while still deterministic.
 
 **Status: Pending council review.** The Contract Council decision for this RFC will be recorded
 here when review concludes on issue #1387. At least two approving reviews (from different domains)
-are required before the corresponding implementation PR (#1385) may be merged.
+are required to ratify this RFC. Note: the corresponding implementation (PR #1385) is **already
+merged on `main`**, so council review records *ratification* of the shipped contract rather than a
+pre-merge gate on new code. If the council declines, the field has shipped and would be handled as a
+follow-up breaking-change or deprecation.
