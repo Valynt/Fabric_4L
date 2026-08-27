@@ -1528,21 +1528,6 @@ entries:
     work_item: Remove or characterize pytest.skip at tests/contract/test_l3_provenance_audit_contract.py:10.
   classification: unacceptable_coverage_gap
   disposition: replace_with_characterization
-- id: skip-203
-  path_pattern: tests/contract/test_l3_route_alias_parity.py
-  marker: pytest.skip
-  reason_pattern: ^pytest\.skip\($
-  owner: '@platform-quality'
-  reason: Registered executable test debt requiring explicit characterization.
-  expires_on: '2026-09-30'
-  severity: P0
-  launch_gate: mandatory
-  remediation:
-    ticket_id: VF-SKIP-203
-    due_on: '2026-09-30'
-    work_item: Remove or characterize pytest.skip at tests/contract/test_l3_route_alias_parity.py:12.
-  classification: unacceptable_coverage_gap
-  disposition: replace_with_characterization
 - id: skip-204
   path_pattern: tests/contract/test_l3_route_contract_regression.py
   marker: pytest.skip
