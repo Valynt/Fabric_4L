@@ -20,7 +20,6 @@ from __future__ import annotations
 import base64
 import json
 from datetime import UTC, datetime, timedelta
-from typing import Any
 
 import jwt as pyjwt
 import pytest
@@ -97,20 +96,22 @@ class _StubCache:
     """Minimal ClerkJWKSCache double: no HTTP, no refresh, fail-closed on miss.
 
     ``kid_for_pem`` maps a real JWK kid to a public PEM so we can simulate a
-    Clerk trust anchor that resolves some kids. Any other kid raises
-    ClerkTokenError, exactly like a live JWKS that lacks the key.
+    Clerk trust anchor that resolves a subset of kids. An unresolvable kid
+    raises ClerkTokenError, exactly like a live JWKS that lacks the key.
     """
 
     def __init__(self, *, kid_for_pem: dict[str, str]) -> None:
         self._kid_for_pem = kid_for_pem
 
-    def signing_key_for_kid(self, kid: str, *, force_refresh: bool = False) -> Any:
+    def signing_key_for_kid(
+        self, kid: str, *, force_refresh: bool = False
+    ) -> "pyjwt.algorithms.RSAAlgorithm":
         pem = self._kid_for_pem.get(kid)
         if pem is None:
             raise ClerkTokenError(log_detail=f"no JWKS entry for kid={kid!r}")
         return pyjwt.algorithms.RSAAlgorithm.from_jwk(json.dumps(_jwk_from_public_pem(pem)))
 
-    def get_status(self) -> dict[str, Any]:
+    def get_status(self) -> dict[str, str | int]:
         return {"status": "stub", "cached_keys_count": len(self._kid_for_pem)}
 
 
@@ -124,7 +125,7 @@ def _settings(*, pinned_jwt_pem: str | None) -> ClerkSettings:
     )
 
 
-def _verifier(*, pinned_jwt_pem: str | None, cache: Any) -> ClerkVerifier:
+def _verifier(*, pinned_jwt_pem: str | None, cache: _StubCache) -> ClerkVerifier:
     return ClerkVerifier(_settings(pinned_jwt_pem=pinned_jwt_pem), jwks_cache=cache)
 
 
