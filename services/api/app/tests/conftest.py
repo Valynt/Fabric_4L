@@ -7,6 +7,9 @@ Provides:
   - TENANT_ALPHA / TENANT_BETA — stable tenant IDs for isolation tests
 """
 
+# Test configuration must precede application imports; see the setup below.
+# ruff: noqa: E402
+
 from __future__ import annotations
 
 import os as _os
@@ -30,6 +33,12 @@ _os.environ["APP_ENV"] = "development"
 _os.environ["ENV"] = "development"
 _os.environ["DEBUG"] = "false"
 
+# A fixed test-only key keeps import-time settings initialization deterministic.
+# It must be configured before importing app modules now that Settings fails
+# closed when SECRET_KEY is absent.
+TEST_SECRET = "fabric-dev-secret-key-32bytes-ok"
+_os.environ["SECRET_KEY"] = TEST_SECRET
+
 import secrets
 from collections.abc import Iterator
 from datetime import UTC, datetime, timedelta
@@ -42,10 +51,6 @@ from app.core import database as _db_mod
 from app.core.config import get_settings
 from app.routers import accounts as _accounts_mod
 
-# Use the same default secret the app uses in test/dev environments
-# Shortened to stay under bcrypt's 72-byte limit when combined with JWT payload
-# Must be at least 32 bytes for HMAC-SHA256 security
-TEST_SECRET = "fabric-dev-secret-key-32bytes-ok"
 TEST_ALGORITHM = "HS256"
 TEST_ISSUER = "value-fabric-internal"
 TEST_AUDIENCE = "value-fabric-services"
@@ -61,7 +66,6 @@ _os.environ.setdefault(
     "SEED_DEMO_DATA", "false"
 )  # Disable seeding to avoid tenant context issues
 _os.environ.setdefault("LLM_PROVIDER", "layer4")
-_os.environ["SECRET_KEY"] = TEST_SECRET
 _os.environ["JWT_SECRET"] = TEST_SECRET
 _os.environ.setdefault("JWT_ALGORITHM", TEST_ALGORITHM)
 _os.environ.setdefault("JWT_ISSUER", TEST_ISSUER)

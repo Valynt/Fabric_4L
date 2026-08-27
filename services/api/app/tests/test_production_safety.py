@@ -8,9 +8,15 @@ from app.core.config import Settings
 
 def test_settings_require_secret_key(monkeypatch):
     monkeypatch.delenv("SECRET_KEY", raising=False)
+    monkeypatch.delenv("secret_key", raising=False)
 
-    with pytest.raises(ValidationError, match=r"secret_key\s+Field required"):
+    with pytest.raises(ValidationError) as exc_info:
         Settings(_env_file=None)
+
+    assert any(
+        error["loc"] == ("secret_key",) and error["type"] == "missing"
+        for error in exc_info.value.errors()
+    )
 
 
 def test_settings_keep_legacy_per_layer_timeout_fields():
