@@ -197,7 +197,7 @@
     "autoprefixer": "^10.5.4",
     "cypress": "^15.21.0",
     "esbuild": "^0.28.2",
-    "eslint": "8.57.1",
+    "eslint": "10.8.1",
     "eslint-plugin-fabric-contracts": "workspace:*",
     "eslint-plugin-react-hooks": "4.6.2",
     "eslint-plugin-react-refresh": "0.5.4",
