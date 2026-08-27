@@ -271,7 +271,7 @@ jobs:
       - name: Setup Node.js + pnpm
         uses: ./.github/actions/setup-pnpm
         with:
-          node-version: '22.18.0'
+          node-version: '22.22.2'
 
       - name: Dependency Review
         if: github.event_name == 'pull_request'
