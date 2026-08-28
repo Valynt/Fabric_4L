@@ -1,0 +1,38 @@
+# Canonical external-dependency registry.
+# 'coverage: required' is only valid for hermetic/controlled services. A
+# third_party service MUST be 'coverage: informational' so an outage can never
+# be required to pass. No secrets. Only allowlisted hostnames in probe URLs.
+schema_version: "1.0"
+services:
+  - id: github-api
+    service: GitHub REST API
+    classification: third_party
+    consuming_jobs: [release-evidence-bundle]
+    coverage: informational
+    probe: {url: https://api.github.com/zen, method: GET, expected_status: 200, down_statuses: [503, 502]}
+    probe_timeout_seconds: 10
+    retry_policy: {max_attempts: 3, backoff_seconds: 2}
+    failure_owner: team-platform
+    hostname_allowlist: [api.github.com]
+
+  - id: ghcr
+    service: GitHub Container Registry
+    classification: third_party
+    consuming_jobs: [build-images, release-smoke]
+    coverage: informational
+    probe: {url: https://ghcr.io/v2/, method: GET, expected_status: 200, down_statuses: [503]}
+    probe_timeout_seconds: 10
+    retry_policy: {max_attempts: 3, backoff_seconds: 2}
+    failure_owner: team-platform
+    hostname_allowlist: [ghcr.io]
+
+  - id: pypi
+    service: PyPI
+    classification: third_party
+    consuming_jobs: [layer2-checks, layer4-checks, layer3-checks]
+    coverage: informational
+    probe: {url: https://pypi.org/simple/, method: GET, expected_status: 200, down_statuses: [503]}
+    probe_timeout_seconds: 10
+    retry_policy: {max_attempts: 3, backoff_seconds: 2}
+    failure_owner: team-platform
+    hostname_allowlist: [pypi.org]

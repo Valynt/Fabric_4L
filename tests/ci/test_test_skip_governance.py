@@ -67,6 +67,7 @@ def test_registered_non_expired_skip_passes(tmp_path: Path) -> None:
         "mandatory_p0_register_entries": 1,
         "classification_counts": {
             "obsolete_test": 0,
+            "quarantine": 0,
             "temporary_bug_waiver": 1,
             "unacceptable_coverage_gap": 0,
             "valid_environment_limitation": 0,
@@ -227,3 +228,70 @@ def test_report_contains_deterministic_remediation_queue(tmp_path: Path) -> None
     report = evaluate(tmp_path, _register(tmp_path, [_entry()]), ["tests"], TODAY)
     assert report["schema_version"] == "1.0"
     assert report["remediation_queue"][0]["id"] == "skip-001"
+
+
+def _flaky_entry(**overrides: object) -> dict[str, object]:
+    base = {
+        "id": "flaky-001",
+        "path_pattern": "tests/unit/test_worker.py",
+        "marker": "flaky",
+        "reason_pattern": "intermittent",
+        "owner": "@platform-quality",
+        "reason": "Intermittent flaky test under quarantine.",
+        "expires_on": "2026-12-31",
+        "severity": "P1",
+        "launch_gate": "excluded",
+        "classification": "quarantine",
+        "disposition": "repair",
+        "nodeid": "tests/unit/test_worker.py::test_send",
+        "introduced_or_detected_on": "2026-05-01",
+        "issue": "https://github.com/Valynt/Fabric_4L/issues/9",
+        "failure_evidence": {"attempts": 10, "passes": 7, "failures": 3},
+        "affected_gate": "graph-module-tests",
+        "retry_count": 3,
+        "status": "active",
+        "remediation": {
+            "ticket_id": "VF-SKIP-002",
+            "due_on": "2026-11-01",
+            "work_item": "Fix intermittent worker send race.",
+        },
+    }
+    base.update(overrides)
+    return base
+
+
+def test_flaky_entry_requires_quarantine_fields(tmp_path: Path) -> None:
+    _write(
+        tmp_path / "tests/unit/test_worker.py",
+        'import pytest\n@pytest.mark.flaky\ndef test_send(): pass\n',
+    )
+    entry = _flaky_entry()
+    del entry["nodeid"]
+    report = evaluate(tmp_path, _register(tmp_path, [entry]), ["tests/unit"], TODAY)
+    assert any("quarantine fields" in err for err in report["register_errors"])
+
+
+def test_expired_flaky_quarantine_fails_explicitly(tmp_path: Path) -> None:
+    _write(
+        tmp_path / "tests/unit/test_worker.py",
+        'import pytest\n@pytest.mark.flaky\ndef test_send(): pass\n',
+    )
+    report = evaluate(
+        tmp_path,
+        _register(tmp_path, [_flaky_entry(expires_on="2026-04-01")]),
+        ["tests/unit"],
+        TODAY,
+    )
+    assert any(
+        "quarantine expired" in err and "renewed or the test re-enabled" in err
+        for err in report["register_errors"]
+    )
+
+
+def test_valid_flaky_entry_passes(tmp_path: Path) -> None:
+    _write(
+        tmp_path / "tests/unit/test_worker.py",
+        'import pytest\n@pytest.mark.flaky\ndef test_send(): pass\n',
+    )
+    report = evaluate(tmp_path, _register(tmp_path, [_flaky_entry()]), ["tests/unit"], TODAY)
+    assert report["register_errors"] == []

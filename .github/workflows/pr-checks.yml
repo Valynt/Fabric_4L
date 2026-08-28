@@ -1513,7 +1513,7 @@ jobs:
 
       - name: Lint tests
         run: |
-          ruff check tests/
+          ruff check --config tests/pyproject.toml tests/
 
       # M3: the shared package fans out to every layer plus the gateway, so its
       # own suite must be a required signal rather than an untested surface.
@@ -2879,12 +2879,61 @@ jobs:
         run: |
           pnpm run gate-engineering:test
 
+  # ---------------------------------------------------------------------------
+  # External dependency health gate. Probes the canonical registry. For
+  # required coverage an unavailable dependency MUST fail the readiness gate
+  # with EXTERNAL_DEPENDENCY_UNAVAILABLE; it is never treated as safely down.
+  # This job is intentionally NOT given a skip-safe scope mapping, so a skipped
+  # or failed check-external-deps is a gate failure (see the gate's SCOPES map
+  # and its no-scope-mapping handling below).
+  # ---------------------------------------------------------------------------
+  check-external-deps:
+    name: check-external-deps
+    runs-on: depot-ubuntu-24.04-4
+    timeout-minutes: 10
+    needs: change-scope
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - name: Set up Python
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
+        with:
+          python-version: "3.11"
+      - name: Probe external dependencies
+        id: probe
+        run: |
+          python scripts/ci/external_dep_status.py \
+            --config config/ci/external_dependencies.yaml \
+            --output reports/external-dep-status.json
+        continue-on-error: true
+      - name: Classify required coverage verdict
+        id: verdict
+        run: |
+          set -eo pipefail
+          python - <<'PY'
+          import json, pathlib
+          path = pathlib.Path("reports/external-dep-status.json")
+          if not path.exists():
+              print("MISSING_REPORT=1")
+              raise SystemExit(0)
+          report = json.loads(path.read_text())
+          unavailable = report.get("required_unavailable", [])
+          print(f"REQUIRED_UNAVAILABLE={' '.join(unavailable) if unavailable else 'none'}")
+          print(f"HAS_REQUIRED_UNAVAILABLE={'true' if unavailable else 'false'}")
+          PY
+      - name: Fail gate on required unavailability
+        if: steps.verdict.outputs.HAS_REQUIRED_UNAVAILABLE == 'true'
+        run: |
+          echo "EXTERNAL_DEPENDENCY_UNAVAILABLE: required dependency coverage cannot run:"
+          echo "${{ steps.verdict.outputs.REQUIRED_UNAVAILABLE }}"
+          exit 1
+
   unified-readiness-gate:
     name: Unified Readiness Gate
     runs-on: depot-ubuntu-24.04-4
     if: always()
     needs:
       - change-scope
+      - check-external-deps
       - structural-preflight
       - shared-and-tests-checks
       - layer5-tenant-isolation-regression
@@ -2925,6 +2974,10 @@ jobs:
           SCOPE_CODE: ${{ needs.change-scope.outputs.code }}
         run: |
           declare -A CHECKS=(
+            # check-external-deps intentionally has NO scope mapping (see
+            # SCOPES below): required external-dependency coverage must never
+            # be skipped or silently satisfied, so any skip is a gate failure.
+            ["check-external-deps"]="${{ needs.check-external-deps.result }}"
             ["change-scope"]="${{ needs.change-scope.result }}"
             ["structural-preflight"]="${{ needs.structural-preflight.result }}"
             ["shared-and-tests-checks"]="${{ needs.shared-and-tests-checks.result }}"
