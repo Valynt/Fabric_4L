@@ -17,12 +17,13 @@ from types import SimpleNamespace
 
 import pytest
 from fastapi import HTTPException
-from src.api.routes.formula_governance import _get_authenticated_tenant_id
 from value_fabric.shared.error_handling.exceptions import AuthenticationError
+
+from src.api.routes.formula_governance import _get_authenticated_tenant_id
 
 pytestmark = pytest.mark.tenant_boundary
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
+REPO_ROOT = Path(__file__).resolve().parents[4]
 FORMULA_GOV_PATH = (
     REPO_ROOT
     / "services"
@@ -38,6 +39,7 @@ FORMULA_GOV_PATH = (
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _source() -> str:
     return FORMULA_GOV_PATH.read_text(encoding="utf-8")
 
@@ -46,7 +48,8 @@ def _cypher_strings(source: str) -> list[str]:
     candidates = re.findall(r'"""(.*?)"""', source, re.DOTALL)
     candidates += re.findall(r"'''(.*?)'''", source, re.DOTALL)
     return [
-        s for s in candidates
+        s
+        for s in candidates
         if re.search(r"\b(MATCH|CREATE|MERGE|RETURN|WHERE)\b", s, re.IGNORECASE)
     ]
 
@@ -64,6 +67,7 @@ def _function_body(source: str, fn_name: str) -> str | None:
 # 1. Read isolation — static analysis
 # ---------------------------------------------------------------------------
 
+
 class TestFormulaGovernanceReadIsolation:
     """Every read Cypher in formula_governance.py must be tenant-scoped."""
 
@@ -71,7 +75,9 @@ class TestFormulaGovernanceReadIsolation:
         """Pending approval list must filter by tenant_id."""
         source = _source()
         body = _function_body(source, "list_pending_approvals")
-        assert body is not None, "list_pending_approvals not found in formula_governance.py"
+        assert body is not None, (
+            "list_pending_approvals not found in formula_governance.py"
+        )
         assert "tenant_id" in body
         assert "$tenant_id" in body
 
@@ -79,7 +85,9 @@ class TestFormulaGovernanceReadIsolation:
         """Formula version list must scope to tenant."""
         source = _source()
         body = _function_body(source, "list_formula_versions")
-        assert body is not None, "list_formula_versions not found in formula_governance.py"
+        assert body is not None, (
+            "list_formula_versions not found in formula_governance.py"
+        )
         assert "tenant_id" in body
         assert "$tenant_id" in body
 
@@ -87,7 +95,9 @@ class TestFormulaGovernanceReadIsolation:
         """Formula governance metadata must scope to tenant."""
         source = _source()
         body = _function_body(source, "get_formula_governance")
-        assert body is not None, "get_formula_governance not found in formula_governance.py"
+        assert body is not None, (
+            "get_formula_governance not found in formula_governance.py"
+        )
         assert "tenant_id" in body
         assert "$tenant_id" in body
 
@@ -95,7 +105,9 @@ class TestFormulaGovernanceReadIsolation:
         """Formula dependency graph must scope to tenant."""
         source = _source()
         body = _function_body(source, "get_formula_dependencies")
-        assert body is not None, "get_formula_dependencies not found in formula_governance.py"
+        assert body is not None, (
+            "get_formula_dependencies not found in formula_governance.py"
+        )
         assert "tenant_id" in body
 
     def test_all_cypher_match_on_formula_nodes_include_tenant_id(self):
@@ -125,6 +137,7 @@ class TestFormulaGovernanceReadIsolation:
 # 2. Write isolation — static analysis
 # ---------------------------------------------------------------------------
 
+
 class TestFormulaGovernanceWriteIsolation:
     """Write Cypher in formula_governance.py must carry tenant_id."""
 
@@ -132,7 +145,9 @@ class TestFormulaGovernanceWriteIsolation:
         """New FormulaVersion must be created with tenant_id."""
         source = _source()
         body = _function_body(source, "create_formula_version")
-        assert body is not None, "create_formula_version not found in formula_governance.py"
+        assert body is not None, (
+            "create_formula_version not found in formula_governance.py"
+        )
         assert "tenant_id" in body, (
             "create_formula_version must persist tenant_id on the created FormulaVersion"
         )
@@ -185,6 +200,7 @@ class TestFormulaGovernanceWriteIsolation:
 # ---------------------------------------------------------------------------
 # 3. Fail-closed — missing tenant context (calls real route helper)
 # ---------------------------------------------------------------------------
+
 
 class TestFormulaGovernanceFailClosed:
     """Missing or empty tenant context must be rejected before any Neo4j call."""

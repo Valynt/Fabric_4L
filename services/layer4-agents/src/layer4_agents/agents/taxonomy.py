@@ -32,69 +32,9 @@ from enum import Enum
 from typing import Any
 
 from value_fabric.shared.identity.context import get_request_context
-from value_fabric.shared.models.typed_dict import TypedDictModel
-
 from ..interfaces.context_clients import ContextFinancialExtractionPort, ContextIngestionPort
 from .base import AgentCapability, AgentResult, BaseAgent
 
-
-class ContextExtractionAgent_executeResult(TypedDictModel):
-    categories: list[Any]
-    confidence: Any | None = None
-    pain_points: Any | None = None
-    profile: dict[str, Any] | None = None
-    risks: Any
-    stakeholders: Any | None = None
-
-class ValueModelAgent_executeResult(TypedDictModel):
-    coverage_percentage: Any
-    gaps: Any
-    nodes_created: Any | None = None
-    value_tree: Any | None = None
-
-class IntegrityAgent_executeResult(TypedDictModel):
-    audit_result: dict[str, Any]
-    discrepancies: Any | None = None
-    stale_evidence: Any
-    validated: Any | None = None
-    verified: Any | None = None
-    violations: Any | None = None
-
-class NarrativeAgent_executeResult(TypedDictModel):
-    key_points: Any | None = None
-    proposal: Any
-    risk_mitigation: Any
-    slides: Any | None = None
-    speaker_notes: list[Any] | None = None
-    summary: Any | None = None
-    word_count: Any | None = None
-
-class CompetitiveIntelAgent_executeResult(TypedDictModel):
-    analysis: Any | None = None
-    battlecard: Any | None = None
-    differentiators: Any
-    factors: Any | None = None
-    positioning: Any
-    win_rate: Any | None = None
-
-class ConversationAgent_executeResult(TypedDictModel):
-    actions_taken: Any
-    confidence: Any | None = None
-    context_data: Any | None = None
-    entities: Any | None = None
-    intent: Any | None = None
-    response: Any
-    sources: Any | None = None
-
-class OrchestrationController_executeResult(TypedDictModel):
-    agent_load: dict[str, Any] | None = None
-    assignments: Any | None = None
-    current_instances: Any
-    estimated_start: Any | None = None
-    recovery_action: str | None = None
-    retry_scheduled: bool | None = None
-    scaling_action: str
-    schedule_id: Any | None = None
 
 logger = logging.getLogger(__name__)
 

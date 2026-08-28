@@ -122,3 +122,35 @@ async def test_graphrag_expand_context_anchors_path_to_tenant_nodes() -> None:
 
     assert "ALL(node IN nodes(path) WHERE node.confidence >= $min_confidence AND node.tenant_id = $_tenant_id)" in session.query
     assert "ALL(rel IN relationships(path) WHERE rel.tenant_id = $_tenant_id)" in session.query
+
+
+@pytest.mark.asyncio
+async def test_graphrag_fulltext_search_scopes_typed_index_to_tenant() -> None:
+    session = _CaptureSession()
+    engine = GraphRAGEngine(driver=_CaptureDriver(session))
+
+    await engine._fulltext_search(
+        query_text="cloud migration",
+        entity_type="Capability",
+        max_results=10,
+        tenant_id="tenant-a",
+    )
+
+    assert session.query.count("WHERE node.tenant_id = $_tenant_id") == 1
+    assert session.params["_tenant_id"] == "tenant-a"
+
+
+@pytest.mark.asyncio
+async def test_graphrag_fulltext_search_scopes_every_union_branch_to_tenant() -> None:
+    session = _CaptureSession()
+    engine = GraphRAGEngine(driver=_CaptureDriver(session))
+
+    await engine._fulltext_search(
+        query_text="cloud migration",
+        entity_type=None,
+        max_results=10,
+        tenant_id="tenant-a",
+    )
+
+    assert session.query.count("WHERE node.tenant_id = $_tenant_id") == 4
+    assert session.params["_tenant_id"] == "tenant-a"

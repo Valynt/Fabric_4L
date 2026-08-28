@@ -19,8 +19,17 @@ def test_contract_runner_preserves_failure_diagnostics_and_cleans_up() -> None:
 def test_contract_runner_uses_one_canonical_compose_file() -> None:
     script = RUNNER.read_text(encoding="utf-8")
 
-    assert 'COMPOSE_FILE="infra/compose/docker-compose.contract.yml"' in script
-    assert "docker-compose.contract.yml up" not in script
+    assert 'COMPOSE_FILE="infra/compose/docker-compose.backend-integrated.yml"' in script
+    assert "docker-compose.backend-integrated.yml up" not in script
+
+
+def test_contract_runner_executes_static_and_live_l1_l6_contracts() -> None:
+    script = RUNNER.read_text(encoding="utf-8")
+
+    assert '-m "contract_static or contract_static_no_service"' in script
+    assert "RUN_RUNTIME_CONTRACTS=1" in script
+    for layer in range(1, 7):
+        assert f"LAYER{layer}_API_URL=http://localhost:800{layer}" in script
 
 
 def test_layer4_contract_service_mounts_all_imported_source_packages() -> None:

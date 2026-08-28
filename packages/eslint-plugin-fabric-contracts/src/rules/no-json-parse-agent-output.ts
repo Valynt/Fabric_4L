@@ -6,7 +6,6 @@ const rule: Rule.RuleModule = {
     type: "problem",
     docs: {
       description: "Disallow JSON.parse() on LLM/agent outputs - use structured generation",
-      category: "Canonical Contracts",
       recommended: true,
       url: "https://github.com/bmsull560/Fabric_4L/blob/main/contract.md#25-llm-output-handling",
     },

@@ -80,7 +80,6 @@ async def test_query_graph_rejects_spoofed_tenant_parameter(
             )
         )
 
-
 @pytest.mark.asyncio
 async def test_query_graph_rejects_input_tenant_without_context(mock_neo4j_session):
     tool = QueryGraphTool(config={"neo4j_uri": "bolt://localhost:7687"})

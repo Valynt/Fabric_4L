@@ -47,8 +47,6 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
     runtime_contract_modules = {
         "test_l3_route_alias_parity.py",
         "test_layer_service_entrypoint_smoke.py",
-        "test_probe_contract_shared.py",
-        "test_system_route_contract.py",
         "test_journey_contracts.py",
     }
 
@@ -57,7 +55,8 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
         if item.path.name == "test_import_topology.py":
             item.add_marker(pytest.mark.contract_static_no_service)
         if (
-            "runtime_contract" in item.keywords
+            "service_required" in item.keywords
+            or "runtime_contract" in item.keywords
             or item.path.name in runtime_contract_modules
             or live_service_fixtures.intersection(item.fixturenames)
         ):

@@ -35,7 +35,6 @@ const rule: Rule.RuleModule = {
     type: "problem",
     docs: {
       description: "Require semantic-contract metadata on AG-UI run completion events",
-      category: "Canonical Contracts",
       recommended: true,
       url: "https://github.com/bmsull560/Fabric_4L/blob/main/contracts/agent-registry/compatibility-matrix.json",
     },

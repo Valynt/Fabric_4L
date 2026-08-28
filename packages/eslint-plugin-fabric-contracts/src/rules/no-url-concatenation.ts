@@ -18,7 +18,6 @@ const rule: Rule.RuleModule = {
     type: "problem",
     docs: {
       description: "Disallow URL string concatenation - use route manifest",
-      category: "Canonical Contracts",
       recommended: true,
       url: "https://github.com/bmsull560/Fabric_4L/blob/main/contract.md#26-ui-state-management",
     },
@@ -32,7 +31,7 @@ const rule: Rule.RuleModule = {
   },
 
   create(context: Rule.RuleContext): Rule.RuleListener {
-    const sourceCode = context.getSourceCode();
+    const sourceCode = context.sourceCode;
 
     function containsUrlLikePath(node: any): boolean {
       const text = sourceCode.getText(node);
