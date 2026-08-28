@@ -78,20 +78,13 @@ def test_legacy_billing_service_is_not_counted_as_deployable() -> None:
     assert "billing" not in deployable
 
 
-def test_legacy_billing_marker_points_to_canonical_layer7_service() -> None:
-    module = load_module()
-    pyproject = REPO_ROOT / "services" / "billing" / "pyproject.toml"
-    metadata = module.tomllib.loads(pyproject.read_text(encoding="utf-8"))
-
-    value_fabric = metadata["tool"]["value_fabric"]
-    assert value_fabric["deployable"] is False
-    assert value_fabric["canonical_service"] == "services/layer7-billing"
-    assert value_fabric["runtime_owner"] is False
-
-
-def test_legacy_billing_service_has_no_runtime_dockerfile() -> None:
+def test_legacy_billing_package_is_removed_and_not_reintroduced() -> None:
+    # COMPAT-BILL-001: legacy services/billing package deleted 2026-08-27.
+    # Billing is split between layer7 (plans/usage/invoices/payment-state) and
+    # layer4 (membership/subscription webhook domain). This ratchet fails if a
+    # parallel `services/billing/` package is ever reintroduced.
+    assert not (REPO_ROOT / "services" / "billing" / "pyproject.toml").exists()
     assert not (REPO_ROOT / "services" / "billing" / "Dockerfile").exists()
-    assert (REPO_ROOT / "services" / "layer7-billing" / "Dockerfile").exists()
 
 
 def test_layer7_readme_declares_canonical_billing_ownership() -> None:
@@ -100,8 +93,8 @@ def test_layer7_readme_declares_canonical_billing_ownership() -> None:
     )
 
     assert "canonical deployable billing runtime" in readme
-    assert "services/billing/" in readme
-    assert "Legacy compatibility package" in readme
+    assert "legacy" in readme and "was removed" in readme
+    assert "COMPAT-BILL-001" in readme
 
 
 def test_non_deployable_service_is_excluded_from_gate(checker_module, tmp_path) -> None:

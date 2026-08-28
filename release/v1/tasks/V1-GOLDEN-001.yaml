@@ -33,7 +33,6 @@ allowed_paths:
 forbidden_paths:
   - infra/production/**
   - .github/workflows/**
-  - services/billing/**
 
 invariants:
   - The certification composes make test-backend-integrated-release-smoke conventions; no parallel gate system.

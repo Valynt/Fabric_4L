@@ -1,6 +1,6 @@
 # ADR-023: Billing Service Extraction
 
-**Status:** Superseded by Layer 7 billing ownership rationalization (2026-06-05)
+**Status:** Superseded by Layer 7 billing ownership rationalization (2026-06-05); `services/billing/` removed 2026-08-27 (COMPAT-BILL-001)
 **Date:** May 29, 2026
 **Authors:** Architecture Lead, Backend Lead
 **Reviewers:** Platform Architecture Committee
@@ -18,7 +18,7 @@ The Stripe billing logic in `services/layer4-agents/` (`services/billing_service
 
 A separate `services/layer7-billing/` service handles internal usage-event tracking (usage metering, plan entitlements), but Stripe-integrated subscription management, customer sync, webhooks, and invoice charging remains inside L4.
 
-This ADR records the historical decision to extract the Stripe billing subsystem from L4 into a standalone `services/billing/` service, consistent with the decomposition plan in ADR-022. That ownership model was superseded on 2026-06-05: canonical deployable billing behavior is now consolidated in `services/layer7-billing/`, while `services/billing/` is retained only as non-deployable compatibility code.
+This ADR records the historical decision to extract the Stripe billing subsystem from L4 into a standalone `services/billing/` service, consistent with the decomposition plan in ADR-022. That ownership model was superseded on 2026-06-05: canonical deployable billing behavior is now consolidated in `services/layer7-billing/`, and the `services/billing/` compatibility package was deleted on 2026-08-27 (COMPAT-BILL-001) after confirming zero production consumers. Billing ownership today: plans/usage/invoices/payment-state in `services/layer7-billing/`; Stripe customer/subscription/webhook domain in `services/layer4-agents/src/layer4_agents/services/billing_service.py`.
 
 ## Decision
 
