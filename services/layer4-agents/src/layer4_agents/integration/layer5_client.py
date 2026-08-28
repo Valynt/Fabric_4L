@@ -24,59 +24,32 @@ from tenacity import (
     stop_after_attempt,
     wait_exponential,
 )
-from value_fabric.shared.models.typed_dict import TypedDictModel
+from value_fabric.shared.contracts.layer5_payloads import (
+    L5GetFreshnessSummaryResult,
+    L5GetMaturityLadderResult,
+    L5GetStaleTruthsResult,
+    L5GetTruthAuditResult,
+    L5GetTruthResult,
+    L5ListTruthsResult,
+    L5SubmitTruthResult,
+    L5SyncValidatedTruthsResult,
+    L5ValidateTruthResult,
+)
 
 from .claim_types import require_canonical_claim_type
 
-
-class Layer5GroundTruthClient_sync_validated_truthsResult(TypedDictModel):
-    detail: Any | None = None
-    error: str
-    failed: int
-    synced: int
-
-class Layer5GroundTruthClient_submit_truthResult(TypedDictModel):
-    detail: Any | None = None
-    error: str
-
-class Layer5GroundTruthClient_list_truthsResult(TypedDictModel):
-    error: Any
-    items: list[Any]
-    total: int
-
-class Layer5GroundTruthClient_validate_truthResult(TypedDictModel):
-    error: Any
-    truth_object_id: Any
-
-
-class Layer5GroundTruthClient_get_truthResult(TypedDictModel):
-    error: Any | None = None
-
-
-class Layer5GroundTruthClient_get_truth_auditResult(TypedDictModel):
-    error: Any | None = None
-    events: list[Any] = []
-
-
-class Layer5GroundTruthClient_get_freshness_summaryResult(TypedDictModel):
-    error: Any | None = None
-    stale_count: int = 0
-    fresh_count: int = 0
-    expiring_soon_count: int = 0
-    total_count: int = 0
-
-
-class Layer5GroundTruthClient_get_stale_truthsResult(TypedDictModel):
-    error: Any | None = None
-    items: list[Any] = []
-    total: int = 0
-    limit: int = 0
-    offset: int = 0
-    has_more: bool = False
-
-
-class Layer5GroundTruthClient_get_maturity_ladderResult(TypedDictModel):
-    error: Any | None = None
+# Backward-compatible aliases: existing callers import these names from this
+# module; the canonical DTO definitions now live in the shared contracts
+# package (value_fabric.shared.contracts.layer5_payloads).
+Layer5GroundTruthClient_sync_validated_truthsResult = L5SyncValidatedTruthsResult
+Layer5GroundTruthClient_submit_truthResult = L5SubmitTruthResult
+Layer5GroundTruthClient_list_truthsResult = L5ListTruthsResult
+Layer5GroundTruthClient_validate_truthResult = L5ValidateTruthResult
+Layer5GroundTruthClient_get_truthResult = L5GetTruthResult
+Layer5GroundTruthClient_get_truth_auditResult = L5GetTruthAuditResult
+Layer5GroundTruthClient_get_freshness_summaryResult = L5GetFreshnessSummaryResult
+Layer5GroundTruthClient_get_stale_truthsResult = L5GetStaleTruthsResult
+Layer5GroundTruthClient_get_maturity_ladderResult = L5GetMaturityLadderResult
 
 
 from ._base import SERVICE_AUTH_HEADER, TENANT_ID_HEADER
