@@ -99,10 +99,12 @@ class CargoAccountIntelligenceProvider(AccountIntelligenceProvider):
                     run_data = response.json()
                     
                     # Sometimes the API returns synchronous responses
-                    if "runContext" in run_data:
-                        return run_data["runContext"].get("action")
+                    if "runContext" in run_data and isinstance(run_data["runContext"], dict):
+                        action_res = run_data["runContext"].get("action")
+                        return action_res if isinstance(action_res, dict) else None
                         
-                    run_uuid = run_data.get("run", {}).get("uuid")
+                    run_obj = run_data.get("run")
+                    run_uuid = run_obj.get("uuid") if isinstance(run_obj, dict) else None
                     if not run_uuid:
                         raise CargoAPIError("Missing run UUID in response")
 
@@ -111,10 +113,13 @@ class CargoAccountIntelligenceProvider(AccountIntelligenceProvider):
                         poll_resp = await self._client.get(f"/orchestration/runs/{run_uuid}")
                         poll_resp.raise_for_status()
                         poll_data = poll_resp.json()
-                        status = poll_data.get("run", {}).get("status")
+                        poll_run = poll_data.get("run") if isinstance(poll_data, dict) else None
+                        status = poll_run.get("status") if isinstance(poll_run, dict) else None
                         
                         if status == "success":
-                            return poll_data.get("runContext", {}).get("action")
+                            run_ctx = poll_data.get("runContext") if isinstance(poll_data, dict) else None
+                            action_res = run_ctx.get("action") if isinstance(run_ctx, dict) else None
+                            return action_res if isinstance(action_res, dict) else None
                         elif status == "failed":
                             raise CargoAPIError(f"Cargo run failed: {run_uuid}")
                     
@@ -274,18 +279,18 @@ class CargoAccountIntelligenceProvider(AccountIntelligenceProvider):
             return_exceptions=False,
         )
 
-        if not company_data:
+        if not isinstance(company_data, CompanyEnrichmentData):
             log.warning("cargo_full_context_failed_no_company_data")
             return None
 
-        # Just return basic Context since assemble_context was a mock-specific helper in tests perhaps? 
-        # Actually CargoContextNormalizer doesn't have assemble_context natively, the test used it.
-        # Let's construct it directly.
+        stakeholders_list: list[StakeholderProfile] = stakeholders if isinstance(stakeholders, list) else []
+        signals_list: list[AccountSignal] = signals if isinstance(signals, list) else []
+
         return EnrichedAccountContext(
             account_id=account_id,
             tenant_id=tenant_id,
             company=company_data,
-            stakeholders=stakeholders,
-            signals=signals,
+            stakeholders=stakeholders_list,
+            signals=signals_list,
             raw_provider_record_id=company_data.provenance.provider_record_id,
         )
