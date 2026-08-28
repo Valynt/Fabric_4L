@@ -809,7 +809,9 @@ class IntegrationService:
         client_id = os.getenv("SALESFORCE_CLIENT_ID")
         client_secret = os.getenv("SALESFORCE_CLIENT_SECRET")
 
-        from layer4_agents.integration.connectors.providers.salesforce.connector import SalesforceConnector
+        from layer4_agents.integration.connectors.providers.salesforce.connector import (
+            SalesforceConnector,
+        )
 
         try:
             token_result = await SalesforceConnector.refresh_token(

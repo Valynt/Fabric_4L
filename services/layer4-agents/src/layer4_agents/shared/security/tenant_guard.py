@@ -14,12 +14,12 @@ safe in practice, but we keep it deferred to remain robust to future import
 reordering.
 """
 
-from typing import Any
+from uuid import UUID
 
 
 def enforce_tenant_context(
-    payload_tenant_id: Any,
-    authenticated_tenant_id: Any,
+    payload_tenant_id: str | UUID | None,
+    authenticated_tenant_id: str | UUID | None,
 ) -> None:
     """Raise ``TenantSpoofingError`` if a supplied tenant_id mismatches context.
 
