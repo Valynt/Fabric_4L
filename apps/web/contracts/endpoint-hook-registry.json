@@ -2605,17 +2605,6 @@
     },
     {
       "source": "layer3-knowledge",
-      "method": "POST",
-      "path": "/v1/documents/export",
-      "status": "unmapped",
-      "lastReviewed": "2026-07-25",
-      "metadata": {
-        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
-      },
-      "operationId": "export_document_v1_documents_export_post"
-    },
-    {
-      "source": "layer3-knowledge",
       "method": "GET",
       "path": "/v1/entities/",
       "status": "unmapped",

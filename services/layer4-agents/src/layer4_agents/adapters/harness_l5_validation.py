@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from layer4_agents.harness.live_l5_validator import LiveL5Validator
 from layer4_agents.harness.validation_hooks import ClaimValidator
-from layer4_agents.integration.layer5_client import Layer5GroundTruthClient
+from layer4_agents.integration.layer5_client import get_layer5_client
 
 
 def create_live_l5_claim_validator(
@@ -16,10 +16,10 @@ def create_live_l5_claim_validator(
     """Create a Layer 5-backed harness claim validator.
 
     Tenant scoping remains per request via ``LiveL5Validator``. The underlying
-    Layer 5 client is deliberately constructed in an adapter module so the
-    harness factory does not import cross-layer integration clients directly.
+    Layer 5 client is obtained through the canonical :func:`get_layer5_client`
+    factory so there is a single construction path for the cross-layer client.
     """
-    client = Layer5GroundTruthClient(
+    client = get_layer5_client(
         base_url=base_url,
         service_token=service_token,
     )
