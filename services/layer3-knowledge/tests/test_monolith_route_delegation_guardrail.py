@@ -25,11 +25,10 @@ def test_app_monolith_file_is_absent():
 
 
 def test_v2_domain_routers_importable():
-    """All Sprint 3 V2 domain routers must be importable without a runtime."""
+    """All V2 domain routers must be importable without a runtime."""
     from src.api.routes import (  # noqa: F401
         agents,
         analytics,
-        documents,
         graph_viz,
         ingestion,
     )

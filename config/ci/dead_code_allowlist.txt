@@ -129,3 +129,15 @@ services/layer5-ground-truth/src/layer5_ground_truth/cache.py|close_cache
 services/layer5-ground-truth/src/layer5_ground_truth/database.py|SQLiteUUID
 services/layer5-ground-truth/src/layer5_ground_truth/runtime_mode.py|is_production_like_mode
 services/layer5-ground-truth/src/layer5_ground_truth/services/academy_service.py|get_maturity_level
+
+# --- Peer-review follow-up (guard tightening), PR #1525 cleanup branch ---
+# String/forward-ref dispatch: reached only via string or forward-reference patterns
+# (relationship("..."), list["..."], query_name="...", getattr/globals, agent-id
+# markers). Dropping string-literal reference detection unmasked these. Live symbols -
+# do NOT remove as dead.
+services/layer1-ingestion/src/layer1_ingestion/shared/models.py|EvidenceChunk
+services/layer2-extraction/src/layer2_extraction/models/ontology.py|ExtractionSecurityMetadata
+services/layer3-knowledge/src/db/cypher_execution_helper.py|execute_tenant_cypher
+services/layer3-knowledge/src/db/dual_store_coordinator.py|DualStoreTransactionCoordinator
+services/layer3-knowledge/src/services/kg_sync.py|link_ground_truth_to_entity
+services/layer3-knowledge/src/services/kg_sync.py|get_ground_truth_node

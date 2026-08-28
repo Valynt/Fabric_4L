@@ -28,12 +28,12 @@
       "target_removal_date": "2026-12-31"
     },
     {
-      "id": "apps/web/src/api/generated/l3/index.ts:2418:ts_js_doc_deprecated",
+      "id": "apps/web/src/api/generated/l3/index.ts:2298:ts_js_doc_deprecated",
       "rationale": "Approved temporary deprecation compatibility surface; tracked for staged removal.",
       "target_removal_date": "2026-12-31"
     },
     {
-      "id": "apps/web/src/api/generated/l3/index.ts:4309:ts_js_doc_deprecated",
+      "id": "apps/web/src/api/generated/l3/index.ts:4224:ts_js_doc_deprecated",
       "rationale": "Approved temporary deprecation compatibility surface; tracked for staged removal.",
       "target_removal_date": "2026-12-31"
     },
