@@ -625,7 +625,7 @@ def get_layer5_client(
     singleton: it is created once and reused so the composition-root default
     client is stable across call sites and safe to ``close()``.
 
-    Any call passing ``base_url``, ``service_token`` or ``tenant_id`` returns
+    Each call passing ``base_url``, ``service_token`` or ``tenant_id`` returns
     a *fresh* client and never mutates the cached singleton. This keeps
     per-call-site configuration from bleeding into the shared instance and
     avoids one caller's ``close()`` invalidating a client another caller holds.
