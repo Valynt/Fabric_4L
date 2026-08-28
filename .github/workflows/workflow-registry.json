@@ -729,7 +729,7 @@
         "GITHUB_TOKEN"
       ],
       "produced_artifacts": [],
-      "runtime_budget_minutes": 10,
+      "runtime_budget_minutes": 30,
       "local_validation_command": "make check-workflow-references",
       "deprecation_status": "active"
     },
