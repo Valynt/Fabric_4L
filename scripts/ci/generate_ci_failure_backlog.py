@@ -751,14 +751,27 @@ def fetch_job_log(repo: str, job_id: int, server_url: str, token: str) -> str:
 
 
 def collect_from_github(
-    config: BacklogConfig, token: str, include_logs: bool = False
+    config: BacklogConfig,
+    token: str,
+    include_logs: bool = False,
+    max_failed_runs: int | None = None,
 ) -> tuple[list[Mapping[str, Any]], dict[int, list[Mapping[str, Any]]], dict[int, str]]:
     runs = fetch_workflow_runs(config)
+
+    # Only failed runs can contribute to the backlog; fetching jobs for every run
+    # is an N+1 cost that explodes on high-volume repositories (GitHub does not
+    # support server-side conclusion filtering on the runs endpoint).
+    failed_runs = [
+        run for run in runs if run_failed(run, include_cancelled=config.include_cancelled)
+    ]
+
+    if max_failed_runs is not None and len(failed_runs) > max_failed_runs:
+        failed_runs = failed_runs[:max_failed_runs]
 
     jobs_by_run: dict[int, list[Mapping[str, Any]]] = {}
     logs_by_job: dict[int, str] = {}
 
-    for run in runs:
+    for run in failed_runs:
         run_id = int(run["id"])
         run_attempt = int(run.get("run_attempt") or 1)
         jobs = fetch_jobs_for_run(config.repo, run_id, run_attempt, config.server_url, token)
@@ -774,7 +787,7 @@ def collect_from_github(
                         config.repo, job_id, config.server_url, token
                     )
 
-    return runs, jobs_by_run, logs_by_job
+    return failed_runs, jobs_by_run, logs_by_job
 
 
 def load_fixture_payloads(
@@ -877,6 +890,15 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         help="Number of days of workflow runs to collect.",
     )
     parser.add_argument(
+        "--generated-at",
+        default=None,
+        help=(
+            "Reference ISO-8601 timestamp (e.g. 2026-06-03T00:00:00Z) used to compute "
+            "the reporting window. Defaults to the current time. Intended for "
+            "deterministic fixture-driven runs and tests."
+        ),
+    )
+    parser.add_argument(
         "--branch", default="all", help="Branch to report, or 'all' for all branches."
     )
     parser.add_argument(
@@ -905,6 +927,16 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         default=2,
         help="Minimum occurrences needed for a recurring backlog row.",
     )
+    parser.add_argument(
+        "--max-failed-runs",
+        type=int,
+        default=None,
+        help=(
+            "Cap the number of failed runs collected from the GitHub API. "
+            "Protects scheduled runs on high-volume repositories from N+1 job "
+            "fetches exhausting the time/rate budget. Defaults to unlimited."
+        ),
+    )
     parser.add_argument("--json-output", type=Path, default=DEFAULT_JSON_OUTPUT)
     parser.add_argument("--markdown-output", type=Path, default=DEFAULT_MARKDOWN_OUTPUT)
     return parser.parse_args(argv)
@@ -923,13 +955,21 @@ def main(argv: Sequence[str] | None = None) -> int:
         branch = None
 
     repo = args.repo or "fixture/repository"
+
+    if args.generated_at:
+        generated_at = parse_timestamp(args.generated_at)
+        if generated_at is None:
+            raise SystemExit(f"invalid --generated-at timestamp: {args.generated_at}")
+    else:
+        generated_at = dt.datetime.now(dt.UTC)
+
     config = BacklogConfig(
         repo=repo,
         window_days=args.window_days,
         branch=branch,
         workflow_filter=args.workflow_filter.strip() or None,
         include_cancelled=args.include_cancelled,
-        generated_at=dt.datetime.now(dt.UTC),
+        generated_at=generated_at,
         server_url=args.server_url,
     )
 
@@ -941,7 +981,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         if not args.token:
             raise SystemExit("--token or GITHUB_TOKEN is required when not using --fixture-dir")
         runs, jobs_by_run, logs_by_job = collect_from_github(
-            config, args.token, include_logs=args.include_logs
+            config,
+            args.token,
+            include_logs=args.include_logs,
+            max_failed_runs=args.max_failed_runs,
         )
 
     filtered_runs = filter_backlog_runs(
