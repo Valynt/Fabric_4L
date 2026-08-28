@@ -69,7 +69,7 @@ jobs:
       - name: Setup Node.js + pnpm
         uses: ./.depot/actions/setup-pnpm
         with:
-          node-version: '22.18.0'
+          node-version: '22.22.2'
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       # scripts/export_openapi.py imports every service FastAPI app at module load.

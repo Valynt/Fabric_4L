@@ -65,12 +65,12 @@ yarn install
 
 | Runtime | Canonical Version | Source of Truth |
 |---------|-------------------|-----------------|
-| Node.js | 22.18.0 | Root `package.json` `engines.node` |
+| Node.js | 22.22.2 | Root `package.json` `engines.node` |
 | pnpm | 10.18.1 | Root `package.json` `packageManager` |
 | Python | 3.11 | Makefile and GitHub Actions |
 | Python container base | `python:3.11.13-slim-bookworm` | Service Dockerfiles |
 
-CI pins Node setup to `22.18.0` and Python governance checks to `3.11`. Update all consumers together when refreshing patch levels.
+CI pins Node setup to `22.22.2` and Python governance checks to `3.11`. Update all consumers together when refreshing patch levels.
 
 ## Key Directories
 

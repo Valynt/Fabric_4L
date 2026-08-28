@@ -5792,49 +5792,49 @@
     },
     {
       "kind": "python-any",
-      "line": 89,
+      "line": 94,
       "path": "scripts/ci/check_l3_contract_drift.py",
       "text": "def _load(path: Path) -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 94,
+      "line": 99,
       "path": "scripts/ci/check_l3_contract_drift.py",
       "text": "def _get_response_schema_required(operation: dict[str, Any], status: str) -> set[str]:"
     },
     {
       "kind": "python-any",
-      "line": 106,
+      "line": 111,
       "path": "scripts/ci/check_l3_contract_drift.py",
       "text": "snapshot: dict[str, Any],"
     },
     {
       "kind": "python-any",
-      "line": 107,
+      "line": 112,
       "path": "scripts/ci/check_l3_contract_drift.py",
       "text": "current: dict[str, Any],"
     },
     {
       "kind": "python-any",
-      "line": 112,
+      "line": 117,
       "path": "scripts/ci/check_l3_contract_drift.py",
       "text": "snapshot_paths: dict[str, Any] = snapshot.get(\"paths\", {})"
     },
     {
       "kind": "python-any",
-      "line": 113,
+      "line": 118,
       "path": "scripts/ci/check_l3_contract_drift.py",
       "text": "current_paths: dict[str, Any] = current.get(\"paths\", {})"
     },
     {
       "kind": "python-any",
-      "line": 140,
+      "line": 145,
       "path": "scripts/ci/check_l3_contract_drift.py",
       "text": "snapshot_responses: dict[str, Any] = snapshot_op.get(\"responses\", {})"
     },
     {
       "kind": "python-any",
-      "line": 141,
+      "line": 146,
       "path": "scripts/ci/check_l3_contract_drift.py",
       "text": "current_responses: dict[str, Any] = current_op.get(\"responses\", {})"
     },
@@ -8510,13 +8510,13 @@
     },
     {
       "kind": "python-any",
-      "line": 31,
+      "line": 30,
       "path": "scripts/ops/restore_dry_run.py",
       "text": "def _asset_status() -> dict[str, dict[str, Any]]:"
     },
     {
       "kind": "python-any",
-      "line": 41,
+      "line": 40,
       "path": "scripts/ops/restore_dry_run.py",
       "text": "def build_evidence() -> dict[str, Any]:"
     },
@@ -16586,19 +16586,19 @@
     },
     {
       "kind": "python-any",
-      "line": 82,
+      "line": 81,
       "path": "services/layer3-knowledge/src/api/main.py",
       "text": "_security_config_l3: Any = None"
     },
     {
       "kind": "python-any",
-      "line": 91,
+      "line": 90,
       "path": "services/layer3-knowledge/src/api/main.py",
       "text": "vc: Any,"
     },
     {
       "kind": "python-any",
-      "line": 95,
+      "line": 94,
       "path": "services/layer3-knowledge/src/api/main.py",
       "text": "handler: Any,"
     },
@@ -17078,43 +17078,43 @@
     },
     {
       "kind": "python-any",
-      "line": 197,
+      "line": 198,
       "path": "services/layer3-knowledge/src/api/routes/graph_viz.py",
       "text": "r_dict: dict[str, Any] = r"
     },
     {
       "kind": "python-any",
-      "line": 321,
+      "line": 322,
       "path": "services/layer3-knowledge/src/api/routes/graph_viz.py",
       "text": "async def _get_root_entity(neo4j, entity_id: str, tenant_id: str) -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 339,
+      "line": 340,
       "path": "services/layer3-knowledge/src/api/routes/graph_viz.py",
       "text": "neo4j, entity_id: str, depth: int, tenant_id: str, root_record: dict[str, Any]"
     },
     {
       "kind": "python-any",
-      "line": 371,
+      "line": 372,
       "path": "services/layer3-knowledge/src/api/routes/graph_viz.py",
       "text": "r_dict: dict[str, Any] = r"
     },
     {
       "kind": "python-any",
-      "line": 510,
+      "line": 511,
       "path": "services/layer3-knowledge/src/api/routes/graph_viz.py",
       "text": "query_params: dict[str, Any] = {"
     },
     {
       "kind": "python-any",
-      "line": 543,
+      "line": 544,
       "path": "services/layer3-knowledge/src/api/routes/graph_viz.py",
       "text": "record: dict[str, Any] = result[0]"
     },
     {
       "kind": "python-any",
-      "line": 637,
+      "line": 638,
       "path": "services/layer3-knowledge/src/api/routes/graph_viz.py",
       "text": "record_dict: dict[str, Any] = record"
     },
@@ -20156,13 +20156,13 @@
     },
     {
       "kind": "python-any",
-      "line": 605,
+      "line": 606,
       "path": "services/layer3-knowledge/src/retrieval/graph_rag.py",
       "text": "seed_entities: list[dict[str, Any]],"
     },
     {
       "kind": "python-any",
-      "line": 609,
+      "line": 610,
       "path": "services/layer3-knowledge/src/retrieval/graph_rag.py",
       "text": ") -> dict[str, Any]:"
     },
@@ -26858,13 +26858,13 @@
     },
     {
       "kind": "python-any",
-      "line": 570,
+      "line": 580,
       "path": "services/layer4-agents/src/layer4_agents/api/websocket/manager.py",
       "text": "async def broadcast_pause_point(self, workflow_id: str, pause_point: dict[str, Any]) -> int:"
     },
     {
       "kind": "python-any",
-      "line": 687,
+      "line": 697,
       "path": "services/layer4-agents/src/layer4_agents/api/websocket/manager.py",
       "text": "message: dict[str, Any],"
     },
@@ -28346,6 +28346,174 @@
     },
     {
       "kind": "python-any",
+      "line": 4,
+      "path": "services/layer4-agents/src/layer4_agents/integration/connectors/core/connector.py",
+      "text": "from typing import Any, Protocol, runtime_checkable"
+    },
+    {
+      "kind": "python-any",
+      "line": 18,
+      "path": "services/layer4-agents/src/layer4_agents/integration/connectors/core/connector.py",
+      "text": "async def test_connection(self, *, timeout: float | None = None) -> dict[str, Any]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 87,
+      "path": "services/layer4-agents/src/layer4_agents/integration/connectors/core/connector.py",
+      "text": "fields: dict[str, Any],"
+    },
+    {
+      "kind": "python-any",
+      "line": 5,
+      "path": "services/layer4-agents/src/layer4_agents/integration/connectors/core/state.py",
+      "text": "from typing import TYPE_CHECKING, Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 80,
+      "path": "services/layer4-agents/src/layer4_agents/integration/connectors/core/state.py",
+      "text": "def as_dict(self) -> dict[str, Any]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 107,
+      "path": "services/layer4-agents/src/layer4_agents/integration/connectors/core/state.py",
+      "text": ") -> dict[str, Any]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 189,
+      "path": "services/layer4-agents/src/layer4_agents/integration/connectors/core/state.py",
+      "text": "integration: Any,"
+    },
+    {
+      "kind": "python-any",
+      "line": 6,
+      "path": "services/layer4-agents/src/layer4_agents/integration/connectors/core/types.py",
+      "text": "from typing import Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 37,
+      "path": "services/layer4-agents/src/layer4_agents/integration/connectors/core/types.py",
+      "text": "canonical: dict[str, Any] = field(default_factory=dict)"
+    },
+    {
+      "kind": "python-any",
+      "line": 39,
+      "path": "services/layer4-agents/src/layer4_agents/integration/connectors/core/types.py",
+      "text": "supplemental: dict[str, Any] = field(default_factory=dict)"
+    },
+    {
+      "kind": "python-any",
+      "line": 3,
+      "path": "services/layer4-agents/src/layer4_agents/integration/connectors/factory.py",
+      "text": "from typing import Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 10,
+      "path": "services/layer4-agents/src/layer4_agents/integration/connectors/factory.py",
+      "text": "def get_connector(provider: CRMProvider, config: dict[str, Any]) -> CRMConnector:"
+    },
+    {
+      "kind": "python-any",
+      "line": 31,
+      "path": "services/layer4-agents/src/layer4_agents/integration/connectors/factory.py",
+      "text": "def get_write_connector(provider: CRMProvider, config: dict[str, Any]) -> CRMWriteConnector:"
+    },
+    {
+      "kind": "python-any",
+      "line": 6,
+      "path": "services/layer4-agents/src/layer4_agents/integration/connectors/providers/hubspot/connector.py",
+      "text": "from typing import Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 30,
+      "path": "services/layer4-agents/src/layer4_agents/integration/connectors/providers/hubspot/connector.py",
+      "text": "self, config: dict[str, Any], client: httpx.AsyncClient | None = None"
+    },
+    {
+      "kind": "python-any",
+      "line": 48,
+      "path": "services/layer4-agents/src/layer4_agents/integration/connectors/providers/hubspot/connector.py",
+      "text": "params: dict[str, Any] | None = None,"
+    },
+    {
+      "kind": "python-any",
+      "line": 49,
+      "path": "services/layer4-agents/src/layer4_agents/integration/connectors/providers/hubspot/connector.py",
+      "text": "json_payload: dict[str, Any] | None = None,"
+    },
+    {
+      "kind": "python-any",
+      "line": 68,
+      "path": "services/layer4-agents/src/layer4_agents/integration/connectors/providers/hubspot/connector.py",
+      "text": "async def test_connection(self, *, timeout: float | None = None) -> dict[str, Any]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 274,
+      "path": "services/layer4-agents/src/layer4_agents/integration/connectors/providers/hubspot/connector.py",
+      "text": "fields: dict[str, Any],"
+    },
+    {
+      "kind": "python-any",
+      "line": 9,
+      "path": "services/layer4-agents/src/layer4_agents/integration/connectors/providers/salesforce/connector.py",
+      "text": "from typing import Any, cast"
+    },
+    {
+      "kind": "python-any",
+      "line": 61,
+      "path": "services/layer4-agents/src/layer4_agents/integration/connectors/providers/salesforce/connector.py",
+      "text": "def __init__(self, config: dict[str, Any], client: httpx.AsyncClient | None = None) -> None:"
+    },
+    {
+      "kind": "python-any",
+      "line": 67,
+      "path": "services/layer4-agents/src/layer4_agents/integration/connectors/providers/salesforce/connector.py",
+      "text": "self._on_token_refresh: Callable[[dict[str, Any]], Awaitable[None]] | None = config.get("
+    },
+    {
+      "kind": "python-any",
+      "line": 85,
+      "path": "services/layer4-agents/src/layer4_agents/integration/connectors/providers/salesforce/connector.py",
+      "text": "params: dict[str, Any] | None = None,"
+    },
+    {
+      "kind": "python-any",
+      "line": 86,
+      "path": "services/layer4-agents/src/layer4_agents/integration/connectors/providers/salesforce/connector.py",
+      "text": "json_payload: dict[str, Any] | None = None,"
+    },
+    {
+      "kind": "python-any",
+      "line": 163,
+      "path": "services/layer4-agents/src/layer4_agents/integration/connectors/providers/salesforce/connector.py",
+      "text": ") -> tuple[list[dict[str, Any]], bool]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 165,
+      "path": "services/layer4-agents/src/layer4_agents/integration/connectors/providers/salesforce/connector.py",
+      "text": "all_records: list[dict[str, Any]] = []"
+    },
+    {
+      "kind": "python-any",
+      "line": 208,
+      "path": "services/layer4-agents/src/layer4_agents/integration/connectors/providers/salesforce/connector.py",
+      "text": "async def test_connection(self, *, timeout: float | None = None) -> dict[str, Any]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 403,
+      "path": "services/layer4-agents/src/layer4_agents/integration/connectors/providers/salesforce/connector.py",
+      "text": "fields: dict[str, Any],"
+    },
+    {
+      "kind": "python-any",
       "line": 13,
       "path": "services/layer4-agents/src/layer4_agents/integration/layer1_client.py",
       "text": "from typing import Any, Final"
@@ -28721,174 +28889,6 @@
       "line": 571,
       "path": "services/layer4-agents/src/layer4_agents/integration/layer5_client.py",
       "text": ") -> dict[str, Any]:"
-    },
-    {
-      "kind": "python-any",
-      "line": 4,
-      "path": "services/layer4-agents/src/layer4_agents/integration/connectors/core/connector.py",
-      "text": "from typing import Any, Protocol, runtime_checkable"
-    },
-    {
-      "kind": "python-any",
-      "line": 18,
-      "path": "services/layer4-agents/src/layer4_agents/integration/connectors/core/connector.py",
-      "text": "async def test_connection(self, *, timeout: float | None = None) -> dict[str, Any]:"
-    },
-    {
-      "kind": "python-any",
-      "line": 87,
-      "path": "services/layer4-agents/src/layer4_agents/integration/connectors/core/connector.py",
-      "text": "fields: dict[str, Any],"
-    },
-    {
-      "kind": "python-any",
-      "line": 5,
-      "path": "services/layer4-agents/src/layer4_agents/integration/connectors/core/state.py",
-      "text": "from typing import TYPE_CHECKING, Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 80,
-      "path": "services/layer4-agents/src/layer4_agents/integration/connectors/core/state.py",
-      "text": "def as_dict(self) -> dict[str, Any]:"
-    },
-    {
-      "kind": "python-any",
-      "line": 107,
-      "path": "services/layer4-agents/src/layer4_agents/integration/connectors/core/state.py",
-      "text": ") -> dict[str, Any]:"
-    },
-    {
-      "kind": "python-any",
-      "line": 189,
-      "path": "services/layer4-agents/src/layer4_agents/integration/connectors/core/state.py",
-      "text": "integration: Any,"
-    },
-    {
-      "kind": "python-any",
-      "line": 6,
-      "path": "services/layer4-agents/src/layer4_agents/integration/connectors/core/types.py",
-      "text": "from typing import Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 37,
-      "path": "services/layer4-agents/src/layer4_agents/integration/connectors/core/types.py",
-      "text": "canonical: dict[str, Any] = field(default_factory=dict)"
-    },
-    {
-      "kind": "python-any",
-      "line": 39,
-      "path": "services/layer4-agents/src/layer4_agents/integration/connectors/core/types.py",
-      "text": "supplemental: dict[str, Any] = field(default_factory=dict)"
-    },
-    {
-      "kind": "python-any",
-      "line": 3,
-      "path": "services/layer4-agents/src/layer4_agents/integration/connectors/factory.py",
-      "text": "from typing import Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 10,
-      "path": "services/layer4-agents/src/layer4_agents/integration/connectors/factory.py",
-      "text": "def get_connector(provider: CRMProvider, config: dict[str, Any]) -> CRMConnector:"
-    },
-    {
-      "kind": "python-any",
-      "line": 31,
-      "path": "services/layer4-agents/src/layer4_agents/integration/connectors/factory.py",
-      "text": "def get_write_connector(provider: CRMProvider, config: dict[str, Any]) -> CRMWriteConnector:"
-    },
-    {
-      "kind": "python-any",
-      "line": 6,
-      "path": "services/layer4-agents/src/layer4_agents/integration/connectors/providers/hubspot/connector.py",
-      "text": "from typing import Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 30,
-      "path": "services/layer4-agents/src/layer4_agents/integration/connectors/providers/hubspot/connector.py",
-      "text": "self, config: dict[str, Any], client: httpx.AsyncClient | None = None"
-    },
-    {
-      "kind": "python-any",
-      "line": 48,
-      "path": "services/layer4-agents/src/layer4_agents/integration/connectors/providers/hubspot/connector.py",
-      "text": "params: dict[str, Any] | None = None,"
-    },
-    {
-      "kind": "python-any",
-      "line": 49,
-      "path": "services/layer4-agents/src/layer4_agents/integration/connectors/providers/hubspot/connector.py",
-      "text": "json_payload: dict[str, Any] | None = None,"
-    },
-    {
-      "kind": "python-any",
-      "line": 68,
-      "path": "services/layer4-agents/src/layer4_agents/integration/connectors/providers/hubspot/connector.py",
-      "text": "async def test_connection(self, *, timeout: float | None = None) -> dict[str, Any]:"
-    },
-    {
-      "kind": "python-any",
-      "line": 274,
-      "path": "services/layer4-agents/src/layer4_agents/integration/connectors/providers/hubspot/connector.py",
-      "text": "fields: dict[str, Any],"
-    },
-    {
-      "kind": "python-any",
-      "line": 9,
-      "path": "services/layer4-agents/src/layer4_agents/integration/connectors/providers/salesforce/connector.py",
-      "text": "from typing import Any, cast"
-    },
-    {
-      "kind": "python-any",
-      "line": 61,
-      "path": "services/layer4-agents/src/layer4_agents/integration/connectors/providers/salesforce/connector.py",
-      "text": "def __init__(self, config: dict[str, Any], client: httpx.AsyncClient | None = None) -> None:"
-    },
-    {
-      "kind": "python-any",
-      "line": 67,
-      "path": "services/layer4-agents/src/layer4_agents/integration/connectors/providers/salesforce/connector.py",
-      "text": "self._on_token_refresh: Callable[[dict[str, Any]], Awaitable[None]] | None = config.get("
-    },
-    {
-      "kind": "python-any",
-      "line": 85,
-      "path": "services/layer4-agents/src/layer4_agents/integration/connectors/providers/salesforce/connector.py",
-      "text": "params: dict[str, Any] | None = None,"
-    },
-    {
-      "kind": "python-any",
-      "line": 86,
-      "path": "services/layer4-agents/src/layer4_agents/integration/connectors/providers/salesforce/connector.py",
-      "text": "json_payload: dict[str, Any] | None = None,"
-    },
-    {
-      "kind": "python-any",
-      "line": 163,
-      "path": "services/layer4-agents/src/layer4_agents/integration/connectors/providers/salesforce/connector.py",
-      "text": ") -> tuple[list[dict[str, Any]], bool]:"
-    },
-    {
-      "kind": "python-any",
-      "line": 165,
-      "path": "services/layer4-agents/src/layer4_agents/integration/connectors/providers/salesforce/connector.py",
-      "text": "all_records: list[dict[str, Any]] = []"
-    },
-    {
-      "kind": "python-any",
-      "line": 208,
-      "path": "services/layer4-agents/src/layer4_agents/integration/connectors/providers/salesforce/connector.py",
-      "text": "async def test_connection(self, *, timeout: float | None = None) -> dict[str, Any]:"
-    },
-    {
-      "kind": "python-any",
-      "line": 403,
-      "path": "services/layer4-agents/src/layer4_agents/integration/connectors/providers/salesforce/connector.py",
-      "text": "fields: dict[str, Any],"
     },
     {
       "kind": "python-any",
@@ -32678,13 +32678,13 @@
     },
     {
       "kind": "python-any",
-      "line": 882,
+      "line": 884,
       "path": "services/layer4-agents/src/layer4_agents/services/integration_service.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 939,
+      "line": 941,
       "path": "services/layer4-agents/src/layer4_agents/services/integration_service.py",
       "text": "token_data: dict[str, Any],"
     },
@@ -35576,43 +35576,43 @@
     },
     {
       "kind": "python-any",
-      "line": 57,
+      "line": 58,
       "path": "services/layer4-agents/src/layer4_agents/tools/knowledge_tools.py",
       "text": "def __init__(self, config: dict[str, Any] | None = None):"
     },
     {
       "kind": "python-any",
-      "line": 291,
+      "line": 290,
       "path": "services/layer4-agents/src/layer4_agents/tools/knowledge_tools.py",
       "text": "def __init__(self, config: dict[str, Any] | None = None):"
     },
     {
       "kind": "python-any",
-      "line": 316,
+      "line": 315,
       "path": "services/layer4-agents/src/layer4_agents/tools/knowledge_tools.py",
       "text": "def _get_pinecone_client(self) -> Any | None:"
     },
     {
       "kind": "python-any",
-      "line": 451,
+      "line": 448,
       "path": "services/layer4-agents/src/layer4_agents/tools/knowledge_tools.py",
       "text": "def __init__(self, config: dict[str, Any] | None = None):"
     },
     {
       "kind": "python-any",
-      "line": 571,
+      "line": 566,
       "path": "services/layer4-agents/src/layer4_agents/tools/knowledge_tools.py",
       "text": "def __init__(self, config: dict[str, Any] | None = None):"
     },
     {
       "kind": "python-any",
-      "line": 681,
+      "line": 674,
       "path": "services/layer4-agents/src/layer4_agents/tools/knowledge_tools.py",
       "text": "def __init__(self, config: dict[str, Any] | None = None):"
     },
     {
       "kind": "python-any",
-      "line": 785,
+      "line": 776,
       "path": "services/layer4-agents/src/layer4_agents/tools/knowledge_tools.py",
       "text": "def __init__(self, config: dict[str, Any] | None = None):"
     },
@@ -41144,7 +41144,7 @@
     },
     {
       "kind": "python-any",
-      "line": 174,
+      "line": 155,
       "path": "tests/contract/test_otel_instrumentation.py",
       "text": "collector_doc: dict[str, Any] | None = None"
     },
