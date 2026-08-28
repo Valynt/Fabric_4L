@@ -2,11 +2,9 @@ import { RuleTester } from "eslint";
 import rule from "../no-inline-tool-definition";
 
 const ruleTester = new RuleTester({
-  languageOptions: {
-    parserOptions: {
-      ecmaVersion: 2020,
-      sourceType: "module",
-    },
+  parserOptions: {
+    ecmaVersion: 2020,
+    sourceType: "module",
   },
 });
 
