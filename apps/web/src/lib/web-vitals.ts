@@ -14,7 +14,7 @@
  * @module lib/web-vitals
  */
 
-import { onCLS, onFID, onFCP, onLCP, onTTFB, type Metric } from "web-vitals";
+import { onCLS, onINP, onFCP, onLCP, onTTFB, type Metric } from "web-vitals";
 
 /** Telemetry ingestion endpoint — relative so it works behind any reverse proxy. */
 const VITALS_ENDPOINT = "/api/v1/telemetry/web-vitals";
@@ -141,7 +141,7 @@ export function initWebVitals(): void {
   // Register each CWV listener.  `web-vitals` handles its own feature
   // detection and browser compatibility.
   onCLS(onMetric);
-  onFID(onMetric);
+  onINP(onMetric);
   onFCP(onMetric);
   onLCP(onMetric);
   onTTFB(onMetric);
