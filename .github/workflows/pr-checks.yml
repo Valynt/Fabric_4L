@@ -427,6 +427,7 @@ jobs:
             tests/ci/test_merge_group_contract.py \
             tests/ci/test_merge_queue_simulation.py \
             tests/ci/test_release_evidence_skip_safety.py \
+            tests/ci/test_supply_chain_skip_safety.py \
             -v --tb=short 2>&1 | tee artifacts/ci-structural-contract-tests.txt
           exit ${PIPESTATUS[0]}
 

@@ -163,6 +163,9 @@ deps:
   - '**/pyproject.toml'
   - '**/uv.lock'
   - '**/poetry.lock'
+  # pnpm patched-dependency artifacts: changing a patch must re-run the
+  # dependency audit that validates the patch is registered and applied.
+  - 'patches/**'
 
 # Release governance surface: launch contracts, readiness policies, and the
 # scripts/tests that validate them. Gate any release-policy-validating job
