@@ -25,7 +25,7 @@ from value_fabric.shared.models.typed_dict import TypedDictModel
 
 from layer4_agents.api.main import app
 from layer4_agents.api.routes import crm_webhooks
-from layer4_agents.integrations.core.types import CanonicalRecord, CRMModel, SyncCursor
+from layer4_agents.integration.connectors.core.types import CanonicalRecord, CRMModel, SyncCursor
 from layer4_agents.models.account import (
     Account,
     CRMProvider,

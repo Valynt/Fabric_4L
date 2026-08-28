@@ -4,12 +4,12 @@ from datetime import UTC, datetime
 
 import pytest
 
-from layer4_agents.integrations.core.observations import (
+from layer4_agents.integration.connectors.core.observations import (
     sync_interrupted,
     sync_started,
     sync_succeeded,
 )
-from layer4_agents.integrations.core.state import (
+from layer4_agents.integration.connectors.core.state import (
     ErrorClass,
     ObservedStatus,
     OperationalStatus,

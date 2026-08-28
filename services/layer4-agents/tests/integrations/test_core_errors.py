@@ -3,7 +3,7 @@ from __future__ import annotations
 import httpx
 import pytest
 
-from layer4_agents.integrations.core.errors import (
+from layer4_agents.integration.connectors.core.errors import (
     AuthError,
     CRMError,
     MappingError,

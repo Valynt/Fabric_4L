@@ -14,13 +14,13 @@ from value_fabric.shared.audit import AuditAction, AuditOutcome, emit_audit_even
 from value_fabric.shared.identity.context import RequestContext
 
 from ..database import db_session_for_context, get_session_factory
-from ..integrations.core.observations import (
+from ..integration.connectors.core.observations import (
     sync_interrupted,
     sync_partial,
     sync_started,
     sync_succeeded,
 )
-from ..integrations.core.state import apply_observation
+from ..integration.connectors.core.state import apply_observation
 from ..models.account import CRMProvider
 from ..models.crm_sync_job import CRMSyncJob, CRMSyncJobStatus
 from .crm_sync_queue import CRM_SYNC_QUEUE_KEY, enqueue_crm_sync_job
