@@ -328,3 +328,68 @@ async def test_layer5_failures_are_non_blocking_and_cancellation_propagates() ->
     client._client = Client([asyncio.CancelledError()])
     with pytest.raises(asyncio.CancelledError):
         await client.ping()
+
+
+@pytest.mark.asyncio
+async def test_layer5_degradation_increments_metric_when_initialized() -> None:
+    """Swallowed L5 errors increment the degradation counter when metrics are on."""
+    from layer4_agents.metrics.prometheus_metrics import initialize_metrics
+
+    metrics = initialize_metrics()
+
+    client = Layer5GroundTruthClient(service_token="token")
+    await client._client.aclose()
+    client._client = Client([RuntimeError("offline")])
+    result = await client.list_truths("tenant")
+    assert result.get("error")
+
+    output = metrics.get_metrics()
+    assert "l5_degradation_events_total" in output
+    assert 'operation="list_truths"' in output
+    assert 'error_class="RuntimeError"' in output
+
+    # Degradation recording must never raise even when metrics are missing.
+    client._client = Client([RuntimeError("offline")])
+    out = await client.get_maturity_ladder()
+    assert out.get("error")
+
+
+@pytest.mark.asyncio
+async def test_get_layer5_client_singleton_and_arg_keyed_isolation() -> None:
+    """No-arg calls share one cached client; arg-keyed calls are fresh + isolated.
+
+    Regression for the W2 factory: an arg-keyed call must never overwrite the
+    module-level singleton (which would bleed config across call sites and let
+    one caller's close() invalidate another's client).
+    """
+    import layer4_agents.integration.layer5_client as l5
+
+    original = l5._client_instance
+    try:
+        l5._client_instance = None
+
+        # No-arg: cached singleton, reused across calls.
+        first = l5.get_layer5_client()
+        second = l5.get_layer5_client()
+        assert first is second
+        assert first.base_url == l5._DEFAULT_BASE_URL
+
+        # Arg-keyed: fresh instances, distinct for distinct args, and the
+        # cached singleton is not mutated in place.
+        a = l5.get_layer5_client(base_url="http://l5-a:8005", service_token="tok")
+        b = l5.get_layer5_client(base_url="http://l5-b:8005", service_token="tok")
+        assert a is not b
+        assert a is not first
+        assert a.base_url == "http://l5-a:8005"
+
+        # Singleton unchanged by the arg-keyed calls above.
+        assert l5._client_instance is first
+        assert l5._client_instance.base_url == l5._DEFAULT_BASE_URL
+
+        # close() on the arg-keyed client must not close the shared singleton.
+        await a.close()
+        assert l5._client_instance is first
+    finally:
+        # Restore the pre-existing singleton so the degradation test (which
+        # relies on its own client) is unaffected.
+        l5._client_instance = original

@@ -22520,7 +22520,7 @@
     },
     {
       "kind": "python-any",
-      "line": 65,
+      "line": 66,
       "path": "services/layer4-agents/src/layer4_agents/adapters/benchmark_client.py",
       "text": "params: dict[str, Any] = {}"
     },
@@ -22532,67 +22532,67 @@
     },
     {
       "kind": "python-any",
-      "line": 31,
+      "line": 32,
       "path": "services/layer4-agents/src/layer4_agents/adapters/business_case_ground_truth.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 33,
+      "line": 34,
       "path": "services/layer4-agents/src/layer4_agents/adapters/business_case_ground_truth.py",
       "text": "dict[str, Any],"
-    },
-    {
-      "kind": "python-any",
-      "line": 52,
-      "path": "services/layer4-agents/src/layer4_agents/adapters/business_case_ground_truth.py",
-      "text": "applies_to: dict[str, Any] | None = None,"
     },
     {
       "kind": "python-any",
       "line": 53,
       "path": "services/layer4-agents/src/layer4_agents/adapters/business_case_ground_truth.py",
-      "text": "sources: list[dict[str, Any]] | None = None,"
+      "text": "applies_to: dict[str, Any] | None = None,"
     },
     {
       "kind": "python-any",
       "line": 54,
       "path": "services/layer4-agents/src/layer4_agents/adapters/business_case_ground_truth.py",
-      "text": "raw_extraction_data: dict[str, Any] | None = None,"
+      "text": "sources: list[dict[str, Any]] | None = None,"
     },
     {
       "kind": "python-any",
       "line": 55,
       "path": "services/layer4-agents/src/layer4_agents/adapters/business_case_ground_truth.py",
+      "text": "raw_extraction_data: dict[str, Any] | None = None,"
+    },
+    {
+      "kind": "python-any",
+      "line": 56,
+      "path": "services/layer4-agents/src/layer4_agents/adapters/business_case_ground_truth.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 57,
+      "line": 58,
       "path": "services/layer4-agents/src/layer4_agents/adapters/business_case_ground_truth.py",
       "text": "dict[str, Any],"
     },
     {
       "kind": "python-any",
-      "line": 75,
+      "line": 76,
       "path": "services/layer4-agents/src/layer4_agents/adapters/business_case_ground_truth.py",
       "text": "evidence_refs: list[Any],"
     },
     {
       "kind": "python-any",
-      "line": 78,
+      "line": 79,
       "path": "services/layer4-agents/src/layer4_agents/adapters/business_case_ground_truth.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 96,
+      "line": 97,
       "path": "services/layer4-agents/src/layer4_agents/adapters/business_case_ground_truth.py",
       "text": "async def sync_validated_truths(self, *, organization_id: str) -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 98,
+      "line": 99,
       "path": "services/layer4-agents/src/layer4_agents/adapters/business_case_ground_truth.py",
       "text": "dict[str, Any],"
     },
@@ -28346,241 +28346,247 @@
     },
     {
       "kind": "python-any",
-      "line": 14,
+      "line": 13,
       "path": "services/layer4-agents/src/layer4_agents/integration/layer1_client.py",
       "text": "from typing import Any, Final"
     },
     {
       "kind": "python-any",
-      "line": 116,
+      "line": 99,
       "path": "services/layer4-agents/src/layer4_agents/integration/layer1_client.py",
       "text": "extraction_config: dict[str, Any] | None = None,"
     },
     {
       "kind": "python-any",
-      "line": 117,
+      "line": 100,
       "path": "services/layer4-agents/src/layer4_agents/integration/layer1_client.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 156,
+      "line": 139,
       "path": "services/layer4-agents/src/layer4_agents/integration/layer1_client.py",
       "text": "async def get_job_status(self, job_id: str) -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 178,
+      "line": 161,
       "path": "services/layer4-agents/src/layer4_agents/integration/layer1_client.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 205,
+      "line": 188,
       "path": "services/layer4-agents/src/layer4_agents/integration/layer1_client.py",
       "text": "async def get_extraction_result(self, job_id: str) -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 231,
+      "line": 214,
       "path": "services/layer4-agents/src/layer4_agents/integration/layer1_client.py",
       "text": "extraction_config: dict[str, Any] | None = None,"
     },
     {
       "kind": "python-any",
-      "line": 234,
+      "line": 217,
       "path": "services/layer4-agents/src/layer4_agents/integration/layer1_client.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 246,
+      "line": 229,
       "path": "services/layer4-agents/src/layer4_agents/integration/layer1_client.py",
       "text": "payload: dict[str, Any] = {"
     },
     {
       "kind": "python-any",
-      "line": 292,
+      "line": 275,
       "path": "services/layer4-agents/src/layer4_agents/integration/layer1_client.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 328,
+      "line": 311,
       "path": "services/layer4-agents/src/layer4_agents/integration/layer1_client.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 12,
+      "line": 11,
       "path": "services/layer4-agents/src/layer4_agents/integration/layer2_client.py",
       "text": "from typing import Any"
     },
     {
       "kind": "python-any",
-      "line": 100,
+      "line": 83,
       "path": "services/layer4-agents/src/layer4_agents/integration/layer2_client.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 140,
+      "line": 123,
       "path": "services/layer4-agents/src/layer4_agents/integration/layer2_client.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 175,
+      "line": 158,
       "path": "services/layer4-agents/src/layer4_agents/integration/layer2_client.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 211,
+      "line": 194,
       "path": "services/layer4-agents/src/layer4_agents/integration/layer2_client.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 245,
+      "line": 228,
       "path": "services/layer4-agents/src/layer4_agents/integration/layer2_client.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 279,
+      "line": 262,
       "path": "services/layer4-agents/src/layer4_agents/integration/layer2_client.py",
       "text": "prospect_data: dict[str, Any],"
     },
     {
       "kind": "python-any",
-      "line": 281,
+      "line": 264,
       "path": "services/layer4-agents/src/layer4_agents/integration/layer2_client.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 326,
+      "line": 309,
       "path": "services/layer4-agents/src/layer4_agents/integration/layer2_client.py",
       "text": "extraction_config: dict[str, Any] | None = None,"
+    },
+    {
+      "kind": "python-any",
+      "line": 310,
+      "path": "services/layer4-agents/src/layer4_agents/integration/layer2_client.py",
+      "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
       "line": 327,
       "path": "services/layer4-agents/src/layer4_agents/integration/layer2_client.py",
-      "text": ") -> dict[str, Any]:"
-    },
-    {
-      "kind": "python-any",
-      "line": 344,
-      "path": "services/layer4-agents/src/layer4_agents/integration/layer2_client.py",
       "text": "payload: dict[str, Any] = {"
     },
     {
       "kind": "python-any",
-      "line": 11,
+      "line": 10,
       "path": "services/layer4-agents/src/layer4_agents/integration/layer3_client.py",
       "text": "from typing import Any"
     },
     {
       "kind": "python-any",
-      "line": 122,
+      "line": 118,
       "path": "services/layer4-agents/src/layer4_agents/integration/layer3_client.py",
       "text": "json: dict[str, Any] | None = None,"
     },
     {
       "kind": "python-any",
-      "line": 123,
+      "line": 119,
       "path": "services/layer4-agents/src/layer4_agents/integration/layer3_client.py",
       "text": "params: dict[str, Any] | list[tuple[str, Any]] | None = None,"
     },
     {
       "kind": "python-any",
-      "line": 125,
+      "line": 121,
       "path": "services/layer4-agents/src/layer4_agents/integration/layer3_client.py",
       "text": ") -> dict[str, Any] | None:"
     },
     {
       "kind": "python-any",
-      "line": 182,
+      "line": 178,
       "path": "services/layer4-agents/src/layer4_agents/integration/layer3_client.py",
       "text": "parameters: dict[str, Any] | None = None,"
     },
     {
       "kind": "python-any",
-      "line": 184,
+      "line": 180,
       "path": "services/layer4-agents/src/layer4_agents/integration/layer3_client.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 211,
+      "line": 207,
       "path": "services/layer4-agents/src/layer4_agents/integration/layer3_client.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 236,
+      "line": 232,
       "path": "services/layer4-agents/src/layer4_agents/integration/layer3_client.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 250,
+      "line": 246,
       "path": "services/layer4-agents/src/layer4_agents/integration/layer3_client.py",
       "text": "payload: dict[str, Any] = {"
     },
     {
       "kind": "python-any",
-      "line": 264,
+      "line": 260,
       "path": "services/layer4-agents/src/layer4_agents/integration/layer3_client.py",
       "text": ") -> dict[str, Any] | None:"
     },
     {
       "kind": "python-any",
-      "line": 281,
+      "line": 277,
       "path": "services/layer4-agents/src/layer4_agents/integration/layer3_client.py",
       "text": "signal_data: dict[str, Any],"
     },
     {
       "kind": "python-any",
-      "line": 305,
+      "line": 301,
       "path": "services/layer4-agents/src/layer4_agents/integration/layer3_client.py",
       "text": ") -> list[dict[str, Any]]:"
     },
     {
       "kind": "python-any",
-      "line": 335,
+      "line": 331,
       "path": "services/layer4-agents/src/layer4_agents/integration/layer3_client.py",
       "text": "prospect_data: dict[str, Any],"
     },
     {
       "kind": "python-any",
-      "line": 337,
+      "line": 333,
       "path": "services/layer4-agents/src/layer4_agents/integration/layer3_client.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 367,
+      "line": 363,
       "path": "services/layer4-agents/src/layer4_agents/integration/layer3_client.py",
       "text": "evidence_matches: list[dict[str, Any]],"
     },
     {
       "kind": "python-any",
-      "line": 393,
+      "line": 389,
       "path": "services/layer4-agents/src/layer4_agents/integration/layer3_client.py",
       "text": ") -> list[dict[str, Any]]:"
     },
     {
       "kind": "python-any",
-      "line": 418,
+      "line": 414,
       "path": "services/layer4-agents/src/layer4_agents/integration/layer3_client.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 433,
+      "line": 429,
+      "path": "services/layer4-agents/src/layer4_agents/integration/layer3_client.py",
+      "text": ") -> dict[str, Any]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 446,
       "path": "services/layer4-agents/src/layer4_agents/integration/layer3_client.py",
       "text": ") -> dict[str, Any]:"
     },
@@ -28588,29 +28594,23 @@
       "kind": "python-any",
       "line": 450,
       "path": "services/layer4-agents/src/layer4_agents/integration/layer3_client.py",
-      "text": ") -> dict[str, Any]:"
-    },
-    {
-      "kind": "python-any",
-      "line": 454,
-      "path": "services/layer4-agents/src/layer4_agents/integration/layer3_client.py",
       "text": "payload: dict[str, Any] = {"
     },
     {
       "kind": "python-any",
-      "line": 473,
+      "line": 469,
       "path": "services/layer4-agents/src/layer4_agents/integration/layer3_client.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 476,
+      "line": 472,
       "path": "services/layer4-agents/src/layer4_agents/integration/layer3_client.py",
       "text": "payload: dict[str, Any] = {\"account_id\": account_id, \"case_id\": case_id, \"decision\": decision, \"reviewer_id\": reviewer_id}"
     },
     {
       "kind": "python-any",
-      "line": 488,
+      "line": 484,
       "path": "services/layer4-agents/src/layer4_agents/integration/layer3_client.py",
       "text": ") -> dict[str, Any]:"
     },
@@ -28622,145 +28622,67 @@
     },
     {
       "kind": "python-any",
-      "line": 33,
-      "path": "services/layer4-agents/src/layer4_agents/integration/layer5_client.py",
-      "text": "detail: Any | None = None"
-    },
-    {
-      "kind": "python-any",
-      "line": 39,
-      "path": "services/layer4-agents/src/layer4_agents/integration/layer5_client.py",
-      "text": "detail: Any | None = None"
-    },
-    {
-      "kind": "python-any",
-      "line": 43,
-      "path": "services/layer4-agents/src/layer4_agents/integration/layer5_client.py",
-      "text": "error: Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 44,
-      "path": "services/layer4-agents/src/layer4_agents/integration/layer5_client.py",
-      "text": "items: list[Any]"
-    },
-    {
-      "kind": "python-any",
-      "line": 48,
-      "path": "services/layer4-agents/src/layer4_agents/integration/layer5_client.py",
-      "text": "error: Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 49,
-      "path": "services/layer4-agents/src/layer4_agents/integration/layer5_client.py",
-      "text": "truth_object_id: Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 53,
-      "path": "services/layer4-agents/src/layer4_agents/integration/layer5_client.py",
-      "text": "error: Any | None = None"
-    },
-    {
-      "kind": "python-any",
-      "line": 57,
-      "path": "services/layer4-agents/src/layer4_agents/integration/layer5_client.py",
-      "text": "error: Any | None = None"
-    },
-    {
-      "kind": "python-any",
-      "line": 58,
-      "path": "services/layer4-agents/src/layer4_agents/integration/layer5_client.py",
-      "text": "events: list[Any] = []"
-    },
-    {
-      "kind": "python-any",
-      "line": 62,
-      "path": "services/layer4-agents/src/layer4_agents/integration/layer5_client.py",
-      "text": "error: Any | None = None"
-    },
-    {
-      "kind": "python-any",
-      "line": 70,
-      "path": "services/layer4-agents/src/layer4_agents/integration/layer5_client.py",
-      "text": "error: Any | None = None"
-    },
-    {
-      "kind": "python-any",
-      "line": 71,
-      "path": "services/layer4-agents/src/layer4_agents/integration/layer5_client.py",
-      "text": "items: list[Any] = []"
-    },
-    {
-      "kind": "python-any",
-      "line": 79,
-      "path": "services/layer4-agents/src/layer4_agents/integration/layer5_client.py",
-      "text": "error: Any | None = None"
-    },
-    {
-      "kind": "python-any",
-      "line": 203,
+      "line": 199,
       "path": "services/layer4-agents/src/layer4_agents/integration/layer5_client.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 275,
+      "line": 272,
       "path": "services/layer4-agents/src/layer4_agents/integration/layer5_client.py",
       "text": "applies_to: dict[str, Any] | None = None,"
     },
     {
       "kind": "python-any",
-      "line": 276,
+      "line": 273,
       "path": "services/layer4-agents/src/layer4_agents/integration/layer5_client.py",
       "text": "sources: list[dict[str, Any]] | None = None,"
     },
     {
       "kind": "python-any",
-      "line": 279,
+      "line": 276,
       "path": "services/layer4-agents/src/layer4_agents/integration/layer5_client.py",
       "text": "raw_extraction_data: dict[str, Any] | None = None,"
     },
     {
       "kind": "python-any",
-      "line": 280,
+      "line": 277,
       "path": "services/layer4-agents/src/layer4_agents/integration/layer5_client.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 311,
+      "line": 308,
       "path": "services/layer4-agents/src/layer4_agents/integration/layer5_client.py",
       "text": "body: dict[str, Any] = {"
     },
     {
       "kind": "python-any",
-      "line": 374,
+      "line": 372,
       "path": "services/layer4-agents/src/layer4_agents/integration/layer5_client.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 382,
+      "line": 380,
       "path": "services/layer4-agents/src/layer4_agents/integration/layer5_client.py",
       "text": "params: dict[str, Any] = {\"limit\": limit, \"offset\": offset}"
     },
     {
       "kind": "python-any",
-      "line": 420,
+      "line": 419,
       "path": "services/layer4-agents/src/layer4_agents/integration/layer5_client.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 422,
+      "line": 421,
       "path": "services/layer4-agents/src/layer4_agents/integration/layer5_client.py",
       "text": "params: dict[str, Any] = {}"
     },
     {
       "kind": "python-any",
-      "line": 426,
+      "line": 425,
       "path": "services/layer4-agents/src/layer4_agents/integration/layer5_client.py",
       "text": "payload: dict[str, Any] = {"
     },
@@ -28772,31 +28694,31 @@
     },
     {
       "kind": "python-any",
-      "line": 484,
+      "line": 485,
       "path": "services/layer4-agents/src/layer4_agents/integration/layer5_client.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 511,
+      "line": 513,
       "path": "services/layer4-agents/src/layer4_agents/integration/layer5_client.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 539,
+      "line": 542,
       "path": "services/layer4-agents/src/layer4_agents/integration/layer5_client.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 550,
+      "line": 553,
       "path": "services/layer4-agents/src/layer4_agents/integration/layer5_client.py",
       "text": "params: dict[str, Any] = {\"limit\": limit, \"offset\": offset}"
     },
     {
       "kind": "python-any",
-      "line": 567,
+      "line": 571,
       "path": "services/layer4-agents/src/layer4_agents/integration/layer5_client.py",
       "text": ") -> dict[str, Any]:"
     },
