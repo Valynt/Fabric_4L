@@ -1513,7 +1513,7 @@ jobs:
 
       - name: Lint tests
         run: |
-          ruff check tests/
+          ruff check --config tests/pyproject.toml tests/
 
       # M3: the shared package fans out to every layer plus the gateway, so its
       # own suite must be a required signal rather than an untested surface.
