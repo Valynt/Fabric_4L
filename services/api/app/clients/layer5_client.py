@@ -56,7 +56,11 @@ class Layer5Client:
                 params=params,
             )
         except Layer5TransportError as exc:
-            raise HTTPException(status_code=502, detail=str(exc)) from exc
+            # Do not surface raw exception text: the secure error envelope gate
+            # forbids leaking str(exc) into HTTP responses.  Rebuild the safe
+            # detail from the transport's structured fields instead.
+            detail = exc.response_text or f"Layer 5 request failed ({exc.status_code})"
+            raise HTTPException(status_code=502, detail=detail) from exc
         return response.json()
 
     async def list_truths(
