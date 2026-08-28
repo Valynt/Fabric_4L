@@ -135,6 +135,7 @@ ignore = [
     "B905",   # `zip()` without an explicit `strict=` parameter
     "N805",   # First argument of a method should be named `self`
     "N811",   # Constant imported as non-constant
+    "N815",   # MixedCase variables in class scope (e.g. vendor API payload models)
     "N818",   # Exception name should end with `Error`
     "N801",   # Auto-generated TypedDictModel result classes use snake_case names
     "UP042",  # Use `StrEnum` instead of `(str, enum.Enum)` – pre-existing pattern
