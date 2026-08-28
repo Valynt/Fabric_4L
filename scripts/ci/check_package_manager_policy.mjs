@@ -141,7 +141,11 @@ if (webPkg.scripts?.preinstall !== 'node ./scripts/enforce-package-manager.cjs')
   fail('apps/web/package.json must enforce pnpm via scripts.preinstall.');
 }
 
-const changedLockfiles = getChangedFiles().filter((filePath) => LOCKFILE_PATTERN.test(filePath));
+// A deleted lockfile (file no longer present on disk) is a removal, not lockfile
+// churn. Churn means adding or modifying a lockfile, so ignore deletions here.
+const changedLockfiles = getChangedFiles()
+  .filter((filePath) => existsSync(filePath))
+  .filter((filePath) => LOCKFILE_PATTERN.test(filePath));
 const blockedNpmOrYarn = changedLockfiles.filter(
   (filePath) => (filePath.endsWith('package-lock.json') || filePath.endsWith('yarn.lock')) && !ALLOWED_NPM_YARN_LOCKFILE_PATHS.has(filePath),
 );
