@@ -61,6 +61,17 @@
       ],
       "reason": "RFC #1500 adds two additive, optional fields to the L4 AuditOrchestrator Scorecard contract: git_metric_completeness (dict of GitMetricCompleteness) and git_warnings (list of GitWarning). Typing GitWarning with its structured per-field shape (code, metric, status, message, bytes_read and optional max_bytes/max_lines) introduces required_fields_added on the git_warnings items schema. Both fields are newly introduced by this RFC; the tightened schema is the RFC's intended per-field shape and carries no raw git output or contributor emails.",
       "expiresOn": "2026-12-31T00:00:00Z"
+    },
+    {
+      "id": "R5-L3-L4-CIRCULAR-DEP-BREAK-001",
+      "status": "approved",
+      "approvedBy": "R5 critical fix (Layer 3 <-> Layer 4 HTTP circular dependency) via PR #1557; green-main baseline restored first (PR #1553)",
+      "deprecationRecord": "docs/compliance/control-matrix.md (GDPR Art. 20 DSAR Export/Portability row; Layer 3 export proxy /v1/documents/export removed, business case exports flow directly from frontend to Layer 4)",
+      "fingerprints": [
+        "3a5747342a6ad4c9"
+      ],
+      "reason": "Removal of the dead Layer 3 -> Layer 4 export proxy edge (/v1/documents/export) from layer3-knowledge.json to break the L3<->L4 HTTP circular dependency for independent deploy/versioning. The canonical L4 -> L3 /v1/knowledge direction is preserved. No compatibility proxy or model was introduced; the export business case flows directly from the frontend to Layer 4.",
+      "expiresOn": "2027-12-31T00:00:00Z"
     }
   ]
 }

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiGet, apiPost } from '@/api/typedClient';
-import type { l3, l4 } from '@/api/generated';
+import type { l4 } from '@/api/generated';
 import { QK } from './queryKeys';
 import { STALE_TIME, withApiError, BaseApiError } from './useApiShared';
 import { L4_ANALYSIS_PREFIX } from '@/lib/apiConfig';
@@ -14,21 +14,6 @@ export class DocumentApiError extends BaseApiError {
     super(message, statusCode, responseData);
     this.name = 'DocumentApiError';
   }
-}
-
-export interface DocumentExportRequest {
-  document_type: 'business_case' | 'audit_report';
-  business_case_id: string;
-  format: 'pdf' | 'html';
-  include_provenance: boolean;
-}
-
-export interface DocumentExportResponse {
-  export_id: string;
-  status: 'pending' | 'completed' | 'failed';
-  download_url?: string;
-  format: string;
-  expires_at?: string;
 }
 
 export interface BusinessCase {
@@ -66,22 +51,6 @@ function normalizeBusinessCase(data: l4.components['schemas']['BusinessCaseRespo
 // EXPORT_POLL_INTERVAL_MS removed — use POLL_INTERVALS.exportStatus from usePolling
 const ALLOWED_SCHEMES = ['http:', 'https:', 'blob:', 'data:'];
 
-
-/**
- * Generic document export request (L3).
- * For business case exports, use useBusinessCaseExport instead.
- */
-export function useDocumentExport() {
-  return useMutation<DocumentExportResponse, DocumentApiError, DocumentExportRequest>({
-    mutationFn: async (request) => {
-      const response = await apiPost<DocumentExportResponse>('l3', '/documents/export', request);
-      return response.data;
-    },
-    onError: (error) => {
-      log.error('DocumentExport failed', { error: error instanceof Error ? error.message : String(error) });
-    },
-  });
-}
 
 /**
  * Export a business case PDF.
