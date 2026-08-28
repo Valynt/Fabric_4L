@@ -83,7 +83,10 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices("ENVIRONMENT", "ENV", "APP_ENV"),
     )
     debug: bool = False
-    secret_key: str
+    secret_key: str = Field(
+        default="dev-insecure-secret-key-must-be-replaced-in-production-32chars",
+        validation_alias=AliasChoices("SECRET_KEY", "JWT_SECRET_KEY"),
+    )
     algorithm: str = "HS256"
     jwt_issuer: str = Field(
         default="value-fabric-internal",
