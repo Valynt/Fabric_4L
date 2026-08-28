@@ -2,19 +2,17 @@ import asyncio
 import json
 import os
 import time
-import uuid
 from typing import Any
 from uuid import UUID
 
 import httpx
+import structlog
 from tenacity import (
     AsyncRetrying,
     retry_if_exception_type,
     stop_after_attempt,
     wait_exponential,
 )
-import structlog
-
 from value_fabric.shared.contracts.account_intelligence import (
     AccountIntelligenceProvider,
     AccountSignal,
@@ -23,8 +21,8 @@ from value_fabric.shared.contracts.account_intelligence import (
     EnrichedAccountContext,
     StakeholderProfile,
 )
-from layer4_agents.provenance.cargo_normalizer import CargoContextNormalizer
 
+from layer4_agents.provenance.cargo_normalizer import CargoContextNormalizer
 
 logger = structlog.get_logger()
 
@@ -250,9 +248,9 @@ class CargoAccountIntelligenceProvider(AccountIntelligenceProvider):
         except Exception:
             pass
 
-        from layer4_agents.provenance.cargo_normalizer import CargoContextNormalizer
         signals = CargoContextNormalizer.extract_implicit_signals(raw_company, raw_stakeholders, domain)
         return signals
+
 
     async def get_full_account_context(
         self,
