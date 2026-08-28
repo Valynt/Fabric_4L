@@ -7,7 +7,7 @@ from typing import Any
 
 import httpx
 
-from ....models.account import CRMProvider
+from .....models.account import CRMProvider
 from ...core.connector import CRMConnector, CRMWriteConnector
 from ...core.errors import CRMError, classify_httpx_exception
 from ...core.types import CanonicalRecord, CRMModel, CRMOperationResult, SyncCursor

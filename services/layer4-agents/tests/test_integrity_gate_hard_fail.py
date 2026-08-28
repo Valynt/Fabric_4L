@@ -16,7 +16,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from layer4_agents.api.routes.narratives import NarrativeExportRequest, export_narrative
 from layer4_agents.contracts.artifacts import IntegrityPrecondition
-from layer4_agents.integrations.core.errors import IntegrityGateOpenError
+from layer4_agents.integration.connectors.core.errors import IntegrityGateOpenError
 from layer4_agents.services.crm_sync_service import CRMSyncService
 from value_fabric.shared.error_handling.exceptions import ValidationError
 

@@ -24,13 +24,13 @@ from value_fabric.shared.models.typed_dict import TypedDictModel
 from ..database import _clear_local_tenant_context, db_session_for_context, get_session_factory
 from ..engine.scheduler import TaskScheduler
 from ..engine.types import ScheduledTask, TaskPriority
-from ..integrations.core.observations import (
+from ..integration.connectors.core.observations import (
     sync_interrupted,
     sync_partial,
     sync_started,
     sync_succeeded,
 )
-from ..integrations.core.state import apply_observation
+from ..integration.connectors.core.state import apply_observation
 from ..models.account import CRMProvider
 from ..models.integration import Integration
 from .crm_sync_service import CRMSyncService

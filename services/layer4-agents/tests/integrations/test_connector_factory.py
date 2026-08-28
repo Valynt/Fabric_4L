@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import pytest
 
-from layer4_agents.integrations.factory import get_connector, get_write_connector
-from layer4_agents.integrations.providers.hubspot.connector import HubSpotConnector
-from layer4_agents.integrations.providers.salesforce.connector import SalesforceConnector
+from layer4_agents.integration.connectors.factory import get_connector, get_write_connector
+from layer4_agents.integration.connectors.providers.hubspot.connector import HubSpotConnector
+from layer4_agents.integration.connectors.providers.salesforce.connector import SalesforceConnector
 from layer4_agents.models.account import CRMProvider
 
 

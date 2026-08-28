@@ -1,0 +1,24 @@
+﻿[
+    {
+        "date":  "2026-08-26",
+        "mode":  "Tech Debt Assessment",
+        "score":  54,
+        "findings":  {
+                         "critical":  1,
+                         "warning":  6,
+                         "suggestion":  1
+                     },
+        "scope":  "entire repository"
+    },
+    {
+        "date":  "2026-08-27",
+        "mode":  "Health Dashboard",
+        "score":  97,
+        "findings":  {
+                         "critical":  0,
+                         "warning":  2,
+                         "suggestion":  2
+                     },
+        "scope":  "entire repository"
+    }
+]

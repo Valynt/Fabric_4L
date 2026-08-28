@@ -6,8 +6,8 @@ from unittest.mock import AsyncMock, patch
 import httpx
 import pytest
 
-from layer4_agents.integrations.core.errors import AuthError, TransientError
-from layer4_agents.integrations.providers.salesforce.connector import SalesforceConnector
+from layer4_agents.integration.connectors.core.errors import AuthError, TransientError
+from layer4_agents.integration.connectors.providers.salesforce.connector import SalesforceConnector
 
 
 def _make_response(
@@ -123,13 +123,13 @@ class TestSalesforceConnectorRefreshToken:
 
 class TestSalesforceConnectorValidation:
     def test_validate_sfdc_id_rejects_injection(self) -> None:
-        from layer4_agents.integrations.providers.salesforce.connector import _validate_sfdc_id
+        from layer4_agents.integration.connectors.providers.salesforce.connector import _validate_sfdc_id
 
         with pytest.raises(ValueError):
             _validate_sfdc_id("001' OR Name != '")
 
     def test_validate_sfdc_id_accepts_valid(self) -> None:
-        from layer4_agents.integrations.providers.salesforce.connector import _validate_sfdc_id
+        from layer4_agents.integration.connectors.providers.salesforce.connector import _validate_sfdc_id
 
         assert _validate_sfdc_id("001XXXXXXXXXXXXXXX") == "001XXXXXXXXXXXXXXX"
 

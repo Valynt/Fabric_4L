@@ -10,7 +10,7 @@ from typing import Any, cast
 
 import httpx
 
-from ....models.account import CRMProvider
+from .....models.account import CRMProvider
 from ...core.connector import CRMConnector, CRMWriteConnector
 from ...core.errors import (
     AuthError,

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ..models.account import CRMProvider
+from ...models.account import CRMProvider
 from .core.connector import CRMConnector, CRMWriteConnector
 from .core.errors import PermanentError
 

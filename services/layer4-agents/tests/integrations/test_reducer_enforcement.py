@@ -21,7 +21,7 @@ FIELD_NAMES = {
 # route through apply_observation (or, for migrations, use SQL in the listed file).
 ALLOWLIST: set[str] = {
     # The reducer and its single sanctioned application helper.
-    "integrations/core/state.py",
+    "integration/connectors/core/state.py",
     # Model definition and defaults.
     "models/integration.py",
     # Backfill / drift-repair migrations.
@@ -181,7 +181,7 @@ class TestReducerStatusWritesEnforced:
 
     def test_apply_observation_is_the_only_writer(self) -> None:
         """Only state.py defines apply_observation and assigns reducer columns."""
-        state_path = ROOT / "integrations" / "core" / "state.py"
+        state_path = ROOT / "integration" / "connectors" / "core" / "state.py"
         assert state_path.exists()
         source = state_path.read_text(encoding="utf-8")
 
