@@ -16,7 +16,7 @@ def test_vulnerability_policy_blocks_critical_and_high_findings() -> None:
     assert "Critical" in policy
     assert "High" in policy
     assert "Blocks merge and promotion" in policy
-    assert "severity: 'HIGH,CRITICAL'" in security_gates
+    assert "severity: \"HIGH,CRITICAL\"" in security_gates
     assert "--fail-on high" in supply_chain
     assert "grype sbom:" in supply_chain
 

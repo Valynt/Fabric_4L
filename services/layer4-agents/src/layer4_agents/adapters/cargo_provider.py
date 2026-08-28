@@ -2,19 +2,17 @@ import asyncio
 import json
 import os
 import time
-import uuid
 from typing import Any
 from uuid import UUID
 
 import httpx
+import structlog
 from tenacity import (
     AsyncRetrying,
     retry_if_exception_type,
     stop_after_attempt,
     wait_exponential,
 )
-import structlog
-
 from value_fabric.shared.contracts.account_intelligence import (
     AccountIntelligenceProvider,
     AccountSignal,
@@ -23,8 +21,8 @@ from value_fabric.shared.contracts.account_intelligence import (
     EnrichedAccountContext,
     StakeholderProfile,
 )
-from layer4_agents.provenance.cargo_normalizer import CargoContextNormalizer
 
+from layer4_agents.provenance.cargo_normalizer import CargoContextNormalizer
 
 logger = structlog.get_logger()
 
@@ -101,10 +99,12 @@ class CargoAccountIntelligenceProvider(AccountIntelligenceProvider):
                     run_data = response.json()
                     
                     # Sometimes the API returns synchronous responses
-                    if "runContext" in run_data:
-                        return run_data["runContext"].get("action")
+                    if "runContext" in run_data and isinstance(run_data["runContext"], dict):
+                        action_res = run_data["runContext"].get("action")
+                        return action_res if isinstance(action_res, dict) else None
                         
-                    run_uuid = run_data.get("run", {}).get("uuid")
+                    run_obj = run_data.get("run")
+                    run_uuid = run_obj.get("uuid") if isinstance(run_obj, dict) else None
                     if not run_uuid:
                         raise CargoAPIError("Missing run UUID in response")
 
@@ -113,10 +113,13 @@ class CargoAccountIntelligenceProvider(AccountIntelligenceProvider):
                         poll_resp = await self._client.get(f"/orchestration/runs/{run_uuid}")
                         poll_resp.raise_for_status()
                         poll_data = poll_resp.json()
-                        status = poll_data.get("run", {}).get("status")
+                        poll_run = poll_data.get("run") if isinstance(poll_data, dict) else None
+                        status = poll_run.get("status") if isinstance(poll_run, dict) else None
                         
                         if status == "success":
-                            return poll_data.get("runContext", {}).get("action")
+                            run_ctx = poll_data.get("runContext") if isinstance(poll_data, dict) else None
+                            action_res = run_ctx.get("action") if isinstance(run_ctx, dict) else None
+                            return action_res if isinstance(action_res, dict) else None
                         elif status == "failed":
                             raise CargoAPIError(f"Cargo run failed: {run_uuid}")
                     
@@ -175,7 +178,9 @@ class CargoAccountIntelligenceProvider(AccountIntelligenceProvider):
             self._execute_tool_action_http(self.TOOL_FIND_COMPETITORS, {"companyDomain": domain})
         )
 
-        enrich_out, comp_out = await asyncio.gather(enrich_task, comp_task, return_exceptions=True)
+        gather_results = await asyncio.gather(enrich_task, comp_task, return_exceptions=True)
+        enrich_out = gather_results[0]
+        comp_out = gather_results[1]
 
         latency_ms = (time.perf_counter() - start_time) * 1000
         self.metrics["last_latency_ms"] = latency_ms
@@ -250,9 +255,9 @@ class CargoAccountIntelligenceProvider(AccountIntelligenceProvider):
         except Exception:
             pass
 
-        from layer4_agents.provenance.cargo_normalizer import CargoContextNormalizer
         signals = CargoContextNormalizer.extract_implicit_signals(raw_company, raw_stakeholders, domain)
         return signals
+
 
     async def get_full_account_context(
         self,
@@ -276,18 +281,18 @@ class CargoAccountIntelligenceProvider(AccountIntelligenceProvider):
             return_exceptions=False,
         )
 
-        if not company_data:
+        if not isinstance(company_data, CompanyEnrichmentData):
             log.warning("cargo_full_context_failed_no_company_data")
             return None
 
-        # Just return basic Context since assemble_context was a mock-specific helper in tests perhaps? 
-        # Actually CargoContextNormalizer doesn't have assemble_context natively, the test used it.
-        # Let's construct it directly.
+        stakeholders_list: list[StakeholderProfile] = stakeholders if isinstance(stakeholders, list) else []
+        signals_list: list[AccountSignal] = signals if isinstance(signals, list) else []
+
         return EnrichedAccountContext(
             account_id=account_id,
             tenant_id=tenant_id,
             company=company_data,
-            stakeholders=stakeholders,
-            signals=signals,
+            stakeholders=stakeholders_list,
+            signals=signals_list,
             raw_provider_record_id=company_data.provenance.provider_record_id,
         )

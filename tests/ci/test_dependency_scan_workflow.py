@@ -50,7 +50,7 @@ def test_scan_python_compares_pr_audit_against_base_before_failing() -> None:
     assert "fetch-depth: 0" in job
     assert "git fetch --no-tags --depth=1 origin" in job
     assert "git worktree add" in job
-    assert "artifacts/pip-audit-base/${{ matrix.service }}" in job
+    assert "artifacts/pip-audit-base/${{ matrix.python.service }}" in job
     assert "scripts/ci/run_pip_audit.py compare" in job
     assert "--baseline-diagnostic" in job
     assert "--baseline-expected-status" in job

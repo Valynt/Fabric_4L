@@ -1,17 +1,14 @@
 alembic>=1.12.0
 beautifulsoup4>=4.12.0
 celery>=5.3.0
-# Pinned to presidio-anonymizer 2.2.35 (below 2.2.362) to avoid its
-# cryptography<49 pin, which conflicts with the platform's cryptography>=50
-# requirement.
-cryptography>=50.0.0
+cryptography>=50.0.0  # Platform security baseline (GHSA-g6cj-pr64-35w5 fixed in 50.0.0)
 flower>=2.1.0
 fastapi>=0.104.0
 httpx>=0.25.0
 markdownify>=0.11.0
 playwright>=1.40.0
-presidio-analyzer==2.2.364  # keep aligned with anonymizer
-presidio-anonymizer==2.2.364  # >=2.2.362 pins cryptography<49
+presidio-analyzer==2.2.362  # keep aligned with anonymizer, matches pyproject.toml
+presidio-anonymizer==2.2.362  # 2.2.362 has no cryptography<49 cap (platform pin needs >=50); 2.2.363+ caps crypto<47/<49
 protego>=0.3.0
 prometheus-client>=0.19.0
 psycopg2-binary>=2.9.9
