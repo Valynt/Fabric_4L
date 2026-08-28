@@ -3,10 +3,13 @@
 
 Conservative dead-code regression guard. Only flags module-level ``def``/``class`` and
 ``import`` symbols that are unreferenced anywhere in the tracked tree.
-Symbols that are referenced only through dynamic patterns (string constants,
-attribute access, decorators, getattr-style dispatch) are never flagged, and
-an explicit allowlist in ``config/ci/dead_code_allowlist.txt`` suppresses
-future-reserved or intentionally exported names.
+A binding counts as referenced when its bare name or attribute name appears in any
+tracked file; bare string literals are deliberately not references (any unrelated
+string containing the same text as a top-level symbol would otherwise suppress
+findings). Symbols reached only through string-dispatch patterns (``getattr``,
+``globals()``) must be added to the explicit allowlist in
+``config/ci/dead_code_allowlist.txt`` to suppress future-reserved or intentionally
+exported names.
 
 Scope rules:
 
@@ -40,14 +43,6 @@ SCAN_PREFIXES = ("services/", "packages/")
 TEST_SEGMENTS = ("tests", "test", "tests_unit", "test_")
 
 
-def _is_test_relpath(rel: str) -> bool:
-    """True if any path segment looks like a test directory."""
-    for part in rel.split("/"):
-        if part in TEST_SEGMENTS or part.endswith("_tests") or part.endswith("_test"):
-            return True
-    return False
-
-
 class _ModuleInfo:
     """Collect top-level bindings and reference names for one module."""
 
@@ -63,8 +58,6 @@ class _ModuleInfo:
                 refs.add(node.id)
             elif isinstance(node, ast.Attribute):
                 refs.add(node.attr)
-            elif isinstance(node, ast.Constant) and isinstance(node.value, str):
-                refs.add(node.value)
         # `__all__ = [...]` marks an intentional public export surface even if
         # nothing in-tree references the name directly.
         for node in tree.body:
