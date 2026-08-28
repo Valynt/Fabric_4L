@@ -1,1 +1,0 @@
-"""Billing service API package."""

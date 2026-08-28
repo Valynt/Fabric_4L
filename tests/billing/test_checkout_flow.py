@@ -14,7 +14,7 @@ def test_checkout_flow_has_documented_non_credential_gap_and_ui_coverage() -> No
     assert_paths_exist(
         (
             "apps/web/e2e/journeys/j20-billing-entitlement-gates.spec.ts",
-            "services/billing/tests/test_api.py",
+            "services/layer4-agents/tests/test_billing_service.py",
             "contracts/openapi/layer7-billing.json",
         ),
         label="checkout flow references",
