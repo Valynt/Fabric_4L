@@ -190,7 +190,6 @@ scheme, host, or path of an outbound request.
 | 12560 | `services/api/app/clients/layer4_client.py` | 37 | same pattern | false-positive — same |
 | 12559 | `services/api/app/clients/internal_api_client.py` | 39 | same pattern | false-positive — same |
 | 12558 | `services/layer4-agents/src/.../integration_service.py` | 909 | `SALESFORCE_OAUTH_BASE_URL` env (default `https://login.salesforce.com`) + fixed path `/services/oauth2/token` | false-positive — OAuth endpoint to configured Salesforce host |
-| 12557 | `services/layer3-knowledge/src/api/routes/documents.py` | 55 | `LAYER4_API_URL` env (default `http://layer4-agents:8004`) + fixed path | false-positive — inter-service HTTP inside the platform's own mesh |
 | 12556 | `services/layer4-agents/src/.../salesforce/connector.py` | 139 | `self.instance_url` — set from Salesforce OAuth token response's `instance_url` field | false-positive — Salesforce-assigned instance host, not user-controlled |
 | 12555 | `services/layer4-agents/src/.../salesforce/connector.py` | 101 | same `instance_url` after token refresh | false-positive — same |
 | 12554 | `services/layer4-agents/src/.../hubspot/connector.py` | 55 | `url` argument; callers pass fully-qualified HubSpot API URLs constructed against `https://api.hubapi.com` | false-positive — HubSpot API base fixed at connector construction |

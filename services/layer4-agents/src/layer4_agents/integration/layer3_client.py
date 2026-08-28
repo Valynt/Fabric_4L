@@ -7,15 +7,17 @@ tenant context injection for all queries.
 """
 import asyncio
 import logging
-import os
 from typing import Any
 
 import httpx
 
-logger = logging.getLogger(__name__)
+from ._base import (
+    SERVICE_AUTH_HEADER,  # noqa: F401  # re-exported for import compatibility
+    TENANT_ID_HEADER,  # noqa: F401
+    ServiceHttpClient,
+)
 
-TENANT_ID_HEADER = "X-Tenant-ID"
-SERVICE_AUTH_HEADER = "X-Service-Auth"
+logger = logging.getLogger(__name__)
 
 
 class Layer3ClientError(Exception):
@@ -24,7 +26,7 @@ class Layer3ClientError(Exception):
     pass
 
 
-class Layer3Client:
+class Layer3Client(ServiceHttpClient):
     """Async client for Layer 3 Knowledge Graph API with tenant propagation.
 
     All methods automatically include tenant_id as X-Tenant-ID header
@@ -55,9 +57,11 @@ class Layer3Client:
             tenant_id: Default tenant ID for all requests
             max_retries: Max retry attempts for transient failures
         """
-        self.base_url = base_url.rstrip("/")
-        self.timeout = timeout
-        self._default_tenant_id = tenant_id
+        super().__init__(
+            base_url=base_url,
+            timeout=timeout,
+            tenant_id=tenant_id,
+        )
         self._max_retries = max_retries
         self._client: httpx.AsyncClient | None = None
 
@@ -73,26 +77,18 @@ class Layer3Client:
     def _get_headers(self, tenant_id: str | None = None) -> dict[str, str]:
         """Build request headers with tenant context.
 
+        Composed from the shared base (tenant + service-auth) plus the JSON
+        content headers Layer 3 always sends.
+
         Args:
             tenant_id: Tenant ID to include in headers (uses default if None)
 
         Returns:
             Headers dict with X-Tenant-ID if tenant_id available
         """
-        headers = {
-            "Accept": "application/json",
-            "Content-Type": "application/json",
-        }
-
-        effective_tenant = tenant_id or self._default_tenant_id
-        if effective_tenant:
-            headers[TENANT_ID_HEADER] = effective_tenant
-
-        # F-1 P0 fix: Include service auth secret for mutual authentication
-        service_auth = os.getenv("SERVICE_AUTH_SECRET")
-        if service_auth:
-            headers[SERVICE_AUTH_HEADER] = service_auth
-
+        headers = super()._get_headers(tenant_id)
+        headers["Accept"] = "application/json"
+        headers["Content-Type"] = "application/json"
         return headers
 
     def _get_effective_tenant(self, tenant_id: str | None) -> str:

@@ -52,6 +52,11 @@ COMPATIBILITY_HIDDEN_PATHS: set[str] = {
     "/v1/schema/status",
     "/v1/schema/init",
     "/v1/schema/statistics",
+    # Removed intentionally (never re-added): the L3→L4 circular dependency
+    # fix removed the dead L3 /v1/documents/export proxy (R5). Business case
+    # export flows directly from the frontend to L4, so this path is not
+    # covered by canonical-path compatibility (R8).
+    "/v1/documents/export",
 }
 
 COMPATIBILITY_PATH_ALIASES: dict[str, str] = {
