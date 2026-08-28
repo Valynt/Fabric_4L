@@ -17,7 +17,7 @@ This suite centralizes billing, subscription, webhook, entitlement, trial, and t
 ## Existing Coverage Aggregated
 
 - `services/layer7-billing/tests/` — canonical deployable billing service tests
-- `services/billing/tests/` — legacy compatibility and historical Stripe migration tests only
+- `services/layer4-agents/tests/test_billing_service.py` + `tests/billing/` — membership/subscription/webhook readiness (legacy `services/billing/` package removed 2026-08-27, COMPAT-BILL-001)
 - `tests/contract/test_billing_contracts.py`
 - `tests/integration/billing_entitlements/`
 - `services/layer4-agents/tests/test_billing_service.py`

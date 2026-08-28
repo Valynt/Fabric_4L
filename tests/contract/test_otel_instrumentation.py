@@ -90,25 +90,6 @@ class TestOtelInstrumentationStatic:
             "layer2-extraction must pass instrument_telemetry=True to create_fabric_app"
         )
 
-    def test_billing_service_calls_init_telemetry(self) -> None:
-        """billing must call init_telemetry with service name."""
-        path = REPO_ROOT / "services" / "billing" / "src" / "billing" / "api" / "main.py"
-        source = _read_source(path)
-        assert _has_call(source, "init_telemetry"), (
-            "billing main.py must call init_telemetry()"
-        )
-        assert _has_call(source, 'init_telemetry("billing")'), (
-            'billing init_telemetry must be called with service name "billing"'
-        )
-
-    def test_billing_service_calls_instrument_fastapi_app(self) -> None:
-        """billing must instrument the FastAPI application."""
-        path = REPO_ROOT / "services" / "billing" / "src" / "billing" / "api" / "main.py"
-        source = _read_source(path)
-        assert _has_call(source, "instrument_fastapi_app"), (
-            "billing main.py must call instrument_fastapi_app()"
-        )
-
     def test_layer25_passes_instrument_telemetry_true(self) -> None:
         """layer2-5-signal-refinery must pass instrument_telemetry=True."""
         path = (
