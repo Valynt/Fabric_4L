@@ -99,7 +99,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "22.18.0"
+          node-version: "22.22.2"
           cache: "pnpm"
           cache-dependency-path: pnpm-lock.yaml
       - name: Install dependencies
@@ -151,7 +151,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "22.18.0"
+          node-version: "22.22.2"
           cache: "pnpm"
           cache-dependency-path: pnpm-lock.yaml
       - name: Install dependencies
@@ -204,7 +204,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "22.18.0"
+          node-version: "22.22.2"
           cache: "pnpm"
           cache-dependency-path: pnpm-lock.yaml
       - name: Install frontend dependencies
@@ -256,7 +256,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "22.18.0"
+          node-version: "22.22.2"
           cache: "pnpm"
           cache-dependency-path: pnpm-lock.yaml
       - name: Install plugin
@@ -297,7 +297,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "22.18.0"
+          node-version: "22.22.2"
           cache: "pnpm"
           cache-dependency-path: pnpm-lock.yaml
       - name: Install Python contract test dependencies
@@ -331,7 +331,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "22.18.0"
+          node-version: "22.22.2"
       - name: Install Python gate dependencies
         run: python -m pip install --require-hashes -r tests/requirements-test.lock
       - name: Run Platform Contract Lint
@@ -594,7 +594,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "22.18.0"
+          node-version: "22.22.2"
       - name: Validate deprecations.json schema
         run: "echo \"Validating governance/deprecations.json...\"\nnode -e \"\n  const fs = require('fs');\n  const data = JSON.parse(fs.readFileSync('docs/governance/deprecations.json', 'utf8'));\n\n  // Required fields check\n  if (!data.version) throw new Error('Missing version');\n  if (!data.items || !Array.isArray(data.items)) throw new Error('Missing items array');\n\n  // Check each deprecation item\n  data.items.forEach((item, idx) => {\n    const required = ['id', 'pattern', 'contract', 'status', 'severity', 'owner', 'targetRemoval', 'replacement'];\n    required.forEach(field => {\n      if (!item[field]) throw new Error(\\`Item \\${idx} missing \\${field}\\`);\n    });\n\n    // Check for expired exceptions\n    if (item.targetRemoval) {\n      const removal = new Date(item.targetRemoval);\n      // Validate date format first\n      if (isNaN(removal.getTime())) {\n        throw new Error(\\`Item \\${item.id} has invalid targetRemoval date format: \\${item.targetRemoval}. Expected ISO 8601 format (YYYY-MM-DD).\\`);\n      }\n      if (item.status !== 'resolved' && removal < new Date()) {\n        console.error(\\`::error::Deprecation \\${item.id} expired on \\${item.targetRemoval}\\`);\n        process.exitCode = 1;\n      }\n    }\n  });\n\n  console.log(\\`✅ Validated \\${data.items.length} deprecations\\`);\n  console.log(\\`\U0001F4CA Compliance score: \\${data.compliance?.overallScore || 'N/A'}%\\`);\n  console.log(\\`\U0001F3AF Target: \\${data.compliance?.targetScore || 'N/A'}% by \\${data.compliance?.targetDate || 'N/A'}\\`);\n\"\n"
       - name: Check for expired exceptions
