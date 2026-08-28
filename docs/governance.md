@@ -12,6 +12,10 @@ These documents define the required engineering governance path for platform cha
 - [`../CONTRIBUTING.md`](../CONTRIBUTING.md): contributor onboarding entry point
 - [`governance/launch-drift-prevention-sop.md`](governance/launch-drift-prevention-sop.md):
   required approvals for contract, tenant-isolation, and compatibility-shim changes
+- [`governance/multitenancy-production-checklist.md`](governance/multitenancy-production-checklist.md):
+  canonical 25-section production release gate for multitenancy and tenant isolation
+- [`governance/multitenancy-baseline-assessment.md`](governance/multitenancy-baseline-assessment.md):
+  baseline assessment and audit matrix against the 25-section multitenancy release gate
 - [`governance/pre-stabilization-intake.md`](governance/pre-stabilization-intake.md):
   operational branch, PR, freeze, and entry gate before stabilization begins
 - [`launch/stabilization-gate-0-intake-2026-06-03.md`](launch/stabilization-gate-0-intake-2026-06-03.md):
