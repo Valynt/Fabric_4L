@@ -32,9 +32,9 @@ from enum import Enum
 from typing import Any
 
 from value_fabric.shared.identity.context import get_request_context
+
 from ..interfaces.context_clients import ContextFinancialExtractionPort, ContextIngestionPort
 from .base import AgentCapability, AgentResult, BaseAgent
-
 
 logger = logging.getLogger(__name__)
 
