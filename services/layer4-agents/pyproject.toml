@@ -659,6 +659,16 @@ markers = [
     "e2e: End-to-end tests with full container orchestration",
     "slow: Tests that take >5 seconds",
     "requires_postgres: Tests requiring a live PostgreSQL instance",
+    "postgres: Tests requiring a live PostgreSQL instance (short alias)",
+    "mandatory: Tests that must run and pass in CI (unit + contract + security)",
+    "contract: API contract tests (OpenAPI schema validation)",
+    "security: Security tests (OWASP Top 10)",
+    "tenant_isolation: First-class tenant isolation gate tests (RLS, cross-tenant denial, tenant propagation)",
+    "adversarial: Adversarial injection and cross-tenant exfiltration tests",
+    "authorization: Authorization and RBAC boundary tests",
+    "injection: Injection safety regression tests",
+    "jwt_validation: JWT validation safety regression tests",
+    "p0: P0 priority regression or safety tests",
 ]
 
 [tool.coverage.run]
