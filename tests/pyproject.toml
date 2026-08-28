@@ -7,6 +7,8 @@ select = ["E", "W", "F", "I", "N", "B", "C4", "SIM", "UP"]
 ignore = [
     # Line length — tests often have long assertion strings
     "E501",
+    # Import block sorting (isort) — test files have mixed import layouts
+    "I001",
     # Module-level imports not at top of file are common in test fixtures
     "E402",
     # Trailing / blank-line whitespace — cosmetic

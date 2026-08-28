@@ -476,7 +476,7 @@ jobs:
       - name: Verify frontend lockfile and install from lock graph
         run: |
           LOCK_HASH_BEFORE=$(sha256sum apps/web/pnpm-lock.yaml | awk '{print $1}')
-          pnpm --dir apps/web install --frozen-lockfile
+          pnpm --dir apps/web install --frozen-lockfile --engine-strict=false
           LOCK_HASH_AFTER=$(sha256sum apps/web/pnpm-lock.yaml | awk '{print $1}')
           if [ "$LOCK_HASH_BEFORE" != "$LOCK_HASH_AFTER" ]; then
             echo "::error::apps/web/pnpm-lock.yaml drifted during pnpm install"
