@@ -4,6 +4,13 @@ on:
   schedule:
     - cron: "17 6 * * *" # Daily — drift detection target <24h (Plan E)
   workflow_dispatch:
+  pull_request:
+    paths:
+      - 'config/ci/required-status-checks.json'
+      - 'config/ci/branch-protection-gap.json'
+      - 'docs/governance/branch-protection-required-checks.yml'
+      - 'scripts/ci/validate_branch_protection_checks.py'
+      - '.github/workflows/branch-protection-validation.yml'
 
 permissions:
   contents: read
@@ -37,9 +44,15 @@ jobs:
             "https://api.github.com/repos/$REPO/rulesets?per_page=100" \
             -o "$rulesets_file"
 
+          GAP_ARGS=""
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            GAP_ARGS="--gap-file config/ci/branch-protection-gap.json"
+          fi
+
           python scripts/ci/validate_branch_protection_checks.py \
             --config config/ci/required-status-checks.json \
-            --api-response-file "$protection_file"
+            --api-response-file "$protection_file" \
+            $GAP_ARGS
           python scripts/ci/validate_mandatory_security_gate_enforcement.py \
             --branch-protection-file "$protection_file" \
             --ruleset-file "$rulesets_file"
