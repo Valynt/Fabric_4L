@@ -492,7 +492,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "coverage", marker = "extra == 'dev'", specifier = ">=7.5.0" },
-    { name = "cryptography", specifier = ">=43.0.0" },
+    { name = "cryptography", specifier = ">=50.0.0" },
     { name = "email-validator", specifier = ">=2.1.0.post1" },
     { name = "fastapi", specifier = ">=0.111.0" },
     { name = "httpx", specifier = ">=0.27.0" },
