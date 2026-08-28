@@ -70,7 +70,7 @@ Guidance:
 - **Pure public-interface definitions** with no external coupling belong in `interfaces/`.
 - **Provider configuration, mapping, and translation logic** belongs in `adapters/`.
 - **Orchestration/service logic** (jobs, schedulers, sync services) belongs in `services/`.
-- The legacy `layer4_agents/integrations/` package is **deprecated**; it exists only as re-export shims forwarding to `integration/connectors/`. New code must import from `integration/connectors/`. Once no consumer resolves the old path, delete the shims.
+- The legacy `layer4_agents/integrations/` package and its re-export shims have been **removed**. All connector code lives under `integration/connectors/`; there is no compatibility alias. Layer 4 is pre-production with no external consumers of the old path, so no compatibility shims are preserved — imports must use `integration/connectors/`.
 
 ## Architecture
 

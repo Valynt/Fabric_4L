@@ -1,1 +1,0 @@
-"""Deprecated provider shim package; canonical home is layer4_agents.integration.connectors.providers."""
