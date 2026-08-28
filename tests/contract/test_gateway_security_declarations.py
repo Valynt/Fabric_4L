@@ -28,7 +28,6 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
 
 import pytest
 
@@ -40,7 +39,7 @@ GATEWAY_SPEC_PATH = REPO_ROOT / "contracts" / "openapi" / "fabric-4l-api.json"
 EXPECTED_SECURITY = [{"HTTPBearer": []}]
 
 # Canonical allowlist of public endpoints that legitimately declare NO security.
-# Any operation NOT in this list must declare HTTPBearer.
+# Operations NOT in this list must declare HTTPBearer.
 PUBLIC_ALLOWLIST: set[tuple[str, str]] = {
     ("get", "/ready"),
     ("get", "/health"),
@@ -79,13 +78,15 @@ FORMERLY_UNDECLARED: set[tuple[str, str]] = {
 HTTP_METHODS = ("get", "post", "put", "patch", "delete")
 
 
-def _load_gateway_spec() -> dict[str, Any]:
+def _load_gateway_spec() -> dict[str, object]:
     with open(GATEWAY_SPEC_PATH, encoding="utf-8") as fh:
         return json.load(fh)
 
 
-def _iter_operations(spec: dict[str, Any]) -> list[tuple[str, str, dict[str, Any]]]:
-    operations: list[tuple[str, str, dict[str, Any]]] = []
+def _iter_operations(
+    spec: dict[str, object],
+) -> list[tuple[str, str, dict[str, object]]]:
+    operations: list[tuple[str, str, dict[str, object]]] = []
     for path, path_item in spec.get("paths", {}).items():
         for method, operation in path_item.items():
             if method in HTTP_METHODS:
