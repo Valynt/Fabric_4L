@@ -178,7 +178,9 @@ class CargoAccountIntelligenceProvider(AccountIntelligenceProvider):
             self._execute_tool_action_http(self.TOOL_FIND_COMPETITORS, {"companyDomain": domain})
         )
 
-        enrich_out, comp_out = await asyncio.gather(enrich_task, comp_task, return_exceptions=True)
+        gather_results: list[Any] = await asyncio.gather(enrich_task, comp_task, return_exceptions=True)
+        enrich_out: Any = gather_results[0]
+        comp_out: Any = gather_results[1]
 
         latency_ms = (time.perf_counter() - start_time) * 1000
         self.metrics["last_latency_ms"] = latency_ms
