@@ -12,8 +12,13 @@ ORCHESTRATION_MODULES = [
     ROOT / "services/layer4-agents/src/services/enrichment_orchestrator.py",
     ROOT / "services/layer4-agents/src/services/intelligence_orchestrator.py",
     ROOT / "services/layer4-agents/src/services/conversation.py",
+    ROOT / "services/layer4-agents/src/layer4_agents/engine",
+    ROOT / "services/layer4-agents/src/layer4_agents/workflows",
+    ROOT / "services/layer4-agents/src/layer4_agents/services/enrichment_orchestrator.py",
+    ROOT / "services/layer4-agents/src/layer4_agents/services/intelligence_orchestrator.py",
+    ROOT / "services/layer4-agents/src/layer4_agents/services/conversation.py",
 ]
-BLOCKED_IMPORTS = ("openai", "anthropic", "together")
+BLOCKED_IMPORTS = ("openai", "anthropic", "together", "thesys")
 
 
 def _iter_py_files(path: Path) -> list[Path]:

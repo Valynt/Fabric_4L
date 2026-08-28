@@ -2,7 +2,7 @@
 """
 check-contract-services.py
 Validates that necessary backing services for contract tests are healthy.
-Polls Layer 3, Layer 4, and Layer 5 health endpoints.
+Polls the real Layer 1 through Layer 6 health endpoints.
 """
 
 import sys
@@ -11,9 +11,12 @@ import urllib.error
 import urllib.request
 
 SERVICES = {
+    "Layer 1": "http://localhost:8001/health",
+    "Layer 2": "http://localhost:8002/health",
     "Layer 3": "http://localhost:8003/health",
     "Layer 4": "http://localhost:8004/health",
     "Layer 5": "http://localhost:8005/health",
+    "Layer 6": "http://localhost:8006/health",
 }
 
 MAX_RETRIES = 60

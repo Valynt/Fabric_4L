@@ -39,6 +39,11 @@ const rule: Rule.RuleModule = {
      * Check if an import source is a private/deep import
      */
     function isPrivateImport(source: string): boolean {
+      // Allow top-level project lib alias "@/lib/..."
+      if (source.startsWith("@/lib/")) {
+        return false;
+      }
+
       // Check for private path patterns
       const privatePatterns = [
         /[\\/]src[\\/]/,

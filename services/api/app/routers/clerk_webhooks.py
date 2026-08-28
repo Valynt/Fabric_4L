@@ -1,27 +1,29 @@
 """Clerk webhook handler — keeps Fabric4L identity tables in sync.
 
 Security:
-    - Signature verification uses Svix when the ``svix`` package is
-      installed; otherwise we fall back to a stricter manual HMAC-SHA256
-      check matching Svix's wire format. Either way, requests without a
-      valid signature are rejected with 401.
+    - Signature verification (Svix wire format over the raw body) is the
+      responsibility of ``app.core.clerk_webhook_signing`` — the dedicated,
+      independently-reviewable security boundary. It rejects missing/invalid/
+      stale signatures with 401 and oversized bodies with 413. Requests
+      without a valid signature are rejected before any parsing or delivery
+      logic runs.
     - The endpoint is registered under ``/internal/webhooks/clerk`` and
       MUST NOT be exposed publicly without an additional network policy.
+    - Delivery semantics (deduplication, idempotency, ordering, replay) are
+      handled below, deliberately separated from transport security.
 
 Idempotency:
-    Each Clerk event carries a Svix message id (``svix-id`` header). The
-    directory's ``has_processed_event`` / ``mark_event_processed`` make
-    replays a no-op.
+    Each Clerk event carries a Svix message id (``svix-id`` header). Delivery
+    state (dedup + pending-event lifecycle) is owned by
+    ``app.core.clerk_webhook_delivery``; replays are a no-op and out-of-order
+    events are retained in a recoverable pending state.
 """
 
 from __future__ import annotations
 
-import hashlib
-import hmac
 import json
 import os
 import time
-from base64 import b64decode, b64encode
 from enum import StrEnum
 from typing import Any
 
@@ -45,6 +47,11 @@ from app.core.auth_telemetry import (
 )
 from app.core.billing_entitlements import process_clerk_billing_event
 from app.core.clerk_config import _DEFAULT_CLERK_WEBHOOK_RATE_LIMIT_PER_MINUTE, get_auth_settings
+from app.core.clerk_webhook_delivery import (
+    DLQ_REASON_PENDING_EXHAUSTED,
+    get_webhook_delivery_tracker,
+)
+from app.core.clerk_webhook_signing import read_webhook_body_limited, verify_svix_signature
 from app.core.security import require_authenticated
 from app.core.webhook_dlq import get_webhook_dlq
 
@@ -84,64 +91,6 @@ class ClerkEventType(StrEnum):
     PAYMENT_ATTEMPT_FAILED = "payment_attempt.failed"
 
 
-def _verify_svix_signature(
-    *,
-    secret: str,
-    headers: dict[str, str],
-    body: bytes,
-) -> None:
-    """Verify the Svix-format signature header.
-
-    Svix uses ``v1,<base64-hmac-sha256>`` over ``"<svix_id>.<svix_timestamp>.<body>"``
-    using a base64-decoded shared secret (``whsec_<base64>``).
-    """
-    svix_id = headers.get("svix-id")
-    svix_timestamp = headers.get("svix-timestamp")
-    svix_signature = headers.get("svix-signature")
-    if not (svix_id and svix_timestamp and svix_signature):
-        raise AuthenticationError(message="Unauthorized.")
-
-    # Timestamp tolerance: reject signatures older than ±5 minutes to
-    # prevent replay attacks with captured valid signatures.
-    try:
-        ts = int(svix_timestamp)
-    except ValueError:
-        raise AuthenticationError(message="Unauthorized.")
-    now = int(time.time())
-    if abs(now - ts) > 300:
-        raise AuthenticationError(message="Unauthorized.")
-
-    if secret.startswith("whsec_"):
-        try:
-            key = b64decode(secret[len("whsec_") :])
-        except Exception as exc:
-            logger.exception(
-                "CLERK_WEBHOOK_SECRET base64 decode failed",
-                operation="webhook_signature_verify",
-                error=str(exc),
-            )
-            raise ServiceUnavailableError(message="Misconfigured.") from exc
-    else:
-        key = secret.encode()
-
-    signed_payload = f"{svix_id}.{svix_timestamp}.".encode() + body
-    expected = hmac.new(key, signed_payload, hashlib.sha256).digest()
-    expected_sig = b64encode(expected).decode()
-    # svix-signature is a space-separated list of "v1,<base64>" pairs.
-    valid = False
-    for sig_entry in svix_signature.split(" "):
-        if "," not in sig_entry:
-            continue
-        version, value = sig_entry.split(",", 1)
-        if version != "v1":
-            continue
-        if hmac.compare_digest(value.strip(), expected_sig):
-            valid = True
-            break
-    if not valid:
-        raise AuthenticationError(message="Unauthorized.")
-
-
 def _apply_event(directory: AuthDirectory, event_type: str, data: dict[str, Any]) -> None:
     """Apply a Clerk webhook event to the identity directory.
 
@@ -159,24 +108,37 @@ def _apply_event(directory: AuthDirectory, event_type: str, data: dict[str, Any]
             if entry.get("id") == primary_email_id:
                 primary_email = entry.get("email_address")
                 break
+        # A profile update must NOT reactivate a soft-deleted user; only a
+        # fresh user.created (re-creation) may do so.
+        if event_type == ClerkEventType.USER_UPDATED:
+            existing = directory.get_user_by_clerk(clerk_user_id=data["id"])
+            status = existing.status if existing else "active"
+        else:
+            status = "active"
         directory.upsert_user(
             clerk_user_id=data["id"],
             email=primary_email,
             display_name=" ".join(filter(None, [data.get("first_name"), data.get("last_name")]))
             or None,
-            status="active",
+            status=status,
         )
     elif event_type == ClerkEventType.USER_DELETED:
-        directory.delete_user(clerk_user_id=data["id"])
+        directory.deactivate_user(clerk_user_id=data["id"])
     elif event_type in {ClerkEventType.ORGANIZATION_CREATED, ClerkEventType.ORGANIZATION_UPDATED}:
+        # A re-created organization maps back to its immutable Fabric tenant id.
+        if event_type == ClerkEventType.ORGANIZATION_UPDATED:
+            existing = directory.get_tenant_by_clerk_org(clerk_org_id=data["id"])
+            status = existing.status if existing else "active"
+        else:
+            status = "active"
         directory.upsert_tenant(
             clerk_org_id=data["id"],
             name=data.get("name") or data.get("slug") or data["id"],
             slug=data.get("slug"),
-            status="active",
+            status=status,
         )
     elif event_type == ClerkEventType.ORGANIZATION_DELETED:
-        directory.delete_tenant(clerk_org_id=data["id"])
+        directory.deactivate_tenant(clerk_org_id=data["id"])
     elif event_type in {
         ClerkEventType.ORGANIZATION_MEMBERSHIP_CREATED,
         ClerkEventType.ORGANIZATION_MEMBERSHIP_UPDATED,
@@ -200,7 +162,7 @@ def _apply_event(directory: AuthDirectory, event_type: str, data: dict[str, Any]
         clerk_user_id = data.get("user_id") or user.get("user_id") or user.get("id")
         clerk_org_id = data.get("organization_id") or org.get("id")
         if clerk_user_id and clerk_org_id:
-            directory.revoke_membership(clerk_org_id=clerk_org_id, clerk_user_id=clerk_user_id)
+            directory.deactivate_membership(clerk_org_id=clerk_org_id, clerk_user_id=clerk_user_id)
     elif event_type == ClerkEventType.ORGANIZATION_INVITATION_CREATED:
         clerk_inv_id = data.get("id")
         clerk_org_id = data.get("organization_id")
@@ -255,9 +217,9 @@ async def clerk_webhook(request: Request, _limit: None = Depends(_clerk_ip_limit
         # Webhook endpoint is silent until configured.
         raise ServiceUnavailableError(message="Webhook handler not configured.")
 
-    body = await request.body()
+    body = await read_webhook_body_limited(request)
     headers = {k.lower(): v for k, v in request.headers.items()}
-    _verify_svix_signature(
+    verify_svix_signature(
         secret=settings.clerk.webhook_secret,
         headers=headers,
         body=body,
@@ -284,7 +246,8 @@ async def clerk_webhook(request: Request, _limit: None = Depends(_clerk_ip_limit
         )
 
     directory = get_auth_directory()
-    if event_id and directory.has_processed_event(event_id):
+    tracker = get_webhook_delivery_tracker()
+    if event_id and tracker.is_processed(event_id):
         record_webhook_replay(event_type)
         logger.info(
             "clerk webhook replay ignored",
@@ -298,7 +261,33 @@ async def clerk_webhook(request: Request, _limit: None = Depends(_clerk_ip_limit
         _apply_event(directory, event_type, data)
     except KeyError as exc:
         # Apply ordering: a membership may arrive before its user/org event.
-        # Surface a 409 so Clerk retries with backoff.
+        # Retain the event in a recoverable pending state and return a non-2xx
+        # so the sender retries (Svix/Clerk retry every non-2xx with backoff).
+        outcome = (
+            tracker.register_pending(event_id, event_type) if event_id else None
+        )
+        if outcome is not None and outcome.transitioned_to_dead:
+            # Terminal: pending dependency never arrived within the lifecycle
+            # bounds. Dead-letter once for operator recovery (preserving the
+            # original event id for dedup) and alert.
+            logger.exception(
+                "clerk webhook pending event exhausted to DLQ",
+                event_id=event_id,
+                event_type=event_type,
+                operation="webhook_pending_lifecycle",
+                error=str(exc),
+            )
+            get_webhook_dlq().enqueue(
+                event_id=event_id,
+                event_type=event_type,
+                payload=payload,
+                headers=headers,
+                error_reason=DLQ_REASON_PENDING_EXHAUSTED,
+            )
+            record_webhook_dlq(event_type, DLQ_REASON_PENDING_EXHAUSTED)
+            record_webhook_event(event_type, "pending_dead", time.perf_counter() - start_time)
+        else:
+            record_webhook_event(event_type, "pending_retry", time.perf_counter() - start_time)
         logger.warning(
             "clerk webhook ordering error",
             event_id=event_id,
@@ -306,7 +295,6 @@ async def clerk_webhook(request: Request, _limit: None = Depends(_clerk_ip_limit
             operation="webhook_event_apply",
             error=str(exc),
         )
-        record_webhook_event(event_type, "conflict_ordering", time.perf_counter() - start_time)
         raise ConflictError(message="Retry later.") from exc
     except (BadRequestError, ConflictError, AuthenticationError):
         record_webhook_event(event_type, "client_error", time.perf_counter() - start_time)
@@ -340,5 +328,5 @@ async def clerk_webhook(request: Request, _limit: None = Depends(_clerk_ip_limit
     duration = time.perf_counter() - start_time
     record_webhook_event(event_type, "success", duration)
     if event_id:
-        directory.mark_event_processed(event_id, event_type)
+        tracker.mark_processed(event_id, event_type)
     return None

@@ -88,14 +88,14 @@ help: ## Show this help
 
 VERIFY_CHECKS := check-conflict-markers check-no-nul-bytes check-migration-heads \
 	check-keycloak-realm-seed-security check-manifest-secret-hygiene check-path-env-hygiene \
-	check-trivy-ignore-policy check-security-exceptions \
+	check-trivy-ignore-policy check-security-exceptions check-model-provider-boundaries \
 	lint typecheck test contract-tests security-smoke \
 	check-deprecations check-tool-contracts check-deprecated-tracer-imports \
 	platform-contract-lint check-ui-duplicates check-readiness-consistency \
 	check-workflow-matrix check-test-skip-register-uniqueness \
 	check-pytest-skip-governance check-layer3-legacy-tenant-dependency-imports \
 	check-hermetic-build-inputs check-production-k8s-mutable-tags check-k8s-image-digests \
-	check-value-fabric-public-imports check-legacy-debt check-structural-fitness-ratchet check-operational-debt check-behavior-contract check-behavior-readiness-audit check-compatibility-shims verify-structure docs-harness
+	check-value-fabric-public-imports check-legacy-debt check-structural-fitness-ratchet check-operational-debt check-behavior-contract check-behavior-readiness-audit check-compatibility-shims check-dead-code verify-structure docs-harness
 
 verify: $(VERIFY_CHECKS) ## Run all checks before PR
 	@echo "✅  All checks passed"
@@ -230,6 +230,9 @@ check-pytest-skip-governance: ## Reconcile subordinate pytest collection evidenc
 
 check-type-escape-ratchet: ## Fail on net-new unapproved Python or TypeScript type escapes
 	@$(PYTHON) scripts/ci/type_escape_ratchet.py
+
+check-dead-code: ## Fail on new unreferenced top-level Python symbols
+	@$(PYTHON) scripts/ci/check_dead_code.py
 
 check-structural-fitness-ratchet: ## Fail on net-new oversized modules, high-complexity functions, or import cycles
 	@$(PYTHON) scripts/ci/structural_fitness_ratchet.py
