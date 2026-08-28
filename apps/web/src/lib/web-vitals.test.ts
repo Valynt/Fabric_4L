@@ -73,7 +73,7 @@ describe("serializeMetric", () => {
 
   it("handles 'poor' rating correctly", () => {
     const metric = createMockMetric({
-      name: "FID",
+      name: "INP",
       value: 450,
       rating: "poor",
       delta: 450,

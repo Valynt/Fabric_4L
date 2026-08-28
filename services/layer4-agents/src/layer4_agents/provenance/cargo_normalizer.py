@@ -13,10 +13,9 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
+import structlog
 import yaml
 from pydantic import ValidationError
-import structlog
-
 from value_fabric.shared.contracts.account_intelligence import (
     AccountSignal,
     CompanyCompetitor,
@@ -27,6 +26,7 @@ from value_fabric.shared.contracts.account_intelligence import (
     SignalProvenance,
     StakeholderProfile,
 )
+
 from layer4_agents.provenance.cargo_schemas import (
     CargoRawCompetitor,
     CargoRawEnrichment,
@@ -45,7 +45,7 @@ _CONFIG_PATH = os.path.join(
 
 def _load_heuristics() -> dict[str, Any]:
     try:
-        with open(_CONFIG_PATH, "r", encoding="utf-8") as f:
+        with open(_CONFIG_PATH, encoding="utf-8") as f:
             return yaml.safe_load(f) or {}
     except Exception as e:
         logger.error("failed_to_load_cargo_heuristics", error=str(e))
@@ -372,7 +372,7 @@ class CargoContextNormalizer:
                     AccountSignal(
                         signal_category="financial",
                         signal_type="funding",
-                        headline=f"Recent Funding Round",
+                        headline="Recent Funding Round",
                         description=f"Amount: {company.lastFundingRoundAmount}, Type: {company.lastFundingRoundType or 'Unknown'}",
                         metadata={"amount": company.lastFundingRoundAmount},
                         provenance=cls.create_provenance(classification=ProvenanceClassification.PARTIALLY_TRACEABLE)
@@ -389,7 +389,7 @@ class CargoContextNormalizer:
                         AccountSignal(
                             signal_category="technology",
                             signal_type="tech_adoption",
-                            headline=f"Detected significant technology footprint",
+                            headline="Detected significant technology footprint",
                             description=f"Found {len(techs)} technologies.",
                             metadata={"technologies": techs},
                             provenance=cls.create_provenance(classification=ProvenanceClassification.PARTIALLY_TRACEABLE)

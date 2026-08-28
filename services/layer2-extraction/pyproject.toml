@@ -165,6 +165,20 @@ testpaths = ["tests"]
 asyncio_mode = "auto"
 pythonpath = ["src", "../..", "../../packages/shared/src", "../../packages/platform-contract/src/python"]
 timeout = 30
+markers = [
+    "mandatory: Tests that must run and pass in CI (unit + contract + security). Fails if deps missing.",
+    "unit: Fast unit tests (no I/O, <100ms)",
+    "integration: Integration tests with real dependencies",
+    "e2e: End-to-end tests",
+    "contract: API contract tests (OpenAPI schema validation)",
+    "security: Security tests (OWASP Top 10)",
+    "tenant_boundary: High-risk tenant boundary tests",
+    "tenant_isolation: First-class tenant isolation gate tests",
+    "contract_static: Contract tests that must run deterministically without live services",
+    "quarantine: Tests temporarily isolated due to external dependencies",
+    "slow: Tests that take >1 second or require optional heavy deps",
+    "flaky: Known flaky tests being fixed - skip in CI",
+]
 env = [
     "ENVIRONMENT=development",
     "ALLOW_DEV_AUTH_BYPASS=I_UNDERSTAND_RISK",
