@@ -8,6 +8,15 @@ packages = ["src/valuefabric", "src/valuepact"]
 [tool.hatch.build.targets.wheel.force-include]
 "src/valuefabric/generated" = "valuefabric/generated"
 
+# Force the committed generated clients into the sdist as well. The sdist is
+# built with VCS-aware file collection, which can drop the gitignored
+# `generated/` directory on some runners; without this, `python -m build`
+# (wheel-from-sdist) fails to find `src/valuefabric/generated` when it
+# re-applies the wheel force-include. Explicitly including it makes the
+# distributable artifact deterministic regardless of VCS state.
+[tool.hatch.build.targets.sdist.force-include]
+"src/valuefabric/generated" = "src/valuefabric/generated"
+
 [project]
 name = "valuefabric"
 version = "1.1.0"
