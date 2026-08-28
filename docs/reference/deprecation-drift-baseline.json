@@ -369,18 +369,6 @@
       "message": "Request | None is not a valid Pydantic response field type"
     },
     {
-      "path": "services/layer3-knowledge/src/api/routes/documents.py",
-      "line": 103,
-      "category": "utcnow",
-      "message": "datetime.utcnow() is deprecated in Python 3.12; use datetime.now(UTC)"
-    },
-    {
-      "path": "services/layer3-knowledge/src/api/routes/documents.py",
-      "line": 119,
-      "category": "utcnow",
-      "message": "datetime.utcnow() is deprecated in Python 3.12; use datetime.now(UTC)"
-    },
-    {
       "path": "services/layer3-knowledge/src/api/routes/provenance_audit.py",
       "line": 131,
       "category": "utcnow",

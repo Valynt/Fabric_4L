@@ -57,7 +57,6 @@ from ..api.routes import (
     calculators,
     compat_aliases,
     competitive_intel,
-    documents,
     entities,
     evidence,
     formula_governance,
@@ -574,7 +573,6 @@ include_router_mounts(
         RouterMount(analytics.router),
         RouterMount(agents.router),
         RouterMount(graph_viz.router),
-        RouterMount(documents.router),
         # Compatibility aliases (deprecated, governed by deprecation phase)
         RouterMount(compat_aliases.router),
     ],
