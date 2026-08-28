@@ -370,6 +370,7 @@ Every request has its tenant resolution logged:
 
 ## References
 
+- [Multitenancy Production Checklist](../governance/multitenancy-production-checklist.md) - Canonical 25-section release gate
 - [Token Contract](./token-contract.md) - JWT claim specification
 - `shared/identity/context.py` - RequestContext definition
 - `shared/identity/middleware.py` - GovernanceMiddleware
