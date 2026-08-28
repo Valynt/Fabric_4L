@@ -8,6 +8,7 @@ from tests.security._category_manifest import assert_security_category_manifest
 
 DEPENDENCY_POLICY_TESTS = (
     "tests/security/test_supply_chain.py",
+    "tests/security/test_dependency_floor.py",
     "tests/security/test_dockerfile_lockfile_fix.py",
     "tests/security/test_provider_billing_posture.py",
     "tests/security/test_deprecated_l4_db_dependencies.py",

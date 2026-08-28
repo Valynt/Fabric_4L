@@ -35,6 +35,7 @@ pnpm test:isolation         # tenant-isolation focused gate
 | Secret handling | `test_secret_handling.py` | Secret redaction, production/dev bypass guardrails, startup validation, JWT placeholder rejection, JWT rotation, environment contract checks, bcrypt security |
 | Security headers | `test_security_headers.py` | HTTP security headers, CORS posture, middleware misconfiguration, shared security middleware, startup validation |
 | Dependency policy | `test_dependency_policy.py` | Supply chain policy, frozen lockfile enforcement, provider billing posture, deprecated dependency boundaries, frontend coverage thresholds |
+| Dependency floor | `test_dependency_floor.py` | Encodes the platform `cryptography>=50.0.0` floor, the presidio `==2.2.362` hold, and the Dependabot `>=2.2.363` ignore so a re-bump cannot silently regress the security floor |
 | Container policy | `test_container_policy.py` | Dockerfile lockfile policy, supply-chain image/SBOM policy, Kubernetes security policies, Bunnyshell deployment contract |
 
 ## Known Gaps

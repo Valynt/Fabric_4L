@@ -166,15 +166,30 @@ class TestGateEvidenceLogging:
     """Test that the gate properly logs evidence artifacts."""
 
     def test_gate_creates_audit_directory(
-        self, gate_script_path: Path, temp_audit_dir: Path
+        self, gate_script_path: Path, tmp_path: Path
     ) -> None:
-        """Verify gate creates the audit directory structure."""
-        # This would require running the full gate which is expensive
-        # For now, we verify the directory can be created
-        security_gate_dir = temp_audit_dir / "security_regression_gate"
-        security_gate_dir.mkdir(parents=True, exist_ok=True)
-        assert security_gate_dir.exists()
-        assert security_gate_dir.is_dir()
+        """Verify the gate creates the audit evidence directory at startup."""
+        audit_root = tmp_path / "evidence"
+        env = os.environ.copy()
+        # Repo-relative, forward-slash path so bash resolves it under ROOT_DIR and
+        # the worktree stays clean (FABRIC_AUDIT_DIR is concatenated to ROOT_DIR).
+        env["FABRIC_AUDIT_DIR"] = os.path.relpath(
+            audit_root, _repo_root(gate_script_path)
+        ).replace("\\", "/")
+        if not os.environ.get("CI"):
+            # Local dev: test mode skips the node/pnpm availability guards so the
+            # verify-only path runs without frontend tooling. CI never sets it.
+            env["FABRIC_GATE_TEST_MODE"] = "1"
+        result = _run_gate_or_none(gate_script_path, "--verify-required-only", env=env)
+        if result is None:
+            content = gate_script_path.read_text(encoding="utf-8")
+            assert 'FABRIC_AUDIT_DIR="${FABRIC_AUDIT_DIR:-.fabric/audit}"' in content
+            assert 'mkdir -p "${AUDIT_DIR}/security_regression_gate"' in content
+            return
+        assert result.returncode == 0, f"gate verification failed: {result.stderr}"
+        assert (audit_root / "security_regression_gate").is_dir(), (
+            "gate did not create the security_regression_gate evidence directory"
+        )
 
     def test_evidence_artifacts_have_correct_structure(
         self, temp_audit_dir: Path
@@ -271,14 +286,36 @@ class TestGateTestMode:
     def test_gate_test_mode_skips_expensive_operations(
         self, gate_script_path: Path
     ) -> None:
-        """Verify FABRIC_GATE_TEST_MODE=1 skips expensive operations."""
+        """Verify FABRIC_GATE_TEST_MODE=1 guards the expensive frontend/OpenAPI checks."""
+        content = gate_script_path.read_text(encoding="utf-8")
+        guard = 'if [[ "${FABRIC_GATE_TEST_MODE}" != "1" ]]; then'
+        assert guard in content, "gate must gate expensive checks behind the test-mode guard"
+        guard_index = content.index(guard)
+        for marker in (
+            "OpenAPI contract drift check",
+            "Frontend Contract Tests",
+            "Critical E2E skip-valve guard",
+        ):
+            assert marker in content, f"missing expensive check marker: {marker}"
+            assert content.index(marker) > guard_index, (
+                f"{marker} must only run when test mode is disabled"
+            )
+
+    def test_gate_rejects_test_mode_under_ci(self, gate_script_path: Path) -> None:
+        """Deny: FABRIC_GATE_TEST_MODE=1 is forbidden under CI, failing closed."""
         env = os.environ.copy()
         env["FABRIC_GATE_TEST_MODE"] = "1"
-
-        # This test would need the gate to actually run in test mode
-        # For now, we verify the environment variable is accepted
-        # The actual test mode behavior is verified in the gate script itself
-        assert env["FABRIC_GATE_TEST_MODE"] == "1"
+        env["CI"] = "true"
+        result = _run_gate_or_none(gate_script_path, "--verify-required-only", env=env)
+        if result is None:
+            content = gate_script_path.read_text(encoding="utf-8")
+            assert "forbidden" in content
+            assert "CI" in content
+            return
+        assert result.returncode == 1, (
+            f"gate must reject test mode under CI, got returncode {result.returncode}"
+        )
+        assert "forbidden" in (result.stderr or ""), f"unexpected stderr: {result.stderr}"
 
 
 class TestGateIntegration:

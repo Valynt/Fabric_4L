@@ -106,6 +106,7 @@ ROOT_SECURITY_TESTS=(
   tests/security/test_tenant_mismatch.py
   tests/security/test_privileged_audit.py
   tests/security/test_rate_limit_safety.py::TestMultiWorkerRateLimitSafety
+  tests/security/test_dependency_floor.py
 )
 
 CROSS_LAYER_TENANT_MATRIX_TESTS=(
