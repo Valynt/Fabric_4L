@@ -221,7 +221,7 @@ class SyncStatusResponse(BaseModel):
 # Ground Truth Node Models (Layer 5 compatibility)
 class GroundTruthNodeRequest(BaseModel):
     """Ground Truth node creation request from Layer 5.
-    
+
     Matches the payload format used by Layer 5's Layer3Client.sync_truth_object().
     """
     node_type: str = Field(..., description="Node type (expected: 'GroundTruth')")

@@ -25,7 +25,6 @@ const rule: Rule.RuleModule = {
     type: "problem",
     docs: {
       description: "Disallow inline tool definitions - use tools/ directory",
-      category: "Canonical Contracts",
       recommended: true,
       url: "https://github.com/bmsull560/Fabric_4L/blob/main/contract.md#24-tool-invocation-boundary",
     },
@@ -38,7 +37,7 @@ const rule: Rule.RuleModule = {
   },
 
   create(context: Rule.RuleContext): Rule.RuleListener {
-    const filename = context.getFilename();
+    const filename = context.filename;
 
     // Allow in tools directory
     const isToolsFile = /[\\/]tools[\\/]/i.test(filename);

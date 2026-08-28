@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import os
 import uuid
 from unittest.mock import AsyncMock
@@ -47,11 +48,25 @@ def _request() -> httpx.Request:
 
 
 def _response(
-    status_code: int, *, json_payload=None, text: str | None = None
+    status_code: int,
+    *,
+    json_payload=None,
+    text: str | None = None,
+    headers: dict[str, str] | None = None,
 ) -> httpx.Response:
     if json_payload is not None:
-        return httpx.Response(status_code, json=json_payload, request=_request())
-    return httpx.Response(status_code, text=text or "", request=_request())
+        return httpx.Response(
+            status_code,
+            json=json_payload,
+            headers=headers,
+            request=_request(),
+        )
+    return httpx.Response(
+        status_code,
+        text=text or "",
+        headers=headers,
+        request=_request(),
+    )
 
 
 def _enabled_client(fake_post_client: _FakePostClient) -> Layer3Client:
@@ -451,3 +466,85 @@ async def test_layer3_ping_returns_false_when_circuit_open(
 
     # Ping should fast-fail when circuit is open
     assert await client.ping() is False
+
+
+@pytest.mark.asyncio
+async def test_layer3_rate_limit_honors_retry_after(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    sleep = AsyncMock()
+    monkeypatch.setattr(
+        "layer5_ground_truth.integration.layer3_client.asyncio.sleep", sleep
+    )
+    fake = _FakePostClient(
+        [
+            _response(429, headers={"Retry-After": "7"}),
+            _response(200, json_payload={"node_id": "kg-node-1"}),
+        ]
+    )
+    client = _enabled_client(fake)
+
+    assert await _sync(client) == "kg-node-1"
+    sleep.assert_awaited_once_with(7.0)
+    assert fake.post.await_count == 2
+
+
+@pytest.mark.asyncio
+async def test_layer3_rate_limit_falls_back_to_exponential_backoff(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    sleep = AsyncMock()
+    monkeypatch.setattr(
+        "layer5_ground_truth.integration.layer3_client.asyncio.sleep", sleep
+    )
+    fake = _FakePostClient(
+        [
+            _response(429, headers={"Retry-After": "not-a-delay"}),
+            _response(429),
+            _response(200, json_payload={"node_id": "kg-node-1"}),
+        ]
+    )
+    client = _enabled_client(fake)
+
+    assert await _sync(client) == "kg-node-1"
+    assert sleep.await_args_list[0].args == (1.0,)
+    assert sleep.await_args_list[1].args == (2.0,)
+    assert fake.post.await_count == 3
+
+
+@pytest.mark.asyncio
+async def test_bulk_sync_approved_respects_configured_worker_limit(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    client = Layer3Client()
+    client._settings.layer3_bulk_sync_workers = 2
+    active = 0
+    max_active = 0
+
+    async def _sync_truth_object(**_kwargs) -> str:
+        nonlocal active, max_active
+        active += 1
+        max_active = max(max_active, active)
+        await asyncio.sleep(0.01)
+        active -= 1
+        return "kg-node"
+
+    monkeypatch.setattr(client, "sync_truth_object", _sync_truth_object)
+    truth_objects = [
+        {
+            "id": uuid.uuid4(),
+            "tenant_id": TEST_ORG_ID,
+            "claim": f"claim-{index}",
+            "claim_type": "efficiency_gain",
+            "confidence": 0.91,
+            "status": "validated",
+            "maturity_level": 4,
+        }
+        for index in range(6)
+    ]
+
+    result = await client.bulk_sync_approved(truth_objects)
+
+    assert max_active == 2
+    assert list(result) == [str(obj["id"]) for obj in truth_objects]
+    assert set(result.values()) == {"kg-node"}

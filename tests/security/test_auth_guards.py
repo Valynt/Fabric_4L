@@ -20,6 +20,7 @@ AUTH_GUARD_TESTS = (
     "tests/security/test_websocket_auth.py",
     "packages/shared/src/value_fabric/shared/mcp_gateway/tests/security/test_auth_security.py",
     "services/api/app/tests/test_impersonation_security.py",
+    "tests/security/test_clerk_pinned_jwks_fail_closed.py",
 )
 
 

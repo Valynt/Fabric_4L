@@ -84,12 +84,43 @@ test.describe('Journey 1: Continuous Live ValuePilot Run', () => {
     const recalculate = page.getByRole('button', { name: /Recalculate/i }).first();
     await expect(recalculate).toBeVisible({ timeout: 10000 });
     await expect(recalculate).toBeEnabled();
+
+    // Capture the live ROI calculation response (L3 /v1/roi/calculate). The
+    // prior assertion only checked that the failure toast did not appear,
+    // which a no-op button or a differently worded error could satisfy. We
+    // now require the request to fire, the response to be 2xx, and a
+    // calculated output to render in the workspace.
+    const calculateResponse = page
+      .waitForResponse(
+        (response) =>
+          response.url().includes('/v1/roi/calculate') &&
+          response.request().method() === 'POST',
+        { timeout: 15000 },
+      )
+      .then((response) => response);
+
     await recalculate.click();
+
+    const response = await calculateResponse;
+    expect(response.status()).toBeGreaterThanOrEqual(200);
+    expect(response.status()).toBeLessThan(300);
 
     // Recalculate must not surface the live recalc failure state.
     await expect(page.getByText(/Failed to recalculate scenario/i).first()).not.toBeVisible({
       timeout: 8000,
     });
+
+    // A calculated output must render. The workspace surfaces Total NPV as a
+    // currency value (fmtCurrency) once recalculation succeeds; before/during
+    // the run it displays "—". Assert the NPV line is populated with a real
+    // currency value rather than the empty placeholder.
+    await expect(
+      page.getByText(/Total NPV:/i).first(),
+    ).toBeVisible({ timeout: 10000 });
+    await expect(
+      page.getByText(/\$[0-9]/i).first(),
+    ).toBeVisible({ timeout: 10000 });
+
     await expectNoCrossTenantLeakage(page);
   });
 

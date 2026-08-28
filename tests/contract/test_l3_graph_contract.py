@@ -168,7 +168,7 @@ class TestL3EntityTraversalContracts:
         """Entity traversal direction enum includes expected values."""
         l3_openapi = _load_json(OPENAPI_L3_PATH)
         expected_directions = {"up", "down", "both"}
-        
+
         components = l3_openapi.get("components", {}).get("schemas", {})
         if "ValueTreeTraversal" in components:
             req_schema = components["ValueTreeTraversal"]
@@ -223,7 +223,7 @@ class TestL3SearchContracts:
         """Search result contains all required fields for frontend consumption."""
         l3_openapi = _load_json(OPENAPI_L3_PATH)
         required_fields = {"entity_id", "entity_type", "name", "combined_score"}
-        
+
         components = l3_openapi.get("components", {}).get("schemas", {})
         if "SearchResult" in components:
             result_schema = components["SearchResult"]
