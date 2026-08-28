@@ -37,7 +37,6 @@ LOCKFILES = (
     REPO_ROOT / "pnpm-lock.yaml",
     REPO_ROOT / "apps/web/pnpm-lock.yaml",
     REPO_ROOT / "services/api/uv.lock",
-    REPO_ROOT / "services/billing/uv.lock",
     REPO_ROOT / "services/layer1-ingestion/uv.lock",
     REPO_ROOT / "services/layer2-extraction/uv.lock",
     REPO_ROOT / "services/layer2-5-signal-refinery/uv.lock",

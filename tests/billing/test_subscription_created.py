@@ -8,12 +8,12 @@ pytestmark = [pytest.mark.billing, pytest.mark.production_readiness]
 
 def test_subscription_created_coverage_exists() -> None:
     assert_pytest_coverage(
-        ("services/billing/tests/test_billing_service.py", "services/billing/tests/test_api.py"),
+        ("services/layer4-agents/tests/test_billing_service.py",),
         label="subscription created coverage",
     )
     assert_contains_all(
-        "services/billing/tests/test_billing_service.py",
-        ("TestCreateSubscription", "test_creates_subscription", "tenant_id"),
+        "services/layer4-agents/tests/test_billing_service.py",
+        ("test_webhook_subscription_created", "customer.subscription.created", "tenant_id"),
         label="subscription creation billing tests",
     )
 

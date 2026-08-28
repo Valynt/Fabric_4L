@@ -21,7 +21,7 @@ Agents are configured with `response_format: { type: "json_object" }` and downst
 **Pattern B: Raw Text with Regex Extraction** (used in `tools/legacy-agents/`, `services/analytics/src/nl-to-sql.ts`)
 Agents generate raw text; downstream code applies regular expressions or string splitting to extract structured data. This is the least reliable pattern: regexes break when the model changes output formatting (e.g., switching from bullet points to numbered lists), and extraction failures are silent data corruption rather than explicit errors. In May 2026, a change in model behavior caused the `nl-to-sql` agent to wrap SQL in markdown code fences; the extraction regex did not account for this, and malformed SQL was executed against production databases.
 
-**Pattern C: Ad-Hoc Structured Output per Agent** (used in `services/billing/src/agents/invoice-agent.ts`)
+**Pattern C: Ad-Hoc Structured Output per Agent** (historical example: `services/billing/src/agents/invoice-agent.ts` — legacy `services/billing/` package removed 2026-08-27, COMPAT-BILL-001; retain the pattern's lesson, not the path)
 Each agent defines its own output structure without platform-level consistency. One agent returns `{ result: T, confidence: number }`; another returns `{ data: T, status: "ok" }`; a third returns `{ output: T }`. Consumers must write custom parsers for each agent. The platform cannot provide generic tooling for output validation, retry, or audit because there is no common contract.
 
 ### Operational Impact

@@ -25,7 +25,6 @@ def test_canonical_lockfiles_exist_and_are_enforced() -> None:
         "pnpm-lock.yaml",
         "apps/web/pnpm-lock.yaml",
         "tests/requirements-test.lock",
-        "services/billing/uv.lock",
         "services/layer1-ingestion/uv.lock",
         "services/layer2-extraction/uv.lock",
         "services/layer3-knowledge/uv.lock",

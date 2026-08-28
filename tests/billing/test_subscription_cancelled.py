@@ -8,12 +8,12 @@ pytestmark = [pytest.mark.billing, pytest.mark.production_readiness]
 
 def test_subscription_cancelled_coverage_exists() -> None:
     assert_pytest_coverage(
-        ("services/billing/tests/test_billing_service.py", "services/billing/tests/test_api.py"),
+        ("services/layer4-agents/tests/test_billing_service.py",),
         label="subscription cancellation coverage",
     )
     assert_contains_all(
-        "services/billing/tests/test_billing_service.py",
-        ("TestCancelSubscription", "test_cancel_wrong_tenant_raises", "test_subscription_deleted_webhook"),
+        "services/layer4-agents/tests/test_billing_service.py",
+        ("test_cancel_subscription_at_period_end", "test_cancel_subscription_immediately_downgrades_to_free", "test_webhook_subscription_deleted_downgrades_to_free"),
         label="subscription cancellation billing tests",
     )
 
