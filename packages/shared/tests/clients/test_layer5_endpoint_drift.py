@@ -28,7 +28,18 @@ from value_fabric.shared.clients.layer5 import (
     TRUTHS_SYNC_KG_PATH,
 )
 
-_REPO_ROOT = Path(__file__).resolve().parents[7]
+
+def _find_repo_root() -> Path:
+    """Walk up from this file to the repository root (has ``contracts/openapi``)."""
+    current = Path(__file__).resolve().parent
+    while current != current.parent:
+        if (current / "contracts" / "openapi").is_dir():
+            return current
+        current = current.parent
+    raise RuntimeError("Could not locate repository root from test file")
+
+
+_REPO_ROOT = _find_repo_root()
 _OPENAPI_PATH = _REPO_ROOT / "contracts" / "openapi" / "layer5-ground-truth.json"
 
 _METHOD_EXPECTATIONS: dict[str, set[str]] = {
