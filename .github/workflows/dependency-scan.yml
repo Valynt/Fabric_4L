@@ -207,7 +207,7 @@ jobs:
             artifacts/pip-audit/${{ matrix.python.service }}/report.json
             artifacts/pip-audit/${{ matrix.python.service }}/report.sarif
             artifacts/pip-audit/${{ matrix.python.service }}/diagnostic.json
-          if-no-files-found: warn
+          if-no-files-found: error
           retention-days: 30
 
       - name: Upload dependency-audit SARIF
@@ -227,7 +227,7 @@ jobs:
             artifacts/pip-audit-base/${{ matrix.python.service }}/report.json
             artifacts/pip-audit-base/${{ matrix.python.service }}/report.sarif
             artifacts/pip-audit-base/${{ matrix.python.service }}/diagnostic.json
-          if-no-files-found: warn
+          if-no-files-found: error
           retention-days: 30
 
       - name: Enforce dependency vulnerability policy
