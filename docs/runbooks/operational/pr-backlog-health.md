@@ -50,6 +50,10 @@ SEV3 — process hygiene. No immediate customer impact, but unchecked backlog ac
 
 - If the automated report fails to run, execute the equivalent `gh` commands locally and open a manual issue.
 
+## Customer / Stakeholder Communication
+
+- Notify PR authors and release owners of repo-wide gate failures, the remediation owner, safe actions to take, and the next status update. Do not characterize PR-specific failures as platform-wide.
+
 ## Evidence to Preserve
 
 - PR ledger with disposition (`merged`, `needs-author`, `needs-rebase`, `closed-stale`).
@@ -71,3 +75,7 @@ SEV3 — process hygiene. No immediate customer impact, but unchecked backlog ac
 
 - [CI Infisical OIDC recovery](ci-infisical-oidc-recovery.md)
 - [Incident command](../01-incident-command.md)
+
+## Post-Incident Follow-Up
+
+- Assign owners and due dates for recurring gate failures, stale PR disposition, workflow/report repairs, and any required update to this runbook.
