@@ -10,8 +10,7 @@ Alignment target: ``contracts/openapi/layer5-ground-truth.json``.
 
 from __future__ import annotations
 
-from typing import Any
-
+from pydantic import Field
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
 
@@ -22,7 +21,7 @@ class L5SyncValidatedTruthsRequest(TypedDictModel):
 
 
 class L5SyncValidatedTruthsResult(TypedDictModel):
-    detail: Any | None = None
+    detail: object | None = None
     error: str
     failed: int
     synced: int
@@ -41,32 +40,32 @@ class L5SubmitTruthRequest(TypedDictModel):
 
 
 class L5SubmitTruthResult(TypedDictModel):
-    detail: Any | None = None
+    detail: object | None = None
     error: str
 
 
 class L5ListTruthsResult(TypedDictModel):
-    error: Any
-    items: list[Any]
+    error: object
+    items: list[object]
     total: int
 
 
 class L5ValidateTruthResult(TypedDictModel):
-    error: Any
-    truth_object_id: Any
+    error: object
+    truth_object_id: str
 
 
 class L5GetTruthResult(TypedDictModel):
-    error: Any | None = None
+    error: object | None = None
 
 
 class L5GetTruthAuditResult(TypedDictModel):
-    error: Any | None = None
-    events: list[Any] = []
+    error: object | None = None
+    events: list[object] = Field(default_factory=list)
 
 
 class L5GetFreshnessSummaryResult(TypedDictModel):
-    error: Any | None = None
+    error: object | None = None
     stale_count: int = 0
     fresh_count: int = 0
     expiring_soon_count: int = 0
@@ -74,8 +73,8 @@ class L5GetFreshnessSummaryResult(TypedDictModel):
 
 
 class L5GetStaleTruthsResult(TypedDictModel):
-    error: Any | None = None
-    items: list[Any] = []
+    error: object | None = None
+    items: list[object] = Field(default_factory=list)
     total: int = 0
     limit: int = 0
     offset: int = 0
@@ -83,7 +82,7 @@ class L5GetStaleTruthsResult(TypedDictModel):
 
 
 class L5GetMaturityLadderResult(TypedDictModel):
-    error: Any | None = None
+    error: object | None = None
 
 
 __all__ = [

@@ -13,6 +13,7 @@ import asyncio
 from value_fabric.shared.observability.trace_context import CANONICAL_TRACE_HEADER
 
 from layer4_agents.integration._base import (
+    DEFAULT_CONNECTION_LIMITS,
     SERVICE_AUTH_HEADER,
     TENANT_ID_HEADER,
     ServiceAuthHeaders,
@@ -84,7 +85,9 @@ def test_service_http_client_get_headers_trace_injection(monkeypatch) -> None:
 
 def test_service_http_client_build_client_sets_bound_limits_and_timeout() -> None:
     client = ServiceHttpClient(base_url="http://svc.test", timeout=12.5)
-    assert client._limits.max_connections == 100  # type: ignore[attr-defined]
+    # Bound connection limits come from the shared public default.
+    assert client._limits is DEFAULT_CONNECTION_LIMITS
+    assert DEFAULT_CONNECTION_LIMITS.max_connections == 100
     http_client = client._build_client()
     assert http_client.timeout.connect == 12.5
     _async_close(http_client.aclose())

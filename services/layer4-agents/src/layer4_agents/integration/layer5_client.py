@@ -58,7 +58,7 @@ logger = logging.getLogger(__name__)
 
 
 def _record_l5_degradation(
-    operation: str, exc: BaseException, organization_id: Any = None
+    operation: str, exc: BaseException, organization_id: str | None = None
 ) -> None:
     """Increment the L5 degradation Prometheus counter without raising.
 

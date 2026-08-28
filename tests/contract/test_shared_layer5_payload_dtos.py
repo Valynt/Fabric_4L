@@ -63,7 +63,7 @@ _TYPE_BROKEN_CASES: list[tuple[str, type, dict, dict]] = [
         "get_truth_audit",
         L5GetTruthAuditResult,
         {"error": None, "events": []},
-        # events is typed list[Any]; a non-list must fail closed.
+        # events is a list-typed field; a non-list must fail closed.
         {"events": "not-a-list"},
     ),
     (

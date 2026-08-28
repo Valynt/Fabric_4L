@@ -391,7 +391,7 @@ class PrometheusMetrics:
         )
 
     def increment_l5_degradation(
-        self, operation: str, tenant_id: Any, error: BaseException
+        self, operation: str, tenant_id: str | None, error: BaseException
     ) -> None:
         """Record a Layer 5 degradation event (swallowed error).
 
