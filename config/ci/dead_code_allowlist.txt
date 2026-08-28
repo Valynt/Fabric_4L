@@ -131,11 +131,6 @@ services/layer5-ground-truth/src/layer5_ground_truth/runtime_mode.py|is_producti
 services/layer5-ground-truth/src/layer5_ground_truth/services/academy_service.py|get_maturity_level
 
 # --- Peer-review follow-up (guard tightening), PR #1525 cleanup branch ---
-# Pre-existing on main; surfaced by the pristine guard before this change.
-services/layer1-ingestion/src/layer1_ingestion/providers/account_intelligence/slugs.py|is_approved_slug
-services/layer4-agents/src/layer4_agents/provenance/cargo_schemas.py|CargoRawStakeholdersResponse
-services/layer4-agents/src/layer4_agents/provenance/cargo_schemas.py|CargoRawCompetitorsResponse
-
 # String/forward-ref dispatch: reached only via string or forward-reference patterns
 # (relationship("..."), list["..."], query_name="...", getattr/globals, agent-id
 # markers). Dropping string-literal reference detection unmasked these. Live symbols -
