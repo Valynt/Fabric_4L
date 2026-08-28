@@ -9,22 +9,24 @@ calls L1 APIs for document processing.
 
 import asyncio
 import logging
-import os
 import time
 from typing import Any, Final
 
 import httpx
+
+from ._base import (
+    SERVICE_AUTH_HEADER,  # noqa: F401  # re-exported for import compatibility
+    TENANT_ID_HEADER,  # noqa: F401
+    ServiceHttpClient,
+)
 
 logger = logging.getLogger(__name__)
 
 # Job terminal states
 TERMINAL_STATES: Final[frozenset[str]] = frozenset({"completed", "failed", "cancelled"})
 
-TENANT_ID_HEADER = "X-Tenant-ID"
-SERVICE_AUTH_HEADER = "X-Service-Auth"
 
-
-class Layer1IngestionClient:
+class Layer1IngestionClient(ServiceHttpClient):
     """Client for Layer 1 Ingestion API.
 
     Used by ContextExtractionAgent to:
@@ -62,32 +64,13 @@ class Layer1IngestionClient:
             timeout: Request timeout
             tenant_id: Default tenant ID for service-to-service calls
         """
-        self.base_url = base_url.rstrip("/")
-        self.api_key = api_key
-        self.timeout = timeout
-        self._default_tenant_id = tenant_id
-
-        headers = {}
-        if api_key:
-            headers["Authorization"] = f"Bearer {api_key}"
-
-        self.client = httpx.AsyncClient(
-            base_url=self.base_url,
-            headers=headers,
+        super().__init__(
+            base_url=base_url,
+            api_key=api_key,
             timeout=timeout,
-            limits=httpx.Limits(max_connections=100, max_keepalive_connections=20),
+            tenant_id=tenant_id,
         )
-
-    def _get_headers(self, tenant_id: str | None = None) -> dict[str, str]:
-        """Build request headers with tenant context for service calls."""
-        headers: dict[str, str] = {}
-        effective_tenant = tenant_id or self._default_tenant_id
-        if effective_tenant:
-            headers[TENANT_ID_HEADER] = effective_tenant
-            service_auth = os.getenv("SERVICE_AUTH_SECRET")
-            if service_auth:
-                headers[SERVICE_AUTH_HEADER] = service_auth
-        return headers
+        self.client = self._build_client(headers=self.client_auth_headers(api_key))
 
     def _require_tenant(
         self,

@@ -79,10 +79,33 @@ class Layer5GroundTruthClient_get_maturity_ladderResult(TypedDictModel):
     error: Any | None = None
 
 
+from ._base import SERVICE_AUTH_HEADER, TENANT_ID_HEADER
+
 logger = logging.getLogger(__name__)
 
-TENANT_ID_HEADER = "X-Tenant-ID"
-SERVICE_AUTH_HEADER = "X-Service-Auth"
+
+def _record_l5_degradation(
+    operation: str, exc: BaseException, organization_id: Any = None
+) -> None:
+    """Increment the L5 degradation Prometheus counter without raising.
+
+    Layer 5 deliberately swallows errors so business-case generation never
+    blocks. This metric surfaces the aggregate degradation (rather than a
+    hard failure) and must never itself raise.
+    """
+    try:
+        from ..metrics.prometheus_metrics import get_metrics
+
+        metrics = get_metrics()
+        if metrics:
+            metrics.increment_l5_degradation(
+                operation=operation,
+                tenant_id=organization_id,
+                error=exc,
+            )
+    except Exception:  # pragma: no cover - metrics must never break L5 calls
+        logger.debug("Failed to record L5 degradation metric", exc_info=True)
+
 
 _DEFAULT_BASE_URL = os.getenv("LAYER5_GROUND_TRUTH_URL", "http://layer5-ground-truth:8005")
 _DEFAULT_TIMEOUT = 30.0
@@ -250,6 +273,7 @@ class Layer5GroundTruthClient:
         except asyncio.CancelledError:
             raise
         except Exception as exc:
+            _record_l5_degradation("sync_validated_truths", exc, params.get("organization_id"))
             logger.warning("Layer 5 sync-kg failed (non-blocking): %s", exc)
             return Layer5GroundTruthClient_sync_validated_truthsResult.model_validate({"error": "Layer 5 sync failed", "detail": None, "synced": 0, "failed": 0})
 
@@ -352,6 +376,7 @@ class Layer5GroundTruthClient:
         except asyncio.CancelledError:
             raise
         except Exception as exc:
+            _record_l5_degradation("submit_truth", exc, params.get("organization_id"))
             logger.warning("Layer 5 submit_truth failed: %s", exc)
             return Layer5GroundTruthClient_submit_truthResult.model_validate({"error": "Layer 5 submit truth failed", "detail": None})
 
@@ -405,6 +430,7 @@ class Layer5GroundTruthClient:
         except asyncio.CancelledError:
             raise
         except Exception as exc:
+            _record_l5_degradation("list_truths", exc, params.get("organization_id"))
             logger.warning("Layer 5 list_truths failed: %s", exc)
             error_message = "Missing tenant context for 'list_truths'. Provide organization_id or use privileged system-call path with audit reason."
             return Layer5GroundTruthClient_list_truthsResult.model_validate({"error": error_message, "items": [], "total": 0})
@@ -442,6 +468,7 @@ class Layer5GroundTruthClient:
         except asyncio.CancelledError:
             raise
         except Exception as exc:
+            _record_l5_degradation("validate_truth", exc, params.get("organization_id"))
             logger.warning("Layer 5 validate_truth failed for %s: %s", truth_id, exc)
             return Layer5GroundTruthClient_validate_truthResult.model_validate({"error": "Layer 5 validate truth failed", "truth_object_id": truth_id})
 
@@ -474,6 +501,7 @@ class Layer5GroundTruthClient:
         except asyncio.CancelledError:
             raise
         except Exception as exc:
+            _record_l5_degradation("get_truth", exc, params.get("organization_id"))
             logger.warning("Layer 5 get_truth failed for %s: %s", truth_id, exc)
             return Layer5GroundTruthClient_get_truthResult.model_validate({"error": "Layer 5 get truth failed"})
 
@@ -502,6 +530,7 @@ class Layer5GroundTruthClient:
         except asyncio.CancelledError:
             raise
         except Exception as exc:
+            _record_l5_degradation("get_truth_audit", exc, params.get("organization_id"))
             logger.warning("Layer 5 get_truth_audit failed for %s: %s", truth_id, exc)
             return Layer5GroundTruthClient_get_truth_auditResult.model_validate({"error": "Layer 5 get truth audit failed", "events": []})
 
@@ -528,6 +557,7 @@ class Layer5GroundTruthClient:
         except asyncio.CancelledError:
             raise
         except Exception as exc:
+            _record_l5_degradation("get_freshness_summary", exc, params.get("organization_id"))
             logger.warning("Layer 5 get_freshness_summary failed: %s", exc)
             return Layer5GroundTruthClient_get_freshness_summaryResult.model_validate({"error": "Layer 5 get freshness summary failed"})
 
@@ -558,6 +588,7 @@ class Layer5GroundTruthClient:
         except asyncio.CancelledError:
             raise
         except Exception as exc:
+            _record_l5_degradation("get_stale_truths", exc, params.get("organization_id"))
             logger.warning("Layer 5 get_stale_truths failed: %s", exc)
             return Layer5GroundTruthClient_get_stale_truthsResult.model_validate({"error": "Layer 5 get stale truths failed"})
 
@@ -584,6 +615,7 @@ class Layer5GroundTruthClient:
         except asyncio.CancelledError:
             raise
         except Exception as exc:
+            _record_l5_degradation("get_maturity_ladder", exc, params.get("organization_id"))
             logger.warning("Layer 5 get_maturity_ladder failed: %s", exc)
             return Layer5GroundTruthClient_get_maturity_ladderResult.model_validate({"error": "Layer 5 get maturity ladder failed"})
 
@@ -614,16 +646,28 @@ def get_layer5_client(
     service_token: str | None = None,
     tenant_id: str | None = None,
 ) -> Layer5GroundTruthClient:
-    """Return a module-level singleton Layer5GroundTruthClient.
+    """Return a Layer5GroundTruthClient.
 
-    The singleton is created on first call.  Pass explicit arguments to
-    override the environment-variable defaults (useful in tests).
+    Only the all-arguments-``None`` call participates in the module-level
+    singleton: it is created once and reused so the composition-root default
+    client is stable across call sites and safe to ``close()``.
+
+    Any call passing ``base_url``, ``service_token`` or ``tenant_id`` returns
+    a *fresh* client and never mutates the cached singleton. This keeps
+    per-call-site configuration from bleeding into the shared instance and
+    avoids one caller's ``close()`` invalidating a client another caller holds.
     """
     global _client_instance
-    if _client_instance is None or base_url or service_token or tenant_id:
-        _client_instance = Layer5GroundTruthClient(
-            base_url=base_url or _DEFAULT_BASE_URL,
-            service_token=service_token,
-            tenant_id=tenant_id,
-        )
-    return _client_instance
+    if not (base_url or service_token or tenant_id):
+        if _client_instance is None:
+            _client_instance = Layer5GroundTruthClient(
+                base_url=_DEFAULT_BASE_URL,
+                service_token=None,
+                tenant_id=None,
+            )
+        return _client_instance
+    return Layer5GroundTruthClient(
+        base_url=base_url or _DEFAULT_BASE_URL,
+        service_token=service_token,
+        tenant_id=tenant_id,
+    )

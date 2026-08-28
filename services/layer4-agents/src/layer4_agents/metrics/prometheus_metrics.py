@@ -383,6 +383,30 @@ class PrometheusMetrics:
             registry=self.config.registry,
         )
 
+        self._metrics["l5_degradation_events_total"] = Counter(
+            f"{prefix}l5_degradation_events_total",
+            "Layer 5 calls that swallowed an error and degraded instead of raising",
+            ["operation", "tenant_tier", "error_class"],
+            registry=self.config.registry,
+        )
+
+    def increment_l5_degradation(
+        self, operation: str, tenant_id: Any, error: BaseException
+    ) -> None:
+        """Record a Layer 5 degradation event (swallowed error).
+
+        Uses cardinality-limited ``tenant_tier`` so an aggregate outage is
+        visible without exploding label cardinality on raw tenant IDs.
+        """
+        if self.config.enabled:
+            tenant_tier = _derive_tenant_tier(str(tenant_id) if tenant_id else "unknown")
+            error_class = type(error).__name__
+            self._metrics["l5_degradation_events_total"].labels(
+                operation=operation,
+                tenant_tier=tenant_tier,
+                error_class=error_class,
+            ).inc()
+
     def increment_requests_total(self, method: str, endpoint: str, status_code: int) -> None:
         if self.config.enabled:
             self._metrics["requests_total"].labels(
