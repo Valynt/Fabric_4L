@@ -28,6 +28,8 @@ When `release/v1/launch-contract.yaml` applies, agents MUST also obey its strict
 
 Tool- and fleet-specific guidance under `.windsurf/`, `.devin/`, `.agent/`, `.agents/`, `.claude/`, and `.codex/` is supporting guidance only. It cannot weaken this file or a scoped `AGENTS.md`, and a manifest in those directories does not prove that a tool or integration is available. Use only capabilities actually exposed in the current environment.
 
+For autonomous agent fleet coordination, ownership, and cross-agent sequencing, see `.windsurf/AGENTS.md`. It is supporting guidance and may not weaken this root contract, a scoped `AGENTS.md`, or `release/v1/launch-contract.yaml`.
+
 ## 2. Normative language
 
 The terms in this file are normative:
@@ -243,6 +245,23 @@ The six core layers remain responsibility-separated:
 Signal refinement, billing, the API gateway, and other bounded capabilities do not authorize new horizontal layers or bypasses around core contracts.
 
 Net-new code MUST use canonical paths in `docs/reference/layer-runtime-path-governance.md`. Removed `value_fabric.layer*` namespaces MUST NOT be restored.
+
+### Canonical service API route paths
+
+Before adding or moving an API route, confirm the current ownership rules in `docs/reference/layer-runtime-path-governance.md`.
+
+Canonical route locations include:
+
+```text
+services/layer1-ingestion/src/layer1_ingestion/api/routes/
+services/layer2-extraction/src/layer2_extraction/api/routes/
+services/layer3-knowledge/src/api/routes/
+services/layer4-agents/src/api/routes/
+services/layer5-ground-truth/src/layer5_ground_truth/api/
+services/layer6-benchmarks/src/layer6_benchmarks/api/routes/
+```
+
+Do not add route logic to compatibility-only modules or restore removed namespaces. When path-governance documentation and a scoped service `AGENTS.md` provide a narrower rule, follow the narrower rule.
 
 ### 7.2 Dependency direction
 
