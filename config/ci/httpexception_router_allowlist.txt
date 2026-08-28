@@ -6,13 +6,11 @@
 # migrating them) is always welcome.
 #
 # Format: <repo-relative-posix-path>:<line-no>
-services/api/app/routers/benchmarks.py:34
-services/api/app/routers/benchmarks.py:47
-services/api/app/routers/clerk_auth.py:50
-services/api/app/routers/clerk_auth.py:59
+services/api/app/routers/benchmarks.py:39
+services/api/app/routers/benchmarks.py:52
 services/api/app/routers/intelligence.py:38
-services/api/app/routers/jobs.py:29
-services/api/app/routers/product_endpoints.py:40
+services/api/app/routers/jobs.py:34
+services/api/app/routers/product_endpoints.py:44
 services/layer1-ingestion/src/layer1_ingestion/api/main.py:217
 services/layer4-agents/src/layer4_agents/tenants/api/routes/admin_dashboard.py:453
 services/layer4-agents/src/layer4_agents/tenants/api/routes/admin_dashboard.py:462
