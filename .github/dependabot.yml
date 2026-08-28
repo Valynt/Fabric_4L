@@ -161,6 +161,17 @@ updates:
       day: monday
       time: "05:00"
       timezone: America/New_York
+    # presidio-analyzer / presidio-anonymizer are held at 2.2.362: releases >=2.2.363
+    # impose a cryptography upper bound (2.2.363: <47, 2.2.364: <49) that conflicts with
+    # the platform security baseline cryptography>=50.0.0. Ignore only that incompatible
+    # range so later releases that support the baseline can still be picked up automatically.
+    ignore:
+      - dependency-name: "presidio-analyzer"
+        versions:
+          - ">=2.2.363"
+      - dependency-name: "presidio-anonymizer"
+        versions:
+          - ">=2.2.363"
     open-pull-requests-limit: 2
     labels:
       - dependencies

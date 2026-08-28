@@ -148,6 +148,18 @@ These are deliberate v1 design decisions that raise errors rather than silently 
 | **Test coverage** | `services/layer3-knowledge/tests/test_vault_config_source.py` (7 tests, all passing — verified Sprint 6 2026-05-18) |
 | **Do not "fix" by** | Returning `{}`, catching the exception silently, or adding a partial `hvac` integration without a full secrets-management review. |
 
+### Presidio dependency hold — `presidio-analyzer` / `presidio-anonymizer` pinned at 2.2.362
+
+| Field | Value |
+|---|---|
+| **Location** | `services/layer1-ingestion/pyproject.toml` + `requirements.txt` (held `==2.2.362`); guarded in `.github/dependabot.yml` layer1 pip block (`ignore: >=2.2.363`) |
+| **Behavior** | `presidio-analyzer` and `presidio-anonymizer` are held at 2.2.362 because subsequent releases impose a `cryptography` upper bound incompatible with Fabric's security-required `cryptography>=50.0.0`. |
+| **Evidence** | `presidio-anonymizer 2.2.364` requires `cryptography<49.0.0,>=48.0.1`; `2.2.363` requires `<47`; `2.2.362` allows `>=46.0.4` with no upper bound. The 2.2.363+ caps force `cryptography` below the GHSA-g6cj-pr64-35w5 fix floor (50.0.0). |
+| **Intentional since** | 2026 (platform crypto baseline `>=50.0.0` established) |
+| **Migration path** | Remove the `==2.2.362` hold **and** the Dependabot ignore entry only after a Presidio release supports the platform cryptography baseline (`cryptography>=50.0.0`). This is an upstream compatibility constraint (museum security floor ahead of Presidio's dependency ceiling), not a bug in the hold. |
+| **Test coverage** | Layer 1 install resolution (`pip install -e services/layer1-ingestion`) + `pip check` both pass with `cryptography>=50.0.0` resolved. |
+| **Do not "fix" by** | Bumping Presidio to 2.2.363/2.2.364, downgrading `cryptography` below 50.0.0, or permanently ignoring all Presidio releases. |
+
 ---
 
 ## Post-Migration Debt Items (2026-05-27)
