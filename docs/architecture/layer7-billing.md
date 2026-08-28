@@ -18,12 +18,13 @@ Billing is the **canonical deployable billing service** and a bounded capability
 
 Billing remains outside the core L1-L6 pipeline layer count. Core services must interact with it through entitlement, usage-event, and webhook contracts; request handlers must not perform synchronous external provider calls except verified webhook or explicitly idempotent callback paths.
 
-`services/layer7-billing/` is the only deployable billing service. The historical `services/billing/` package is non-deployable compatibility code retained for legacy Stripe migration and webhook-idempotency tests; it must not own Docker/Compose/Kubernetes runtime wiring.
+`services/layer7-billing/` is the only deployable billing service. The historical `services/billing/` package (non-deployable compatibility code) was removed on 2026-08-27 (COMPAT-BILL-001); it must not be reintroduced or given Docker/Compose/Kubernetes runtime wiring.
 
 | Path | Ownership | Deployable | Stripe Surface |
 |------|-----------|------------|----------------|
 | `services/layer7-billing/` (this doc) | Canonical billing runtime, APIs, tenant-scoped persistence, webhook verification, entitlement decisions, usage metering | Yes | Yes — webhook verification and future checkout/portal/subscription adapters live here |
-| `services/billing/` | Legacy compatibility package and historical tests only | No | Historical service logic only; no production ownership |
+
+The legacy `services/billing/` package was removed 2026-08-27 (COMPAT-BILL-001). The Stripe customer/subscription/webhook domain is owned by `services/layer4-agents/src/layer4_agents/services/billing_service.py`; plans, usage, invoices, and payment state belong here.
 
 ---
 
@@ -226,8 +227,7 @@ The `tenant_context` middleware sets the RLS variable from the `X-Tenant-ID` hea
 - [ADR-023: Billing Service Extraction](../explanations/adr/ADR-023-billing-service-extraction.md) — superseded extraction record; current ownership is consolidated in Billing
 - [ADR-010: PostgreSQL RLS for Multi-Tenancy](../explanations/adr/ADR-010-postgresql-rls-for-multi-tenancy.md) — Tenant isolation
 - [Compatibility Debt Registry](../governance/compatibility-debt-registry.md) — active L4 billing proxy/shim retirement tracking
-- `services/billing/` — non-deployable legacy compatibility package
 
 ---
 
-*Last updated: 2026-06-05*
+*Last updated: 2026-08-27*

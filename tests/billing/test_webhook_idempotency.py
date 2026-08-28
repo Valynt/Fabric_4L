@@ -9,16 +9,15 @@ pytestmark = [pytest.mark.billing, pytest.mark.production_readiness]
 def test_billing_webhook_idempotency_coverage_exists() -> None:
     assert_pytest_coverage(
         (
-            "services/billing/tests/test_billing_service.py",
-            "services/billing/tests/test_api.py",
+            "services/layer4-agents/tests/test_billing_service.py",
             "tests/integration/billing_entitlements/test_billing_entitlements_regression.py",
             "tests/unit/l7/test_webhook_security.py",
         ),
         label="billing webhook idempotency coverage",
     )
     assert_contains_all(
-        "services/billing/tests/test_billing_service.py",
-        ("test_duplicate_event_returns_false", "process_webhook"),
+        "services/layer4-agents/tests/test_billing_service.py",
+        ("test_webhook_replay_idempotency_explicit", "test_process_webhook_event_duplicate_ignored"),
         label="billing webhook idempotency tests",
     )
 
@@ -48,12 +47,11 @@ def test_webhook_replay_does_not_duplicate_side_effects() -> None:
 
 def test_billing_state_changes_emit_structured_audit_evidence() -> None:
     assert_contains_all(
-        "services/billing/src/billing/service.py",
+        "services/layer4-agents/src/layer4_agents/services/billing_service.py",
         (
-            "billing_subscription_created",
-            "billing_subscription_cancelled",
-            "billing_webhook_processed",
-            "billing_webhook_duplicate",
+            "billing.webhook.duplicate_processed",
+            "_emit_webhook_metric",
+            "billing.webhook.terminal_failure",
         ),
         label="billing structured state-change logs",
     )

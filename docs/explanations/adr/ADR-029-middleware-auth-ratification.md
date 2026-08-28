@@ -280,7 +280,6 @@ async function executeAgentRun(
 | `services/web/` | Inline scatter-gather | Medium (6 route files) | @team-web | 2026-08-15 |
 | `services/orchestrator/` | Per-route auth re-validation | High (8 agent runners) | @team-agents | 2026-09-15 |
 | `services/analytics/` | Custom Zod schemas | Medium (15 schemas) | @team-data | 2026-08-30 |
-| `services/billing/` | Custom Joi schemas | Medium (10 schemas) | @team-billing | 2026-08-30 |
 
 ### Checklist Per Service
 

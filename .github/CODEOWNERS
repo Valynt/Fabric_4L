@@ -87,9 +87,6 @@ services/layer2-5-signal-refinery/ @value-fabric/backend-leads @value-fabric/ai-
 # Layer 7: Billing
 services/layer7-billing/ @value-fabric/backend-leads @value-fabric/qa-leads
 
-# Legacy Billing (Compatibility)
-services/billing/ @value-fabric/backend-leads @value-fabric/maintainers
-
 # Value Studio Domain
 services/value-studio/ @value-fabric/backend-leads @value-fabric/architects
 

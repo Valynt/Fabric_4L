@@ -10,11 +10,14 @@ billing routes now proxy during migration.
 | Path | Role | Deployable |
 |------|------|------------|
 | `services/layer7-billing/` | Canonical billing runtime and production API owner | Yes |
-| `services/billing/` | Legacy compatibility package retained for historical Stripe migration tests | No |
 
-Do not add Docker Compose, Kubernetes, or production routing for
-`services/billing/`. New billing runtime behavior belongs in this service and
-must preserve tenant isolation and contract compatibility.
+The legacy `services/billing/` compatibility package was removed on
+2026-08-27 (COMPAT-BILL-001); it had zero production consumers. The Stripe
+customer/subscription/webhook domain is owned by
+`services/layer4-agents/src/layer4_agents/services/billing_service.py`, while
+plans, usage metering, invoices, and payment state belong here. Do not
+reintroduce a `services/billing/` package. New billing runtime behavior belongs
+in this service and must preserve tenant isolation and contract compatibility.
 
 ## API Surface
 
