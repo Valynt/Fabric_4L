@@ -60,7 +60,7 @@ Preserve alert and dashboard snapshots, UTC timestamps, affected tenant/customer
 
 ## Related Runbooks
 
-- ../disable-or-contain-misbehaving-agent.md, ../../observability/alert-triage.md, ../../deployment/rollback-production-release.md
+- ./disable-or-contain-misbehaving-agent.md, ../observability/alert-triage.md, ../deployment/rollback-production-release.md
 
 ## Post-Incident Follow-Up
 

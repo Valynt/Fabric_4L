@@ -60,7 +60,7 @@ Preserve alert and dashboard snapshots, UTC timestamps, affected tenant/customer
 
 ## Related Runbooks
 
-- ../disable-or-contain-misbehaving-agent.md, ../investigate-hallucinated-business-case.md, ../../security/respond-to-tenant-data-exposure.md
+- ./disable-or-contain-misbehaving-agent.md, ./investigate-hallucinated-business-case.md, ../security/respond-to-tenant-data-exposure.md
 
 ## Post-Incident Follow-Up
 

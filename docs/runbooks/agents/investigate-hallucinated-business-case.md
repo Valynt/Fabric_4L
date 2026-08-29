@@ -60,7 +60,7 @@ Preserve alert and dashboard snapshots, UTC timestamps, affected tenant/customer
 
 ## Related Runbooks
 
-- ../disable-or-contain-misbehaving-agent.md, ../respond-to-prompt-injection.md, ../../data-governance/investigate-data-corruption.md
+- ./disable-or-contain-misbehaving-agent.md, ./respond-to-prompt-injection.md, ../data-governance/investigate-data-corruption.md
 
 ## Post-Incident Follow-Up
 

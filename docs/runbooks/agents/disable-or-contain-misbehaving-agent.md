@@ -60,7 +60,7 @@ Preserve alert and dashboard snapshots, UTC timestamps, affected tenant/customer
 
 ## Related Runbooks
 
-- ../respond-to-prompt-injection.md, ../investigate-hallucinated-business-case.md, ../../observability/alert-triage.md
+- ./respond-to-prompt-injection.md, ./investigate-hallucinated-business-case.md, ../observability/alert-triage.md
 
 ## Post-Incident Follow-Up
 
