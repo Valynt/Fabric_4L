@@ -76,6 +76,26 @@ pwd_context = get_pwd_context
 
 _bearer_scheme = HTTPBearer(auto_error=False)
 
+
+async def require_bearer_declaration(
+    _payload: HTTPAuthorizationCredentials | None = Depends(_bearer_scheme),
+) -> None:
+    """Declare ``HTTPBearer`` in OpenAPI without adding runtime enforcement.
+
+    Operations in the benchmarks, usage, product-endpoints, jobs, and api-keys
+    routers authenticate through ``value_fabric.shared.identity.dependencies.
+    require_authenticated`` (context-based), which FastAPI does not map to an
+    OpenAPI security requirement because it carries no security scheme object.
+    Attaching this dependency at the router level makes the exported gateway
+    contract advertise ``security: [{"HTTPBearer": []}]`` for those operations,
+    matching every other authenticated gateway endpoint. Because the scheme is
+    ``auto_error=False``, it never rejects a request on its own; the operation's
+    own ``require_authenticated`` dependency remains the enforcement point.
+    """
+
+    return None
+
+
 _SESSION_COOKIE = "vf_session"
 _DEFAULT_JWT_ISSUER = "value-fabric-internal"
 _DEFAULT_JWT_AUDIENCE = "value-fabric-services"

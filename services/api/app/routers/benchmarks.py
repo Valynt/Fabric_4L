@@ -10,10 +10,15 @@ from value_fabric.shared.identity.permissions import Permission
 from app.clients.billing_publisher import BillingEventPublisher
 from app.clients.layer6_client import Layer6Client
 from app.core.quota_service import QuotaService
+from app.core.security import require_bearer_declaration
 from app.core.usage_meter import record_usage
 from app.models.schemas import PaginatedResponse
 
-router = APIRouter(prefix="/benchmarks", tags=["Benchmarks"])
+router = APIRouter(
+    prefix="/benchmarks",
+    tags=["Benchmarks"],
+    dependencies=[Depends(require_bearer_declaration)],
+)
 
 
 def _get_layer6_client() -> Layer6Client:
