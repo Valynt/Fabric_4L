@@ -15,6 +15,10 @@ on:
 permissions:
   contents: read
   actions: read
+  # Reading GET /repos/{owner}/{repo}/branches/{branch}/protection requires
+  # Administration read access on the token; without it the curl returns 403
+  # and the validation never runs (see PR-driven + scheduled baseline failures).
+  administration: read
 
 jobs:
   validate:
