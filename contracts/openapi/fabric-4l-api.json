@@ -7624,7 +7624,7 @@
           "L2-Extraction"
         ],
         "summary": "Extract",
-        "description": "Extract entities from content (extraction only).",
+        "description": "Extract entities from content (extraction only).\n\nBody follows the canonical ``ExtractRequest`` contract\n(``content_id``, ``source_url``, ``markdown_content``, optional\n``extraction_config``).",
         "operationId": "extract_v1_extract_post",
         "security": [
           {
