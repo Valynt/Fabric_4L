@@ -221,6 +221,36 @@ def test_layer6_error_envelope_consistency():
         )
 
 
+def test_layer25_error_envelope_consistency():
+    """Layer 2.5 should use canonical error envelope."""
+    spec = load_openapi_spec("layer2-5-signal-refinery")
+    error_schemas = get_error_response_schemas(spec)
+
+    # /ready is a health probe and carries no error responses; skip nothing
+    # because it has none, but filter for symmetry with the other layers.
+    non_health_errors = [
+        (path, method, schema)
+        for path, method, schema in error_schemas
+        if "/ready" not in path and "/health" not in path and "/metrics" not in path
+    ]
+
+    non_compliant = []
+    for path, method, schema in non_health_errors:
+        if not is_canonical_error_schema(schema):
+            non_compliant.append((path, method, schema))
+
+    if non_compliant:
+        pytest.fail(
+            f"Layer 2.5 has {len(non_compliant)} error responses not using canonical envelope:\n"
+            + "\n".join(f"  {method} {path}" for path, method, _ in non_compliant[:5])
+            + (
+                f"\n  ... and {len(non_compliant) - 5} more"
+                if len(non_compliant) > 5
+                else ""
+            )
+        )
+
+
 def test_httpvalidationerror_deprecated_in_all_layers():
     """HTTPValidationError should be marked as deprecated in all layers that use it.
 
@@ -230,6 +260,7 @@ def test_httpvalidationerror_deprecated_in_all_layers():
     layers = [
         "layer1-ingestion",
         "layer2-extraction",
+        "layer2-5-signal-refinery",
         "layer3-knowledge",
         "layer4-agents",
         "layer5-ground-truth",
@@ -268,6 +299,7 @@ def test_error_envelope_canonical_exists_in_all_layers():
     layers = [
         "layer1-ingestion",
         "layer2-extraction",
+        "layer2-5-signal-refinery",
         "layer3-knowledge",
         "layer4-agents",
         "layer5-ground-truth",
@@ -325,6 +357,7 @@ def test_error_envelope_schema_is_identical_to_canonical_source_of_truth():
 
     for layer in [
         "layer2-extraction",
+        "layer2-5-signal-refinery",
         "layer3-knowledge",
         "layer4-agents",
         "layer5-ground-truth",
@@ -361,6 +394,7 @@ def _assert_matches_canonical_error_envelope(payload: dict[str, Any]) -> None:
     "layer",
     [
         "layer2-extraction",
+        "layer2-5-signal-refinery",
         "layer3-knowledge",
         "layer4-agents",
         "layer5-ground-truth",

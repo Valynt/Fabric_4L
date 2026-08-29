@@ -5,6 +5,7 @@ from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import require_authenticated, require_tenant_admin
 
 from app.core.api_key_hash import generate_api_key
+from app.core.security import require_bearer_declaration
 from app.models.api_key import (
     APIKeyCreateRequest,
     APIKeyCreateResponse,
@@ -12,7 +13,11 @@ from app.models.api_key import (
 )
 from app.repositories.api_key_repository import APIKeyRepository
 
-router = APIRouter(prefix="/auth/api-keys", tags=["API Keys"])
+router = APIRouter(
+    prefix="/auth/api-keys",
+    tags=["API Keys"],
+    dependencies=[Depends(require_bearer_declaration)],
+)
 
 
 def _get_repo() -> APIKeyRepository:
