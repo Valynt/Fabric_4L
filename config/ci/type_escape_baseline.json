@@ -1256,18 +1256,6 @@
     },
     {
       "kind": "python-any",
-      "line": 5,
-      "path": "packages/shared/src/value_fabric/shared/billing_schemas/webhooks.py",
-      "text": "from typing import Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 16,
-      "path": "packages/shared/src/value_fabric/shared/billing_schemas/webhooks.py",
-      "text": "data: dict[str, Any] = Field(..., description=\"Raw event data object from Stripe\")"
-    },
-    {
-      "kind": "python-any",
       "line": 20,
       "path": "packages/shared/src/value_fabric/shared/contracts/account_intelligence.py",
       "text": "from typing import Any"
