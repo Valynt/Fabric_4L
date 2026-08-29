@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import Any
+from typing import cast
 
 import yaml
 
@@ -24,11 +24,25 @@ POST_RESOLVE_ECHO = re.compile(
 )
 
 
-def load_workflow(path: Path) -> dict[str, Any]:
+def load_workflow(path: Path) -> dict[str, object]:
     """Load and parse a GitHub Actions workflow YAML file."""
     data = yaml.safe_load(path.read_text(encoding="utf-8"))
     assert isinstance(data, dict), f"Workflow at {path} must parse to a dict"
-    return data
+    return cast(dict[str, object], data)
+
+
+def job_steps(job: dict[str, object]) -> list[dict[str, object]]:
+    """Extract a safely-typed list of steps from a workflow job."""
+    steps = job.get("steps", [])
+    assert isinstance(steps, list), f"workflow job steps must be a list, got {type(steps)}"
+    return cast(list[dict[str, object]], steps)
+
+
+def job_outputs(job: dict[str, object]) -> dict[str, object]:
+    """Extract a safely-typed outputs mapping from a workflow job."""
+    outputs = job.get("outputs", {})
+    assert isinstance(outputs, dict), "workflow job outputs must be a dict"
+    return cast(dict[str, object], outputs)
 
 
 def normalize_expr(expr: str) -> str:
@@ -64,22 +78,39 @@ def parse_scope_expr(
     return out
 
 
+def workflow_jobs(data: dict[str, object]) -> dict[str, object]:
+    """Extract a safely-typed jobs mapping from a loaded workflow."""
+    jobs = data.get("jobs", {})
+    assert isinstance(jobs, dict), "workflow must contain a jobs mapping"
+    return cast(dict[str, object], jobs)
+
+
+def workflow_job(data: dict[str, object], job_id: str) -> dict[str, object]:
+    """Extract one safely-typed workflow job by id."""
+    jobs = workflow_jobs(data)
+    assert job_id in jobs, f"Workflow missing job: {job_id}"
+    job = jobs[job_id]
+    assert isinstance(job, dict), f"job {job_id} must be a dict"
+    return cast(dict[str, object], job)
+
+
 def aggregate_step(
-    data: dict[str, Any],
+    data: dict[str, object],
     aggregate_job_id: str,
     script_name: str = "aggregate_gate.py",
-) -> tuple[dict[str, Any], str]:
+) -> tuple[dict[str, object], str]:
     """Return (env, run) of the aggregate step inside the specified aggregate job."""
-    jobs = data.get("jobs", {})
+    jobs = workflow_jobs(data)
     assert aggregate_job_id in jobs, f"Workflow missing aggregate job: {aggregate_job_id}"
     job = jobs[aggregate_job_id]
-    steps = job.get("steps", [])
+    assert isinstance(job, dict), f"aggregate job {aggregate_job_id} must be a dict"
+    steps = job_steps(job)
     for step in steps:
         run = step.get("run", "")
         if isinstance(run, str) and script_name in run:
             env = step.get("env", {})
             assert isinstance(env, dict), f"step env in {aggregate_job_id} must be a dict"
-            return env, run
+            return cast(dict[str, object], env), run
     raise AssertionError(f"{aggregate_job_id} has no step executing {script_name}")
 
 

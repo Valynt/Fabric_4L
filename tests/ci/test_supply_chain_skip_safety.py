@@ -35,10 +35,14 @@ from tests.ci._change_scope_contract import (
     aggregate_step,
     assert_post_resolve_outputs,
     assert_scope_gates_semantic_equality,
+    job_outputs,
+    job_steps,
     load_workflow,
     normalize_expr,
     parse_scope_expr,
     skip_safe_entries,
+    workflow_job,
+    workflow_jobs,
 )
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -99,21 +103,19 @@ def _aggregate(data: dict[str, object]) -> tuple[dict[str, object], str]:
 
 def test_change_scope_job_exposes_exactly_the_consumed_outputs() -> None:
     data = _load()
-    jobs = data["jobs"]  # type: ignore[index]
-    cs = jobs["change-scope"]  # type: ignore[index]
-    outputs = cs.get("outputs")  # type: ignore[union-attr]
-    assert outputs is not None, "change-scope job missing outputs block"
+    cs = workflow_job(data, "change-scope")
+    outputs = job_outputs(cs)
     assert set(outputs) == CHANGE_SCOPE_OUTPUTS
 
     for scope in CHANGE_SCOPE_OUTPUTS:
-        assert normalize_expr(outputs[scope]) == f"steps.scope.outputs.{scope}"
+        assert normalize_expr(str(outputs[scope])) == f"steps.scope.outputs.{scope}"
 
     # Non-PR events (push/schedule/workflow_dispatch) emit no diff; the
     # change-scope action fails open to 'true', and the Post-resolve step makes
     # that explicit so consumers never read an empty string as 'false'.
     post_resolve = "\n".join(
         str(step.get("run", ""))
-        for step in cs["steps"]  # type: ignore[union-attr]
+        for step in job_steps(cs)
         if step.get("name") == "Post-resolve change scopes"
     )
     assert_post_resolve_outputs(post_resolve, CHANGE_SCOPE_OUTPUTS)
@@ -121,14 +123,13 @@ def test_change_scope_job_exposes_exactly_the_consumed_outputs() -> None:
 
 def test_gated_jobs_are_scope_gated_and_consume_change_scope() -> None:
     data = _load()
-    jobs = data["jobs"]  # type: ignore[index]
     for job_id, expected_scopes in GATED_JOBS.items():
-        job = jobs[job_id]  # type: ignore[index]
+        job = workflow_job(data, job_id)
         needs = job.get("needs")
         needs_list = needs if isinstance(needs, list) else ([needs] if needs else [])
         assert "change-scope" in needs_list, f"{job_id} does not need change-scope"
 
-        gate = job.get("if", "")
+        gate = str(job.get("if", ""))
         clauses = parse_scope_expr(gate, "||", CHANGE_SCOPE_OUTPUTS)
         assert clauses, f"{job_id} has no change-scope gate"
         assert {s for s, _ in clauses} == expected_scopes
@@ -140,16 +141,15 @@ def test_gated_jobs_are_scope_gated_and_consume_change_scope() -> None:
 
 def test_shared_gate_jobs_use_byte_identical_gate_and_one_env() -> None:
     data = _load()
-    jobs = data["jobs"]  # type: ignore[index]
-    preflight_gate = jobs["ci-tools-preflight"].get("if", "")  # type: ignore[index]
+    preflight_gate = str(workflow_job(data, "ci-tools-preflight").get("if", ""))
     assert preflight_gate, "ci-tools-preflight has no gate"
 
     for job_id in SHARED_GATE_JOBS - {"ci-tools-preflight"}:
-        target_gate = jobs[job_id].get("if", "")  # type: ignore[index]
+        target_gate = str(workflow_job(data, job_id).get("if", ""))
         assert_scope_gates_semantic_equality(
             target_gate, preflight_gate, CHANGE_SCOPE_OUTPUTS, "||"
         )
-        needs = jobs[job_id].get("needs")  # type: ignore[index]
+        needs = workflow_job(data, job_id).get("needs")
         needs_list = needs if isinstance(needs, list) else ([needs] if needs else [])
         assert "ci-tools-preflight" in needs_list, (
             f"{job_id} must need ci-tools-preflight (container inheritance)"
@@ -158,11 +158,10 @@ def test_shared_gate_jobs_use_byte_identical_gate_and_one_env() -> None:
 
 def test_aggregate_skip_safe_env_is_exact_negation_of_each_gate() -> None:
     data = _load()
-    jobs = data["jobs"]  # type: ignore[index]
     env, run = _aggregate(data)
 
     for job_id, expected_scopes in GATED_JOBS.items():
-        gate = jobs[job_id].get("if", "")  # type: ignore[index]
+        gate = str(workflow_job(data, job_id).get("if", ""))
         gate_scopes = {
             s for s, v in parse_scope_expr(gate, "||", CHANGE_SCOPE_OUTPUTS) if v == "true"
         }
@@ -191,8 +190,7 @@ def test_source_sbom_env_is_independent_of_shared_gate() -> None:
     """source-bom-scan has no container dependency; it must confirm its own skip
     via SKIPSAFE_SOURCE_SBOM rather than borrowing the shared env."""
     data = _load()
-    jobs = data["jobs"]  # type: ignore[index]
-    needs = jobs["source-sbom-scan"].get("needs")  # type: ignore[index]
+    needs = workflow_job(data, "source-sbom-scan").get("needs")
     needs_list = needs if isinstance(needs, list) else ([needs] if needs else [])
     assert "ci-tools-preflight" not in needs_list, (
         "source-sbom-scan must not depend on the tools container"
@@ -215,11 +213,10 @@ def test_image_cert_jobs_are_gated_by_dispatch_and_confirmed() -> None:
 
 def test_summary_admits_scope_skips_but_hard_requires_image_controls() -> None:
     data = _load()
-    jobs = data["jobs"]  # type: ignore[index]
-    summary = jobs["supply-chain-summary"]  # type: ignore[index]
+    summary = workflow_job(data, "supply-chain-summary")
     assert summary.get("if") == "always()", "supply-chain-summary must be always()"
 
-    steps = summary["steps"]  # type: ignore[union-attr]
+    steps = job_steps(summary)
     validate = next(
         step for step in steps if step.get("name") == "Validate prerequisite results"
     )
@@ -246,7 +243,6 @@ def test_summary_admits_scope_skips_but_hard_requires_image_controls() -> None:
 
 def test_unskippable_jobs_never_get_a_skip_safe_entry() -> None:
     data = _load()
-    jobs = data["jobs"]  # type: ignore[index]
     _, run = _aggregate(data)
     entries = skip_safe_entries(run)
 
@@ -254,7 +250,8 @@ def test_unskippable_jobs_never_get_a_skip_safe_entry() -> None:
         assert job_id not in entries, (
             f"{job_id} is unskippable-by-design but has a --skip-safe entry"
         )
-    assert jobs["supply-chain-summary"].get("if") == "always()", (  # type: ignore[index]
+    summary = workflow_job(data, "supply-chain-summary")
+    assert summary.get("if") == "always()", (
         "supply-chain-summary must run on always() so a fully scoped-out PR still "
         "emits the aggregate"
     )
@@ -262,8 +259,8 @@ def test_unskippable_jobs_never_get_a_skip_safe_entry() -> None:
 
 def test_aggregate_always_runs_and_every_skip_admission_is_confirmed() -> None:
     data = _load()
-    jobs = data["jobs"]  # type: ignore[index]
-    agg = jobs[AGGREGATE_JOB]  # type: ignore[index]
+    jobs = workflow_jobs(data)
+    agg = workflow_job(data, AGGREGATE_JOB)
     assert agg.get("if") == "always()", "aggregate-07 must be if: always()"
 
     needs = agg.get("needs", [])

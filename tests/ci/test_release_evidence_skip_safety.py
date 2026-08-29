@@ -31,10 +31,14 @@ from pathlib import Path
 from tests.ci._change_scope_contract import (
     aggregate_step,
     assert_post_resolve_outputs,
+    job_outputs,
+    job_steps,
     load_workflow,
     normalize_expr,
     parse_scope_expr,
     skip_safe_entries,
+    workflow_job,
+    workflow_jobs,
 )
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -86,21 +90,19 @@ def _aggregate(data: dict[str, object]) -> tuple[dict[str, object], str]:
 
 def test_change_scope_job_exposes_exactly_the_consumed_outputs() -> None:
     data = _load()
-    jobs = data["jobs"]  # type: ignore[index]
-    cs = jobs["change-scope"]  # type: ignore[index]
-    outputs = cs.get("outputs")  # type: ignore[union-attr]
-    assert outputs is not None, "change-scope job missing outputs block"
+    cs = workflow_job(data, "change-scope")
+    outputs = job_outputs(cs)
     assert set(outputs) == CHANGE_SCOPE_OUTPUTS
 
     for scope in CHANGE_SCOPE_OUTPUTS:
-        assert normalize_expr(outputs[scope]) == f"steps.scope.outputs.{scope}"
+        assert normalize_expr(str(outputs[scope])) == f"steps.scope.outputs.{scope}"
 
     # Non-PR events (push/schedule/workflow_dispatch) emit no diff; the
     # change-scope action fails open to 'true', and the Post-resolve step makes
     # that explicit so consumers never read an empty string as 'false'.
     post_resolve = "\n".join(
         str(step.get("run", ""))
-        for step in cs["steps"]  # type: ignore[union-attr]
+        for step in job_steps(cs)
         if step.get("name") == "Post-resolve change scopes"
     )
     assert_post_resolve_outputs(post_resolve, CHANGE_SCOPE_OUTPUTS)
@@ -108,14 +110,13 @@ def test_change_scope_job_exposes_exactly_the_consumed_outputs() -> None:
 
 def test_gated_jobs_are_scope_gated_and_consume_change_scope() -> None:
     data = _load()
-    jobs = data["jobs"]  # type: ignore[index]
     for job_id, expected_scopes in GATED_JOBS.items():
-        job = jobs[job_id]  # type: ignore[index]
+        job = workflow_job(data, job_id)
         needs = job.get("needs")
         needs_list = needs if isinstance(needs, list) else ([needs] if needs else [])
         assert "change-scope" in needs_list, f"{job_id} does not need change-scope"
 
-        gate = job.get("if", "")
+        gate = str(job.get("if", ""))
         clauses = parse_scope_expr(gate, "||", CHANGE_SCOPE_OUTPUTS)
         assert clauses, f"{job_id} has no change-scope gate"
         assert {s for s, _ in clauses} == expected_scopes
@@ -127,8 +128,7 @@ def test_gated_jobs_are_scope_gated_and_consume_change_scope() -> None:
 
 def test_supply_chain_policy_check_inherits_build_and_scan_skip() -> None:
     data = _load()
-    jobs = data["jobs"]  # type: ignore[index]
-    job = jobs["supply-chain-policy-check"]  # type: ignore[index]
+    job = workflow_job(data, "supply-chain-policy-check")
     # No independent gate: GitHub auto-skips it exactly when build-and-scan
     # skips (needs propagation), which keeps it from ever running with missing
     # scan artifacts. An independent gate here would be a correctness bug.
@@ -144,11 +144,10 @@ def test_supply_chain_policy_check_inherits_build_and_scan_skip() -> None:
 
 def test_aggregate_skip_safe_env_is_exact_negation_of_each_gate() -> None:
     data = _load()
-    jobs = data["jobs"]  # type: ignore[index]
     env, run = _aggregate(data)
 
     for job_id, expected_scopes in GATED_JOBS.items():
-        gate = jobs[job_id].get("if", "")  # type: ignore[index]
+        gate = str(workflow_job(data, job_id).get("if", ""))
         gate_scopes = {
             s for s, v in parse_scope_expr(gate, "||", CHANGE_SCOPE_OUTPUTS) if v == "true"
         }
@@ -190,7 +189,6 @@ def test_supply_chain_skip_safe_confirmation_matches_build_and_scan() -> None:
 
 def test_unskippable_jobs_never_get_a_skip_safe_entry() -> None:
     data = _load()
-    jobs = data["jobs"]  # type: ignore[index]
     _, run = _aggregate(data)
     entries = skip_safe_entries(run)
 
@@ -198,7 +196,8 @@ def test_unskippable_jobs_never_get_a_skip_safe_entry() -> None:
         assert job_id not in entries, (
             f"{job_id} is unskippable-by-design but has a --skip-safe entry"
         )
-    assert jobs["consolidate-bundle"].get("if") == "always()", (  # type: ignore[index]
+    consolidate = workflow_job(data, "consolidate-bundle")
+    assert consolidate.get("if") == "always()", (
         "consolidate-bundle must run on always() so a fully scoped-out PR still "
         "emits the aggregate"
     )
@@ -206,8 +205,8 @@ def test_unskippable_jobs_never_get_a_skip_safe_entry() -> None:
 
 def test_aggregate_always_runs_and_every_skip_admission_is_confirmed() -> None:
     data = _load()
-    jobs = data["jobs"]  # type: ignore[index]
-    agg = jobs[AGGREGATE_JOB]  # type: ignore[index]
+    jobs = workflow_jobs(data)
+    agg = workflow_job(data, AGGREGATE_JOB)
     assert agg.get("if") == "always()", "aggregate-08 must be if: always()"
 
     needs = agg.get("needs", [])
