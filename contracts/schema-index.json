@@ -39,6 +39,21 @@
       "title": "Layer4WorkflowReplayEventEnvelopeV1"
     },
     {
+      "path": "contracts/jsonschema/common/event-envelope@1.0.0.schema.json",
+      "id": "https://valuefabric.ai/contracts/jsonschema/common/event-envelope@1.0.0.schema.json",
+      "title": "CommonDomainEventEnvelope"
+    },
+    {
+      "path": "contracts/event-catalog/event-entry.schema.json",
+      "id": "https://valuefabric.ai/contracts/event-catalog/event-entry.schema.json",
+      "title": "EventCatalogEntry"
+    },
+    {
+      "path": "contracts/event-catalog/registry.yaml",
+      "id": "contract:contracts/event-catalog/registry.yaml",
+      "title": "EventCatalogRegistry"
+    },
+    {
       "path": "contracts/jsonschema/signal.json",
       "id": "https://valuefabric.io/schemas/signal.json",
       "title": "PainSignal"
