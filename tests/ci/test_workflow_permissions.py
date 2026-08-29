@@ -137,6 +137,10 @@ ALLOWED_WRITE_PERMISSIONS: dict[str, dict[str, str]] = {
     "codeql.yml": {
         "security-events": "uploads CodeQL SARIF results",
     },
+    "certify-release-candidate.yml": {
+        "attestations": "writes the candidate certification build provenance attestation",
+        "id-token": "uses OIDC for keyless signing of the certification attestation",
+    },
     "deploy.yml": {
         "contents": "commits release evidence artifacts in the evidence job",
         "id-token": "authenticates deploy and rollback jobs through cloud/OIDC providers",
