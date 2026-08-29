@@ -1,0 +1,13 @@
+{
+  "revision": "authz-1.0.0",
+  "roots": [
+    "fabric/authz",
+    "action_catalog",
+    "baseline_roles",
+    "static_sod"
+  ],
+  "metadata": {
+    "name": "fabric/authorization",
+    "policy_version": "authz-1.0.0"
+  }
+}

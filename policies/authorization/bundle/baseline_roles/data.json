@@ -1,0 +1,21 @@
+{
+  "version": "1.0.0",
+  "workflow": [
+    "workflow.finance_approver",
+    "workflow.economic_reviewer",
+    "workflow.deal_desk",
+    "workflow.value_manager",
+    "workflow.realization_owner",
+    "workflow.security_reviewer",
+    "workflow.exception_approver",
+    "workflow.value_engineer",
+    "workflow.technical_reviewer",
+    "workflow.tenant_admin"
+  ],
+  "platform": [
+    "platform.tenant_admin",
+    "platform.member",
+    "platform.billing_admin",
+    "platform.read_only"
+  ]
+}

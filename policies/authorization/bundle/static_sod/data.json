@@ -1,0 +1,17 @@
+{
+  "version": "1.0.0",
+  "constraints": [
+    "agent_service_no_approver_role",
+    "tenant_admin_no_case_editor_in_admin_session",
+    "finance_deal_desk_second_person_on_material",
+    "no_break_glass_self_grant",
+    "system_control_no_business_or_approval_roles"
+  ],
+  "details": {
+    "agent_service_no_approver_role": "Agent and service principals cannot receive any *_approver role (design Section 7.3)",
+    "tenant_admin_no_case_editor_in_admin_session": "Tenant admin cannot exercise case-editor authority in the same privileged admin session (design Section 7.3)",
+    "finance_deal_desk_second_person_on_material": "Finance approval and deal-desk authority on the same material transaction require a second eligible person (design Section 7.3)",
+    "no_break_glass_self_grant": "A principal cannot receive a break-glass grant they requested or approved (design Section 7.3)",
+    "system_control_no_business_or_approval_roles": "A system-control principal cannot receive business-authoring or approval roles (design Section 7.3)"
+  }
+}

@@ -1,0 +1,173 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "fabric.authz.request.v1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "request_id",
+    "principal",
+    "action",
+    "resource"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "fabric.authz.request.v1"
+    },
+    "request_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "action": {
+      "type": "string",
+      "minLength": 1
+    },
+    "delegation": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "context": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "now": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "channel": {
+          "type": "string"
+        },
+        "requested_model_version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "trace_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ip_risk": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "break_glass_grant_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "principal": {
+      "type": "object",
+      "required": [
+        "id",
+        "type",
+        "tenant_id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "enum": [
+            "human",
+            "agent",
+            "service",
+            "external_viewer",
+            "system_control"
+          ]
+        },
+        "tenant_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "enum": [
+            "active",
+            "inactive",
+            "suspended"
+          ]
+        },
+        "platform_roles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "workflow_roles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "membership_revision": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "approval_ceiling_usd": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "authn_assurance": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "is_agent": {
+          "type": "boolean"
+        }
+      }
+    },
+    "resource": {
+      "type": "object",
+      "required": [
+        "type",
+        "id",
+        "tenant_id"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tenant_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "authz_revision": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "attributes": {
+          "type": "object"
+        },
+        "relationships": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,62 @@
+"""Authorization decision-plane constants: reason codes and deny codes.
+
+Externally, protected API denials use a stable ``403`` response with a
+correlation identifier. Internally, decisions retain precise reason codes
+(design Section 10.3). These enums are the stable Python contract mirrored by
+the Rego policy bundle under ``policies/authorization/``.
+"""
+from __future__ import annotations
+
+from enum import StrEnum
+
+
+class ReasonCode(StrEnum):
+    """Precise internal reason codes attached to a decision."""
+
+    ROLE_ELIGIBLE = "ROLE_ELIGIBLE"
+    BOUND_REVIEWER = "BOUND_REVIEWER"
+    SOD_PASS = "SOD_PASS"
+    CEILING_PASS = "CEILING_PASS"
+    TENANT_MISMATCH = "TENANT_MISMATCH"
+    PRINCIPAL_INACTIVE = "PRINCIPAL_INACTIVE"
+    ROLE_MISSING = "ROLE_MISSING"
+    RELATIONSHIP_MISSING = "RELATIONSHIP_MISSING"
+    SELF_APPROVAL_FORBIDDEN = "SELF_APPROVAL_FORBIDDEN"
+    APPROVAL_CEILING_EXCEEDED = "APPROVAL_CEILING_EXCEEDED"
+    MODEL_VERSION_STALE = "MODEL_VERSION_STALE"
+    DISPUTE_OPEN = "DISPUTE_OPEN"
+    EXCEPTION_NOT_ACTIVATED = "EXCEPTION_NOT_ACTIVATED"
+    EXCEPTION_EXPIRED = "EXCEPTION_EXPIRED"
+    AGENT_ACTION_FORBIDDEN = "AGENT_ACTION_FORBIDDEN"
+    POLICY_INPUT_INVALID = "POLICY_INPUT_INVALID"
+    PDP_UNAVAILABLE = "PDP_UNAVAILABLE"
+    RESOURCE_REVISION_CHANGED = "RESOURCE_REVISION_CHANGED"
+    UNKNOWN_ACTION = "UNKNOWN_ACTION"
+    UNKNOWN_RESOURCE_TYPE = "UNKNOWN_RESOURCE_TYPE"
+    UNKNOWN_OBLIGATION = "UNKNOWN_OBLIGATION"
+    REALIZATION_CONSTRAINT_FAILED = "REALIZATION_CONSTRAINT_FAILED"
+    PUBLICATION_BLOCKED = "PUBLICATION_BLOCKED"
+    EXCEPTION_REQUIRED = "EXCEPTION_REQUIRED"
+    EXCEPTION_SCOPE_MISMATCH = "EXCEPTION_SCOPE_MISMATCH"
+
+
+class DenyCode(StrEnum):
+    """Stable external deny codes returned to callers on a denial.
+
+    These deliberately avoid resource-existence disclosure across tenant
+    boundaries: every tenant-induced denial maps to a single uniform code.
+    """
+
+    DENIED = "DENIED"  # Generic uniform denial (tenant mismatch, role, etc).
+    AGENT_FORBIDDEN = "AGENT_FORBIDDEN"
+    SELF_APPROVAL_FORBIDDEN = "SELF_APPROVAL_FORBIDDEN"
+    APPROVAL_CEILING_EXCEEDED = "APPROVAL_CEILING_EXCEEDED"
+    MODEL_VERSION_STALE = "MODEL_VERSION_STALE"
+    DISPUTE_OPEN = "DISPUTE_OPEN"
+    EXCEPTION_NOT_ACTIVATED = "EXCEPTION_NOT_ACTIVATED"
+    EXCEPTION_EXPIRED = "EXCEPTION_EXPIRED"
+    POLICY_INPUT_INVALID = "POLICY_INPUT_INVALID"
+    PDP_UNAVAILABLE = "PDP_UNAVAILABLE"
+    RESOURCE_REVISION_CHANGED = "RESOURCE_REVISION_CHANGED"
+    UNKNOWN_ACTION = "UNKNOWN_ACTION"
+    UNKNOWN_OBLIGATION = "UNKNOWN_OBLIGATION"

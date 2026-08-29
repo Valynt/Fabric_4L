@@ -1,0 +1,241 @@
+{
+  "version": "1.0.0",
+  "actions": [
+    "opportunity.view",
+    "opportunity.assign",
+    "opportunity.edit_working",
+    "opportunity.change_stage",
+    "opportunity.lock_realization",
+    "opportunity.archive",
+    "claim.view",
+    "claim.edit_working",
+    "claim.propose_edit",
+    "claim.set_derivation",
+    "claim.link_evidence",
+    "claim.validate",
+    "claim.approve",
+    "claim.include_in_case",
+    "claim.exclude_from_case",
+    "claim.open_dispute",
+    "claim.resolve_dispute",
+    "model.create_version",
+    "model.compare_versions",
+    "model.mark_canonical",
+    "model.tag_scenario",
+    "model.accept_candidate",
+    "deliverable.render_lens",
+    "deliverable.share_internal",
+    "deliverable.publish_external",
+    "deliverable.view_external",
+    "deliverable.revoke_link",
+    "exception.draft",
+    "exception.submit",
+    "exception.review",
+    "exception.approve",
+    "exception.reject",
+    "exception.activate",
+    "exception.revoke",
+    "exception.extend",
+    "evidence.ingest",
+    "evidence.search",
+    "evidence.accept",
+    "evidence.reject",
+    "evidence.reclassify",
+    "evidence.link",
+    "membership.assign_role",
+    "membership.revoke_role",
+    "relationship.assign",
+    "relationship.revoke",
+    "policy.view_effective",
+    "policy.simulate",
+    "audit.read_business",
+    "audit.read_security",
+    "verification.read",
+    "verification.append",
+    "break_glass.request",
+    "break_glass.approve",
+    "break_glass.revoke"
+  ],
+  "actions_by_resource": {
+    "opportunity.view": {
+      "resource_type": "opportunity"
+    },
+    "opportunity.assign": {
+      "resource_type": "opportunity"
+    },
+    "opportunity.edit_working": {
+      "resource_type": "opportunity"
+    },
+    "opportunity.change_stage": {
+      "resource_type": "opportunity"
+    },
+    "opportunity.lock_realization": {
+      "resource_type": "opportunity"
+    },
+    "opportunity.archive": {
+      "resource_type": "opportunity"
+    },
+    "claim.view": {
+      "resource_type": "claim"
+    },
+    "claim.edit_working": {
+      "resource_type": "claim"
+    },
+    "claim.propose_edit": {
+      "resource_type": "claim"
+    },
+    "claim.set_derivation": {
+      "resource_type": "claim"
+    },
+    "claim.link_evidence": {
+      "resource_type": "claim"
+    },
+    "claim.validate": {
+      "resource_type": "claim"
+    },
+    "claim.approve": {
+      "resource_type": "claim"
+    },
+    "claim.include_in_case": {
+      "resource_type": "claim"
+    },
+    "claim.exclude_from_case": {
+      "resource_type": "claim"
+    },
+    "claim.open_dispute": {
+      "resource_type": "claim"
+    },
+    "claim.resolve_dispute": {
+      "resource_type": "claim"
+    },
+    "model.create_version": {
+      "resource_type": "model"
+    },
+    "model.compare_versions": {
+      "resource_type": "model"
+    },
+    "model.mark_canonical": {
+      "resource_type": "model"
+    },
+    "model.tag_scenario": {
+      "resource_type": "model"
+    },
+    "model.accept_candidate": {
+      "resource_type": "model"
+    },
+    "deliverable.render_lens": {
+      "resource_type": "deliverable"
+    },
+    "deliverable.share_internal": {
+      "resource_type": "deliverable"
+    },
+    "deliverable.publish_external": {
+      "resource_type": "deliverable"
+    },
+    "deliverable.view_external": {
+      "resource_type": "deliverable"
+    },
+    "deliverable.revoke_link": {
+      "resource_type": "deliverable"
+    },
+    "exception.draft": {
+      "resource_type": "exception"
+    },
+    "exception.submit": {
+      "resource_type": "exception"
+    },
+    "exception.review": {
+      "resource_type": "exception"
+    },
+    "exception.approve": {
+      "resource_type": "exception"
+    },
+    "exception.reject": {
+      "resource_type": "exception"
+    },
+    "exception.activate": {
+      "resource_type": "exception"
+    },
+    "exception.revoke": {
+      "resource_type": "exception"
+    },
+    "exception.extend": {
+      "resource_type": "exception"
+    },
+    "evidence.ingest": {
+      "resource_type": "evidence"
+    },
+    "evidence.search": {
+      "resource_type": "evidence"
+    },
+    "evidence.accept": {
+      "resource_type": "evidence"
+    },
+    "evidence.reject": {
+      "resource_type": "evidence"
+    },
+    "evidence.reclassify": {
+      "resource_type": "evidence"
+    },
+    "evidence.link": {
+      "resource_type": "evidence"
+    },
+    "membership.assign_role": {
+      "resource_type": "membership"
+    },
+    "membership.revoke_role": {
+      "resource_type": "membership"
+    },
+    "relationship.assign": {
+      "resource_type": "relationship"
+    },
+    "relationship.revoke": {
+      "resource_type": "relationship"
+    },
+    "policy.view_effective": {
+      "resource_type": "policy"
+    },
+    "policy.simulate": {
+      "resource_type": "policy"
+    },
+    "audit.read_business": {
+      "resource_type": "audit"
+    },
+    "audit.read_security": {
+      "resource_type": "audit"
+    },
+    "verification.read": {
+      "resource_type": "audit"
+    },
+    "verification.append": {
+      "resource_type": "audit"
+    },
+    "break_glass.request": {
+      "resource_type": "audit"
+    },
+    "break_glass.approve": {
+      "resource_type": "audit"
+    },
+    "break_glass.revoke": {
+      "resource_type": "audit"
+    }
+  },
+  "protected_actions": [
+    "claim.approve",
+    "deliverable.publish_external",
+    "exception.activate",
+    "opportunity.lock_realization"
+  ],
+  "agent_forbidden_actions": [
+    "claim.validate",
+    "claim.approve",
+    "claim.include_in_case",
+    "claim.resolve_dispute",
+    "model.mark_canonical",
+    "deliverable.publish_external",
+    "exception.submit",
+    "exception.approve",
+    "exception.activate",
+    "opportunity.lock_realization"
+  ]
+}
