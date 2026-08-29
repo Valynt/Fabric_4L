@@ -41,6 +41,7 @@ SCOPED_DIRS = [
     Path("contracts/auth"),
     Path("contracts/config-policy"),
     Path("contracts/observability"),
+    Path("contracts/event-catalog"),
 ]
 INDEXABLE_EXTENSIONS = {".json", ".yaml", ".yml", ".md"}
 
