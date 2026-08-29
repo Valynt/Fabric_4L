@@ -1,0 +1,31 @@
+{
+  "usageId": {
+    "namespace": "tenant_abc123",
+    "type": "usage",
+    "value": "usage_01HABC789"
+  },
+  "tenantId": {
+    "namespace": "tenant_abc123",
+    "type": "tenant",
+    "value": "tenant_abc123"
+  },
+  "subscriptionId": {
+    "namespace": "tenant_abc123",
+    "type": "subscription",
+    "value": "sub_01HABC456"
+  },
+  "quantity": {
+    "value": "150.5",
+    "unit": "gigabyte",
+    "scale": 1
+  },
+  "recordedAt": {
+    "iso8601": "2026-08-29T14:06:38Z"
+  },
+  "actor": {
+    "actor_id": "svc_layer7_billing",
+    "actor_type": "SERVICE_ACCOUNT",
+    "tenant_id": "tenant_abc123",
+    "roles": ["billing_worker"]
+  }
+}

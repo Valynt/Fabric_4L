@@ -4,6 +4,7 @@
         mypy-baseline-write-layer2 mypy-baseline-write-layer2-5 mypy-baseline-write-layer3 mypy-baseline-write-layer4 mypy-baseline-write-layer5 mypy-baseline-write-layer6 \
 		test contract-tests contract-lint test-layer1 test-layer1-crawler test-layer1-router-cache test-layer1-benchmarks test-layer1-router-benchmarks test-layer2 test-layer2-5 test-layer3 test-layer3-live test-layer4 test-layer4-live \
         test-frontend build docker-build docker-build-multi migrate migrate-layer1 migrate-layer2 migrate-layer2-5 migrate-layer4 migrate-layer5 migrate-api db-migrate-status db-migrate-check gate-database gate-database-live db-production-readiness-gate evals perf-test perf-eval clean sdk check-layer4-boundaries check-layer4-collection check-layer4-canonical-paths \
+        check-schema-registry check-schema-compatibility generate-schema-bundle \
         setup bootstrap \
         check-env check-env-backend check-env-frontend validate-env-contract \
         preflight up down logs check-deprecations test-backup-drills db-production-readiness-gate \
@@ -91,7 +92,7 @@ VERIFY_CHECKS := check-conflict-markers check-no-nul-bytes check-migration-heads
 	check-trivy-ignore-policy check-security-exceptions check-model-provider-boundaries \
 	lint typecheck test contract-tests security-smoke \
 	check-deprecations check-tool-contracts check-deprecated-tracer-imports \
-	platform-contract-lint check-ui-duplicates check-readiness-consistency \
+	platform-contract-lint check-schema-registry check-schema-compatibility generate-schema-bundle check-ui-duplicates check-readiness-consistency \
 	check-workflow-matrix check-test-skip-register-uniqueness \
 	check-pytest-skip-governance check-layer3-legacy-tenant-dependency-imports \
 	check-hermetic-build-inputs check-production-k8s-mutable-tags check-k8s-image-digests \
@@ -1273,6 +1274,25 @@ clean-root-debris: ## Remove root-level temp artifacts, caches, and generated fi
 platform-contract-lint: ## Run platform contract lint
 	@echo Running platform contract lint...
 	@$(PYTHON) scripts/ci/platform_contract_lint.py
+
+check-schema-registry: ## Validate schema registry catalog, artifacts, and content hashes
+	@echo "→ Checking schema registry integrity..."
+	@$(PYTHON) scripts/ci/check_schema_registry_integrity.py
+	@echo "→ Checking schema $ref resolution..."
+	@$(PYTHON) scripts/ci/check_schema_refs.py
+	@echo "→ Checking schema hand-editing guard..."
+	@$(PYTHON) scripts/ci/check_schema_no_hand_editing.py
+	@echo "✅ Schema registry checks passed"
+
+check-schema-compatibility: ## Diff changed schemas against published versions for compatibility
+	@echo "→ Checking schema compatibility..."
+	@$(PYTHON) scripts/ci/check_schema_compatibility.py
+	@echo "✅ Schema compatibility check passed"
+
+generate-schema-bundle: ## Produce deterministic JSON Schema bundle + lockfile
+	@echo "→ Generating schema bundle..."
+	@$(PYTHON) scripts/ci/generate_schema_bundle.py
+	@echo "✅ Schema bundle generated"
 
 # ─── Value Fabric Harness ────────────────────────────────────────────────────
 

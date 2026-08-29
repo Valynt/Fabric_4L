@@ -314,7 +314,99 @@
       "path": "contracts/config-policy/behavior-contract-matrix.json",
       "id": "contract:contracts/config-policy/behavior-contract-matrix.json",
       "title": "Critical Behavior Contract Matrix"
+    },
+    {
+      "path": "contracts/jsonschema/registry.yaml",
+      "id": "contract:contracts/jsonschema/registry.yaml",
+      "title": "Schema Registry Catalog"
+    },
+    {
+      "path": "contracts/jsonschema/compatibility-policy.yaml",
+      "id": "contract:contracts/jsonschema/compatibility-policy.yaml",
+      "title": "Schema Compatibility Policy"
+    },
+    {
+      "path": "contracts/jsonschema/common/v1/money.schema.json",
+      "id": "https://valuefabric.ai/contracts/jsonschema/common/v1/money.schema.json",
+      "title": "Money Value Object"
+    },
+    {
+      "path": "contracts/jsonschema/common/v1/actor.schema.json",
+      "id": "https://valuefabric.ai/contracts/jsonschema/common/v1/actor.schema.json",
+      "title": "Actor Value Object"
+    },
+    {
+      "path": "contracts/jsonschema/common/v1/event-envelope.schema.json",
+      "id": "https://valuefabric.ai/contracts/jsonschema/common/v1/event-envelope.schema.json",
+      "title": "Event Envelope Value Object"
+    },
+    {
+      "path": "contracts/jsonschema/common/v1/error-envelope.schema.json",
+      "id": "https://valuefabric.ai/contracts/jsonschema/common/v1/error-envelope.schema.json",
+      "title": "Error Envelope Value Object"
+    },
+    {
+      "path": "contracts/jsonschema/common/v1/quantity.schema.json",
+      "id": "https://valuefabric.ai/contracts/jsonschema/common/v1/quantity.schema.json",
+      "title": "Quantity Value Object"
+    },
+    {
+      "path": "contracts/jsonschema/common/v1/identifier.schema.json",
+      "id": "https://valuefabric.ai/contracts/jsonschema/common/v1/identifier.schema.json",
+      "title": "Identifier Value Object"
+    },
+    {
+      "path": "contracts/jsonschema/common/v1/timestamp.schema.json",
+      "id": "https://valuefabric.ai/contracts/jsonschema/common/v1/timestamp.schema.json",
+      "title": "Timestamp Value Object"
+    },
+    {
+      "path": "contracts/jsonschema/billing/events/v1/subscription-activated.schema.json",
+      "id": "https://valuefabric.ai/contracts/jsonschema/billing/events/v1/subscription-activated.schema.json",
+      "title": "Billing Subscription Activated Event"
+    },
+    {
+      "path": "contracts/jsonschema/billing/events/v1/usage-recorded.schema.json",
+      "id": "https://valuefabric.ai/contracts/jsonschema/billing/events/v1/usage-recorded.schema.json",
+      "title": "Billing Usage Recorded Event"
+    },
+    {
+      "path": "contracts/jsonschema/billing/api/v1/README.md",
+      "id": "contract:contracts/jsonschema/billing/api/v1/README.md",
+      "title": "Billing API Schemas v1"
+    },
+    {
+      "path": "contracts/jsonschema/billing/commands/v1/README.md",
+      "id": "contract:contracts/jsonschema/billing/commands/v1/README.md",
+      "title": "Billing Command Schemas v1"
+    },
+    {
+      "path": "contracts/jsonschema/billing/events/v1/README.md",
+      "id": "contract:contracts/jsonschema/billing/events/v1/README.md",
+      "title": "Billing Event Schemas v1"
+    },
+    {
+      "path": "contracts/jsonschema/billing/provider-observations/v1/README.md",
+      "id": "contract:contracts/jsonschema/billing/provider-observations/v1/README.md",
+      "title": "Billing Provider Observation Schemas v1"
+    },
+    {
+      "path": "contracts/jsonschema/billing/tools/v1/README.md",
+      "id": "contract:contracts/jsonschema/billing/tools/v1/README.md",
+      "title": "Billing Tool Schemas v1"
     }
   ],
-  "ignored_orphans": []
+  "ignored_orphans": [
+    "contracts/jsonschema/common/v1/fixtures/actor.valid.json",
+    "contracts/jsonschema/common/v1/fixtures/error-envelope.valid.json",
+    "contracts/jsonschema/common/v1/fixtures/event-envelope.valid.json",
+    "contracts/jsonschema/common/v1/fixtures/identifier.valid.json",
+    "contracts/jsonschema/common/v1/fixtures/money.valid.json",
+    "contracts/jsonschema/common/v1/fixtures/quantity.valid.json",
+    "contracts/jsonschema/common/v1/fixtures/timestamp.valid.json",
+    "contracts/jsonschema/billing/events/v1/fixtures/subscription-activated.valid.json",
+    "contracts/jsonschema/billing/events/v1/fixtures/usage-recorded.valid.json",
+    "contracts/jsonschema/bundle.json",
+    "contracts/jsonschema/bundle-lock.json"
+  ]
 }

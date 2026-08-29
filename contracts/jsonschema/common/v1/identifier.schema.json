@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://valuefabric.ai/contracts/jsonschema/common/v1/identifier.schema.json",
+  "title": "Identifier",
+  "description": "Canonical identifier with namespace, type, and value. Owner: platform/contracts. Guarantees uniqueness and stable reference semantics across services.",
+  "type": "object",
+  "properties": {
+    "namespace": {
+      "type": "string",
+      "description": "Logical namespace of the identifier (e.g., tenant, service, global).",
+      "examples": ["tenant_abc123", "global"]
+    },
+    "type": {
+      "type": "string",
+      "description": "Entity or resource type the identifier addresses.",
+      "examples": ["user", "subscription", "invoice", "api_key"]
+    },
+    "value": {
+      "type": "string",
+      "description": "Opaque identifier value. Format is namespace/type-specific.",
+      "examples": ["usr_01HABC123", "sub_01HABC456"]
+    }
+  },
+  "required": ["type", "value"],
+  "additionalProperties": false
+}

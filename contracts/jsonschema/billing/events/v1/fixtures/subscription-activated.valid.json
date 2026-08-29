@@ -1,0 +1,31 @@
+{
+  "subscriptionId": {
+    "namespace": "tenant_abc123",
+    "type": "subscription",
+    "value": "sub_01HABC456"
+  },
+  "tenantId": {
+    "namespace": "tenant_abc123",
+    "type": "tenant",
+    "value": "tenant_abc123"
+  },
+  "planId": {
+    "namespace": "global",
+    "type": "plan",
+    "value": "plan_pro"
+  },
+  "activatedAt": {
+    "iso8601": "2026-08-29T14:06:38Z"
+  },
+  "actor": {
+    "actor_id": "usr_01HABC123",
+    "actor_type": "USER",
+    "tenant_id": "tenant_abc123",
+    "display_name": "Alice Smith",
+    "roles": ["admin"]
+  },
+  "metadata": {
+    "source": "web_checkout",
+    "campaignId": "camp_summer2026"
+  }
+}

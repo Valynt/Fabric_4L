@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://valuefabric.ai/contracts/jsonschema/billing/events/v1/subscription-activated.schema.json",
+  "title": "SubscriptionActivatedEvent",
+  "description": "Emitted when a subscription becomes active. Owner: layer7-billing/subscriptions. Data classification: CONFIDENTIAL_FINANCIAL.",
+  "type": "object",
+  "properties": {
+    "subscriptionId": {
+      "$ref": "../../../common/v1/identifier.schema.json",
+      "description": "Identifier of the activated subscription."
+    },
+    "tenantId": {
+      "$ref": "../../../common/v1/identifier.schema.json",
+      "description": "Tenant owning the subscription."
+    },
+    "planId": {
+      "$ref": "../../../common/v1/identifier.schema.json",
+      "description": "Identifier of the billing plan."
+    },
+    "activatedAt": {
+      "$ref": "../../../common/v1/timestamp.schema.json",
+      "description": "Timestamp when the subscription was activated."
+    },
+    "actor": {
+      "$ref": "../../../common/v1/actor.schema.json",
+      "description": "Actor that triggered the activation."
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Optional metadata about the activation context.",
+      "properties": {
+        "source": {
+          "type": "string",
+          "description": "Channel or system that originated the activation."
+        },
+        "campaignId": {
+          "type": "string",
+          "description": "Optional marketing campaign identifier."
+        }
+      },
+      "required": ["source"],
+      "additionalProperties": false
+    }
+  },
+  "required": ["subscriptionId", "tenantId", "planId", "activatedAt", "actor"],
+  "additionalProperties": false
+}

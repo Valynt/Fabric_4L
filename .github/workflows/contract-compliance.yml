@@ -50,6 +50,11 @@ on:
       - "contracts/agent-registry/**"
       - "tests/contract/**"
       - "scripts/verify-schema-indexes.sh"
+      - "scripts/ci/check_schema_registry_integrity.py"
+      - "scripts/ci/check_schema_compatibility.py"
+      - "scripts/ci/check_schema_refs.py"
+      - "scripts/ci/check_schema_no_hand_editing.py"
+      - "scripts/ci/generate_schema_bundle.py"
       - "package.json"
       - "tests/test_openapi_breaking_change_gate.py"
       - "scripts/ci/platform_contract_lint.py"
@@ -119,6 +124,28 @@ jobs:
             python scripts/ci/contract_compliance_gate.py --mode fast --base-ref origin/${{github.base_ref}}
           else
             python scripts/ci/contract_compliance_gate.py --mode full
+          fi
+
+      - name: Run schema registry integrity gate
+        run: python scripts/ci/check_schema_registry_integrity.py
+
+      - name: Run schema registry $ref resolution gate
+        run: python scripts/ci/check_schema_refs.py
+
+      - name: Run schema registry hand-editing gate
+        run: python scripts/ci/check_schema_no_hand_editing.py
+
+      - name: Run schema registry compatibility gate
+        run: |
+          if [ "${{github.event_name}}" = "pull_request" ]; then
+            CHANGED=$(git diff --name-only origin/${{github.base_ref}}...HEAD -- contracts/jsonschema/ || true)
+            if [ -n "$CHANGED" ]; then
+              echo "$CHANGED" | python scripts/ci/check_schema_compatibility.py --changed-files -
+            else
+              echo "No schema changes detected; skipping compatibility gate."
+            fi
+          else
+            echo "Skipping compatibility gate on non-PR events."
           fi
 
       - name: Run OpenAPI breaking-change gate

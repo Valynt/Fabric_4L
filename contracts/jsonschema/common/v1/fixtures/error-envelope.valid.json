@@ -1,0 +1,13 @@
+{
+  "error_code": "BILLING_SUBSCRIPTION_NOT_FOUND",
+  "message": "The requested subscription was not found.",
+  "target": "subscriptionId",
+  "details": [
+    {
+      "code": "RESOURCE_MISSING",
+      "message": "Subscription sub_01HABC456 does not exist for tenant tenant_abc123."
+    }
+  ],
+  "request_id": "req_01HABC789",
+  "timestamp": "2026-08-29T14:06:38Z"
+}

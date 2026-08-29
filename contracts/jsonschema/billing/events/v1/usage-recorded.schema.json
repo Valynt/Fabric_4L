@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://valuefabric.ai/contracts/jsonschema/billing/events/v1/usage-recorded.schema.json",
+  "title": "UsageRecordedEvent",
+  "description": "Emitted when a usage record is committed. Owner: layer7-billing/usage. Data classification: CONFIDENTIAL_FINANCIAL.",
+  "type": "object",
+  "properties": {
+    "usageId": {
+      "$ref": "../../../common/v1/identifier.schema.json",
+      "description": "Identifier of the usage record."
+    },
+    "tenantId": {
+      "$ref": "../../../common/v1/identifier.schema.json",
+      "description": "Tenant owning the usage record."
+    },
+    "subscriptionId": {
+      "$ref": "../../../common/v1/identifier.schema.json",
+      "description": "Identifier of the associated subscription."
+    },
+    "quantity": {
+      "$ref": "../../../common/v1/quantity.schema.json",
+      "description": "Recorded usage quantity."
+    },
+    "recordedAt": {
+      "$ref": "../../../common/v1/timestamp.schema.json",
+      "description": "Timestamp when the usage was recorded."
+    },
+    "actor": {
+      "$ref": "../../../common/v1/actor.schema.json",
+      "description": "Actor that recorded the usage."
+    }
+  },
+  "required": ["usageId", "tenantId", "subscriptionId", "quantity", "recordedAt", "actor"],
+  "additionalProperties": false
+}

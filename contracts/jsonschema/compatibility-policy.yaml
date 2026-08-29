@@ -1,0 +1,107 @@
+# Compatibility Policy Definitions
+# Owner: Platform team
+# Consumed by: scripts/ci/check_schema_compatibility.py
+
+$schema: https://valuefabric.ai/contracts/jsonschema/compatibility-policy.schema.json
+version: 1.0.0
+
+policies:
+  ADDITIVE_WITHIN_MAJOR:
+    description: |
+      Within a single major contract version, changes must be backward-compatible
+      for readers and forward-compatible for writers that ignore unknown fields.
+    rules:
+      - id: AWM-01
+        text: New fields must be optional unless all consumers have been migrated.
+        severity: ERROR
+      - id: AWM-02
+        text: Existing required fields cannot become optional when their presence is part of the semantic guarantee.
+        severity: ERROR
+      - id: AWM-03
+        text: Existing optional fields cannot become required.
+        severity: ERROR
+      - id: AWM-04
+        text: Fields cannot be removed or renamed.
+        severity: ERROR
+      - id: AWM-05
+        text: Types, formats, units, currency interpretation, quantity scale, identifier meaning, and timestamp meaning cannot change.
+        severity: ERROR
+      - id: AWM-06
+        text: Validation constraints cannot be narrowed in a way that rejects previously valid payloads.
+        severity: ERROR
+      - id: AWM-07
+        text: Enum values can only be added when the contract explicitly treats the enum as open; otherwise an enum addition is breaking for generated exhaustive clients.
+        severity: ERROR
+      - id: AWM-08
+        text: Defaults cannot change when the default affects domain behavior.
+        severity: ERROR
+      - id: AWM-09
+        text: A field cannot retain the same shape while acquiring a different meaning.
+        severity: ERROR
+
+  NONE:
+    description: |
+      No compatibility guarantees. Every version change is potentially breaking.
+      Used for internal-only or rapidly evolving contracts.
+    rules: []
+
+  FULL:
+    description: |
+      Both backward and forward compatible. Any change that alters parsing or
+      semantics for existing fields is forbidden.
+    rules:
+      - id: FULL-01
+        text: No field additions, removals, renames, or type changes.
+        severity: ERROR
+      - id: FULL-02
+        text: No constraint narrowing or widening that changes accepted payloads.
+        severity: ERROR
+
+lifecycle_transitions:
+  valid:
+    - [DRAFT, REVIEW]
+    - [REVIEW, DRAFT]
+    - [REVIEW, PUBLISHED]
+    - [PUBLISHED, DEPRECATED]
+    - [DEPRECATED, RETIRED]
+    - [DEPRECATED, PUBLISHED]
+  forbidden:
+    - [DRAFT, PUBLISHED]
+    - [DRAFT, DEPRECATED]
+    - [DRAFT, RETIRED]
+    - [REVIEW, DEPRECATED]
+    - [REVIEW, RETIRED]
+    - [PUBLISHED, DRAFT]
+    - [PUBLISHED, REVIEW]
+    - [PUBLISHED, RETIRED]
+    - [RETIRED, DRAFT]
+    - [RETIRED, REVIEW]
+    - [RETIRED, PUBLISHED]
+    - [RETIRED, DEPRECATED]
+
+authoring_directions:
+  SCHEMA_FIRST:
+    description: |
+      The JSON Schema artifact is the source of truth. Code, types, and
+      documentation are generated from it. Hand-editing generated artifacts is
+      prohibited.
+  CODE_FIRST_WITH_GENERATED_SCHEMA:
+    description: |
+      The Pydantic / TypeScript / OpenAPI source is the source of truth. The
+      JSON Schema artifact is regenerated. Hand-editing the generated schema
+      without a corresponding source change is prohibited.
+  OPENAPI_FIRST:
+    description: |
+      The OpenAPI document is the source of truth. JSON Schema fragments are
+      extracted or referenced from it.
+  ASYNCAPI_FIRST:
+    description: |
+      The AsyncAPI document is the source of truth. JSON Schema fragments are
+      extracted or referenced from it.
+
+bidirectional_hand_editing_prohibition: |
+  A schema cannot be independently edited in JSON Schema, OpenAPI, Pydantic, and
+  TypeScript with the expectation that humans will keep all four synchronized.
+  Exactly one authoring direction must be declared per contract family, and CI
+  must enforce that edits flow only from the declared source to the derived
+  artifacts.

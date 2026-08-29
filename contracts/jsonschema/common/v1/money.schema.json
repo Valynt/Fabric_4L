@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://valuefabric.ai/contracts/jsonschema/common/v1/money.schema.json",
+  "title": "Money",
+  "description": "Canonical monetary value with currency, amount, and precision. Owner: platform/contracts. Consumers must not alter currency interpretation semantics.",
+  "type": "object",
+  "properties": {
+    "currency": {
+      "type": "string",
+      "description": "ISO 4217 currency code (e.g., USD, EUR, GBP).",
+      "pattern": "^[A-Z]{3}$",
+      "examples": ["USD", "EUR"]
+    },
+    "amount": {
+      "type": "string",
+      "description": "Decimal amount as a string to avoid floating-point rounding. Scale is determined by the currency's standard minor-unit count.",
+      "pattern": "^-?[0-9]+(\\.[0-9]+)?$",
+      "examples": ["1999.99", "-50.00", "0"]
+    },
+    "precision": {
+      "type": "integer",
+      "description": "Number of decimal places used for the amount. Defaults to the currency standard (e.g., 2 for USD). Must not change the semantic interpretation of the amount.",
+      "minimum": 0,
+      "maximum": 18,
+      "examples": [2, 0, 8]
+    }
+  },
+  "required": ["currency", "amount"],
+  "additionalProperties": false
+}

@@ -1,0 +1,43 @@
+{
+  "event_id": "evt_01HABC456",
+  "event_type": "billing.subscription.activated",
+  "version": "1.1.0",
+  "timestamp": "2026-08-29T14:06:38Z",
+  "correlation_id": "corr_01HABC789",
+  "causation_id": "caus_01HABC012",
+  "tenant_id": "tenant_abc123",
+  "actor": {
+    "actor_id": "usr_01HABC123",
+    "actor_type": "USER",
+    "tenant_id": "tenant_abc123",
+    "display_name": "Alice Smith",
+    "roles": ["admin"]
+  },
+  "payload": {
+    "subscriptionId": {
+      "namespace": "tenant_abc123",
+      "type": "subscription",
+      "value": "sub_01HABC456"
+    },
+    "tenantId": {
+      "namespace": "tenant_abc123",
+      "type": "tenant",
+      "value": "tenant_abc123"
+    },
+    "planId": {
+      "namespace": "global",
+      "type": "plan",
+      "value": "plan_pro"
+    },
+    "activatedAt": {
+      "iso8601": "2026-08-29T14:06:38Z"
+    },
+    "actor": {
+      "actor_id": "usr_01HABC123",
+      "actor_type": "USER"
+    },
+    "metadata": {
+      "source": "web_checkout"
+    }
+  }
+}

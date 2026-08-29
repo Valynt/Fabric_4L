@@ -17,7 +17,7 @@
     "check": "pnpm run contract:test:ts",
     "typecheck": "pnpm run check",
     "test": "pnpm run contract:test",
-    "contract:test:python": "python -m pytest src/python/canonical -v --tb=short",
+    "contract:test:python": "python -m pytest src/python/canonical tests/ -v --tb=short",
     "contract:test:ts": "tsc -p tsconfig.json --noEmit",
     "contract:test:diagnostics": "node ./scripts/run-diagnostic-contract-tests.mjs",
     "contract:test": "pnpm run contract:test:python && pnpm run contract:test:ts && pnpm run contract:test:diagnostics",

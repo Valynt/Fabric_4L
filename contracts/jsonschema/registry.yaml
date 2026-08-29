@@ -1,0 +1,177 @@
+# Schema Registry Catalog
+# Canonical publication, versioning, discovery, and compatibility-control plane
+# for every machine-readable payload contract crossing a Fabric_4L boundary.
+#
+# Owner: Platform team
+# Governance: contracts/GOVERNANCE.md
+# Validation: scripts/ci/check_schema_registry_integrity.py
+
+$schema: https://valuefabric.ai/contracts/jsonschema/registry.schema.json
+version: 1.0.0
+description: |
+  The Schema Registry is the authoritative control plane for structural
+  contracts. It does not own business semantics, authorization policy, or
+  implementation logic. Production services consume pinned, validated contract
+  bundles built from this catalog.
+
+policies:
+  default_compatibility: ADDITIVE_WITHIN_MAJOR
+  default_lifecycle: DRAFT -> REVIEW -> PUBLISHED -> DEPRECATED -> RETIRED
+  default_dialect: https://json-schema.org/draft/2020-12/schema
+
+# --- Common value objects ---
+schemas:
+  # Money
+  - schema_id: common.value.money
+    version: 1.0.0
+    major_contract: v1
+    kind: COMMON_VALUE_OBJECT
+    domain: common
+    owner: platform/contracts
+    status: PUBLISHED
+    published_at: "2025-01-15T00:00:00Z"
+    dialect: https://json-schema.org/draft/2020-12/schema
+    compatibility_policy: ADDITIVE_WITHIN_MAJOR
+    data_classification: INTERNAL
+    artifact: contracts/jsonschema/common/v1/money.schema.json
+    content_hash: sha256:fe43dd3dbae4e32fec53403c01fd51c663a3826729b764bab0526eb373d3857b
+    examples:
+      - contracts/jsonschema/common/v1/fixtures/money.valid.json
+
+  # Actor
+  - schema_id: common.value.actor
+    version: 1.0.0
+    major_contract: v1
+    kind: COMMON_VALUE_OBJECT
+    domain: common
+    owner: platform/contracts
+    status: PUBLISHED
+    published_at: "2025-01-15T00:00:00Z"
+    dialect: https://json-schema.org/draft/2020-12/schema
+    compatibility_policy: ADDITIVE_WITHIN_MAJOR
+    data_classification: INTERNAL
+    artifact: contracts/jsonschema/common/v1/actor.schema.json
+    content_hash: sha256:3b7485c423bb88f5da1e44b25ee197acd708d41d97d8ab55075c802b9c353dbb
+    examples:
+      - contracts/jsonschema/common/v1/fixtures/actor.valid.json
+
+  # Event Envelope
+  - schema_id: common.event.envelope
+    version: 1.0.0
+    major_contract: v1
+    kind: EVENT_ENVELOPE
+    domain: common
+    owner: platform/contracts
+    status: PUBLISHED
+    published_at: "2025-01-15T00:00:00Z"
+    dialect: https://json-schema.org/draft/2020-12/schema
+    compatibility_policy: ADDITIVE_WITHIN_MAJOR
+    data_classification: CONFIDENTIAL_FINANCIAL
+    artifact: contracts/jsonschema/common/v1/event-envelope.schema.json
+    content_hash: sha256:247156d7260f5e682e1178d1b0303fc7188522e3dc730415839ba7a8e9320ce3
+    examples:
+      - contracts/jsonschema/common/v1/fixtures/event-envelope.valid.json
+
+  # Error Envelope
+  - schema_id: common.error.envelope
+    version: 1.0.0
+    major_contract: v1
+    kind: API_ERROR
+    domain: common
+    owner: platform/contracts
+    status: PUBLISHED
+    published_at: "2025-01-15T00:00:00Z"
+    dialect: https://json-schema.org/draft/2020-12/schema
+    compatibility_policy: ADDITIVE_WITHIN_MAJOR
+    data_classification: INTERNAL
+    artifact: contracts/jsonschema/common/v1/error-envelope.schema.json
+    content_hash: sha256:fc5f492f739ddb81d3f27b7f441fdb0a2eab15594edc9b2539b155542edd8145
+    examples:
+      - contracts/jsonschema/common/v1/fixtures/error-envelope.valid.json
+
+  # Quantity
+  - schema_id: common.value.quantity
+    version: 1.0.0
+    major_contract: v1
+    kind: COMMON_VALUE_OBJECT
+    domain: common
+    owner: platform/contracts
+    status: PUBLISHED
+    published_at: "2025-01-15T00:00:00Z"
+    dialect: https://json-schema.org/draft/2020-12/schema
+    compatibility_policy: ADDITIVE_WITHIN_MAJOR
+    data_classification: INTERNAL
+    artifact: contracts/jsonschema/common/v1/quantity.schema.json
+    content_hash: sha256:c4b48812b47da3fa40ab8944194b6999baa9311efdc989791a8c177ec15bad68
+    examples:
+      - contracts/jsonschema/common/v1/fixtures/quantity.valid.json
+
+  # Identifier
+  - schema_id: common.value.identifier
+    version: 1.0.0
+    major_contract: v1
+    kind: COMMON_VALUE_OBJECT
+    domain: common
+    owner: platform/contracts
+    status: PUBLISHED
+    published_at: "2025-01-15T00:00:00Z"
+    dialect: https://json-schema.org/draft/2020-12/schema
+    compatibility_policy: ADDITIVE_WITHIN_MAJOR
+    data_classification: INTERNAL
+    artifact: contracts/jsonschema/common/v1/identifier.schema.json
+    content_hash: sha256:e8736b0a878f94fddd1457e97a225919545fa18f5158d7e753fb77035ca2827f
+    examples:
+      - contracts/jsonschema/common/v1/fixtures/identifier.valid.json
+
+  # Timestamp
+  - schema_id: common.value.timestamp
+    version: 1.0.0
+    major_contract: v1
+    kind: COMMON_VALUE_OBJECT
+    domain: common
+    owner: platform/contracts
+    status: PUBLISHED
+    published_at: "2025-01-15T00:00:00Z"
+    dialect: https://json-schema.org/draft/2020-12/schema
+    compatibility_policy: ADDITIVE_WITHIN_MAJOR
+    data_classification: INTERNAL
+    artifact: contracts/jsonschema/common/v1/timestamp.schema.json
+    content_hash: sha256:2649da2c26ad99c8c462b6a5d21f70b3eba35edbfad0499abee487d41e0599ae
+    examples:
+      - contracts/jsonschema/common/v1/fixtures/timestamp.valid.json
+
+  # Billing event: subscription-activated
+  - schema_id: billing.event.subscription-activated
+    version: 1.1.0
+    major_contract: v1
+    kind: EVENT_DATA
+    domain: billing.subscriptions
+    owner: layer7-billing/subscriptions
+    status: PUBLISHED
+    published_at: "2025-01-15T00:00:00Z"
+    dialect: https://json-schema.org/draft/2020-12/schema
+    compatibility_policy: ADDITIVE_WITHIN_MAJOR
+    data_classification: CONFIDENTIAL_FINANCIAL
+    artifact: contracts/jsonschema/billing/events/v1/subscription-activated.schema.json
+    content_hash: sha256:8a0902dcda93d21ab309adfc93d31dc690e6e953a04709e7f3cdbd3cc4a6c98d
+    supersedes: billing.event.subscription-activated@1.0.0
+    examples:
+      - contracts/jsonschema/billing/events/v1/fixtures/subscription-activated.valid.json
+
+  # Billing event: usage-recorded
+  - schema_id: billing.event.usage-recorded
+    version: 1.0.0
+    major_contract: v1
+    kind: EVENT_DATA
+    domain: billing.usage
+    owner: layer7-billing/usage
+    status: DRAFT
+    dialect: https://json-schema.org/draft/2020-12/schema
+    compatibility_policy: ADDITIVE_WITHIN_MAJOR
+    data_classification: CONFIDENTIAL_FINANCIAL
+    artifact: contracts/jsonschema/billing/events/v1/usage-recorded.schema.json
+    content_hash: sha256:3b92e18e6a4e84baf2f6cdfe47267da9a892281d6be3f15feccdfb42688fe4dd
+    examples:
+      - contracts/jsonschema/billing/events/v1/fixtures/usage-recorded.valid.json
+
+subscriptions: []

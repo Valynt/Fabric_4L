@@ -1,0 +1,7 @@
+{
+  "actor_id": "usr_01HABC123",
+  "actor_type": "USER",
+  "tenant_id": "tenant_abc123",
+  "display_name": "Alice Smith",
+  "roles": ["admin", "billing_manager"]
+}

@@ -150,6 +150,10 @@ valuepacks_output.txt
 audit_violations.txt
 audit-output/
 
+# Schema Registry generated artifacts (produced by `make generate-schema-bundle`)
+contracts/jsonschema/bundle.json
+contracts/jsonschema/bundle-lock.json
+
 # Windows shortcuts
 *.lnk
 

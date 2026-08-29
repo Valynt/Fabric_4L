@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://valuefabric.ai/contracts/jsonschema/common/v1/event-envelope.schema.json",
+  "title": "EventEnvelope",
+  "description": "Canonical domain-event envelope containing identity, routing, causation, and schema metadata. Owner: platform/contracts. Event data payloads are carried in 'data' and must conform to a registered EVENT_DATA schema.",
+  "type": "object",
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "description": "UUID v4 uniquely identifying this event occurrence.",
+      "format": "uuid",
+      "examples": ["550e8400-e29b-41d4-a716-446655440000"]
+    },
+    "event_type": {
+      "type": "string",
+      "description": "Fully-qualified event type including domain and schema version hint, e.g., billing.event.subscription-activated@v1.1.0",
+      "examples": ["billing.event.subscription-activated@v1.1.0"]
+    },
+    "source": {
+      "type": "string",
+      "description": "Service or component that produced the event.",
+      "examples": ["layer7-billing/subscriptions"]
+    },
+    "subject": {
+      "type": "string",
+      "description": "Entity identifier that is the subject of the event.",
+      "examples": ["sub_01HABC123"]
+    },
+    "tenant_id": {
+      "type": "string",
+      "description": "Tenant scope for the event. Required for isolation.",
+      "examples": ["tenant_abc123"]
+    },
+    "billing_account_id": {
+      "type": "string",
+      "description": "Billing account associated with the event, when applicable.",
+      "examples": ["ba_01HABC123"]
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when the event occurred.",
+      "examples": ["2026-08-29T14:06:38Z"]
+    },
+    "schema_version": {
+      "type": "string",
+      "description": "Exact schema version of the event data payload.",
+      "examples": ["1.1.0"]
+    },
+    "correlation_id": {
+      "type": "string",
+      "description": "Correlation identifier linking related events and requests across services.",
+      "examples": ["corr_01HABC123"]
+    },
+    "causation_id": {
+      "type": "string",
+      "description": "Event ID that caused this event, if applicable.",
+      "examples": ["550e8400-e29b-41d4-a716-446655440001"]
+    },
+    "actor": {
+      "$ref": "https://valuefabric.ai/contracts/jsonschema/common/v1/actor.schema.json"
+    },
+    "data": {
+      "type": "object",
+      "description": "Event data payload. Must conform to the schema declared by event_type and schema_version.",
+      "examples": [{}]
+    }
+  },
+  "required": ["event_id", "event_type", "source", "subject", "tenant_id", "timestamp", "schema_version", "data"],
+  "additionalProperties": false
+}

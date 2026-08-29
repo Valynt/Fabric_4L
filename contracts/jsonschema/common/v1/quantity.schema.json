@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://valuefabric.ai/contracts/jsonschema/common/v1/quantity.schema.json",
+  "title": "Quantity",
+  "description": "Canonical scalar quantity with unit, scale, and decimal value. Owner: platform/contracts. Consumers must not alter unit interpretation semantics.",
+  "type": "object",
+  "properties": {
+    "value": {
+      "type": "string",
+      "description": "Decimal quantity as a string to preserve precision.",
+      "pattern": "^-?[0-9]+(\\.[0-9]+)?$",
+      "examples": ["100.000000001", "0", "-42.5"]
+    },
+    "unit": {
+      "type": "string",
+      "description": "Unit of measure. Must be from a controlled vocabulary when the domain requires it.",
+      "examples": ["gigabyte", "hour", "seat", "api_call"]
+    },
+    "scale": {
+      "type": "integer",
+      "description": "Number of decimal places used for the value. Semantic meaning of the value depends on scale and unit together.",
+      "minimum": 0,
+      "maximum": 18,
+      "examples": [2, 8, 0]
+    }
+  },
+  "required": ["value", "unit"],
+  "additionalProperties": false
+}

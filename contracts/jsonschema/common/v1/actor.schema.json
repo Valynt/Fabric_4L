@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://valuefabric.ai/contracts/jsonschema/common/v1/actor.schema.json",
+  "title": "Actor",
+  "description": "Canonical actor representation for attribution, audit, and causation. Owner: platform/contracts.",
+  "type": "object",
+  "properties": {
+    "actor_id": {
+      "type": "string",
+      "description": "Stable identifier of the actor (user, service account, or system).",
+      "examples": ["usr_01HABC123", "svc_layer4_ingest"]
+    },
+    "actor_type": {
+      "type": "string",
+      "enum": ["USER", "SERVICE_ACCOUNT", "SYSTEM", "AGENT", "WEBHOOK"],
+      "description": "Classification of the actor.",
+      "examples": ["USER", "SERVICE_ACCOUNT"]
+    },
+    "tenant_id": {
+      "type": "string",
+      "description": "Tenant scope of the actor. Required for multi-tenant isolation.",
+      "examples": ["tenant_abc123"]
+    },
+    "display_name": {
+      "type": "string",
+      "description": "Human-readable name for audit logs and UI rendering.",
+      "examples": ["Alice Smith"]
+    },
+    "roles": {
+      "type": "array",
+      "description": "Roles held by the actor within the tenant at the time of action.",
+      "items": { "type": "string" },
+      "examples": [["admin", "billing_manager"]]
+    }
+  },
+  "required": ["actor_id", "actor_type"],
+  "additionalProperties": false
+}
