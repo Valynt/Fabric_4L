@@ -241,7 +241,7 @@
         "workflow_dispatch"
       ],
       "trigger_purpose": "CI/CD",
-      "blocking": true,
+      "blocking": false,
       "required_secrets": [],
       "produced_artifacts": [
         ".pytest_cache/",
@@ -653,7 +653,7 @@
     },
     {
       "path": ".github/workflows/poc-governance-automation.yml",
-      "name": "PoC — Governance Automation (Composite + Profile Selection)",
+      "name": "PoC \u2014 Governance Automation (Composite + Profile Selection)",
       "owner": "@value-fabric/sre-leads",
       "trigger": [
         "pull_request",
@@ -696,7 +696,7 @@
         "push"
       ],
       "trigger_purpose": "CI/CD",
-      "blocking": true,
+      "blocking": false,
       "required_secrets": [
         "GITHUB_TOKEN",
         "INFISICAL_IDENTITY_ID"
@@ -710,6 +710,7 @@
         "apps/web/e2e-results/**",
         "apps/web/frontend-junit.xml",
         "apps/web/playwright-report/**",
+        "artifacts/ci-structural-contract-tests.txt",
         "artifacts/compatibility-debt/",
         "artifacts/critical-behaviors-gate/result.json",
         "artifacts/docker-compose-config/**",
@@ -736,6 +737,7 @@
         "artifacts/release_smoke/**",
         "artifacts/route-tenant-propagation.json",
         "artifacts/route-tenant-propagation.md",
+        "artifacts/semgrep-static-contract-tests.txt",
         "artifacts/shared-imports-runtime.json",
         "artifacts/structural-preflight.json",
         "artifacts/tenant-isolation/summary.json",
@@ -766,9 +768,7 @@
         "services/layer6-benchmarks/layer6-junit.xml",
         "services/layer6-benchmarks/layer6-results.json",
         "shared-coverage.xml",
-        "shared-junit.xml",
-        "artifacts/ci-structural-contract-tests.txt",
-        "artifacts/semgrep-static-contract-tests.txt"
+        "shared-junit.xml"
       ],
       "runtime_budget_minutes": 45,
       "local_validation_command": "make check-workflow-references",
@@ -785,7 +785,7 @@
         "workflow_dispatch"
       ],
       "trigger_purpose": "CI/CD",
-      "blocking": true,
+      "blocking": false,
       "required_secrets": [],
       "produced_artifacts": [
         "artifacts/",
@@ -854,7 +854,7 @@
         "workflow_dispatch"
       ],
       "trigger_purpose": "CI/CD",
-      "blocking": true,
+      "blocking": false,
       "required_secrets": [
         "GITHUB_TOKEN"
       ],
@@ -897,7 +897,7 @@
         "workflow_dispatch"
       ],
       "trigger_purpose": "CI/CD",
-      "blocking": true,
+      "blocking": false,
       "required_secrets": [
         "GITHUB_TOKEN"
       ],
@@ -916,7 +916,7 @@
         "stack-health.json",
         "trivy-${{ matrix.service }}.*"
       ],
-      "runtime_budget_minutes": 30,
+      "runtime_budget_minutes": 5,
       "local_validation_command": "make check-workflow-references",
       "deprecation_status": "active"
     },
@@ -1049,7 +1049,7 @@
         "schedule"
       ],
       "trigger_purpose": "CI/CD",
-      "blocking": true,
+      "blocking": false,
       "required_secrets": [
         "GITHUB_TOKEN"
       ],
@@ -1094,7 +1094,7 @@
         "workflow_dispatch"
       ],
       "trigger_purpose": "CI/CD",
-      "blocking": true,
+      "blocking": false,
       "required_secrets": [
         "GITHUB_TOKEN"
       ],
