@@ -22,6 +22,16 @@ The trusted publisher is the `Valynt/Fabric_4L` repository workflow
 | Node.js | 22.17.0 |
 | pnpm | 10.18.1 |
 
+> **Planned rotation:** the platform is canonicalizing on Node 22.22.2 for CI
+> executions (`.github/`, `.depot/`, and frontend/backend runtime pins). The CI
+> tools image still ships Node 22.17.0 because no 22.22.2 image has been published
+> yet; the image is the last component to rotate. When the next publisher run is
+> merged, update this table, the `NODE_VERSION` argument in the Dockerfile, the
+> `tests/ci/test_supply_chain_ci_tools_policy.py` assertion, and the
+> `ci-tools-preflight` `node --version` assertion (`v22.17.0`) together, then
+> follow the Rotation procedure. Do not rotate the version in the image without
+> rotating the assertions and digest in the same change.
+
 ## Digest lookup and verification
 
 After a successful publisher run, copy the digest-qualified reference from the

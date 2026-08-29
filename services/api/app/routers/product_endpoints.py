@@ -6,6 +6,7 @@ from value_fabric.shared.identity.dependencies import require_authenticated
 
 from app.clients.billing_publisher import BillingEventPublisher
 from app.core.quota_service import QuotaService
+from app.core.security import require_bearer_declaration
 from app.core.usage_meter import record_usage
 from app.models.product import (
     AssumptionScoreRequest,
@@ -19,7 +20,10 @@ from app.models.product import (
 )
 from app.services.product_orchestrator import ProductOrchestrator
 
-router = APIRouter(tags=["Product Endpoints"])
+router = APIRouter(
+    tags=["Product Endpoints"],
+    dependencies=[Depends(require_bearer_declaration)],
+)
 
 
 def _get_billing_publisher() -> BillingEventPublisher:

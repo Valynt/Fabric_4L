@@ -163,7 +163,7 @@
         "items": {
           "type": "object",
           "properties": {
-            "metric": { "type": "string", "enum": ["LCP", "FID", "CLS", "TTFB", "FCP"] },
+            "metric": { "type": "string", "enum": ["LCP", "INP", "CLS", "TTFB", "FCP"] },
             "value": { "type": "number" },
             "target": { "type": "number" },
             "grade": { "type": "string", "enum": ["good", "needs_improvement", "poor"] },

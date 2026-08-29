@@ -90,3 +90,8 @@ Fetches current documentation, code examples, and API references for libraries a
 Triggers: "context7", "docs", "documentation", "library reference", "framework docs", "api reference"
 Constraints: query per concept, resolve library ID before fetching, prefer official sources
 
+## frontend-excellence
+Prototype → production frontend pipeline: contract-first API design, componentization, design-token extraction, tool-schema design, agentic guardrails, streaming, and auth. Routes to the right in-repo skill per phase; enforces DESIGN.md + shadcn-fabric tokens when present.
+Triggers: "prototype to production", "productionize", "design tokens", "componentize", "contract-first", "tool schema", "agentic UI", "SSE", "WebSocket streaming", "frontend production"
+Constraints: contract before UI; extract tokens, don't inline; tool schemas precise with additionalProperties:false; fail closed; preserve tenant isolation; leverage evals/scenarios before shipping agent changes
+

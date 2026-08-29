@@ -39,7 +39,7 @@ concurrency:
   group: bundle-analysis-${{ github.ref }}
   cancel-in-progress: true
 env:
-  NODE_VERSION: "22.18.0"
+  NODE_VERSION: "22.22.2"
 jobs:
   # ---------------------------------------------------------------------------
   # Build with analyzer and generate stats

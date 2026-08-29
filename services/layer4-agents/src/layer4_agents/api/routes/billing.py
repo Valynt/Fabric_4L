@@ -634,7 +634,7 @@ async def sync_customer(
     "/webhook",
     responses={
         400: {
-            "description": "Invalid webhook payload Ã¢â‚¬â€ verify the payload body and Stripe-Signature timestamp"
+            "description": "Invalid webhook payload — verify the payload body and Stripe-Signature timestamp"
         },
     },
 )

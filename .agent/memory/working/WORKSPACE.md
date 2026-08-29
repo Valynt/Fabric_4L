@@ -1,8 +1,10 @@
 # Workspace (live task state)
 
 ## Active task
-- Goal: Fix failing GitHub Actions `Contract Compliance / contract-compliance (pull_request)` job.
-- First step: Inspect workflow run/job logs and identify deterministic failure.
+- Goal: Build the `frontend-excellence` portable-brain skill package (prototype → production frontend + backend wiring + agentic layer).
+- Status: COMPLETE — SKILL.md, 5 references, 4 templates, 3 checklists, eval suite (README + 4 scenarios) all created; registered in `_index.md` + `_manifest.jsonl` (category: engineering); Playwright MCP added to `.mcp.json`; GREEN eval pass verified against `templates/tool-schema.json`.
+- Validation: `_manifest.jsonl` valid JSON (json.tool); `.mcp.json` valid; no duplicate skill names; tool-schema template passes all GREEN rule assertions.
 
 ## Active hypotheses
-- The workflow pins a Node version that no longer satisfies dependency engine requirements, causing `pnpm install --frozen-lockfile` to fail before contract checks run.
+- (cleared)
+

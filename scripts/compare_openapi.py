@@ -242,7 +242,7 @@ def generate_report(
         "",
         "1. **Update Specification:** If implementation is correct, update the OpenAPI spec.",
         "2. **Update Implementation:** If spec is correct, implement missing endpoints.",
-        "3. **Synchronize:** Run `python scripts/generate_openapi.py` to regenerate spec from code.",
+        "3. **Synchronize:** Run `python scripts/export_openapi.py` to regenerate spec from code.",
     ])
     
     return "\n".join(lines)
