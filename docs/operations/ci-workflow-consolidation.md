@@ -28,8 +28,10 @@ the canonical families above:
 `audit-snapshot.yml`, `chaos-engineering.yml`, `chaos-smoke.yml`,
 `ci-failure-backlog.yml`, `cleanup-branches.yml`, `codeql-analysis.yml`,
 `compliance-evidence-integrity.yml`, `game-day-evidence.yml`,
-`integration-tests.yml`, `k8s-validation.yml`, `launch-readiness.yml`,
+`generated-api-freshness.yml`, `integration-tests.yml`,
+`k8s-validation.yml`, `launch-readiness.yml`,
 `layer6-dashboard-metric-drift.yml`, `live-workflow-validation.yml`,
+`merge-group.yml`, `openapi-drift-check.yml`,
 `package-manager-policy.yml`, `package-sign.yml`, `performance-baseline.yml`,
 `pr-performance-gate.yml`, `preflight.yml`,
 `production-readiness-check.yml`, `refresh-testing-kpis.yml`,
@@ -46,6 +48,41 @@ the canonical families above:
 | `chaos-smoke.yml` | `chaos-testing.yml` | `retired-recorded`; historical workflow was PR-triggered and blocking. | The current checkout keeps `chaos-testing.yml` as the operational chaos owner and the retired smoke workflow is no longer present or registered. Branch protection must no longer require `chaos-smoke-informational` or `chaos-smoke-required-ready-marker`. | `needs branch-protection update` |
 | `deploy.yml` | `build-deploy.yml`, `environment-promotion.yml` | `present-blocked`; `blocking=true`; owns workflow-call deployment behavior. | Keep enabled: it owns the unique `workflow_call` trigger, `AWS_DEPLOY_ROLE_ARN` and `INFISICAL_IDENTITY_ID` secrets, `${{ steps.evidence.outputs.file }}` and `deployment-record.json` artifacts, plus `preflight`, `approval-gate`, `deploy`, `smoke-tests`, `rollback-on-failure`, `verify`, `evidence`, and `notify` jobs. | `not safe` |
 
+## Registry blocking semantics (P2 #4)
+
+`blocking` in `workflow-registry.json` now reflects whether a workflow emits a
+required status check. The required-context emitters are `pr-checks.yml`,
+`security-gates.yml`, `contract-compliance.yml`, `prod-readiness.yml`,
+`supply-chain-integrity.yml`, `release-evidence-bundle.yml`, and
+`publish-sdk.yml`; all are flagged `blocking: true`. Read-only, informational,
+and consolidation-proof workflows remain `blocking: false`. `WORKFLOW_REGISTRY.md`
+no longer implies every listed workflow is non-blocking.
+
+## 2026 consolidation pass: OpenAPI drift + merge-group retirement
+
+Three workflow files were retired after their coverage was folded into
+canonical aggregates:
+
+- `openapi-drift-check.yml` — the static OpenAPI drift gate (full
+  `export_openapi.py` + `git diff`) was already covered by `critical-gates.yml`;
+  the live suite (`test_layer_service_entrypoint_smoke.py`,
+  `test_l3_route_alias_parity.py`, plus the ≥330-test collection guard) was
+  folded into the `runtime-contract-checks` job of `pr-checks.yml`, which now
+  also boots and health-waits `layer6-benchmarks`.
+- `generated-api-freshness.yml` — its three unique Clerk contract checks
+  (`check_generated_jsonvalue_absent.py`,
+  `check_clerk_tenant_response_exported.py`,
+  `check_clerk_tenant_mapping_contract.py`) were folded into the
+  `contract-shape-regression` job of `contract-compliance.yml`. The
+  `layer7-billing.json` spec was added to the contract gate's
+  `REFRESHABLE_ONLY_SPECS`/`SPEC_CONFIG`.
+- `merge-group.yml` — its `merge_group:` trigger coverage is preserved by the
+  existing `merge_group:` trigger in `pr-checks.yml`.
+
+`MAX_WORKFLOW_FILES` was lowered 58 → 55 in `scripts/ci/verify_workflow_registry.py`,
+and the three files were removed from both `.github/workflows/` and
+`.depot/workflows/`.
+
 ## Marketplace workflow templates: intentionally not adopted
 
 GitHub's suggested marketplace/starter workflow templates (SLSA Generic
@@ -54,7 +91,7 @@ Publish Docker Container, Super Linter, Build projects with Make, publishing
 templates, and the various language templates for stacks this monorepo does
 not use) are **deliberately not configured**. Do not add them:
 
-- The S6-6 workflow-count cap allows at most 56 workflow files; additions beyond it fail
+- The S6-6 workflow-count cap allows at most 55 workflow files; additions beyond it fail
   `scripts/ci/verify_workflow_registry.py` and
   `tests/ci/test_ci_workflow_consolidation.py`.
 - Every applicable template is already covered by canonical workflows using

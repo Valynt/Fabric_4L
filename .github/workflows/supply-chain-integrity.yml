@@ -55,11 +55,61 @@ permissions:
   id-token: write
 
 jobs:
+  # Change-scoping layer: resolve which scopes this event touches so that the
+  # heavy PR fan-out (CI-tools image preflight, per-layer source SBOM scan,
+  # dependency audit, license compliance) only runs when the change can
+  # actually affect it. Non-pull_request events (push, schedule, dispatch,
+  # workflow_call) resolve every scope to 'true'. The 07-supply-chain-integrity
+  # aggregate stays `if: always()` and admits a skipped child only via a
+  # scope-resolved --skip-safe confirmation, so scoping never un-emits the
+  # required check or weakens the gate.
+  change-scope:
+    name: Change Scope
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      backend: ${{ steps.scope.outputs.backend }}
+      deps: ${{ steps.scope.outputs.deps }}
+      ci-global: ${{ steps.scope.outputs.ci-global }}
+      ci-tooling: ${{ steps.scope.outputs.ci-tooling }}
+      ci-governance: ${{ steps.scope.outputs.ci-governance }}
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+
+      - name: Resolve change scopes
+        id: scope
+        uses: ./.github/actions/change-scope
+
+      # Post-process: resolve 'true' for non-PR events (push, schedule, dispatch,
+      # workflow_call) so the 07 aggregate can verify safe skips on every event.
+      # The composite action already fails open to 'true'; this is the same
+      # belt-and-suspenders shape pr-checks/release-evidence use.
+      - name: Post-resolve change scopes
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          echo "backend=true" >> $GITHUB_OUTPUT
+          echo "deps=true" >> $GITHUB_OUTPUT
+          echo "ci-global=true" >> $GITHUB_OUTPUT
+          echo "ci-tooling=true" >> $GITHUB_OUTPUT
+          echo "ci-governance=true" >> $GITHUB_OUTPUT
+
   # Fail closed before any job starts the centrally managed tools container.
   ci-tools-preflight:
     name: CI Tools Image Preflight
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    needs: [change-scope]
+    # Superset gate of every container-job consumer (dependency-audit and
+    # license-check below; the dispatch-only image-cert jobs inherit 'true'
+    # scopes on non-PR events), plus ci-global because this workflow itself
+    # pins the image digest and tool versions. Skipping preflight when NONE of
+    # those changed guarantees no job can run off the tools container without
+    # the preflight ever having run.
+    if: needs.change-scope.outputs.ci-global == 'true' || needs.change-scope.outputs.deps == 'true' || needs.change-scope.outputs.ci-tooling == 'true'
     steps:
       - name: Log in to GHCR
         uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567
@@ -116,13 +166,19 @@ jobs:
           assert_line "pnpm --version" "10.18.1" "--user root"
 
   # ============================================
-  # Source-Level SBOM Scan (runs on every PR/push)
+  # Source-Level SBOM Scan (scoped: runs when layers, deps, or governance config change)
   # ============================================
   source-sbom-scan:
     name: Source SBOM Scan
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    # No if: condition — runs on pull_request and push as well as workflow_call/dispatch
+    needs: [change-scope]
+    # backend covers the per-layer source scan path; deps covers dependency
+    # manifest inputs that flow into the SBOM; ci-governance covers the
+    # vulnerability-exceptions policy applied by run_source_sbom_policy.py;
+    # ci-tooling covers the policy script itself (scripts/ci/...), symmetric
+    # with dependency-audit gating on ci-tooling for check_node_security_backports.py.
+    if: needs.change-scope.outputs.backend == 'true' || needs.change-scope.outputs.deps == 'true' || needs.change-scope.outputs.ci-governance == 'true' || needs.change-scope.outputs.ci-tooling == 'true'
 
     strategy:
       fail-fast: false
@@ -401,7 +457,12 @@ jobs:
   # Dependency Audit
   # ============================================
   dependency-audit:
-    needs: ci-tools-preflight
+    needs: [change-scope, ci-tools-preflight]
+    # Same gate as ci-tools-preflight: the audit consumes the pinned tools image
+    # AND inspects package.json/patch files. Keeping the gate identical to its
+    # dependency prevents GitHub's needs-auto-skip from diverging from our
+    # declared SKIPSAFE predicate in the 07 aggregate.
+    if: needs.change-scope.outputs.ci-global == 'true' || needs.change-scope.outputs.deps == 'true' || needs.change-scope.outputs.ci-tooling == 'true'
     container:
       image: ghcr.io/valynt/ci-tools/security-suite@sha256:738016ca1248df998388e41ee8d0acfd64b14f78ced8c447d706940f5ab80579
     name: Dependency Audit
@@ -518,7 +579,12 @@ jobs:
   # License Compliance Check
   # ============================================
   license-check:
-    needs: ci-tools-preflight
+    needs: [change-scope, ci-tools-preflight]
+    # Identical gate to ci-tools-preflight (its container dependency) so
+    # GitHub's needs-auto-skip cannot diverge from the 07 aggregate's SKIPSAFE
+    # predicate. License output is only consumed per-manifest, so it stays a
+    # dependency-sensitive check rather than a layer scan.
+    if: needs.change-scope.outputs.ci-global == 'true' || needs.change-scope.outputs.deps == 'true' || needs.change-scope.outputs.ci-tooling == 'true'
     container:
       image: ghcr.io/valynt/ci-tools/security-suite@sha256:738016ca1248df998388e41ee8d0acfd64b14f78ced8c447d706940f5ab80579
     name: License Compliance
@@ -613,14 +679,12 @@ jobs:
               *) failed=1 ;;
             esac
           done
-          # Release/manual certification requires every image control. PR/push
-          # legitimately skip image-only jobs but still require dependency and
-          # license controls.
-          if [ "${{ needs.dependency-audit.result }}" != "success" ] ||
-             [ "${{ needs.license-check.result }}" != "success" ] ||
-             [ "${{ needs.source-sbom-scan.result }}" != "success" ]; then
-            failed=1
-          fi
+          # Dependency-audit, license-check, and source-sbom-scan are change-scope
+          # gated: they may legitimately be 'skipped' on a PR/push whose diff
+          # cannot affect them. A skip is safe only when the 07 aggregate's
+          # SKIPSAFE_* envs (the exact scope negation) confirm it — the loop
+          # above still fails the summary on any run-and-fail. Release/manual
+          # certification (below) requires every image control.
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] ||
              [ "${{ inputs.certify_images }}" = "true" ]; then
             for result in \
@@ -699,6 +763,7 @@ jobs:
     timeout-minutes: 5
     if: always()
     needs:
+      - change-scope
       - ci-tools-preflight
       - source-sbom-scan
       - sbom-scan
@@ -706,11 +771,20 @@ jobs:
       - verify-signatures
       - dependency-audit
       - license-check
+      - supply-chain-summary
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
       - name: Summarize supply-chain gates
         env:
           NEEDS_JSON: ${{ toJSON(needs) }}
+          # Scope-negation confirmations: each env is true exactly when its
+          # job's change-scope gate was false (i.e. the skip was safe).
+          # ci-tools-preflight/dependency-audit/license-check share one gate
+          # (ci-global || deps || ci-tooling), so one env confirms all three.
+          SKIPSAFE_PREFLIGHT: ${{ needs.change-scope.outputs.ci-global == 'false' && needs.change-scope.outputs.deps == 'false' && needs.change-scope.outputs.ci-tooling == 'false' }}
+          # source-sbom-scan also consumes layer source, dependency manifests,
+          # the vulnerability-exceptions policy, and the policy runner script.
+          SKIPSAFE_SOURCE_SBOM: ${{ needs.change-scope.outputs.backend == 'false' && needs.change-scope.outputs.deps == 'false' && needs.change-scope.outputs.ci-governance == 'false' && needs.change-scope.outputs.ci-tooling == 'false' }}
           # sbom-scan/provenance/verify-signatures certify release images; they
           # only run on dispatch or when certify_images is requested. On PR and
           # merge_group events no release image exists, so the skip is safe.
@@ -718,6 +792,10 @@ jobs:
         run: |
           python3 scripts/ci/aggregate_gate.py \
             --needs-json "$NEEDS_JSON" \
+            --skip-safe ci-tools-preflight=SKIPSAFE_PREFLIGHT \
+            --skip-safe source-sbom-scan=SKIPSAFE_SOURCE_SBOM \
             --skip-safe sbom-scan=SKIPSAFE_IMAGE_CERT \
             --skip-safe provenance=SKIPSAFE_IMAGE_CERT \
-            --skip-safe verify-signatures=SKIPSAFE_IMAGE_CERT
+            --skip-safe verify-signatures=SKIPSAFE_IMAGE_CERT \
+            --skip-safe dependency-audit=SKIPSAFE_PREFLIGHT \
+            --skip-safe license-check=SKIPSAFE_PREFLIGHT

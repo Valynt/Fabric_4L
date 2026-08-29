@@ -1,9 +1,24 @@
 {
   "metadata": {
     "owner_team": "Platform Governance",
-    "change_process": "Changes require approval from Platform Governance and Security in CODEOWNERS-reviewed PRs. Keep this list aligned with branch protection enforcement and CI job names.",
+    "change_process": "Changes require approval from Platform Governance and Security in CODEOWNERS-reviewed PRs. Keep this list aligned with branch protection enforcement, CI job names, config/ci/branch-protection-gap.json, and the governance mirror docs/governance/branch-protection-required-checks.yml.",
     "last_reviewed": "2026-08-21",
-    "transition_note": "V1-CI-001 Stage 3: the nine stable aggregate checks (01-repository-integrity .. 09-change-risk-and-approval) are now required alongside the legacy partial contexts. Remove the legacy eight contexts only after 30 consecutive queue merges with zero false negatives (V1-CI-001 Stage 4)."
+    "reconciliation_note": "Branch-protection split reconciled: the declared contract is 17 universal required status checks (nine stable aggregate checks 01-repository-integrity .. 09-change-risk-and-approval plus the eight always-emitted legacy contexts that live GitHub branch protection currently enforces). The two remaining legacy contexts ('Security Gates Required', 'SDK Release Validation') are declared under conditional_status_checks because they cannot be enforced as universal branch-protection checks: 'Security Gates Required' is a PR-only fan-in (if: always() && github.event_name == 'pull_request') and 'SDK Release Validation' is emitted only by the path-filtered publish-sdk workflow; neither emits on merge_group, so requiring them would stall the merge queue on unrelated PRs. The nine aggregate contexts are not yet enforced on GitHub (enforced_baseline below); that migration is tracked and owned in config/ci/branch-protection-gap.json. The daily branch-protection-validation cron runs the validator WITHOUT the gap file so any declared-but-not-enforced context keeps the job red until the migration is actually applied.",
+    "enforced_baseline": {
+      "as_of": "2026-08-21",
+      "source": "GET /repos/Valynt/Fabric_4L/branches/main/protection",
+      "github_live_enforced": [
+        "mandatory-security-regression",
+        "contract-compliance",
+        "Structural Preflight",
+        "prod-readiness",
+        "behavior-tests",
+        "Layer 5 - Source Contract",
+        "Layer 5 - Tenant Isolation Regression",
+        "Layer 5 - Contract Shape Regression"
+      ],
+      "note": "Live GitHub enforces exactly these eight. The nine aggregate contexts are declared universal but not yet applied; each is recorded with an owner in config/ci/branch-protection-gap.json."
+    }
   },
   "required_status_checks": [
     "01-repository-integrity",
@@ -20,11 +35,21 @@
     "Structural Preflight",
     "prod-readiness",
     "behavior-tests",
-    "Security Gates Required",
-    "SDK Release Validation",
     "Layer 5 - Source Contract",
     "Layer 5 - Tenant Isolation Regression",
     "Layer 5 - Contract Shape Regression"
+  ],
+  "conditional_status_checks": [
+    {
+      "context": "Security Gates Required",
+      "workflow": ".github/workflows/security-gates.yml",
+      "reason": "PR-only fan-in gate (if: always() && github.event_name == 'pull_request'); it does not emit on merge_group, so it cannot be a universal branch-protection required check without stalling the merge queue."
+    },
+    {
+      "context": "SDK Release Validation",
+      "workflow": ".github/workflows/publish-sdk.yml",
+      "reason": "Emitted only when sdk/python/** or the affected OpenAPI contracts change (pull_request paths filter); it does not emit on every PR and has no merge_group trigger, so it cannot be a universal branch-protection required check."
+    }
   ],
   "required_pull_request_reviews": {
     "required_approving_review_count": 1,

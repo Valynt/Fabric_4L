@@ -43,9 +43,57 @@ env:
   REGISTRY_NAMESPACE: valynt
 
 jobs:
+  # Change-scoping layer: resolve which scopes this event touches so that the
+  # heavy release-evidence fan-out (image builds, live-stack boot, SAST) only
+  # runs when the change can actually affect it. Non-pull_request events
+  # (push, schedule, workflow_dispatch) resolve every scope to 'true'. The
+  # 08-release-evidence aggregate stays `if: always()` and admits a skipped
+  # child only via a scope-resolved --skip-safe confirmation, so scoping
+  # never un-emits the required check or weakens the gate.
+  change-scope:
+    name: Change Scope
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      backend: ${{ steps.scope.outputs.backend }}
+      deps: ${{ steps.scope.outputs.deps }}
+      k8s: ${{ steps.scope.outputs.k8s }}
+      release-policy: ${{ steps.scope.outputs.release-policy }}
+      ci-governance: ${{ steps.scope.outputs.ci-governance }}
+      ci-tooling: ${{ steps.scope.outputs.ci-tooling }}
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+
+      - name: Resolve change scopes
+        id: scope
+        uses: ./.github/actions/change-scope
+
+      # Post-process: resolve 'true' for non-PR events (push, schedule)
+      # so the 08 aggregate can verify safe skips on every event. The
+      # composite action already fails open to 'true'; this is the same
+      # belt-and-suspenders shape pr-checks uses.
+      - name: Post-resolve change scopes
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          echo "backend=true" >> $GITHUB_OUTPUT
+          echo "deps=true" >> $GITHUB_OUTPUT
+          echo "k8s=true" >> $GITHUB_OUTPUT
+          echo "release-policy=true" >> $GITHUB_OUTPUT
+          echo "ci-governance=true" >> $GITHUB_OUTPUT
+          echo "ci-tooling=true" >> $GITHUB_OUTPUT
+
   release-readiness-gate:
     name: Release readiness gate (observability + deployment)
     runs-on: ubuntu-latest
+    needs: [change-scope]
+    # Validates k8s manifests, config bypass policy, release readiness
+    # criteria and the scripts that enforce them. Nothing else can affect
+    # this gate, so it is safely skippable when none of those changed.
+    if: needs.change-scope.outputs.k8s == 'true' || needs.change-scope.outputs.release-policy == 'true' || needs.change-scope.outputs.ci-governance == 'true' || needs.change-scope.outputs.ci-tooling == 'true'
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
@@ -75,6 +123,12 @@ jobs:
   build-and-scan:
     name: Build images & security scan
     runs-on: ubuntu-latest
+    needs: [change-scope]
+    # The six service images bake services/** source, packages/shared, the
+    # service lockfiles (uv.lock/pyproject.toml), and the trivy scan policy
+    # (config/trivy/**). `docker` scope is deliberately NOT used here: it
+    # also covers apps/** (frontend), which never affects these images.
+    if: needs.change-scope.outputs.backend == 'true' || needs.change-scope.outputs.deps == 'true' || needs.change-scope.outputs.ci-governance == 'true'
     strategy:
       matrix:
         service:
@@ -188,6 +242,9 @@ jobs:
   supply-chain-policy-check:
     name: Supply-chain metadata policy check
     runs-on: ubuntu-latest
+    # No independent scope gate: consumes the scan artifacts produced by
+    # build-and-scan, so it must run exactly when build-and-scan runs and
+    # auto-skip (via GitHub needs propagation) exactly when it skips.
     needs: [build-and-scan]
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
@@ -207,6 +264,12 @@ jobs:
   sast-and-tests:
     name: SAST & Security E2E
     runs-on: ubuntu-latest
+    needs: [change-scope]
+    # Bandit scans services/** and the security regression/prompt-injection
+    # suites exercise the backend. Mirrors the security-gates Bandit gate
+    # (backend scope) instead of the broader code scope which would also run
+    # this suite for frontend-only changes.
+    if: needs.change-scope.outputs.backend == 'true'
     steps:
       - uses: actions/checkout@v4
 
@@ -267,6 +330,12 @@ jobs:
   live-stack-evidence:
     name: Live stack health evidence
     runs-on: ubuntu-latest
+    needs: [change-scope]
+    # Boots the backend-integrated compose stack (services/** + infra/compose),
+    # rebuilds images from dependency manifests, and runs the health-check
+    # script. `docker` scope is deliberately excluded: it also covers apps/**
+    # (frontend), which this stack does not contain.
+    if: needs.change-scope.outputs.backend == 'true' || needs.change-scope.outputs.deps == 'true' || needs.change-scope.outputs.ci-tooling == 'true'
     steps:
       - uses: actions/checkout@v4
 
@@ -301,6 +370,11 @@ jobs:
   consolidate-bundle:
     name: Consolidate & Publish Evidence Bundle
     runs-on: ubuntu-latest
+    # Always runs (even when every fan-in was scope-skipped): the bundle
+    # generator records missing evidence as manifest gaps instead of failing,
+    # preserving the "always emit the required aggregate" invariant. Because
+    # it never skips, no --skip-safe entry is needed in aggregate-08.
+    if: always()
     needs:
       [
         release-readiness-gate,
@@ -376,14 +450,18 @@ jobs:
   # ---------------------------------------------------------------------------
   # V1-CI-001 Stage 1 (shadow): stable aggregate release-evidence check.
   # Informational until Stage 3. Summarizes existing jobs only
-  # (scripts/ci/aggregate_gate.py). All fanned-in jobs run on every trigger of
-  # this workflow, so any skip fails the aggregate closed.
+  # (scripts/ci/aggregate_gate.py). The fanned-in jobs are change-scope gated,
+  # so a child that was skipped is admitted only when its scope resolved to
+  # 'false' (--skip-safe JOB=ENV where ENV encodes that job's scope negation).
+  # Jobs without a --skip-safe entry must succeed. consolidate-bundle uses
+  # `if: always()` and the bundle generator records gaps, so it never skips.
   # ---------------------------------------------------------------------------
   aggregate-08-release-evidence:
     name: 08-release-evidence
     runs-on: ubuntu-latest
     if: always()
     needs:
+      - change-scope
       - release-readiness-gate
       - build-and-scan
       - supply-chain-policy-check
@@ -395,4 +473,20 @@ jobs:
       - name: Summarize release-evidence gates
         env:
           NEEDS_JSON: ${{ toJSON(needs) }}
-        run: python3 scripts/ci/aggregate_gate.py --needs-json "$NEEDS_JSON"
+          # Scope-negation confirmations: each env is true exactly when its
+          # job's change-scope gate was false (i.e. the skip was safe).
+          SKIPSAFE_RELEASE_READINESS: ${{ needs.change-scope.outputs.k8s == 'false' && needs.change-scope.outputs.release-policy == 'false' && needs.change-scope.outputs.ci-governance == 'false' && needs.change-scope.outputs.ci-tooling == 'false' }}
+          SKIPSAFE_BUILD_AND_SCAN: ${{ needs.change-scope.outputs.backend == 'false' && needs.change-scope.outputs.deps == 'false' && needs.change-scope.outputs.ci-governance == 'false' }}
+          # supply-chain-policy-check inherits build-and-scan's fate via needs
+          # propagation, so the same scope negation confirms its skip.
+          SKIPSAFE_SUPPLY_CHAIN_POLICY: ${{ needs.change-scope.outputs.backend == 'false' && needs.change-scope.outputs.deps == 'false' && needs.change-scope.outputs.ci-governance == 'false' }}
+          SKIPSAFE_SAST_AND_TESTS: ${{ needs.change-scope.outputs.backend == 'false' }}
+          SKIPSAFE_LIVE_STACK: ${{ needs.change-scope.outputs.backend == 'false' && needs.change-scope.outputs.deps == 'false' && needs.change-scope.outputs.ci-tooling == 'false' }}
+        run: |
+          python3 scripts/ci/aggregate_gate.py \
+            --needs-json "$NEEDS_JSON" \
+            --skip-safe release-readiness-gate=SKIPSAFE_RELEASE_READINESS \
+            --skip-safe build-and-scan=SKIPSAFE_BUILD_AND_SCAN \
+            --skip-safe supply-chain-policy-check=SKIPSAFE_SUPPLY_CHAIN_POLICY \
+            --skip-safe sast-and-tests=SKIPSAFE_SAST_AND_TESTS \
+            --skip-safe live-stack-evidence=SKIPSAFE_LIVE_STACK
