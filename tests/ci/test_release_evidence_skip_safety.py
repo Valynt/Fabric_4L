@@ -26,13 +26,20 @@ breaks skip-safety fails CI without depending on the merge gate to catch it.
 """
 from __future__ import annotations
 
-import re
 from pathlib import Path
 
-import yaml
+from tests.ci._change_scope_contract import (
+    aggregate_step,
+    assert_post_resolve_outputs,
+    load_workflow,
+    normalize_expr,
+    parse_scope_expr,
+    skip_safe_entries,
+)
 
 ROOT = Path(__file__).resolve().parents[2]
 WORKFLOW = ROOT / ".github/workflows/release-evidence-bundle.yml"
+AGGREGATE_JOB = "aggregate-08-release-evidence"
 
 # The six change-scope outputs this workflow actually consumes. Adding a new
 # scope here requires also adding it to the change-scope job outputs and to
@@ -68,61 +75,13 @@ SKIP_SAFE_ENVS = {
 # generator never fails on gaps.
 UNSKIPPABLE = {"change-scope", "consolidate-bundle"}
 
-SCOPE_CLAUSE = re.compile(
-    r"^needs\.change-scope\.outputs\.([a-z0-9-]+) == '(\w+)'$"
-)
-
 
 def _load() -> dict[str, object]:
-    data = yaml.safe_load(WORKFLOW.read_text(encoding="utf-8"))
-    assert isinstance(data, dict)
-    return data
+    return load_workflow(WORKFLOW)
 
 
-def _parse_scope_expr(expr: str, joiner: str) -> list[tuple[str, str]]:
-    """Parse a change-scope gate (joiner '||') or SKIPSAFE env (joiner '&&')
-    into (scope, expected_value) pairs, rejecting any non change-scope clause."""
-    out: list[tuple[str, str]] = []
-    for clause in expr.split(joiner):
-        clause = clause.strip()
-        match = SCOPE_CLAUSE.fullmatch(clause)
-        assert match, f"expression contains a non change-scope clause: {clause!r}"
-        scope, value = match.group(1), match.group(2)
-        assert (
-            scope in CHANGE_SCOPE_OUTPUTS
-        ), f"scope {scope!r} is not a declared change-scope output"
-        out.append((scope, value))
-    return out
-
-
-def _aggregate_step(data: dict[str, object]) -> tuple[dict[str, object], str]:
-    """Return (env, run) of the aggregate_gate.py step inside aggregate-08."""
-    job = data["jobs"]["aggregate-08-release-evidence"]  # type: ignore[index]
-    for step in job["steps"]:  # type: ignore[union-attr]
-        run = step.get("run", "")
-        if isinstance(run, str) and "aggregate_gate.py" in run:
-            env = step.get("env", {})
-            assert isinstance(env, dict)
-            return env, run
-    raise AssertionError("aggregate-08 has no aggregate_gate.py step")
-
-
-def _skip_safe_entries(run: str) -> dict[str, str]:
-    """Parse `--skip-safe JOB=ENV` flags from the aggregate run block."""
-    entries: dict[str, str] = {}
-    for line in run.splitlines():
-        line = line.strip()
-        if not line.startswith("--skip-safe"):
-            continue
-        job, _, env_name = line.removeprefix("--skip-safe").strip().partition("=")
-        assert "=" in line and env_name, f"malformed --skip-safe entry: {line}"
-        # Drop a trailing shell line-continuation backslash on all but the last
-        # --skip-safe flag.
-        env_name = env_name.rstrip()
-        if env_name.endswith("\\"):
-            env_name = env_name[:-1].rstrip()
-        entries[job] = env_name
-    return entries
+def _aggregate(data: dict[str, object]) -> tuple[dict[str, object], str]:
+    return aggregate_step(data, AGGREGATE_JOB)
 
 
 def test_change_scope_job_exposes_exactly_the_consumed_outputs() -> None:
@@ -134,7 +93,7 @@ def test_change_scope_job_exposes_exactly_the_consumed_outputs() -> None:
     assert set(outputs) == CHANGE_SCOPE_OUTPUTS
 
     for scope in CHANGE_SCOPE_OUTPUTS:
-        assert outputs[scope] == f"${{{{ steps.scope.outputs.{scope} }}}}"
+        assert normalize_expr(outputs[scope]) == f"steps.scope.outputs.{scope}"
 
     # Non-PR events (push/schedule/workflow_dispatch) emit no diff; the
     # change-scope action fails open to 'true', and the Post-resolve step makes
@@ -144,10 +103,7 @@ def test_change_scope_job_exposes_exactly_the_consumed_outputs() -> None:
         for step in cs["steps"]  # type: ignore[union-attr]
         if step.get("name") == "Post-resolve change scopes"
     )
-    for scope in CHANGE_SCOPE_OUTPUTS:
-        assert (
-            f'echo "{scope}=true" >> $GITHUB_OUTPUT' in post_resolve
-        ), f"Post-resolve step missing {scope}=true"
+    assert_post_resolve_outputs(post_resolve, CHANGE_SCOPE_OUTPUTS)
 
 
 def test_gated_jobs_are_scope_gated_and_consume_change_scope() -> None:
@@ -160,7 +116,7 @@ def test_gated_jobs_are_scope_gated_and_consume_change_scope() -> None:
         assert "change-scope" in needs_list, f"{job_id} does not need change-scope"
 
         gate = job.get("if", "")
-        clauses = _parse_scope_expr(gate, "||")
+        clauses = parse_scope_expr(gate, "||", CHANGE_SCOPE_OUTPUTS)
         assert clauses, f"{job_id} has no change-scope gate"
         assert {s for s, _ in clauses} == expected_scopes
         assert all(v == "true" for _, v in clauses), (
@@ -189,21 +145,19 @@ def test_supply_chain_policy_check_inherits_build_and_scan_skip() -> None:
 def test_aggregate_skip_safe_env_is_exact_negation_of_each_gate() -> None:
     data = _load()
     jobs = data["jobs"]  # type: ignore[index]
-    env, run = _aggregate_step(data)
+    env, run = _aggregate(data)
 
     for job_id, expected_scopes in GATED_JOBS.items():
         gate = jobs[job_id].get("if", "")  # type: ignore[index]
-        gate_scopes = {s for s, v in _parse_scope_expr(gate, "||") if v == "true"}
+        gate_scopes = {
+            s for s, v in parse_scope_expr(gate, "||", CHANGE_SCOPE_OUTPUTS) if v == "true"
+        }
 
         env_name = SKIP_SAFE_ENVS[job_id]
         assert env_name in env, f"aggregate-08 missing env {env_name}"
         env_expr = env[env_name]
         assert isinstance(env_expr, str)
-        env_expr = env_expr.strip()
-        # Strip the ${{ ... }} interpolation wrapper from the env value.
-        if env_expr.startswith("${{") and env_expr.endswith("}}"):
-            env_expr = env_expr[3:-2].strip()
-        env_clauses = _parse_scope_expr(env_expr, "&&")
+        env_clauses = parse_scope_expr(env_expr, "&&", CHANGE_SCOPE_OUTPUTS)
 
         assert {s for s, _ in env_clauses} == gate_scopes == expected_scopes, (
             f"{job_id}: gate scopes {gate_scopes} != SKIPSAFE env scopes "
@@ -221,11 +175,11 @@ def test_aggregate_skip_safe_env_is_exact_negation_of_each_gate() -> None:
 
 def test_supply_chain_skip_safe_confirmation_matches_build_and_scan() -> None:
     data = _load()
-    env, run = _aggregate_step(data)
+    env, run = _aggregate(data)
     supply_env = env["SKIPSAFE_SUPPLY_CHAIN_POLICY"]
     build_env = env["SKIPSAFE_BUILD_AND_SCAN"]
     assert isinstance(supply_env, str) and isinstance(build_env, str)
-    assert supply_env.strip() == build_env.strip(), (
+    assert normalize_expr(supply_env) == normalize_expr(build_env), (
         "SKIPSAFE_SUPPLY_CHAIN_POLICY must mirror SKIPSAFE_BUILD_AND_SCAN so the "
         "auto-skipped child is admitted exactly when build-and-scan is"
     )
@@ -237,8 +191,8 @@ def test_supply_chain_skip_safe_confirmation_matches_build_and_scan() -> None:
 def test_unskippable_jobs_never_get_a_skip_safe_entry() -> None:
     data = _load()
     jobs = data["jobs"]  # type: ignore[index]
-    _, run = _aggregate_step(data)
-    entries = _skip_safe_entries(run)
+    _, run = _aggregate(data)
+    entries = skip_safe_entries(run)
 
     for job_id in UNSKIPPABLE:
         assert job_id not in entries, (
@@ -253,7 +207,7 @@ def test_unskippable_jobs_never_get_a_skip_safe_entry() -> None:
 def test_aggregate_always_runs_and_every_skip_admission_is_confirmed() -> None:
     data = _load()
     jobs = data["jobs"]  # type: ignore[index]
-    agg = jobs["aggregate-08-release-evidence"]  # type: ignore[index]
+    agg = jobs[AGGREGATE_JOB]  # type: ignore[index]
     assert agg.get("if") == "always()", "aggregate-08 must be if: always()"
 
     needs = agg.get("needs", [])
@@ -262,10 +216,9 @@ def test_aggregate_always_runs_and_every_skip_admission_is_confirmed() -> None:
     for child in needs:
         assert child in jobs, f"aggregate-08 needs unknown job {child}"
 
-    _, run = _aggregate_step(data)
-    entries = _skip_safe_entries(run)
+    _, run = _aggregate(data)
+    entries = skip_safe_entries(run)
 
-    _agg_env, _ = _aggregate_step(data)
     names = set(SKIP_SAFE_ENVS.values())
     for job_id, env_name in entries.items():
         assert job_id in jobs, f"--skip-safe references unknown job {job_id}"

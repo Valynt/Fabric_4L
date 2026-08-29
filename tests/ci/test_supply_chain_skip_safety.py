@@ -29,13 +29,21 @@ breaks skip-safety fails CI without depending on the merge gate to catch it.
 """
 from __future__ import annotations
 
-import re
 from pathlib import Path
 
-import yaml
+from tests.ci._change_scope_contract import (
+    aggregate_step,
+    assert_post_resolve_outputs,
+    assert_scope_gates_semantic_equality,
+    load_workflow,
+    normalize_expr,
+    parse_scope_expr,
+    skip_safe_entries,
+)
 
 ROOT = Path(__file__).resolve().parents[2]
 WORKFLOW = ROOT / ".github/workflows/supply-chain-integrity.yml"
+AGGREGATE_JOB = "aggregate-07-supply-chain-integrity"
 
 # The five change-scope outputs this workflow actually consumes. Adding a new
 # scope here requires also adding it to the change-scope job outputs and to
@@ -59,7 +67,7 @@ GATED_JOBS = {
     "license-check": {"ci-global", "deps", "ci-tooling"},
 }
 
-# Jobs whose gate is byte-identical to ci-tools-preflight's (they consume the
+# Jobs whose gate is semantically identical to ci-tools-preflight's (they consume the
 # preflight-built container and inherit its fate via needs propagation). One
 # SKIPSAFE env confirms all of them.
 SHARED_GATE_JOBS = {"ci-tools-preflight", "dependency-audit", "license-check"}
@@ -80,61 +88,13 @@ IMAGE_CERT_JOBS = {"sbom-scan", "provenance", "verify-signatures"}
 # supply-chain-summary always runs (it is the human-facing gate log).
 UNSKIPPABLE = {"change-scope", "supply-chain-summary"}
 
-SCOPE_CLAUSE = re.compile(
-    r"^needs\.change-scope\.outputs\.([a-z0-9-]+) == '(\w+)'$"
-)
-
 
 def _load() -> dict[str, object]:
-    data = yaml.safe_load(WORKFLOW.read_text(encoding="utf-8"))
-    assert isinstance(data, dict)
-    return data
+    return load_workflow(WORKFLOW)
 
 
-def _parse_scope_expr(expr: str, joiner: str) -> list[tuple[str, str]]:
-    """Parse a change-scope gate (joiner '||') or SKIPSAFE env (joiner '&&')
-    into (scope, expected_value) pairs, rejecting any non change-scope clause."""
-    out: list[tuple[str, str]] = []
-    for clause in expr.split(joiner):
-        clause = clause.strip()
-        match = SCOPE_CLAUSE.fullmatch(clause)
-        assert match, f"expression contains a non change-scope clause: {clause!r}"
-        scope, value = match.group(1), match.group(2)
-        assert (
-            scope in CHANGE_SCOPE_OUTPUTS
-        ), f"scope {scope!r} is not a declared change-scope output"
-        out.append((scope, value))
-    return out
-
-
-def _aggregate_step(data: dict[str, object]) -> tuple[dict[str, object], str]:
-    """Return (env, run) of the aggregate_gate.py step inside aggregate-07."""
-    job = data["jobs"]["aggregate-07-supply-chain-integrity"]  # type: ignore[index]
-    for step in job["steps"]:  # type: ignore[union-attr]
-        run = step.get("run", "")
-        if isinstance(run, str) and "aggregate_gate.py" in run:
-            env = step.get("env", {})
-            assert isinstance(env, dict)
-            return env, run
-    raise AssertionError("aggregate-07 has no aggregate_gate.py step")
-
-
-def _skip_safe_entries(run: str) -> dict[str, str]:
-    """Parse `--skip-safe JOB=ENV` flags from the aggregate run block."""
-    entries: dict[str, str] = {}
-    for line in run.splitlines():
-        line = line.strip()
-        if not line.startswith("--skip-safe"):
-            continue
-        job, _, env_name = line.removeprefix("--skip-safe").strip().partition("=")
-        assert "=" in line and env_name, f"malformed --skip-safe entry: {line}"
-        # Drop a trailing shell line-continuation backslash on all but the last
-        # --skip-safe flag.
-        env_name = env_name.rstrip()
-        if env_name.endswith("\\"):
-            env_name = env_name[:-1].rstrip()
-        entries[job] = env_name
-    return entries
+def _aggregate(data: dict[str, object]) -> tuple[dict[str, object], str]:
+    return aggregate_step(data, AGGREGATE_JOB)
 
 
 def test_change_scope_job_exposes_exactly_the_consumed_outputs() -> None:
@@ -146,7 +106,7 @@ def test_change_scope_job_exposes_exactly_the_consumed_outputs() -> None:
     assert set(outputs) == CHANGE_SCOPE_OUTPUTS
 
     for scope in CHANGE_SCOPE_OUTPUTS:
-        assert outputs[scope] == f"${{{{ steps.scope.outputs.{scope} }}}}"
+        assert normalize_expr(outputs[scope]) == f"steps.scope.outputs.{scope}"
 
     # Non-PR events (push/schedule/workflow_dispatch) emit no diff; the
     # change-scope action fails open to 'true', and the Post-resolve step makes
@@ -156,10 +116,7 @@ def test_change_scope_job_exposes_exactly_the_consumed_outputs() -> None:
         for step in cs["steps"]  # type: ignore[union-attr]
         if step.get("name") == "Post-resolve change scopes"
     )
-    for scope in CHANGE_SCOPE_OUTPUTS:
-        assert (
-            f'echo "{scope}=true" >> $GITHUB_OUTPUT' in post_resolve
-        ), f"Post-resolve step missing {scope}=true"
+    assert_post_resolve_outputs(post_resolve, CHANGE_SCOPE_OUTPUTS)
 
 
 def test_gated_jobs_are_scope_gated_and_consume_change_scope() -> None:
@@ -172,7 +129,7 @@ def test_gated_jobs_are_scope_gated_and_consume_change_scope() -> None:
         assert "change-scope" in needs_list, f"{job_id} does not need change-scope"
 
         gate = job.get("if", "")
-        clauses = _parse_scope_expr(gate, "||")
+        clauses = parse_scope_expr(gate, "||", CHANGE_SCOPE_OUTPUTS)
         assert clauses, f"{job_id} has no change-scope gate"
         assert {s for s, _ in clauses} == expected_scopes
         assert all(v == "true" for _, v in clauses), (
@@ -188,9 +145,9 @@ def test_shared_gate_jobs_use_byte_identical_gate_and_one_env() -> None:
     assert preflight_gate, "ci-tools-preflight has no gate"
 
     for job_id in SHARED_GATE_JOBS - {"ci-tools-preflight"}:
-        assert jobs[job_id].get("if", "") == preflight_gate, (  # type: ignore[index]
-            f"{job_id} gate must be byte-identical to ci-tools-preflight's so "
-            "needs-auto-skip and the aggregate SKIPSAFE predicate never diverge"
+        target_gate = jobs[job_id].get("if", "")  # type: ignore[index]
+        assert_scope_gates_semantic_equality(
+            target_gate, preflight_gate, CHANGE_SCOPE_OUTPUTS, "||"
         )
         needs = jobs[job_id].get("needs")  # type: ignore[index]
         needs_list = needs if isinstance(needs, list) else ([needs] if needs else [])
@@ -202,21 +159,19 @@ def test_shared_gate_jobs_use_byte_identical_gate_and_one_env() -> None:
 def test_aggregate_skip_safe_env_is_exact_negation_of_each_gate() -> None:
     data = _load()
     jobs = data["jobs"]  # type: ignore[index]
-    env, run = _aggregate_step(data)
+    env, run = _aggregate(data)
 
     for job_id, expected_scopes in GATED_JOBS.items():
         gate = jobs[job_id].get("if", "")  # type: ignore[index]
-        gate_scopes = {s for s, v in _parse_scope_expr(gate, "||") if v == "true"}
+        gate_scopes = {
+            s for s, v in parse_scope_expr(gate, "||", CHANGE_SCOPE_OUTPUTS) if v == "true"
+        }
 
         env_name = SKIP_SAFE_ENVS[job_id]
         assert env_name in env, f"aggregate-07 missing env {env_name}"
         env_expr = env[env_name]
         assert isinstance(env_expr, str)
-        env_expr = env_expr.strip()
-        # Strip the ${{ ... }} interpolation wrapper from the env value.
-        if env_expr.startswith("${{") and env_expr.endswith("}}"):
-            env_expr = env_expr[3:-2].strip()
-        env_clauses = _parse_scope_expr(env_expr, "&&")
+        env_clauses = parse_scope_expr(env_expr, "&&", CHANGE_SCOPE_OUTPUTS)
 
         assert {s for s, _ in env_clauses} == gate_scopes == expected_scopes, (
             f"{job_id}: gate scopes {gate_scopes} != SKIPSAFE env scopes "
@@ -242,7 +197,7 @@ def test_source_sbom_env_is_independent_of_shared_gate() -> None:
     assert "ci-tools-preflight" not in needs_list, (
         "source-sbom-scan must not depend on the tools container"
     )
-    env, run = _aggregate_step(data)
+    env, run = _aggregate(data)
     assert isinstance(env.get("SKIPSAFE_SOURCE_SBOM"), str)
     assert "--skip-safe source-sbom-scan=SKIPSAFE_SOURCE_SBOM" in run
     assert "--skip-safe source-sbom-scan=SKIPSAFE_PREFLIGHT" not in run
@@ -250,7 +205,7 @@ def test_source_sbom_env_is_independent_of_shared_gate() -> None:
 
 def test_image_cert_jobs_are_gated_by_dispatch_and_confirmed() -> None:
     data = _load()
-    env, run = _aggregate_step(data)
+    env, run = _aggregate(data)
     assert isinstance(env.get("SKIPSAFE_IMAGE_CERT"), str)
     for job_id in IMAGE_CERT_JOBS:
         assert f"--skip-safe {job_id}=SKIPSAFE_IMAGE_CERT" in run, (
@@ -292,8 +247,8 @@ def test_summary_admits_scope_skips_but_hard_requires_image_controls() -> None:
 def test_unskippable_jobs_never_get_a_skip_safe_entry() -> None:
     data = _load()
     jobs = data["jobs"]  # type: ignore[index]
-    _, run = _aggregate_step(data)
-    entries = _skip_safe_entries(run)
+    _, run = _aggregate(data)
+    entries = skip_safe_entries(run)
 
     for job_id in UNSKIPPABLE:
         assert job_id not in entries, (
@@ -308,7 +263,7 @@ def test_unskippable_jobs_never_get_a_skip_safe_entry() -> None:
 def test_aggregate_always_runs_and_every_skip_admission_is_confirmed() -> None:
     data = _load()
     jobs = data["jobs"]  # type: ignore[index]
-    agg = jobs["aggregate-07-supply-chain-integrity"]  # type: ignore[index]
+    agg = jobs[AGGREGATE_JOB]  # type: ignore[index]
     assert agg.get("if") == "always()", "aggregate-07 must be if: always()"
 
     needs = agg.get("needs", [])
@@ -317,8 +272,8 @@ def test_aggregate_always_runs_and_every_skip_admission_is_confirmed() -> None:
     for child in needs:
         assert child in jobs, f"aggregate-07 needs unknown job {child}"
 
-    _, run = _aggregate_step(data)
-    entries = _skip_safe_entries(run)
+    _, run = _aggregate(data)
+    entries = skip_safe_entries(run)
 
     names = set(SKIP_SAFE_ENVS.values()) | {"SKIPSAFE_IMAGE_CERT"}
     for job_id, env_name in entries.items():
