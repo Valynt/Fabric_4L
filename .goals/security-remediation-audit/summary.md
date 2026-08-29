@@ -65,3 +65,12 @@ No application source code was modified.
 - Filing IDs (PROD-001…DB-010) trace to no committed artifact — consider
   committing the AuditOrchestrator findings that produced this plan so future
   audits can be diffed.
+## Follow-up (2026-08-29): L3-SEC-007 landed
+
+Implemented the tenant-scoping fix the audit recommended:
+
+- `benchmarks.py` list/get: `OPTIONAL MATCH (vp:ValuePack)` now carries `{tenant_id: $tenant_id}` (list uses an f-string, so braces escaped as `{{...}}`).
+- `formulas.py` ref-count and delete-step: `vp:ValuePack`, `fv:FormulaVersion`, and `v:Variable` optional joins now `{tenant_id: $tenant_id}`; bare `OPTIONAL MATCH (f)` hardened to `(f:Formula)` for the broad-MATCH guard.
+- TEST-009 fold-in: 14 executable validator + behavioral hostile tests in tests/security/test_optional_join_tenant_scope.py, plus static ValuePack-scope checks in the benchmarks regex file.
+
+Validation: layer3 security suite 63 passed / 5 skipped (pre-existing skips); layer3 Cypher scope CI gate PASS (0 unsafe). Residual out-of-scope: `create_formula`/`update_formula` fetch steps and `update_formula` delete-rels are pre-existing unscoped queries at origin/main (fail-closed, no leak) — not part of L3-SEC-007.
