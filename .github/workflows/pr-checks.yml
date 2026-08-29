@@ -2219,8 +2219,9 @@ jobs:
           SERVICE_AUTH_SECRET: ci-runtime-service-auth-secret-minimum-32-chars
           RUNTIME_CONTRACT_TENANT_ID: 00000000-0000-4000-8000-000000000001
         run: |
+          pytest tests/contract/test_layer_integration.py -m runtime_contract -v --tb=short
+
           pytest \
-            tests/contract/test_layer_integration.py \
             tests/contract/test_layer_service_entrypoint_smoke.py \
             tests/contract/test_l3_route_alias_parity.py \
             -v --tb=short
