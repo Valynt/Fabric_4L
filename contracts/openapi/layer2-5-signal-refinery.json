@@ -2,32 +2,36 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Layer 2.5: Signal Refinery",
-    "description": "Turns L2 extraction output into trusted, evidence-backed ValueSignal objects.\n\nAll endpoints require tenant context from the authenticated request (X-Tenant-ID header\nor JWT). tenant_id is never accepted from the request body.\n",
-    "version": "0.1.0",
-    "contact": {
-      "name": "Value Fabric Engineering"
-    }
+    "description": "Turns L2 extraction output into trusted, evidence-backed ValueSignal objects. Provides CRUD, review, promote, and refinement endpoints.",
+    "version": "0.1.0"
   },
-  "servers": [
-    {
-      "url": "http://localhost:8007",
-      "description": "Local development"
-    }
-  ],
-  "tags": [
-    {
-      "name": "signals",
-      "description": "ValueSignal CRUD, review, promote, and refinement"
-    }
-  ],
   "paths": {
+    "/ready": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Readiness Handler",
+        "operationId": "readiness_handler_ready_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/signals": {
       "post": {
         "tags": [
           "signals"
         ],
-        "summary": "Create a ValueSignal",
-        "operationId": "createSignal",
+        "summary": "Create Signal",
+        "operationId": "create_signal_api_v1_signals_post",
         "requestBody": {
           "required": true,
           "content": {
@@ -40,20 +44,26 @@
         },
         "responses": {
           "201": {
-            "description": "Signal created",
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ValueSignal"
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Create Signal Api V1 Signals Post"
                 }
               }
             }
           },
           "422": {
-            "$ref": "#/components/responses/ValidationError"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
           }
         }
       },
@@ -61,8 +71,8 @@
         "tags": [
           "signals"
         ],
-        "summary": "List signals for an account",
-        "operationId": "listSignals",
+        "summary": "List Signals",
+        "operationId": "list_signals_api_v1_signals_get",
         "parameters": [
           {
             "name": "account_id",
@@ -70,127 +80,142 @@
             "required": true,
             "schema": {
               "type": "string",
-              "format": "uuid"
+              "title": "Account Id"
             }
           },
           {
             "name": "types",
             "in": "query",
+            "required": false,
             "schema": {
-              "type": "array",
-              "items": {
-                "$ref": "#/components/schemas/ValueSignalType"
-              }
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Types"
             }
           },
           {
             "name": "lifecycle_state",
             "in": "query",
+            "required": false,
             "schema": {
-              "type": "array",
-              "items": {
-                "$ref": "#/components/schemas/ValueSignalLifecycleState"
-              }
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Lifecycle State"
             }
           },
           {
             "name": "min_confidence",
             "in": "query",
+            "required": false,
             "schema": {
-              "type": "number",
-              "minimum": 0,
-              "maximum": 1
+              "anyOf": [
+                {
+                  "type": "number",
+                  "maximum": 1.0,
+                  "minimum": 0.0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Min Confidence"
             }
           },
           {
             "name": "min_trust_score",
             "in": "query",
+            "required": false,
             "schema": {
-              "type": "number",
-              "minimum": 0,
-              "maximum": 1
+              "anyOf": [
+                {
+                  "type": "number",
+                  "maximum": 1.0,
+                  "minimum": 0.0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Min Trust Score"
             }
           },
           {
             "name": "impact_area",
             "in": "query",
+            "required": false,
             "schema": {
-              "$ref": "#/components/schemas/SignalImpactArea"
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Impact Area"
             }
           },
           {
             "name": "limit",
             "in": "query",
+            "required": false,
             "schema": {
               "type": "integer",
-              "default": 50,
+              "maximum": 200,
               "minimum": 1,
-              "maximum": 200
+              "default": 50,
+              "title": "Limit"
             }
           },
           {
             "name": "offset",
             "in": "query",
+            "required": false,
             "schema": {
               "type": "integer",
+              "minimum": 0,
               "default": 0,
-              "minimum": 0
+              "title": "Offset"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "Paginated signal list",
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ValueSignalListResponse"
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response List Signals Api V1 Signals Get"
                 }
               }
             }
           },
           "422": {
-            "$ref": "#/components/responses/ValidationError"
-          }
-        }
-      }
-    },
-    "/api/v1/signals/refine": {
-      "post": {
-        "tags": [
-          "signals"
-        ],
-        "summary": "Trigger L2.5 refinement on a batch of source refs",
-        "operationId": "refineSignals",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SignalRefineRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "202": {
-            "description": "Refinement accepted",
+            "description": "Validation Error",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "refined": {
-                      "type": "integer"
-                    },
-                    "signal_ids": {
-                      "type": "array",
-                      "items": {
-                        "type": "string",
-                        "format": "uuid"
-                      }
-                    }
-                  }
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -203,8 +228,8 @@
         "tags": [
           "signals"
         ],
-        "summary": "All signals for an account",
-        "operationId": "getAccountSignals",
+        "summary": "Get Account Signals",
+        "operationId": "get_account_signals_api_v1_signals_account__account_id__get",
         "parameters": [
           {
             "name": "account_id",
@@ -212,62 +237,108 @@
             "required": true,
             "schema": {
               "type": "string",
-              "format": "uuid"
+              "title": "Account Id"
             }
           },
           {
             "name": "lifecycle_state",
             "in": "query",
+            "required": false,
             "schema": {
-              "type": "array",
-              "items": {
-                "$ref": "#/components/schemas/ValueSignalLifecycleState"
-              }
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Lifecycle State"
             }
           },
           {
             "name": "types",
             "in": "query",
+            "required": false,
             "schema": {
-              "type": "array",
-              "items": {
-                "$ref": "#/components/schemas/ValueSignalType"
-              }
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Types"
             }
           },
           {
             "name": "min_confidence",
             "in": "query",
+            "required": false,
             "schema": {
-              "type": "number",
-              "minimum": 0,
-              "maximum": 1
+              "anyOf": [
+                {
+                  "type": "number",
+                  "maximum": 1.0,
+                  "minimum": 0.0
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Min Confidence"
             }
           },
           {
             "name": "limit",
             "in": "query",
+            "required": false,
             "schema": {
               "type": "integer",
-              "default": 100
+              "maximum": 500,
+              "minimum": 1,
+              "default": 100,
+              "title": "Limit"
             }
           },
           {
             "name": "offset",
             "in": "query",
+            "required": false,
             "schema": {
               "type": "integer",
-              "default": 0
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "Account signals",
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ValueSignalListResponse"
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Get Account Signals Api V1 Signals Account  Account Id  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -280,26 +351,41 @@
         "tags": [
           "signals"
         ],
-        "summary": "Get a single signal",
-        "operationId": "getSignal",
+        "summary": "Get Signal",
+        "operationId": "get_signal_api_v1_signals__signal_id__get",
         "parameters": [
           {
-            "$ref": "#/components/parameters/SignalId"
+            "name": "signal_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Signal Id"
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": "Signal found",
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ValueSignal"
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Get Signal Api V1 Signals  Signal Id  Get"
                 }
               }
             }
           },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
           }
         }
       },
@@ -307,11 +393,17 @@
         "tags": [
           "signals"
         ],
-        "summary": "Partial update of a signal",
-        "operationId": "updateSignal",
+        "summary": "Update Signal",
+        "operationId": "update_signal_api_v1_signals__signal_id__patch",
         "parameters": [
           {
-            "$ref": "#/components/parameters/SignalId"
+            "name": "signal_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Signal Id"
+            }
           }
         ],
         "requestBody": {
@@ -326,20 +418,26 @@
         },
         "responses": {
           "200": {
-            "description": "Updated signal",
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ValueSignal"
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Update Signal Api V1 Signals  Signal Id  Patch"
                 }
               }
             }
           },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
           }
         }
       },
@@ -347,19 +445,32 @@
         "tags": [
           "signals"
         ],
-        "summary": "Soft-delete a signal",
-        "operationId": "deleteSignal",
+        "summary": "Delete Signal",
+        "operationId": "delete_signal_api_v1_signals__signal_id__delete",
         "parameters": [
           {
-            "$ref": "#/components/parameters/SignalId"
+            "name": "signal_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Signal Id"
+            }
           }
         ],
         "responses": {
           "204": {
-            "description": "Deleted"
+            "description": "Successful Response"
           },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
           }
         }
       }
@@ -369,11 +480,17 @@
         "tags": [
           "signals"
         ],
-        "summary": "Submit human review (approve or reject)",
-        "operationId": "reviewSignal",
+        "summary": "Review Signal",
+        "operationId": "review_signal_api_v1_signals__signal_id__review_post",
         "parameters": [
           {
-            "$ref": "#/components/parameters/SignalId"
+            "name": "signal_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Signal Id"
+            }
           }
         ],
         "requestBody": {
@@ -388,20 +505,26 @@
         },
         "responses": {
           "200": {
-            "description": "Reviewed signal",
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ValueSignal"
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Review Signal Api V1 Signals  Signal Id  Review Post"
                 }
               }
             }
           },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
           }
         }
       }
@@ -411,11 +534,17 @@
         "tags": [
           "signals"
         ],
-        "summary": "Promote a signal to a value hypothesis",
-        "operationId": "promoteSignal",
+        "summary": "Promote Signal",
+        "operationId": "promote_signal_api_v1_signals__signal_id__promote_post",
         "parameters": [
           {
-            "$ref": "#/components/parameters/SignalId"
+            "name": "signal_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Signal Id"
+            }
           }
         ],
         "requestBody": {
@@ -430,101 +559,694 @@
         },
         "responses": {
           "200": {
-            "description": "Promoted signal",
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ValueSignal"
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Promote Signal Api V1 Signals  Signal Id  Promote Post"
                 }
               }
             }
           },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          },
-          "409": {
-            "$ref": "#/components/responses/Conflict"
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
           }
         }
       }
     },
-    "/health": {
-      "get": {
-        "summary": "Health check",
-        "operationId": "health",
+    "/api/v1/signals/refine": {
+      "post": {
+        "tags": [
+          "signals"
+        ],
+        "summary": "Refine Signals",
+        "description": "Trigger L2.5 refinement on a batch of raw L2 extraction payloads.\n\nAccepts ``raw_signals`` (preferred) \u2014 actual L2 extraction output \u2014 or\nfalls back to ``source_refs`` for backward compatibility. The fallback\nproduces signals with synthetic content and should not be used in production.",
+        "operationId": "refine_signals_api_v1_signals_refine_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignalRefineRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
-          "200": {
-            "description": "Service healthy"
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Refine Signals Api V1 Signals Refine Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
           }
         }
       }
     }
   },
   "components": {
-    "parameters": {
-      "SignalId": {
-        "name": "signal_id",
-        "in": "path",
-        "required": true,
-        "schema": {
-          "type": "string",
-          "format": "uuid"
-        }
-      }
-    },
-    "responses": {
-      "Unauthorized": {
-        "description": "Missing or invalid tenant context",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
+    "schemas": {
+      "HTTPValidationError": {
+        "type": "object",
+        "title": "HTTPValidationError",
+        "required": [
+          "error"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "type": "object",
+            "required": [
+              "code",
+              "message",
+              "request_id"
+            ],
+            "properties": {
+              "code": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Machine-readable error code"
+              },
+              "message": {
+                "type": "string",
+                "description": "Human-readable error message"
+              },
+              "request_id": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Request ID for support correlation"
+              },
+              "details": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Optional sanitized error details"
+              }
             }
           }
-        }
+        },
+        "description": "Deprecated compatibility alias for ErrorEnvelope. Use ErrorEnvelope for new clients."
       },
-      "NotFound": {
-        "description": "Signal not found",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
-            }
-          }
-        }
+      "ProvenanceExtractor": {
+        "type": "string",
+        "enum": [
+          "human",
+          "ai",
+          "system"
+        ],
+        "title": "ProvenanceExtractor"
       },
-      "BadRequest": {
-        "description": "Invalid request",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
-            }
+      "RawSignalInput": {
+        "properties": {
+          "account_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Account Id"
+          },
+          "type": {
+            "type": "string",
+            "title": "Type",
+            "description": "Raw signal type from L2 (mapped to ValueSignalType by refinery)",
+            "default": "pain"
+          },
+          "content": {
+            "type": "string",
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Content"
+          },
+          "confidence": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Confidence"
+          },
+          "evidence": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Evidence"
+          },
+          "provenance": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Provenance"
+          },
+          "source_refs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Source Refs"
           }
-        }
+        },
+        "type": "object",
+        "required": [
+          "account_id",
+          "content",
+          "confidence"
+        ],
+        "title": "RawSignalInput",
+        "description": "A single raw signal payload from L2 extraction, passed to the /refine endpoint.\n\nCallers should supply the actual extracted content and provenance rather than\nletting the refinery synthesise placeholder values."
       },
-      "Conflict": {
-        "description": "State conflict",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
-            }
+      "SignalImpactArea": {
+        "type": "string",
+        "enum": [
+          "revenue",
+          "cost",
+          "risk",
+          "strategic"
+        ],
+        "title": "SignalImpactArea"
+      },
+      "SignalPromoteRequest": {
+        "properties": {
+          "value_path_category": {
+            "type": "string",
+            "title": "Value Path Category",
+            "description": "Value path: revenue_uplift, cost_savings, risk_reduction, blended"
+          },
+          "value_driver_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value Driver Id"
           }
-        }
+        },
+        "type": "object",
+        "required": [
+          "value_path_category"
+        ],
+        "title": "SignalPromoteRequest",
+        "description": "Request body for promoting a signal to a hypothesis."
+      },
+      "SignalRefineRequest": {
+        "properties": {
+          "account_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Account Id"
+          },
+          "raw_signals": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/RawSignalInput"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Raw Signals",
+            "description": "Actual L2 extraction payloads to refine. Preferred over source_refs."
+          },
+          "source_refs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Source Refs"
+          },
+          "extraction_run_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Extraction Run Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "account_id"
+        ],
+        "title": "SignalRefineRequest",
+        "description": "Request body for triggering L2.5 refinement on L2 extraction output.\n\nPrefer ``raw_signals`` to pass actual L2 extraction payloads.\n``source_refs`` alone is accepted for backward compatibility but produces\nsignals with synthetic content and should not be used in production."
+      },
+      "SignalReviewRequest": {
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/ValueSignalLifecycleState",
+            "description": "Must be 'validated' or 'rejected'"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "SignalReviewRequest",
+        "description": "Request body for human review of a signal."
       },
       "ValidationError": {
-        "description": "Request validation failed",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/ErrorResponse"
-            }
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
           }
-        }
-      }
-    },
-    "schemas": {
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "ValueSignalCreate": {
+        "properties": {
+          "account_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Account Id"
+          },
+          "type": {
+            "$ref": "#/components/schemas/ValueSignalType"
+          },
+          "content": {
+            "type": "string",
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Content"
+          },
+          "confidence": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Confidence"
+          },
+          "trust_score": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Trust Score",
+            "default": 0.0
+          },
+          "lifecycle_state": {
+            "$ref": "#/components/schemas/ValueSignalLifecycleState",
+            "default": "draft"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/ValueSignalEvidence"
+            },
+            "type": "array",
+            "title": "Evidence"
+          },
+          "evidence_chunk_ids": {
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "type": "array",
+            "title": "Evidence Chunk Ids"
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/ValueSignalProvenance"
+          },
+          "source_refs": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Source Refs"
+          },
+          "opportunity_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Opportunity Id"
+          },
+          "value_driver_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value Driver Id"
+          },
+          "stakeholder_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stakeholder Id"
+          },
+          "persona": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Persona"
+          },
+          "industry": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Industry"
+          },
+          "impact_area": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SignalImpactArea"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "estimated_value": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Estimated Value"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[A-Z]{3}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency"
+          },
+          "time_horizon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Time Horizon"
+          }
+        },
+        "type": "object",
+        "required": [
+          "account_id",
+          "type",
+          "content",
+          "confidence",
+          "provenance"
+        ],
+        "title": "ValueSignalCreate",
+        "description": "Request body for creating a new ValueSignal.\n\ntenant_id is NOT accepted here \u2014 it is always set from authenticated context."
+      },
+      "ValueSignalEvidence": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "source_ref": {
+            "type": "string",
+            "title": "Source Ref",
+            "description": "Reference to source document or ingestion record"
+          },
+          "excerpt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Excerpt"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          },
+          "document_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Id"
+          },
+          "confidence": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Confidence"
+          },
+          "relevance_score": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 1.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Relevance Score"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "source_ref",
+          "confidence"
+        ],
+        "title": "ValueSignalEvidence",
+        "description": "A single piece of evidence supporting a ValueSignal."
+      },
+      "ValueSignalLifecycleState": {
+        "type": "string",
+        "enum": [
+          "draft",
+          "extracted",
+          "validated",
+          "rejected",
+          "promoted",
+          "expired",
+          "superseded"
+        ],
+        "title": "ValueSignalLifecycleState"
+      },
+      "ValueSignalProvenance": {
+        "properties": {
+          "extractor": {
+            "$ref": "#/components/schemas/ProvenanceExtractor"
+          },
+          "method": {
+            "type": "string",
+            "title": "Method",
+            "description": "Extraction method (e.g. llm_extraction, rule_based, manual)"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model",
+            "description": "LLM model identifier if AI-extracted"
+          },
+          "run_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Id",
+            "description": "Extraction run or workflow ID"
+          },
+          "source_system": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source System",
+            "description": "Originating system"
+          },
+          "extracted_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Extracted At"
+          },
+          "normalizer_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Normalizer Version"
+          },
+          "extractor_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Extractor Version"
+          },
+          "provenance_class": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provenance Class",
+            "description": "Provenance class: primary, secondary, derived, synthetic"
+          }
+        },
+        "type": "object",
+        "required": [
+          "extractor",
+          "method",
+          "extracted_at"
+        ],
+        "title": "ValueSignalProvenance",
+        "description": "Provenance metadata describing how a signal was extracted."
+      },
       "ValueSignalType": {
         "type": "string",
         "enum": [
@@ -538,484 +1260,238 @@
           "efficiency",
           "compliance",
           "strategic_priority"
-        ]
-      },
-      "ValueSignalLifecycleState": {
-        "type": "string",
-        "enum": [
-          "draft",
-          "extracted",
-          "validated",
-          "rejected",
-          "promoted",
-          "expired",
-          "superseded"
-        ]
-      },
-      "SignalImpactArea": {
-        "type": "string",
-        "enum": [
-          "revenue",
-          "cost",
-          "risk",
-          "strategic"
-        ]
-      },
-      "ValueSignalEvidence": {
-        "type": "object",
-        "required": [
-          "id",
-          "source_ref",
-          "confidence"
         ],
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "source_ref": {
-            "type": "string"
-          },
-          "excerpt": {
-            "type": "string",
-            "nullable": true
-          },
-          "url": {
-            "type": "string",
-            "format": "uri",
-            "nullable": true
-          },
-          "document_id": {
-            "type": "string",
-            "nullable": true
-          },
-          "confidence": {
-            "type": "number",
-            "minimum": 0,
-            "maximum": 1
-          },
-          "relevance_score": {
-            "type": "number",
-            "minimum": 0,
-            "maximum": 1,
-            "nullable": true
-          }
-        }
-      },
-      "ValueSignalProvenance": {
-        "type": "object",
-        "required": [
-          "extractor",
-          "method",
-          "extracted_at"
-        ],
-        "properties": {
-          "extractor": {
-            "type": "string",
-            "enum": [
-              "human",
-              "ai",
-              "system"
-            ]
-          },
-          "method": {
-            "type": "string"
-          },
-          "model": {
-            "type": "string",
-            "nullable": true
-          },
-          "run_id": {
-            "type": "string",
-            "nullable": true
-          },
-          "source_system": {
-            "type": "string",
-            "nullable": true
-          },
-          "extracted_at": {
-            "type": "string",
-            "format": "date-time"
-          }
-        }
-      },
-      "ValueSignal": {
-        "type": "object",
-        "required": [
-          "id",
-          "tenant_id",
-          "account_id",
-          "type",
-          "content",
-          "confidence",
-          "trust_score",
-          "lifecycle_state",
-          "evidence",
-          "provenance",
-          "source_refs",
-          "created_at",
-          "updated_at"
-        ],
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "tenant_id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "account_id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "type": {
-            "$ref": "#/components/schemas/ValueSignalType"
-          },
-          "content": {
-            "type": "string"
-          },
-          "confidence": {
-            "type": "number",
-            "minimum": 0,
-            "maximum": 1
-          },
-          "trust_score": {
-            "type": "number",
-            "minimum": 0,
-            "maximum": 1
-          },
-          "lifecycle_state": {
-            "$ref": "#/components/schemas/ValueSignalLifecycleState"
-          },
-          "evidence": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ValueSignalEvidence"
-            }
-          },
-          "provenance": {
-            "$ref": "#/components/schemas/ValueSignalProvenance"
-          },
-          "source_refs": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updated_at": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "opportunity_id": {
-            "type": "string",
-            "format": "uuid",
-            "nullable": true
-          },
-          "value_driver_id": {
-            "type": "string",
-            "format": "uuid",
-            "nullable": true
-          },
-          "stakeholder_id": {
-            "type": "string",
-            "format": "uuid",
-            "nullable": true
-          },
-          "persona": {
-            "type": "string",
-            "nullable": true
-          },
-          "industry": {
-            "type": "string",
-            "nullable": true
-          },
-          "impact_area": {
-            "$ref": "#/components/schemas/SignalImpactArea",
-            "nullable": true
-          },
-          "estimated_value": {
-            "type": "number",
-            "nullable": true
-          },
-          "currency": {
-            "type": "string",
-            "pattern": "^[A-Z]{3}$",
-            "nullable": true
-          },
-          "time_horizon": {
-            "type": "string",
-            "nullable": true
-          },
-          "validation_notes": {
-            "type": "string",
-            "nullable": true
-          },
-          "reviewer_id": {
-            "type": "string",
-            "format": "uuid",
-            "nullable": true
-          },
-          "expires_at": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
-          },
-          "supersedes_signal_id": {
-            "type": "string",
-            "format": "uuid",
-            "nullable": true
-          },
-          "related_signal_ids": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "nullable": true
-          }
-        }
-      },
-      "ValueSignalCreate": {
-        "type": "object",
-        "required": [
-          "account_id",
-          "type",
-          "content",
-          "confidence",
-          "provenance"
-        ],
-        "properties": {
-          "account_id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "type": {
-            "$ref": "#/components/schemas/ValueSignalType"
-          },
-          "content": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 4000
-          },
-          "confidence": {
-            "type": "number",
-            "minimum": 0,
-            "maximum": 1
-          },
-          "trust_score": {
-            "type": "number",
-            "minimum": 0,
-            "maximum": 1,
-            "default": 0
-          },
-          "lifecycle_state": {
-            "$ref": "#/components/schemas/ValueSignalLifecycleState"
-          },
-          "evidence": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ValueSignalEvidence"
-            }
-          },
-          "provenance": {
-            "$ref": "#/components/schemas/ValueSignalProvenance"
-          },
-          "source_refs": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "opportunity_id": {
-            "type": "string",
-            "format": "uuid",
-            "nullable": true
-          },
-          "value_driver_id": {
-            "type": "string",
-            "format": "uuid",
-            "nullable": true
-          },
-          "impact_area": {
-            "$ref": "#/components/schemas/SignalImpactArea",
-            "nullable": true
-          },
-          "estimated_value": {
-            "type": "number",
-            "nullable": true
-          },
-          "currency": {
-            "type": "string",
-            "nullable": true
-          }
-        }
+        "title": "ValueSignalType"
       },
       "ValueSignalUpdate": {
-        "type": "object",
         "properties": {
           "lifecycle_state": {
-            "$ref": "#/components/schemas/ValueSignalLifecycleState"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ValueSignalLifecycleState"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "validation_notes": {
-            "type": "string",
-            "nullable": true
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Validation Notes"
           },
           "reviewer_id": {
-            "type": "string",
-            "format": "uuid",
-            "nullable": true
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviewer Id"
           },
           "impact_area": {
-            "$ref": "#/components/schemas/SignalImpactArea",
-            "nullable": true
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SignalImpactArea"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "estimated_value": {
-            "type": "number",
-            "nullable": true
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Estimated Value"
           },
           "currency": {
-            "type": "string",
-            "nullable": true
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[A-Z]{3}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency"
           },
           "time_horizon": {
-            "type": "string",
-            "nullable": true
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Time Horizon"
           },
           "value_driver_id": {
-            "type": "string",
-            "format": "uuid",
-            "nullable": true
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value Driver Id"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          },
+          "supersedes_signal_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Supersedes Signal Id"
+          },
+          "related_signal_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Related Signal Ids"
           }
         },
-        "required": []
-      },
-      "SignalReviewRequest": {
         "type": "object",
-        "required": [
-          "status"
-        ],
-        "properties": {
-          "status": {
-            "type": "string",
-            "enum": [
-              "validated",
-              "rejected"
-            ]
-          },
-          "notes": {
-            "type": "string",
-            "nullable": true
-          }
-        }
+        "title": "ValueSignalUpdate",
+        "description": "Partial update for a ValueSignal (PATCH semantics)."
       },
-      "SignalPromoteRequest": {
+      "ErrorEnvelope": {
         "type": "object",
+        "title": "ErrorEnvelope",
         "required": [
-          "value_path_category"
+          "error"
         ],
+        "additionalProperties": false,
         "properties": {
-          "value_path_category": {
-            "type": "string",
-            "enum": [
-              "revenue_uplift",
-              "cost_savings",
-              "risk_reduction",
-              "blended"
-            ]
-          },
-          "value_driver_id": {
-            "type": "string",
-            "format": "uuid",
-            "nullable": true
-          }
-        }
-      },
-      "SignalRefineRequest": {
-        "type": "object",
-        "required": [
-          "account_id",
-          "source_refs"
-        ],
-        "properties": {
-          "account_id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "source_refs": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "minItems": 1
-          },
-          "extraction_run_id": {
-            "type": "string",
-            "nullable": true
-          }
-        }
-      },
-      "ValueSignalListResponse": {
-        "type": "object",
-        "required": [
-          "items",
-          "total",
-          "limit",
-          "offset"
-        ],
-        "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ValueSignal"
+          "error": {
+            "type": "object",
+            "required": [
+              "code",
+              "message",
+              "request_id"
+            ],
+            "properties": {
+              "code": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Machine-readable error code"
+              },
+              "message": {
+                "type": "string",
+                "description": "Human-readable error message"
+              },
+              "request_id": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Request ID for support correlation"
+              },
+              "details": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Optional sanitized error details"
+              }
             }
-          },
-          "total": {
-            "type": "integer"
-          },
-          "limit": {
-            "type": "integer"
-          },
-          "offset": {
-            "type": "integer"
           }
         }
       },
       "ErrorResponse": {
         "type": "object",
+        "title": "ErrorResponse",
+        "required": [
+          "error"
+        ],
+        "additionalProperties": false,
         "properties": {
-          "detail": {
-            "type": "string"
+          "error": {
+            "type": "object",
+            "required": [
+              "code",
+              "message",
+              "request_id"
+            ],
+            "properties": {
+              "code": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Machine-readable error code"
+              },
+              "message": {
+                "type": "string",
+                "description": "Human-readable error message"
+              },
+              "request_id": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Request ID for support correlation"
+              },
+              "details": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Optional sanitized error details"
+              }
+            }
           }
         },
-        "required": [
-          "detail"
-        ]
-      }
-    },
-    "securitySchemes": {
-      "TenantHeader": {
-        "type": "apiKey",
-        "in": "header",
-        "name": "X-Tenant-ID"
-      },
-      "BearerAuth": {
-        "type": "http",
-        "scheme": "bearer",
-        "bearerFormat": "JWT"
+        "description": "Deprecated compatibility alias for ErrorEnvelope. Use ErrorEnvelope for new clients."
       }
     }
-  },
-  "security": [
-    {
-      "BearerAuth": []
-    },
-    {
-      "TenantHeader": []
-    }
-  ]
+  }
 }

@@ -494,6 +494,16 @@ class WorkflowWebSocketManager:
         dead_connections: list[WorkflowConnection] = []
 
         for conn in connections:
+            # Multi-tenant safety: verify conn.tenant_id matches broadcast tenant_id if specified
+            if tenant_id and conn.tenant_id and conn.tenant_id != tenant_id:
+                logger.warning(
+                    "Skipping event delivery: connection tenant %s does not match broadcast tenant %s for workflow %s",
+                    conn.tenant_id,
+                    tenant_id,
+                    workflow_id,
+                    extra={"event": "websocket.broadcast.tenant_mismatch", "conn_tenant_id": conn.tenant_id, "broadcast_tenant_id": tenant_id, "workflow_id": workflow_id},
+                )
+                continue
             success = await conn.send_event(event)
             if success:
                 delivered += 1

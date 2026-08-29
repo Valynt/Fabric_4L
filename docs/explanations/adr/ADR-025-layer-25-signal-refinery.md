@@ -104,7 +104,7 @@ L4 agents querying "what do we know about this account?" receive `ValueSignal` o
 | Upstream | L2 Extraction (port 8002) |
 | Downstream | L3 Knowledge Graph (port 8003) |
 | Consumers | L4 Agents (port 8004) |
-| OpenAPI spec | `services/layer2-5-signal-refinery/openapi.yaml` |
+| OpenAPI spec | `contracts/openapi/layer2-5-signal-refinery.json` (exported from the live service) |
 | CI gate | `contracts/openapi/layer2-5-signal-refinery.json` |
 
 ## Consequences
@@ -126,10 +126,11 @@ L4 agents querying "what do we know about this account?" receive `ValueSignal` o
 ## Implementation
 
 ### OpenAPI Spec Ingestion
-The L2.5 OpenAPI spec (`services/layer2-5-signal-refinery/openapi.yaml`) must be:
-1. Copied to `contracts/openapi/layer2-5-signal-refinery.json`
-2. Tracked by the CI gate for contract validation
+The canonical L2.5 OpenAPI spec is generated from the live service by the platform exporter. There is no hand-maintained YAML source.
+1. `scripts/export_openapi.py` runs the L2.5 app (`services/layer2-5-signal-refinery/src/layer2_5_signal_refinery/api/main.py`) and writes the spec to `contracts/openapi/layer2-5-signal-refinery.json`
+2. The committed spec is tracked by the CI drift gate (`.github/workflows/openapi-drift-check.yml`) — a `git diff` failure aborts the build
 3. Kept in sync with code changes (enforced by CI diff check)
+4. Regenerate with: `python scripts/export_openapi.py --single layer2-5-signal-refinery.json`
 
 ### CI Gate Update
 The contract enforcement CI workflow must validate:
@@ -143,11 +144,14 @@ The contract enforcement CI workflow must validate:
 # Verify L2.5 spec is tracked in contracts
 ls -la contracts/openapi/layer2-5-signal-refinery.json
 
-# Run contract validation
-python .github/scripts/validate-openapi.py contracts/openapi/layer2-5-signal-refinery.json
+# Regenerate the spec from the live app (canonical source)
+python scripts/export_openapi.py --single layer2-5-signal-refinery.json
+
+# Validate the committed spec is current (no drift)
+git diff --exit-code -- contracts/openapi/layer2-5-signal-refinery.json
 
 # Verify L2.5 service health
-curl http://localhost:8007/health
+curl http://localhost:8007/ready
 
 # Verify end-to-end signal flow
 python -m pytest services/layer2-5-signal-refinery/tests/test_e2e_signal_flow.py -v
