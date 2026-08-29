@@ -127,6 +127,37 @@ class TestBenchmarkReadIsolation:
             f"MATCH clauses on :Benchmark/:BenchmarkPolicy without tenant_id: {violations}"
         )
 
+    def test_all_valuepack_optional_joins_are_tenant_scoped(self):
+        """Every ValuePack join (incl. OPTIONAL MATCH) must be tenant-scoped.
+
+        Regression for L3-SEC-007: an unscoped ``OPTIONAL MATCH (vp:ValuePack)``
+        leaked cross-tenant usage_count into list/get_benchmark.
+        """
+        source = _source()
+        cypher_blocks = _cypher_strings(source)
+        if not cypher_blocks:
+            pytest.skip("No triple-quoted Cypher strings found")
+
+        violations: list[str] = []
+        for block in cypher_blocks:
+            matches = re.findall(
+                r"(?:MATCH|OPTIONAL\s+MATCH)\s*\(\s*(?:vp:ValuePack|v:ValuePack)\s*\)",
+                block,
+                re.IGNORECASE,
+            )
+            for m in matches:
+                # Scoped form must carry an inline {tenant_id: ...} and reference $tenant_id.
+                if re.search(
+                    r"\((?:vp|v):ValuePack\s*\{\s*tenant_id\s*:\s*\$tenant_id",
+                    block,
+                    re.IGNORECASE,
+                ) is None:
+                    violations.append(m)
+
+        assert not violations, (
+            f"Unscoped ValuePack join clauses in benchmarks.py: {violations}"
+        )
+
 
 # ---------------------------------------------------------------------------
 # 2. Write isolation — static analysis
