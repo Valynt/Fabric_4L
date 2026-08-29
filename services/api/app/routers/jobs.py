@@ -5,9 +5,14 @@ from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import require_authenticated
 
 from app.clients.layer4_client import Layer4Client
+from app.core.security import require_bearer_declaration
 from app.models.product import ProductJobResponse
 
-router = APIRouter(prefix="/jobs", tags=["Jobs"])
+router = APIRouter(
+    prefix="/jobs",
+    tags=["Jobs"],
+    dependencies=[Depends(require_bearer_declaration)],
+)
 
 
 def _get_layer4_client() -> Layer4Client:
