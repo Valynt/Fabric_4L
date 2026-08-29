@@ -98,6 +98,7 @@
       "name": "Branch Protection Validation",
       "owner": "@value-fabric/sre-leads",
       "trigger": [
+        "pull_request",
         "schedule",
         "workflow_dispatch"
       ],
@@ -240,7 +241,7 @@
         "workflow_dispatch"
       ],
       "trigger_purpose": "CI/CD",
-      "blocking": false,
+      "blocking": true,
       "required_secrets": [],
       "produced_artifacts": [
         ".pytest_cache/",
@@ -469,23 +470,6 @@
       "deprecation_status": "active"
     },
     {
-      "path": ".github/workflows/generated-api-freshness.yml",
-      "name": "Generated API Freshness",
-      "owner": "@value-fabric/sre-leads",
-      "trigger": [
-        "pull_request",
-        "push",
-        "workflow_dispatch"
-      ],
-      "trigger_purpose": "CI/CD",
-      "blocking": false,
-      "required_secrets": [],
-      "produced_artifacts": [],
-      "runtime_budget_minutes": 15,
-      "local_validation_command": "make check-workflow-references",
-      "deprecation_status": "active"
-    },
-    {
       "path": ".github/workflows/graph-module-tests.yml",
       "name": "Graph Module Tests",
       "owner": "@value-fabric/sre-leads",
@@ -607,21 +591,6 @@
       "deprecation_status": "active"
     },
     {
-      "path": ".github/workflows/merge-group.yml",
-      "name": "Merge Group",
-      "owner": "@value-fabric/sre-leads",
-      "trigger": [
-        "merge_group"
-      ],
-      "trigger_purpose": "CI/CD",
-      "blocking": false,
-      "required_secrets": [],
-      "produced_artifacts": [],
-      "runtime_budget_minutes": 10,
-      "local_validation_command": "make check-workflow-references",
-      "deprecation_status": "active"
-    },
-    {
       "path": ".github/workflows/monthly-debt-burndown.yml",
       "name": "monthly-debt-burndown",
       "owner": "@value-fabric/sre-leads",
@@ -635,22 +604,6 @@
       "produced_artifacts": [
         "artifacts/debt-burndown"
       ],
-      "runtime_budget_minutes": 30,
-      "local_validation_command": "make check-workflow-references",
-      "deprecation_status": "active"
-    },
-    {
-      "path": ".github/workflows/openapi-drift-check.yml",
-      "name": "OpenAPI Drift Check",
-      "owner": "@value-fabric/sre-leads",
-      "trigger": [
-        "pull_request",
-        "push"
-      ],
-      "trigger_purpose": "CI/CD",
-      "blocking": false,
-      "required_secrets": [],
-      "produced_artifacts": [],
       "runtime_budget_minutes": 30,
       "local_validation_command": "make check-workflow-references",
       "deprecation_status": "active"
@@ -700,7 +653,7 @@
     },
     {
       "path": ".github/workflows/poc-governance-automation.yml",
-      "name": "PoC \u2014 Governance Automation (Composite + Profile Selection)",
+      "name": "PoC — Governance Automation (Composite + Profile Selection)",
       "owner": "@value-fabric/sre-leads",
       "trigger": [
         "pull_request",
@@ -743,7 +696,7 @@
         "push"
       ],
       "trigger_purpose": "CI/CD",
-      "blocking": false,
+      "blocking": true,
       "required_secrets": [
         "GITHUB_TOKEN",
         "INFISICAL_IDENTITY_ID"
@@ -813,7 +766,9 @@
         "services/layer6-benchmarks/layer6-junit.xml",
         "services/layer6-benchmarks/layer6-results.json",
         "shared-coverage.xml",
-        "shared-junit.xml"
+        "shared-junit.xml",
+        "artifacts/ci-structural-contract-tests.txt",
+        "artifacts/semgrep-static-contract-tests.txt"
       ],
       "runtime_budget_minutes": 45,
       "local_validation_command": "make check-workflow-references",
@@ -830,7 +785,7 @@
         "workflow_dispatch"
       ],
       "trigger_purpose": "CI/CD",
-      "blocking": false,
+      "blocking": true,
       "required_secrets": [],
       "produced_artifacts": [
         "artifacts/",
@@ -899,7 +854,7 @@
         "workflow_dispatch"
       ],
       "trigger_purpose": "CI/CD",
-      "blocking": false,
+      "blocking": true,
       "required_secrets": [
         "GITHUB_TOKEN"
       ],
@@ -942,7 +897,7 @@
         "workflow_dispatch"
       ],
       "trigger_purpose": "CI/CD",
-      "blocking": false,
+      "blocking": true,
       "required_secrets": [
         "GITHUB_TOKEN"
       ],
@@ -1094,7 +1049,7 @@
         "schedule"
       ],
       "trigger_purpose": "CI/CD",
-      "blocking": false,
+      "blocking": true,
       "required_secrets": [
         "GITHUB_TOKEN"
       ],
@@ -1139,7 +1094,7 @@
         "workflow_dispatch"
       ],
       "trigger_purpose": "CI/CD",
-      "blocking": false,
+      "blocking": true,
       "required_secrets": [
         "GITHUB_TOKEN"
       ],

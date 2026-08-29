@@ -33,7 +33,7 @@ The verifier fails closed when workflow files, registry entries, triggers, secre
 
 ## Inventory
 
-The repository currently contains **58** GitHub Actions workflow files.
+The repository currently contains **55** GitHub Actions workflow files.
 
 | Workflow | Owner | Blocking | Triggers | Local validation |
 |---|---|---:|---|---|
@@ -41,14 +41,14 @@ The repository currently contains **58** GitHub Actions workflow files.
 | `.github/workflows/api-key-rotation.yml` | `@value-fabric/sre-leads` | no | `schedule, workflow_dispatch` | `make check-workflow-references` |
 | `.github/workflows/audit-evidence.yml` | `@value-fabric/sre-leads` | no | `schedule, workflow_call, workflow_dispatch` | `make check-workflow-references` |
 | `.github/workflows/backend-integrated-reproducibility.yml` | `@value-fabric/sre-leads` | no | `workflow_dispatch` | `make check-workflow-references` |
-| `.github/workflows/branch-protection-validation.yml` | `@value-fabric/sre-leads` | no | `schedule, workflow_dispatch` | `make check-workflow-references` |
+| `.github/workflows/branch-protection-validation.yml` | `@value-fabric/sre-leads` | no | `pull_request, schedule, workflow_dispatch` | `make check-workflow-references` |
 | `.github/workflows/build-deploy.yml` | `@value-fabric/sre-leads` | no | `push, workflow_dispatch` | `make check-workflow-references` |
 | `.github/workflows/bundle-analysis.yml` | `@value-fabric/sre-leads` | no | `pull_request, push` | `make check-workflow-references` |
 | `.github/workflows/certify-release-candidate.yml` | `@value-fabric/sre-leads` | no | `push, workflow_dispatch` | `make check-workflow-references` |
 | `.github/workflows/chaos-testing.yml` | `@value-fabric/sre-leads` | no | `schedule, workflow_call, workflow_dispatch` | `make check-workflow-references` |
 | `.github/workflows/cleanup-repo.yml` | `@value-fabric/sre-leads` | no | `push, workflow_dispatch` | `make check-workflow-references` |
 | `.github/workflows/codeql.yml` | `@value-fabric/sre-leads` | no | `pull_request, push, schedule` | `make check-workflow-references` |
-| `.github/workflows/contract-compliance.yml` | `@value-fabric/sre-leads` | no | `merge_group, pull_request, push, schedule, workflow_dispatch` | `make check-workflow-references` |
+| `.github/workflows/contract-compliance.yml` | `@value-fabric/sre-leads` | yes | `merge_group, pull_request, push, schedule, workflow_dispatch` | `make check-workflow-references` |
 | `.github/workflows/contract-rfc-enforcer.yml` | `@value-fabric/sre-leads` | no | `pull_request` | `make check-workflow-references` |
 | `.github/workflows/critical-gates.yml` | `@value-fabric/sre-leads` | no | `merge_group, pull_request, push` | `make check-workflow-references` |
 | `.github/workflows/dependency-scan.yml` | `@value-fabric/sre-leads` | no | `pull_request, push, schedule, workflow_dispatch` | `make check-workflow-references` |
@@ -59,7 +59,6 @@ The repository currently contains **58** GitHub Actions workflow files.
 | `.github/workflows/environment-promotion.yml` | `@value-fabric/sre-leads` | no | `workflow_dispatch, workflow_run` | `make check-workflow-references` |
 | `.github/workflows/flakiness-tracker.yml` | `@value-fabric/sre-leads` | no | `schedule, workflow_dispatch` | `make check-workflow-references` |
 | `.github/workflows/frontend-route-audit-check.yml` | `@value-fabric/sre-leads` | no | `pull_request, push` | `make check-workflow-references` |
-| `.github/workflows/generated-api-freshness.yml` | `@value-fabric/sre-leads` | no | `pull_request, push, workflow_dispatch` | `make check-workflow-references` |
 | `.github/workflows/graph-module-tests.yml` | `@value-fabric/sre-leads` | no | `pull_request, push` | `make check-workflow-references` |
 | `.github/workflows/k8s-readiness.yml` | `@value-fabric/sre-leads` | no | `pull_request, push, workflow_dispatch` | `make check-workflow-references` |
 | `.github/workflows/l4-frontend-contract-sync.yml` | `@value-fabric/sre-leads` | no | `pull_request, push, workflow_dispatch` | `make check-workflow-references` |
@@ -67,28 +66,26 @@ The repository currently contains **58** GitHub Actions workflow files.
 | `.github/workflows/layer4-route-contract-matrix-check.yml` | `@value-fabric/sre-leads` | no | `pull_request, push` | `make check-workflow-references` |
 | `.github/workflows/layer6-wrapper-drift.yml` | `@value-fabric/sre-leads` | no | `pull_request, push` | `make check-workflow-references` |
 | `.github/workflows/live-continuous-suite.yml` | `@value-fabric/sre-leads` | no | `schedule, workflow_dispatch` | `make check-workflow-references` |
-| `.github/workflows/merge-group.yml` | `@value-fabric/sre-leads` | no | `merge_group` | `make check-workflow-references` |
 | `.github/workflows/monthly-debt-burndown.yml` | `@value-fabric/sre-leads` | no | `schedule, workflow_dispatch` | `make check-workflow-references` |
-| `.github/workflows/openapi-drift-check.yml` | `@value-fabric/sre-leads` | no | `pull_request, push` | `make check-workflow-references` |
 | `.github/workflows/penetration-testing.yml` | `@value-fabric/sre-leads` | no | `schedule, workflow_dispatch` | `make check-workflow-references` |
 | `.github/workflows/performance-load-tests.yml` | `@value-fabric/sre-leads` | no | `push, schedule, workflow_dispatch` | `make check-workflow-references` |
 | `.github/workflows/poc-governance-automation.yml` | `@value-fabric/sre-leads` | no | `pull_request, push, workflow_dispatch` | `make check-workflow-references` |
 | `.github/workflows/pr-backlog-health.yml` | `@value-fabric/sre-leads` | no | `schedule, workflow_dispatch` | `make check-workflow-references` |
-| `.github/workflows/pr-checks.yml` | `@value-fabric/sre-leads` | no | `merge_group, pull_request, push` | `make check-workflow-references` |
-| `.github/workflows/prod-readiness.yml` | `@value-fabric/sre-leads` | no | `merge_group, pull_request, push, workflow_dispatch` | `make check-workflow-references` |
+| `.github/workflows/pr-checks.yml` | `@value-fabric/sre-leads` | yes | `merge_group, pull_request, push` | `make check-workflow-references` |
+| `.github/workflows/prod-readiness.yml` | `@value-fabric/sre-leads` | yes | `merge_group, pull_request, push, workflow_dispatch` | `make check-workflow-references` |
 | `.github/workflows/public-docs.yml` | `@value-fabric/sre-leads` | no | `pull_request, push` | `make check-workflow-references` |
 | `.github/workflows/publish-ci-tools.yml` | `@value-fabric/sre-leads` | no | `push, workflow_dispatch` | `make check-workflow-references` |
-| `.github/workflows/publish-sdk.yml` | `@value-fabric/sre-leads` | no | `pull_request, push, workflow_dispatch` | `make check-workflow-references` |
+| `.github/workflows/publish-sdk.yml` | `@value-fabric/sre-leads` | yes | `pull_request, push, workflow_dispatch` | `make check-workflow-references` |
 | `.github/workflows/release-api-changelog.yml` | `@value-fabric/sre-leads` | no | `release, workflow_dispatch` | `make check-workflow-references` |
-| `.github/workflows/release-evidence-bundle.yml` | `@value-fabric/sre-leads` | no | `merge_group, pull_request, push, workflow_dispatch` | `make check-workflow-references` |
+| `.github/workflows/release-evidence-bundle.yml` | `@value-fabric/sre-leads` | yes | `merge_group, pull_request, push, workflow_dispatch` | `make check-workflow-references` |
 | `.github/workflows/repo-hygiene.yml` | `@value-fabric/sre-leads` | no | `pull_request, push, schedule, workflow_dispatch` | `make check-workflow-references` |
 | `.github/workflows/repro-seed-validation.yml` | `@value-fabric/sre-leads` | no | `pull_request, push` | `make check-workflow-references` |
 | `.github/workflows/runbook-validation.yml` | `@value-fabric/sre-leads` | no | `pull_request, push` | `make check-workflow-references` |
 | `.github/workflows/sbom.yml` | `@value-fabric/sre-leads` | no | `push, release, workflow_dispatch` | `make check-workflow-references` |
 | `.github/workflows/sdk-generation.yml` | `@value-fabric/sre-leads` | no | `push, schedule, workflow_dispatch` | `make check-workflow-references` |
 | `.github/workflows/secret-rotation.yml` | `@value-fabric/sre-leads` | no | `schedule, workflow_dispatch` | `make check-workflow-references` |
-| `.github/workflows/security-gates.yml` | `@value-fabric/sre-leads` | no | `merge_group, pull_request, push, schedule` | `make check-workflow-references` |
-| `.github/workflows/supply-chain-integrity.yml` | `@value-fabric/sre-leads` | no | `merge_group, pull_request, push, schedule, workflow_call, workflow_dispatch` | `make check-workflow-references` |
+| `.github/workflows/security-gates.yml` | `@value-fabric/sre-leads` | yes | `merge_group, pull_request, push, schedule` | `make check-workflow-references` |
+| `.github/workflows/supply-chain-integrity.yml` | `@value-fabric/sre-leads` | yes | `merge_group, pull_request, push, schedule, workflow_call, workflow_dispatch` | `make check-workflow-references` |
 | `.github/workflows/terraform-cd.yml` | `@value-fabric/sre-leads` | no | `pull_request, push, workflow_dispatch` | `make check-workflow-references` |
 | `.github/workflows/test-reporting.yml` | `@value-fabric/sre-leads` | no | `workflow_run` | `make check-workflow-references` |
 | `.github/workflows/vault-integration.yml` | `@value-fabric/sre-leads` | no | `workflow_call` | `make check-workflow-references` |
