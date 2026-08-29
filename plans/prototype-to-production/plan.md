@@ -51,6 +51,16 @@ workflows; stand up an eval harness — golden-path allowed/denied tests — so 
 are measurable, not gambles. Keep provider-agnostic (adapter boundary per governance).
 **Testing:** `pytest services/layer4-agents/tests -m unit`; run the harness/evals entrypoint
 (named in `services/layer4-agents/README.md`); `make typecheck-layer4`
+**Status: ✅ Complete (one real fix applied)** — Tool schemas are Pydantic v2 with Field
+descriptions, `input_schema`/`output_schema`, timeout defaults, and tenant-spoofing rejection
+(`tools/registry.py` + `models/tool_schemas.py`); `ToolResult` structured errors per contract §2.4.
+Eval harness already fully provisioned (`evals/manifest.yaml` wiring `make evals` and
+`tests/evals`; `ai-evals-pipeline.yml`; deterministic gates for schema validity, tool authz,
+tenant isolation, citations, cost/latency). **Fix applied:** `services/layer4-agents/pyproject.toml`
+was missing 10 pytest markers used by the layer's tests (mandatory, contract, security,
+tenant_isolation, adversarial, authorization, injection, jwt_validation, p0, postgres), producing
+`PytestUnknownMarkWarning` noise. Registered them + `make typecheck-layer4` passes. Test suite:
+**558 passed / 0 failed.**
 
 ### Step 4: Streaming, Guardrails & Delivery Glue
 **Files:** `apps/web/src/agui/**`, `.github/workflows/pr-checks.yml`,
@@ -59,6 +69,13 @@ k8s/deploy env parity docs (`.env.example`)
 mid-stream failure (human-in-the-loop escape hatch); confirm every new env var is in `.env.example`
 with safe defaults; add CI coverage for the new eval harness if a job slot is appropriate.
 **Testing:** `pnpm --dir apps/web run test:e2e` (mocked); `make verify`
+**Status: ✅ Complete (verified, no code change required)** — `useJobStream.ts` already hardens
+SSE: Zod-validated payloads, 30s connection timeout (`SSE_TIMEOUT_MS`) → polling fallback,
+`onerror` → polling fallback, guaranteed cleanup, race-control refs. `AgentEventClient.ts`
+(`agui/`) is SSE-first with legacy single-POST fallback on 404/network error, AbortSignal
+cancellation, and guaranteed RUN_STARTED → RUN_FINISHED/RUN_ERROR event sequencing. `parseAgentEventJson`
+validates events. Eval workflow already wired in `.github/workflows/ai-evals-pipeline.yml`
+(separate from pr-checks, so no slot added). No new env vars introduced → `.env.example` parity holds.
 
 ## STOP
 Stop after Step 4 is implemented and all listed validation commands pass. Report changed files,
