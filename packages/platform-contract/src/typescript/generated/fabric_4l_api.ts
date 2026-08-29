@@ -1923,6 +1923,10 @@ export interface paths {
         /**
          * Extract
          * @description Extract entities from content (extraction only).
+         *
+         *     Body follows the canonical ``ExtractRequest`` contract
+         *     (``content_id``, ``source_url``, ``markdown_content``, optional
+         *     ``extraction_config``).
          */
         post: operations["extract_v1_extract_post"];
         delete?: never;

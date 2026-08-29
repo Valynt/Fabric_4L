@@ -1,8 +1,13 @@
 version: 1
 validated_on: 2026-08-21
 required_status_checks:
-  # V1-CI-001 Stage 3: nine stable aggregates are required alongside legacy
-  # partial contexts until 30 false-negative-free queue merges (Stage 4).
+  # Branch-protection contract reconciled: 17 universal required checks =
+  # nine stable aggregate checks (V1-CI-001 Stage 3) plus the eight
+  # always-emitted legacy contexts that live GitHub branch protection enforces.
+  # The two PR/path-scoped contexts ("Security Gates Required", "SDK Release
+  # Validation") are declared under conditional_status_checks below and are NOT
+  # branch-protection universal required checks because neither emits on
+  # merge_group (see config/ci/required-status-checks.json#reconciliation_note).
   - 01-repository-integrity
   - 02-code-quality-and-tests
   - 03-contract-compliance
@@ -17,11 +22,14 @@ required_status_checks:
   - Structural Preflight
   - prod-readiness
   - behavior-tests
-  - Security Gates Required
-  - SDK Release Validation
   - Layer 5 - Source Contract
   - Layer 5 - Tenant Isolation Regression
   - Layer 5 - Contract Shape Regression
+conditional_status_checks:
+  # Not branch-protection universal required checks (see reconciliation_note).
+  # Security Gates Required is PR-only; SDK Release Validation is path-scoped.
+  - Security Gates Required
+  - SDK Release Validation
 enforcement:
   pull_request_merges: true
   direct_pushes: true

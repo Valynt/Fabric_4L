@@ -2,11 +2,9 @@ import { RuleTester } from "eslint";
 import rule from "../no-url-concatenation";
 
 const ruleTester = new RuleTester({
-  languageOptions: {
-    parserOptions: {
-      ecmaVersion: 2020,
-      sourceType: "module",
-    },
+  parserOptions: {
+    ecmaVersion: 2020,
+    sourceType: "module",
   },
 });
 
