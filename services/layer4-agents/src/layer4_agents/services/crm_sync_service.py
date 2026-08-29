@@ -22,22 +22,22 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from value_fabric.shared.error_handling import sanitize_log_error
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
-from ..integrations.core.connector import CRMConnector
-from ..integrations.core.errors import (
+from ..integration.connectors.core.connector import CRMConnector
+from ..integration.connectors.core.errors import (
     AuthError,
     IntegrityGateOpenError,
     PermanentError,
     TransientError,
 )
-from ..integrations.core.observations import (
+from ..integration.connectors.core.observations import (
     ErrorClass,
     sync_failed,
     sync_partial,
     sync_started,
     sync_succeeded,
 )
-from ..integrations.core.state import apply_observation
-from ..integrations.factory import get_connector
+from ..integration.connectors.core.state import apply_observation
+from ..integration.connectors.factory import get_connector
 from ..metrics import get_metrics
 from ..models.account import Account, AccountSyncStatus, CRMProvider, SyncStatus
 from ..models.integration import Integration

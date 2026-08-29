@@ -557,6 +557,41 @@ class TestOutputSummarization:
         # Assert
         assert dict(result) == {}
 
+    @pytest.mark.asyncio
+    async def test_broadcast_cross_tenant_isolation(self, started_manager, mock_websocket):
+        """Events scoped to Tenant A should never be delivered to Tenant B connection."""
+        ws_b = MagicMock(spec=WebSocket)
+        ws_b.accept = AsyncMock()
+        ws_b.send_json = AsyncMock()
+        ws_b.close = AsyncMock()
+
+        # Connect Tenant A
+        await started_manager.connect(mock_websocket, "wf-shared", tenant_id="tenant-a")
+        # Connect second socket with different tenant
+        conn_b = WorkflowConnection(
+            websocket=ws_b,
+            workflow_id="wf-shared",
+            tenant_id="tenant-b",
+        )
+        started_manager._workflow_connections["wf-shared"].add(conn_b)
+
+        # Broadcast event specifically for tenant-a
+        delivered = await started_manager.broadcast_to_workflow(
+            workflow_id="wf-shared",
+            event_type="tenant_event",
+            payload={"secret": "alpha"},
+            tenant_id="tenant-a",
+        )
+
+        assert delivered == 1
+        # mock_websocket received the event (plus connection_established)
+        sent_events_a = [call[0][0]["event_type"] for call in mock_websocket.send_json.call_args_list]
+        assert "tenant_event" in sent_events_a
+
+        # ws_b should NOT receive the tenant_event
+        sent_events_b = [call[0][0]["event_type"] for call in ws_b.send_json.call_args_list]
+        assert "tenant_event" not in sent_events_b
+
 
 class TestClientMessageHandling:
     """Test handling of messages from clients."""

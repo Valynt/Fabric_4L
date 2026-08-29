@@ -5,9 +5,10 @@ from __future__ import annotations
 import os
 from typing import Any, cast
 
+from layer4_agents.config.settings import get_settings
 from layer4_agents.harness.live_l5_validator import LiveL5Validator
 from layer4_agents.harness.validation_hooks import ClaimValidationRequest
-from layer4_agents.integration.layer5_client import Layer5GroundTruthClient
+from layer4_agents.integration.layer5_client import Layer5GroundTruthClient, get_layer5_client
 
 from ..interfaces.business_case_ground_truth import BusinessCaseGroundTruthPort
 
@@ -108,11 +109,11 @@ def create_layer5_business_case_ground_truth_client(
 ) -> BusinessCaseGroundTruthPort | None:
     """Create the production Ground Truth adapter for a business-case tenant."""
 
-    layer5_url = os.getenv("LAYER5_GROUND_TRUTH_URL", "http://layer5-ground-truth:8005")
+    layer5_url = get_settings().layer5_api_url
     if not layer5_url:
         return None
     service_token = os.getenv("LAYER5_SERVICE_TOKEN")
-    client = Layer5GroundTruthClient(
+    client = get_layer5_client(
         base_url=layer5_url,
         service_token=service_token,
         tenant_id=organization_id if not service_token else None,

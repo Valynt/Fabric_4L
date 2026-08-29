@@ -35,6 +35,7 @@ from ..shared.security.cypher_security import (
     ALLOWED_REL_TYPES,
     validate_cypher_identifier,
 )
+from ..shared.security.tenant_guard import enforce_tenant_context
 from .registry import BaseTool, TenantSpoofingError
 
 logger = logging.getLogger(__name__)
@@ -197,11 +198,9 @@ class QueryGraphTool(BaseTool):
             tenant_ctx.assert_valid()
             effective_tenant_id = tenant_ctx.tenant_id
 
-            payload_tenant_id = getattr(input_data, "tenant_id", None)
-            if payload_tenant_id and str(payload_tenant_id) != str(tenant_ctx.tenant_id):
-                raise TenantSpoofingError(
-                    "Tenant spoofing detected: payload tenant_id does not match authenticated context"
-                )
+            enforce_tenant_context(
+                getattr(input_data, "tenant_id", None), tenant_ctx.tenant_id
+            )
         except TenantContextError as e:
             logger.warning(
                 "Tenant context error in query_graph: %s",
@@ -357,11 +356,9 @@ class SemanticSearchTool(BaseTool):
             tenant_ctx = tenant_context.get_current_tenant_context()
             tenant_ctx.assert_valid()
 
-            payload_tenant_id = getattr(input_data, "tenant_id", None)
-            if payload_tenant_id and str(payload_tenant_id) != str(tenant_ctx.tenant_id):
-                raise TenantSpoofingError(
-                    "Tenant spoofing detected: payload tenant_id does not match authenticated context"
-                )
+            enforce_tenant_context(
+                getattr(input_data, "tenant_id", None), tenant_ctx.tenant_id
+            )
         except TenantContextError as e:
             logger.warning(f"Tenant context error in semantic_search: {e}")
             return SemanticSearchOutput(
@@ -483,11 +480,9 @@ class GetEntityTool(BaseTool):
             tenant_ctx = tenant_context.get_current_tenant_context()
             tenant_ctx.assert_valid()
 
-            payload_tenant_id = getattr(input_data, "tenant_id", None)
-            if payload_tenant_id and str(payload_tenant_id) != str(tenant_ctx.tenant_id):
-                raise TenantSpoofingError(
-                    "Tenant spoofing detected: payload tenant_id does not match authenticated context"
-                )
+            enforce_tenant_context(
+                getattr(input_data, "tenant_id", None), tenant_ctx.tenant_id
+            )
         except TenantContextError as e:
             logger.warning(f"Tenant context error in get_entity: {e}")
             return GetEntityOutput(
@@ -603,11 +598,9 @@ class GetRelationshipsTool(BaseTool):
             tenant_ctx = tenant_context.get_current_tenant_context()
             tenant_ctx.assert_valid()
 
-            payload_tenant_id = getattr(input_data, "tenant_id", None)
-            if payload_tenant_id and str(payload_tenant_id) != str(tenant_ctx.tenant_id):
-                raise TenantSpoofingError(
-                    "Tenant spoofing detected: payload tenant_id does not match authenticated context"
-                )
+            enforce_tenant_context(
+                getattr(input_data, "tenant_id", None), tenant_ctx.tenant_id
+            )
         except TenantContextError as e:
             logger.warning(f"Tenant context error in get_relationships: {e}")
             return GetRelationshipsOutput(
@@ -713,11 +706,9 @@ class TraverseTreeTool(BaseTool):
             tenant_ctx = tenant_context.get_current_tenant_context()
             tenant_ctx.assert_valid()
 
-            payload_tenant_id = getattr(input_data, "tenant_id", None)
-            if payload_tenant_id and str(payload_tenant_id) != str(tenant_ctx.tenant_id):
-                raise TenantSpoofingError(
-                    "Tenant spoofing detected: payload tenant_id does not match authenticated context"
-                )
+            enforce_tenant_context(
+                getattr(input_data, "tenant_id", None), tenant_ctx.tenant_id
+            )
         except TenantContextError as e:
             logger.warning(f"Tenant context error in traverse_tree: {e}")
             return TraverseTreeOutput(
@@ -817,11 +808,9 @@ class FindPathsTool(BaseTool):
             tenant_ctx = tenant_context.get_current_tenant_context()
             tenant_ctx.assert_valid()
 
-            payload_tenant_id = getattr(input_data, "tenant_id", None)
-            if payload_tenant_id and str(payload_tenant_id) != str(tenant_ctx.tenant_id):
-                raise TenantSpoofingError(
-                    "Tenant spoofing detected: payload tenant_id does not match authenticated context"
-                )
+            enforce_tenant_context(
+                getattr(input_data, "tenant_id", None), tenant_ctx.tenant_id
+            )
         except TenantContextError as e:
             logger.warning(f"Tenant context error in find_paths: {e}")
             return FindPathsOutput(

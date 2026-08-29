@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock
 import httpx
 import pytest
 
-from layer4_agents.integrations.providers.hubspot.connector import HubSpotConnector
+from layer4_agents.integration.connectors.providers.hubspot.connector import HubSpotConnector
 
 
 def _make_response(status_code: int, json_data: dict | None = None, text: str = "") -> httpx.Response:

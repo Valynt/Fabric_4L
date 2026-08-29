@@ -5,9 +5,14 @@ from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import require_authenticated
 
 from app.core.quota_service import QuotaService
+from app.core.security import require_bearer_declaration
 from app.core.usage_meter import list_usage_events
 
-router = APIRouter(prefix="/usage", tags=["Usage"])
+router = APIRouter(
+    prefix="/usage",
+    tags=["Usage"],
+    dependencies=[Depends(require_bearer_declaration)],
+)
 
 
 def _get_quota_service() -> QuotaService:

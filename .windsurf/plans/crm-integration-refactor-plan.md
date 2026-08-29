@@ -1,6 +1,13 @@
 # CRM Integration Refactor Plan
 
-**Status:** Draft — awaiting approval before PR 1 implementation.  
+> **SUPERSEDED (2026-08-27)** — The CRM connector subsystem described in this
+> draft landed under `services/layer4-agents/src/layer4_agents/integrations/`
+> and has since been consolidated into the canonical package
+> `services/layer4-agents/src/layer4_agents/integration/connectors/` (re-export
+> shims remain at the old `integrations/` path). All paths below are historical;
+> new code must import from `layer4_agents.integration.connectors.*`.
+
+**Status:** Draft — awaiting approval before PR 1 implementation (superseded by the consolidation above).  
 **Scope:** All 9 PRs at decision fidelity; PRs 1–3 specified to diff-level.  
 **Locked decisions:** See user Q&A block below.
 

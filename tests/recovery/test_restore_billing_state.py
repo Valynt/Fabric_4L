@@ -11,6 +11,11 @@ EXPECTED_BILLING_TABLES = {
     "billing_customers",
     "billing_subscriptions",
     "billing_webhook_events",
+    "billing_plan_versions",
+    "billing_usage_events",
+    "billing_invoices",
+    "billing_invoice_items",
+    "billing_charges",
 }
 
 
@@ -23,7 +28,7 @@ def test_billing_state_restore_is_part_of_dry_run_evidence(restore_dry_run_evide
 
 def test_billing_restore_scope_matches_billing_models_and_runbook() -> None:
     l7_models = read_text("services/layer7-billing/src/layer7_billing/models.py")
-    billing_models = read_text("services/billing/src/billing/models.py")
+    billing_models = read_text("services/layer4-agents/src/layer4_agents/models/billing.py")
     runbook = read_text("docs/troubleshooting/runbooks/incident/backup-disaster-recovery.md")
     assert_contains_all(
         l7_models,

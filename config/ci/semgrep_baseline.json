@@ -178,12 +178,6 @@
     },
     {
       "rule_id": "semgrep.block-direct-graph-mutation",
-      "path": "services/billing/src/billing/service.py",
-      "line": 98,
-      "message": "Direct Cypher MERGE/CREATE/DELETE on tenant-owned labels must go through AuditedGraphMutation.\nThis bypasses the audited mutation gateway which enforces tenant isolation, audit logging, and metrics.\nUse AuditedGraphMutation.write_relationship(), write_node(), delete_relationship(), or delete_node() instead."
-    },
-    {
-      "rule_id": "semgrep.block-direct-graph-mutation",
       "path": "services/layer1-ingestion/migrations/versions/004_add_rls_policies.py",
       "line": 38,
       "message": "Direct Cypher MERGE/CREATE/DELETE on tenant-owned labels must go through AuditedGraphMutation.\nThis bypasses the audited mutation gateway which enforces tenant isolation, audit logging, and metrics.\nUse AuditedGraphMutation.write_relationship(), write_node(), delete_relationship(), or delete_node() instead."
@@ -922,13 +916,13 @@
     },
     {
       "rule_id": "semgrep.block-direct-graph-mutation",
-      "path": "services/layer4-agents/src/layer4_agents/integrations/connector.py",
+      "path": "services/layer4-agents/src/layer4_agents/integration/connectors/connector.py",
       "line": 3,
       "message": "Direct Cypher MERGE/CREATE/DELETE on tenant-owned labels must go through AuditedGraphMutation.\nThis bypasses the audited mutation gateway which enforces tenant isolation, audit logging, and metrics.\nUse AuditedGraphMutation.write_relationship(), write_node(), delete_relationship(), or delete_node() instead."
     },
     {
       "rule_id": "semgrep.block-direct-graph-mutation",
-      "path": "services/layer4-agents/src/layer4_agents/integrations/core/connector.py",
+      "path": "services/layer4-agents/src/layer4_agents/integration/connectors/core/connector.py",
       "line": 80,
       "message": "Direct Cypher MERGE/CREATE/DELETE on tenant-owned labels must go through AuditedGraphMutation.\nThis bypasses the audited mutation gateway which enforces tenant isolation, audit logging, and metrics.\nUse AuditedGraphMutation.write_relationship(), write_node(), delete_relationship(), or delete_node() instead."
     },

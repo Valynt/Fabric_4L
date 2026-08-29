@@ -42,6 +42,7 @@ services/layer1-ingestion/src/layer1_ingestion/api/consent_routes.py|ConsentScop
 services/layer1-ingestion/src/layer1_ingestion/api/schemas/compliance_schemas.py|ComplianceLogResponse
 services/layer1-ingestion/src/layer1_ingestion/api/schemas/content_schemas.py|ContentListResponse
 services/layer1-ingestion/src/layer1_ingestion/compliance/robots_checker.py|RobotsChecker__parse_robots_txtResult
+services/layer1-ingestion/src/layer1_ingestion/providers/account_intelligence/slugs.py|is_approved_slug
 services/layer1-ingestion/src/layer1_ingestion/shared/database.py|get_db_with_tenant_from_context
 services/layer1-ingestion/src/layer1_ingestion/shared/models.py|ProxyStatus
 services/layer1-ingestion/src/layer1_ingestion/shared/models.py|ProxyType
@@ -111,6 +112,8 @@ services/layer4-agents/src/layer4_agents/exceptions.py|WorkflowNotFoundError
 services/layer4-agents/src/layer4_agents/harness/models.py|EvidenceChain
 services/layer4-agents/src/layer4_agents/harness/telemetry.py|TelemetryError
 services/layer4-agents/src/layer4_agents/models/agent_state.py|WorkflowNodeType
+services/layer4-agents/src/layer4_agents/provenance/cargo_schemas.py|CargoRawCompetitorsResponse
+services/layer4-agents/src/layer4_agents/provenance/cargo_schemas.py|CargoRawStakeholdersResponse
 services/layer4-agents/src/layer4_agents/services/context_gatherer.py|ContextGathererResult
 services/layer4-agents/src/layer4_agents/services/crm_sync_service.py|get_crm_sync_service
 services/layer4-agents/src/layer4_agents/services/tenant_cypher.py|fetch_tenant_validated_single
@@ -126,3 +129,18 @@ services/layer5-ground-truth/src/layer5_ground_truth/cache.py|close_cache
 services/layer5-ground-truth/src/layer5_ground_truth/database.py|SQLiteUUID
 services/layer5-ground-truth/src/layer5_ground_truth/runtime_mode.py|is_production_like_mode
 services/layer5-ground-truth/src/layer5_ground_truth/services/academy_service.py|get_maturity_level
+services/layer1-ingestion/src/layer1_ingestion/providers/account_intelligence/slugs.py|is_approved_slug
+services/layer4-agents/src/layer4_agents/provenance/cargo_schemas.py|CargoRawStakeholdersResponse
+services/layer4-agents/src/layer4_agents/provenance/cargo_schemas.py|CargoRawCompetitorsResponse
+
+# --- Peer-review follow-up (guard tightening), PR #1525 cleanup branch ---
+# String/forward-ref dispatch: reached only via string or forward-reference patterns
+# (relationship("..."), list["..."], query_name="...", getattr/globals, agent-id
+# markers). Dropping string-literal reference detection unmasked these. Live symbols -
+# do NOT remove as dead.
+services/layer1-ingestion/src/layer1_ingestion/shared/models.py|EvidenceChunk
+services/layer2-extraction/src/layer2_extraction/models/ontology.py|ExtractionSecurityMetadata
+services/layer3-knowledge/src/db/cypher_execution_helper.py|execute_tenant_cypher
+services/layer3-knowledge/src/db/dual_store_coordinator.py|DualStoreTransactionCoordinator
+services/layer3-knowledge/src/services/kg_sync.py|link_ground_truth_to_entity
+services/layer3-knowledge/src/services/kg_sync.py|get_ground_truth_node

@@ -38,7 +38,7 @@ const HOOK_REGISTRY: Array<{
   { family: "Workflows", file: "useWorkflows.ts", layer: "L4", hooks: ["useWorkflowHistory", "useActiveWorkflows", "useCancelWorkflow", "usePauseWorkflow", "useResumeWorkflow", "useCreateWorkflow", "useWorkflowTypes"], endpoints: 9, status: "green" },
   { family: "Governance", file: "useGovernance.ts", layer: "L4", hooks: ["useTenants", "useUsers", "useApiKeys", "useInviteUser", "useRevokeApiKey"], endpoints: 5, status: "green" },
   { family: "Provenance", file: "useProvenance.ts", layer: "L3", hooks: ["useProvenanceTrail", "useAuditLogs", "useExportProvenance"], endpoints: 3, status: "green" },
-  { family: "Documents", file: "useDocuments.ts", layer: "L3", hooks: ["useDocumentExport", "useBusinessCaseExport", "useBusinessCase"], endpoints: 3, status: "green" },
+  { family: "Documents", file: "useDocuments.ts", layer: "L4", hooks: ["useBusinessCaseExport", "useBusinessCase", "useRegenerateBusinessCase"], endpoints: 3, status: "green" },
   { family: "Health", file: "useHealthMonitor.ts", layer: "Platform", hooks: ["useSystemHealth", "useHealthAlerts"], endpoints: 12, status: "green" },
   { family: "Graph", file: "useGraphQuery.ts", layer: "L3", hooks: ["useGraphQuery", "useEntityContext", "useEntityTraversal", "useSubgraph"], endpoints: 6, status: "green" },
   { family: "Value Trees", file: "useValueTrees.ts", layer: "L3", hooks: ["useValueTree", "useValueTreePaths", "useValueTreeCache"], endpoints: 4, status: "green" },

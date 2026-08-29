@@ -1307,7 +1307,7 @@ async def delete_formula(
             """
             MATCH (f:Formula {id: $formula_id})
             WHERE f.tenant_id = $tenant_id
-            OPTIONAL MATCH (vp:ValuePack)-[:USES_FORMULA]->(f)
+            OPTIONAL MATCH (vp:ValuePack {tenant_id: $tenant_id})-[:USES_FORMULA]->(f)
             RETURN f.status as status, count(vp) as ref_count
             """,
             formula_id=formula_id,
@@ -1328,8 +1328,8 @@ async def delete_formula(
             """
             MATCH (f:Formula {id: $formula_id})
             WHERE f.tenant_id = $tenant_id
-            OPTIONAL MATCH (f)-[:HAS_VERSION]->(fv:FormulaVersion)
-            OPTIONAL MATCH (f)-[r:REQUIRES]->(v:Variable)
+            OPTIONAL MATCH (f:Formula)-[:HAS_VERSION]->(fv:FormulaVersion {tenant_id: $tenant_id})
+            OPTIONAL MATCH (f:Formula)-[r:REQUIRES]->(v:Variable {tenant_id: $tenant_id})
             DELETE fv, r, f
             """,
             formula_id=formula_id,

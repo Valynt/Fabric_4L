@@ -20,17 +20,17 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
-from layer4_agents.integrations.core.errors import (
+from layer4_agents.integration.connectors.core.errors import (
     AuthError,
     CRMError,
     classify_http_status,
 )
-from layer4_agents.integrations.core.state import (
+from layer4_agents.integration.connectors.core.state import (
     ErrorClass,
     ObservedStatus,
     apply_observation,
 )
-from layer4_agents.integrations.factory import get_connector
+from layer4_agents.integration.connectors.factory import get_connector
 
 from ..metrics import get_metrics
 from ..models.account import CRMProvider
@@ -809,7 +809,9 @@ class IntegrationService:
         client_id = os.getenv("SALESFORCE_CLIENT_ID")
         client_secret = os.getenv("SALESFORCE_CLIENT_SECRET")
 
-        from layer4_agents.integrations.providers.salesforce.connector import SalesforceConnector
+        from layer4_agents.integration.connectors.providers.salesforce.connector import (
+            SalesforceConnector,
+        )
 
         try:
             token_result = await SalesforceConnector.refresh_token(

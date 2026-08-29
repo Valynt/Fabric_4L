@@ -161,14 +161,15 @@ async def _fetch_graph_nodes(
         node_id = r_dict.get("id")
         if not node_id:
             continue
+        resolved_name = r_dict.get("label") or node_id
         node = _build_graph_node(
             node_id=node_id,
-            label=r_dict.get("label") or node_id,
+            label=resolved_name,
             node_type=node_type,
             confidence=r_dict.get("confidence") or 0.8,
             x=r_dict.get("x"),
             y=r_dict.get("y"),
-            properties={"name": r_dict.get("label")},
+            properties={"name": resolved_name},
         )
         nodes.append(node)
         node_ids.add(node_id)

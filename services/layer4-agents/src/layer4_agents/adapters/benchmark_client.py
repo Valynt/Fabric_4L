@@ -7,6 +7,7 @@ from typing import Any
 
 import httpx
 
+from ..integration._base import DEFAULT_CONNECTION_LIMITS
 from ..interfaces.benchmark_client import (
     BenchmarkDataset,
     ComparisonRequest,
@@ -36,7 +37,7 @@ class HTTPBenchmarkClient(IBenchmarkClient):
     async def _get_client(self) -> httpx.AsyncClient:
         """Get or create HTTP client."""
         if self._client is None:
-            self._client = httpx.AsyncClient(timeout=self.timeout)
+            self._client = httpx.AsyncClient(timeout=self.timeout, limits=DEFAULT_CONNECTION_LIMITS)
         return self._client
 
     async def close(self) -> None:

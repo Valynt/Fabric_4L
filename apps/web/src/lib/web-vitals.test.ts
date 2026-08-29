@@ -20,6 +20,20 @@ import {
   __resetInit,
 } from "./web-vitals";
 
+// Mock the web-vitals library so we can assert which listeners are registered
+// during initWebVitals. `onFID` is included purely as a denied-behavior probe:
+// after the FID → INP migration the module must never register it.
+const webVitalsMocks = vi.hoisted(() => ({
+  onCLS: vi.fn(),
+  onINP: vi.fn(),
+  onFID: vi.fn(),
+  onFCP: vi.fn(),
+  onLCP: vi.fn(),
+  onTTFB: vi.fn(),
+}));
+
+vi.mock("web-vitals", () => webVitalsMocks);
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -73,7 +87,7 @@ describe("serializeMetric", () => {
 
   it("handles 'poor' rating correctly", () => {
     const metric = createMockMetric({
-      name: "FID",
+      name: "INP",
       value: 450,
       rating: "poor",
       delta: 450,
@@ -215,6 +229,7 @@ describe("sendToAnalytics", () => {
 describe("initWebVitals", () => {
   beforeEach(() => {
     __resetInit();
+    vi.clearAllMocks();
   });
 
   afterEach(() => {
@@ -222,13 +237,31 @@ describe("initWebVitals", () => {
     vi.restoreAllMocks();
   });
 
+  it("registers an INP (Interaction to Next Paint) listener", () => {
+    initWebVitals();
+    expect(webVitalsMocks.onINP).toHaveBeenCalledTimes(1);
+    expect(webVitalsMocks.onINP).toHaveBeenCalledWith(expect.any(Function));
+  });
+
+  it("registers all five Core Web Vitals listeners", () => {
+    initWebVitals();
+    expect(webVitalsMocks.onCLS).toHaveBeenCalledTimes(1);
+    expect(webVitalsMocks.onINP).toHaveBeenCalledTimes(1);
+    expect(webVitalsMocks.onFCP).toHaveBeenCalledTimes(1);
+    expect(webVitalsMocks.onLCP).toHaveBeenCalledTimes(1);
+    expect(webVitalsMocks.onTTFB).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not register the legacy FID listener", () => {
+    initWebVitals();
+    expect(webVitalsMocks.onFID).not.toHaveBeenCalled();
+  });
+
   it("is idempotent — second call does not re-register listeners", () => {
-    // We can't easily spy on the web-vitals library internals, but we can
-    // verify the guard by calling initWebVitals twice without error.
-    expect(() => {
-      initWebVitals();
-      initWebVitals();
-    }).not.toThrow();
+    initWebVitals();
+    initWebVitals();
+    // The guard prevents duplicate listener registration on the second call.
+    expect(webVitalsMocks.onINP).toHaveBeenCalledTimes(1);
   });
 
   it("guards against non-browser environments (window undefined)", () => {

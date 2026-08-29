@@ -23,11 +23,10 @@ from datetime import UTC, datetime, timedelta
 
 import jwt as pyjwt
 import pytest
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import rsa
-
 from app.core.clerk_config import ClerkSettings
 from app.core.clerk_verifier import ClerkTokenError, ClerkVerifier
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
 
 ISSUER = "https://accounts.example.clerk.accounts.dev"
 AUDIENCE = "fabric4l-api"
@@ -87,7 +86,7 @@ def _signed_jwt(kid: str, private_pem: str, *, sub: str = "user_1") -> str:
     return pyjwt.encode(payload, private_pem, algorithm="RS256", headers={"kid": kid, "alg": "RS256"})
 
 
-def _stub_cache(kid_for_pem: dict[str, str]) -> "_StubCache":
+def _stub_cache(kid_for_pem: dict[str, str]) -> _StubCache:
     """Return a network-free cache double resolving kids against preloaded keys."""
     return _StubCache(kid_for_pem=kid_for_pem)
 
@@ -105,7 +104,7 @@ class _StubCache:
 
     def signing_key_for_kid(
         self, kid: str, *, force_refresh: bool = False
-    ) -> "pyjwt.algorithms.RSAAlgorithm":
+    ) -> pyjwt.algorithms.RSAAlgorithm:
         pem = self._kid_for_pem.get(kid)
         if pem is None:
             raise ClerkTokenError(log_detail=f"no JWKS entry for kid={kid!r}")

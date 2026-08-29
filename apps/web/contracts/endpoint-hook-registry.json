@@ -1955,116 +1955,6 @@
       "operationId": "short_ingest_compatibility_boundary_v1_ingest_post"
     },
     {
-      "source": "layer2-5-signal-refinery",
-      "method": "GET",
-      "path": "/api/v1/signals",
-      "status": "unmapped",
-      "lastReviewed": "2026-07-25",
-      "metadata": {
-        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
-      },
-      "operationId": "listSignals"
-    },
-    {
-      "source": "layer2-5-signal-refinery",
-      "method": "POST",
-      "path": "/api/v1/signals",
-      "status": "unmapped",
-      "lastReviewed": "2026-07-25",
-      "metadata": {
-        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
-      },
-      "operationId": "createSignal"
-    },
-    {
-      "source": "layer2-5-signal-refinery",
-      "method": "GET",
-      "path": "/api/v1/signals/account/{account_id}",
-      "status": "unmapped",
-      "lastReviewed": "2026-07-25",
-      "metadata": {
-        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
-      },
-      "operationId": "getAccountSignals"
-    },
-    {
-      "source": "layer2-5-signal-refinery",
-      "method": "POST",
-      "path": "/api/v1/signals/refine",
-      "status": "unmapped",
-      "lastReviewed": "2026-07-25",
-      "metadata": {
-        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
-      },
-      "operationId": "refineSignals"
-    },
-    {
-      "source": "layer2-5-signal-refinery",
-      "method": "DELETE",
-      "path": "/api/v1/signals/{signal_id}",
-      "status": "unmapped",
-      "lastReviewed": "2026-07-25",
-      "metadata": {
-        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
-      },
-      "operationId": "deleteSignal"
-    },
-    {
-      "source": "layer2-5-signal-refinery",
-      "method": "GET",
-      "path": "/api/v1/signals/{signal_id}",
-      "status": "unmapped",
-      "lastReviewed": "2026-07-25",
-      "metadata": {
-        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
-      },
-      "operationId": "getSignal"
-    },
-    {
-      "source": "layer2-5-signal-refinery",
-      "method": "PATCH",
-      "path": "/api/v1/signals/{signal_id}",
-      "status": "unmapped",
-      "lastReviewed": "2026-07-25",
-      "metadata": {
-        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
-      },
-      "operationId": "updateSignal"
-    },
-    {
-      "source": "layer2-5-signal-refinery",
-      "method": "POST",
-      "path": "/api/v1/signals/{signal_id}/promote",
-      "status": "unmapped",
-      "lastReviewed": "2026-07-25",
-      "metadata": {
-        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
-      },
-      "operationId": "promoteSignal"
-    },
-    {
-      "source": "layer2-5-signal-refinery",
-      "method": "POST",
-      "path": "/api/v1/signals/{signal_id}/review",
-      "status": "unmapped",
-      "lastReviewed": "2026-07-25",
-      "metadata": {
-        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
-      },
-      "operationId": "reviewSignal"
-    },
-    {
-      "source": "layer2-5-signal-refinery",
-      "method": "GET",
-      "path": "/health",
-      "status": "unmapped",
-      "lastReviewed": "2026-07-25",
-      "metadata": {
-        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
-      },
-      "operationId": "health"
-    },
-    {
       "source": "layer2-extraction",
       "method": "GET",
       "path": "/health",
@@ -2602,17 +2492,6 @@
         "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
       },
       "operationId": "get_win_loss_summary_v1_competitive_win_loss_summary_get"
-    },
-    {
-      "source": "layer3-knowledge",
-      "method": "POST",
-      "path": "/v1/documents/export",
-      "status": "unmapped",
-      "lastReviewed": "2026-07-25",
-      "metadata": {
-        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
-      },
-      "operationId": "export_document_v1_documents_export_post"
     },
     {
       "source": "layer3-knowledge",
@@ -8201,6 +8080,116 @@
         "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
       },
       "operationId": "create_ground_truth_node_v1_nodes_post"
+    },
+    {
+      "source": "layer2-5-signal-refinery",
+      "method": "GET",
+      "path": "/api/v1/signals",
+      "status": "unmapped",
+      "lastReviewed": "2026-07-25",
+      "metadata": {
+        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
+      },
+      "operationId": "list_signals_api_v1_signals_get"
+    },
+    {
+      "source": "layer2-5-signal-refinery",
+      "method": "POST",
+      "path": "/api/v1/signals",
+      "status": "unmapped",
+      "lastReviewed": "2026-07-25",
+      "metadata": {
+        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
+      },
+      "operationId": "create_signal_api_v1_signals_post"
+    },
+    {
+      "source": "layer2-5-signal-refinery",
+      "method": "GET",
+      "path": "/api/v1/signals/account/{account_id}",
+      "status": "unmapped",
+      "lastReviewed": "2026-07-25",
+      "metadata": {
+        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
+      },
+      "operationId": "get_account_signals_api_v1_signals_account__account_id__get"
+    },
+    {
+      "source": "layer2-5-signal-refinery",
+      "method": "POST",
+      "path": "/api/v1/signals/refine",
+      "status": "unmapped",
+      "lastReviewed": "2026-07-25",
+      "metadata": {
+        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
+      },
+      "operationId": "refine_signals_api_v1_signals_refine_post"
+    },
+    {
+      "source": "layer2-5-signal-refinery",
+      "method": "DELETE",
+      "path": "/api/v1/signals/{signal_id}",
+      "status": "unmapped",
+      "lastReviewed": "2026-07-25",
+      "metadata": {
+        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
+      },
+      "operationId": "delete_signal_api_v1_signals__signal_id__delete"
+    },
+    {
+      "source": "layer2-5-signal-refinery",
+      "method": "GET",
+      "path": "/api/v1/signals/{signal_id}",
+      "status": "unmapped",
+      "lastReviewed": "2026-07-25",
+      "metadata": {
+        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
+      },
+      "operationId": "get_signal_api_v1_signals__signal_id__get"
+    },
+    {
+      "source": "layer2-5-signal-refinery",
+      "method": "PATCH",
+      "path": "/api/v1/signals/{signal_id}",
+      "status": "unmapped",
+      "lastReviewed": "2026-07-25",
+      "metadata": {
+        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
+      },
+      "operationId": "update_signal_api_v1_signals__signal_id__patch"
+    },
+    {
+      "source": "layer2-5-signal-refinery",
+      "method": "POST",
+      "path": "/api/v1/signals/{signal_id}/promote",
+      "status": "unmapped",
+      "lastReviewed": "2026-07-25",
+      "metadata": {
+        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
+      },
+      "operationId": "promote_signal_api_v1_signals__signal_id__promote_post"
+    },
+    {
+      "source": "layer2-5-signal-refinery",
+      "method": "POST",
+      "path": "/api/v1/signals/{signal_id}/review",
+      "status": "unmapped",
+      "lastReviewed": "2026-07-25",
+      "metadata": {
+        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
+      },
+      "operationId": "review_signal_api_v1_signals__signal_id__review_post"
+    },
+    {
+      "source": "layer2-5-signal-refinery",
+      "method": "GET",
+      "path": "/ready",
+      "status": "unmapped",
+      "lastReviewed": "2026-07-25",
+      "metadata": {
+        "notes": "Generated from current OpenAPI specs; assign hook ownership before raising minimumCoverage."
+      },
+      "operationId": "readiness_handler_ready_get"
     }
   ]
 }

@@ -130,7 +130,7 @@ async def list_benchmarks(
     MATCH (b:Benchmark)
     WHERE b.tenant_id = $tenant_id
     {extra_where}
-    OPTIONAL MATCH (vp:ValuePack)-[:hasBenchmark]->(b)
+    OPTIONAL MATCH (vp:ValuePack {{tenant_id: $tenant_id}})-[:hasBenchmark]->(b)
     RETURN b, count(DISTINCT vp) as usage_count
     ORDER BY b.name
     LIMIT $limit
@@ -206,7 +206,7 @@ async def get_benchmark(
     query = """
     MATCH (b:Benchmark {id: $benchmark_id})
     WHERE b.tenant_id = $tenant_id
-    OPTIONAL MATCH (vp:ValuePack)-[:hasBenchmark]->(b)
+    OPTIONAL MATCH (vp:ValuePack {tenant_id: $tenant_id})-[:hasBenchmark]->(b)
     RETURN b, count(DISTINCT vp) as usage_count
     """
 

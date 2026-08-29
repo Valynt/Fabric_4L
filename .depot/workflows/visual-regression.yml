@@ -40,7 +40,7 @@ concurrency:
   group: visual-regression-${{ github.ref }}
   cancel-in-progress: true
 env:
-  NODE_VERSION: "22.18.0"
+  NODE_VERSION: "22.22.2"
   PNPM_VERSION: "10.18.1"
   PLAYWRIGHT_VERSION: "1.49"
 jobs:
