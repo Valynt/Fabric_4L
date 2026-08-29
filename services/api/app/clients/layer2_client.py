@@ -56,7 +56,8 @@ class Layer2Client:
                 json=json,
             )
         except Layer2TransportError as exc:
-            raise HTTPException(status_code=502, detail=str(exc)) from exc
+            detail = exc.response_text or "Layer 2 request failed"
+            raise HTTPException(status_code=502, detail=detail) from exc
         return response.json()
 
     async def extract(
