@@ -26,7 +26,6 @@ import re
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
 
 try:
     import yaml
@@ -76,14 +75,14 @@ class Violation:
     location: str = ""
 
 
-def load_yaml(path: Path) -> Any:
+def load_yaml(path: Path) -> object:
     if yaml is None:
         raise RuntimeError("PyYAML is required but not installed")
     with open(path, "r", encoding="utf-8") as f:
         return yaml.safe_load(f)
 
 
-def load_json(path: Path) -> Any:
+def load_json(path: Path) -> object:
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
 
@@ -369,7 +368,7 @@ def main() -> int:
 
     violations = run_validation()
 
-    report: dict[str, Any] = {
+    report: dict[str, object] = {
         "passed": len(violations) == 0,
         "violations_count": len(violations),
         "violations": [
