@@ -860,6 +860,9 @@ check-compatibility-shims: ## CI gate — run registry-driven compatibility shim
 check-risk-register: ## Fail on un-countersigned ACCEPTED P0 risks
 	@$(PYTHON) scripts/ci/check_risk_register_countersignatures.py --baseline config/ci/risk_countersignature_baseline.json
 
+debt-baseline-snapshot: ## Aggregate checked-in debt baselines into config/ci/phase0_debt_baseline.json
+	@$(PYTHON) scripts/ci/debt_baseline_snapshot.py
+
 check-health-ratchets: check-conflict-markers check-no-nul-bytes check-type-escape-ratchet check-structural-fitness-ratchet check-dead-code check-legacy-debt check-operational-debt check-behavior-contract check-compatibility-shims check-temporal-skips check-test-skip-register-uniqueness check-reports-evidence-policy check-migration-heads check-migration-entrypoints check-migration-rollback-policy check-migration-runtime-consistency check-risk-register ## Run all fail-on-net-new health ratchets (single entry point)
 	@echo "✅  check-health-ratchets passed"
 

@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "snapshot_date_utc": "2026-08-29",
+  "sources": {
+    "type_escape": {
+      "path": "config/ci/type_escape_baseline.json",
+      "approved_escapes": 7071
+    },
+    "structural_fitness": {
+      "path": "config/ci/structural_fitness_baseline.json",
+      "high_complexity_functions": 12,
+      "oversized_modules": 16,
+      "dependency_cycles": 1
+    },
+    "legacy_debt": {
+      "path": "config/ci/legacy_debt_baseline.json",
+      "counts": {
+        "DEPRECATED": 86,
+        "OBSOLETE": 18,
+        "legacy_directories": 1
+      },
+      "total": 105
+    },
+    "operational_debt": {
+      "path": "config/ci/operational_debt_registry.yaml",
+      "entries": 3
+    },
+    "dead_code": {
+      "path": "config/ci/dead_code_allowlist.txt",
+      "allowlisted_symbols": 137
+    },
+    "test_skips": {
+      "path": "config/ci/test_skip_register.yaml",
+      "registered_skips": 254
+    },
+    "compatibility_shims": {
+      "registry": "docs/governance/compatibility-debt-registry.md"
+    }
+  }
+}
