@@ -857,6 +857,9 @@ check-compatibility-shims: ## CI gate — run registry-driven compatibility shim
 	$(PYTHON) scripts/ci/check_compatibility_shims.py run-all --strict
 	@echo "✅ Compatibility shim gate passed"
 
+check-health-ratchets: check-conflict-markers check-no-nul-bytes check-type-escape-ratchet check-structural-fitness-ratchet check-dead-code check-legacy-debt check-operational-debt check-behavior-contract check-compatibility-shims check-temporal-skips check-test-skip-register-uniqueness check-reports-evidence-policy check-migration-heads check-migration-entrypoints check-migration-rollback-policy check-migration-runtime-consistency ## Run all fail-on-net-new health ratchets (single entry point)
+	@echo "✅  check-health-ratchets passed"
+
 # ─── Developer Setup ─────────────────────────────────────────────────────────
 
 setup-hooks: ## Configure git to use .githooks/ (run once after clone)
