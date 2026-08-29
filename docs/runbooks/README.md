@@ -23,6 +23,10 @@ New production runbooks must start from [`_template.md`](_template.md) and keep 
 
 `Related Gates` must name the applicable readiness or CI gates, such as deployment gates, migration readiness gates, tenant-isolation gates, backup/restore readiness gates, agent evaluation gates, and observability alert gates.
 
+The standard applies to every canonical operator procedure below this directory. Indexes,
+directory READMEs, and dated audit records may use an informational structure because they
+are navigation or evidence artifacts rather than executable production procedures.
+
 ## Runbook Index
 
 | Alert | File | Severity |
