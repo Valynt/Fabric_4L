@@ -34,7 +34,7 @@ Use the same runtime family across local development, CI, and container images t
 
 | Runtime | Canonical version | Applies to | Source of truth |
 |---|---:|---|---|
-| Node.js | `22.18.0` | Local frontend tooling, pnpm workspaces, GitHub Actions `setup-node` jobs | Root `package.json` `engines.node` and workflow `node-version` entries |
+| Node.js | `22.22.2` | Local frontend tooling, pnpm workspaces, GitHub Actions `setup-node` jobs | Root `package.json` `engines.node` and workflow `node-version` entries |
 | pnpm | `10.18.1` | Local installs, CI installs, Corepack activation | Root `package.json` `packageManager` and `corepack prepare pnpm@10.18.1 --activate` commands |
 | Python | `3.11` | Local backend tooling, pytest, contract/governance CI jobs | Makefile interpreter selection and GitHub Actions `setup-python` jobs |
 | Python container base | `python@sha256:f5cf0344c9886ff24d34797578d5d7dd6e8911ae0fe5962bb55d0f89603ec361` (`python:3.11.15-slim-bookworm`) | Maintained service Dockerfiles and full/uv service variants | `FROM python@sha256:...` in service Dockerfiles |
@@ -42,7 +42,7 @@ Use the same runtime family across local development, CI, and container images t
 
 Policy notes:
 
-- CI should pin Node setup jobs to `22.18.0` rather than a moving major alias or Node 24 unless the root engine and local setup docs are intentionally upgraded together.
+- CI should pin Node setup jobs to `22.22.2` rather than a moving major alias or Node 24 unless the root engine and local setup docs are intentionally upgraded together.
 - Container base images are pinned to cryptographic manifest digests. When refreshing a patch level, update every service Dockerfile together and record the new digest in this matrix.
 - CI should run Python governance, contract, and backend checks on Python 3.11 to match the supported service runtime family.
 - Service Dockerfiles should use the shared Python 3.11 patch image above; update all service Dockerfiles together when refreshing the patch level.

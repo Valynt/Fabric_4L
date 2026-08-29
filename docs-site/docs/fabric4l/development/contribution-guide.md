@@ -13,7 +13,7 @@ This guide covers everything you need to get the Value Fabric monorepo running l
 | Tool | Minimum Version | Purpose |
 |------|-----------------|---------|
 | Python | 3.11+ | Backend services, pytest, migration tooling |
-| Node.js | 22.18.0 | Frontend build system, pnpm workspaces, GitHub Actions parity |
+| Node.js | 22.22.2 | Frontend build system, pnpm workspaces, GitHub Actions parity |
 | pnpm | 10.18.1 | Package manager (pnpm-only; npm and yarn are prohibited) |
 | Docker + Docker Compose | Latest stable | PostgreSQL, Redis, Neo4j, Keycloak local stacks |
 | make | GNU Make | Canonical build system interface |

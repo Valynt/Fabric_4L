@@ -5,7 +5,7 @@ inputs:
   node-version:
     description: 'Node.js version to install'
     required: false
-    default: '22.18.0'
+    default: '22.22.2'
   cache:
     description: 'Package manager to cache (npm, yarn, or pnpm); leave empty to disable caching'
     required: false

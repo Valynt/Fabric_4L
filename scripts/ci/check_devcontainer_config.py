@@ -136,7 +136,7 @@ def validate_static(root: Path) -> list[str]:
     feature_text = json.dumps(features)
     require('"version": "3.11"' in feature_text, "Python 3.11 must be pinned", errors)
     require(
-        '"version": "22.18.0"' in feature_text, "Node.js 22.18.0 must be pinned", errors
+        '"version": "22.22.2"' in feature_text, "Node.js 22.22.2 must be pinned", errors
     )
     require(
         '"pnpmVersion": "10.18.1"' in feature_text,

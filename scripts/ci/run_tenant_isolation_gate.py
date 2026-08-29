@@ -128,6 +128,15 @@ GROUPS: tuple[TenantIsolationGroup, ...] = (
             "services/api/app/tests/test_distributed_session_store.py",
         ),
     ),
+    TenantIsolationGroup(
+        id="hostile-tenancy-contracts",
+        title="Hostile Tenancy Contracts & Surface Isolation",
+        targets=(
+            "tests/tenancy/test_hostile_tenancy_contracts.py",
+            "tests/tenancy/test_file_storage_tenant_scope.py",
+            "tests/tenancy/test_search_index_tenant_scope.py",
+        ),
+    ),
 )
 
 
@@ -139,13 +148,19 @@ def _missing_targets(group: TenantIsolationGroup) -> list[str]:
     return [
         target
         for target in group.targets
-        if not (group.cwd / _target_path(target)).exists()
+        if not (group.cwd / Path(_target_path(target))).exists()
     ]
 
 
 def _gate_env() -> dict[str, str]:
     env = os.environ.copy()
     env.setdefault("PYTHONUTF8", "1")
+    shared_pkg = str(REPO_ROOT / "packages" / "shared" / "src")
+    existing_pythonpath = env.get("PYTHONPATH", "")
+    pythonpath_entries = [shared_pkg, str(REPO_ROOT)]
+    if existing_pythonpath:
+        pythonpath_entries.append(existing_pythonpath)
+    env["PYTHONPATH"] = os.pathsep.join(pythonpath_entries)
     return env
 
 
