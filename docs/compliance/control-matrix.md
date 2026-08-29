@@ -5,8 +5,8 @@
 This matrix maps major SOC 2, GDPR, HIPAA, and CCPA control themes to concrete **code**, **configuration**, and **operational process** evidence in Value Fabric.
 
 - **Scope:** Current repository implementation.
-- **Last reviewed:** 2026-08-21.
-- **Update trigger:** Any PR that changes security/governance-sensitive files must also evaluate (and, when needed, update) this matrix. Evaluated and refreshed for Security & Tenancy Hardening (PR #1392) covering hostile multi-tenant fixtures, security exception lifecycle governance, canonical Infisical secrets hierarchy, and production fail-closed controls.
+- **Last reviewed:** 2026-08-29.
+- **Update trigger:** Any PR that changes security/governance-sensitive files must also evaluate (and, when needed, update) this matrix. Updated for CI-baseline repair (PR #1585) covering CI-control-plane structural contract tests in `pr-checks.yml`, runtime contract readiness hardening (L1–L6 health + strict contract env), and recurring CI-failure backlog reporting in `pr-backlog-health.yml`.
 
 ---
 
@@ -122,3 +122,5 @@ A CI policy check now enforces that PRs touching security/governance-sensitive p
 
 - Check script: `.github/scripts/check-control-matrix.sh`
 - Workflow integration: `.github/workflows/pr-checks.yml` (`governance-docs-check` job)
+- CI-control-plane governance: `pr-checks.yml` runs structural skip-safety and semgrep contract tests unconditionally so CI input wiring and gate semantics cannot silently drift; runtime contract tests are hardened with explicit L1–L6 health/readiness waits and strict contract env so the suite runs against genuinely ready services.
+- CI failure accountability: `pr-backlog-health.yml` collects recurring CI failure backlog (`scripts/ci/generate_ci_failure_backlog.py`) so unstable gates surface as actionable issues rather than silent regressions.
