@@ -1,0 +1,10 @@
+{
+  "goal_id": "brooks-w1-s1-s2-remediation",
+  "status": "building",
+  "iteration": 1,
+  "builder_model": "OpenAI:GPT-5.6 Luna",
+  "inspector_model": "OpenAI:GPT-5.6 Sol",
+  "initial_sha": "895cfd9637a5dcc14eb71ffa6566ea082776f357",
+  "created_at": "2026-08-31T10:00:00Z",
+  "history": []
+}

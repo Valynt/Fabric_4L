@@ -25,6 +25,10 @@ if str(_repo_root) not in sys.path:
 if str(_layer4_dir) not in sys.path:
     sys.path.insert(0, str(_layer4_dir))
 
+# Add tests dir so helper modules (e.g. ``_wait_utils``) can be imported by name.
+if str(_tests_dir) not in sys.path:
+    sys.path.insert(0, str(_tests_dir))
+
 # Add src/ so bare `from harness.X` imports in src/harness/__init__.py resolve
 _src_dir = _layer4_dir / "src"
 if str(_src_dir) not in sys.path:
@@ -95,27 +99,60 @@ def pytest_configure(config):
     config.addinivalue_line("markers", "docker: Tests requiring a Docker daemon")
 
 
+def _testcontainers_required() -> bool:
+    """Whether the operator forces the Docker/testcontainers lane (fail closed)."""
+    return os.environ.get("LAYER4_REQUIRE_TESTCONTAINERS", "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+    }
+
+
 def pytest_collection_modifyitems(config, items):
     """Skip postgres/docker tests when their runtime dependencies are unavailable.
 
     This keeps local ``make test-layer4`` deterministic when Docker is not running
     while still allowing CI to run the full Docker/PostgreSQL integration lane via
     ``make test-layer4-live``.
+
+    The skip is never silent: a config-time warning reports how many gated items
+    were skipped, and setting ``LAYER4_REQUIRE_TESTCONTAINERS=1`` fails closed at
+    collection when the environment cannot actually run them (VF-SKIP-119/120).
     """
+    if _testcontainers_required() and not (POSTGRES_AVAILABLE and DOCKER_AVAILABLE):
+        raise pytest.UsageError(
+            "LAYER4_REQUIRE_TESTCONTAINERS=1 is set, but testcontainers/Docker are "
+            "not available in this environment. Refusing to run with postgres/docker "
+            "coverage silently skipped (see VF-SKIP-119/VF-SKIP-120); provide the "
+            "runtime dependencies or unset the variable."
+        )
+
+    skipped = 0
     if not POSTGRES_AVAILABLE:
         skip_postgres = pytest.mark.skip(reason="testcontainers.postgres not installed - run: pip install testcontainers")
         for item in items:
             if "postgres" in item.keywords:
                 item.add_marker(skip_postgres)
-        return
-
-    if not DOCKER_AVAILABLE:
+                skipped += 1
+    elif not DOCKER_AVAILABLE:
         skip_docker = pytest.mark.skip(
             reason="Docker daemon not available locally; run Docker or use CI for postgres/docker tests"
         )
         for item in items:
             if "postgres" in item.keywords or "docker" in item.keywords:
                 item.add_marker(skip_docker)
+                skipped += 1
+
+    if skipped:
+        config.issue_config_time_warning(
+            RuntimeWarning(
+                f"Skipped {skipped} Docker/testcontainers-gated test item(s); their "
+                "postgres/docker coverage is not exercised in this environment. Run "
+                "the postgres/docker lane in CI or via `make test-layer4-live`, or set "
+                "LAYER4_REQUIRE_TESTCONTAINERS=1 to fail closed instead of skipping."
+            ),
+            stacklevel=2,
+        )
 
 
 @pytest.fixture(scope="session")

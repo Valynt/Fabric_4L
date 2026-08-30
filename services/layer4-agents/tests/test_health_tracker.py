@@ -10,6 +10,8 @@ import asyncio
 
 import pytest
 
+from _wait_utils import wait_until
+
 from layer4_agents.services.health_tracker import (
     HealthBadge,
     HealthStatus,
@@ -257,12 +259,11 @@ class TestHealthTracker:
         tracker._auto_hide_tasks.add(task)
         task.add_done_callback(tracker._auto_hide_tasks.discard)
 
-        # Wait for auto-hide
-        await asyncio.sleep(0.1)
-
-        # Badge should be removed
-        active = tracker.get_active_badges()
-        assert all(b.badge_id != badge_id for b in active)
+        # Deterministic wait until the auto-hide task removes the badge.
+        await wait_until(
+            lambda: all(b.badge_id != badge_id for b in tracker.get_active_badges()),
+            description="badge auto-hidden",
+        )
 
     async def test_callback_exception_handling(self, tracker):
         """Test that exceptions in callbacks are handled gracefully."""

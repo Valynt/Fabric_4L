@@ -8,7 +8,6 @@ Covers:
 """
 
 
-import asyncio
 import time
 from unittest.mock import patch
 
@@ -284,8 +283,11 @@ class TestCircuitBreaker:
 
     @pytest.mark.unit
     @pytest.mark.asyncio
-    async def test_circuit_transitions_to_half_open_after_timeout(self):
+    async def test_circuit_transitions_to_half_open_after_timeout(self, monkeypatch):
         """Circuit transitions to HALF_OPEN after recovery_timeout elapses."""
+        clock = {"now": 1_000.0}
+        monkeypatch.setattr(time, "time", lambda: clock["now"])
+
         breaker = CircuitBreaker(
             service_name="test-service",
             failure_threshold=1,
@@ -301,8 +303,8 @@ class TestCircuitBreaker:
 
         assert breaker.state == CircuitState.OPEN
 
-        # Wait for recovery timeout
-        await asyncio.sleep(0.05)
+        # Advance past the recovery timeout on the virtual clock.
+        clock["now"] += 1.0
 
         # Force state update
         async with breaker._lock:
@@ -312,8 +314,11 @@ class TestCircuitBreaker:
 
     @pytest.mark.unit
     @pytest.mark.asyncio
-    async def test_half_open_success_closes_circuit(self):
+    async def test_half_open_success_closes_circuit(self, monkeypatch):
         """A successful call in HALF_OPEN state closes the circuit."""
+        clock = {"now": 1_000.0}
+        monkeypatch.setattr(time, "time", lambda: clock["now"])
+
         breaker = CircuitBreaker(
             service_name="test-service",
             failure_threshold=1,
@@ -331,8 +336,8 @@ class TestCircuitBreaker:
         with pytest.raises(RuntimeError):
             await breaker.call(failing_func)
 
-        # Wait for recovery
-        await asyncio.sleep(0.05)
+        # Advance past the recovery timeout on the virtual clock.
+        clock["now"] += 1.0
         async with breaker._lock:
             await breaker._update_state()
         assert breaker.state == CircuitState.HALF_OPEN
@@ -345,8 +350,11 @@ class TestCircuitBreaker:
 
     @pytest.mark.unit
     @pytest.mark.asyncio
-    async def test_half_open_failure_reopens_circuit(self):
+    async def test_half_open_failure_reopens_circuit(self, monkeypatch):
         """A failure in HALF_OPEN state re-opens the circuit."""
+        clock = {"now": 1_000.0}
+        monkeypatch.setattr(time, "time", lambda: clock["now"])
+
         breaker = CircuitBreaker(
             service_name="test-service",
             failure_threshold=1,
@@ -361,8 +369,8 @@ class TestCircuitBreaker:
         with pytest.raises(RuntimeError):
             await breaker.call(failing_func)
 
-        # Wait for recovery
-        await asyncio.sleep(0.05)
+        # Advance past the recovery timeout on the virtual clock.
+        clock["now"] += 1.0
         async with breaker._lock:
             await breaker._update_state()
         assert breaker.state == CircuitState.HALF_OPEN
