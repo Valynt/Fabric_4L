@@ -66,5 +66,25 @@
         "run_type":  "inspection and sampling only; no executable tests run",
         "report_location":  "session files: brooks-test-review-2026-08-28.md",
         "remediation_status":  "open - findings accepted into backlog"
+    },
+    {
+        "date":  "2026-08-30",
+        "mode":  "Test Quality Review",
+        "score":  80,
+        "findings":  {
+                         "critical":  1,
+                         "warning":  1,
+                         "suggestion":  0
+                     },
+        "scope":  "priority billing + arch test files; sampled L4 billing unit tests",
+        "inspected_commit_sha":  "32e4b9cbf258aca1a24d1993e1abc2be284cfd7b",
+        "configuration":  "defaults; no .brooks-lint.yaml present",
+        "scoring_rubric":  "balanced preset: Critical -15, Warning -5, Suggestion -1; floor 0",
+        "run_type":  "executed billing+abuse suites (1 failed, 24 passed); static sampling of L4 billing tests; arch merge-marker scan timed out (pre-existing)",
+        "finding_ids":  [
+                            "T5-broken-ratchet-l7-ref",
+                            "T5-manifest-coverage-illusion"
+                        ],
+        "remediation_status":  "resolved - T5 broken ratchet fixed in 7a4d67775 (repointed to L4 test_webhook_security.py; 25 passed); T5 manifest pattern open in backlog"
     }
 ]
