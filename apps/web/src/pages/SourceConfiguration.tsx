@@ -505,7 +505,7 @@ function SourceConfigurationContent() {
       <div className="flex items-center justify-between mb-6">
         <PageHeader
           title="Source Configuration"
-          subtitle={stats ? `${stats.total} sources · ${stats.connected} connected · ${stats.error} errors` : 'Loading...'}
+          subtitle={stats ? `${stats.total ?? 0} sources · ${stats.connected ?? 0} connected · ${stats.error ?? 0} errors` : 'Loading...'}
         />
         <Btn variant="primary" onClick={openCreateFlow}>
           <Plus size={14} className="mr-1" />
