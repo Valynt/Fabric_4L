@@ -1,39 +1,45 @@
+"""Billing API contract — canonical Layer 4 runtime.
+
+Governance (R3 billing de-duplication): the legacy standalone ``layer7-billing``
+service was deleted. Layer 4 (``layer4-agents`` :8004) is the canonical billing
+runtime and ``contracts/openapi/layer7-billing.json`` is the retained billing
+API contract — a deterministic subset export of the Layer 4 application surface
+(only ``/v1/billing/*`` paths).
+
+These checks are static + fail-closed behavior tests and do not require a live
+database or a Stripe connection: they prove the committed contract matches the
+Layer 4 runtime surface and that the billing routes fail closed (tenant
+authentication first, Stripe signature validation before any provider work).
+"""
+
+from __future__ import annotations
+
+import json
 import os
-import sys
 import time
 from pathlib import Path
 
 import pytest
 
 try:
-    import asyncpg  # noqa: F401
-except ModuleNotFoundError as exc:  # pragma: no cover
-    pytest.skip(
-        f"{exc.name} is not installed; install test deps with "
-        "`pip install -r tests/requirements-test.txt`",
-        allow_module_level=True,
-    )
-
-from fastapi.testclient import TestClient
-
-try:
     import jwt
 except ModuleNotFoundError:  # pragma: no cover
     pytest.skip("PyJWT not installed", allow_module_level=True)
 
-# Patch rate limiters BEFORE importing the app to avoid spurious 429s
-# in contract tests where Redis is not available.
+from fastapi.testclient import TestClient
+
+# Patch rate limiters BEFORE importing the app to avoid spurious 429s in
+# contract tests where Redis is not available.
 try:
     from value_fabric.shared.rate_limiting.tenant_rate_limiter import SlidingWindowAdapter
 
-    _orig_sw_check = SlidingWindowAdapter.check
-
-    async def _patched_sw_check(self, *args, **kwargs):
+    async def _patched_sw_check(self, *args, **kwargs):  # noqa: ANN001, ANN002
         class _Decision:
             allowed = True
             remaining = 999
             reset_epoch = 0
             retry_after = None
+
         return _Decision()
 
     SlidingWindowAdapter.check = _patched_sw_check
@@ -45,63 +51,18 @@ try:
 
     _orig_tenant_rl_check = middleware._check_tenant_rate_limit
 
-    def _patched_tenant_rl_check(tenant_id, requests_per_minute):
+    def _patched_tenant_rl_check(tenant_id, requests_per_minute):  # noqa: ANN001
         return True, 0
 
     middleware._check_tenant_rate_limit = _patched_tenant_rl_check
 except Exception:
     pass
 
-_LAYER7_DB_URL = os.getenv(
-    "LAYER7_DATABASE_URL", "postgresql+asyncpg://postgres:postgres@localhost:5432/layer7_billing"
-)
+from layer4_agents.api.main import app  # noqa: E402
 
-
-def _db_available() -> bool:
-    import asyncio
-    import urllib.parse
-
-    parsed = urllib.parse.urlparse(_LAYER7_DB_URL)
-    host = parsed.hostname or "localhost"
-    port = parsed.port or 5432
-    user = parsed.username or "postgres"
-    password = parsed.password or "postgres"
-    database = parsed.path.lstrip("/") or "layer7_billing"
-
-    async def _probe() -> bool:
-        try:
-            conn = await asyncpg.connect(
-                host=host, port=port, user=user, password=password, database=database, timeout=3
-            )
-            await conn.close()
-            return True
-        except Exception:
-            return False
-
-    try:
-        loop = asyncio.get_running_loop()
-    except RuntimeError:
-        loop = None
-
-    if loop is not None and loop.is_running():
-        # Running inside an event loop (e.g., pytest-asyncio); we can't run_until_complete.
-        # Defer the check to a synchronous socket probe instead.
-        import socket
-
-        try:
-            with socket.create_connection((host, port), timeout=3):
-                return True
-        except Exception:
-            return False
-
-    return asyncio.new_event_loop().run_until_complete(_probe())
-
-
-if not _db_available():
-    pytest.skip("PostgreSQL not reachable; start DB to run billing contract tests", allow_module_level=True)
-
-sys.path.append(str(Path(__file__).resolve().parents[2] / "services/layer7-billing/src"))
-from layer7_billing.api.main import app
+REPO_ROOT = Path(__file__).resolve().parents[2]
+CONTRACT_PATH = REPO_ROOT / "contracts" / "openapi" / "layer7-billing.json"
+BILLING_PATH_MARKER = "/v1/billing/"
 
 _TEST_JWT_SECRET = os.getenv(
     "JWT_SECRET",
@@ -133,48 +94,80 @@ def _headers(tenant: str, roles: list[str] | None = None) -> dict[str, str]:
     }
 
 
-def test_entitlement_contract_and_single_decision_api() -> None:
-    client = TestClient(app)
-    client.post(
-        "/v1/billing/plans",
-        headers=_headers("tenant-a"),
-        json={"plan_id": "pro", "name": "Pro", "entitlements": ["feature.alpha"]},
-    )
-    resp = client.get(
-        "/v1/billing/entitlements/pro/decision",
-        headers=_headers("tenant-a", roles=["billing:read"]),
-        params={"feature": "feature.alpha"},
-    )
-    body = resp.json()
-    assert resp.status_code == 200
-    assert body["allowed"] is True
-    assert body["policy"] == "runtime-entitlement-api-v1"
-
-
-def test_usage_event_append_only_and_idempotent_aggregate() -> None:
-    client = TestClient(app)
-    payload = {
-        "event_id": "evt-1",
-        "metric": "tokens",
-        "quantity": 10,
-        "source": "layer4",
-        "timestamp": "2026-05-26T00:00:00Z",
-        "request_id": "req-1",
+def _layer4_billing_paths() -> dict[str, dict]:
+    openapi = app.openapi()
+    return {
+        path: methods
+        for path, methods in openapi.get("paths", {}).items()
+        if BILLING_PATH_MARKER in path
     }
-    first = client.post(
-        "/v1/billing/usage-events",
-        headers=_headers("tenant-a"),
-        json=payload,
+
+
+def test_billing_contract_matches_layer4_runtime_surface() -> None:
+    """The retained contract must equal the Layer 4 billing runtime surface.
+
+    ``contracts/openapi/layer7-billing.json`` is a deterministic subset export
+    of the Layer 4 application; any drift is blocked by
+    ``scripts/ci/check_contract_freshness.sh``.
+    """
+    contract = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+    contract_paths = dict(contract["paths"])
+    layer4_paths = _layer4_billing_paths()
+    assert contract_paths == layer4_paths, (
+        "contracts/openapi/layer7-billing.json must equal the /v1/billing/* "
+        "subset of the Layer 4 runtime. Run `python scripts/export_openapi.py` "
+        "to regenerate the contract."
     )
-    second = client.post(
-        "/v1/billing/usage-events",
-        headers=_headers("tenant-a"),
-        json=payload,
+
+
+def test_billing_contract_contains_only_billing_paths() -> None:
+    contract = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+    assert contract["paths"], "billing contract must declare at least one path"
+    for path in contract["paths"]:
+        assert BILLING_PATH_MARKER in path, f"non-billing path leaked into contract: {path}"
+
+
+def test_billing_contract_identifies_layer4_ownership() -> None:
+    contract = json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+    assert "Layer 4" in contract["info"]["title"]
+    assert contract.get("x-backend-service") == "layer4-agents"
+
+
+def test_billing_routes_require_authentication() -> None:
+    """Fail closed: unauthenticated billing access is rejected (401/403)."""
+    client = TestClient(app)
+    resp = client.get("/v1/billing/subscription")
+    assert resp.status_code in (401, 403), (
+        f"unauthenticated billing request must be rejected, got {resp.status_code}"
     )
-    assert first.status_code == 200
-    assert second.json()["status"] == "duplicate"
-    agg = client.get(
-        "/v1/billing/usage-aggregates",
-        headers=_headers("tenant-a", roles=["billing:read"]),
-    ).json()
-    assert agg["metrics"]["tokens"] == 10
+
+
+def test_authenticated_billing_request_passes_auth_gate() -> None:
+    """An authenticated request reaches the runtime fail-closed path (not 401).
+
+    Without a configured Stripe/DB the runtime answers a structured billing
+    rejection (402/500/503); the point here is that the tenant auth gate has
+    already been crossed.
+    """
+    client = TestClient(app)
+    resp = client.get("/v1/billing/subscription", headers=_headers("11111111-2222-4333-8444-555555555555"))
+    assert resp.status_code not in (401, 403), (
+        f"authenticated billing request must pass the auth gate, got {resp.status_code}"
+    )
+
+
+def test_stripe_webhook_requires_signature_header() -> None:
+    """Fail closed: a Stripe webhook without a signature header is rejected.
+
+    Signature validation happens before any provider/DB work, so this is a
+    deterministic behavior check that never touches a live Stripe connection.
+    """
+    client = TestClient(app)
+    resp = client.post(
+        "/v1/billing/webhook",
+        headers=_headers("11111111-2222-4333-8444-555555555555"),
+        json={"type": "checkout.session.completed"},
+    )
+    assert resp.status_code == 422, (
+        f"missing Stripe-Signature header must be rejected with 422, got {resp.status_code}"
+    )

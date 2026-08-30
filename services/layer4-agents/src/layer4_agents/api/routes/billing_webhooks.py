@@ -1,7 +1,9 @@
-"""Phase 1 forwarding stub — canonical implementation now in layer7-billing.
+"""Stripe webhook billing route.
 
-Layer 4 retains this shim for backward compatibility. All calls are
-forwarded to the Layer 7 Billing Service via HTTP client stubs.
+Layer 4 is the canonical billing runtime; there is no separate Layer 7
+Billing Service. The handler registered here is re-exported from the
+local ``billing`` module (Stripe webhook with signature verification).
+Patch this service, not a Layer 7 package.
 """
 
 from __future__ import annotations

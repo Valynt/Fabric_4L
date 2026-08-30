@@ -7298,25 +7298,25 @@
     },
     {
       "kind": "python-any",
-      "line": 53,
+      "line": 52,
       "path": "scripts/ci/k8s_preflight.py",
       "text": "def load_yaml_documents(path: Path) -> list[dict[str, Any]]:"
     },
     {
       "kind": "python-any",
-      "line": 90,
+      "line": 89,
       "path": "scripts/ci/k8s_preflight.py",
       "text": "doc: dict[str, Any],"
     },
     {
       "kind": "python-any",
-      "line": 205,
+      "line": 204,
       "path": "scripts/ci/k8s_preflight.py",
       "text": "def check_layer5_migration_guardrails(file_path: Path, doc: dict[str, Any]) -> list[Violation]:"
     },
     {
       "kind": "python-any",
-      "line": 254,
+      "line": 253,
       "path": "scripts/ci/k8s_preflight.py",
       "text": "def check_layer_service_lifecycle_documentation(file_path: Path, doc: dict[str, Any]) -> list[Violation]:"
     },
@@ -7694,25 +7694,25 @@
     },
     {
       "kind": "python-any",
-      "line": 294,
+      "line": 286,
       "path": "scripts/ci/router_contract_gate.py",
       "text": "def frontend_audit(registry: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:"
     },
     {
       "kind": "python-any",
-      "line": 298,
+      "line": 290,
       "path": "scripts/ci/router_contract_gate.py",
       "text": "routes: list[dict[str, Any]] = []"
     },
     {
       "kind": "python-any",
-      "line": 321,
+      "line": 313,
       "path": "scripts/ci/router_contract_gate.py",
       "text": "def owner_for_path(path: str, rules: list[dict[str, Any]]) -> str | None:"
     },
     {
       "kind": "python-any",
-      "line": 327,
+      "line": 319,
       "path": "scripts/ci/router_contract_gate.py",
       "text": "def write_artifacts(report: dict[str, Any]) -> None:"
     },
@@ -8228,205 +8228,205 @@
     },
     {
       "kind": "python-any",
-      "line": 123,
+      "line": 128,
       "path": "scripts/export_openapi.py",
       "text": "def _module_stub(name: str, **attrs: Any) -> ModuleType:"
     },
     {
       "kind": "python-type-ignore",
-      "line": 135,
+      "line": 140,
       "path": "scripts/export_openapi.py",
       "text": "module.__path__ = []  # type: ignore[attr-defined]"
     },
     {
       "kind": "python-any",
-      "line": 154,
+      "line": 159,
       "path": "scripts/export_openapi.py",
       "text": "def __init__(self, *args: Any, **kwargs: Any) -> None:"
     },
     {
       "kind": "python-any",
-      "line": 157,
+      "line": 162,
       "path": "scripts/export_openapi.py",
       "text": "def add_node(self, *args: Any, **kwargs: Any) -> None:"
     },
     {
       "kind": "python-any",
-      "line": 160,
+      "line": 165,
       "path": "scripts/export_openapi.py",
       "text": "def add_edge(self, *args: Any, **kwargs: Any) -> None:"
     },
     {
       "kind": "python-any",
-      "line": 163,
+      "line": 168,
       "path": "scripts/export_openapi.py",
       "text": "def add_conditional_edges(self, *args: Any, **kwargs: Any) -> None:"
     },
     {
       "kind": "python-any",
-      "line": 166,
+      "line": 171,
       "path": "scripts/export_openapi.py",
       "text": "def set_entry_point(self, *args: Any, **kwargs: Any) -> None:"
     },
     {
       "kind": "python-any",
-      "line": 169,
+      "line": 174,
       "path": "scripts/export_openapi.py",
       "text": "def compile(self, *args: Any, **kwargs: Any) -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 172,
+      "line": 177,
       "path": "scripts/export_openapi.py",
       "text": "async def ainvoke(self, value: Any, *args: Any, **kwargs: Any) -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 183,
+      "line": 188,
       "path": "scripts/export_openapi.py",
       "text": "def driver(*args: Any, **kwargs: Any) -> _MockAsyncDriver:"
     },
     {
       "kind": "python-any",
-      "line": 189,
+      "line": 194,
       "path": "scripts/export_openapi.py",
       "text": "def driver(*args: Any, **kwargs: Any) -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 202,
+      "line": 207,
       "path": "scripts/export_openapi.py",
       "text": "def __init__(self, *args: Any, **kwargs: Any) -> None:"
     },
     {
       "kind": "python-any",
-      "line": 208,
+      "line": 213,
       "path": "scripts/export_openapi.py",
       "text": "def put_object(self, *args: Any, **kwargs: Any) -> dict[str, str]:"
     },
     {
       "kind": "python-any",
-      "line": 211,
+      "line": 216,
       "path": "scripts/export_openapi.py",
       "text": "def generate_presigned_url(self, *args: Any, **kwargs: Any) -> str:"
     },
     {
       "kind": "python-any",
-      "line": 216,
+      "line": 221,
       "path": "scripts/export_openapi.py",
       "text": "def __init__(self, *args: Any, **kwargs: Any) -> None:"
     },
     {
       "kind": "python-any",
-      "line": 220,
+      "line": 225,
       "path": "scripts/export_openapi.py",
       "text": "def _mock_retry(*args: Any, **kwargs: Any) -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 221,
+      "line": 226,
       "path": "scripts/export_openapi.py",
       "text": "def decorator(func: Any) -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 227,
+      "line": 232,
       "path": "scripts/export_openapi.py",
       "text": "def _mock_policy(*args: Any, **kwargs: Any) -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 287,
+      "line": 292,
       "path": "scripts/export_openapi.py",
       "text": "def __init__(self, *args: Any, **kwargs: Any) -> None:"
     },
     {
       "kind": "python-any",
-      "line": 290,
+      "line": 295,
       "path": "scripts/export_openapi.py",
       "text": "def task(self, *args: Any, **kwargs: Any) -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 291,
+      "line": 296,
       "path": "scripts/export_openapi.py",
       "text": "def decorator(func: Any) -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 296,
+      "line": 301,
       "path": "scripts/export_openapi.py",
       "text": "def _mock_chain(*tasks: Any) -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 297,
+      "line": 302,
       "path": "scripts/export_openapi.py",
       "text": "def runner(*args: Any, **kwargs: Any) -> None:"
     },
     {
       "kind": "python-any",
-      "line": 302,
+      "line": 307,
       "path": "scripts/export_openapi.py",
       "text": "def _mock_crontab(**kwargs: Any) -> dict[str, Any]:"
     },
     {
       "kind": "python-type-ignore",
-      "line": 353,
+      "line": 358,
       "path": "scripts/export_openapi.py",
       "text": "psycopg2.__spec__ = importlib.util.spec_from_loader(\"psycopg2\", loader=None)  # type: ignore[attr-defined]"
     },
     {
       "kind": "python-any",
-      "line": 424,
+      "line": 429,
       "path": "scripts/export_openapi.py",
       "text": "def client(*args: Any, **kwargs: Any) -> _MockS3Client:"
     },
     {
       "kind": "python-type-ignore",
-      "line": 471,
+      "line": 476,
       "path": "scripts/export_openapi.py",
       "text": "module.__path__ = [str(package_path)]  # type: ignore[attr-defined]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 476,
+      "line": 481,
       "path": "scripts/export_openapi.py",
       "text": "module.__version__ = version_match.group(1)  # type: ignore[attr-defined]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 514,
+      "line": 519,
       "path": "scripts/export_openapi.py",
       "text": "module.__package__ = full_name.rpartition(\".\")[0]  # type: ignore[attr-defined]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 521,
+      "line": 526,
       "path": "scripts/export_openapi.py",
       "text": "module._app_metrics = None  # type: ignore[attr-defined]"
     },
     {
       "kind": "python-any",
-      "line": 523,
+      "line": 528,
       "path": "scripts/export_openapi.py",
       "text": "def _set_app_metrics(metrics: Any | None) -> None:"
     },
     {
       "kind": "python-type-ignore",
-      "line": 524,
+      "line": 529,
       "path": "scripts/export_openapi.py",
       "text": "module._app_metrics = metrics  # type: ignore[attr-defined]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 526,
+      "line": 531,
       "path": "scripts/export_openapi.py",
       "text": "module.set_app_metrics = _set_app_metrics  # type: ignore[attr-defined]"
     },
     {
       "kind": "python-any",
-      "line": 533,
+      "line": 538,
       "path": "scripts/export_openapi.py",
       "text": "def _atomic_write_json(data: dict[str, Any], output_path: Path) -> None:"
     },
@@ -10088,13 +10088,13 @@
     },
     {
       "kind": "python-any",
-      "line": 259,
+      "line": 279,
       "path": "services/api/app/core/security.py",
       "text": "# Any account with such a hash must go through password reset before logging in."
     },
     {
       "kind": "python-any",
-      "line": 298,
+      "line": 318,
       "path": "services/api/app/core/security.py",
       "text": "extra_claims: dict[str, Any] | None = None,"
     },
@@ -10298,13 +10298,13 @@
     },
     {
       "kind": "python-any",
-      "line": 53,
+      "line": 58,
       "path": "services/api/app/routers/benchmarks.py",
       "text": "@router.get(\"\", response_model=PaginatedResponse[dict[str, Any]])"
     },
     {
       "kind": "python-any",
-      "line": 72,
+      "line": 77,
       "path": "services/api/app/routers/benchmarks.py",
       "text": "payload: dict[str, Any],"
     },
@@ -40220,234 +40220,6 @@
     },
     {
       "kind": "python-any",
-      "line": 7,
-      "path": "services/layer7-billing/src/layer7_billing/api/main.py",
-      "text": "from typing import Any"
-    },
-    {
-      "kind": "python-type-ignore",
-      "line": 299,
-      "path": "services/layer7-billing/src/layer7_billing/api/main.py",
-      "text": "@app.post(\"/v1/billing/webhook\")  # type: ignore[misc]"
-    },
-    {
-      "kind": "python-any",
-      "line": 303,
-      "path": "services/layer7-billing/src/layer7_billing/api/main.py",
-      "text": ") -> dict[str, Any]:"
-    },
-    {
-      "kind": "python-any",
-      "line": 16,
-      "path": "services/layer7-billing/src/layer7_billing/api/routes/billing.py",
-      "text": "from typing import Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 112,
-      "path": "services/layer7-billing/src/layer7_billing/api/routes/billing.py",
-      "text": "features: dict[str, Any]"
-    },
-    {
-      "kind": "python-any",
-      "line": 134,
-      "path": "services/layer7-billing/src/layer7_billing/api/routes/billing.py",
-      "text": ") -> dict[str, Any]:"
-    },
-    {
-      "kind": "python-any",
-      "line": 205,
-      "path": "services/layer7-billing/src/layer7_billing/api/routes/billing.py",
-      "text": ") -> dict[str, Any]:"
-    },
-    {
-      "kind": "python-any",
-      "line": 224,
-      "path": "services/layer7-billing/src/layer7_billing/api/routes/billing.py",
-      "text": ") -> dict[str, Any]:"
-    },
-    {
-      "kind": "python-any",
-      "line": 242,
-      "path": "services/layer7-billing/src/layer7_billing/api/routes/billing.py",
-      "text": ") -> dict[str, Any]:"
-    },
-    {
-      "kind": "python-any",
-      "line": 265,
-      "path": "services/layer7-billing/src/layer7_billing/api/routes/billing.py",
-      "text": ") -> dict[str, Any]:"
-    },
-    {
-      "kind": "python-any",
-      "line": 288,
-      "path": "services/layer7-billing/src/layer7_billing/api/routes/billing.py",
-      "text": ") -> dict[str, Any]:"
-    },
-    {
-      "kind": "python-any",
-      "line": 313,
-      "path": "services/layer7-billing/src/layer7_billing/api/routes/billing.py",
-      "text": ") -> dict[str, Any]:"
-    },
-    {
-      "kind": "python-any",
-      "line": 344,
-      "path": "services/layer7-billing/src/layer7_billing/api/routes/billing.py",
-      "text": ") -> dict[str, Any]:"
-    },
-    {
-      "kind": "python-any",
-      "line": 10,
-      "path": "services/layer7-billing/src/layer7_billing/api/routes/billing_overages.py",
-      "text": "from typing import Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 46,
-      "path": "services/layer7-billing/src/layer7_billing/api/routes/billing_overages.py",
-      "text": "metrics: list[dict[str, Any]] = []"
-    },
-    {
-      "kind": "python-any",
-      "line": 52,
-      "path": "services/layer7-billing/src/layer7_billing/api/routes/billing_overages.py",
-      "text": "limits: dict[str, Any]"
-    },
-    {
-      "kind": "python-any",
-      "line": 60,
-      "path": "services/layer7-billing/src/layer7_billing/api/routes/billing_overages.py",
-      "text": ") -> dict[str, Any]:"
-    },
-    {
-      "kind": "python-any",
-      "line": 103,
-      "path": "services/layer7-billing/src/layer7_billing/api/routes/billing_overages.py",
-      "text": ") -> dict[str, Any]:"
-    },
-    {
-      "kind": "python-any",
-      "line": 131,
-      "path": "services/layer7-billing/src/layer7_billing/api/routes/billing_overages.py",
-      "text": ") -> dict[str, Any]:"
-    },
-    {
-      "kind": "python-any",
-      "line": 11,
-      "path": "services/layer7-billing/src/layer7_billing/api/routes/billing_usage.py",
-      "text": "from typing import Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 41,
-      "path": "services/layer7-billing/src/layer7_billing/api/routes/billing_usage.py",
-      "text": "metadata: dict[str, Any] | None = Field(default=None, description=\"Optional metadata\")"
-    },
-    {
-      "kind": "python-any",
-      "line": 61,
-      "path": "services/layer7-billing/src/layer7_billing/api/routes/billing_usage.py",
-      "text": "metadata: dict[str, Any] | None = None"
-    },
-    {
-      "kind": "python-any",
-      "line": 84,
-      "path": "services/layer7-billing/src/layer7_billing/api/routes/billing_usage.py",
-      "text": ") -> dict[str, Any]:"
-    },
-    {
-      "kind": "python-any",
-      "line": 126,
-      "path": "services/layer7-billing/src/layer7_billing/api/routes/billing_usage.py",
-      "text": ") -> dict[str, Any]:"
-    },
-    {
-      "kind": "python-any",
-      "line": 177,
-      "path": "services/layer7-billing/src/layer7_billing/api/routes/billing_usage.py",
-      "text": ") -> dict[str, Any]:"
-    },
-    {
-      "kind": "python-any",
-      "line": 199,
-      "path": "services/layer7-billing/src/layer7_billing/api/routes/billing_usage.py",
-      "text": ") -> list[dict[str, Any]]:"
-    },
-    {
-      "kind": "python-any",
-      "line": 219,
-      "path": "services/layer7-billing/src/layer7_billing/api/routes/billing_usage.py",
-      "text": ") -> dict[str, Any]:"
-    },
-    {
-      "kind": "python-any",
-      "line": 12,
-      "path": "services/layer7-billing/src/layer7_billing/api/routes/billing_webhooks.py",
-      "text": "from typing import Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 55,
-      "path": "services/layer7-billing/src/layer7_billing/api/routes/billing_webhooks.py",
-      "text": ") -> dict[str, Any]:"
-    },
-    {
-      "kind": "python-type-ignore",
-      "line": 37,
-      "path": "services/layer7-billing/src/layer7_billing/database.py",
-      "text": "_redis_asyncio = None  # type: ignore[assignment]"
-    },
-    {
-      "kind": "python-any",
-      "line": 4,
-      "path": "services/layer7-billing/src/layer7_billing/models.py",
-      "text": "from typing import Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 71,
-      "path": "services/layer7-billing/src/layer7_billing/models.py",
-      "text": "payload: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)"
-    },
-    {
-      "kind": "python-any",
-      "line": 87,
-      "path": "services/layer7-billing/src/layer7_billing/models.py",
-      "text": "payload: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)"
-    },
-    {
-      "kind": "python-any",
-      "line": 3,
-      "path": "services/layer7-billing/src/layer7_billing/repository.py",
-      "text": "from typing import Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 14,
-      "path": "services/layer7-billing/src/layer7_billing/repository.py",
-      "text": ") -> dict[str, Any]:"
-    },
-    {
-      "kind": "python-any",
-      "line": 38,
-      "path": "services/layer7-billing/src/layer7_billing/repository.py",
-      "text": "session: AsyncSession, tenant_id: str, event: dict[str, Any]"
-    },
-    {
-      "kind": "python-any",
-      "line": 72,
-      "path": "services/layer7-billing/src/layer7_billing/repository.py",
-      "text": "async def list_invoices(session: AsyncSession, tenant_id: str) -> list[dict[str, Any]]:"
-    },
-    {
-      "kind": "python-any",
-      "line": 82,
-      "path": "services/layer7-billing/src/layer7_billing/repository.py",
-      "text": ") -> dict[str, Any]:"
-    },
-    {
-      "kind": "python-any",
       "line": 25,
       "path": "tests/agents/test_conversation_service.py",
       "text": "from typing import Any"
@@ -40868,7 +40640,7 @@
     },
     {
       "kind": "python-any",
-      "line": 347,
+      "line": 380,
       "path": "tests/contract/test_error_envelope_consistency.py",
       "text": "def _assert_matches_canonical_error_envelope(payload: dict[str, Any]) -> None:"
     },

@@ -34,7 +34,6 @@ jobs:
           - {name: "Layer 4", dir: "layer4-agents", file: "layer4-agents.json"}
           - {name: "Layer 5", dir: "layer5-ground-truth", file: "layer5-ground-truth.json"}
           - {name: "API Gateway", dir: "api", file: "fabric-4l-api.json"}
-          - {name: "Layer 7 Billing", dir: "layer7-billing", file: "layer7-billing.json"}
 
     steps:
       - name: Checkout code

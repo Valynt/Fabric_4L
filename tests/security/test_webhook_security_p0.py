@@ -5,7 +5,7 @@ from __future__ import annotations
 Validates the real Stripe webhook verification and idempotency boundaries:
 
 - ``verify_stripe_webhook_signature`` / ``parse_stripe_signature_header``
-  (``layer7_billing.webhook_security``) for signature/HMAC + timestamp
+  (``layer4_agents.services.billing_security``) for signature/HMAC + timestamp
   tolerance.
 - ``IdempotencyService`` / ``InMemoryIdempotencyStore``
   (``value_fabric.shared.idempotency``) for replay rejection, duplicate
@@ -26,7 +26,7 @@ import hmac
 import time
 
 import pytest
-from layer7_billing.webhook_security import (
+from layer4_agents.services.billing_security import (
     parse_stripe_signature_header,
     verify_stripe_webhook_signature,
 )

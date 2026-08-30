@@ -1,7 +1,7 @@
 # PostgreSQL Backup CronJob
 # Runs daily at 2 AM UTC
 # Backs up all application databases (ingestion, extraction, signal_refinery,
-# layer4_agents, ground_truth, benchmarks, layer7_billing)
+# layer4_agents, ground_truth, benchmarks)
 #
 # BACKUP STRATEGY (as of V14.1 hotfix):
 #   ACTIVE PATH: pg_dump logical backups to PVC (retained 7 days).
@@ -78,7 +78,7 @@ spec:
                   PG_HOST=$${POSTGRES_HOST:-postgres-patroni}
 
                   # All application databases
-                  DATABASES="ingestion extraction signal_refinery layer4_agents ground_truth benchmarks layer7_billing"
+                  DATABASES="ingestion extraction signal_refinery layer4_agents ground_truth benchmarks"
 
                   for DB in $$DATABASES; do
                     # Check if the database exists before attempting backup

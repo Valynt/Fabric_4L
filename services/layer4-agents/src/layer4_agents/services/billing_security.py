@@ -2,10 +2,13 @@ from __future__ import annotations
 
 """Canonical Stripe billing webhook security primitives.
 
-This module is the single source of truth for Stripe webhook source-IP checks
-and request metadata extraction used by billing webhook entry points.
+This module is the single source of truth for Stripe webhook source-IP checks,
+Stripe-Signature header parsing/HMAC verification, and request metadata
+extraction used by billing webhook entry points.
 """
 
+import hashlib
+import hmac
 import ipaddress
 import os
 import re
@@ -115,6 +118,47 @@ def ensure_timestamp_within_tolerance(timestamp: int, now: int | None = None) ->
     current = now if now is not None else int(time.time())
     if abs(current - timestamp) > _STRIPE_TIMESTAMP_TOLERANCE_SECONDS:
         raise ValueError("Timestamp outside tolerance (stale/replay)")
+
+
+def verify_stripe_webhook_signature(
+    payload: bytes,
+    signature_header: str | None,
+    webhook_secret: str | None,
+    *,
+    tolerance_seconds: int = 300,
+    now: int | None = None,
+) -> StripeSignatureComponents:
+    """Verify a Stripe webhook payload using the endpoint secret.
+
+    Verification follows Stripe's HMAC-SHA256 scheme over
+    ``<timestamp>.<raw_payload>`` and rejects stale timestamps to reduce replay
+    risk. The raw request bytes must be used; parsed/re-serialized JSON is not
+    safe for signature verification. ``now`` pins the reference time for tests.
+
+    Canonical Layer 4 webhook verification implementation.
+    """
+    if webhook_secret is None or not webhook_secret.strip():
+        raise ValueError("Stripe webhook secret is not configured")
+    if tolerance_seconds < 1:
+        raise ValueError("Stripe webhook timestamp tolerance must be positive")
+    if signature_header is None:
+        raise ValueError("Missing Stripe-Signature header")
+
+    parsed = parse_stripe_signature_header(signature_header)
+    current_time = int(time.time()) if now is None else now
+    if abs(current_time - parsed.timestamp) > tolerance_seconds:
+        raise ValueError("Stripe webhook timestamp is outside tolerance")
+
+    signed_payload = f"{parsed.timestamp}.".encode("utf-8") + payload
+    expected_signature = hmac.new(
+        webhook_secret.encode("utf-8"), signed_payload, hashlib.sha256
+    ).hexdigest()
+    if not any(
+        hmac.compare_digest(expected_signature, candidate) for candidate in parsed.signatures
+    ):
+        raise ValueError("Invalid Stripe webhook signature")
+
+    return parsed
 
 
 def validate_webhook_request_security(request: Request, stripe_signature: str, *, enforce_ip_check: bool = True) -> StripeSignatureComponents:

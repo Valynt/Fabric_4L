@@ -7,7 +7,6 @@ Tests explicit hostile cross-tenant access patterns for each layer's endpoint fa
 - L4: /v1/workflows/**, /v1/accounts/**
 - L5: /api/v1/truths/**
 - L6: /v1/benchmarks/**
-- L7: /v1/billing/**
 - API: /v1/accounts/**
 
 Each family must enforce tenant isolation at the route handler level:
@@ -83,12 +82,6 @@ ENDPOINT_FAMILIES: dict[str, tuple[str, Path, str, list[str]]] = {
         REPO_ROOT / "services/layer6-benchmarks/src/layer6_benchmarks/api/routes/benchmarks.py",
         "/v1/benchmarks",
         ["GET", "POST", "PUT"],
-    ),
-    "L7_billing": (
-        "L7",
-        REPO_ROOT / "services/layer7-billing/src/layer7_billing/api/main.py",
-        "/v1/billing",
-        ["GET", "POST"],
     ),
     "API_accounts": (
         "API",

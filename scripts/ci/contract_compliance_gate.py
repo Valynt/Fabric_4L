@@ -45,6 +45,7 @@ GENERATED_SPECS = (
 REFRESHABLE_ONLY_SPECS = (
     "fabric-4l-api.json",
     "layer2-5-signal-refinery.json",
+    "layer7-billing.json",
 )
 
 REFRESHABLE_SPECS = GENERATED_SPECS + REFRESHABLE_ONLY_SPECS
@@ -104,6 +105,12 @@ SPEC_CONFIG = {
     },
     "layer2-5-signal-refinery.json": {
         "service_prefixes": ("services/layer2-5-signal-refinery/",),
+        "platform_file": None,
+        "web_dir": None,
+        "import_alias": None,
+    },
+    "layer7-billing.json": {
+        "service_prefixes": ("services/layer4-agents/src/layer4_agents/api/routes/billing",),
         "platform_file": None,
         "web_dir": None,
         "import_alias": None,

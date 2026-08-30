@@ -71,6 +71,13 @@ EXPORT_SPECS: tuple[OpenApiExportSpec, ...] = (
         "layer2-5-signal-refinery.json",
     ),
     OpenApiExportSpec("Layer 4", "layer4-agents", "layer4_agents", "layer4_agents/api/main.py", "layer4-agents.json"),
+    OpenApiExportSpec(
+        "Layer 4 Billing",
+        "layer4-agents",
+        "layer4_agents",
+        "layer4_agents/api/main.py",
+        "layer7-billing.json",
+    ),
     OpenApiExportSpec("Layer 5", "layer5-ground-truth", "layer5_ground_truth", "layer5_ground_truth/api/main.py", "layer5-ground-truth.json"),
     OpenApiExportSpec(
         "Layer 6",
@@ -80,7 +87,6 @@ EXPORT_SPECS: tuple[OpenApiExportSpec, ...] = (
         "layer6-benchmarks.json",
     ),
     OpenApiExportSpec("API Gateway", "api", "app", "main.py", "fabric-4l-api.json", canonical_module="app.main"),
-    OpenApiExportSpec("Layer 7 Billing", "layer7-billing", "layer7_billing", "layer7_billing/api/main.py", "layer7-billing.json"),
 )
 
 STATIC_CONTRACTS: tuple[str, ...] = ("signals.json",)
@@ -124,7 +130,6 @@ EXPORT_ENV: dict[str, str] = {
     "LAYER6_API_URL": "http://localhost:8006",
     "LAYER6_API_BASE_URL": "http://localhost:8006",
     "LAYER6_BENCHMARKS_URL": "http://localhost:8006",
-    "LAYER7_DATABASE_URL": "postgresql+asyncpg://fabric_export:fabric_export_secret@localhost:5432/layer7_billing",
 }
 
 def _module_stub(name: str, **attrs: Any) -> ModuleType:
@@ -452,7 +457,7 @@ def _install_layer4_openapi_dependency_shims() -> None:
 
 def _install_openapi_dependency_shims(spec: OpenApiExportSpec) -> None:
     _install_common_openapi_dependency_shims()
-    if spec.output_filename == "layer4-agents.json":
+    if spec.output_filename in {"layer4-agents.json", "layer7-billing.json"}:
         _install_layer4_openapi_dependency_shims()
 
 
@@ -554,6 +559,39 @@ def _atomic_write_json(data: dict[str, Any], output_path: Path) -> None:
         raise
 
 
+# The retained ``layer7-billing.json`` contract is the dedicated billing API
+# specification. Layer 7 (the legacy standalone billing service) has been
+# deleted and Layer 4 is the canonical billing runtime, so the contract is a
+# deterministic subset export of the Layer 4 application scoped to its billing
+# surface (everything under ``/v1/billing/``).
+BILLING_SUBCONTRACT_FILENAME = "layer7-billing.json"
+BILLING_PATH_MARKER = "/v1/billing/"
+
+
+def _filter_openapi_to_billing_subset(openapi: dict[str, Any]) -> dict[str, Any]:
+    """Return a billing-scoped slice of a service OpenAPI document."""
+
+    document = dict(openapi)
+    document["paths"] = {
+        path: methods
+        for path, methods in openapi.get("paths", {}).items()
+        if BILLING_PATH_MARKER in path
+    }
+    # Repoint contract metadata at the canonical billing runtime (Layer 4).
+    # These overrides are applied deterministically so the committed contract
+    # remains a byte-stable output of ``scripts/export_openapi.py``.
+    document["info"] = dict(document.get("info", {}))
+    document["info"]["title"] = "Layer 4: Billing API"
+    document["info"]["description"] = (
+        "Billing API subset of the Layer 4 Agentic Workflow Orchestrator. "
+        "The legacy Layer 7 standalone billing service has been removed: "
+        "Layer 4 is the canonical billing runtime. This contract surfaces "
+        "only the /v1/billing/* routes implemented by Layer 4."
+    )
+    document["x-backend-service"] = "layer4-agents"
+    return document
+
+
 def _export_service_in_process(spec: OpenApiExportSpec) -> bool:
     if spec.canonical_module is None and not spec.module_path.exists():
         logger.error("[%s] app module not found at %s", spec.label, spec.module_path)
@@ -584,7 +622,10 @@ def _export_service_in_process(spec: OpenApiExportSpec) -> bool:
             raise RuntimeError(f"{spec.module_path} app does not expose callable openapi()")
 
         output_path = EXPORT_DIR / spec.output_filename
-        _atomic_write_json(app.openapi(), output_path)
+        document = app.openapi()
+        if spec.output_filename == BILLING_SUBCONTRACT_FILENAME:
+            document = _filter_openapi_to_billing_subset(document)
+        _atomic_write_json(document, output_path)
         logger.info("[OK] %s exported: %s", spec.label, output_path)
         return True
     except Exception:

@@ -42,7 +42,7 @@ We will **decompose Layer 4 incrementally**, starting with **Billing** as the pi
 
 ### Pilot: Billing & Usage Service
 
-> **Superseded (2026-06-05):** The Billing pilot as described below is **superseded by the Layer 7 billing ownership rationalization**. The canonical deployable billing behavior is now `services/layer7-billing/` (COMPAT-L4-002 is archived in the [compatibility debt registry](docs/governance/compatibility-debt-registry.md)). The Phase 1 canonical runtime (`value_fabric/layer4/billing/`) was never extracted; that path no longer exists and must not be recreated. This section is retained for historical record only.
+> **Superseded (2026-10-15):** This billing pilot never shipped. Billing is owned by `services/layer4-agents/` (see ADR-023); `services/layer7-billing/` and `services/billing/` were deleted. The `contracts/openapi/layer7-billing.json` filename is retained only as the billing OpenAPI contract.
 
 **Rationale for pilot:**
 - Clear external API boundary with Stripe
@@ -131,7 +131,7 @@ Compatibility note:
 
 ### Canonical Runtime Path Policy
 
-> **Superseded (2026-06-05):** The billing canonical runtime below is **superseded by the Layer 7 billing consolidation**. The canonical deployable billing behavior now lives in `services/layer7-billing/`; the `value_fabric.layer4.billing.*` path no longer exists. See the [compatibility debt registry](docs/governance/compatibility-debt-registry.md) (COMPAT-L4-002 archived, COMPAT-L4-003 active).
+> **Superseded (2026-10-15):** Billing is owned by `services/layer4-agents/` (see ADR-023). `services/layer7-billing/` was deleted; the `value_fabric.layer4.billing.*` path never existed and must not be recreated.
 
 ```python
 # Deprecated — historical path (never extracted; do not recreate)
@@ -146,8 +146,8 @@ from value_fabric.layer4_agents.src.models.billing import BillingCustomer
 
 ### Compatibility Debt Registry
 
-- ~~**COMPAT-L4-002:** Billing canonical runtime extraction~~ — **Archived** 2026-08-22: root `value_fabric/` directory no longer exists; canonical deployable billing behavior is `services/layer7-billing/`.
-- **COMPAT-L4-003:** Billing service wrapper migration (forwarding shim to Layer 7 billing; removal target: 2026-10-31)
+- ~~**COMPAT-L4-002:** Billing canonical runtime extraction~~ — **Archived**: billing is owned by `services/layer4-agents/` (see ADR-023).
+- ~~**COMPAT-L4-003:** Billing service wrapper migration~~ — **Archived**: L4 billing routes are the sole canonical implementation; no forwarding shims exist.
 
 ### Tenant Isolation Checklist for Extracted Services
 
