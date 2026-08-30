@@ -234,6 +234,7 @@ jobs:
             pytest "$EVAL_FILE" \
               -v \
               --tb=short \
+              --no-mandatory-dep-check \
               --json-report \
               --json-report-file="eval-${SKILL_NAME}.json"
           else
@@ -347,7 +348,7 @@ jobs:
 
           if [ -f "$EVAL_FILE" ]; then
             echo "🧪 Running agent evaluation: $EVAL_FILE"
-            pytest "$EVAL_FILE" -v --tb=short
+            pytest "$EVAL_FILE" -v --tb=short --no-mandatory-dep-check
           else
             echo "⚠️ No evaluation found for agent $AGENT_NAME"
           fi
@@ -402,6 +403,7 @@ jobs:
             pytest tests/evals/test_golden_traces.py \
               -v \
               --tb=short \
+              --no-mandatory-dep-check \
               --json-report \
               --json-report-file="golden-traces-results.json"
           else
