@@ -57,7 +57,10 @@ Assumptions (made under autopilot; change with reviewer feedback):
 - [x] Structural-preflight gates: `structural_preflight.py --strict` exit 0 (0 findings), `python_contract_lint.py --strict` exit 0 (baseline-approved), `type_escape_ratchet` regenerated + passes (7076 approved), `structural_fitness_ratchet` regenerated + passes (`tasks/` no longer a megafile).
 - [x] Per-layer ruff (`make lint-layer1/2/4/5/6`, `lint-layer2-5`) — all pass.
 - [x] Test-path retarget commit `56b9a6dfa`: 6 test files retargeted to `tasks/` package modules with aggregation helpers where symbols span modules; targeted re-run 50 passed.
-- [ ] Full per-layer trees (L1 ~17min, L4 ~15min, L5, L6) — running.
+- [x] Full L4 tree — **3114 passed, 157 skipped, 3 failed** (3 failures verified pre-existing at merge-base `46dd4d876` — docx-dep + 2 enrichment enum-count drift; zero diff in those test files).
+- [x] Full L1 tree — **1099 passed, 276 skipped** (exact baseline match, 995.85s), including `tests/` retargets to split `tasks/` package.
+- [x] Full L5 tree — **516 passed, 14 skipped** (exact baseline match). Note: per-layer `pyproject.toml` `pythonpath` is not honored by pytest 9 on Windows, so the run used an explicit `PYTHONPATH` including `packages/shared/src` (matches the `cd service-dir` + local pyproject semantics of `make test-layer5`).
+- [x] Full L6 tree — **191 passed, 2 skipped** (exact baseline match, 37.56s).
 - No frontend change → no `pnpm --dir apps/web` gates required; `pnpm run check:api-types` untouched.
 - `make verify` could not run as one target (git-bash on Windows fails parsing the `$(PYTHON)` Windows drive path — pre-existing infra issue); every sub-command was run directly and passes (documented per step).
 
