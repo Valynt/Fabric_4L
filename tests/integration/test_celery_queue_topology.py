@@ -12,7 +12,6 @@ import yaml
 pytestmark = [pytest.mark.integration, pytest.mark.celery]
 
 ROOT = Path(__file__).resolve().parents[2]
-L1_TASKS = "services/layer1-ingestion/src/layer1_ingestion/shared/tasks/__init__.py"
 L1_CONFIG = "services/layer1-ingestion/src/layer1_ingestion/shared/config.py"
 L2_TASKS = "services/layer2-extraction/src/layer2_extraction/shared/tasks.py"
 
@@ -22,11 +21,25 @@ def _read(relative_path: str) -> str:
     return (ROOT / relative_path).read_text(encoding="utf-8")
 
 
+L1_TASK_FILES = (
+    "__init__.py",
+    "tasks_bootstrap.py",
+    "cleanup.py",
+    "crawl.py",
+    "dlq.py",
+    "extraction.py",
+    "notification.py",
+    "post_processing.py",
+    "storage.py",
+    "validation.py",
+)
+
+
 def _l1_task_sources() -> str:
     """Aggregate the split tasks package sources for the original megafile guards."""
     return "\n".join(
         _read(f"services/layer1-ingestion/src/layer1_ingestion/shared/tasks/{name}")
-        for name in ("__init__.py", "extraction.py")
+        for name in L1_TASK_FILES
     )
 
 
@@ -52,7 +65,7 @@ def _queue_list_from_command(command: str | list[str]) -> set[str]:
 
 def test_celery_runtime_is_declared_in_source_and_dependencies() -> None:
     """Celery must be directly discoverable in source and service dependencies."""
-    l1_tasks = _read(L1_TASKS)
+    l1_tasks = _l1_task_sources()
     l2_tasks = _read(L2_TASKS)
     l1_pyproject = _read("services/layer1-ingestion/pyproject.toml")
     l2_pyproject = _read("services/layer2-extraction/pyproject.toml")
@@ -69,7 +82,7 @@ def test_celery_runtime_is_declared_in_source_and_dependencies() -> None:
 
 def test_broker_and_backend_use_redis_configuration() -> None:
     """L1 and L2 Celery apps must use Redis URLs as broker and backend."""
-    l1_tasks = _read(L1_TASKS)
+    l1_tasks = _l1_task_sources()
     l1_config = _read(L1_CONFIG)
     l2_tasks = _read(L2_TASKS)
 
@@ -87,7 +100,7 @@ def test_broker_and_backend_use_redis_configuration() -> None:
 
 def test_l1_queue_names_are_declared_and_consumed_by_constrained_workers() -> None:
     """Workers using explicit queue lists must consume every L1 runtime queue."""
-    l1_tasks = _read(L1_TASKS)
+    l1_tasks = _l1_task_sources()
     expected_queues = {"default", "ingestion", "processing", "layer1_dlq"}
 
     for queue in expected_queues:
@@ -118,7 +131,7 @@ def test_l2_queue_names_and_dead_letter_queue_are_declared() -> None:
 
 def test_retry_dead_letter_and_worker_loss_policies_are_configured() -> None:
     """Celery tasks must retain retry, late-ack, and worker-loss policies."""
-    l1_tasks = _read(L1_TASKS)
+    l1_tasks = _l1_task_sources()
     l2_tasks = _read(L2_TASKS)
 
     for source in (l1_tasks, l2_tasks):
