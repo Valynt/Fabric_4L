@@ -1,0 +1,39 @@
+# Event Catalog Registry
+# Top-level aggregator for all domain event catalogs in Fabric_4L.
+
+apiVersion: valuefabric.ai/v1
+kind: EventCatalogRegistry
+catalog_version: "1.0.0"
+description: >
+  Machine-readable registry of all canonical domain and integration event
+  catalogs. Each domain file is a self-contained catalog entry set. Tooling
+  should walk the domains list to load every entry.
+
+domains:
+  - id: billing
+    path: domains/billing.yaml
+    owner: layer7-billing
+    description: Billing domain events covering accounts, subscriptions, entitlements, usage, rating, invoices, payments, credits, refunds, disputes, reconciliation, and ledger.
+
+  - id: identity
+    path: domains/identity.yaml
+    owner: identity-team
+    description: Identity and authentication domain events (stub).
+
+  - id: knowledge
+    path: domains/knowledge.yaml
+    owner: layer3-knowledge
+    description: Knowledge graph domain events (stub).
+
+  - id: agents
+    path: domains/agents.yaml
+    owner: layer4-agents
+    description: Agentic workflow domain events (stub).
+
+schema:
+  entry_schema: event-entry.schema.json
+  envelope_schema: "jsonschema://common/event-envelope@1.0.0"
+
+generated:
+  ownership_matrix: generated/ownership-matrix.json
+  producer_consumer_graph: generated/producer-consumer-graph.json

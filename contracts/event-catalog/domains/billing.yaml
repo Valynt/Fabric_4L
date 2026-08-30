@@ -1,0 +1,616 @@
+# Billing Domain Event Catalog
+# Normative inventory of canonical events owned by layer7-billing.
+# Status: DRAFT = planned but not yet wired; ACTIVE = currently emitted.
+
+catalog_version: "1.0.0"
+domain: billing
+owner: layer7-billing
+
+entries:
+  - event_type: billing.account.created.v1
+    name: Billing Account Created
+    description: >
+      A billing account has been provisioned for a tenant. This is the root
+      financial entity for subscription, invoicing, and payment operations.
+    domain: billing.accounts
+    owner: layer7-billing/accounts
+    producer: services/layer7-billing
+    triggered_by:
+      - tenant.onboard
+      - billing.account.create
+    preconditions:
+      - "Tenant exists and is not already associated with a billing account"
+    postconditions:
+      - "Billing account record is persisted and linked to tenant"
+    schema_ref: "jsonschema://billing/events/billing-account-created@1.0.0"
+    envelope_ref: "jsonschema://common/event-envelope@1.0.0"
+    subject_type: billing_account
+    tenant_scope: TENANT
+    delivery: AT_LEAST_ONCE
+    partition_key: tenant_id
+    consumer_effect_key: event.id
+    expected_latency_ms: 500
+    criticality: HIGH
+    transport_channel: billing.events
+    ordering_guarantee: PARTITION_ORDER
+    replay_behavior: IDEMPOTENT
+    retention_classification: LONG_TERM
+    sensitive_payload: false
+    event_class: DOMAIN_EVENT
+    status: DRAFT
+    consumers:
+      - service: services/api
+        purpose: project tenant billing context for customer-facing APIs
+        supported_versions: [v1]
+      - service: services/layer4-agents
+        purpose: invalidate authorized billing context when account changes
+        supported_versions: [v1]
+    examples:
+      - tenant_id: "ten_123"
+        billing_account_id: "ba_456"
+        currency: "USD"
+        timezone: "America/New_York"
+        created_at: "2026-01-15T09:00:00Z"
+
+  - event_type: billing.catalog.plan_published.v1
+    name: Plan Published
+    description: >
+      A new billing plan or pricing tier has been published and is available
+      for subscription. Includes plan metadata, entitlements, and pricing rules.
+    domain: billing.catalog
+    owner: layer7-billing/catalog
+    producer: services/layer7-billing
+    triggered_by:
+      - billing.plan.publish
+      - billing.plan.update
+    preconditions:
+      - "Plan passes validation rules and pricing integrity checks"
+    postconditions:
+      - "Plan is queryable by subscription and entitlement services"
+    schema_ref: "jsonschema://billing/events/plan-published@1.0.0"
+    envelope_ref: "jsonschema://common/event-envelope@1.0.0"
+    subject_type: plan
+    tenant_scope: GLOBAL
+    delivery: AT_LEAST_ONCE
+    partition_key: plan_id
+    consumer_effect_key: event.id
+    expected_latency_ms: 1000
+    criticality: MEDIUM
+    transport_channel: billing.catalog.events
+    ordering_guarantee: STRICT_ORDER
+    replay_behavior: IDEMPOTENT
+    retention_classification: LONG_TERM
+    sensitive_payload: false
+    event_class: DOMAIN_EVENT
+    status: DRAFT
+    consumers:
+      - service: services/api
+        purpose: expose plan catalog to customer-facing subscription UI
+        supported_versions: [v1]
+      - service: services/layer4-agents
+        purpose: update plan context in agent reasoning workflows
+        supported_versions: [v1]
+
+  - event_type: billing.subscription.activated.v1
+    name: Subscription Activated
+    description: >
+      A subscription has been activated for a billing account. The account is
+      now entitled to the features and limits defined by the subscribed plan.
+    domain: billing.subscriptions
+    owner: layer7-billing/subscriptions
+    producer: services/layer7-billing
+    triggered_by:
+      - subscription.activate
+      - verified_provider_observation
+    preconditions:
+      - "Billing account exists and is in good standing"
+      - "Selected plan is published and available"
+    postconditions:
+      - "Subscription is active and entitlements are enforced"
+      - "Initial invoice may be generated if plan requires upfront payment"
+    schema_ref: "jsonschema://billing/events/subscription-activated@1.1.0"
+    envelope_ref: "jsonschema://common/event-envelope@1.0.0"
+    subject_type: subscription
+    tenant_scope: TENANT_AND_BILLING_ACCOUNT
+    delivery: AT_LEAST_ONCE
+    partition_key: billing_account_id
+    consumer_effect_key: event.id
+    expected_latency_ms: 500
+    criticality: CRITICAL
+    transport_channel: billing.events
+    ordering_guarantee: PARTITION_ORDER
+    replay_behavior: IDEMPOTENT
+    retention_classification: FINANCIAL
+    sensitive_payload: false
+    event_class: DOMAIN_EVENT
+    status: ACTIVE
+    consumers:
+      - service: services/api
+        purpose: customer-facing subscription projection
+        supported_versions: [v1]
+      - service: services/layer4-agents
+        purpose: invalidate authorized billing context
+        supported_versions: [v1]
+      - service: services/layer3-knowledge
+        purpose: update subscription entity in knowledge graph
+        supported_versions: [v1]
+    examples:
+      - subscription_id: "sub_789"
+        billing_account_id: "ba_456"
+        tenant_id: "ten_123"
+        plan_id: "plan_pro"
+        activated_at: "2026-01-15T09:05:00Z"
+        trial: false
+
+  - event_type: billing.subscription.canceled.v1
+    name: Subscription Canceled
+    description: >
+      A subscription has been canceled, either by customer action, system rule,
+      or provider webhook. Cancellation may be immediate or at period end.
+    domain: billing.subscriptions
+    owner: layer7-billing/subscriptions
+    producer: services/layer7-billing
+    triggered_by:
+      - subscription.cancel
+      - subscription.expire
+      - provider.webhook.subscription_deleted
+    preconditions:
+      - "Subscription exists and is in a cancelable state"
+    postconditions:
+      - "Subscription status updated to canceled or pending_cancellation"
+      - "Entitlements may be downgraded at period end or immediately"
+    schema_ref: "jsonschema://billing/events/subscription-canceled@1.0.0"
+    envelope_ref: "jsonschema://common/event-envelope@1.0.0"
+    subject_type: subscription
+    tenant_scope: TENANT_AND_BILLING_ACCOUNT
+    delivery: AT_LEAST_ONCE
+    partition_key: billing_account_id
+    consumer_effect_key: event.id
+    expected_latency_ms: 500
+    criticality: CRITICAL
+    transport_channel: billing.events
+    ordering_guarantee: PARTITION_ORDER
+    replay_behavior: IDEMPOTENT
+    retention_classification: FINANCIAL
+    sensitive_payload: false
+    event_class: DOMAIN_EVENT
+    status: ACTIVE
+    consumers:
+      - service: services/api
+        purpose: customer-facing subscription projection
+        supported_versions: [v1]
+      - service: services/layer4-agents
+        purpose: invalidate authorized billing context
+        supported_versions: [v1]
+
+  - event_type: billing.entitlement.changed.v1
+    name: Entitlement Changed
+    description: >
+      The set of effective entitlements for a billing account has changed,
+      typically due to subscription activation, cancellation, plan change,
+      or manual override.
+    domain: billing.entitlements
+    owner: layer7-billing/entitlements
+    producer: services/layer7-billing
+    triggered_by:
+      - billing.subscription.activated.v1
+      - billing.subscription.canceled.v1
+      - entitlement.override
+    preconditions:
+      - "Billing account exists"
+    postconditions:
+      - "Effective entitlement set is persisted and auditable"
+    schema_ref: "jsonschema://billing/events/entitlement-changed@1.0.0"
+    envelope_ref: "jsonschema://common/event-envelope@1.0.0"
+    subject_type: entitlement_set
+    tenant_scope: TENANT_AND_BILLING_ACCOUNT
+    delivery: AT_LEAST_ONCE
+    partition_key: billing_account_id
+    consumer_effect_key: event.id
+    expected_latency_ms: 300
+    criticality: HIGH
+    transport_channel: billing.events
+    ordering_guarantee: PARTITION_ORDER
+    replay_behavior: IDEMPOTENT
+    retention_classification: LONG_TERM
+    sensitive_payload: false
+    event_class: DOMAIN_EVENT
+    status: ACTIVE
+    consumers:
+      - service: services/api
+        purpose: enforce feature gating in customer-facing APIs
+        supported_versions: [v1]
+      - service: services/layer4-agents
+        purpose: update agent capability limits based on plan
+        supported_versions: [v1]
+
+  - event_type: billing.usage.ingested.v1
+    name: Usage Ingested
+    description: >
+      A usage event has been ingested, validated, and persisted for a billing
+      account. This is the raw input to rating, metering, and invoicing.
+    domain: billing.usage
+    owner: layer7-billing/usage
+    producer: services/layer7-billing
+    triggered_by:
+      - usage.report
+      - provider.webhook.usage
+    preconditions:
+      - "Billing account exists and is active"
+      - "Usage event passes schema and rate-limit validation"
+    postconditions:
+      - "Usage event is durably stored and available for rating"
+    schema_ref: "jsonschema://billing/events/usage-ingested@1.0.0"
+    envelope_ref: "jsonschema://common/event-envelope@1.0.0"
+    subject_type: usage_event
+    tenant_scope: TENANT_AND_BILLING_ACCOUNT
+    delivery: AT_LEAST_ONCE
+    partition_key: billing_account_id
+    consumer_effect_key: event.id
+    expected_latency_ms: 200
+    criticality: HIGH
+    transport_channel: billing.usage.events
+    ordering_guarantee: PARTITION_ORDER
+    replay_behavior: IDEMPOTENT
+    retention_classification: LONG_TERM
+    sensitive_payload: false
+    event_class: DOMAIN_EVENT
+    status: ACTIVE
+    consumers:
+      - service: services/layer7-billing
+        purpose: internal rating and aggregation pipeline
+        supported_versions: [v1]
+      - service: services/layer6-benchmarks
+        purpose: correlate usage with performance benchmarks
+        supported_versions: [v1]
+
+  - event_type: billing.rating.completed.v1
+    name: Rating Completed
+    description: >
+      A rating run has completed for a billing period, producing rated line
+      items from raw usage events according to plan pricing rules.
+    domain: billing.rating
+    owner: layer7-billing/rating
+    producer: services/layer7-billing
+    triggered_by:
+      - rating.run
+      - billing.period.close
+    preconditions:
+      - "Usage events for the period are ingested"
+      - "Plan pricing rules are available"
+    postconditions:
+      - "Rated line items are persisted and linked to the billing period"
+    schema_ref: "jsonschema://billing/events/rating-completed@1.0.0"
+    envelope_ref: "jsonschema://common/event-envelope@1.0.0"
+    subject_type: rating_run
+    tenant_scope: TENANT_AND_BILLING_ACCOUNT
+    delivery: AT_LEAST_ONCE
+    partition_key: billing_account_id
+    consumer_effect_key: event.id
+    expected_latency_ms: 2000
+    criticality: MEDIUM
+    transport_channel: billing.rating.events
+    ordering_guarantee: PARTITION_ORDER
+    replay_behavior: IDEMPOTENT
+    retention_classification: FINANCIAL
+    sensitive_payload: false
+    event_class: DOMAIN_EVENT
+    status: DRAFT
+    consumers:
+      - service: services/layer7-billing
+        purpose: trigger invoice generation from rated line items
+        supported_versions: [v1]
+
+  - event_type: billing.invoice.generated.v1
+    name: Invoice Generated
+    description: >
+      An invoice has been generated for a billing account and period. The
+      invoice is now available for payment collection and customer presentation.
+    domain: billing.invoices
+    owner: layer7-billing/invoices
+    producer: services/layer7-billing
+    triggered_by:
+      - billing.period.close
+      - invoice.generate
+      - billing.rating.completed.v1
+    preconditions:
+      - "Rating run is complete (if rating is required for the plan)"
+      - "Billing account has a valid payment method or invoice delivery address"
+    postconditions:
+      - "Invoice is persisted with line items, totals, and state"
+      - "Payment collection may be initiated"
+    schema_ref: "jsonschema://billing/events/invoice-generated@1.0.0"
+    envelope_ref: "jsonschema://common/event-envelope@1.0.0"
+    subject_type: invoice
+    tenant_scope: TENANT_AND_BILLING_ACCOUNT
+    delivery: AT_LEAST_ONCE
+    partition_key: billing_account_id
+    consumer_effect_key: event.id
+    expected_latency_ms: 1000
+    criticality: CRITICAL
+    transport_channel: billing.invoice.events
+    ordering_guarantee: PARTITION_ORDER
+    replay_behavior: IDEMPOTENT
+    retention_classification: FINANCIAL
+    sensitive_payload: false
+    event_class: DOMAIN_EVENT
+    status: ACTIVE
+    consumers:
+      - service: services/api
+        purpose: customer-facing invoice listing and PDF generation
+        supported_versions: [v1]
+      - service: services/layer4-agents
+        purpose: provide billing insight in agent workflows
+        supported_versions: [v1]
+
+  - event_type: billing.invoice.paid.v1
+    name: Invoice Paid
+    description: >
+      An invoice has been successfully paid, either through automatic payment
+      collection or manual payment entry.
+    domain: billing.invoices
+    owner: layer7-billing/invoices
+    producer: services/layer7-billing
+    triggered_by:
+      - payment.succeeded
+      - provider.webhook.invoice_paid
+    preconditions:
+      - "Invoice exists and is in a payable state"
+    postconditions:
+      - "Invoice state is updated to paid"
+      - "Payment state is updated accordingly"
+    schema_ref: "jsonschema://billing/events/invoice-paid@1.0.0"
+    envelope_ref: "jsonschema://common/event-envelope@1.0.0"
+    subject_type: invoice
+    tenant_scope: TENANT_AND_BILLING_ACCOUNT
+    delivery: AT_LEAST_ONCE
+    partition_key: billing_account_id
+    consumer_effect_key: event.id
+    expected_latency_ms: 500
+    criticality: CRITICAL
+    transport_channel: billing.invoice.events
+    ordering_guarantee: PARTITION_ORDER
+    replay_behavior: IDEMPOTENT
+    retention_classification: FINANCIAL
+    sensitive_payload: false
+    event_class: DOMAIN_EVENT
+    status: ACTIVE
+    consumers:
+      - service: services/api
+        purpose: update customer-facing payment status
+        supported_versions: [v1]
+      - service: services/layer4-agents
+        purpose: trigger post-payment agent workflows
+        supported_versions: [v1]
+
+  - event_type: billing.payment.failed.v1
+    name: Payment Failed
+    description: >
+      A payment attempt for an invoice has failed. This may trigger dunning,
+      grace period logic, or subscription suspension depending on policy.
+    domain: billing.payments
+    owner: layer7-billing/payments
+    producer: services/layer7-billing
+    triggered_by:
+      - payment.failed
+      - provider.webhook.payment_failed
+    preconditions:
+      - "Invoice exists and payment was attempted"
+    postconditions:
+      - "Payment failure is recorded with reason code"
+      - "Dunning or grace period workflow may be initiated"
+    schema_ref: "jsonschema://billing/events/payment-failed@1.0.0"
+    envelope_ref: "jsonschema://common/event-envelope@1.0.0"
+    subject_type: payment_attempt
+    tenant_scope: TENANT_AND_BILLING_ACCOUNT
+    delivery: AT_LEAST_ONCE
+    partition_key: billing_account_id
+    consumer_effect_key: event.id
+    expected_latency_ms: 500
+    criticality: HIGH
+    transport_channel: billing.payment.events
+    ordering_guarantee: PARTITION_ORDER
+    replay_behavior: IDEMPOTENT
+    retention_classification: FINANCIAL
+    sensitive_payload: false
+    event_class: DOMAIN_EVENT
+    status: ACTIVE
+    consumers:
+      - service: services/api
+        purpose: notify customer of payment failure and retry options
+        supported_versions: [v1]
+      - service: services/layer4-agents
+        purpose: trigger dunning or escalation workflows
+        supported_versions: [v1]
+
+  - event_type: billing.credit.applied.v1
+    name: Credit Applied
+    description: >
+      A credit (promotional, goodwill, or prepaid) has been applied to a
+      billing account or specific invoice.
+    domain: billing.credits
+    owner: layer7-billing/credits
+    producer: services/layer7-billing
+    triggered_by:
+      - credit.apply
+      - billing.refund.processed.v1
+    preconditions:
+      - "Billing account exists"
+      - "Credit amount is valid and within policy limits"
+    postconditions:
+      - "Credit balance is updated"
+      - "Invoice balance may be reduced if applied to invoice"
+    schema_ref: "jsonschema://billing/events/credit-applied@1.0.0"
+    envelope_ref: "jsonschema://common/event-envelope@1.0.0"
+    subject_type: credit
+    tenant_scope: TENANT_AND_BILLING_ACCOUNT
+    delivery: AT_LEAST_ONCE
+    partition_key: billing_account_id
+    consumer_effect_key: event.id
+    expected_latency_ms: 500
+    criticality: MEDIUM
+    transport_channel: billing.credit.events
+    ordering_guarantee: PARTITION_ORDER
+    replay_behavior: IDEMPOTENT
+    retention_classification: FINANCIAL
+    sensitive_payload: false
+    event_class: DOMAIN_EVENT
+    status: DRAFT
+    consumers:
+      - service: services/api
+        purpose: customer-facing credit balance and invoice adjustment
+        supported_versions: [v1]
+
+  - event_type: billing.refund.processed.v1
+    name: Refund Processed
+    description: >
+      A refund has been initiated and confirmed for a payment. The refund may
+      be applied as credit or returned to the original payment instrument.
+    domain: billing.refunds
+    owner: layer7-billing/refunds
+    producer: services/layer7-billing
+    triggered_by:
+      - refund.initiate
+      - provider.webhook.refund_processed
+    preconditions:
+      - "Original payment exists and is refundable per policy"
+    postconditions:
+      - "Refund is recorded with amount, reason, and target"
+      - "Related invoice or payment state is updated"
+    schema_ref: "jsonschema://billing/events/refund-processed@1.0.0"
+    envelope_ref: "jsonschema://common/event-envelope@1.0.0"
+    subject_type: refund
+    tenant_scope: TENANT_AND_BILLING_ACCOUNT
+    delivery: AT_LEAST_ONCE
+    partition_key: billing_account_id
+    consumer_effect_key: event.id
+    expected_latency_ms: 1000
+    criticality: HIGH
+    transport_channel: billing.refund.events
+    ordering_guarantee: PARTITION_ORDER
+    replay_behavior: IDEMPOTENT
+    retention_classification: FINANCIAL
+    sensitive_payload: false
+    event_class: DOMAIN_EVENT
+    status: DRAFT
+    consumers:
+      - service: services/api
+        purpose: customer-facing refund status and history
+        supported_versions: [v1]
+
+  - event_type: billing.dispute.opened.v1
+    name: Dispute Opened
+    description: >
+      A payment dispute (chargeback or inquiry) has been opened by a customer
+      or financial institution.
+    domain: billing.disputes
+    owner: layer7-billing/disputes
+    producer: services/layer7-billing
+    triggered_by:
+      - provider.webhook.chargeback_initiated
+      - dispute.open
+    preconditions:
+      - "Original payment exists and is disputable"
+    postconditions:
+      - "Dispute is recorded with status open and linked to payment"
+    schema_ref: "jsonschema://billing/events/dispute-opened@1.0.0"
+    envelope_ref: "jsonschema://common/event-envelope@1.0.0"
+    subject_type: dispute
+    tenant_scope: TENANT_AND_BILLING_ACCOUNT
+    delivery: AT_LEAST_ONCE
+    partition_key: billing_account_id
+    consumer_effect_key: event.id
+    expected_latency_ms: 500
+    criticality: HIGH
+    transport_channel: billing.dispute.events
+    ordering_guarantee: PARTITION_ORDER
+    replay_behavior: IDEMPOTENT
+    retention_classification: LEGAL_HOLD
+    sensitive_payload: false
+    event_class: DOMAIN_EVENT
+    status: DRAFT
+    consumers:
+      - service: services/api
+        purpose: alert account admin and expose dispute status
+        supported_versions: [v1]
+      - service: services/layer4-agents
+        purpose: trigger evidence-collection workflow
+        supported_versions: [v1]
+
+  - event_type: billing.reconciliation.completed.v1
+    name: Reconciliation Completed
+    description: >
+      A reconciliation run has completed, comparing internal records against
+      provider statements and identifying discrepancies.
+    domain: billing.reconciliation
+    owner: layer7-billing/reconciliation
+    producer: services/layer7-billing
+    triggered_by:
+      - reconciliation.run
+      - scheduled.daily_reconciliation
+    preconditions:
+      - "Provider statement or report is available"
+    postconditions:
+      - "Reconciliation report is persisted with match and discrepancy counts"
+    schema_ref: "jsonschema://billing/events/reconciliation-completed@1.0.0"
+    envelope_ref: "jsonschema://common/event-envelope@1.0.0"
+    subject_type: reconciliation_run
+    tenant_scope: TENANT
+    delivery: AT_LEAST_ONCE
+    partition_key: tenant_id
+    consumer_effect_key: event.id
+    expected_latency_ms: 5000
+    criticality: MEDIUM
+    transport_channel: billing.reconciliation.events
+    ordering_guarantee: BEST_EFFORT
+    replay_behavior: IDEMPOTENT
+    retention_classification: FINANCIAL
+    sensitive_payload: false
+    event_class: DOMAIN_EVENT
+    status: DRAFT
+    consumers:
+      - service: services/api
+        purpose: admin dashboard reconciliation report
+        supported_versions: [v1]
+
+  - event_type: billing.ledger.entry_posted.v1
+    name: Ledger Entry Posted
+    description: >
+      A financial journal entry has been posted to the billing ledger,
+      representing an immutable record of a financial event.
+    domain: billing.ledger
+    owner: layer7-billing/ledger
+    producer: services/layer7-billing
+    triggered_by:
+      - billing.invoice.paid.v1
+      - billing.refund.processed.v1
+      - billing.credit.applied.v1
+      - ledger.post
+    preconditions:
+      - "Journal entry passes double-entry validation"
+      - "Related domain event is already persisted"
+    postconditions:
+      - "Ledger entry is immutable and auditable"
+    schema_ref: "jsonschema://billing/events/ledger-entry-posted@1.0.0"
+    envelope_ref: "jsonschema://common/event-envelope@1.0.0"
+    subject_type: ledger_entry
+    tenant_scope: TENANT_AND_BILLING_ACCOUNT
+    delivery: AT_LEAST_ONCE
+    partition_key: billing_account_id
+    consumer_effect_key: event.id
+    expected_latency_ms: 300
+    criticality: CRITICAL
+    transport_channel: billing.ledger.events
+    ordering_guarantee: PARTITION_ORDER
+    replay_behavior: IDEMPOTENT
+    retention_classification: FINANCIAL
+    sensitive_payload: false
+    event_class: DOMAIN_EVENT
+    status: DRAFT
+    consumers:
+      - service: services/layer7-billing
+        purpose: internal ledger aggregation and reporting
+        supported_versions: [v1]
+      - service: services/api
+        purpose: admin financial reports
+        supported_versions: [v1]

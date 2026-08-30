@@ -5,8 +5,8 @@
 This matrix maps major SOC 2, GDPR, HIPAA, and CCPA control themes to concrete **code**, **configuration**, and **operational process** evidence in Value Fabric.
 
 - **Scope:** Current repository implementation.
-- **Last reviewed:** 2026-08-29.
-- **Update trigger:** Any PR that changes security/governance-sensitive files must also evaluate (and, when needed, update) this matrix. Updated for CI-baseline repair (PR #1585) covering CI-control-plane structural contract tests in `pr-checks.yml`, runtime contract readiness hardening (L1–L6 health + strict contract env), and recurring CI-failure backlog reporting in `pr-backlog-health.yml`.
+- **Last reviewed:** 2026-08-30.
+- **Update trigger:** Any PR that changes security/governance-sensitive files must also evaluate (and, when needed, update) this matrix. Updated for CI-baseline repair (PR #1585) covering CI-control-plane structural contract tests in `pr-checks.yml`, runtime contract readiness hardening (L1–L6 health + strict contract env), and recurring CI-failure backlog reporting in `pr-backlog-health.yml`. Updated for Event Catalog validation gate (PR #1588) enforcing canonical event ownership, schema linkage, consumer version declarations, and deprecation policy in `pr-checks.yml`.
 
 ---
 

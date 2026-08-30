@@ -1,0 +1,73 @@
+# API Gateway Consumer Registry
+# Declares which events the API gateway subscribes to and why.
+
+apiVersion: valuefabric.ai/v1
+kind: EventConsumerRegistry
+consumer: services/api
+updated_at: "2026-08-29"
+
+subscriptions:
+  - event_type: billing.subscription.activated.v1
+    purpose: customer-facing subscription projection
+    supported_versions: [v1]
+    handler: projection.SubscriptionProjectionHandler
+
+  - event_type: billing.subscription.canceled.v1
+    purpose: customer-facing subscription projection
+    supported_versions: [v1]
+    handler: projection.SubscriptionProjectionHandler
+
+  - event_type: billing.entitlement.changed.v1
+    purpose: enforce feature gating in customer-facing APIs
+    supported_versions: [v1]
+    handler: entitlement.EntitlementCacheHandler
+
+  - event_type: billing.invoice.generated.v1
+    purpose: customer-facing invoice listing and PDF generation
+    supported_versions: [v1]
+    handler: invoice.InvoiceProjectionHandler
+
+  - event_type: billing.invoice.paid.v1
+    purpose: update customer-facing payment status
+    supported_versions: [v1]
+    handler: invoice.InvoiceProjectionHandler
+
+  - event_type: billing.payment.failed.v1
+    purpose: notify customer of payment failure and retry options
+    supported_versions: [v1]
+    handler: notification.PaymentFailureNotificationHandler
+
+  - event_type: billing.credit.applied.v1
+    purpose: customer-facing credit balance and invoice adjustment
+    supported_versions: [v1]
+    handler: credit.CreditProjectionHandler
+
+  - event_type: billing.refund.processed.v1
+    purpose: customer-facing refund status and history
+    supported_versions: [v1]
+    handler: refund.RefundProjectionHandler
+
+  - event_type: billing.dispute.opened.v1
+    purpose: alert account admin and expose dispute status
+    supported_versions: [v1]
+    handler: dispute.DisputeProjectionHandler
+
+  - event_type: billing.reconciliation.completed.v1
+    purpose: admin dashboard reconciliation report
+    supported_versions: [v1]
+    handler: reconciliation.ReconciliationReportHandler
+
+  - event_type: billing.ledger.entry_posted.v1
+    purpose: admin financial reports
+    supported_versions: [v1]
+    handler: ledger.LedgerReportHandler
+
+  - event_type: billing.account.created.v1
+    purpose: project tenant billing context for customer-facing APIs
+    supported_versions: [v1]
+    handler: billing.BillingAccountProjectionHandler
+
+  - event_type: billing.catalog.plan_published.v1
+    purpose: expose plan catalog to customer-facing subscription UI
+    supported_versions: [v1]
+    handler: catalog.PlanCatalogHandler
