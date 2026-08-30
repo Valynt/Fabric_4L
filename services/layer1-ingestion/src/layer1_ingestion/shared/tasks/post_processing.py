@@ -24,9 +24,8 @@ from ..otel_celery import start_celery_span
 from ..task_contracts import post_processing_stageResult
 from ..tasks import (
     _update_stage,
-    celery_app,
-    logger,
 )
+from .tasks_bootstrap import celery_app, logger
 
 
 @celery_app.task(name="layer1_ingestion.shared.tasks.post_processing_stage", bind=True, max_retries=2)

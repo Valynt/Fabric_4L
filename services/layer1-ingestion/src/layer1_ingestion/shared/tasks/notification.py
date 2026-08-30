@@ -23,10 +23,9 @@ from ..otel_celery import start_celery_span
 from ..task_contracts import notification_stageResult
 from ..tasks import (
     _update_stage,
-    celery_app,
     dispatch_outbox_event,
-    logger,
 )
+from .tasks_bootstrap import celery_app, logger
 
 
 @celery_app.task(name="layer1_ingestion.shared.tasks.notification_stage", bind=True)

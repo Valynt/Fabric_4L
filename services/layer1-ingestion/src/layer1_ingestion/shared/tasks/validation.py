@@ -18,9 +18,8 @@ from ..otel_celery import start_celery_span
 from ..task_contracts import validation_stageResult
 from ..tasks import (
     _update_stage,
-    celery_app,
-    logger,
 )
+from .tasks_bootstrap import celery_app, logger
 from ..tasks_helpers import _validate_payload_against_schema
 
 

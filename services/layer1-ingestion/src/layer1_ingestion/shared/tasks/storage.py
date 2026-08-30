@@ -23,9 +23,8 @@ from ..models import (
 from ..task_contracts import storage_stageResult
 from ..tasks import (
     _update_stage,
-    celery_app,
-    logger,
 )
+from .tasks_bootstrap import celery_app, logger
 
 
 @celery_app.task(name="layer1_ingestion.shared.tasks.storage_stage", bind=True, max_retries=3)

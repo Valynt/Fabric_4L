@@ -37,9 +37,8 @@ from ..task_contracts import (
 )
 from ..tasks import (
     _update_stage,
-    celery_app,
-    logger,
 )
+from .tasks_bootstrap import celery_app, logger
 from ..tasks_helpers import (
     _domain_class,
     _extract_unified_crawl_result,

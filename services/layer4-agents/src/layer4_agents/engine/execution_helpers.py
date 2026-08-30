@@ -15,6 +15,7 @@ from uuid import UUID
 
 from ..models.agent_state import AgentState, WorkflowStatus
 from ..observability import Layer4EventContext
+from .state_manager import StateManager
 
 logger = logging.getLogger(__name__)
 
@@ -132,7 +133,7 @@ async def resolve_workflow_timeout_seconds(tenant_id: str | None) -> tuple[int, 
     return selected, source
 
 
-async def wait_for_workflow(state_manager: Any, workflow_id: str) -> AgentState:
+async def wait_for_workflow(state_manager: StateManager, workflow_id: str) -> AgentState:
     """Wait for workflow completion (legacy, no timeout).
 
     Args:

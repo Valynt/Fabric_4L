@@ -15,10 +15,7 @@ from ..models import (
     JobError,
     ScrapingJob,
 )
-from ..tasks import (
-    celery_app,
-    logger,
-)
+from .tasks_bootstrap import celery_app, logger
 
 
 @celery_app.task(name="layer1_ingestion.shared.tasks.record_dead_lettered_task", queue=DLQ_QUEUE_NAME, max_retries=0)

@@ -24,9 +24,8 @@ from ..task_contracts import ai_extraction_stageResult
 from ..tasks import (
     _update_stage,
     _verify_l3_graph_population,
-    celery_app,
-    logger,
 )
+from .tasks_bootstrap import celery_app, logger
 from ..tasks_helpers import (
     _run_async,
 )

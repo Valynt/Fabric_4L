@@ -14,10 +14,7 @@ from ..models import (
     TenantRegistry,
 )
 from ..task_contracts import cleanup_old_contentResult
-from ..tasks import (
-    celery_app,
-    logger,
-)
+from .tasks_bootstrap import celery_app, logger
 
 
 @celery_app.task(name="layer1_ingestion.shared.tasks._enumerate_authorized_tenants_for_cleanup")
