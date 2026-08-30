@@ -60,14 +60,13 @@ def _extract_surface(source_text: str) -> tuple[str, list[str]]:
             if target.id == "SURFACE_VERSION":
                 if isinstance(node.value, ast.Constant) and isinstance(node.value.value, str):
                     version = node.value.value
-            elif target.id == "__all__":
-                if isinstance(node.value, ast.List):
-                    names = [
-                        elt.value
-                        for elt in node.value.elts
-                        if isinstance(elt, ast.Constant) and isinstance(elt.value, str)
-                    ]
-                    names = sorted(set(names))
+            elif target.id == "__all__" and isinstance(node.value, ast.List):
+                            names = [
+                                elt.value
+                                for elt in node.value.elts
+                                if isinstance(elt, ast.Constant) and isinstance(elt.value, str)
+                            ]
+                            names = sorted(set(names))
 
     if version is None:
         raise SystemExit(

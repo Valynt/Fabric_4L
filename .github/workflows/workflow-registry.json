@@ -783,6 +783,7 @@
         "artifacts/release_smoke/**",
         "artifacts/route-tenant-propagation.json",
         "artifacts/route-tenant-propagation.md",
+        "artifacts/shared-boundary-surfaces.txt",
         "artifacts/shared-imports-runtime.json",
         "artifacts/structural-preflight.json",
         "artifacts/tenant-isolation/summary.json",

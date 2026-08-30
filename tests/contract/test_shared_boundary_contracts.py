@@ -31,6 +31,8 @@ import pytest
 
 from value_fabric.shared import error_handling, identity
 
+pytestmark = [pytest.mark.contract_static, pytest.mark.unit]
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 BASELINE_PATH = REPO_ROOT / "config" / "ci" / "shared_surface_contract.json"
 
