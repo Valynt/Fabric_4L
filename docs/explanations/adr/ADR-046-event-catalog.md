@@ -1,4 +1,4 @@
-# ADR-024: Event Catalog — Semantic Inventory of Record for Domain and Integration Events
+# ADR-046: Event Catalog — Semantic Inventory of Record for Domain and Integration Events
 
 ## Status
 

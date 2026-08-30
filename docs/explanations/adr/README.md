@@ -97,6 +97,7 @@ An ADR is ready for review only when it includes:
 | [ADR-040](./ADR-040-data-ownership-system-of-record.md) | Data Ownership and System of Record | ✅ Accepted | 2026-07-29 |
 | [ADR-041](./ADR-041-canonical-layer1-ingestion-path.md) | Canonical Layer 1 Ingestion Path | ✅ Accepted | 2026-07-29 |
 | [ADR-042](./ADR-042-claim-benchmark-taxonomy-alignment.md) | Claim Type and Benchmark Taxonomy Alignment | ✅ Accepted | 2026-07-29 |
+| [ADR-046](./ADR-046-event-catalog.md) | Event Catalog — Semantic Inventory of Record for Domain and Integration Events | ✅ Accepted | 2026-08-21 |
 
 ---
 
