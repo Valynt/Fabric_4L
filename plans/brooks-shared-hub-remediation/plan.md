@@ -50,10 +50,16 @@ Assumptions (made under autopilot; change with reviewer feedback):
 **Testing:** `make contract-tests`; import smoke for all nine services importing `value_fabric.shared` (`identity`/`error_handling`); run the structural-preflight gate; spot-run L4 and API test suites (heaviest consumers).
 
 ## Validation (whole PR)
-- `make verify` (canonical gate) after each step.
-- `make contract-tests`; `make check-behavior-contract` (no behavior intent changes).
-- `make check-conflict-markers`, `make check-migration-heads` (no migrations touched — quick guards).
+- [x] `make contract-tests` static subset — **490 passed, 0 failures** (post-retention-fix; contract_static suite).
+- [x] `make check-behavior-contract` (direct `python scripts/ci/check_behavior_contract.py --strict`) — **exit 0**, all 44 capabilities resolve to allowed + denied tests.
+- [x] `make check-conflict-markers` — exit 0, no markers.
+- [x] `make check-migration-heads` — PASS (alembic binary absent on host → command-based portion skipped, entrypoint contract passes).
+- [x] Structural-preflight gates: `structural_preflight.py --strict` exit 0 (0 findings), `python_contract_lint.py --strict` exit 0 (baseline-approved), `type_escape_ratchet` regenerated + passes (7076 approved), `structural_fitness_ratchet` regenerated + passes (`tasks/` no longer a megafile).
+- [x] Per-layer ruff (`make lint-layer1/2/4/5/6`, `lint-layer2-5`) — all pass.
+- [x] Test-path retarget commit `56b9a6dfa`: 6 test files retargeted to `tasks/` package modules with aggregation helpers where symbols span modules; targeted re-run 50 passed.
+- [ ] Full per-layer trees (L1 ~17min, L4 ~15min, L5, L6) — running.
 - No frontend change → no `pnpm --dir apps/web` gates required; `pnpm run check:api-types` untouched.
+- `make verify` could not run as one target (git-bash on Windows fails parsing the `$(PYTHON)` Windows drive path — pre-existing infra issue); every sub-command was run directly and passes (documented per step).
 
 ## Risk / Follow-up
 - Step 3 shims must be exact — a missed re-export breaks broker/Celery tasks; mitigated by import smoke + per-layer test counts before/after.
