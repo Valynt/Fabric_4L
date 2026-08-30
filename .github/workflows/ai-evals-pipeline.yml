@@ -220,6 +220,7 @@ jobs:
           cd services/layer4-agents
           pip install -e . --quiet
           pip install pytest pytest-asyncio --quiet
+          pip install pytest-timeout pytest-randomly pytest-json-report --quiet
           # Root conftest.py policy chain requires jsonschema + PyYAML.
           pip install jsonschema pyyaml --quiet
 
@@ -322,6 +323,7 @@ jobs:
           cd services/layer4-agents
           pip install -e . --quiet
           pip install pytest --quiet
+          pip install pytest-timeout pytest-randomly pytest-json-report --quiet
           # Root conftest.py policy chain requires jsonschema + PyYAML.
           pip install jsonschema pyyaml --quiet
 
@@ -374,6 +376,7 @@ jobs:
           cd services/layer4-agents
           pip install -e . --quiet
           pip install pytest --quiet
+          pip install pytest-timeout pytest-randomly pytest-json-report --quiet
           # Root conftest.py policy chain requires jsonschema + PyYAML.
           pip install jsonschema pyyaml --quiet
 
