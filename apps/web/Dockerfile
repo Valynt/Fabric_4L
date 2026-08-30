@@ -1,4 +1,4 @@
-FROM node@sha256:bde0dae02f2b12d2bce5ee72b2432f0e511767b7b2dc4dd3b064df11ae422fee AS builder
+FROM node@sha256:f5d1cc40abc10c2843339a2134d07817cf33c405cb16bfd052b0ed790254c3a3 AS builder
 WORKDIR /app
 
 # Canonical public API route prefixes for production builds. These match
@@ -47,7 +47,7 @@ COPY packages/config ./packages/config
 COPY packages/platform-contract ./packages/platform-contract
 RUN pnpm --filter ./apps/web build
 
-FROM node@sha256:bde0dae02f2b12d2bce5ee72b2432f0e511767b7b2dc4dd3b064df11ae422fee AS runtime
+FROM node@sha256:f5d1cc40abc10c2843339a2134d07817cf33c405cb16bfd052b0ed790254c3a3 AS runtime
 WORKDIR /app
 
 ENV NODE_ENV=production
