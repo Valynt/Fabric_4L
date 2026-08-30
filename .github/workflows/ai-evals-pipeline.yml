@@ -186,7 +186,10 @@ jobs:
     name: Run Skill Evaluations
     runs-on: ubuntu-latest
     needs: [discover-skills, setup-evals]
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    # Guard empty matrix: when changed_skills is '[]', creating zero matrix
+    # jobs makes GitHub conclude the run as failed (see actions/runner#2205).
+    # An explicit skip preserves the intended 9-job graph.
+    if: needs.discover-skills.outputs.changed_skills != '[]' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
     env:
       INFISICAL_IDENTITY_ID: ${{ secrets.INFISICAL_IDENTITY_ID }}
     strategy:
@@ -303,7 +306,9 @@ jobs:
     name: Run Agent Evaluations
     runs-on: ubuntu-latest
     needs: [discover-skills, setup-evals]
-    if: needs.discover-skills.outputs.changed_agents != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    # Guard empty matrix: '[]' != '' (existing guard) lets empty arrays through,
+    # producing a zero-job matrix and a failed run conclusion (actions/runner#2205).
+    if: needs.discover-skills.outputs.changed_agents != '[]' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
     env:
       INFISICAL_IDENTITY_ID: ${{ secrets.INFISICAL_IDENTITY_ID }}
     strategy:
