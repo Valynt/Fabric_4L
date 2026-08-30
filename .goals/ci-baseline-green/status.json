@@ -1,10 +1,16 @@
 {
   "goal_id": "ci-baseline-green",
-  "status": "building",
+  "status": "completed",
   "iteration": 1,
   "builder_model": "GPT-5.6-Luna",
   "inspector_model": "GPT-5.6-Sol",
   "initial_sha": "9be28a748d8b2cf4c3fa97ee870cda0c0bf0470c",
   "created_at": "2026-08-29T20:20:00-04:00",
-  "history": []
+  "history": [
+    {
+      "iteration": 1,
+      "verdict": "PASS",
+      "summary": "All 8 required main branch-protection contexts pass on exact CI head 59f896810; auth-snapshot e2e fix confirmed; residual p0-e2e-gate journey-timeline 422 classified as pre-existing non-required debt; registry checks + git diff --check pass."
+    }
+  ]
 }
