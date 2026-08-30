@@ -1,0 +1,35 @@
+# Identity Domain Event Catalog (stub)
+# Placeholder for canonical events owned by the identity bounded context.
+
+catalog_version: "1.0.0"
+domain: identity
+owner: identity-team
+
+entries:
+  - event_type: identity.user.authenticated.v1
+    name: User Authenticated
+    description: >
+      A user has successfully authenticated. Placeholder entry for identity
+      domain event catalog.
+    domain: identity.authentication
+    owner: identity-team/authentication
+    producer: services/api
+    triggered_by:
+      - user.login
+    schema_ref: "jsonschema://identity/events/user-authenticated@1.0.0"
+    envelope_ref: "jsonschema://common/event-envelope@1.0.0"
+    subject_type: user
+    tenant_scope: TENANT
+    delivery: AT_LEAST_ONCE
+    partition_key: tenant_id
+    consumer_effect_key: event.id
+    expected_latency_ms: 200
+    criticality: HIGH
+    transport_channel: identity.events
+    ordering_guarantee: BEST_EFFORT
+    replay_behavior: IDEMPOTENT
+    retention_classification: MEDIUM_TERM
+    sensitive_payload: true
+    event_class: DOMAIN_EVENT
+    status: DRAFT
+    consumers: []
