@@ -121,6 +121,8 @@ def test_cli_writes_machine_readable_json_and_markdown(tmp_path: Path) -> None:
             "--include-cancelled",
             "--window-days",
             "30",
+            "--generated-at",
+            "2026-06-03T00:00:00Z",
         ],
         check=True,
         text=True,

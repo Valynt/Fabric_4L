@@ -45,6 +45,7 @@ GENERATED_SPECS = (
 REFRESHABLE_ONLY_SPECS = (
     "fabric-4l-api.json",
     "layer2-5-signal-refinery.json",
+    "layer7-billing.json",
 )
 
 REFRESHABLE_SPECS = GENERATED_SPECS + REFRESHABLE_ONLY_SPECS
@@ -108,13 +109,18 @@ SPEC_CONFIG = {
         "web_dir": None,
         "import_alias": None,
     },
+    "layer7-billing.json": {
+        "service_prefixes": ("services/layer7-billing/",),
+        "platform_file": None,
+        "web_dir": None,
+        "import_alias": None,
+    },
 }
 
 ALL_SPECS = tuple(SPEC_CONFIG)
 
 FORCE_FULL_PREFIXES = (
     ".github/workflows/contract-compliance.yml",
-    ".github/workflows/generated-api-freshness.yml",
     "scripts/export_openapi.py",
     "scripts/ci/contract_compliance_gate.py",
     "packages/platform-contract/scripts/generate-openapi-types.mjs",

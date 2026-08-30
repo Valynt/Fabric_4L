@@ -85,7 +85,9 @@ invariants:
       - type: pytest
         path: tests/contract
       - type: workflow
-        path: .github/workflows/generated-api-freshness.yml
+        path: .github/workflows/critical-gates.yml
+      - type: script
+        path: scripts/ci/check_generated_client_reproducibility.py
       - type: workflow
         path: .github/workflows/contract-compliance.yml
 

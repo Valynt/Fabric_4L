@@ -1,12 +1,80 @@
 # Support Escalation Runbook
 
-> **Scope:** Customer-reported issues, technical support handoffs, and escalation from Customer Operations to Engineering, Security, Data Governance, or FinOps.
-
 ## Purpose
 
 Use this runbook to triage support requests consistently, collect actionable evidence, and route urgent customer-impacting problems without exposing sensitive tenant data in shared channels.
 
-## Intake Checklist
+## Trigger
+
+Support identifies security, availability, integrity, contractual, or repeated product impact that exceeds frontline handling.
+
+## Severity
+
+SEV1 for security/cross-tenant or broad outage; SEV2 for major customer impact; SEV3 for bounded degradation; SEV4 for routine follow-up.
+
+## Preconditions
+
+- Confirm the incident/request owner, affected environment, authorized tenant scope, and required approvals.
+- Verify access to the relevant dashboards, audit records, secrets, backups, and deployment metadata.
+- Capture the current version and state before making changes; destructive operations require explicit approval.
+
+## Immediate Actions
+
+1. Stop or freeze the smallest unsafe scope and declare the severity.
+2. Preserve logs, traces, audit records, identifiers, configuration, and timestamps before mutation or restart.
+3. Notify the owning on-call and Security when authorization, privacy, or tenant isolation may be affected.
+
+## Diagnosis Steps
+
+1. Confirm the trigger, timeline, affected tenants/customers, and last known-good state.
+2. Correlate alerts, logs, traces, audit events, recent deployments, configuration changes, and dependency health.
+3. Test whether impact is tenant-specific, regional, provider-specific, deployment-specific, or global.
+
+## Resolution Steps
+
+1. Apply the least-risk reversible correction described in the procedure details below.
+2. Preserve fail-closed controls, tenant scope, contract compatibility, and auditability.
+3. Record commands, approvals, state transitions, and the reason for the selected resolution.
+
+## Validation
+
+- Re-run the related gates and targeted service checks.
+- Validate the affected customer path and a known-unaffected control tenant where tenant data is involved.
+- Confirm alerts clear, audit evidence is complete, and no new errors or cross-tenant results appear.
+
+## Rollback / Fallback
+
+Return to the captured last known-good deployment, configuration, routing, or data artifact if validation fails. Keep the affected capability contained when no safe fallback preserves security and tenant isolation.
+
+## Customer / Stakeholder Communication
+
+Use the declared severity cadence. Report confirmed scope, customer impact, mitigation, residual risk, and next update time; never include secrets, raw customer data, or another tenant's identifiers.
+
+## Evidence to Preserve
+
+Preserve alert and dashboard snapshots, UTC timestamps, affected tenant/customer IDs, deployment SHAs, sanitized logs/traces, audit events, approvals, commands, gate outputs, and validation results in the incident or request record.
+
+## Related Gates
+
+- Observability alert gates; `tenant-isolation-gate` for access concerns; deployment/production-readiness gates for suspected regressions; agent evaluation gates for agent-output cases.
+
+## Related Runbooks
+
+- ./customer-incident-communication.md, ../01-incident-command.md, ../observability/alert-triage.md
+
+## Post-Incident Follow-Up
+
+Assign owners and due dates for the root-cause record, corrective tests/alerts/gates, control improvements, customer follow-up, and any required update to this runbook.
+
+## Procedure Details
+
+> **Scope:** Customer-reported issues, technical support handoffs, and escalation from Customer Operations to Engineering, Security, Data Governance, or FinOps.
+
+### Purpose
+
+Use this runbook to triage support requests consistently, collect actionable evidence, and route urgent customer-impacting problems without exposing sensitive tenant data in shared channels.
+
+### Intake Checklist
 
 Collect the following before escalation when possible:
 
@@ -19,7 +87,7 @@ Collect the following before escalation when possible:
 - Whether the issue affects one user, one tenant, multiple tenants, or all customers.
 - Any suspected data/security/privacy impact.
 
-## Severity Routing
+### Severity Routing
 
 | Severity | Examples | Escalation |
 |---|---|---|
@@ -28,7 +96,7 @@ Collect the following before escalation when possible:
 | P2 / SEV3 | Degraded feature, workaround available, isolated quality issue. | File engineering ticket and notify service channel. |
 | P3 | Question, configuration request, documentation gap. | Support queue or Customer Success follow-up. |
 
-## Escalation Paths
+### Escalation Paths
 
 | Issue type | Primary owner | Runbook |
 |---|---|---|
@@ -41,7 +109,7 @@ Collect the following before escalation when possible:
 | Data corruption | Data Governance + service owner | `docs/runbooks/data-governance/investigate-data-corruption.md` |
 | Customer-facing incident | Incident Commander + Comms | `docs/runbooks/customer-operations/customer-incident-communication.md` |
 
-## Engineering Escalation Template
+### Engineering Escalation Template
 
 ```text
 Escalation: <short title>
@@ -60,7 +128,7 @@ Requested action: <diagnose, mitigate, customer wording, join call>
 Support owner: <name>
 ```
 
-## Handling Rules
+### Handling Rules
 
 - Do not paste secrets, tokens, raw prompts, raw model outputs, or customer documents into Slack.
 - Use tenant IDs and internal object IDs rather than customer personal data where possible.
@@ -68,7 +136,7 @@ Support owner: <name>
 - If customer communication is needed, use the incident communication runbook and approved templates.
 - Keep the support ticket as the customer-facing source of record and link the internal incident/ticket.
 
-## Closure Checklist
+### Closure Checklist
 
 - Customer symptom is resolved or workaround is confirmed.
 - Engineering owner has documented root cause or next step.

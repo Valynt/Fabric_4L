@@ -1,0 +1,121 @@
+# Workflow write permissions governance allowlist
+# Each entry maps a workflow filename to permitted write scopes and justifying rationale.
+# Stale entries are flagged by tests/ci/test_workflow_permissions.py to prevent drift.
+
+ai-evals-pipeline.yml:
+  checks: updates AI evaluation check runs
+  id-token: authenticates Infisical-backed evaluation jobs through OIDC
+  pull-requests: comments on pull requests with evaluation results
+
+api-key-rotation.yml:
+  id-token: authenticates rotation automation through OIDC
+  issues: creates API key rotation tracking issues
+
+backend-integrated-reproducibility.yml:
+  id-token: authenticates backend-integrated reproducibility jobs through OIDC
+
+bundle-analysis.yml:
+  pull-requests: updates pull requests with bundle-size reports
+
+certify-release-candidate.yml:
+  attestations: writes the candidate certification build provenance attestation
+  id-token: uses OIDC for keyless signing of the certification attestation
+
+cleanup-repo.yml:
+  contents: deletes remote branches selected by the cleanup workflow
+  pull-requests: closes pull requests selected by the cleanup workflow
+
+codeql.yml:
+  security-events: uploads CodeQL SARIF results
+
+contract-compliance.yml:
+  issues: comments drift reports on pull requests
+
+dependency-scan.yml:
+  security-events: uploads dependency and container scan SARIF
+
+deploy.yml:
+  contents: commits release evidence artifacts in the evidence job
+  id-token: authenticates deploy and rollback jobs through cloud/OIDC providers
+
+environment-promotion.yml:
+  contents: pushes GitOps promotion branches
+  id-token: authenticates deploy automation through OIDC
+  pull-requests: opens promotion pull requests
+
+flakiness-tracker.yml:
+  issues: creates scheduled flakiness tracking issues
+
+penetration-testing.yml:
+  issues: comments penetration test results on pull requests
+  security-events: uploads penetration scan SARIF
+
+pr-backlog-health.yml:
+  issues: opens/updates backlog-health issues
+
+pr-checks.yml:
+  id-token: authenticates PR checks that fetch Infisical-managed secrets
+
+public-docs.yml:
+  id-token: authenticates deploy job to GitHub Pages
+  pages: deploys documentation to GitHub Pages
+
+publish-ci-tools.yml:
+  attestations: publishes build provenance and SBOM attestations
+  id-token: authenticates GitHub Actions provenance through OIDC
+  packages: publishes the pinned CI tools image to GHCR
+
+publish-sdk.yml:
+  id-token: publishes Python packages with trusted publishing
+  packages: publishes SDK packages to GitHub Packages
+
+release-api-changelog.yml:
+  contents: attaches generated changelog and updates release notes
+  issues: creates breaking-change advisory issues
+
+release-evidence-bundle.yml:
+  attestations: attests release evidence bundle
+  contents: creates release evidence artifacts
+  id-token: uses OIDC for evidence signing
+
+repo-hygiene.yml:
+  contents: deletes stale branches selected by the cleanup policy
+  issues: comments repository hygiene failures on pull requests
+  pull-requests: comments repository hygiene failures on pull requests
+
+runbook-validation.yml:
+  issues: comments runbook validation failures on pull requests
+
+sbom.yml:
+  id-token: obtains a Sigstore OIDC token for keyless signing
+  security-events: allows the canonical reusable workflow to upload scanner SARIF
+
+sdk-generation.yml:
+  contents: pushes generated SDK branches
+  pull-requests: opens generated SDK pull requests
+
+secret-rotation.yml:
+  id-token: authenticates secret rotation automation through OIDC
+  issues: creates rotation tracking issues
+
+security-gates.yml:
+  id-token: publishes OpenSSF Scorecard results through OIDC
+  security-events: uploads security scan SARIF
+
+supply-chain-integrity.yml:
+  id-token: uses OIDC for provenance verification
+  security-events: uploads supply-chain scan SARIF
+
+terraform-cd.yml:
+  id-token: authenticates Terraform deployment jobs through AWS OIDC
+
+test-reporting.yml:
+  checks: updates test report check runs
+  pull-requests: comments test reports on pull requests
+
+vault-integration.yml:
+  id-token: authenticates to Vault through OIDC
+
+visual-regression.yml:
+  pull-requests: updates pull requests with visual regression results
+

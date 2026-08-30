@@ -1,0 +1,76 @@
+{
+  "$comment": [
+    "Tool schema template for the agentic component layer.",
+    "This is the #1 failure point: keep inputs strict and outputs explicit.",
+    "Pipeline: 1) define the tool here, 2) generate the agent-side function schema",
+    "from this JSON, 3) back the tool with an endpoint that validates against the",
+    "SAME schema, 4) run the eval suite before and after any change.",
+    "Rules:",
+    "  - name is verb_noun and STABLE (renaming breaks agent training + evals).",
+    "  - additionalProperties must be false - never allow loose extra fields.",
+    "  - every property gets a description telling the model HOW to choose the value.",
+    "  - never ask the agent for a tenant_id - derive it from auth context.",
+    "  - declare a distinct error shape with a machine-readable code."
+  ],
+  "name": "create_repo_audit_run",
+  "description": "Create a new audit run for a repository. Call when the user asks to audit, check health, or score a repo. Returns the created run with its id and status. Errors with a structured rejection if the repo URL is malformed or the repo is not reachable.",
+  "input_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["repo_url", "scope"],
+    "properties": {
+      "repo_url": {
+        "type": "string",
+        "format": "uri",
+        "description": "Full https URL of the git repository to audit, e.g. https://github.com/acme/widgets.git. Must be a reachable https URL.",
+        "examples": ["https://github.com/acme/widgets.git"]
+      },
+      "scope": {
+        "type": "string",
+        "enum": ["full", "git", "code", "docs"],
+        "description": "Which audit areas to run. 'full' runs all areas; 'git' only git history; 'code' only source analysis; 'docs' only governance docs. Choose the narrowest scope that satisfies the request.",
+        "default": "full"
+      },
+      "label": {
+        "type": "string",
+        "maxLength": 80,
+        "description": "Optional human-friendly label for this run (e.g. a sprint tag). Omit unless the user supplied one.",
+        "examples": ["sprint-42"]
+      }
+    }
+  },
+  "output_schema": {
+    "oneOf": [
+      {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["ok", "run_id", "status"],
+        "properties": {
+          "ok": { "const": true },
+          "run_id": { "type": "string", "description": "UUID of the created run." },
+          "status": { "const": "queued" }
+        }
+      },
+      {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["ok", "error"],
+        "properties": {
+          "ok": { "const": false },
+          "error": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["code", "message"],
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": ["INVALID_URL", "UNREACHABLE_REPO", "RATE_LIMITED"]
+              },
+              "message": { "type": "string", "description": "Human-readable reason." }
+            }
+          }
+        }
+      }
+    ]
+  }
+}
