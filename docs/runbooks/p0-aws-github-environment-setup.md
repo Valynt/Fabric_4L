@@ -1,5 +1,73 @@
 # P0 Operator Runbook: GitHub / AWS Environment Setup
 
+## Purpose
+
+Operate this procedure safely while preserving tenant isolation, evidence, reversibility, and the existing service contract.
+
+## Trigger
+
+A production/staging environment is created, recovered, or found missing required GitHub/AWS/OIDC configuration.
+
+## Severity
+
+SEV1 when production controls or credentials are exposed; SEV2 when deployment is blocked or trust is broken; SEV3 for non-production setup drift.
+
+## Preconditions
+
+- Confirm the incident/request owner, affected environment, authorized tenant scope, and required approvals.
+- Verify access to the relevant dashboards, audit records, secrets, backups, and deployment metadata.
+- Capture the current version and state before making changes; destructive operations require explicit approval.
+
+## Immediate Actions
+
+1. Stop or freeze the smallest unsafe scope and declare the severity.
+2. Preserve logs, traces, audit records, identifiers, configuration, and timestamps before mutation or restart.
+3. Notify the owning on-call and Security when authorization, privacy, or tenant isolation may be affected.
+
+## Diagnosis Steps
+
+1. Confirm the trigger, timeline, affected tenants/customers, and last known-good state.
+2. Correlate alerts, logs, traces, audit events, recent deployments, configuration changes, and dependency health.
+3. Test whether impact is tenant-specific, regional, provider-specific, deployment-specific, or global.
+
+## Resolution Steps
+
+1. Apply the least-risk reversible correction described in the procedure details below.
+2. Preserve fail-closed controls, tenant scope, contract compatibility, and auditability.
+3. Record commands, approvals, state transitions, and the reason for the selected resolution.
+
+## Validation
+
+- Re-run the related gates and targeted service checks.
+- Validate the affected customer path and a known-unaffected control tenant where tenant data is involved.
+- Confirm alerts clear, audit evidence is complete, and no new errors or cross-tenant results appear.
+
+## Rollback / Fallback
+
+Return to the captured last known-good deployment, configuration, routing, or data artifact if validation fails. Keep the affected capability contained when no safe fallback preserves security and tenant isolation.
+
+## Customer / Stakeholder Communication
+
+Use the declared severity cadence. Report confirmed scope, customer impact, mitigation, residual risk, and next update time; never include secrets, raw customer data, or another tenant's identifiers.
+
+## Evidence to Preserve
+
+Preserve alert and dashboard snapshots, UTC timestamps, affected tenant/customer IDs, deployment SHAs, sanitized logs/traces, audit events, approvals, commands, gate outputs, and validation results in the incident or request record.
+
+## Related Gates
+
+- Terraform plan/apply deployment gates; GitHub environment protection checks; Infisical OIDC fail-closed checks; `make production-readiness-gate`.
+
+## Related Runbooks
+
+- ./deployment/deploy-production-release.md, ./operational/ci-infisical-oidc-recovery.md, ./security/respond-to-secret-leak.md
+
+## Post-Incident Follow-Up
+
+Assign owners and due dates for the root-cause record, corrective tests/alerts/gates, control improvements, customer follow-up, and any required update to this runbook.
+
+## Procedure Details
+
 This runbook contains the manual steps required to configure the GitHub repository and AWS account so that P0-002, P0-007, and P0-010 runtime validation can proceed. It does **not** cover application code changes, secret-backend administration, or cluster application deployment — those are tracked separately.
 
 **Prerequisites:**
@@ -14,9 +82,9 @@ This runbook contains the manual steps required to configure the GitHub reposito
 
 ---
 
-## 1. GitHub Repository Configuration
+### 1. GitHub Repository Configuration
 
-### 1.1 Required Repository Secret
+#### 1.1 Required Repository Secret
 
 Navigate to **Settings -> Secrets and variables -> Actions -> New repository secret**.
 
@@ -26,7 +94,7 @@ Navigate to **Settings -> Secrets and variables -> Actions -> New repository sec
 
 > **Do not use real account IDs or fake secrets in the repo.** Configure this only in the GitHub web UI.
 
-### 1.2 Required Repository Variable
+#### 1.2 Required Repository Variable
 
 Navigate to **Settings -> Secrets and variables -> Actions -> Variables -> New repository variable**.
 
@@ -34,7 +102,7 @@ Navigate to **Settings -> Secrets and variables -> Actions -> Variables -> New r
 |---------------|-------------|---------|
 | `AWS_REGION` | AWS region for Terraform operations | `us-east-1` |
 
-### 1.3 GitHub Environments
+#### 1.3 GitHub Environments
 
 Navigate to **Settings -> Environments** and create or verify:
 
@@ -48,9 +116,9 @@ Navigate to **Settings -> Environments** and create or verify:
 
 ---
 
-## 2. AWS OIDC Role Setup
+### 2. AWS OIDC Role Setup
 
-### 2.1 Create the OIDC Identity Provider (if not already present)
+#### 2.1 Create the OIDC Identity Provider (if not already present)
 
 In the AWS account, create an IAM OIDC identity provider for GitHub Actions:
 
@@ -58,7 +126,7 @@ In the AWS account, create an IAM OIDC identity provider for GitHub Actions:
 - **Audience (client ID):** `sts.amazonaws.com`
 - **Thumbprint:** Use the latest GitHub OIDC thumbprint (AWS console will auto-fill this as of 2023)
 
-### 2.2 Create the IAM Role for Terraform
+#### 2.2 Create the IAM Role for Terraform
 
 Create an IAM role named `<PLACEHOLDER: FabricTerraformRole>` (or your preferred name) with the following trust policy.
 
@@ -98,7 +166,7 @@ For stricter security, replace the `StringLike` condition with one of the follow
   "token.actions.githubusercontent.com:sub": "repo:<PLACEHOLDER: org/Fabric_4L>:environment:staging"
   ```
 
-### 2.3 Role Permissions: Plan vs Apply
+#### 2.3 Role Permissions: Plan vs Apply
 
 #### Plan-Only Permissions (Minimum)
 
@@ -167,11 +235,11 @@ When enabling apply in CI, create a separate role or add write permissions scope
 
 ---
 
-## 3. Terraform Backend Setup
+### 3. Terraform Backend Setup
 
 Terraform state is stored in S3 with DynamoDB locking. These resources must exist before the GitHub Actions workflow can run `terraform init` with a backend.
 
-### 3.1 Required Resources
+#### 3.1 Required Resources
 
 | Resource | Dev | Staging | Prod |
 |----------|-----|---------|------|
@@ -180,7 +248,7 @@ Terraform state is stored in S3 with DynamoDB locking. These resources must exis
 
 > Bucket names are already configured in `infra/terraform/environments/*/main.tf`.
 
-### 3.2 Create S3 Buckets (one per environment)
+#### 3.2 Create S3 Buckets (one per environment)
 
 Example for staging (repeat for dev and prod):
 
@@ -206,7 +274,7 @@ aws s3api put-bucket-encryption \
   }'
 ```
 
-### 3.3 Create DynamoDB Lock Tables (one per environment)
+#### 3.3 Create DynamoDB Lock Tables (one per environment)
 
 ```bash
 # Example — staging
@@ -218,7 +286,7 @@ aws dynamodb create-table \
   --region us-east-1
 ```
 
-### 3.4 Least-Privilege Access
+#### 3.4 Least-Privilege Access
 
 The Terraform IAM role (from Section 2) needs the following S3 and DynamoDB permissions:
 
@@ -258,16 +326,16 @@ The Terraform IAM role (from Section 2) needs the following S3 and DynamoDB perm
 
 ---
 
-## 4. Workflow Trigger Instructions
+### 4. Workflow Trigger Instructions
 
 After completing Sections 1–3, trigger the Terraform CI workflow.
 
-### 4.1 How to Trigger
+#### 4.1 How to Trigger
 
 1. Open a PR that changes files under `infra/terraform/**` or `.github/workflows/terraform-cd.yml`
 2. Or manually trigger via **Actions -> Terraform CD -> Run workflow**
 
-### 4.2 Expected Signals
+#### 4.2 Expected Signals
 
 | Job | Expected Result | Failure Signal |
 |-----|---------------|----------------|
@@ -278,7 +346,7 @@ After completing Sections 1–3, trigger the Terraform CI workflow.
 | `terraform-plan` | Artifact uploaded per environment | Fails if OIDC assume-role fails, or `terraform plan` errors |
 | `terraform-policy-check` | Pass | Fails if Checkov or custom policy checks detect violations |
 
-### 4.3 Review the Staging Plan Artifact
+#### 4.3 Review the Staging Plan Artifact
 
 1. Go to **Actions -> Terraform CD -> latest run**
 2. Download `tfplan-staging` artifact
@@ -292,17 +360,17 @@ After completing Sections 1–3, trigger the Terraform CI workflow.
    - No unexpected `force-new-resource` or `destroy` actions on existing infrastructure
    - No hardcoded secrets in plan output
 
-### 4.4 Do Not Apply Yet
+#### 4.4 Do Not Apply Yet
 
 The workflow does **not** include an apply step. Apply to staging will be a separate manual or gated action after plan review.
 
 ---
 
-## 5. Staging Runtime Environment Checklist
+### 5. Staging Runtime Environment Checklist
 
 Before P0-007 (OTel) and P0-002 (DB HA) runtime validation can run, the following must exist in the staging environment.
 
-### 5.1 Cluster and Platform
+#### 5.1 Cluster and Platform
 
 | # | Check | How to Verify | Status |
 |---|-------|-------------|--------|
@@ -313,14 +381,14 @@ Before P0-007 (OTel) and P0-002 (DB HA) runtime validation can run, the followin
 
 > **Note:** Secret-backend setup (Vault, Infisical, etc.) is owned by the platform team. See `AGENTS.md` for local development setup. Do not block this runbook on secret-backend configuration — confirm only that ExternalSecrets can reach its backend.
 
-### 5.2 Observability
+#### 5.2 Observability
 
 | # | Check | How to Verify | Status |
 |---|-------|-------------|--------|
 | 5 | OpenTelemetry Collector deployed | `kubectl get pods -n monitoring` shows collector Running | ☐ |
 | 6 | Jaeger query endpoint reachable | `curl http://<jaeger-query>/api/services` returns service list | ☐ |
 
-### 5.3 Application Services
+#### 5.3 Application Services
 
 | # | Check | How to Verify | Status |
 |---|-------|-------------|--------|
@@ -329,7 +397,7 @@ Before P0-007 (OTel) and P0-002 (DB HA) runtime validation can run, the followin
 | 9 | Layer 7-billing deployed and healthy | `curl http://<l7>/health` returns 200 | ☐ |
 | 10 | Services configured with OTel env vars | `kubectl get deployment billing -o yaml` shows `OTEL_SERVICE_NAME`, `OTEL_EXPORTER_OTLP_ENDPOINT` | ☐ |
 
-### 5.4 Database / Cache
+#### 5.4 Database / Cache
 
 | # | Check | How to Verify | Status |
 |---|-------|-------------|--------|
@@ -342,7 +410,7 @@ Before P0-007 (OTel) and P0-002 (DB HA) runtime validation can run, the followin
 | 17 | App pod can connect to PostgreSQL | `kubectl exec <pod> -- python -c "import psycopg2; psycopg2.connect(...)"` or similar | ☐ |
 | 18 | App pod can connect to Redis | `kubectl exec <pod> -- redis-cli -h <host> PING` returns `PONG` | ☐ |
 
-### 5.5 Validation Scripts Ready
+#### 5.5 Validation Scripts Ready
 
 | # | Check | Command | Status |
 |---|-------|---------|--------|
@@ -352,7 +420,7 @@ Before P0-007 (OTel) and P0-002 (DB HA) runtime validation can run, the followin
 
 ---
 
-## 6. Secret-Backend Reference
+### 6. Secret-Backend Reference
 
 This runbook does **not** include detailed steps for configuring Vault, Infisical, or other secret backends. The following resources contain the relevant operational procedures:
 
@@ -369,7 +437,7 @@ This runbook does **not** include detailed steps for configuring Vault, Infisica
 
 ---
 
-## 7. After Setup — Status Update
+### 7. After Setup — Status Update
 
 After completing this runbook:
 

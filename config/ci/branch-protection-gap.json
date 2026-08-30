@@ -1,0 +1,125 @@
+{
+  "owner": "Platform Governance",
+  "purpose": "Migration ledger reconciling the version-controlled branch-protection contract (config/ci/required-status-checks.json) with what is actually enforced on GitHub. Every context declared under required_status_checks that is NOT live-enforced MUST be listed below with status and owner. The daily branch-protection-validation cron intentionally does NOT pass this file, so a declared-but-unapplied context keeps the cron red until the migration is applied. Policy-changing PRs run the validator WITH this file so pre-existing documented gaps do not block unrelated policy work, while any missing context not represented here fails the PR.",
+  "enforced_baseline": {
+    "as_of": "2026-08-21",
+    "github_live_enforced": [
+      "mandatory-security-regression",
+      "contract-compliance",
+      "Structural Preflight",
+      "prod-readiness",
+      "behavior-tests",
+      "Layer 5 - Source Contract",
+      "Layer 5 - Tenant Isolation Regression",
+      "Layer 5 - Contract Shape Regression"
+    ]
+  },
+  "gaps": [
+    {
+      "context": "01-repository-integrity",
+      "status": "pending",
+      "owner": "Platform Governance",
+      "blocked_by": "Admin credentials required to edit branch protection settings on main",
+      "sync_action": "Add to branch protection required status checks (Settings > Branches > main) via the governance runbook. Emitted on every pull_request and merge_group run by pr-checks.yml (aggregate-01-repository-integrity)."
+    },
+    {
+      "context": "02-code-quality-and-tests",
+      "status": "pending",
+      "owner": "Platform Governance",
+      "blocked_by": "Admin credentials required to edit branch protection settings on main",
+      "sync_action": "Add to branch protection required status checks (Settings > Branches > main) via the governance runbook. Emitted on every pull_request and merge_group run by pr-checks.yml (aggregate-02-code-quality-and-tests)."
+    },
+    {
+      "context": "03-contract-compliance",
+      "status": "pending",
+      "owner": "Platform Governance",
+      "blocked_by": "Admin credentials required to edit branch protection settings on main",
+      "sync_action": "Add to branch protection required status checks (Settings > Branches > main) via the governance runbook. Emitted on every pull_request and merge_group run by contract-compliance.yml (aggregate-03-contract-compliance)."
+    },
+    {
+      "context": "04-security-gates",
+      "status": "pending",
+      "owner": "Platform Governance",
+      "blocked_by": "Admin credentials required to edit branch protection settings on main",
+      "sync_action": "Add to branch protection required status checks (Settings > Branches > main) via the governance runbook. Emitted on every pull_request and merge_group run by security-gates.yml (aggregate-04-security-gates)."
+    },
+    {
+      "context": "05-tenant-isolation-and-behavior",
+      "status": "pending",
+      "owner": "Platform Governance",
+      "blocked_by": "Admin credentials required to edit branch protection settings on main",
+      "sync_action": "Add to branch protection required status checks (Settings > Branches > main) via the governance runbook. Emitted on every pull_request and merge_group run by pr-checks.yml (aggregate-05-tenant-isolation-and-behavior)."
+    },
+    {
+      "context": "06-production-readiness",
+      "status": "pending",
+      "owner": "Platform Governance",
+      "blocked_by": "Admin credentials required to edit branch protection settings on main",
+      "sync_action": "Add to branch protection required status checks (Settings > Branches > main) via the governance runbook. Emitted on every pull_request and merge_group run by prod-readiness.yml (aggregate-06-production-readiness)."
+    },
+    {
+      "context": "07-supply-chain-integrity",
+      "status": "pending",
+      "owner": "Platform Governance",
+      "blocked_by": "Admin credentials required to edit branch protection settings on main",
+      "sync_action": "Add to branch protection required status checks (Settings > Branches > main) via the governance runbook. Emitted on every pull_request and merge_group run by supply-chain-integrity.yml (aggregate-07-supply-chain-integrity)."
+    },
+    {
+      "context": "08-release-evidence",
+      "status": "pending",
+      "owner": "Platform Governance",
+      "blocked_by": "Admin credentials required to edit branch protection settings on main",
+      "sync_action": "Add to branch protection required status checks (Settings > Branches > main) via the governance runbook. Emitted on every pull_request and merge_group run by release-evidence-bundle.yml (aggregate-08-release-evidence)."
+    },
+    {
+      "context": "09-change-risk-and-approval",
+      "status": "pending",
+      "owner": "Platform Governance",
+      "blocked_by": "Admin credentials required to edit branch protection settings on main",
+      "sync_action": "Add to branch protection required status checks (Settings > Branches > main) via the governance runbook. Emitted on pull_request and merge_group by pr-checks.yml (aggregate-09-change-risk-and-approval)."
+    }
+  ],
+  "conditional_contexts": [
+    {
+      "context": "Security Gates Required",
+      "workflow": ".github/workflows/security-gates.yml",
+      "enforcable_universally": false,
+      "reason": "PR-only fan-in (if: always() && github.event_name == 'pull_request'); not emitted on merge_group."
+    },
+    {
+      "context": "SDK Release Validation",
+      "workflow": ".github/workflows/publish-sdk.yml",
+      "enforcable_universally": false,
+      "reason": "Path-filtered to sdk/python/** and affected OpenAPI contracts; not emitted on every PR and no merge_group trigger."
+    }
+    ],
+    "review_policy_gaps": [
+      {
+        "policy": "required_approving_review_count",
+        "expected": 1,
+        "enforced": null,
+        "status": "pending",
+        "owner": "Platform Governance",
+        "blocked_by": "Admin credentials required to edit branch protection settings on main",
+        "sync_action": "Enable 'Require a pull request before merging' with at least 1 approving review in branch protection on main (Settings > Branches > main)."
+      },
+      {
+        "policy": "dismiss_stale_reviews",
+        "expected": true,
+        "enforced": null,
+        "status": "pending",
+        "owner": "Platform Governance",
+        "blocked_by": "Admin credentials required to edit branch protection settings on main",
+        "sync_action": "Enable 'Dismiss stale pull request approvals when new commits are pushed' in branch protection on main."
+      },
+      {
+        "policy": "required_conversation_resolution",
+        "expected": true,
+        "enforced": false,
+        "status": "pending",
+        "owner": "Platform Governance",
+        "blocked_by": "Admin credentials required to edit branch protection settings on main",
+        "sync_action": "Enable 'Require conversation resolution before merging' in branch protection on main."
+      }
+    ]
+  }

@@ -1,14 +1,82 @@
 # Rebuild Neo4j Projection Runbook
 
-> **Scope:** Layer 3 Knowledge Graph derived Neo4j projections and read models.  
-> **Primary owners:** `vf-db-oncall`, Layer 3 owner, Security for tenant-boundary concerns.  
-> **Related runbooks:** `docs/troubleshooting/runbooks/infrastructure/neo4j-down.md`, `docs/troubleshooting/runbooks/infrastructure/neo4j-unreachable.md`, `docs/runbooks/neo4j-backup-restore.md`.
-
 ## Purpose
 
 Use this runbook when a Neo4j graph projection, tenant-scoped read model, relationship expansion, or graph-derived cache is stale, incomplete, or suspected corrupt while the canonical source data is still intact. This is a **derived-store rebuild** procedure: do not treat Neo4j as the source of truth until the source-of-truth checks below pass.
 
-## Triggers
+## Trigger
+
+Projection integrity/retrieval alerts, missing tenant ownership, source/projection drift, or an approved rebuild request.
+
+## Severity
+
+SEV1 for cross-tenant or broad integrity risk; SEV2 for production retrieval impact; SEV3 for bounded degradation with source data intact.
+
+## Preconditions
+
+- Confirm the incident/request owner, affected environment, authorized tenant scope, and required approvals.
+- Verify access to the relevant dashboards, audit records, secrets, backups, and deployment metadata.
+- Capture the current version and state before making changes; destructive operations require explicit approval.
+
+## Immediate Actions
+
+1. Stop or freeze the smallest unsafe scope and declare the severity.
+2. Preserve logs, traces, audit records, identifiers, configuration, and timestamps before mutation or restart.
+3. Notify the owning on-call and Security when authorization, privacy, or tenant isolation may be affected.
+
+## Diagnosis Steps
+
+1. Confirm the trigger, timeline, affected tenants/customers, and last known-good state.
+2. Correlate alerts, logs, traces, audit events, recent deployments, configuration changes, and dependency health.
+3. Test whether impact is tenant-specific, regional, provider-specific, deployment-specific, or global.
+
+## Resolution Steps
+
+1. Apply the least-risk reversible correction described in the procedure details below.
+2. Preserve fail-closed controls, tenant scope, contract compatibility, and auditability.
+3. Record commands, approvals, state transitions, and the reason for the selected resolution.
+
+## Validation
+
+- Re-run the related gates and targeted service checks.
+- Validate the affected customer path and a known-unaffected control tenant where tenant data is involved.
+- Confirm alerts clear, audit evidence is complete, and no new errors or cross-tenant results appear.
+
+## Rollback / Fallback
+
+Return to the captured last known-good deployment, configuration, routing, or data artifact if validation fails. Keep the affected capability contained when no safe fallback preserves security and tenant isolation.
+
+## Customer / Stakeholder Communication
+
+Use the declared severity cadence. Report confirmed scope, customer impact, mitigation, residual risk, and next update time; never include secrets, raw customer data, or another tenant's identifiers.
+
+## Evidence to Preserve
+
+Preserve alert and dashboard snapshots, UTC timestamps, affected tenant/customer IDs, deployment SHAs, sanitized logs/traces, audit events, approvals, commands, gate outputs, and validation results in the incident or request record.
+
+## Related Gates
+
+- `tenant-isolation-gate`; Layer 3 tests and contract checks; observability alert gates; `gate-backup-restore-readiness`; production-readiness gate.
+
+## Related Runbooks
+
+- ./rebuild-vector-index.md, ../neo4j-backup-restore.md, ../data-governance/investigate-data-corruption.md
+
+## Post-Incident Follow-Up
+
+Assign owners and due dates for the root-cause record, corrective tests/alerts/gates, control improvements, customer follow-up, and any required update to this runbook.
+
+## Procedure Details
+
+> **Scope:** Layer 3 Knowledge Graph derived Neo4j projections and read models.  
+> **Primary owners:** `vf-db-oncall`, Layer 3 owner, Security for tenant-boundary concerns.  
+> **Related runbooks:** `docs/troubleshooting/runbooks/infrastructure/neo4j-down.md`, `docs/troubleshooting/runbooks/infrastructure/neo4j-unreachable.md`, `docs/runbooks/neo4j-backup-restore.md`.
+
+### Purpose
+
+Use this runbook when a Neo4j graph projection, tenant-scoped read model, relationship expansion, or graph-derived cache is stale, incomplete, or suspected corrupt while the canonical source data is still intact. This is a **derived-store rebuild** procedure: do not treat Neo4j as the source of truth until the source-of-truth checks below pass.
+
+### Triggers
 
 - Layer 3 graph queries return missing or obviously stale entities or relationships.
 - Layer 4 agents receive inconsistent graph context for value-tree projection or semantic matching.
@@ -16,7 +84,7 @@ Use this runbook when a Neo4j graph projection, tenant-scoped read model, relati
 - Tenant-scoped graph counts diverge from canonical ingestion/extraction records.
 - Post-deploy validation detects missing tenant indexes, labels, or relationship projections.
 
-## Safety Principles
+### Safety Principles
 
 1. **Confirm source of truth first.** Canonical records come from the upstream ingestion/extraction repositories, contracts, and tenant-owned source documents; Neo4j projections are rebuildable derived state.
 2. **Rebuild by tenant or bounded shard first.** Avoid global rebuilds unless the incident commander approves the blast radius.
@@ -24,7 +92,7 @@ Use this runbook when a Neo4j graph projection, tenant-scoped read model, relati
 4. **Write to a shadow projection when possible.** Prefer `projection_version` or a temporary label/property before cutting traffic over.
 5. **Keep an audit trail.** Record operator, tenant IDs, source snapshot, projection version, Cypher/scripts executed, and validation evidence.
 
-## Preconditions
+### Preconditions
 
 - Incident commander assigned for SEV1/SEV2 or customer-visible rebuilds.
 - Affected tenant IDs and graph labels are identified.
@@ -32,7 +100,7 @@ Use this runbook when a Neo4j graph projection, tenant-scoped read model, relati
 - Layer 3 write traffic can be paused, rate-limited, or routed to a read-only mode for affected tenants.
 - You have credentials for Kubernetes, Neo4j, and source-of-truth stores.
 
-## Source-of-Truth Confirmation
+### Source-of-Truth Confirmation
 
 Before rebuilding, confirm the canonical input is trustworthy.
 
@@ -53,7 +121,7 @@ kubectl exec -n value-fabric deployment/neo4j -- \
 
 Confirm with the Layer 1/Layer 2 owners that source documents, extraction events, provenance metadata, and contract payloads for the affected tenants are complete and not also corrupt. If source data is corrupt, stop here and use `docs/runbooks/data-governance/investigate-data-corruption.md`.
 
-## Containment
+### Containment
 
 1. Announce rebuild scope in `#incident-response` and `#vf-db-oncall`.
 2. Pause non-critical graph mutations for the affected tenant(s):
@@ -75,9 +143,9 @@ Confirm with the Layer 1/Layer 2 owners that source documents, extraction events
 
 4. For customer-visible incidents, use `docs/runbooks/customer-operations/customer-incident-communication.md`.
 
-## Rebuild Procedure
+### Rebuild Procedure
 
-### 1. Create a rebuild manifest
+#### 1. Create a rebuild manifest
 
 Create an incident-local manifest with:
 
@@ -87,7 +155,7 @@ Create an incident-local manifest with:
 - Current `projection_version` and target `projection_version`.
 - Commands/scripts to run and expected counts.
 
-### 2. Validate schema and tenant indexes
+#### 2. Validate schema and tenant indexes
 
 ```bash
 kubectl exec -n value-fabric deployment/neo4j -- \
@@ -97,7 +165,7 @@ kubectl exec -n value-fabric deployment/neo4j -- \
 
 Required tenant filters include `tenant_id` indexes for affected labels. Required vector indexes are covered in `docs/runbooks/reliability/rebuild-vector-index.md`.
 
-### 3. Rebuild into a shadow projection when possible
+#### 3. Rebuild into a shadow projection when possible
 
 Prefer an additive rebuild that marks new nodes/relationships with a target projection version:
 
@@ -115,7 +183,7 @@ kubectl exec -n value-fabric deployment/layer3-knowledge -- \
 
 If no shadow path exists, stop and get Layer 3 owner approval before any destructive cleanup. In-place rebuilds must delete only rows that match the affected tenant and projection labels.
 
-### 4. Derived-store rebuild safety for in-place cleanup
+#### 4. Derived-store rebuild safety for in-place cleanup
 
 Only run in-place cleanup after approval and backup confirmation:
 
@@ -128,7 +196,7 @@ DETACH DELETE n;
 
 Never run unscoped `MATCH (n) DETACH DELETE n`, relationship deletes without `tenant_id`, or cross-tenant merge logic. If the rebuild script cannot prove tenant scoping, do not run it.
 
-### 5. Cut over to the rebuilt projection
+#### 5. Cut over to the rebuilt projection
 
 ```bash
 kubectl set env deployment/layer3-knowledge -n value-fabric \
@@ -138,7 +206,7 @@ kubectl rollout restart deployment/layer3-knowledge -n value-fabric
 
 If projection versioning is not enabled, cutover is the successful completion of the tenant-scoped in-place rebuild plus validation below.
 
-## Tenant-Boundary Validation
+### Tenant-Boundary Validation
 
 Run these checks for every affected tenant and at least one unaffected tenant.
 
@@ -161,7 +229,7 @@ kubectl exec -n value-fabric deployment/layer3-knowledge -- \
 
 Expected result: missing-tenant count is zero, cross-tenant edge count is zero unless pre-approved shared reference data is documented, and hostile cross-tenant reads fail closed.
 
-## Post-Rebuild Quality Checks
+### Post-Rebuild Quality Checks
 
 - Compare rebuilt node and relationship counts against the source manifest by tenant and label.
 - Sample high-value entities and verify name, description, provenance, confidence, and source document IDs.
@@ -178,19 +246,19 @@ kubectl exec -n value-fabric deployment/neo4j -- \
   "MATCH (n) WHERE n.projection_version = $projection_version RETURN labels(n) AS labels, n.tenant_id AS tenant_id, count(*) AS count ORDER BY tenant_id, labels"
 ```
 
-## Rollback
+### Rollback
 
 - Shadow rebuild: restore `L3_ACTIVE_PROJECTION_VERSION` to the prior version and restart Layer 3.
 - In-place rebuild: restore from snapshot or rerun projection from the last known-good source snapshot.
 - Keep Layer 4 workflows paused until tenant-boundary and quality checks pass.
 
-## Escalation
+### Escalation
 
 - Page `vf-db-oncall` if Neo4j becomes unavailable or restore is required.
 - Page Security immediately for any confirmed cross-tenant projection leakage.
 - Page Layer 3 owner if the rebuild entrypoint is missing tenant scoping or source counts do not reconcile.
 
-## Evidence to Retain
+### Evidence to Retain
 
 - Rebuild manifest and approvals.
 - Source-of-truth confirmation output.

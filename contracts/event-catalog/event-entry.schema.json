@@ -1,0 +1,182 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://valuefabric.ai/contracts/event-catalog/event-entry.schema.json",
+  "title": "EventCatalogEntry",
+  "description": "Schema for a single event catalog entry in the Fabric_4L Event Catalog.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "event_type",
+    "name",
+    "domain",
+    "owner",
+    "producer",
+    "triggered_by",
+    "schema_ref",
+    "envelope_ref",
+    "subject_type",
+    "tenant_scope",
+    "delivery",
+    "partition_key",
+    "consumer_effect_key",
+    "expected_latency_ms",
+    "criticality",
+    "consumers",
+    "status",
+    "event_class",
+    "sensitive_payload",
+    "replay_behavior",
+    "retention_classification"
+  ],
+  "properties": {
+    "event_type": {
+      "type": "string",
+      "pattern": "^[a-z0-9_-]+\\.[a-z0-9_-]+\\.[a-z0-9_-]+\\.v[0-9]+$",
+      "description": "Canonical event type identifier, e.g. billing.subscription.activated.v1"
+    },
+    "name": { "type": "string", "minLength": 1 },
+    "description": { "type": "string" },
+    "domain": {
+      "type": "string",
+      "pattern": "^[a-z0-9_-]+\\.[a-z0-9_-]+$",
+      "description": "Bounded context domain, e.g. billing.subscriptions"
+    },
+    "owner": {
+      "type": "string",
+      "description": "Team or bounded context that owns semantics and emission, e.g. layer7-billing/subscriptions"
+    },
+    "producer": {
+      "type": "string",
+      "description": "Service path that emits the canonical event, e.g. services/layer7-billing"
+    },
+    "triggered_by": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "minItems": 1,
+      "description": "Commands, state transitions, or observations that trigger this event"
+    },
+    "schema_ref": {
+      "type": "string",
+      "pattern": "^(jsonschema|openapi)://",
+      "description": "Reference to the payload schema, e.g. jsonschema://billing/events/subscription-activated@1.1.0"
+    },
+    "envelope_ref": {
+      "type": "string",
+      "pattern": "^(jsonschema|openapi)://",
+      "description": "Reference to the event envelope schema, e.g. jsonschema://common/event-envelope@1.0.0"
+    },
+    "subject_type": {
+      "type": "string",
+      "description": "Primary entity type the event is about, e.g. subscription"
+    },
+    "tenant_scope": {
+      "type": "string",
+      "enum": ["TENANT", "TENANT_AND_BILLING_ACCOUNT", "GLOBAL", "SYSTEM"],
+      "description": "Scoping of the event within the tenant hierarchy"
+    },
+    "delivery": {
+      "type": "string",
+      "enum": ["AT_LEAST_ONCE", "AT_MOST_ONCE", "EXACTLY_ONCE"],
+      "description": "Transport delivery semantics"
+    },
+    "partition_key": {
+      "type": "string",
+      "description": "Field used for stream/topic partitioning, e.g. billing_account_id"
+    },
+    "consumer_effect_key": {
+      "type": "string",
+      "description": "Stable key consumers use for idempotency, e.g. event.id"
+    },
+    "expected_latency_ms": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Expected end-to-end publication latency in milliseconds"
+    },
+    "criticality": {
+      "type": "string",
+      "enum": ["CRITICAL", "HIGH", "MEDIUM", "LOW"],
+      "description": "Operational criticality for alerting and SLO"
+    },
+    "consumers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["service", "purpose", "supported_versions"],
+        "properties": {
+          "service": { "type": "string" },
+          "purpose": { "type": "string" },
+          "supported_versions": {
+            "type": "array",
+            "items": { "type": "string", "pattern": "^v[0-9]+$" },
+            "minItems": 1
+          }
+        }
+      }
+    },
+    "status": {
+      "type": "string",
+      "enum": ["ACTIVE", "DRAFT", "DEPRECATED", "SUNSET"],
+      "description": "Lifecycle status of the event definition"
+    },
+    "event_class": {
+      "type": "string",
+      "enum": ["DOMAIN_EVENT", "INTEGRATION_EVENT", "PROVIDER_OBSERVATION"],
+      "description": "Classification of the event record"
+    },
+    "sensitive_payload": {
+      "type": "boolean",
+      "description": "Whether the payload contains PII or other sensitive data"
+    },
+    "replay_behavior": {
+      "type": "string",
+      "enum": ["IDEMPOTENT", "STATEFUL", "NON_IDEMPOTENT"],
+      "description": "Consumer replay semantics"
+    },
+    "retention_classification": {
+      "type": "string",
+      "enum": ["SHORT_TERM", "MEDIUM_TERM", "LONG_TERM", "FINANCIAL", "LEGAL_HOLD"],
+      "description": "Data retention classification for governance"
+    },
+    "transport_channel": {
+      "type": "string",
+      "description": "Topic, queue, or stream name, e.g. billing.events"
+    },
+    "ordering_guarantee": {
+      "type": "string",
+      "enum": ["STRICT_ORDER", "PARTITION_ORDER", "BEST_EFFORT"],
+      "description": "Ordering guarantee within scope"
+    },
+    "examples": {
+      "type": "array",
+      "items": { "type": "object" },
+      "description": "Contract-test fixtures or representative payloads"
+    },
+    "runbook_ref": {
+      "type": "string",
+      "description": "Link to operational runbook"
+    },
+    "dashboard_ref": {
+      "type": "string",
+      "description": "Link to monitoring dashboard"
+    },
+    "deprecation_notice": {
+      "type": "string",
+      "description": "Migration guidance when status is DEPRECATED or SUNSET"
+    },
+    "supersedes": {
+      "type": "string",
+      "description": "Event type that this event supersedes, if any"
+    },
+    "preconditions": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Business preconditions that must hold for the event to be emitted"
+    },
+    "postconditions": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Business postconditions guaranteed after the event is emitted"
+    }
+  }
+}

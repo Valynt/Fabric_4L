@@ -272,6 +272,13 @@ services:
       NEO4J_USER: neo4j
       NEO4J_PASSWORD: devpassword
       REDIS_URL: redis://host.docker.internal:6379/0
+      # Layer 3 settings read CACHE_REDIS_URL (not REDIS_URL) for its cache and
+      # governance/rate-limiter Redis clients. Without this, cache_redis_url
+      # defaults to redis://localhost:6379/0, which inside the container points
+      # at the container itself; the fail-closed tenant kill switch then cannot
+      # reach Redis and every tenant-scoped endpoint returns 503. Mirrors the
+      # layer3 env in docker-compose.full.yml / docker-compose.live.yml.
+      CACHE_REDIS_URL: redis://host.docker.internal:6379/0
       LOG_LEVEL: info
       # Shared service-to-service HMAC secret used by GovernanceMiddleware to
       # verify X-Service-Auth on internal calls (e.g. live contract tests).

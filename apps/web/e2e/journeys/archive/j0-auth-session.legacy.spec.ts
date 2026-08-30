@@ -27,9 +27,9 @@
  *   - Route guards enforce authentication on every protected route
  */
 
-import { test, expect, type Page } from '../fixtures/contract-test';
-import { seedAuthState, clearAuthState } from '../fixtures/auth-helpers';
-import { clearUserTier } from '../fixtures/tier-helpers';
+import { test, expect, type Page } from '../../fixtures/contract-test';
+import { seedAuthState, clearAuthState } from '../../fixtures/auth-helpers';
+import { clearUserTier } from '../../fixtures/tier-helpers';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 

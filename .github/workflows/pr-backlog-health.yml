@@ -1,6 +1,7 @@
 name: PR Backlog Health Report
 
 permissions:
+  actions: read
   contents: read
   issues: write
   pull-requests: read
@@ -13,9 +14,9 @@ permissions:
 
 jobs:
   report:
-    name: Report stale PRs and main required-check pass rate
+    name: Report stale PRs, main pass rate, and recurring CI failures
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 30
 
     steps:
       - name: Checkout
@@ -50,6 +51,24 @@ jobs:
             --body-output "$body_file" \
             --github-output "$github_output"
           cat "$github_output" >> "$GITHUB_OUTPUT"
+
+      - name: Collect recurring CI failure backlog
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          failure_backlog_dir="$(mktemp -d)"
+          python3 scripts/ci/generate_ci_failure_backlog.py \
+            --repo "${{ github.repository }}" \
+            --server-url "https://github.com" \
+            --window-days 14 \
+            --max-failed-runs 500 \
+            --json-output "$failure_backlog_dir/ci_failure_backlog.json" \
+            --markdown-output "$failure_backlog_dir/ci_failure_backlog.md"
+          {
+            printf '\n---\n\n'
+            cat "$failure_backlog_dir/ci_failure_backlog.md"
+          } >> "${{ steps.metrics.outputs.body_file }}"
 
       - name: Open or update backlog health issue
         env:

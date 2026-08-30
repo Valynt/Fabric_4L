@@ -37,6 +37,17 @@ person.
   `--validate-only` (pure JSON validation, <1s). If it fails, the contract
   JSON is malformed; do not `--no-verify`.
 
+## Preconditions
+
+- Identify the failing job, owning gate, affected PRs, and last green commit.
+- Preserve the failed job log and use an authenticated `gh` session only when live branch-protection state is required.
+
+## Immediate Actions
+
+1. Stop retries or merges that could hide the shared failure.
+2. Confirm whether the failure reproduces on `main` or is isolated to one PR.
+3. Do not bypass, rename, or remove a required check while diagnosing it.
+
 ## Diagnosis Steps
 
 ### Operational debt registry failure
@@ -96,6 +107,18 @@ person.
   `python scripts/ci/validate_branch_protection_checks.py ...`.
 - For branch protection, confirm `gh api .../branches/main/protection`
   matches `config/ci/required-status-checks.json`.
+
+## Rollback / Fallback
+
+Revert the gate implementation to its last known-good revision only when the gate itself regressed. Keep the prior enforcement in place and use a time-bounded operational-debt entry rather than disabling a valid control.
+
+## Customer / Stakeholder Communication
+
+Notify affected contributors and release owners with the failing gate, scope, owner, workaround (if safe), and next update time. Escalate suspected protection weakening to Security and Platform Governance.
+
+## Evidence to Preserve
+
+- Failed job URLs/logs, local reproduction output, affected commit SHAs, branch-protection API snapshots, configuration diffs, approvals, and the final green validation.
 
 ## Related Gates
 

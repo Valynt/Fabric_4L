@@ -54,5 +54,46 @@
                          "suggestion":  1
                      },
         "scope":  "entire repository"
+    },
+    {
+        "date": "2026-08-29",
+        "mode": "Test Quality Review",
+        "score": 92,
+        "findings": {
+            "critical": 0,
+            "warning": 1,
+            "suggestion": 2
+        },
+        "scope": "CI-remediation branch diff: 10 tests/ci files + 14 ESLint plugin suites (branch origin/main...HEAD)",
+        "inspected_commit_sha": "f10f83819",
+        "configuration": "defaults; no .brooks-lint.yaml present",
+        "scoring_rubric": "balanced preset: Critical -15, Warning -5, Suggestion -1; floor 0",
+        "finding_ids": [
+            "T3-skip-safe-scaffold-duplication",
+            "T2b-permission-allowlist-drift",
+            "T2a-byte-exact-contract-parse"
+        ],
+        "run_type": "executable tests run: 10 tests/ci files (64 passed) + ESLint plugin (99 passed)",
+        "remediation_status": "open"
+    },
+    {
+        "date": "2026-08-29",
+        "mode": "Test Quality Review",
+        "score": 70,
+        "findings": {
+            "critical": 2,
+            "suggestion": 0,
+            "warning": 0
+        },
+        "scope": "Event Catalog implementation",
+        "inspected_commit_sha": "23555b44b",
+        "configuration": "defaults; no .brooks-lint.yaml present",
+        "scoring_rubric": "balanced preset: Critical -15, Warning -5, Suggestion -1; floor 0",
+        "finding_ids": [
+            "T5-zero-test-coverage-gate",
+            "T6-missing-ci-script-test-suite"
+        ],
+        "run_type": "inspection and sampling only; no executable tests run",
+        "remediation_status": "open - findings accepted into backlog"
     }
 ]

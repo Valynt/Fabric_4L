@@ -318,7 +318,7 @@ class TestEnrichmentEnums:
         from layer4_agents.services.enrichment_orchestrator import EnrichmentSource
 
         all_sources = list(EnrichmentSource)
-        assert len(all_sources) == 4
+        assert len(all_sources) == 5
 
 
 # ---------------------------------------------------------------------------

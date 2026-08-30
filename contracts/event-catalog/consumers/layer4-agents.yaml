@@ -1,0 +1,53 @@
+# Layer 4 Agents Consumer Registry
+# Declares which events the agentic workflow engine subscribes to.
+
+apiVersion: valuefabric.ai/v1
+kind: EventConsumerRegistry
+consumer: services/layer4-agents
+updated_at: "2026-08-29"
+
+subscriptions:
+  - event_type: billing.subscription.activated.v1
+    purpose: invalidate authorized billing context
+    supported_versions: [v1]
+    handler: context.BillingContextInvalidationHandler
+
+  - event_type: billing.subscription.canceled.v1
+    purpose: invalidate authorized billing context
+    supported_versions: [v1]
+    handler: context.BillingContextInvalidationHandler
+
+  - event_type: billing.entitlement.changed.v1
+    purpose: update agent capability limits based on plan
+    supported_versions: [v1]
+    handler: entitlement.AgentCapabilityLimitHandler
+
+  - event_type: billing.invoice.generated.v1
+    purpose: provide billing insight in agent workflows
+    supported_versions: [v1]
+    handler: insight.BillingInsightHandler
+
+  - event_type: billing.invoice.paid.v1
+    purpose: trigger post-payment agent workflows
+    supported_versions: [v1]
+    handler: workflow.PostPaymentWorkflowHandler
+
+  - event_type: billing.payment.failed.v1
+    purpose: trigger dunning or escalation workflows
+    supported_versions: [v1]
+    handler: workflow.DunningWorkflowHandler
+
+  - event_type: billing.dispute.opened.v1
+    purpose: trigger evidence-collection workflow
+    supported_versions: [v1]
+    handler: workflow.EvidenceCollectionWorkflowHandler
+
+  - event_type: billing.catalog.plan_published.v1
+    purpose: update plan context in agent reasoning workflows
+    supported_versions: [v1]
+    handler: context.PlanContextUpdateHandler
+
+  - event_type: billing.account.created.v1
+    purpose: invalidate authorized billing context when account changes
+    supported_versions: [v1]
+    handler: context.BillingContextInvalidationHandler
