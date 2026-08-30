@@ -1,0 +1,23 @@
+# Analytics Consumer Registry (stub)
+# Declares which events the analytics pipeline subscribes to.
+
+apiVersion: valuefabric.ai/v1
+kind: EventConsumerRegistry
+consumer: services/analytics
+updated_at: "2026-08-29"
+
+subscriptions:
+  - event_type: billing.usage.ingested.v1
+    purpose: usage analytics and metering dashboards
+    supported_versions: [v1]
+    handler: analytics.UsageAggregationHandler
+
+  - event_type: billing.subscription.activated.v1
+    purpose: subscription conversion and churn analytics
+    supported_versions: [v1]
+    handler: analytics.SubscriptionAnalyticsHandler
+
+  - event_type: billing.subscription.canceled.v1
+    purpose: subscription conversion and churn analytics
+    supported_versions: [v1]
+    handler: analytics.SubscriptionAnalyticsHandler

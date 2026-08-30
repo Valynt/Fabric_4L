@@ -718,6 +718,7 @@
         "artifacts/docs-validation/docs-validation-summary.md",
         "artifacts/docs-validation/stale-documents.json",
         "artifacts/duplicate-source-trees.json",
+        "artifacts/event-catalog-gate.json",
         "artifacts/l3-contract-drift.json",
         "artifacts/layer-quality-scorecard.md",
         "artifacts/layer3-audited-mutation-violations.json",

@@ -2076,6 +2076,44 @@ jobs:
             .pytest_cache/
           retention-days: 7
 
+  # Event Catalog validation gate — static, no secrets needed
+  event-catalog-gate:
+    needs: change-scope
+    if: needs.change-scope.outputs.backend == 'true'
+    name: Event Catalog Gate
+    runs-on: depot-ubuntu-24.04-4
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+
+      - name: Set up Python
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install pyyaml
+
+      - name: Validate Event Catalog
+        run: |
+          python scripts/ci/validate-event-catalog.py --strict
+
+      - name: Write report artifact
+        if: always()
+        run: |
+          python scripts/ci/validate-event-catalog.py --write-report artifacts/event-catalog-gate.json
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        with:
+          name: event-catalog-gate-report
+          path: artifacts/event-catalog-gate.json
+          retention-days: 14
+
   runtime-contract-checks:
     name: Runtime Contract Tests (Services Up)
     runs-on: depot-ubuntu-24.04-4
@@ -2980,6 +3018,7 @@ jobs:
       - shared-and-tests-checks
       - layer5-tenant-isolation-regression
       - contract-checks
+      - event-catalog-gate
       - runtime-contract-checks
       - integration-checks
       - k8s-dry-run
@@ -3025,6 +3064,7 @@ jobs:
             ["shared-and-tests-checks"]="${{ needs.shared-and-tests-checks.result }}"
             ["layer5-tenant-isolation-regression"]="${{ needs.layer5-tenant-isolation-regression.result }}"
             ["contract-checks"]="${{ needs.contract-checks.result }}"
+            ["event-catalog-gate"]="${{ needs.event-catalog-gate.result }}"
             ["runtime-contract-checks"]="${{ needs.runtime-contract-checks.result }}"
             ["integration-checks"]="${{ needs.integration-checks.result }}"
             ["k8s-dry-run"]="${{ needs.k8s-dry-run.result }}"
@@ -3048,6 +3088,7 @@ jobs:
             ["shared-and-tests-checks"]="${SCOPE_BACKEND:-}"
             ["layer5-tenant-isolation-regression"]="${SCOPE_LAYER5:-}"
             ["contract-checks"]="${SCOPE_BACKEND:-}"
+            ["event-catalog-gate"]="${SCOPE_BACKEND:-}"
             ["runtime-contract-checks"]="${SCOPE_BACKEND:-}"
             ["integration-checks"]="${SCOPE_BACKEND:-}"
             ["k8s-dry-run"]="${SCOPE_K8S:-}"
