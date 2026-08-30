@@ -38,13 +38,13 @@ from ..task_contracts import (
 from ..tasks import (
     _update_stage,
 )
-from .tasks_bootstrap import celery_app, logger
 from ..tasks_helpers import (
     _domain_class,
     _extract_unified_crawl_result,
     _get_target_config,
     _run_async,
 )
+from .tasks_bootstrap import celery_app, logger
 
 if TYPE_CHECKING:
     from ...crawler.httpx_crawler import FastPathResult

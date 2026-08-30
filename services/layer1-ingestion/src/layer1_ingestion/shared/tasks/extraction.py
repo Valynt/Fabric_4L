@@ -25,10 +25,10 @@ from ..tasks import (
     _update_stage,
     _verify_l3_graph_population,
 )
-from .tasks_bootstrap import celery_app, logger
 from ..tasks_helpers import (
     _run_async,
 )
+from .tasks_bootstrap import celery_app, logger
 
 try:
     from value_fabric.shared.identity.jwt import encode_service_jwt

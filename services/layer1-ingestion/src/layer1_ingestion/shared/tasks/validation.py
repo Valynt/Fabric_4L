@@ -19,8 +19,8 @@ from ..task_contracts import validation_stageResult
 from ..tasks import (
     _update_stage,
 )
-from .tasks_bootstrap import celery_app, logger
 from ..tasks_helpers import _validate_payload_against_schema
+from .tasks_bootstrap import celery_app, logger
 
 
 @celery_app.task(name="layer1_ingestion.shared.tasks.validation_stage", bind=True, max_retries=2)

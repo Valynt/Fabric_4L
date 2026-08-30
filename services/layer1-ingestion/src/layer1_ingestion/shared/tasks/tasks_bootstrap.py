@@ -15,7 +15,6 @@ there is exactly one definition site and no cycle.
 import structlog
 from celery import Celery
 from celery.schedules import crontab
-
 from value_fabric.shared.redis_ha import get_celery_redis_broker_config
 
 from ..config import settings
