@@ -220,6 +220,8 @@ jobs:
           cd services/layer4-agents
           pip install -e . --quiet
           pip install pytest pytest-asyncio --quiet
+          # Root conftest.py policy chain requires jsonschema + PyYAML.
+          pip install jsonschema pyyaml --quiet
 
       - name: Run evaluation for ${{ matrix.skill }}
         run: |
@@ -319,6 +321,9 @@ jobs:
         run: |
           cd services/layer4-agents
           pip install -e . --quiet
+          pip install pytest --quiet
+          # Root conftest.py policy chain requires jsonschema + PyYAML.
+          pip install jsonschema pyyaml --quiet
 
       # once Infisical project is fully populated and CI validation passes.
       # Target: after first successful Infisical-only CI run.
@@ -369,6 +374,8 @@ jobs:
           cd services/layer4-agents
           pip install -e . --quiet
           pip install pytest --quiet
+          # Root conftest.py policy chain requires jsonschema + PyYAML.
+          pip install jsonschema pyyaml --quiet
 
       # once Infisical project is fully populated and CI validation passes.
       # Target: after first successful Infisical-only CI run.
