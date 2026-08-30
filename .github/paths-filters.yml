@@ -8,79 +8,78 @@
 # - Scopes are only ever used to SKIP work that cannot be affected by the
 #   change. A skip driven by a 'false' scope is safe by construction: the
 #   skipped job would have exercised code the PR did not touch.
-# - Every scope includes the CI/build plumbing paths (.github/**, Makefile,
-#   pytest.ini, scripts/**, config/**) so that any change to the pipeline
-#   itself forces a full run (fail-open to full validation).
+# - CI plumbing is NOT bundled into domain scopes. Global CI inputs are
+#   modeled as first-class scopes so contract tests can prove a CI-only
+#   change resolves NO domain scope (and therefore safely skips the heavy
+#   per-PR matrix):
+#     ci-global     .github/**, Makefile, .pre-commit-config.yaml — workflow/
+#                   action/makefile pipeline topology. Pipeline correctness
+#                   is validated on every PR by structural-preflight's
+#                   ungated CI-control-plane contract tests.
+#     ci-tooling    scripts/** — CI/ops execution tooling (executed and
+#                   validated by structural-preflight + merge-queue
+#                   simulation on every PR).
+#     ci-governance config/**, pytest.ini — gate inputs (baselines,
+#                   allowlists, waivers) and python test policy.
+# - Allowlist-sensitive gates keep a precise fail-open on exactly the inputs
+#   they read (code includes config/semgrep/**, config/security/**,
+#   config/ci/semgrep_baseline.json and scripts/ci/check_semgrep_sarif.py;
+#   docker includes config/trivy/**). Skip-allowlist inflation is additionally
+#   rejected by the always-run skip-governance gates in structural-preflight.
 # - Non-pull_request events (push, schedule, workflow_dispatch) always run
 #   the full matrix; scoping applies to the per-PR path only.
 # - Documentation-only changes (docs/**, **/*.md) intentionally match no
 #   runtime scope.
+
+# Global CI plumbing scopes (first-class so contract tests can assert that a
+# CI-only change flips NO domain scope). None of these gate the domain matrix.
+ci-global:
+  - '.github/**'
+  - 'Makefile'
+  - '.pre-commit-config.yaml'
+
+ci-tooling:
+  - 'scripts/**'
+
+ci-governance:
+  - 'config/**'
+  - 'pytest.ini'
 
 layer1:
   - 'services/layer1-ingestion/**'
   - 'packages/**'
   - 'contracts/**'
   - 'tests/**'
-  - '.github/**'
-  - 'scripts/**'
-  - 'config/**'
-  - 'Makefile'
-  - 'pytest.ini'
 
 layer2:
   - 'services/layer2-extraction/**'
   - 'packages/**'
   - 'contracts/**'
   - 'tests/**'
-  - '.github/**'
-  - 'scripts/**'
-  - 'config/**'
-  - 'Makefile'
-  - 'pytest.ini'
 
 layer3:
   - 'services/layer3-knowledge/**'
   - 'packages/**'
   - 'contracts/**'
   - 'tests/**'
-  - '.github/**'
-  - 'scripts/**'
-  - 'config/**'
-  - 'Makefile'
-  - 'pytest.ini'
 
 layer4:
   - 'services/layer4-agents/**'
   - 'packages/**'
   - 'contracts/**'
   - 'tests/**'
-  - '.github/**'
-  - 'scripts/**'
-  - 'config/**'
-  - 'Makefile'
-  - 'pytest.ini'
 
 layer5:
   - 'services/layer5-ground-truth/**'
   - 'packages/**'
   - 'contracts/**'
   - 'tests/**'
-  - '.github/**'
-  - 'scripts/**'
-  - 'config/**'
-  - 'Makefile'
-  - 'pytest.ini'
 
 layer6:
   - 'services/layer6-benchmarks/**'
   - 'packages/**'
   - 'contracts/**'
   - 'tests/**'
-  - '.github/**'
-  - 'scripts/**'
-  - 'config/**'
-  - 'Makefile'
-  - 'pytest.ini'
 
 # Any backend/runtime Python surface (all services, shared packages, tests,
 # contracts) plus compose/infra used by integration suites.
@@ -91,11 +90,6 @@ backend:
   - 'tests/**'
   - 'infra/**'
   - 'packs/**'
-  - '.github/**'
-  - 'scripts/**'
-  - 'config/**'
-  - 'Makefile'
-  - 'pytest.ini'
 
 # Frontend surface (apps/web plus the pnpm workspace manifests).
 web:
@@ -104,10 +98,6 @@ web:
   - 'pnpm-lock.yaml'
   - 'pnpm-workspace.yaml'
   - 'contracts/**'
-  - '.github/**'
-  - 'scripts/**'
-  - 'config/**'
-  - 'Makefile'
 
 # Any executable code surface (backend or frontend). Used by SAST-style
 # gates and behavior gates that span both stacks.
@@ -137,11 +127,11 @@ code:
   - '*.json'
   - '*.yaml'
   - '*.yml'
-  - '.github/**'
-  - 'scripts/**'
-  - 'config/**'
-  - 'Makefile'
-  - 'pytest.ini'
+  # Security-gate inputs (fail-open): exactly the files semgrep/SAST reads.
+  - 'config/semgrep/**'
+  - 'config/security/**'
+  - 'config/ci/semgrep_baseline.json'
+  - 'scripts/ci/check_semgrep_sarif.py'
 
 # Container image surface: anything baked into an image or that defines one.
 docker:
@@ -155,20 +145,14 @@ docker:
   - 'pnpm-workspace.yaml'
   - '**/requirements*.txt'
   - '**/pyproject.toml'
-  - '.github/**'
-  - 'scripts/**'
-  - 'config/**'
-  - 'Makefile'
+  # Trivy repository/image scan policy (fail-open): config/trivy/repository.yaml.
+  - 'config/trivy/**'
 
 # Kubernetes / infrastructure / observability manifests.
 k8s:
   - 'k8s/**'
   - 'infra/**'
   - 'monitoring/**'
-  - '.github/**'
-  - 'scripts/**'
-  - 'config/**'
-  - 'Makefile'
 
 # Dependency manifests and lockfiles (supply-chain relevant changes).
 deps:
@@ -179,10 +163,9 @@ deps:
   - '**/pyproject.toml'
   - '**/uv.lock'
   - '**/poetry.lock'
-  - '.github/**'
-  - 'scripts/**'
-  - 'config/**'
-  - 'Makefile'
+  # pnpm patched-dependency artifacts: changing a patch must re-run the
+  # dependency audit that validates the patch is registered and applied.
+  - 'patches/**'
 
 # Release governance surface: launch contracts, readiness policies, and the
 # scripts/tests that validate them. Gate any release-policy-validating job
@@ -193,11 +176,6 @@ release-policy:
   - 'production-readiness/**'
   - 'scripts/release/**'
   - 'tests/release/**'
-  - '.github/**'
-  - 'scripts/**'
-  - 'config/**'
-  - 'Makefile'
-  - 'pytest.ini'
 
 # Anything that can affect the running product (everything except pure
 # documentation). Used by prod-readiness to decide whether the PR-time
@@ -221,8 +199,3 @@ runtime:
   - '**/pyproject.toml'
   - '**/uv.lock'
   - '**/poetry.lock'
-  - '.github/**'
-  - 'scripts/**'
-  - 'config/**'
-  - 'Makefile'
-  - 'pytest.ini'

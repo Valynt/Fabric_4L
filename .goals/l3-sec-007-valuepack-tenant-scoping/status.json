@@ -1,0 +1,10 @@
+{
+  "goal_id": "l3-sec-007-valuepack-tenant-scoping",
+  "status": "building",
+  "iteration": 1,
+  "builder_model": "GPT-5.6-Luna",
+  "inspector_model": "GPT-5.6-Sol",
+  "initial_sha": "091cf96cecbcd0432a9d15da5faf79ac31ff85f2",
+  "created_at": "2026-08-29T00:29:20-04:00",
+  "history": []
+}

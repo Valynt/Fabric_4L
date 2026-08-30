@@ -1,4 +1,5 @@
 """Regression tests for repository hygiene manifest loading."""
+import os
 import sys
 from pathlib import Path
 
@@ -20,4 +21,5 @@ def test_load_manifest_does_not_require_root_manifest(tmp_path):
     with pytest.raises(FileNotFoundError) as exc_info:
         load_manifest(tmp_path)
 
-    assert "config/canonical-paths.yaml" in str(exc_info.value)
+    # The error message embeds the platform-specific path separator.
+    assert ("config" + os.sep + "canonical-paths.yaml") in str(exc_info.value)
