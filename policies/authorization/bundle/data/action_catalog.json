@@ -1,0 +1,47 @@
+{
+  "catalog_version": "1",
+  "actions": [
+    "claim.view",
+    "claim.edit_working",
+    "claim.validate",
+    "claim.approve",
+    "claim.include_in_case",
+    "claim.open_dispute",
+    "claim.resolve_dispute",
+    "model.mark_canonical",
+    "deliverable.publish_external",
+    "deliverable.revoke_link",
+    "exception.submit",
+    "exception.approve",
+    "exception.activate",
+    "exception.revoke",
+    "opportunity.lock_realization",
+    "membership.assign_role",
+    "break_glass.approve"
+  ],
+  "agent_forbidden": [
+    "claim.validate",
+    "claim.approve",
+    "claim.include_in_case",
+    "claim.resolve_dispute",
+    "model.mark_canonical",
+    "deliverable.publish_external",
+    "exception.submit",
+    "exception.approve",
+    "exception.activate",
+    "opportunity.lock_realization"
+  ],
+  "protected_commands": [
+    "claim.approve",
+    "claim.validate",
+    "claim.include_in_case",
+    "claim.resolve_dispute",
+    "model.mark_canonical",
+    "deliverable.publish_external",
+    "exception.submit",
+    "exception.approve",
+    "exception.activate",
+    "exception.revoke",
+    "opportunity.lock_realization"
+  ]
+}

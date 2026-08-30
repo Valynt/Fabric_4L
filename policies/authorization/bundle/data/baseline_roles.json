@@ -1,0 +1,86 @@
+{
+  "role_version": "1",
+  "roles": {
+    "value_engineer": {
+      "description": "Builds models, drafts claims and cases.",
+      "actions": [
+        "claim.view",
+        "claim.edit_working",
+        "claim.include_in_case",
+        "claim.open_dispute",
+        "exception.submit",
+        "deliverable.revoke_link"
+      ]
+    },
+    "value_manager": {
+      "description": "Owns a value case end to end.",
+      "actions": [
+        "claim.view",
+        "claim.edit_working",
+        "claim.include_in_case",
+        "claim.open_dispute",
+        "claim.resolve_dispute",
+        "model.mark_canonical",
+        "exception.submit",
+        "deliverable.revoke_link"
+      ]
+    },
+    "finance_approver": {
+      "description": "Approves claims within a governed ceiling.",
+      "actions": [
+        "claim.view",
+        "claim.validate",
+        "claim.approve",
+        "exception.approve",
+        "exception.activate",
+        "exception.revoke",
+        "deliverable.revoke_link",
+        "membership.assign_role",
+        "break_glass.approve"
+      ]
+    },
+    "technical_reviewer": {
+      "description": "Reviews claim evidence and model soundness.",
+      "actions": [
+        "claim.view",
+        "claim.validate",
+        "claim.open_dispute"
+      ]
+    },
+    "deal_desk": {
+      "description": "Coordinates publication and commercial alignment.",
+      "actions": [
+        "claim.view",
+        "deliverable.publish_external",
+        "deliverable.revoke_link",
+        "exception.approve",
+        "exception.activate"
+      ]
+    },
+    "security_reviewer": {
+      "description": "Reviews publication for external exposure/security.",
+      "actions": [
+        "claim.view",
+        "deliverable.publish_external",
+        "deliverable.revoke_link",
+        "exception.approve"
+      ]
+    },
+    "realization_owner": {
+      "description": "Locks realization for opportunities.",
+      "actions": [
+        "claim.view",
+        "opportunity.lock_realization"
+      ]
+    },
+    "tenant_admin": {
+      "description": "Administers membership and tenant bindings.",
+      "actions": [
+        "claim.view",
+        "membership.assign_role",
+        "break_glass.approve",
+        "exception.approve"
+      ]
+    }
+  }
+}
