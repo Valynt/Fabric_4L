@@ -18,7 +18,8 @@
       ],
       "produced_artifacts": [
         "eval-*.json",
-        "eval-summary.json"
+        "eval-summary.json",
+        "golden-traces-results.json"
       ],
       "runtime_budget_minutes": 30,
       "local_validation_command": "make check-workflow-references",

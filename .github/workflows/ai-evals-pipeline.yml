@@ -462,6 +462,13 @@ jobs:
               sys.exit(1)
           EOF
 
+      - name: Upload golden trace results
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-results-golden-traces
+          path: golden-traces-results.json
+          retention-days: 30
+
   # ============================================================================
   # Compare Against Baseline
   # ============================================================================
@@ -541,7 +548,10 @@ jobs:
           results_dir = Path('./eval-results')
 
           if results_dir.exists():
-              for result_file in results_dir.glob('eval-*.json'):
+              for result_file in sorted(
+                  list(results_dir.glob('eval-*.json')) +
+                  list(results_dir.glob('golden-*.json'))
+              ):
                   try:
                       with open(result_file) as f:
                           data = json.load(f)
