@@ -120,6 +120,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: discover-skills
     if: needs.discover-skills.outputs.should_run_evals == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    env:
+      INFISICAL_IDENTITY_ID: ${{ secrets.INFISICAL_IDENTITY_ID }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -133,7 +135,7 @@ jobs:
       # once Infisical project is fully populated and CI validation passes.
       # Target: after first successful Infisical-only CI run.
       - name: Fetch secrets from Infisical
-        if: secrets.INFISICAL_IDENTITY_ID != ''
+        if: env.INFISICAL_IDENTITY_ID != ''
         id: infisical
         uses: Infisical/secrets-action@77ab1f4ccd183a543cb5b42435fbd181189f4995  # v1.0.16
         with:
@@ -185,6 +187,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: [discover-skills, setup-evals]
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    env:
+      INFISICAL_IDENTITY_ID: ${{ secrets.INFISICAL_IDENTITY_ID }}
     strategy:
       fail-fast: false
       matrix:
@@ -201,7 +205,7 @@ jobs:
       # once Infisical project is fully populated and CI validation passes.
       # Target: after first successful Infisical-only CI run.
       - name: Fetch secrets from Infisical
-        if: secrets.INFISICAL_IDENTITY_ID != ''
+        if: env.INFISICAL_IDENTITY_ID != ''
         id: infisical
         uses: Infisical/secrets-action@77ab1f4ccd183a543cb5b42435fbd181189f4995  # v1.0.16
         with:
@@ -296,6 +300,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: [discover-skills, setup-evals]
     if: needs.discover-skills.outputs.changed_agents != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    env:
+      INFISICAL_IDENTITY_ID: ${{ secrets.INFISICAL_IDENTITY_ID }}
     strategy:
       fail-fast: false
       matrix:
@@ -317,7 +323,7 @@ jobs:
       # once Infisical project is fully populated and CI validation passes.
       # Target: after first successful Infisical-only CI run.
       - name: Fetch secrets from Infisical
-        if: secrets.INFISICAL_IDENTITY_ID != ''
+        if: env.INFISICAL_IDENTITY_ID != ''
         id: infisical
         uses: Infisical/secrets-action@77ab1f4ccd183a543cb5b42435fbd181189f4995  # v1.0.16
         with:
@@ -347,6 +353,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: setup-evals
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    env:
+      INFISICAL_IDENTITY_ID: ${{ secrets.INFISICAL_IDENTITY_ID }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -365,7 +373,7 @@ jobs:
       # once Infisical project is fully populated and CI validation passes.
       # Target: after first successful Infisical-only CI run.
       - name: Fetch secrets from Infisical
-        if: secrets.INFISICAL_IDENTITY_ID != ''
+        if: env.INFISICAL_IDENTITY_ID != ''
         id: infisical
         uses: Infisical/secrets-action@77ab1f4ccd183a543cb5b42435fbd181189f4995  # v1.0.16
         with:
@@ -740,6 +748,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: aggregate-results
     if: github.ref == 'refs/heads/main' && needs.aggregate-results.outputs.passed == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    env:
+      INFISICAL_IDENTITY_ID: ${{ secrets.INFISICAL_IDENTITY_ID }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -760,7 +770,7 @@ jobs:
       # once Infisical project is fully populated and CI validation passes.
       # Target: after first successful Infisical-only CI run.
       - name: Fetch secrets from Infisical
-        if: secrets.INFISICAL_IDENTITY_ID != ''
+        if: env.INFISICAL_IDENTITY_ID != ''
         id: infisical
         uses: Infisical/secrets-action@77ab1f4ccd183a543cb5b42435fbd181189f4995  # v1.0.16
         with:

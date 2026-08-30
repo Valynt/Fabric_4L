@@ -1,0 +1,10 @@
+{
+  "goal_id": "ci-baseline-green",
+  "status": "building",
+  "iteration": 1,
+  "builder_model": "GPT-5.6-Luna",
+  "inspector_model": "GPT-5.6-Sol",
+  "initial_sha": "9be28a748d8b2cf4c3fa97ee870cda0c0bf0470c",
+  "created_at": "2026-08-29T20:20:00-04:00",
+  "history": []
+}
