@@ -101,3 +101,79 @@ fix; that is the residual risk and the required confirmation step.
   authoritative check.
 - The 1/41 passing test is a negative-path test (deep-link tenant isolation)
   tolerant of denial; it must keep passing (no behavior change for non-mock-auth).
+
+---
+
+# UPDATE — reclassification on exact head `59f896810`
+
+## Outcome of the fresh run for the auth-snapshot fix
+
+Fresh PR Checks run `#33334212321` (job `99318113531`, `p0-e2e-gate`) on head
+`59f896810` (which carries commit `fix(e2e): [B] honor legacy auth-snapshot mock
+in live e2e`) confirms:
+
+- **No `GET /auth/authorization-snapshot` 404s remain.** The AC8 fix works:
+  `p0-e2e-gate` failure count dropped from **40 failed / 1 passed** (`c858e0122`)
+  to **30 failed / 9 passed** (`59f896810`). The auth-snapshot 404 cascade is
+  eliminated.
+
+## Residual (masked) second root cause: journey-timeline 422 — classified, not a regression
+
+The gate still fails **30 failed / 9 passed** from a second, distinct,
+**pre-existing** live-mode fixture/contract mismatch that the 404 cascade
+previously masked:
+
+1. `apps/web/e2e/fixtures/account-helpers.ts` — `TEST_ACCOUNTS` (28–49) keys
+   accounts by **slug** (`acct-meridian-001`, `acct-acme-002`, `acct-gf-003`);
+   the fixture passes that slug as `activeAccountId` in the URL
+   (`JourneyTimelineRightRail.tsx:78` → `/accounts/${activeAccountId}/journey-timeline`).
+2. `services/layer4-agents/src/layer4_agents/api/routes/accounts.py` (435–437)
+   declares `account_id: UUID` on `GET /{account_id}/journey-timeline` (same as
+   `get_account` at 372). A non-UUID slug → Pydantic **422 VALIDATION_ERROR**.
+3. `apps/web/e2e/helpers/api-harness.ts` — the journey-timeline REGEX stub
+   (line ~286) is only installed in **contract** mode; in **live** mode
+   `installApiHarness` returns after only intercepting the auth snapshot
+   (582–604), so journey-timeline hits the real backend and 422s.
+4. `journey-fixture.ts` — `audit.assertClean()` fail-closes on that 422 console
+   error, cascading `toBeVisible`/`not.toBeNull` assertion failures.
+
+The seed maps slug→backend UUID
+(`scripts/db/seed-e2e-data.ts` → `0101` with `provider_record_id: acct-meridian-001`).
+This is a **test-harness model mismatch** (slug-keyed fixture/contract harness vs
+UUID-typed live backend route) that **predates this branch** and is independent of
+the AC8 auth fix.
+
+## Why this is classified, not fixed
+
+- `p0-e2e-gate` is **NOT** one of the 8 required `main` branch-protection checks
+  (mandatory-security-regression, contract-compliance, prod-readiness,
+  behavior-tests, Structural Preflight, Layer 5 Source/Tenant/Contract-Shape).
+- Historical scan: the gate has **never been green** (0 passes in >1000 scanned
+  runs). It is chronic pre-existing e2e debt, not a regression on this head.
+- A real fix requires either a broad fixture refactor (slugs→UUIDs across many
+  specs) or intercepting a live **feature** endpoint in the live gate (which would
+  weaken what the live gate actually verifies). Both are out of scope for this
+  goal and not needed to unblock merge.
+
+## Required-gate disposition on `59f896810`
+
+| Check (required for `main`) | Status on `59f896810` |
+|---|---|
+| Structural Preflight | **PASS** |
+| contract-compliance | **PASS** |
+| prod-readiness | **PASS** |
+| behavior-tests | **PASS** |
+| mandatory-security-regression | **PASS** |
+| Layer 5 - Source Contract | skipped (normal) |
+| Layer 5 - Tenant Isolation Regression | skipped (normal) |
+| Layer 5 - Contract Shape Regression | skipped (normal) |
+
+`gh pr view` → `mergeable: MERGEABLE`, `state: OPEN` (branch BEHIND `main` only
+because `main` advanced; non-blocking).
+
+## Recommendation
+
+`p0-e2e-gate` residual failure is documented as pre-existing, non-required e2e
+debt with a deterministic root cause (slug-vs-UUID journey-timeline 422). File a
+follow-up behavior-debt ticket to align the e2e fixture/harness with the live
+backend UUID contract rather than gate `main` merges on it.
