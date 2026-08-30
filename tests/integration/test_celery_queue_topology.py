@@ -12,7 +12,7 @@ import yaml
 pytestmark = [pytest.mark.integration, pytest.mark.celery]
 
 ROOT = Path(__file__).resolve().parents[2]
-L1_TASKS = "services/layer1-ingestion/src/layer1_ingestion/shared/tasks.py"
+L1_TASKS = "services/layer1-ingestion/src/layer1_ingestion/shared/tasks/__init__.py"
 L1_CONFIG = "services/layer1-ingestion/src/layer1_ingestion/shared/config.py"
 L2_TASKS = "services/layer2-extraction/src/layer2_extraction/shared/tasks.py"
 
@@ -20,6 +20,14 @@ L2_TASKS = "services/layer2-extraction/src/layer2_extraction/shared/tasks.py"
 def _read(relative_path: str) -> str:
     """Read a repository file as UTF-8 text."""
     return (ROOT / relative_path).read_text(encoding="utf-8")
+
+
+def _l1_task_sources() -> str:
+    """Aggregate the split tasks package sources for the original megafile guards."""
+    return "\n".join(
+        _read(f"services/layer1-ingestion/src/layer1_ingestion/shared/tasks/{name}")
+        for name in ("__init__.py", "extraction.py")
+    )
 
 
 def _yaml_documents(relative_path: str) -> list[Any]:
@@ -178,7 +186,7 @@ def test_worker_startup_and_broker_configuration_exist_in_kubernetes() -> None:
 
 def test_tenant_context_and_idempotency_are_preserved() -> None:
     """Celery dispatch must propagate tenant context and keep idempotency guards."""
-    l1_tasks = _read(L1_TASKS)
+    l1_tasks = _l1_task_sources()
     l1_target_handlers = _read(
         "services/layer1-ingestion/src/layer1_ingestion/api/target_handlers.py"
     )

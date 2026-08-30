@@ -11,7 +11,7 @@ This standalone checker (CI-safe: AST-based, no service imports) enforces the bo
 policy:
 
 - ``--check`` (default): regenerate the snapshot in memory and compare against the committed
-  baseline. Any drift (surface or version change without coordinated regeneration) fails with
+  baseline. Surface or version drift without coordinated regeneration fails with
   exit 1, instructing the author to run ``--update`` and commit the regenerated baseline.
 - ``--update``: regenerate ``config/ci/shared_surface_contract.json`` from the live
   ``__init__.py`` sources. Refuses to change a boundary's surface at an unchanged version
