@@ -8228,207 +8228,213 @@
     },
     {
       "kind": "python-any",
-      "line": 128,
+      "line": 135,
       "path": "scripts/export_openapi.py",
       "text": "def _module_stub(name: str, **attrs: Any) -> ModuleType:"
     },
     {
       "kind": "python-type-ignore",
-      "line": 140,
+      "line": 147,
       "path": "scripts/export_openapi.py",
       "text": "module.__path__ = []  # type: ignore[attr-defined]"
     },
     {
       "kind": "python-any",
-      "line": 159,
+      "line": 166,
       "path": "scripts/export_openapi.py",
       "text": "def __init__(self, *args: Any, **kwargs: Any) -> None:"
     },
     {
       "kind": "python-any",
-      "line": 162,
+      "line": 169,
       "path": "scripts/export_openapi.py",
       "text": "def add_node(self, *args: Any, **kwargs: Any) -> None:"
     },
     {
       "kind": "python-any",
-      "line": 165,
+      "line": 172,
       "path": "scripts/export_openapi.py",
       "text": "def add_edge(self, *args: Any, **kwargs: Any) -> None:"
     },
     {
       "kind": "python-any",
-      "line": 168,
+      "line": 175,
       "path": "scripts/export_openapi.py",
       "text": "def add_conditional_edges(self, *args: Any, **kwargs: Any) -> None:"
     },
     {
       "kind": "python-any",
-      "line": 171,
+      "line": 178,
       "path": "scripts/export_openapi.py",
       "text": "def set_entry_point(self, *args: Any, **kwargs: Any) -> None:"
     },
     {
       "kind": "python-any",
-      "line": 174,
+      "line": 181,
       "path": "scripts/export_openapi.py",
       "text": "def compile(self, *args: Any, **kwargs: Any) -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 177,
+      "line": 184,
       "path": "scripts/export_openapi.py",
       "text": "async def ainvoke(self, value: Any, *args: Any, **kwargs: Any) -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 188,
+      "line": 195,
       "path": "scripts/export_openapi.py",
       "text": "def driver(*args: Any, **kwargs: Any) -> _MockAsyncDriver:"
     },
     {
       "kind": "python-any",
-      "line": 194,
+      "line": 201,
       "path": "scripts/export_openapi.py",
       "text": "def driver(*args: Any, **kwargs: Any) -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 207,
+      "line": 214,
       "path": "scripts/export_openapi.py",
       "text": "def __init__(self, *args: Any, **kwargs: Any) -> None:"
     },
     {
       "kind": "python-any",
-      "line": 213,
+      "line": 220,
       "path": "scripts/export_openapi.py",
       "text": "def put_object(self, *args: Any, **kwargs: Any) -> dict[str, str]:"
     },
     {
       "kind": "python-any",
-      "line": 216,
+      "line": 223,
       "path": "scripts/export_openapi.py",
       "text": "def generate_presigned_url(self, *args: Any, **kwargs: Any) -> str:"
     },
     {
       "kind": "python-any",
-      "line": 221,
+      "line": 228,
       "path": "scripts/export_openapi.py",
       "text": "def __init__(self, *args: Any, **kwargs: Any) -> None:"
-    },
-    {
-      "kind": "python-any",
-      "line": 225,
-      "path": "scripts/export_openapi.py",
-      "text": "def _mock_retry(*args: Any, **kwargs: Any) -> Any:"
-    },
-    {
-      "kind": "python-any",
-      "line": 226,
-      "path": "scripts/export_openapi.py",
-      "text": "def decorator(func: Any) -> Any:"
     },
     {
       "kind": "python-any",
       "line": 232,
       "path": "scripts/export_openapi.py",
-      "text": "def _mock_policy(*args: Any, **kwargs: Any) -> Any:"
+      "text": "def _mock_retry(*args: Any, **kwargs: Any) -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 292,
-      "path": "scripts/export_openapi.py",
-      "text": "def __init__(self, *args: Any, **kwargs: Any) -> None:"
-    },
-    {
-      "kind": "python-any",
-      "line": 295,
-      "path": "scripts/export_openapi.py",
-      "text": "def task(self, *args: Any, **kwargs: Any) -> Any:"
-    },
-    {
-      "kind": "python-any",
-      "line": 296,
+      "line": 233,
       "path": "scripts/export_openapi.py",
       "text": "def decorator(func: Any) -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 301,
+      "line": 239,
       "path": "scripts/export_openapi.py",
-      "text": "def _mock_chain(*tasks: Any) -> Any:"
+      "text": "def _mock_policy(*args: Any, **kwargs: Any) -> Any:"
+    },
+    {
+      "kind": "python-any",
+      "line": 299,
+      "path": "scripts/export_openapi.py",
+      "text": "def __init__(self, *args: Any, **kwargs: Any) -> None:"
     },
     {
       "kind": "python-any",
       "line": 302,
       "path": "scripts/export_openapi.py",
+      "text": "def task(self, *args: Any, **kwargs: Any) -> Any:"
+    },
+    {
+      "kind": "python-any",
+      "line": 303,
+      "path": "scripts/export_openapi.py",
+      "text": "def decorator(func: Any) -> Any:"
+    },
+    {
+      "kind": "python-any",
+      "line": 308,
+      "path": "scripts/export_openapi.py",
+      "text": "def _mock_chain(*tasks: Any) -> Any:"
+    },
+    {
+      "kind": "python-any",
+      "line": 309,
+      "path": "scripts/export_openapi.py",
       "text": "def runner(*args: Any, **kwargs: Any) -> None:"
     },
     {
       "kind": "python-any",
-      "line": 307,
+      "line": 314,
       "path": "scripts/export_openapi.py",
       "text": "def _mock_crontab(**kwargs: Any) -> dict[str, Any]:"
     },
     {
       "kind": "python-type-ignore",
-      "line": 358,
+      "line": 365,
       "path": "scripts/export_openapi.py",
       "text": "psycopg2.__spec__ = importlib.util.spec_from_loader(\"psycopg2\", loader=None)  # type: ignore[attr-defined]"
     },
     {
       "kind": "python-any",
-      "line": 429,
+      "line": 436,
       "path": "scripts/export_openapi.py",
       "text": "def client(*args: Any, **kwargs: Any) -> _MockS3Client:"
     },
     {
       "kind": "python-type-ignore",
-      "line": 476,
+      "line": 483,
       "path": "scripts/export_openapi.py",
       "text": "module.__path__ = [str(package_path)]  # type: ignore[attr-defined]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 481,
+      "line": 488,
       "path": "scripts/export_openapi.py",
       "text": "module.__version__ = version_match.group(1)  # type: ignore[attr-defined]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 519,
+      "line": 526,
       "path": "scripts/export_openapi.py",
       "text": "module.__package__ = full_name.rpartition(\".\")[0]  # type: ignore[attr-defined]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 526,
+      "line": 533,
       "path": "scripts/export_openapi.py",
       "text": "module._app_metrics = None  # type: ignore[attr-defined]"
     },
     {
       "kind": "python-any",
-      "line": 528,
+      "line": 535,
       "path": "scripts/export_openapi.py",
       "text": "def _set_app_metrics(metrics: Any | None) -> None:"
     },
     {
       "kind": "python-type-ignore",
-      "line": 529,
+      "line": 536,
       "path": "scripts/export_openapi.py",
       "text": "module._app_metrics = metrics  # type: ignore[attr-defined]"
     },
     {
       "kind": "python-type-ignore",
-      "line": 531,
+      "line": 538,
       "path": "scripts/export_openapi.py",
       "text": "module.set_app_metrics = _set_app_metrics  # type: ignore[attr-defined]"
     },
     {
       "kind": "python-any",
-      "line": 538,
+      "line": 545,
       "path": "scripts/export_openapi.py",
       "text": "def _atomic_write_json(data: dict[str, Any], output_path: Path) -> None:"
+    },
+    {
+      "kind": "python-any",
+      "line": 571,
+      "path": "scripts/export_openapi.py",
+      "text": "def _filter_openapi_to_billing_subset(openapi: dict[str, Any]) -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
@@ -40286,7 +40292,7 @@
     },
     {
       "kind": "python-any",
-      "line": 28,
+      "line": 27,
       "path": "tests/backend_integrated/test_otel_trace_receipt.py",
       "text": "def _get_json(url: str, timeout: float = 5.0) -> dict[str, Any] | None:"
     },
@@ -40916,7 +40922,7 @@
     },
     {
       "kind": "python-any",
-      "line": 155,
+      "line": 116,
       "path": "tests/contract/test_otel_instrumentation.py",
       "text": "collector_doc: dict[str, Any] | None = None"
     },
@@ -42197,18 +42203,6 @@
       "line": 67,
       "path": "tests/tests_support/test_root_pytest_policy.py",
       "text": "self.options: list[tuple[str, dict[str, Any]]] = []"
-    },
-    {
-      "kind": "python-any",
-      "line": 5,
-      "path": "tests/unit/l7/test_repository.py",
-      "text": "from typing import Any"
-    },
-    {
-      "kind": "python-type-ignore",
-      "line": 62,
-      "path": "tests/unit/l7/test_webhook_security.py",
-      "text": "sig.timestamp = 1  # type: ignore[misc]"
     }
   ]
 }

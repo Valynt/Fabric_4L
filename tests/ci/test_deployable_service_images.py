@@ -82,9 +82,9 @@ def test_legacy_billing_service_is_not_counted_as_deployable() -> None:
 
 def test_legacy_billing_package_is_removed_and_not_reintroduced() -> None:
     # COMPAT-BILL-001: legacy services/billing package deleted 2026-08-27.
-    # Billing is split between layer7 (plans/usage/invoices/payment-state) and
-    # layer4 (membership/subscription webhook domain). This ratchet fails if a
-    # parallel `services/billing/` package is ever reintroduced.
+    # Billing is owned by layer4-agents (canonical runtime); no standalone
+    # billing service exists. This ratchet fails if a parallel
+    # `services/billing/` package is ever reintroduced.
     assert not (REPO_ROOT / "services" / "billing" / "pyproject.toml").exists()
     assert not (REPO_ROOT / "services" / "billing" / "Dockerfile").exists()
 
