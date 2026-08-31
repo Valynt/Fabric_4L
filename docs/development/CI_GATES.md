@@ -17,7 +17,7 @@ The owner is the first-response triage contact. Start with the local command, th
 
 | Workflow | Classification | Triggers | Owner / triage | Local command | Dependencies | Artifacts | Runtime budget |
 |---|---|---|---|---|---|---|---:|
-| `ai-evals-pipeline.yml` | pull request validation | `pull_request, push, workflow_dispatch` | `@value-fabric/sre-leads` | `make check-workflow-references` | INFISICAL_IDENTITY_ID | eval-*.json, eval-summary.json | 30 min |
+| `ai-evals-pipeline.yml` | pull request validation | `pull_request, push, workflow_dispatch` | `@value-fabric/sre-leads` | `make check-workflow-references` | INFISICAL_IDENTITY_ID | eval-*.json, eval-summary.json, golden-traces-results.json | 30 min |
 | `api-key-rotation.yml` | scheduled assurance | `schedule, workflow_dispatch` | `@value-fabric/sre-leads` | `make check-workflow-references` | GITHUB_TOKEN, INFISICAL_IDENTITY_ID | rotation_audit_clerk.json, rotation_audit_openai.json, rotation_audit_registry.json, rotation_audit_thesys.json | 30 min |
 | `audit-evidence.yml` | reusable automation | `schedule, workflow_call, workflow_dispatch` | `@value-fabric/sre-leads` | `make check-workflow-references` | none | audit-evidence-${{ github.run_id }}.sha256, audit-evidence-${{ github.run_id }}.tar.gz, audit-evidence/access-control/, audit-evidence/automated-controls/, audit-evidence/availability/, audit-evidence/change-management/, audit-evidence/policies/, audit-evidence/security-operations/ | 20 min |
 | `backend-integrated-reproducibility.yml` | manual automation | `workflow_dispatch` | `@value-fabric/sre-leads` | `make check-workflow-references` | INFISICAL_IDENTITY_ID | artifacts/live-workflow-validation/** | 75 min |

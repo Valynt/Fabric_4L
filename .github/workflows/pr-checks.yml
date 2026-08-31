@@ -2130,7 +2130,7 @@ jobs:
       OPENAI_API_KEY: ci-runtime-placeholder
       JWT_SECRET: ci-runtime-jwt-secret-not-for-production
       REDIS_PASSWORD: test-redis
-      NEO4J_PASSWORD: test-neo4j
+      NEO4J_PASSWORD: test-neo4j-password-123456
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       MINIO_ROOT_USER: minio
@@ -2180,13 +2180,13 @@ jobs:
         run: |
           export OPENAI_API_KEY=${OPENAI_API_KEY:?set OPENAI_API_KEY}
           export REDIS_PASSWORD=test-redis
-          export NEO4J_PASSWORD=test-neo4j
+          export NEO4J_PASSWORD=test-neo4j-password-123456
           export POSTGRES_USER=postgres
           export POSTGRES_PASSWORD=postgres
           export MINIO_ROOT_USER=minio
           export MINIO_ROOT_PASSWORD=minio-password
           export SERVICE_AUTH_SECRET=ci-runtime-service-auth-secret-minimum-32-chars
-          export API_KEY_HMAC_SECRET=ci-api-key-hmac-secret
+          export API_KEY_HMAC_SECRET=ci-runtime-api-key-hmac-secret-minimum-32-chars
           export SECRET_KEY=ci-secret-key
           export CORS_ORIGINS=http://localhost:3001
           export CLERK_AUTHORIZED_PARTIES=http://localhost:3001
