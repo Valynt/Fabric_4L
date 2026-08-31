@@ -120,3 +120,27 @@ This date aligns with:
 ---
 
 *Last updated: 2026-06-04 | Status: Accepted*
+
+---
+
+## Addendum — Phase 0 Completion Status (2026-08-29, Sprint 1)
+
+The root `value_fabric/` namespace shims remain removed; no reintroduction was
+detected during the Phase 0 ground-truth sweep. Remaining shim-guard machinery:
+
+- `services/layer1-ingestion/src/api/main.py` (Layer 1 api.main shim) is
+  removed; `scripts/ci/check_layer1_api_main_shim_drift.py` now passes as a
+  tripwire that fails only if the legacy entrypoint is reintroduced.
+- `services/layer3-knowledge/src/config.py` (Layer 3 settings shim) still
+  exists and remains actively guarded by
+  `scripts/ci/check_layer3_settings_shim_drift.py`; removal is pending caller
+  migration to the canonical `config/settings.py`.
+- The deprecated tracer module (`value_fabric.layer3.tracing.tracer`) is gone;
+  GATE-COMPAT-005 (`scripts/ci/check_deprecated_tracer_imports.py`) is retained
+  as a tripwire and its registry entry is annotated
+  `status: retired — module removed per ADR-027`.
+- Duplicate-source-tree and deprecated-namespace guards (GATE-COMPAT-001/003)
+  remain fully active.
+
+See `docs/governance/compatibility-debt-registry.md` for the machine-readable
+gate inventory and the dated Phase 0 note.

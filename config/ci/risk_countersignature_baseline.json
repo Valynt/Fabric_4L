@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "description": "Grandfathered ACCEPTED P0 risks whose owner countersignature is still pending. Fail-on-net-new: any un-countersigned ACCEPTED P0 risk NOT listed here fails scripts/ci/check_risk_register_countersignatures.py.",
+  "grandfathered": [
+    {
+      "id": "PRR-002",
+      "reason": "Evolution plan Phase 0 exit criteria: obtain owner countersignature or documented P0->P1 waiver before Phase 0 exit."
+    },
+    {
+      "id": "PRR-003",
+      "reason": "Evolution plan Phase 0 exit criteria: obtain owner countersignature or documented P0->P1 waiver before Phase 0 exit."
+    },
+    {
+      "id": "PRR-010",
+      "reason": "Evolution plan Phase 0 exit criteria: obtain owner countersignature or documented P0->P1 waiver before Phase 0 exit."
+    }
+  ]
+}

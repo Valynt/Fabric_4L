@@ -75,6 +75,11 @@ spec:
               value: "/home/postgres/pgdata/pgroot"
             - name: PATRONI_POSTGRESQL_PGPASS
               value: "/tmp/pgpass"
+            # WAL archiving via WAL-G (config mounted at /etc/wal-g from wal-g-config ConfigMap)
+            - name: PATRONI_POSTGRESQL_PARAMETERS_ARCHIVE_MODE
+              value: "on"
+            - name: PATRONI_POSTGRESQL_PARAMETERS_ARCHIVE_COMMAND
+              value: "wal-g wal-push %p"
             - name: PATRONI_KUBERNETES_LABELS
               value: '{"app": "postgres-patroni"}'
             - name: PATRONI_POSTGRESQL_AUTHENTICATION_SUPERUSER_USERNAME
