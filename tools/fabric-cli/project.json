@@ -1,0 +1,26 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "fabric-task-runner",
+  "projectType": "application",
+  "sourceRoot": "tools/fabric-cli",
+  "targets": {
+    "check-conflict-markers": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "options": {
+        "command": "python scripts/ci/check_conflict_markers.py",
+        "cwd": ".",
+        "forwardAllArgs": true
+      }
+    },
+    "check-no-nul-bytes": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "options": {
+        "command": "python scripts/ci/check_no_nul_bytes.py",
+        "cwd": ".",
+        "forwardAllArgs": true
+      }
+    }
+  }
+}

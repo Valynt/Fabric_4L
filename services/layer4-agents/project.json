@@ -1,0 +1,26 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "layer4-agents",
+  "projectType": "application",
+  "sourceRoot": "services/layer4-agents/src",
+  "targets": {
+    "lint": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "options": {
+        "command": "ruff check src/",
+        "cwd": "services/layer4-agents",
+        "forwardAllArgs": true
+      }
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "options": {
+        "command": "python scripts/ci/check_mypy_baseline.py --service-dir services/layer4-agents --baseline config/ci/mypy_baseline_layer4.json --paths src --mypy-args \"--warn-return-any --warn-unused-configs\"",
+        "cwd": ".",
+        "forwardAllArgs": true
+      }
+    }
+  }
+}
