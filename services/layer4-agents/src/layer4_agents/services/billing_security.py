@@ -149,7 +149,7 @@ def verify_stripe_webhook_signature(
     if abs(current_time - parsed.timestamp) > tolerance_seconds:
         raise ValueError("Stripe webhook timestamp is outside tolerance")
 
-    signed_payload = f"{parsed.timestamp}.".encode("utf-8") + payload
+    signed_payload = f"{parsed.timestamp}.".encode() + payload
     expected_signature = hmac.new(
         webhook_secret.encode("utf-8"), signed_payload, hashlib.sha256
     ).hexdigest()
