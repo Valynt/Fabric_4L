@@ -1,4 +1,4 @@
-﻿[
+[
     {
         "date":  "2026-08-26",
         "mode":  "Tech Debt Assessment",
@@ -46,67 +46,78 @@
     },
     {
         "date":  "2026-08-29",
-        "mode":  "Test Quality Review",
-        "score":  92,
+        "mode":  "Health Dashboard",
+        "score":  93,
         "findings":  {
                          "critical":  0,
-                         "warning":  1,
-                         "suggestion":  2
+                         "warning":  4,
+                         "suggestion":  1
                      },
-        "scope":  "CI-remediation branch diff: 10 tests/ci files + 14 ESLint plugin suites (branch origin/main...HEAD)",
-        "inspected_commit_sha":  "f10f83819",
-        "configuration":  "defaults; no .brooks-lint.yaml present",
-        "scoring_rubric":  "balanced preset: Critical -15, Warning -5, Suggestion -1; floor 0",
-        "finding_ids":  [
-                            "T3-skip-safe-scaffold-duplication",
-                            "T2b-permission-allowlist-drift",
-                            "T2a-byte-exact-contract-parse"
-                        ],
-        "run_type":  "executable tests run: 10 tests/ci files (64 passed) + ESLint plugin (99 passed)",
-        "remediation_status":  "open"
+        "scope":  "entire repository"
     },
     {
-        "date":  "2026-08-29",
-        "mode":  "Test Quality Review",
-        "score":  70,
-        "findings":  {
-                         "critical":  2,
-                         "suggestion":  0,
-                         "warning":  0
-                     },
-        "scope":  "Event Catalog implementation",
-        "inspected_commit_sha":  "23555b44b",
-        "configuration":  "defaults; no .brooks-lint.yaml present",
-        "scoring_rubric":  "balanced preset: Critical -15, Warning -5, Suggestion -1; floor 0",
-        "finding_ids":  [
-                            "T5-zero-test-coverage-gate",
-                            "T6-missing-ci-script-test-suite"
-                        ],
-        "run_type":  "inspection and sampling only; no executable tests run",
-        "remediation_status":  "open - findings accepted into backlog"
+        "date": "2026-08-29",
+        "mode": "Test Quality Review",
+        "score": 92,
+        "findings": {
+            "critical": 0,
+            "warning": 1,
+            "suggestion": 2
+        },
+        "scope": "CI-remediation branch diff: 10 tests/ci files + 14 ESLint plugin suites (branch origin/main...HEAD)",
+        "inspected_commit_sha": "f10f83819",
+        "configuration": "defaults; no .brooks-lint.yaml present",
+        "scoring_rubric": "balanced preset: Critical -15, Warning -5, Suggestion -1; floor 0",
+        "finding_ids": [
+            "T3-skip-safe-scaffold-duplication",
+            "T2b-permission-allowlist-drift",
+            "T2a-byte-exact-contract-parse"
+        ],
+        "run_type": "executable tests run: 10 tests/ci files (64 passed) + ESLint plugin (99 passed)",
+        "remediation_status": "open"
     },
     {
-        "date":  "2026-08-30",
-        "mode":  "Test Quality Review",
-        "score":  87,
-        "findings":  {
-                         "critical":  0,
-                         "warning":  2,
-                         "suggestion":  3
-                     },
-        "scope":  "CI-baseline branch diff: api-harness.ts, L4 enrichment tests, visual baselines (origin/main...HEAD)",
-        "inspected_commit_sha":  "59f896810",
-        "configuration":  "defaults; no .brooks-lint.yaml present",
-        "scoring_rubric":  "balanced preset: Critical -15, Warning -5, Suggestion -1; floor 0",
-        "finding_ids":  [
-                            "T3-stale-shadow-contract-models",
-                            "T2-private-method-coupling-l4",
-                            "T4-sysmodules-mock-preseed",
-                            "T2-eager-tests-enrichment",
-                            "T2b-visual-baselines-regen"
-                        ],
-        "run_type":  "inspection and sampling only; no executable tests run",
-        "report_location":  "session files: brooks-test-review-2026-08-30.md",
-        "remediation_status":  "open"
+        "date": "2026-08-29",
+        "mode": "Test Quality Review",
+        "score": 70,
+        "findings": {
+            "critical": 2,
+            "suggestion": 0,
+            "warning": 0
+        },
+        "scope": "Event Catalog implementation",
+        "inspected_commit_sha": "23555b44b",
+        "configuration": "defaults; no .brooks-lint.yaml present",
+        "scoring_rubric": "balanced preset: Critical -15, Warning -5, Suggestion -1; floor 0",
+        "finding_ids": [
+            "T5-zero-test-coverage-gate",
+            "T6-missing-ci-script-test-suite"
+        ],
+        "run_type": "inspection and sampling only; no executable tests run",
+        "remediation_status": "open - findings accepted into backlog"
+    },
+    {
+        "date": "2026-08-30",
+        "mode": "Test Quality Review",
+        "score": 87,
+        "findings": {
+            "critical": 0,
+            "warning": 2,
+            "suggestion": 3
+        },
+        "scope": "CI-baseline branch diff: api-harness.ts, L4 enrichment tests, visual baselines (origin/main...HEAD)",
+        "inspected_commit_sha": "59f896810",
+        "configuration": "defaults; no .brooks-lint.yaml present",
+        "scoring_rubric": "balanced preset: Critical -15, Warning -5, Suggestion -1; floor 0",
+        "finding_ids": [
+            "T3-stale-shadow-contract-models",
+            "T2-private-method-coupling-l4",
+            "T4-sysmodules-mock-preseed",
+            "T2-eager-tests-enrichment",
+            "T2b-visual-baselines-regen"
+        ],
+        "run_type": "inspection and sampling only; no executable tests run",
+        "report_location": "session files: brooks-test-review-2026-08-30.md",
+        "remediation_status": "open"
     }
 ]

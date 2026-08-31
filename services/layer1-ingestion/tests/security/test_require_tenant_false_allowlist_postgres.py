@@ -20,7 +20,14 @@ pytestmark = pytest.mark.requires_postgres
 
 # Resolve source paths relative to this test file (services/layer1-ingestion/tests/security/)
 _L1_SRC = Path(__file__).resolve().parents[2] / "src" / "layer1_ingestion"
-_TASKS_FILE = _L1_SRC / "shared" / "tasks.py"
+_TASKS_DIR = _L1_SRC / "shared" / "tasks"
+
+
+def _read_tasks_source() -> str:
+    """Concatenate all tasks package submodule sources."""
+    return "".join(
+        p.read_text(encoding="utf-8") for p in sorted(_TASKS_DIR.glob("*.py"))
+    )
 
 
 class TestRequireTenantFalseAllowlist:
@@ -28,8 +35,8 @@ class TestRequireTenantFalseAllowlist:
 
     def test_require_tenant_false_count_is_limited(self):
         """Total count of require_tenant=False usages should be limited."""
-        with open(_TASKS_FILE, 'r') as f:
-            content = f.read()
+        content = _read_tasks_source()
+
         
         # Find all occurrences of require_tenant=False
         pattern = r'require_tenant=False'
@@ -74,8 +81,8 @@ class TestRequireTenantFalseAllowlist:
 
     def test_require_tenant_false_documented_in_code(self):
         """require_tenant=False usages should be documented with comments."""
-        with open(_TASKS_FILE, 'r', encoding='utf-8') as f:
-            lines = f.readlines()
+        lines = _read_tasks_source().splitlines()
+
         
         # Find lines with require_tenant=False
         for i, line in enumerate(lines):
@@ -107,8 +114,8 @@ class TestRequireTenantFalseAllowlist:
 
     def test_error_handling_paths_reviewed(self):
         """Error handling paths using require_tenant=False should be reviewed."""
-        with open(_TASKS_FILE, 'r', encoding='utf-8') as f:
-            content = f.read()
+        content = _read_tasks_source()
+
         
         # Find error handling blocks with require_tenant=False
         # Pattern: except block with get_db_session(require_tenant=False)
@@ -123,8 +130,8 @@ class TestRequireTenantFalseAllowlist:
 
     def test_no_tenant_scoped_queries_with_require_tenant_false(self):
         """Tenant-scoped queries should not use require_tenant=False."""
-        with open(_TASKS_FILE, 'r', encoding='utf-8') as f:
-            content = f.read()
+        content = _read_tasks_source()
+
         
         # Find patterns where require_tenant=False is used near tenant-scoped queries
         # This is a heuristic - in production, use static analysis
@@ -182,8 +189,8 @@ class TestRequireTenantFalseAllowlist:
 
     def test_no_direct_sql_with_tenant_bypass(self):
         """No direct SQL should bypass tenant context."""
-        with open(_TASKS_FILE, 'r', encoding='utf-8') as f:
-            content = f.read()
+        content = _read_tasks_source()
+
         
         # Check for patterns that might bypass tenant context
         # This is a heuristic - in production, use stricter static analysis
@@ -200,8 +207,8 @@ class TestTenantContextSetting:
 
     def test_set_local_not_used_anymore(self):
         """Direct SET LOCAL should not be used (replaced by get_db_session tenant_id)."""
-        with open(_TASKS_FILE, 'r', encoding='utf-8') as f:
-            content = f.read()
+        content = _read_tasks_source()
+
         
         # SET LOCAL should only be in error handling or specific allowlisted cases
         # The main pattern should be get_db_session(tenant_id=..., require_tenant=True)
@@ -212,8 +219,8 @@ class TestTenantContextSetting:
 
     def test_get_db_session_with_tenant_id_is_primary_pattern(self):
         """get_db_session(tenant_id=...) should be the primary pattern."""
-        with open(_TASKS_FILE, 'r', encoding='utf-8') as f:
-            content = f.read()
+        content = _read_tasks_source()
+
         
         # Count get_db_session calls with tenant_id parameter
         tenant_id_pattern = r'get_db_session\([^)]*tenant_id='
@@ -224,8 +231,8 @@ class TestTenantContextSetting:
 
     def test_current_setting_not_used_directly(self):
         """current_setting should not be used directly (handled by get_db_session)."""
-        with open(_TASKS_FILE, 'r', encoding='utf-8') as f:
-            content = f.read()
+        content = _read_tasks_source()
+
         
         # current_setting should be minimal (only in tests or specific cases)
         current_setting_count = content.count('current_setting')
@@ -265,8 +272,8 @@ class TestSecurityHardeningCompleteness:
 
     def test_no_unsafe_pattern_remaining(self):
         """No unsafe "fetch job first, then set tenant context" pattern should remain."""
-        with open(_TASKS_FILE, 'r', encoding='utf-8') as f:
-            content = f.read()
+        content = _read_tasks_source()
+
         
         # Look for the unsafe pattern: get job without tenant_id, then SET LOCAL
         # Pattern: get_db_session(require_tenant=False) followed by job query, then SET LOCAL

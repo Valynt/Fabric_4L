@@ -14,6 +14,7 @@ from uuid import uuid4, UUID
 
 import asyncio
 import inspect
+from pathlib import Path
 
 from layer1_ingestion.shared.exceptions import (
     TenantContextError,
@@ -28,6 +29,17 @@ from layer1_ingestion.shared.tasks import process_scraping_job, cleanup_old_cont
 
 
 pytestmark = pytest.mark.requires_postgres
+
+# Resolve source paths relative to this test file (services/layer1-ingestion/tests/security/)
+_L1_SRC = Path(__file__).resolve().parents[2] / "src" / "layer1_ingestion"
+_TASKS_DIR = _L1_SRC / "shared" / "tasks"
+
+
+def _read_tasks_source() -> str:
+    """Concatenate all tasks package submodule sources."""
+    return "".join(
+        p.read_text(encoding="utf-8") for p in sorted(_TASKS_DIR.glob("*.py"))
+    )
 
 
 class TestTenantIdValidation:
@@ -332,7 +344,7 @@ class TestTaskSecurityValidation:
         from layer1_ingestion.shared.tasks import crawl_url_with_routing
 
         # Mock get_db_session to simulate tenant validation failure
-        with patch('layer1_ingestion.shared.tasks.get_db_session') as mock_session:
+        with patch('layer1_ingestion.shared.tasks.crawl.get_db_session') as mock_session:
             mock_session.side_effect = TenantContextError("Invalid tenant")
 
             with pytest.raises(TenantContextError):
@@ -363,6 +375,19 @@ class TestTaskSecurityValidation:
         for stage_name in pipeline_stages:
             stage_func = getattr(tasks, stage_name)
 
+            # Each stage function resolves get_db_session through its own
+            # module global, so the patch target depends on which submodule
+            # the stage moved to during the tasks.py split.
+            stage_module = {
+                'compliance_check_stage': '',
+                'browser_crawl_stage': 'crawl.',
+                'ai_extraction_stage': 'extraction.',
+                'post_processing_stage': 'post_processing.',
+                'validation_stage': 'validation.',
+                'storage_stage': 'storage.',
+                'notification_stage': 'notification.',
+            }[stage_name]
+
             # Mock get_db_session to simulate tenant validation failure
             # The kill switch is not this test's subject: patch it to a
             # definitive not-suspended answer so the tenant-context check
@@ -370,7 +395,7 @@ class TestTaskSecurityValidation:
             # actually reaches. The switch's own fail-closed paths are
             # governed by dedicated kill-switch tests.
             with (
-                patch('layer1_ingestion.shared.tasks.get_db_session') as mock_session,
+                patch(f'layer1_ingestion.shared.tasks.{stage_module}get_db_session') as mock_session,
                 patch(
                     'layer1_ingestion.shared.tasks._check_tenant_kill_switch_sync',
                     return_value=False,
@@ -504,10 +529,7 @@ class TestSecurityRegressionPrevention:
         from pathlib import Path
         
         # Check for dangerous patterns in task files
-        tasks_file = Path(__file__).parent.parent.parent / 'src' / 'layer1_ingestion' / 'shared' / 'tasks.py'
-        
-        with open(tasks_file, 'r') as f:
-            content = f.read()
+        content = _read_tasks_source()
         
         # Look for dangerous patterns
         dangerous_patterns = [
