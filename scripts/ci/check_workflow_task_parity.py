@@ -16,7 +16,6 @@ import shlex
 import sys
 from collections.abc import Iterator, Mapping, Sequence
 from pathlib import Path
-from typing import Any
 
 import yaml
 
@@ -215,7 +214,7 @@ def _iter_matrix_commands(value: object) -> Iterator[str]:
             yield from _iter_matrix_commands(child)
 
 
-def _iter_task_command_sources(workflow: Mapping[str, Any]) -> Iterator[str]:
+def _iter_task_command_sources(workflow: Mapping[str, object]) -> Iterator[str]:
     jobs = workflow.get("jobs", {})
     if not isinstance(jobs, Mapping):
         raise WorkflowReadError("top-level 'jobs' must be a mapping")
