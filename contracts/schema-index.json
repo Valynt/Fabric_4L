@@ -341,6 +341,16 @@
       "title": "validate_input"
     },
     {
+      "path": "contracts/tool-manifests/tool-manifest.schema.json",
+      "id": "https://valuefabric.ai/contracts/tool-manifests/tool-manifest.schema.json",
+      "title": "Fabric 4L Tool Manifest"
+    },
+    {
+      "path": "contracts/tool-manifests/registry.schema.json",
+      "id": "https://valuefabric.ai/contracts/tool-manifests/registry.schema.json",
+      "title": "Fabric 4L Tool Registry Index"
+    },
+    {
       "path": "contracts/frontend/01-api-boundary-contract.md",
       "id": "contract:contracts/frontend/01-api-boundary-contract.md"
     },

@@ -847,6 +847,13 @@ check-tool-contracts: ## CI gate — validate tool error structure (CONTRACT.md 
 	$(PYTHON) scripts/ci/check_tool_contracts.py services/layer4-agents/src/layer4_agents/tools/
 	@echo "✅ Tool contract check passed"
 
+check-tool-registry: ## CI gate — validate tool manifest registry and generate L4 index
+	@echo "→ Validating tool manifest registry..."
+	$(PYTHON) scripts/ci/validate_tool_registry.py
+	@echo "→ Generating Layer 4 tool index..."
+	$(PYTHON) scripts/ci/generate_tool_index.py
+	@echo "✅ Tool registry check passed"
+
 check-deprecated-tracer-imports: ## CI gate — block imports from deprecated custom tracer modules
 	@echo "→ Checking for deprecated custom tracer imports..."
 	$(PYTHON) scripts/ci/check_deprecated_tracer_imports.py

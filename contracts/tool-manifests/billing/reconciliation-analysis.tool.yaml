@@ -1,0 +1,61 @@
+tool_id: "billing.reconciliation.analyze"
+version: "1.0.0"
+status: "ACTIVE"
+owner: "agents/billing-experience"
+description: >
+  Analyze a billing account for reconciliation discrepancies across invoices,
+  payments, credits, and usage records. Read-only diagnostic.
+
+implementation:
+  service: "services/layer7-billing"
+  operation_id: "analyzeReconciliation"
+
+action_id: "billing:reconciliation:read"
+principal_types:
+  - agent
+  - user
+
+input_schema_ref: "jsonschema://tools/billing/reconciliation-analysis-input@1.0.0"
+output_schema_ref: "jsonschema://tools/billing/reconciliation-analysis-output@1.0.0"
+
+resource_resolver:
+  name: "billingAccountResolver"
+  authoritative_service: "services/layer7-billing"
+
+tenant_binding:
+  client_supplied_tenant_authoritative: false
+  resolve_server_side: true
+
+side_effect: "READ_ONLY"
+financial_state_change: false
+human_confirmation_required: false
+
+audit:
+  required: true
+  action: "billing.reconciliation.analyze"
+  include_authorization_decision_id: true
+  include_correlation_id: true
+
+data_controls:
+  allowed:
+    - billing_account_id
+    - discrepancy_summary
+    - invoice_ids
+    - payment_ids
+    - credit_ids
+  prohibited:
+    - raw_payment_method_token
+    - payment_card_number
+  prompt_visible_fields:
+    - billing_account_id
+    - discrepancy_summary
+    - invoice_ids
+
+runtime:
+  timeout_ms: 12000
+  retry_policy: "READ_ONLY_TRANSIENT_ONLY"
+  rate_limit_class: "billing-read-heavy"
+
+supported_agent_classes:
+  - billing-copilot
+  - general-agent

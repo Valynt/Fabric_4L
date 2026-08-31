@@ -1,0 +1,64 @@
+tool_id: "billing.invoice.explain"
+version: "1.0.0"
+status: "ACTIVE"
+owner: "agents/billing-experience"
+description: >
+  Provide a natural-language explanation of a customer invoice, including line
+  items, tax, discounts, and prior-period credits. Read-only.
+
+implementation:
+  service: "services/layer7-billing"
+  operation_id: "explainInvoice"
+
+action_id: "billing:invoice:read"
+principal_types:
+  - agent
+  - user
+
+input_schema_ref: "jsonschema://tools/billing/invoice-explain-input@1.0.0"
+output_schema_ref: "jsonschema://tools/billing/invoice-explain-output@1.0.0"
+
+resource_resolver:
+  name: "billingInvoiceResolver"
+  authoritative_service: "services/layer7-billing"
+
+tenant_binding:
+  client_supplied_tenant_authoritative: false
+  resolve_server_side: true
+
+side_effect: "READ_ONLY"
+financial_state_change: false
+human_confirmation_required: false
+
+audit:
+  required: true
+  action: "billing.invoice.explain"
+  include_authorization_decision_id: true
+  include_correlation_id: true
+  include_causation_id: false
+
+data_controls:
+  allowed:
+    - invoice_id
+    - line_items
+    - tax_breakdown
+    - discount_summary
+    - credit_summary
+  prohibited:
+    - raw_payment_method_token
+    - payment_card_number
+    - cvv
+  prompt_visible_fields:
+    - invoice_id
+    - line_items
+    - tax_breakdown
+    - discount_summary
+
+runtime:
+  timeout_ms: 5000
+  retry_policy: "READ_ONLY_TRANSIENT_ONLY"
+  rate_limit_class: "billing-read"
+
+supported_agent_classes:
+  - billing-copilot
+  - general-agent

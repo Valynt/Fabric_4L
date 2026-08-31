@@ -1,0 +1,32 @@
+# Fabric 4L Tool Registry — Source-of-truth manifest listing
+# Human-edited YAML listing of all .tool.yaml manifests.
+# The validate+generate pipeline reads this file to discover manifests.
+
+registry_version: "0.1.0"
+manifests:
+  - path: billing/invoice-explain.tool.yaml
+    enabled: true
+  - path: billing/charge-forecast.tool.yaml
+    enabled: true
+  - path: billing/subscription-change-draft.tool.yaml
+    enabled: true
+  - path: billing/credit-request-draft.tool.yaml
+    enabled: true
+  - path: billing/refund-request-draft.tool.yaml
+    enabled: true
+  - path: billing/reconciliation-analysis.tool.yaml
+    enabled: true
+
+policies:
+  - path: policies/billing-agent-policy.yaml
+    enabled: true
+  - path: policies/general-agent-policy.yaml
+    enabled: true
+
+# Default directory layout: all .tool.yaml files under contracts/tool-manifests/
+# may be discovered recursively if not listed explicitly above.
+auto_discover: true
+auto_discover_exclude:
+  - policies/**
+  - generated/**
+  - schemas/**

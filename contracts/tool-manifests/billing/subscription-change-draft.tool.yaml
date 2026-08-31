@@ -1,0 +1,74 @@
+tool_id: "billing.subscription.change_draft"
+version: "1.0.0"
+status: "ACTIVE"
+owner: "agents/billing-experience"
+description: >
+  Generate a draft subscription change (upgrade/downgrade) with proration preview.
+  Does NOT commit the change; returns a draft for review.
+
+implementation:
+  service: "services/layer7-billing"
+  operation_id: "createSubscriptionChangeDraft"
+
+action_id: "billing:subscription:write"
+principal_types:
+  - agent
+  - user
+
+input_schema_ref: "jsonschema://tools/billing/subscription-change-draft-input@1.0.0"
+output_schema_ref: "jsonschema://tools/billing/subscription-change-draft-output@1.0.0"
+
+resource_resolver:
+  name: "billingSubscriptionResolver"
+  authoritative_service: "services/layer7-billing"
+
+tenant_binding:
+  client_supplied_tenant_authoritative: false
+  resolve_server_side: true
+
+side_effect: "DRAFT_ONLY"
+financial_state_change: true
+human_confirmation_required: true
+
+approval_requirement:
+  required: false
+  separation_of_duty: false
+  approver_principal_types: []
+
+idempotency:
+  required: false
+  key_input_fields: []
+
+revision:
+  etag_required: false
+  optimistic_locking: false
+
+audit:
+  required: true
+  action: "billing.subscription.change_draft"
+  include_authorization_decision_id: true
+  include_correlation_id: true
+  include_causation_id: true
+
+data_controls:
+  allowed:
+    - subscription_id
+    - plan_id
+    - proration_preview
+    - effective_date
+  prohibited:
+    - payment_method_token
+    - payment_card_number
+  prompt_visible_fields:
+    - subscription_id
+    - plan_id
+    - proration_preview
+
+runtime:
+  timeout_ms: 8000
+  retry_policy: "IDEMPOTENT_TRANSIENT_ONLY"
+  rate_limit_class: "billing-write"
+
+supported_agent_classes:
+  - billing-copilot
+  - general-agent
