@@ -3,7 +3,7 @@
 
 Fail-on-net-new philosophy: a JSON baseline lists risk IDs whose P0
 countersignature gap is temporarily grandfathered (Sprint 1 / Phase 0 exit
-criteria: obtain countersignatures or documented P0->P1 waivers). Any
+criteria: obtain countersignatures or documented P0->P1 waivers). Each
 *new* un-countersigned ACCEPTED P0 risk fails the check. P1 gaps warn only.
 """
 from __future__ import annotations

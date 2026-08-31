@@ -6770,49 +6770,49 @@
     },
     {
       "kind": "python-any",
-      "line": 755,
-      "path": "scripts/ci/generate_ci_failure_backlog.py",
-      "text": ") -> tuple[list[Mapping[str, Any]], dict[int, list[Mapping[str, Any]]], dict[int, str]]:"
-    },
-    {
-      "kind": "python-any",
       "line": 758,
       "path": "scripts/ci/generate_ci_failure_backlog.py",
+      "text": ") -> tuple[list[Mapping[str, Any]], dict[int, list[Mapping[str, Any]]], dict[int, str]]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 771,
+      "path": "scripts/ci/generate_ci_failure_backlog.py",
       "text": "jobs_by_run: dict[int, list[Mapping[str, Any]]] = {}"
     },
     {
       "kind": "python-any",
-      "line": 782,
+      "line": 795,
       "path": "scripts/ci/generate_ci_failure_backlog.py",
       "text": ") -> tuple[list[Mapping[str, Any]], dict[int, list[Mapping[str, Any]]], dict[int, str]]:"
     },
     {
       "kind": "python-any",
-      "line": 790,
+      "line": 803,
       "path": "scripts/ci/generate_ci_failure_backlog.py",
       "text": "jobs_by_run: dict[int, list[Mapping[str, Any]]] = {}"
     },
     {
       "kind": "python-any",
-      "line": 810,
+      "line": 823,
       "path": "scripts/ci/generate_ci_failure_backlog.py",
       "text": "runs: Sequence[Mapping[str, Any]],"
     },
     {
       "kind": "python-any",
-      "line": 812,
+      "line": 825,
       "path": "scripts/ci/generate_ci_failure_backlog.py",
       "text": "recurring_backlog: Sequence[Mapping[str, Any]],"
     },
     {
       "kind": "python-any",
-      "line": 814,
+      "line": 827,
       "path": "scripts/ci/generate_ci_failure_backlog.py",
       "text": ") -> dict[str, Any]:"
     },
     {
       "kind": "python-any",
-      "line": 842,
+      "line": 855,
       "path": "scripts/ci/generate_ci_failure_backlog.py",
       "text": "payload: Mapping[str, Any],"
     },
@@ -13028,7 +13028,7 @@
     },
     {
       "kind": "python-type-ignore",
-      "line": 31,
+      "line": 30,
       "path": "services/layer1-ingestion/src/layer1_ingestion/shared/tasks/__init__.py",
       "text": "encode_service_jwt = None  # type: ignore"
     },
@@ -13040,13 +13040,13 @@
     },
     {
       "kind": "python-any",
-      "line": 25,
+      "line": 22,
       "path": "services/layer1-ingestion/src/layer1_ingestion/shared/tasks/dlq.py",
       "text": "def record_dead_lettered_task(envelope: dict[str, Any]) -> dict[str, Any]:"
     },
     {
       "kind": "python-type-ignore",
-      "line": 37,
+      "line": 36,
       "path": "services/layer1-ingestion/src/layer1_ingestion/shared/tasks/extraction.py",
       "text": "encode_service_jwt = None  # type: ignore"
     },
@@ -18710,109 +18710,109 @@
     },
     {
       "kind": "python-any",
-      "line": 224,
+      "line": 231,
       "path": "services/layer3-knowledge/src/db/query_execution.py",
       "text": "params: Mapping[str, Any],"
     },
     {
       "kind": "python-any",
-      "line": 243,
+      "line": 250,
       "path": "services/layer3-knowledge/src/db/query_execution.py",
       "text": "params: Mapping[str, Any],"
     },
     {
       "kind": "python-any",
-      "line": 287,
+      "line": 294,
       "path": "services/layer3-knowledge/src/db/query_execution.py",
       "text": "def _extract_max_depth(cls, query: str, params: Mapping[str, Any]) -> int | None:"
     },
     {
       "kind": "python-any",
-      "line": 387,
+      "line": 394,
       "path": "services/layer3-knowledge/src/db/query_execution.py",
       "text": "parameters: dict[str, Any] | None,"
     },
     {
       "kind": "python-any",
-      "line": 389,
+      "line": 396,
       "path": "services/layer3-knowledge/src/db/query_execution.py",
       "text": ") -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 403,
+      "line": 410,
       "path": "services/layer3-knowledge/src/db/query_execution.py",
       "text": "cls, query: str, params: Mapping[str, Any], context: TenantExecutionContext"
     },
     {
       "kind": "python-any",
-      "line": 451,
+      "line": 458,
       "path": "services/layer3-knowledge/src/db/query_execution.py",
       "text": "cls, query: str, params: Mapping[str, Any], context: TenantExecutionContext"
     },
     {
       "kind": "python-any",
-      "line": 459,
+      "line": 466,
       "path": "services/layer3-knowledge/src/db/query_execution.py",
       "text": "def _check_nested(obj: Any, path: str = \"\") -> None:"
     },
     {
       "kind": "python-any",
-      "line": 628,
+      "line": 634,
       "path": "services/layer3-knowledge/src/db/query_execution.py",
       "text": ") -> Any:"
     },
     {
       "kind": "python-any",
-      "line": 666,
+      "line": 672,
       "path": "services/layer3-knowledge/src/db/query_execution.py",
       "text": "parameters: dict[str, Any] | None = None,"
     },
     {
       "kind": "python-any",
-      "line": 673,
+      "line": 679,
       "path": "services/layer3-knowledge/src/db/query_execution.py",
       "text": "**kwargs: Any,"
     },
     {
       "kind": "python-any",
-      "line": 674,
+      "line": 680,
       "path": "services/layer3-knowledge/src/db/query_execution.py",
       "text": ") -> Any:"
-    },
-    {
-      "kind": "python-any",
-      "line": 730,
-      "path": "services/layer3-knowledge/src/db/query_execution.py",
-      "text": "parameters: dict[str, Any] | None = None,"
-    },
-    {
-      "kind": "python-any",
-      "line": 735,
-      "path": "services/layer3-knowledge/src/db/query_execution.py",
-      "text": "**kwargs: Any,"
     },
     {
       "kind": "python-any",
       "line": 736,
       "path": "services/layer3-knowledge/src/db/query_execution.py",
-      "text": ") -> Any:"
-    },
-    {
-      "kind": "python-any",
-      "line": 753,
-      "path": "services/layer3-knowledge/src/db/query_execution.py",
       "text": "parameters: dict[str, Any] | None = None,"
     },
     {
       "kind": "python-any",
-      "line": 757,
+      "line": 741,
       "path": "services/layer3-knowledge/src/db/query_execution.py",
       "text": "**kwargs: Any,"
     },
     {
       "kind": "python-any",
-      "line": 758,
+      "line": 742,
+      "path": "services/layer3-knowledge/src/db/query_execution.py",
+      "text": ") -> Any:"
+    },
+    {
+      "kind": "python-any",
+      "line": 759,
+      "path": "services/layer3-knowledge/src/db/query_execution.py",
+      "text": "parameters: dict[str, Any] | None = None,"
+    },
+    {
+      "kind": "python-any",
+      "line": 763,
+      "path": "services/layer3-knowledge/src/db/query_execution.py",
+      "text": "**kwargs: Any,"
+    },
+    {
+      "kind": "python-any",
+      "line": 764,
       "path": "services/layer3-knowledge/src/db/query_execution.py",
       "text": ") -> Any:"
     },
@@ -27110,39 +27110,33 @@
     },
     {
       "kind": "python-any",
-      "line": 29,
+      "line": 30,
       "path": "services/layer4-agents/src/layer4_agents/engine/execution_helpers.py",
       "text": "def fmt_enum(value: Any) -> str:"
     },
     {
       "kind": "python-any",
-      "line": 40,
+      "line": 41,
       "path": "services/layer4-agents/src/layer4_agents/engine/execution_helpers.py",
       "text": "workflow_metadata: dict[str, dict[str, Any]],"
     },
     {
       "kind": "python-any",
-      "line": 54,
+      "line": 55,
       "path": "services/layer4-agents/src/layer4_agents/engine/execution_helpers.py",
       "text": "kwargs: dict[str, Any] = {"
     },
     {
       "kind": "python-any",
-      "line": 67,
+      "line": 68,
       "path": "services/layer4-agents/src/layer4_agents/engine/execution_helpers.py",
       "text": "def extract_tenant_timeout(tenant_settings: dict[str, Any] | None) -> int | None:"
     },
     {
       "kind": "python-any",
-      "line": 75,
+      "line": 76,
       "path": "services/layer4-agents/src/layer4_agents/engine/execution_helpers.py",
       "text": "cursor: Any"
-    },
-    {
-      "kind": "python-any",
-      "line": 135,
-      "path": "services/layer4-agents/src/layer4_agents/engine/execution_helpers.py",
-      "text": "async def wait_for_workflow(state_manager: Any, workflow_id: str) -> AgentState:"
     },
     {
       "kind": "python-any",
@@ -41648,13 +41642,13 @@
     },
     {
       "kind": "python-any",
-      "line": 25,
+      "line": 46,
       "path": "tests/integration/test_celery_queue_topology.py",
       "text": "def _yaml_documents(relative_path: str) -> list[Any]:"
     },
     {
       "kind": "python-any",
-      "line": 30,
+      "line": 51,
       "path": "tests/integration/test_celery_queue_topology.py",
       "text": "def _compose_service(relative_path: str, service_name: str) -> dict[str, Any]:"
     },
