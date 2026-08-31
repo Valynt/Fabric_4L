@@ -439,9 +439,11 @@ class TestMessageRouter:
     def test_update_agent_load_clamps(self, router):
         router.register_agent("agent-1", ["parsing"])
         router.update_agent_load("agent-1", 150)
-        assert router._agent_load["agent-1"] == 100
+        assert router.get_agent_load("agent-1") == 100
         router.update_agent_load("agent-1", -10)
-        assert router._agent_load["agent-1"] == 0
+        assert router.get_agent_load("agent-1") == 0
+        # Unregistered agents report a load of 0
+        assert router.get_agent_load("unknown-agent") == 0
 
     def test_get_all_capabilities(self, router):
         router.register_agent("agent-1", ["parsing", "ocr"])

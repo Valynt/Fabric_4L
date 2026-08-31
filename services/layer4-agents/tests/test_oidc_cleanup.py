@@ -82,11 +82,11 @@ class TestOIDCCleanupTask:
 
         # Start the task
         await task.start()
-        assert task._task is not None
+        assert task.running is True
 
         # Stop the task
         await task.stop()
-        assert task._task is None
+        assert task.running is False
 
     @pytest.mark.asyncio
     async def test_cleanup_task_runs_periodically(self):

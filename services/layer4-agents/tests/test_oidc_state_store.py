@@ -47,12 +47,23 @@ class _FrozenDateTime(datetime):
         return current if tz is None else current.astimezone(tz)
 
 
+def _assert_one_time_use(store, key: str, verifier: str) -> None:
+    """Assert the OIDC state store enforces one-time use for ``key``.
+
+    Shared round-trip probe: the first ``validate_and_consume`` returns the
+    stored verifier (and consumes it), the second returns ``None``. Used by
+    the in-memory and factory-backend tests to avoid duplicating the
+    store/consume/consume-again sequence.
+    """
+    assert store.validate_and_consume(key) == verifier
+    assert store.validate_and_consume(key) is None
+
+
 def test_in_memory_store_enforces_one_time_use() -> None:
     store = InMemoryOIDCStateStore(ttl_seconds=60, allow_non_production=True)
     store.store("state-1", "verifier-1")
 
-    assert store.validate_and_consume("state-1") == "verifier-1"
-    assert store.validate_and_consume("state-1") is None
+    _assert_one_time_use(store, "state-1", "verifier-1")
 
 
 def test_in_memory_store_enforces_expiry(monkeypatch) -> None:
@@ -110,4 +121,4 @@ def test_redis_store_enforces_expiry(monkeypatch) -> None:
 def test_factory_defaults_to_redis_backend() -> None:
     store = create_oidc_state_store(redis_client=_FakeRedis(), ttl_seconds=30)
     store.store("state-factory", "verifier-factory")
-    assert store.validate_and_consume("state-factory") == "verifier-factory"
+    _assert_one_time_use(store, "state-factory", "verifier-factory")
