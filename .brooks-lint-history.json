@@ -120,23 +120,27 @@
         "remediation_status": "open - findings accepted into backlog"
     },
     {
-        "date":  "2026-08-30",
-        "mode":  "Test Quality Review",
-        "score":  80,
-        "findings":  {
-                         "critical":  1,
-                         "warning":  1,
-                         "suggestion":  0
-                     },
-        "scope":  "priority billing + arch test files; sampled L4 billing unit tests",
-        "inspected_commit_sha":  "32e4b9cbf258aca1a24d1993e1abc2be284cfd7b",
-        "configuration":  "defaults; no .brooks-lint.yaml present",
-        "scoring_rubric":  "balanced preset: Critical -15, Warning -5, Suggestion -1; floor 0",
-        "run_type":  "executed billing+abuse suites (1 failed, 24 passed); static sampling of L4 billing tests; arch merge-marker scan timed out (pre-existing)",
-        "finding_ids":  [
-                            "T5-broken-ratchet-l7-ref",
-                            "T5-manifest-coverage-illusion"
-                        ],
-        "remediation_status":  "resolved - T5 broken ratchet fixed in 7a4d67775 (repointed to L4 test_webhook_security.py; 25 passed); T5 manifest pattern open in backlog"
+        "date": "2026-08-30",
+        "mode": "Test Quality Review",
+        "score": 87,
+        "findings": {
+            "critical": 0,
+            "warning": 2,
+            "suggestion": 3
+        },
+        "scope": "CI-baseline branch diff: api-harness.ts, L4 enrichment tests, visual baselines (origin/main...HEAD)",
+        "inspected_commit_sha": "59f896810",
+        "configuration": "defaults; no .brooks-lint.yaml present",
+        "scoring_rubric": "balanced preset: Critical -15, Warning -5, Suggestion -1; floor 0",
+        "finding_ids": [
+            "T3-stale-shadow-contract-models",
+            "T2-private-method-coupling-l4",
+            "T4-sysmodules-mock-preseed",
+            "T2-eager-tests-enrichment",
+            "T2b-visual-baselines-regen"
+        ],
+        "run_type": "inspection and sampling only; no executable tests run",
+        "report_location": "session files: brooks-test-review-2026-08-30.md",
+        "remediation_status": "open"
     }
 ]

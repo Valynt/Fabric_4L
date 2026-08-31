@@ -128,7 +128,9 @@ async def test_batch_status_sources_and_dependency(monkeypatch) -> None:
     assert status.total_accounts == 4 and status.coverage_pct == 75.0
 
     all_sources = service._determine_sources(account())
-    assert set(all_sources) == set(EnrichmentSource)
+    # CARGO is only emitted when an intelligence provider is configured;
+    # this service has none, so the legacy four are expected.
+    assert set(all_sources) == set(EnrichmentSource) - {EnrichmentSource.CARGO}
     assert (
         service._determine_sources(account(name="", annual_revenue=0, website=None, domain=None))
         == []

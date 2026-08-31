@@ -27,6 +27,21 @@ export function isLiveMode(): boolean {
   return BACKEND_URL.length > 0;
 }
 
+/**
+ * True when the app is built for legacy mock-auth mode
+ * (VITE_AUTH_PROVIDER=legacy + VITE_ENABLE_MOCK_AUTH=true), as configured by
+ * the p0-e2e-gate deterministic stack. In that mode the authorization plane is
+ * explicitly mocked, so installApiHarness mints the authorization snapshot
+ * locally in live mode too instead of 404ing against a backend that has no
+ * auth gateway.
+ */
+function isLegacyMockAuthMode(): boolean {
+  return (
+    process.env.VITE_AUTH_PROVIDER === "legacy" &&
+    process.env.VITE_ENABLE_MOCK_AUTH === "true"
+  );
+}
+
 // ── Types ───────────────────────────────────────────────────────────────────
 
 type LayerKey = "l1" | "l2" | "l3" | "l4" | "l5" | "l6";
@@ -192,11 +207,20 @@ function emptyWorkspaceTab(tabName: string): Record<string, unknown[]> {
   return { [tabName]: [] };
 }
 
+/**
+ * Authorization snapshot endpoint. Served only by services/api (the auth
+ * gateway), which the deterministic e2e backend stack
+ * (infra/compose/docker-compose.e2e.yml) deliberately omits. Contract mode and
+ * legacy mock-auth live mode both mint this endpoint locally so
+ * LegacyAuthorizationProvider does not 404.
+ */
+const AUTH_SNAPSHOT_PATTERN = /.*\/(?:api\/)?v1\/auth\/authorization-snapshot.*/;
+
 const DEFAULT_MOCKS: MockEndpoint[] = [
   // Fail-closed snapshot used by AuthorizationProvider in legacy e2e mode.
   // TTL is 4 minutes; mint per request so long Playwright files stay verified.
   {
-    pattern: /.*\/(?:api\/)?v1\/auth\/authorization-snapshot.*/,
+    pattern: AUTH_SNAPSHOT_PATTERN,
     method: "GET",
     getBody: route => {
       const accountId = route.request().headers()["x-account-id"]?.trim() || null;
@@ -556,7 +580,27 @@ export async function installApiHarness(
   options: ApiHarnessOptions = {}
 ): Promise<() => Promise<void>> {
   if (isLiveMode()) {
-    // In live mode, no mocking needed — requests go to real backend
+    // In live mode requests go to the real backend, with one exception: the
+    // deterministic backend stack omits services/api (the auth gateway), so in
+    // legacy mock-auth mode the app would 404 on the authorization snapshot
+    // that LegacyAuthorizationProvider requires. Mint the same fail-closed
+    // snapshot used in contract mode — the auth plane is already declared mock
+    // by the gate, and this is the only endpoint a live legacy-mock stack
+    // cannot serve.
+    if (isLegacyMockAuthMode()) {
+      const snapshotHandler = async (route: Route) => {
+        const accountId = route.request().headers()["x-account-id"]?.trim() || null;
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify(verifiedLegacyAuthorizationSnapshot(new Date(), accountId)),
+        });
+      };
+      await page.route(AUTH_SNAPSHOT_PATTERN, snapshotHandler);
+      return async () => {
+        await page.unroute(AUTH_SNAPSHOT_PATTERN, snapshotHandler);
+      };
+    }
     return async () => {};
   }
 
