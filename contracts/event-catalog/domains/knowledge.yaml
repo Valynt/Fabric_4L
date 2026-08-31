@@ -1,0 +1,36 @@
+# Knowledge Domain Event Catalog (stub)
+# Placeholder for canonical events owned by the knowledge graph bounded context.
+
+catalog_version: "1.0.0"
+domain: knowledge
+owner: layer3-knowledge
+
+entries:
+  - event_type: knowledge.entity.created.v1
+    name: Knowledge Entity Created
+    description: >
+      A new entity has been created in the knowledge graph. Placeholder entry
+      for knowledge domain event catalog.
+    domain: knowledge.graph
+    owner: layer3-knowledge/graph
+    producer: services/layer3-knowledge
+    triggered_by:
+      - entity.ingest
+      - entity.resolve
+    schema_ref: "jsonschema://knowledge/events/entity-created@1.0.0"
+    envelope_ref: "jsonschema://common/event-envelope@1.0.0"
+    subject_type: entity
+    tenant_scope: TENANT
+    delivery: AT_LEAST_ONCE
+    partition_key: tenant_id
+    consumer_effect_key: event.id
+    expected_latency_ms: 500
+    criticality: MEDIUM
+    transport_channel: knowledge.events
+    ordering_guarantee: PARTITION_ORDER
+    replay_behavior: IDEMPOTENT
+    retention_classification: LONG_TERM
+    sensitive_payload: false
+    event_class: DOMAIN_EVENT
+    status: DRAFT
+    consumers: []

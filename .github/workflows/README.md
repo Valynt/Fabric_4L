@@ -2,7 +2,7 @@
 
 ## Overview
 
-This directory currently contains **58** GitHub Actions workflow files.
+This directory currently contains **55** GitHub Actions workflow files.
 
 The authoritative ownership, trigger, secret, artifact, runtime, local-command,
 and deprecation inventory lives in:
@@ -25,7 +25,6 @@ to an existing canonical workflow.
 | `contract-compliance.yml` | Contract lint, drift, and compliance checks | `pull_request`, `push`, `schedule`, `workflow_dispatch` |
 | `security-gates.yml` | SAST/container/dependency security scans | `pull_request`, `push`, `schedule` |
 | `k8s-readiness.yml` | Kubernetes manifest validation and policy checks | `pull_request`, `push`, `workflow_dispatch` |
-| `openapi-drift-check.yml` | OpenAPI export and drift detection | `pull_request`, `push` |
 | `prod-readiness.yml` | Release-readiness evidence and policy gates | `pull_request`, `push`, `workflow_dispatch` |
 
 ### Scheduled / Continuous Assurance

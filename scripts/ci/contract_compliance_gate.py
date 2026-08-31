@@ -121,7 +121,6 @@ ALL_SPECS = tuple(SPEC_CONFIG)
 
 FORCE_FULL_PREFIXES = (
     ".github/workflows/contract-compliance.yml",
-    ".github/workflows/generated-api-freshness.yml",
     "scripts/export_openapi.py",
     "scripts/ci/contract_compliance_gate.py",
     "packages/platform-contract/scripts/generate-openapi-types.mjs",

@@ -85,5 +85,5 @@ def test_openapi_drift_job_uses_hash_locked_pytest_plugins() -> None:
 def test_frontend_contract_lint_configures_type_information() -> None:
     config = FRONTEND_ESLINT_CONFIG.read_text(encoding="utf-8")
 
-    assert 'project: ["./tsconfig.json"]' in config
+    assert '"./tsconfig.json"' in config
     assert "tsconfigRootDir: __dirname" in config

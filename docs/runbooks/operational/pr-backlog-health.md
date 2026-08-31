@@ -18,11 +18,26 @@ SEV3 — process hygiene. No immediate customer impact, but unchecked backlog ac
 - GitHub CLI (`gh`) authenticated with `repo` and `write:issues` scopes in the workflow.
 - Label `pr-backlog-health` exists in the repository.
 
+## Body
+
+The workflow appends two sections to the report issue body:
+
+1. **Backlog metrics** — stale PRs and required-check pass rate on `main`,
+   produced by `scripts/ci/collect_pr_backlog_metrics.py`.
+2. **Recurring CI failure backlog** — cross-PR failure signatures deduplicated
+   by workflow/job/failure signature over the last 14 days, produced by
+   `scripts/ci/generate_ci_failure_backlog.py` (capped at 500 collected failed
+   runs). One broken `main` dependency surfaces as a single owned incident row
+   with run IDs and a latest-log link, instead of scattered per-PR failures.
+
 ## Immediate Actions
 
 1. Open the latest `PR Backlog Health Report` issue (created by the scheduled workflow).
 2. Review the list of PRs older than 14 days.
 3. Review the required-check pass rate on `main` for the last 7 days.
+4. Review the recurring failure-backlog section for signatures with repeated
+   occurrences. Treat each recurring signature as one incident; triage it via
+   the CI gate remediation playbook rather than fixing PRs one at a time.
 
 ## Diagnosis Steps
 
@@ -30,8 +45,9 @@ SEV3 — process hygiene. No immediate customer impact, but unchecked backlog ac
    - blocked by a repo-wide gate (affects many PRs), or
    - blocked by a PR-specific failure.
 2. For repo-wide gate failures, follow the CI gate remediation playbook: root-cause on `main`, fix once, merge, then update all affected PRs.
-3. For PR-specific failures, add the `needs-author` label and request a fix.
-4. For conflicting PRs, add the `needs-rebase` label.
+3. For recurring failure signatures in the failure-backlog section, confirm they are not already tracked as an open incident (cross-check the failure-backlog JSON from the failed runs window against any open incident issues) before filing a new one.
+4. For PR-specific failures, add the `needs-author` label and request a fix.
+5. For conflicting PRs, add the `needs-rebase` label.
 
 ## Resolution Steps
 
@@ -49,6 +65,10 @@ SEV3 — process hygiene. No immediate customer impact, but unchecked backlog ac
 ## Rollback / Fallback
 
 - If the automated report fails to run, execute the equivalent `gh` commands locally and open a manual issue.
+
+## Customer / Stakeholder Communication
+
+- Notify PR authors and release owners of repo-wide gate failures, the remediation owner, safe actions to take, and the next status update. Do not characterize PR-specific failures as platform-wide.
 
 ## Evidence to Preserve
 
@@ -71,3 +91,7 @@ SEV3 — process hygiene. No immediate customer impact, but unchecked backlog ac
 
 - [CI Infisical OIDC recovery](ci-infisical-oidc-recovery.md)
 - [Incident command](../01-incident-command.md)
+
+## Post-Incident Follow-Up
+
+- Assign owners and due dates for recurring gate failures, stale PR disposition, workflow/report repairs, and any required update to this runbook.

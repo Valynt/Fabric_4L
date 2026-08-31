@@ -39,7 +39,7 @@ def _maintenance_audit_patch():
     context = MagicMock()
     context.__enter__ = Mock(return_value=record)
     context.__exit__ = Mock(return_value=False)
-    return patch("layer1_ingestion.shared.tasks.maintenance_audit_log", return_value=context)
+    return patch("layer1_ingestion.shared.tasks.cleanup.maintenance_audit_log", return_value=context)
 
 
 @pytest.fixture(autouse=True)
@@ -294,7 +294,16 @@ class TestProcessScrapingJob:
 
         expected = {"success": True, "job_id": str(uuid4())}
         task = getattr(tasks, task_name)
-        with patch(f"layer1_ingestion.shared.tasks.{helper_name}", new=AsyncMock(return_value=expected)):
+        # Moved helper globals now resolve through the owning submodule.
+        helper_modules = {
+            "_compliance_check_stage_async": "",
+            "_browser_crawl_stage_async": "crawl.",
+            "_ai_extraction_stage_async": "extraction.",
+        }
+        with patch(
+            f"layer1_ingestion.shared.tasks.{helper_modules[helper_name]}{helper_name}",
+            new=AsyncMock(return_value=expected),
+        ):
             result = task(*args)
 
         assert isinstance(result, dict)
@@ -342,7 +351,7 @@ class TestCleanupOldContent:
         mock_session.query.return_value.filter.return_value.update.return_value = 2
 
         with (
-            patch("layer1_ingestion.shared.tasks.get_db_session", return_value=mock_session),
+            patch("layer1_ingestion.shared.tasks.cleanup.get_db_session", return_value=mock_session),
             _maintenance_audit_patch(),
         ):
             result = cleanup_old_content(days=30, tenant_id=str(uuid4()))
@@ -368,7 +377,7 @@ class TestCleanupOldContent:
         query.filter.return_value.update.return_value = 1
 
         with (
-            patch("layer1_ingestion.shared.tasks.get_db_session", return_value=mock_session),
+            patch("layer1_ingestion.shared.tasks.cleanup.get_db_session", return_value=mock_session),
             _maintenance_audit_patch(),
         ):
             cleanup_old_content(days=30, tenant_id=str(uuid4()))
@@ -516,7 +525,7 @@ class TestCrawlUrlWithRouting:
         mock_session.__exit__ = Mock(return_value=False)
         mock_session.query.return_value.get.return_value = mock_job
 
-        with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=mock_session):
+        with patch("layer1_ingestion.shared.tasks.crawl.get_db_session", return_value=mock_session):
             try:
                 crawl_url_with_routing.run(
                     job_id=job_id,
@@ -619,7 +628,7 @@ class TestCeleryRetryBehavior:
         mock_session.query.return_value.filter.return_value.update.return_value = 0
 
         with (
-            patch("layer1_ingestion.shared.tasks.get_db_session", return_value=mock_session),
+            patch("layer1_ingestion.shared.tasks.cleanup.get_db_session", return_value=mock_session),
             _maintenance_audit_patch(),
         ):
             result = cleanup_old_content(days=30, tenant_id=str(uuid4()))
@@ -637,7 +646,7 @@ class TestCeleryRetryBehavior:
         mock_session.query.side_effect = Exception("Connection timeout")
 
         with (
-            patch("layer1_ingestion.shared.tasks.get_db_session", return_value=mock_session),
+            patch("layer1_ingestion.shared.tasks.cleanup.get_db_session", return_value=mock_session),
             _maintenance_audit_patch(),
         ):
             with pytest.raises(Exception, match="Connection timeout"):

@@ -29,6 +29,16 @@ updates:
         patterns:
           - "*"
 
+  # Archived docs snapshot (historical frontend lockfile) — alerts noise only.
+  # The snapshot is excluded from canonical workspace tooling (pnpm-workspace.yaml);
+  # suppress Dependabot PRs/alerts for it. See docs/supply-chain/dependabot-triage-2026-08-29.md.
+  - package-ecosystem: npm
+    directory: /docs/archive/frontend-root-2026-05-02/source-snapshot
+    schedule:
+      interval: weekly
+    ignore:
+      - dependency-name: "*"
+
   # Frontend
   - package-ecosystem: npm
     directory: /apps/web

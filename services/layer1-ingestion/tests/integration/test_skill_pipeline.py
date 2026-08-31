@@ -118,7 +118,7 @@ class TestStorageStageSourceCorpus:
         mock_session.query.side_effect = query_side_effect
         mock_session.add.side_effect = lambda obj: added_objects.append(obj)
 
-        with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=mock_session):
+        with patch("layer1_ingestion.shared.tasks.storage.get_db_session", return_value=mock_session):
             result = tasks_module.storage_stage({"job_id": str(job.id)}, str(job.tenant_id))
 
         return result, added_objects, mock_session
@@ -224,7 +224,7 @@ class TestStorageStageAccountIntelligencePacket:
         mock_session.query.side_effect = query_side_effect
         mock_session.add.side_effect = lambda obj: added_objects.append(obj)
 
-        with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=mock_session):
+        with patch("layer1_ingestion.shared.tasks.storage.get_db_session", return_value=mock_session):
             result = tasks_module.storage_stage({"job_id": str(job.id)}, str(job.tenant_id))
 
         return result, added_objects, mock_session
@@ -342,7 +342,7 @@ class TestFullSkillPipelineEventFlow:
         def capture_dispatch(args, countdown=None):
             dispatched_ids.append(args[0])
 
-        with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=notif_session):
+        with patch("layer1_ingestion.shared.tasks.notification.get_db_session", return_value=notif_session):
             with patch.object(tasks_module.dispatch_outbox_event, "apply_async", side_effect=capture_dispatch):
                 tasks_module.notification_stage({"job_id": str(job.id)}, str(job.tenant_id))
 
@@ -413,7 +413,7 @@ class TestFullSkillPipelineEventFlow:
         notif_session.query.side_effect = notif_query
         notif_session.add.side_effect = lambda obj: outbox_rows.append(obj) if isinstance(obj, EventOutbox) else None
 
-        with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=notif_session):
+        with patch("layer1_ingestion.shared.tasks.notification.get_db_session", return_value=notif_session):
             with patch.object(tasks_module.dispatch_outbox_event, "apply_async"):
                 tasks_module.notification_stage({"job_id": str(job.id)}, str(job.tenant_id))
 

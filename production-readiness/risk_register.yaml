@@ -32,6 +32,8 @@ risks:
     owner: Platform Security
     status: ACCEPTED
     status_note: Pending owner countersignature.
+    countersignature: MISSING
+    ground_truth_status: PENDING_COUNTERSIGNATURE
     risk: >
       Missing or stale tenant isolation evidence can allow cross-tenant read or
       write regressions to reach production.
@@ -50,6 +52,8 @@ risks:
     owner: Platform Engineering
     status: ACCEPTED
     status_note: Pending owner countersignature.
+    countersignature: MISSING
+    ground_truth_status: PENDING_COUNTERSIGNATURE
     risk: >
       Production-like golden path or core service failures can make launch
       unusable even when isolated checks pass.
@@ -89,6 +93,8 @@ risks:
     owner: SRE
     status: ACCEPTED
     status_note: Deferred to post-launch / pending owner countersignature.
+    countersignature: MISSING
+    ground_truth_status: PENDING_COUNTERSIGNATURE
     risk: >
       Missing dashboards, alert metadata, or receiver evidence reduces incident
       detection and response confidence.
@@ -105,6 +111,8 @@ risks:
     owner: Product Engineering
     status: ACCEPTED
     status_note: Scope out if unpaid; pending owner countersignature for paid GA.
+    countersignature: MISSING
+    ground_truth_status: PENDING_COUNTERSIGNATURE
     risk: >
       Paid launch without metering, entitlement, idempotency, and reconciliation
       evidence risks revenue and customer trust.
@@ -119,6 +127,8 @@ risks:
     owner: Compliance Owner
     status: ACCEPTED
     status_note: Pending owner countersignature.
+    countersignature: MISSING
+    ground_truth_status: PENDING_COUNTERSIGNATURE
     risk: Control evidence without owner review is not auditable for SOC2/ISO-style readiness.
     validation: "make production-readiness-gate audit/config tests pass"
     exit_criteria: >
@@ -142,6 +152,8 @@ risks:
     owner: Release Management + respective owners
     status: ACCEPTED
     status_note: Pending owner countersignature.
+    countersignature: MISSING
+    ground_truth_status: PENDING_COUNTERSIGNATURE
     risk: >
       P0-001 Playwright journeys and P0-002 rollback rehearsal require a
       configured launch environment. P0-003 enterprise SSO/OIDC is scoped out of

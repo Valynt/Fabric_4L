@@ -98,6 +98,7 @@
       "name": "Branch Protection Validation",
       "owner": "@value-fabric/sre-leads",
       "trigger": [
+        "pull_request",
         "schedule",
         "workflow_dispatch"
       ],
@@ -469,23 +470,6 @@
       "deprecation_status": "active"
     },
     {
-      "path": ".github/workflows/generated-api-freshness.yml",
-      "name": "Generated API Freshness",
-      "owner": "@value-fabric/sre-leads",
-      "trigger": [
-        "pull_request",
-        "push",
-        "workflow_dispatch"
-      ],
-      "trigger_purpose": "CI/CD",
-      "blocking": false,
-      "required_secrets": [],
-      "produced_artifacts": [],
-      "runtime_budget_minutes": 15,
-      "local_validation_command": "make check-workflow-references",
-      "deprecation_status": "active"
-    },
-    {
       "path": ".github/workflows/graph-module-tests.yml",
       "name": "Graph Module Tests",
       "owner": "@value-fabric/sre-leads",
@@ -607,21 +591,6 @@
       "deprecation_status": "active"
     },
     {
-      "path": ".github/workflows/merge-group.yml",
-      "name": "Merge Group",
-      "owner": "@value-fabric/sre-leads",
-      "trigger": [
-        "merge_group"
-      ],
-      "trigger_purpose": "CI/CD",
-      "blocking": false,
-      "required_secrets": [],
-      "produced_artifacts": [],
-      "runtime_budget_minutes": 10,
-      "local_validation_command": "make check-workflow-references",
-      "deprecation_status": "active"
-    },
-    {
       "path": ".github/workflows/monthly-debt-burndown.yml",
       "name": "monthly-debt-burndown",
       "owner": "@value-fabric/sre-leads",
@@ -635,22 +604,6 @@
       "produced_artifacts": [
         "artifacts/debt-burndown"
       ],
-      "runtime_budget_minutes": 30,
-      "local_validation_command": "make check-workflow-references",
-      "deprecation_status": "active"
-    },
-    {
-      "path": ".github/workflows/openapi-drift-check.yml",
-      "name": "OpenAPI Drift Check",
-      "owner": "@value-fabric/sre-leads",
-      "trigger": [
-        "pull_request",
-        "push"
-      ],
-      "trigger_purpose": "CI/CD",
-      "blocking": false,
-      "required_secrets": [],
-      "produced_artifacts": [],
       "runtime_budget_minutes": 30,
       "local_validation_command": "make check-workflow-references",
       "deprecation_status": "active"
@@ -729,7 +682,7 @@
         "GITHUB_TOKEN"
       ],
       "produced_artifacts": [],
-      "runtime_budget_minutes": 10,
+      "runtime_budget_minutes": 30,
       "local_validation_command": "make check-workflow-references",
       "deprecation_status": "active"
     },
@@ -757,6 +710,7 @@
         "apps/web/e2e-results/**",
         "apps/web/frontend-junit.xml",
         "apps/web/playwright-report/**",
+        "artifacts/ci-structural-contract-tests.txt",
         "artifacts/compatibility-debt/",
         "artifacts/critical-behaviors-gate/result.json",
         "artifacts/docker-compose-config/**",
@@ -764,6 +718,7 @@
         "artifacts/docs-validation/docs-validation-summary.md",
         "artifacts/docs-validation/stale-documents.json",
         "artifacts/duplicate-source-trees.json",
+        "artifacts/event-catalog-gate.json",
         "artifacts/l3-contract-drift.json",
         "artifacts/layer-quality-scorecard.md",
         "artifacts/layer3-audited-mutation-violations.json",
@@ -783,6 +738,8 @@
         "artifacts/release_smoke/**",
         "artifacts/route-tenant-propagation.json",
         "artifacts/route-tenant-propagation.md",
+        "artifacts/semgrep-static-contract-tests.txt",
+        "artifacts/shared-boundary-surfaces.txt",
         "artifacts/shared-imports-runtime.json",
         "artifacts/structural-preflight.json",
         "artifacts/tenant-isolation/summary.json",
@@ -961,7 +918,7 @@
         "stack-health.json",
         "trivy-${{ matrix.service }}.*"
       ],
-      "runtime_budget_minutes": 30,
+      "runtime_budget_minutes": 5,
       "local_validation_command": "make check-workflow-references",
       "deprecation_status": "active"
     },

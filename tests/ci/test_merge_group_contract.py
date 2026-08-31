@@ -111,14 +111,14 @@ def test_change_scope_action_supports_merge_group() -> None:
         "base_sha" in with_clause
     ), "change-scope filter step missing base_sha parameter"
     assert (
-        "head_sha" in with_clause
-    ), "change-scope filter step missing head_sha parameter"
+        "sha" in with_clause
+    ), "change-scope filter step missing sha parameter"
     assert (
         "merge_group.base_sha" in with_clause["base_sha"]
     ), "base_sha does not resolve merge_group.base_sha"
     assert (
-        "merge_group.head_sha" in with_clause["head_sha"]
-    ), "head_sha does not resolve merge_group.head_sha"
+        "merge_group.head_sha" in with_clause["sha"]
+    ), "sha does not resolve merge_group.head_sha"
 
 
 def test_all_aggregates_defined_with_valid_needs() -> None:

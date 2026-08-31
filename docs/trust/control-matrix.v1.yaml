@@ -54,7 +54,7 @@ controls:
       - services/layer4-agents/src/layer4_agents/tenants/api/routes/users.py
       - services/layer4-agents/src/layer4_agents/tenants/api/routes/api_keys.py
       - services/layer4-agents/src/layer4_agents/api/routes/analysis.py
-      - services/layer1-ingestion/src/shared/tasks.py
+      - services/layer1-ingestion/src/layer1_ingestion/shared/tasks/cleanup.py
     monitoring_signals:
       - ci: .github/workflows/audit-evidence.yml
       - process: docs/runbooks/compliance/quarterly-control-attestation.md
@@ -75,8 +75,8 @@ controls:
         retention_days: 30
         deletion_enforcement: service_cleanup_managers
     implementation_files:
-      - services/layer1-ingestion/src/shared/config.py
-      - services/layer1-ingestion/src/shared/tasks.py
+      - services/layer1-ingestion/src/layer1_ingestion/shared/config.py
+      - services/layer1-ingestion/src/layer1_ingestion/shared/tasks/cleanup.py
       - services/layer4-agents/migrations/versions/003_add_audit_events.py
     monitoring_signals:
       - ci: .github/workflows/pr-checks.yml
