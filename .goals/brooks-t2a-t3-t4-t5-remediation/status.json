@@ -1,6 +1,6 @@
 ﻿{
     "goal_id":  "brooks-t2a-t3-t4-t5-remediation",
-    "status":  "inspecting",
+    "status":  "completed",
     "iteration":  1,
     "builder_model":  "OpenAI:GPT-5.6 Luna",
     "inspector_model":  "OpenAI:GPT-5.6 Sol",
