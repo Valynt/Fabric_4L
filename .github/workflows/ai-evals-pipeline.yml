@@ -120,6 +120,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: discover-skills
     if: needs.discover-skills.outputs.should_run_evals == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    env:
+      INFISICAL_IDENTITY_ID: ${{ secrets.INFISICAL_IDENTITY_ID }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -133,7 +135,7 @@ jobs:
       # once Infisical project is fully populated and CI validation passes.
       # Target: after first successful Infisical-only CI run.
       - name: Fetch secrets from Infisical
-        if: secrets.INFISICAL_IDENTITY_ID != ''
+        if: env.INFISICAL_IDENTITY_ID != ''
         id: infisical
         uses: Infisical/secrets-action@77ab1f4ccd183a543cb5b42435fbd181189f4995  # v1.0.16
         with:
@@ -184,7 +186,12 @@ jobs:
     name: Run Skill Evaluations
     runs-on: ubuntu-latest
     needs: [discover-skills, setup-evals]
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    # Guard empty matrix: when changed_skills is '[]', creating zero matrix
+    # jobs makes GitHub conclude the run as failed (see actions/runner#2205).
+    # An explicit skip preserves the intended 9-job graph.
+    if: needs.discover-skills.outputs.changed_skills != '[]' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    env:
+      INFISICAL_IDENTITY_ID: ${{ secrets.INFISICAL_IDENTITY_ID }}
     strategy:
       fail-fast: false
       matrix:
@@ -201,7 +208,7 @@ jobs:
       # once Infisical project is fully populated and CI validation passes.
       # Target: after first successful Infisical-only CI run.
       - name: Fetch secrets from Infisical
-        if: secrets.INFISICAL_IDENTITY_ID != ''
+        if: env.INFISICAL_IDENTITY_ID != ''
         id: infisical
         uses: Infisical/secrets-action@77ab1f4ccd183a543cb5b42435fbd181189f4995  # v1.0.16
         with:
@@ -216,6 +223,9 @@ jobs:
           cd services/layer4-agents
           pip install -e . --quiet
           pip install pytest pytest-asyncio --quiet
+          pip install pytest-timeout pytest-randomly pytest-json-report --quiet
+          # Root conftest.py policy chain requires jsonschema + PyYAML.
+          pip install jsonschema pyyaml --quiet
 
       - name: Run evaluation for ${{ matrix.skill }}
         run: |
@@ -227,6 +237,7 @@ jobs:
             pytest "$EVAL_FILE" \
               -v \
               --tb=short \
+              --no-mandatory-dep-check \
               --json-report \
               --json-report-file="eval-${SKILL_NAME}.json"
           else
@@ -295,7 +306,11 @@ jobs:
     name: Run Agent Evaluations
     runs-on: ubuntu-latest
     needs: [discover-skills, setup-evals]
-    if: needs.discover-skills.outputs.changed_agents != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    # Guard empty matrix: '[]' != '' (existing guard) lets empty arrays through,
+    # producing a zero-job matrix and a failed run conclusion (actions/runner#2205).
+    if: needs.discover-skills.outputs.changed_agents != '[]' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    env:
+      INFISICAL_IDENTITY_ID: ${{ secrets.INFISICAL_IDENTITY_ID }}
     strategy:
       fail-fast: false
       matrix:
@@ -313,11 +328,15 @@ jobs:
         run: |
           cd services/layer4-agents
           pip install -e . --quiet
+          pip install pytest --quiet
+          pip install pytest-timeout pytest-randomly pytest-json-report --quiet
+          # Root conftest.py policy chain requires jsonschema + PyYAML.
+          pip install jsonschema pyyaml --quiet
 
       # once Infisical project is fully populated and CI validation passes.
       # Target: after first successful Infisical-only CI run.
       - name: Fetch secrets from Infisical
-        if: secrets.INFISICAL_IDENTITY_ID != ''
+        if: env.INFISICAL_IDENTITY_ID != ''
         id: infisical
         uses: Infisical/secrets-action@77ab1f4ccd183a543cb5b42435fbd181189f4995  # v1.0.16
         with:
@@ -334,7 +353,7 @@ jobs:
 
           if [ -f "$EVAL_FILE" ]; then
             echo "🧪 Running agent evaluation: $EVAL_FILE"
-            pytest "$EVAL_FILE" -v --tb=short
+            pytest "$EVAL_FILE" -v --tb=short --no-mandatory-dep-check
           else
             echo "⚠️ No evaluation found for agent $AGENT_NAME"
           fi
@@ -347,6 +366,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: setup-evals
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    env:
+      INFISICAL_IDENTITY_ID: ${{ secrets.INFISICAL_IDENTITY_ID }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -361,11 +382,14 @@ jobs:
           cd services/layer4-agents
           pip install -e . --quiet
           pip install pytest --quiet
+          pip install pytest-timeout pytest-randomly pytest-json-report --quiet
+          # Root conftest.py policy chain requires jsonschema + PyYAML.
+          pip install jsonschema pyyaml --quiet
 
       # once Infisical project is fully populated and CI validation passes.
       # Target: after first successful Infisical-only CI run.
       - name: Fetch secrets from Infisical
-        if: secrets.INFISICAL_IDENTITY_ID != ''
+        if: env.INFISICAL_IDENTITY_ID != ''
         id: infisical
         uses: Infisical/secrets-action@77ab1f4ccd183a543cb5b42435fbd181189f4995  # v1.0.16
         with:
@@ -384,6 +408,7 @@ jobs:
             pytest tests/evals/test_golden_traces.py \
               -v \
               --tb=short \
+              --no-mandatory-dep-check \
               --json-report \
               --json-report-file="golden-traces-results.json"
           else
@@ -441,6 +466,13 @@ jobs:
               print(f"❌ Error analyzing results: {e}")
               sys.exit(1)
           EOF
+
+      - name: Upload golden trace results
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-results-golden-traces
+          path: golden-traces-results.json
+          retention-days: 30
 
   # ============================================================================
   # Compare Against Baseline
@@ -521,7 +553,10 @@ jobs:
           results_dir = Path('./eval-results')
 
           if results_dir.exists():
-              for result_file in results_dir.glob('eval-*.json'):
+              for result_file in sorted(
+                  list(results_dir.glob('eval-*.json')) +
+                  list(results_dir.glob('golden-*.json'))
+              ):
                   try:
                       with open(result_file) as f:
                           data = json.load(f)
@@ -740,6 +775,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: aggregate-results
     if: github.ref == 'refs/heads/main' && needs.aggregate-results.outputs.passed == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    env:
+      INFISICAL_IDENTITY_ID: ${{ secrets.INFISICAL_IDENTITY_ID }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -760,7 +797,7 @@ jobs:
       # once Infisical project is fully populated and CI validation passes.
       # Target: after first successful Infisical-only CI run.
       - name: Fetch secrets from Infisical
-        if: secrets.INFISICAL_IDENTITY_ID != ''
+        if: env.INFISICAL_IDENTITY_ID != ''
         id: infisical
         uses: Infisical/secrets-action@77ab1f4ccd183a543cb5b42435fbd181189f4995  # v1.0.16
         with:
