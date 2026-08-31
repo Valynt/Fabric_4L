@@ -1,4 +1,4 @@
-﻿"""Contract test: versioned shared-boundary surfaces are pinned and bounded (R2).
+"""Contract test: versioned shared-boundary surfaces are pinned and bounded (R2).
 
 Enforces the brooks-shared-hub-remediation Step 4 remediation: the ``identity`` and
 ``error_handling`` modules are shared kernels imported by every service, so a change to

@@ -15,6 +15,7 @@ import httpx
 from celery import chain
 from celery.signals import task_failure
 
+from ..config import settings
 from ..dlq import (
     DLQ_QUEUE_NAME,
     DLQ_TASK_NAME,
@@ -170,8 +171,6 @@ async def _verify_l3_graph_population(tenant_id: str, source_version_id: str) ->
 
     Calls L3 /v1/query/entities with source_version_id filter and returns count.
     """
-
-    from ..config import settings
 
     l3_url = settings.layer3_api_url
     service_secret = os.getenv("SERVICE_AUTH_SECRET", "")
