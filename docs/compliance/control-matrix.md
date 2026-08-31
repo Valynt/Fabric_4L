@@ -6,7 +6,7 @@ This matrix maps major SOC 2, GDPR, HIPAA, and CCPA control themes to concrete *
 
 - **Scope:** Current repository implementation.
 - **Last reviewed:** 2026-08-30.
-- **Update trigger:** Any PR that changes security/governance-sensitive files must also evaluate (and, when needed, update) this matrix. Updated for CI-baseline repair (PR #1585) covering CI-control-plane structural contract tests in `pr-checks.yml`, runtime contract readiness hardening (L1–L6 health + strict contract env), and recurring CI-failure backlog reporting in `pr-backlog-health.yml`. Updated for Event Catalog validation gate (PR #1588) enforcing canonical event ownership, schema linkage, consumer version declarations, and deprecation policy in `pr-checks.yml`.
+- **Update trigger:** Any PR that changes security/governance-sensitive files must also evaluate (and, when needed, update) this matrix. Updated for CI-baseline repair (PR #1585) covering CI-control-plane structural contract tests in `pr-checks.yml`, runtime contract readiness hardening (L1–L6 health + strict contract env), and recurring CI-failure backlog reporting in `pr-backlog-health.yml`. Updated for Event Catalog validation gate (PR #1588) enforcing canonical event ownership, schema linkage, consumer version declarations, and deprecation policy in `pr-checks.yml`. Updated for R2 versioned shared-boundary surfaces (PR #1594) adding the bounded-change policy: each shared boundary (e.g., `shared.identity`) declares a `SURFACE_VERSION` marker and `scripts/ci/check_shared_boundary_surfaces.py` (wired into `pr-checks.yml` preflight) enforces that contract changes require a coordinated version bump and a regenerated `config/ci/shared_surface_contract.json`.
 
 ---
 

@@ -739,6 +739,7 @@
         "artifacts/route-tenant-propagation.json",
         "artifacts/route-tenant-propagation.md",
         "artifacts/semgrep-static-contract-tests.txt",
+        "artifacts/shared-boundary-surfaces.txt",
         "artifacts/shared-imports-runtime.json",
         "artifacts/structural-preflight.json",
         "artifacts/tenant-isolation/summary.json",

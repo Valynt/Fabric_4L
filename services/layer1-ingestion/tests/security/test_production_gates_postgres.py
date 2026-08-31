@@ -21,6 +21,7 @@ import pytest
 import time
 import uuid
 from datetime import datetime, timezone, timedelta
+from pathlib import Path
 from unittest.mock import patch, MagicMock
 
 from layer1_ingestion.shared.exceptions import (
@@ -58,6 +59,17 @@ from layer1_ingestion.shared.models import (
 
 
 pytestmark = pytest.mark.requires_postgres
+
+# Resolve source paths relative to this test file (services/layer1-ingestion/tests/security/)
+_L1_SRC = Path(__file__).resolve().parents[2] / "src" / "layer1_ingestion"
+_TASKS_DIR = _L1_SRC / "shared" / "tasks"
+
+
+def _read_tasks_source() -> str:
+    """Concatenate all tasks package submodule sources."""
+    return "".join(
+        p.read_text(encoding="utf-8") for p in sorted(_TASKS_DIR.glob("*.py"))
+    )
 
 
 class TestProductionGateTokenSeparation:
@@ -530,9 +542,7 @@ class TestProductionGateExceptionHandling:
         from pathlib import Path
         
         # Read tasks.py to check for dangerous patterns
-        tasks_file = Path(__file__).parent.parent.parent / 'src' / 'layer1_ingestion' / 'shared' / 'tasks.py'
-        with open(tasks_file, 'r') as f:
-            content = f.read()
+        content = _read_tasks_source()
         
         # Find all bare except Exception patterns
         dangerous_patterns = re.findall(r'except\s+Exception\s*:', content)

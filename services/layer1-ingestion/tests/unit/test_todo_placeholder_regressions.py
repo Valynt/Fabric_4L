@@ -37,7 +37,7 @@ COMPLIANCE_HANDLERS_PATH = (
     / "api"
     / "compliance_handlers.py"
 )
-TASKS_PATH = Path(__file__).resolve().parents[2] / "src" / "layer1_ingestion" / "shared" / "tasks.py"
+TASKS_PATH = Path(__file__).resolve().parents[2] / "src" / "layer1_ingestion" / "shared" / "tasks"
 
 
 def test_api_runtime_placeholders_not_hardcoded() -> None:
@@ -84,5 +84,8 @@ def test_api_unknown_values_include_explanatory_metadata() -> None:
 
 def test_task_extraction_time_not_hardcoded_zero() -> None:
     """Extraction timing in storage stage must not use a fixed 0 value."""
-    source = TASKS_PATH.read_text(encoding="utf-8")
+    source = "".join(
+        p.read_text(encoding="utf-8")
+        for p in sorted(TASKS_PATH.glob("*.py"))
+    )
     assert "extraction_time_ms=0" not in source

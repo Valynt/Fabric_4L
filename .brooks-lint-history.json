@@ -1,4 +1,4 @@
-﻿[
+[
     {
         "date":  "2026-08-26",
         "mode":  "Tech Debt Assessment",
@@ -43,6 +43,17 @@
         "run_type":  "inspection and sampling only; no executable tests run",
         "report_location":  "session files: brooks-test-review-2026-08-28.md",
         "remediation_status":  "open - findings accepted into backlog"
+    },
+    {
+        "date":  "2026-08-29",
+        "mode":  "Health Dashboard",
+        "score":  93,
+        "findings":  {
+                         "critical":  0,
+                         "warning":  4,
+                         "suggestion":  1
+                     },
+        "scope":  "entire repository"
     },
     {
         "date": "2026-08-29",

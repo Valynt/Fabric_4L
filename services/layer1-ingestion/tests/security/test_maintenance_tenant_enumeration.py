@@ -34,7 +34,7 @@ def bypass_maintenance_auth(monkeypatch):
         lambda operation, tenant_id=None: None,
     )
     monkeypatch.setattr(
-        "layer1_ingestion.shared.tasks.authorize_maintenance_operation",
+        "layer1_ingestion.shared.tasks.cleanup.authorize_maintenance_operation",
         lambda operation, tenant_id=None: None,
     )
 

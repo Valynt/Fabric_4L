@@ -73,6 +73,15 @@ from .checkpoint_replay import (
 )
 from .execution_checkpointing import persist_interruption_if_needed
 from .execution_dispatch import build_workflow_task, initialize_workflow_run_context
+from .execution_helpers import (
+    build_lifecycle_context,
+    calculate_progress,
+    extract_tenant_timeout,
+    fmt_dt,
+    fmt_enum,
+    resolve_workflow_timeout_seconds,
+    wait_for_workflow,
+)
 from .execution_persistence import (
     archive_workflow_state,
     mark_workflow_running,
@@ -128,14 +137,6 @@ class OrchestrationController_get_cluster_healthResult(TypedDictModel):
 logger = logging.getLogger(__name__)
 lifecycle_logger = Layer4LifecycleLogger(logger)
 _tracer = trace.get_tracer(__name__)
-
-
-TENANT_WORKFLOW_TIMEOUT_SETTINGS_PATHS: tuple[tuple[str, ...], ...] = (
-    ("layer4", "workflow", "timeout_seconds"),
-    ("layer4", "workflow_timeout_seconds"),
-    ("workflow", "timeout_seconds"),
-    ("workflow_timeout_seconds",),
-)
 
 
 # ---------------------------------------------------------------------------
@@ -197,12 +198,12 @@ class OrchestrationController:
     @staticmethod
     def _fmt_enum(value: Any) -> str:
         """Serialize an enum-like value consistently."""
-        return value.value if hasattr(value, "value") else str(value)
+        return fmt_enum(value)
 
     @staticmethod
     def _fmt_dt(dt: datetime | None) -> str | None:
         """Serialize a datetime to ISO format."""
-        return dt.isoformat() if dt else None
+        return fmt_dt(dt)
 
     def _lifecycle_context(
         self,
@@ -216,20 +217,12 @@ class OrchestrationController:
         Falls back to workflow metadata when no explicit tenant_id is provided.
         Uses distinct run_id and trace_id from the canonical run envelope when available.
         """
-        meta = self._workflow_metadata.get(workflow_id, {})
-        envelope_data = meta.get("run_envelope", {})
-
-        kwargs: dict[str, Any] = {
-            "request_id": workflow_id,
-            "trace_id": envelope_data.get("trace_id") or workflow_id,
-            "tenant_id": tenant_id or str(meta.get("tenant_id") or "unknown"),
-            "workflow_id": workflow_id,
-            "run_id": envelope_data.get("run_id") or workflow_id,
-            "provider_name": "langgraph",
-        }
-        if checkpoint_id is not None:
-            kwargs["checkpoint_id"] = checkpoint_id
-        return Layer4EventContext(**kwargs)
+        return build_lifecycle_context(
+            self._workflow_metadata,
+            workflow_id,
+            tenant_id=tenant_id,
+            checkpoint_id=checkpoint_id,
+        )
 
     @staticmethod
     def _compute_state_hash(state: AgentState) -> str:
@@ -1715,60 +1708,12 @@ class OrchestrationController:
             await asyncio.sleep(0.5)
 
     def _extract_tenant_timeout(self, tenant_settings: dict[str, Any] | None) -> int | None:
-        if not tenant_settings:
-            return None
-        cursor: Any
-        for path in TENANT_WORKFLOW_TIMEOUT_SETTINGS_PATHS:
-            cursor = tenant_settings
-            for key in path:
-                if not isinstance(cursor, dict) or key not in cursor:
-                    cursor = None
-                    break
-                cursor = cursor[key]
-            if isinstance(cursor, int):
-                return cursor
-        return None
+        """Resolve a tenant-scoped workflow timeout override, if configured."""
+        return extract_tenant_timeout(tenant_settings)
 
     async def _resolve_workflow_timeout_seconds(self, tenant_id: str | None) -> tuple[int, str]:
-        from ..config.settings import get_settings
-
-        source = "service_default"
-        selected = get_settings().workflow_timeout_seconds
-
-        if tenant_id:
-            try:
-                from value_fabric.shared.identity.context import RequestContext
-
-                from ..database import db_session_for_context
-                from ..tenants.service import get_tenant_settings
-
-                tenant_uuid = UUID(str(tenant_id))
-                async with db_session_for_context(RequestContext(tenant_id=tenant_uuid)) as db:
-                    tenant_settings = await get_tenant_settings(db, tenant_uuid)
-                tenant_timeout = self._extract_tenant_timeout(tenant_settings)
-                if tenant_timeout is not None:
-                    selected = tenant_timeout
-                    source = "tenant_settings"
-            except asyncio.CancelledError:
-                raise
-            except Exception:
-                logger.debug(
-                    "Tenant timeout override resolution failed for tenant_id=%s",
-                    tenant_id,
-                    exc_info=True,
-                )
-
-        min_timeout = get_settings().workflow_timeout_min_seconds
-        max_timeout = get_settings().workflow_timeout_max_seconds
-        if not isinstance(selected, int) or selected < min_timeout or selected > max_timeout:
-            source = "safe_fallback"
-            selected = get_settings().workflow_timeout_fallback_seconds
-
-        if selected < min_timeout:
-            selected = min_timeout
-        if selected > max_timeout:
-            selected = max_timeout
-        return selected, source
+        """Resolve the effective workflow timeout and its provenance source."""
+        return await resolve_workflow_timeout_seconds(tenant_id)
 
     async def _wait_for_workflow(self, workflow_id: str) -> AgentState:
         """Wait for workflow completion (legacy, no timeout).
@@ -1779,19 +1724,7 @@ class OrchestrationController:
         Returns:
             Final workflow state
         """
-        # Poll until complete
-        while True:
-            state = await self.state_manager.load_state(workflow_id)
-
-            if state and state.status in [
-                WorkflowStatus.COMPLETED,
-                WorkflowStatus.FAILED,
-                WorkflowStatus.CANCELLED,
-                WorkflowStatus.INTERRUPTED,
-            ]:
-                return state
-
-            await asyncio.sleep(0.5)
+        return await wait_for_workflow(self.state_manager, workflow_id)
 
     def _calculate_progress(self, state: AgentState) -> int:
         """Calculate workflow progress percentage.
@@ -1802,18 +1735,7 @@ class OrchestrationController:
         Returns:
             Progress percentage (0-100)
         """
-        # Simple heuristic based on status
-        status_progress = {
-            WorkflowStatus.PENDING: 0,
-            WorkflowStatus.RUNNING: 50,
-            WorkflowStatus.PAUSED: 50,
-            WorkflowStatus.INTERRUPTED: 25,
-            WorkflowStatus.COMPLETED: 100,
-            WorkflowStatus.FAILED: 100,
-            WorkflowStatus.CANCELLED: 100,
-        }
-
-        return status_progress.get(state.status, 0)
+        return calculate_progress(state)
 
     async def _on_task_complete(self, task: ScheduledTask) -> None:
         """Callback for task completion.
