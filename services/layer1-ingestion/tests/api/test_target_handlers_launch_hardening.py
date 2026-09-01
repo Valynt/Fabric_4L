@@ -48,8 +48,7 @@ def test_execute_target_dispatch_failure_does_not_leave_queued_job(
 
     assert response.status_code == 503
     payload = response.json()
-    detail = payload.get("detail", payload)
-    assert detail["code"] == "SERVICE_UNAVAILABLE"
+    assert payload["error"]["code"] == "SERVICE_UNAVAILABLE"
 
     jobs = (
         db.query(ScrapingJob)
