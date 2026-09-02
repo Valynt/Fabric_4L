@@ -59,11 +59,34 @@ jobs:
       k8s: ${{ steps.scope.outputs.k8s }}
       deps: ${{ steps.scope.outputs.deps }}
       runtime: ${{ steps.scope.outputs.runtime }}
+      ci-global: ${{ steps.scope.outputs.ci-global }}
+      ci-tooling: ${{ steps.scope.outputs.ci-tooling }}
+      ci-governance: ${{ steps.scope.outputs.ci-governance }}
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
       - name: Resolve change scopes
         id: scope
         uses: ./.depot/actions/change-scope
+      - name: Post-resolve change scopes
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          echo "layer1=true" >> $GITHUB_OUTPUT
+          echo "layer2=true" >> $GITHUB_OUTPUT
+          echo "layer3=true" >> $GITHUB_OUTPUT
+          echo "layer4=true" >> $GITHUB_OUTPUT
+          echo "layer5=true" >> $GITHUB_OUTPUT
+          echo "layer6=true" >> $GITHUB_OUTPUT
+          echo "backend=true" >> $GITHUB_OUTPUT
+          echo "web=true" >> $GITHUB_OUTPUT
+          echo "code=true" >> $GITHUB_OUTPUT
+          echo "docker=true" >> $GITHUB_OUTPUT
+          echo "k8s=true" >> $GITHUB_OUTPUT
+          echo "deps=true" >> $GITHUB_OUTPUT
+          echo "runtime=true" >> $GITHUB_OUTPUT
+          echo "ci-global=true" >> $GITHUB_OUTPUT
+          echo "ci-tooling=true" >> $GITHUB_OUTPUT
+          echo "ci-governance=true" >> $GITHUB_OUTPUT
   structural-preflight:
     name: Structural Preflight
     runs-on: depot-ubuntu-latest # was: ubuntu-latest. Mapped standard GitHub runner to Depot equivalent.
@@ -113,10 +136,8 @@ jobs:
           python scripts/ci/check_frontend_root_policy.py --base-ref "origin/${{ github.base_ref || 'main' }}"
       - name: Enforce package manager policy (root + apps/web)
         run: pnpm run check:package-manager-policy
-      - name: Enforce type escape ratchet
-        run: make check-type-escape-ratchet
-      - name: Enforce structural fitness ratchet
-        run: make check-structural-fitness-ratchet
+      - name: Run all health ratchets (single entry point)
+        run: make check-health-ratchets
       - name: Verify schema index coverage
         run: pnpm test:schema
       - name: Enforce Vault dev-mode boundaries (compose + release manifests)
