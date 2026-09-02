@@ -31,7 +31,7 @@ RUN arch="$(dpkg --print-architecture)" \
     && curl -fsSL "https://github.com/sigstore/cosign/releases/download/${COSIGN_VERSION}/cosign-linux-${arch}" -o /usr/local/bin/cosign \
     && chmod 0755 /usr/local/bin/cosign \
     && curl -1sLf "https://dl.cloudsmith.io/public/infisical/infisical-cli/setup.deb.sh" | bash \
-    && apt-get update && apt-get install -y infisical
+    && apt-get update && apt-get install -y "infisical=${INFISICAL_VERSION}"
 
 
 RUN mkdir -p /workspace/Fabric_4L /workspace-support /run/user/1000 /var/tmp \
