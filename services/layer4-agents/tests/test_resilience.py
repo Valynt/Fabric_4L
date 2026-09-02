@@ -8,7 +8,6 @@ Covers:
 """
 
 
-import asyncio
 import time
 from unittest.mock import patch
 
@@ -41,14 +40,22 @@ class TestTokenBucket:
         assert bucket.refill_rate == 1.0
 
     @pytest.mark.unit
-    def test_consume_succeeds_when_tokens_available(self):
-        """consume() returns True and decrements tokens when there are enough."""
+    def test_consume_succeeds_when_tokens_available(self, monkeypatch):
+        """consume() returns True and decrements tokens exactly when there are enough."""
+        clock = {"now": 1_000.0}
+        monkeypatch.setattr(time, "time", lambda: clock["now"])
+
         bucket = TokenBucket(capacity=10, refill_rate=1.0, tokens=5.0)
+        # The bucket is created before monkeypatching the time source in this test,
+        # so the initial last_refill can be stale relative to the patched clock.
+        # Resetting it to the frozen now keeps the elapsed delta consistent with the
+        # virtual-time setup and avoids a misleading refill calculation.
+        bucket.last_refill = clock["now"]
         result = bucket.consume(1)
         assert result is True
-        # tokens may have been refilled slightly due to elapsed time; check it decreased
-        # (allow a small tolerance for refill between creation and consume)
-        assert bucket.tokens <= 5.0
+        # The clock is frozen, so no refill can occur between creation and consume;
+        # the 5.0-token bucket must hold exactly 4.0 after consuming 1.
+        assert bucket.tokens == pytest.approx(4.0)
 
     @pytest.mark.unit
     def test_consume_fails_when_insufficient_tokens(self):
@@ -73,19 +80,27 @@ class TestTokenBucket:
         assert bucket.tokens == pytest.approx(2.0)
 
     @pytest.mark.unit
-    def test_refill_adds_tokens_over_time(self):
+    def test_refill_adds_tokens_over_time(self, monkeypatch):
         """_refill() adds tokens proportional to elapsed time."""
+        clock = {"now": 1_000.0}
+        monkeypatch.setattr(time, "time", lambda: clock["now"])
+
         bucket = TokenBucket(capacity=10, refill_rate=10.0, tokens=0.0)
-        # Simulate 1 second passing
-        bucket.last_refill = time.time() - 1.0
+        # Simulate 1 second passing on the virtual clock.
+        bucket.last_refill = clock["now"]
+        clock["now"] += 1.0
         bucket._refill()
         assert bucket.tokens == pytest.approx(10.0)  # 10 tokens/sec × 1 sec, capped at capacity
 
     @pytest.mark.unit
-    def test_refill_does_not_exceed_capacity(self):
+    def test_refill_does_not_exceed_capacity(self, monkeypatch):
         """_refill() never exceeds bucket capacity."""
+        clock = {"now": 1_000.0}
+        monkeypatch.setattr(time, "time", lambda: clock["now"])
+
         bucket = TokenBucket(capacity=5, refill_rate=100.0, tokens=0.0)
-        bucket.last_refill = time.time() - 10.0  # 10 seconds elapsed
+        bucket.last_refill = clock["now"]
+        clock["now"] += 10.0  # 10 seconds elapsed on the virtual clock
         bucket._refill()
         assert bucket.tokens == pytest.approx(5.0)
 
@@ -284,8 +299,11 @@ class TestCircuitBreaker:
 
     @pytest.mark.unit
     @pytest.mark.asyncio
-    async def test_circuit_transitions_to_half_open_after_timeout(self):
+    async def test_circuit_transitions_to_half_open_after_timeout(self, monkeypatch):
         """Circuit transitions to HALF_OPEN after recovery_timeout elapses."""
+        clock = {"now": 1_000.0}
+        monkeypatch.setattr(time, "time", lambda: clock["now"])
+
         breaker = CircuitBreaker(
             service_name="test-service",
             failure_threshold=1,
@@ -301,19 +319,21 @@ class TestCircuitBreaker:
 
         assert breaker.state == CircuitState.OPEN
 
-        # Wait for recovery timeout
-        await asyncio.sleep(0.05)
+        # Advance past the recovery timeout on the virtual clock.
+        clock["now"] += 1.0
 
-        # Force state update
-        async with breaker._lock:
-            await breaker._update_state()
+        # Force state update via the public refresh seam.
+        await breaker.refresh_state()
 
         assert breaker.state == CircuitState.HALF_OPEN
 
     @pytest.mark.unit
     @pytest.mark.asyncio
-    async def test_half_open_success_closes_circuit(self):
+    async def test_half_open_success_closes_circuit(self, monkeypatch):
         """A successful call in HALF_OPEN state closes the circuit."""
+        clock = {"now": 1_000.0}
+        monkeypatch.setattr(time, "time", lambda: clock["now"])
+
         breaker = CircuitBreaker(
             service_name="test-service",
             failure_threshold=1,
@@ -331,10 +351,9 @@ class TestCircuitBreaker:
         with pytest.raises(RuntimeError):
             await breaker.call(failing_func)
 
-        # Wait for recovery
-        await asyncio.sleep(0.05)
-        async with breaker._lock:
-            await breaker._update_state()
+        # Advance past the recovery timeout on the virtual clock.
+        clock["now"] += 1.0
+        await breaker.refresh_state()
         assert breaker.state == CircuitState.HALF_OPEN
 
         # Call succeeds in half-open, closes circuit
@@ -345,8 +364,11 @@ class TestCircuitBreaker:
 
     @pytest.mark.unit
     @pytest.mark.asyncio
-    async def test_half_open_failure_reopens_circuit(self):
+    async def test_half_open_failure_reopens_circuit(self, monkeypatch):
         """A failure in HALF_OPEN state re-opens the circuit."""
+        clock = {"now": 1_000.0}
+        monkeypatch.setattr(time, "time", lambda: clock["now"])
+
         breaker = CircuitBreaker(
             service_name="test-service",
             failure_threshold=1,
@@ -361,10 +383,9 @@ class TestCircuitBreaker:
         with pytest.raises(RuntimeError):
             await breaker.call(failing_func)
 
-        # Wait for recovery
-        await asyncio.sleep(0.05)
-        async with breaker._lock:
-            await breaker._update_state()
+        # Advance past the recovery timeout on the virtual clock.
+        clock["now"] += 1.0
+        await breaker.refresh_state()
         assert breaker.state == CircuitState.HALF_OPEN
 
         # Fail again in half-open

@@ -70,7 +70,9 @@ class SlowTool(BaseTool):
     timeout_seconds = 0.01
 
     async def execute(self, input_data: SlowInput) -> dict[str, Any]:
-        await asyncio.sleep(1)
+        # Latency simulation only to exceed the 0.01s tool timeout; not a
+        # wall-clock synchronization point for assertions.
+        await asyncio.sleep(0.05)
         return {"value": input_data.value}
 
 

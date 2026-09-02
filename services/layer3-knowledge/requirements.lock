@@ -1643,7 +1643,9 @@ tqdm==4.67.3 \
 transformers==5.16.1 \
     --hash=sha256:17b0eac726ddc55e84ac58946063e0c6d37fd000c456b581f050ea0f4e822869 \
     --hash=sha256:2f2d5b98a5ad3718713653734298fa620754ed683702a635ebb587df3ed29c7e
-    # via sentence-transformers
+    # via
+    #   layer3-knowledge
+    #   sentence-transformers
 triton==3.7.1 ; python_full_version < '3.15' and sys_platform == 'linux' \
     --hash=sha256:10ba85fa2cca4a2fbdeb36bf1cb082f2c252bda55bf9fccd74f65ec5bc647e68 \
     --hash=sha256:2020153b08280415ec0da6607834e79166442147e78e144df06b508c75b186d2 \
