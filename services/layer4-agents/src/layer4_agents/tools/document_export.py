@@ -7,7 +7,6 @@ from datetime import datetime
 from io import BytesIO
 from typing import Any
 
-import aiofiles
 from jinja2 import Template, select_autoescape
 
 # Optional weasyprint import - allows tests to run without it
@@ -489,8 +488,12 @@ class PDFGenerator:
         pdf_bytes = result.pdf_bytes
 
         if output_path:
-            async with aiofiles.open(output_path, "wb") as f:
-                await f.write(pdf_bytes)
-            self.logger.info(f"PDF saved to {output_path}")
+            await asyncio.to_thread(self._write_bytes_to_path, output_path, pdf_bytes)
+            self.logger.info("PDF saved to %s", output_path)
 
         return pdf_bytes
+
+    @staticmethod
+    def _write_bytes_to_path(path: str, payload: bytes) -> None:
+        with open(path, "wb") as file:
+            file.write(payload)
