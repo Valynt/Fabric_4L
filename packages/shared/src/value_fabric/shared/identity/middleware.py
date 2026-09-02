@@ -35,7 +35,7 @@ from fastapi import HTTPException, Request, Response, status
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp
-from value_fabric.shared.error_handling import sanitize_log_error
+from value_fabric.shared.error_handling.helpers import sanitize_log_error
 from value_fabric.shared.tenant_kill_switch import (
     TenantKillSwitch,
     TenantSuspensionStatus,
