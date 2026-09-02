@@ -18,8 +18,10 @@ from typing import Any
 
 import pytest
 
-# Service endpoints (overridable via environment)
-BILLING_URL = os.getenv("BILLING_URL", "http://localhost:8000")
+# Service endpoints (overridable via environment). The canonical billing runtime
+# lives in Layer 4, so the billing integration fallback must resolve to the L4
+# service rather than the removed standalone billing port.
+BILLING_URL = os.getenv("BILLING_URL") or os.getenv("LAYER4_API_URL", "http://localhost:8004")
 LAYER25_URL = os.getenv("LAYER25_URL", "http://localhost:8007")
 JAEGER_URL = os.getenv("JAEGER_URL", "http://localhost:16686")
 
