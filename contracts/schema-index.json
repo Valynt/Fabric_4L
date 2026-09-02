@@ -363,7 +363,7 @@
     {
       "path": "contracts/openapi/layer5-ground-truth.json",
       "id": "openapi:contracts/openapi/layer5-ground-truth.json",
-      "title": "Value Fabric— Ground Truth Layer (L5)"
+      "title": "Value Fabric\u2014 Ground Truth Layer (L5)"
     },
     {
       "path": "contracts/openapi/layer6-benchmarks.json",
@@ -929,6 +929,11 @@
       "path": "contracts/agent-registry/workflows/whitespace_analysis.json",
       "id": "contract:contracts/agent-registry/workflows/whitespace_analysis.json",
       "title": "Whitespace Analysis"
+    },
+    {
+      "path": "contracts/event-catalog/README.md",
+      "id": "contract:contracts/event-catalog/README.md",
+      "title": "Readme"
     }
   ],
   "ignored_orphans": []
