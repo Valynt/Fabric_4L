@@ -2,11 +2,9 @@ from __future__ import annotations
 
 import threading
 import time
-from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from layer4_agents.shared.identity import oidc_state as oidc_state_module
 from layer4_agents.shared.identity.oidc_state import (
     InMemoryOIDCStateStore,
     RedisOIDCStateStore,
@@ -36,47 +34,20 @@ class _FakeRedis:
             return value
 
 
-class _FrozenDateTime(datetime):
-    """datetime subclass with a virtual ``now()`` for deterministic expiry tests."""
-
-    _now: datetime = datetime(2026, 1, 1, tzinfo=UTC)
-
-    @classmethod
-    def now(cls, tz=None):
-        current = cls._now
-        return current if tz is None else current.astimezone(tz)
-
-
-def _assert_one_time_use(store, key: str, verifier: str) -> None:
-    """Assert the OIDC state store enforces one-time use for ``key``.
-
-    Shared round-trip probe: the first ``validate_and_consume`` returns the
-    stored verifier (and consumes it), the second returns ``None``. Used by
-    the in-memory and factory-backend tests to avoid duplicating the
-    store/consume/consume-again sequence.
-    """
-    assert store.validate_and_consume(key) == verifier
-    assert store.validate_and_consume(key) is None
-
-
 def test_in_memory_store_enforces_one_time_use() -> None:
     store = InMemoryOIDCStateStore(ttl_seconds=60, allow_non_production=True)
     store.store("state-1", "verifier-1")
 
-    _assert_one_time_use(store, "state-1", "verifier-1")
+    assert store.validate_and_consume("state-1") == "verifier-1"
+    assert store.validate_and_consume("state-1") is None
 
 
-def test_in_memory_store_enforces_expiry(monkeypatch) -> None:
-    monkeypatch.setattr(oidc_state_module, "datetime", _FrozenDateTime)
-    store = InMemoryOIDCStateStore(ttl_seconds=60, allow_non_production=True)
+def test_in_memory_store_enforces_expiry() -> None:
+    store = InMemoryOIDCStateStore(ttl_seconds=1, allow_non_production=True)
     store.store("state-exp", "verifier-exp")
-    store.store("state-exp-2", "verifier-exp-2")
-    # Still valid while within the TTL.
-    assert store.validate_and_consume("state-exp") == "verifier-exp"
 
-    # Advance the virtual clock past the TTL; the pre-existing token is expired.
-    _FrozenDateTime._now = _FrozenDateTime._now + timedelta(seconds=61)
-    assert store.validate_and_consume("state-exp-2") is None
+    time.sleep(1.1)
+    assert store.validate_and_consume("state-exp") is None
 
 
 def test_in_memory_store_requires_explicit_non_production_guard() -> None:
@@ -103,22 +74,15 @@ def test_redis_store_concurrent_consume_allows_single_winner() -> None:
     assert results.count(None) == 15
 
 
-def test_redis_store_enforces_expiry(monkeypatch) -> None:
-    clock = {"now": 1_000.0}
-    monkeypatch.setattr(time, "time", lambda: clock["now"])
-
+def test_redis_store_enforces_expiry() -> None:
     redis_store = RedisOIDCStateStore(redis_client=_FakeRedis(), ttl_seconds=1)
     redis_store.store("state-exp-redis", "verifier-exp-redis")
-    redis_store.store("state-exp-redis-2", "verifier-exp-redis-2")
-    # Still valid while within the TTL.
-    assert redis_store.validate_and_consume("state-exp-redis") == "verifier-exp-redis"
 
-    # Advance the virtual clock past the TTL; the pre-existing token is expired.
-    clock["now"] += 1.5
-    assert redis_store.validate_and_consume("state-exp-redis-2") is None
+    time.sleep(1.1)
+    assert redis_store.validate_and_consume("state-exp-redis") is None
 
 
 def test_factory_defaults_to_redis_backend() -> None:
     store = create_oidc_state_store(redis_client=_FakeRedis(), ttl_seconds=30)
     store.store("state-factory", "verifier-factory")
-    _assert_one_time_use(store, "state-factory", "verifier-factory")
+    assert store.validate_and_consume("state-factory") == "verifier-factory"

@@ -89,11 +89,6 @@ class OIDCCleanupTask:
         self._task: asyncio.Task | None = None
         self._stop_event = asyncio.Event()
 
-    @property
-    def running(self) -> bool:
-        """Whether the background cleanup task is currently started."""
-        return self._task is not None
-
     async def start(self) -> None:
         """Start the background cleanup task."""
         if self._task is not None:

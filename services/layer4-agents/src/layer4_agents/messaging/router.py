@@ -122,17 +122,6 @@ class MessageRouter:
         if agent_id in self._agent_load:
             self._agent_load[agent_id] = max(0, min(100, load))
 
-    def get_agent_load(self, agent_id: str) -> int:
-        """Get an agent's current load.
-
-        Args:
-            agent_id: Agent identifier
-
-        Returns:
-            Current load (0-100), or 0 for an unregistered agent.
-        """
-        return self._agent_load.get(agent_id, 0)
-
     def route_task(
         self,
         capability: str,

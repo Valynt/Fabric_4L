@@ -1,6 +1,6 @@
 # Multi-stage build for Layer 4: Agentic Workflow Engine (uv edition)
 # Stage 1: Builder - compiles dependencies using uv.lock
-ARG BASE_IMAGE=python@sha256:d1e9ca7c4e78d1e8ecadb5d44bfc8e956e7a65b659a9950f569f243d72b326d0
+ARG BASE_IMAGE=python@sha256:f5cf0344c9886ff24d34797578d5d7dd6e8911ae0fe5962bb55d0f89603ec361
 FROM ${BASE_IMAGE} AS builder
 
 WORKDIR /app
@@ -20,7 +20,7 @@ COPY pyproject.toml uv.lock ./
 RUN uv pip sync uv.lock --target /app/venv
 
 # Stage 2: Runtime - minimal image with only runtime libraries
-ARG BASE_IMAGE=python@sha256:d1e9ca7c4e78d1e8ecadb5d44bfc8e956e7a65b659a9950f569f243d72b326d0
+ARG BASE_IMAGE=python@sha256:f5cf0344c9886ff24d34797578d5d7dd6e8911ae0fe5962bb55d0f89603ec361
 FROM ${BASE_IMAGE} AS runtime
 
 # Install only runtime library (libpq for psycopg2)

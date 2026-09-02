@@ -8,8 +8,6 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from _wait_utils import wait_for_background_tasks, wait_until
-
 from layer4_agents.messaging.bus import InMemoryMessageBus, create_message_bus
 from layer4_agents.messaging.router import MessageRouter
 from layer4_agents.messaging.types import (
@@ -213,11 +211,9 @@ class TestInMemoryMessageBus:
             payload={"task": "test"},
             recipient_id="agent-2",
         )
-        # Signal-based wait for the background delivery to complete.
-        await wait_until(
-            lambda: len(received) == 1,
-            description="message delivered to subscriber",
-        )
+        # Allow async delivery
+        await asyncio.sleep(0.1)
+        assert len(received) == 1
         assert received[0].payload == {"task": "test"}
 
     @pytest.mark.asyncio
@@ -228,16 +224,13 @@ class TestInMemoryMessageBus:
             received.append(msg)
 
         await bus.subscribe("agent-1", MessageType.STATUS_UPDATE, handler)
-        tasks_before = {t for t in asyncio.all_tasks()}
         await bus.publish(
             agent_id="agent-1",
             event_type=MessageType.STATUS_UPDATE,
             payload={"status": "busy"},
         )
-        # Flush the background delivery, then assert the sender got nothing.
-        await wait_for_background_tasks(
-            tasks_before, description="status update delivery"
-        )
+        await asyncio.sleep(0.1)
+        # Sender should not receive own message
         assert len(received) == 0
 
     @pytest.mark.asyncio
@@ -259,10 +252,9 @@ class TestInMemoryMessageBus:
             event_type=MessageType.STATUS_UPDATE,
             payload={"status": "starting"},
         )
-        await wait_until(
-            lambda: len(received_a) == 1 and len(received_b) == 1,
-            description="broadcast delivered to both subscribers",
-        )
+        await asyncio.sleep(0.1)
+        assert len(received_a) == 1
+        assert len(received_b) == 1
 
     @pytest.mark.asyncio
     async def test_unsubscribe(self, bus):
@@ -274,17 +266,13 @@ class TestInMemoryMessageBus:
         await bus.subscribe("agent-2", MessageType.TASK_ASSIGNMENT, handler)
         await bus.unsubscribe("agent-2", MessageType.TASK_ASSIGNMENT)
 
-        tasks_before = {t for t in asyncio.all_tasks()}
         await bus.publish(
             agent_id="agent-1",
             event_type=MessageType.TASK_ASSIGNMENT,
             payload={},
             recipient_id="agent-2",
         )
-        # Flush the background delivery, then assert nothing was received.
-        await wait_for_background_tasks(
-            tasks_before, description="delivery after unsubscribe"
-        )
+        await asyncio.sleep(0.1)
         assert len(received) == 0
 
     @pytest.mark.asyncio
@@ -298,17 +286,13 @@ class TestInMemoryMessageBus:
         await bus.subscribe("agent-2", MessageType.STATUS_UPDATE, handler)
         await bus.unsubscribe("agent-2")  # Unsubscribe from all
 
-        tasks_before = {t for t in asyncio.all_tasks()}
         await bus.publish(
             agent_id="agent-1",
             event_type=MessageType.TASK_ASSIGNMENT,
             payload={},
             recipient_id="agent-2",
         )
-        # Flush the background delivery, then assert nothing was received.
-        await wait_for_background_tasks(
-            tasks_before, description="delivery after unsubscribe-all"
-        )
+        await asyncio.sleep(0.1)
         assert len(received) == 0
 
     @pytest.mark.asyncio
@@ -347,10 +331,8 @@ class TestInMemoryMessageBus:
             payload={"for": "agent-2 only"},
             recipient_id="agent-2",
         )
-        await wait_until(
-            lambda: len(received_target) == 1,
-            description="targeted message delivered to recipient",
-        )
+        await asyncio.sleep(0.1)
+        assert len(received_target) == 1
         assert len(received_other) == 0
 
 
@@ -439,11 +421,9 @@ class TestMessageRouter:
     def test_update_agent_load_clamps(self, router):
         router.register_agent("agent-1", ["parsing"])
         router.update_agent_load("agent-1", 150)
-        assert router.get_agent_load("agent-1") == 100
+        assert router._agent_load["agent-1"] == 100
         router.update_agent_load("agent-1", -10)
-        assert router.get_agent_load("agent-1") == 0
-        # Unregistered agents report a load of 0
-        assert router.get_agent_load("unknown-agent") == 0
+        assert router._agent_load["agent-1"] == 0
 
     def test_get_all_capabilities(self, router):
         router.register_agent("agent-1", ["parsing", "ocr"])
@@ -488,11 +468,9 @@ class TestMessageRouter:
             capability="parsing",
             payload={"doc": "test.pdf"},
         )
-        await wait_until(
-            lambda: len(received) == 1,
-            description="routed message delivered",
-        )
+        await asyncio.sleep(0.1)
         assert recipient == "agent-2"
+        assert len(received) == 1
 
     @pytest.mark.asyncio
     async def test_route_and_send_no_agent(self, bus, router):

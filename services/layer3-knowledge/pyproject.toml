@@ -29,7 +29,6 @@ dependencies = [
     "aiocache>=0.12.3",
     "jsonschema>=4.0",
     "sentence-transformers>=2.3",
-    "transformers>=5.10.0",
     "psutil>=5.9",
     "sqlalchemy>=2.0",
     "pyjwt>=2.13.0",
