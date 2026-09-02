@@ -84,7 +84,7 @@ def main() -> int:
                     file=sys.stderr,
                 )
 
-    # Any matrix entries that do not appear in the spec at all.
+    # Matrix entries that never appear in the spec at all.
     spec_ids = {
         (path_item.get(method) or {}).get("operationId")
         for path_item in paths.values()

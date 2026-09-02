@@ -554,7 +554,9 @@ def _atomic_write_json(data: dict[str, Any], output_path: Path) -> None:
         raise
 
 
-def _stamp_layer4_tenant_scope(spec: OpenApiExportSpec, openapi_spec: dict[str, Any]) -> dict[str, Any]:
+def _stamp_layer4_tenant_scope(
+    spec: OpenApiExportSpec, openapi_spec: dict[str, object]
+) -> dict[str, object]:
     """Inject ``x-tenant-scope`` into every Layer 4 operation.
 
     Scope values come from ``contracts/layer4-route-contract-matrix.json``
@@ -579,7 +581,11 @@ def _stamp_layer4_tenant_scope(spec: OpenApiExportSpec, openapi_spec: dict[str, 
         if method and path and scope:
             scope_by_key[(method, path)] = scope
 
-    paths = openapi_spec.get("paths") or {}
+    paths = openapi_spec.get("paths")
+    if not isinstance(paths, dict):
+        raise RuntimeError(
+            f"[{spec.label}] spec has no top-level 'paths' object to stamp"
+        )
     unstamped: list[str] = []
     for path, path_item in paths.items():
         if not isinstance(path_item, dict):
