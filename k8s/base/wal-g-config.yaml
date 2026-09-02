@@ -6,8 +6,8 @@ metadata:
   name: wal-g-config
   namespace: value-fabric
 data:
-  # Sprint 1 / Phase 0: WAL-G is the active backup path (pg_dump demoted to cold archive).
-  ENABLE_WALG_BACKUP: "true"
+  # Sprint 1 / Phase 0: WAL-G is gated off until restore validation evidence is available.
+  ENABLE_WALG_BACKUP: "false"
   WALG_COMPRESSION_METHOD: "lz4"
   WALG_DELTA_MAX_STEPS: "7"
   WALG_UPLOAD_CONCURRENCY: "4"

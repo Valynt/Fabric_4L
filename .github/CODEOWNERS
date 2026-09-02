@@ -164,7 +164,6 @@ services/layer4-agents/src/layer4_agents/workflows/ @value-fabric/agent-team @va
 # Build and dependency files
 Makefile @value-fabric/sre-leads @value-fabric/maintainers
 nx.json @value-fabric/sre-leads @value-fabric/maintainers
-tools/fabric-cli/ @value-fabric/sre-leads @value-fabric/maintainers
 pyproject.toml @value-fabric/backend-leads @value-fabric/sre-leads
 package.json @value-fabric/frontend-leads @value-fabric/sre-leads
 pnpm-lock.yaml @value-fabric/frontend-leads @value-fabric/sre-leads
