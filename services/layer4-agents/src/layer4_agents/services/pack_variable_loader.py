@@ -254,10 +254,8 @@ class PackVariableLoader:
         def _read_json(p: Path) -> dict:
             return json.loads(p.read_text(encoding="utf-8"))
 
-        var_data, formula_data = await asyncio.gather(
-            asyncio.to_thread(_read_json, variables_path),
-            asyncio.to_thread(_read_json, formulas_path),
-        )
+        var_data = await asyncio.to_thread(_read_json, variables_path)
+        formula_data = await asyncio.to_thread(_read_json, formulas_path)
 
         # Build set of valid variable names from the pack file
         valid_names = {

@@ -56,7 +56,7 @@ The devcontainer automatically runs bootstrap and environment verification on cr
 make verify                          # Run platform verification
 ```
 
-For detailed architecture commands, see [docs/development/DEV_CONTAINERS.md](docs/development/DEV_CONTAINERS.md), [docs/development/BUILD_SYSTEM.md](docs/development/BUILD_SYSTEM.md), [docs/development/COMMANDS.md](docs/development/COMMANDS.md), and [docs/development/DISCOVERY_MAP.md](docs/development/DISCOVERY_MAP.md).
+For detailed architecture commands, see [docs/development/DEV_CONTAINERS.md](docs/development/DEV_CONTAINERS.md), [docs/development/BUILD_SYSTEM.md](docs/development/BUILD_SYSTEM.md), and [docs/development/COMMANDS.md](docs/development/COMMANDS.md).
 
 ---
 

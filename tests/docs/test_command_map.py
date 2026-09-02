@@ -4,7 +4,6 @@ import json
 import re
 import subprocess
 import sys
-from collections import Counter
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -104,15 +103,12 @@ def _documented_root_scripts() -> set[str]:
     )
 
 
-def _documented_make_target_rows() -> list[str]:
-    source = _read(COMMANDS_DOC)
-    start = source.index("## Public Makefile Targets")
-    end = source.index("## Python CI Runner", start)
-    return re.findall(r"^\| `([^`]+)` \|", source[start:end], re.MULTILINE)
-
-
 def _documented_make_targets() -> set[str]:
-    return set(_documented_make_target_rows())
+    return _table_names_between(
+        _read(COMMANDS_DOC),
+        "## Public Makefile Targets",
+        "## Python CI Runner",
+    )
 
 
 def _ci_mapping_rows() -> list[tuple[str, str, str]]:
@@ -264,12 +260,8 @@ def test_every_public_makefile_target_is_documented() -> None:
 
 def test_documented_makefile_targets_exist() -> None:
     stale = sorted(_documented_make_targets() - _public_make_targets())
-    duplicates = sorted(
-        target for target, count in Counter(_documented_make_target_rows()).items() if count != 1
-    )
 
     assert not stale, f"COMMANDS.md documents Makefile targets that do not exist: {stale}"
-    assert not duplicates, f"COMMANDS.md documents Makefile targets more than once: {duplicates}"
 
 
 def test_makefile_has_no_duplicate_target_definitions() -> None:

@@ -6,7 +6,7 @@
         test-frontend build docker-build docker-build-multi migrate migrate-layer1 migrate-layer2 migrate-layer2-5 migrate-layer4 migrate-layer5 migrate-api db-migrate-status db-migrate-check gate-database gate-database-live db-production-readiness-gate evals perf-test perf-eval clean sdk check-layer4-boundaries check-layer4-collection check-layer4-canonical-paths \
         setup bootstrap \
         check-env check-env-backend check-env-frontend validate-env-contract \
-        preflight up down logs check-deprecations test-backup-drills \
+        preflight up down logs check-deprecations test-backup-drills db-production-readiness-gate \
 	test-backend-integrated-validation test-backend-integrated-release-smoke production-edge-smoke \
 	certify-meridian-journey \
 	check-workflow-matrix check-workflow-registry check-workflow-references \
@@ -19,7 +19,7 @@
 	gate-performance-readiness gate-data-governance-readiness gate-compliance-readiness gate-incident-response-readiness \
 	gate-behavior-readiness check-behavior-readiness-audit \
 	gates-validate-policy gates-sign-manifest gates-render-summary release-gate \
-	architecture-readiness-gate security-readiness-gate gate-all \
+	db-production-readiness-gate architecture-readiness-gate security-readiness-gate gate-all \
 	gate-production gate-production-core tier0-production-safety-gate tier1-beta-readiness-gate tier2-enterprise-readiness-gate production-readiness-gate \
 	release-evidence-packet collect-95-plus-evidence collect-95-plus-evidence-focused \
 	generate-sbom-and-provenance compose-config-validate helm-dependency-validate \
@@ -28,7 +28,7 @@
 	validate-launch-contract release-baseline certify-release-candidate build-release-evidence \
 	platform-contract-lint setup-hooks check-ui-duplicates check-readiness-consistency \
 	check-pytest-skip-governance check-type-escape-ratchet check-conflict-markers check-legacy-debt check-operational-debt check-reports-evidence-policy check-no-nul-bytes check-migration-entrypoints check-migration-heads check-migration-status-artifacts \
-	check-migration-rollback-policy check-migration-runtime-consistency check-database-governance-docs check-migration-postgres-roundtrip \
+	check-migration-rollback-policy check-migration-runtime-consistency check-database-governance-docs check-migration-postgres-roundtrip gate-database gate-database-live db-production-readiness-gate \
 	check-temporal-skips check-hermetic-build-inputs check-production-k8s-mutable-tags check-k8s-image-digests \
 	check-keycloak-realm-seed-security \
 	check-manifest-secret-hygiene \
@@ -41,22 +41,11 @@
 	check-test-skip-register-uniqueness \
 	check-raw-http-exception-usage \
 	check-behavior-contract \
+	check-behavior-readiness-audit \
 	harness-task harness-guard harness-check \
 	docs-harness \
 	contracts validate-openapi-contracts contract-drift contract-freshness-fast contract-freshness \
 	auth-dev
-
-.PHONY: verify-structure check-model-provider-boundaries check-hostile-tenant-evidence \
-	check-dead-code check-structural-fitness-ratchet mypy-changed-layer1 \
-	test-e2e-contracts test-e2e-behaviors test-e2e-journeys test-backend-contracts \
-	certify-production-path seed-e2e reset-e2e test-e2e-full pact-tests test-unit \
-	test-integration test-e2e-docker test-fast setup-layer2-5 test-layer1-integration \
-	test-layer1-security-postgres test-layer5 test-layer6 test-shared test-e2e \
-	security-smoke security-test-gating security-test security-test-isolation \
-	security-test-rbac security-test-owasp security-test-injection security-coverage \
-	evals-full perf-test-journeys check-tool-contracts check-deprecated-tracer-imports \
-	check-risk-register debt-baseline-snapshot check-health-ratchets gate-tenant-isolation \
-	promote-staging lint-release clean-root-debris check-value-fabric-public-imports
 
 auth-dev: ## Seed local dev auth environment with mock users, tenants, and envelopes
 	@$(PYTHON) scripts/dev_auth_seed.py
@@ -97,21 +86,21 @@ help: ## Show this help
 
 # ─── Verification ────────────────────────────────────────────────────────────
 
-VERIFY_CHECKS := check-health-ratchets \
+VERIFY_CHECKS := check-conflict-markers check-no-nul-bytes check-migration-heads \
 	check-keycloak-realm-seed-security check-manifest-secret-hygiene check-path-env-hygiene \
 	check-trivy-ignore-policy check-security-exceptions check-model-provider-boundaries \
 	lint typecheck test contract-tests security-smoke \
 	check-deprecations check-tool-contracts check-deprecated-tracer-imports \
 	platform-contract-lint check-ui-duplicates check-readiness-consistency \
-	check-workflow-matrix check-workflow-references \
+	check-workflow-matrix check-test-skip-register-uniqueness \
 	check-pytest-skip-governance check-layer3-legacy-tenant-dependency-imports \
 	check-hermetic-build-inputs check-production-k8s-mutable-tags check-k8s-image-digests \
-	check-value-fabric-public-imports check-behavior-readiness-audit verify-structure docs-harness
+	check-value-fabric-public-imports check-legacy-debt check-structural-fitness-ratchet check-operational-debt check-behavior-contract check-behavior-readiness-audit check-compatibility-shims check-dead-code verify-structure docs-harness
 
 verify: $(VERIFY_CHECKS) ## Run all checks before PR
 	@echo "✅  All checks passed"
 
-verify-structure: check-model-provider-boundaries check-temporal-skips ## Run structural preflight and Python contract lint checks
+verify-structure: ## Run structural preflight and Python contract lint checks
 	@echo "→ Running structural preflight..."
 	@$(PYTHON) scripts/ci/structural_preflight.py --strict
 	@echo "→ Running Python contract lint..."
@@ -126,6 +115,12 @@ verify-structure: check-model-provider-boundaries check-temporal-skips ## Run st
 	@$(PYTHON) scripts/ci/check_navigation_patterns.py --strict
 	@echo "→ Running Layer 4 bounded-context dependency check..."
 	@$(PYTHON) scripts/ci/check_layer4_boundaries.py
+	@echo "→ Running model-provider boundary ratchet..."
+	@$(PYTHON) scripts/ci/check_model_provider_boundaries.py
+	@echo "→ Running temporal skip guard..."
+	@$(PYTHON) scripts/ci/check_temporal_skips.py \
+		--json-out artifacts/test-debt-governance.json \
+		--md-out artifacts/test-debt-governance.md
 	@echo "✅  Structure verification passed"
 
 check-layer4-boundaries: ## Report/fail on Layer 4 bounded-context dependency violations and transitive hotspots
@@ -157,10 +152,8 @@ check-workflow-registry: ## Validate GitHub Actions workflow ownership and artif
 	@$(PYTHON) scripts/ci/sync_ci_gate_docs.py --check
 	@$(PYTHON) scripts/ci/verify_workflow_registry.py
 
-check-workflow-references: ## Validate task inventory and GitHub/Depot workflow task/artifact references
+check-workflow-references: ## Validate GitHub Actions workflow command and artifact references
 	@$(PYTHON) scripts/ci/check_workflow_targets_and_artifacts.py
-	@$(PYTHON) scripts/ci/check_workflow_task_parity.py
-	@$(PYTHON) scripts/ci/generate_make_task_inventory.py --check
 
 check-conflict-markers: ## Fail if unresolved merge conflict markers exist in tracked source files
 	@$(PYTHON) scripts/ci/check_conflict_markers.py
@@ -186,7 +179,8 @@ check-path-env-hygiene: ## Fail on suspicious tracked path artifacts and unappro
 check-migration-entrypoints: ## Ensure maintained services expose migration entrypoints and revision history commands
 	@$(PYTHON) scripts/ci/check_migration_entrypoints.py
 
-check-migration-heads: check-migration-entrypoints ## Compatibility alias: validate one Alembic head per maintained service
+check-migration-heads: ## Fast static check: exactly one head per Alembic-managed service
+	@$(PYTHON) scripts/ci/check_migration_entrypoints.py
 
 check-migration-rollback-policy: ## Enforce rollback documentation and approval for unsupported downgrades
 	@$(PYTHON) scripts/ci/check_migration_rollback_policy.py
@@ -869,7 +863,7 @@ check-risk-register: ## Fail on un-countersigned ACCEPTED P0 risks
 debt-baseline-snapshot: ## Aggregate checked-in debt baselines into config/ci/phase0_debt_baseline.json
 	@$(PYTHON) scripts/ci/debt_baseline_snapshot.py
 
-check-health-ratchets: check-conflict-markers check-no-nul-bytes check-type-escape-ratchet check-structural-fitness-ratchet check-dead-code check-legacy-debt check-operational-debt check-behavior-contract check-compatibility-shims check-temporal-skips check-test-skip-register-uniqueness check-reports-evidence-policy check-migration-entrypoints check-migration-rollback-policy check-migration-runtime-consistency check-risk-register ## Run all fail-on-net-new health ratchets (single entry point)
+check-health-ratchets: check-conflict-markers check-no-nul-bytes check-type-escape-ratchet check-structural-fitness-ratchet check-dead-code check-legacy-debt check-operational-debt check-behavior-contract check-compatibility-shims check-temporal-skips check-test-skip-register-uniqueness check-reports-evidence-policy check-migration-heads check-migration-entrypoints check-migration-rollback-policy check-migration-runtime-consistency check-risk-register ## Run all fail-on-net-new health ratchets (single entry point)
 	@echo "✅  check-health-ratchets passed"
 
 # ─── Developer Setup ─────────────────────────────────────────────────────────

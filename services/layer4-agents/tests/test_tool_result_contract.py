@@ -509,8 +509,7 @@ class TestFocusedAgentToolResultContract:
             timeout_seconds = 0.01
 
             async def execute(self, input_data):
-                # Latency simulation only to exceed the 0.01s tool timeout.
-                await asyncio.sleep(0.05)
+                await asyncio.sleep(0.1)
                 return {"ok": True}
 
         result = await SlowTool().run({"value": 1, "trace_id": "trace-timeout"})
@@ -535,8 +534,7 @@ class TestFocusedAgentToolResultContract:
             timeout_seconds = 0.01
 
             async def execute(self, input_data):
-                # Latency simulation only to exceed the 0.01s tool timeout.
-                await asyncio.sleep(0.05)
+                await asyncio.sleep(0.1)
                 return {"ok": True}
 
         audit_events = []

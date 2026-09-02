@@ -30,9 +30,9 @@ RUN arch="$(dpkg --print-architecture)" \
       | tar -xz -C /usr/local/bin kustomize \
     && curl -fsSL "https://github.com/sigstore/cosign/releases/download/${COSIGN_VERSION}/cosign-linux-${arch}" -o /usr/local/bin/cosign \
     && chmod 0755 /usr/local/bin/cosign \
-    && curl -fsSL "https://github.com/Infisical/infisical/releases/download/infisical-cli%2Fv${INFISICAL_VERSION}/infisical_${INFISICAL_VERSION}_linux_${arch}.deb" -o /tmp/infisical.deb \
-    && dpkg -i /tmp/infisical.deb \
-    && rm /tmp/infisical.deb
+    && curl -1sLf "https://dl.cloudsmith.io/public/infisical/infisical-cli/setup.deb.sh" | bash \
+    && apt-get update && apt-get install -y infisical
+
 
 RUN mkdir -p /workspace/Fabric_4L /workspace-support /run/user/1000 /var/tmp \
     && chown -R vscode:vscode /workspace/Fabric_4L /workspace-support /run/user/1000 /var/tmp \

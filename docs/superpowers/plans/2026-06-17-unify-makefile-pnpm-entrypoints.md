@@ -1,7 +1,5 @@
 # Sub-plan E: Unify Makefile/pnpm Entrypoints (#7)
 
-> Superseded on 2026-08-31 by [ADR-047](../../explanations/adr/ADR-047-task-graph-build-orchestration.md). This plan remains historical context; do not implement its Makefile pattern-rule destination.
-
 **Goal:** Remove overlapping and ambiguous commands so developers have one clear entrypoint per ecosystem.
 
 **Responsibility split**

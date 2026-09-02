@@ -256,16 +256,6 @@ class CircuitBreaker:
                 self.state = CircuitState.HALF_OPEN
                 self.half_open_calls = 0
 
-    async def refresh_state(self) -> None:
-        """Refresh the breaker state from the current time, under the state lock.
-
-        Advances OPEN -> HALF_OPEN once the recovery timeout has elapsed. Provided
-        as a narrow public seam so callers (e.g. health monitors, and tests advancing
-        a virtual clock) can observe that transition without performing a ``call()``.
-        """
-        async with self._lock:
-            await self._update_state()
-
     async def _on_success(self) -> None:
         """Record successful call."""
         async with self._lock:

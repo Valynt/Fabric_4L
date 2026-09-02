@@ -95,9 +95,9 @@ jobs:
     # this gate, so it is safely skippable when none of those changed.
     if: needs.change-scope.outputs.k8s == 'true' || needs.change-scope.outputs.release-policy == 'true' || needs.change-scope.outputs.ci-governance == 'true' || needs.change-scope.outputs.ci-tooling == 'true'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
           python-version: "3.11"
       - name: Install test dependencies
@@ -139,7 +139,7 @@ jobs:
           - layer5-ground-truth
           - layer6-benchmarks
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
 
       - name: Resolve security mode
         id: mode
@@ -271,10 +271,10 @@ jobs:
     # this suite for frontend-only changes.
     if: needs.change-scope.outputs.backend == 'true'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
           python-version: "3.11"
 
@@ -337,7 +337,7 @@ jobs:
     # (frontend), which this stack does not contain.
     if: needs.change-scope.outputs.backend == 'true' || needs.change-scope.outputs.deps == 'true' || needs.change-scope.outputs.ci-tooling == 'true'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
 
       - name: Start backend stack
         run: |
@@ -384,7 +384,7 @@ jobs:
         live-stack-evidence,
       ]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
 
       - name: Download all artifacts
         uses: actions/download-artifact@v4
