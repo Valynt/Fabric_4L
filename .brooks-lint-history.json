@@ -97,7 +97,6 @@
         "remediation_status": "open - findings accepted into backlog"
     },
     {
-<<<<<<< HEAD
         "date": "2026-08-30",
         "mode": "Test Quality Review",
         "score": 87,
@@ -142,6 +141,5 @@
         ],
         "run_type": "inspection and sampling of the 12 remediation files + suite-wide scan; prior executed validation reused from the same-cycle goal (154 unit pass, 3274 strict-markers collect, mypy 0)",
         "remediation_status": "pending"
-    }
     }
 ]
