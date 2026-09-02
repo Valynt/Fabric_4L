@@ -29,9 +29,19 @@ except ModuleNotFoundError:  # pragma: no cover
 from fastapi.testclient import TestClient
 
 # Patch rate limiters BEFORE importing the app to avoid spurious 429s in
-# contract tests where Redis is not available.
+# contract tests where Redis is not available. The patched originals are
+# restored in ``teardown_module`` so the behavior does not leak into later
+# modules in the same pytest session.
+_SW_ADAPTER = None
+_SW_ORIGINAL_CHECK = None
+_MIDDLEWARE = None
+_ORIG_TENANT_RL_CHECK = None
+
 try:
     from value_fabric.shared.rate_limiting.tenant_rate_limiter import SlidingWindowAdapter
+
+    _SW_ADAPTER = SlidingWindowAdapter
+    _SW_ORIGINAL_CHECK = SlidingWindowAdapter.check
 
     async def _patched_sw_check(self, *args, **kwargs):  # noqa: ANN001, ANN002
         class _Decision:
@@ -43,19 +53,20 @@ try:
         return _Decision()
 
     SlidingWindowAdapter.check = _patched_sw_check
-except Exception:
+except (ImportError, AttributeError):
     pass
 
 try:
     from value_fabric.shared.identity import middleware
 
-    _orig_tenant_rl_check = middleware._check_tenant_rate_limit
+    _MIDDLEWARE = middleware
+    _ORIG_TENANT_RL_CHECK = middleware._check_tenant_rate_limit
 
     def _patched_tenant_rl_check(tenant_id, requests_per_minute):  # noqa: ANN001
         return True, 0
 
     middleware._check_tenant_rate_limit = _patched_tenant_rl_check
-except Exception:
+except (ImportError, AttributeError):
     pass
 
 from layer4_agents.api.main import app  # noqa: E402
@@ -63,6 +74,18 @@ from layer4_agents.api.main import app  # noqa: E402
 REPO_ROOT = Path(__file__).resolve().parents[2]
 CONTRACT_PATH = REPO_ROOT / "contracts" / "openapi" / "layer7-billing.json"
 BILLING_PATH_MARKER = "/v1/billing/"
+
+
+def teardown_module(module) -> None:  # noqa: ANN001, ARG001
+    """Restore rate-limiter internals patched at import time.
+
+    Fired after the module's tests finish so the monkeypatches do not leak into
+    later modules in the same pytest session.
+    """
+    if _SW_ADAPTER is not None and _SW_ORIGINAL_CHECK is not None:
+        _SW_ADAPTER.check = _SW_ORIGINAL_CHECK
+    if _MIDDLEWARE is not None and _ORIG_TENANT_RL_CHECK is not None:
+        _MIDDLEWARE._check_tenant_rate_limit = _ORIG_TENANT_RL_CHECK
 
 _TEST_JWT_SECRET = os.getenv(
     "JWT_SECRET",
