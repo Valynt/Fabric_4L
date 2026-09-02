@@ -121,8 +121,6 @@ def _validate_manifest(
         )
         return
 
-    report.manifests_valid += 1
-
     # 2. Cross-reference: action_id must exist in action catalog (if catalog present)
     action_id = manifest.get("action_id")
     if action_id and action_catalog and action_id not in action_catalog:
@@ -246,6 +244,9 @@ def _validate_manifest(
                 severity="warning",
             )
         )
+
+    if not any(v.path == source_path and v.severity == "error" for v in report.violations):
+        report.manifests_valid += 1
 
 
 def _validate_policy(policy: dict[str, Any], report: Report, source_path: str) -> None:

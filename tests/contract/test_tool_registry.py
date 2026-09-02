@@ -385,9 +385,22 @@ class TestGeneratedIndex:
         assert len(payload["tool_manifests"]) >= 6
 
     def test_generated_index_is_deterministic(self) -> None:
-        p1 = (GENERATED_DIR / "layer4-tool-index.json").read_text()
-        p2 = (GENERATED_DIR / "layer4-tool-index.json").read_text()
-        assert p1 == p2
+        path = GENERATED_DIR / "layer4-tool-index.json"
+
+        import subprocess
+        import sys
+
+        def regenerate() -> str:
+            subprocess.run(
+                [sys.executable, str(REPO_ROOT / "scripts" / "ci" / "generate_tool_index.py")],
+                cwd=REPO_ROOT,
+                check=True,
+            )
+            return path.read_text()
+
+        first = regenerate()
+        second = regenerate()
+        assert first == second
 
     def test_generated_index_matches_loader(self, compiled) -> None:
         index, _ = compiled
