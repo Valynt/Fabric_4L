@@ -193,7 +193,7 @@ def test_structural_fitness_ratchet_has_public_local_entrypoints() -> None:
     )
 
 
-def test_structural_preflight_runs_structural_fitness_ratchet() -> None:
+def test_structural_preflight_runs_structural_fitness_via_health_aggregate() -> None:
     workflow = yaml.safe_load(
         (REPO_ROOT / ".github/workflows/pr-checks.yml").read_text(encoding="utf-8")
     )
@@ -201,4 +201,5 @@ def test_structural_preflight_runs_structural_fitness_ratchet() -> None:
     commands = [
         step.get("run", "") for step in workflow["jobs"]["structural-preflight"]["steps"]
     ]
-    assert "make check-structural-fitness-ratchet" in commands
+    assert "make check-health-ratchets" in commands
+    assert "make check-structural-fitness-ratchet" not in commands
