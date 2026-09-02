@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import http.server
 import time
+import typing
 import webbrowser
 from urllib.parse import parse_qs, urlencode, urljoin, urlparse, urlunparse
 from uuid import uuid4
@@ -23,14 +24,14 @@ PKCE_STATE_FILE = CONFIG_DIR / ".pkce_state"
 
 
 class TokenServer(http.server.HTTPServer):
-    captured_token = None
+    captured_token: str | None = None
 
 
 class CallbackHandler(http.server.BaseHTTPRequestHandler):
     def do_GET(self) -> None:
         parsed = urlparse(self.path)
         qs = parse_qs(parsed.query)
-        self.server.captured_token = (
+        self.server.captured_token = (  # type: ignore[attr-defined]
             qs.get("code", [None])[0] or qs.get("token", [None])[0] or qs.get("jwt", [None])[0]
         )
 
@@ -42,7 +43,7 @@ class CallbackHandler(http.server.BaseHTTPRequestHandler):
             b"<p>You can close this window and return to the CLI.</p></body></html>"
         )
 
-    def log_message(self, format: str, *args: any) -> None:
+    def log_message(self, format: str, *args: typing.Any) -> None:
         pass
 
 
