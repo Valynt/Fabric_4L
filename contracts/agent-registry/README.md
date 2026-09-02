@@ -10,7 +10,7 @@ This directory is the **semantic source of truth** for Layer 4 agent behavior. P
 | `agents/manifest.json` | Canonical production Layer 4 agent roster and expected decision envelopes. |
 | `compatibility-matrix.json` | Phase 2 semantic-contract compatibility matrix covering agent, prompt, tool, workflow, memory, and AG-UI event envelope versions. |
 | `tools/manifest.json` | Centralized tool interface registry mapped to `contracts/tool-manifests/*.json`, including per-tool `tenant_scope`. |
-| `prompts/` | Versioned prompt metadata and changelog evidence, one entry per runtime prompt under `services/layer4-agents/prompts/**/v1/*.md`. |
+| `prompts/` | Versioned prompt metadata and changelog evidence, one entry per runtime prompt under `services/layer4-agents/prompts/**/v1/*.md` (`interactive_report_prompt.json` is the retained template exception — see below). |
 | `skills/` | Skill registry entries keyed by the Layer 4 skill manifests under `services/layer4-agents/skills/*.md`. |
 | `reasoning-policies/` | Confidence, evidence, escalation, and allowed-tool policy contracts. |
 | `workflows/` | Workflow state-machine entries with states, transitions, and invariants. |
@@ -64,6 +64,15 @@ then cross-checks the registries against runtime artifacts:
   have a matching entry in `prompts/`.
 - Every runtime skill under `services/layer4-agents/skills/*.md` must have a
   matching entry in `skills/`.
+
+> **Template exception:** `prompts/interactive_report_prompt.json` is the
+> retained template this registry was modeled on. Its `prompt_path` resolves
+> to `services/layer4-agents/src/skills/interactive_report_prompt.md` — the
+> skills-surface prompt, not a `prompts/**/v1/*.md` file. It is intentionally
+> **not** part of the one-entry-per-runtime-prompt cross-check: the drift
+> enumeration above covers `prompts/**/v1/*.md` only, and the source file it
+> references is tracked by the skill-surface drift check. Do not delete it as
+> an "orphan" registry entry; keep it as the canonical prompt-entry template.
 
 Unregistered runtime files are reported as drift warnings in normal mode and
 as hard failures under `--strict`. CI runs the validator in strict mode
