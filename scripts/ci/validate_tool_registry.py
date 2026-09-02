@@ -369,10 +369,13 @@ def main() -> int:
         catalog_data = _load_json(ACTION_CATALOG_PATH)
         action_catalog = set(catalog_data.get("actions", []))
     else:
-        print(
-            f"WARNING: Action catalog not found at {ACTION_CATALOG_PATH}; "
-            "action_id cross-checks will be skipped.",
-            file=sys.stderr,
+        report.add(
+            Violation(
+                path=str(ACTION_CATALOG_PATH.relative_to(REPO_ROOT)),
+                rule="action-catalog",
+                message=f"Action catalog not found at {ACTION_CATALOG_PATH}; action_id cross-checks skipped.",
+                severity="warning",
+            )
         )
 
     # Discover and validate manifests
