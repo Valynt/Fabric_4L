@@ -2,7 +2,7 @@
 title: "Canonical Build System"
 category: "reference"
 audience: "contributors"
-last-reviewed: "2026-06-05"
+last-reviewed: "2026-08-31"
 freshness: "current"
 related: ["./COMMANDS", "../../README", "../../CONTRIBUTING", "../../AGENTS"]
 ---
@@ -18,6 +18,20 @@ Use `make` for repo-wide build, test, migration, contract, release, and readines
 Use `pnpm` for JavaScript and TypeScript package management, frontend workspace scripts, root npm-script parity aliases, and local dev commands that need pnpm workspace resolution. This monorepo is pnpm-only; do not use `npm install`, `npm ci`, `yarn install`, or yarn lockfiles in canonical runtime/workspace directories.
 
 Use direct Python CI runners only when debugging or reproducing a CI job that calls that runner directly. The main direct runner is `python scripts/ci/run_root_aggregate_checks.py <gate>`, which backs several root `pnpm` scripts. Direct helper scripts under `scripts/ci/` are implementation details unless they are listed in [COMMANDS.md](./COMMANDS.md), invoked by a documented Makefile target, or called out in workflow documentation.
+
+## DP-3 Transition Policy
+
+[ADR-047](../explanations/adr/ADR-047-task-graph-build-orchestration.md) accepts a strangler migration from the root Makefile to an Nx task graph behind a thin `fabric` facade. Until a task passes shadow parity and changes ownership, its documented Make target remains the compatibility contract and Make remains the current canonical interface.
+
+The transition follows these rules:
+
+- Do not add new orchestration logic to the root Makefile. New service behavior belongs in that service's `project.json`, `pyproject.toml` tooling configuration, or `package.json` script; the root delegates.
+- Every task has exactly one implementation owner. An unmigrated task is Make-owned and `fabric` may delegate to Make. A migrated task is graph-owned and its Make compatibility target may delegate to `fabric`. A task must never delegate in both directions.
+- Task-graph caching is disabled until inputs, outputs, environment dependencies, and side effects are explicitly classified and parity evidence proves it safe.
+- Public Make targets are not considered unused merely because repository search finds no caller. Removal requires an announced deprecation, migration telemetry, and two full quarters of compatibility coverage.
+- Required check names, release evidence paths, failure behavior, and GitHub/Depot command parity remain stable throughout the migration.
+
+Phase A introduces no task-runner dependency. It establishes the complete target inventory, consolidates health-ratchet entry points, and adds control-plane drift checks. Phase B adds the facade and representative shadow tasks. Phase C transfers service-owned implementations incrementally. Phase D removes Make only after the sunset gates in ADR-047 have passed.
 
 ## Public And Internal Interfaces
 

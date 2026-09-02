@@ -12,7 +12,8 @@
 #   modeled as first-class scopes so contract tests can prove a CI-only
 #   change resolves NO domain scope (and therefore safely skips the heavy
 #   per-PR matrix):
-#     ci-global     .github/**, Makefile, .pre-commit-config.yaml — workflow/
+#     ci-global     .github/**, .depot/**, tools/**, task graph config,
+#                   Makefile, .pre-commit-config.yaml - workflow/
 #                   action/makefile pipeline topology. Pipeline correctness
 #                   is validated on every PR by structural-preflight's
 #                   ungated CI-control-plane contract tests.
@@ -35,6 +36,10 @@
 # CI-only change flips NO domain scope). None of these gate the domain matrix.
 ci-global:
   - '.github/**'
+  - '.depot/**'
+  - 'tools/**'
+  - 'nx.json'
+  - '**/project.json'
   - 'Makefile'
   - '.pre-commit-config.yaml'
 
@@ -104,6 +109,9 @@ web:
 code:
   - 'services/**'
   - 'apps/**'
+  - 'tools/**'
+  - 'nx.json'
+  - '**/project.json'
   - 'packages/**'
   - 'contracts/**'
   - 'tests/**'
