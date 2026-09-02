@@ -222,7 +222,6 @@ jobs:
 
       - name: Validate tool manifest registry
         run: |
-          python scripts/ci/validate_tool_registry.py
           python scripts/ci/generate_tool_index.py
           git diff --exit-code contracts/tool-manifests/generated/
 

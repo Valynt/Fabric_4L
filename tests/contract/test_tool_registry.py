@@ -70,7 +70,7 @@ class TestValidatorAcceptance:
     def test_all_six_canonical_manifests_validate(self, compiled) -> None:
         index, report = compiled
         assert report.valid, f"expected valid report, got failures: {report.failed}"
-        assert len(index.tool_manifests) == 6
+        assert len(index.tool_manifests) >= 6
 
     def test_expected_tool_ids_present(self, compiled) -> None:
         index, _ = compiled
@@ -83,14 +83,18 @@ class TestValidatorAcceptance:
             "billing.refund.request_draft",
             "billing.reconciliation.analyze",
         }
-        assert tool_ids == expected
+        # The canonical billing set must be present. Extra manifests may be
+        # added over time without breaking this contract test.
+        assert expected.issubset(tool_ids), (
+            f"missing canonical tool ids; got {tool_ids}"
+        )
 
     def test_only_validated_manifests_in_index(self, compiled) -> None:
         index, report = compiled
         summary = index.validation_report
         assert summary is not None
         # Every manifest in the index passed validation.
-        assert len(index.tool_manifests) == 6
+        assert len(index.tool_manifests) >= 6
         assert summary.manifests_loaded == len(index.tool_manifests)
 
 
@@ -151,11 +155,66 @@ class TestValidatorDenial:
             supported_agent_classes=["billing-copilot", "general-agent"],
             idempotency={"required": True, "key_input_fields": ["id"]},
             approval_requirement={"required": True},
+            revision={"etag_required": True, "optimistic_locking": True},
             human_confirmation_required=True,
         )
         violations = validate_manifest(raw, manifest_schema)
         assert any("billing copilot" in v.lower() for v in violations), (
             f"expected a billing-copilot IRREVERSIBLE rejection, got {violations}"
+        )
+
+    def test_mutating_tool_missing_revision_rejected(self, manifest_schema) -> None:
+        raw = _minimal_raw(
+            manifest_schema,
+            side_effect="PROTECTED_MUTATION",
+            idempotency={"required": True, "key_input_fields": ["id"]},
+            approval_requirement={"required": True},
+            audit={"required": True, "action": "billing.test.run"},
+            # No revision block.
+        )
+        violations = validate_manifest(raw, manifest_schema)
+        assert any("revision" in v.lower() for v in violations), (
+            f"expected a revision governance violation, got {violations}"
+        )
+
+    def test_mutating_tool_with_revision_accepted(self, manifest_schema) -> None:
+        raw = _minimal_raw(
+            manifest_schema,
+            side_effect="PROTECTED_MUTATION",
+            idempotency={"required": True, "key_input_fields": ["id"]},
+            approval_requirement={"required": True},
+            revision={"etag_required": True, "optimistic_locking": True},
+            audit={"required": True, "action": "billing.test.run"},
+        )
+        violations = validate_manifest(raw, manifest_schema)
+        assert not any("revision" in v.lower() for v in violations), f"got {violations}"
+
+    def test_financial_state_change_requires_human_confirmation(
+        self, manifest_schema
+    ) -> None:
+        raw = _minimal_raw(
+            manifest_schema,
+            side_effect="DRAFT_ONLY",
+            financial_state_change=True,
+            human_confirmation_required=False,
+        )
+        violations = validate_manifest(raw, manifest_schema)
+        assert any("human_confirmation_required" in v for v in violations), (
+            f"expected financial-confirmation violation, got {violations}"
+        )
+
+    def test_financial_state_change_with_confirmation_accepted(
+        self, manifest_schema
+    ) -> None:
+        raw = _minimal_raw(
+            manifest_schema,
+            side_effect="DRAFT_ONLY",
+            financial_state_change=True,
+            human_confirmation_required=True,
+        )
+        violations = validate_manifest(raw, manifest_schema)
+        assert not any("human_confirmation_required" in v for v in violations), (
+            f"got {violations}"
         )
 
 
@@ -323,7 +382,7 @@ class TestGeneratedIndex:
         assert path.exists(), "layer4-tool-index.json missing from generated/"
         payload = json.loads(path.read_text())
         assert payload["registry_version"].count(".") == 2
-        assert len(payload["tool_manifests"]) == 6
+        assert len(payload["tool_manifests"]) >= 6
 
     def test_generated_index_is_deterministic(self) -> None:
         p1 = (GENERATED_DIR / "layer4-tool-index.json").read_text()

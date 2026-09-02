@@ -15,7 +15,17 @@ from __future__ import annotations
 from enum import Enum
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
+
+
+class RegistryModel(BaseModel):
+    """Base model mirroring the JSON Schemas' ``additionalProperties: false``.
+
+    Every model in this module must reject undeclared fields so the runtime
+    Pydantic layer cannot drift from the canonical JSON Schema envelopes.
+    """
+
+    model_config = ConfigDict(extra="forbid")
 
 
 class SideEffectClass(str, Enum):
@@ -47,14 +57,14 @@ class PrincipalType(str, Enum):
     MCP_CLIENT = "mcp_client"
 
 
-class ResourceResolver(BaseModel):
+class ResourceResolver(RegistryModel):
     """Reviewed server-side resolver that owns resource resolution."""
 
     name: str = Field(..., min_length=1, description="Name of the reviewed server-side resolver")
     authoritative_service: str = Field(..., min_length=1, description="Service that owns the resolver")
 
 
-class TenantBinding(BaseModel):
+class TenantBinding(RegistryModel):
     """Tenant isolation binding for the tool."""
 
     client_supplied_tenant_authoritative: bool = Field(
@@ -64,7 +74,7 @@ class TenantBinding(BaseModel):
     resolve_server_side: bool = Field(..., description="If true, the implementing service resolves tenant and billing account.")
 
 
-class Implementation(BaseModel):
+class Implementation(RegistryModel):
     """Where and how the tool is wired to the platform runtime."""
 
     service: str = Field(..., min_length=1, description="Canonical service name (e.g., services/layer7-billing)")
@@ -72,7 +82,7 @@ class Implementation(BaseModel):
     route: str | None = Field(None, description="Optional HTTP route for runtime routing verification")
 
 
-class ApprovalRequirement(BaseModel):
+class ApprovalRequirement(RegistryModel):
     """Approval requirements for side-effecting tools."""
 
     required: bool | None = Field(None, description="Whether pre-execution approval is required")
@@ -83,7 +93,7 @@ class ApprovalRequirement(BaseModel):
     )
 
 
-class AuditRequirement(BaseModel):
+class AuditRequirement(RegistryModel):
     """Audit logging obligations for the tool."""
 
     required: bool = Field(..., description="Whether audit logging is required")
@@ -94,7 +104,7 @@ class AuditRequirement(BaseModel):
     evidence_requirements: list[str] | None = Field(None, description="Evidence captured in the audit record")
 
 
-class DataControls(BaseModel):
+class DataControls(RegistryModel):
     """Data access and redaction controls."""
 
     allowed: list[str] | None = Field(None, description="Data fields the tool may return or process")
@@ -103,21 +113,21 @@ class DataControls(BaseModel):
     redaction_policy: str | None = Field(None, description="Name of the redaction policy to apply")
 
 
-class Idempotency(BaseModel):
+class Idempotency(RegistryModel):
     """Idempotency controls for side-effecting tools."""
 
     required: bool | None = Field(None, description="Whether an idempotency key is required")
     key_input_fields: list[str] | None = Field(None, description="Input fields that form the idempotency key")
 
 
-class Revision(BaseModel):
+class Revision(RegistryModel):
     """Optimistic concurrency controls."""
 
     etag_required: bool | None = Field(None, description="Whether an ETag is required")
     optimistic_locking: bool | None = Field(None, description="Whether optimistic locking is applied")
 
 
-class Runtime(BaseModel):
+class Runtime(RegistryModel):
     """Runtime limits and retry semantics."""
 
     timeout_ms: int = Field(..., ge=100, description="Hard timeout in milliseconds")
@@ -125,7 +135,7 @@ class Runtime(BaseModel):
     rate_limit_class: str | None = Field(None, description="Rate-limit bucket identifier")
 
 
-class Deprecation(BaseModel):
+class Deprecation(RegistryModel):
     """Deprecation metadata for the tool."""
 
     replacement_tool_id: str | None = Field(None, description="Tool ID to migrate to")
@@ -133,14 +143,14 @@ class Deprecation(BaseModel):
     migration_guide_url: str | None = Field(None, description="URL to migration guide")
 
 
-class ManifestTests(BaseModel):
+class ManifestTests(RegistryModel):
     """Required test coverage metadata."""
 
     required_coverage: str | None = Field(None, description="Required coverage level")
     test_suite_path: str | None = Field(None, description="Path to the test suite")
 
 
-class ToolManifest(BaseModel):
+class ToolManifest(RegistryModel):
     """Single tool manifest — the authoritative governance envelope.
 
     Field names and structure mirror :file:`contracts/tool-manifests/tool-manifest.schema.json`.
@@ -174,7 +184,7 @@ class ToolManifest(BaseModel):
     provenance: dict[str, Any] | None = Field(None, description="Provenance metadata")
 
 
-class RegistryValidationReport(BaseModel):
+class RegistryValidationReport(RegistryModel):
     """Summary of the validation run that produced an index."""
 
     passed: bool = True
@@ -183,7 +193,7 @@ class RegistryValidationReport(BaseModel):
     manifests_valid: int = 0
 
 
-class ToolManifestSummary(BaseModel):
+class ToolManifestSummary(RegistryModel):
     """Lightweight entry in the compiled registry index."""
 
     tool_id: str
@@ -199,7 +209,7 @@ class ToolManifestSummary(BaseModel):
     source_path: str | None = None
 
 
-class AgentPolicy(BaseModel):
+class AgentPolicy(RegistryModel):
     """Agent-type filter policy keyed by agent class name."""
 
     allowed_side_effects: list[str] = Field(default_factory=list)
@@ -210,7 +220,7 @@ class AgentPolicy(BaseModel):
     description: str | None = None
 
 
-class ToolRegistryIndex(BaseModel):
+class ToolRegistryIndex(RegistryModel):
     """Compiled registry index consumed by Layer 4 at startup.
 
     Mirrors :file:`contracts/tool-manifests/registry.schema.json`.

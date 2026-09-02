@@ -858,6 +858,8 @@ check-tool-registry: ## CI gate — validate tool manifest registry and generate
 	$(PYTHON) scripts/ci/validate_tool_registry.py
 	@echo "→ Generating Layer 4 tool index..."
 	$(PYTHON) scripts/ci/generate_tool_index.py
+	@echo "→ Checking generated artifacts are up-to-date (no drift)..."
+	git diff --exit-code -- contracts/tool-manifests/generated/
 	@echo "✅ Tool registry check passed"
 
 check-deprecated-tracer-imports: ## CI gate — block imports from deprecated custom tracer modules
