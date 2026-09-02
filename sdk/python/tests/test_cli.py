@@ -53,12 +53,8 @@ class TestAuthCommands:
     @pytest.mark.parametrize(
         ("token", "expected"),
         [
-            (
-                "eyJhbGciOiJIUzI1NiIsInR5cCI.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c",
-                True,
-            ),
-            ("eyJhb.eyJzd.SflKxw", True),
-            ("header.payload.signature", True),
+            ("header_part.payload_part.signature_part", True),
+            ("part1.part2.part3", True),
             ("header.payload", False),
             ("header.payload.signature.extra", False),
             ("", False),
