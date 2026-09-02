@@ -327,7 +327,7 @@ async def update_target(
 
 async def delete_target(
     target_id: UUID,
-    force: bool = Query(default=False, description="Hard delete if no jobs exist"),
+    force: bool = Query(default=False, description="Hard removal if no jobs exist"),
     org_id: UUID = Depends(get_tenant_id),
     user_id: UUID = Depends(get_current_user_id),
     roles: list[str] = Depends(get_current_user_roles),
@@ -354,7 +354,7 @@ async def delete_target(
         db.delete(target)
         logger.info("Hard deleted scraping target", target_id=str(target_id))
     else:
-        # Soft-delete is default when no jobs exist and force is not set
+        # Soft-archival is default when no jobs exist and force is not set
         target.status = TargetStatus.ARCHIVED.value
         logger.info("Archived scraping target", target_id=str(target_id))
 
@@ -576,7 +576,7 @@ async def _check_idempotency_key(
 
     Returns a tuple of (response, placeholder). If placeholder is not None,
     the caller owns it and must either replace it with a real job_id via
-    _update_idempotency_key or delete it via _delete_idempotency_key on failure.
+    _update_idempotency_key or remove it via _delete_idempotency_key on failure.
     """
     if not idempotency_key:
         return None, None
@@ -677,7 +677,7 @@ async def _check_idempotency_key(
 def _delete_idempotency_key(
     org_id: UUID, target_id: UUID, idempotency_key: str
 ) -> None:
-    """Delete an idempotency key (used on failure before a real job_id exists)."""
+    """Remove an idempotency key (used on failure before a real job_id exists)."""
     idempotency_key_str = f"idempotency:{org_id}:{target_id}:{idempotency_key}"
     from ..shared.database import redis_client
 
