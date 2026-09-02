@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from .adapters import LegacyToolRegistryAdapter, PolicyAuthzPort
 from .context import RuntimeContextVar, current_context, get_tenant_id, with_context
 from .core import AgentRuntimeImpl
 from .errors import (
@@ -52,11 +53,13 @@ __all__ = [
     "Checkpoint",
     "CheckpointConflictError",
     "CheckpointPort",
+    "LegacyToolRegistryAdapter",
     "Message",
     "ModelConfig",
     "ModelProviderPort",
     "ModelResponse",
     "MemoryPort",
+    "PolicyAuthzPort",
     "ProviderNotFoundError",
     "ResumeRequest",
     "RunEnvelope",
