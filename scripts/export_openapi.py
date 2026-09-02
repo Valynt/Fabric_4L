@@ -554,6 +554,57 @@ def _atomic_write_json(data: dict[str, Any], output_path: Path) -> None:
         raise
 
 
+def _stamp_layer4_tenant_scope(spec: OpenApiExportSpec, openapi_spec: dict[str, Any]) -> dict[str, Any]:
+    """Inject ``x-tenant-scope`` into every Layer 4 operation.
+
+    Scope values come from ``contracts/layer4-route-contract-matrix.json``
+    (the source of truth enumerated by the regenerator). Operations that
+    have no matrix entry fail the export so coverage gaps cannot pass the
+    freshness gate. Returns the (possibly) modified spec dict.
+    """
+    matrix_path = REPO_ROOT / "contracts" / "layer4-route-contract-matrix.json"
+    try:
+        matrix = json.loads(matrix_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        raise RuntimeError(
+            f"[{spec.label}] cannot load tenant-scope matrix {matrix_path}: {exc}"
+        ) from exc
+
+    entries = matrix.get("entries") or []
+    scope_by_key: dict[tuple[str, str], str] = {}
+    for entry in entries:
+        method = str(entry.get("method", "")).upper()
+        path = str(entry.get("openapi_path", ""))
+        scope = entry.get("tenant_scope")
+        if method and path and scope:
+            scope_by_key[(method, path)] = scope
+
+    paths = openapi_spec.get("paths") or {}
+    unstamped: list[str] = []
+    for path, path_item in paths.items():
+        if not isinstance(path_item, dict):
+            continue
+        for method, operation in path_item.items():
+            if method.lower() not in {
+                "get", "post", "put", "patch", "delete", "options", "head", "trace",
+            }:
+                continue
+            if not isinstance(operation, dict):
+                continue
+            scope = scope_by_key.get((method.upper(), path))
+            if scope is None:
+                unstamped.append(f"{method.upper()} {path}")
+                continue
+            operation["x-tenant-scope"] = scope
+    if unstamped:
+        preview = "  - " + "\n  - ".join(sorted(unstamped)[:20])
+        raise RuntimeError(
+            f"[{spec.label}] {len(unstamped)} operation(s) have no tenant_scope in the "
+            f"matrix:\n{preview}"
+        )
+    return openapi_spec
+
+
 def _export_service_in_process(spec: OpenApiExportSpec) -> bool:
     if spec.canonical_module is None and not spec.module_path.exists():
         logger.error("[%s] app module not found at %s", spec.label, spec.module_path)
@@ -584,7 +635,11 @@ def _export_service_in_process(spec: OpenApiExportSpec) -> bool:
             raise RuntimeError(f"{spec.module_path} app does not expose callable openapi()")
 
         output_path = EXPORT_DIR / spec.output_filename
-        _atomic_write_json(app.openapi(), output_path)
+        if spec.output_filename == "layer4-agents.json":
+            stamped_spec = _stamp_layer4_tenant_scope(spec, app.openapi())
+            _atomic_write_json(stamped_spec, output_path)
+        else:
+            _atomic_write_json(app.openapi(), output_path)
         logger.info("[OK] %s exported: %s", spec.label, output_path)
         return True
     except Exception:

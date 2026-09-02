@@ -72,5 +72,6 @@ ${PYTHON_BIN} scripts/ci/check_l1_target_schema.py
 ${PYTHON_BIN} scripts/ci/check_targets_stats_named_schema.py
 ${PYTHON_BIN} scripts/ci/check_generated_jsonvalue_absent.py
 ${PYTHON_BIN} scripts/ci/check_clerk_tenant_response_exported.py
+${PYTHON_BIN} scripts/ci/check_openapi_tenant_scope.py
 
 printf '\nContract freshness gate passed: OpenAPI contracts and generated frontend DTO types are current.\n'

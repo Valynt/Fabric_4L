@@ -11,6 +11,9 @@ on:
       - 'services/layer4-agents/src/layer4_agents/registry/api/**'
       - 'apps/web/src/**'
       - 'scripts/ci/check_layer4_route_contract_matrix.py'
+      - 'scripts/ci/check_openapi_tenant_scope.py'
+      - 'scripts/ci/layer4_tenant_scope.py'
+      - 'scripts/ci/enrich_layer4_matrix_tenant_scope.py'
   push:
     branches: [main]
     paths:
@@ -22,6 +25,9 @@ on:
       - 'services/layer4-agents/src/layer4_agents/registry/api/**'
       - 'apps/web/src/**'
       - 'scripts/ci/check_layer4_route_contract_matrix.py'
+      - 'scripts/ci/check_openapi_tenant_scope.py'
+      - 'scripts/ci/layer4_tenant_scope.py'
+      - 'scripts/ci/enrich_layer4_matrix_tenant_scope.py'
 
 permissions: read-all
 
@@ -35,3 +41,5 @@ jobs:
           python-version: '3.11'
       - name: Validate Layer4 route matrix coverage and schema refs
         run: python scripts/ci/check_layer4_route_contract_matrix.py
+      - name: Validate Layer4 x-tenant-scope metadata
+        run: python scripts/ci/check_openapi_tenant_scope.py

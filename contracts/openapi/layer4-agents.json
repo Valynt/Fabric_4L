@@ -22,7 +22,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "GLOBAL"
       }
     },
     "/health": {
@@ -38,7 +39,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "GLOBAL"
       }
     },
     "/metrics": {
@@ -54,7 +56,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "GLOBAL"
       }
     },
     "/": {
@@ -70,7 +73,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "GLOBAL"
       }
     },
     "/v1/workflows": {
@@ -112,7 +116,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       },
       "get": {
         "tags": [
@@ -219,7 +224,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/workflows/active": {
@@ -316,7 +322,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/workflows/types": {
@@ -338,7 +345,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/workflows/{workflow_id}": {
@@ -381,7 +389,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       },
       "delete": {
         "tags": [
@@ -422,7 +431,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/workflows/{workflow_id}/result": {
@@ -465,7 +475,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/workflows/{workflow_id}/resume": {
@@ -518,7 +529,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/workflows/{workflow_id}/pause": {
@@ -571,7 +583,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/workflows/{workflow_id}/events": {
@@ -612,7 +625,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/workflows/{workflow_id}/archive": {
@@ -655,7 +669,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/tools": {
@@ -725,7 +740,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/tools/{tool_name}": {
@@ -768,7 +784,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/tools/invoke": {
@@ -810,7 +827,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/tools/export-document": {
@@ -852,7 +870,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/tools/governance/audit/exports": {
@@ -932,7 +951,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/tools/categories": {
@@ -954,7 +974,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/audit/logs": {
@@ -1129,7 +1150,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/repo-audit/run": {
@@ -1171,7 +1193,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/repo-audit/runs/{run_id}": {
@@ -1214,7 +1237,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/repo-audit/runs": {
@@ -1273,7 +1297,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/repo-audit/scorecard/latest": {
@@ -1316,7 +1341,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/repo-audit/scorecard/history": {
@@ -1375,7 +1401,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/repo-audit/findings": {
@@ -1470,7 +1497,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/repo-audit/findings/{finding_id}": {
@@ -1532,7 +1560,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/repo-audit/sprints": {
@@ -1579,7 +1608,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/repo-audit/report/{run_id}": {
@@ -1636,7 +1666,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/repo-audit/webhook/github": {
@@ -1685,7 +1716,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "SYSTEM"
       }
     },
     "/v1/analysis/roi": {
@@ -1727,7 +1759,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/analysis/whitespace": {
@@ -1769,7 +1802,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/validation/seed/auth-context": {
@@ -1813,7 +1847,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/validation/session": {
@@ -1857,7 +1892,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/validation/seed/business-case-lifecycle": {
@@ -1901,7 +1937,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/cases": {
@@ -1943,7 +1980,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       },
       "get": {
         "tags": [
@@ -1984,7 +2022,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/cases/{case_id}/regenerate": {
@@ -2037,7 +2076,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/cases/{case_id}": {
@@ -2080,7 +2120,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/cases/{case_id}/export": {
@@ -2135,7 +2176,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/cases/{case_id}/scenarios": {
@@ -2182,7 +2224,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       },
       "post": {
         "tags": [
@@ -2233,7 +2276,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/cases/{case_id}/scenarios/{scenario_id}": {
@@ -2285,7 +2329,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       },
       "delete": {
         "tags": [
@@ -2328,7 +2373,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/cases/{case_id}/workspace/evidence": {
@@ -2370,7 +2416,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/cases/{case_id}/workspace/{tab_key}": {
@@ -2424,7 +2471,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       },
       "put": {
         "tags": [
@@ -2488,7 +2536,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/cases/{case_id}/workspace/generate": {
@@ -2533,7 +2582,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/accounts": {
@@ -2725,7 +2775,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       },
       "post": {
         "tags": [
@@ -2766,7 +2817,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/accounts/search": {
@@ -2809,7 +2861,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/accounts/filters": {
@@ -2832,7 +2885,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/accounts/sync-status": {
@@ -2855,7 +2909,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/accounts/sync": {
@@ -2898,7 +2953,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/accounts/{account_id}": {
@@ -2943,7 +2999,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/accounts/{account_id}/activity": {
@@ -3012,7 +3069,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/accounts/{account_id}/refresh": {
@@ -3057,7 +3115,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/accounts/{account_id}/journey-timeline": {
@@ -3120,7 +3179,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/prospects/setup": {
@@ -3162,7 +3222,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/accounts/{account_id}/signals": {
@@ -3221,7 +3282,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/signals/{signal_id}": {
@@ -3266,7 +3328,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/signals/{signal_id}/review": {
@@ -3319,7 +3382,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/evidence/{evidence_id}/decision": {
@@ -3371,7 +3435,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/evidence/{evidence_id}/drivers/{driver_id}": {
@@ -3434,7 +3499,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/tasks": {
@@ -3501,7 +3567,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       },
       "post": {
         "tags": [
@@ -3542,7 +3609,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/tasks/{task_id}": {
@@ -3596,7 +3664,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/comments": {
@@ -3679,7 +3748,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       },
       "post": {
         "tags": [
@@ -3720,7 +3790,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/notifications": {
@@ -3787,7 +3858,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       },
       "post": {
         "tags": [
@@ -3828,7 +3900,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/notifications/{notification_id}/read": {
@@ -3872,7 +3945,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/agent-stream/chat": {
@@ -3914,7 +3988,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/agent-stream/chat/stream": {
@@ -3954,7 +4029,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/webhooks/crm/salesforce": {
@@ -4061,7 +4137,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "SYSTEM"
       }
     },
     "/v1/webhooks/crm/hubspot": {
@@ -4184,7 +4261,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "SYSTEM"
       }
     },
     "/v1/webhooks/crm/health": {
@@ -4208,7 +4286,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "SYSTEM"
       }
     },
     "/v1/workflows/{workflow_id}/checkpoints": {
@@ -4284,7 +4363,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/workflows/{workflow_id}/checkpoints/{checkpoint_id}/state": {
@@ -4343,7 +4423,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/workflows/{workflow_id}/checkpoints/diff": {
@@ -4403,7 +4484,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/workflows/{workflow_id}/resume-from-checkpoint": {
@@ -4463,7 +4545,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/workflows/{workflow_id}/state/schema": {
@@ -4507,7 +4590,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/workflows/{workflow_id}/state/values": {
@@ -4575,7 +4659,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/workflows/{workflow_id}/state/outputs": {
@@ -4631,7 +4716,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/workflows/{workflow_id}/state/errors": {
@@ -4675,7 +4761,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/workflows/{workflow_id}/state/performance": {
@@ -4719,7 +4806,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/workflows/{workflow_id}/state/history": {
@@ -4775,7 +4863,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/health/detailed": {
@@ -4798,7 +4887,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/health/badges": {
@@ -4855,7 +4945,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/health/websocket": {
@@ -4878,7 +4969,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/health/badges/dismiss": {
@@ -4921,7 +5013,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/health/report-connection-quality": {
@@ -4966,7 +5059,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/health/components/{component_name}": {
@@ -5010,7 +5104,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/integrations": {
@@ -5032,7 +5127,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/integrations/{provider}": {
@@ -5074,7 +5170,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       },
       "post": {
         "tags": [
@@ -5124,7 +5221,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       },
       "delete": {
         "tags": [
@@ -5157,7 +5255,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/integrations/{provider}/test": {
@@ -5199,7 +5298,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/integrations/{provider}/sync": {
@@ -5241,7 +5341,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/integrations/{provider}/sync-jobs": {
@@ -5292,7 +5393,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/integrations/{provider}/sync-jobs/{job_id}": {
@@ -5342,7 +5444,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/integrations/salesforce/oauth/start": {
@@ -5384,7 +5487,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/integrations/salesforce/oauth/authorize": {
@@ -5430,7 +5534,8 @@
         "deprecated": true,
         "x-deprecated-since": "2026-05-29",
         "x-deprecated-removal-date": "2026-08-01",
-        "x-deprecation-owner": "layer4-agents"
+        "x-deprecation-owner": "layer4-agents",
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/tenant/context": {
@@ -5452,7 +5557,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/tenants/current/settings": {
@@ -5473,7 +5579,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       },
       "patch": {
         "tags": [
@@ -5546,7 +5653,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/tenants": {
@@ -5588,7 +5696,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       },
       "get": {
         "tags": [
@@ -5663,7 +5772,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/tenants/{tenant_id}": {
@@ -5707,7 +5817,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       },
       "patch": {
         "tags": [
@@ -5759,7 +5870,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       },
       "delete": {
         "tags": [
@@ -5794,7 +5906,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/tenants/{tenant_id}/suspend": {
@@ -5855,7 +5968,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/tenants/{tenant_id}/activate": {
@@ -5916,7 +6030,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/tenants/{tenant_id}/status": {
@@ -5988,7 +6103,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/users/invite": {
@@ -6030,7 +6146,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/users/accept-invite": {
@@ -6072,7 +6189,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/users": {
@@ -6133,7 +6251,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/users/me": {
@@ -6155,7 +6274,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       },
       "patch": {
         "tags": [
@@ -6195,7 +6315,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/users/{user_id}": {
@@ -6239,7 +6360,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       },
       "patch": {
         "tags": [
@@ -6291,7 +6413,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       },
       "delete": {
         "tags": [
@@ -6326,7 +6449,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/api-keys": {
@@ -6368,7 +6492,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       },
       "get": {
         "tags": [
@@ -6414,7 +6539,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/api-keys/{key_id}": {
@@ -6450,7 +6576,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/auth/oidc/{tenant_slug}/login": {
@@ -6509,7 +6636,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/auth/oidc/callback": {
@@ -6561,7 +6689,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/auth/oidc/{tenant_slug}/metadata": {
@@ -6604,7 +6733,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/auth/oidc/refresh": {
@@ -6686,7 +6816,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/auth/oidc/logout": {
@@ -6752,7 +6883,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/tenants/{tenant_id}/provisioning/status": {
@@ -6796,7 +6928,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/tenants/{tenant_id}/provisioning/retry": {
@@ -6840,7 +6973,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/tenants/{tenant_id}/provisioning/webhook": {
@@ -6909,7 +7043,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/tenants/register": {
@@ -6951,7 +7086,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/tenants/verify-email": {
@@ -6993,7 +7129,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/tenants/validate-slug": {
@@ -7036,7 +7173,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/tenants/tiers": {
@@ -7062,7 +7200,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/tenants/{tenant_id}/users": {
@@ -7110,7 +7249,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/tenants/{tenant_id}/usage": {
@@ -7164,7 +7304,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/tenants/{tenant_id}/audit-log": {
@@ -7228,7 +7369,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/tenants/{tenant_id}/settings": {
@@ -7272,7 +7414,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       },
       "patch": {
         "tags": [
@@ -7324,7 +7467,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/{tenant_id}/dashboard/usage": {
@@ -7382,7 +7526,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/{tenant_id}/dashboard/daily-usage": {
@@ -7438,7 +7583,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/{tenant_id}/dashboard/tier-usage": {
@@ -7482,7 +7628,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/{tenant_id}/dashboard/top-endpoints": {
@@ -7550,7 +7697,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/{tenant_id}/dashboard/audit-log": {
@@ -7635,7 +7783,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/{tenant_id}/settings": {
@@ -7679,7 +7828,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       },
       "patch": {
         "tags": [
@@ -7731,7 +7881,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/admin/tenant-overview": {
@@ -7809,7 +7960,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "SYSTEM"
       }
     },
     "/v1/models": {
@@ -7851,7 +8003,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       },
       "get": {
         "tags": [
@@ -7921,7 +8074,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/models/{model_id}": {
@@ -7982,7 +8136,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/models/{model_id}/promote": {
@@ -8036,7 +8191,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/models/{model_id}/history": {
@@ -8101,7 +8257,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/models/active": {
@@ -8163,7 +8320,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/models/eval-run": {
@@ -8219,7 +8377,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/feature-flags": {
@@ -8280,7 +8439,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/feature-flags/{flag_key}": {
@@ -8323,7 +8483,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       },
       "put": {
         "tags": [
@@ -8374,7 +8535,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       },
       "delete": {
         "tags": [
@@ -8408,7 +8570,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/feature-flags/{flag_key}/evaluate": {
@@ -8453,7 +8616,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/enrichment/{account_id}": {
@@ -8516,7 +8680,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       },
       "get": {
         "tags": [
@@ -8560,7 +8725,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/enrichment/batch": {
@@ -8604,7 +8770,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/enrichment/status": {
@@ -8626,7 +8793,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/hypotheses/generate": {
@@ -8668,7 +8836,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/hypotheses/from-signal": {
@@ -8710,7 +8879,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/hypotheses/{hypothesis_id}": {
@@ -8751,7 +8921,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       },
       "delete": {
         "tags": [
@@ -8792,7 +8963,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/hypotheses/account/{account_id}": {
@@ -8892,7 +9064,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/hypotheses/{hypothesis_id}/validate": {
@@ -8945,7 +9118,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/hypotheses/{hypothesis_id}/convert": {
@@ -8988,7 +9162,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/hypotheses/summary/stats": {
@@ -9036,7 +9211,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/hypotheses/rank": {
@@ -9078,7 +9254,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/narratives/generate": {
@@ -9118,7 +9295,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/narratives": {
@@ -9205,7 +9383,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/narratives/{narrative_id}": {
@@ -9246,7 +9425,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       },
       "delete": {
         "tags": [
@@ -9285,7 +9465,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/narratives/{narrative_id}/status": {
@@ -9336,7 +9517,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/narratives/{narrative_id}/export": {
@@ -9387,7 +9569,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/narratives/{narrative_id}/accept": {
@@ -9438,7 +9621,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/intelligence/account/{account_id}/briefing": {
@@ -9511,7 +9695,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/intelligence/account/{account_id}/deal-readiness": {
@@ -9552,7 +9737,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/intelligence/pipeline-summary": {
@@ -9572,7 +9758,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/ground-truth/truths": {
@@ -9707,7 +9894,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/ground-truth/truths/{truth_id}": {
@@ -9753,7 +9941,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/ground-truth/truths/{truth_id}/audit": {
@@ -9802,7 +9991,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/ground-truth/truths/{truth_id}/validate": {
@@ -9858,7 +10048,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/ground-truth/truths/freshness-summary": {
@@ -9882,7 +10073,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/ground-truth/truths/stale": {
@@ -9941,7 +10133,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/ground-truth/maturity-ladder": {
@@ -9965,7 +10158,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/governance/reviews": {
@@ -10006,7 +10200,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       },
       "get": {
         "tags": [
@@ -10089,7 +10284,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/governance/reviews/{review_id}": {
@@ -10131,7 +10327,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/governance/reviews/{review_id}/decisions": {
@@ -10183,7 +10380,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/governance/versions/{version_id}": {
@@ -10225,7 +10423,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/governance/versions": {
@@ -10266,7 +10465,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/governance/versions/{version_id}/diff": {
@@ -10317,7 +10517,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/governance/audit/exports": {
@@ -10358,7 +10559,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/governance/audit/exports/{audit_export_id}": {
@@ -10400,7 +10602,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/governance/lineage/{correlation_id}": {
@@ -10442,7 +10645,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/billing/subscription": {
@@ -10488,7 +10692,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT_AND_BILLING_ACCOUNT"
       }
     },
     "/v1/billing/checkout": {
@@ -10548,7 +10753,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT_AND_BILLING_ACCOUNT"
       }
     },
     "/v1/billing/portal": {
@@ -10608,7 +10814,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT_AND_BILLING_ACCOUNT"
       }
     },
     "/v1/billing/subscription/cancel": {
@@ -10666,7 +10873,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT_AND_BILLING_ACCOUNT"
       }
     },
     "/v1/billing/subscription/update-plan": {
@@ -10724,7 +10932,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT_AND_BILLING_ACCOUNT"
       }
     },
     "/v1/billing/subscription/reactivate": {
@@ -10772,7 +10981,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT_AND_BILLING_ACCOUNT"
       }
     },
     "/v1/billing/entitlements": {
@@ -10820,7 +11030,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT_AND_BILLING_ACCOUNT"
       }
     },
     "/v1/billing/check-feature": {
@@ -10877,7 +11088,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT_AND_BILLING_ACCOUNT"
       }
     },
     "/v1/billing/sync-customer": {
@@ -10933,7 +11145,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT_AND_BILLING_ACCOUNT"
       }
     },
     "/v1/billing/webhook": {
@@ -10979,7 +11192,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "SYSTEM"
       }
     },
     "/v1/billing/invoices": {
@@ -11068,7 +11282,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT_AND_BILLING_ACCOUNT"
       },
       "post": {
         "tags": [
@@ -11108,7 +11323,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT_AND_BILLING_ACCOUNT"
       }
     },
     "/v1/billing/invoices/{invoice_id}": {
@@ -11151,7 +11367,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT_AND_BILLING_ACCOUNT"
       }
     },
     "/v1/billing/invoices/{invoice_id}/items": {
@@ -11204,7 +11421,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT_AND_BILLING_ACCOUNT"
       }
     },
     "/v1/billing/invoices/{invoice_id}/finalize": {
@@ -11247,7 +11465,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT_AND_BILLING_ACCOUNT"
       }
     },
     "/v1/billing/invoices/{invoice_id}/void": {
@@ -11308,7 +11527,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT_AND_BILLING_ACCOUNT"
       }
     },
     "/v1/billing/charges": {
@@ -11413,7 +11633,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT_AND_BILLING_ACCOUNT"
       },
       "post": {
         "tags": [
@@ -11453,7 +11674,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT_AND_BILLING_ACCOUNT"
       }
     },
     "/v1/billing/reports/revenue": {
@@ -11509,7 +11731,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT_AND_BILLING_ACCOUNT"
       }
     },
     "/v1/billing/customers/{customer_id}/balance": {
@@ -11554,7 +11777,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT_AND_BILLING_ACCOUNT"
       }
     },
     "/v1/billing/limits/{customer_id}": {
@@ -11597,7 +11821,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT_AND_BILLING_ACCOUNT"
       }
     },
     "/v1/billing/limits/{customer_id}/check": {
@@ -11662,7 +11887,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT_AND_BILLING_ACCOUNT"
       }
     },
     "/v1/billing/plans/{plan_id}/limits": {
@@ -11705,7 +11931,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT_AND_BILLING_ACCOUNT"
       }
     },
     "/v1/billing/events": {
@@ -11747,7 +11974,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT_AND_BILLING_ACCOUNT"
       }
     },
     "/v1/billing/events/batch": {
@@ -11789,7 +12017,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT_AND_BILLING_ACCOUNT"
       }
     },
     "/v1/billing/usage/{customer_id}/summary": {
@@ -11877,7 +12106,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT_AND_BILLING_ACCOUNT"
       }
     },
     "/v1/billing/usage/{customer_id}/events": {
@@ -11998,7 +12228,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT_AND_BILLING_ACCOUNT"
       }
     },
     "/v1/billing/usage/{customer_id}/sync": {
@@ -12059,7 +12290,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT_AND_BILLING_ACCOUNT"
       }
     },
     "/v1/c1/stream": {
@@ -12099,7 +12331,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/auth/session": {
@@ -12121,7 +12354,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/prospects/{prospect_id}/context": {
@@ -12164,7 +12398,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/prospects/{prospect_id}/start-analysis": {
@@ -12217,7 +12452,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/company-knowledge/profiles": {
@@ -12259,7 +12495,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/company-knowledge/profiles/current": {
@@ -12281,7 +12518,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/company-knowledge/profiles/{profile_id}": {
@@ -12325,7 +12563,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       },
       "patch": {
         "tags": [
@@ -12377,7 +12616,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/company-knowledge/profiles/{profile_id}/approve": {
@@ -12431,7 +12671,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/company-knowledge/sources": {
@@ -12473,7 +12714,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       },
       "get": {
         "tags": [
@@ -12561,7 +12803,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/company-knowledge/extractions": {
@@ -12702,7 +12945,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/company-knowledge/extractions/{record_id}/review": {
@@ -12756,7 +13000,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/company-knowledge/icp": {
@@ -12778,7 +13023,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       },
       "post": {
         "tags": [
@@ -12818,7 +13064,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/company-knowledge/icp/{icp_id}": {
@@ -12872,7 +13119,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/company-knowledge/onboarding-status": {
@@ -12894,7 +13142,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/harness/runs": {
@@ -12937,7 +13186,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       },
       "get": {
         "tags": [
@@ -13025,7 +13275,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/harness/runs/{run_id}": {
@@ -13069,7 +13320,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       },
       "delete": {
         "tags": [
@@ -13104,7 +13356,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/harness/runs/{run_id}/transition": {
@@ -13158,7 +13411,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/harness/runs/{run_id}/checkpoints": {
@@ -13202,7 +13456,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/harness/runs/{run_id}/checkpoints/latest": {
@@ -13246,7 +13501,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/harness/runs/{run_id}/gates": {
@@ -13290,7 +13546,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       },
       "post": {
         "tags": [
@@ -13342,7 +13599,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/harness/gates/{gate_id}/decide": {
@@ -13396,7 +13654,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/harness/runs/{run_id}/validate": {
@@ -13450,7 +13709,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/harness/runs/{run_id}/validation": {
@@ -13494,7 +13754,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     },
     "/v1/harness/health": {
@@ -13517,7 +13778,8 @@
               }
             }
           }
-        }
+        },
+        "x-tenant-scope": "TENANT"
       }
     }
   },
