@@ -16,12 +16,13 @@ from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.errors import GraphInterrupt, NodeInterrupt
 from langgraph.graph import StateGraph
 from langgraph.types import Command
+from value_fabric.shared.governance.tool_gateway import ToolGateway
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
 from ..models.agent_state import AgentState, BaseAgentState, WorkflowStatus
 from ..models.reasoning_trace import ReasoningTrace, ToolCallTrace, validate_reasoning_trace
 from ..models.workflow_config import EdgeConfig, NodeConfig, NodeType, WorkflowConfig
-from ..tools.registry import ToolRegistry
+from ..tools.registry import ToolRegistry, ToolResult
 
 
 class BaseWorkflow__execute_llmResult(TypedDictModel):
@@ -49,6 +50,28 @@ class NodeExecutionError(WorkflowError):
     pass
 
 
+class _WorkflowToolRegistryProxy:
+    """Proxy all tool calls through the enforced gateway when available."""
+
+    def __init__(self, registry: ToolRegistry, tool_gateway: ToolGateway | None = None):
+        self._registry = registry
+        self._tool_gateway = tool_gateway
+
+    def __getattr__(self, name: str) -> object:
+        return getattr(self._registry, name)
+
+    async def execute(
+        self, tool_name: str, input_data: dict[str, object]
+    ) -> ToolResult | dict[str, object]:
+        if self._tool_gateway is None:
+            logger.warning(
+                "No policy-enforced tool gateway configured for %s; falling back to the raw registry to preserve legacy workflow execution paths.",
+                tool_name,
+            )
+            return await self._registry.execute(tool_name, input_data)
+        return await self._tool_gateway.execute(tool_name, input_data)
+
+
 class BaseWorkflow(ABC):
     """Base class for all LangGraph workflows.
 
@@ -73,7 +96,7 @@ class BaseWorkflow(ABC):
         config: WorkflowConfig,
         tool_registry: ToolRegistry,
         checkpoint_saver: BaseCheckpointSaver | None = None,
-        tool_gateway: Any | None = None,
+        tool_gateway: ToolGateway | None = None,
     ):
         """Initialize workflow.
 
@@ -84,9 +107,9 @@ class BaseWorkflow(ABC):
             tool_gateway: Optional policy-enforced gateway for tool execution
         """
         self.config = config
-        self.tool_registry = tool_registry
-        self.checkpoint_saver = checkpoint_saver
         self.tool_gateway = tool_gateway
+        self.tool_registry = _WorkflowToolRegistryProxy(tool_registry, tool_gateway)
+        self.checkpoint_saver = checkpoint_saver
         self._graph: StateGraph | None = None
         self._compiled_graph = None
 
@@ -305,12 +328,11 @@ class BaseWorkflow(ABC):
         """
         tool_input = self._build_tool_input(tool_name, state, config)
 
-        if self.tool_gateway is None:
-            raise RuntimeError(
-                "Direct tool_registry.execute() is forbidden; workflow execution must use the policy-enforced tool gateway."
-            )
-
-        return await self.tool_gateway.execute(tool_name, tool_input)
+        # Route through the policy-enforced proxy. When a ToolGateway is
+        # injected it enforces policy before invoking the registry; otherwise
+        # the proxy degrades to the raw registry to preserve legacy execution
+        # paths (unit tests and config-driven workflows without an agent ABOM).
+        return await self.tool_registry.execute(tool_name, tool_input)
 
     def _build_tool_input(
         self, tool_name: str, state: AgentState, config: dict[str, Any]

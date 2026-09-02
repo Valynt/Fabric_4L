@@ -44,13 +44,19 @@ def register_workflow_type(workflow_type: str, workflow_class: type[BaseWorkflow
     WORKFLOW_TYPES[workflow_type] = workflow_class
 
 
-def create_workflow(workflow_type: str, tool_registry, checkpoint_saver=None) -> BaseWorkflow:
+def create_workflow(
+    workflow_type: str,
+    tool_registry,
+    checkpoint_saver=None,
+    tool_gateway=None,
+) -> BaseWorkflow:
     """Create a workflow instance by type.
 
     Args:
         workflow_type: Type identifier (e.g., "roi_calculator")
         tool_registry: Tool registry for workflow
         checkpoint_saver: Optional checkpoint saver
+        tool_gateway: Optional policy-enforced tool gateway
 
     Returns:
         Workflow instance
@@ -71,8 +77,9 @@ def create_workflow(workflow_type: str, tool_registry, checkpoint_saver=None) ->
             tool_registry,
             checkpoint_saver,
             ground_truth_client_factory=create_layer5_business_case_ground_truth_client,
+            tool_gateway=tool_gateway,
         )
-    return workflow_class(tool_registry, checkpoint_saver)
+    return workflow_class(tool_registry, checkpoint_saver, tool_gateway=tool_gateway)
 
 
 def list_workflow_types() -> dict:

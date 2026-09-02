@@ -19,7 +19,11 @@ from datetime import datetime, timezone
 from typing import Any
 
 from value_fabric.shared.audit.emitter import emit_audit_event
-from value_fabric.shared.audit.models import AuditAction, AuditOutcome, MemoryAccessRecord
+from value_fabric.shared.audit.models import (
+    AuditAction,
+    AuditOutcome,
+    MemoryAccessRecord,
+)
 from value_fabric.shared.crypto.canonical import canonical_hash
 
 logger = logging.getLogger(__name__)
@@ -311,9 +315,9 @@ class MemoryGateway:
         return bool(source_id and source_id in blocklist)
 
     @staticmethod
-    def _build_source_lineage(result_dict: dict[str, Any]) -> list[dict[str, Any]]:
+    def _build_source_lineage(result_dict: dict[str, object]) -> list[dict[str, object]]:
         """Extract source lineage from retrieval results."""
-        lineage: list[dict[str, Any]] = []
+        lineage: list[dict[str, object]] = []
 
         # Extract from sources list
         for source in result_dict.get("sources", []):
@@ -330,7 +334,7 @@ class MemoryGateway:
         self,
         query: str,
         content_hash: str,
-        source_lineage: list[dict[str, Any]],
+        source_lineage: list[dict[str, object]],
         entity_count: int,
         relationship_count: int,
     ) -> None:

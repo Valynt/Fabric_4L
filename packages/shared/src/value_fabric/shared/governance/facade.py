@@ -1,10 +1,23 @@
 from __future__ import annotations
 
+import json
 import uuid
-from typing import Any
 
+from ..llm_safety.prompt_guard import PromptGuard
+from .abom import AgentBillOfMaterials
 from .decision import Decision, DecisionEffect, Obligation
-from .policy_engine import PolicyDecision, PolicyEngineClient
+from .policy_engine import PolicyEngineClient
+
+
+def _serialize_input(input_data: dict[str, object] | None) -> str | None:
+    """Serialize action input for prompt-injection scanning.
+
+    Returns None when there is no input, so the safety guard treats the
+    action as having no prompt text to inspect.
+    """
+    if not input_data:
+        return None
+    return json.dumps(input_data, default=str)
 
 
 class PolicyDecisionFacade:
@@ -13,8 +26,8 @@ class PolicyDecisionFacade:
     def __init__(
         self,
         policy_client: PolicyEngineClient | None = None,
-        abom: Any | None = None,
-        llm_safety: Any | None = None,
+        abom: AgentBillOfMaterials | None = None,
+        llm_safety: PromptGuard | None = None,
     ) -> None:
         self.policy_client = policy_client or PolicyEngineClient()
         self.abom = abom
@@ -57,7 +70,7 @@ class PolicyDecisionFacade:
         tenant_id: str | None,
         actor_id: str | None = None,
         tool_name: str | None = None,
-        input_data: dict[str, Any] | None = None,
+        input_data: dict[str, object] | None = None,
         policy_ids: list[str] | None = None,
         trace_id: str | None = None,
     ) -> Decision:
@@ -111,8 +124,8 @@ class PolicyDecisionFacade:
                 )
 
         if self.llm_safety is not None:
-            safety = self.llm_safety.evaluate(input_data or {})
-            if safety is False:
+            safety = self.llm_safety.check(_serialize_input(input_data))
+            if safety.is_injection:
                 return self._deny(
                     reason_code="llm_safety_blocked",
                     reason="LLM safety policy blocked execution.",

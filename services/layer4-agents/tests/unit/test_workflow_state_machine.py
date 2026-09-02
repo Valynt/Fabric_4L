@@ -387,7 +387,9 @@ class TestBaseWorkflow:
         assert workflow.name == "test_workflow"
         assert workflow.workflow_type == "test"
         assert workflow.config == mock_config
-        assert workflow.tool_registry == mock_tool_registry
+        # The registry is wrapped by the policy-enforced proxy; verify it still
+        # delegates attribute access to the underlying registry.
+        assert workflow.tool_registry.get_tool is mock_tool_registry.get_tool
 
     @pytest.mark.unit
     def test_workflow_error_exception(self):

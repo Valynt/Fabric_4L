@@ -383,6 +383,24 @@ class BaseAgent(ABC):
                     "Governance enforcement is unavailable; refusing to bypass policy checks."
                 ) from exc
 
+        # ── GATE Phase 2/3: PolicyDecisionFacade injection ──
+        if "policy_facade" not in ctx and self.abom is not None:
+            try:
+                from value_fabric.shared.governance.facade import PolicyDecisionFacade
+                from value_fabric.shared.governance.policy_engine import PolicyEngineClient
+
+                policy_facade = PolicyDecisionFacade(
+                    policy_client=ctx.get("policy_client") or PolicyEngineClient(),
+                    abom=self.abom,
+                    llm_safety=ctx.get("llm_safety"),
+                )
+                ctx["policy_facade"] = policy_facade
+                self.state.context["policy_facade"] = policy_facade
+            except ImportError as exc:  # pragma: no cover - fail-closed at runtime
+                raise RuntimeError(
+                    "Governance enforcement is unavailable; refusing to bypass policy checks."
+                ) from exc
+
         # ── GATE Phase 3: MemoryGateway injection ──
         memory_gateway = None
         if "memory_gateway" in ctx:

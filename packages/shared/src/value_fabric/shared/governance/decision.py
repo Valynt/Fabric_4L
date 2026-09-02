@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any
 
 
 class DecisionEffect(str, Enum):
@@ -26,7 +25,9 @@ class Obligation(str, Enum):
     LOG = "LOG"
 
 
-def _normalize_obligations(obligations: list[Any] | tuple[Any, ...] | None) -> list[str]:
+def _normalize_obligations(
+    obligations: list[str | Obligation] | tuple[str | Obligation, ...] | None,
+) -> list[str]:
     normalized: list[str] = []
     for item in obligations or []:
         if isinstance(item, Obligation):
@@ -52,7 +53,6 @@ class Decision:
     action: str | None = None
     resource: str | None = None
     trace_id: str | None = None
-    metadata: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "obligations", _normalize_obligations(self.obligations))

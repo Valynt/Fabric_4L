@@ -64,6 +64,21 @@ def _make_mock_openai_response(content: str = "Mock LLM content") -> MagicMock:
     return mock_response
 
 
+@pytest.mark.asyncio
+async def test_workflow_tool_gateway_is_injected() -> None:
+    """Workflow constructors must accept and wire the policy-enforced tool gateway."""
+    registry = _make_mock_tool_registry()
+    gateway = Mock()
+    gateway.execute = AsyncMock(return_value={"status": "ok"})
+
+    workflow = WhitespaceAnalysisWorkflow(tool_registry=registry, tool_gateway=gateway)
+
+    assert workflow.tool_gateway is gateway
+    result = await workflow.tool_registry.execute("get_prospect_data", {"prospect_id": "p-001"})
+    assert result == {"status": "ok"}
+    gateway.execute.assert_awaited_once_with("get_prospect_data", {"prospect_id": "p-001"})
+
+
 # ── WorkflowStatus Tests ──────────────────────────────────────────────────────
 class TestWorkflowStatusEnum:
     """Verify WorkflowStatus enum values match frontend expectations."""
