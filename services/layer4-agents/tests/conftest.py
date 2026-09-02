@@ -144,12 +144,17 @@ def pytest_collection_modifyitems(config, items):
                 skipped += 1
 
     if skipped:
+        if not POSTGRES_AVAILABLE:
+            coverage_note = "postgres coverage is not exercised in this environment"
+        else:
+            coverage_note = "postgres/docker coverage is not exercised in this environment"
+
         config.issue_config_time_warning(
             RuntimeWarning(
-                f"Skipped {skipped} Docker/testcontainers-gated test item(s); their "
-                "postgres/docker coverage is not exercised in this environment. Run "
-                "the postgres/docker lane in CI or via `make test-layer4-live`, or set "
-                "LAYER4_REQUIRE_TESTCONTAINERS=1 to fail closed instead of skipping."
+                f"Skipped {skipped} gated test item(s); {coverage_note}. Run the "
+                "appropriate postgres/docker lane in CI or via `make test-layer4-live`, "
+                "or set LAYER4_REQUIRE_TESTCONTAINERS=1 to fail closed instead of "
+                "skipping."
             ),
             stacklevel=2,
         )

@@ -16,20 +16,20 @@ import pytest
 
 
 _LAYER4_TESTS_DIR = Path(__file__).resolve().parent
-_CONFTEXT_PATH = _LAYER4_TESTS_DIR / "conftest.py"
+_CONFTEST_PATH = _LAYER4_TESTS_DIR / "conftest.py"
 
 _conftest = next(
     (
         module
         for module in sys.modules.values()
-        if getattr(module, "__file__", None) == str(_CONFTEXT_PATH)
+        if getattr(module, "__file__", None) == str(_CONFTEST_PATH)
     ),
     None,
 )
 if _conftest is None:
-    spec = importlib.util.spec_from_file_location("layer4_tests_conftest", _CONFTEXT_PATH)
+    spec = importlib.util.spec_from_file_location("layer4_tests_conftest", _CONFTEST_PATH)
     if spec is None or spec.loader is None:  # pragma: no cover
-        raise RuntimeError(f"Could not load layer4 conftest from {_CONFTEXT_PATH}")
+        raise RuntimeError(f"Could not load layer4 conftest from {_CONFTEST_PATH}")
     _conftest = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(_conftest)
     sys.modules[spec.name] = _conftest
