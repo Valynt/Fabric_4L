@@ -1,10 +1,11 @@
+from typing import Any
 import pytest
 
 from valuefabric.cli.auth import _is_jwt
 
 
 @pytest.mark.parametrize(
-    "token, expected",
+    ("token", "expected"),
     [
         ("header.payload.signature", True),
         (
@@ -21,5 +22,5 @@ from valuefabric.cli.auth import _is_jwt
         ("", False),
     ],
 )
-def test_is_jwt(token: str, expected: bool):
+def test_is_jwt(token: str, expected: bool) -> None:
     assert _is_jwt(token) == expected
