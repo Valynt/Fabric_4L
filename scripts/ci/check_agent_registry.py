@@ -268,7 +268,11 @@ class RegistryValidator:
                         if field not in fields:
                             self._error(path, "tool-provenance-field-missing", f"{name} provenance missing {field}")
 
-        expected_tool_names = {tool_path.stem for tool_path in TOOL_MANIFEST_ROOT.glob("*.json")}
+        expected_tool_names = {
+            tool_path.stem
+            for tool_path in TOOL_MANIFEST_ROOT.glob("*.json")
+            if not tool_path.name.endswith(".schema.json")
+        }
         missing = sorted(expected_tool_names - registered_names)
         extra = sorted(registered_names - expected_tool_names)
         if missing:
