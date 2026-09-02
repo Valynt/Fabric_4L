@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
@@ -80,7 +80,7 @@ def test_execute_target_dispatch_failure_leaves_other_placeholder_intact(
     )
     monkeypatch.setattr(
         "layer1_ingestion.api.target_handlers._check_idempotency_key",
-        lambda *args, **kwargs: (None, None),
+        AsyncMock(return_value=(None, None)),
     )
     monkeypatch.setattr(
         "layer1_ingestion.api.target_handlers._update_idempotency_key",
