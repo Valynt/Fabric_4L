@@ -1,10 +1,10 @@
 # Workspace (live task state)
 
 ## Active task
-- Goal: Build the `frontend-excellence` portable-brain skill package (prototype → production frontend + backend wiring + agentic layer).
-- Status: COMPLETE — SKILL.md, 5 references, 4 templates, 3 checklists, eval suite (README + 4 scenarios) all created; registered in `_index.md` + `_manifest.jsonl` (category: engineering); Playwright MCP added to `.mcp.json`; GREEN eval pass verified against `templates/tool-schema.json`.
-- Validation: `_manifest.jsonl` valid JSON (json.tool); `.mcp.json` valid; no duplicate skill names; tool-schema template passes all GREEN rule assertions.
+- Goal: Review and resolve the remaining idempotency cleanup feedback for PR #1614 in Layer 1 ingestion.
+- Status: ACCEPTED — the referenced dispatch-failure cleanup is already guarded by the owning-placeholder check in `services/layer1-ingestion/src/layer1_ingestion/api/target_handlers.py`, and the focused regression test exists in `services/layer1-ingestion/tests/api/test_target_handlers_launch_hardening.py`.
+- Validation: the exact guard and regression test were inspected; full pytest execution was attempted but blocked by the environment pre-run guardrail hook.
 
 ## Active hypotheses
-- (cleared)
+- The repository already contains the required fix; no source patch is necessary unless the branch is missing this change in another checkout.
 

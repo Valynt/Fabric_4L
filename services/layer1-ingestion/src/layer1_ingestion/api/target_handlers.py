@@ -562,7 +562,7 @@ async def execute_target(
         )
         job.status = JobStatus.FAILED.value
         db.commit()
-        if idempotency_key:
+        if idempotency_key and placeholder:
             _delete_idempotency_key(org_id, target_id, idempotency_key)
         if isinstance(exc, HTTPException):
             raise

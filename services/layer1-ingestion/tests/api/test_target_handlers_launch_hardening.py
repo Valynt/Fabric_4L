@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from unittest.mock import MagicMock
+
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
@@ -60,3 +62,39 @@ def test_execute_target_dispatch_failure_does_not_leave_queued_job(
     )
     assert len(jobs) == 1
     assert jobs[0].status == JobStatus.FAILED.value
+
+
+def test_execute_target_dispatch_failure_leaves_other_placeholder_intact(
+    client: TestClient,
+    db,
+    make_target,
+    org_id,
+    monkeypatch,
+) -> None:
+    """Only the request that owns the placeholder may delete it on dispatch failure."""
+    target = make_target(org_id, status="ACTIVE")
+    delete_key = MagicMock()
+    monkeypatch.setattr(
+        "layer1_ingestion.api.target_handlers._delete_idempotency_key",
+        delete_key,
+    )
+    monkeypatch.setattr(
+        "layer1_ingestion.api.target_handlers._check_idempotency_key",
+        lambda *args, **kwargs: (None, None),
+    )
+    monkeypatch.setattr(
+        "layer1_ingestion.api.target_handlers.process_scraping_job",
+        _UnavailableTask(),
+    )
+    monkeypatch.setattr(
+        "layer1_ingestion.api.target_handlers.build_celery_options",
+        lambda: None,
+    )
+
+    response = client.post(
+        f"{BASE}/targets/{target.id}/execute",
+        json={"priority": 5, "idempotency_key": "existing-key"},
+    )
+
+    assert response.status_code == 503
+    delete_key.assert_not_called()
