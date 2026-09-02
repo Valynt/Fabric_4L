@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import http.server
 import time
-import typing
 import webbrowser
+from typing import Any
 from urllib.parse import parse_qs, urlencode, urljoin, urlparse, urlunparse
 from uuid import uuid4
 
@@ -43,7 +43,7 @@ class CallbackHandler(http.server.BaseHTTPRequestHandler):
             b"<p>You can close this window and return to the CLI.</p></body></html>"
         )
 
-    def log_message(self, format: str, *args: typing.Any) -> None:
+    def log_message(self, format: str, *args: Any) -> None:
         pass
 
 
