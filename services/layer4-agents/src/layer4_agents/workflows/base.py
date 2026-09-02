@@ -73,6 +73,7 @@ class BaseWorkflow(ABC):
         config: WorkflowConfig,
         tool_registry: ToolRegistry,
         checkpoint_saver: BaseCheckpointSaver | None = None,
+        tool_gateway: Any | None = None,
     ):
         """Initialize workflow.
 
@@ -80,11 +81,12 @@ class BaseWorkflow(ABC):
             config: Workflow configuration
             tool_registry: Registry of available tools
             checkpoint_saver: Optional checkpoint saver for persistence
+            tool_gateway: Optional policy-enforced gateway for tool execution
         """
         self.config = config
         self.tool_registry = tool_registry
         self.checkpoint_saver = checkpoint_saver
-        self.tool_gateway = None
+        self.tool_gateway = tool_gateway
         self._graph: StateGraph | None = None
         self._compiled_graph = None
 

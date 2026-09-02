@@ -151,12 +151,21 @@ class TestPolicyEngineClient:
         """CRITICAL: high_privilege agents must be denied when OPA is unavailable."""
         client = PolicyEngineClient(opa_url="http://nonexistent:9999", timeout=1)
         abom = _make_abom(privilege_tier="high_privilege")
-        decision = await client.evaluate(abom, "tool_a", {})
+        decision = await client.evaluate(abom, "tool_a", {}, tenant_id="tenant-123")
         assert decision.allowed is False
         assert "deny-all" in decision.reason
 
+    @pytest.mark.asyncio
+    async def test_standard_agent_fail_closed_when_opa_down(self) -> None:
+        """OPA outages must deny standard agents rather than silently allowing them."""
+        client = PolicyEngineClient(opa_url="http://nonexistent:9999", timeout=1)
+        abom = _make_abom()
+        decision = await client.evaluate(abom, "tool_a", {}, tenant_id="tenant-123")
+        assert decision.allowed is False
+        assert "fail-closed" in decision.reason.lower()
 
-# ═══════════════════════════════════════════════════════════════════════════
+
+# ═══════════════════════════════════════════════════════════════════
 # InvariantEvaluator Tests
 # ═══════════════════════════════════════════════════════════════════════════
 
@@ -214,7 +223,14 @@ class TestToolGateway:
     async def test_allows_valid_invocation(self) -> None:
         registry = _make_mock_registry()
         abom = _make_abom()
-        gw = ToolGateway(registry=registry, abom=abom)
+        policy_client = MagicMock()
+        policy_client.evaluate = AsyncMock(return_value=PolicyDecision(
+            allowed=True,
+            reason="allow",
+            obligations=[],
+            policy_bundle_hash=abom.manifest_hash(),
+        ))
+        gw = ToolGateway(registry=registry, abom=abom, policy_client=policy_client, tenant_id="tenant-123")
         result = await gw.execute("tool_a", {"param": "value"})
         assert result == {"status": "ok"}
         registry.execute.assert_called_once()
@@ -237,10 +253,26 @@ class TestToolGateway:
             await gw.execute("tool_a", {})
 
     @pytest.mark.asyncio
+    async def test_denies_missing_tenant_context(self) -> None:
+        registry = _make_mock_registry()
+        abom = _make_abom()
+        gw = ToolGateway(registry=registry, abom=abom, tenant_id="")
+        with pytest.raises(ToolGatewayDenied, match="Tenant context is required"):
+            await gw.execute("tool_a", {})
+        registry.execute.assert_not_called()
+
+    @pytest.mark.asyncio
     async def test_invariant_violation_blocks(self) -> None:
         registry = _make_mock_registry()
         abom = _make_abom()
-        gw = ToolGateway(registry=registry, abom=abom)
+        policy_client = MagicMock()
+        policy_client.evaluate = AsyncMock(return_value=PolicyDecision(
+            allowed=True,
+            reason="allow",
+            obligations=[],
+            policy_bundle_hash=abom.manifest_hash(),
+        ))
+        gw = ToolGateway(registry=registry, abom=abom, policy_client=policy_client, tenant_id="tenant-123")
         # Exhaust call limit
         for _ in range(5):
             await gw.execute("tool_a", {})
@@ -251,7 +283,14 @@ class TestToolGateway:
     async def test_invocation_log_populated(self) -> None:
         registry = _make_mock_registry()
         abom = _make_abom()
-        gw = ToolGateway(registry=registry, abom=abom)
+        policy_client = MagicMock()
+        policy_client.evaluate = AsyncMock(return_value=PolicyDecision(
+            allowed=True,
+            reason="allow",
+            obligations=[],
+            policy_bundle_hash=abom.manifest_hash(),
+        ))
+        gw = ToolGateway(registry=registry, abom=abom, policy_client=policy_client, tenant_id="tenant-123")
         await gw.execute("tool_a", {"x": 1})
         assert len(gw.invocation_log) == 1
         assert gw.invocation_log[0]["tool_name"] == "tool_a"
@@ -260,7 +299,14 @@ class TestToolGateway:
     async def test_reset_clears_state(self) -> None:
         registry = _make_mock_registry()
         abom = _make_abom()
-        gw = ToolGateway(registry=registry, abom=abom)
+        policy_client = MagicMock()
+        policy_client.evaluate = AsyncMock(return_value=PolicyDecision(
+            allowed=True,
+            reason="allow",
+            obligations=[],
+            policy_bundle_hash=abom.manifest_hash(),
+        ))
+        gw = ToolGateway(registry=registry, abom=abom, policy_client=policy_client, tenant_id="tenant-123")
         await gw.execute("tool_a", {})
         gw.reset_for_new_run()
         assert len(gw.invocation_log) == 0
@@ -271,7 +317,20 @@ class TestToolGateway:
         """Runtime policy decisions are audit evidence, separate from tool invocation."""
         registry = _make_mock_registry()
         abom = _make_abom()
-        gw = ToolGateway(registry=registry, abom=abom, tenant_id=str(uuid4()), trace_id="trace-allow")
+        policy_client = MagicMock()
+        policy_client.evaluate = AsyncMock(return_value=PolicyDecision(
+            allowed=True,
+            reason="allow",
+            obligations=[],
+            policy_bundle_hash=abom.manifest_hash(),
+        ))
+        gw = ToolGateway(
+            registry=registry,
+            abom=abom,
+            policy_client=policy_client,
+            tenant_id=str(uuid4()),
+            trace_id="trace-allow",
+        )
 
         with patch(
             "value_fabric.shared.governance.tool_gateway.emit_audit_event",
@@ -305,7 +364,7 @@ class TestToolGateway:
             obligations=["manual_review"],
             policy_bundle_hash="c" * 64,
         ))
-        gw = ToolGateway(registry=registry, abom=abom, policy_client=policy_client)
+        gw = ToolGateway(registry=registry, abom=abom, policy_client=policy_client, tenant_id="tenant-123")
 
         with patch(
             "value_fabric.shared.governance.tool_gateway.emit_audit_event",
@@ -332,7 +391,14 @@ class TestToolGateway:
     async def test_policy_decision_audit_emitted_for_invariant_denial(self) -> None:
         registry = _make_mock_registry()
         abom = _make_abom()
-        gw = ToolGateway(registry=registry, abom=abom)
+        policy_client = MagicMock()
+        policy_client.evaluate = AsyncMock(return_value=PolicyDecision(
+            allowed=True,
+            reason="allow",
+            obligations=[],
+            policy_bundle_hash=abom.manifest_hash(),
+        ))
+        gw = ToolGateway(registry=registry, abom=abom, policy_client=policy_client, tenant_id="tenant-123")
         for _ in range(5):
             await gw.execute("tool_a", {})
 
@@ -364,7 +430,7 @@ class TestToolGateway:
         registry = _make_mock_registry()
         abom = _make_abom(privilege_tier="high_privilege")
         policy_client = PolicyEngineClient(opa_url="http://nonexistent:9999", timeout=1)
-        gw = ToolGateway(registry=registry, abom=abom, policy_client=policy_client)
+        gw = ToolGateway(registry=registry, abom=abom, policy_client=policy_client, tenant_id="tenant-123")
         with pytest.raises(ToolGatewayDenied, match="deny-all"):
             await gw.execute("tool_a", {})
 

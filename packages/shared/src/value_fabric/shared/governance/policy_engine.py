@@ -88,8 +88,6 @@ class PolicyEngineClient:
                 policy_bundle_hash=abom.manifest_hash(),
             )
         if not tenant_id or tenant_id in {"unknown", "None", "null", ""}:
-            if abom.privilege_tier == "high_privilege":
-                return self._evaluate_local(abom, tool_name)
             return PolicyDecision(
                 allowed=False,
                 reason="Tenant context is required for policy evaluation.",
@@ -180,10 +178,10 @@ class PolicyEngineClient:
             )
 
         return PolicyDecision(
-            allowed=True,
+            allowed=False,
             reason=(
-                "OPA unavailable: local fallback permits standard-agent tool use "
-                f"for '{tool_name}' under {abom.agent_type}"
+                "OPA unavailable: fail-closed deny for standard agent "
+                f"'{abom.agent_type}' while evaluating '{tool_name}'"
             ),
             obligations=["AUDIT"],
             policy_bundle_hash=abom.manifest_hash(),
