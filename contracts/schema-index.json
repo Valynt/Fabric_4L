@@ -44,6 +44,211 @@
       "title": "CommonDomainEventEnvelope"
     },
     {
+      "path": "contracts/jsonschema/agents/events/agent-output-generated@1.0.0.schema.json",
+      "id": "https://valuefabric.ai/contracts/jsonschema/agents/events/agent-output-generated@1.0.0.schema.json",
+      "title": "AgentOutputGenerated"
+    },
+    {
+      "path": "contracts/jsonschema/agents/events/business-case-generated@1.0.0.schema.json",
+      "id": "https://valuefabric.ai/contracts/jsonschema/agents/events/business-case-generated@1.0.0.schema.json",
+      "title": "BusinessCaseGenerated"
+    },
+    {
+      "path": "contracts/jsonschema/agents/events/checkpoint-created@1.0.0.schema.json",
+      "id": "https://valuefabric.ai/contracts/jsonschema/agents/events/checkpoint-created@1.0.0.schema.json",
+      "title": "CheckpointCreated"
+    },
+    {
+      "path": "contracts/jsonschema/agents/events/roi-analyzed@1.0.0.schema.json",
+      "id": "https://valuefabric.ai/contracts/jsonschema/agents/events/roi-analyzed@1.0.0.schema.json",
+      "title": "RoiAnalyzed"
+    },
+    {
+      "path": "contracts/jsonschema/agents/events/tool-invocation-completed@1.0.0.schema.json",
+      "id": "https://valuefabric.ai/contracts/jsonschema/agents/events/tool-invocation-completed@1.0.0.schema.json",
+      "title": "ToolInvocationCompleted"
+    },
+    {
+      "path": "contracts/jsonschema/agents/events/workflow-completed@1.0.0.schema.json",
+      "id": "https://valuefabric.ai/contracts/jsonschema/agents/events/workflow-completed@1.0.0.schema.json",
+      "title": "WorkflowCompleted"
+    },
+    {
+      "path": "contracts/jsonschema/agents/events/workflow-failed@1.0.0.schema.json",
+      "id": "https://valuefabric.ai/contracts/jsonschema/agents/events/workflow-failed@1.0.0.schema.json",
+      "title": "WorkflowFailed"
+    },
+    {
+      "path": "contracts/jsonschema/agents/events/workflow-paused@1.0.0.schema.json",
+      "id": "https://valuefabric.ai/contracts/jsonschema/agents/events/workflow-paused@1.0.0.schema.json",
+      "title": "WorkflowPaused"
+    },
+    {
+      "path": "contracts/jsonschema/agents/events/workflow-resumed@1.0.0.schema.json",
+      "id": "https://valuefabric.ai/contracts/jsonschema/agents/events/workflow-resumed@1.0.0.schema.json",
+      "title": "WorkflowResumed"
+    },
+    {
+      "path": "contracts/jsonschema/agents/events/workflow-started@1.0.0.schema.json",
+      "id": "https://valuefabric.ai/contracts/jsonschema/agents/events/workflow-started@1.0.0.schema.json",
+      "title": "WorkflowStarted"
+    },
+    {
+      "path": "contracts/jsonschema/billing/events/billing-account-created@1.0.0.schema.json",
+      "id": "https://valuefabric.ai/contracts/jsonschema/billing/events/billing-account-created@1.0.0.schema.json",
+      "title": "BillingAccountCreated"
+    },
+    {
+      "path": "contracts/jsonschema/billing/events/credit-applied@1.0.0.schema.json",
+      "id": "https://valuefabric.ai/contracts/jsonschema/billing/events/credit-applied@1.0.0.schema.json",
+      "title": "CreditApplied"
+    },
+    {
+      "path": "contracts/jsonschema/billing/events/dispute-opened@1.0.0.schema.json",
+      "id": "https://valuefabric.ai/contracts/jsonschema/billing/events/dispute-opened@1.0.0.schema.json",
+      "title": "DisputeOpened"
+    },
+    {
+      "path": "contracts/jsonschema/billing/events/entitlement-changed@1.0.0.schema.json",
+      "id": "https://valuefabric.ai/contracts/jsonschema/billing/events/entitlement-changed@1.0.0.schema.json",
+      "title": "EntitlementChanged"
+    },
+    {
+      "path": "contracts/jsonschema/billing/events/invoice-generated@1.0.0.schema.json",
+      "id": "https://valuefabric.ai/contracts/jsonschema/billing/events/invoice-generated@1.0.0.schema.json",
+      "title": "InvoiceGenerated"
+    },
+    {
+      "path": "contracts/jsonschema/billing/events/invoice-paid@1.0.0.schema.json",
+      "id": "https://valuefabric.ai/contracts/jsonschema/billing/events/invoice-paid@1.0.0.schema.json",
+      "title": "InvoicePaid"
+    },
+    {
+      "path": "contracts/jsonschema/billing/events/ledger-entry-posted@1.0.0.schema.json",
+      "id": "https://valuefabric.ai/contracts/jsonschema/billing/events/ledger-entry-posted@1.0.0.schema.json",
+      "title": "LedgerEntryPosted"
+    },
+    {
+      "path": "contracts/jsonschema/billing/events/payment-failed@1.0.0.schema.json",
+      "id": "https://valuefabric.ai/contracts/jsonschema/billing/events/payment-failed@1.0.0.schema.json",
+      "title": "PaymentFailed"
+    },
+    {
+      "path": "contracts/jsonschema/billing/events/plan-published@1.0.0.schema.json",
+      "id": "https://valuefabric.ai/contracts/jsonschema/billing/events/plan-published@1.0.0.schema.json",
+      "title": "PlanPublished"
+    },
+    {
+      "path": "contracts/jsonschema/billing/events/rating-completed@1.0.0.schema.json",
+      "id": "https://valuefabric.ai/contracts/jsonschema/billing/events/rating-completed@1.0.0.schema.json",
+      "title": "RatingCompleted"
+    },
+    {
+      "path": "contracts/jsonschema/billing/events/reconciliation-completed@1.0.0.schema.json",
+      "id": "https://valuefabric.ai/contracts/jsonschema/billing/events/reconciliation-completed@1.0.0.schema.json",
+      "title": "ReconciliationCompleted"
+    },
+    {
+      "path": "contracts/jsonschema/billing/events/refund-processed@1.0.0.schema.json",
+      "id": "https://valuefabric.ai/contracts/jsonschema/billing/events/refund-processed@1.0.0.schema.json",
+      "title": "RefundProcessed"
+    },
+    {
+      "path": "contracts/jsonschema/billing/events/subscription-activated@1.1.0.schema.json",
+      "id": "https://valuefabric.ai/contracts/jsonschema/billing/events/subscription-activated@1.1.0.schema.json",
+      "title": "SubscriptionActivated"
+    },
+    {
+      "path": "contracts/jsonschema/billing/events/subscription-canceled@1.0.0.schema.json",
+      "id": "https://valuefabric.ai/contracts/jsonschema/billing/events/subscription-canceled@1.0.0.schema.json",
+      "title": "SubscriptionCanceled"
+    },
+    {
+      "path": "contracts/jsonschema/billing/events/usage-ingested@1.0.0.schema.json",
+      "id": "https://valuefabric.ai/contracts/jsonschema/billing/events/usage-ingested@1.0.0.schema.json",
+      "title": "UsageIngested"
+    },
+    {
+      "path": "contracts/jsonschema/identity/events/mfa-enrolled@1.0.0.schema.json",
+      "id": "https://valuefabric.ai/contracts/jsonschema/identity/events/mfa-enrolled@1.0.0.schema.json",
+      "title": "MfaEnrolled"
+    },
+    {
+      "path": "contracts/jsonschema/identity/events/password-changed@1.0.0.schema.json",
+      "id": "https://valuefabric.ai/contracts/jsonschema/identity/events/password-changed@1.0.0.schema.json",
+      "title": "PasswordChanged"
+    },
+    {
+      "path": "contracts/jsonschema/identity/events/session-created@1.0.0.schema.json",
+      "id": "https://valuefabric.ai/contracts/jsonschema/identity/events/session-created@1.0.0.schema.json",
+      "title": "SessionCreated"
+    },
+    {
+      "path": "contracts/jsonschema/identity/events/session-revoked@1.0.0.schema.json",
+      "id": "https://valuefabric.ai/contracts/jsonschema/identity/events/session-revoked@1.0.0.schema.json",
+      "title": "SessionRevoked"
+    },
+    {
+      "path": "contracts/jsonschema/identity/events/tenant-provisioned@1.0.0.schema.json",
+      "id": "https://valuefabric.ai/contracts/jsonschema/identity/events/tenant-provisioned@1.0.0.schema.json",
+      "title": "TenantProvisioned"
+    },
+    {
+      "path": "contracts/jsonschema/identity/events/user-authenticated@1.0.0.schema.json",
+      "id": "https://valuefabric.ai/contracts/jsonschema/identity/events/user-authenticated@1.0.0.schema.json",
+      "title": "UserAuthenticated"
+    },
+    {
+      "path": "contracts/jsonschema/identity/events/user-deactivated@1.0.0.schema.json",
+      "id": "https://valuefabric.ai/contracts/jsonschema/identity/events/user-deactivated@1.0.0.schema.json",
+      "title": "UserDeactivated"
+    },
+    {
+      "path": "contracts/jsonschema/identity/events/user-registered@1.0.0.schema.json",
+      "id": "https://valuefabric.ai/contracts/jsonschema/identity/events/user-registered@1.0.0.schema.json",
+      "title": "UserRegistered"
+    },
+    {
+      "path": "contracts/jsonschema/identity/events/user-updated@1.0.0.schema.json",
+      "id": "https://valuefabric.ai/contracts/jsonschema/identity/events/user-updated@1.0.0.schema.json",
+      "title": "UserUpdated"
+    },
+    {
+      "path": "contracts/jsonschema/knowledge/events/entity-created@1.0.0.schema.json",
+      "id": "https://valuefabric.ai/contracts/jsonschema/knowledge/events/entity-created@1.0.0.schema.json",
+      "title": "EntityCreated"
+    },
+    {
+      "path": "contracts/jsonschema/knowledge/events/entity-ingested@1.0.0.schema.json",
+      "id": "https://valuefabric.ai/contracts/jsonschema/knowledge/events/entity-ingested@1.0.0.schema.json",
+      "title": "EntityIngested"
+    },
+    {
+      "path": "contracts/jsonschema/knowledge/events/entity-reindexed@1.0.0.schema.json",
+      "id": "https://valuefabric.ai/contracts/jsonschema/knowledge/events/entity-reindexed@1.0.0.schema.json",
+      "title": "EntityReindexed"
+    },
+    {
+      "path": "contracts/jsonschema/knowledge/events/entity-relationship-created@1.0.0.schema.json",
+      "id": "https://valuefabric.ai/contracts/jsonschema/knowledge/events/entity-relationship-created@1.0.0.schema.json",
+      "title": "EntityRelationshipCreated"
+    },
+    {
+      "path": "contracts/jsonschema/knowledge/events/entity-resolved@1.0.0.schema.json",
+      "id": "https://valuefabric.ai/contracts/jsonschema/knowledge/events/entity-resolved@1.0.0.schema.json",
+      "title": "EntityResolved"
+    },
+    {
+      "path": "contracts/jsonschema/knowledge/events/entity-updated@1.0.0.schema.json",
+      "id": "https://valuefabric.ai/contracts/jsonschema/knowledge/events/entity-updated@1.0.0.schema.json",
+      "title": "EntityUpdated"
+    },
+    {
+      "path": "contracts/jsonschema/knowledge/events/subgraph-cached@1.0.0.schema.json",
+      "id": "https://valuefabric.ai/contracts/jsonschema/knowledge/events/subgraph-cached@1.0.0.schema.json",
+      "title": "SubgraphCached"
+    },
+    {
       "path": "contracts/event-catalog/event-entry.schema.json",
       "id": "https://valuefabric.ai/contracts/event-catalog/event-entry.schema.json",
       "title": "EventCatalogEntry"
@@ -158,7 +363,7 @@
     {
       "path": "contracts/openapi/layer5-ground-truth.json",
       "id": "openapi:contracts/openapi/layer5-ground-truth.json",
-      "title": "Value Fabric\u2014 Ground Truth Layer (L5)"
+      "title": "Value Fabric— Ground Truth Layer (L5)"
     },
     {
       "path": "contracts/openapi/layer6-benchmarks.json",
@@ -374,6 +579,356 @@
       "path": "contracts/config-policy/behavior-contract-matrix.json",
       "id": "contract:contracts/config-policy/behavior-contract-matrix.json",
       "title": "Critical Behavior Contract Matrix"
+    },
+    {
+      "path": "contracts/agent-registry/README.md",
+      "id": "contract:contracts/agent-registry/README.md",
+      "title": "Readme"
+    },
+    {
+      "path": "contracts/agent-registry/agents/manifest.json",
+      "id": "contract:contracts/agent-registry/agents/manifest.json",
+      "title": "Manifest"
+    },
+    {
+      "path": "contracts/agent-registry/compatibility-matrix.json",
+      "id": "contract:contracts/agent-registry/compatibility-matrix.json",
+      "title": "Compatibility-Matrix"
+    },
+    {
+      "path": "contracts/agent-registry/prompts/business_case.gather_inputs.json",
+      "id": "contract:contracts/agent-registry/prompts/business_case.gather_inputs.json",
+      "title": "Business Case Gather Inputs"
+    },
+    {
+      "path": "contracts/agent-registry/prompts/business_case.generate_sections.json",
+      "id": "contract:contracts/agent-registry/prompts/business_case.generate_sections.json",
+      "title": "Business Case Generate Sections"
+    },
+    {
+      "path": "contracts/agent-registry/prompts/business_case.system.json",
+      "id": "contract:contracts/agent-registry/prompts/business_case.system.json",
+      "title": "Business Case System"
+    },
+    {
+      "path": "contracts/agent-registry/prompts/business_case.validate_claims.json",
+      "id": "contract:contracts/agent-registry/prompts/business_case.validate_claims.json",
+      "title": "Business Case Validate Claims"
+    },
+    {
+      "path": "contracts/agent-registry/prompts/interactive_report_prompt.json",
+      "id": "contract:contracts/agent-registry/prompts/interactive_report_prompt.json",
+      "title": "Interactive Report Prompt"
+    },
+    {
+      "path": "contracts/agent-registry/prompts/narrative_builder.executive_summary.json",
+      "id": "contract:contracts/agent-registry/prompts/narrative_builder.executive_summary.json",
+      "title": "Narrative Builder Executive Summary"
+    },
+    {
+      "path": "contracts/agent-registry/prompts/narrative_builder.generate_section.json",
+      "id": "contract:contracts/agent-registry/prompts/narrative_builder.generate_section.json",
+      "title": "Narrative Builder Generate Section"
+    },
+    {
+      "path": "contracts/agent-registry/prompts/narrative_builder.risk_narrative.json",
+      "id": "contract:contracts/agent-registry/prompts/narrative_builder.risk_narrative.json",
+      "title": "Narrative Builder Risk Narrative"
+    },
+    {
+      "path": "contracts/agent-registry/prompts/narrative_builder.system.json",
+      "id": "contract:contracts/agent-registry/prompts/narrative_builder.system.json",
+      "title": "Narrative Builder System"
+    },
+    {
+      "path": "contracts/agent-registry/prompts/narrative_builder.value_narrative.json",
+      "id": "contract:contracts/agent-registry/prompts/narrative_builder.value_narrative.json",
+      "title": "Narrative Builder Value Narrative"
+    },
+    {
+      "path": "contracts/agent-registry/prompts/roi_calculator.hypothesis_generation.json",
+      "id": "contract:contracts/agent-registry/prompts/roi_calculator.hypothesis_generation.json",
+      "title": "Roi Calculator Hypothesis Generation"
+    },
+    {
+      "path": "contracts/agent-registry/prompts/roi_calculator.system.json",
+      "id": "contract:contracts/agent-registry/prompts/roi_calculator.system.json",
+      "title": "Roi Calculator System"
+    },
+    {
+      "path": "contracts/agent-registry/prompts/signal_detection.classification.json",
+      "id": "contract:contracts/agent-registry/prompts/signal_detection.classification.json",
+      "title": "Signal Detection Classification"
+    },
+    {
+      "path": "contracts/agent-registry/prompts/signal_detection.hypothesis_generation.json",
+      "id": "contract:contracts/agent-registry/prompts/signal_detection.hypothesis_generation.json",
+      "title": "Signal Detection Hypothesis Generation"
+    },
+    {
+      "path": "contracts/agent-registry/prompts/signal_detection.narrative.json",
+      "id": "contract:contracts/agent-registry/prompts/signal_detection.narrative.json",
+      "title": "Signal Detection Narrative"
+    },
+    {
+      "path": "contracts/agent-registry/prompts/signal_detection.system.json",
+      "id": "contract:contracts/agent-registry/prompts/signal_detection.system.json",
+      "title": "Signal Detection System"
+    },
+    {
+      "path": "contracts/agent-registry/prompts/whitespace_analysis.extraction.json",
+      "id": "contract:contracts/agent-registry/prompts/whitespace_analysis.extraction.json",
+      "title": "Whitespace Analysis Extraction"
+    },
+    {
+      "path": "contracts/agent-registry/prompts/whitespace_analysis.gap_analysis.json",
+      "id": "contract:contracts/agent-registry/prompts/whitespace_analysis.gap_analysis.json",
+      "title": "Whitespace Analysis Gap Analysis"
+    },
+    {
+      "path": "contracts/agent-registry/prompts/whitespace_analysis.hypothesis_generation.json",
+      "id": "contract:contracts/agent-registry/prompts/whitespace_analysis.hypothesis_generation.json",
+      "title": "Whitespace Analysis Hypothesis Generation"
+    },
+    {
+      "path": "contracts/agent-registry/prompts/whitespace_analysis.needs_extraction.json",
+      "id": "contract:contracts/agent-registry/prompts/whitespace_analysis.needs_extraction.json",
+      "title": "Whitespace Analysis Needs Extraction"
+    },
+    {
+      "path": "contracts/agent-registry/prompts/whitespace_analysis.system.json",
+      "id": "contract:contracts/agent-registry/prompts/whitespace_analysis.system.json",
+      "title": "Whitespace Analysis System"
+    },
+    {
+      "path": "contracts/agent-registry/reasoning-policies/default_copilot_reasoning_policy.json",
+      "id": "contract:contracts/agent-registry/reasoning-policies/default_copilot_reasoning_policy.json",
+      "title": "Default Copilot Reasoning Policy"
+    },
+    {
+      "path": "contracts/agent-registry/schemas/agent-output.schema.json",
+      "id": "https://valuefabric.ai/contracts/agent-registry/schemas/agent-output.schema.json",
+      "title": "Agent-Output"
+    },
+    {
+      "path": "contracts/agent-registry/schemas/base-contract.schema.json",
+      "id": "https://valuefabric.ai/contracts/agent-registry/schemas/base-contract.schema.json",
+      "title": "Base-Contract"
+    },
+    {
+      "path": "contracts/agent-registry/schemas/prompt.schema.json",
+      "id": "https://valuefabric.ai/contracts/agent-registry/schemas/prompt.schema.json",
+      "title": "Prompt"
+    },
+    {
+      "path": "contracts/agent-registry/schemas/reasoning-policy.schema.json",
+      "id": "https://valuefabric.ai/contracts/agent-registry/schemas/reasoning-policy.schema.json",
+      "title": "Reasoning-Policy"
+    },
+    {
+      "path": "contracts/agent-registry/schemas/semantic-compatibility.schema.json",
+      "id": "https://valuefabric.ai/contracts/agent-registry/schemas/semantic-compatibility.schema.json",
+      "title": "Semantic-Compatibility"
+    },
+    {
+      "path": "contracts/agent-registry/schemas/skill.schema.json",
+      "id": "https://valuefabric.ai/contracts/agent-registry/schemas/skill.schema.json",
+      "title": "Skill"
+    },
+    {
+      "path": "contracts/agent-registry/schemas/tool-error.schema.json",
+      "id": "https://valuefabric.ai/contracts/agent-registry/schemas/tool-error.schema.json",
+      "title": "Tool-Error"
+    },
+    {
+      "path": "contracts/agent-registry/schemas/tool-registry.schema.json",
+      "id": "https://valuefabric.ai/contracts/agent-registry/schemas/tool-registry.schema.json",
+      "title": "Tool-Registry"
+    },
+    {
+      "path": "contracts/agent-registry/schemas/workflow.schema.json",
+      "id": "https://valuefabric.ai/contracts/agent-registry/schemas/workflow.schema.json",
+      "title": "Workflow"
+    },
+    {
+      "path": "contracts/agent-registry/skills/analyze_competition.json",
+      "id": "contract:contracts/agent-registry/skills/analyze_competition.json",
+      "title": "Analyze Competition"
+    },
+    {
+      "path": "contracts/agent-registry/skills/assemble_document.json",
+      "id": "contract:contracts/agent-registry/skills/assemble_document.json",
+      "title": "Assemble Document"
+    },
+    {
+      "path": "contracts/agent-registry/skills/assess_drift.json",
+      "id": "contract:contracts/agent-registry/skills/assess_drift.json",
+      "title": "Assess Drift"
+    },
+    {
+      "path": "contracts/agent-registry/skills/audit_ai_systems.json",
+      "id": "contract:contracts/agent-registry/skills/audit_ai_systems.json",
+      "title": "Audit Ai Systems"
+    },
+    {
+      "path": "contracts/agent-registry/skills/audit_compliance.json",
+      "id": "contract:contracts/agent-registry/skills/audit_compliance.json",
+      "title": "Audit Compliance"
+    },
+    {
+      "path": "contracts/agent-registry/skills/audit_infrastructure.json",
+      "id": "contract:contracts/agent-registry/skills/audit_infrastructure.json",
+      "title": "Audit Infrastructure"
+    },
+    {
+      "path": "contracts/agent-registry/skills/audit_performance.json",
+      "id": "contract:contracts/agent-registry/skills/audit_performance.json",
+      "title": "Audit Performance"
+    },
+    {
+      "path": "contracts/agent-registry/skills/calculate_roi.json",
+      "id": "contract:contracts/agent-registry/skills/calculate_roi.json",
+      "title": "Calculate Roi"
+    },
+    {
+      "path": "contracts/agent-registry/skills/compare_benchmarks.json",
+      "id": "contract:contracts/agent-registry/skills/compare_benchmarks.json",
+      "title": "Compare Benchmarks"
+    },
+    {
+      "path": "contracts/agent-registry/skills/create_chart.json",
+      "id": "contract:contracts/agent-registry/skills/create_chart.json",
+      "title": "Create Chart"
+    },
+    {
+      "path": "contracts/agent-registry/skills/create_task.json",
+      "id": "contract:contracts/agent-registry/skills/create_task.json",
+      "title": "Create Task"
+    },
+    {
+      "path": "contracts/agent-registry/skills/document_export.json",
+      "id": "contract:contracts/agent-registry/skills/document_export.json",
+      "title": "Document Export"
+    },
+    {
+      "path": "contracts/agent-registry/skills/evaluate_formula.json",
+      "id": "contract:contracts/agent-registry/skills/evaluate_formula.json",
+      "title": "Evaluate Formula"
+    },
+    {
+      "path": "contracts/agent-registry/skills/export_to_crm.json",
+      "id": "contract:contracts/agent-registry/skills/export_to_crm.json",
+      "title": "Export To Crm"
+    },
+    {
+      "path": "contracts/agent-registry/skills/fetch_interaction_history.json",
+      "id": "contract:contracts/agent-registry/skills/fetch_interaction_history.json",
+      "title": "Fetch Interaction History"
+    },
+    {
+      "path": "contracts/agent-registry/skills/find_paths.json",
+      "id": "contract:contracts/agent-registry/skills/find_paths.json",
+      "title": "Find Paths"
+    },
+    {
+      "path": "contracts/agent-registry/skills/format_currency.json",
+      "id": "contract:contracts/agent-registry/skills/format_currency.json",
+      "title": "Format Currency"
+    },
+    {
+      "path": "contracts/agent-registry/skills/format_table.json",
+      "id": "contract:contracts/agent-registry/skills/format_table.json",
+      "title": "Format Table"
+    },
+    {
+      "path": "contracts/agent-registry/skills/generate_business_case.json",
+      "id": "contract:contracts/agent-registry/skills/generate_business_case.json",
+      "title": "Generate Business Case"
+    },
+    {
+      "path": "contracts/agent-registry/skills/generate_section.json",
+      "id": "contract:contracts/agent-registry/skills/generate_section.json",
+      "title": "Generate Section"
+    },
+    {
+      "path": "contracts/agent-registry/skills/get_entity.json",
+      "id": "contract:contracts/agent-registry/skills/get_entity.json",
+      "title": "Get Entity"
+    },
+    {
+      "path": "contracts/agent-registry/skills/get_prospect_data.json",
+      "id": "contract:contracts/agent-registry/skills/get_prospect_data.json",
+      "title": "Get Prospect Data"
+    },
+    {
+      "path": "contracts/agent-registry/skills/get_relationships.json",
+      "id": "contract:contracts/agent-registry/skills/get_relationships.json",
+      "title": "Get Relationships"
+    },
+    {
+      "path": "contracts/agent-registry/skills/graph_traverse.json",
+      "id": "contract:contracts/agent-registry/skills/graph_traverse.json",
+      "title": "Graph Traverse"
+    },
+    {
+      "path": "contracts/agent-registry/skills/query_graph.json",
+      "id": "contract:contracts/agent-registry/skills/query_graph.json",
+      "title": "Query Graph"
+    },
+    {
+      "path": "contracts/agent-registry/skills/schedule_meeting.json",
+      "id": "contract:contracts/agent-registry/skills/schedule_meeting.json",
+      "title": "Schedule Meeting"
+    },
+    {
+      "path": "contracts/agent-registry/skills/score_lead.json",
+      "id": "contract:contracts/agent-registry/skills/score_lead.json",
+      "title": "Score Lead"
+    },
+    {
+      "path": "contracts/agent-registry/skills/semantic_search.json",
+      "id": "contract:contracts/agent-registry/skills/semantic_search.json",
+      "title": "Semantic Search"
+    },
+    {
+      "path": "contracts/agent-registry/skills/send_notification.json",
+      "id": "contract:contracts/agent-registry/skills/send_notification.json",
+      "title": "Send Notification"
+    },
+    {
+      "path": "contracts/agent-registry/skills/sensitivity_analysis.json",
+      "id": "contract:contracts/agent-registry/skills/sensitivity_analysis.json",
+      "title": "Sensitivity Analysis"
+    },
+    {
+      "path": "contracts/agent-registry/skills/update_opportunity.json",
+      "id": "contract:contracts/agent-registry/skills/update_opportunity.json",
+      "title": "Update Opportunity"
+    },
+    {
+      "path": "contracts/agent-registry/skills/validate_input.json",
+      "id": "contract:contracts/agent-registry/skills/validate_input.json",
+      "title": "Validate Input"
+    },
+    {
+      "path": "contracts/agent-registry/tools/manifest.json",
+      "id": "contract:contracts/agent-registry/tools/manifest.json",
+      "title": "Manifest"
+    },
+    {
+      "path": "contracts/agent-registry/workflows/business_case.json",
+      "id": "contract:contracts/agent-registry/workflows/business_case.json",
+      "title": "Business Case"
+    },
+    {
+      "path": "contracts/agent-registry/workflows/roi_calculator.json",
+      "id": "contract:contracts/agent-registry/workflows/roi_calculator.json",
+      "title": "Roi Calculator"
+    },
+    {
+      "path": "contracts/agent-registry/workflows/whitespace_analysis.json",
+      "id": "contract:contracts/agent-registry/workflows/whitespace_analysis.json",
+      "title": "Whitespace Analysis"
     }
   ],
   "ignored_orphans": []
