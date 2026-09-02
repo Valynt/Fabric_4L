@@ -77,7 +77,7 @@ jobs:
       ci-tooling: ${{ steps.scope.outputs.ci-tooling }}
       ci-governance: ${{ steps.scope.outputs.ci-governance }}
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
       - name: Resolve change scopes
         id: scope
@@ -194,7 +194,7 @@ jobs:
           ]
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
 
       - name: Generate source SBOM (CycloneDX)
         uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
@@ -242,7 +242,7 @@ jobs:
           severity-cutoff: high
 
       - name: Upload source SBOM artifacts
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
         if: always()
         with:
           name: source-sbom-${{ matrix.layer }}-${{ github.sha }}
@@ -312,7 +312,7 @@ jobs:
           ]
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
 
       - name: Generate CycloneDX SBOM
         run: |
@@ -335,7 +335,7 @@ jobs:
         # Never exemptible: Security scans must not soft-fail
 
       - name: Upload SBOM artifacts
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
         with:
           name: sbom-${{ matrix.layer }}-${{ env.IMAGE_TAG }}
           path: |
@@ -381,7 +381,7 @@ jobs:
           ]
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
 
       - name: Log in to Container Registry
         uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567
@@ -404,7 +404,7 @@ jobs:
           path: "${{ matrix.layer }}-subject.txt"
 
       - name: Upload provenance
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
         with:
           name: provenance-${{ matrix.layer }}-${{ env.IMAGE_TAG }}
           path: "*.intoto.jsonl"
@@ -473,7 +473,7 @@ jobs:
         shell: bash
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
 
       - name: Audit Python dependencies
         run: |
@@ -559,7 +559,7 @@ jobs:
 
       - name: Upload audit results
         if: always()
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
         with:
           name: dependency-audit-${{ github.sha }}-${{ steps.web_lock_hash.outputs.lock_hash }}
           path: |
@@ -595,7 +595,7 @@ jobs:
         shell: bash
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
 
       - name: Check Python licenses
         run: |
@@ -637,7 +637,7 @@ jobs:
 
       - name: Upload license report
         if: always()
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
         with:
           name: license-report-${{ github.sha }}
           path: license-reports/
@@ -735,7 +735,7 @@ jobs:
           cat supply-chain-report.md
 
       - name: Upload report
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
         with:
           name: supply-chain-report-${{ env.IMAGE_TAG }}
           path: supply-chain-report.md
@@ -773,7 +773,7 @@ jobs:
       - license-check
       - supply-chain-summary
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
       - name: Summarize supply-chain gates
         env:
           NEEDS_JSON: ${{ toJSON(needs) }}

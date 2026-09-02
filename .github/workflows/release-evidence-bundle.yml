@@ -65,7 +65,7 @@ jobs:
       ci-governance: ${{ steps.scope.outputs.ci-governance }}
       ci-tooling: ${{ steps.scope.outputs.ci-tooling }}
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
 
       - name: Resolve change scopes
         id: scope
@@ -247,9 +247,9 @@ jobs:
     # auto-skip (via GitHub needs propagation) exactly when it skips.
     needs: [build-and-scan]
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
       - name: Download image security artifacts
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4
         with:
           pattern: scan-*-${{ github.sha }}
           path: artifacts
@@ -469,7 +469,7 @@ jobs:
       - live-stack-evidence
       - consolidate-bundle
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
       - name: Summarize release-evidence gates
         env:
           NEEDS_JSON: ${{ toJSON(needs) }}
