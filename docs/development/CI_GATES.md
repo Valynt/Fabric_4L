@@ -76,3 +76,21 @@ The owner is the first-response triage contact. Start with the local command, th
 ## Drift check
 
 Run `make check-workflow-registry` and `make check-workflow-references`.
+
+## `.depot` mirror-sync requirement
+
+Workflow files exist in two trees that **must stay in sync**:
+
+- `.github/workflows/` — canonical GitHub Actions definitions.
+- `.depot/workflows/` — Depot runner equivalents (same steps, `runs-on`
+  mapped to the Depot runner).
+
+Treat `.depot` as a strict mirror: any new job, step, trigger, or gate added
+to a `.github/workflows/` file must be applied to the matching
+`.depot/workflows/` file in the same change set (and vice versa). There is no
+automated mirror-drift gate; PR review and layered-governance validation are
+the enforcement point, and reviewers must reject one-sided edits. Contract
+gates that were mirrored this way include `event-catalog-gate`
+(`validate-event-catalog.py --strict`) and the Layer 4
+`check_openapi_tenant_scope.py` gate (both present in `.github/workflows/` and
+`.depot/workflows/`).

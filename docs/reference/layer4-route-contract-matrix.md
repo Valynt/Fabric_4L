@@ -2,6 +2,35 @@
 
 Source of truth: `contracts/layer4-route-contract-matrix.json`.
 
+## `x-tenant-scope` Metadata
+
+Every Layer 4 operation in `contracts/openapi/layer4-agents.json` carries an
+`x-tenant-scope` extension stamped from the route matrix during OpenAPI
+export. The matrix is the source of truth: each entry's `tenant_scope` is
+injected into the generated spec by `scripts/export_openapi.py`, and
+`scripts/ci/check_openapi_tenant_scope.py` (running in CI) fails if:
+
+1. Any matrix entry is missing `tenant_scope` or uses a value outside the
+   canonical enum.
+2. Any openapi operation lacks `x-tenant-scope`.
+3. Matrix `tenant_scope` and spec `x-tenant-scope` disagree on any
+   `(method, path)`.
+4. Either disagrees with `scripts/ci/layer4_tenant_scope.py`, which classifies
+   routes that must be `GLOBAL` / `SYSTEM` / `TENANT_AND_BILLING_ACCOUNT` and
+   rejects silent relabeling to `TENANT`.
+
+Canonical enum (shared with the event catalog and the agent-registry tool
+`tenant_scope`):
+
+- `TENANT` — tenant-scoped route (default).
+- `TENANT_AND_BILLING_ACCOUNT` — may touch billing-account-scoped resources.
+- `GLOBAL` — platform-wide route, not tenant-scoped.
+- `SYSTEM` — system-level route, not directly user-invoked.
+
+The authoritative per-route `tenant_scope` values live in
+`contracts/layer4-route-contract-matrix.json`; the route table below continues
+to list request/success schemas and frontend consumers.
+
 | Route | OpenAPI opId | Request schema | Success schemas | Error statuses | Frontend consumers |
 |---|---|---|---|---|---|
 | `GET /` | `root__get` | `-` | `-` | `` | `apps/web/src/App.tsx` |
