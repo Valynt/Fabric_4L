@@ -36,10 +36,6 @@ rules:
           - pattern-regex: '(?im)^.*\b(DELETE|DETACH\s+DELETE)\s+[a-zA-Z0-9_]+.*$'
       - pattern-not-regex: '(?i)\bCREATE\s+(?:CONSTRAINT|INDEX|OR\s+REPLACE\s+INDEX|OR\s+REPLACE\s+CONSTRAINT)\b'
       - pattern-not-regex: '(?i)(?:#|//)\s*cypher-mutation-safe:'
-      - pattern-not-regex: '(?i)redis_client\.delete\b'
-      # Exclude docstring/prose: "delete it", "delete an idempotency key", etc.
-      # Real Cypher DELETE targets are identifiers, not English articles/pronouns.
-      - pattern-not-regex: '(?i)\bdelete\s+(?:it|an?\s+|the\s|this|that|them|its|any|all\s|existing\s)'
       - pattern-not-inside: |
           class AuditedGraphMutation:
             ...
