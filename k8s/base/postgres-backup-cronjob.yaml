@@ -134,6 +134,8 @@ spec:
                     name: aws-backup-credentials
                     optional: true
               env:
+                - name: ENABLE_WALG_BACKUP
+                  value: "false"
                 # SECURITY: Username is not sensitive — hardcoded to match postgres Deployment.
                 # Only password is sourced from the secret.
                 - name: POSTGRES_USER
