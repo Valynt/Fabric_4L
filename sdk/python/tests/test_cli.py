@@ -14,6 +14,7 @@ import pytest
 from typer.testing import CliRunner
 
 from valuefabric.cli import config as config_mod
+from valuefabric.cli.auth import _is_jwt
 from valuefabric.cli.main import app
 from valuefabric.errors import ConfigurationError
 from valuefabric.models import (
@@ -46,6 +47,23 @@ def mock_config(tmp_path: Path) -> Iterator[None]:
     with patch("valuefabric.cli.config.CONFIG_FILE", tmp_path / "config.toml"):
         config_mod._save_config(config)
         yield
+
+
+class TestAuthCommands:
+    @pytest.mark.parametrize(
+        ("token", "expected"),
+        [
+            ("header.payload.signature", True),
+            ("eyJhb.eyJzd.SflKxw", True),
+            ("header.payload", False),
+            ("header.payload.signature.extra", False),
+            ("", False),
+            ("header..signature", False),
+            ("just_a_random_string", False),
+        ],
+    )
+    def test_is_jwt(self, token: str, expected: bool) -> None:
+        assert _is_jwt(token) is expected
 
 
 class TestConfigCommands:
