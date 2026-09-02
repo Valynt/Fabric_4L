@@ -4,6 +4,10 @@
 # Global fallback - all changes require at least one maintainer
 * @value-fabric/maintainers
 
+# Task graph metadata defaults to SRE ownership. More specific service,
+# package, and application rules below retain bounded-context ownership.
+**/project.json @value-fabric/sre-leads @value-fabric/maintainers
+
 # ============================================
 # SECURITY-CRITICAL PATHS
 # Require security team + lead maintainer review
@@ -41,6 +45,7 @@ infra/ @value-fabric/sre-leads @value-fabric/infrastructure-leads
 
 # CI/CD pipelines
 .github/workflows/ @value-fabric/sre-leads @value-fabric/maintainers
+.depot/workflows/ @value-fabric/sre-leads @value-fabric/maintainers
 .github/workflows/deploy*.yml @value-fabric/sre-leads @value-fabric/maintainers
 .github/workflows/build*.yml @value-fabric/sre-leads @value-fabric/backend-leads
 
@@ -161,6 +166,8 @@ services/layer4-agents/src/layer4_agents/workflows/ @value-fabric/agent-team @va
 
 # Build and dependency files
 Makefile @value-fabric/sre-leads @value-fabric/maintainers
+nx.json @value-fabric/sre-leads @value-fabric/maintainers
+tools/fabric-cli/ @value-fabric/sre-leads @value-fabric/maintainers
 pyproject.toml @value-fabric/backend-leads @value-fabric/sre-leads
 package.json @value-fabric/frontend-leads @value-fabric/sre-leads
 pnpm-lock.yaml @value-fabric/frontend-leads @value-fabric/sre-leads
@@ -201,6 +208,7 @@ AGENTS.md @value-fabric/maintainers @value-fabric/architects
 # contract (they authorize skipping security gates) — review as gate changes.
 .github/paths-filters.yml @value-fabric/security-leads @value-fabric/sre-leads
 .github/actions/change-scope/ @value-fabric/security-leads @value-fabric/sre-leads
+.depot/actions/change-scope/ @value-fabric/security-leads @value-fabric/sre-leads
 config/ci/ @value-fabric/security-leads @value-fabric/sre-leads
 scripts/ci/ @value-fabric/security-leads @value-fabric/sre-leads @value-fabric/maintainers
 scripts/ci/mandatory_security_regression_gate.sh @value-fabric/security-leads @value-fabric/sre-leads
