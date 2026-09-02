@@ -16,12 +16,12 @@ resources:
   # by platform bootstrapping, not by the per-environment app overlay.
   # SECURITY TEMPLATES (must populate with real values before production use):
   #   - jwt-keys-secret.yaml: RSA key pair for JWT RS256 signing
-  #     Do NOT include the placeholder template in base; add only to overlays
-  #     that supply real keys or External Secrets Operator references.
   #   - api-key-cache-secret.yaml: HMAC secret for API key fingerprinting
-  #   - Dev: kubectl create secret generic ... manually
-  #   - Prod: apply k8s/external-secrets/ separately (not included here due to kustomize security)
-  - api-key-cache-secret.yaml
+  #     Do NOT include placeholder Secret templates in base. Staging and production
+  #     overlays must use External Secrets Operator references or non-repository
+  #     injection. The dev-only inert placeholders live in k8s/envs/dev/secrets.yml.
+  #   - Dev: use the labeled inert placeholders or create secrets manually.
+  #   - Prod: k8s/external-secrets/ resources are included by the prod overlay.
   - redis.yml
   - postgres.yml
   - pgbouncer-config.yml

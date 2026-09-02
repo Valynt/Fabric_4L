@@ -1,0 +1,57 @@
+{
+  "id": "d73a01a3a75f",
+  "key": "pattern_fabric_4l_workspace_working_d73a01",
+  "name": "pattern_fabric_4l_workspace_working_d73a01",
+  "claim": "Edited ?",
+  "conditions": [
+    "active",
+    "agent",
+    "begin",
+    "edit",
+    "edited",
+    "fabric_4l",
+    "file",
+    "goal",
+    "home",
+    "memory",
+    "n--",
+    "patch",
+    "raw",
+    "runner",
+    "status",
+    "task",
+    "u2014",
+    "update",
+    "work",
+    "working",
+    "workspace"
+  ],
+  "evidence_ids": [
+    "2026-09-02T05:03:15.612981+00:00",
+    "2026-09-02T05:09:09.485081+00:00"
+  ],
+  "cluster_size": 2,
+  "canonical_salience": 9.0,
+  "staged_at": "2026-09-02T05:09:52.763533+00:00",
+  "status": "rejected",
+  "decisions": [
+    {
+      "ts": "2026-09-02T05:09:52.763533+00:00",
+      "action": "staged",
+      "reviewer": "auto_dream"
+    },
+    {
+      "ts": "2026-09-02T05:09:52.764392+00:00",
+      "action": "rejected",
+      "reviewer": "heuristic_prefilter",
+      "notes": "claim_too_short, insufficient_content_words_1_of_3",
+      "duplicate_claims": [],
+      "evidence_snapshot": [
+        "2026-09-02T05:03:15.612981+00:00",
+        "2026-09-02T05:09:09.485081+00:00"
+      ],
+      "lessons_sha": "b9ba3778665e"
+    }
+  ],
+  "rejection_count": 1
+}

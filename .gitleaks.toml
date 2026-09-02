@@ -24,6 +24,8 @@ regexes = [
     '''test_dummy_[A-Za-z0-9_]+''',
     '''dummy_[A-Za-z0-9_]+''',
     '''vf_test_[A-Za-z0-9_]+''',
+    '''sk_live_abc123[A-Za-z0-9_]+''',
+    '''test-jwt-secret-must-be-at-least-32-characters-long''',
     '''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+''',
     '''ghp_dummytoken[A-Za-z0-9]+''',
     '''AKIAIOSFODNN7EXAMPLE''',
