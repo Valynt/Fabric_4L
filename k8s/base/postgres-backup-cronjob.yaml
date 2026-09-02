@@ -129,8 +129,10 @@ spec:
               envFrom:
                 - configMapRef:
                     name: wal-g-config
+                    optional: true
                 - secretRef:
                     name: aws-backup-credentials
+                    optional: true
               env:
                 # SECURITY: Username is not sensitive — hardcoded to match postgres Deployment.
                 # Only password is sourced from the secret.
