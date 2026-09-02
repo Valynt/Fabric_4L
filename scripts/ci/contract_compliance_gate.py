@@ -112,12 +112,8 @@ SPEC_CONFIG = {
     "layer7-billing.json": {
         "service_prefixes": (
             "services/layer4-agents/src/layer4_agents/api/routes/billing",
-            "services/layer4-agents/src/layer4_agents/services/billing_service.py",
-            "services/layer4-agents/src/layer4_agents/services/",
-            "services/layer4-agents/src/layer4_agents/models/",
-            "services/layer4-agents/src/layer4_agents/repositories/",
-            "services/layer4-agents/src/layer4_agents/api/routes/",
-            "services/layer4-agents/src/layer4_agents/",
+            "services/layer4-agents/src/layer4_agents/services/billing",
+            "services/layer4-agents/src/layer4_agents/models/billing.py",
         ),
         "platform_file": None,
         "web_dir": None,

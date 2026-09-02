@@ -39,7 +39,7 @@ SERVICE_URLS = {
     "l2": os.getenv("LAYER2_API_URL", "http://localhost:8002").rstrip("/"),
     "l3": os.getenv("LAYER3_API_URL", "http://localhost:8003").rstrip("/"),
     "l4": os.getenv("LAYER4_API_URL", "http://localhost:8004").rstrip("/"),
-    "billing": os.getenv("BILLING_API_URL", "http://localhost:8004").rstrip("/"),
+    "billing": os.getenv("BILLING_API_URL", os.getenv("LAYER4_API_URL", "http://localhost:8004")).rstrip("/"),
 }
 
 

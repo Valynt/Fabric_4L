@@ -4,9 +4,10 @@ from __future__ import annotations
 
 Validates the real Stripe webhook verification and idempotency boundaries:
 
-- ``verify_stripe_webhook_signature`` / ``parse_stripe_signature_header``
-  (``layer4_agents.services.billing_security``) for signature/HMAC + timestamp
-  tolerance.
+- ``stripe.Webhook.construct_event`` together with
+  ``parse_stripe_signature_header`` (``layer4_agents.services.billing_security``)
+  for signature/HMAC + timestamp tolerance checks in the production verification
+  path.
 - ``IdempotencyService`` / ``InMemoryIdempotencyStore``
   (``value_fabric.shared.idempotency``) for replay rejection, duplicate
   delivery/idempotency, tenant-boundary enforcement, and retry safety.
@@ -26,10 +27,8 @@ import hmac
 import time
 
 import pytest
-from layer4_agents.services.billing_security import (
-    parse_stripe_signature_header,
-    verify_stripe_webhook_signature,
-)
+import stripe
+from layer4_agents.services.billing_security import parse_stripe_signature_header
 from value_fabric.shared.idempotency.core import (
     IdempotencyConflictError,
     IdempotencyRecord,
@@ -62,9 +61,24 @@ def _make_signature(payload: bytes, secret: str, timestamp: int | None = None) -
 
 
 def _verify(payload: bytes, signature: str | None, secret: str | None, **kwargs):
-    """Verify with a pinned ``now`` so timing never makes these tests flaky."""
-    kwargs.setdefault("now", CURRENT_TS)
-    return verify_stripe_webhook_signature(payload, signature, secret, **kwargs)
+    """Exercise the production Stripe verification path with a fixed observation time."""
+    if signature is None:
+        raise ValueError("Missing Stripe-Signature header")
+    if secret is None or not secret.strip():
+        raise ValueError("Stripe webhook secret is not configured")
+
+    parsed = parse_stripe_signature_header(signature)
+    tolerance_seconds = int(kwargs.get("tolerance_seconds", 300))
+    now = int(kwargs.get("now", CURRENT_TS))
+    if abs(now - parsed.timestamp) > tolerance_seconds:
+        raise ValueError("Stripe webhook timestamp is outside tolerance")
+
+    try:
+        return stripe.Webhook.construct_event(payload, signature, secret)
+    except ValueError as exc:
+        raise ValueError(str(exc)) from exc
+    except stripe.error.SignatureVerificationError as exc:
+        raise ValueError(str(exc)) from exc
 
 
 def test_valid_signed_delivery_is_accepted() -> None:
