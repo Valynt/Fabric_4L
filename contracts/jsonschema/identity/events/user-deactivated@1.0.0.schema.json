@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://valuefabric.ai/contracts/jsonschema/identity/events/user-deactivated@1.0.0.schema.json",
+  "title": "UserDeactivated",
+  "description": "Payload schema for identity.user.deactivated.v1: a user account has been deactivated.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["tenant_id", "user_id", "deactivated_by", "deactivated_at"],
+  "properties": {
+    "tenant_id": { "type": "string", "minLength": 1, "description": "Tenant that owns the user" },
+    "user_id": { "type": "string", "minLength": 1, "description": "Deactivated user identifier" },
+    "deactivated_by": { "type": "string", "minLength": 1, "description": "Principal that deactivated the account" },
+    "reason": { "type": "string", "description": "Deactivation reason" },
+    "deactivated_at": { "type": "string", "format": "date-time", "description": "ISO 8601 deactivation timestamp" }
+  }
+}

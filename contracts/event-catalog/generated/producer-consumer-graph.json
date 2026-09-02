@@ -67,15 +67,44 @@
       }
     },
     "services/api": {
-      "events": ["identity.user.authenticated.v1"],
+      "events": [
+        "identity.user.authenticated.v1",
+        "identity.user.registered.v1",
+        "identity.user.updated.v1",
+        "identity.user.deactivated.v1",
+        "identity.session.created.v1",
+        "identity.session.revoked.v1",
+        "identity.mfa.enrolled.v1",
+        "identity.password.changed.v1",
+        "identity.tenant.provisioned.v1"
+      ],
       "consumers": {}
     },
     "services/layer3-knowledge": {
-      "events": ["knowledge.entity.created.v1"],
+      "events": [
+        "knowledge.entity.created.v1",
+        "knowledge.entity.updated.v1",
+        "knowledge.entity_relationship.created.v1",
+        "knowledge.entity.resolved.v1",
+        "knowledge.entity.ingested.v1",
+        "knowledge.entity.reindexed.v1",
+        "knowledge.subgraph.cached.v1"
+      ],
       "consumers": {}
     },
     "services/layer4-agents": {
-      "events": ["agents.workflow.completed.v1"],
+      "events": [
+        "agents.workflow.started.v1",
+        "agents.workflow.completed.v1",
+        "agents.workflow.failed.v1",
+        "agents.workflow.paused.v1",
+        "agents.workflow.resumed.v1",
+        "agents.checkpoint.created.v1",
+        "agents.tool_invocation.completed.v1",
+        "agents.agent_output.generated.v1",
+        "agents.business_case.generated.v1",
+        "agents.roi.analyzed.v1"
+      ],
       "consumers": {}
     }
   }

@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://valuefabric.ai/contracts/jsonschema/identity/events/mfa-enrolled@1.0.0.schema.json",
+  "title": "MfaEnrolled",
+  "description": "Payload schema for identity.mfa.enrolled.v1: a multi-factor authentication factor has been enrolled.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["tenant_id", "user_id", "mfa_factor_id", "factor_type", "enrolled_at"],
+  "properties": {
+    "tenant_id": { "type": "string", "minLength": 1, "description": "Tenant that owns the user" },
+    "user_id": { "type": "string", "minLength": 1, "description": "User enrolling the factor" },
+    "mfa_factor_id": { "type": "string", "minLength": 1, "description": "MFA factor identifier" },
+    "factor_type": { "type": "string", "description": "TOTP, SMS, email, or security key" },
+    "enrolled_at": { "type": "string", "format": "date-time", "description": "ISO 8601 enrollment timestamp" }
+  }
+}

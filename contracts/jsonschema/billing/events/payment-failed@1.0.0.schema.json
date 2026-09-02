@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://valuefabric.ai/contracts/jsonschema/billing/events/payment-failed@1.0.0.schema.json",
+  "title": "PaymentFailed",
+  "description": "Payload schema for billing.payment.failed.v1: a payment attempt for an invoice has failed.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["tenant_id", "billing_account_id", "payment_attempt_id", "invoice_id", "failed_at"],
+  "properties": {
+    "tenant_id": { "type": "string", "minLength": 1, "description": "Tenant that owns the payment attempt" },
+    "billing_account_id": { "type": "string", "minLength": 1, "description": "Billing account identifier" },
+    "payment_attempt_id": { "type": "string", "minLength": 1, "description": "Payment attempt identifier" },
+    "invoice_id": { "type": "string", "minLength": 1, "description": "Invoice identifier" },
+    "failure_reason_code": { "type": "string", "description": "Stable failure reason code" },
+    "failed_at": { "type": "string", "format": "date-time", "description": "ISO 8601 failure timestamp" }
+  }
+}

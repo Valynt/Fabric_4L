@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://valuefabric.ai/contracts/jsonschema/billing/events/ledger-entry-posted@1.0.0.schema.json",
+  "title": "LedgerEntryPosted",
+  "description": "Payload schema for billing.ledger.entry_posted.v1: a financial journal entry has been posted to the billing ledger.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["tenant_id", "billing_account_id", "ledger_entry_id", "posted_at"],
+  "properties": {
+    "tenant_id": { "type": "string", "minLength": 1, "description": "Tenant that owns the ledger entry" },
+    "billing_account_id": { "type": "string", "minLength": 1, "description": "Billing account identifier" },
+    "ledger_entry_id": { "type": "string", "minLength": 1, "description": "Ledger entry identifier" },
+    "amount_cents": { "type": "integer", "description": "Signed entry amount in cents" },
+    "entry_type": { "type": "string", "description": "Ledger entry type" },
+    "posted_at": { "type": "string", "format": "date-time", "description": "ISO 8601 posting timestamp" }
+  }
+}

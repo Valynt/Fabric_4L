@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://valuefabric.ai/contracts/jsonschema/agents/events/agent-output-generated@1.0.0.schema.json",
+  "title": "AgentOutputGenerated",
+  "description": "Payload schema for agents.agent_output.generated.v1: an agent step has produced a structured output artifact.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["tenant_id", "workflow_run_id", "output_id", "output_type", "generated_at"],
+  "properties": {
+    "tenant_id": { "type": "string", "minLength": 1, "description": "Tenant that owns the workflow run" },
+    "workflow_run_id": { "type": "string", "minLength": 1, "description": "Workflow run identifier" },
+    "output_id": { "type": "string", "minLength": 1, "description": "Output artifact identifier" },
+    "output_type": { "type": "string", "description": "analysis_section, narrative, or summary" },
+    "output_pointer": { "type": "string", "description": "Address of the persisted output content" },
+    "generated_at": { "type": "string", "format": "date-time", "description": "ISO 8601 generation timestamp" }
+  }
+}

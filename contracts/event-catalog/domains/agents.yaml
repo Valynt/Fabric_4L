@@ -1,22 +1,66 @@
-# Agents Domain Event Catalog (stub)
-# Placeholder for canonical events owned by the agentic workflow bounded context.
+# Agents Domain Event Catalog
+# Normative inventory of canonical events owned by the agentic workflow bounded context.
+# Status: DRAFT = planned but not yet wired; ACTIVE = currently emitted.
 
 catalog_version: "1.0.0"
 domain: agents
 owner: layer4-agents
 
 entries:
+  - event_type: agents.workflow.started.v1
+    name: Agent Workflow Started
+    description: >
+      An agentic workflow has started execution in the Layer 4 orchestration
+      engine, carrying the workflow type, input summary, and tenant context.
+    domain: agents.workflows
+    owner: layer4-agents/orchestration
+    producer: services/layer4-agents
+    triggered_by:
+      - workflow.start
+      - workflow.resume
+    preconditions:
+      - "Workflow definition exists and tenant context is valid"
+    postconditions:
+      - "Workflow run is created in running state"
+    schema_ref: "jsonschema://agents/events/workflow-started@1.0.0"
+    envelope_ref: "jsonschema://common/event-envelope@1.0.0"
+    subject_type: workflow
+    tenant_scope: TENANT
+    delivery: AT_LEAST_ONCE
+    partition_key: tenant_id
+    consumer_effect_key: event.id
+    expected_latency_ms: 500
+    criticality: MEDIUM
+    transport_channel: agents.events
+    ordering_guarantee: PARTITION_ORDER
+    replay_behavior: IDEMPOTENT
+    retention_classification: MEDIUM_TERM
+    sensitive_payload: false
+    event_class: DOMAIN_EVENT
+    status: DRAFT
+    consumers: []
+    examples:
+      - tenant_id: "ten_123"
+        workflow_run_id: "wf_456"
+        workflow_type: "business_case"
+        input_summary: "Analyze expansion opportunity for Acme Corp"
+        started_at: "2026-01-15T09:00:00Z"
+
   - event_type: agents.workflow.completed.v1
     name: Agent Workflow Completed
     description: >
-      An agentic workflow has reached a terminal state. Placeholder entry for
-      agents domain event catalog.
+      An agentic workflow has reached a terminal success state. Includes the
+      run summary, final status, and links to generated outputs.
     domain: agents.workflows
     owner: layer4-agents/orchestration
     producer: services/layer4-agents
     triggered_by:
       - workflow.finish
-      - workflow.error
+      - workflow.success
+    preconditions:
+      - "Workflow run exists and is in a running or resumable state"
+    postconditions:
+      - "Workflow run is persisted in completed state with outputs"
     schema_ref: "jsonschema://agents/events/workflow-completed@1.0.0"
     envelope_ref: "jsonschema://common/event-envelope@1.0.0"
     subject_type: workflow
@@ -34,3 +78,332 @@ entries:
     event_class: DOMAIN_EVENT
     status: DRAFT
     consumers: []
+    examples:
+      - tenant_id: "ten_123"
+        workflow_run_id: "wf_456"
+        workflow_type: "business_case"
+        status: "completed"
+        completed_at: "2026-01-15T09:15:00Z"
+        output_ids: ["out_789"]
+
+  - event_type: agents.workflow.failed.v1
+    name: Agent Workflow Failed
+    description: >
+      An agentic workflow failed and, where possible, reached a recoverable
+      checkpoint. Includes the failure reason and checkpoint for resume.
+    domain: agents.workflows
+    owner: layer4-agents/orchestration
+    producer: services/layer4-agents
+    triggered_by:
+      - workflow.error
+      - workflow.timeout
+    preconditions:
+      - "Workflow run exists"
+    postconditions:
+      - "Workflow run is persisted in failed state with failure reason"
+    schema_ref: "jsonschema://agents/events/workflow-failed@1.0.0"
+    envelope_ref: "jsonschema://common/event-envelope@1.0.0"
+    subject_type: workflow
+    tenant_scope: TENANT
+    delivery: AT_LEAST_ONCE
+    partition_key: tenant_id
+    consumer_effect_key: event.id
+    expected_latency_ms: 1000
+    criticality: HIGH
+    transport_channel: agents.events
+    ordering_guarantee: PARTITION_ORDER
+    replay_behavior: IDEMPOTENT
+    retention_classification: MEDIUM_TERM
+    sensitive_payload: false
+    event_class: DOMAIN_EVENT
+    status: DRAFT
+    consumers: []
+    examples:
+      - tenant_id: "ten_123"
+        workflow_run_id: "wf_456"
+        workflow_type: "business_case"
+        status: "failed"
+        failure_reason: "llm_timeout"
+        failed_at: "2026-01-15T09:20:00Z"
+        checkpoint_id: "cp_101"
+
+  - event_type: agents.workflow.paused.v1
+    name: Agent Workflow Paused
+    description: >
+      An agentic workflow has paused, pending human input, external tool
+      approval, or a scheduled resume condition.
+    domain: agents.workflows
+    owner: layer4-agents/orchestration
+    producer: services/layer4-agents
+    triggered_by:
+      - workflow.pause
+      - human_requested_approval
+    preconditions:
+      - "Workflow run exists and is in a running state"
+    postconditions:
+      - "Workflow run is persisted in paused state with a resume condition"
+    schema_ref: "jsonschema://agents/events/workflow-paused@1.0.0"
+    envelope_ref: "jsonschema://common/event-envelope@1.0.0"
+    subject_type: workflow
+    tenant_scope: TENANT
+    delivery: AT_LEAST_ONCE
+    partition_key: tenant_id
+    consumer_effect_key: event.id
+    expected_latency_ms: 500
+    criticality: LOW
+    transport_channel: agents.events
+    ordering_guarantee: PARTITION_ORDER
+    replay_behavior: IDEMPOTENT
+    retention_classification: MEDIUM_TERM
+    sensitive_payload: false
+    event_class: DOMAIN_EVENT
+    status: DRAFT
+    consumers: []
+    examples:
+      - tenant_id: "ten_123"
+        workflow_run_id: "wf_456"
+        workflow_type: "business_case"
+        status: "paused"
+        pause_reason: "awaiting_approval"
+        paused_at: "2026-01-15T09:02:00Z"
+        checkpoint_id: "cp_102"
+
+  - event_type: agents.workflow.resumed.v1
+    name: Agent Workflow Resumed
+    description: >
+      A previously paused or checkpointed agentic workflow has resumed
+      execution from its checkpoint.
+    domain: agents.workflows
+    owner: layer4-agents/orchestration
+    producer: services/layer4-agents
+    triggered_by:
+      - workflow.resume
+      - human_approval_granted
+    preconditions:
+      - "Workflow run exists and is in a paused state"
+    postconditions:
+      - "Workflow run is persisted in running state"
+    schema_ref: "jsonschema://agents/events/workflow-resumed@1.0.0"
+    envelope_ref: "jsonschema://common/event-envelope@1.0.0"
+    subject_type: workflow
+    tenant_scope: TENANT
+    delivery: AT_LEAST_ONCE
+    partition_key: tenant_id
+    consumer_effect_key: event.id
+    expected_latency_ms: 500
+    criticality: MEDIUM
+    transport_channel: agents.events
+    ordering_guarantee: PARTITION_ORDER
+    replay_behavior: IDEMPOTENT
+    retention_classification: MEDIUM_TERM
+    sensitive_payload: false
+    event_class: DOMAIN_EVENT
+    status: DRAFT
+    consumers: []
+    examples:
+      - tenant_id: "ten_123"
+        workflow_run_id: "wf_456"
+        workflow_type: "business_case"
+        status: "running"
+        resumed_at: "2026-01-15T09:05:00Z"
+        checkpoint_id: "cp_102"
+
+  - event_type: agents.checkpoint.created.v1
+    name: Agent Checkpoint Created
+    description: >
+      A workflow checkpoint has been created, capturing the run state and
+      enabling durable resume after failure or interruption.
+    domain: agents.checkpoints
+    owner: layer4-agents/checkpoints
+    producer: services/layer4-agents
+    triggered_by:
+      - checkpoint.save
+    preconditions:
+      - "Workflow run exists"
+    postconditions:
+      - "Checkpoint is persisted and resume is possible"
+    schema_ref: "jsonschema://agents/events/checkpoint-created@1.0.0"
+    envelope_ref: "jsonschema://common/event-envelope@1.0.0"
+    subject_type: checkpoint
+    tenant_scope: TENANT
+    delivery: AT_LEAST_ONCE
+    partition_key: tenant_id
+    consumer_effect_key: event.id
+    expected_latency_ms: 300
+    criticality: MEDIUM
+    transport_channel: agents.events
+    ordering_guarantee: PARTITION_ORDER
+    replay_behavior: IDEMPOTENT
+    retention_classification: MEDIUM_TERM
+    sensitive_payload: false
+    event_class: DOMAIN_EVENT
+    status: DRAFT
+    consumers: []
+    examples:
+      - tenant_id: "ten_123"
+        workflow_run_id: "wf_456"
+        checkpoint_id: "cp_101"
+        checkpoint_type: "graph_state"
+        created_at: "2026-01-15T09:10:00Z"
+        node_name: "analysis"
+
+  - event_type: agents.tool_invocation.completed.v1
+    name: Agent Tool Invocation Completed
+    description: >
+      A tool invocation issued by an agent step has completed, recording the
+      tool name, status, and outcome reference.
+    domain: agents.tools
+    owner: layer4-agents/tools
+    producer: services/layer4-agents
+    triggered_by:
+      - tool.invoke
+      - tool.schedule
+    preconditions:
+      - "Workflow run exists and tool is registered"
+    postconditions:
+      - "Tool outcome is recorded with result reference"
+    schema_ref: "jsonschema://agents/events/tool-invocation-completed@1.0.0"
+    envelope_ref: "jsonschema://common/event-envelope@1.0.0"
+    subject_type: tool_invocation
+    tenant_scope: TENANT
+    delivery: AT_LEAST_ONCE
+    partition_key: tenant_id
+    consumer_effect_key: event.id
+    expected_latency_ms: 500
+    criticality: LOW
+    transport_channel: agents.events
+    ordering_guarantee: PARTITION_ORDER
+    replay_behavior: IDEMPOTENT
+    retention_classification: MEDIUM_TERM
+    sensitive_payload: false
+    event_class: INTEGRATION_EVENT
+    status: DRAFT
+    consumers: []
+    examples:
+      - tenant_id: "ten_123"
+        workflow_run_id: "wf_456"
+        invocation_id: "inv_303"
+        tool_name: "calculate_roi"
+        status: "succeeded"
+        completed_at: "2026-01-15T09:12:00Z"
+
+  - event_type: agents.agent_output.generated.v1
+    name: Agent Output Generated
+    description: >
+      An agent step has produced a structured output artifact (analysis,
+      section, or intermediate result). Output content is stored separately;
+      the event carries an output pointer.
+    domain: agents.outputs
+    owner: layer4-agents/outputs
+    producer: services/layer4-agents
+    triggered_by:
+      - agent.emit_output
+      - agent.section_generated
+    preconditions:
+      - "Workflow run exists"
+    postconditions:
+      - "Output artifact is persisted and addressable"
+    schema_ref: "jsonschema://agents/events/agent-output-generated@1.0.0"
+    envelope_ref: "jsonschema://common/event-envelope@1.0.0"
+    subject_type: agent_output
+    tenant_scope: TENANT
+    delivery: AT_LEAST_ONCE
+    partition_key: tenant_id
+    consumer_effect_key: event.id
+    expected_latency_ms: 500
+    criticality: MEDIUM
+    transport_channel: agents.events
+    ordering_guarantee: PARTITION_ORDER
+    replay_behavior: IDEMPOTENT
+    retention_classification: LONG_TERM
+    sensitive_payload: false
+    event_class: DOMAIN_EVENT
+    status: DRAFT
+    consumers: []
+    examples:
+      - tenant_id: "ten_123"
+        workflow_run_id: "wf_456"
+        output_id: "out_789"
+        output_type: "analysis_section"
+        output_pointer: "s3://outputs/out_789.json"
+        generated_at: "2026-01-15T09:13:00Z"
+
+  - event_type: agents.business_case.generated.v1
+    name: Business Case Generated
+    description: >
+      A business case document has been generated by the business case
+      workflow, aggregating the narrative, ROI analysis, and evidence.
+    domain: agents.outputs
+    owner: layer4-agents/outputs
+    producer: services/layer4-agents
+    triggered_by:
+      - business_case.generate
+    preconditions:
+      - "Workflow run exists and analysis inputs are complete"
+    postconditions:
+      - "Business case document is persisted and addressable"
+    schema_ref: "jsonschema://agents/events/business-case-generated@1.0.0"
+    envelope_ref: "jsonschema://common/event-envelope@1.0.0"
+    subject_type: business_case
+    tenant_scope: TENANT
+    delivery: AT_LEAST_ONCE
+    partition_key: tenant_id
+    consumer_effect_key: event.id
+    expected_latency_ms: 1500
+    criticality: MEDIUM
+    transport_channel: agents.events
+    ordering_guarantee: PARTITION_ORDER
+    replay_behavior: IDEMPOTENT
+    retention_classification: LONG_TERM
+    sensitive_payload: false
+    event_class: DOMAIN_EVENT
+    status: DRAFT
+    consumers: []
+    examples:
+      - tenant_id: "ten_123"
+        workflow_run_id: "wf_456"
+        business_case_id: "bc_202"
+        output_pointer: "s3://outputs/bc_202.md"
+        scenario_name: "acme-expansion"
+        generated_at: "2026-01-15T09:14:00Z"
+
+  - event_type: agents.roi.analyzed.v1
+    name: Agent ROI Analyzed
+    description: >
+      An ROI analysis has completed for a prospect or opportunity, producing
+      expected value, payback period, and option values.
+    domain: agents.outputs
+    owner: layer4-agents/outputs
+    producer: services/layer4-agents
+    triggered_by:
+      - roi.analyze
+      - roi.recalculate
+    preconditions:
+      - "Prospect data and formula configuration are available"
+    postconditions:
+      - "ROI metrics are persisted against the analyzed entity"
+    schema_ref: "jsonschema://agents/events/roi-analyzed@1.0.0"
+    envelope_ref: "jsonschema://common/event-envelope@1.0.0"
+    subject_type: roi_analysis
+    tenant_scope: TENANT
+    delivery: AT_LEAST_ONCE
+    partition_key: tenant_id
+    consumer_effect_key: event.id
+    expected_latency_ms: 500
+    criticality: MEDIUM
+    transport_channel: agents.events
+    ordering_guarantee: PARTITION_ORDER
+    replay_behavior: IDEMPOTENT
+    retention_classification: LONG_TERM
+    sensitive_payload: false
+    event_class: DOMAIN_EVENT
+    status: DRAFT
+    consumers: []
+    examples:
+      - tenant_id: "ten_123"
+        workflow_run_id: "wf_456"
+        analysis_id: "roi_505"
+        target_entity: "prospect_303"
+        expected_roi_pct: 42.5
+        payback_months: 14
+        analyzed_at: "2026-01-15T09:14:30Z"

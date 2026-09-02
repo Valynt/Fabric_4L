@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://valuefabric.ai/contracts/jsonschema/billing/events/usage-ingested@1.0.0.schema.json",
+  "title": "UsageIngested",
+  "description": "Payload schema for billing.usage.ingested.v1: a usage event has been ingested, validated, and persisted.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["tenant_id", "billing_account_id", "usage_event_id", "ingested_at"],
+  "properties": {
+    "tenant_id": { "type": "string", "minLength": 1, "description": "Tenant that owns the usage event" },
+    "billing_account_id": { "type": "string", "minLength": 1, "description": "Billing account identifier" },
+    "usage_event_id": { "type": "string", "minLength": 1, "description": "Usage event identifier" },
+    "usage_type": { "type": "string", "description": "Type or metric of usage" },
+    "quantity": { "type": "number", "minimum": 0, "description": "Usage quantity" },
+    "ingested_at": { "type": "string", "format": "date-time", "description": "ISO 8601 ingestion timestamp" }
+  }
+}

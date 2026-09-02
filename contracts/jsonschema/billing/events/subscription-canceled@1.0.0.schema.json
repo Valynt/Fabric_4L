@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://valuefabric.ai/contracts/jsonschema/billing/events/subscription-canceled@1.0.0.schema.json",
+  "title": "SubscriptionCanceled",
+  "description": "Payload schema for billing.subscription.canceled.v1: a subscription has been canceled.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["tenant_id", "subscription_id", "billing_account_id", "canceled_at"],
+  "properties": {
+    "tenant_id": { "type": "string", "minLength": 1, "description": "Tenant that owns the subscription" },
+    "subscription_id": { "type": "string", "minLength": 1, "description": "Subscription identifier" },
+    "billing_account_id": { "type": "string", "minLength": 1, "description": "Billing account identifier" },
+    "canceled_at": { "type": "string", "format": "date-time", "description": "ISO 8601 cancellation timestamp" },
+    "reason": { "type": "string", "description": "Cancellation reason code" }
+  }
+}

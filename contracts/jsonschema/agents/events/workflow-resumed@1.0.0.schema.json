@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://valuefabric.ai/contracts/jsonschema/agents/events/workflow-resumed@1.0.0.schema.json",
+  "title": "WorkflowResumed",
+  "description": "Payload schema for agents.workflow.resumed.v1: a paused or checkpointed workflow has resumed execution.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["tenant_id", "workflow_run_id", "workflow_type", "status", "resumed_at"],
+  "properties": {
+    "tenant_id": { "type": "string", "minLength": 1, "description": "Tenant that owns the workflow run" },
+    "workflow_run_id": { "type": "string", "minLength": 1, "description": "Workflow run identifier" },
+    "workflow_type": { "type": "string", "description": "Workflow type" },
+    "status": { "type": "string", "description": "Status: running" },
+    "checkpoint_id": { "type": "string", "description": "Checkpoint from which the run resumed" },
+    "resumed_at": { "type": "string", "format": "date-time", "description": "ISO 8601 resume timestamp" }
+  }
+}

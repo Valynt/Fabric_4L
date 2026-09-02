@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://valuefabric.ai/contracts/jsonschema/billing/events/invoice-generated@1.0.0.schema.json",
+  "title": "InvoiceGenerated",
+  "description": "Payload schema for billing.invoice.generated.v1: an invoice has been generated for a billing account.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["tenant_id", "billing_account_id", "invoice_id", "billing_period", "generated_at"],
+  "properties": {
+    "tenant_id": { "type": "string", "minLength": 1, "description": "Tenant that owns the invoice" },
+    "billing_account_id": { "type": "string", "minLength": 1, "description": "Billing account identifier" },
+    "invoice_id": { "type": "string", "minLength": 1, "description": "Invoice identifier" },
+    "billing_period": { "type": "string", "description": "Billing period label" },
+    "amount_cents": { "type": "integer", "minimum": 0, "description": "Invoice total in cents" },
+    "generated_at": { "type": "string", "format": "date-time", "description": "ISO 8601 generation timestamp" }
+  }
+}

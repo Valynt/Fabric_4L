@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://valuefabric.ai/contracts/jsonschema/billing/events/entitlement-changed@1.0.0.schema.json",
+  "title": "EntitlementChanged",
+  "description": "Payload schema for billing.entitlement.changed.v1: the effective entitlement set for a billing account has changed.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["tenant_id", "billing_account_id", "entitlements", "changed_at"],
+  "properties": {
+    "tenant_id": { "type": "string", "minLength": 1, "description": "Tenant that owns the entitlement set" },
+    "billing_account_id": { "type": "string", "minLength": 1, "description": "Billing account identifier" },
+    "entitlements": { "type": "array", "items": { "type": "string" }, "description": "Effective entitlement keys" },
+    "changed_at": { "type": "string", "format": "date-time", "description": "ISO 8601 change timestamp" }
+  }
+}

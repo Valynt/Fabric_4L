@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://valuefabric.ai/contracts/jsonschema/billing/events/rating-completed@1.0.0.schema.json",
+  "title": "RatingCompleted",
+  "description": "Payload schema for billing.rating.completed.v1: a rating run has completed for a billing period.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["tenant_id", "billing_account_id", "rating_run_id", "billing_period", "completed_at"],
+  "properties": {
+    "tenant_id": { "type": "string", "minLength": 1, "description": "Tenant that owns the rating run" },
+    "billing_account_id": { "type": "string", "minLength": 1, "description": "Billing account identifier" },
+    "rating_run_id": { "type": "string", "minLength": 1, "description": "Rating run identifier" },
+    "billing_period": { "type": "string", "description": "Billing period label" },
+    "line_item_count": { "type": "integer", "minimum": 0, "description": "Number of rated line items" },
+    "completed_at": { "type": "string", "format": "date-time", "description": "ISO 8601 completion timestamp" }
+  }
+}

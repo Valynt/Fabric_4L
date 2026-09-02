@@ -108,9 +108,55 @@ def test_rule_2_envelope_not_in_index():
 
 def test_rule_2_envelope_in_index_passes():
     entry = make_entry(envelope_ref="jsonschema://common/event-envelope@1.0.0")
-    schema_index = {"entries": [{"path": "contracts/jsonschema/common/event-envelope@1.0.0.schema.json"}]}
+    schema_index = {
+        "entries": [
+            {"path": "contracts/jsonschema/common/event-envelope@1.0.0.schema.json"},
+            {"path": "contracts/jsonschema/billing/events/subscription-activated@1.1.0.schema.json"},
+        ]
+    }
     violations = validate_event_catalog.check_rule_2_schema_registered([("billing", entry)], schema_index)
     assert violations == []
+
+
+def test_rule_2_payload_schema_missing_from_index_fails():
+    """schema_ref hard-check: a payload schema not present in the schema-index is a Rule 2 violation."""
+    entry = make_entry(schema_ref="jsonschema://billing/events/subscription-activated@1.1.0")
+    schema_index = {"entries": [{"path": "contracts/jsonschema/common/event-envelope@1.0.0.schema.json"}]}
+    violations = validate_event_catalog.check_rule_2_schema_registered([("billing", entry)], schema_index)
+    assert any("Payload schema not in schema-index" in v.message for v in violations)
+
+
+def test_rule_2_payload_schema_in_index_passes():
+    entry = make_entry(schema_ref="jsonschema://billing/events/subscription-activated@1.1.0")
+    schema_index = {
+        "entries": [
+            {"path": "contracts/jsonschema/common/event-envelope@1.0.0.schema.json"},
+            {"path": "contracts/jsonschema/billing/events/subscription-activated@1.1.0.schema.json"},
+        ]
+    }
+    violations = validate_event_catalog.check_rule_2_schema_registered([("billing", entry)], schema_index)
+    assert violations == []
+
+
+def test_rule_2_payload_schema_stripped_version_match_passes():
+    """A payload schema indexed without the @version suffix must still resolve."""
+    entry = make_entry(schema_ref="jsonschema://billing/events/subscription-activated@1.1.0")
+    schema_index = {
+        "entries": [
+            {"path": "contracts/jsonschema/common/event-envelope@1.0.0.schema.json"},
+            {"path": "contracts/jsonschema/billing/events/subscription-activated.schema.json"},
+        ]
+    }
+    violations = validate_event_catalog.check_rule_2_schema_registered([("billing", entry)], schema_index)
+    assert violations == []
+
+
+def test_rule_2_schema_ref_missing_prefix_fails():
+    """schema_ref without the jsonschema:// prefix is rejected."""
+    entry = make_entry(schema_ref="billing/events/subscription-activated@1.1.0")
+    schema_index = {"entries": [{"path": "contracts/jsonschema/common/event-envelope@1.0.0.schema.json"}]}
+    violations = validate_event_catalog.check_rule_2_schema_registered([("billing", entry)], schema_index)
+    assert any("must use the jsonschema:// prefix" in v.message for v in violations)
 
 
 # ---------------------------------------------------------------------------

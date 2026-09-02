@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://valuefabric.ai/contracts/jsonschema/billing/events/subscription-activated@1.1.0.schema.json",
+  "title": "SubscriptionActivated",
+  "description": "Payload schema for billing.subscription.activated.v1: a subscription has been activated for a billing account.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["tenant_id", "subscription_id", "billing_account_id", "plan_id", "activated_at"],
+  "properties": {
+    "tenant_id": { "type": "string", "minLength": 1, "description": "Tenant that owns the subscription" },
+    "subscription_id": { "type": "string", "minLength": 1, "description": "Subscription identifier" },
+    "billing_account_id": { "type": "string", "minLength": 1, "description": "Billing account identifier" },
+    "plan_id": { "type": "string", "minLength": 1, "description": "Subscribed plan identifier" },
+    "activated_at": { "type": "string", "format": "date-time", "description": "ISO 8601 activation timestamp" },
+    "trial": { "type": "boolean", "description": "Whether the subscription is on a trial" }
+  }
+}

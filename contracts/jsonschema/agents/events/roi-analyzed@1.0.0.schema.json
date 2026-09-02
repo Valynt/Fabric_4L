@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://valuefabric.ai/contracts/jsonschema/agents/events/roi-analyzed@1.0.0.schema.json",
+  "title": "RoiAnalyzed",
+  "description": "Payload schema for agents.roi.analyzed.v1: an ROI analysis has completed for a prospect or opportunity.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["tenant_id", "workflow_run_id", "analysis_id", "target_entity", "analyzed_at"],
+  "properties": {
+    "tenant_id": { "type": "string", "minLength": 1, "description": "Tenant that owns the analysis" },
+    "workflow_run_id": { "type": "string", "minLength": 1, "description": "Workflow run identifier" },
+    "analysis_id": { "type": "string", "minLength": 1, "description": "ROI analysis identifier" },
+    "target_entity": { "type": "string", "minLength": 1, "description": "Prospect or opportunity analyzed" },
+    "expected_roi_pct": { "type": "number", "description": "Expected ROI percentage" },
+    "payback_months": { "type": "number", "description": "Expected payback period in months" },
+    "option_values": { "type": "object", "description": "Optionality value metrics" },
+    "analyzed_at": { "type": "string", "format": "date-time", "description": "ISO 8601 analysis timestamp" }
+  }
+}

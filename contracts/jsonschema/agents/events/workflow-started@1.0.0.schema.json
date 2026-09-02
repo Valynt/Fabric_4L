@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://valuefabric.ai/contracts/jsonschema/agents/events/workflow-started@1.0.0.schema.json",
+  "title": "WorkflowStarted",
+  "description": "Payload schema for agents.workflow.started.v1: an agentic workflow has started execution.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["tenant_id", "workflow_run_id", "workflow_type", "started_at"],
+  "properties": {
+    "tenant_id": { "type": "string", "minLength": 1, "description": "Tenant that owns the workflow run" },
+    "workflow_run_id": { "type": "string", "minLength": 1, "description": "Workflow run identifier" },
+    "workflow_type": { "type": "string", "description": "business_case, narrative_builder, roi_calculator, signal_detection, whitespace_analysis" },
+    "input_summary": { "type": "string", "description": "Brief summary of workflow inputs" },
+    "started_at": { "type": "string", "format": "date-time", "description": "ISO 8601 start timestamp" }
+  }
+}

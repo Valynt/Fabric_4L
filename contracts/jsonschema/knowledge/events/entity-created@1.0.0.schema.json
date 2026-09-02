@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://valuefabric.ai/contracts/jsonschema/knowledge/events/entity-created@1.0.0.schema.json",
+  "title": "EntityCreated",
+  "description": "Payload schema for knowledge.entity.created.v1: a new entity has been created in the knowledge graph.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["tenant_id", "entity_id", "entity_type", "created_at"],
+  "properties": {
+    "tenant_id": { "type": "string", "minLength": 1, "description": "Tenant that owns the entity" },
+    "entity_id": { "type": "string", "minLength": 1, "description": "Entity node identifier" },
+    "entity_type": { "type": "string", "description": "Entity type" },
+    "name": { "type": "string", "description": "Entity display name" },
+    "source_run_id": { "type": "string", "description": "Ingestion or resolution run that created the entity" },
+    "created_at": { "type": "string", "format": "date-time", "description": "ISO 8601 creation timestamp" }
+  }
+}

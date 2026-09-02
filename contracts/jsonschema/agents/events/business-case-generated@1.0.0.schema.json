@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://valuefabric.ai/contracts/jsonschema/agents/events/business-case-generated@1.0.0.schema.json",
+  "title": "BusinessCaseGenerated",
+  "description": "Payload schema for agents.business_case.generated.v1: a business case document has been generated.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["tenant_id", "workflow_run_id", "business_case_id", "generated_at"],
+  "properties": {
+    "tenant_id": { "type": "string", "minLength": 1, "description": "Tenant that owns the business case" },
+    "workflow_run_id": { "type": "string", "minLength": 1, "description": "Workflow run identifier" },
+    "business_case_id": { "type": "string", "minLength": 1, "description": "Business case identifier" },
+    "scenario_name": { "type": "string", "description": "Analyzed scenario name" },
+    "output_pointer": { "type": "string", "description": "Address of the persisted business case document" },
+    "generated_at": { "type": "string", "format": "date-time", "description": "ISO 8601 generation timestamp" }
+  }
+}
