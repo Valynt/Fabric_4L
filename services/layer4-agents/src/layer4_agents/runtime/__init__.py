@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from .adapters import (
     InMemoryCheckpointAdapter,
+    InMemoryMemoryAdapter,
     LangGraphWorkflowEngineAdapter,
     LegacyToolRegistryAdapter,
     PolicyAuthzPort,
@@ -59,6 +60,7 @@ __all__ = [
     "CheckpointConflictError",
     "CheckpointPort",
     "InMemoryCheckpointAdapter",
+    "InMemoryMemoryAdapter",
     "LangGraphWorkflowEngineAdapter",
     "LegacyToolRegistryAdapter",
     "Message",

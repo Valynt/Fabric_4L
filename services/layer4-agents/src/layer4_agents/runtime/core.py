@@ -7,8 +7,16 @@ from typing import Any
 from uuid import uuid4
 
 from .context import with_context
-from .errors import ProviderNotFoundError, ToolForbiddenError, WorkflowTypeNotFoundError
+from .errors import (
+    AgentRuntimeError,
+    ProviderNotFoundError,
+    RunNotFoundError,
+    TenantRequiredError,
+    ToolForbiddenError,
+    WorkflowTypeNotFoundError,
+)
 from .models import (
+    ResumeRequest,
     RunEnvelope,
     RunRequest,
     RunResult,
@@ -17,6 +25,7 @@ from .models import (
     RuntimeContext,
     ToolDef,
     ToolResult,
+    WorkflowResult,
 )
 from .ports import (
     AuthzPort,
@@ -79,8 +88,6 @@ class AgentRuntimeImpl:
     async def submit_run(self, request: RunRequest, ctx: RuntimeContext) -> RunEnvelope:
         """Submit a new run after validating tenant context."""
         if not ctx.tenant_id:
-            from .errors import TenantRequiredError
-
             raise TenantRequiredError()
 
         run_id = str(uuid4())
@@ -130,19 +137,46 @@ class AgentRuntimeImpl:
 
         existing = self._runs.get(envelope.run_id)
         if existing is not None:
-            self._runs[envelope.run_id] = RunResult(
-                run_id=envelope.run_id,
-                workflow_id=envelope.workflow_id,
-                trace_id=ctx.trace_id,
-                tenant_id=ctx.tenant_id,
-                workflow_type=request.workflow_type,
-                status=result.status,
-                output=result.output,
-                error=result.error,
-                created_at=existing.created_at,
-                started_at=existing.started_at,
-                completed_at=datetime.now(UTC).isoformat(),
-            )
+            updated = self._finalize_run(existing, result)
+            self._runs[envelope.run_id] = updated
+            await self._persist_run_memory(updated)
+
+    def _finalize_run(self, existing: RunResult, result: WorkflowResult) -> RunResult:
+        """Fold a dispatch/resume ``WorkflowResult`` into the stored run record."""
+        return existing.model_copy(
+            update={
+                "status": result.status,
+                "output": result.output,
+                "error": result.error,
+                "completed_at": datetime.now(UTC).isoformat(),
+            }
+        )
+
+    async def _persist_run_memory(self, result: RunResult) -> None:
+        """Persist a run-envelope snapshot through the configured ``MemoryPort``.
+
+        The thread handle defaults to the run id, matching the workflow engine
+        adapter's thread derivation for resumable runs. No-op when no memory
+        port is configured; long-term indexing is the adapter's concern.
+        """
+        if self._memory is None:
+            return
+        await self._memory.save_thread_state(
+            result.run_id,
+            result.tenant_id,
+            {
+                "run_id": result.run_id,
+                "workflow_id": result.workflow_id,
+                "trace_id": result.trace_id,
+                "tenant_id": result.tenant_id,
+                "workflow_type": result.workflow_type,
+                "status": result.status.value,
+                "created_at": result.created_at,
+                "started_at": result.started_at,
+                "completed_at": result.completed_at,
+                "error_code": (result.error or {}).get("code"),
+            },
+        )
 
     async def get_run(self, run_id: str, tenant_id: str) -> RunResult | None:
         """Tenant-scoped run lookup; returns None for missing or inaccessible runs."""
@@ -155,8 +189,6 @@ class AgentRuntimeImpl:
         """Cancel a run if it belongs to the tenant."""
         result = await self.get_run(run_id, tenant_id)
         if result is None:
-            from .errors import RunNotFoundError
-
             raise RunNotFoundError(run_id)
         self._runs[run_id] = result.model_copy(update={"status": RunStatus.CANCELLED})
         return self._runs[run_id]
@@ -188,9 +220,44 @@ class AgentRuntimeImpl:
             )
         return summaries
 
-    async def resume_run(self, run_id: str, tenant_id: str, resume: Any) -> RunResult:
-        """Resume a paused run; stubbed for Phase 0."""
-        raise NotImplementedError("resume_run is stubbed for Phase 0")
+    async def resume_run(
+        self, run_id: str, tenant_id: str, resume: ResumeRequest
+    ) -> RunResult:
+        """Resume a paused run through the configured workflow engine.
+
+        Fails closed when tenant context is absent, no workflow engine is
+        configured, or the run is not visible to the requesting tenant. The
+        engine's own resume path owns checkpoint lookup and conflict policy;
+        on success the resumed result replaces the stored run record.
+        """
+        if not tenant_id:
+            raise TenantRequiredError()
+        if self._workflow_engine is None:
+            raise AgentRuntimeError(
+                "Resume unavailable: no workflow engine is configured",
+                code="RESUME_UNAVAILABLE",
+                details={"run_id": run_id},
+            )
+        existing = await self.get_run(run_id, tenant_id)
+        if existing is None:
+            raise RunNotFoundError(run_id)
+
+        resume_ctx = RuntimeContext(
+            tenant_id=existing.tenant_id,
+            trace_id=existing.trace_id,
+            run_id=existing.run_id,
+            workflow_id=existing.workflow_id,
+            workflow_type=existing.workflow_type,
+        )
+        with with_context(resume_ctx):
+            result = await self._workflow_engine.resume(
+                existing.workflow_type, run_id, resume, resume_ctx
+            )
+
+        updated = self._finalize_run(existing, result)
+        self._runs[run_id] = updated
+        await self._persist_run_memory(updated)
+        return updated
 
     async def authorize_tool(self, tool_name: str, ctx: RuntimeContext) -> bool:
         """Helper to authorize a tool call through the configured AuthzPort."""
