@@ -2,7 +2,12 @@
 
 from __future__ import annotations
 
-from .adapters import LegacyToolRegistryAdapter, PolicyAuthzPort
+from .adapters import (
+    InMemoryCheckpointAdapter,
+    LangGraphWorkflowEngineAdapter,
+    LegacyToolRegistryAdapter,
+    PolicyAuthzPort,
+)
 from .context import RuntimeContextVar, current_context, get_tenant_id, with_context
 from .core import AgentRuntimeImpl
 from .errors import (
@@ -53,6 +58,8 @@ __all__ = [
     "Checkpoint",
     "CheckpointConflictError",
     "CheckpointPort",
+    "InMemoryCheckpointAdapter",
+    "LangGraphWorkflowEngineAdapter",
     "LegacyToolRegistryAdapter",
     "Message",
     "ModelConfig",
