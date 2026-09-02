@@ -1,39 +1,47 @@
-"""Automated tests for the Docker/testcontainers fail-closed skip gate in conftest.
+"""Tests for the Docker/testcontainers fail-closed skip gate in the layer4 conftest.
 
-The gate (``conftest.pytest_collection_modifyitems``) is the mechanism that
-keeps local layer4 runs deterministic when Docker/testcontainers are missing
-while failing closed in the ``LAYER4_REQUIRE_TESTCONTAINERS=1`` lane. Its core
-behavior used to be verified only by manual invocation, so these tests pin it:
-
-* fail-closed: the require-testcontainers env var + missing runtime raises.
-* skip + warn: missing runtimes skip the gated items and emit a config-time
-  warning that reports how many items were skipped.
-* empty when nothing is gated: every runtime present, nothing skipped or warned.
-
-All cases are environment-deterministic: availability flags and env vars are
-injected via ``monkeypatch``, and the gate is invoked directly on stub items so
-the tests never depend on the host machine's Docker/postgres state.
+The gate is the collection hook that keeps local layer4 runs deterministic when
+Docker/testcontainers are unavailable while still failing closed when the
+``LAYER4_REQUIRE_TESTCONTAINERS=1`` lane is explicitly requested. These checks
+pin the intended behavior without depending on the host machine's Docker state.
 """
 
+from __future__ import annotations
+
+import importlib.util
 import sys
+from pathlib import Path
 
 import pytest
 
-# pytest preloads the root conftest before collecting this module; bind it by
-# name so the tests call the exact production hook that ships with the suite.
-try:
-    import conftest
-except ImportError:  # pragma: no cover - defensive fallback
-    conftest = sys.modules.get("conftest")
-    if conftest is None:  # pragma: no cover
-        raise
+
+_LAYER4_TESTS_DIR = Path(__file__).resolve().parent
+_CONFTEXT_PATH = _LAYER4_TESTS_DIR / "conftest.py"
+
+_conftest = next(
+    (
+        module
+        for module in sys.modules.values()
+        if getattr(module, "__file__", None) == str(_CONFTEXT_PATH)
+    ),
+    None,
+)
+if _conftest is None:
+    spec = importlib.util.spec_from_file_location("layer4_tests_conftest", _CONFTEXT_PATH)
+    if spec is None or spec.loader is None:  # pragma: no cover
+        raise RuntimeError(f"Could not load layer4 conftest from {_CONFTEXT_PATH}")
+    _conftest = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(_conftest)
+    sys.modules[spec.name] = _conftest
+
+conftest = _conftest
 
 
 class _StubItem:
     """Minimal stand-in for a collected pytest item.
 
-    The gate inspects ``item.keywords`` with ``in`` and calls
-    ``item.add_marker(...)``, which is all the production hook touches.
+    The production hook only checks ``item.keywords`` and calls
+    ``item.add_marker(...)``.
     """
 
     def __init__(self, keywords: set[str] | None = None) -> None:
@@ -60,7 +68,7 @@ class _StubConfig:
 )
 @pytest.mark.unit
 def test_testcontainers_required_true_for_truthy_env_variants(raw, monkeypatch):
-    """Any case/space variant of the truthy values forces the lane on."""
+    """Truthy env values force the lane on."""
     monkeypatch.setenv("LAYER4_REQUIRE_TESTCONTAINERS", raw)
     assert conftest._testcontainers_required() is True
 
@@ -68,21 +76,21 @@ def test_testcontainers_required_true_for_truthy_env_variants(raw, monkeypatch):
 @pytest.mark.parametrize("raw", ["0", "no", "false", "False", "NO", " 0 "])
 @pytest.mark.unit
 def test_testcontainers_required_false_for_falsy_env_variants(raw, monkeypatch):
-    """Unrecognised values are not treated as a demand for the lane."""
+    """Falsy env values do not force the lane on."""
     monkeypatch.setenv("LAYER4_REQUIRE_TESTCONTAINERS", raw)
     assert conftest._testcontainers_required() is False
 
 
 @pytest.mark.unit
 def test_testcontainers_required_false_when_env_unset(monkeypatch):
-    """Absent env var means the lane is not forced."""
+    """An unset env var keeps the lane off."""
     monkeypatch.delenv("LAYER4_REQUIRE_TESTCONTAINERS", raising=False)
     assert conftest._testcontainers_required() is False
 
 
 @pytest.mark.unit
 def test_require_testcontainers_fails_closed_when_runtime_missing(monkeypatch):
-    """VF-SKIP-119/120: forced testcontainers lane + missing runtime = UsageError."""
+    """Forced Docker/testcontainers lane raises UsageError when runtimes are absent."""
     monkeypatch.setenv("LAYER4_REQUIRE_TESTCONTAINERS", "1")
     monkeypatch.setattr(conftest, "POSTGRES_AVAILABLE", False)
     monkeypatch.setattr(conftest, "DOCKER_AVAILABLE", False)
@@ -94,10 +102,8 @@ def test_require_testcontainers_fails_closed_when_runtime_missing(monkeypatch):
 
 
 @pytest.mark.unit
-def test_skip_gate_warns_and_skips_only_postgres_items_when_postgres_missing(
-    monkeypatch,
-):
-    """Missing postgres skips postgres items only (the docker elif is unreachable)."""
+def test_skip_gate_warns_and_skips_only_postgres_items_when_postgres_missing(monkeypatch):
+    """Missing postgres skips postgres-only items and emits the config-time warning."""
     monkeypatch.delenv("LAYER4_REQUIRE_TESTCONTAINERS", raising=False)
     monkeypatch.setattr(conftest, "POSTGRES_AVAILABLE", False)
     monkeypatch.setattr(conftest, "DOCKER_AVAILABLE", False)
@@ -110,7 +116,7 @@ def test_skip_gate_warns_and_skips_only_postgres_items_when_postgres_missing(
     conftest.pytest_collection_modifyitems(config, [postgres_item, docker_item, plain_item])
 
     assert len(postgres_item.added_markers) == 1
-    assert len(docker_item.added_markers) == 0  # docker-only item is not gated here
+    assert len(docker_item.added_markers) == 0
     assert len(plain_item.added_markers) == 0
     assert len(config.warnings) == 1
     assert "Skipped 1" in str(config.warnings[0])
@@ -118,7 +124,7 @@ def test_skip_gate_warns_and_skips_only_postgres_items_when_postgres_missing(
 
 @pytest.mark.unit
 def test_skip_gate_skips_docker_and_postgres_when_only_postgres_present(monkeypatch):
-    """Postgres present but Docker missing exercises the elif (both kinds skipped)."""
+    """If postgres is present but Docker is not, both postgres and docker items are skipped."""
     monkeypatch.delenv("LAYER4_REQUIRE_TESTCONTAINERS", raising=False)
     monkeypatch.setattr(conftest, "POSTGRES_AVAILABLE", True)
     monkeypatch.setattr(conftest, "DOCKER_AVAILABLE", False)
@@ -139,7 +145,7 @@ def test_skip_gate_skips_docker_and_postgres_when_only_postgres_present(monkeypa
 
 @pytest.mark.unit
 def test_skip_gate_stays_quiet_when_all_runtimes_present(monkeypatch):
-    """Fully available runtimes: no skips, no warnings, no fail-closed path."""
+    """When both runtimes are available, no items are skipped and no warning is emitted."""
     monkeypatch.delenv("LAYER4_REQUIRE_TESTCONTAINERS", raising=False)
     monkeypatch.setattr(conftest, "POSTGRES_AVAILABLE", True)
     monkeypatch.setattr(conftest, "DOCKER_AVAILABLE", True)

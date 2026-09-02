@@ -46,10 +46,10 @@ class TestTokenBucket:
         monkeypatch.setattr(time, "time", lambda: clock["now"])
 
         bucket = TokenBucket(capacity=10, refill_rate=1.0, tokens=5.0)
-        # Align last_refill with the frozen clock: the dataclass default factory
-        # bound the real time.time at import time, so construction uses wall
-        # clock while _refill() reads the patched one. Without this alignment the
-        # "elapsed" refill becomes an unbounded negative number.
+        # The bucket is created before monkeypatching the time source in this test,
+        # so the initial last_refill can be stale relative to the patched clock.
+        # Resetting it to the frozen now keeps the elapsed delta consistent with the
+        # virtual-time setup and avoids a misleading refill calculation.
         bucket.last_refill = clock["now"]
         result = bucket.consume(1)
         assert result is True

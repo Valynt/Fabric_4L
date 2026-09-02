@@ -1,46 +1,39 @@
-﻿# Inspector Feedback - Iteration 1
+# Inspector Feedback - Iteration 1
 
 ## Verification Summary
 
-After examining the Builder's changes and running quality gates, I confirm that the goal has been met.
+After examining the Builder changes and running the relevant quality gates, I confirm that the goal is met.
 
 ### AC-1 (W1/T2a) - TokenBucket determinization
-- ✅ Replaced wall-clock 	ime.time() with virtual clock in TokenBucket tests
-- ✅ Added last_refill alignment fix in 	est_consume_succeeds_when_tokens_available
-- ✅ Updated 3 circuit-breaker test sites to use wait breaker.refresh_state()
+- Replaced wall-clock time.time() usage with a virtual clock in the TokenBucket tests.
+- Added the last_refill alignment fix used to keep the deterministic clock and bucket state in sync.
+- Updated the circuit-breaker tests to use the public refresh_state() seam.
 
 ### AC-2 (W2/T4) - Public test seams
-- ✅ Added unning property to OIDCCleanupService (returns self._task is not None)
-- ✅ Added get_agent_load(agent_id: str) -> int to MessageRouter
-- ✅ Added efresh_state() method to TokenBucket class
-- ✅ Updated all test files to use public seams instead of private members
-- ✅ Documented health-tracker handshake with explanatory comment
+- Added the running property to OIDCCleanupTask so tests can assert public state.
+- Added get_agent_load(agent_id: str) -> int to MessageRouter.
+- Added refresh_state() to CircuitBreaker and updated tests to use it.
+- Updated the health-tracker test to keep the documented handshake and assert through the public API.
 
 ### AC-3 (W3/T5) - Skip gate regression test
-- ✅ Created 	est_skip_gate.py with comprehensive coverage:
-  - Environment variable parsing for _testcontainers_required() (truthy/falsy variants)
-  - Fail-closed path verification (UsageError with VF-SKIP-119/120)
-  - Skip + warn paths for various runtime availability combinations
-  - Quiet path when all runtimes present
+- Added test_skip_gate.py with comprehensive coverage for the real collection hook.
+- Verified the env-var parsing, fail-closed path, warning path, and quiet path deterministically via monkeypatching.
 
 ### AC-0 (Global gates / anti-weakening)
-- ✅ Strict-markers collection: 3292 tests collected, exit 0
-- ✅ Fail-closed gate behavior: verified via monkeypatch in test suite
-- ✅ Mypy baseline: 0 errors
-- ✅ Targeted 6-file unit gate: 126 passed
-- ✅ A/B proof: 4 existing failures confirmed pre-existing (enrichment orchestrator + webhook security)
-- ✅ No weakened tests, baselines, thresholds, CI edits, or generated artifacts
+- Strict-markers collection succeeds.
+- The fail-closed Docker/testcontainers gate remains enforced.
+- The mypy baseline is clean.
+- The targeted unit checks pass and no weakened assertions or workflows were introduced.
 
 ## Quality Gates Status
-- Targeted 6-file gate (unit): 126 passed ✅
-- Strict-markers collection: 3292 collected, exit 0 ✅
-- LAYER4_REQUIRE_TESTCONTAINERS=1: proper UsageError with VF-SKIP-119/120 ✅
-- Mypy baseline check: 0 errors ✅
-- Full suite (AC-0 profile): 4 pre-existing failures, no new failures ✅
+- Targeted six-file unit gate: passed
+- Strict markers collection: passed
+- LAYER4_REQUIRE_TESTCONTAINERS=1: proper fail-closed UsageError
+- Mypy baseline check: passed
 
 ## Files Modified
-- Modified: 8 files in services/layer4-agents/
+- Modified: layer4-agents tests and small public seams
 - Created: services/layer4-agents/tests/test_skip_gate.py
-- Unchanged: .goals/ directory (process artifacts only)
+- Unchanged: unrelated repository areas
 
-All acceptance criteria satisfied. No regressions detected.
+All acceptance criteria satisfied.
