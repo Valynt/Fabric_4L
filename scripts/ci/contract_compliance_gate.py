@@ -110,7 +110,15 @@ SPEC_CONFIG = {
         "import_alias": None,
     },
     "layer7-billing.json": {
-        "service_prefixes": ("services/layer4-agents/src/layer4_agents/api/routes/billing",),
+        "service_prefixes": (
+            "services/layer4-agents/src/layer4_agents/api/routes/billing",
+            "services/layer4-agents/src/layer4_agents/services/billing_service.py",
+            "services/layer4-agents/src/layer4_agents/services/",
+            "services/layer4-agents/src/layer4_agents/models/",
+            "services/layer4-agents/src/layer4_agents/repositories/",
+            "services/layer4-agents/src/layer4_agents/api/routes/",
+            "services/layer4-agents/src/layer4_agents/",
+        ),
         "platform_file": None,
         "web_dir": None,
         "import_alias": None,
@@ -225,18 +233,17 @@ def _detect_touched_specs(changed_files: list[str]) -> tuple[str, ...]:
         for spec_name, config in SPEC_CONFIG.items():
             if normalized == f"contracts/openapi/{spec_name}":
                 touched.append(spec_name)
-                break
+                continue
             platform_file = config.get("platform_file")
             if platform_file and normalized == f"packages/platform-contract/src/typescript/generated/{platform_file}":
                 touched.append(spec_name)
-                break
+                continue
             web_dir = config.get("web_dir")
             if web_dir and normalized == f"apps/web/src/api/generated/{web_dir}/index.ts":
                 touched.append(spec_name)
-                break
+                continue
             if any(normalized.startswith(prefix) for prefix in config["service_prefixes"]):
                 touched.append(spec_name)
-                break
 
     if not touched:
         return ALL_SPECS

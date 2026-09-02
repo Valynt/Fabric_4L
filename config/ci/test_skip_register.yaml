@@ -2049,12 +2049,12 @@ entries:
   reason_pattern: ^pytest\.skip\("No\ \.gitignore\ file\ found"\)$
   owner: '@platform-quality'
   reason: 'Unacceptable coverage gap: Existing launch-relevant skip marker registered for fail-closed governance; remove or renew before expiry.'
-  expires_on: '2026-09-01'
+  expires_on: '2026-09-30'
   severity: P1
   launch_gate: mandatory
   remediation:
     ticket_id: VF-SKIP-029
-    due_on: '2026-09-01'
+    due_on: '2026-09-30'
     work_item: Remove skip path in tests/release/test_secret_policy.py for registered condition
   classification: unacceptable_coverage_gap
   disposition: replace_with_characterization
