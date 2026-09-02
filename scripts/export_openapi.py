@@ -59,6 +59,12 @@ class OpenApiExportSpec:
         return self.src_path / self.main_path
 
 
+# Billing contract filenames. Layer 4 owns the canonical runtime; the legacy
+# Layer 7 API contract is retained as a deprecated compatibility projection.
+CANONICAL_BILLING_CONTRACT = "layer4-billing.json"
+LEGACY_BILLING_CONTRACT = "layer7-billing.json"
+
+
 EXPORT_SPECS: tuple[OpenApiExportSpec, ...] = (
     OpenApiExportSpec("Layer 1", "layer1-ingestion", "layer1_ingestion", "layer1_ingestion/api/main.py", "layer1-ingestion.json"),
     OpenApiExportSpec("Layer 2", "layer2-extraction", "layer2_extraction", "layer2_extraction/api/main.py", "layer2-extraction.json"),
@@ -76,7 +82,14 @@ EXPORT_SPECS: tuple[OpenApiExportSpec, ...] = (
         "layer4-agents",
         "layer4_agents",
         "layer4_agents/api/main.py",
-        "layer7-billing.json",
+        CANONICAL_BILLING_CONTRACT,
+    ),
+    OpenApiExportSpec(
+        "Layer 7 Billing Compatibility",
+        "layer4-agents",
+        "layer4_agents",
+        "layer4_agents/api/main.py",
+        LEGACY_BILLING_CONTRACT,
     ),
     OpenApiExportSpec("Layer 5", "layer5-ground-truth", "layer5_ground_truth", "layer5_ground_truth/api/main.py", "layer5-ground-truth.json"),
     OpenApiExportSpec(
@@ -457,7 +470,7 @@ def _install_layer4_openapi_dependency_shims() -> None:
 
 def _install_openapi_dependency_shims(spec: OpenApiExportSpec) -> None:
     _install_common_openapi_dependency_shims()
-    if spec.output_filename in {"layer4-agents.json", "layer7-billing.json"}:
+    if spec.output_filename in {"layer4-agents.json", CANONICAL_BILLING_CONTRACT, LEGACY_BILLING_CONTRACT}:
         _install_layer4_openapi_dependency_shims()
 
 
@@ -559,17 +572,25 @@ def _atomic_write_json(data: dict[str, Any], output_path: Path) -> None:
         raise
 
 
-# The retained ``layer7-billing.json`` contract is the dedicated billing API
-# specification. Layer 7 (the legacy standalone billing service) has been
-# deleted and Layer 4 is the canonical billing runtime, so the contract is a
-# deterministic subset export of the Layer 4 application scoped to its billing
-# surface (everything under ``/v1/billing/``).
-BILLING_SUBCONTRACT_FILENAME = "layer7-billing.json"
+# Layer 4 is the canonical billing runtime. Both ``layer4-billing.json``
+# (canonical) and ``layer7-billing.json`` (deprecated compatibility projection)
+# are deterministic subset exports of the Layer 4 application scoped to its
+# billing surface (everything under ``/v1/billing/``).
 BILLING_PATH_MARKER = "/v1/billing/"
 
+# RFC #1613 retirement schedule for the Layer 7 compatibility surface.
+# The compatibility contract remains available until first-party consumers have
+# migrated and the Contract Council approves retirement.
+LAYER7_BILLING_COMPAT_RETIREMENT_DATE = "2026-12-31"
 
-def _filter_openapi_to_billing_subset(openapi: dict[str, Any]) -> dict[str, Any]:
-    """Return a billing-scoped slice of a service OpenAPI document."""
+
+def _filter_openapi_to_billing_subset(openapi: dict[str, Any], *, compatibility: bool = False) -> dict[str, Any]:
+    """Return a billing-scoped slice of a service OpenAPI document.
+
+    When ``compatibility`` is False the output is the canonical Layer 4 billing
+    contract. When True it is the deprecated Layer 7 compatibility projection
+    retained for existing consumers during the migration window.
+    """
 
     document = dict(openapi)
     document["paths"] = {
@@ -577,17 +598,33 @@ def _filter_openapi_to_billing_subset(openapi: dict[str, Any]) -> dict[str, Any]
         for path, methods in openapi.get("paths", {}).items()
         if BILLING_PATH_MARKER in path
     }
-    # Repoint contract metadata at the canonical billing runtime (Layer 4).
-    # These overrides are applied deterministically so the committed contract
+    # Repoint contract metadata deterministically so the committed contract
     # remains a byte-stable output of ``scripts/export_openapi.py``.
     document["info"] = dict(document.get("info", {}))
-    document["info"]["title"] = "Layer 4: Billing API"
-    document["info"]["description"] = (
-        "Billing API subset of the Layer 4 Agentic Workflow Orchestrator. "
-        "The legacy Layer 7 standalone billing service has been removed: "
-        "Layer 4 is the canonical billing runtime. This contract surfaces "
-        "only the /v1/billing/* routes implemented by Layer 4."
-    )
+    document["info"]["version"] = document["info"].get("version", "0.2.0")
+    if compatibility:
+        document["info"]["title"] = "Layer 7 Billing API (Deprecated Compatibility)"
+        document["info"]["description"] = (
+            "Deprecated compatibility projection of the legacy Layer 7 billing "
+            "API surface. The Layer 7 standalone billing service runtime has been "
+            "retired; Layer 4 is the canonical billing runtime. New consumers "
+            "must use the canonical Layer 4 Billing contract "
+            "(layer4-billing.json). This contract is retained only to allow "
+            "existing Layer 7 API consumers to migrate without an uncontrolled "
+            "breaking change."
+        )
+        document["x-contract-status"] = "deprecated"
+        document["x-canonical-contract"] = CANONICAL_BILLING_CONTRACT
+        document["x-deprecated-on"] = "2026-09-02"
+        document["x-retirement-date"] = LAYER7_BILLING_COMPAT_RETIREMENT_DATE
+    else:
+        document["info"]["title"] = "Layer 4 Billing API"
+        document["info"]["description"] = (
+            "Canonical billing API of the Layer 4 Agentic Workflow Orchestrator. "
+            "Layer 4 is the sole runtime owner of Stripe subscription, usage, "
+            "overage, and webhook processing. This contract surfaces the "
+            "/v1/billing/* routes implemented by Layer 4."
+        )
     document["x-backend-service"] = "layer4-agents"
     return document
 
@@ -623,8 +660,10 @@ def _export_service_in_process(spec: OpenApiExportSpec) -> bool:
 
         output_path = EXPORT_DIR / spec.output_filename
         document = app.openapi()
-        if spec.output_filename == BILLING_SUBCONTRACT_FILENAME:
-            document = _filter_openapi_to_billing_subset(document)
+        if spec.output_filename == CANONICAL_BILLING_CONTRACT:
+            document = _filter_openapi_to_billing_subset(document, compatibility=False)
+        elif spec.output_filename == LEGACY_BILLING_CONTRACT:
+            document = _filter_openapi_to_billing_subset(document, compatibility=True)
         _atomic_write_json(document, output_path)
         logger.info("[OK] %s exported: %s", spec.label, output_path)
         return True
