@@ -9,6 +9,7 @@
   "tools": [
     {
       "name": "analyze_competition",
+      "tenant_scope": "TENANT",
       "version": "1.0.0",
       "manifest_path": "../../tool-manifests/analyze_competition.json",
       "input_schema": {
@@ -37,6 +38,7 @@
     },
     {
       "name": "assemble_document",
+      "tenant_scope": "TENANT",
       "version": "1.0.0",
       "manifest_path": "../../tool-manifests/assemble_document.json",
       "input_schema": {
@@ -65,6 +67,7 @@
     },
     {
       "name": "assess_drift",
+      "tenant_scope": "TENANT",
       "version": "1.0.0",
       "manifest_path": "../../tool-manifests/assess_drift.json",
       "input_schema": {
@@ -93,6 +96,7 @@
     },
     {
       "name": "audit_ai_systems",
+      "tenant_scope": "TENANT",
       "version": "1.0.0",
       "manifest_path": "../../tool-manifests/audit_ai_systems.json",
       "input_schema": {
@@ -121,6 +125,7 @@
     },
     {
       "name": "audit_compliance",
+      "tenant_scope": "TENANT",
       "version": "1.0.0",
       "manifest_path": "../../tool-manifests/audit_compliance.json",
       "input_schema": {
@@ -149,6 +154,7 @@
     },
     {
       "name": "audit_infrastructure",
+      "tenant_scope": "TENANT",
       "version": "1.0.0",
       "manifest_path": "../../tool-manifests/audit_infrastructure.json",
       "input_schema": {
@@ -177,6 +183,7 @@
     },
     {
       "name": "audit_performance",
+      "tenant_scope": "TENANT",
       "version": "1.0.0",
       "manifest_path": "../../tool-manifests/audit_performance.json",
       "input_schema": {
@@ -205,6 +212,7 @@
     },
     {
       "name": "calculate_roi",
+      "tenant_scope": "TENANT",
       "version": "1.0.0",
       "manifest_path": "../../tool-manifests/calculate_roi.json",
       "input_schema": {
@@ -233,6 +241,7 @@
     },
     {
       "name": "compare_benchmarks",
+      "tenant_scope": "TENANT",
       "version": "1.0.0",
       "manifest_path": "../../tool-manifests/compare_benchmarks.json",
       "input_schema": {
@@ -261,6 +270,7 @@
     },
     {
       "name": "create_chart",
+      "tenant_scope": "TENANT",
       "version": "1.0.0",
       "manifest_path": "../../tool-manifests/create_chart.json",
       "input_schema": {
@@ -289,6 +299,7 @@
     },
     {
       "name": "create_task",
+      "tenant_scope": "TENANT",
       "version": "1.0.0",
       "manifest_path": "../../tool-manifests/create_task.json",
       "input_schema": {
@@ -317,6 +328,7 @@
     },
     {
       "name": "document_export",
+      "tenant_scope": "TENANT",
       "version": "1.0.0",
       "manifest_path": "../../tool-manifests/document_export.json",
       "input_schema": {
@@ -345,6 +357,7 @@
     },
     {
       "name": "evaluate_formula",
+      "tenant_scope": "TENANT",
       "version": "1.0.0",
       "manifest_path": "../../tool-manifests/evaluate_formula.json",
       "input_schema": {
@@ -373,6 +386,7 @@
     },
     {
       "name": "export_to_crm",
+      "tenant_scope": "TENANT",
       "version": "1.0.0",
       "manifest_path": "../../tool-manifests/export_to_crm.json",
       "input_schema": {
@@ -401,6 +415,7 @@
     },
     {
       "name": "fetch_interaction_history",
+      "tenant_scope": "TENANT",
       "version": "1.0.0",
       "manifest_path": "../../tool-manifests/fetch_interaction_history.json",
       "input_schema": {
@@ -429,6 +444,7 @@
     },
     {
       "name": "find_paths",
+      "tenant_scope": "TENANT",
       "version": "1.0.0",
       "manifest_path": "../../tool-manifests/find_paths.json",
       "input_schema": {
@@ -457,6 +473,7 @@
     },
     {
       "name": "format_currency",
+      "tenant_scope": "TENANT",
       "version": "1.0.0",
       "manifest_path": "../../tool-manifests/format_currency.json",
       "input_schema": {
@@ -485,6 +502,7 @@
     },
     {
       "name": "format_table",
+      "tenant_scope": "TENANT",
       "version": "1.0.0",
       "manifest_path": "../../tool-manifests/format_table.json",
       "input_schema": {
@@ -513,6 +531,7 @@
     },
     {
       "name": "generate_business_case",
+      "tenant_scope": "TENANT",
       "version": "1.0.0",
       "manifest_path": "../../tool-manifests/generate_business_case.json",
       "input_schema": {
@@ -541,6 +560,7 @@
     },
     {
       "name": "generate_section",
+      "tenant_scope": "TENANT",
       "version": "1.0.0",
       "manifest_path": "../../tool-manifests/generate_section.json",
       "input_schema": {
@@ -569,6 +589,7 @@
     },
     {
       "name": "get_entity",
+      "tenant_scope": "TENANT",
       "version": "1.0.0",
       "manifest_path": "../../tool-manifests/get_entity.json",
       "input_schema": {
@@ -597,6 +618,7 @@
     },
     {
       "name": "get_prospect_data",
+      "tenant_scope": "TENANT",
       "version": "1.0.0",
       "manifest_path": "../../tool-manifests/get_prospect_data.json",
       "input_schema": {
@@ -625,6 +647,7 @@
     },
     {
       "name": "get_relationships",
+      "tenant_scope": "TENANT",
       "version": "1.0.0",
       "manifest_path": "../../tool-manifests/get_relationships.json",
       "input_schema": {
@@ -653,6 +676,7 @@
     },
     {
       "name": "graph_traverse",
+      "tenant_scope": "TENANT",
       "version": "1.0.0",
       "manifest_path": "../../tool-manifests/graph_traverse.json",
       "input_schema": {
@@ -681,6 +705,7 @@
     },
     {
       "name": "query_graph",
+      "tenant_scope": "TENANT",
       "version": "1.0.0",
       "manifest_path": "../../tool-manifests/query_graph.json",
       "input_schema": {
@@ -709,6 +734,7 @@
     },
     {
       "name": "schedule_meeting",
+      "tenant_scope": "TENANT",
       "version": "1.0.0",
       "manifest_path": "../../tool-manifests/schedule_meeting.json",
       "input_schema": {
@@ -737,6 +763,7 @@
     },
     {
       "name": "score_lead",
+      "tenant_scope": "TENANT",
       "version": "1.0.0",
       "manifest_path": "../../tool-manifests/score_lead.json",
       "input_schema": {
@@ -765,6 +792,7 @@
     },
     {
       "name": "semantic_search",
+      "tenant_scope": "TENANT",
       "version": "1.0.0",
       "manifest_path": "../../tool-manifests/semantic_search.json",
       "input_schema": {
@@ -793,6 +821,7 @@
     },
     {
       "name": "send_notification",
+      "tenant_scope": "TENANT",
       "version": "1.0.0",
       "manifest_path": "../../tool-manifests/send_notification.json",
       "input_schema": {
@@ -821,6 +850,7 @@
     },
     {
       "name": "sensitivity_analysis",
+      "tenant_scope": "TENANT",
       "version": "1.0.0",
       "manifest_path": "../../tool-manifests/sensitivity_analysis.json",
       "input_schema": {
@@ -849,6 +879,7 @@
     },
     {
       "name": "update_opportunity",
+      "tenant_scope": "TENANT",
       "version": "1.0.0",
       "manifest_path": "../../tool-manifests/update_opportunity.json",
       "input_schema": {
@@ -877,6 +908,7 @@
     },
     {
       "name": "validate_input",
+      "tenant_scope": "TENANT",
       "version": "1.0.0",
       "manifest_path": "../../tool-manifests/validate_input.json",
       "input_schema": {

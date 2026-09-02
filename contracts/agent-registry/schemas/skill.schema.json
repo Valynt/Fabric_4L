@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://valuefabric.ai/contracts/agent-registry/schemas/skill.schema.json",
+  "title": "Fabric 4L Skill Metadata Contract",
+  "allOf": [
+    {
+      "$ref": "./base-contract.schema.json"
+    }
+  ],
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "kind": {
+      "const": "skill"
+    },
+    "owner": {
+      "type": "string",
+      "minLength": 1
+    },
+    "risk_class": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "regulated"
+      ]
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "compatibility": {
+      "type": "object"
+    },
+    "observability": {
+      "type": "object"
+    },
+    "governance": {
+      "type": "object"
+    },
+    "skill_path": {
+      "type": "string"
+    },
+    "tool_name": {
+      "type": "string"
+    },
+    "inputs": {
+      "type": "array"
+    },
+    "outputs": {
+      "type": "array"
+    },
+    "changelog": {
+      "type": "array"
+    }
+  },
+  "required": [
+    "id",
+    "version",
+    "kind",
+    "owner",
+    "risk_class",
+    "description",
+    "compatibility",
+    "observability",
+    "governance",
+    "skill_path",
+    "tool_name",
+    "inputs",
+    "outputs",
+    "changelog"
+  ]
+}

@@ -1,0 +1,52 @@
+{
+  "$schema": "../schemas/prompt.schema.json",
+  "id": "narrative_builder.system",
+  "version": "1.0.0",
+  "kind": "prompt",
+  "owner": "@layer4-agents",
+  "risk_class": "medium",
+  "description": "System prompt for the narrative builder workflow. Establishes the narrative author persona and section rules shared by narrative_builder nodes.",
+  "prompt_path": "../../../services/layer4-agents/prompts/narrative_builder/v1/system.md",
+  "inputs": [
+    "account_context",
+    "workflow_goal"
+  ],
+  "outputs": [
+    "narrative_sections",
+    "confidence"
+  ],
+  "reasoning_policy": "../reasoning-policies/default_copilot_reasoning_policy.json",
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-08-29",
+      "summary": "Initial registry metadata for existing narrative_builder.system prompt artifact."
+    }
+  ],
+  "compatibility": {
+    "supported_prior_versions": [],
+    "migration_notes": "Initial prompt registry entry. Prompt text changes require changelog updates before enforcement becomes blocking."
+  },
+  "observability": {
+    "required_trace_fields": [
+      "tenant_id",
+      "trace_id",
+      "prompt_id",
+      "prompt_version"
+    ],
+    "required_metrics": [
+      "prompt_invocation_total",
+      "prompt_token_total"
+    ],
+    "audit_events": [
+      "prompt_rendered",
+      "prompt_output_generated"
+    ]
+  },
+  "governance": {
+    "review_requirement": "Prompt owner review plus Contract Council review for input/output or risk-class changes.",
+    "approval_threshold": "One Layer 4 reviewer and one Platform Contracts reviewer.",
+    "rollout_policy": "Prompt-policy compatibility changes start in warning mode and graduate behind feature flags.",
+    "deprecation_policy": "Retain previous prompt metadata until all workflows reference the new version."
+  }
+}

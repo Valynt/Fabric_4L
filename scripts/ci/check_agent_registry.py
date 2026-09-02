@@ -37,6 +37,8 @@ WORKFLOW_CONFIG_PATH = REPO_ROOT / "services" / "layer4-agents" / "src" / "layer
 MODEL_REGISTRY_SERVICE_PATH = REPO_ROOT / "services" / "layer4-agents" / "src" / "layer4_agents" / "registry" / "service.py"
 MODEL_REGISTRY_ROUTES_PATH = REPO_ROOT / "services" / "layer4-agents" / "src" / "layer4_agents" / "registry" / "api" / "routes.py"
 L4_SETTINGS_PATH = REPO_ROOT / "services" / "layer4-agents" / "src" / "layer4_agents" / "config" / "settings.py"
+PROMPTS_RUNTIME_ROOT = REPO_ROOT / "services" / "layer4-agents" / "prompts"
+SKILLS_RUNTIME_ROOT = REPO_ROOT / "services" / "layer4-agents" / "skills"
 ALLOWED_MODEL_STAGES = {"dev", "staging", "production", "deprecated"}
 
 BASE_REQUIRED_FIELDS = {
@@ -53,6 +55,7 @@ BASE_REQUIRED_FIELDS = {
 ALLOWED_KINDS = {
     "agent_output",
     "prompt",
+    "skill",
     "tool",
     "workflow",
     "memory_object",
@@ -96,6 +99,7 @@ class RegistryValidator:
         self._validate_tool_manifest()
         self._validate_workflows()
         self._validate_prompts()
+        self._validate_skills()
         self._validate_reasoning_policies()
         self._validate_semantic_compatibility_matrix()
         self._validate_model_registry_runtime_alignment()
@@ -117,6 +121,7 @@ class RegistryValidator:
             "schemas/base-contract.schema.json",
             "schemas/prompt.schema.json",
             "schemas/reasoning-policy.schema.json",
+            "schemas/skill.schema.json",
             "schemas/tool-error.schema.json",
             "schemas/tool-registry.schema.json",
             "schemas/workflow.schema.json",
@@ -128,7 +133,7 @@ class RegistryValidator:
             if not path.exists():
                 self._error(path, "required-file-missing", f"Required registry file is missing: {relative_path}")
 
-        for directory in ("prompts", "reasoning-policies", "workflows"):
+        for directory in ("prompts", "reasoning-policies", "skills", "workflows"):
             dir_path = self.registry_root / directory
             if not dir_path.exists() or not any(dir_path.glob("*.json")):
                 self._error(dir_path, "required-entry-missing", f"Registry directory must contain at least one JSON contract: {directory}")
@@ -256,6 +261,15 @@ class RegistryValidator:
             if tool.get("tenant_required") is not True:
                 self._error(path, "tool-tenant-required", f"{name} must set tenant_required=true")
 
+            allowed_tenant_scopes = {"TENANT", "TENANT_AND_BILLING_ACCOUNT", "GLOBAL", "SYSTEM"}
+            tenant_scope = tool.get("tenant_scope")
+            if not isinstance(tenant_scope, str) or tenant_scope not in allowed_tenant_scopes:
+                self._error(
+                    path,
+                    "tool-tenant-scope-invalid",
+                    f"{name} must set tenant_scope to one of {sorted(allowed_tenant_scopes)}",
+                )
+
             provenance = tool.get("provenance")
             if not isinstance(provenance, dict) or provenance.get("required") is not True:
                 self._error(path, "tool-provenance-required", f"{name} must require provenance")
@@ -347,6 +361,84 @@ class RegistryValidator:
                 self._error(path, "prompt-outputs-missing", "Prompt registry entry must declare non-empty outputs")
             if not isinstance(document.get("changelog"), list) or not document.get("changelog"):
                 self._error(path, "prompt-changelog-missing", "Prompt registry entry must include a non-empty changelog")
+
+        self._validate_prompt_runtime_drift()
+
+    def _validate_prompt_runtime_drift(self) -> None:
+        """Warn when a runtime prompt file has no prompt registry entry."""
+        if not PROMPTS_RUNTIME_ROOT.exists():
+            self._warning(PROMPTS_RUNTIME_ROOT, "prompts-runtime-missing", "Layer 4 prompts runtime directory is missing")
+            return
+
+        registered_paths: set[Path] = set()
+        for path in sorted((self.registry_root / "prompts").glob("*.json")):
+            document = self.documents.get(path)
+            if not isinstance(document, dict):
+                continue
+            reference = document.get("prompt_path")
+            if isinstance(reference, str) and reference:
+                registered_paths.add((path.parent / reference).resolve())
+
+        runtime_prompts = sorted(PROMPTS_RUNTIME_ROOT.rglob("*.md"))
+        unregistered = [path for path in runtime_prompts if path.resolve() not in registered_paths]
+        if unregistered:
+            names = ", ".join(str(path.relative_to(PROMPTS_RUNTIME_ROOT)) for path in unregistered[:10])
+            tail = " ..." if len(unregistered) > 10 else ""
+            self._warning(
+                self.registry_root / "prompts",
+                "prompt-runtime-unregistered",
+                f"Runtime prompt files missing prompt registry entries: {names}{tail}",
+            )
+
+    def _validate_skills(self) -> None:
+        for path in sorted((self.registry_root / "skills").glob("*.json")):
+            document = self.documents.get(path)
+            if document is None:
+                continue
+            if document.get("kind") != "skill":
+                self._error(path, "skill-kind-invalid", "Skill registry entries must use kind=skill")
+            for field in ("id", "skill_path", "tool_name", "inputs", "outputs", "changelog"):
+                if field not in document:
+                    self._error(path, "skill-field-missing", f"Skill registry entry missing {field}")
+            self._validate_relative_file_reference(path, document, "skill_path")
+            if not isinstance(document.get("inputs"), list) or not document.get("inputs"):
+                self._error(path, "skill-inputs-missing", "Skill registry entry must declare non-empty inputs")
+            if not isinstance(document.get("outputs"), list) or not document.get("outputs"):
+                self._error(path, "skill-outputs-missing", "Skill registry entry must declare non-empty outputs")
+            if not isinstance(document.get("changelog"), list) or not document.get("changelog"):
+                self._error(path, "skill-changelog-missing", "Skill registry entry must include a non-empty changelog")
+
+            tool_name = document.get("tool_name")
+            if isinstance(tool_name, str) and tool_name != document.get("id"):
+                self._error(path, "skill-tool-name-mismatch", "Skill registry entry tool_name must match its id (tool manifest name)")
+
+        self._validate_skill_runtime_drift()
+
+    def _validate_skill_runtime_drift(self) -> None:
+        """Warn when a runtime skill file has no skill registry entry."""
+        if not SKILLS_RUNTIME_ROOT.exists():
+            self._warning(SKILLS_RUNTIME_ROOT, "skills-runtime-missing", "Layer 4 skills runtime directory is missing")
+            return
+
+        registered_paths: set[Path] = set()
+        for path in sorted((self.registry_root / "skills").glob("*.json")):
+            document = self.documents.get(path)
+            if not isinstance(document, dict):
+                continue
+            reference = document.get("skill_path")
+            if isinstance(reference, str) and reference:
+                registered_paths.add((path.parent / reference).resolve())
+
+        runtime_skills = sorted(SKILLS_RUNTIME_ROOT.glob("*.md"))
+        unregistered = [path for path in runtime_skills if path.resolve() not in registered_paths]
+        if unregistered:
+            names = ", ".join(path.name for path in unregistered[:10])
+            tail = " ..." if len(unregistered) > 10 else ""
+            self._warning(
+                self.registry_root / "skills",
+                "skill-runtime-unregistered",
+                f"Runtime skill files missing skill registry entries: {names}{tail}",
+            )
 
     def _validate_reasoning_policies(self) -> None:
         for path in sorted((self.registry_root / "reasoning-policies").glob("*.json")):

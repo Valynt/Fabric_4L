@@ -88,6 +88,15 @@
           "tenant_required": {
             "type": "boolean"
           },
+          "tenant_scope": {
+            "type": "string",
+            "enum": [
+              "TENANT",
+              "TENANT_AND_BILLING_ACCOUNT",
+              "GLOBAL",
+              "SYSTEM"
+            ]
+          },
           "provenance": {
             "type": "object"
           },
@@ -104,6 +113,7 @@
           "side_effect_class",
           "timeout_budget_ms",
           "tenant_required",
+          "tenant_scope",
           "provenance",
           "error_schema"
         ]
