@@ -140,11 +140,12 @@ class ToolGateway:
             raise ToolGatewayDenied(tool_name, reason)
 
         # ── Step 2: OPA policy evaluation ──
+        tenant_id = self._tenant_id or "system"
         policy_decision = await self._policy_client.evaluate(
             abom=self._abom,
             tool_name=tool_name,
             input_data=input_data,
-            tenant_id=self._tenant_id,
+            tenant_id=tenant_id,
         )
         await self._emit_policy_decision_audit(
             tool_name=tool_name,

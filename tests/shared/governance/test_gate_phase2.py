@@ -125,11 +125,12 @@ class TestPolicyEngineClient:
     """PolicyEngineClient local fallback tests."""
 
     @pytest.mark.asyncio
-    async def test_local_fallback_allows_listed_tool(self) -> None:
+    async def test_local_fallback_denies_when_tenant_missing(self) -> None:
         client = PolicyEngineClient(opa_url="http://nonexistent:9999", timeout=1)
         abom = _make_abom()
-        decision = await client.evaluate(abom, "tool_a", {})
-        assert decision.allowed is True
+        decision = await client.evaluate(abom, "tool_a", {}, tenant_id="")
+        assert decision.allowed is False
+        assert "Tenant context" in decision.reason
 
     @pytest.mark.asyncio
     async def test_local_fallback_denies_unlisted_tool(self) -> None:

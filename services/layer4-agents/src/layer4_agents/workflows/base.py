@@ -84,6 +84,7 @@ class BaseWorkflow(ABC):
         self.config = config
         self.tool_registry = tool_registry
         self.checkpoint_saver = checkpoint_saver
+        self.tool_gateway = None
         self._graph: StateGraph | None = None
         self._compiled_graph = None
 
@@ -300,13 +301,14 @@ class BaseWorkflow(ABC):
         Returns:
             Tool execution result
         """
-        # Build input from state
         tool_input = self._build_tool_input(tool_name, state, config)
 
-        # Execute via registry
-        result = await self.tool_registry.execute(tool_name, tool_input)
+        if self.tool_gateway is None:
+            raise RuntimeError(
+                "Direct tool_registry.execute() is forbidden; workflow execution must use the policy-enforced tool gateway."
+            )
 
-        return result
+        return await self.tool_gateway.execute(tool_name, tool_input)
 
     def _build_tool_input(
         self, tool_name: str, state: AgentState, config: dict[str, Any]

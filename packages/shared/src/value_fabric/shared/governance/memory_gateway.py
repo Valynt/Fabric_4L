@@ -46,6 +46,7 @@ class MemoryGateway:
         agent_id: str | None = None,
         trace_id: str | None = None,
         source_blocklist: list[str] | set[str] | None = None,
+        policy_facade: Any | None = None,
     ) -> None:
         self._engine = retrieval_engine
         self._tenant_id = tenant_id
@@ -53,6 +54,48 @@ class MemoryGateway:
         self._trace_id = trace_id
         self._source_blocklist: set[str] = set(source_blocklist or [])
         self._access_log: list[dict[str, Any]] = []
+        self._policy_facade = policy_facade
+
+    @staticmethod
+    def _decision_allows(decision: Any) -> bool:
+        """Normalize a policy-facade decision into an allow/deny boolean."""
+        effect = getattr(decision, "effect", None)
+        if effect is not None:
+            value = getattr(effect, "value", effect)
+            if isinstance(value, str):
+                normalized = value.strip().upper()
+                if normalized in {"ALLOW", "ALLOWED"}:
+                    return True
+                if normalized in {"DENY", "DENIED", "INDETERMINATE"}:
+                    return False
+
+        if isinstance(getattr(decision, "allowed", None), bool):
+            return bool(decision.allowed)
+        if isinstance(getattr(decision, "denied", None), bool):
+            return not bool(decision.denied)
+        if isinstance(getattr(decision, "indeterminate", None), bool):
+            return not bool(decision.indeterminate)
+
+        return False
+
+    async def _enforce_policy(self, *, action: str, resource: str, input_data: dict[str, Any]) -> None:
+        """Fail closed before a memory call is allowed through."""
+        if not self._tenant_id or self._tenant_id in {"unknown", "None", "null", ""}:
+            raise PermissionError("Memory access denied: tenant context is required.")
+        if self._policy_facade is None:
+            raise PermissionError("Memory access denied: policy enforcement is unavailable.")
+
+        decision = await self._policy_facade.evaluate_action(
+            action=action,
+            resource=resource,
+            tenant_id=self._tenant_id,
+            actor_id=self._agent_id,
+            input_data=input_data,
+            trace_id=self._trace_id,
+        )
+        if not self._decision_allows(decision):
+            reason = getattr(decision, "reason", None) or "Policy denied"
+            raise PermissionError(f"Memory access denied: {reason}")
 
     @property
     def access_log(self) -> list[dict[str, Any]]:
@@ -84,6 +127,18 @@ class MemoryGateway:
         Returns:
             Retrieval result with provenance metadata added.
         """
+        await self._enforce_policy(
+            action="memory.query",
+            resource="memory",
+            input_data={
+                "query_text": query_text,
+                "entity_type": entity_type,
+                "max_hops": max_hops,
+                "min_confidence": min_confidence,
+                "max_results": max_results,
+            },
+        )
+
         # Execute retrieval
         result = await self._engine.query(
             query_text=query_text,
@@ -170,6 +225,16 @@ class MemoryGateway:
         Returns:
             Entity context with provenance metadata.
         """
+        await self._enforce_policy(
+            action="memory.entity_context",
+            resource=f"entity:{entity_id}",
+            input_data={
+                "entity_id": entity_id,
+                "hops": hops,
+                "relationship_types": relationship_types,
+            },
+        )
+
         result = await self._engine.get_entity_context(
             entity_id=entity_id,
             tenant_id=self._tenant_id,
