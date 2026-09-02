@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import http.client
 import json
+import threading
 from collections.abc import Iterator
 from datetime import datetime
 from pathlib import Path
@@ -11,8 +13,10 @@ from unittest.mock import patch
 from uuid import UUID
 
 import pytest
+import typer
 from typer.testing import CliRunner
 
+from valuefabric.cli import auth as auth_mod
 from valuefabric.cli import config as config_mod
 from valuefabric.cli.main import app
 from valuefabric.errors import ConfigurationError
@@ -29,6 +33,62 @@ from valuefabric.models import (
 )
 
 runner = CliRunner()
+
+
+class TestAuthCallback:
+    def test_callback_handler_rejects_mismatched_state(self) -> None:
+        server = auth_mod.TokenServer(
+            ("127.0.0.1", 0), auth_mod.CallbackHandler, expected_state="expected-state"
+        )
+        thread = threading.Thread(target=server.handle_request, daemon=True)
+        thread.start()
+
+        conn = http.client.HTTPConnection("127.0.0.1", server.server_address[1], timeout=5)
+        conn.request("GET", "/callback?state=wrong-state&code=abc123")
+        response = conn.getresponse()
+
+        assert response.status == 400
+        assert server.captured_token is None
+
+        conn.close()
+        server.server_close()
+        thread.join(timeout=1)
+
+    def test_callback_handler_accepts_matching_state(self) -> None:
+        server = auth_mod.TokenServer(
+            ("127.0.0.1", 0), auth_mod.CallbackHandler, expected_state="expected-state"
+        )
+        thread = threading.Thread(target=server.handle_request, daemon=True)
+        thread.start()
+
+        conn = http.client.HTTPConnection("127.0.0.1", server.server_address[1], timeout=5)
+        conn.request("GET", "/callback?state=expected-state&code=abc123")
+        response = conn.getresponse()
+
+        assert response.status == 200
+        assert server.captured_token == "abc123"
+
+        conn.close()
+        server.server_close()
+        thread.join(timeout=1)
+
+    def test_login_fails_closed_if_callback_server_cannot_bind(self) -> None:
+        with (
+            patch.object(auth_mod, "TokenServer", side_effect=OSError("port in use")),
+            patch.object(auth_mod.webbrowser, "open") as mock_open,
+            pytest.raises(typer.Exit),
+        ):
+            auth_mod._login_oidc("https://api.example.com", "tenant-123")
+
+        mock_open.assert_not_called()
+
+    def test_wait_for_callback_times_out_cleanly(self) -> None:
+        server = auth_mod.TokenServer(("127.0.0.1", 0), auth_mod.CallbackHandler)
+        server.handle_request = lambda: None
+
+        assert auth_mod._wait_for_callback(server, timeout=0.01) is None
+
+        server.server_close()
 
 
 @pytest.fixture(autouse=True)
