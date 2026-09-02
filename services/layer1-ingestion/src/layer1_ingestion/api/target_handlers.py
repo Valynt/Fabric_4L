@@ -11,6 +11,7 @@ import sqlalchemy.exc
 import structlog
 from fastapi import Depends, HTTPException, Query
 from sqlalchemy.orm import Session
+from value_fabric.shared.error_handling import sanitize_log_error
 from value_fabric.shared.error_handling.exceptions import (
     ConflictError,
     NotFoundError,
@@ -558,6 +559,8 @@ async def execute_target(
             job_id=str(job.id),
             tenant_id=str(org_id),
             error_type=type(exc).__name__,
+            error=sanitize_log_error(exc),
+            exc_info=True,
         )
         job.status = JobStatus.FAILED.value
         db.commit()
