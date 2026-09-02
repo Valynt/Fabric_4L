@@ -5,7 +5,7 @@ from __future__ import annotations
 import http.server
 import time
 import webbrowser
-from typing import Any, cast
+from typing import Any
 from urllib.parse import parse_qs, urlencode, urljoin, urlparse, urlunparse
 from uuid import uuid4
 
@@ -21,49 +21,19 @@ app = typer.Typer(help="Authentication management")
 
 # PKCE state storage
 PKCE_STATE_FILE = CONFIG_DIR / ".pkce_state"
-CALLBACK_HOST = "127.0.0.1"
-CALLBACK_PORT = 8080
-CALLBACK_PATH = "/callback"
 
 
 class TokenServer(http.server.HTTPServer):
-    def __init__(
-        self,
-        server_address: tuple[str, int],
-        handler_class: type[http.server.BaseHTTPRequestHandler],
-        *,
-        expected_state: str | None = None,
-    ) -> None:
-        super().__init__(server_address, handler_class)
-        self.expected_state = expected_state
-        self.captured_token: str | None = None
+    captured_token: str | None = None
 
 
 class CallbackHandler(http.server.BaseHTTPRequestHandler):
     def do_GET(self) -> None:
         parsed = urlparse(self.path)
-        server = cast(TokenServer, self.server)
-
-        if parsed.path != CALLBACK_PATH:
-            self.send_error(404, "Not found")
-            return
-
         qs = parse_qs(parsed.query)
-        state = qs.get("state", [None])[0]
-        if server.expected_state is not None and state != server.expected_state:
-            self.send_error(400, "Invalid OAuth state")
-            return
-
-        token = (
-            qs.get("code", [None])[0]
-            or qs.get("token", [None])[0]
-            or qs.get("jwt", [None])[0]
+        self.server.captured_token = (  # type: ignore[attr-defined]
+            qs.get("code", [None])[0] or qs.get("token", [None])[0] or qs.get("jwt", [None])[0]
         )
-        if token is None:
-            self.send_error(400, "Missing authorization code or token")
-            return
-
-        server.captured_token = token
 
         self.send_response(200)
         self.send_header("Content-type", "text/html")
@@ -77,16 +47,16 @@ class CallbackHandler(http.server.BaseHTTPRequestHandler):
         pass
 
 
-def _wait_for_callback(server: TokenServer, timeout: float = 60.0) -> str | None:
-    deadline = time.monotonic() + timeout
+def _wait_for_callback(server: TokenServer, timeout: int = 60) -> str | None:
     try:
+        start_time = time.time()
         while server.captured_token is None:
-            if time.monotonic() >= deadline:
+            if time.time() - start_time > timeout:
                 return None
             server.handle_request()
         return server.captured_token
-    except Exception as exc:
-        rich_print(f"[dim]Failed while waiting for the local callback: {exc}[/dim]")
+    except Exception as e:
+        rich_print(f"[dim]Failed to start local callback server: {e}[/dim]")
         return None
 
 
@@ -199,13 +169,11 @@ def _login_oidc(base_url: str | None, tenant: str | None) -> None:
     PKCE_STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
     PKCE_STATE_FILE.write_text(f"{state}:{code_verifier}")
 
-    redirect_uri = f"http://{CALLBACK_HOST}:{CALLBACK_PORT}{CALLBACK_PATH}"
-
     # Build authorization URL
     params = {
         "response_type": "code",
         "client_id": tenant,
-        "redirect_uri": redirect_uri,
+        "redirect_uri": "http://localhost:8080/callback",
         "scope": "openid profile email",
         "state": state,
         "code_challenge": code_challenge,
@@ -226,29 +194,24 @@ def _login_oidc(base_url: str | None, tenant: str | None) -> None:
 
     rich_print("[dim]Opening browser for authentication...[/dim]")
 
-    # Start the server before opening the browser to avoid race conditions.
+    # Start the server before opening the browser to avoid race conditions
     try:
-        server = TokenServer(
-            (CALLBACK_HOST, CALLBACK_PORT),
-            CallbackHandler,
-            expected_state=state,
-        )
+        server = TokenServer(("127.0.0.1", 8080), CallbackHandler)
         server.timeout = 1
-    except OSError as exc:
-        rich_print(
-            f"[red]✗ Failed to bind local callback server on {CALLBACK_HOST}:{CALLBACK_PORT}: {exc}[/red]"
-        )
-        raise typer.Exit(1) from None
+    except Exception as e:
+        rich_print(f"[dim]Failed to bind local callback server: {e}[/dim]")
+        server = None
 
     webbrowser.open(full_url)
 
     # Wait for callback
     token = None
-    token = _wait_for_callback(server)
-    server.server_close()
+    if server:
+        token = _wait_for_callback(server)
+        server.server_close()
 
     if token:
-        rich_print("[green]✓ Authorization code captured and exchanged for a token[/green]")
+        rich_print("[green]✓ Token captured automatically[/green]")
     else:
         # Manual token entry fallback
         rich_print("\n[yellow]If browser didn't open or callback failed, visit:[/yellow]")
@@ -259,9 +222,7 @@ def _login_oidc(base_url: str | None, tenant: str | None) -> None:
 
     # Exchange code for token or use as-is
     jwt_token: str | None
-    if token is None:
-        jwt_token = None
-    elif _is_jwt(token):
+    if _is_jwt(token):
         jwt_token = token
     else:
         # Exchange code for token
@@ -312,7 +273,7 @@ def _exchange_code_for_token(
                 "code": code,
                 "code_verifier": code_verifier,
                 "client_id": "valuefabric-cli",
-                "redirect_uri": f"http://{CALLBACK_HOST}:{CALLBACK_PORT}{CALLBACK_PATH}",
+                "redirect_uri": "http://localhost:8080/callback",
             },
             timeout=30.0,
         )
