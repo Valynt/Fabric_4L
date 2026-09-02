@@ -313,7 +313,7 @@ class TestPolicyFiltering:
 
 
 # --------------------------------------------------------------------------- #
-# AC6/A C9 — generated-index inclusion/exclusion
+# AC6/AC9 — generated-index inclusion/exclusion
 # --------------------------------------------------------------------------- #
 
 

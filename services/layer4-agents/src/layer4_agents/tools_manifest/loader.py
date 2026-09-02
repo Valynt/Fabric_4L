@@ -321,8 +321,12 @@ def load_manifests(
         report.add_pass(tool_id)
 
     # Build index
+    # Deterministic generation timestamp: the HEAD commit time in strict ISO 8601
+    # (%cI) so the generated_at field satisfies the registry schema's date-time
+    # format and is reproducible for a given commit. Falls back to the wall clock
+    # only when git metadata is unavailable.
     ts = subprocess.run(
-        ["git", "show", "-s", "--format=%ci", "HEAD"],
+        ["git", "show", "-s", "--format=%cI", "HEAD"],
         cwd=root,
         capture_output=True,
         text=True,
@@ -331,12 +335,14 @@ def load_manifests(
     if not generated_at:
         generated_at = datetime.now(UTC).isoformat()
 
-    # Compute registry snapshot version from manifest hashes. The registry schema
+    # Compute registry snapshot version from the raw content of every validated
+    # source manifest, so any manifest content change is reflected in the
+    # snapshot (not just a reorder or rename of tool ids). The registry schema
     # requires registry_version to be strictly numeric (^[0-9]+\.[0-9]+\.[0-9]+$),
     # so derive a numeric patch component from the digest.
     hasher = hashlib.sha256()
-    for m in valid_manifests:
-        hasher.update(m.tool_id.encode())
+    for src in valid_sources:
+        hasher.update(src.read_bytes())
     patch = str(int(hasher.hexdigest()[:16], 16))[:10]
     registry_version = f"0.1.{patch}"
     snapshot_sha = hasher.hexdigest()[:16]
@@ -406,7 +412,11 @@ def filter_tools_for_agent(
     Returns:
         The list of ``ToolManifestSummary`` objects the agent may discover.
     """
-    policy = index.policies.get(agent_class)
+    # Resolve runtime identifiers / aliases to the canonical policy key via the
+    # registry's agent_class_bindings (schema-canonical mapping), falling back to
+    # the identifier itself when no binding is defined.
+    policy_key = index.agent_class_bindings.get(agent_class, agent_class)
+    policy = index.policies.get(policy_key)
     if policy is None:
         # Unknown agent class has no policy. Fail closed: expose nothing rather
         # than defaulting to an unrestricted view.
