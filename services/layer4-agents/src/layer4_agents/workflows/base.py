@@ -16,7 +16,7 @@ from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.errors import GraphInterrupt, NodeInterrupt
 from langgraph.graph import StateGraph
 from langgraph.types import Command
-from value_fabric.shared.governance.tool_gateway import ToolGateway
+from value_fabric.shared.governance.tool_gateway import ToolGateway, ToolGatewayDenied
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
 from ..models.agent_state import AgentState, BaseAgentState, WorkflowStatus
@@ -51,7 +51,12 @@ class NodeExecutionError(WorkflowError):
 
 
 class _WorkflowToolRegistryProxy:
-    """Proxy all tool calls through the enforced gateway when available."""
+    """Proxy all tool calls through the policy-enforced gateway.
+
+    Execution is fail-closed: without a ToolGateway there is no governance
+    authority for the invocation, so the call is refused rather than silently
+    degrading to the raw registry.
+    """
 
     def __init__(self, registry: ToolRegistry, tool_gateway: ToolGateway | None = None):
         self._registry = registry
@@ -64,11 +69,10 @@ class _WorkflowToolRegistryProxy:
         self, tool_name: str, input_data: dict[str, object]
     ) -> ToolResult | dict[str, object]:
         if self._tool_gateway is None:
-            logger.warning(
-                "No policy-enforced tool gateway configured for %s; falling back to the raw registry to preserve legacy workflow execution paths.",
+            raise ToolGatewayDenied(
                 tool_name,
+                "Tool governance gateway unavailable; refusing ungoverned tool execution.",
             )
-            return await self._registry.execute(tool_name, input_data)
         return await self._tool_gateway.execute(tool_name, input_data)
 
 
@@ -328,10 +332,8 @@ class BaseWorkflow(ABC):
         """
         tool_input = self._build_tool_input(tool_name, state, config)
 
-        # Route through the policy-enforced proxy. When a ToolGateway is
-        # injected it enforces policy before invoking the registry; otherwise
-        # the proxy degrades to the raw registry to preserve legacy execution
-        # paths (unit tests and config-driven workflows without an agent ABOM).
+        # Route through the policy-enforced proxy, which refuses ungoverned
+        # execution (fail-closed) when no ToolGateway is available.
         return await self.tool_registry.execute(tool_name, tool_input)
 
     def _build_tool_input(

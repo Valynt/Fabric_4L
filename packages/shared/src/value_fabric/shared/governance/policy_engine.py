@@ -87,7 +87,9 @@ class PolicyEngineClient:
                 obligations=["AUDIT"],
                 policy_bundle_hash=abom.manifest_hash(),
             )
-        if not tenant_id or tenant_id in {"unknown", "None", "null", ""}:
+        if tenant_id is not None and isinstance(tenant_id, str):
+            tenant_id = tenant_id.strip()
+        if not tenant_id or tenant_id in {"unknown", "None", "null"}:
             return PolicyDecision(
                 allowed=False,
                 reason="Tenant context is required for policy evaluation.",

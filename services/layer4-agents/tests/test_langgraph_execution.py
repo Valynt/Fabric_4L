@@ -52,6 +52,22 @@ def _make_mock_tool_registry() -> ToolRegistry:
     return registry
 
 
+def _make_passthrough_gateway(registry: ToolRegistry) -> Mock:
+    """Return a policy gateway that delegates execution to the mock registry.
+
+    Workflows fail closed when no gateway is present, so tests that actually
+    execute tools must inject one. This gateway reads ``registry.execute`` at
+    call time, so tests may still reassign it after workflow construction.
+    """
+    gateway = Mock()
+
+    async def _execute(tool_name: str, input_data: dict[str, Any]) -> Any:
+        return await registry.execute(tool_name, input_data)
+
+    gateway.execute = AsyncMock(side_effect=_execute)
+    return gateway
+
+
 def _make_mock_openai_response(content: str = "Mock LLM content") -> MagicMock:
     """Create a mock AsyncOpenAI chat completion response."""
     mock_choice = MagicMock()
@@ -136,7 +152,10 @@ class TestWhitespaceAnalysisWorkflow:
         mock_get_provider.return_value = provider_mock
 
         registry = _make_mock_tool_registry()
-        workflow = WhitespaceAnalysisWorkflow(tool_registry=registry)
+        workflow = WhitespaceAnalysisWorkflow(
+            tool_registry=registry,
+            tool_gateway=_make_passthrough_gateway(registry),
+        )
 
         input_data = {
             "prospect_id": "p-001",
@@ -230,7 +249,10 @@ class TestWhitespaceAnalysisWorkflow:
         """_execute_query_capabilities must unwrap ToolResult.data, not crash on .get()."""
         from layer4_agents.tools.registry import ToolResult
         registry = _make_mock_tool_registry()
-        workflow = WhitespaceAnalysisWorkflow(tool_registry=registry)
+        workflow = WhitespaceAnalysisWorkflow(
+            tool_registry=registry,
+            tool_gateway=_make_passthrough_gateway(registry),
+        )
 
         input_data = {
             "prospect_id": "p-001",
@@ -586,7 +608,10 @@ class TestBusinessCaseGeneratorWorkflow:
             return {"status": "ok"}
 
         registry.execute = AsyncMock(side_effect=mock_execute)
-        workflow = BusinessCaseGeneratorWorkflow(tool_registry=registry)
+        workflow = BusinessCaseGeneratorWorkflow(
+            tool_registry=registry,
+            tool_gateway=_make_passthrough_gateway(registry),
+        )
 
         input_data = {
             "account_id": "550e8400-e29b-41d4-a716-446655440000",

@@ -393,6 +393,7 @@ class BaseAgent(ABC):
                     policy_client=ctx.get("policy_client") or PolicyEngineClient(),
                     abom=self.abom,
                     llm_safety=ctx.get("llm_safety"),
+                    allowed_actions={"memory.query", "memory.entity_context"},
                 )
                 ctx["policy_facade"] = policy_facade
                 self.state.context["policy_facade"] = policy_facade

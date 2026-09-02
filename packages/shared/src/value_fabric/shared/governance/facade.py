@@ -28,10 +28,15 @@ class PolicyDecisionFacade:
         policy_client: PolicyEngineClient | None = None,
         abom: AgentBillOfMaterials | None = None,
         llm_safety: PromptGuard | None = None,
+        allowed_actions: set[str] | frozenset[str] | None = None,
     ) -> None:
         self.policy_client = policy_client or PolicyEngineClient()
         self.abom = abom
         self.llm_safety = llm_safety
+        # Non-tool actions are fail-closed by default: they must be explicitly
+        # registered here to be authorized. Tool actions are instead evaluated
+        # against the ABOM/policy engine.
+        self._allowed_actions: frozenset[str] = frozenset(allowed_actions or ())
 
     def _deny(
         self,
@@ -86,7 +91,9 @@ class PolicyDecisionFacade:
                 policy_ids=policy_ids,
                 trace_id=trace_id,
             )
-        if not tenant_id or tenant_id in {"unknown", "None", "null", ""}:
+        if tenant_id is not None and isinstance(tenant_id, str):
+            tenant_id = tenant_id.strip()
+        if not tenant_id or tenant_id in {"unknown", "None", "null"}:
             return self._deny(
                 reason_code="missing_tenant",
                 reason="Tenant context is required for policy evaluation.",
@@ -97,7 +104,18 @@ class PolicyDecisionFacade:
                 policy_ids=policy_ids,
                 trace_id=trace_id,
             )
-        if self.abom is not None and tool_name is not None:
+        if tool_name is not None:
+            if self.abom is None:
+                return self._deny(
+                    reason_code="missing_abom",
+                    reason="Agent Bill of Materials is required for tool policy evaluation.",
+                    action=action,
+                    resource=resource,
+                    tenant_id=tenant_id,
+                    actor_id=actor_id,
+                    policy_ids=policy_ids,
+                    trace_id=trace_id,
+                )
             legacy_decision = await self.policy_client.evaluate(
                 self.abom,
                 tool_name,
@@ -120,6 +138,18 @@ class PolicyDecisionFacade:
                     actor_id=actor_id,
                     action=action,
                     resource=resource,
+                    trace_id=trace_id,
+                )
+        else:
+            if action not in self._allowed_actions:
+                return self._deny(
+                    reason_code="action_not_authorized",
+                    reason=f"Action '{action}' is not authorized by any registered policy.",
+                    action=action,
+                    resource=resource,
+                    tenant_id=tenant_id,
+                    actor_id=actor_id,
+                    policy_ids=policy_ids,
                     trace_id=trace_id,
                 )
 

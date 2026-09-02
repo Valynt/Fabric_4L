@@ -141,7 +141,9 @@ class ToolGateway:
 
         # ── Step 2: OPA policy evaluation ──
         tenant_id = self._tenant_id
-        if not tenant_id or tenant_id in {"unknown", "None", "null", ""}:
+        if tenant_id is not None and isinstance(tenant_id, str):
+            tenant_id = tenant_id.strip()
+        if not tenant_id or tenant_id in {"unknown", "None", "null"}:
             reason = "Tenant context is required for policy evaluation."
             await self._emit_policy_decision_audit(
                 tool_name=tool_name,

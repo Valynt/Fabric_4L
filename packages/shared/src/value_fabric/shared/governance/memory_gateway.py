@@ -84,7 +84,8 @@ class MemoryGateway:
 
     async def _enforce_policy(self, *, action: str, resource: str, input_data: dict[str, Any]) -> None:
         """Fail closed before a memory call is allowed through."""
-        if not self._tenant_id or self._tenant_id in {"unknown", "None", "null", ""}:
+        tenant_id = self._tenant_id.strip() if isinstance(self._tenant_id, str) else self._tenant_id
+        if not tenant_id or tenant_id in {"unknown", "None", "null"}:
             raise PermissionError("Memory access denied: tenant context is required.")
         if self._policy_facade is None:
             raise PermissionError("Memory access denied: policy enforcement is unavailable.")
@@ -315,16 +316,16 @@ class MemoryGateway:
         return bool(source_id and source_id in blocklist)
 
     @staticmethod
-    def _build_source_lineage(result_dict: dict[str, object]) -> list[dict[str, object]]:
+    def _build_source_lineage(result_dict: dict[str, Any]) -> list[dict[str, object]]:
         """Extract source lineage from retrieval results."""
         lineage: list[dict[str, object]] = []
 
         # Extract from sources list
-        for source in result_dict.get("sources", []):
+        for source in result_dict.get("sources", []) or []:
             lineage.append({"source": source, "type": "graph_source"})
 
         # Extract entity IDs as lineage
-        for entity in result_dict.get("entities", [])[:5]:  # Cap at 5
+        for entity in (result_dict.get("entities", []) or [])[:5]:  # Cap at 5
             entity_id = entity.get("id") or entity.get("name", "unknown")
             lineage.append({"entity_id": str(entity_id), "type": "entity"})
 
