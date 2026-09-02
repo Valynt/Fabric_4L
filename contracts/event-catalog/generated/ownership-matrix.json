@@ -1,0 +1,25 @@
+{
+  "generated_at": "2026-08-29",
+  "generator": "scripts/ci/validate-event-catalog.py",
+  "description": "Event type → owner mapping for the Fabric_4L Event Catalog.",
+  "entries": [
+    { "event_type": "billing.account.created.v1", "owner": "layer7-billing/accounts", "domain": "billing.accounts", "status": "DRAFT" },
+    { "event_type": "billing.catalog.plan_published.v1", "owner": "layer7-billing/catalog", "domain": "billing.catalog", "status": "DRAFT" },
+    { "event_type": "billing.subscription.activated.v1", "owner": "layer7-billing/subscriptions", "domain": "billing.subscriptions", "status": "ACTIVE" },
+    { "event_type": "billing.subscription.canceled.v1", "owner": "layer7-billing/subscriptions", "domain": "billing.subscriptions", "status": "ACTIVE" },
+    { "event_type": "billing.entitlement.changed.v1", "owner": "layer7-billing/entitlements", "domain": "billing.entitlements", "status": "ACTIVE" },
+    { "event_type": "billing.usage.ingested.v1", "owner": "layer7-billing/usage", "domain": "billing.usage", "status": "ACTIVE" },
+    { "event_type": "billing.rating.completed.v1", "owner": "layer7-billing/rating", "domain": "billing.rating", "status": "DRAFT" },
+    { "event_type": "billing.invoice.generated.v1", "owner": "layer7-billing/invoices", "domain": "billing.invoices", "status": "ACTIVE" },
+    { "event_type": "billing.invoice.paid.v1", "owner": "layer7-billing/invoices", "domain": "billing.invoices", "status": "ACTIVE" },
+    { "event_type": "billing.payment.failed.v1", "owner": "layer7-billing/payments", "domain": "billing.payments", "status": "ACTIVE" },
+    { "event_type": "billing.credit.applied.v1", "owner": "layer7-billing/credits", "domain": "billing.credits", "status": "DRAFT" },
+    { "event_type": "billing.refund.processed.v1", "owner": "layer7-billing/refunds", "domain": "billing.refunds", "status": "DRAFT" },
+    { "event_type": "billing.dispute.opened.v1", "owner": "layer7-billing/disputes", "domain": "billing.disputes", "status": "DRAFT" },
+    { "event_type": "billing.reconciliation.completed.v1", "owner": "layer7-billing/reconciliation", "domain": "billing.reconciliation", "status": "DRAFT" },
+    { "event_type": "billing.ledger.entry_posted.v1", "owner": "layer7-billing/ledger", "domain": "billing.ledger", "status": "DRAFT" },
+    { "event_type": "identity.user.authenticated.v1", "owner": "identity-team/authentication", "domain": "identity.authentication", "status": "DRAFT" },
+    { "event_type": "knowledge.entity.created.v1", "owner": "layer3-knowledge/graph", "domain": "knowledge.graph", "status": "DRAFT" },
+    { "event_type": "agents.workflow.completed.v1", "owner": "layer4-agents/orchestration", "domain": "agents.workflows", "status": "DRAFT" }
+  ]
+}

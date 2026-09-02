@@ -198,10 +198,14 @@ class TestMiddlewareS2SJwtAcceptance:
 class TestL1TasksSendsS2SHeader:
     def test_l1_tasks_imports_encode_service_jwt(self):
         """Verify tasks.py imports the S2S JWT helper."""
-        canonical_path = "services/layer1-ingestion/src/layer1_ingestion/shared/tasks.py"
-        # Fallback to shim if canonical file does not exist (should not happen)
+        canonical_path = (
+            "services/layer1-ingestion/src/layer1_ingestion/shared/tasks/extraction.py"
+        )
+        # Fallback to the tasks package entrypoint if canonical file does not exist
         if not os.path.exists(canonical_path):
-            canonical_path = "services/layer1-ingestion/src/shared/tasks.py"
+            canonical_path = (
+                "services/layer1-ingestion/src/layer1_ingestion/shared/tasks/__init__.py"
+            )
         source = open(canonical_path).read()
         assert "encode_service_jwt" in source
         assert "Authorization" in source

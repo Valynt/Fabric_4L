@@ -140,6 +140,13 @@ _CLAUSE_PATTERN = re.compile(
 _DANGEROUS_PROCEDURE_PATTERN = re.compile(
     r"(?is)\bCALL\s+(?:dbms\.|apoc\.(?:export|import|load|custom|system|util\.sleep|config))\b"
 )
+# Literal patterns used on the tenant-owned query hot path; hoisted to module
+# constants so they are compiled once instead of per-query.
+_TENANT_ID_REFERENCE_PATTERN = re.compile(r"(?i)\btenant_id\b")
+_TENANT_MUTATION_KEYWORD_PATTERN = re.compile(
+    r"\b(CREATE|MERGE|DELETE|DETACH\s+DELETE)\b", re.IGNORECASE
+)
+_ANONYMOUS_CALL_PATTERN = re.compile(r"(?is)\bCALL\s*\{")
 
 
 def _skip_quoted(query: str, i: int, n: int, quote: str, allow_escape: bool) -> int:
@@ -253,7 +260,7 @@ def _structural_tenant_scope_errors(
 
         alias = (match.group("alias") or "").strip()
         prop_token = (match.group("props") or "").strip()
-        has_tenant_in_props = bool(re.search(r"(?i)\btenant_id\b", prop_token))
+        has_tenant_in_props = bool(_TENANT_ID_REFERENCE_PATTERN.search(prop_token))
         has_tenant_param_map = prop_token.startswith(
             "$"
         ) and _parameter_map_has_tenant_id(prop_token, params, context_tenant_id)
@@ -501,10 +508,9 @@ class TenantQueryExecutor:
 
         These must go through AuditedGraphMutation for audit trail.
         """
-        mutation_keywords = re.compile(
-            r"\b(CREATE|MERGE|DELETE|DETACH\s+DELETE)\b", re.IGNORECASE
-        )
-        if mutation_keywords.search(query) and _touches_tenant_owned_label(query):
+        if _TENANT_MUTATION_KEYWORD_PATTERN.search(
+            query
+        ) and _touches_tenant_owned_label(query):
             if not context.allow_system_query:
                 metrics = get_metrics() if get_metrics else None
                 if metrics:
@@ -595,7 +601,7 @@ class TenantQueryExecutor:
         ambiguous = (
             clause_tokens.count("MATCH") + clause_tokens.count("OPTIONAL MATCH") > 1
             or any(token.startswith("UNION") for token in clause_tokens)
-            or bool(re.search(r"(?is)\bCALL\s*\{", query))
+            or bool(_ANONYMOUS_CALL_PATTERN.search(query))
         )
         if ambiguous and not context.allow_system_query:
             if context.allow_multi_clause_tenant_query:

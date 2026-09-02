@@ -264,7 +264,7 @@ class TestIntegrationWithCleanupOldContent:
 
         # Mock the maintenance audit log to avoid token requirements in tests
         # while still exercising the tenant-scoped cleanup path.
-        with patch('layer1_ingestion.shared.tasks.maintenance_audit_log') as mock_audit:
+        with patch('layer1_ingestion.shared.tasks.cleanup.maintenance_audit_log') as mock_audit:
             mock_record = MagicMock()
             mock_audit.return_value.__enter__ = MagicMock(return_value=mock_record)
             mock_audit.return_value.__exit__ = MagicMock(return_value=False)
@@ -283,7 +283,7 @@ class TestIntegrationWithCleanupOldContent:
         from layer1_ingestion.shared.tasks import cleanup_old_content
         
         # Mock the maintenance authorization to fail
-        with patch('layer1_ingestion.shared.tasks.authorize_maintenance_operation') as mock_auth:
+        with patch('layer1_ingestion.shared.tasks.cleanup.authorize_maintenance_operation') as mock_auth:
             mock_auth.side_effect = SystemMaintenanceAuthorizationError("Test failure")
             
             with pytest.raises(SystemMaintenanceAuthorizationError):
@@ -335,11 +335,11 @@ class TestIntegrationWithCleanupOldContent:
 
         query_targets = []
 
-        with patch('layer1_ingestion.shared.tasks.authorize_maintenance_operation'):
-            with patch('layer1_ingestion.shared.tasks.maintenance_audit_log') as mock_audit:
+        with patch('layer1_ingestion.shared.tasks.cleanup.authorize_maintenance_operation'):
+            with patch('layer1_ingestion.shared.tasks.cleanup.maintenance_audit_log') as mock_audit:
                 mock_audit.return_value.__enter__ = MagicMock()
                 mock_audit.return_value.__exit__ = MagicMock(return_value=False)
-                with patch('layer1_ingestion.shared.tasks.get_db_session', return_value=_FakeCtx(query_targets)):
+                with patch('layer1_ingestion.shared.tasks.cleanup.get_db_session', return_value=_FakeCtx(query_targets)):
                     tenant_ids = _enumerate_authorized_tenants_for_cleanup()
 
         assert len(tenant_ids) == 1

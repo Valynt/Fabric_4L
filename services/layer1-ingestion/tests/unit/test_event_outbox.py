@@ -397,7 +397,7 @@ class TestNotificationStageOutbox:
 
         mock_session.add.side_effect = add_side_effect
 
-        with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=mock_session):
+        with patch("layer1_ingestion.shared.tasks.notification.get_db_session", return_value=mock_session):
             with patch.object(tasks_module.dispatch_outbox_event, "apply_async"):
                 _run_notification_stage(tasks_module.notification_stage, job)
 
@@ -439,7 +439,7 @@ class TestNotificationStageOutbox:
         mock_session.query.side_effect = query_side_effect
         mock_session.add.side_effect = lambda obj: added_rows.append(obj) if isinstance(obj, EventOutbox) else None
 
-        with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=mock_session):
+        with patch("layer1_ingestion.shared.tasks.notification.get_db_session", return_value=mock_session):
             with patch.object(tasks_module.dispatch_outbox_event, "apply_async"):
                 _run_notification_stage(tasks_module.notification_stage, job)
 
@@ -479,7 +479,7 @@ class TestNotificationStageOutbox:
         mock_session.query.side_effect = query_side_effect
         mock_session.add.side_effect = lambda obj: added_rows.append(obj) if isinstance(obj, EventOutbox) else None
 
-        with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=mock_session):
+        with patch("layer1_ingestion.shared.tasks.notification.get_db_session", return_value=mock_session):
             _run_notification_stage(tasks_module.notification_stage, job)
 
         outbox_rows = [r for r in added_rows if isinstance(r, EventOutbox)]
@@ -513,7 +513,7 @@ class TestNotificationStageOutbox:
 
         mock_session.query.side_effect = query_side_effect
 
-        with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=mock_session):
+        with patch("layer1_ingestion.shared.tasks.notification.get_db_session", return_value=mock_session):
             with patch.object(tasks_module.dispatch_outbox_event, "apply_async") as mock_apply:
                 _run_notification_stage(tasks_module.notification_stage, job)
 
@@ -555,7 +555,7 @@ class TestNotificationStageOutbox:
         mock_session.query.side_effect = query_side_effect
         mock_session.add.side_effect = lambda obj: added_rows.append(obj) if isinstance(obj, EventOutbox) else None
 
-        with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=mock_session):
+        with patch("layer1_ingestion.shared.tasks.notification.get_db_session", return_value=mock_session):
             with patch.object(tasks_module.dispatch_outbox_event, "apply_async"):
                 _run_notification_stage(tasks_module.notification_stage, job)
 

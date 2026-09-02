@@ -445,7 +445,7 @@ class TestValidationStageTask:
         extracted = self._make_extracted({"title": "hello"})
         session = self._make_session(job, extracted)
 
-        with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=session):
+        with patch("layer1_ingestion.shared.tasks.validation.get_db_session", return_value=session):
             result = self._run_validation_stage(validation_stage, job)
 
         assert result["success"] is True
@@ -465,7 +465,7 @@ class TestValidationStageTask:
         extracted = self._make_extracted({"title": "Good Title"})
         session = self._make_session(job, extracted)
 
-        with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=session):
+        with patch("layer1_ingestion.shared.tasks.validation.get_db_session", return_value=session):
             result = self._run_validation_stage(validation_stage, job)
 
         assert result["success"] is True
@@ -489,7 +489,7 @@ class TestValidationStageTask:
         extracted = self._make_extracted({"title": "Widget"})  # missing price
         session = self._make_session(job, extracted)
 
-        with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=session):
+        with patch("layer1_ingestion.shared.tasks.validation.get_db_session", return_value=session):
             result = self._run_validation_stage(validation_stage, job)
 
         assert result["success"] is True
@@ -505,7 +505,7 @@ class TestValidationStageTask:
         job = self._make_job(schema=schema)
         session = self._make_session(job, extracted=None)
 
-        with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=session):
+        with patch("layer1_ingestion.shared.tasks.validation.get_db_session", return_value=session):
             result = self._run_validation_stage(validation_stage, job)
 
         assert result["success"] is True
@@ -520,7 +520,7 @@ class TestValidationStageTask:
         extracted = self._make_extracted({})
         session = self._make_session(job, extracted)
 
-        with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=session):
+        with patch("layer1_ingestion.shared.tasks.validation.get_db_session", return_value=session):
             self._run_validation_stage(validation_stage, job)
 
         # Verify .filter() was called (tenant_id scoping)
@@ -535,7 +535,7 @@ class TestValidationStageTask:
         session.__exit__ = Mock(return_value=False)
         session.query.return_value.get.return_value = None  # job not found
 
-        with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=session):
+        with patch("layer1_ingestion.shared.tasks.validation.get_db_session", return_value=session):
             with pytest.raises(Exception):
                 validation_stage.run({"job_id": str(uuid4())})
 
@@ -561,7 +561,7 @@ class TestValidationStageTask:
         extracted = self._make_extracted({"x": 1})
         session = self._make_session(job, extracted)
 
-        with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=session):
+        with patch("layer1_ingestion.shared.tasks.validation.get_db_session", return_value=session):
             result = self._run_validation_stage(validation_stage, job)
 
         assert result["success"] is True
@@ -579,7 +579,7 @@ class TestValidationStageTask:
         extracted = self._make_extracted({"count": "five"})  # wrong type
         session = self._make_session(job, extracted)
 
-        with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=session):
+        with patch("layer1_ingestion.shared.tasks.validation.get_db_session", return_value=session):
             self._run_validation_stage(validation_stage, job)
 
         assert extracted.validation_schema_valid is False

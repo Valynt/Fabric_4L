@@ -21,7 +21,7 @@ import pytest
 pytestmark = [pytest.mark.security, pytest.mark.p0, pytest.mark.tenant_boundary, pytest.mark.unit]
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-L1_TASKS = REPO_ROOT / "services/layer1-ingestion/src/layer1_ingestion/shared/tasks.py"
+L1_TASKS = REPO_ROOT / "services/layer1-ingestion/src/layer1_ingestion/shared/tasks/__init__.py"
 L1_TARGET_HANDLERS = REPO_ROOT / "services/layer1-ingestion/src/layer1_ingestion/api/target_handlers.py"
 
 

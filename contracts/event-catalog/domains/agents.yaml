@@ -1,0 +1,36 @@
+# Agents Domain Event Catalog (stub)
+# Placeholder for canonical events owned by the agentic workflow bounded context.
+
+catalog_version: "1.0.0"
+domain: agents
+owner: layer4-agents
+
+entries:
+  - event_type: agents.workflow.completed.v1
+    name: Agent Workflow Completed
+    description: >
+      An agentic workflow has reached a terminal state. Placeholder entry for
+      agents domain event catalog.
+    domain: agents.workflows
+    owner: layer4-agents/orchestration
+    producer: services/layer4-agents
+    triggered_by:
+      - workflow.finish
+      - workflow.error
+    schema_ref: "jsonschema://agents/events/workflow-completed@1.0.0"
+    envelope_ref: "jsonschema://common/event-envelope@1.0.0"
+    subject_type: workflow
+    tenant_scope: TENANT
+    delivery: AT_LEAST_ONCE
+    partition_key: tenant_id
+    consumer_effect_key: event.id
+    expected_latency_ms: 1000
+    criticality: MEDIUM
+    transport_channel: agents.events
+    ordering_guarantee: PARTITION_ORDER
+    replay_behavior: IDEMPOTENT
+    retention_classification: MEDIUM_TERM
+    sensitive_payload: false
+    event_class: DOMAIN_EVENT
+    status: DRAFT
+    consumers: []

@@ -18,7 +18,8 @@
       ],
       "produced_artifacts": [
         "eval-*.json",
-        "eval-summary.json"
+        "eval-summary.json",
+        "golden-traces-results.json"
       ],
       "runtime_budget_minutes": 30,
       "local_validation_command": "make check-workflow-references",
@@ -718,6 +719,7 @@
         "artifacts/docs-validation/docs-validation-summary.md",
         "artifacts/docs-validation/stale-documents.json",
         "artifacts/duplicate-source-trees.json",
+        "artifacts/event-catalog-gate.json",
         "artifacts/l3-contract-drift.json",
         "artifacts/layer-quality-scorecard.md",
         "artifacts/layer3-audited-mutation-violations.json",
@@ -738,6 +740,7 @@
         "artifacts/route-tenant-propagation.json",
         "artifacts/route-tenant-propagation.md",
         "artifacts/semgrep-static-contract-tests.txt",
+        "artifacts/shared-boundary-surfaces.txt",
         "artifacts/shared-imports-runtime.json",
         "artifacts/structural-preflight.json",
         "artifacts/tenant-isolation/summary.json",
