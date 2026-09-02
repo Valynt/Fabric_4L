@@ -115,15 +115,31 @@ def _compute_snapshot_version(manifests: list[Path]) -> str:
     return hasher.hexdigest()[:16]
 
 
-def _git_head_timestamp() -> str:
-    """Deterministic generation timestamp: ISO 8601 from the HEAD commit time.
+def _git_generation_timestamp() -> str:
+    """Deterministic generation timestamp in strict ISO 8601 (%cI).
+
+    Derived from the most recent commit that touched the *input* sources
+    (the manifests, policies, and schemas under ``contracts/tool-manifests``,
+    excluding the ``generated/`` artifacts). Deriving from the input sources --
+    rather than HEAD -- keeps the timestamp stable across later unrelated
+    commits, so regenerating at any newer HEAD is a no-op and the CI drift
+    check (``git diff --exit-code contracts/tool-manifests/generated``) does
+    not race with the commit timestamp.
 
     Falls back to the current wall clock only when git metadata is unavailable
     (e.g. non-git checkouts), mirroring the loader's approach.
     """
     try:
         out = subprocess.run(
-            ["git", "show", "-s", "--format=%cI", "HEAD"],
+            [
+                "git",
+                "log",
+                "-1",
+                "--format=%cI",
+                "--",
+                str(MANIFESTS_DIR),
+                f":!{GENERATED_DIR}",
+            ],
             capture_output=True,
             text=True,
             encoding="utf-8",
@@ -175,7 +191,7 @@ def main() -> int:
 
     # 3. Build index
     snapshot_version = _compute_snapshot_version(manifest_paths)
-    generated_at = _git_head_timestamp()
+    generated_at = _git_generation_timestamp()
     index = {
         "registry_version": "0.1.0",
         "generated_at": generated_at,

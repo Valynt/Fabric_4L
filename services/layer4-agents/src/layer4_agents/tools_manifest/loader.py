@@ -9,7 +9,7 @@ This module provides utilities for:
 Usage::
 
     from layer4_agents.tools_manifest import load_manifests
-    index = load_manifests("contracts/tool-manifests")
+    index, report = load_manifests("contracts/tool-manifests")
 """
 
 from __future__ import annotations
@@ -202,6 +202,24 @@ def validate_manifest(
             violations.append(
                 "Mutating tool must declare 'audit.required' = true."
             )
+        # 3b. Mutating tools also need optimistic-concurrency guardrails
+        revision = raw.get("revision")
+        if not isinstance(revision, dict):
+            violations.append(
+                "Mutating tool must declare 'revision' for optimistic concurrency."
+            )
+
+    # 3c. Financial-state-change tools must require human confirmation
+    if raw.get("financial_state_change") is True and raw.get("human_confirmation_required") is not True:
+        violations.append(
+            "Tool with financial_state_change = true must set human_confirmation_required = true."
+        )
+
+    # 3d. IRREVERSIBLE tools must require human confirmation
+    if side_effect == "IRREVERSIBLE" and raw.get("human_confirmation_required") is not True:
+        violations.append(
+            "IRREVERSIBLE tool must set human_confirmation_required = true."
+        )
 
     # 4. Tenant isolation: reject caller-selected tenant authority
     violations.extend(_check_caller_selected_tenant_authority(raw))
@@ -321,12 +339,16 @@ def load_manifests(
         report.add_pass(tool_id)
 
     # Build index
-    # Deterministic generation timestamp: the HEAD commit time in strict ISO 8601
-    # (%cI) so the generated_at field satisfies the registry schema's date-time
-    # format and is reproducible for a given commit. Falls back to the wall clock
-    # only when git metadata is unavailable.
+    # Deterministic generation timestamp: the most recent commit that touched
+    # the *input* manifests (excluding the generated/ artifacts) in strict ISO
+    # 8601 (%cI). Deriving from the input sources -- rather than HEAD -- keeps
+    # the timestamp stable across later unrelated commits, so the loader and
+    # the CI generator agree and the drift check does not race with commit
+    # timestamps. Falls back to the wall clock only when git metadata is
+    # unavailable.
+    generated_dir = root / "generated"
     ts = subprocess.run(
-        ["git", "show", "-s", "--format=%cI", "HEAD"],
+        ["git", "log", "-1", "--format=%cI", "--", str(root), f":!{generated_dir}"],
         cwd=root,
         capture_output=True,
         text=True,
