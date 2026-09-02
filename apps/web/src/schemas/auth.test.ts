@@ -59,8 +59,10 @@ describe('auth schemas', () => {
       expect(() => validateTokenResponse(invalidData)).toThrowError(AuthError);
       try {
         validateTokenResponse(invalidData);
-      } catch (err: any) {
-        expect(err.category).toBe(AuthErrorCategory.MALFORMED_RESPONSE);
+      } catch (err) {
+        if (err instanceof AuthError) {
+          expect(err.category).toBe(AuthErrorCategory.MALFORMED_RESPONSE);
+        }
       }
     });
 
@@ -93,8 +95,10 @@ describe('auth schemas', () => {
       expect(() => validateLoginInitiationResponse(invalidData)).toThrowError(AuthError);
       try {
         validateLoginInitiationResponse(invalidData);
-      } catch (err: any) {
-        expect(err.category).toBe(AuthErrorCategory.MALFORMED_RESPONSE);
+      } catch (err) {
+        if (err instanceof AuthError) {
+          expect(err.category).toBe(AuthErrorCategory.MALFORMED_RESPONSE);
+        }
       }
     });
 
