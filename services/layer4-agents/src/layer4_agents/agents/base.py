@@ -36,6 +36,8 @@ except Exception:  # pragma: no cover - runtime remains warning-only if package 
     build_agent_output_envelope = None  # type: ignore[assignment]
     validate_agent_output = None  # type: ignore[assignment]
 
+from .operating_contract import AgentOperatingContract, load_operating_contract
+
 logger = logging.getLogger(__name__)
 SEMANTIC_CONTRACT_VERSION = "2.0.0"
 
@@ -191,6 +193,7 @@ class BaseAgent(ABC):
         self.config = config or {}
         self.message_bus = message_bus
         self.abom: AgentBillOfMaterials | None = None
+        self.contract: AgentOperatingContract | None = None
         self.state = AgentState(
             agent_id=self.agent_id,
             agent_type=self.agent_type,
@@ -203,6 +206,41 @@ class BaseAgent(ABC):
     def _default_manifest_dir() -> Path:
         # base.py: agents -> layer4_agents -> src -> layer4-agents -> manifests
         return Path(__file__).resolve().parents[3] / "manifests"
+
+    def _load_operating_contract(self) -> None:
+        """Load the declarative operating contract for this agent type.
+
+        The contract is loaded in warning mode by default; set
+        ``AGENT_OPERATING_CONTRACT_MODE=strict`` to fail closed when no valid
+        contract is present.
+        """
+        try:
+            self.contract = load_operating_contract(self.agent_type)
+        except Exception as exc:
+            mode = os.getenv("AGENT_OPERATING_CONTRACT_MODE", "warn").strip().lower()
+            if mode == "strict":
+                raise AgentExecutionError(
+                    f"Agent {self.agent_id} failed to load operating contract: {exc}"
+                ) from exc
+            logger.warning(
+                "Agent %s could not load operating contract (warning mode): %s",
+                self.agent_id,
+                exc,
+            )
+            self.contract = None
+
+        if self.contract is not None:
+            self.state.metadata["operating_contract"] = {
+                "id": self.contract.id,
+                "version": self.contract.version,
+                "agent_type": self.contract.agent_type,
+                "tools": self.contract.tools,
+                "memory_scopes": self.contract.memory_scopes,
+                "eval_target": {
+                    "suite_id": self.contract.eval_target.suite_id,
+                    "min_score": self.contract.eval_target.min_score,
+                },
+            }
 
     async def initialize(self) -> None:
         """Initialize agent resources and load the GATE ABOM manifest."""
@@ -224,6 +262,8 @@ class BaseAgent(ABC):
                 override_agent_id=self.agent_id,
             )
         self.state.metadata["abom_hash"] = self.abom.manifest_hash()
+
+        self._load_operating_contract()
 
         await self._initialize_resources()
         self._initialized = True

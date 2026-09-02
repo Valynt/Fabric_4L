@@ -88,6 +88,45 @@ class PromptRef(BaseModel):
     prompt_id: str
     version: str
     reasoning_policy_id: Optional[str] = None
+    content_hash: Optional[str] = None
+
+
+class AgentPermission(BaseModel):
+    """Declarative capability boundary for an agent operating contract."""
+
+    read_paths: List[str] = Field(default_factory=list)
+    write_paths: List[str] = Field(default_factory=list)
+    network: List[str] = Field(default_factory=list)
+    isolation_level: str
+
+
+class EvalTarget(BaseModel):
+    """Eval target that an agent operating contract must meet."""
+
+    suite_id: str
+    min_score: float = Field(..., ge=0.0, le=1.0)
+    required_capabilities: List[str] = Field(default_factory=list)
+
+
+class AgentOperatingContract(BaseModel):
+    """Declarative per-agent operating contract (tools, memory, permissions, eval)."""
+
+    id: str
+    version: str
+    kind: str
+    owner: Optional[str] = None
+    risk_class: Optional[str] = None
+    description: Optional[str] = None
+    agent_type: str
+    tools: List[str] = Field(default_factory=list)
+    memory_scopes: List[str] = Field(default_factory=list)
+    permissions: AgentPermission
+    eval_target: EvalTarget
+    compatibility: Optional[Dict[str, Any]] = None
+    observability: Optional[Dict[str, Any]] = None
+    governance: Optional[Dict[str, Any]] = None
+
+    model_config = {"extra": "allow"}
 
 
 class AgentOutputEnvelope(BaseModel):
@@ -289,6 +328,7 @@ def build_agent_output_envelope(
     prompt_id: Optional[str] = None,
     prompt_version: Optional[str] = None,
     reasoning_policy_id: Optional[str] = None,
+    prompt_content_hash: Optional[str] = None,
     confidence: Optional[float] = None,
     explainability: Optional[Mapping[str, Any]] = None,
     evidence: Optional[Sequence[Mapping[str, Any]]] = None,
@@ -302,6 +342,7 @@ def build_agent_output_envelope(
             prompt_id=prompt_id,
             version=prompt_version,
             reasoning_policy_id=reasoning_policy_id,
+            content_hash=prompt_content_hash,
         )
 
     envelope = AgentOutputEnvelope(

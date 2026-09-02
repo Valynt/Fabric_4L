@@ -60,6 +60,40 @@
     },
     "changelog": {
       "type": "array"
+    },
+    "content_hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "SHA-256 hex digest of the referenced prompt file body."
+    },
+    "eval_baseline": {
+      "type": "object",
+      "description": "Frozen eval result for this prompt version.",
+      "properties": {
+        "score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "eval_set_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "recorded_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "baseline_file": {
+          "type": "string",
+          "description": "Relative path to the frozen eval baseline artifact."
+        }
+      },
+      "required": [
+        "score",
+        "eval_set_id",
+        "recorded_at"
+      ],
+      "additionalProperties": false
     }
   },
   "required": [

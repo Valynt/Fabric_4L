@@ -246,6 +246,7 @@ Public Makefile targets are targets with `##` help text and are exposed by `make
 | `contract-lint` | Run ESLint contract rules. |
 | `platform-contract-lint` | Run platform contract lint. |
 | `check-tool-contracts` | Validate tool error structure. |
+| `check-prompt-registry` | Validate prompt-version contracts (content hash + eval baseline) and agent operating contracts. |
 | `check-deprecated-tracer-imports` | Block deprecated tracer imports. |
 | `check-deprecations` | Check overdue deprecations. |
 | `check-compatibility-shims` | Run registry inventory compatibility checks across shim/deprecated guardrails. |

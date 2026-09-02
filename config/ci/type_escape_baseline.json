@@ -874,6 +874,24 @@
       "kind": "python-any",
       "line": 125,
       "path": "packages/platform-contract/src/python/agent_contracts/models.py",
+      "text": "compatibility: Optional[Dict[str, Any]] = None"
+    },
+    {
+      "kind": "python-any",
+      "line": 126,
+      "path": "packages/platform-contract/src/python/agent_contracts/models.py",
+      "text": "observability: Optional[Dict[str, Any]] = None"
+    },
+    {
+      "kind": "python-any",
+      "line": 127,
+      "path": "packages/platform-contract/src/python/agent_contracts/models.py",
+      "text": "governance: Optional[Dict[str, Any]] = None"
+    },
+    {
+      "kind": "python-any",
+      "line": 125,
+      "path": "packages/platform-contract/src/python/agent_contracts/models.py",
       "text": "error: Optional[Dict[str, Any]] = None"
     },
     {
@@ -5987,6 +6005,48 @@
       "line": 23,
       "path": "scripts/ci/check_pr_governance_fields.py",
       "text": "for path in pr.get(\"changed_files_list\", [])  # type: ignore[union-attr]"
+    },
+    {
+      "kind": "python-any",
+      "line": 39,
+      "path": "scripts/ci/check_prompt_registry.py",
+      "text": "from typing import Any, Iterable"
+    },
+    {
+      "kind": "python-any",
+      "line": 98,
+      "path": "scripts/ci/check_prompt_registry.py",
+      "text": "def _load_json(self, path: Path) -> dict[str, Any] | None:"
+    },
+    {
+      "kind": "python-any",
+      "line": 158,
+      "path": "scripts/ci/check_prompt_registry.py",
+      "text": "def _load_agent_manifest(self) -> dict[str, Any] | None:"
+    },
+    {
+      "kind": "python-any",
+      "line": 234,
+      "path": "scripts/ci/check_prompt_registry.py",
+      "text": "def _validate_prompt_changelog(self, path: Path, contract: dict[str, Any], version: str | None) -> None:"
+    },
+    {
+      "kind": "python-any",
+      "line": 246,
+      "path": "scripts/ci/check_prompt_registry.py",
+      "text": "def _validate_prompt_baseline(self, path: Path, contract: dict[str, Any]) -> None:"
+    },
+    {
+      "kind": "python-any",
+      "line": 290,
+      "path": "scripts/ci/check_prompt_registry.py",
+      "text": "def _validate_agent_contracts(self, manifest: dict[str, Any] | None, tool_names: set[str]) -> None:"
+    },
+    {
+      "kind": "python-any",
+      "line": 315,
+      "path": "scripts/ci/check_prompt_registry.py",
+      "text": "manifest_agents: dict[str, dict[str, Any]],"
     },
     {
       "kind": "python-any",
@@ -24134,6 +24194,36 @@
     },
     {
       "kind": "python-any",
+      "line": 16,
+      "path": "services/layer4-agents/src/layer4_agents/agents/operating_contract.py",
+      "text": "from typing import Any"
+    },
+    {
+      "kind": "python-type-ignore",
+      "line": 33,
+      "path": "services/layer4-agents/src/layer4_agents/agents/operating_contract.py",
+      "text": "AgentOperatingContract = None  # type: ignore[assignment, misc]"
+    },
+    {
+      "kind": "python-type-ignore",
+      "line": 34,
+      "path": "services/layer4-agents/src/layer4_agents/agents/operating_contract.py",
+      "text": "ValidationError = Exception  # type: ignore[assignment, misc]"
+    },
+    {
+      "kind": "python-any",
+      "line": 73,
+      "path": "services/layer4-agents/src/layer4_agents/agents/operating_contract.py",
+      "text": "def _load_manifest(manifest_path: Path | None) -> dict[str, Any]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 83,
+      "path": "services/layer4-agents/src/layer4_agents/agents/operating_contract.py",
+      "text": "manifest: dict[str, Any],"
+    },
+    {
+      "kind": "python-any",
       "line": 17,
       "path": "services/layer4-agents/src/layer4_agents/agents/signal_detection.py",
       "text": "from typing import Any"
@@ -28271,6 +28361,18 @@
       "line": 195,
       "path": "services/layer4-agents/src/layer4_agents/harness/prompt_registry.py",
       "text": "def _parse_frontmatter(raw: str, path: Path) -> tuple[dict[str, Any], str]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 81,
+      "path": "services/layer4-agents/src/layer4_agents/harness/prompt_registry.py",
+      "text": "def to_prompt_ref(self, reasoning_policy_id: str | None = None) -> dict[str, Any]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 195,
+      "path": "services/layer4-agents/src/layer4_agents/harness/prompt_registry.py",
+      "text": "def baseline_for(self, prompt_id: str, version: str | None = None) -> dict[str, Any] | None:"
     },
     {
       "kind": "python-any",
@@ -39107,6 +39209,36 @@
       "line": 577,
       "path": "services/layer4-agents/tests/unit/test_layer4_correctness_patch.py",
       "text": "async def _fake_emit(event: Any) -> None:"
+    },
+    {
+      "kind": "python-any",
+      "line": 8,
+      "path": "services/layer4-agents/tests/unit/test_operating_contract_loader.py",
+      "text": "from typing import Any"
+    },
+    {
+      "kind": "python-any",
+      "line": 28,
+      "path": "services/layer4-agents/tests/unit/test_operating_contract_loader.py",
+      "text": "def get_capabilities(self) -> list[Any]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 31,
+      "path": "services/layer4-agents/tests/unit/test_operating_contract_loader.py",
+      "text": "async def execute(self, task: dict[str, Any], context: dict[str, Any]) -> dict[str, Any]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 40,
+      "path": "services/layer4-agents/tests/unit/test_operating_contract_loader.py",
+      "text": "def get_capabilities(self) -> list[Any]:"
+    },
+    {
+      "kind": "python-any",
+      "line": 43,
+      "path": "services/layer4-agents/tests/unit/test_operating_contract_loader.py",
+      "text": "async def execute(self, task: dict[str, Any], context: dict[str, Any]) -> dict[str, Any]:"
     },
     {
       "kind": "python-type-ignore",
