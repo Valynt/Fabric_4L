@@ -444,7 +444,11 @@ def filter_tools_for_agent(
     exposed: list[ToolManifestSummary] = []
     for manifest in index.tool_manifests:
         # supported_agent_classes is an explicit allow-list when present.
-        if manifest.supported_agent_classes and agent_class not in manifest.supported_agent_classes:
+        if (
+            manifest.supported_agent_classes
+            and agent_class not in manifest.supported_agent_classes
+            and policy_key not in manifest.supported_agent_classes
+        ):
             continue
         # Explicit denials always win.
         if manifest.tool_id in denied_tools:
