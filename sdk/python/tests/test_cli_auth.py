@@ -1,4 +1,5 @@
-from typing import Any
+from __future__ import annotations
+
 import pytest
 
 from valuefabric.cli.auth import _is_jwt
