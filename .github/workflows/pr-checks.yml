@@ -224,7 +224,7 @@ jobs:
         run: |
           python scripts/ci/validate_tool_registry.py
           python scripts/ci/generate_tool_index.py
-          git diff --exit-code contracts/tool-manifests/generated/ || true
+          git diff --exit-code contracts/tool-manifests/generated/
 
       - name: Enforce dead-code regression guard
         run: python scripts/ci/check_dead_code.py

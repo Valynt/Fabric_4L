@@ -16,10 +16,11 @@
     "principal_types",
     "input_schema_ref",
     "output_schema_ref",
-    "side_effect",
-    "audit",
-    "runtime"
-  ],
+        "tenant_binding",
+        "side_effect",
+        "audit",
+        "runtime"
+      ],
   "properties": {
     "tool_id": {
       "type": "string",

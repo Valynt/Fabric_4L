@@ -145,12 +145,13 @@ def _validate_manifest(
     }
 
     if is_mutating:
-        if manifest.get("idempotency") is None:
+        idempotency = manifest.get("idempotency")
+        if idempotency is None or not idempotency.get("required", False):
             report.add(
                 Violation(
                     path=source_path,
                     rule="idempotency",
-                    message=f"Mutating tool (side_effect={side_effect}) must declare idempotency",
+                    message=f"Mutating tool (side_effect={side_effect}) must declare idempotency with required=true",
                     severity="error",
                 )
             )
@@ -163,12 +164,13 @@ def _validate_manifest(
                     severity="error",
                 )
             )
-        if manifest.get("approval_requirement") is None:
+        approval = manifest.get("approval_requirement")
+        if approval is None or not approval.get("required", False):
             report.add(
                 Violation(
                     path=source_path,
                     rule="approval",
-                    message=f"Mutating tool (side_effect={side_effect}) must declare approval_requirement",
+                    message=f"Mutating tool (side_effect={side_effect}) must declare approval_requirement with required=true",
                     severity="error",
                 )
             )

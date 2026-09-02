@@ -206,6 +206,7 @@ class AgentPolicy(BaseModel):
     allowed_tools: list[str] = Field(default_factory=list)
     denied_tools: list[str] = Field(default_factory=list)
     denied_side_effects: list[str] = Field(default_factory=list)
+    require_human_confirmation_for_financial_tools: bool = False
     description: str | None = None
 
 
@@ -217,6 +218,7 @@ class ToolRegistryIndex(BaseModel):
 
     registry_version: str = Field(..., pattern=r"^[0-9]+\.[0-9]+\.[0-9]+$", description="SemVer of the registry index itself")
     generated_at: str = Field(..., description="ISO 8601 timestamp when the index was generated")
+    snapshot_sha: str = Field(..., description="Content-addressable snapshot identifier pinning the exact manifest set")
     tool_manifests: list[ToolManifestSummary] = Field(default_factory=list)
     policies: dict[str, AgentPolicy] = Field(default_factory=dict)
     agent_class_bindings: dict[str, str] = Field(default_factory=dict)

@@ -8,21 +8,27 @@
   "required": [
     "registry_version",
     "generated_at",
+    "snapshot_sha",
     "tool_manifests",
     "policies",
     "agent_class_bindings"
-  ],
-  "properties": {
-    "registry_version": {
-      "type": "string",
-      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
-      "description": "SemVer of the registry index itself."
-    },
-    "generated_at": {
-      "type": "string",
-      "format": "date-time",
-      "description": "ISO 8601 timestamp when the index was generated."
-    },
+     ],
+    "properties": {
+      "registry_version": {
+        "type": "string",
+        "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+        "description": "SemVer of the registry index itself."
+      },
+      "generated_at": {
+        "type": "string",
+        "format": "date-time",
+        "description": "ISO 8601 timestamp when the index was generated."
+      },
+      "snapshot_sha": {
+        "type": "string",
+        "minLength": 1,
+        "description": "Content-addressable snapshot identifier pinning the exact manifest set that produced this index."
+      },
     "tool_manifests": {
       "type": "array",
       "description": "List of validated tool manifest summaries (full manifests or lightweight references).",
@@ -93,7 +99,11 @@
             "items": { "type": "string" },
             "description": "Side-effect classes explicitly denied."
           },
-          "description": { "type": "string" }
+                    "require_human_confirmation_for_financial_tools": {
+                      "type": "boolean",
+                      "description": "When true, any exposed financial tool must require human confirmation."
+                    },
+                    "description": { "type": "string" }
         }
       }
     },

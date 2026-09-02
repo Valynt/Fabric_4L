@@ -100,6 +100,9 @@ def _build_policy_map(policies: list[dict[str, Any]]) -> dict[str, Any]:
             "denied_side_effects": policy.get("denied_side_effects", []),
             "allowed_tools": policy.get("allowed_tools", []),
             "denied_tools": policy.get("denied_tools", []),
+            "require_human_confirmation_for_financial_tools": policy.get(
+                "require_human_confirmation_for_financial_tools", False
+            ),
             "description": policy.get("description", ""),
         }
     return out
@@ -111,6 +114,27 @@ def _compute_snapshot_version(manifests: list[Path]) -> str:
     for p in manifests:
         hasher.update(p.read_bytes())
     return hasher.hexdigest()[:16]
+
+
+def _git_head_timestamp() -> str:
+    """Deterministic generation timestamp: ISO 8601 from the HEAD commit time.
+
+    Falls back to the current wall clock only when git metadata is unavailable
+    (e.g. non-git checkouts), mirroring the loader's approach.
+    """
+    try:
+        out = subprocess.run(
+            ["git", "show", "-s", "--format=%cI", "HEAD"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            check=False,
+        )
+        if out.returncode == 0 and out.stdout.strip():
+            return out.stdout.strip()
+    except (OSError, subprocess.SubprocessError):
+        pass
+    return datetime.now(timezone.utc).isoformat()
 
 
 def main() -> int:
@@ -140,7 +164,7 @@ def main() -> int:
             "financial_state_change": raw.get("financial_state_change", False),
             "supported_agent_classes": raw.get("supported_agent_classes", []),
             "tenant_binding": raw.get("tenant_binding", {}),
-            "source_path": str(path.relative_to(REPO_ROOT)),
+            "source_path": path.relative_to(REPO_ROOT).as_posix(),
         }
         # Only include non-null fields for brevity
         summary_entry = {k: v for k, v in summary_entry.items() if v is not None}
@@ -152,7 +176,7 @@ def main() -> int:
 
     # 3. Build index
     snapshot_version = _compute_snapshot_version(manifest_paths)
-    generated_at = datetime.now(timezone.utc).isoformat()
+    generated_at = _git_head_timestamp()
     index = {
         "registry_version": "0.1.0",
         "generated_at": generated_at,

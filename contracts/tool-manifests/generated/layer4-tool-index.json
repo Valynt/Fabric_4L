@@ -1,6 +1,6 @@
 {
   "registry_version": "0.1.0",
-  "generated_at": "2026-08-31T17:54:18.301833+00:00",
+  "generated_at": "2026-09-01T15:38:32-04:00",
   "snapshot_sha": "c6e7d65a67b42af5",
   "tool_manifests": [
     {
@@ -23,7 +23,7 @@
         "client_supplied_tenant_authoritative": false,
         "resolve_server_side": true
       },
-      "source_path": "contracts\\tool-manifests\\billing\\charge-forecast.tool.yaml"
+      "source_path": "contracts/tool-manifests/billing/charge-forecast.tool.yaml"
     },
     {
       "tool_id": "billing.credit.request_draft",
@@ -45,7 +45,7 @@
         "client_supplied_tenant_authoritative": false,
         "resolve_server_side": true
       },
-      "source_path": "contracts\\tool-manifests\\billing\\credit-request-draft.tool.yaml"
+      "source_path": "contracts/tool-manifests/billing/credit-request-draft.tool.yaml"
     },
     {
       "tool_id": "billing.invoice.explain",
@@ -67,7 +67,7 @@
         "client_supplied_tenant_authoritative": false,
         "resolve_server_side": true
       },
-      "source_path": "contracts\\tool-manifests\\billing\\invoice-explain.tool.yaml"
+      "source_path": "contracts/tool-manifests/billing/invoice-explain.tool.yaml"
     },
     {
       "tool_id": "billing.reconciliation.analyze",
@@ -89,7 +89,7 @@
         "client_supplied_tenant_authoritative": false,
         "resolve_server_side": true
       },
-      "source_path": "contracts\\tool-manifests\\billing\\reconciliation-analysis.tool.yaml"
+      "source_path": "contracts/tool-manifests/billing/reconciliation-analysis.tool.yaml"
     },
     {
       "tool_id": "billing.refund.request_draft",
@@ -111,7 +111,7 @@
         "client_supplied_tenant_authoritative": false,
         "resolve_server_side": true
       },
-      "source_path": "contracts\\tool-manifests\\billing\\refund-request-draft.tool.yaml"
+      "source_path": "contracts/tool-manifests/billing/refund-request-draft.tool.yaml"
     },
     {
       "tool_id": "billing.subscription.change_draft",
@@ -133,7 +133,7 @@
         "client_supplied_tenant_authoritative": false,
         "resolve_server_side": true
       },
-      "source_path": "contracts\\tool-manifests\\billing\\subscription-change-draft.tool.yaml"
+      "source_path": "contracts/tool-manifests/billing/subscription-change-draft.tool.yaml"
     }
   ],
   "policies": {
@@ -150,6 +150,7 @@
       ],
       "allowed_tools": [],
       "denied_tools": [],
+      "require_human_confirmation_for_financial_tools": true,
       "description": "Billing copilot may only use tools that are READ_ONLY, CALCULATION_ONLY, or DRAFT_ONLY. It must never use REVERSIBLE_MUTATION, PROTECTED_MUTATION, or IRREVERSIBLE tools.\n"
     },
     "general-agent": {
@@ -165,6 +166,7 @@
       ],
       "allowed_tools": [],
       "denied_tools": [],
+      "require_human_confirmation_for_financial_tools": true,
       "description": "General-purpose agents may use READ_ONLY, CALCULATION_ONLY, DRAFT_ONLY, and REVERSIBLE_MUTATION tools. PROTECTED_MUTATION and IRREVERSIBLE tools are denied by default.\n"
     }
   },

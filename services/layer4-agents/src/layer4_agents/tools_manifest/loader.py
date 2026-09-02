@@ -242,6 +242,9 @@ def _load_policies(root: Path) -> tuple[dict[str, Any], dict[str, str]]:
             allowed_tools=list(raw.get("allowed_tools", []) or []),
             denied_tools=list(raw.get("denied_tools", []) or []),
             denied_side_effects=list(raw.get("denied_side_effects", []) or []),
+            require_human_confirmation_for_financial_tools=bool(
+                raw.get("require_human_confirmation_for_financial_tools", False)
+            ),
             description=raw.get("description"),
         )
         bindings[str(agent_class)] = str(agent_class)
@@ -336,6 +339,7 @@ def load_manifests(
         hasher.update(m.tool_id.encode())
     patch = str(int(hasher.hexdigest()[:16], 16))[:10]
     registry_version = f"0.1.{patch}"
+    snapshot_sha = hasher.hexdigest()[:16]
 
     summaries = [
         ToolManifestSummary(
@@ -349,7 +353,7 @@ def load_manifests(
             financial_state_change=m.financial_state_change,
             supported_agent_classes=m.supported_agent_classes,
             tenant_binding=m.tenant_binding,
-            source_path=str(src),
+            source_path=src.relative_to(root.parents[1]).as_posix(),
         )
         for m, src in zip(valid_manifests, valid_sources)
     ]
@@ -359,6 +363,7 @@ def load_manifests(
     index = ToolRegistryIndex(
         registry_version=registry_version,
         generated_at=generated_at,
+        snapshot_sha=snapshot_sha,
         tool_manifests=summaries,
         policies=policies,
         agent_class_bindings=bindings,
@@ -402,17 +407,29 @@ def filter_tools_for_agent(
         The list of ``ToolManifestSummary`` objects the agent may discover.
     """
     policy = index.policies.get(agent_class)
-    allowed_side_effects: set[str] | None = None
-    denied_side_effects: set[str] = set()
-    allowed_tools: set[str] | None = None
-    denied_tools: set[str] = set()
-    if policy is not None:
-        allowed_side_effects = (
-            set(policy.allowed_side_effects) if policy.allowed_side_effects else None
-        )
-        denied_side_effects = set(policy.denied_side_effects) or set()
-        allowed_tools = set(policy.allowed_tools) if policy.allowed_tools else None
-        denied_tools = set(policy.denied_tools) or set()
+    if policy is None:
+        # Unknown agent class has no policy. Fail closed: expose nothing rather
+        # than defaulting to an unrestricted view.
+        return []
+
+    allowed_side_effects = set(policy.allowed_side_effects)
+    denied_side_effects = set(policy.denied_side_effects)
+    allowed_tools = set(policy.allowed_tools)
+    denied_tools = set(policy.denied_tools)
+
+    requires_confirmation = policy.require_human_confirmation_for_financial_tools
+
+    def _emit(manifest: ToolManifestSummary) -> ToolManifestSummary:
+        # Fail closed: when the policy demands human confirmation for financial
+        # state changes, force that requirement onto any exposed financial tool,
+        # overriding an under-specified manifest default.
+        if (
+            requires_confirmation
+            and manifest.financial_state_change
+            and not manifest.human_confirmation_required
+        ):
+            return manifest.model_copy(update={"human_confirmation_required": True})
+        return manifest
 
     exposed: list[ToolManifestSummary] = []
     for manifest in index.tool_manifests:
@@ -424,11 +441,15 @@ def filter_tools_for_agent(
             continue
         if manifest.side_effect in denied_side_effects:
             continue
-        # Attribute-based allow: side-effect class must be permitted.
-        if allowed_side_effects is not None and manifest.side_effect not in allowed_side_effects:
+        # An explicit tool-id allowlist, when non-empty, grants access to the
+        # listed tools regardless of their side-effect class.
+        if allowed_tools:
+            if manifest.tool_id in allowed_tools:
+                exposed.append(_emit(manifest))
             continue
-        # Tool-id allow-list, when the policy declares one.
-        if allowed_tools is not None and manifest.tool_id not in allowed_tools:
+        # Attribute-based allow: the side-effect class must be explicitly
+        # permitted. An empty allowlist therefore permits nothing (fail closed).
+        if manifest.side_effect not in allowed_side_effects:
             continue
-        exposed.append(manifest)
+        exposed.append(_emit(manifest))
     return exposed

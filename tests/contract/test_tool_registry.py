@@ -34,6 +34,7 @@ from layer4_agents.tools_manifest.models import (
     ToolManifest,
     ToolManifestSummary,
     ToolRegistryIndex,
+    AgentPolicy,
 )
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -243,6 +244,8 @@ def _summary(
 @pytest.fixture(scope="module")
 def policy_index(compiled) -> ToolRegistryIndex:
     index, _ = compiled
+    # Work on a copy so tests do not mutate the shared module-scoped index.
+    index = index.model_copy(deep=True)
     binding = index.tool_manifests[0].tenant_binding
     synthetic = [
         _summary("billing.subscription.change_execute", "REVERSIBLE_MUTATION",
@@ -274,6 +277,7 @@ class TestPolicyFiltering:
 
     def test_supported_agent_classes_allowlist(self, compiled) -> None:
         index, _ = compiled
+        index = index.model_copy(deep=True)
         binding = index.tool_manifests[0].tenant_binding
         # Tool only supports a class not present -> filtered out for everyone.
         index.tool_manifests.append(
@@ -282,6 +286,30 @@ class TestPolicyFiltering:
         for agent in ("billing-copilot", "general-agent"):
             exposed = {m.tool_id for m in filter_tools_for_agent(index, agent)}
             assert "billing.audit.only" not in exposed
+
+    def test_unknown_agent_class_fails_closed(self, policy_index) -> None:
+        # An agent class with no policy must receive no tools, not all tools.
+        exposed = filter_tools_for_agent(policy_index, "no-such-agent-class")
+        assert exposed == []
+
+    def test_empty_side_effect_allowlist_fails_closed(self, policy_index) -> None:
+        # A policy with an empty allowed_side_effects list must deny by default.
+        index = policy_index.model_copy(deep=True)
+        index.policies["locked-down-agent"] = AgentPolicy(
+            allowed_side_effects=[],
+            allowed_tools=[],
+            denied_side_effects=[],
+            denied_tools=[],
+        )
+        # Give the agent a tool that would otherwise be visible via denials-only.
+        binding = index.tool_manifests[0].tenant_binding
+        index.tool_manifests.append(
+            _summary("billing.read.explain", "READ_ONLY",
+                     ["locked-down-agent"], binding)
+        )
+        exposed = {m.tool_id for m in filter_tools_for_agent(index, "locked-down-agent")}
+        assert "billing.read.explain" not in exposed
+        assert exposed == set()
 
 
 # --------------------------------------------------------------------------- #

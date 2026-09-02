@@ -1,6 +1,7 @@
 # Fabric 4L Tool Registry — Source-of-truth manifest listing
 # Human-edited YAML listing of all .tool.yaml manifests.
-# The validate+generate pipeline reads this file to discover manifests.
+# The pipeline uses auto-discovery (rglob) to find manifests; this file
+# serves as documentation and can be used for manual override if needed.
 
 registry_version: "0.1.0"
 manifests:
