@@ -25,5 +25,4 @@ Verified on Builder commit `bd03b9af7` against `.goals/agent-tool-registry/goal.
 - `from layer4_agents.contexts.tools.public import ToolRegistry, filter_tools_for_agent` → OK
 
 ## Notes / non-blocking observations
-- `scripts/ci/validate_tool_registry.py` printed a WARNING that `contracts/auth/action-catalog.json` is not found, so action_id cross-checks are skipped. This is a pre-existing/known gap (the catalog path doesn't exist under `contracts/auth/`). Non-blocking for this goal; `tool_id`/`action_id` cross-reference is covered only where the catalog exists. **Recommend** confirming the canonical action-catalog location as a follow-up so AC5's action_id cross-reference runs unconditionally.
-- Generated artifacts live under `contracts/tool-manifests/generated/` and are gitignored by design (drift check no-op), consistent with the plan.
+- Generated artifacts live under `contracts/tool-manifests/generated/` and are committed; CI enforces determinism via `git diff --exit-code contracts/tool-manifests/generated/` after regeneration.
