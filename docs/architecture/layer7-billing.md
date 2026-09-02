@@ -27,7 +27,7 @@ Billing is not an additional horizontal core-pipeline layer; it is a domain that
 
 The historical `services/billing/` package (non-deployable compatibility code) was removed on 2026-08-27 (COMPAT-BILL-001); it must not be reintroduced or given Docker/Compose/Kubernetes runtime wiring.
 
-The parallel `services/layer7-billing/` service (a Phase-1 stub with zero production consumers) was **removed on 2026-10-15** (see [ADR-023](../explanations/adr/ADR-023-billing-service-extraction.md)). Layer 4 was ratified as the single canonical owner. The `layer7-billing` name is retained **only** as the filename of the canonical OpenAPI contract (`contracts/openapi/layer7-billing.json`), regenerated as a subset export of Layer 4's own billing surface.
+The parallel `services/layer7-billing/` service (a Phase-1 stub with zero production consumers) was **removed on 2026-09-01** (see [ADR-023](../explanations/adr/ADR-023-billing-service-extraction.md)). Layer 4 was ratified as the single canonical owner. The `layer7-billing` name is retained **only** as the filename of the canonical OpenAPI contract (`contracts/openapi/layer7-billing.json`), regenerated as a subset export of Layer 4's own billing surface.
 
 ---
 
@@ -92,11 +92,11 @@ All billing data is tenant-isolated via PostgreSQL Row-Level Security (RLS). The
 
 ## Related
 
-- [ADR-023: Billing Service Extraction](../explanations/adr/ADR-023-billing-service-extraction.md) — extract-then-consolidate record; superseded on 2026-10-15 (L4 canonical, L7 removed)
+- [ADR-023: Billing Service Extraction](../explanations/adr/ADR-023-billing-service-extraction.md) — extract-then-consolidate record; superseded on 2026-09-01 (L4 canonical, L7 removed)
 - [ADR-010: PostgreSQL RLS for Multi-Tenancy](../explanations/adr/ADR-010-postgresql-rls-for-multi-tenancy.md) — Tenant isolation
 - [Layer Runtime Path Governance](../reference/layer-runtime-path-governance.md) — canonical runtime paths
 - [Compatibility Debt Registry](../governance/compatibility-debt-registry.md) — COMPAT-L4-003 resolved/archived
 
 ---
 
-*Last updated: 2026-10-15*
+*Last updated: 2026-09-01*

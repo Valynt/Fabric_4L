@@ -42,7 +42,7 @@ We will **decompose Layer 4 incrementally**, starting with **Billing** as the pi
 
 ### Pilot: Billing & Usage Service
 
-> **Superseded (2026-10-15):** This billing pilot never shipped. Billing is owned by `services/layer4-agents/` (see ADR-023); `services/layer7-billing/` and `services/billing/` were deleted. The `contracts/openapi/layer7-billing.json` filename is retained only as the billing OpenAPI contract.
+> **Superseded (2026-09-01):** This billing pilot never shipped. Billing is owned by `services/layer4-agents/` (see ADR-023); `services/layer7-billing/` and `services/billing/` were deleted. The `contracts/openapi/layer7-billing.json` filename is retained only as the billing OpenAPI contract.
 
 **Rationale for pilot:**
 - Clear external API boundary with Stripe
@@ -131,7 +131,7 @@ Compatibility note:
 
 ### Canonical Runtime Path Policy
 
-> **Superseded (2026-10-15):** Billing is owned by `services/layer4-agents/` (see ADR-023). `services/layer7-billing/` was deleted; the `value_fabric.layer4.billing.*` path never existed and must not be recreated.
+> **Superseded (2026-09-01):** Billing is owned by `services/layer4-agents/` (see ADR-023). `services/layer7-billing/` was deleted; the `value_fabric.layer4.billing.*` path never existed and must not be recreated.
 
 ```python
 # Deprecated — historical path (never extracted; do not recreate)

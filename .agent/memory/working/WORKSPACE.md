@@ -1,10 +1,10 @@
 # Workspace (live task state)
 
 ## Active task
-- Goal: Build the `frontend-excellence` portable-brain skill package (prototype → production frontend + backend wiring + agentic layer).
-- Status: COMPLETE — SKILL.md, 5 references, 4 templates, 3 checklists, eval suite (README + 4 scenarios) all created; registered in `_index.md` + `_manifest.jsonl` (category: engineering); Playwright MCP added to `.mcp.json`; GREEN eval pass verified against `templates/tool-schema.json`.
-- Validation: `_manifest.jsonl` valid JSON (json.tool); `.mcp.json` valid; no duplicate skill names; tool-schema template passes all GREEN rule assertions.
+- Goal: Resolve the PR feedback for the Layer 4 billing de-duplication: align future-dated ownership metadata to the actual 2026-09-01 removal date and ensure the billing contract gate/test behavior remains deterministic.
+- Status: IN PROGRESS — governance ADRs and architecture docs were corrected to the actual removal date; contract check/test guardrail was not changed beyond the existing teardown fix already present in the worktree.
+- Validation: `python3 -m py_compile tests/contract/test_billing_contracts.py` succeeded; repo grep confirmed no remaining `2026-10-15`/`2026:10- 15` billing metadata markers.
 
 ## Active hypotheses
-- (cleared)
+- The remaining branch drift is documentation-only; the contract test teardown guard and gate config already reflect the L4 canonical owner.
 
