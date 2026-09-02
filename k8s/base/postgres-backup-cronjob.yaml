@@ -5,7 +5,7 @@
 #
 # BACKUP STRATEGY (Sprint 1 / Phase 0 — DR gap closure):
 #   GATED PATH: WAL-G physical base backup + continuous WAL archiving to S3
-#   (ENABLE_WALG_BACKUP="false" until restore validation evidence is available).
+#   (ENABLE_WALG_BACKUP is set to "false" in the wal-g-config ConfigMap until restore validation evidence is available).
 #   WAL-G provides PITR; Patroni archive_command
 #   (see postgres-patroni.yaml) pushes WAL via wal-g wal-push.
 #
@@ -143,8 +143,6 @@ spec:
                     secretKeyRef:
                       name: postgres-patroni-credentials
                       key: superuser-password
-                - name: ENABLE_WALG_BACKUP
-                  value: "false"
               volumeMounts:
                 - name: postgres-backups
                   mountPath: /backups
