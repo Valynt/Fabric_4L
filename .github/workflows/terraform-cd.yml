@@ -33,7 +33,7 @@ jobs:
         run: python scripts/ci/check_terraform_preflight.py
         env:
           AWS_TERRAFORM_ROLE_ARN: ${{ secrets.AWS_TERRAFORM_ROLE_ARN }}
-          AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
+          AWS_REGION: "us-east-1"
           GITHUB_ENVIRONMENT: ${{ matrix.environment || 'all' }}
 
   terraform-fmt:
@@ -72,7 +72,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@e3dd6a429df7310c206912c702224ff01c7c0eea # v4
         with:
           role-to-assume: ${{ secrets.AWS_TERRAFORM_ROLE_ARN }}
-          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+          aws-region: "us-east-1"
 
       - name: Terraform init
         working-directory: infra/terraform/environments/${{ matrix.environment }}
@@ -123,7 +123,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@e3dd6a429df7310c206912c702224ff01c7c0eea # v4
         with:
           role-to-assume: ${{ secrets.AWS_TERRAFORM_ROLE_ARN }}
-          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+          aws-region: "us-east-1"
 
       - name: Terraform init
         working-directory: infra/terraform/environments/${{ matrix.environment }}
