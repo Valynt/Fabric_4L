@@ -29,7 +29,7 @@
         "minLength": 1,
         "description": "Content-addressable snapshot identifier pinning the exact manifest set that produced this index."
       },
-    "tool_manifests": {
+      "tool_manifests": {
       "type": "array",
       "description": "List of validated tool manifest summaries (full manifests or lightweight references).",
       "items": {
