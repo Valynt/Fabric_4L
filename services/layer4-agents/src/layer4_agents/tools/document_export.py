@@ -7,6 +7,7 @@ from datetime import datetime
 from io import BytesIO
 from typing import Any
 
+import aiofiles
 from jinja2 import Template, select_autoescape
 
 # Optional weasyprint import - allows tests to run without it
@@ -325,7 +326,7 @@ class DocumentExportTool(BaseTool):
     ) -> ExportDocumentOutput:
         """Generate business case PDF."""
         template_str = custom_template or BUSINESS_CASE_TEMPLATE
-        template = Template(template_str, autoescape=select_autoescape(['html', 'xml']))
+        template = Template(template_str, autoescape=select_autoescape(["html", "xml"]))
 
         # Calculate derived values
         use_cases = data.get("use_cases", [])
@@ -488,8 +489,8 @@ class PDFGenerator:
         pdf_bytes = result.pdf_bytes
 
         if output_path:
-            with open(output_path, "wb") as f:
-                f.write(pdf_bytes)
+            async with aiofiles.open(output_path, "wb") as f:
+                await f.write(pdf_bytes)
             self.logger.info(f"PDF saved to {output_path}")
 
         return pdf_bytes
