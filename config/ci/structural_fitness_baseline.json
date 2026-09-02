@@ -30,6 +30,11 @@
       "module": "layer4_agents.agents.audit_orchestrator.models"
     },
     {
+      "complexity": 29,
+      "function": "batch_operation",
+      "module": "layer1_ingestion.api._batch_and_stats"
+    },
+    {
       "complexity": 28,
       "function": "Settings.validate_production_safety",
       "module": "layer1_ingestion.shared.config"
@@ -51,11 +56,6 @@
     },
     {
       "complexity": 26,
-      "function": "batch_operation",
-      "module": "layer1_ingestion.api._batch_and_stats"
-    },
-    {
-      "complexity": 26,
       "function": "ConversationService._heuristic_response",
       "module": "layer4_agents.services.conversation"
     },
@@ -72,20 +72,12 @@
   ],
   "oversized_modules": [
     {
-      "module": "layer1_ingestion.shared.tasks",
-      "size": 2255
-    },
-    {
-      "module": "layer4_agents.agents.audit_orchestrator.persistence",
-      "size": 1637
-    },
-    {
       "module": "layer5_ground_truth.api.governance_router",
       "size": 1544
     },
     {
       "module": "layer4_agents.engine.executor",
-      "size": 1536
+      "size": 1472
     },
     {
       "module": "models.valuepack",
@@ -93,7 +85,7 @@
     },
     {
       "module": "layer4_agents.services.conversation",
-      "size": 1240
+      "size": 1255
     },
     {
       "module": "api.routes.value_packs",
@@ -112,24 +104,28 @@
       "size": 1147
     },
     {
+      "module": "layer4_agents.agents.audit_orchestrator.models",
+      "size": 1129
+    },
+    {
       "module": "layer1_ingestion.shared.models",
       "size": 1092
     },
     {
-      "module": "layer4_agents.agents.taxonomy",
-      "size": 1072
-    },
-    {
       "module": "layer4_agents.api.routes.billing",
-      "size": 1049
+      "size": 1066
     },
     {
-      "module": "layer4_agents.agents.audit_orchestrator.models",
-      "size": 1037
+      "module": "layer4_agents.agents.audit_orchestrator.persistence",
+      "size": 1064
     },
     {
       "module": "layer4_agents.tools.registry",
-      "size": 1029
+      "size": 1053
+    },
+    {
+      "module": "layer4_agents.agents.taxonomy",
+      "size": 1020
     },
     {
       "module": "layer2_extraction.api.pipeline_runner",

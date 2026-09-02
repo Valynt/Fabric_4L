@@ -8,7 +8,7 @@ Docker Compose, Kubernetes manifests, and queue verification tests.
 
 | Area | Evidence |
 | --- | --- |
-| Layer 1 Celery app | `services/layer1-ingestion/src/layer1_ingestion/shared/tasks.py` |
+| Layer 1 Celery app | `services/layer1-ingestion/src/layer1_ingestion/shared/tasks/` (package; `__init__.py`) |
 | Layer 1 dependencies | `services/layer1-ingestion/pyproject.toml` includes `celery` and `redis` |
 | Layer 2 Celery app | `services/layer2-extraction/src/layer2_extraction/shared/tasks.py` |
 | Layer 2 dependencies | `services/layer2-extraction/pyproject.toml` includes `celery` and `redis` |

@@ -267,12 +267,12 @@ class TestBrowserCrawlStage:
         mock_self = MagicMock()
         mock_self.request.id = "test-task-id"
 
-        with patch("layer1_ingestion.shared.tasks.get_db_session") as mock_session_ctx:
+        with patch("layer1_ingestion.shared.tasks.crawl.get_db_session") as mock_session_ctx:
             mock_session = MagicMock()
             mock_session.query.return_value.get.side_effect = [mock_job, mock_target]
             mock_session_ctx.return_value.__enter__.return_value = mock_session
 
-            with patch("layer1_ingestion.shared.tasks.SmartRouter") as mock_router_class:
+            with patch("layer1_ingestion.shared.tasks.crawl.SmartRouter") as mock_router_class:
                 mock_router = MagicMock()
                 mock_decision = MagicMock()
                 mock_decision.route = RouteType.FAST
@@ -280,7 +280,7 @@ class TestBrowserCrawlStage:
                 mock_router.decide.return_value = mock_decision
                 mock_router_class.return_value = mock_router
 
-                with patch("layer1_ingestion.shared.tasks._execute_fast_path") as mock_execute_fast:
+                with patch("layer1_ingestion.shared.tasks.crawl._execute_fast_path") as mock_execute_fast:
                     mock_fast_result = MagicMock()
                     mock_fast_result.status_code = 200
                     mock_fast_result.html = "<html>test</html>"
@@ -292,16 +292,16 @@ class TestBrowserCrawlStage:
                     mock_fast_result.headers = {}
                     mock_execute_fast.return_value = mock_fast_result
 
-                    with patch("layer1_ingestion.shared.tasks.QualityGate") as mock_gate_class:
+                    with patch("layer1_ingestion.shared.tasks.crawl.QualityGate") as mock_gate_class:
                         mock_gate = MagicMock()
                         mock_gate_class.return_value = mock_gate
 
-                        with patch("layer1_ingestion.shared.tasks.CrawlDecisionRepository") as mock_repo_class:
+                        with patch("layer1_ingestion.shared.tasks.crawl.CrawlDecisionRepository") as mock_repo_class:
                             mock_repo = AsyncMock()
                             mock_repo_class.return_value = mock_repo
 
-                            with patch("layer1_ingestion.shared.tasks._update_stage"):
-                                with patch("layer1_ingestion.shared.tasks.get_metrics", return_value=None):
+                            with patch("layer1_ingestion.shared.tasks.crawl._update_stage"):
+                                with patch("layer1_ingestion.shared.tasks.crawl.get_metrics", return_value=None):
                                     result = await _browser_crawl_stage_async(
                                         mock_self, {"job_id": str(mock_job.id)}, str(mock_job.tenant_id)
                                     )

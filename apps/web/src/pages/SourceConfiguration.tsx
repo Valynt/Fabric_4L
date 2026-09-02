@@ -13,9 +13,9 @@
  */
 import { useState, useMemo } from "react";
 import {
-  Plus, Search, Settings, CheckCircle2, XCircle, AlertTriangle,
+  Plus, Search, CheckCircle2, XCircle, AlertTriangle,
   Clock, RefreshCw, Database, Globe, FileText, Cloud, Server,
-  Loader2, TestTube, Trash2, Edit3, Plug, AlertCircle, Play
+  Loader2, TestTube, Trash2, Plug, Play
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import ErrorBoundary from "@/components/ErrorBoundary";
@@ -324,7 +324,7 @@ function CreateSourceModal({
   isSubmitting: boolean;
   onClose: () => void;
   onChange: (updates: Partial<CreateSourceRequest>) => void;
-  onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
+  onSubmit: (e: React.SubmitEvent<HTMLFormElement>) => void;
 }) {
   if (!open) return null;
 
@@ -472,7 +472,7 @@ function SourceConfigurationContent() {
     });
   };
 
-  const handleCreateSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleCreateSubmit = (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     createSource.mutate(createForm, {
       onSuccess: async (source) => {
@@ -505,7 +505,7 @@ function SourceConfigurationContent() {
       <div className="flex items-center justify-between mb-6">
         <PageHeader
           title="Source Configuration"
-          subtitle={stats ? `${stats.total} sources · ${stats.connected} connected · ${stats.error} errors` : 'Loading...'}
+          subtitle={stats ? `${stats.total ?? 0} sources · ${stats.connected ?? 0} connected · ${stats.error ?? 0} errors` : 'Loading...'}
         />
         <Btn variant="primary" onClick={openCreateFlow}>
           <Plus size={14} className="mr-1" />

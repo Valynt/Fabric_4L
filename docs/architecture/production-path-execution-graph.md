@@ -64,7 +64,7 @@ Default proxy: `/api/v1{segment}{path}` → gateway `/v1{segment}{path}` (`apps/
 ### E5 — L1 → L2 extraction handoff
 
 - **Canonical (D4):** EXTRACTING stage handler → L2 `POST /v1/extract-and-ingest`, idempotency key = `source_version_id`, service auth + tenant headers
-- **Legacy (deprecated, D3):** Celery chain → `POST /v1/extract` only (`shared/tasks.py:990`) — extraction without graph ingestion
+- **Legacy (deprecated, D3):** Celery chain → `POST /v1/extract` only (`shared/tasks/` package; `extraction.py`) — extraction without graph ingestion
 - **Status:** UNWIRED (canonical handler is a no-op today); legacy path CONFIRMED but non-canonical
 
 ### E6 — L2 → L3 graph ingestion

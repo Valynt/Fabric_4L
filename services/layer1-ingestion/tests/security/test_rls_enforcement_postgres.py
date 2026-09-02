@@ -22,7 +22,14 @@ from layer1_ingestion.shared.database import get_db_session
 from layer1_ingestion.shared.models import ScrapingJob, ScrapingTarget, JobStatus
 
 # Resolve source paths relative to this test file (services/layer1-ingestion/tests/security/)
-_TASKS_FILE = Path(__file__).resolve().parents[2] / "src" / "layer1_ingestion" / "shared" / "tasks.py"
+_TASKS_DIR = Path(__file__).resolve().parents[2] / "src" / "layer1_ingestion" / "shared" / "tasks"
+
+
+def _read_tasks_source() -> str:
+    """Concatenate all tasks package submodule sources."""
+    return "".join(
+        p.read_text(encoding="utf-8") for p in sorted(_TASKS_DIR.glob("*.py"))
+    )
 
 pytestmark = pytest.mark.requires_postgres
 
@@ -238,9 +245,8 @@ class TestRequireTenantFalseAllowlist:
         from layer1_ingestion.shared import tasks
         import re
         
-        # Read the tasks file
-        with open(_TASKS_FILE, 'r', encoding='utf-8') as f:
-            content = f.read()
+        # Read the tasks package source
+        content = _read_tasks_source()
         
         # Find all occurrences of require_tenant=False
         pattern = r'get_db_session\([^)]*require_tenant=False[^)]*\)'
