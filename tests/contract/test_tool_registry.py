@@ -288,7 +288,7 @@ def _summary(
     return ToolManifestSummary(
         tool_id=tool_id,
         version="1.0.0",
-        status="active",
+        status="ACTIVE",
         side_effect=side_effect,
         action_id=tool_id,
         principal_types=["user"],

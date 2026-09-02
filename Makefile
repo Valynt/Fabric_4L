@@ -54,7 +54,7 @@
 	test-layer1-security-postgres test-layer5 test-layer6 test-shared test-e2e \
 	security-smoke security-test-gating security-test security-test-isolation \
 	security-test-rbac security-test-owasp security-test-injection security-coverage \
-	evals-full perf-test-journeys check-tool-contracts check-deprecated-tracer-imports \
+	evals-full perf-test-journeys check-tool-contracts check-tool-registry check-deprecated-tracer-imports \
 	check-risk-register debt-baseline-snapshot check-health-ratchets gate-tenant-isolation \
 	promote-staging lint-release clean-root-debris check-value-fabric-public-imports
 
@@ -854,12 +854,10 @@ check-tool-contracts: ## CI gate — validate tool error structure (CONTRACT.md 
 	@echo "✅ Tool contract check passed"
 
 check-tool-registry: ## CI gate — validate tool manifest registry and generate L4 index
-	@echo "→ Validating tool manifest registry..."
-	$(PYTHON) scripts/ci/validate_tool_registry.py
-	@echo "→ Generating Layer 4 tool index..."
+	@echo "→ Generating Layer 4 tool index (includes validation)..."
 	$(PYTHON) scripts/ci/generate_tool_index.py
 	@echo "→ Checking generated artifacts are up-to-date (no drift)..."
-	git diff --exit-code -- contracts/tool-manifests/generated/
+	@git diff --exit-code contracts/tool-manifests/generated/
 	@echo "✅ Tool registry check passed"
 
 check-deprecated-tracer-imports: ## CI gate — block imports from deprecated custom tracer modules
