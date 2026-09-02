@@ -71,7 +71,14 @@ def _get_idempotency_ttl_seconds() -> int:
             fallback_seconds=_DEFAULT_IDEMPOTENCY_TTL_SECONDS,
         )
         return _DEFAULT_IDEMPOTENCY_TTL_SECONDS
-    return max(1, ttl_seconds)
+    if ttl_seconds < 1:
+        logger.warning(
+            "idempotency_ttl_invalid",
+            configured_value=raw_value,
+            fallback_seconds=_DEFAULT_IDEMPOTENCY_TTL_SECONDS,
+        )
+        return _DEFAULT_IDEMPOTENCY_TTL_SECONDS
+    return ttl_seconds
 
 
 def _require_target_ownership(
