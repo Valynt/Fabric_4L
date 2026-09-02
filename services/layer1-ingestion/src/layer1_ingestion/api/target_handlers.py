@@ -452,7 +452,7 @@ async def execute_target(
         raise NotFoundError(message="Target not found")
 
     if target.status != TargetStatus.ACTIVE.value:
-        raise ConflictError(message=f"Target is not active (status: {target.status})")
+        raise ConflictError(message=f"Target is not active; status={target.status}")
 
     idempotency_key = request.idempotency_key or None
     existing_response, placeholder = await _check_idempotency_key(
