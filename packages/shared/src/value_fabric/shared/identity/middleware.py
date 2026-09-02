@@ -35,6 +35,7 @@ from fastapi import HTTPException, Request, Response, status
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp
+from value_fabric.shared.error_handling import sanitize_log_error
 from value_fabric.shared.tenant_kill_switch import (
     TenantKillSwitch,
     TenantSuspensionStatus,
@@ -325,7 +326,7 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
                 extra={
                     "event": "jwt_context_rejected",
                     "error_code": ERR_AUTH_CONTEXT_INVALID,
-                    "error": str(exc),
+                    "error": sanitize_log_error(exc),
                     **_request_log_context(request),
                 },
             )
@@ -353,7 +354,7 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
                     extra={
                         "event": "tenant_status_resolver_failed",
                         "error_code": ERR_AUTH_SERVICE_UNAVAILABLE,
-                        "error": str(exc),
+                        "error": sanitize_log_error(exc),
                         "tenant_id": str(ctx.tenant_id),
                     },
                 )
