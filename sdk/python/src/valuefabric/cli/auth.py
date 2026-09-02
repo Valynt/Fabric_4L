@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import http.server
+import time
 import webbrowser
-from urllib.parse import urlencode, urljoin, urlparse, urlunparse
+from urllib.parse import parse_qs, urlencode, urljoin, urlparse, urlunparse
 from uuid import uuid4
 
 import httpx
@@ -18,6 +20,43 @@ app = typer.Typer(help="Authentication management")
 
 # PKCE state storage
 PKCE_STATE_FILE = CONFIG_DIR / ".pkce_state"
+
+
+class TokenServer(http.server.HTTPServer):
+    captured_token = None
+
+
+class CallbackHandler(http.server.BaseHTTPRequestHandler):
+    def do_GET(self) -> None:
+        parsed = urlparse(self.path)
+        qs = parse_qs(parsed.query)
+        self.server.captured_token = (
+            qs.get("code", [None])[0] or qs.get("token", [None])[0] or qs.get("jwt", [None])[0]
+        )
+
+        self.send_response(200)
+        self.send_header("Content-type", "text/html")
+        self.end_headers()
+        self.wfile.write(
+            b"<html><body><h1>Authentication Successful</h1>"
+            b"<p>You can close this window and return to the CLI.</p></body></html>"
+        )
+
+    def log_message(self, format: str, *args: any) -> None:
+        pass
+
+
+def _wait_for_callback(server: TokenServer, timeout: int = 60) -> str | None:
+    try:
+        start_time = time.time()
+        while server.captured_token is None:
+            if time.time() - start_time > timeout:
+                return None
+            server.handle_request()
+        return server.captured_token
+    except Exception as e:
+        rich_print(f"[dim]Failed to start local callback server: {e}[/dim]")
+        return None
 
 
 def _generate_pkce_verifier() -> str:
@@ -133,7 +172,7 @@ def _login_oidc(base_url: str | None, tenant: str | None) -> None:
     params = {
         "response_type": "code",
         "client_id": tenant,
-        "redirect_uri": f"{base_url}/auth/callback",
+        "redirect_uri": "http://localhost:8080/callback",
         "scope": "openid profile email",
         "state": state,
         "code_challenge": code_challenge,
@@ -153,17 +192,32 @@ def _login_oidc(base_url: str | None, tenant: str | None) -> None:
     )
 
     rich_print("[dim]Opening browser for authentication...[/dim]")
+
+    # Start the server before opening the browser to avoid race conditions
+    try:
+        server = TokenServer(("127.0.0.1", 8080), CallbackHandler)
+        server.timeout = 1
+    except Exception as e:
+        rich_print(f"[dim]Failed to bind local callback server: {e}[/dim]")
+        server = None
+
     webbrowser.open(full_url)
 
-    # TODO(VF-SDK-AUTH-DEBT-001): Implement local callback server for automated token capture
-    # For now, user manually copies token
-    rich_print("\n[yellow]If browser didn't open, visit:[/yellow]")
-    rich_print(f"{full_url}")
+    # Wait for callback
+    token = None
+    if server:
+        token = _wait_for_callback(server)
+        server.server_close()
 
-    # Manual token entry fallback
-    token = Prompt.ask(
-        "\nPaste the authorization code or JWT token from the callback", password=True
-    )
+    if token:
+        rich_print("[green]✓ Token captured automatically[/green]")
+    else:
+        # Manual token entry fallback
+        rich_print("\n[yellow]If browser didn't open or callback failed, visit:[/yellow]")
+        rich_print(f"{full_url}")
+        token = Prompt.ask(
+            "\nPaste the authorization code or JWT token from the callback", password=True
+        )
 
     # Exchange code for token or use as-is
     jwt_token: str | None
