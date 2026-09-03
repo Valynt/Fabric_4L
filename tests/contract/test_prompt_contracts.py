@@ -17,7 +17,8 @@ import pytest
 from .schema_assertions import assert_matches_schema
 
 
-CONTRACTS_DIR = Path(__file__).resolve().parents[2] / "contracts" / "agent-registry"
+REPO_ROOT = Path(__file__).resolve().parents[2]
+CONTRACTS_DIR = REPO_ROOT / "contracts" / "agent-registry"
 PROMPTS_DIR = CONTRACTS_DIR / "prompts"
 SCHEMA_PATH = CONTRACTS_DIR / "schemas" / "prompt.schema.json"
 
@@ -27,7 +28,11 @@ def _load_json(path: Path) -> dict:
 
 
 def _resolve_from_contract(rel_path: str, contract_path: Path) -> Path:
-    return (contract_path.parent / rel_path).resolve()
+    resolved = (contract_path.parent / rel_path).resolve()
+    assert resolved.is_relative_to(REPO_ROOT), (
+        f"Referenced path escapes the repository root: {rel_path!r} resolves to {resolved}"
+    )
+    return resolved
 
 
 def _inline_external_refs(schema: dict, base_dir: Path) -> dict:

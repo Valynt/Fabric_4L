@@ -108,9 +108,17 @@ class PromptRegistryGate:
             self._error(path, "unreadable", f"Could not read file: {exc}")
             return None
 
-    @staticmethod
-    def _resolve_from(rel_path: str, base: Path) -> Path:
-        return (base.parent / rel_path).resolve()
+    def _resolve_within_repo(self, rel_path: str, base: Path, contract_path: Path) -> Path | None:
+        """Resolve a repo-relative reference, rejecting paths that escape REPO_ROOT."""
+        resolved = (base.parent / rel_path).resolve()
+        if not resolved.is_relative_to(REPO_ROOT):
+            self._error(
+                contract_path,
+                "path-escape",
+                f"Path escapes the repository root: {rel_path!r} resolves to {resolved}",
+            )
+            return None
+        return resolved
 
     @staticmethod
     def _sha256_hex(path: Path) -> str:
@@ -203,7 +211,9 @@ class PromptRegistryGate:
         prompt_path = contract.get("prompt_path")
         if not isinstance(prompt_path, str):
             return
-        prompt_file = self._resolve_from(prompt_path, path)
+        prompt_file = self._resolve_within_repo(prompt_path, path, path)
+        if prompt_file is None:
+            return
         if not prompt_file.exists():
             self._error(path, "prompt-file-missing", f"Prompt file does not exist: {prompt_file}")
             return
@@ -253,7 +263,9 @@ class PromptRegistryGate:
             self._warn(path, "prompt-baseline-unreferenced", "eval_baseline missing baseline_file")
             return
 
-        baseline_file = self._resolve_from(rel_path, path)
+        baseline_file = self._resolve_within_repo(rel_path, path, path)
+        if baseline_file is None:
+            return
         if not baseline_file.exists():
             self._error(path, "prompt-baseline-file-missing", f"Eval baseline file does not exist: {baseline_file}")
             return

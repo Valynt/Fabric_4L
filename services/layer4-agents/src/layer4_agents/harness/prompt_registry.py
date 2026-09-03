@@ -31,9 +31,12 @@ import yaml
 # Paths
 # ---------------------------------------------------------------------------
 
-# Canonical prompts root: services/layer4-agents/prompts/
-_SERVICE_ROOT = Path(__file__).resolve().parents[2]  # services/layer4-agents/
-_PROMPTS_ROOT = _SERVICE_ROOT / "prompts"
+# Canonical prompts root: services/layer4-agents/prompts/.
+# In the Docker image prompts are copied into src/, so prefer the in-image
+# location when it exists (mirrors harness/tests/test_llm_rewrite.py).
+_SRC_ROOT = Path(__file__).resolve().parents[2]  # services/layer4-agents/src/
+_SERVICE_ROOT = _SRC_ROOT.parent                 # services/layer4-agents/
+_PROMPTS_ROOT = _SRC_ROOT / "prompts" if (_SRC_ROOT / "prompts").exists() else _SERVICE_ROOT / "prompts"
 
 # ---------------------------------------------------------------------------
 # Data models
@@ -100,7 +103,7 @@ def _default_baselines_root() -> Path:
     """Return the canonical evals/baselines directory relative to the repo root.
 
     The registry lives under services/layer4-agents/src/layer4_agents/harness/;
-    the repo root is four parents above that.
+    the repo root is five parents above that (parents[5]).
     """
     return Path(__file__).resolve().parents[5] / "evals" / "baselines"
 
