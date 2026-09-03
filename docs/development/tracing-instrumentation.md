@@ -74,113 +74,35 @@ opentelemetry-instrumentation-logging==0.46b0
 
 ### Shared OTel Bootstrap
 
-Create `fabric4l/observability/bootstrap.py` (shared across all layers):
+Canonical client: `value_fabric.shared.observability.platform`.
+
+Do not initialize a `TracerProvider` in a service. `create_fabric_app(..., telemetry_service_name=..., instrument_telemetry=True)` is the reference path. Per-layer `prometheus_metrics.py` modules remain adapters. SLOs are encoded in `monitoring/slo/slos.contract.json`.
+
+`configure_platform` is fail-closed and once-per-process: missing SDK/endpoint, invalid `OTEL_SAMPLE_RATIO`, exporter errors, and FastAPI instrumentor failures no-op instead of crashing startup. A second call reuses the installed SDK `TracerProvider` rather than creating an orphan provider (OpenTelemetry forbids override).
 
 ```python
-"""
-OpenTelemetry bootstrap for all Fabric_4L backend services.
+from value_fabric.shared.observability import (
+    bind_context,
+    configure_platform,
+    correlation_fields,
+)
+from value_fabric.shared.fastapi_framework import create_fabric_app
 
-Usage:
-    from fabric4l.observability.bootstrap import bootstrap_telemetry
-    bootstrap_telemetry(service_name="fabric4l.layer1.ingestion", service_version="1.2.0")
-"""
+app = create_fabric_app(
+    service_name="layer4-agents",
+    title="Layer 4 Agents",
+    version="1.2.0",
+    description="Agentic workflow engine",
+    telemetry_service_name="layer4-agents",
+    instrument_telemetry=True,
+)
 
-import logging
-import os
-from typing import Optional
-
-from opentelemetry import trace
-from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
-from opentelemetry.sdk.resources import Resource, SERVICE_NAME, SERVICE_NAMESPACE, SERVICE_VERSION, DEPLOYMENT_ENVIRONMENT
-from opentelemetry.sdk.trace import TracerProvider, SynchronizedMultiSpanProcessor
-from opentelemetry.sdk.trace.export import BatchSpanProcessor
-from opentelemetry.sdk.metrics import MeterProvider
-from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
-from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
-from opentelemetry.instrumentation.logging import LoggingInstrumentation
-
-# ---------------------------------------------------------------------------
-# Defaults
-# ---------------------------------------------------------------------------
-OTEL_COLLECTOR_ENDPOINT = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://otel-collector:4317")
-DEFAULT_ENV = os.getenv("DEPLOYMENT_ENVIRONMENT", "development")
-
-logger = logging.getLogger(__name__)
-
-
-def bootstrap_telemetry(
-    service_name: str,
-    service_version: str = "1.2.0",
-    resource_attributes: Optional[dict] = None,
-) -> trace.Tracer:
-    """
-    Bootstrap OpenTelemetry tracing and metrics for a Fabric_4L service.
-
-    Args:
-        service_name: Fully-qualified service name, e.g. "fabric4l.layer1.ingestion"
-        service_version: Semantic version of the service.
-        resource_attributes: Additional resource attributes to attach.
-
-    Returns:
-        Configured Tracer instance.
-    """
-    extra_attrs = resource_attributes or {}
-
-    resource = Resource.create(
-        {
-            SERVICE_NAME: service_name,
-            SERVICE_NAMESPACE: "fabric4l",
-            SERVICE_VERSION: service_version,
-            DEPLOYMENT_ENVIRONMENT: DEFAULT_ENV,
-            **extra_attrs,
-        }
-    )
-
-    # --- Traces -----------------------------------------------------------
-    tracer_provider = TracerProvider(resource=resource, active_span_processor=SynchronizedMultiSpanProcessor())
-    trace.set_tracer_provider(tracer_provider)
-
-    otlp_span_exporter = OTLPSpanExporter(
-        endpoint=OTEL_COLLECTOR_ENDPOINT,
-        insecure=True,
-        timeout=30,
-    )
-    span_processor = BatchSpanProcessor(
-        otlp_span_exporter,
-        max_queue_size=2048,
-        max_export_batch_size=512,
-        schedule_delay_millis=1000,
-        export_timeout_millis=30000,
-    )
-    tracer_provider.add_span_processor(span_processor)
-
-    # --- Metrics ----------------------------------------------------------
-    otlp_metric_exporter = OTLPMetricExporter(
-        endpoint=OTEL_COLLECTOR_ENDPOINT,
-        insecure=True,
-        timeout=30,
-    )
-    metric_reader = PeriodicExportingMetricReader(
-        otlp_metric_exporter,
-        export_interval_millis=60000,
-        export_timeout_millis=30000,
-    )
-    meter_provider = MeterProvider(resource=resource, metric_readers=[metric_reader])
-
-    # --- Logging correlation ------------------------------------------------
-    LoggingInstrumentation().instrument(set_logging_format=True)
-
-    logger.info(
-        "OpenTelemetry bootstrapped",
-        extra={
-            "service_name": service_name,
-            "service_version": service_version,
-            "otel_collector": OTEL_COLLECTOR_ENDPOINT,
-        },
-    )
-
-    return trace.get_tracer(service_name, service_version)
+# Optional: bind identifiers for logs + audit correlation (no DB column).
+bind_context(request_id="req-1", tenant_id="tenant-a")
+fields = correlation_fields()  # request_id, trace_id, span_id, tenant_id
 ```
+
+Missing `OTEL_EXPORTER_OTLP_ENDPOINT` or OpenTelemetry SDK → no-op provider; the process still starts.
 
 ### L1: Ingestion Service
 

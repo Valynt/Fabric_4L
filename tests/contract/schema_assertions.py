@@ -6,11 +6,31 @@ contracts/jsonschema and contracts/openapi artifacts.
 
 from __future__ import annotations
 
+import json
+import re
+from datetime import datetime
 from typing import Any
 
 
 class SchemaValidationError(AssertionError):
     """Raised when payload does not satisfy schema constraints."""
+
+
+def _is_rfc3339_datetime(value: str) -> bool:
+    """Return True if ``value`` is a lenient RFC 3339 date-time string.
+
+    A date-time string must include a time component separated by ``T`` (or
+    lowercase ``t``); a bare date such as ``2026-09-01`` is a date, not a
+    date-time, and is rejected here.
+    """
+    if "T" not in value and "t" not in value:
+        return False
+    candidate = value[:-1] + "+00:00" if value.endswith("Z") else value
+    try:
+        datetime.fromisoformat(candidate)
+        return True
+    except ValueError:
+        return False
 
 
 TYPE_MAP = {
@@ -77,6 +97,9 @@ def assert_matches_schema(instance: Any, schema: dict[str, Any], *, root: dict[s
     if "enum" in schema and instance not in schema["enum"]:
         raise SchemaValidationError(f"{path}: value {instance!r} not in enum {schema['enum']!r}")
 
+    if "const" in schema and instance != schema["const"]:
+        raise SchemaValidationError(f"{path}: value {instance!r} does not equal const {schema['const']!r}")
+
     if isinstance(instance, (int, float)) and not isinstance(instance, bool):
         minimum = schema.get("minimum")
         maximum = schema.get("maximum")
@@ -92,6 +115,21 @@ def assert_matches_schema(instance: Any, schema: dict[str, Any], *, root: dict[s
             raise SchemaValidationError(f"{path}: string shorter than minLength {min_len}")
         if max_len is not None and len(instance) > max_len:
             raise SchemaValidationError(f"{path}: string longer than maxLength {max_len}")
+
+        if schema.get("format") == "date-time" and not _is_rfc3339_datetime(instance):
+            raise SchemaValidationError(f"{path}: {instance!r} is not a valid RFC 3339 date-time")
+
+        if "pattern" in schema:
+            pattern = schema["pattern"]
+            if not isinstance(pattern, str):
+                raise SchemaValidationError(f"{path}: invalid pattern {pattern!r}")
+            try:
+                if re.search(pattern, instance) is None:
+                    raise SchemaValidationError(
+                        f"{path}: {instance!r} does not match pattern {pattern!r}"
+                    )
+            except re.error as exc:
+                raise SchemaValidationError(f"{path}: invalid regex {pattern!r}: {exc}") from exc
 
     if isinstance(instance, dict):
         required = schema.get("required", [])
@@ -114,7 +152,19 @@ def assert_matches_schema(instance: Any, schema: dict[str, Any], *, root: dict[s
             if unknown:
                 raise SchemaValidationError(f"{path}: additional properties not allowed: {sorted(unknown)}")
 
-    if isinstance(instance, list) and "items" in schema:
-        item_schema = schema["items"]
-        for idx, item in enumerate(instance):
-            assert_matches_schema(item, item_schema, root=root_schema, path=f"{path}[{idx}]")
+    if isinstance(instance, list):
+        if schema.get("uniqueItems") is True:
+            seen: set[str] = set()
+            for item in instance:
+                try:
+                    marker = json.dumps(item, sort_keys=True)
+                except (TypeError, ValueError):
+                    marker = repr(item)
+                if marker in seen:
+                    raise SchemaValidationError(f"{path}: duplicate item {item!r} in uniqueItems array")
+                seen.add(marker)
+
+        if "items" in schema:
+            item_schema = schema["items"]
+            for idx, item in enumerate(instance):
+                assert_matches_schema(item, item_schema, root=root_schema, path=f"{path}[{idx}]")

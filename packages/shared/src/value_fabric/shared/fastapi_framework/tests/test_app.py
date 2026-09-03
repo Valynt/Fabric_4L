@@ -8,10 +8,80 @@ from ..app import (
     ExceptionHandlerRegistrationMode,
     create_fabric_app,
     install_metrics_middleware,
-    mark_route_enforcement_opt_out,
     record_enforcement_decision,
     register_health_endpoint,
 )
+
+
+def test_create_fabric_app_installs_telemetry_when_endpoint_set(monkeypatch) -> None:
+    class _FakeProvider:
+        pass
+
+    captured: dict[str, object] = {}
+
+    def _fake_configure(service_name: str, **kwargs: object) -> object:
+        captured["service_name"] = service_name
+        captured["kwargs"] = kwargs
+        from value_fabric.shared.observability.platform import PlatformTelemetry
+
+        return PlatformTelemetry(provider=_FakeProvider(), service_name=service_name)
+
+    def _fake_instrument(app: object, *, enabled: bool) -> None:
+        captured["instrumented"] = enabled
+
+    monkeypatch.setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://otel-collector:4318")
+    monkeypatch.setattr(
+        "value_fabric.shared.observability.platform.configure_platform",
+        _fake_configure,
+    )
+    monkeypatch.setattr(
+        "value_fabric.shared.observability.platform.instrument_fastapi_app",
+        _fake_instrument,
+    )
+
+    app = create_fabric_app(
+        service_name="test-otel-service",
+        title="Test OTel Service",
+        version="1.0.0",
+        description="test app",
+        telemetry_service_name="test-otel-service",
+        instrument_telemetry=True,
+    )
+    assert isinstance(app.state.telemetry_provider, _FakeProvider)
+    assert captured["service_name"] == "test-otel-service"
+    assert captured["kwargs"]["service_version"] == "1.0.0"
+    assert captured["instrumented"] is True
+
+    @app.get("/ok")
+    async def ok() -> dict[str, str]:
+        return {"ok": "true"}
+
+    client = TestClient(app)
+    response = client.get("/ok")
+    assert response.status_code == 200
+    assert "x-request-id" in response.headers
+
+
+def test_create_fabric_app_telemetry_is_noop_without_otlp_endpoint(monkeypatch) -> None:
+    monkeypatch.delenv("OTEL_EXPORTER_OTLP_ENDPOINT", raising=False)
+    app = create_fabric_app(
+        service_name="test-otel-service",
+        title="Test OTel Service",
+        version="1.0.0",
+        description="test app",
+        telemetry_service_name="test-otel-service",
+        instrument_telemetry=True,
+    )
+    assert app.state.telemetry_provider is None
+
+    @app.get("/ok")
+    async def ok() -> dict[str, str]:
+        return {"ok": "true"}
+
+    client = TestClient(app)
+    response = client.get("/ok")
+    assert response.status_code == 200
+    assert "x-request-id" in response.headers
 
 
 def test_create_fabric_app_applies_shared_defaults() -> None:

@@ -189,12 +189,13 @@ class ROICalculatorWorkflow(BaseWorkflow):
         result = await workflow.run(initial_state)
     """
 
-    def __init__(self, tool_registry: ToolRegistry, checkpoint_saver=None):
+    def __init__(self, tool_registry: ToolRegistry, checkpoint_saver=None, tool_gateway=None):
         """Initialize ROI Calculator workflow."""
         super().__init__(
             config=ROI_WORKFLOW_CONFIG,
             tool_registry=tool_registry,
             checkpoint_saver=checkpoint_saver,
+            tool_gateway=tool_gateway,
         )
 
     def _get_state_type(self):

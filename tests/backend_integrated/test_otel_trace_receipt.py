@@ -2,7 +2,7 @@
 
 Requires:
   - Running OpenTelemetry Collector (or local collector via docker-compose)
-  - Running services: billing, layer2-5-signal-refinery, layer7-billing
+  - Running services: billing, layer2-5-signal-refinery
   - Jaeger or OTLP backend accessible for trace verification
 
 This test is gated behind the ``service_required`` marker and only runs in
@@ -18,10 +18,11 @@ from typing import Any
 
 import pytest
 
-# Service endpoints (overridable via environment)
-BILLING_URL = os.getenv("BILLING_URL", "http://localhost:8000")
+# Service endpoints (overridable via environment). The canonical billing runtime
+# lives in Layer 4, so the billing integration fallback must resolve to the L4
+# service rather than the removed standalone billing port.
+BILLING_URL = os.getenv("BILLING_URL") or os.getenv("LAYER4_API_URL", "http://localhost:8004")
 LAYER25_URL = os.getenv("LAYER25_URL", "http://localhost:8007")
-LAYER7_URL = os.getenv("LAYER7_URL", "http://localhost:8008")
 JAEGER_URL = os.getenv("JAEGER_URL", "http://localhost:16686")
 
 
@@ -71,19 +72,3 @@ def test_layer25_service_emits_traces() -> None:
     assert traces is not None, "Jaeger not accessible"
     data = traces.get("data", [])
     assert len(data) > 0, "No traces found for service 'layer2-5-signal-refinery'"
-
-
-@pytest.mark.backend_integrated
-@pytest.mark.service_required
-def test_layer7_service_emits_traces() -> None:
-    """Send a request to layer7-billing and verify traces."""
-    health = _get_json(f"{LAYER7_URL}/health")
-    assert health is not None, f"Layer7 service not available at {LAYER7_URL}"
-
-    _get_json(f"{LAYER7_URL}/health")
-    time.sleep(2)
-
-    traces = _get_json(f"{JAEGER_URL}/api/traces?service=layer7-billing&limit=1")
-    assert traces is not None, "Jaeger not accessible"
-    data = traces.get("data", [])
-    assert len(data) > 0, "No traces found for service 'layer7-billing'"
