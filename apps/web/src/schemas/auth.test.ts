@@ -56,13 +56,13 @@ describe('auth schemas', () => {
         email: 'invalid-email',
       };
 
-      expect(() => validateTokenResponse(invalidData)).toThrowError(AuthError);
+      expect.assertions(2);
       try {
         validateTokenResponse(invalidData);
+        throw new Error('Expected validateTokenResponse to throw');
       } catch (err) {
-        if (err instanceof AuthError) {
-          expect(err.category).toBe(AuthErrorCategory.MALFORMED_RESPONSE);
-        }
+        expect(err).toBeInstanceOf(AuthError);
+        expect((err as AuthError).category).toBe(AuthErrorCategory.MALFORMED_RESPONSE);
       }
     });
 
