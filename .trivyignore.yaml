@@ -87,15 +87,15 @@ vulnerabilities:
     paths:
       - "apps/web/pnpm-lock.yaml"
     statement: >-
-      The canonical root pnpm lock pins browserslist properly; this finding is from the
-      retained non-canonical compatibility lock.
+      The canonical root pnpm lock pins browserslist 4.28.8; this finding is from the retained non-canonical
+      apps/web/pnpm-lock.yaml (browserslist 4.28.2 / 4.28.6) which will be retired.
     expired_at: 2026-11-18
   - id: CVE-2026-73089
     paths:
       - "apps/web/pnpm-lock.yaml"
     statement: >-
-      The canonical root pnpm lock pins browserslist properly; this finding is from the
-      retained non-canonical compatibility lock.
+      The canonical root pnpm lock pins browserslist 4.28.8; this finding is from the retained non-canonical
+      apps/web/pnpm-lock.yaml (browserslist 4.28.2 / 4.28.6) which will be retired.
     expired_at: 2026-11-18
   - id: CVE-2026-9856
     paths:
