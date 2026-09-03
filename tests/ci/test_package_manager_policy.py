@@ -8,7 +8,6 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 CHECK_POLICY = REPO_ROOT / "scripts" / "ci" / "check_package_manager_policy.mjs"
 ENFORCE_POLICY = REPO_ROOT / "scripts" / "ci" / "enforce-package-manager.cjs"
 CANONICAL_PNPM_VERSION = "10.34.5"
-CI_TOOLS_PNPM_VERSION = "10.18.1"
 
 
 def _run_repo_script(script: Path, cwd: Path) -> subprocess.CompletedProcess[str]:
@@ -31,6 +30,7 @@ def _write_package_manager_fixture(
     *,
     workflow_body: str = "jobs:\n  verify:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: pnpm/action-setup@v3\n",
     tool_versions_pnpm: str = CANONICAL_PNPM_VERSION,
+    security_suite_pnpm: str = CANONICAL_PNPM_VERSION,
 ) -> None:
     package_json = {
         "name": "fixture-root",
@@ -74,7 +74,7 @@ def _write_package_manager_fixture(
     )
     _write(
         root / "tools" / "ci" / "security-suite" / "Dockerfile",
-        f"ARG PNPM_VERSION={CI_TOOLS_PNPM_VERSION}\n",
+        f"ARG PNPM_VERSION={security_suite_pnpm}\n",
     )
     _write(
         root / ".tool-versions",
@@ -134,6 +134,16 @@ def test_package_manager_policy_rejects_stale_canonical_pnpm_version(tmp_path: P
 
     assert result.returncode == 1
     assert ".tool-versions" in result.stderr
+    assert CANONICAL_PNPM_VERSION in result.stderr
+
+
+def test_package_manager_policy_rejects_stale_security_suite_pnpm_version(tmp_path: Path) -> None:
+    _write_package_manager_fixture(tmp_path, security_suite_pnpm="10.18.1")
+
+    result = _run_repo_script(CHECK_POLICY, tmp_path)
+
+    assert result.returncode == 1
+    assert "tools/ci/security-suite/Dockerfile" in result.stderr
     assert CANONICAL_PNPM_VERSION in result.stderr
 
 

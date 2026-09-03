@@ -97,6 +97,11 @@ const CANONICAL_TEXT_SURFACES = [
     matcher: /pnpm-version:\s*(?:\n|.)*?default:\s*['"](\d+\.\d+\.\d+)['"]/,
     description: '.depot setup-fabric-ci default pnpm pin',
   },
+  {
+    file: 'tools/ci/security-suite/Dockerfile',
+    matcher: /ARG PNPM_VERSION=(\d+\.\d+\.\d+)/,
+    description: 'CI security-suite Dockerfile pnpm pin',
+  },
 ];
 
 function fail(message) {
