@@ -80,6 +80,6 @@ vulnerabilities:
     paths:
       - "apps/web/pnpm-lock.yaml"
     statement: >-
-      The canonical root pnpm lock pins js-yaml 4.3.1; this finding is from the
+      The canonical root pnpm lock pins js-yaml 4.3.2; this finding is from the
       retained non-canonical compatibility lock.
     expired_at: 2026-11-18
