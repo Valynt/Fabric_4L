@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 from pathlib import Path
 
@@ -10,13 +11,19 @@ ENFORCE_POLICY = REPO_ROOT / "scripts" / "ci" / "enforce-package-manager.cjs"
 CANONICAL_PNPM_VERSION = "10.34.5"
 
 
-def _run_repo_script(script: Path, cwd: Path) -> subprocess.CompletedProcess[str]:
+def _run_repo_script(
+    script: Path,
+    cwd: Path,
+    *,
+    env: dict[str, str] | None = None,
+) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         ["node", str(script)],
         cwd=cwd,
         capture_output=True,
         text=True,
         check=False,
+        env={**os.environ, **(env or {})},
     )
 
 
@@ -115,7 +122,11 @@ def _write_package_manager_fixture(
 
 
 def test_package_manager_enforcer_accepts_repo_policy() -> None:
-    result = _run_repo_script(ENFORCE_POLICY, REPO_ROOT)
+    result = _run_repo_script(
+        ENFORCE_POLICY,
+        REPO_ROOT,
+        env={"npm_config_user_agent": f"pnpm/{CANONICAL_PNPM_VERSION}"},
+    )
     assert result.returncode == 0, result.stdout + result.stderr
 
 
