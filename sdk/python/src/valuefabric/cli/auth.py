@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
+import hmac
 import http.server
 import time
 import webbrowser
 from typing import Any
-from urllib.parse import parse_qs, urlencode, urljoin, urlparse, urlunparse
-from uuid import uuid4
+from urllib.parse import parse_qs, urljoin, urlparse
 
 import httpx
 import jwt
@@ -25,15 +25,41 @@ PKCE_STATE_FILE = CONFIG_DIR / ".pkce_state"
 
 class TokenServer(http.server.HTTPServer):
     captured_token: str | None = None
+    expected_state: str
+    oidc_callback_url: str
 
 
 class CallbackHandler(http.server.BaseHTTPRequestHandler):
     def do_GET(self) -> None:
         parsed = urlparse(self.path)
+        if parsed.path != "/callback":
+            self.send_error(404)
+            return
+
         qs = parse_qs(parsed.query)
-        self.server.captured_token = (  # type: ignore[attr-defined]
-            qs.get("code", [None])[0] or qs.get("token", [None])[0] or qs.get("jwt", [None])[0]
-        )
+        code = qs.get("code", [None])[0]
+        state = qs.get("state", [None])[0]
+        server = self.server
+        assert isinstance(server, TokenServer)
+        if not code or not state or not hmac.compare_digest(state, server.expected_state):
+            self.send_error(400, "Invalid OIDC callback")
+            return
+
+        try:
+            response = httpx.get(
+                server.oidc_callback_url,
+                params={"code": code, "state": state},
+                timeout=30.0,
+            )
+            response.raise_for_status()
+            data = response.json()
+            token = data.get("access_token") if isinstance(data, dict) else None
+            if not isinstance(token, str) or not token:
+                raise ValueError("OIDC callback did not return an access token")
+            server.captured_token = token
+        except Exception:
+            self.send_error(502, "OIDC token exchange failed")
+            return
 
         self.send_response(200)
         self.send_header("Content-type", "text/html")
@@ -60,20 +86,20 @@ def _wait_for_callback(server: TokenServer, timeout: int = 60) -> str | None:
         return None
 
 
-def _generate_pkce_verifier() -> str:
-    """Generate a PKCE code verifier."""
-    import secrets
-
-    return secrets.token_urlsafe(32)
-
-
-def _generate_pkce_challenge(verifier: str) -> str:
-    """Generate a PKCE code challenge from verifier."""
-    import base64
-    import hashlib
-
-    digest = hashlib.sha256(verifier.encode()).digest()
-    return base64.urlsafe_b64encode(digest).rstrip(b"=").decode("ascii")
+def _begin_oidc_login(base_url: str, tenant: str, redirect_uri: str) -> tuple[str, str]:
+    """Start the server-owned OIDC flow, opening its returned IdP URL."""
+    login_url = urljoin(base_url, f"/api/v1/auth/oidc/{tenant}/login")
+    response = httpx.get(login_url, params={"redirect_uri": redirect_uri}, timeout=30.0)
+    response.raise_for_status()
+    data = response.json()
+    if not isinstance(data, dict):
+        raise ValueError("OIDC login endpoint returned an invalid response")
+    authorization_url = data.get("authorization_url")
+    state = data.get("state")
+    if not isinstance(authorization_url, str) or not isinstance(state, str):
+        raise ValueError("OIDC login response is missing authorization_url or state")
+    webbrowser.open(authorization_url)
+    return authorization_url, state
 
 
 def _is_jwt(token: str) -> bool:
@@ -160,38 +186,6 @@ def _login_oidc(base_url: str | None, tenant: str | None) -> None:
     assert base_url is not None
     assert tenant is not None
 
-    # Generate PKCE verifier and challenge
-    code_verifier = _generate_pkce_verifier()
-    code_challenge = _generate_pkce_challenge(code_verifier)
-    state = str(uuid4())
-
-    # Save state for callback verification
-    PKCE_STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
-    PKCE_STATE_FILE.write_text(f"{state}:{code_verifier}")
-
-    # Build authorization URL
-    params = {
-        "response_type": "code",
-        "client_id": tenant,
-        "redirect_uri": "http://localhost:8080/callback",
-        "scope": "openid profile email",
-        "state": state,
-        "code_challenge": code_challenge,
-        "code_challenge_method": "S256",
-    }
-    # Safely construct URL to avoid double query strings
-    parsed = urlparse(urljoin(base_url, f"/api/v1/auth/oidc/{tenant}/login"))
-    full_url = urlunparse(
-        (
-            parsed.scheme,
-            parsed.netloc,
-            parsed.path,
-            parsed.params,
-            urlencode(params),
-            parsed.fragment,
-        )
-    )
-
     rich_print("[dim]Opening browser for authentication...[/dim]")
 
     # Start the server before opening the browser to avoid race conditions
@@ -202,7 +196,20 @@ def _login_oidc(base_url: str | None, tenant: str | None) -> None:
         rich_print(f"[dim]Failed to bind local callback server: {e}[/dim]")
         server = None
 
-    webbrowser.open(full_url)
+    redirect_uri = "http://localhost:8080/callback"
+    try:
+        authorization_url, state = _begin_oidc_login(base_url, tenant, redirect_uri)
+    except Exception as e:
+        if server:
+            server.server_close()
+        rich_print(f"[red]Failed to start OIDC login: {e}[/red]")
+        raise typer.Exit(1) from None
+
+    PKCE_STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
+    PKCE_STATE_FILE.write_text(state)
+    if server:
+        server.expected_state = PKCE_STATE_FILE.read_text().strip()
+        server.oidc_callback_url = urljoin(base_url, "/api/v1/auth/oidc/callback")
 
     # Wait for callback
     token = None
@@ -215,18 +222,10 @@ def _login_oidc(base_url: str | None, tenant: str | None) -> None:
     else:
         # Manual token entry fallback
         rich_print("\n[yellow]If browser didn't open or callback failed, visit:[/yellow]")
-        rich_print(f"{full_url}")
-        token = Prompt.ask(
-            "\nPaste the authorization code or JWT token from the callback", password=True
-        )
+        rich_print(f"{authorization_url}")
+        token = Prompt.ask("\nPaste the JWT access token from the callback", password=True)
 
-    # Exchange code for token or use as-is
-    jwt_token: str | None
-    if _is_jwt(token):
-        jwt_token = token
-    else:
-        # Exchange code for token
-        jwt_token = _exchange_code_for_token(base_url, token, code_verifier, tenant)
+    jwt_token = token if _is_jwt(token) else None
 
     if not jwt_token:
         rich_print("[red]Failed to obtain authentication token[/red]")
@@ -257,35 +256,6 @@ def _login_oidc(base_url: str | None, tenant: str | None) -> None:
         config["profiles"]["default"]["jwt_expires_at"] = jwt_expires_at
     _save_config(config)
     rich_print(f"[green]Credentials saved to {CONFIG_FILE}[/green]")
-
-
-def _exchange_code_for_token(
-    base_url: str, code: str, code_verifier: str, tenant: str
-) -> str | None:
-    """Exchange authorization code for access token."""
-    token_url = urljoin(base_url, f"/api/v1/auth/oidc/{tenant}/token")
-
-    try:
-        response = httpx.post(
-            token_url,
-            json={
-                "grant_type": "authorization_code",
-                "code": code,
-                "code_verifier": code_verifier,
-                "client_id": "valuefabric-cli",
-                "redirect_uri": "http://localhost:8080/callback",
-            },
-            timeout=30.0,
-        )
-        response.raise_for_status()
-        data = response.json()
-        if not isinstance(data, dict):
-            return None
-        token = data.get("access_token")
-        return token if isinstance(token, str) else None
-    except Exception as e:
-        rich_print(f"[red]Token exchange failed: {e}[/red]")
-        return None
 
 
 @app.command("logout")

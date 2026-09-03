@@ -20,13 +20,22 @@ pytestmark = [pytest.mark.celery, pytest.mark.reliability, pytest.mark.p0, pytes
 REPO_ROOT = Path(__file__).resolve().parents[2]
 L1_TASKS = REPO_ROOT / "services/layer1-ingestion/src/layer1_ingestion/shared/tasks/__init__.py"
 L1_TASKS_DLQ = REPO_ROOT / "services/layer1-ingestion/src/layer1_ingestion/shared/tasks/dlq.py"
+L1_TASKS_BOOTSTRAP = (
+    REPO_ROOT / "services/layer1-ingestion/src/layer1_ingestion/shared/tasks/tasks_bootstrap.py"
+)
 L1_DLQ = REPO_ROOT / "services/layer1-ingestion/src/layer1_ingestion/shared/dlq.py"
-L1_METRICS = REPO_ROOT / "services/layer1-ingestion/src/layer1_ingestion/metrics/prometheus_metrics.py"
+L1_METRICS = (
+    REPO_ROOT / "services/layer1-ingestion/src/layer1_ingestion/metrics/prometheus_metrics.py"
+)
 
 
 def _l1_task_sources() -> str:
     """Aggregate the split tasks package sources for the original megafile guards."""
-    return L1_TASKS.read_text(encoding="utf-8") + L1_TASKS_DLQ.read_text(encoding="utf-8")
+    return (
+        L1_TASKS.read_text(encoding="utf-8")
+        + L1_TASKS_DLQ.read_text(encoding="utf-8")
+        + L1_TASKS_BOOTSTRAP.read_text(encoding="utf-8")
+    )
 
 
 def _load_dlq_module():
