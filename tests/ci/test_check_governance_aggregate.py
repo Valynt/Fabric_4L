@@ -21,6 +21,7 @@ def test_status_from_exit_maps_traceback_to_error() -> None:
     assert gov._status_from_exit(0, "") == "pass"
     assert gov._status_from_exit(1, "some violation") == "fail"
     assert gov._status_from_exit(1, "Traceback (most recent call last)") == "error"
+    assert gov._status_from_exit(2, "usage: check_governance.py") == "error"
 
 
 def test_aggregate_precedence_error_over_fail_over_pass() -> None:

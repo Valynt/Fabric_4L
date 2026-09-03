@@ -1,6 +1,44 @@
 {
   "description": "Baseline of known duplication clusters in packages/shared. Regenerate only after an approved dedup or waiver decision.",
-  "exact_clusters": [],
-  "normalized_clusters": [],
+  "exact_clusters": [
+    {
+      "members": [
+        "value_fabric.shared.identity.api_key_cache::get_redis_client",
+        "value_fabric.shared.identity.session_cache::get_redis_client"
+      ]
+    },
+    {
+      "members": [
+        "value_fabric.shared.rate_limiting.http_middleware::_read_bool",
+        "value_fabric.shared.security.middleware::SecurityConfig.from_env._bool_from_env"
+      ]
+    }
+  ],
+  "normalized_clusters": [
+    {
+      "members": [
+        "value_fabric.shared.clients.layer2::Layer2Transport.request",
+        "value_fabric.shared.clients.layer5::Layer5Transport.request"
+      ]
+    },
+    {
+      "members": [
+        "value_fabric.shared.identity.context::RequestContext.validate",
+        "value_fabric.shared.identity.middleware_sync::SyncRequestContext.validate"
+      ]
+    },
+    {
+      "members": [
+        "value_fabric.shared.infrastructure.cache.redis_cache::RedisCache.delete",
+        "value_fabric.shared.infrastructure.cache.redis_cache::RedisCache.exists"
+      ]
+    },
+    {
+      "members": [
+        "value_fabric.shared.secrets.infisical_client::TenantSecretManager.create_tenant_secrets_path",
+        "value_fabric.shared.secrets.infisical_client::TenantSecretManager.delete_tenant_secrets_path"
+      ]
+    }
+  ],
   "scope": "packages/shared/src/value_fabric/shared/"
 }

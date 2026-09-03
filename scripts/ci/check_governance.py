@@ -69,9 +69,9 @@ def _status_from_exit(exit_code: int | None, stderr: str) -> str:
         return "error"
     if exit_code == 1:
         return "fail"
-    # Any other non-zero exit code (e.g. argparse usage errors, which exit 2)
+    # Every other non-zero exit code (e.g. argparse usage errors, which exit 2)
     # indicates the check itself could not run cleanly, not a discovered
-    # violation — classify as error to fail closed.
+    # violation - classify as error to fail closed.
     return "error"
 
 
@@ -90,8 +90,8 @@ def run_argv(argv: list[str], timeout: int = TIMEOUT_SECONDS) -> dict:
             argv,
             cwd=REPO_ROOT,
             text=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
+            check=False,
             timeout=timeout,
         )
         output = _truncate((proc.stdout + "\n" + proc.stderr).strip())
@@ -278,7 +278,9 @@ def run_governance(runner=run_argv, only: str | None = None) -> dict:
 
         if spec["check_id"] == "check-shared-duplication":
             env = _read_dup_envelope()
-            if env is not None:
+            # Never let an envelope left by an earlier run replace a current
+            # subprocess error.
+            if env is not None and results[0]["status"] != "error":
                 status = env.get("status", results[0]["status"])
                 baseline_present = bool(env.get("baseline_present", False))
                 violations = env.get("violations", [])
