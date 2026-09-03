@@ -649,7 +649,7 @@ class OrchestrationController:
             checkpoint_interval=checkpoint_interval,
         )
 
-    def _build_result_from_state(self, state: AgentState) -> dict[str, Any]:
+    def _build_result_from_state(self, state: AgentState) -> OrchestrationController_get_resultResult:
         """Serialize persisted workflow state into the route-facing result shape."""
         persisted_metadata = dict(state.metadata or {})
         if "workflow_id" not in persisted_metadata:
@@ -704,7 +704,7 @@ class OrchestrationController:
         self,
         workflow_id: str,
         tenant_id: str,
-    ) -> dict[str, Any] | None:
+    ) -> OrchestrationController_get_resultResult | None:
         """Return a durable workflow result only when authoritative tenant ownership matches."""
         state = await self._load_result_state(workflow_id)
         if not state:
