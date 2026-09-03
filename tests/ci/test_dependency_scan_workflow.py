@@ -89,3 +89,16 @@ def test_scan_node_compares_pr_audit_against_base_before_failing() -> None:
     assert "Branch-introduced vulnerability" in job
     assert "Inherited vulnerability" in job
     assert "git worktree add" in job
+
+
+def test_workflow_path_filters_skip_archived_dependency_material() -> None:
+    workflow = WORKFLOW.read_text(encoding="utf-8")
+
+    for token in (
+        "!docs/archive/**",
+        "!archive/**",
+        "!**/source-snapshot/**",
+        "!**/evidence-bundle*/**",
+        "!**/signoff-evidence/**",
+    ):
+        assert workflow.count(token) == 2

@@ -1,14 +1,15 @@
 # Workspace (live task state)
 
 ## Active task
-- Goal: Resolve review comments by making axios lockfile tests compare the lockfile importer specifier with apps/web/package.json and enforce the minimum resolved version.
-- Status: COMPLETE — both axios lockfile tests now compare the importer specifier with package.json and enforce a >=1.18.0 resolved version; the stale web lockfile entry was aligned to axios 1.19.0.
-- Validation: Focused axios tests passed (2/2); the full pair of test files has one unrelated pre-existing MCP authorization assertion failure.
+- Goal: Merge the latest main into the supply-chain security PR and preserve the Axios lockfile review fixes.
+- Status: IN PROGRESS — resolving merge conflicts and validating the combined branch.
+- Prior work: Axios lockfile tests compare importer specifiers with package.json and enforce a >=1.18.0 resolved version; the web lockfile entry is aligned to axios 1.19.0.
 
-## Archived tasks
-- Goal: Remediate Trivy HIGH/CRITICAL findings in the Layer 3 SBOM and restore security-gate health.
-- Status: COMPLETE — refreshed the pinned Python base digest across maintained service Dockerfiles and build documentation.
-- Validation: Structural preflight and workflow-reference checks passed; Layer 3 Docker build reached dependency installation but local PyPI TLS interception prevented completion; secret scan found no secrets.
+## Decisions
+- #1597 and #1598 are covered by grouped dependency PR #1629.
+- #1616 is not covered by #1629/#1633 because it targets the archived frontend snapshot; retained open.
+- #1632 is blocked by @faker-js/faker manifest/lockfile mismatch.
+- Major, small-fix, and feature/refactor PRs remain held pending rebase and green CI.
 
-## Active hypotheses
-- The repo contains the intended fail-closed enforcement logic; the remaining work is to maintain this contract and validate changes with the targeted governance tests before broader releases.
+## Next action
+- A maintainer with protected-branch/write permissions must rebase manually, rerun required CI, close duplicate/superseded PRs, and merge serially.

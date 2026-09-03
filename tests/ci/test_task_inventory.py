@@ -167,8 +167,8 @@ def test_repository_inventory_is_current_and_complete() -> None:
     assert inventory == checked_in
     metadata = inventory["metadata"]
     assert metadata["internal_target_count"] == 3
-    assert metadata["phony_target_count"] == 236
-    assert metadata["public_target_count"] == 233
-    assert metadata["target_count"] == 236
+    assert metadata["phony_target_count"] == 238
+    assert metadata["public_target_count"] == 235
+    assert metadata["target_count"] == 238
     assert all(target["phony"] for target in inventory["targets"])
     assert all(target["cache_policy"] == "disabled" for target in inventory["targets"])

@@ -117,3 +117,12 @@ def test_security_dependency_floors_stay_in_sync() -> None:
     assert match, "Unable to find the web lockfile axios importer entry"
     assert match["specifier"] == web_pkg["dependencies"]["axios"]
     assert _version_tuple(match["version"]) >= (1, 18, 0)
+
+
+def test_archived_manifest_invariant_is_encoded_in_package_manager_policy() -> None:
+    policy = (REPO_ROOT / "scripts/ci/check_package_manager_policy.mjs").read_text(encoding="utf-8")
+
+    assert "Archived evidence manifests/lockfiles are forbidden outside approved immutable exceptions" in policy
+    assert "Grandfathered archived manifests are immutable evidence and must not be modified" in policy
+    assert "docs/archive/frontend-root-2026-05-02/source-snapshot/package.json" in policy
+    assert "docs/archive/frontend-root-2026-05-02/source-snapshot/pnpm-lock.yaml" in policy

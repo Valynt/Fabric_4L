@@ -11,7 +11,6 @@ interface ImportMetaEnv {
   readonly VITE_L4_PREFIX?: string;
   readonly VITE_L5_PREFIX?: string;
   readonly VITE_L6_PREFIX?: string;
-  readonly VITE_L7_PREFIX?: string;
   readonly VITE_LAYER1_ROUTE_PREFIX?: string;
   readonly VITE_LAYER2_ROUTE_PREFIX?: string;
   readonly VITE_LAYER2_5_ROUTE_PREFIX?: string;
@@ -19,7 +18,6 @@ interface ImportMetaEnv {
   readonly VITE_LAYER4_ROUTE_PREFIX?: string;
   readonly VITE_LAYER5_ROUTE_PREFIX?: string;
   readonly VITE_LAYER6_ROUTE_PREFIX?: string;
-  readonly VITE_LAYER7_ROUTE_PREFIX?: string;
   readonly VITE_PROXY_API_GATEWAY_URL?: string;
 }
 
