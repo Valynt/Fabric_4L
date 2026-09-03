@@ -1,1 +1,1 @@
-@/workspace/executor_for_mcp.py
+file:///workspace/executor_for_mcp.py
