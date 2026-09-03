@@ -1,0 +1,351 @@
+version: 1
+corpora:
+  architecture:
+    dir: docs/explanations/adr
+    index: docs/explanations/adr/README.md
+  decisions:
+    dir: docs/decisions
+    index: docs/decisions/README.md
+entries:
+  - id: ADR-001
+    corpus: architecture
+    path: docs/explanations/adr/ADR-001-fabric-harness-as-the-governed-execution-spine-for-agentic-value-workflows.md
+    status: accepted
+    related:
+      - services/layer4-agents/src/layer4_agents
+  - id: ADR-002
+    corpus: architecture
+    path: docs/explanations/adr/ADR-002-six-layer-architecture.md
+    status: accepted
+    related:
+      - services/layer1-ingestion
+      - services/layer2-extraction
+      - services/layer3-knowledge
+      - services/layer4-agents
+      - services/layer5-ground-truth
+      - services/layer6-benchmarks
+  - id: ADR-003
+    corpus: architecture
+    path: docs/explanations/adr/ADR-003-neo4j-pgvector-hybrid-graph-database.md
+    status: accepted
+    related:
+      - services/layer3-knowledge/src
+  - id: ADR-004
+    corpus: architecture
+    path: docs/explanations/adr/ADR-004-jwt-api-key-authentication-strategy.md
+    status: accepted
+    related:
+      - packages/shared/src/value_fabric/shared/identity
+  - id: ADR-005
+    corpus: architecture
+    path: docs/explanations/adr/ADR-005-ontology-guided-llm-extraction.md
+    status: accepted
+    related:
+      - services/layer2-extraction/src/layer2_extraction
+  - id: ADR-006
+    corpus: architecture
+    path: docs/explanations/adr/ADR-006-langgraph-for-agent-orchestration.md
+    status: accepted
+    related:
+      - services/layer4-agents/src/layer4_agents
+  - id: ADR-007
+    corpus: architecture
+    path: docs/explanations/adr/ADR-007-openapi-typescript-generator-selection.md
+    status: accepted
+    related:
+      - apps/web
+      - contracts/openapi
+  - id: ADR-008
+    corpus: architecture
+    path: docs/explanations/adr/ADR-008-opentelemetry-for-observability.md
+    status: accepted
+    related:
+      - monitoring
+  - id: ADR-009
+    corpus: architecture
+    path: docs/explanations/adr/ADR-009-jwt-api-key-hybrid-authentication.md
+    status: accepted
+    related:
+      - packages/shared/src/value_fabric/shared/identity
+  - id: ADR-010
+    corpus: architecture
+    path: docs/explanations/adr/ADR-010-postgresql-rls-for-multi-tenancy.md
+    status: accepted
+    related:
+      - packages/shared/src/value_fabric/shared/identity
+  - id: ADR-011
+    corpus: architecture
+    path: docs/explanations/adr/ADR-011-langgraph-for-workflow-orchestration.md
+    status: accepted
+    related:
+      - services/layer4-agents/src/layer4_agents
+  - id: ADR-012
+    corpus: architecture
+    path: docs/explanations/adr/ADR-012-circuit-breaker-pattern-for-external-service-resilience.md
+    status: accepted
+    related:
+      - packages/shared/src/value_fabric/shared/resilience
+  - id: ADR-013
+    corpus: architecture
+    path: docs/explanations/adr/ADR-013-repository-pattern-for-data-access.md
+    status: accepted
+    related:
+      - services/layer3-knowledge/src
+  - id: ADR-014
+    corpus: architecture
+    path: docs/explanations/adr/ADR-014-multi-layer-architecture-vs-monolith.md
+    status: accepted
+    related:
+      - services/layer1-ingestion
+      - services/layer6-benchmarks
+  - id: ADR-015
+    corpus: architecture
+    path: docs/explanations/adr/ADR-015-opentelemetry-for-observability.md
+    status: accepted
+    related:
+      - monitoring
+  - id: ADR-016
+    corpus: architecture
+    path: docs/explanations/adr/ADR-016-neo4j-for-knowledge-graph-storage.md
+    status: accepted
+    related:
+      - services/layer3-knowledge/src
+  - id: ADR-017
+    corpus: architecture
+    path: docs/explanations/adr/ADR-017-jwt-api-key-hybrid-authentication.md
+    status: accepted
+    related:
+      - packages/shared/src/value_fabric/shared/identity
+  - id: ADR-018
+    corpus: architecture
+    path: docs/explanations/adr/ADR-018-layer-5-canonical-source.md
+    status: accepted
+    related:
+      - services/layer5-ground-truth/src/layer5_ground_truth
+    must_contain:
+      - path: services/layer5-ground-truth/src/layer5_ground_truth/__init__.py
+        pattern: "Layer 5"
+  - id: ADR-019
+    corpus: architecture
+    path: docs/explanations/adr/ADR-019-replayability-event-envelope-and-layer-4-replay-harness.md
+    status: accepted
+    related:
+      - services/layer4-agents/src/layer4_agents
+  - id: ADR-020
+    corpus: architecture
+    path: docs/explanations/adr/ADR-020-layer-2-5-signal-refinery.md
+    status: accepted
+    related:
+      - services/layer2-5-signal-refinery
+  - id: ADR-021
+    corpus: architecture
+    path: docs/explanations/adr/ADR-021-layer-3-canonical-runtime-path.md
+    status: accepted
+    related:
+      - services/layer3-knowledge/src
+    must_contain:
+      - path: services/layer3-knowledge/src/__init__.py
+        pattern: "."
+  - id: ADR-022
+    corpus: architecture
+    path: docs/explanations/adr/ADR-022-layer4-internal-decomposition.md
+    status: superseded
+    related:
+      - services/layer4-agents/src/layer4_agents
+  - id: ADR-023
+    corpus: architecture
+    path: docs/explanations/adr/ADR-023-billing-service-extraction.md
+    status: superseded
+    related:
+      - services/layer4-agents/src/layer4_agents/api/routes/billing.py
+  - id: ADR-024
+    corpus: architecture
+    path: docs/explanations/adr/ADR-024-circuit-breaker-inventory.md
+    status: accepted
+    related:
+      - packages/shared/src/value_fabric/shared/resilience
+  - id: ADR-025
+    corpus: architecture
+    path: docs/explanations/adr/ADR-025-layer-25-signal-refinery.md
+    status: accepted
+    related:
+      - services/layer2-5-signal-refinery
+  - id: ADR-026
+    corpus: architecture
+    path: docs/explanations/adr/ADR-026-deterministic-entity-id-generation.md
+    status: accepted
+    related:
+      - services/layer2-extraction/src/layer2_extraction/extraction/entity_id.py
+  - id: ADR-027
+    corpus: architecture
+    path: docs/explanations/adr/ADR-027-shim-removal.md
+    status: accepted
+    related:
+      - scripts/ci/check_compatibility_shims.py
+  - id: ADR-028
+    corpus: architecture
+    path: docs/explanations/adr/ADR-028-tenant-context-ratification.md
+    status: accepted
+    related:
+      - packages/shared/src/value_fabric/shared/identity/context.py
+  - id: ADR-029
+    corpus: architecture
+    path: docs/explanations/adr/ADR-029-middleware-auth-ratification.md
+    status: accepted
+    related:
+      - packages/shared/src/value_fabric/shared/identity/middleware.py
+  - id: ADR-030
+    corpus: architecture
+    path: docs/explanations/adr/ADR-030-neo4j-hosting-decision.md
+    status: accepted
+    related:
+      - k8s/envs/prod/kustomization.yaml
+      - k8s/envs/prod/neo4j-aura-delete-deployment.yml
+    must_contain:
+      - path: k8s/envs/prod/kustomization.yaml
+        pattern: neo4j-aura
+  - id: ADR-031
+    corpus: architecture
+    path: docs/explanations/adr/ADR-031-agent-output-ratification.md
+    status: accepted
+    related:
+      - services/layer4-agents/src/layer4_agents
+  - id: ADR-032
+    corpus: architecture
+    path: docs/explanations/adr/ADR-032-ui-route-state-ratification.md
+    status: accepted
+    related:
+      - apps/web
+  - id: ADR-033
+    corpus: architecture
+    path: docs/explanations/adr/ADR-033-tool-boundary-ratification.md
+    status: accepted
+    related:
+      - services/layer4-agents/src/layer4_agents/tools
+  - id: ADR-034
+    corpus: architecture
+    path: docs/explanations/adr/ADR-034-request-context-contract.md
+    status: accepted
+    related:
+      - packages/shared/src/value_fabric/shared/identity
+  - id: ADR-035
+    corpus: architecture
+    path: docs/explanations/adr/ADR-035-verified-tenant-context-boundary.md
+    status: accepted
+    related:
+      - packages/shared/src/value_fabric/shared/identity
+  - id: ADR-036
+    corpus: architecture
+    path: docs/explanations/adr/ADR-036-tenant-bound-graph-query-execution.md
+    status: accepted
+    related:
+      - services/layer3-knowledge/src
+  - id: ADR-037
+    corpus: architecture
+    path: docs/explanations/adr/ADR-037-separation-of-workflow-state-context-and-orchestration.md
+    status: accepted
+    related:
+      - services/layer4-agents/src/layer4_agents
+  - id: ADR-038
+    corpus: architecture
+    path: docs/explanations/adr/ADR-038-externalized-secret-management-and-automated-detection.md
+    status: accepted
+    related:
+      - .infisical.json
+      - k8s/infisical
+  - id: ADR-039
+    corpus: architecture
+    path: docs/explanations/adr/ADR-039-canonical-public-api-shape.md
+    status: accepted
+    related:
+      - contracts/openapi
+  - id: ADR-040
+    corpus: architecture
+    path: docs/explanations/adr/ADR-040-data-ownership-system-of-record.md
+    status: accepted
+    related:
+      - docs/contract.md
+  - id: ADR-041
+    corpus: architecture
+    path: docs/explanations/adr/ADR-041-canonical-layer1-ingestion-path.md
+    status: accepted
+    related:
+      - services/layer1-ingestion/src/layer1_ingestion
+    must_contain:
+      - path: services/layer1-ingestion/src/layer1_ingestion/orchestrator/coordinator.py
+        pattern: coordinator
+  - id: ADR-042
+    corpus: architecture
+    path: docs/explanations/adr/ADR-042-claim-benchmark-taxonomy-alignment.md
+    status: accepted
+    related:
+      - services/layer5-ground-truth
+      - services/layer6-benchmarks
+  - id: ADR-043
+    corpus: architecture
+    path: docs/explanations/adr/ADR-043-gateway-token-rewrapping-with-ed25519-internal-envelopes.md
+    status: accepted
+    related:
+      - services/api
+  - id: ADR-044
+    corpus: architecture
+    path: docs/explanations/adr/ADR-044-clerk-organizations-to-fabric-tenants-mapping.md
+    status: accepted
+    related:
+      - packages/shared/src/value_fabric/shared/identity
+  - id: ADR-045
+    corpus: architecture
+    path: docs/explanations/adr/ADR-045-dual-auth-migration-and-rollout-strategy.md
+    status: accepted
+    related:
+      - packages/shared/src/value_fabric/shared/identity
+  - id: ADR-046
+    corpus: architecture
+    path: docs/explanations/adr/ADR-046-event-catalog.md
+    status: accepted
+    related:
+      - scripts/ci/validate-event-catalog.py
+  - id: ADR-047
+    corpus: architecture
+    path: docs/explanations/adr/ADR-047-task-graph-build-orchestration.md
+    status: accepted
+    related:
+      - Makefile
+      - docs/development/COMMANDS.md
+  - id: "0001"
+    corpus: decisions
+    path: docs/decisions/0001-websocket-jwt-canonical-decoder.md
+    status: accepted
+    related:
+      - services/layer4-agents/src/layer4_agents/api/websocket/auth.py
+    must_contain:
+      - path: services/layer4-agents/src/layer4_agents/api/websocket/auth.py
+        pattern: decode_jwt
+  - id: "0002"
+    corpus: decisions
+    path: docs/decisions/0002-knowledge-tool-runtime-tenant-context.md
+    status: accepted
+    related:
+      - services/layer4-agents/src/layer4_agents/tools/knowledge_tools.py
+  - id: "0003"
+    corpus: decisions
+    path: docs/decisions/0003-audit-emission-middleware-boundary.md
+    status: accepted
+    related:
+      - packages/shared/src/value_fabric/shared/identity/middleware.py
+  - id: "0004"
+    corpus: decisions
+    path: docs/decisions/0004-layer4-database-facade-compatibility.md
+    status: accepted
+    related:
+      - services/layer4-agents/src/layer4_agents/database_facade.py
+  - id: "0005"
+    corpus: decisions
+    path: docs/decisions/0005-shared-identity-canonical-runtime-location.md
+    status: accepted
+    related:
+      - packages/shared/src/value_fabric/shared/identity
+      - scripts/ci/check_shared_identity_canonical_imports.py
+    must_contain:
+      - path: scripts/ci/check_shared_identity_canonical_imports.py
+        pattern: value_fabric.shared.identity
